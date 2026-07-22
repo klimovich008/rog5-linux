@@ -37,7 +37,8 @@ Invoke-Docker @(
 )
 Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $sourceMount, '--mount', $buildMount,
-    '--env', "JOBS=$Jobs", $image, '/workspace/repo/scripts/device/build-mainline.sh'
+    '--env', "JOBS=$Jobs", '--env', 'FRAGMENT=/workspace/repo/configs/kernel/rog5-mainline.fragment',
+    $image, '/workspace/repo/scripts/device/build-mainline.sh'
 )
 Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $buildMount, $image,
