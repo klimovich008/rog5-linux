@@ -1,0 +1,5 @@
+project	revision	date	note
+linux-stable	7a5cef0db4795d9d453a12e0f61b5b7634fc4d40	2026-07-18	Linux v7.1.4 research baseline
+linux-lts-6.18	e871c68dfd325de01351d6d1c009337c97ee3dcd	2026-07-18	Linux v6.18.39 deployment comparison; projected EOL Dec 2028
+godshell	4530e0fdee0dc98bea20b268273d7a3e438ceb37	2026-03-18	optional eBPF/LLM observability workload
+pmaports	29afb81ed2249d1ca0148a5dc6b4280bf0402af0	2026-07-20	no anakin package; old generic SM8350 fork archived

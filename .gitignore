@@ -1,0 +1,31 @@
+# Build products and proprietary/device-specific inputs
+build/
+dist/
+artifacts/
+firmware/
+*.img
+*.bin
+*.elf
+*.fw
+*.mbn
+*.mdt
+*.b00
+*.b01
+*.b02
+*.dtb
+*.dtbo
+*.ko
+*.key
+*.pem
+
+# Test output may include device identifiers or network details.
+test-results/private/
+*.local.json
+*.local.env
+.rog5-tunnel.pid
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

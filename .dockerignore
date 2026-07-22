@@ -1,0 +1,5 @@
+.git
+artifacts
+build
+dist
+test-results/private

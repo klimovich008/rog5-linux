@@ -1,0 +1,6 @@
+name	size	sha256	role	tracked
+rog5-alpine-5.4.210-modular.img	43753472	3873641556416473646fc0581d20860b4358f3f6329d530d26773abd6207a589	known-good temporary boot; kernel #20	no
+Image-5.4.210-modular	37915136	26886a76c58a162418bc717d018414b394d9a03d49da6e9c1fef952cdba32a4f	kernel payload used by modular image	no
+rog5-alpine-5.4.210-wifi.img	43757568	fb87ac11176aef539faa18800e808ed151be09c4f60dad643349e2fc11ac237d	kernel #9 Wi-Fi comparison image	no
+rog5-alpine-5.4.210-rtcharger.img	43753472	b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86	charger calibration experiment; not default	no
+boot-current.img	100663296	c52ceefff97a38a086a5c0422cd1b65b14252ec13ae4c8dda1b1afbddd923857	private boot partition backup	no

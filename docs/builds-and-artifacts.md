@@ -1,0 +1,66 @@
+# Builds and required artifacts
+
+## Version strategy
+
+Development follows current stable Linux 7.1.4 so board work is written against the newest upstream Qualcomm, DRM/MSM, and A660 code. Linux 6.18.39 is the deployment/LTS comparison target: kernel.org projects 6.18 maintenance through December 2028. Board changes should be kept small enough to compile on both where APIs permit.
+
+Linux version numbers are not capability grades. A 7.x build is accepted only if it passes more hardware gates than the stable 5.4 baseline.
+
+## Inputs kept in Git
+
+- source revision manifest and URLs
+- kernel configuration requirements fragment
+- reviewed ASUS board DTS and any new bindings/drivers, once developed
+- Alpine/OpenRC service definitions and small device scripts
+- build, packaging, smoke, hardware, and regression tests
+- redacted reports and artifact SHA-256 identities
+
+## Inputs kept private
+
+- stock/vendor boot, vendor-boot, DTBO, and partition images
+- decompiled running vendor DTB/DTS
+- Qualcomm, ASUS, Pixelworks, Wi-Fi, modem, DSP, and GPU firmware
+- SSH private keys, Wi-Fi credentials, API tokens, email, CV, and account data
+- complete boot command line and device identifiers
+
+Private inputs live outside the repository and are referenced only by path or hash. They must never be bundled into a public source archive.
+
+## Build products
+
+| Product | Purpose | Current status |
+|---|---|---|
+| vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
+| Linux 7.1.4 `Image.gz` | current-stable compile/toolchain baseline | compile-only; never boot alone |
+| upstream SM8350 comparison DTBs | schema and subsystem reference | never boot on ASUS hardware |
+| ASUS minimal recovery DTB | UFS + USB + SSH first boot | not yet authored |
+| ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
+| initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
+| temporary Android boot image | reversible `fastboot boot` testing | produce only after DTB packaging is proven |
+| release boot image | possible persistent deployment | prohibited until every release gate passes |
+
+Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. Every candidate receives a source commit, config hash, compiler version, file sizes, and SHA-256 manifest.
+
+## Build order
+
+1. Validate scripts, known artifacts, and kernel config symbols.
+2. Compile current stable Linux plus known upstream SM8350 DTBs to prove the native ARM64 toolchain.
+3. Translate only the minimal ASUS boot contract: reserved memory, regulators, UFS, one USB controller, serial/reboot.
+4. Compile and run `dtbs_check`; package a recovery-only image.
+5. Use temporary boot and stop immediately on UFS, watchdog, reset, thermal, or USB regression.
+6. Add charging, input/display, radios/remotes, then GPU in separate commits and test tiers.
+7. Cross-compile-test the board series on 6.18 LTS and current stable.
+8. Add BTF/eBPF and GodShell only after the hardware platform is stable.
+
+Native phone builds default to one parallel job. Four jobs heated rapidly; even two jobs eventually approached 45 C at the battery sensor during the first compile. Each build was stopped cleanly and resumed from the object cache at a lower job count. The fragment also disables unrelated ARM64 SoC families, ACPI, Xen, KVM, and NFS so the final image is a DT-based Qualcomm server kernel rather than a distribution-wide ARM64 build.
+
+Normal development uses the PC cross-builder:
+
+```powershell
+pwsh scripts/host/Build-MainlineInDocker.ps1
+```
+
+It runs the same pinned source, fragment, build, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone then receives a packaged temporary boot image; copying `Image.gz` alone cannot boot the device because the initramfs, command line, DTB/DTBO, and Android boot-image layout are also required.
+
+## Reproduction records
+
+The build log and private DTS stay out of Git if they contain identifiers. A redacted summary belongs in `test-results/`; exact nonsecret output hashes belong in `manifests/`.
