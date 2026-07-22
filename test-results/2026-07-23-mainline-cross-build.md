@@ -5,7 +5,7 @@ Result: **PASS** for the compile-only upstream baseline. This is not an ASUS boo
 ## Reproduction
 
 - Source: Linux `v7.1.4`, pinned commit `7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`.
-- Builder: Ubuntu 24.04 container on Docker Desktop/WSL2, x86-64 host.
+- Builder: Ubuntu 24.04 container pinned to base-image digest `4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90`, on Docker Desktop/WSL2, x86-64 host.
 - Compiler: Ubuntu Clang 18.1.3, LLVM ARM64 target.
 - Configuration: ARM64 defconfig plus `configs/kernel/rog5-mainline.fragment`.
 - Output cache: Docker named volumes; exported products under ignored `dist/linux-7.1.4/`.
