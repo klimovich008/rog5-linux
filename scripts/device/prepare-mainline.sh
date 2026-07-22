@@ -8,7 +8,8 @@ expected_commit=${LINUX_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
 
 mkdir -p "$(dirname "$source_dir")"
 if [ ! -d "$source_dir/.git" ]; then
-    git clone --no-checkout "$repository" "$source_dir"
+    git init -q "$source_dir"
+    git -C "$source_dir" remote add origin "$repository"
 fi
 
 [ -z "$(git -C "$source_dir" status --porcelain 2>/dev/null)" ] || {
