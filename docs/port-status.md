@@ -2,7 +2,7 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | generic image compiling | DTB packaging and recovery image |
+| reversible boot | passing | generic image cross-build passes | ASUS DTB packaging and recovery image |
 | UFS root | passing | SM8350 UFS driver present | reserved memory, regulators, exact board enablement |
 | USB NCM/SSH | passing | DWC3 + configfs NCM present | Type-C/PHY supplies and gadget initramfs test |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
@@ -14,7 +14,7 @@
 | modem/DSPs | passing with delayed startup | Qualcomm remoteproc present | reserved memory, firmware names, one-processor-at-a-time validation |
 | audio | basic services present | Qualcomm audio frameworks present | codecs, routing, speakers, microphones, headset safety |
 | cameras/sensors | not a server requirement | partial generic frameworks | deferred until core server release |
-| BTF/eBPF | BPF present, BTF absent | configured in 7.1 build | verifier/load tests, then optional GodShell/OpenRC port |
+| BTF/eBPF | BPF present, BTF absent | BTF generated and verified in 7.1 build | boot-time verifier/load tests, then optional GodShell/OpenRC port |
 | KDE remote UI | software-rendered | userspace-independent | switch to hardware only after GPU gate passes |
 
 “Present upstream” means the SoC framework exists, not that the phone is supported. No row becomes passing until its device test succeeds without new kernel warnings, resets, or recovery loss.

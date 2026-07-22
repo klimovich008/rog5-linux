@@ -30,8 +30,8 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Product | Purpose | Current status |
 |---|---|---|
 | vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
-| Linux 7.1.4 `Image.gz` | current-stable compile/toolchain baseline | compile-only; never boot alone |
-| upstream SM8350 comparison DTBs | schema and subsystem reference | never boot on ASUS hardware |
+| Linux 7.1.4 `Image.gz` | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
+| upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS minimal recovery DTB | UFS + USB + SSH first boot | not yet authored |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
