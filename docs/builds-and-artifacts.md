@@ -38,6 +38,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic offline suite passes; storage is never mounted |
+| GPU target initramfs | isolated A660 probe after base recovery passes | deterministic firmware-bearing archive passes; deliberately absent from boot package |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | deterministic, signed `kexec` dependencies, nested hashes pass |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | header-v3 and AVB offline suite passes; not booted |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |

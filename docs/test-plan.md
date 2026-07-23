@@ -12,6 +12,7 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - Build logs contain no errors and are retained outside Git if large.
 - `verify-mainline-build.sh` validates the compressed Image, artifact hashes, final boot/BTF config, and parseability of every comparison DTB.
 - `verify-kexec-recovery-stage.sh` validates the staging kernel config, recovery DTB allowlist, both initramfs layers, nested payload hashes, boot header, AVB footer, and absence of private-key blocks.
+- `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
 
 ## Tier 1 — boot and recovery
 
