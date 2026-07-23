@@ -12,6 +12,16 @@ The target userspace is the official generic AArch64 Arch Linux ARM root filesys
 - Keep firmware local and outside Git; copy only the files required by each accepted hardware tier.
 - Use systemd-networkd or NetworkManager, not both for the same interface.
 
+Fetch and verify the generic rootfs into the ignored local artifact cache:
+
+```powershell
+powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
+```
+
+The script pins the official Arch Linux ARM keyring repository commit and expected full signing-key fingerprint. It accepts the mutable `latest` download only after its detached signature, archive paths, and required base files pass. The resulting size and SHA-256 become the immutable project input recorded in `manifests/artifacts.tsv`; the rootfs itself remains outside Git.
+
+The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`. Do not disable pacman signature checking to work around keyring errors; a signed package-update smoke test is a mandatory staging gate.
+
 Required server packages include OpenSSH, nftables, WireGuard tools, hostapd, dnsmasq, NetworkManager, UPower, and the selected KDE/Plasma session. Mesa/Freedreno becomes the default only after the mainline DRM/MSM GPU test tier passes.
 
 ## VPN hotspot

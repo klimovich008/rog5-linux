@@ -39,13 +39,13 @@ test-results/         redacted, reviewable test reports
 Validate the repository and a local artifact directory:
 
 ```powershell
-pwsh scripts/host/Test-Repository.ps1 -ArtifactRoot C:\path\to\RogPhone
+powershell -NoProfile -File scripts/host/Test-Repository.ps1 -ArtifactRoot C:\path\to\RogPhone
 ```
 
 Temporarily boot an image and run the non-GPU smoke suite:
 
 ```powershell
-pwsh scripts/host/Test-Boot.ps1 `
+powershell -NoProfile -File scripts/host/Test-Boot.ps1 `
   -BootImage C:\path\to\rog5-alpine-5.4.210-modular.img `
   -SshKey C:\path\to\rog5_ed25519 `
   -SshHost device-debug-address `
@@ -55,13 +55,19 @@ pwsh scripts/host/Test-Boot.ps1 `
 Validate that the mainline configuration fragment only uses symbols present in a kernel tree:
 
 ```powershell
-pwsh scripts/host/Test-KernelFragment.ps1 -KernelSource C:\src\linux-7.1.4
+powershell -NoProfile -File scripts/host/Test-KernelFragment.ps1 -KernelSource C:\src\linux-7.1.4
 ```
 
 Cross-compile the pinned ARM64 kernel in Docker on an x86-64 PC:
 
 ```powershell
-pwsh scripts/host/Build-MainlineInDocker.ps1
+powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
+```
+
+Fetch and authenticate the Arch Linux ARM userspace input:
+
+```powershell
+powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
 
 Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS serial skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the serial skeleton may be booted on the phone.

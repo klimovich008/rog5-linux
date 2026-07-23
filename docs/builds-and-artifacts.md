@@ -59,7 +59,7 @@ When a native build is unavoidable, run `guard-kernel-build.sh BUILD_PID` alongs
 Normal development uses the PC cross-builder:
 
 ```powershell
-pwsh scripts/host/Build-MainlineInDocker.ps1
+powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
 ```
 
 It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current serial skeleton cannot boot the device because UFS, USB, initramfs, command line, and Android boot-image packaging are still required.

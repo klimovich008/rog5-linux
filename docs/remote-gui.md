@@ -14,7 +14,7 @@ The physical Plasma Mobile session and nested remote KDE session are separate co
 On Windows, `scripts/host/Start-RemoteTunnel.ps1` opens loopback-only forwards for noVNC and ttyd in one hidden SSH process. The script refuses to replace an occupied local port and records its process ID in an ignored local file.
 
 ```powershell
-pwsh scripts/host/Start-RemoteTunnel.ps1 -SshKey C:\path\to\rog5_ed25519 -SshHost device-debug-address
+powershell -NoProfile -File scripts/host/Start-RemoteTunnel.ps1 -SshKey C:\path\to\rog5_ed25519 -SshHost device-debug-address
 ```
 
 `desktop-start.sh` repairs only a stale `:1` Xvnc lock after verifying that its recorded PID is not an Xvnc process. It deliberately does not remove wildcard X sockets, because that could break the physical session. VNC authentication is disabled only because both VNC ports bind to `127.0.0.1`; SSH/private-network authentication is the boundary.
