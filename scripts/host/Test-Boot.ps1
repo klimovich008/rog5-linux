@@ -13,6 +13,20 @@ param(
 $ErrorActionPreference = 'Stop'
 $BootImage = (Resolve-Path -LiteralPath $BootImage).Path
 $SshKey = (Resolve-Path -LiteralPath $SshKey).Path
+if ($Fastboot -eq 'fastboot.exe' -and -not (Get-Command $Fastboot -ErrorAction SilentlyContinue)) {
+    $localFastboot = Join-Path $PSScriptRoot '..\..\artifacts\host-tools\google-r37.0.0\platform-tools\fastboot.exe'
+    if (Test-Path -LiteralPath $localFastboot) {
+        $Fastboot = (Resolve-Path -LiteralPath $localFastboot).Path
+    }
+}
+$fastbootCommand = Get-Command $Fastboot -ErrorAction SilentlyContinue
+if (-not $fastbootCommand) {
+    throw 'fastboot.exe not found; run scripts/host/Get-PlatformTools.ps1'
+}
+$Fastboot = $fastbootCommand.Source
+if ((Get-AuthenticodeSignature -LiteralPath $Fastboot).Status -ne 'Valid') {
+    throw 'fastboot.exe does not have a valid Authenticode signature'
+}
 
 function Invoke-Ssh([string] $Command, [int] $ConnectTimeout = 8) {
     $args = @(

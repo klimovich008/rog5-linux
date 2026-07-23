@@ -49,7 +49,7 @@ Bring up ADSP/CDSP/modem/SLPI one at a time with correct reserved memory and fir
 
 Use upstream DRM/MSM Freedreno rather than vendor KGSL. Validate A660 firmware, IOMMU mappings, GMU idle transitions, repeated render-node opens, Turnip, and KWin. This is expected to remove the current vendor KGSL second-open failure, but it is not assumed until tested.
 
-The compile-only GPU tier is deliberately a two-node overlay: enable upstream `&gpu` and select the upstream SM8350 zap-shader path. Linux 7.1 already supplies the A660/GMU/SMMU hardware description and driver. The overlay stays outside the recovery package until the three required firmware payloads are extracted and authenticated.
+The compile-only GPU tier is deliberately a two-node overlay: enable upstream `&gpu` and select the upstream SM8350 zap-shader path. Linux 7.1 already supplies the A660/GMU/SMMU hardware description and driver. The three matching payloads from `linux-firmware` 20260622 pass pinned hashes and the zap image is valid Qualcomm DSP6 ELF32. They remain outside Git and outside the recovery package until the base recovery boot passes on hardware.
 
 ### Phase G — observability and automation
 

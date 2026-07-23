@@ -18,3 +18,7 @@ dist/linux-7.1.4/sm8350-microsoft-surface-duo2.dtb	79118	44a623b41125c0e2f686807
 dist/linux-7.1.4/sm8350-mtp.dtb	79117	b3500595df8ad84b08083c4b8913ad0d612c21927b632ab41be67f62cede55bc	upstream comparison DTB; never boot on ASUS	no
 dist/linux-7.1.4/sm8350-sony-xperia-sagami-pdx214.dtb	85492	09fc6963567a7192f3bee9a241f6a346150dd7d718dcfdc68e037051e2de5ea6	upstream comparison DTB; never boot on ASUS	no
 dist/linux-7.1.4/sm8350-sony-xperia-sagami-pdx215.dtb	86454	de53dd0a757a3d297478fdbffb298ca14c3f5f83b118ad6dc80903bec5b7c980	upstream comparison DTB; never boot on ASUS	no
+artifacts/host-tools/platform-tools_r37.0.0-win.zip	8092164	4fe305812db074cea32903a489d061eb4454cbc90a49e8fea677f4b7af764918	official Google Windows adb/fastboot package	no
+artifacts/firmware/linux-firmware-20260622/qcom/a660_gmu.bin	55252	8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7	upstream A660 GMU firmware for mainline GPU tier	no
+artifacts/firmware/linux-firmware-20260622/qcom/a660_sqe.fw	43292	d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76	upstream A660 SQE firmware for mainline GPU tier	no
+artifacts/firmware/linux-firmware-20260622/qcom/sm8350/a660_zap.mbn	1054648	5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d	upstream SM8350 zap shader for mainline GPU tier	no

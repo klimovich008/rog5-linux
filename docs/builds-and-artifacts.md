@@ -34,7 +34,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS and left-side USB contracts compiled and checked; never boot |
 | ASUS minimal recovery DTB | UFS + USB + SSH first boot | recovery overlay and exact enablement gate pass offline; not booted |
-| ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay passes compile guards; firmware and hardware tests pending |
+| ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic offline suite passes; storage is never mounted |

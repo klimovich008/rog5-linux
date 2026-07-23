@@ -7,3 +7,5 @@ archlinuxarm-keyring	91e6b11698f8df66042d56aaa56fbe9c9263847d	2014-01-19	public 
 alpine-kexec-tools	2.0.32-r2	2026-01-31	signed Alpine 3.24 aarch64 recovery loader
 alpine-xz-libs	5.8.3-r0	2026-04-25	signed Alpine 3.24 aarch64 kexec runtime dependency
 alpine-zstd-libs	1.5.7-r2	2025-07-28	signed Alpine 3.24 aarch64 kexec runtime dependency
+android-platform-tools	37.0.0	2026-07-23	stable Windows adb/fastboot package pinned from Google's SDK repository metadata
+linux-firmware	20260622	2026-06-22	upstream A660 SQE/GMU and SM8350 zap-shader comparison inputs

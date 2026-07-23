@@ -14,4 +14,4 @@ Linux 7.1.4 already defines the SM8350 Adreno 660 GPU, GMU, SMMU, power domains,
 
 Combined DTB SHA-256: `2646b58c1f71890a638f2515961d2ba4b98fea3e4ea548801ff1512fcf3f8d5d`.
 
-The tier remains prohibited from booting until the device-signed zap shader plus `a660_sqe.fw` and `a660_gmu.bin` are extracted from the known-good installation, placed in the target initramfs, and hash-recorded. Repeated render-node open/close, GMU idle, Vulkan, KWin, thermal, and power tests remain hardware gates.
+The matching `a660_sqe.fw`, `a660_gmu.bin`, and SM8350 `a660_zap.mbn` from `linux-firmware` 20260622 now pass pinned size, SHA-256, path, and ELF-format gates. A locally extracted old ASUS Android 11 set is retained only as a device-signature fallback and is not committed. The GPU tier remains outside the recovery package until base recovery passes on hardware. Repeated render-node open/close, GMU idle, Vulkan, KWin, thermal, and power tests remain hardware gates.

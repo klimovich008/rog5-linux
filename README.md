@@ -72,6 +72,18 @@ Fetch and authenticate the Arch Linux ARM userspace input:
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
 
+Fetch and verify the pinned official Google `adb`/`fastboot` package:
+
+```powershell
+powershell -NoProfile -File scripts/host/Get-PlatformTools.ps1
+```
+
+Fetch and hash-check the pinned upstream A660 firmware set:
+
+```powershell
+powershell -NoProfile -File scripts/host/Get-A660Firmware.ps1
+```
+
 Fetch and authenticate the three small Alpine ARM64 packages used by the recovery loader:
 
 ```powershell
