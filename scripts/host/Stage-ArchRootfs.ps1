@@ -52,8 +52,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Unable to read project commit' }
 $dirty = @(& git -C $repoRoot status --porcelain --untracked-files=normal)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Commit or remove repository changes before staging' }
 
-& docker image inspect $baseTag *> $null
-if ($LASTEXITCODE -ne 0) {
+$baseImageId = @(& docker image ls --quiet $baseTag)
+if (-not $baseImageId.Count) {
     Invoke-Docker @('import', '--platform', 'linux/arm64', $Rootfs, $baseTag)
 }
 
@@ -101,11 +101,15 @@ try {
         )
     }
     finally {
-        & docker image rm $verifyTag *> $null
+        if (@(& docker image ls --quiet $verifyTag).Count) {
+            & docker image rm $verifyTag | Out-Null
+        }
     }
 }
 finally {
-    & docker rm --force $container *> $null
+    if (@(& docker container ls --all --quiet --filter "name=^/$container`$").Count) {
+        & docker rm --force $container | Out-Null
+    }
 }
 
 $file = Get-Item -LiteralPath $Output
