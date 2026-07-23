@@ -3,7 +3,7 @@
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
 | reversible boot | passing | image, modules, and serial skeleton cross-build pass | recovery DTS hardware, packaging, and temporary boot image |
-| UFS root | passing | SM8350 UFS driver present | reserved memory, regulators, exact board enablement |
+| UFS root | passing | controller/PHY rails and reset translated but kept disabled | recovery packaging, read-only temporary-boot enablement |
 | USB NCM/SSH | passing | DWC3 + configfs NCM present | Type-C/PHY supplies and gadget initramfs test |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |

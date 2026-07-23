@@ -12,7 +12,7 @@ One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the f
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
-See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
+See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md), [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
 
 ## Safety model
 
