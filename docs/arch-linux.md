@@ -22,6 +22,14 @@ The script pins the official Arch Linux ARM keyring repository commit and expect
 
 The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`. Do not disable pacman signature checking to work around keyring errors; a signed package-update smoke test is a mandatory staging gate.
 
+Stage a server rootfs with an external public SSH key:
+
+```powershell
+powershell -NoProfile -File scripts/host/Stage-ArchRootfs.ps1 -AuthorizedKey C:\path\to\rog5_ed25519.pub
+```
+
+Staging runs the AArch64 userspace under Docker emulation, keeps pacman signature enforcement, removes the generic Arch kernel, installs only the server/VPN packages, adds the matching custom modules, locks published password accounts, removes reusable host identity, and enables SSH key login. It does not include VPN/Wi-Fi credentials, enable the hotspot, install a desktop, or alter the phone. The exported rootfs is re-imported and verified so ownership, modes, and critical file capabilities survive the round trip.
+
 Required server packages include OpenSSH, nftables, WireGuard tools, hostapd, dnsmasq, NetworkManager, UPower, and the selected KDE/Plasma session. Mesa/Freedreno becomes the default only after the mainline DRM/MSM GPU test tier passes.
 
 ## VPN hotspot
