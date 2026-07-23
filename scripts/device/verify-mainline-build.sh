@@ -4,13 +4,18 @@ set -eu
 output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4}
 expected_commit=${LINUX_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
 meta="$output_dir/build-meta.txt"
-image="$output_dir/arch/arm64/boot/Image.gz"
+image="$output_dir/arch/arm64/boot/Image"
+image_gz="$output_dir/arch/arm64/boot/Image.gz"
 modules="$output_dir/modules.tar.gz"
 
 [ -r "$meta" ] || { echo "FAIL missing $meta" >&2; exit 1; }
 grep -qx "kernel_commit=$expected_commit" "$meta" || { echo 'FAIL wrong build commit' >&2; exit 1; }
-[ -s "$image" ] || { echo 'FAIL missing Image.gz' >&2; exit 1; }
-gzip -t "$image"
+grep -qx 'python_hash_seed=0' "$meta" || { echo 'FAIL Python hash seed is not pinned' >&2; exit 1; }
+grep -qx 'pahole_jobs=1' "$meta" || { echo 'FAIL BTF encoder is not serialized' >&2; exit 1; }
+[ -s "$image" ] || { echo 'FAIL missing Image' >&2; exit 1; }
+[ -s "$image_gz" ] || { echo 'FAIL missing Image.gz' >&2; exit 1; }
+gzip -t "$image_gz"
+gzip -dc "$image_gz" | cmp - "$image"
 [ -s "$modules" ] || { echo 'FAIL missing modules.tar.gz' >&2; exit 1; }
 tar -tzf "$modules" | grep -q '/ath11k.ko$' || { echo 'FAIL ath11k module missing' >&2; exit 1; }
 tar -tzf "$modules" | grep -q '/ath11k_pci.ko$' || { echo 'FAIL ath11k PCI module missing' >&2; exit 1; }
@@ -31,8 +36,12 @@ done
 for symbol in \
     CONFIG_ARCH_QCOM=y \
     CONFIG_SCSI_UFS_QCOM=y \
+    CONFIG_USB_CONFIGFS_ACM=y \
+    CONFIG_USB_F_ACM=y \
+    CONFIG_USB_U_SERIAL=y \
     CONFIG_USB_CONFIGFS_NCM=y \
     CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2=y \
+    CONFIG_PM_WAKELOCKS=y \
     CONFIG_DRM_MSM=y \
     CONFIG_DEBUG_INFO_BTF=y \
     CONFIG_BPF_SYSCALL=y \
@@ -52,4 +61,4 @@ grep -qx '# CONFIG_ARM_PSCI_CPUIDLE_DOMAIN is not set' "$output_dir/.config" || 
     exit 1
 }
 
-echo 'PASS compile-only Image.gz, hashes, final config, and five upstream SM8350 DTBs'
+echo 'PASS compile-only Image/Image.gz, hashes, final config, and five upstream SM8350 DTBs'

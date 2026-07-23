@@ -1,5 +1,15 @@
 # Two-stage mainline recovery package - 2026-07-23
 
+> **CORRECTION — SUPERSEDED V2; DO NOT BOOT**
+>
+> Offline reproducibility did not prove the live safety boundary. A later
+> audit showed that the v2 first-stage `/` was writable physical UFS and that
+> its target DTB enabled UFS and QMP/SuperSpeed. The zero-storage and USB2-only
+> claims below are false. Nothing was flashed. All listed hashes and build
+> results are retained for provenance. Later v6 passed its then-current offline
+> checks but failed live ACM data and rollback. Current fixes require a full
+> rebuild; there is no boot candidate.
+
 Result: **PASS** for deterministic v2 construction and offline validation.
 The ASUS 5.4 staging half has also passed live boot; see
 `2026-07-23-kexec-live.md` for the target-handoff blocker.

@@ -3,7 +3,7 @@ param(
     [ValidateRange(1, 256)]
     [int]$Jobs = [Math]::Max(1, [Environment]::ProcessorCount - 1),
     [string]$SourceVolume = 'rog5-linux-source-7.1.4',
-    [string]$BuildVolume = 'rog5-linux-build-7.1.4',
+    [string]$BuildVolume,
     [string]$DistDirectory
 )
 
@@ -11,6 +11,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 if (-not $DistDirectory) {
     $DistDirectory = Join-Path $repoRoot 'dist\linux-7.1.4'
+}
+if (-not $BuildVolume) {
+    $suffix = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss') + '-' +
+        ([Guid]::NewGuid().ToString('N').Substring(0, 8))
+    $BuildVolume = "rog5-linux-build-7.1.4-$suffix"
 }
 $DistDirectory = [IO.Path]::GetFullPath($DistDirectory)
 $image = 'rog5-kernel-builder:ubuntu-24.04'
@@ -48,6 +53,13 @@ Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $sourceMount, '--mount', $buildMount,
     $image, 'sh', '/workspace/repo/scripts/device/build-asus-dtb.sh'
 )
+Invoke-Docker @(
+    'run', '--rm', '--mount', $repoMount, '--mount', $buildMount,
+    $image, 'sh', '/workspace/repo/scripts/device/build-recovery-candidate-dtb.sh',
+    '/root/build/rog5-linux-7.1.4/asus-dt/sm8350-asus-rog-phone5.dtb',
+    '/workspace/repo/dts/qcom/sm8350-asus-rog-phone5-recovery.dtso',
+    '/root/build/rog5-linux-7.1.4/asus-dt/sm8350-asus-rog-phone5-recovery.dtb'
+)
 
 New-Item -ItemType Directory -Force -Path $DistDirectory | Out-Null
 $distMount = "type=bind,source=$DistDirectory,target=/dist"
@@ -55,10 +67,13 @@ $copy = @'
 set -eu
 src=/root/build/rog5-linux-7.1.4
 install -m 0644 "$src/.config" /dist/kernel.config
-install -m 0644 "$src/arch/arm64/boot/Image.gz" "$src/build-meta.txt" "$src/modules.tar.gz" /dist/
+install -m 0644 "$src/arch/arm64/boot/Image" "$src/arch/arm64/boot/Image.gz" \
+    "$src/build-meta.txt" "$src/modules.tar.gz" /dist/
 install -m 0644 "$src"/arch/arm64/boot/dts/qcom/sm8350-*.dtb /dist/
-install -m 0644 "$src/asus-dt/sm8350-asus-rog-phone5.dtb" /dist/
+install -m 0644 "$src/asus-dt/sm8350-asus-rog-phone5.dtb" \
+    "$src/asus-dt/sm8350-asus-rog-phone5-recovery.dtb" /dist/
 '@
 Invoke-Docker @('run', '--rm', '--mount', $buildMount, '--mount', $distMount, $image, 'sh', '-c', $copy)
 
 Write-Host "PASS cross-compiled Linux 7.1.4 artifacts: $DistDirectory"
+Write-Host "Fresh build volume retained for audit: $BuildVolume"

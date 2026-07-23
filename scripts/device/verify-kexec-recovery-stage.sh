@@ -1,43 +1,89 @@
 #!/bin/sh
 set -eu
 
-artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL}
+artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL EXPECTED_SHA256}
 mkbootimg_dir=${2:?missing mkbootimg directory}
 avbtool=${3:?missing avbtool}
+expected_sums=${4:?missing expected SHA-256 manifest}
+[ -r "$expected_sums" ] || { echo "FAIL missing $expected_sums" >&2; exit 1; }
 
 check_hash() {
-	actual=$(sha256sum "$artifact_dir/$1" | cut -d ' ' -f 1)
-	[ "$actual" = "$2" ] || {
-		echo "FAIL artifact hash mismatch: $1" >&2
+	file=$1
+	expected=$(awk -v file="$file" '$2 == file { print $1 }' "$expected_sums")
+	[ "$(printf '%s\n' "$expected" | awk 'NF { count++ } END { print count + 0 }')" -eq 1 ] || {
+		echo "FAIL manifest entry count for $file" >&2
+		exit 1
+	}
+	case $expected in
+		*[!0-9a-f]*|'') echo "FAIL invalid hash for $file" >&2; exit 1 ;;
+	esac
+	[ "${#expected}" -eq 64 ] || {
+		echo "FAIL invalid hash length for $file" >&2
+		exit 1
+	}
+	actual=$(sha256sum "$artifact_dir/$file" | cut -d ' ' -f 1)
+	[ "$actual" = "$expected" ] || {
+		echo "FAIL artifact hash mismatch: $file" >&2
 		exit 1
 	}
 }
 
-check_hash Image-5.4.210-kexec-stage 5655a45839340cb68e4cf5fe497f1e2790db293d4a8e234fb4d12dd54d98c9d7
-check_hash config-5.4.210-kexec-stage 8c7fabbf879d2bce652d8b44d8ac1d982126015732b1176f63cedeb53064d571
-check_hash Image-7.1.4 f010217f70eb6c8022b6af0d937c7ad33498b2c65913a448ef342a72f0148909
-check_hash sm8350-asus-rog-phone5-recovery.dtb c9af02720703471425bbf5a9086869754031d7dced1ec7ec53cbf4c487f3a351
-check_hash rog5-recovery-initramfs.cpio.gz 8bd91d390cf3d65e55c7d1e7e581800edfbede30f8d3f5e51e0d53cf5a495226
-check_hash rog5-kexec-stage-initramfs.cpio.gz 940df2d403dcf02dd03b3dc428747a25bcc4290bfd9d31bd7c2f00876bb821f0
-check_hash boot-5.4.210-kexec-stage.raw.img 5be6a072aaff93df210cf0a86511789f995e3ec8499d1b6728e7c4a8739185f0
-check_hash boot-5.4.210-kexec-stage.avb.img 88777b3c32fbe6fa29964dd9d1865447c9109d07593e5d4ab910a6bdf1f27aa0
+required_files='
+Image-5.4.210-kexec-stage-builtin-recovery
+config-5.4.210-kexec-stage-builtin-recovery
+embedded-kexec-stage-initramfs.cpio.gz
+Image-7.1.4
+sm8350-asus-rog-phone5-recovery.dtb
+rog5-recovery-initramfs.cpio.gz
+rog5-kexec-stage-initramfs.cpio.gz
+boot-5.4.210-kexec-stage-builtin-recovery.raw.img
+boot-5.4.210-kexec-stage-builtin-recovery.avb.img
+'
+manifest_lines=$(awk 'NF { count++ } END { print count + 0 }' "$expected_sums")
+[ "$manifest_lines" -eq 9 ] || {
+	echo 'FAIL expected exactly nine manifest entries' >&2
+	exit 1
+}
+for file in $required_files; do
+	check_hash "$file"
+done
 
-config=$artifact_dir/config-5.4.210-kexec-stage
+config=$artifact_dir/config-5.4.210-kexec-stage-builtin-recovery
 grep -qx 'CONFIG_KEXEC=y' "$config"
 grep -qx '# CONFIG_KEXEC_FILE is not set' "$config"
-strings "$artifact_dir/Image-5.4.210-kexec-stage" | grep -q 'Linux version 5.4.210.*-kexec-stage'
+grep -qx 'CONFIG_BLK_DEV_INITRD=y' "$config"
+grep -qx 'CONFIG_INITRAMFS_SOURCE="/root/build/rog5-kexec-stage-initramfs.cpio.gz"' "$config"
+grep -qx 'CONFIG_INITRAMFS_COMPRESSION=".gz"' "$config"
+cmp "$artifact_dir/embedded-kexec-stage-initramfs.cpio.gz" \
+	"$artifact_dir/rog5-kexec-stage-initramfs.cpio.gz"
+python3 - "$artifact_dir/Image-5.4.210-kexec-stage-builtin-recovery" \
+	"$artifact_dir/embedded-kexec-stage-initramfs.cpio.gz" <<'PY'
+import sys
+
+image = open(sys.argv[1], "rb").read()
+initramfs = open(sys.argv[2], "rb").read()
+if image.count(initramfs) != 1:
+    raise SystemExit("embedded initramfs count is not one")
+PY
+strings "$artifact_dir/Image-5.4.210-kexec-stage-builtin-recovery" |
+	grep -q 'Linux version 5.4.210.*-kexec-stage-builtin-recovery'
 
 dtb=$artifact_dir/sm8350-asus-rog-phone5-recovery.dtb
+for node in /soc@0/usb@a6f8800 /soc@0/phy@88e3000; do
+	[ "$(fdtget -t s "$dtb" "$node" status)" = okay ]
+done
 for node in \
 	/soc@0/ufshc@1d84000 \
 	/soc@0/phy@1d87000 \
-	/soc@0/usb@a6f8800 \
-	/soc@0/phy@88e3000 \
-	/soc@0/phy@88e8000
+	/soc@0/phy@88e8000 \
+	/soc@0/usb@a8f8800
 do
-	[ "$(fdtget -t s "$dtb" "$node" status)" = okay ]
+	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
 done
-[ "$(fdtget -t s "$dtb" /soc@0/usb@a8f8800 status)" = disabled ]
+usb_dwc3=/soc@0/usb@a6f8800/usb@a600000
+[ "$(fdtget -t s "$dtb" "$usb_dwc3" maximum-speed)" = high-speed ]
+[ "$(fdtget -t s "$dtb" "$usb_dwc3" phy-names)" = usb2-phy ]
+[ "$(fdtget -t x "$dtb" "$usb_dwc3" phys | wc -w)" = 1 ]
 
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
@@ -51,9 +97,25 @@ gzip -dc "$artifact_dir/rog5-kexec-stage-initramfs.cpio.gz" | \
 [ ! -e "$stage/target/opt/rog5-recovery" ]
 ! grep -q 'mount.*\(userdata\|rootdev\)' "$stage/target/init"
 grep -qx 'set -u' "$stage/target/init"
+cmp "$stage/target/init" "$(dirname "$0")/../../initramfs/recovery-init"
+grep -Fq 'rog5-recovery-rollback' "$stage/target/init"
+grep -Fq '>/sys/power/wake_lock' "$stage/target/init"
+grep -Fq 'rog5-recovery-acm.pid' "$stage/target/init"
 [ -x "$stage/staging/usr/sbin/kexec" ]
 [ -x "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" ]
 grep -qx 'set -u' "$stage/staging/init"
+cmp "$stage/staging/init" "$(dirname "$0")/../../initramfs/recovery-init"
+cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
+	"$(dirname "$0")/load-mainline-recovery.sh"
+for root in "$stage/target" "$stage/staging"; do
+	[ -s "$root/root/.ssh/authorized_keys" ]
+	[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]
+	awk 'NF { count++ } END { exit count != 1 }' "$root/root/.ssh/authorized_keys"
+	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
+		"$root/root/.ssh/authorized_keys"
+	grep -qx 'PasswordAuthentication no' "$root/etc/ssh/sshd_config"
+	grep -qx 'PermitRootLogin prohibit-password' "$root/etc/ssh/sshd_config"
+done
 ! grep -rIl 'BEGIN .*PRIVATE KEY' "$stage/target" "$stage/staging" >/dev/null
 readelf -h "$stage/staging/usr/sbin/kexec" | grep -q 'Machine:.*AArch64'
 
@@ -62,24 +124,42 @@ readelf -h "$stage/staging/usr/sbin/kexec" | grep -q 'Machine:.*AArch64'
 	sha256sum -c SHA256SUMS
 )
 [ "$(sha256sum "$stage/staging/opt/rog5-recovery/Image" | cut -d ' ' -f 1)" = \
-	f010217f70eb6c8022b6af0d937c7ad33498b2c65913a448ef342a72f0148909 ]
+	"$(sha256sum "$artifact_dir/Image-7.1.4" | cut -d ' ' -f 1)" ]
 [ "$(sha256sum "$stage/staging/opt/rog5-recovery/board.dtb" | cut -d ' ' -f 1)" = \
-	c9af02720703471425bbf5a9086869754031d7dced1ec7ec53cbf4c487f3a351 ]
+	"$(sha256sum "$artifact_dir/sm8350-asus-rog-phone5-recovery.dtb" | cut -d ' ' -f 1)" ]
 [ "$(sha256sum "$stage/staging/opt/rog5-recovery/initramfs.cpio.gz" | cut -d ' ' -f 1)" = \
-	8bd91d390cf3d65e55c7d1e7e581800edfbede30f8d3f5e51e0d53cf5a495226 ]
+	"$(sha256sum "$artifact_dir/rog5-recovery-initramfs.cpio.gz" | cut -d ' ' -f 1)" ]
 
 python3 "$mkbootimg_dir/unpack_bootimg.py" \
-	--boot_img "$artifact_dir/boot-5.4.210-kexec-stage.raw.img" \
+	--boot_img "$artifact_dir/boot-5.4.210-kexec-stage-builtin-recovery.raw.img" \
 	--out "$stage/boot" >/dev/null
-[ "$(sha256sum "$stage/boot/kernel" | cut -d ' ' -f 1)" = \
-	5655a45839340cb68e4cf5fe497f1e2790db293d4a8e234fb4d12dd54d98c9d7 ]
-[ "$(sha256sum "$stage/boot/ramdisk" | cut -d ' ' -f 1)" = \
-	940df2d403dcf02dd03b3dc428747a25bcc4290bfd9d31bd7c2f00876bb821f0 ]
+python3 "$mkbootimg_dir/unpack_bootimg.py" \
+	--boot_img "$artifact_dir/boot-5.4.210-kexec-stage-builtin-recovery.raw.img" \
+	--out "$stage/boot-args" --format=mkbootimg --null >"$stage/boot.args"
+tr '\000' '\n' <"$stage/boot.args" >"$stage/boot.args.lines"
+command_line=$(awk '$0 == "--cmdline" { getline; print; exit }' "$stage/boot.args.lines")
+[ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	grep '^ramoops\.[a-z_]*=' | sort -u | wc -l)" -eq 7 ]
+[ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	grep -c '^rog5\.recovery_cidr=')" -eq 1 ]
+[ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	grep -c '^rog5\.recovery_timeout=')" -eq 1 ]
+[ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	grep -c '^rog5\.recovery_timeout=180$')" -eq 1 ]
+cmp "$stage/boot/kernel" \
+	"$artifact_dir/Image-5.4.210-kexec-stage-builtin-recovery"
+cmp "$stage/boot/ramdisk" \
+	"$artifact_dir/rog5-kexec-stage-initramfs.cpio.gz"
 
-[ "$(stat -c %s "$artifact_dir/boot-5.4.210-kexec-stage.avb.img")" = 100663296 ]
+[ "$(stat -c %s "$artifact_dir/boot-5.4.210-kexec-stage-builtin-recovery.avb.img")" = 100663296 ]
+raw=$artifact_dir/boot-5.4.210-kexec-stage-builtin-recovery.raw.img
+avb=$artifact_dir/boot-5.4.210-kexec-stage-builtin-recovery.avb.img
+head -c "$(stat -c %s "$raw")" "$avb" | cmp - "$raw"
 python3 "$avbtool" info_image \
-	--image "$artifact_dir/boot-5.4.210-kexec-stage.avb.img" >"$stage/avb-info"
+	--image "$avb" >"$stage/avb-info"
 grep -q '^Algorithm:[[:space:]]*NONE$' "$stage/avb-info"
 grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
+ln -s "$avb" "$stage/boot.img"
+python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
 echo 'PASS self-contained two-stage kexec recovery bundle; offline validation only'

@@ -31,4 +31,8 @@ Neither endpoint is a substitute for SSH authentication.
 
 Browser automation should use the dedicated `chromium-server` profile. Initial capability is read, summarize, and draft. Sending mail or submitting job applications stays behind explicit approval, as described in [security-automation.md](security-automation.md).
 
-None of this is live on Linux 7.1 yet. The kernel creates its recovery gadget internally, but Windows enumeration and target SSH remain the blocker before Arch, Plasma, or KRDP can be tested.
+None of this is live on Linux 7.1 yet. Rejected recovery v6 did enumerate
+ACM/NCM on Windows and exposed the SSH port, but ACM writes timed out, no SSH
+credential was used, the RAM-only/storage gates were not run, and rollback did
+not pass. A rebuilt recovery must pass those gates before Arch, Plasma, or
+KRDP can be tested.

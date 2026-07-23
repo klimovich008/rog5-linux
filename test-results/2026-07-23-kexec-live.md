@@ -1,5 +1,15 @@
 # Live kexec recovery follow-up - 2026-07-23
 
+> **CORRECTION — SUPERSEDED V2; DO NOT BOOT**
+>
+> A later live and artifact audit proved that the v2 first-stage `/` was a
+> writable physical UFS filesystem and that its target DTB enabled UFS and
+> QMP/SuperSpeed. Any “no storage mounted” or zero-storage conclusion below is
+> false. Nothing was flashed. The observations are retained as historical
+> evidence only. Later v6 passed its then-current offline checks but failed live
+> ACM data and rollback. Current fixes require a full rebuild; there is no boot
+> candidate.
+
 The target-handoff conclusion below is superseded by
 [the later mainline recovery result](2026-07-23-mainline-recovery-usb.md).
 The self-kexec isolation remains useful historical evidence.

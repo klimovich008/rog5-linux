@@ -10,18 +10,29 @@ The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-per
 
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
-The Linux 7.1 recovery bundle passes its deterministic offline suite. Its
-temporary vendor-compatible 5.4 staging kernel boots on the phone with
-authenticated SSH, a verified nested payload, rollback, and zero storage
-mounts. Linux 7.1 now reaches `/init`, configfs, and an internally configured
-USB gadget, but Windows does not enumerate that gadget and target SSH remains
-unreachable. Persistent ramoops plus automatic rollback remain the diagnostic
-path; storage, the Arch rootfs, the desktop, and the mainline GPU tier have not
-passed a live hardware gate.
+The historical v2 recovery image temporarily booted and produced logs showing
+Linux 7.1 reaching `/init`, configfs, and an internally configured USB gadget.
+A later audit invalidated its safety classification: the v2 staging `/` was a
+writable physical UFS filesystem, and its target DTB enabled UFS and the
+QMP/SuperSpeed PHY. Nothing was flashed, but v2 is superseded and must not be
+booted again.
+
+The later v6 candidate embedded the staging initramfs in the 5.4 kernel and
+used a USB2-only target DTB with UFS and QMP disabled. It passed its then-current
+offline suite, but live ACM data and automatic rollback failed, so v6 is also
+rejected. Source fixes for both failures and a fresh Linux 7.1 build exist;
+the dependent initramfs, wrapper, and boot image have not yet been rebuilt.
+There is no current boot candidate. Live RAM-only, kexec, rollback, host
+USB/SSH, storage, Arch rootfs, desktop, and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
-See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md), [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
+See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
+[hardware contract](docs/hardware-contract.md),
+[builds and artifacts](docs/builds-and-artifacts.md),
+[subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md),
+[remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md),
+[test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
 
 ## Safety model
 
@@ -97,9 +108,20 @@ Fetch and authenticate the three small Alpine ARM64 packages used by the recover
 powershell -NoProfile -File scripts/host/Get-RecoveryPackages.ps1
 ```
 
-Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS recovery-contract skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the skeleton may be booted on the phone.
+Source files remain in a named Docker volume. Each default PC build uses a
+fresh object volume so stale objects cannot contaminate a release candidate;
+the retained volume name is printed for audit. Verified `Image`, `Image.gz`,
+modules, configuration, metadata, comparison DTBs, and the ASUS
+recovery-contract skeleton plus USB2 recovery DTB are exported to
+`dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the
+upstream DTBs nor the standalone ASUS DTBs may be booted directly on the phone.
 
-The signed Arch input and the locked minimal Plasma Desktop rootfs pass their offline staging suites. The target image has not booted on the phone. The Arch rootfs remains outside the first RAM-only recovery and will not be mounted until USB recovery access and UFS discovery pass on hardware.
+The signed Arch input and the locked minimal Plasma Desktop rootfs pass their
+historical offline staging suites, but the archive contains the previous
+kernel modules and must be restaged after the final kernel is accepted. No
+Arch image has booted on the phone. It remains outside the first RAM-only
+recovery and will not be mounted until USB recovery access and UFS discovery
+pass on hardware.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | ASUS 5.4 staging boot and Linux 7.1.4 userspace/rollback pass | preserve temporary boot while repairing host USB enumeration |
-| UFS root | passing | controller/PHY contract compiles, but recovery keeps UFS disabled | enable discovery only after remote recovery works, then use a separate read-only mount tier |
-| USB NCM/SSH | passing | target configfs gadget, UDC, and `usb0` appear internally; host does not enumerate it | capture UDC state/carrier after reconnect, then fix device signaling or the host network path as evidence indicates |
+| reversible boot | passing | blocked: v6 failed automatic rollback and current source fixes need a full rebuild | rebuild, then verify RAM-only staging, kexec, rollback, and fallback through temporary boot |
+| UFS root | passing | blocked: recovery DTB disables UFS offline, but no current bundle has proved the live storage boundary | prove zero block-backed mounts before a separate read-only discovery tier |
+| USB NCM/SSH | passing | blocked: v6 enumerated NCM/ACM and exposed the SSH port, but ACM data failed; current fix is unbuilt | rebuild, then verify staging and target ACM/NCM/SSH |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
@@ -18,3 +18,7 @@
 | KDE remote UI | software-rendered | userspace-independent | switch to hardware only after GPU gate passes |
 
 “Present upstream” means the SoC framework exists, not that the phone is supported. No row becomes passing until its device test succeeds without new kernel warnings, resets, or recovery loss.
+
+The historical v2 staging root was writable physical UFS and its target DTB
+enabled UFS and QMP/SuperSpeed. Its former zero-storage/USB2-only classifications
+are withdrawn; v2 is superseded and must not be booted. Nothing was flashed.

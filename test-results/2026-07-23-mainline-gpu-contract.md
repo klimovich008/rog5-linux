@@ -1,5 +1,14 @@
 # Linux 7.1 A660 GPU contract - 2026-07-23
 
+> **CORRECTION — SUPERSEDED V2 BASE; DO NOT BOOT**
+>
+> This compile-only GPU overlay was checked against the unsafe v2 recovery
+> contract. A later audit proved that v2 used a writable physical-UFS
+> first-stage root and a target DTB with UFS and QMP/SuperSpeed enabled.
+> Nothing was flashed. Retain this report and its hash as historical evidence
+> only; rebuild the GPU tier after the corrected built-in-initramfs, USB2-only
+> base passes its still-pending live gates.
+
 Result: **PASS** for the compile-only opt-in overlay. It is not included in the recovery boot image.
 
 Linux 7.1.4 already defines the SM8350 Adreno 660 GPU, GMU, SMMU, power domains, clocks, thermal cooling links, and operating points. The ASUS board layer therefore adds no driver or register data. It only enables the upstream GPU node and selects the same SM8350 zap-shader path used by the upstream HDK.

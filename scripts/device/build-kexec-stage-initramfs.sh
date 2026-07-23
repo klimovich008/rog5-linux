@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-kexec-stage-initramfs.sh BASE INIT KEXEC_APK XZ_APK ZSTD_APK IMAGE DTB TARGET_INITRAMFS LOADER OUTPUT [AUTHORIZED_KEY] [TARGET_INITRAMFS_SHA256]}
+base=${1:?usage: build-kexec-stage-initramfs.sh BASE INIT KEXEC_APK XZ_APK ZSTD_APK IMAGE DTB TARGET_INITRAMFS LOADER OUTPUT AUTHORIZED_KEY TARGET_INITRAMFS_SHA256 IMAGE_SHA256 DTB_SHA256}
 init=${2:?missing recovery init}
 kexec_apk=${3:?missing kexec package}
 xz_apk=${4:?missing xz-libs package}
@@ -12,7 +12,9 @@ target_initramfs=${8:?missing target initramfs}
 loader=${9:?missing kexec loader}
 output=${10:?missing output}
 authorized_key=${11:-}
-target_initramfs_sha256=${12:-bad228341c7a69de46444642f2519ad9c2f51e333f6c8e19660fce12eb000cb5}
+target_initramfs_sha256=${12:?missing target initramfs SHA-256}
+image_sha256=${13:?missing mainline Image SHA-256}
+dtb_sha256=${14:?missing recovery DTB SHA-256}
 epoch=1681862400
 
 check_hash() {
@@ -27,10 +29,12 @@ check_hash "$base" 100e33ea4bc7e2d568450418bba3617f24394e8bb122a39fd5db334555d3b
 check_hash "$kexec_apk" bd8b6951f862af1123972b521c355c655b7a2f40c2bf9cfe700edd590a101c94
 check_hash "$xz_apk" 76dce86852903fef7adba0285d816e5ce9ffbe9fb3ca86bbb349b97afaba1f63
 check_hash "$zstd_apk" 2bb5136c89f5b0bbe1554c8915a3b520d5aa63ae2a51d4d821eb81698db5a818
-check_hash "$image" f010217f70eb6c8022b6af0d937c7ad33498b2c65913a448ef342a72f0148909
-check_hash "$dtb" c9af02720703471425bbf5a9086869754031d7dced1ec7ec53cbf4c487f3a351
-case $target_initramfs_sha256 in *[!0-9a-f]*|'') exit 1 ;; esac
-[ "${#target_initramfs_sha256}" -eq 64 ]
+for expected_hash in "$target_initramfs_sha256" "$image_sha256" "$dtb_sha256"; do
+	case $expected_hash in *[!0-9a-f]*|'') exit 1 ;; esac
+	[ "${#expected_hash}" -eq 64 ]
+done
+check_hash "$image" "$image_sha256"
+check_hash "$dtb" "$dtb_sha256"
 check_hash "$target_initramfs" "$target_initramfs_sha256"
 [ -x "$init" ] && [ -x "$loader" ] && gzip -t "$target_initramfs"
 
@@ -72,4 +76,4 @@ mkdir -p "$(dirname "$output")"
 mv "$output.tmp" "$output"
 gzip -t "$output"
 sha256sum "$output"
-echo 'PASS self-contained kexec staging initramfs; storage remains untouched'
+echo 'PASS self-contained kexec staging initramfs; no storage-mount logic included'

@@ -17,6 +17,24 @@ log() {
 	echo "rog5-recovery: $*" >/dev/kmsg
 }
 
+force_rollback() {
+	while :; do
+		reboot -f
+		sleep 5
+		echo b >/proc/sysrq-trigger 2>/dev/null || true
+	done
+}
+
+serve_acm() {
+	while :; do
+		while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
+		log 'starting ACM shell'
+		setsid sh -c 'exec sh -i <>/dev/ttyGS0 >&0 2>&0' || true
+		log 'ACM shell exited; restarting'
+		sleep 1
+	done
+}
+
 release=$(uname -r)
 log "userspace started on $release"
 case $release in
@@ -46,14 +64,18 @@ case $timeout in *[!0-9]*|'') timeout=180 ;; esac
 if [ "$timeout" -lt 30 ] || [ "$timeout" -gt 900 ]; then
 	timeout=180
 fi
+rollback_lock_timeout_ns=$(( (timeout + 30) * 1000000000 ))
+if ! printf 'rog5-recovery-rollback %s\n' \
+	"$rollback_lock_timeout_ns" >/sys/power/wake_lock; then
+	log 'rollback suspend inhibitor unavailable; rebooting'
+	force_rollback
+fi
 touch /run/rog5-recovery-armed
 (
 	sleep "$timeout"
 	[ -e /run/rog5-recovery-armed ] || exit 0
 	log 'rollback timer expired; rebooting'
-	reboot -f
-	sleep 5
-	echo b >/proc/sysrq-trigger
+	force_rollback
 ) &
 echo $! >/run/rog5-recovery-watchdog.pid
 log 'rollback timer armed'
@@ -79,6 +101,8 @@ echo 'NCM and ACM recovery' >"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
 ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
 ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+serve_acm &
+echo $! >/run/rog5-recovery-acm.pid
 log 'gadget functions configured'
 
 udc=
@@ -138,13 +162,6 @@ if [ -n "$udc" ]; then
 else
 	log 'no USB device controller found'
 fi
-
-attempt=0
-while [ "$attempt" -lt 100 ] && [ ! -e /dev/ttyGS0 ]; do
-	sleep 0.1
-	attempt=$((attempt + 1))
-done
-[ -e /dev/ttyGS0 ] && setsid sh -c 'exec sh -i </dev/ttyGS0 >/dev/ttyGS0 2>&1' &
 
 rm -f /etc/ssh/ssh_host_*
 ssh-keygen -A

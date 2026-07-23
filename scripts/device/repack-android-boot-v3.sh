@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-template=${1:?usage: repack-android-boot-v3.sh TEMPLATE KERNEL RAMDISK MKBOOTIMG_DIR AVBTOOL RAW AVB PARTITION_SIZE [EXTRA_CMDLINE]}
+template=${1:?usage: repack-android-boot-v3.sh TEMPLATE KERNEL RAMDISK MKBOOTIMG_DIR AVBTOOL RAW AVB PARTITION_SIZE [CMDLINE_OVERRIDES]}
 kernel=${2:?missing kernel}
 ramdisk=${3:?missing ramdisk}
 mkbootimg_dir=${4:?missing mkbootimg directory}
@@ -9,7 +9,7 @@ avbtool=${5:?missing avbtool}
 raw=${6:?missing raw output}
 avb=${7:?missing AVB output}
 partition_size=${8:?missing partition size}
-extra_cmdline=${9:-}
+cmdline_overrides=${9:-}
 
 unpack=$mkbootimg_dir/unpack_bootimg.py
 mkbootimg=$mkbootimg_dir/mkbootimg.py
@@ -42,7 +42,17 @@ for ((index = 0; index < ${#args[@]}; index++)); do
 			;;
 		--cmdline)
 			((index + 1 < ${#args[@]}))
-			[[ -z $extra_cmdline ]] || args[$((index + 1))]="${args[$((index + 1))]} $extra_cmdline"
+			if [[ -n $cmdline_overrides ]]; then
+				for override in $cmdline_overrides; do
+					[[ $override =~ ^[A-Za-z0-9._-]+=[^[:space:]]+$ ]]
+					key=${override%%=*}
+					current=
+					for token in ${args[$((index + 1))]}; do
+						[[ ${token%%=*} == "$key" ]] || current+="${current:+ }$token"
+					done
+					args[$((index + 1))]="${current:+$current }$override"
+				done
+			fi
 			cmdline_args=$((cmdline_args + 1))
 			;;
 	esac
@@ -50,7 +60,7 @@ done
 ((kernel_args == 1))
 ((ramdisk_args == 1))
 ((cmdline_args <= 1))
-[[ -z $extra_cmdline || $cmdline_args == 1 ]]
+[[ -z $cmdline_overrides || $cmdline_args == 1 ]]
 
 mkdir -p "$(dirname "$raw")" "$(dirname "$avb")"
 python3 "$mkbootimg" "${args[@]}" --output "$raw.tmp"

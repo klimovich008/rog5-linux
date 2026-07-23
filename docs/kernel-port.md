@@ -59,26 +59,29 @@ Enable BTF/eBPF and run GodShell as an optional systemd-managed workload. Then a
 
 ROG Phone 5 uses Android boot header v3, and the stock-style boot template has no DTB field. Passing the new ASUS DTB directly through a normal boot image is therefore not available without changing `vendor_boot`, which is outside the recovery safety boundary.
 
-The offline candidate uses a reversible two-stage route:
+The next candidate will use this reversible two-stage route:
 
-1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with only userspace `CONFIG_KEXEC` added. Nothing is flashed.
-2. Its RAM-only initramfs contains the Linux 7.1 `Image`, recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. It does not discover or mount userdata.
+1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with the staging initramfs built into the kernel. Nothing is flashed.
+2. The built-in initramfs contains the Linux 7.1 `Image`, USB2-only recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. Its offline contract contains no storage-mount logic.
 3. `rog5-load-mainline-recovery` verifies all three nested hashes, disables and verifies the single Haven hypervisor watchdog, and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
 4. Both the staging and target initramfs arm a 180-second forced-reboot timer. USB ACM is the address-free fallback; USB NCM and SSH may use DHCP or an explicitly supplied test address.
 
 The recovery overlay enables only the reviewed `usb_1` wrapper and its
 high-speed FEMTO PHY. The DWC3 child uses one `usb2-phy`; UFS, QMP/SuperSpeed,
 the secondary `usb_2` controller, display, charging, radios, remote processors,
-and GPU remain disabled. The ASUS 5.4 staging boot, authenticated recovery,
-payload load, zero-storage gates, and watchdog deactivation pass on hardware.
+and GPU remain disabled. The overlay passes static inspection. The v6 bundle
+passed its then-current offline verifier but failed live ACM data and rollback;
+current source/kernel fixes require a full rebuild before another candidate
+exists.
 
-Linux 7.1.4 executes, completes initialization, starts `/init`, configures its
-NCM/ACM gadget, binds the `a600000` UDC, and creates `usb0`. The unresolved
-gate is host enumeration and therefore target SSH, not kexec execution.
-Ramoops identified and verified fixes for the TLMM GPIO 52 abort and the
-module-only FEMTO PHY. The current DT also carries the translated ASUS HS-PHY
-tuning. The raw ramoops and bootloader restart-reason module sources used by
-this workflow are under `tools/diagnostics/`.
+The historical v2 image produced staging and Linux 7.1.4 logs, including
+target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did
+not, however, satisfy the claimed recovery boundary: its staging `/` was
+writable physical UFS, and its target DTB enabled UFS and QMP/SuperSpeed.
+Nothing was flashed, but v2 is superseded and must not be booted. Its logs
+remain diagnostic evidence for the TLMM GPIO 52 reservation and built-in FEMTO
+PHY work, not proof that the corrected RAM-only path passes. The raw ramoops
+and bootloader restart-reason module sources are under `tools/diagnostics/`.
 
 ## Non-goals
 

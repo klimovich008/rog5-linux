@@ -10,8 +10,16 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `Image`, DTB, modules, initramfs, and boot image hashes are recorded.
 - Boot image contains no credentials or host-specific SSH private keys.
 - Build logs contain no errors and are retained outside Git if large.
-- `verify-mainline-build.sh` validates the compressed Image, artifact hashes, final boot/BTF config, and parseability of every comparison DTB.
-- `verify-kexec-recovery-stage.sh` validates the staging kernel config, recovery DTB allowlist, both initramfs layers, nested payload hashes, boot header, AVB footer, and absence of private-key blocks.
+- `verify-mainline-build.sh` validates the pinned Python hash seed, raw and
+  compressed Images, artifact hashes, final boot/BTF config, and parseability
+  of every comparison DTB.
+- `compare-mainline-builds.sh` requires byte-identical configuration, raw and
+  compressed kernels, module archive, metadata, and all reviewed DTBs from two
+  fresh output directories.
+- `verify-kexec-recovery-stage.sh` requires a separately recorded nine-file
+  SHA-256 manifest, then validates the staging kernel config, recovery DTB
+  allowlist, both initramfs layers, nested payload hashes, boot header, AVB
+  footer, and absence of private-key blocks.
 - The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.

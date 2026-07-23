@@ -33,15 +33,15 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | memory, TLMM, disabled UFS, and left-side USB contracts compile and pass static checks; never boot |
-| ASUS minimal recovery DTB | USB2 high-speed NCM/ACM recovery with storage disabled | built-in FEMTO PHY reaches the gadget and `usb0` internally; host enumeration is pending |
+| ASUS minimal recovery DTB | USB2 high-speed NCM/ACM recovery with storage disabled | corrected USB2-only DTB passes offline checks; live verification is pending |
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
-| locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
-| locked Arch Plasma rootfs | current headless-first target with Plasma/KRDP, browser automation, VPN/hotspot tools, and matching modules | staging plus archive re-extraction suite pass; not booted |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | Linux 7.1 starts it, configures the gadget, creates `usb0`, and returns through rollback; host SSH is pending |
-| GPU target initramfs | isolated A660 probe after base recovery passes | deterministic firmware-bearing archive passes; deliberately absent from boot package |
-| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | boots with authenticated SSH; manifest and zero-storage gates pass |
-| temporary Android boot image | reversible two-stage `fastboot boot` testing | staging and Linux 7.1 execution pass; target host enumeration remains under diagnosis |
+| locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
+| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | historical suite passes; contains the previous module set and must be restaged |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | v6 archive is stale after ACM/rollback source fixes; rebuild pending |
+| GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v2 is unsafe and v6 is stale after source/kernel changes; rebuild pending |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | v2 is unsafe and v6 failed live ACM/rollback; no current boot candidate |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
@@ -68,13 +68,30 @@ Normal development uses the PC cross-builder:
 powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
 ```
 
-It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current skeleton cannot boot the device because UFS/USB remain disabled and initramfs, command line, and Android boot-image packaging are still required.
+It runs the same pinned source, fragment, module, DTB, and verification scripts
+as the native experiment. Docker retains the source volume, but the wrapper
+creates a fresh object volume by default and prints its name for audit. Only
+verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives
+nothing until a recovery image passes offline gates; copying `Image`/`Image.gz`
+or the current skeleton cannot boot the device because initramfs, command line,
+and Android boot-image packaging are still required.
 
 The ASUS staging builder defaults to the smaller legacy loader. Set
 `KEXEC_FILE=1` with a separate output directory to reproduce the tested
 file-syscall variant; source patches 0005 and 0006 supply the libfdt address
 helpers missing from the ASUS source drop.
 
+The archived v2 recovery products retain their hashes for provenance only.
+Their live staging root was writable physical UFS, and their target DTB enabled
+UFS and QMP/SuperSpeed despite the former zero-storage and USB2-only claims.
+Nothing was flashed. Do not boot v2 or the rejected v6 candidate. Rebuild the
+complete dependency chain before any new temporary-boot test.
+
 ## Reproduction records
 
-The build log and private DTS stay out of Git if they contain identifiers. A redacted summary belongs in `test-results/`; exact nonsecret output hashes belong in `manifests/`.
+The build log and private DTS stay out of Git if they contain identifiers. A
+redacted summary belongs in `test-results/`; exact nonsecret output hashes
+belong in `manifests/`. The
+[current clean-build report](../test-results/2026-07-23-mainline-reproducibility.md)
+records the rejected comparisons and the combined Python hash-seed/BTF
+serialization fix.

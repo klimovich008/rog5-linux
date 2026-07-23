@@ -66,13 +66,19 @@ pipe clock. The FEMTO USB2 PHY driver is built into the recovery kernel.
 Static checks require exactly two `status = "okay"` changes and keep UFS, the
 QMP/SuperSpeed PHY, and the secondary `usb_2` controller disabled.
 
-The overlay, target initramfs, self-contained kexec staging initramfs,
-header-v3 repack, and AVB footer pass offline gates. The ASUS 5.4 staging
-kernel also passes temporary boot, authenticated SSH, rollback, manifest, and
-zero-storage checks. Before kexec the loader disables and verifies the single
-Haven hypervisor watchdog. Linux 7.1.4 reaches `/init`, configfs, its NCM/ACM
-gadget, the `a600000` UDC, and `usb0`; the host still does not enumerate the
-device, so target SSH remains unavailable.
+The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
+header-v3 image, and AVB footer passed their then-current offline suite, but v6
+failed live ACM data and rollback. Current ACM/wake-lock source fixes and the
+fresh mainline kernel make those dependent artifacts stale. Rebuild and
+reverify the complete bundle before fresh live gates.
+
+The historical v2 run produced staging and target logs, including Linux 7.1.4
+at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.
+Subsequent audit proved that v2 did not implement this recovery contract: its
+staging `/` was writable physical UFS, and its target DTB enabled the UFS
+controller, UFS PHY, and QMP/SuperSpeed PHY. The former zero-storage and
+USB2-only pass claims are withdrawn. Nothing was flashed, but v2 must not be
+booted again.
 
 The diagnostic sources used to preserve and retrieve this evidence live under
 `tools/diagnostics/`: `ramoops-raw` exposes the reserved 4 MiB region

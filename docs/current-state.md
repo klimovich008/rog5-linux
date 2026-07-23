@@ -6,7 +6,9 @@
 - Bootloader: unlocked; verified boot reports orange.
 - Active Android slot during the recorded tests: slot B.
 - Stable 5.4 baseline userspace: Alpine 3.24 on the userdata-backed root filesystem.
-- Target userspace: the locked Arch Linux ARM rootfs with systemd and minimal Plasma; its archive/metadata suite passes, but it has not booted on hardware.
+- Target userspace: Arch Linux ARM with systemd and minimal Plasma. The locked
+  archive passed its historical suite but contains the previous module set;
+  restaging with the accepted kernel is mandatory before first boot.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
@@ -75,30 +77,25 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
 
 ## Mainline recovery status
 
-The header-v3 ASUS 5.4.210 staging kernel now boots temporarily and provides
-authenticated USB NCM/SSH recovery. The live gates verify its kernel identity,
-payload manifest, rollback timer, and zero storage mounts. A global `set -e`
-in the recovery init was the cause of the earlier immediate fallback; optional
-vendor-module failures are now logged without aborting recovery.
+The historical header-v3 v2 image temporarily booted and produced staging and
+target logs. Those logs include Linux 7.1.4 entering `/init`, mounting
+configfs, configuring NCM and ACM, binding the `a600000` UDC, creating `usb0`,
+and later returning through rollback. Ramoops from that run also supported the
+TLMM GPIO 52-59 reservation and built-in Qualcomm SNPS FEMTO USB2 PHY changes.
+These remain useful historical observations, not a passing recovery gate.
 
-Before kexec, the loader finds and disables exactly one Haven hypervisor
-watchdog control, verifies the disabled state, and rejects a secure-watchdog
-deactivation failure. Linux 7.1.4 then executes successfully: it completes
-kernel initialization, starts `/init`, mounts configfs, configures NCM and ACM,
-binds the `a600000` UDC, creates `usb0`, and reports the recovery network
-interface ready. Its independent rollback timer also returns the phone to the
-fallback path.
+A later live and artifact audit found that the v2 staging `/` was a writable
+physical UFS filesystem. Its target DTB also enabled the UFS controller, UFS
+PHY, and QMP/SuperSpeed PHY. The earlier “zero storage mounts” and USB2-only
+claims were therefore false. Nothing was flashed, but every v2 boot artifact
+is superseded and must not be booted again.
 
-Ramoops isolated two early failures. Reserving inaccessible TLMM GPIOs 52-59
-removed the synchronous external abort during gpiochip registration. Building
-the Qualcomm SNPS FEMTO USB2 PHY into the kernel removed the deterministic
-deferred probe caused by the former module-only configuration. The recovery DT
-now uses only the high-speed PHY, includes the translated ASUS HS-PHY tuning,
-and leaves UFS, QMP/SuperSpeed, and the secondary USB controller disabled.
-
-The remaining recovery blocker is host enumeration: Linux reports its UDC and
-`usb0` internally, but the host does not see a USB network or serial device, so
-target SSH is not reachable. The raw, read-only ramoops reader and bootloader
-restart-reason helper used for this diagnosis are kept under
-`tools/diagnostics/`. Linux 7.1.4 has therefore passed the kernel/userspace boot
-gate, but not the remote-recovery, storage, or GPU hardware gates.
+The later v6 candidate embedded the staging initramfs in the ASUS 5.4 kernel
+and carried a USB2-only target DTB with UFS, QMP/SuperSpeed, and the secondary
+USB controller disabled. It passed its then-current offline suite, but live
+ACM data and automatic rollback failed. Source fixes now supervise ACM and
+hold a timed wake lock with repeated forced-reboot fallback. A fresh Linux
+7.1 build exists, but the target/staging initramfs, ASUS wrapper, boot image,
+hash pins, and complete verifier have not been rebuilt. There is no current
+boot candidate. The raw ramoops reader and bootloader restart-reason helper
+remain under `tools/diagnostics/`.

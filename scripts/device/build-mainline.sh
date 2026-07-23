@@ -6,6 +6,7 @@ output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4}
 fragment=${FRAGMENT:-/root/rog5-build/rog5-mainline.fragment}
 expected_commit=${LINUX_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
 jobs=${JOBS:-1}
+btf_jobs=1
 
 [ -d "$source_dir/.git" ] || { echo "ERROR missing source tree $source_dir" >&2; exit 1; }
 [ -r "$fragment" ] || { echo "ERROR missing config fragment $fragment" >&2; exit 1; }
@@ -21,12 +22,18 @@ jobs=${JOBS:-1}
 export KBUILD_BUILD_USER=rog5-linux
 export KBUILD_BUILD_HOST=rog5-builder
 export KBUILD_BUILD_TIMESTAMP="$(git -C "$source_dir" show -s --format=%cD HEAD)"
+export PYTHONHASHSEED=0
 
+[ ! -d "$output_dir" ] || [ -z "$(find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit)" ] || {
+	echo 'ERROR refusing nonempty output directory; use a fresh build directory' >&2
+	exit 1
+}
 mkdir -p "$output_dir"
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
 "$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" "$output_dir/.config" "$fragment"
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
+    JOBS="$btf_jobs" \
     Image.gz \
     modules \
     qcom/sm8350-hdk.dtb \
@@ -47,8 +54,11 @@ mv "$output_dir/modules.tar.gz.tmp" "$output_dir/modules.tar.gz"
 {
     printf 'kernel_commit=%s\n' "$expected_commit"
     printf 'compiler=%s\n' "$(clang --version | head -1)"
+    printf 'python_hash_seed=%s\n' "$PYTHONHASHSEED"
+    printf 'pahole_jobs=%s\n' "$btf_jobs"
     sha256sum \
         "$output_dir/.config" \
+        "$output_dir/arch/arm64/boot/Image" \
         "$output_dir/arch/arm64/boot/Image.gz" \
         "$output_dir/modules.tar.gz" \
         "$output_dir"/arch/arm64/boot/dts/qcom/sm8350-*.dtb
