@@ -4,6 +4,7 @@ trap 'echo "FAIL stage line=$LINENO command=$BASH_COMMAND" >&2' ERR
 
 repo=${REPO:-/workspace/repo}
 modules=${MODULES_ARCHIVE:-/input/modules.tar.gz}
+firmware=${FIRMWARE_ROOT:-/input/firmware}
 authorized_key=${AUTHORIZED_KEY:-/input/authorized_key}
 : "${ROOTFS_SHA256:?missing ROOTFS_SHA256}"
 : "${MODULES_SHA256:?missing MODULES_SHA256}"
@@ -29,6 +30,11 @@ pacman -Syu --needed --noconfirm --disable-sandbox \
 tar --keep-directory-symlink -xzf "$modules" -C /
 [[ -d "/lib/modules/$TARGET_KERNEL_RELEASE" ]]
 depmod -a "$TARGET_KERNEL_RELEASE"
+sh "$repo/scripts/device/verify-a660-firmware.sh" "$firmware"
+install -Dm0644 "$firmware/qcom/a660_sqe.fw" /usr/lib/firmware/qcom/a660_sqe.fw
+install -Dm0644 "$firmware/qcom/a660_gmu.bin" /usr/lib/firmware/qcom/a660_gmu.bin
+install -Dm0644 "$firmware/qcom/sm8350/a660_zap.mbn" \
+	/usr/lib/firmware/qcom/sm8350/a660_zap.mbn
 
 install -Dm0755 "$repo/scripts/device/vpn-hotspot.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
 install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot.service" /etc/systemd/system/rog5-vpn-hotspot.service

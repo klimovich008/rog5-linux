@@ -4,6 +4,7 @@ param(
     [string]$AuthorizedKey,
     [string]$Rootfs,
     [string]$ModulesArchive,
+    [string]$FirmwareDirectory,
     [string]$Output
 )
 
@@ -11,9 +12,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 if (-not $Rootfs) { $Rootfs = Join-Path $repoRoot 'artifacts\arch\ArchLinuxARM-aarch64-latest.tar.gz' }
 if (-not $ModulesArchive) { $ModulesArchive = Join-Path $repoRoot 'dist\linux-7.1.4\modules.tar.gz' }
+if (-not $FirmwareDirectory) { $FirmwareDirectory = Join-Path $repoRoot 'artifacts\firmware\linux-firmware-20260622' }
 if (-not $Output) { $Output = Join-Path $repoRoot 'artifacts\arch\rog5-arch-rootfs-7.1.4.tar.gz' }
 $Rootfs = (Resolve-Path -LiteralPath $Rootfs).Path
 $ModulesArchive = (Resolve-Path -LiteralPath $ModulesArchive).Path
+$FirmwareDirectory = (Resolve-Path -LiteralPath $FirmwareDirectory).Path
 $AuthorizedKey = (Resolve-Path -LiteralPath $AuthorizedKey).Path
 $Output = [IO.Path]::GetFullPath($Output)
 New-Item -ItemType Directory -Force -Path ([IO.Path]::GetDirectoryName($Output)) | Out-Null
@@ -32,6 +35,10 @@ function Get-VerifiedArtifact([string]$ManifestName, [string]$Path) {
 
 $rootfsHash = Get-VerifiedArtifact 'artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz' $Rootfs
 $modulesHash = Get-VerifiedArtifact 'dist/linux-7.1.4/modules.tar.gz' $ModulesArchive
+foreach ($relative in @('qcom/a660_sqe.fw', 'qcom/a660_gmu.bin', 'qcom/sm8350/a660_zap.mbn')) {
+    Get-VerifiedArtifact "artifacts/firmware/linux-firmware-20260622/$relative" `
+        (Join-Path $FirmwareDirectory $relative) | Out-Null
+}
 $keyLines = @(Get-Content -LiteralPath $AuthorizedKey | Where-Object { $_.Trim() })
 if ($keyLines.Count -ne 1 -or $keyLines[0] -notmatch '^ssh-(ed25519|rsa|ecdsa-[^ ]+) ') {
     throw 'AuthorizedKey must contain exactly one OpenSSH public key'
@@ -45,6 +52,7 @@ function Invoke-Docker([string[]]$Arguments) {
 
 $repoMount = "type=bind,source=$repoRoot,target=/stage/workspace/repo,readonly"
 $modulesMount = "type=bind,source=$ModulesArchive,target=/stage/input/modules.tar.gz,readonly"
+$firmwareMount = "type=bind,source=$FirmwareDirectory,target=/stage/input/firmware,readonly"
 $keyMount = "type=bind,source=$AuthorizedKey,target=/stage/input/authorized_key,readonly"
 $pacmanCacheMount = 'type=volume,source=rog5-arch-pacman-cache,target=/stage/var/cache/pacman/pkg'
 $rootfsMount = "type=volume,source=rog5-arch-rootfs-$PID,target=/stage"
@@ -88,7 +96,7 @@ try {
     )
     Invoke-Docker @(
         'run', '--rm', '--platform', 'linux/arm64',
-        '--mount', $rootfsMount, '--mount', $repoMount, '--mount', $modulesMount,
+        '--mount', $rootfsMount, '--mount', $repoMount, '--mount', $modulesMount, '--mount', $firmwareMount,
         '--mount', $keyMount, '--mount', $pacmanCacheMount,
         '--mount', 'type=bind,source=/dev,target=/stage/dev',
         '--mount', 'type=bind,source=/proc,target=/stage/proc',

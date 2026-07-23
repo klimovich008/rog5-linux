@@ -25,6 +25,7 @@ grep -qx 'PermitRootLogin prohibit-password' /etc/ssh/sshd_config.d/10-rog5-serv
 [[ $(readlink /etc/systemd/system/multi-user.target.wants/sshd.service) == /usr/lib/systemd/system/sshd.service ]]
 [[ -x /usr/local/sbin/rog5-vpn-hotspot.sh ]]
 [[ -r /etc/systemd/system/rog5-vpn-hotspot.service ]]
+sh /workspace/repo/scripts/device/verify-a660-firmware.sh /usr/lib/firmware
 [[ ! -e /etc/wireguard/wg0.conf ]]
 [[ ! -s /etc/machine-id ]]
 [[ -z $(find /etc/pacman.d/gnupg -type s -print -quit) ]]
