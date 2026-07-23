@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+
+#include "sm8350.dtsi"
+#include "pm8350.dtsi"
+#include "pm8350b.dtsi"
+#include "pm8350c.dtsi"
+#include "pmk8350.dtsi"
+#include "pmr735a.dtsi"
+#include "pmr735b.dtsi"
+
+/ {
+	model = "ASUS ROG Phone 5";
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+	chassis-type = "handset";
+
+	aliases {
+		serial0 = &uart2;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	vph_pwr: vph-pwr-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vph_pwr";
+		regulator-min-microvolt = <3700000>;
+		regulator-max-microvolt = <3700000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+};
+
+/* Serial-only skeleton: storage, USB, display, GPU and radios stay disabled. */
+&qupv3_id_0 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};

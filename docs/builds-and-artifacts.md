@@ -30,9 +30,10 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Product | Purpose | Current status |
 |---|---|---|
 | vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
-| Linux 7.1.4 `Image.gz` | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
+| Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
-| ASUS minimal recovery DTB | UFS + USB + SSH first boot | not yet authored |
+| ASUS serial skeleton DTB | verify board source and DTB toolchain | compile/parse/static guards pass; never boot |
+| ASUS minimal recovery DTB | UFS + USB + SSH first boot | serial skeleton exists; required recovery hardware is not yet authored |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
 | temporary Android boot image | reversible `fastboot boot` testing | produce only after DTB packaging is proven |
@@ -61,7 +62,7 @@ Normal development uses the PC cross-builder:
 pwsh scripts/host/Build-MainlineInDocker.ps1
 ```
 
-It runs the same pinned source, fragment, build, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone then receives a packaged temporary boot image; copying `Image.gz` alone cannot boot the device because the initramfs, command line, DTB/DTBO, and Android boot-image layout are also required.
+It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current serial skeleton cannot boot the device because UFS, USB, initramfs, command line, and Android boot-image packaging are still required.
 
 ## Reproduction records
 

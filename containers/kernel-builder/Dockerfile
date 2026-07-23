@@ -4,7 +4,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bc bison build-essential ca-certificates clang cpio device-tree-compiler \
-      dwarves flex git libelf-dev libssl-dev lld llvm make python3 rsync zlib1g-dev \
+      dwarves flex git iproute2 kmod libelf-dev libssl-dev lld llvm make nftables \
+      python3 rsync wireguard-tools zlib1g-dev \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

@@ -12,7 +12,7 @@ One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the f
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
-See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [remote GUI](docs/remote-gui.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
+See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
 
 ## Safety model
 
@@ -64,7 +64,7 @@ Cross-compile the pinned ARM64 kernel in Docker on an x86-64 PC:
 pwsh scripts/host/Build-MainlineInDocker.ps1
 ```
 
-Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, configuration, metadata, and comparison DTBs are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image and its upstream DTBs must not be used on the ASUS phone.
+Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS serial skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the serial skeleton may be booted on the phone.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

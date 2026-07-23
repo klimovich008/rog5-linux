@@ -33,16 +33,20 @@ $buildMount = "type=volume,source=$BuildVolume,target=/root/build"
 
 Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $sourceMount, $image,
-    '/workspace/repo/scripts/device/prepare-mainline.sh', '/root/src/linux-7.1.4'
+    'sh', '/workspace/repo/scripts/device/prepare-mainline.sh', '/root/src/linux-7.1.4'
 )
 Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $sourceMount, '--mount', $buildMount,
     '--env', "JOBS=$Jobs", '--env', 'FRAGMENT=/workspace/repo/configs/kernel/rog5-mainline.fragment',
-    $image, '/workspace/repo/scripts/device/build-mainline.sh'
+    $image, 'sh', '/workspace/repo/scripts/device/build-mainline.sh'
 )
 Invoke-Docker @(
     'run', '--rm', '--mount', $repoMount, '--mount', $buildMount, $image,
-    '/workspace/repo/scripts/device/verify-mainline-build.sh'
+    'sh', '/workspace/repo/scripts/device/verify-mainline-build.sh'
+)
+Invoke-Docker @(
+    'run', '--rm', '--mount', $repoMount, '--mount', $sourceMount, '--mount', $buildMount,
+    $image, 'sh', '/workspace/repo/scripts/device/build-asus-dtb.sh'
 )
 
 New-Item -ItemType Directory -Force -Path $DistDirectory | Out-Null
@@ -51,8 +55,9 @@ $copy = @'
 set -eu
 src=/root/build/rog5-linux-7.1.4
 install -m 0644 "$src/.config" /dist/kernel.config
-install -m 0644 "$src/arch/arm64/boot/Image.gz" "$src/build-meta.txt" /dist/
+install -m 0644 "$src/arch/arm64/boot/Image.gz" "$src/build-meta.txt" "$src/modules.tar.gz" /dist/
 install -m 0644 "$src"/arch/arm64/boot/dts/qcom/sm8350-*.dtb /dist/
+install -m 0644 "$src/asus-dt/sm8350-asus-rog-phone5.dtb" /dist/
 '@
 Invoke-Docker @('run', '--rm', '--mount', $buildMount, '--mount', $distMount, $image, 'sh', '-c', $copy)
 

@@ -24,11 +24,21 @@ make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
     Image.gz \
+    modules \
     qcom/sm8350-hdk.dtb \
     qcom/sm8350-mtp.dtb \
     qcom/sm8350-microsoft-surface-duo2.dtb \
     qcom/sm8350-sony-xperia-sagami-pdx214.dtb \
     qcom/sm8350-sony-xperia-sagami-pdx215.dtb
+
+modules_stage=$output_dir/modules-staging
+rm -rf "$modules_stage"
+make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 \
+    INSTALL_MOD_PATH="$modules_stage" modules_install
+source_date_epoch=$(git -C "$source_dir" show -s --format=%ct "$expected_commit")
+tar --sort=name --mtime="@$source_date_epoch" --owner=0 --group=0 --numeric-owner \
+	-C "$modules_stage" -cf - lib/modules | gzip -n > "$output_dir/modules.tar.gz.tmp"
+mv "$output_dir/modules.tar.gz.tmp" "$output_dir/modules.tar.gz"
 
 {
     printf 'kernel_commit=%s\n' "$expected_commit"
@@ -36,6 +46,7 @@ make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
     sha256sum \
         "$output_dir/.config" \
         "$output_dir/arch/arm64/boot/Image.gz" \
+        "$output_dir/modules.tar.gz" \
         "$output_dir"/arch/arm64/boot/dts/qcom/sm8350-*.dtb
 } > "$output_dir/build-meta.txt"
 

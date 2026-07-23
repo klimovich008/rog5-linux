@@ -25,9 +25,9 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 
 1. Compile upstream `Image.gz` and known SM8350 DTBs natively on the phone to prove the pinned source and toolchain. These comparison DTBs must never be booted on the ASUS device.
 2. Start the board port from `arm64 defconfig` plus `configs/kernel/rog5-mainline.fragment`.
-3. Add a minimal `sm8350-asus-rog-phone5.dts` with model/compatible, chosen console, memory/reserved-memory references, UFS, and one USB controller.
+3. Compile a serial-only `sm8350-asus-rog-phone5.dts` skeleton, then add reviewed memory/reserved-memory references, UFS, and one USB controller. The skeleton itself is never booted.
 4. Run `dtbs_check`, `make W=1`, and record warnings.
-5. Produce `Image.gz`, the ASUS DTB, modules, initramfs, and a header-v3 temporary boot image with hashes.
+5. Produce `Image.gz`, the recovery-grade ASUS DTB, modules, initramfs, and a header-v3 temporary boot image with hashes.
 
 ### Phase B — recovery-grade boot
 
