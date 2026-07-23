@@ -24,7 +24,7 @@ if pacman -Q linux-aarch64 >/dev/null 2>&1; then
 	pacman -Rns --noconfirm linux-aarch64
 fi
 pacman -Syu --needed --noconfirm --disable-sandbox \
-	dnsmasq hostapd iw networkmanager openssh nftables upower wireguard-tools
+	attr dnsmasq hostapd iw networkmanager openssh nftables upower wireguard-tools
 
 tar --keep-directory-symlink -xzf "$modules" -C /
 [[ -d "/lib/modules/$TARGET_KERNEL_RELEASE" ]]
@@ -53,6 +53,8 @@ ln -sfn /usr/lib/systemd/system/sshd.service \
 	/etc/systemd/system/multi-user.target.wants/sshd.service
 
 install -d -m0755 /etc/rog5
+: > /etc/rog5/xattr-probe
+setfattr -n user.rog5 -v preserved /etc/rog5/xattr-probe
 cat > /etc/rog5/build <<EOF
 project_commit=$PROJECT_COMMIT
 rootfs_sha256=$ROOTFS_SHA256
