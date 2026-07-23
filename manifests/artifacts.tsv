@@ -6,6 +6,7 @@ rog5-alpine-5.4.210-rtcharger.img	43753472	b5805cc29cea05ed13f0e4695ba8ffa50a289
 boot-current.img	100663296	c52ceefff97a38a086a5c0422cd1b65b14252ec13ae4c8dda1b1afbddd923857	private boot partition backup	no
 artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz	818293654	3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a	signed generic Arch Linux ARM AArch64 rootfs input	no
 artifacts/arch/rog5-arch-rootfs-7.1.4.tar.gz	1028140049	d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c	verified locked Arch server rootfs with matching Linux 7.1.4 modules	no
+artifacts/arch/rog5-arch-plasma-rootfs-7.1.4.tar.gz	2022113204	31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9	verified locked Arch Plasma Wayland rootfs with matching Linux 7.1.4 modules	no
 artifacts/recovery-inputs/kexec-tools-2.0.32-r2.apk	80911	bd8b6951f862af1123972b521c355c655b7a2f40c2bf9cfe700edd590a101c94	signed Alpine aarch64 kexec loader input	no
 artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk	118819	76dce86852903fef7adba0285d816e5ce9ffbe9fb3ca86bbb349b97afaba1f63	signed Alpine aarch64 kexec dependency input	no
 artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk	365383	2bb5136c89f5b0bbe1554c8915a3b520d5aa63ae2a51d4d821eb81698db5a818	signed Alpine aarch64 kexec dependency input	no

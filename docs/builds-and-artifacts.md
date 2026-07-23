@@ -37,6 +37,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
+| locked Arch Plasma rootfs | current headless-first target with Plasma/KRDP, browser automation, VPN/hotspot tools, and matching modules | staging plus archive re-extraction suite pass; not booted |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | Linux 7.1 starts it, configures the gadget, creates `usb0`, and returns through rollback; host SSH is pending |
 | GPU target initramfs | isolated A660 probe after base recovery passes | deterministic firmware-bearing archive passes; deliberately absent from boot package |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | boots with authenticated SSH; manifest and zero-storage gates pass |

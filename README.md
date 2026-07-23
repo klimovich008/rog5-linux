@@ -99,7 +99,7 @@ powershell -NoProfile -File scripts/host/Get-RecoveryPackages.ps1
 
 Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS recovery-contract skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the skeleton may be booted on the phone.
 
-The signed Arch input and the earlier locked server rootfs pass their offline staging suites. The minimal Plasma Desktop target is being staged now and has not booted on the phone. The Arch rootfs remains outside the first RAM-only recovery and will not be mounted until USB recovery access and UFS discovery pass on hardware.
+The signed Arch input and the locked minimal Plasma Desktop rootfs pass their offline staging suites. The target image has not booted on the phone. The Arch rootfs remains outside the first RAM-only recovery and will not be mounted until USB recovery access and UFS discovery pass on hardware.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

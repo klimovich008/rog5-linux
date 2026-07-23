@@ -1,5 +1,8 @@
 # Arch server rootfs staging
 
+This server-only artifact is superseded by
+[the minimal Plasma target](2026-07-23-arch-plasma-rootfs-stage.md).
+
 Result: **PASS** for offline userspace staging and metadata round-trip. This is not a boot image and was not installed on the phone.
 
 ## Provenance

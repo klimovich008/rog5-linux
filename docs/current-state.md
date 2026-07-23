@@ -6,7 +6,7 @@
 - Bootloader: unlocked; verified boot reports orange.
 - Active Android slot during the recorded tests: slot B.
 - Stable 5.4 baseline userspace: Alpine 3.24 on the userdata-backed root filesystem.
-- Target userspace: the locked Arch Linux ARM rootfs with systemd; it has not booted on hardware yet.
+- Target userspace: the locked Arch Linux ARM rootfs with systemd and minimal Plasma; its archive/metadata suite passes, but it has not booted on hardware.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
