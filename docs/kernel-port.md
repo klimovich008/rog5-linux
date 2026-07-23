@@ -66,7 +66,7 @@ The offline candidate uses a reversible two-stage route:
 3. `rog5-load-mainline-recovery` verifies all three nested hashes and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
 4. Both the staging and target initramfs arm a 180-second forced-reboot timer. USB ACM is the address-free fallback; USB NCM and SSH may use DHCP or an explicitly supplied test address.
 
-The recovery overlay enables only UFS and the reviewed left-side USB1 controller/PHY path. The bottom USB2 controller, display, charging, radios, remote processors, and GPU remain disabled. This package has passed offline tests but has not yet crossed the hardware boot gate.
+The recovery overlay enables only UFS and the reviewed left-side USB1 controller/PHY path. The bottom USB2 controller, display, charging, radios, remote processors, and GPU remain disabled. The ASUS 5.4 staging boot, authenticated recovery, payload load, and zero-storage gates pass on hardware. The second-kernel execution path still hangs before target USB/SSH; ramoops capture is the active diagnostic gate.
 
 ## Non-goals
 

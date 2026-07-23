@@ -20,6 +20,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - USB ACM works even if USB networking has no address; SSH is optional in this first sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
 - The mainline payload loads, then starts only after a separate attended `kexec -e`.
+- If target recovery does not appear, repeat with the Haven watchdog disabled,
+  `panic=0`, and ramoops in the reviewed debug reservation; retrieve that
+  record before changing the DTB or enabling hardware.
 - The Linux 7.1 target reports the expected release and its independent rollback timer works.
 - UFS is discovered without errors while no filesystem is mounted.
 - Watchdog/reset counters do not increase.

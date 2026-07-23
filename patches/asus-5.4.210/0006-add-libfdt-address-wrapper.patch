@@ -1,0 +1,8 @@
+diff --git a/lib/fdt_addresses.c b/lib/fdt_addresses.c
+new file mode 100644
+index 000000000000..209442583f30
+--- /dev/null
++++ b/lib/fdt_addresses.c
+@@ -0,0 +1,2 @@
++#include <linux/libfdt_env.h>
++#include "../scripts/dtc/libfdt/fdt_addresses.c"

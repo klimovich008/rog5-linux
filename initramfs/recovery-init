@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -u
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -24,7 +24,8 @@ case $release in
 		if [ -d /lib/modules/5.4-gki ]; then
 			[ -e "/lib/modules/$release" ] || ln -s 5.4-gki "/lib/modules/$release"
 			while read -r module; do
-				modprobe "${module%.ko}" || insmod "/lib/modules/5.4-gki/$module"
+				modprobe "${module%.ko}" || insmod "/lib/modules/5.4-gki/$module" ||
+					log "optional module failed: ${module%.ko}"
 			done </lib/modules/5.4-gki/modules.load
 			mdev -s
 		fi

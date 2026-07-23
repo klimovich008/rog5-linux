@@ -72,6 +72,22 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
 - PC cross-compilation is active in Docker. Linux 7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile successfully on the PC.
 - Credentials and private identifiers are deliberately excluded from this repository.
 
-## Mainline recovery candidate
+## Mainline recovery status
 
-The first self-contained two-stage package passes offline validation but has not been booted. The header-v3 staging image uses the ASUS-compatible 5.4 kernel with `CONFIG_KEXEC=y`; its RAM-only initramfs embeds the Linux 7.1 `Image`, recovery DTB, target initramfs, and authenticated Alpine ARM64 loader. The recovery overlay enables only UFS and left-side USB1. Both initramfs stages retain independent 180-second reboot timers and neither mounts storage.
+The header-v3 ASUS 5.4.210 staging kernel now boots temporarily and provides
+authenticated USB NCM/SSH recovery. The live gates verify its kernel identity,
+payload manifest, rollback timer, and zero storage mounts. A global `set -e`
+in the recovery init was the cause of the earlier immediate fallback; optional
+vendor-module failures are now logged without aborting recovery.
+
+Both legacy `kexec_load` and `kexec_file_load` accept exact self-kexec and Linux
+7.1 payloads. Execution still fails before the target USB/SSH recovery
+interface appears. The only live watchdog is the Haven hypervisor watchdog;
+disabling it succeeds. With that watchdog disabled and `panic=0`, the phone
+remains nonresponsive instead of returning to fallback, and `reset_devices`
+does not change the result.
+
+A 4 MiB unused ASUS debug reservation is now used temporarily by the standard
+ramoops driver. The current attended test is waiting for its preserved record
+to be read after a forced restart into fastboot. Linux 7.1, its recovery DTB,
+and the mainline GPU tier have therefore not passed a hardware boot gate yet.

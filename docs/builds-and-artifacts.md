@@ -33,14 +33,14 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS and left-side USB contracts compiled and checked; never boot |
-| ASUS minimal recovery DTB | UFS + USB + SSH first boot | recovery overlay and exact enablement gate pass offline; not booted |
+| ASUS minimal recovery DTB | UFS + USB + SSH first boot | payload passes offline gates; target handoff has not reached USB |
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic offline suite passes; storage is never mounted |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic v2 suite passes; equivalent keyed recovery boots on 5.4 with zero storage mounts |
 | GPU target initramfs | isolated A660 probe after base recovery passes | deterministic firmware-bearing archive passes; deliberately absent from boot package |
-| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | deterministic, signed `kexec` dependencies, nested hashes pass |
-| temporary Android boot image | reversible two-stage `fastboot boot` testing | header-v3 and AVB offline suite passes; not booted |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | boots with authenticated SSH; manifest and zero-storage gates pass |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | header-v3 staging boot passes; second-kernel handoff remains under diagnosis |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
 Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. Every candidate receives a source commit, config hash, compiler version, file sizes, and SHA-256 manifest.
@@ -67,6 +67,11 @@ powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
 ```
 
 It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current skeleton cannot boot the device because UFS/USB remain disabled and initramfs, command line, and Android boot-image packaging are still required.
+
+The ASUS staging builder defaults to the smaller legacy loader. Set
+`KEXEC_FILE=1` with a separate output directory to reproduce the tested
+file-syscall variant; source patches 0005 and 0006 supply the libfdt address
+helpers missing from the ASUS source drop.
 
 ## Reproduction records
 

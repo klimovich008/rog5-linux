@@ -23,3 +23,7 @@ artifacts/firmware/linux-firmware-20260622/qcom/a660_gmu.bin	55252	8acab7b417d9e
 artifacts/firmware/linux-firmware-20260622/qcom/a660_sqe.fw	43292	d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76	upstream A660 SQE firmware for mainline GPU tier	no
 artifacts/firmware/linux-firmware-20260622/qcom/sm8350/a660_zap.mbn	1054648	5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d	upstream SM8350 zap shader for mainline GPU tier	no
 artifacts/recovery-stage/rog5-gpu-recovery-initramfs.cpio.gz	5899836	c520fd0e436887cea1131c87119974277e1247fbb99ac0e01be1a7ca878b69bb	deterministic RAM-only recovery initramfs with pinned A660 firmware; not in boot package	no
+artifacts/recovery-stage-v2/rog5-recovery-initramfs.cpio.gz	5838346	8bd91d390cf3d65e55c7d1e7e581800edfbede30f8d3f5e51e0d53cf5a495226	deterministic fixed RAM-only target recovery	no
+artifacts/recovery-stage-v2/rog5-kexec-stage-initramfs.cpio.gz	26281211	940df2d403dcf02dd03b3dc428747a25bcc4290bfd9d31bd7c2f00876bb821f0	deterministic staging recovery with nested payload manifest	no
+artifacts/recovery-stage-v2/boot-5.4.210-kexec-stage.raw.img	68399104	5be6a072aaff93df210cf0a86511789f995e3ec8499d1b6728e7c4a8739185f0	header-v3 recovery v2 image before AVB footer	no
+artifacts/recovery-stage-v2/boot-5.4.210-kexec-stage.avb.img	100663296	88777b3c32fbe6fa29964dd9d1865447c9109d07593e5d4ab910a6bdf1f27aa0	reversible recovery v2 fastboot image; algorithm NONE	no

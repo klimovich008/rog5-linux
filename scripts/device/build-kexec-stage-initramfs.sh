@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-kexec-stage-initramfs.sh BASE INIT KEXEC_APK XZ_APK ZSTD_APK IMAGE DTB TARGET_INITRAMFS LOADER OUTPUT}
+base=${1:?usage: build-kexec-stage-initramfs.sh BASE INIT KEXEC_APK XZ_APK ZSTD_APK IMAGE DTB TARGET_INITRAMFS LOADER OUTPUT [AUTHORIZED_KEY] [TARGET_INITRAMFS_SHA256]}
 init=${2:?missing recovery init}
 kexec_apk=${3:?missing kexec package}
 xz_apk=${4:?missing xz-libs package}
@@ -11,6 +11,8 @@ dtb=${7:?missing recovery DTB}
 target_initramfs=${8:?missing target initramfs}
 loader=${9:?missing kexec loader}
 output=${10:?missing output}
+authorized_key=${11:-}
+target_initramfs_sha256=${12:-bad228341c7a69de46444642f2519ad9c2f51e333f6c8e19660fce12eb000cb5}
 epoch=1681862400
 
 check_hash() {
@@ -27,7 +29,9 @@ check_hash "$xz_apk" 76dce86852903fef7adba0285d816e5ce9ffbe9fb3ca86bbb349b97afab
 check_hash "$zstd_apk" 2bb5136c89f5b0bbe1554c8915a3b520d5aa63ae2a51d4d821eb81698db5a818
 check_hash "$image" f010217f70eb6c8022b6af0d937c7ad33498b2c65913a448ef342a72f0148909
 check_hash "$dtb" c9af02720703471425bbf5a9086869754031d7dced1ec7ec53cbf4c487f3a351
-check_hash "$target_initramfs" bad228341c7a69de46444642f2519ad9c2f51e333f6c8e19660fce12eb000cb5
+case $target_initramfs_sha256 in *[!0-9a-f]*|'') exit 1 ;; esac
+[ "${#target_initramfs_sha256}" -eq 64 ]
+check_hash "$target_initramfs" "$target_initramfs_sha256"
 [ -x "$init" ] && [ -x "$loader" ] && gzip -t "$target_initramfs"
 
 stage=$(mktemp -d)
@@ -35,6 +39,12 @@ trap 'rm -rf "$stage"' EXIT
 gzip -dc "$base" | (cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
 rm -f "$stage"/etc/ssh/ssh_host_* "$stage/etc/machine-id" "$stage/var/lib/dbus/machine-id"
+if [ -n "$authorized_key" ]; then
+	[ -r "$authorized_key" ] &&
+		grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" &&
+		awk 'NF { count++ } END { exit count != 1 }' "$authorized_key"
+	install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"
+fi
 
 tar --warning=no-unknown-keyword -xf "$kexec_apk" -C "$stage" usr/sbin/kexec usr/sbin/vmcore-dmesg
 tar --warning=no-unknown-keyword -xf "$xz_apk" -C "$stage" usr/lib/liblzma.so.5 usr/lib/liblzma.so.5.8.3
@@ -43,6 +53,8 @@ install -D -m 0755 "$loader" "$stage/usr/local/sbin/rog5-load-mainline-recovery"
 install -D -m 0644 "$image" "$stage/opt/rog5-recovery/Image"
 install -m 0644 "$dtb" "$stage/opt/rog5-recovery/board.dtb"
 install -m 0644 "$target_initramfs" "$stage/opt/rog5-recovery/initramfs.cpio.gz"
+(cd "$stage/opt/rog5-recovery" &&
+	sha256sum Image board.dtb initramfs.cpio.gz >SHA256SUMS)
 
 readelf -h "$stage/usr/sbin/kexec" | grep -q 'Machine:.*AArch64'
 for library in libc.musl-aarch64.so.1 liblzma.so.5 libz.so.1 libzstd.so.1; do

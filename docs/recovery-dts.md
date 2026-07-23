@@ -52,4 +52,10 @@ Sources: the pinned Linux `v7.1.4` SM8350 DTS files and the [ASUS ZS673KS Englis
 
 The base skeleton deliberately keeps UFS and USB disabled. A separate `sm8350-asus-rog-phone5-recovery.dtso` changes exactly five statuses: the UFS controller/PHY and the reviewed USB1 controller/HS/QMP PHY. Static checks prohibit register, supply, memory-region, boot-argument, or USB2 changes in this overlay.
 
-The overlay, target initramfs, self-contained kexec staging initramfs, header-v3 repack, and AVB footer now pass offline gates. This permits an attended temporary-boot test; it does not promote the candidate to a stable kernel. Initial mainline recovery does not mount storage at all. UFS discovery and logs must be inspected before a later read-only mount test; filesystem repair, formatting, and persistent slot operations remain prohibited.
+The overlay, target initramfs, self-contained kexec staging initramfs,
+header-v3 repack, and AVB footer pass offline gates. The ASUS 5.4 staging
+kernel also passes temporary boot, authenticated SSH, rollback, manifest, and
+zero-storage checks. Second-kernel execution does not yet restore target
+USB/SSH, so the overlay has not reached its hardware gate. Ramoops recovery is
+the next diagnostic; filesystem repair, formatting, and persistent slot
+operations remain prohibited.

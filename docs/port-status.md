@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | self-contained two-stage recovery package passes offline | attended temporary boot and rollback observation |
+| reversible boot | passing | ASUS 5.4 staging boot passes; second-kernel execution hangs | recover ramoops log and repair handoff |
 | UFS root | passing | controller/PHY rails, reset, overlay, and initramfs gates pass | hardware discovery, then separate read-only mount tier |
-| USB NCM/SSH | passing | left-side USB1 overlay and NCM/ACM/SSH initramfs pass offline | temporary-boot enumeration and link stability |
+| USB NCM/SSH | passing | staging NCM/SSH passes live; target interface is not reached | repair handoff, then validate target enumeration |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

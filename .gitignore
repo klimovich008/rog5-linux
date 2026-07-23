@@ -2,6 +2,7 @@
 build/
 dist/
 artifacts/
+out/
 firmware/
 *.img
 *.bin

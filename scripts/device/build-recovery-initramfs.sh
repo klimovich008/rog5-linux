@@ -1,9 +1,10 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-recovery-initramfs.sh BASE_INITRAMFS INIT OUTPUT}
+base=${1:?usage: build-recovery-initramfs.sh BASE_INITRAMFS INIT OUTPUT [AUTHORIZED_KEY]}
 init=${2:?missing recovery init}
 output=${3:?missing output}
+authorized_key=${4:-}
 expected_base=100e33ea4bc7e2d568450418bba3617f24394e8bb122a39fd5db334555d3bdca
 epoch=1681862400
 
@@ -18,6 +19,12 @@ trap 'rm -rf "$stage"' EXIT
 gzip -dc "$base" | (cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
 rm -f "$stage"/etc/ssh/ssh_host_* "$stage/etc/machine-id" "$stage/var/lib/dbus/machine-id"
+if [ -n "$authorized_key" ]; then
+	[ -r "$authorized_key" ] &&
+		grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" &&
+		awk 'NF { count++ } END { exit count != 1 }' "$authorized_key"
+	install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"
+fi
 
 [ -s "$stage/root/.ssh/authorized_keys" ]
 ! grep -q 'BEGIN .*PRIVATE KEY' "$stage/root/.ssh/authorized_keys"

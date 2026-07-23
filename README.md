@@ -10,7 +10,12 @@ The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-per
 
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
-The first Linux 7.1 recovery bundle now passes its offline suite. A temporary vendor-compatible 5.4 staging kernel carries the mainline `Image`, ASUS recovery DTB, target initramfs, and signed ARM64 `kexec` runtime entirely in RAM. Both stages have a 180-second rollback timer and neither recovery initramfs mounts storage. The candidate has not been booted on the phone.
+The Linux 7.1 recovery v2 bundle passes its deterministic offline suite. Its
+temporary vendor-compatible 5.4 staging kernel also boots on the phone with
+authenticated SSH, a verified nested payload, rollback, and zero storage
+mounts. Both legacy and file-based kexec load the target, but execution still
+fails before target USB/SSH. Persistent ramoops capture is now the active
+handoff diagnostic; Linux 7.1 and its GPU tier are not yet live.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
