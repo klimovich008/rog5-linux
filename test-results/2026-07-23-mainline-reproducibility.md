@@ -1,7 +1,8 @@
 # Linux 7.1.4 clean-build reproducibility - 2026-07-23
 
-Status: v8 and v10 failed the byte-for-byte gate; the combined Python
-hash-seed and BTF-serialization fix requires fresh A/B validation.
+Status: **PASS** for the credential-free Linux 7.1.4 kernel/DTB/module core
+after v8 and v10 exposed two independent reproducibility faults. This is not a
+complete recovery bundle or a boot candidate.
 
 ## Inputs
 
@@ -84,15 +85,27 @@ count. Build metadata records both controls, and the verifier rejects metadata
 without them. This preserves the pristine pinned upstream source. The verifier
 also checks the uncompressed `Image` against the hash-checked compressed image.
 
-Two fresh builds with different normal compile job counts must match in:
+## v11 result
 
-- final configuration;
-- generated `a6xx.xml.h`;
-- uncompressed and compressed kernel;
-- deterministic modules archive;
-- build metadata;
-- all five upstream comparison DTBs;
-- ASUS skeleton and USB2-only recovery DTBs.
+Two fresh offline builds used the same pinned inputs but different normal
+compile scheduling (`-j8` and `-j7`). Both passed the mainline verifier and
+ASUS DTB gates independently. `compare-mainline-builds.sh` then confirmed
+byte-identical final configuration, generated GPU header, raw/compressed
+kernel, deterministic modules archive, build metadata, five upstream
+comparison DTBs, ASUS skeleton, and USB2-only recovery DTB.
 
-Only a passing v9 comparison may supply the kernel and modules for the next
-recovery/rootfs rebuild.
+| Product | Size | SHA-256 |
+|---|---:|---|
+| `.config` | 242,168 | `378d158257ecb0f88e5d47393b859e6800b67b656f230a3ba4a445fd9362a0da` |
+| `a6xx.xml.h` | 586,233 | `55ae3dc006f26629ad0b5de50144edb6f37d9fb5b58957c248041cbf2a8e19b8` |
+| `Image` | 38,406,656 | `4d6f3ecaa8d2af0b1e1fddd0655af469e867d596f8f3eae0a20583b058fbe697` |
+| `Image.gz` | 14,316,874 | `e58794d71d49966d5524df7ed9996b749d2fd422447a34b4f429a01d0ed6f0b7` |
+| modules archive | 303,171,236 | `4c6670fff534366601ff521a60ca448e8f2dcd25b92a04b70b0d7ecc6ffedd0a` |
+| build metadata | 1,324 | `f6e461e4b1c5e11f9dfcdd9f46a397ee2f85ea70dc47c4219cb41d9fa8e4fabf` |
+| ASUS skeleton DTB | 102,719 | `e1b7ec966d5ad66febaeb10e7bbff0d92b7e83ab4159d9727e5a175b719bedeb` |
+| USB2 recovery DTB | 102,774 | `255c5ac199b0412c499aae39bb596507b934e71c003396040d4952f0c5ffabe6` |
+
+These v11 products may supply the kernel, modules, and DTBs for the next
+recovery/rootfs rebuild. The target/staging initramfs, ASUS 5.4 wrapper, boot
+image, and nine-file release manifest still require a complete rebuild and
+verification. No v11 product has been booted or written to the phone.

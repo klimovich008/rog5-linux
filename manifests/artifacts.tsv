@@ -23,6 +23,14 @@ artifacts/host-tools/platform-tools_r37.0.0-win.zip	8092164	4fe305812db074cea329
 artifacts/firmware/linux-firmware-20260622/qcom/a660_gmu.bin	55252	8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7	upstream A660 GMU firmware for mainline GPU tier	no
 artifacts/firmware/linux-firmware-20260622/qcom/a660_sqe.fw	43292	d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76	upstream A660 SQE firmware for mainline GPU tier	no
 artifacts/firmware/linux-firmware-20260622/qcom/sm8350/a660_zap.mbn	1054648	5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d	upstream SM8350 zap shader for mainline GPU tier	no
+artifacts/recovery-stage-v11/config-7.1.4	242168	378d158257ecb0f88e5d47393b859e6800b67b656f230a3ba4a445fd9362a0da	reproducible Linux 7.1.4 recovery configuration; credential-free build input	no
+artifacts/recovery-stage-v11/a6xx.xml.h	586233	55ae3dc006f26629ad0b5de50144edb6f37d9fb5b58957c248041cbf2a8e19b8	reproducible generated A6xx register header evidence	no
+artifacts/recovery-stage-v11/Image-7.1.4	38406656	4d6f3ecaa8d2af0b1e1fddd0655af469e867d596f8f3eae0a20583b058fbe697	reproducible uncompressed Linux 7.1.4 kexec input; not a boot image	no
+artifacts/recovery-stage-v11/Image.gz-7.1.4	14316874	e58794d71d49966d5524df7ed9996b749d2fd422447a34b4f429a01d0ed6f0b7	reproducible compressed Linux 7.1.4 recovery kernel; not a boot image	no
+artifacts/recovery-stage-v11/modules-7.1.4.tar.gz	303171236	4c6670fff534366601ff521a60ca448e8f2dcd25b92a04b70b0d7ecc6ffedd0a	reproducible Linux 7.1.4 modules; restage rootfs before boot	no
+artifacts/recovery-stage-v11/build-meta-7.1.4.txt	1324	f6e461e4b1c5e11f9dfcdd9f46a397ee2f85ea70dc47c4219cb41d9fa8e4fabf	reproducible build provenance with pinned Python hash seed and serialized BTF	no
+artifacts/recovery-stage-v11/sm8350-asus-rog-phone5.dtb	102719	e1b7ec966d5ad66febaeb10e7bbff0d92b7e83ab4159d9727e5a175b719bedeb	reproducible compile-only ASUS skeleton; never boot directly	no
+artifacts/recovery-stage-v11/sm8350-asus-rog-phone5-recovery.dtb	102774	255c5ac199b0412c499aae39bb596507b934e71c003396040d4952f0c5ffabe6	reproducible USB2-only recovery DTB; UFS/QMP/secondary USB disabled	no
 artifacts/recovery-stage/rog5-gpu-recovery-initramfs.cpio.gz	5899836	c520fd0e436887cea1131c87119974277e1247fbb99ac0e01be1a7ca878b69bb	historical GPU initramfs derived from unsafe v2 base; do not boot; rebuild after safe recovery passes	no
 artifacts/recovery-stage-v2/rog5-recovery-initramfs.cpio.gz	5838346	8bd91d390cf3d65e55c7d1e7e581800edfbede30f8d3f5e51e0d53cf5a495226	superseded recovery v2 target archive; unsafe DTB enabled UFS/QMP; do not boot	no
 artifacts/recovery-stage-v2/rog5-kexec-stage-initramfs.cpio.gz	26281211	940df2d403dcf02dd03b3dc428747a25bcc4290bfd9d31bd7c2f00876bb821f0	superseded recovery v2 staging archive; live root was writable physical UFS; do not boot	no

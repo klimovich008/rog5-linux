@@ -94,8 +94,8 @@ The later v6 candidate embedded the staging initramfs in the ASUS 5.4 kernel
 and carried a USB2-only target DTB with UFS, QMP/SuperSpeed, and the secondary
 USB controller disabled. It passed its then-current offline suite, but live
 ACM data and automatic rollback failed. Source fixes now supervise ACM and
-hold a timed wake lock with repeated forced-reboot fallback. A fresh Linux
-7.1 build exists, but the target/staging initramfs, ASUS wrapper, boot image,
-hash pins, and complete verifier have not been rebuilt. There is no current
-boot candidate. The raw ramoops reader and bootloader restart-reason helper
-remain under `tools/diagnostics/`.
+hold a timed wake lock with repeated forced-reboot fallback. Two fresh Linux
+7.1 kernel/module/DTB builds are byte-identical, but the target/staging
+initramfs, ASUS wrapper, boot image, hash pins, and complete verifier have not
+been rebuilt. There is no current boot candidate. The raw ramoops reader and
+bootloader restart-reason helper remain under `tools/diagnostics/`.

@@ -63,7 +63,7 @@ storage or desktop userspace.
 - [x] Prevent suspend from consuming the rollback window.
 - [x] Reject non-empty kernel output directories.
 - [x] Verify the final kernel configuration and recovery-init markers.
-- [ ] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
+- [x] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
 - [ ] Rebuild and compare the ASUS recovery DTB from both clean builds.
 - [ ] With approval to use the recovery public key, build the target and staging
   initramfs twice and compare them.

@@ -21,8 +21,9 @@ The later v6 candidate embedded the staging initramfs in the 5.4 kernel and
 used a USB2-only target DTB with UFS and QMP disabled. It passed its then-current
 offline suite, but live ACM data and automatic rollback failed, so v6 is also
 rejected. Source fixes for both failures and a fresh Linux 7.1 build exist;
-the dependent initramfs, wrapper, and boot image have not yet been rebuilt.
-There is no current boot candidate. Live RAM-only, kexec, rollback, host
+two clean Linux 7.1 kernel/module/DTB builds are now byte-identical. The
+dependent initramfs, wrapper, and boot image have not yet been rebuilt, so
+there is no current boot candidate. Live RAM-only, kexec, rollback, host
 USB/SSH, storage, Arch rootfs, desktop, and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
