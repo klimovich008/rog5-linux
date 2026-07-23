@@ -1,6 +1,7 @@
 # Core server and networking
 attr
 binutils
+diffutils
 dnsmasq
 iw
 networkmanager
