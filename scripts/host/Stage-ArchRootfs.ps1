@@ -46,6 +46,7 @@ function Invoke-Docker([string[]]$Arguments) {
 $repoMount = "type=bind,source=$repoRoot,target=/workspace/repo,readonly"
 $modulesMount = "type=bind,source=$ModulesArchive,target=/input/modules.tar.gz,readonly"
 $keyMount = "type=bind,source=$AuthorizedKey,target=/input/authorized_key,readonly"
+$pacmanCacheMount = 'type=volume,source=rog5-arch-pacman-cache,target=/var/cache/pacman/pkg'
 $baseTag = "rog5-arch-base:$($rootfsHash.Substring(0,12))"
 $projectCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Unable to read project commit' }
@@ -72,7 +73,7 @@ if (Test-Path -LiteralPath $gzipPart) { throw "Refusing existing temporary file 
 try {
     Invoke-Docker @(
         'create', '--name', $container, '--platform', 'linux/arm64',
-        '--mount', $repoMount, '--mount', $modulesMount, '--mount', $keyMount,
+        '--mount', $repoMount, '--mount', $modulesMount, '--mount', $keyMount, '--mount', $pacmanCacheMount,
         '--env', "ROOTFS_SHA256=$rootfsHash", '--env', "MODULES_SHA256=$modulesHash",
         '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", '--env', "PROJECT_COMMIT=$projectCommit",
         $baseTag, '/bin/bash', '/workspace/repo/scripts/device/stage-arch-rootfs.sh'

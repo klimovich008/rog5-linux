@@ -15,6 +15,9 @@ grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' "$aut
 
 pacman-conf SigLevel | grep -qx PackageRequired
 pacman-conf SigLevel | grep -qx PackageTrustedOnly
+pacman-key --init
+pacman-key --populate archlinuxarm
+pacman-key --list-keys 68B3537F39A313B3E574D06777193F152BDBE6A6 >/dev/null
 pacman -Sy --noconfirm --disable-sandbox
 if pacman -Q linux-aarch64 >/dev/null 2>&1; then
 	pacman -Rns --noconfirm linux-aarch64
