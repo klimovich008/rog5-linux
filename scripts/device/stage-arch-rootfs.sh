@@ -62,6 +62,8 @@ modules_sha256=$MODULES_SHA256
 kernel_release=$TARGET_KERNEL_RELEASE
 EOF
 pacman -Q | LC_ALL=C sort > /etc/rog5/packages.txt
+gpgconf --homedir /etc/pacman.d/gnupg --kill all || true
+find /etc/pacman.d/gnupg -type s -delete
 
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-rootfs.sh"

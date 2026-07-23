@@ -108,10 +108,9 @@ try {
         'run', '--rm', '--mount', $outputMount, 'rog5-kernel-builder:ubuntu-24.04',
         'sh', '-c', "gzip -n -c /output/$tarName > /output/$gzipName"
     )
-    Move-Item -LiteralPath $gzipPart -Destination $Output
     Remove-Item -LiteralPath $tarPart
 
-    $outputFileMount = "type=bind,source=$Output,target=/input/rootfs.tar.gz,readonly"
+    $outputFileMount = "type=bind,source=$gzipPart,target=/input/rootfs.tar.gz,readonly"
     Invoke-Docker @(
         'run', '--rm', '--mount', $verifyMount, '--mount', $outputFileMount,
         'rog5-kernel-builder:ubuntu-24.04', 'bsdtar', '--acls', '--xattrs', '--fflags',
@@ -119,9 +118,13 @@ try {
     )
     Invoke-Docker @(
         'run', '--rm', '--platform', 'linux/arm64', '--mount', $verifyMount, '--mount', $repoMount,
+        '--mount', 'type=bind,source=/dev,target=/stage/dev',
+        '--mount', 'type=bind,source=/proc,target=/stage/proc',
+        '--mount', 'type=bind,source=/sys,target=/stage/sys', '--tmpfs', '/stage/run',
         '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", $baseTag,
         'chroot', '/stage', '/bin/bash', '/workspace/repo/scripts/device/verify-staged-arch-rootfs.sh'
     )
+    Move-Item -LiteralPath $gzipPart -Destination $Output
     $succeeded = $true
 }
 finally {

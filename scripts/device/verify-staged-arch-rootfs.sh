@@ -27,6 +27,7 @@ grep -qx 'PermitRootLogin prohibit-password' /etc/ssh/sshd_config.d/10-rog5-serv
 [[ -r /etc/systemd/system/rog5-vpn-hotspot.service ]]
 [[ ! -e /etc/wireguard/wg0.conf ]]
 [[ ! -s /etc/machine-id ]]
+[[ -z $(find /etc/pacman.d/gnupg -type s -print -quit) ]]
 [[ $(getfattr --only-values -n user.rog5 /etc/rog5/xattr-probe 2>/dev/null) == preserved ]]
 
 echo "PASS staged Arch rootfs kernel=$TARGET_KERNEL_RELEASE"
