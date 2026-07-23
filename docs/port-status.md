@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | image, modules, and serial skeleton cross-build pass | recovery DTS hardware, packaging, and temporary boot image |
-| UFS root | passing | controller/PHY rails and reset translated but kept disabled | recovery packaging, read-only temporary-boot enablement |
-| USB NCM/SSH | passing | left-side USB1 controller/PHY rails mapped but disabled | gadget initramfs and temporary-boot test |
+| reversible boot | passing | self-contained two-stage recovery package passes offline | attended temporary boot and rollback observation |
+| UFS root | passing | controller/PHY rails, reset, overlay, and initramfs gates pass | hardware discovery, then separate read-only mount tier |
+| USB NCM/SSH | passing | left-side USB1 overlay and NCM/ACM/SSH initramfs pass offline | temporary-boot enumeration and link stability |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

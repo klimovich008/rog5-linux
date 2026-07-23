@@ -23,6 +23,14 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x37100000>,
+		      <0x2 0x00000000 0x1 0x80000000>,
+		      <0x0 0xc0000000 0x1 0x40000000>,
+		      <0x0 0xb9500000 0x0 0x00000000>;
+	};
+
 	vph_pwr: vph-pwr-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vph_pwr";
@@ -31,6 +39,28 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
+};
+
+/* Board deltas from the upstream SM8350 fixed reservation map. */
+&reserved_memory {
+	asus_splash_mem: memory@e5000000 {
+		reg = <0x0 0xe5000000 0x0 0x2300000>;
+		no-map;
+	};
+
+	asus_dfps_mem: memory@e7400000 {
+		reg = <0x0 0xe7400000 0x0 0x100000>;
+		no-map;
+	};
+};
+
+/* The vendor board reserves a larger safety/debug span at these labels. */
+&removed_mem {
+	reg = <0x0 0xd8800000 0x0 0xa800000>;
+};
+
+&rmtfs_mem {
+	reg = <0x0 0x9b800000 0x0 0x400000>;
 };
 
 /*

@@ -18,6 +18,18 @@ The rail identities, voltage ranges, and reset wiring match both the running ASU
 
 The vendor `vdd-hba` reference points at the UFS GDSC. Mainline `sm8350.dtsi` already represents that relationship as the `UFS_PHY_GDSC` power domain, so the vendor property is not copied. The vendor-only VCCQ parent property is likewise not copied because it is absent from the mainline UFS binding; the upstream RPMh regulator topology supplies the L9 rail.
 
+## Memory safety map
+
+The board DTS now records the four live memory-bank tuples, including the vendor zero-sized placeholder tuple. The upstream SM8350 fixed reserved-memory map already matches the board for the secure heaps, remote-processor regions, SMEM, command DB, and firmware spans used by the recovery tier.
+
+Three ASUS deltas are explicit and compile-checked:
+
+- the removed-memory span at `0xd8800000` is enlarged to the vendor size;
+- the region at `0x9b800000` is enlarged so the whole vendor safety/debug allocation stays out of the page allocator;
+- boot splash and display-refresh data spans are added as `no-map` reservations.
+
+The `rmtfs_mem` label is retained only because disabled upstream remote-processor nodes reference its phandle. Its ASUS recovery size is deliberately conservative; modem/rmtfs enablement requires a separate dynamic-memory review and must not reuse this placeholder contract unchanged.
+
 ## Reviewed USB mapping
 
 The vendor inventory confirms DWC3 regions at `0x0a600000` and `0x0a800000`, corresponding to upstream `usb_1` and `usb_2`. A read-only live query shows that the currently connected USB networking link is configured on `usb_1`; `usb_2` is unattached.
@@ -36,6 +48,8 @@ The vendor rail identities and voltage ranges match the upstream SM8350 MTP/HDK 
 
 Sources: the pinned Linux `v7.1.4` SM8350 DTS files and the [ASUS ZS673KS English user guide](https://dlcdnets.asus.com/pub/ASUS/ZenFone/ZS673KS/E20050_ZS673KS_EM_v3_WEB.pdf).
 
-## Promotion gate
+## Recovery overlay and promotion gate
 
-UFS and the reviewed `usb_1` path may change from `disabled` to `okay` only after the recovery initramfs exists, Android boot-image packaging is proven offline, and temporary boot rollback is available. Storage must first be discovered read-only; no filesystem repair, formatting, or persistent slot operation belongs in initial bring-up.
+The base skeleton deliberately keeps UFS and USB disabled. A separate `sm8350-asus-rog-phone5-recovery.dtso` changes exactly five statuses: the UFS controller/PHY and the reviewed USB1 controller/HS/QMP PHY. Static checks prohibit register, supply, memory-region, boot-argument, or USB2 changes in this overlay.
+
+The overlay, target initramfs, self-contained kexec staging initramfs, header-v3 repack, and AVB footer now pass offline gates. This permits an attended temporary-boot test; it does not promote the candidate to a stable kernel. Initial mainline recovery does not mount storage at all. UFS discovery and logs must be inspected before a later read-only mount test; filesystem repair, formatting, and persistent slot operations remain prohibited.

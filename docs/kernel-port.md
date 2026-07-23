@@ -53,9 +53,18 @@ Use upstream DRM/MSM Freedreno rather than vendor KGSL. Validate A660 firmware, 
 
 Enable BTF/eBPF and run GodShell as an optional workload. Then add remote AI services under an unprivileged account and an explicit approval boundary for email/job actions.
 
-## Boot-image constraint
+## Two-stage recovery boot
 
-ROG Phone 5 uses Android boot header v3; the current boot image does not carry a DTB field. The mainline board DTB must therefore be supplied using a tested bootloader-compatible method (commonly an appended DTB or the appropriate vendor-boot path). This is a Phase A artifact test, not something to guess during a live flash.
+ROG Phone 5 uses Android boot header v3, and the stock-style boot template has no DTB field. Passing the new ASUS DTB directly through a normal boot image is therefore not available without changing `vendor_boot`, which is outside the recovery safety boundary.
+
+The offline candidate uses a reversible two-stage route:
+
+1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with only userspace `CONFIG_KEXEC` added. Nothing is flashed.
+2. Its RAM-only initramfs contains the Linux 7.1 `Image`, recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. It does not discover or mount userdata.
+3. `rog5-load-mainline-recovery` verifies all three nested hashes and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
+4. Both the staging and target initramfs arm a 180-second forced-reboot timer. USB ACM is the address-free fallback; USB NCM and SSH may use DHCP or an explicitly supplied test address.
+
+The recovery overlay enables only UFS and the reviewed left-side USB1 controller/PHY path. The bottom USB2 controller, display, charging, radios, remote processors, and GPU remain disabled. This package has passed offline tests but has not yet crossed the hardware boot gate.
 
 ## Non-goals
 

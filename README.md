@@ -10,6 +10,8 @@ The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-per
 
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
+The first Linux 7.1 recovery bundle now passes its offline suite. A temporary vendor-compatible 5.4 staging kernel carries the mainline `Image`, ASUS recovery DTB, target initramfs, and signed ARM64 `kexec` runtime entirely in RAM. Both stages have a 180-second rollback timer and neither recovery initramfs mounts storage. The candidate has not been booted on the phone.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See [current state](docs/current-state.md), [hardware contract](docs/hardware-contract.md), [builds and artifacts](docs/builds-and-artifacts.md), [subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md), [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md), [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
@@ -70,9 +72,15 @@ Fetch and authenticate the Arch Linux ARM userspace input:
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
 
+Fetch and authenticate the three small Alpine ARM64 packages used by the recovery loader:
+
+```powershell
+powershell -NoProfile -File scripts/host/Get-RecoveryPackages.ps1
+```
+
 Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS recovery-contract skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the skeleton may be booted on the phone.
 
-The signed Arch input and locked server rootfs also pass their offline staging suites. They remain local artifacts and are not bootable without a recovery-grade ASUS DTS, initramfs, and tested Android boot-image package.
+The signed Arch input and locked server rootfs also pass their offline staging suites. A recovery-grade ASUS DTB, initramfs, and Android boot-image package now exist, but the Arch rootfs remains outside the first RAM-only boot and will not be mounted until UFS discovery passes on hardware.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

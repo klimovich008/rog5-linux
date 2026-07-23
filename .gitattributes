@@ -1,6 +1,11 @@
 * text=auto
+.gitattributes text eol=lf
 *.sh text eol=lf
 *.tsv text eol=lf
 *.md text eol=lf
 *.fragment text eol=lf
 *.ps1 text eol=crlf
+*.dts text eol=lf
+*.dtso text eol=lf
+*.patch text eol=lf -whitespace
+initramfs/* text eol=lf

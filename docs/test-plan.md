@@ -11,13 +11,16 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - Boot image contains no credentials or host-specific SSH private keys.
 - Build logs contain no errors and are retained outside Git if large.
 - `verify-mainline-build.sh` validates the compressed Image, artifact hashes, final boot/BTF config, and parseability of every comparison DTB.
+- `verify-kexec-recovery-stage.sh` validates the staging kernel config, recovery DTB allowlist, both initramfs layers, nested payload hashes, boot header, AVB footer, and absence of private-key blocks.
 
 ## Tier 1 — boot and recovery
 
-- `fastboot boot` succeeds without flashing.
-- Expected kernel release is reported.
-- SSH over USB returns within the timeout.
-- Root filesystem is read/write and UFS errors remain zero.
+- `fastboot boot` reaches the 5.4 kexec staging initramfs without flashing or mounting storage.
+- USB ACM works even if USB networking has no address; SSH is optional in this first sub-tier.
+- The staging rollback timer returns to the installed fallback kernel.
+- The mainline payload loads, then starts only after a separate attended `kexec -e`.
+- The Linux 7.1 target reports the expected release and its independent rollback timer works.
+- UFS is discovered without errors while no filesystem is mounted.
 - Watchdog/reset counters do not increase.
 - A normal reboot still reaches the fallback slot.
 

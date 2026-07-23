@@ -1,4 +1,4 @@
-# Current state — 2026-07-22
+# Current state — 2026-07-23
 
 ## Hardware and boot
 
@@ -69,5 +69,9 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
 - Radio startup is delayed to avoid a low-battery boot power spike.
 - The current vendor kernel has BPF and uprobes but no `/sys/kernel/btf/vmlinux`; GodShell cannot run its CO-RE eBPF programs on this baseline.
 - The boot image is not persistent. Any normal reboot returns to the installed fallback kernel.
-- PC cross-compilation is prepared in Docker, but this Windows host currently has an inactive Docker daemon and WSL2 cannot start until its virtualization backend is enabled.
+- PC cross-compilation is active in Docker. Linux 7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile successfully on the PC.
 - Credentials and private identifiers are deliberately excluded from this repository.
+
+## Mainline recovery candidate
+
+The first self-contained two-stage package passes offline validation but has not been booted. The header-v3 staging image uses the ASUS-compatible 5.4 kernel with `CONFIG_KEXEC=y`; its RAM-only initramfs embeds the Linux 7.1 `Image`, recovery DTB, target initramfs, and authenticated Alpine ARM64 loader. The recovery overlay enables only UFS and left-side USB1. Both initramfs stages retain independent 180-second reboot timers and neither mounts storage.

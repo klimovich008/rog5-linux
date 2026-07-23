@@ -24,6 +24,6 @@ The ASUS manual states that only the left-side Type-C connector supports Display
 
 ## Compile gate
 
-The ASUS DTB passes preprocessing, compilation, round-trip parsing, artifact hashing, and exact UFS/USB checks. The source and compiled DTB keep UFS, USB1, both USB1 PHYs, and USB2 disabled. DWC3 is predeclared as peripheral-only for the eventual recovery gadget.
+The ASUS DTB passes preprocessing, compilation, round-trip parsing, artifact hashing, exact memory-reservation checks, and exact UFS/USB checks. The source and compiled DTB keep UFS, USB1, both USB1 PHYs, and USB2 disabled. DWC3 is predeclared as peripheral-only for the eventual recovery gadget.
 
-Artifact: `dist/linux-7.1.4/sm8350-asus-rog-phone5.dtb`, 102,293 bytes, SHA-256 `701d11efff7731d0dbee094486168351c4c509b16ca2e2582001b29d8a76716c`.
+Artifact: `dist/linux-7.1.4/sm8350-asus-rog-phone5.dtb`, 102,627 bytes, SHA-256 `3e4c6ecdd87e2a07819dd7c5a4e231c38140079be160a46fcda585130b3471fa`.

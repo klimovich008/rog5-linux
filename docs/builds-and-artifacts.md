@@ -33,11 +33,12 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS and left-side USB contracts compiled and checked; never boot |
-| ASUS minimal recovery DTB | UFS + USB + SSH first boot | hardware contract translated but disabled; recovery packaging remains |
+| ASUS minimal recovery DTB | UFS + USB + SSH first boot | recovery overlay and exact enablement gate pass offline; not booted |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
-| initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
-| temporary Android boot image | reversible `fastboot boot` testing | produce only after DTB packaging is proven |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic offline suite passes; storage is never mounted |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | deterministic, signed `kexec` dependencies, nested hashes pass |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | header-v3 and AVB offline suite passes; not booted |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
 Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. Every candidate receives a source commit, config hash, compiler version, file sizes, and SHA-256 manifest.
@@ -47,7 +48,7 @@ Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. 
 1. Validate scripts, known artifacts, and kernel config symbols.
 2. Compile current stable Linux plus known upstream SM8350 DTBs to prove the native ARM64 toolchain.
 3. Translate only the minimal ASUS boot contract: reserved memory, regulators, UFS, one USB controller, serial/reboot.
-4. Compile and run `dtbs_check`; package a recovery-only image.
+4. Compile and run `dtbs_check`; package and verify the RAM-only two-stage recovery image.
 5. Use temporary boot and stop immediately on UFS, watchdog, reset, thermal, or USB regression.
 6. Add charging, input/display, radios/remotes, then GPU in separate commits and test tiers.
 7. Cross-compile-test the board series on 6.18 LTS and current stable.

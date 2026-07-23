@@ -15,7 +15,7 @@ Result: **PASS** for the compile-only upstream baseline. This is not an ASUS boo
 - Shallow pinned source fetch and commit check: **PASS**.
 - ARM64 `Image.gz`: **PASS**; gzip and SHA-256 checks pass.
 - Five upstream SM8350 comparison DTBs: **PASS**; nonempty, parseable, and hash-verified.
-- ASUS serial skeleton with disabled reviewed UFS and left-side USB contracts: **PASS** for preprocessing, compilation, DTB round-trip parsing, exact reset/rail/role checks, and static enablement guards; **not a boot candidate** because UFS and USB remain disabled and recovery packaging is absent.
+- ASUS memory-safe skeleton with disabled reviewed UFS and left-side USB contracts: **PASS** for preprocessing, compilation, DTB round-trip parsing, exact memory/reset/rail/role checks, and static enablement guards; **not a boot candidate** because UFS and USB remain disabled and recovery packaging is absent.
 - Matching deterministic modules archive: **PASS**; 1,028 modules for `7.1.4-g7a5cef0db479`, dependency metadata, `ath11k`, and `ath11k_pci` verified. Archive order, ownership, timestamps, and gzip metadata are normalized; two complete packaging passes produced the same SHA-256.
 - Required UFS, USB NCM, built-in MSM DRM, BPF/BTF, WireGuard, nftables NAT, and policy-routing config checks: **PASS**.
 - ELF `.BTF` section and kernel BTF ID generation: **PASS**.

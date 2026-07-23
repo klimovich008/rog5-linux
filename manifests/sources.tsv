@@ -4,3 +4,6 @@ linux-lts-6.18	e871c68dfd325de01351d6d1c009337c97ee3dcd	2026-07-18	Linux v6.18.3
 godshell	4530e0fdee0dc98bea20b268273d7a3e438ceb37	2026-03-18	optional eBPF/LLM observability workload
 pmaports	29afb81ed2249d1ca0148a5dc6b4280bf0402af0	2026-07-20	no anakin package; old generic SM8350 fork archived
 archlinuxarm-keyring	91e6b11698f8df66042d56aaa56fbe9c9263847d	2014-01-19	public signing keyring pinned for generic AArch64 rootfs verification
+alpine-kexec-tools	2.0.32-r2	2026-01-31	signed Alpine 3.24 aarch64 recovery loader
+alpine-xz-libs	5.8.3-r0	2026-04-25	signed Alpine 3.24 aarch64 kexec runtime dependency
+alpine-zstd-libs	1.5.7-r2	2025-07-28	signed Alpine 3.24 aarch64 kexec runtime dependency

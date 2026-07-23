@@ -31,6 +31,18 @@ cpp -nostdinc \
 dtc -q -@ -I dts -O dtb -o "$dtb" "$preprocessed"
 dtc -q -I dtb -O dts -o /dev/null "$dtb"
 
+memory=/memory@80000000
+[ "$(fdtget -t s "$dtb" "$memory" device_type)" = memory ]
+[ "$(fdtget -t x "$dtb" "$memory" reg)" = \
+	'0 80000000 0 37100000 2 0 1 80000000 0 c0000000 1 40000000 0 b9500000 0 0' ]
+[ "$(fdtget -t x "$dtb" /reserved-memory/memory@9b800000 reg)" = \
+	'0 9b800000 0 400000' ]
+[ "$(fdtget -t x "$dtb" /reserved-memory/memory@d8800000 reg)" = \
+	'0 d8800000 0 a800000' ]
+for node in /reserved-memory/memory@e5000000 /reserved-memory/memory@e7400000; do
+	fdtget "$dtb" "$node" no-map >/dev/null
+done
+
 ufs_hc=/soc@0/ufshc@1d84000
 ufs_phy=/soc@0/phy@1d87000
 [ "$(fdtget -t s "$dtb" "$ufs_hc" status)" = disabled ]
