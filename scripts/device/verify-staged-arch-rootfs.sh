@@ -21,7 +21,7 @@ grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) ' /root/.ssh/authorized_keys
 awk -F: '$1 == "root" { exit substr($2,1,1) != "!" }' /etc/shadow
 grep -qx 'PasswordAuthentication no' /etc/ssh/sshd_config.d/10-rog5-server.conf
 grep -qx 'PermitRootLogin prohibit-password' /etc/ssh/sshd_config.d/10-rog5-server.conf
-[[ $(systemctl is-enabled sshd.service) == enabled ]]
+[[ $(readlink /etc/systemd/system/multi-user.target.wants/sshd.service) == /usr/lib/systemd/system/sshd.service ]]
 [[ -x /usr/local/sbin/rog5-vpn-hotspot.sh ]]
 [[ -r /etc/systemd/system/rog5-vpn-hotspot.service ]]
 [[ ! -e /etc/wireguard/wg0.conf ]]

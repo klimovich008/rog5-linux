@@ -24,7 +24,6 @@ if pacman -Q linux-aarch64 >/dev/null 2>&1; then
 fi
 pacman -Syu --needed --noconfirm --disable-sandbox \
 	dnsmasq hostapd iw networkmanager openssh nftables upower wireguard-tools
-rm -f /var/cache/pacman/pkg/*
 
 tar -xzf "$modules" -C /
 [[ -d "/lib/modules/$TARGET_KERNEL_RELEASE" ]]
@@ -48,7 +47,9 @@ if getent passwd alarm >/dev/null; then
 fi
 rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id
 : > /etc/machine-id
-systemctl enable sshd.service
+install -d -m0755 /etc/systemd/system/multi-user.target.wants
+ln -sfn /usr/lib/systemd/system/sshd.service \
+	/etc/systemd/system/multi-user.target.wants/sshd.service
 
 install -d -m0755 /etc/rog5
 cat > /etc/rog5/build <<EOF
