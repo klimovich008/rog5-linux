@@ -43,10 +43,12 @@ function Invoke-Docker([string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "docker failed with exit code $LASTEXITCODE" }
 }
 
-$repoMount = "type=bind,source=$repoRoot,target=/workspace/repo,readonly"
-$modulesMount = "type=bind,source=$ModulesArchive,target=/input/modules.tar.gz,readonly"
-$keyMount = "type=bind,source=$AuthorizedKey,target=/input/authorized_key,readonly"
-$pacmanCacheMount = 'type=volume,source=rog5-arch-pacman-cache,target=/var/cache/pacman/pkg'
+$repoMount = "type=bind,source=$repoRoot,target=/stage/workspace/repo,readonly"
+$modulesMount = "type=bind,source=$ModulesArchive,target=/stage/input/modules.tar.gz,readonly"
+$keyMount = "type=bind,source=$AuthorizedKey,target=/stage/input/authorized_key,readonly"
+$pacmanCacheMount = 'type=volume,source=rog5-arch-pacman-cache,target=/stage/var/cache/pacman/pkg'
+$rootfsMount = "type=volume,source=rog5-arch-rootfs-$PID,target=/stage"
+$verifyMount = "type=volume,source=rog5-arch-verify-$PID,target=/stage"
 $baseTag = "rog5-arch-base:$($rootfsHash.Substring(0,12))"
 $projectCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Unable to read project commit' }
@@ -58,34 +60,50 @@ if (-not $baseImageId.Count) {
     Invoke-Docker @('import', '--platform', 'linux/arm64', $Rootfs, $baseTag)
 }
 
-$entries = @(& docker run --rm --mount $modulesMount rog5-kernel-builder:ubuntu-24.04 tar -tzf /input/modules.tar.gz)
+$modulesFileMount = "type=bind,source=$ModulesArchive,target=/input/modules.tar.gz,readonly"
+$entries = @(& docker run --rm --mount $modulesFileMount rog5-kernel-builder:ubuntu-24.04 tar -tzf /input/modules.tar.gz)
 if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect modules archive' }
 $releases = @($entries | ForEach-Object { if ($_ -match '^lib/modules/([^/]+)/') { $Matches[1] } } | Sort-Object -Unique)
 if ($releases.Count -ne 1) { throw 'Modules archive must contain exactly one kernel release' }
 $kernelRelease = $releases[0]
 
-$container = "rog5-arch-stage-$PID"
 $tarPart = "$Output.tar.part"
 $gzipPart = "$Output.part"
 if (Test-Path -LiteralPath $tarPart) { throw "Refusing existing temporary file $tarPart" }
 if (Test-Path -LiteralPath $gzipPart) { throw "Refusing existing temporary file $gzipPart" }
-
+$outputDirectory = [IO.Path]::GetDirectoryName($Output)
+$outputMount = "type=bind,source=$outputDirectory,target=/output"
+$rootfsFileMount = "type=bind,source=$Rootfs,target=/input/rootfs.tar.gz,readonly"
+$tarName = [IO.Path]::GetFileName($tarPart)
+$gzipName = [IO.Path]::GetFileName($gzipPart)
 $succeeded = $false
+
 try {
+    Invoke-Docker @('volume', 'create', "rog5-arch-rootfs-$PID")
+    Invoke-Docker @('volume', 'create', "rog5-arch-verify-$PID")
     Invoke-Docker @(
-        'create', '--name', $container, '--platform', 'linux/arm64',
-        '--mount', $repoMount, '--mount', $modulesMount, '--mount', $keyMount, '--mount', $pacmanCacheMount,
+        'run', '--rm', '--mount', $rootfsMount, '--mount', $rootfsFileMount,
+        'rog5-kernel-builder:ubuntu-24.04', 'bsdtar', '--acls', '--xattrs', '--fflags',
+        '-xpf', '/input/rootfs.tar.gz', '-C', '/stage'
+    )
+    Invoke-Docker @(
+        'run', '--rm', '--platform', 'linux/arm64',
+        '--mount', $rootfsMount, '--mount', $repoMount, '--mount', $modulesMount,
+        '--mount', $keyMount, '--mount', $pacmanCacheMount,
+        '--mount', 'type=bind,source=/dev,target=/stage/dev',
+        '--mount', 'type=bind,source=/proc,target=/stage/proc',
+        '--mount', 'type=bind,source=/sys,target=/stage/sys', '--tmpfs', '/stage/run',
         '--env', "ROOTFS_SHA256=$rootfsHash", '--env', "MODULES_SHA256=$modulesHash",
         '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", '--env', "PROJECT_COMMIT=$projectCommit",
-        $baseTag, '/bin/bash', '/workspace/repo/scripts/device/stage-arch-rootfs.sh'
+        $baseTag, '/bin/bash', '/stage/workspace/repo/scripts/device/run-arch-rootfs-stage.sh'
     )
-    Invoke-Docker @('start', '--attach', $container)
-    Invoke-Docker @('export', '--output', $tarPart, $container)
-
-    $outputDirectory = [IO.Path]::GetDirectoryName($Output)
-    $outputMount = "type=bind,source=$outputDirectory,target=/output"
-    $tarName = [IO.Path]::GetFileName($tarPart)
-    $gzipName = [IO.Path]::GetFileName($gzipPart)
+    Invoke-Docker @(
+        'run', '--rm', '--mount', $rootfsMount, '--mount', $outputMount,
+        'rog5-kernel-builder:ubuntu-24.04', 'bsdtar', '--acls', '--xattrs', '--fflags',
+        '-cpf', "/output/$tarName", '-C', '/stage',
+        '--exclude', './workspace', '--exclude', './input',
+        '--exclude', './dev/*', '--exclude', './proc/*', '--exclude', './sys/*', '--exclude', './run/*', '.'
+    )
     Invoke-Docker @(
         'run', '--rm', '--mount', $outputMount, 'rog5-kernel-builder:ubuntu-24.04',
         'sh', '-c', "gzip -n -c /output/$tarName > /output/$gzipName"
@@ -93,28 +111,25 @@ try {
     Move-Item -LiteralPath $gzipPart -Destination $Output
     Remove-Item -LiteralPath $tarPart
 
-    $verifyTag = "rog5-arch-verify:$PID"
-    try {
-        Invoke-Docker @('import', '--platform', 'linux/arm64', $Output, $verifyTag)
-        Invoke-Docker @(
-            'run', '--rm', '--platform', 'linux/arm64', '--mount', $repoMount,
-            '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", $verifyTag,
-            '/bin/bash', '/workspace/repo/scripts/device/verify-staged-arch-rootfs.sh'
-        )
-    }
-    finally {
-        if (@(& docker image ls --quiet $verifyTag).Count) {
-            & docker image rm $verifyTag | Out-Null
-        }
-    }
+    $outputFileMount = "type=bind,source=$Output,target=/input/rootfs.tar.gz,readonly"
+    Invoke-Docker @(
+        'run', '--rm', '--mount', $verifyMount, '--mount', $outputFileMount,
+        'rog5-kernel-builder:ubuntu-24.04', 'bsdtar', '--acls', '--xattrs', '--fflags',
+        '-xpf', '/input/rootfs.tar.gz', '-C', '/stage'
+    )
+    Invoke-Docker @(
+        'run', '--rm', '--platform', 'linux/arm64', '--mount', $verifyMount, '--mount', $repoMount,
+        '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", $baseTag,
+        'chroot', '/stage', '/bin/bash', '/workspace/repo/scripts/device/verify-staged-arch-rootfs.sh'
+    )
     $succeeded = $true
 }
 finally {
-    if ($succeeded -and @(& docker container ls --all --quiet --filter "name=^/$container`$").Count) {
-        & docker rm --force $container | Out-Null
+    if ($succeeded) {
+        & docker volume rm "rog5-arch-rootfs-$PID" "rog5-arch-verify-$PID" | Out-Null
     }
-    elseif (-not $succeeded) {
-        Write-Warning "Retained failed staging container: $container"
+    else {
+        Write-Warning "Retained failed staging volumes: rog5-arch-rootfs-$PID, rog5-arch-verify-$PID"
     }
 }
 
