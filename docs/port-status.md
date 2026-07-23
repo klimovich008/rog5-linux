@@ -4,7 +4,7 @@
 |---|---|---|---|
 | reversible boot | passing | image, modules, and serial skeleton cross-build pass | recovery DTS hardware, packaging, and temporary boot image |
 | UFS root | passing | controller/PHY rails and reset translated but kept disabled | recovery packaging, read-only temporary-boot enablement |
-| USB NCM/SSH | passing | DWC3 + configfs NCM present | Type-C/PHY supplies and gadget initramfs test |
+| USB NCM/SSH | passing | left-side USB1 controller/PHY rails mapped but disabled | gadget initramfs and temporary-boot test |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

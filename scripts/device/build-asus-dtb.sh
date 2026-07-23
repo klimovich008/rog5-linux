@@ -14,10 +14,14 @@ grep -q 'compatible = "asus,rog-phone5", "qcom,sm8350";' "$dts"
 	echo 'FAIL serial-only skeleton enabled an unexpected subsystem' >&2
 	exit 1
 }
-[ "$(grep -c 'status = "disabled";' "$dts")" -eq 2 ]
+[ "$(grep -c 'status = "disabled";' "$dts")" -eq 5 ]
 grep -q '^&ufs_mem_hc {' "$dts"
 grep -q '^&ufs_mem_phy {' "$dts"
-! grep -q '^&usb_[12]' "$dts"
+grep -q '^&usb_1 {' "$dts"
+grep -q '^&usb_1_dwc3 {' "$dts"
+grep -q '^&usb_1_hsphy {' "$dts"
+grep -q '^&usb_1_qmpphy {' "$dts"
+! grep -q '^&usb_2' "$dts"
 
 mkdir -p "$output_dir"
 cpp -nostdinc \
@@ -40,5 +44,21 @@ for property in vdda-phy-supply vdda-pll-supply; do
 	fdtget "$dtb" "$ufs_phy" "$property" >/dev/null
 done
 
+usb_controller=/soc@0/usb@a6f8800
+usb_dwc3=$usb_controller/usb@a600000
+usb_hs_phy=/soc@0/phy@88e3000
+usb_qmp_phy=/soc@0/phy@88e8000
+usb_2_controller=/soc@0/usb@a8f8800
+for node in "$usb_controller" "$usb_hs_phy" "$usb_qmp_phy" "$usb_2_controller"; do
+	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
+done
+[ "$(fdtget -t s "$dtb" "$usb_dwc3" dr_mode)" = peripheral ]
+for property in vdda-pll-supply vdda18-supply vdda33-supply; do
+	fdtget "$dtb" "$usb_hs_phy" "$property" >/dev/null
+done
+for property in vdda-phy-supply vdda-pll-supply; do
+	fdtget "$dtb" "$usb_qmp_phy" "$property" >/dev/null
+done
+
 sha256sum "$dtb"
-echo 'PASS compile-only ASUS serial skeleton; not a boot candidate'
+echo 'PASS compile-only ASUS recovery contract; UFS and USB remain disabled'

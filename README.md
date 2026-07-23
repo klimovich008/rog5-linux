@@ -70,7 +70,7 @@ Fetch and authenticate the Arch Linux ARM userspace input:
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
 
-Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS serial skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the serial skeleton may be booted on the phone.
+Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS recovery-contract skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the skeleton may be booted on the phone.
 
 The signed Arch input and locked server rootfs also pass their offline staging suites. They remain local artifacts and are not bootable without a recovery-grade ASUS DTS, initramfs, and tested Android boot-image package.
 

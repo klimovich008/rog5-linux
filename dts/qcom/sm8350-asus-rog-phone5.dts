@@ -34,9 +34,9 @@
 };
 
 /*
- * Only rails required by the disabled UFS recovery tier are described here.
+ * Only rails required by the disabled UFS and USB recovery tiers are here.
  * ASUS vendor rail identities and voltage ranges match the upstream SM8350
- * references; UFS remains disabled until packaging and recovery gates exist.
+ * references; both subsystems remain disabled until recovery gates exist.
  */
 &apps_rsc {
 	regulators-0 {
@@ -44,6 +44,7 @@
 		qcom,pmic-id = "b";
 
 		vdd-s11-supply = <&vph_pwr>;
+		vdd-l1-l4-supply = <&vreg_s11b_0p95>;
 		vdd-l2-l7-supply = <&vreg_bob>;
 		vdd-l3-l5-supply = <&vreg_bob>;
 		vdd-l6-l9-l10-supply = <&vreg_s11b_0p95>;
@@ -52,6 +53,20 @@
 			regulator-name = "vreg_s11b_0p95";
 			regulator-min-microvolt = <752000>;
 			regulator-max-microvolt = <1000000>;
+		};
+
+		vreg_l1b_0p88: ldo1 {
+			regulator-name = "vreg_l1b_0p88";
+			regulator-min-microvolt = <912000>;
+			regulator-max-microvolt = <920000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		vreg_l2b_3p07: ldo2 {
+			regulator-name = "vreg_l2b_3p07";
+			regulator-min-microvolt = <3072000>;
+			regulator-max-microvolt = <3072000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
 		vreg_l5b_0p88: ldo5 {
@@ -87,13 +102,28 @@
 		compatible = "qcom,pm8350c-rpmh-regulators";
 		qcom,pmic-id = "c";
 
+		vdd-s1-supply = <&vph_pwr>;
+		vdd-l1-l12-supply = <&vreg_s1c_1p86>;
 		vdd-bob-supply = <&vph_pwr>;
+
+		vreg_s1c_1p86: smps1 {
+			regulator-name = "vreg_s1c_1p86";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1952000>;
+		};
 
 		vreg_bob: bob {
 			regulator-name = "vreg_bob";
 			regulator-min-microvolt = <3008000>;
 			regulator-max-microvolt = <3960000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_AUTO>;
+		};
+
+		vreg_l1c_1p8: ldo1 {
+			regulator-name = "vreg_l1c_1p8";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 	};
 };
@@ -121,6 +151,30 @@
 &ufs_mem_phy {
 	vdda-phy-supply = <&vreg_l5b_0p88>;
 	vdda-pll-supply = <&vreg_l6b_1p2>;
+
+	status = "disabled";
+};
+
+/* usb_1 is the reviewed left-side recovery connector; keep it inert. */
+&usb_1 {
+	status = "disabled";
+};
+
+&usb_1_dwc3 {
+	dr_mode = "peripheral";
+};
+
+&usb_1_hsphy {
+	vdda-pll-supply = <&vreg_l5b_0p88>;
+	vdda18-supply = <&vreg_l1c_1p8>;
+	vdda33-supply = <&vreg_l2b_3p07>;
+
+	status = "disabled";
+};
+
+&usb_1_qmpphy {
+	vdda-phy-supply = <&vreg_l6b_1p2>;
+	vdda-pll-supply = <&vreg_l1b_0p88>;
 
 	status = "disabled";
 };

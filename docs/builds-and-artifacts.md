@@ -32,8 +32,8 @@ Private inputs live outside the repository and are referenced only by path or ha
 | vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
 | Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
-| ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS rails/reset compiled and checked; never boot |
-| ASUS minimal recovery DTB | UFS + USB + SSH first boot | UFS contract translated but disabled; USB and recovery packaging remain |
+| ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS and left-side USB contracts compiled and checked; never boot |
+| ASUS minimal recovery DTB | UFS + USB + SSH first boot | hardware contract translated but disabled; recovery packaging remains |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
 | initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
@@ -63,7 +63,7 @@ Normal development uses the PC cross-builder:
 powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
 ```
 
-It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current serial skeleton cannot boot the device because UFS, USB, initramfs, command line, and Android boot-image packaging are still required.
+It runs the same pinned source, fragment, module, DTB, and verification scripts as the native experiment. Docker named volumes retain the source and object cache, while only verified artifacts are copied to `dist/linux-7.1.4/`. The phone receives nothing until a recovery image passes offline gates; copying `Image.gz` or the current skeleton cannot boot the device because UFS/USB remain disabled and initramfs, command line, and Android boot-image packaging are still required.
 
 ## Reproduction records
 

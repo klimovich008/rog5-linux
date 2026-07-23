@@ -15,7 +15,7 @@ Result: **PASS** for the compile-only upstream baseline. This is not an ASUS boo
 - Shallow pinned source fetch and commit check: **PASS**.
 - ARM64 `Image.gz`: **PASS**; gzip and SHA-256 checks pass.
 - Five upstream SM8350 comparison DTBs: **PASS**; nonempty, parseable, and hash-verified.
-- ASUS serial skeleton with disabled reviewed UFS contract: **PASS** for preprocessing, compilation, DTB round-trip parsing, exact reset/rail checks, and static enablement guards; **not a boot candidate** because UFS and USB remain disabled and recovery packaging is absent.
+- ASUS serial skeleton with disabled reviewed UFS and left-side USB contracts: **PASS** for preprocessing, compilation, DTB round-trip parsing, exact reset/rail/role checks, and static enablement guards; **not a boot candidate** because UFS and USB remain disabled and recovery packaging is absent.
 - Matching deterministic modules archive: **PASS**; 1,028 modules for `7.1.4-g7a5cef0db479`, dependency metadata, `ath11k`, and `ath11k_pci` verified. Archive order, ownership, timestamps, and gzip metadata are normalized; two complete packaging passes produced the same SHA-256.
 - Required UFS, USB NCM, built-in MSM DRM, BPF/BTF, WireGuard, nftables NAT, and policy-routing config checks: **PASS**.
 - ELF `.BTF` section and kernel BTF ID generation: **PASS**.
@@ -24,4 +24,4 @@ Result: **PASS** for the compile-only upstream baseline. This is not an ASUS boo
 
 The routing check is reproducible with `scripts/device/test-vpn-hotspot.sh` in the privileged builder container with networking disabled.
 
-The upstream DTBs target Qualcomm, Microsoft, and Sony boards. None is compatible with the ROG Phone 5 and none may be passed to `fastboot boot`. The ASUS serial skeleton is also prohibited from booting. The next bootable milestone requires a reviewed ASUS recovery DTB plus initramfs and Android boot-image packaging.
+The upstream DTBs target Qualcomm, Microsoft, and Sony boards. None is compatible with the ROG Phone 5 and none may be passed to `fastboot boot`. The ASUS skeleton is also prohibited from booting. The next bootable milestone requires a recovery variant that enables only the reviewed UFS/USB paths, plus initramfs and Android boot-image packaging.

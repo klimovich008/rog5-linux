@@ -1,6 +1,6 @@
 # Recovery DTS translation
 
-The ASUS DTS remains a compile-only serial skeleton. It now records the reviewed UFS hardware contract but keeps both the controller and PHY explicitly disabled. It must not be booted.
+The ASUS DTS remains a compile-only serial skeleton. It records the reviewed UFS and left-side USB hardware contracts but keeps both subsystems and all required PHYs explicitly disabled. It must not be booted.
 
 ## Reviewed UFS mapping
 
@@ -18,10 +18,24 @@ The rail identities, voltage ranges, and reset wiring match both the running ASU
 
 The vendor `vdd-hba` reference points at the UFS GDSC. Mainline `sm8350.dtsi` already represents that relationship as the `UFS_PHY_GDSC` power domain, so the vendor property is not copied. The vendor-only VCCQ parent property is likewise not copied because it is absent from the mainline UFS binding; the upstream RPMh regulator topology supplies the L9 rail.
 
-## USB boundary
+## Reviewed USB mapping
 
-The vendor inventory confirms DWC3 regions at `0x0a600000` and `0x0a800000`, corresponding to upstream `usb_1` and `usb_2`. Neither is described or enabled in the ASUS DTS yet. The next translation must identify which controller reaches each physical connector and verify HS/QMP PHY rails and role behavior before choosing the single recovery gadget port.
+The vendor inventory confirms DWC3 regions at `0x0a600000` and `0x0a800000`, corresponding to upstream `usb_1` and `usb_2`. A read-only live query shows that the currently connected USB networking link is configured on `usb_1`; `usb_2` is unattached.
+
+`usb_1` is the reviewed left-side connector. This mapping follows three independent facts: its vendor node links to the PMIC UCSI endpoint, its primary QMP PHY is the combined USB3/DisplayPort PHY, and ASUS documents that only the left-side connector provides DisplayPort. `usb_2` uses the secondary USB-only PHY and separate board controls, so it remains outside the first recovery tier.
+
+| USB recovery fact | Mainline representation | State |
+|---|---|---|
+| left-side controller | `&usb_1`, DWC3 at `0x0a600000` | disabled |
+| forced gadget role | `&usb_1_dwc3` with `dr_mode = "peripheral"` | compiled and checked |
+| HS PHY rails | PM8350 L5, PM8350C L1, PM8350 L2 | compiled and checked; PHY disabled |
+| USB3/DP PHY rails | PM8350 L6 and PM8350 L1 | compiled and checked; PHY disabled |
+| bottom connector | `&usb_2`, DWC3 at `0x0a800000` | untouched and disabled |
+
+The vendor rail identities and voltage ranges match the upstream SM8350 MTP/HDK representation. The offline inspector reports only allowlisted USB properties and their phandle targets; it never prints boot arguments or unrelated private-tree values.
+
+Sources: the pinned Linux `v7.1.4` SM8350 DTS files and the [ASUS ZS673KS English user guide](https://dlcdnets.asus.com/pub/ASUS/ZenFone/ZS673KS/E20050_ZS673KS_EM_v3_WEB.pdf).
 
 ## Promotion gate
 
-UFS may change from `disabled` to `okay` only after the recovery initramfs exists, Android boot-image packaging is proven offline, and temporary boot rollback is available. USB requires the same gate plus a verified physical-port map. Storage must first be discovered read-only; no filesystem repair, formatting, or persistent slot operation belongs in initial bring-up.
+UFS and the reviewed `usb_1` path may change from `disabled` to `okay` only after the recovery initramfs exists, Android boot-image packaging is proven offline, and temporary boot rollback is available. Storage must first be discovered read-only; no filesystem repair, formatting, or persistent slot operation belongs in initial bring-up.
