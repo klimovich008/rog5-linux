@@ -72,6 +72,8 @@ powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 
 Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS serial skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the serial skeleton may be booted on the phone.
 
+The signed Arch input and locked server rootfs also pass their offline staging suites. They remain local artifacts and are not bootable without a recovery-grade ASUS DTS, initramfs, and tested Android boot-image package.
+
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 
 On the current device, the installed profiles are:

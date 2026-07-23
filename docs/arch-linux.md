@@ -30,6 +30,8 @@ powershell -NoProfile -File scripts/host/Stage-ArchRootfs.ps1 -AuthorizedKey C:\
 
 Staging runs the AArch64 userspace under Docker emulation, keeps pacman signature enforcement, removes the generic Arch kernel, installs only the server/VPN packages, adds the matching custom modules, locks published password accounts, removes reusable host identity, and enables SSH key login. It does not include VPN/Wi-Fi credentials, enable the hotspot, install a desktop, or alter the phone. Extraction, staging, archival, and verification use Linux Docker volumes plus libarchive ACL/xattr support; the output is re-extracted and checked so ownership, modes, and extended attributes survive the round trip.
 
+The current staged server rootfs is 1,028,140,049 bytes with SHA-256 `d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`. It passed the offline suite but is not boot-ready until it is paired with a recovery-grade ASUS DTS, initramfs, and temporary boot image and then passes first-boot identity, tmpfiles, USB networking, and SSH gates.
+
 Required server packages include OpenSSH, nftables, WireGuard tools, hostapd, dnsmasq, NetworkManager, UPower, and the selected KDE/Plasma session. Mesa/Freedreno becomes the default only after the mainline DRM/MSM GPU test tier passes.
 
 ## VPN hotspot

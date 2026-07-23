@@ -5,6 +5,7 @@ rog5-alpine-5.4.210-wifi.img	43757568	fb87ac11176aef539faa18800e808ed151be09c4f6
 rog5-alpine-5.4.210-rtcharger.img	43753472	b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86	charger calibration experiment; not default	no
 boot-current.img	100663296	c52ceefff97a38a086a5c0422cd1b65b14252ec13ae4c8dda1b1afbddd923857	private boot partition backup	no
 artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz	818293654	3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a	signed generic Arch Linux ARM AArch64 rootfs input	no
+artifacts/arch/rog5-arch-rootfs-7.1.4.tar.gz	1028140049	d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c	verified locked Arch server rootfs with matching Linux 7.1.4 modules	no
 dist/linux-7.1.4/Image.gz	14004600	0567c62bc239dde9b99b42b481b4e7715ca007d1edaad0d4743009be480119a1	compile-only Linux 7.1.4 ARM64 kernel	no
 dist/linux-7.1.4/kernel.config	242142	db7b7ff0d552b8834eb6978ce7b08dc2446caab072148a48d05630f11e0291e6	verified Linux 7.1.4 final configuration	no
 dist/linux-7.1.4/modules.tar.gz	300653851	658f14e300d3896ce68e11e6391df1788efb07637bc7abb73735fb4af972e47e	matching deterministic Linux 7.1.4 modules and dependency metadata	no

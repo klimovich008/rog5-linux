@@ -35,6 +35,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | compile/parse/static guards pass; never boot |
 | ASUS minimal recovery DTB | UFS + USB + SSH first boot | serial skeleton exists; required recovery hardware is not yet authored |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
+| locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
 | initramfs | recovery shell, UFS root, USB NCM, SSH | reuse audited current logic, then minimize |
 | temporary Android boot image | reversible `fastboot boot` testing | produce only after DTB packaging is proven |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
