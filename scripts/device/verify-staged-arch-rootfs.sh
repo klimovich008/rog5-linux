@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo "FAIL verify line=$LINENO command=$BASH_COMMAND" >&2' ERR
 
 : "${TARGET_KERNEL_RELEASE:?missing TARGET_KERNEL_RELEASE}"
 

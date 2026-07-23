@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo "FAIL stage line=$LINENO command=$BASH_COMMAND" >&2' ERR
 
 repo=${REPO:-/workspace/repo}
 modules=${MODULES_ARCHIVE:-/input/modules.tar.gz}
@@ -25,7 +26,7 @@ fi
 pacman -Syu --needed --noconfirm --disable-sandbox \
 	dnsmasq hostapd iw networkmanager openssh nftables upower wireguard-tools
 
-tar -xzf "$modules" -C /
+tar --keep-directory-symlink -xzf "$modules" -C /
 [[ -d "/lib/modules/$TARGET_KERNEL_RELEASE" ]]
 depmod -a "$TARGET_KERNEL_RELEASE"
 

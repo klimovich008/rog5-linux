@@ -70,6 +70,7 @@ $gzipPart = "$Output.part"
 if (Test-Path -LiteralPath $tarPart) { throw "Refusing existing temporary file $tarPart" }
 if (Test-Path -LiteralPath $gzipPart) { throw "Refusing existing temporary file $gzipPart" }
 
+$succeeded = $false
 try {
     Invoke-Docker @(
         'create', '--name', $container, '--platform', 'linux/arm64',
@@ -106,10 +107,14 @@ try {
             & docker image rm $verifyTag | Out-Null
         }
     }
+    $succeeded = $true
 }
 finally {
-    if (@(& docker container ls --all --quiet --filter "name=^/$container`$").Count) {
+    if ($succeeded -and @(& docker container ls --all --quiet --filter "name=^/$container`$").Count) {
         & docker rm --force $container | Out-Null
+    }
+    elseif (-not $succeeded) {
+        Write-Warning "Retained failed staging container: $container"
     }
 }
 
