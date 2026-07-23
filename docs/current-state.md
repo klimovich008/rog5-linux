@@ -5,7 +5,8 @@
 - Device: ASUS ROG Phone 5, codename `anakin`, SM8350 / Snapdragon 888, Adreno 660.
 - Bootloader: unlocked; verified boot reports orange.
 - Active Android slot during the recorded tests: slot B.
-- Linux root: Alpine 3.24 on the userdata-backed root filesystem.
+- Stable 5.4 baseline userspace: Alpine 3.24 on the userdata-backed root filesystem.
+- Target userspace: the locked Arch Linux ARM rootfs with systemd; it has not booted on hardware yet.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
@@ -80,14 +81,24 @@ payload manifest, rollback timer, and zero storage mounts. A global `set -e`
 in the recovery init was the cause of the earlier immediate fallback; optional
 vendor-module failures are now logged without aborting recovery.
 
-Both legacy `kexec_load` and `kexec_file_load` accept exact self-kexec and Linux
-7.1 payloads. Execution still fails before the target USB/SSH recovery
-interface appears. The only live watchdog is the Haven hypervisor watchdog;
-disabling it succeeds. With that watchdog disabled and `panic=0`, the phone
-remains nonresponsive instead of returning to fallback, and `reset_devices`
-does not change the result.
+Before kexec, the loader finds and disables exactly one Haven hypervisor
+watchdog control, verifies the disabled state, and rejects a secure-watchdog
+deactivation failure. Linux 7.1.4 then executes successfully: it completes
+kernel initialization, starts `/init`, mounts configfs, configures NCM and ACM,
+binds the `a600000` UDC, creates `usb0`, and reports the recovery network
+interface ready. Its independent rollback timer also returns the phone to the
+fallback path.
 
-A 4 MiB unused ASUS debug reservation is now used temporarily by the standard
-ramoops driver. The current attended test is waiting for its preserved record
-to be read after a forced restart into fastboot. Linux 7.1, its recovery DTB,
-and the mainline GPU tier have therefore not passed a hardware boot gate yet.
+Ramoops isolated two early failures. Reserving inaccessible TLMM GPIOs 52-59
+removed the synchronous external abort during gpiochip registration. Building
+the Qualcomm SNPS FEMTO USB2 PHY into the kernel removed the deterministic
+deferred probe caused by the former module-only configuration. The recovery DT
+now uses only the high-speed PHY, includes the translated ASUS HS-PHY tuning,
+and leaves UFS, QMP/SuperSpeed, and the secondary USB controller disabled.
+
+The remaining recovery blocker is host enumeration: Linux reports its UDC and
+`usb0` internally, but the host does not see a USB network or serial device, so
+target SSH is not reachable. The raw, read-only ramoops reader and bootloader
+restart-reason helper used for this diagnosis are kept under
+`tools/diagnostics/`. Linux 7.1.4 has therefore passed the kernel/userspace boot
+gate, but not the remote-recovery, storage, or GPU hardware gates.

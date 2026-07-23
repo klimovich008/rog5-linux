@@ -1,5 +1,9 @@
 # Live kexec recovery follow-up - 2026-07-23
 
+The target-handoff conclusion below is superseded by
+[the later mainline recovery result](2026-07-23-mainline-recovery-usb.md).
+The self-kexec isolation remains useful historical evidence.
+
 Result: **PASS** for temporary ASUS 5.4 staging and payload loading;
 **BLOCKED AT TARGET HANDOFF** for both self-kexec and Linux 7.1.
 

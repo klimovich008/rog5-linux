@@ -11,7 +11,7 @@ Linux version numbers are not capability grades. A 7.x build is accepted only if
 - source revision manifest and URLs
 - kernel configuration requirements fragment
 - reviewed ASUS board DTS and any new bindings/drivers, once developed
-- Alpine/OpenRC service definitions and small device scripts
+- Arch/systemd service definitions and small BusyBox-compatible recovery scripts
 - build, packaging, smoke, hardware, and regression tests
 - redacted reports and artifact SHA-256 identities
 
@@ -32,15 +32,16 @@ Private inputs live outside the repository and are referenced only by path or ha
 | vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
 | Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
-| ASUS serial skeleton DTB | verify board source and DTB toolchain | disabled UFS and left-side USB contracts compiled and checked; never boot |
-| ASUS minimal recovery DTB | UFS + USB + SSH first boot | payload passes offline gates; target handoff has not reached USB |
+| ASUS serial skeleton DTB | verify board source and DTB toolchain | memory, TLMM, disabled UFS, and left-side USB contracts compile and pass static checks; never boot |
+| ASUS minimal recovery DTB | USB2 high-speed NCM/ACM recovery with storage disabled | built-in FEMTO PHY reaches the gadget and `usb0` internally; host enumeration is pending |
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools, matching modules | offline staging and metadata round-trip pass; not booted |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | deterministic v2 suite passes; equivalent keyed recovery boots on 5.4 with zero storage mounts |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, SSH, rollback | Linux 7.1 starts it, configures the gadget, creates `usb0`, and returns through rollback; host SSH is pending |
 | GPU target initramfs | isolated A660 probe after base recovery passes | deterministic firmware-bearing archive passes; deliberately absent from boot package |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | boots with authenticated SSH; manifest and zero-storage gates pass |
-| temporary Android boot image | reversible two-stage `fastboot boot` testing | header-v3 staging boot passes; second-kernel handoff remains under diagnosis |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | staging and Linux 7.1 execution pass; target host enumeration remains under diagnosis |
+| diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
 Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. Every candidate receives a source commit, config hash, compiler version, file sizes, and SHA-256 manifest.
@@ -49,9 +50,9 @@ Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. 
 
 1. Validate scripts, known artifacts, and kernel config symbols.
 2. Compile current stable Linux plus known upstream SM8350 DTBs to prove the native ARM64 toolchain.
-3. Translate only the minimal ASUS boot contract: reserved memory, regulators, UFS, one USB controller, serial/reboot.
+3. Translate only the minimal ASUS boot contract: reserved memory, regulators, disabled UFS, one USB controller, serial/reboot.
 4. Compile and run `dtbs_check`; package and verify the RAM-only two-stage recovery image.
-5. Use temporary boot and stop immediately on UFS, watchdog, reset, thermal, or USB regression.
+5. Use temporary boot, keep UFS disabled until host-visible recovery works, and stop immediately on watchdog, reset, thermal, or USB regression.
 6. Add charging, input/display, radios/remotes, then GPU in separate commits and test tiers.
 7. Cross-compile-test the board series on 6.18 LTS and current stable.
 8. Add BTF/eBPF and GodShell only after the hardware platform is stable.

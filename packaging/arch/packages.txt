@@ -1,0 +1,46 @@
+# Core server and networking
+attr
+binutils
+dnsmasq
+iw
+networkmanager
+openssh
+nftables
+upower
+wireguard-tools
+wireless-regdb
+wpa_supplicant
+
+# Plasma Wayland desktop and GPU userspace
+dolphin
+greetd
+greetd-agreety
+krdp
+kscreen
+konsole
+kwin
+mesa
+mesa-utils
+noto-fonts
+plasma-desktop
+plasma-nm
+plasma-pa
+vulkan-freedreno
+vulkan-tools
+xdg-desktop-portal-kde
+xdg-user-dirs
+
+# Audio, administration, and browser automation
+chromium
+git
+nodejs
+npm
+pipewire
+pipewire-alsa
+pipewire-audio
+pipewire-pulse
+python
+python-pip
+tmux
+ttyd
+wireplumber

@@ -5,7 +5,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bc bison build-essential ca-certificates clang cpio device-tree-compiler \
       dwarves flex git gnupg iproute2 kmod libarchive-tools libelf-dev libssl-dev lld llvm make nftables \
-      python3 rsync wireguard-tools zlib1g-dev \
+      python3 qemu-user-static rsync wireguard-tools zlib1g-dev \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

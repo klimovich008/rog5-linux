@@ -1,15 +1,19 @@
 [Unit]
 Description=Route the ROG5 hotspot only through WireGuard
-After=network-online.target wg-quick@wg0.service hostapd.service dnsmasq.service
-Requires=wg-quick@wg0.service
-Wants=network-online.target hostapd.service dnsmasq.service
+After=network-online.target NetworkManager.service wg-quick@wg0.service
+Requires=NetworkManager.service wg-quick@wg0.service
+Wants=network-online.target dnsmasq.service
+Before=dnsmasq.service
 ConditionPathExists=/etc/wireguard/wg0.conf
+ConditionPathExists=/etc/dnsmasq.d/rog5-hotspot.conf
 
 [Service]
 Type=oneshot
 EnvironmentFile=-/etc/rog5/vpn-hotspot.env
 ExecStart=/usr/local/sbin/rog5-vpn-hotspot.sh up
-ExecStop=/usr/local/sbin/rog5-vpn-hotspot.sh down
+ExecStartPost=/usr/bin/nmcli connection up rog5-hotspot
+ExecStop=-/usr/bin/nmcli connection down rog5-hotspot
+ExecStopPost=/usr/local/sbin/rog5-vpn-hotspot.sh down
 RemainAfterExit=yes
 
 [Install]

@@ -32,15 +32,24 @@ for symbol in \
     CONFIG_ARCH_QCOM=y \
     CONFIG_SCSI_UFS_QCOM=y \
     CONFIG_USB_CONFIGFS_NCM=y \
+    CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2=y \
     CONFIG_DRM_MSM=y \
     CONFIG_DEBUG_INFO_BTF=y \
     CONFIG_BPF_SYSCALL=y \
+    CONFIG_DYNAMIC_DEBUG=y \
     CONFIG_WIREGUARD=y \
     CONFIG_NF_TABLES=y \
     CONFIG_NFT_MASQ=y \
     CONFIG_IP_MULTIPLE_TABLES=y \
-    CONFIG_IPV6_MULTIPLE_TABLES=y; do
+    CONFIG_IPV6_MULTIPLE_TABLES=y \
+    CONFIG_PSTORE_CONSOLE=y \
+    CONFIG_PSTORE_RAM=y; do
     grep -qx "$symbol" "$output_dir/.config" || { echo "FAIL final config: $symbol" >&2; exit 1; }
 done
+
+grep -qx '# CONFIG_ARM_PSCI_CPUIDLE_DOMAIN is not set' "$output_dir/.config" || {
+    echo 'FAIL final config: CONFIG_ARM_PSCI_CPUIDLE_DOMAIN must be disabled' >&2
+    exit 1
+}
 
 echo 'PASS compile-only Image.gz, hashes, final config, and five upstream SM8350 DTBs'

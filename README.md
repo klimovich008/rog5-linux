@@ -1,6 +1,6 @@
 # ROG Phone 5 native Linux
 
-Reproducible bring-up work for native Alpine Linux on the ASUS ROG Phone 5 (`anakin`, Snapdragon 888 / SM8350). The immediate goal is a dependable phone-server with a local KDE interface, remote administration, screen-off operation, charging, Wi-Fi/hotspot, and eventually upstream-style GPU acceleration. The long-term goal is a maintainable Linux 7.x board port.
+Reproducible bring-up work for native Arch Linux ARM on the ASUS ROG Phone 5 (`anakin`, Snapdragon 888 / SM8350). The target is a dependable phone-server with a minimal Plasma Desktop Wayland session, remote administration, screen-off operation, charging, Wi-Fi/VPN hotspot support, and upstream-style GPU acceleration. Alpine remains only in the proven vendor-kernel baseline and the small recovery environment. The long-term goal is a maintainable Linux 7.x board port.
 
 This repository contains documentation, test tooling, configuration fragments, and artifact hashes. It intentionally does **not** contain proprietary firmware, credentials, personal data, Android partition dumps, or large boot images.
 
@@ -10,12 +10,14 @@ The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-per
 
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
-The Linux 7.1 recovery v2 bundle passes its deterministic offline suite. Its
-temporary vendor-compatible 5.4 staging kernel also boots on the phone with
+The Linux 7.1 recovery bundle passes its deterministic offline suite. Its
+temporary vendor-compatible 5.4 staging kernel boots on the phone with
 authenticated SSH, a verified nested payload, rollback, and zero storage
-mounts. Both legacy and file-based kexec load the target, but execution still
-fails before target USB/SSH. Persistent ramoops capture is now the active
-handoff diagnostic; Linux 7.1 and its GPU tier are not yet live.
+mounts. Linux 7.1 now reaches `/init`, configfs, and an internally configured
+USB gadget, but Windows does not enumerate that gadget and target SSH remains
+unreachable. Persistent ramoops plus automatic rollback remain the diagnostic
+path; storage, the Arch rootfs, the desktop, and the mainline GPU tier have not
+passed a live hardware gate.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -36,7 +38,7 @@ configs/kernel/       mainline configuration requirements
 containers/           reproducible PC cross-build environment
 docs/                 state, architecture, research, and operating guidance
 manifests/            artifact identities and provenance (no binaries)
-scripts/device/       BusyBox/Alpine-compatible device tests
+scripts/device/       recovery and Arch device tests, staging, and runtime tools
 scripts/host/         PowerShell fastboot/SSH orchestration and validation
 test-results/         redacted, reviewable test reports
 ```
@@ -97,11 +99,11 @@ powershell -NoProfile -File scripts/host/Get-RecoveryPackages.ps1
 
 Source and object files remain in named Docker volumes for fast incremental builds. Verified `Image.gz`, modules, configuration, metadata, comparison DTBs, and the ASUS recovery-contract skeleton are exported to `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the upstream DTBs nor the skeleton may be booted on the phone.
 
-The signed Arch input and locked server rootfs also pass their offline staging suites. A recovery-grade ASUS DTB, initramfs, and Android boot-image package now exist, but the Arch rootfs remains outside the first RAM-only boot and will not be mounted until UFS discovery passes on hardware.
+The signed Arch input and the earlier locked server rootfs pass their offline staging suites. The minimal Plasma Desktop target is being staged now and has not booted on the phone. The Arch rootfs remains outside the first RAM-only recovery and will not be mounted until USB recovery access and UFS discovery pass on hardware.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 
-On the current device, the installed profiles are:
+On the proven vendor-kernel baseline, the installed profiles are:
 
 ```sh
 rog5-power-profile.sh server       # 60 Hz, DPMS off
@@ -113,7 +115,7 @@ rog5-power-profile.sh maximum      # 144 Hz
 
 All profiles retain `schedutil`; high refresh does not disable thermal management or force CPU clocks.
 
-`scripts/device/install-runtime-tools.sh` installs the tested display, power-button, and remote-desktop helpers after backing up every replaced file under `/root/rog5-backups/`. It does not enable a public listener or flash a boot image.
+`scripts/device/install-runtime-tools.sh` installs the tested display and screen-control helpers used by the vendor-kernel baseline after backing up every replaced file under `/root/rog5-backups/`. The Arch target instead uses systemd, greetd, Plasma Wayland, and KRDP; neither path enables a public listener or flashes a boot image.
 
 ## Source baselines
 

@@ -13,7 +13,7 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 if (-not $Rootfs) { $Rootfs = Join-Path $repoRoot 'artifacts\arch\ArchLinuxARM-aarch64-latest.tar.gz' }
 if (-not $ModulesArchive) { $ModulesArchive = Join-Path $repoRoot 'dist\linux-7.1.4\modules.tar.gz' }
 if (-not $FirmwareDirectory) { $FirmwareDirectory = Join-Path $repoRoot 'artifacts\firmware\linux-firmware-20260622' }
-if (-not $Output) { $Output = Join-Path $repoRoot 'artifacts\arch\rog5-arch-rootfs-7.1.4.tar.gz' }
+if (-not $Output) { $Output = Join-Path $repoRoot 'artifacts\arch\rog5-arch-plasma-rootfs-7.1.4.tar.gz' }
 $Rootfs = (Resolve-Path -LiteralPath $Rootfs).Path
 $ModulesArchive = (Resolve-Path -LiteralPath $ModulesArchive).Path
 $FirmwareDirectory = (Resolve-Path -LiteralPath $FirmwareDirectory).Path
@@ -85,8 +85,27 @@ $rootfsFileMount = "type=bind,source=$Rootfs,target=/input/rootfs.tar.gz,readonl
 $tarName = [IO.Path]::GetFileName($tarPart)
 $gzipName = [IO.Path]::GetFileName($gzipPart)
 $succeeded = $false
+$removeArm64Binfmt = $false
+$binfmtMountArgs = @('--cap-add', 'SYS_ADMIN', '--security-opt', 'seccomp=unconfined')
+$registerArm64 = @'
+set -eu
+[ -e /proc/sys/fs/binfmt_misc/register ] ||
+    mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc
+if [ -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+    echo existing
+else
+    cat /usr/lib/binfmt.d/qemu-aarch64.conf > /proc/sys/fs/binfmt_misc/register
+    echo created
+fi
+'@
 
 try {
+    $binfmtArguments = @('run', '--rm') + $binfmtMountArgs + @(
+        'rog5-kernel-builder:ubuntu-24.04', 'sh', '-c', $registerArm64
+    )
+    $binfmtState = @(Invoke-Docker $binfmtArguments)
+    $removeArm64Binfmt = $binfmtState[-1] -eq 'created'
+    Invoke-Docker @('run', '--rm', '--platform', 'linux/arm64', $baseTag, '/bin/uname', '-m')
     Invoke-Docker @('volume', 'create', "rog5-arch-rootfs-$PID")
     Invoke-Docker @('volume', 'create', "rog5-arch-verify-$PID")
     Invoke-Docker @(
@@ -141,6 +160,13 @@ finally {
     }
     else {
         Write-Warning "Retained failed staging volumes: rog5-arch-rootfs-$PID, rog5-arch-verify-$PID"
+    }
+    if ($removeArm64Binfmt) {
+        $binfmtCleanupArguments = @('run', '--rm') + $binfmtMountArgs + @(
+            'rog5-kernel-builder:ubuntu-24.04', 'sh', '-c',
+            '[ -e /proc/sys/fs/binfmt_misc/register ] || mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc; [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ] || echo -1 > /proc/sys/fs/binfmt_misc/qemu-aarch64'
+        )
+        Invoke-Docker $binfmtCleanupArguments
     }
 }
 

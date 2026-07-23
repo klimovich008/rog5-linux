@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | ASUS 5.4 staging boot passes; second-kernel execution hangs | recover ramoops log and repair handoff |
-| UFS root | passing | controller/PHY rails, reset, overlay, and initramfs gates pass | hardware discovery, then separate read-only mount tier |
-| USB NCM/SSH | passing | staging NCM/SSH passes live; target interface is not reached | repair handoff, then validate target enumeration |
+| reversible boot | passing | ASUS 5.4 staging boot and Linux 7.1.4 userspace/rollback pass | preserve temporary boot while repairing host USB enumeration |
+| UFS root | passing | controller/PHY contract compiles, but recovery keeps UFS disabled | enable discovery only after remote recovery works, then use a separate read-only mount tier |
+| USB NCM/SSH | passing | target configfs gadget, UDC, and `usb0` appear internally; host does not enumerate it | capture UDC state/carrier after reconnect, then fix device signaling or the host network path as evidence indicates |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
@@ -14,7 +14,7 @@
 | modem/DSPs | passing with delayed startup | Qualcomm remoteproc present | reserved memory, firmware names, one-processor-at-a-time validation |
 | audio | basic services present | Qualcomm audio frameworks present | codecs, routing, speakers, microphones, headset safety |
 | cameras/sensors | not a server requirement | partial generic frameworks | deferred until core server release |
-| BTF/eBPF | BPF present, BTF absent | BTF generated and verified in 7.1 build | boot-time verifier/load tests, then optional GodShell/OpenRC port |
+| BTF/eBPF | BPF present, BTF absent | BTF generated and verified in 7.1 build | boot-time verifier/load tests, then optional GodShell systemd service |
 | KDE remote UI | software-rendered | userspace-independent | switch to hardware only after GPU gate passes |
 
 “Present upstream” means the SoC framework exists, not that the phone is supported. No row becomes passing until its device test succeeds without new kernel warnings, resets, or recovery loss.

@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $SshKey = (Resolve-Path -LiteralPath $SshKey).Path
 $pidFile = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path '.rog5-tunnel.pid'
-$ports = 6080, 7681
+$ports = 6080, 7681, 9222, 13389
 
 foreach ($port in $ports) {
     $listener = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue
@@ -20,6 +20,8 @@ $arguments = @(
     '-o', 'StrictHostKeyChecking=accept-new', '-i', $SshKey,
     '-L', '127.0.0.1:6080:127.0.0.1:6080',
     '-L', '127.0.0.1:7681:127.0.0.1:7681',
+    '-L', '127.0.0.1:9222:127.0.0.1:9222',
+    '-L', '127.0.0.1:13389:127.0.0.1:3389',
     "$SshUser@$SshHost"
 )
 
@@ -28,4 +30,4 @@ Start-Sleep -Milliseconds 700
 if ($process.HasExited) { throw "SSH tunnel exited with code $($process.ExitCode)" }
 
 Set-Content -LiteralPath $pidFile -Value $process.Id -NoNewline
-Write-Output "PASS tunnel_pid=$($process.Id) noVNC=http://127.0.0.1:6080/vnc.html ttyd=http://127.0.0.1:7681/"
+Write-Output "PASS tunnel_pid=$($process.Id) ttyd=http://127.0.0.1:7681/ cdp=http://127.0.0.1:9222/ rdp=127.0.0.1:13389 legacy_noVNC=http://127.0.0.1:6080/vnc.html"

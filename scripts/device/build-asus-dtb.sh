@@ -43,6 +43,19 @@ for node in /reserved-memory/memory@e5000000 /reserved-memory/memory@e7400000; d
 	fdtget "$dtb" "$node" no-map >/dev/null
 done
 
+for cpu in 0 100 200 300 400 500 600 700; do
+	node="/cpus/cpu@$cpu"
+	! fdtget "$dtb" "$node" power-domains >/dev/null 2>&1
+	! fdtget "$dtb" "$node" power-domain-names >/dev/null 2>&1
+done
+
+! fdtget "$dtb" /soc@0/rsc@18200000 power-domains >/dev/null 2>&1
+
+set -- $(fdtget -t i "$dtb" /soc@0/pinctrl@f100000 gpio-reserved-ranges)
+[ "$#" = 2 ]
+[ "$1" = 52 ]
+[ "$2" = 8 ]
+
 ufs_hc=/soc@0/ufshc@1d84000
 ufs_phy=/soc@0/phy@1d87000
 [ "$(fdtget -t s "$dtb" "$ufs_hc" status)" = disabled ]
@@ -68,6 +81,14 @@ done
 for property in vdda-pll-supply vdda18-supply vdda33-supply; do
 	fdtget "$dtb" "$usb_hs_phy" "$property" >/dev/null
 done
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,hs-disconnect-bp)" = 1743 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,squelch-detector-bp)" = -2090 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,hs-amplitude-bp)" = 1780 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,pre-emphasis-duration-bp)" = 20000 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,pre-emphasis-amplitude-bp)" = 40000 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,hs-rise-fall-time-bp)" = -4100 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,hs-crossover-voltage-microvolt)" = -31000 ]
+[ "$(fdtget -t i "$dtb" "$usb_hs_phy" qcom,hs-output-impedance-micro-ohms)" = 2600000 ]
 for property in vdda-phy-supply vdda-pll-supply; do
 	fdtget "$dtb" "$usb_qmp_phy" "$property" >/dev/null
 done

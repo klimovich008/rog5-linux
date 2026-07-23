@@ -12,7 +12,13 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - Build logs contain no errors and are retained outside Git if large.
 - `verify-mainline-build.sh` validates the compressed Image, artifact hashes, final boot/BTF config, and parseability of every comparison DTB.
 - `verify-kexec-recovery-stage.sh` validates the staging kernel config, recovery DTB allowlist, both initramfs layers, nested payload hashes, boot header, AVB footer, and absence of private-key blocks.
+- The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
+- The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
+- `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
+- `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
+- `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
+- Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
 
@@ -20,12 +26,12 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - USB ACM works even if USB networking has no address; SSH is optional in this first sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
 - The mainline payload loads, then starts only after a separate attended `kexec -e`.
-- If target recovery does not appear, repeat with the Haven watchdog disabled,
-  `panic=0`, and ramoops in the reviewed debug reservation; retrieve that
-  record before changing the DTB or enabling hardware.
-- The Linux 7.1 target reports the expected release and its independent rollback timer works.
-- UFS is discovered without errors while no filesystem is mounted.
-- Watchdog/reset counters do not increase.
+- Before kexec, exactly one Haven hypervisor watchdog control is disabled and verified; a secure-watchdog deactivation failure aborts the test.
+- The Linux 7.1 target reports the expected release, starts `/init`, mounts configfs, configures NCM/ACM, binds the expected UDC, creates `usb0`, and runs its independent rollback timer.
+- The host enumerates the target NCM or ACM function and target SSH becomes reachable.
+- If host enumeration fails, record UDC state and `usb0` carrier, allow the rollback timer to recover the phone, then capture the reserved region with `tools/diagnostics/ramoops-raw` before changing hardware enablement.
+- UFS remains disabled and the target has zero block-device mounts.
+- Watchdog/reset counters do not increase unexpectedly.
 - A normal reboot still reaches the fallback slot.
 
 ## Tier 2 — core hardware
@@ -46,7 +52,7 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 
 ## Tier 4 — display and desktop
 
-- Plasma Mobile and Plasma Desktop can each start on physical DRM.
+- Plasma Desktop Wayland starts on physical DRM and KRDP shares that session.
 - Screen wakes on power-button press and returns to the configured blank timeout.
 - Fixed 60/90/120/144 mode selection is verified visually and from the active DRM/KScreen state.
 - 60 Hz idle is the default; mode changes do not blank permanently or reset the panel.
@@ -67,7 +73,7 @@ The script `scripts/device/kgsl-open-cycle.sh` requires `ALLOW_GPU_FAULT_TEST=1`
 
 - BPF syscall/JIT, BTF, tracepoints, kprobes, and uprobes are enabled.
 - GodShell can load its ARM64 programs without verifier errors.
-- The observability daemon runs under OpenRC or a supervised foreground service, not its upstream systemd unit.
+- The observability daemon runs as a restricted systemd service on the Arch target.
 - AI/email/CV automation runs as an unprivileged account with scoped tokens and an approval queue for external actions.
 
 ## Release gates

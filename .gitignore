@@ -18,6 +18,13 @@ firmware/
 *.ko
 *.key
 *.pem
+tools/diagnostics/**/*.o
+tools/diagnostics/**/*.mod
+tools/diagnostics/**/*.mod.c
+tools/diagnostics/**/.*.cmd
+tools/diagnostics/**/Module.symvers
+tools/diagnostics/**/modules.order
+tools/diagnostics/**/.tmp_versions/
 
 # Test output may include device identifiers or network details.
 test-results/private/

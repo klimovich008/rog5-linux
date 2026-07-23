@@ -30,6 +30,13 @@ Three ASUS deltas are explicit and compile-checked:
 
 The `rmtfs_mem` label is retained only because disabled upstream remote-processor nodes reference its phandle. Its ASUS recovery size is deliberately conservative; modem/rmtfs enablement requires a separate dynamic-memory review and must not reuse this placeholder contract unchanged.
 
+## Early-boot hardware guards
+
+TLMM GPIOs 52-59 are reserved with `gpio-reserved-ranges = <52 8>`, matching
+other upstream SM8350 boards. Without that reservation, mainline reads an
+inaccessible register page while registering the gpiochip and takes a
+synchronous external abort at GPIO 52.
+
 ## Reviewed USB mapping
 
 The vendor inventory confirms DWC3 regions at `0x0a600000` and `0x0a800000`, corresponding to upstream `usb_1` and `usb_2`. A read-only live query shows that the currently connected USB networking link is configured on `usb_1`; `usb_2` is unattached.
@@ -41,21 +48,36 @@ The vendor inventory confirms DWC3 regions at `0x0a600000` and `0x0a800000`, cor
 | left-side controller | `&usb_1`, DWC3 at `0x0a600000` | disabled |
 | forced gadget role | `&usb_1_dwc3` with `dr_mode = "peripheral"` | compiled and checked |
 | HS PHY rails | PM8350 L5, PM8350C L1, PM8350 L2 | compiled and checked; PHY disabled |
+| ASUS HS-PHY register overrides | eight upstream `qcom,*` tuning properties | compiled, checked, and used by recovery |
 | USB3/DP PHY rails | PM8350 L6 and PM8350 L1 | compiled and checked; PHY disabled |
 | bottom connector | `&usb_2`, DWC3 at `0x0a800000` | untouched and disabled |
 
-The vendor rail identities and voltage ranges match the upstream SM8350 MTP/HDK representation. The offline inspector reports only allowlisted USB properties and their phandle targets; it never prints boot arguments or unrelated private-tree values.
+The vendor rail identities and voltage ranges match the upstream SM8350 MTP/HDK representation. The vendor HS-PHY override sequence is translated to the upstream disconnect, squelch, amplitude, pre-emphasis, rise/fall, crossover-voltage, and output-impedance properties. The offline inspector reports only allowlisted USB properties and their phandle targets; it never prints boot arguments or unrelated private-tree values.
 
 Sources: the pinned Linux `v7.1.4` SM8350 DTS files and the [ASUS ZS673KS English user guide](https://dlcdnets.asus.com/pub/ASUS/ZenFone/ZS673KS/E20050_ZS673KS_EM_v3_WEB.pdf).
 
 ## Recovery overlay and promotion gate
 
-The base skeleton deliberately keeps UFS and USB disabled. A separate `sm8350-asus-rog-phone5-recovery.dtso` changes exactly five statuses: the UFS controller/PHY and the reviewed USB1 controller/HS/QMP PHY. Static checks prohibit register, supply, memory-region, boot-argument, or USB2 changes in this overlay.
+The base skeleton deliberately keeps UFS and USB disabled. A separate
+`sm8350-asus-rog-phone5-recovery.dtso` enables exactly the reviewed `usb_1`
+wrapper and its HS PHY. It forces the DWC3 child to high-speed operation with
+only `usb2-phy` and selects the UTMI clock in place of the absent SuperSpeed
+pipe clock. The FEMTO USB2 PHY driver is built into the recovery kernel.
+Static checks require exactly two `status = "okay"` changes and keep UFS, the
+QMP/SuperSpeed PHY, and the secondary `usb_2` controller disabled.
 
 The overlay, target initramfs, self-contained kexec staging initramfs,
 header-v3 repack, and AVB footer pass offline gates. The ASUS 5.4 staging
 kernel also passes temporary boot, authenticated SSH, rollback, manifest, and
-zero-storage checks. Second-kernel execution does not yet restore target
-USB/SSH, so the overlay has not reached its hardware gate. Ramoops recovery is
-the next diagnostic; filesystem repair, formatting, and persistent slot
-operations remain prohibited.
+zero-storage checks. Before kexec the loader disables and verifies the single
+Haven hypervisor watchdog. Linux 7.1.4 reaches `/init`, configfs, its NCM/ACM
+gadget, the `a600000` UDC, and `usb0`; the host still does not enumerate the
+device, so target SSH remains unavailable.
+
+The diagnostic sources used to preserve and retrieve this evidence live under
+`tools/diagnostics/`: `ramoops-raw` exposes the reserved 4 MiB region
+read-only, while `bootloader-reason` arms the next reset for bootloader
+recovery. Both refuse to load unless `expected_compatible` exactly matches the
+running phone; the ramoops physical address remains a private build input and
+all Kbuild byproducts are ignored. Filesystem repair, formatting, persistent
+slot operations, and UFS enablement remain prohibited.

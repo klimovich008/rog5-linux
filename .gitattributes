@@ -1,9 +1,16 @@
 * text=auto
 .gitattributes text eol=lf
+.gitignore text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+*.c text eol=lf
 *.sh text eol=lf
 *.tsv text eol=lf
 *.md text eol=lf
 *.fragment text eol=lf
+*.service text eol=lf
+packaging/arch/*.conf text eol=lf
+packaging/arch/*.txt text eol=lf
 *.ps1 text eol=crlf
 *.dts text eol=lf
 *.dtso text eol=lf

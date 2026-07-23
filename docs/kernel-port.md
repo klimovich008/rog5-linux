@@ -23,7 +23,7 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 
 ### Phase A — reproducible compile
 
-1. Compile upstream `Image.gz` and known SM8350 DTBs natively on the phone to prove the pinned source and toolchain. These comparison DTBs must never be booted on the ASUS device.
+1. Cross-compile upstream `Image.gz` and known SM8350 DTBs on the PC to prove the pinned source and toolchain. These comparison DTBs must never be booted on the ASUS device.
 2. Start the board port from `arm64 defconfig` plus `configs/kernel/rog5-mainline.fragment`.
 3. Compile a serial-only `sm8350-asus-rog-phone5.dts` skeleton, then add reviewed memory/reserved-memory references, UFS, and one USB controller. The skeleton itself is never booted.
 4. Run `dtbs_check`, `make W=1`, and record warnings.
@@ -31,7 +31,7 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 
 ### Phase B — recovery-grade boot
 
-Only console, UFS root, USB NCM, SSH, watchdog visibility, and reboot are required. Display, radio, charging, audio, cameras, and GPU remain disabled. The image is used only with `fastboot boot`.
+Only console, a RAM-only initramfs, USB NCM/ACM, SSH, watchdog visibility, and reboot are required. UFS remains disabled until host-visible remote recovery works. Display, radio, charging, audio, cameras, and GPU remain disabled. The image is used only with `fastboot boot`.
 
 ### Phase C — power and charging
 
@@ -53,7 +53,7 @@ The compile-only GPU tier is deliberately a two-node overlay: enable upstream `&
 
 ### Phase G — observability and automation
 
-Enable BTF/eBPF and run GodShell as an optional workload. Then add remote AI services under an unprivileged account and an explicit approval boundary for email/job actions.
+Enable BTF/eBPF and run GodShell as an optional systemd-managed workload. Then add remote AI services under an unprivileged account and an explicit approval boundary for email/job actions.
 
 ## Two-stage recovery boot
 
@@ -63,10 +63,22 @@ The offline candidate uses a reversible two-stage route:
 
 1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with only userspace `CONFIG_KEXEC` added. Nothing is flashed.
 2. Its RAM-only initramfs contains the Linux 7.1 `Image`, recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. It does not discover or mount userdata.
-3. `rog5-load-mainline-recovery` verifies all three nested hashes and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
+3. `rog5-load-mainline-recovery` verifies all three nested hashes, disables and verifies the single Haven hypervisor watchdog, and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
 4. Both the staging and target initramfs arm a 180-second forced-reboot timer. USB ACM is the address-free fallback; USB NCM and SSH may use DHCP or an explicitly supplied test address.
 
-The recovery overlay enables only UFS and the reviewed left-side USB1 controller/PHY path. The bottom USB2 controller, display, charging, radios, remote processors, and GPU remain disabled. The ASUS 5.4 staging boot, authenticated recovery, payload load, and zero-storage gates pass on hardware. The second-kernel execution path still hangs before target USB/SSH; ramoops capture is the active diagnostic gate.
+The recovery overlay enables only the reviewed `usb_1` wrapper and its
+high-speed FEMTO PHY. The DWC3 child uses one `usb2-phy`; UFS, QMP/SuperSpeed,
+the secondary `usb_2` controller, display, charging, radios, remote processors,
+and GPU remain disabled. The ASUS 5.4 staging boot, authenticated recovery,
+payload load, zero-storage gates, and watchdog deactivation pass on hardware.
+
+Linux 7.1.4 executes, completes initialization, starts `/init`, configures its
+NCM/ACM gadget, binds the `a600000` UDC, and creates `usb0`. The unresolved
+gate is host enumeration and therefore target SSH, not kexec execution.
+Ramoops identified and verified fixes for the TLMM GPIO 52 abort and the
+module-only FEMTO PHY. The current DT also carries the translated ASUS HS-PHY
+tuning. The raw ramoops and bootloader restart-reason module sources used by
+this workflow are under `tools/diagnostics/`.
 
 ## Non-goals
 

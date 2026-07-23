@@ -54,6 +54,52 @@
 	};
 };
 
+/*
+ * ASUS firmware resets when Linux switches the hierarchical PSCI topology
+ * into OSI mode after kexec.  Keep the CPUs on ordinary PSCI/WFI until that
+ * firmware quirk is handled, and avoid dangling references to the disabled
+ * CPU-idle domain providers.
+ */
+&cpu0 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu1 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu2 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu3 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu4 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu5 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu6 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
+&cpu7 {
+	/delete-property/ power-domains;
+	/delete-property/ power-domain-names;
+};
+
 /* The vendor board reserves a larger safety/debug span at these labels. */
 &removed_mem {
 	reg = <0x0 0xd8800000 0x0 0xa800000>;
@@ -69,6 +115,8 @@
  * references; both subsystems remain disabled until recovery gates exist.
  */
 &apps_rsc {
+	/delete-property/ power-domains;
+
 	regulators-0 {
 		compatible = "qcom,pm8350-rpmh-regulators";
 		qcom,pmic-id = "b";
@@ -158,6 +206,14 @@
 	};
 };
 
+/*
+ * GPIOs 52-59 are not accessible through TLMM on SM8350. Reserving them
+ * keeps gpiolib from reading the absent register page while adding the chip.
+ */
+&tlmm {
+	gpio-reserved-ranges = <52 8>;
+};
+
 /* Serial-only skeleton: storage, USB, display, GPU and radios stay disabled. */
 &qupv3_id_0 {
 	status = "okay";
@@ -198,6 +254,16 @@
 	vdda-pll-supply = <&vreg_l5b_0p88>;
 	vdda18-supply = <&vreg_l1c_1p8>;
 	vdda33-supply = <&vreg_l2b_3p07>;
+
+	/* ASUS HS-PHY register overrides translated to the upstream binding. */
+	qcom,hs-disconnect-bp = <1743>;
+	qcom,squelch-detector-bp = <(-2090)>;
+	qcom,hs-amplitude-bp = <1780>;
+	qcom,pre-emphasis-duration-bp = <20000>;
+	qcom,pre-emphasis-amplitude-bp = <40000>;
+	qcom,hs-rise-fall-time-bp = <(-4100)>;
+	qcom,hs-crossover-voltage-microvolt = <(-31000)>;
+	qcom,hs-output-impedance-micro-ohms = <2600000>;
 
 	status = "disabled";
 };

@@ -11,7 +11,6 @@ mount -t devpts devpts /dev/pts 2>/dev/null || true
 mount -t tmpfs tmpfs /run 2>/dev/null || true
 mkdir -p /run/sshd
 echo /sbin/mdev > /proc/sys/kernel/hotplug
-mdev -s
 hostname rog5-recovery
 
 log() {
@@ -19,6 +18,7 @@ log() {
 }
 
 release=$(uname -r)
+log "userspace started on $release"
 case $release in
 	5.4.*)
 		if [ -d /lib/modules/5.4-gki ]; then
@@ -43,6 +43,9 @@ for argument in $(cat /proc/cmdline); do
 	esac
 done
 case $timeout in *[!0-9]*|'') timeout=180 ;; esac
+if [ "$timeout" -lt 30 ] || [ "$timeout" -gt 900 ]; then
+	timeout=180
+fi
 touch /run/rog5-recovery-armed
 (
 	sleep "$timeout"
@@ -53,6 +56,7 @@ touch /run/rog5-recovery-armed
 	echo b >/proc/sysrq-trigger
 ) &
 echo $! >/run/rog5-recovery-watchdog.pid
+log 'rollback timer armed'
 
 usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 [ -e "$usb_mode" ] && echo peripheral >"$usb_mode"
@@ -61,6 +65,7 @@ if ! mount -t configfs configfs /sys/kernel/config; then
 	log 'configfs unavailable; rollback timer remains armed'
 	while :; do sleep 3600; done
 fi
+log 'configfs ready'
 gadget=/sys/kernel/config/usb_gadget/rog5-recovery
 mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
 echo 0x1d6b >"$gadget/idVendor"
@@ -74,9 +79,11 @@ echo 'NCM and ACM recovery' >"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
 ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
 ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+log 'gadget functions configured'
 
 udc=
 attempt=0
+log 'waiting for USB device controller'
 while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
 	for candidate in /sys/class/udc/*; do
 		[ -e "$candidate" ] || continue
@@ -91,6 +98,16 @@ done
 
 if [ -n "$udc" ]; then
 	echo "$udc" >"$gadget/UDC"
+	soft_connect="/sys/class/udc/$udc/soft_connect"
+	if [ -w "$soft_connect" ]; then
+		if echo disconnect >"$soft_connect" &&
+			sleep 1 &&
+			echo connect >"$soft_connect"; then
+			log 'forced a clean USB reconnect'
+		else
+			log 'failed to force a clean USB reconnect'
+		fi
+	fi
 	attempt=0
 	while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
 		sleep 0.1
@@ -106,7 +123,17 @@ if [ -n "$udc" ]; then
 			''|*[!0-9a-fA-F:.]*) ;;
 			*) ip route replace default via "$gateway" dev usb0 ;;
 		esac
-		log 'USB recovery network interface is ready'
+		attempt=0
+		while [ "$attempt" -lt 100 ]; do
+			udc_state=$(cat "/sys/class/udc/$udc/state" 2>/dev/null || echo unknown)
+			carrier=$(cat /sys/class/net/usb0/carrier 2>/dev/null || echo unknown)
+			if [ "$udc_state" = configured ] || [ "$carrier" = 1 ]; then
+				break
+			fi
+			sleep 0.1
+			attempt=$((attempt + 1))
+		done
+		log "USB recovery network interface is ready; state=$udc_state carrier=$carrier"
 	fi
 else
 	log 'no USB device controller found'

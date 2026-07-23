@@ -4,19 +4,31 @@ The server exposes remote tools only on loopback. Reach them through SSH forward
 
 | Service | Loopback port | Purpose |
 |---|---:|---|
+| KRDP | 3389 (forwarded locally to 13389) | active Plasma Wayland session through an SSH tunnel |
 | ttyd | 7681 | persistent tmux terminal for maintenance and agent CLIs |
-| noVNC/websockify | 6080 | on-demand KDE desktop in a browser |
-| Xvnc | 5901 | private backend for noVNC |
-| Chromium CDP | 9222 | automation endpoint for the dedicated browser profile |
+| Chromium CDP | 9222 | headless automation endpoint for the dedicated browser profile |
 
-The physical Plasma Mobile session and nested remote KDE session are separate compositors. Both currently use software rendering because the vendor KGSL driver is rejected. For lowest idle memory, keep the remote desktop stopped and use ttyd/SSH; start KDE/Chromium only when visual work is required. `rog5-desktop-stop` targets only the nested `wayland-1` compositor and dedicated Chromium profile; it leaves the physical `wayland-0` Plasma session and ttyd running.
+The Arch target uses one Plasma Desktop Wayland compositor. KRDP shares that session; it does not start a second Xvnc/Openbox desktop. Panel DPMS may be off while the compositor and remote session continue running. For the lowest idle use, stay in `multi-user.target` and use SSH or loopback ttyd; switch to `graphical.target` only when KRDP or the local UI is needed.
 
-On Windows, `scripts/host/Start-RemoteTunnel.ps1` opens loopback-only forwards for noVNC and ttyd in one hidden SSH process. The script refuses to replace an occupied local port and records its process ID in an ignored local file.
+The staged KRDP user-service override forces `krdpserver` to `127.0.0.1`. The host helper forwards KRDP, ttyd, Chromium CDP, and the legacy recovery noVNC port in one SSH process:
 
 ```powershell
-powershell -NoProfile -File scripts/host/Start-RemoteTunnel.ps1 -SshKey C:\path\to\rog5_ed25519 -SshHost device-debug-address
+powershell -NoProfile -File scripts/host/Start-RemoteTunnel.ps1 `
+  -SshKey C:\path\to\rog5_ed25519 `
+  -SshHost device-debug-address
 ```
 
-`desktop-start.sh` repairs only a stale `:1` Xvnc lock after verifying that its recorded PID is not an Xvnc process. It deliberately does not remove wildcard X sockets, because that could break the physical session. VNC authentication is disabled only because both VNC ports bind to `127.0.0.1`; SSH/private-network authentication is the boundary.
+Connect Windows Remote Desktop to `127.0.0.1:13389`. KRDP credentials are created after first boot and are not stored in the image or repository. The Xvnc/noVNC launchers remain only as vendor-baseline diagnostics and are not part of the Arch target.
+
+ttyd binds to `127.0.0.1:7681` and attaches to a persistent tmux session. Both writable ttyd and Chromium are disabled by default and started on demand:
+
+```sh
+systemctl start rog5-ttyd.service
+systemctl start rog5-chromium-headless.service
+```
+
+Neither endpoint is a substitute for SSH authentication.
 
 Browser automation should use the dedicated `chromium-server` profile. Initial capability is read, summarize, and draft. Sending mail or submitting job applications stays behind explicit approval, as described in [security-automation.md](security-automation.md).
+
+None of this is live on Linux 7.1 yet. The kernel creates its recovery gadget internally, but Windows enumeration and target SSH remain the blocker before Arch, Plasma, or KRDP can be tested.

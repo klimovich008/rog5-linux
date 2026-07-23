@@ -13,6 +13,10 @@ jobs=${JOBS:-1}
     echo 'ERROR source revision does not match the pinned commit' >&2
     exit 1
 }
+[ -z "$(git -C "$source_dir" status --porcelain)" ] || {
+	echo 'ERROR source tree has uncommitted changes' >&2
+	exit 1
+}
 
 export KBUILD_BUILD_USER=rog5-linux
 export KBUILD_BUILD_HOST=rog5-builder

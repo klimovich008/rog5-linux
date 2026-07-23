@@ -2,7 +2,7 @@
 set -eu
 
 action=${1:-check}
-ap_if=${AP_IF:-ap0}
+ap_if=${AP_IF:-wlan0}
 vpn_if=${VPN_IF:-wg0}
 runtime=/run/rog5-vpn-hotspot
 state=$runtime/sysctl.state
@@ -39,11 +39,19 @@ case $action in
 		fi
 		cat > "$rules" <<EOF
 table inet $table {
+	chain input {
+		type filter hook input priority filter; policy accept;
+		iifname "$ap_if" udp sport 68 udp dport 67 accept
+		iifname "$ap_if" drop
+	}
 	chain forward {
-		type filter hook forward priority filter; policy drop;
-		ct state invalid drop
-		ct state established,related accept
+		type filter hook forward priority filter; policy accept;
+		iifname "$ap_if" ct state invalid drop
+		oifname "$ap_if" ct state invalid drop
 		iifname "$ap_if" oifname "$vpn_if" accept
+		iifname "$vpn_if" oifname "$ap_if" ct state established,related accept
+		iifname "$ap_if" drop
+		oifname "$ap_if" drop
 	}
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;

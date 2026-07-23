@@ -2,15 +2,15 @@
 
 ## UI choice
 
-Use KDE components already installed:
+The Arch target stages one KDE stack:
 
-- Plasma Mobile for the physical phone panel.
-- Plasma Desktop as an optional remote/large-display session.
+- Plasma Desktop Wayland for the physical panel and KRDP session.
+- greetd for the on-demand `graphical.target` login path.
 - NetworkManager/Plasma-NM for Wi-Fi and hotspot controls.
-- Discover with the APK backend for graphical package browsing.
 - KScreen for fixed refresh-rate selection once active-mode reporting is reliable.
+- KRDP for remote access to the active Plasma session.
 
-GNOME is possible but adds a second compositor, control center, settings daemon, and application stack without solving any kernel issue. It should be tested only after KDE is hardware accelerated. Installing both as defaults would increase disk/RAM use and make power/debug results harder to interpret.
+GNOME, Plasma Mobile, Discover/PackageKit, and a second display manager are not part of the target. They add background services or duplicate the selected compositor without helping kernel bring-up. Add one later only for a measured requirement that the minimal Plasma Desktop cannot meet.
 
 ## Refresh-rate profiles
 
@@ -34,21 +34,31 @@ Backlight zero is not enough for a command-mode OLED if display commits continue
 4. power-button wake without suspending the server,
 5. a separate explicit system-suspend action.
 
-The repository screen toggle combines Wayland DPMS with backlight zero and keeps all server services alive. Backlight control remains the fallback if DPMS is unavailable. Power measurements must compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
+The vendor-kernel baseline screen toggle combines Wayland DPMS with backlight zero and keeps all server services alive. The Arch image stages the same explicit interface:
+
+```sh
+rog5-screen-toggle.sh off
+rog5-screen-toggle.sh on
+rog5-screen-toggle.sh toggle
+```
+
+It discovers the writable backlight, validates its range, preserves brightness, and changes its state record only after a successful sysfs write. `rog5-server-inhibit.service` uses systemd's native inhibitor API to block system sleep and short power-key shutdown without blocking idle display blanking; stopping that service restores explicit suspend policy. Headless logind ignores a short power press, while a long press retains the emergency power-off action. Plasma/PowerDevil power-button screen toggling still requires a live input test after the mainline input port.
+
+The same behavior is staged, not yet a hardware result, for Arch and Linux 7.1. Backlight control remains the fallback if DPMS is unavailable. Power measurements must compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
 
 ## Memory policy
 
 Do not optimize an 11 GiB device by killing useful caches. Prefer:
 
-- one physical compositor, not simultaneous Mobile and Desktop sessions;
+- boot to headless `multi-user.target` and start the single Plasma compositor only when needed;
 - remote admin via a lightweight path independent of the physical UI;
-- start Chromium only on demand;
+- keep ttyd loopback-only and start headless Chromium only on demand;
 - disable unused indexers and desktop services after measuring them;
 - keep zram but lower it if real swap use stays zero;
 - cap log retention and stop duplicate supervisors;
 - measure proportional set size and idle CPU before removing packages.
 
-The target is a stable idle below roughly 1.2-1.5 GiB with the chosen physical shell, not an arbitrary minimum.
+No Arch idle-memory result exists yet. Record headless and graphical baselines after the first successful boot before setting a numeric target.
 
 ## Battery policy
 
@@ -58,3 +68,5 @@ The target is a stable idle below roughly 1.2-1.5 GiB with the chosen physical s
 - High refresh, sustained AI inference, hotspot, and charging should be thermally budgeted together.
 - Charging limits should use a real supported driver interface; never write guessed values to undocumented ASUS nodes.
 - Record battery voltage/current/temperature and wall-power measurements for each profile.
+
+These are target policies. Linux 7.1 currently reaches recovery `/init` and configures its USB gadget internally, but Windows enumeration and target SSH remain blocked; the Arch display, session, and power behavior has not been exercised on hardware.

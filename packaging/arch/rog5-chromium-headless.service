@@ -1,0 +1,18 @@
+[Unit]
+Description=ROG5 loopback-only headless Chromium automation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rog5
+Group=rog5
+Environment=HOME=/home/rog5
+WorkingDirectory=/home/rog5
+# ponytail: software rendering decouples automation from GPU bring-up; remove after Tier 5 passes.
+ExecStart=/usr/bin/chromium --headless=new --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --user-data-dir=/home/rog5/.config/chromium-server about:blank
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

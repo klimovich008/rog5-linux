@@ -8,10 +8,29 @@ if (-not (Test-Path -LiteralPath $pidFile)) {
 }
 
 $tunnelPid = [int](Get-Content -LiteralPath $pidFile -Raw)
-$process = Get-CimInstance Win32_Process -Filter "ProcessId = $tunnelPid"
-if ($process -and ($process.Name -ne 'ssh.exe' -or $process.CommandLine -notlike '*127.0.0.1:6080:127.0.0.1:6080*')) {
-    throw "PID $tunnelPid is not the recorded ROG5 SSH tunnel"
+try {
+    $process = Get-Process -Id $tunnelPid -ErrorAction Stop
 }
-if ($process) { Stop-Process -Id $tunnelPid }
+catch {
+    Remove-Item -LiteralPath $pidFile
+    Write-Output 'Removed stale tunnel record'
+    exit 0
+}
+
+if ($process.ProcessName -ne 'ssh') { throw "PID $tunnelPid is not an SSH process" }
+$requiredPorts = 6080, 7681, 9222, 13389
+$ownedPorts = @(
+    foreach ($port in $requiredPorts) {
+        Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue |
+            Where-Object OwningProcess -eq $tunnelPid |
+            Select-Object -ExpandProperty LocalPort
+    }
+)
+$missingPorts = @($requiredPorts | Where-Object { $_ -notin $ownedPorts })
+if ($missingPorts.Count) {
+    throw "PID $tunnelPid does not own every recorded ROG5 tunnel port"
+}
+
+Stop-Process -Id $tunnelPid
 Remove-Item -LiteralPath $pidFile
 Write-Output 'PASS tunnel stopped'
