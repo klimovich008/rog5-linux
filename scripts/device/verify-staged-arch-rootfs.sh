@@ -49,7 +49,8 @@ done
 [[ $(systemctl is-enabled rog5-ttyd.service 2>/dev/null || true) == disabled ]]
 [[ $(systemctl is-enabled rog5-vpn-hotspot.service 2>/dev/null || true) == disabled ]]
 [[ $(readlink /etc/systemd/system/default.target) == /usr/lib/systemd/system/multi-user.target ]]
-grep -qx 'command = "/usr/bin/startplasma-wayland"' /etc/greetd/config.toml
+grep -qx 'command = "/usr/bin/agreety --cmd /usr/bin/startplasma-wayland"' /etc/greetd/config.toml
+grep -qx 'user = "greeter"' /etc/greetd/config.toml
 ! grep -q '^\[initial_session\]' /etc/greetd/config.toml
 grep -qx 'HandlePowerKey=ignore' /etc/systemd/logind.conf.d/10-rog5-server.conf
 [[ -z $(find /etc/NetworkManager/system-connections -type f -print -quit) ]]
