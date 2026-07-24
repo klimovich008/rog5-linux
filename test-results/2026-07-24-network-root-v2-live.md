@@ -88,6 +88,11 @@ unqualified SSH scan advertised exactly one host identity, and it matched the
 first boot byte-for-byte. No private key, public-key body, fingerprint, device
 serial, or boot identity is committed or recorded in this report.
 
+A later unchanged RAM-only boot also accepted the same pinned Arch host
+identity immediately. After returning to fallback, strict key-only login
+passed again and both the persistent authorization file and fallback server
+host key remained present.
+
 ## Reboot and remaining boundary
 
 The earlier normal `systemctl reboot --no-block` test removed the network-root
@@ -95,13 +100,30 @@ gadget but did not return fallback, fastboot, or ADB within 120 seconds; the
 phone was electrically absent from USB. That orderly mainline reboot path is
 therefore still a defect.
 
+The kernel reset path itself is healthy. On an unchanged v2 boot,
+`systemctl reboot --force --force` bypassed the systemd manager and invoked
+the reboot syscall: the USB gadget departed after about seven seconds and the
+installed fallback returned after about 21 seconds. Strict fallback SSH then
+passed and the attended NFS listener, export, bind mount, runtime firewall
+state, and host interface state were removed. This narrows the remaining
+defect to normal userspace shutdown rather than the arm64 PSCI/Qualcomm kernel
+restart path.
+
+Live inspection also found no retained `/run/initramfs`. The NFS lower and
+tmpfs upper are separate generated mount units that conflict with
+`umount.target`, while both remain backing filesystems for OverlayFS `/`.
+This is the leading shutdown-teardown hypothesis; it still requires a
+retained shutdown-initramfs implementation and an attended normal-reboot
+test.
+
 For these two persistence cycles, after all gates and watchdog disarm, the
 read-only root was synced and the already validated emergency SysRq reset was
 used. Fallback returned, strict SSH checks passed, and the attended NFS export,
 listener, mount, temporary sysctl, interface address, and firewall rules were
 all removed.
 
-The phone is back in the persistent Alpine fallback. Network-root v2 is a
+The phone is back in the persistent Alpine fallback with the host NFS service
+and temporary firewall state absent. Network-root v2 is a
 safe, reversible native-Linux bring-up transport, not yet an independent
 daily-driver installation: UFS, GPU/display, battery/charging, Wi-Fi, audio,
 and suspend remain separate hardware tiers.
