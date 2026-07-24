@@ -33,6 +33,9 @@ for contract in \
 	'--host "$host_ip"' \
 	'--no-nfs-version 3' \
 	'--nfs-version 4.2' \
+	'--grace-time "$grace_time"' \
+	'--lease-time "$lease_time"' \
+	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \
 	'remount,bind,ro,nodev,nosuid' \

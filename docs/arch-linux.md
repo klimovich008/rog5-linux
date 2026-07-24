@@ -56,14 +56,15 @@ The historical Plasma image is 2,022,113,204 bytes with SHA-256
 `31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`.
 Both contain the previous Linux 7.1.4 module set and remain non-candidates.
 
-The current network-root Plasma archive is 2,007,208,337 bytes with SHA-256
-`e0de832fadc4005dc46aca17c3b9ecb4b4b5c107e1e35472e2971172d2a2861b`.
+The current network-root Plasma archive is 2,007,186,653 bytes with SHA-256
+`8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
 It was staged from the authenticated base on Nobara Linux, contains only the
 exact `7.1.4-g7a5cef0db479` module tree, and passed a clean archive
 re-extraction plus the complete rootfs verifier. It contains the selected
 public SSH key but no private key, reusable host identity, network secret,
 remote-desktop credential, or user data. It is the current offline rootfs
-candidate; restricted NFS export and live boot are still required.
+candidate; the restricted NFS host gate passes and the phone-live boot is
+still required.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 

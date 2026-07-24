@@ -12,7 +12,7 @@ manifest=$repo/manifests/artifacts.tsv
 kernel_release=7.1.4-g7a5cef0db479
 archive_name=artifacts/arch/rog5-arch-plasma-network-root-7.1.4.tar.gz
 modules_name=artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz
-source_commit=ce246ca3e7999a8ee7ec04ef5bd7d6f9ac6876f2
+source_commit=8c35d4e72382fab6217d510e17108fca60d3bd6f
 
 for command in awk cmp file find getfattr grep readelf realpath readlink \
 	sha256sum stat; do

@@ -37,7 +37,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
-| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | current 2,007,208,337-byte network-root archive has exact modules/firmware and passes clean round-trip verification; NFS/live gate pending |
+| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | current 2,007,186,653-byte network-root archive has exact modules/firmware, a recoverable host key, and passes clean round-trip verification; privileged NFS gate passed, phone live gate pending |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v18 passes staging twice and one Linux 7.1 target/rollback cycle |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |

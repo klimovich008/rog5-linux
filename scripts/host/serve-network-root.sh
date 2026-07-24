@@ -14,6 +14,8 @@ host_cidr=$host_ip/30
 firewall_zone=drop
 export_mount=/run/rog5-network-root-export
 mountd_port=32767
+grace_time=10
+lease_time=10
 serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 
 [[ $EUID == 0 ]] || fail 'run with sudo; do not share the sudo password'
@@ -179,11 +181,22 @@ exportfs -i -o ro,fsid=0,sync,no_subtree_check,no_root_squash \
 	"$phone_ip:$export_mount"
 rpc.nfsd --host "$host_ip" --port 2049 --tcp --no-udp \
 	--no-nfs-version 3 --no-nfs-version 4.0 --no-nfs-version 4.1 \
-	--nfs-version 4.2 4
+	--nfs-version 4.2 --grace-time "$grace_time" \
+	--lease-time "$lease_time" 4
 nfsd_started=1
 
 grep -q -- '-3' /proc/fs/nfsd/versions
 grep -q -- '+4.2' /proc/fs/nfsd/versions
+[[ $(< /proc/fs/nfsd/nfsv4gracetime) == "$grace_time" ]]
+[[ $(< /proc/fs/nfsd/nfsv4leasetime) == "$lease_time" ]]
+[[ -r /proc/fs/nfsd/v4_end_grace ]]
+grace_deadline=$(( $(date +%s) + grace_time + 5 ))
+while [[ $(< /proc/fs/nfsd/v4_end_grace) != Y ]] &&
+	(( $(date +%s) < grace_deadline )); do
+	sleep 1
+done
+[[ $(< /proc/fs/nfsd/v4_end_grace) == Y ]] ||
+	fail 'NFSv4 server grace period did not end'
 mapfile -t nfs_listeners < <(
 	ss -H -lnt4 'sport = :2049' | awk '{ print $4 }'
 )

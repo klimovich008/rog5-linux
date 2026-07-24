@@ -202,10 +202,11 @@ header-v3/AVB repacks are also byte-identical. The fourteen-file manifest
 passes nested hash, config, no-credential, boot-header, and AVB verification.
 The signed Arch Linux ARM base was reverified under the pinned signing key,
 and its metadata-preserving Linux staging path executes as AArch64. The final
-2,007,208,337-byte Plasma/server network-root archive now passes a fresh stage
+2,007,186,653-byte Plasma/server network-root archive now passes a fresh stage
 and clean archive round-trip with the exact kernel modules and pinned
-firmware. The restricted host NFS export and attended live boot remain
-separate gates; no network-root artifact has been transferred to the phone.
+firmware. The restricted host NFS export has passed; the attended live boot
+remains pending, and no network-root artifact has been transferred to the
+phone.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
@@ -223,10 +224,14 @@ exact Arch root. Attended shutdown removed the export, listener, mounts,
 kernel NFS filesystem, temporary sysctl, firewall rules, and test namespace;
 the fallback USB link was restored.
 
-The host reboot intentionally erased the mode-0600 fallback SSH key that had
-existed only in tmpfs. The fallback phone remains reachable on USB NCM and
-TCP/22, but the next temporary boot requires a physical reboot to fastboot or
-restoration of an authorized key through a trusted local console.
+The host reboot intentionally erased the earlier mode-0600 SSH key that had
+existed only in tmpfs. A replacement dedicated key now persists outside the
+repository at mode 0600, and a fresh two-pass rootfs stage embeds only its
+public half. The replacement archive is 2,007,186,653 bytes with SHA-256
+`8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
+The fallback phone still authorizes only the erased key, so the next temporary
+boot requires a physical reboot to fastboot; the new Arch target will be
+reachable with the replacement key.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

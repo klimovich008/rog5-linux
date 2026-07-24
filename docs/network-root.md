@@ -91,13 +91,14 @@ The v1 bundle passes its fourteen-file verifier:
 The signed 818,293,654-byte Arch Linux ARM input also re-verifies under the
 pinned Arch Linux ARM key, and the Linux-native rootfs path preserves metadata
 and executes the extracted userspace as `aarch64`. The final
-2,007,208,337-byte archive was staged from a fresh volume with the exact
+2,007,186,653-byte archive was staged from a fresh volume with the exact
 `7.1.4-g7a5cef0db479` modules, pinned A660 firmware, key-only SSH, and the
 headless-first Plasma/server package set. Its SHA-256 is
-`e0de832fadc4005dc46aca17c3b9ecb4b4b5c107e1e35472e2971172d2a2861b`.
+`8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
 Re-extraction into a second clean volume passed the complete architecture,
 ownership/mode/xattr, module, firmware, identity, networking, SSH, and desktop
-contract.
+contract. Only the public half of a dedicated persistent host key is present;
+the private half remains mode 0600 outside the repository and artifacts.
 
 ## Rootfs policy
 
@@ -160,10 +161,12 @@ reverified the fixed export root, and passed the privileged runtime gate. The
 server exposed one TCP listener at `169.254.77.1:2049`; the system
 `nfs-server`, rpcbind, and gssproxy units remained inactive; the export was
 NFSv4.2-only, read-only, and restricted to `169.254.77.2`; and no permanent
-firewall rule was created. An isolated namespace using the exact `/30` peer
-mounted the export read-only, matched `/etc/os-release`, and found the exact
-`7.1.4-g7a5cef0db479` module tree. Cleanup removed every runtime export,
-listener, mount, sysctl, rule, interface, and namespace.
+firewall rule was created. The private server uses the minimum supported
+10-second NFSv4 grace/lease and reports ready only after the kernel ends grace,
+so protected-file opens cannot race startup. An isolated namespace using the
+exact `/30` peer mounted the export read-only, matched `/etc/os-release`, and
+found the exact `7.1.4-g7a5cef0db479` module tree. Cleanup removed every
+runtime export, listener, mount, sysctl, rule, interface, and namespace.
 
 ## Acceptance gate
 

@@ -70,7 +70,7 @@ network root now also passes its complete offline reproducibility gate: two
 Linux 7.1.4 builds, two target/staging initramfs builds, two ASUS wrappers, and
 two header-v3/AVB repacks are byte-identical. The dedicated kernel has
 NFSv4.2/OverlayFS built in and compiles SCSI/UFS/QMP storage paths out. The
-signed Arch input and the final 2,007,208,337-byte headless-first Plasma
+signed Arch input and the final 2,007,186,653-byte headless-first Plasma
 rootfs pass Linux-native staging and archive round-trip verification with the
 exact network-root modules and pinned A660 firmware. The restricted host
 NFS harness now also passes its privileged runtime gate on Nobara: one

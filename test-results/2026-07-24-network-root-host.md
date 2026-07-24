@@ -16,7 +16,7 @@ booted, flashed, or written to phone storage.
 ## Fedora compatibility fixes
 
 The first privileged executions failed closed and removed their runtime
-state. They exposed four host assumptions that the static harness could not
+state. They exposed five host assumptions that the static harness could not
 model:
 
 - firewalld permits new zones only in permanent configuration, so the harness
@@ -27,7 +27,10 @@ model:
   error, so the standard state file is validated, cleanup is armed before the
   export call, and unexport uses the exact client/path; and
 - Fedora formats `exportfs -v` across two lines, so path, peer, and options are
-  validated independently.
+  validated independently; and
+- new NFSv4 opens wait during server grace, so the private server sets the
+  minimum supported 10-second grace/lease and reports ready only after
+  `/proc/fs/nfsd/v4_end_grace` confirms completion.
 
 Each case now has a static regression assertion.
 
