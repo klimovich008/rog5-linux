@@ -205,15 +205,28 @@ and its metadata-preserving Linux staging path executes as AArch64. The final
 2,007,208,337-byte Plasma/server network-root archive now passes a fresh stage
 and clean archive round-trip with the exact kernel modules and pinned
 firmware. The restricted host NFS export and attended live boot remain
-pending; no network-root artifact has been transferred to the phone.
+separate gates; no network-root artifact has been transferred to the phone.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
 independent export-root verifier. It binds the future server to the USB
-address, isolates the exact gadget in a temporary firewall zone, blocks the
-same ports in the host's broad workstation zone, and cleans up on exit. It has
-not been run with privileges: `nfs-utils` is not installed and external
-service/firewall setup still awaits confirmation.
+address, isolates the exact gadget in the verified-unused built-in `drop`
+zone, blocks the same ports in the host's broad workstation zone, and cleans
+up on exit.
+
+After explicit approval, `nfs-utils` was installed through PolicyKit and the
+archive was prepared at `/var/lib/rog5-network-root-v1`. The privileged host
+gate then passed with one `169.254.77.1:2049` TCP listener, NFSv4.2 only, one
+read-only export to `169.254.77.2`, inactive system NFS/rpcbind services, no
+permanent firewall rule, and a successful isolated `/30` client mount of the
+exact Arch root. Attended shutdown removed the export, listener, mounts,
+kernel NFS filesystem, temporary sysctl, firewall rules, and test namespace;
+the fallback USB link was restored.
+
+The host reboot intentionally erased the mode-0600 fallback SSH key that had
+existed only in tmpfs. The fallback phone remains reachable on USB NCM and
+TCP/22, but the next temporary boot requires a physical reboot to fastboot or
+restoration of an authorized key through a trusted local console.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

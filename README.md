@@ -73,9 +73,11 @@ NFSv4.2/OverlayFS built in and compiles SCSI/UFS/QMP storage paths out. The
 signed Arch input and the final 2,007,208,337-byte headless-first Plasma
 rootfs pass Linux-native staging and archive round-trip verification with the
 exact network-root modules and pinned A660 firmware. The restricted host
-NFS harness also passes its offline exact-peer/runtime-cleanup contract, but
-installing or starting the host service and the attended live boot remain
-pending. Desktop and mainline GPU gates remain pending.
+NFS harness now also passes its privileged runtime gate on Nobara: one
+NFSv4.2/TCP listener on the USB address, one exact-peer read-only export, a
+successful isolated client mount, no persistent firewall state, and complete
+cleanup. The attended phone boot, desktop, and mainline GPU gates remain
+pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -184,16 +186,18 @@ After the separate host-service confirmation, prepare the manifest-pinned
 archive as a root-owned export source and run the attended foreground server:
 
 ```sh
-sudo dnf install nfs-utils
-sudo scripts/host/prepare-network-root-export.sh
-sudo scripts/host/serve-network-root.sh
+pkexec dnf install nfs-utils
+pkexec env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+  "$PWD/scripts/host/prepare-network-root-export.sh"
+pkexec env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+  "$PWD/scripts/host/serve-network-root.sh"
 ```
 
 The server uses no permanent export or firewall configuration. It binds
 NFSv4.2 to `169.254.77.1`, exports a read-only bind mount only to
-`169.254.77.2`, moves only the exact network-root gadget into a temporary
-drop-by-default zone, and restores runtime state on exit. Do not run these
-commands until the external-service gate is explicitly approved.
+`169.254.77.2`, moves only the exact network-root gadget into the verified
+unused built-in `drop` zone, and restores runtime state on exit. Do not run
+these commands until the external-service gate is explicitly approved.
 
 The equivalent Windows workflow remains available:
 

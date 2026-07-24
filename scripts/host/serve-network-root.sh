@@ -11,7 +11,7 @@ root=${1:-/var/lib/rog5-network-root-v1}
 host_ip=169.254.77.1
 phone_ip=169.254.77.2
 host_cidr=$host_ip/30
-firewall_zone=rog5-netroot
+firewall_zone=drop
 export_mount=/run/rog5-network-root-export
 mountd_port=32767
 serve_timeout=${ROG5_NFS_TIMEOUT:-900}
@@ -21,8 +21,8 @@ serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 	((serve_timeout >= 60 && serve_timeout <= 1800)) ||
 	fail 'ROG5_NFS_TIMEOUT must be between 60 and 1800 seconds'
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
-	mountpoint nmcli pgrep realpath rpc.mountd rpc.nfsd ss sysctl udevadm \
-	systemctl tr umount; do
+	mkdir mountpoint nmcli pgrep realpath rpc.mountd rpc.nfsd ss sysctl udevadm \
+	stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
 [[ -d $root && ! -L $root ]] || fail 'missing prepared export root'
@@ -31,6 +31,11 @@ root=$(realpath -e "$root")
 	fail 'unexpected export root'
 "$repo/scripts/host/verify-network-root-export.sh" "$root"
 
+etab=/var/lib/nfs/etab
+[[ -e $etab ]] || install -m 0644 /dev/null "$etab"
+[[ -f $etab && ! -L $etab &&
+	$(stat -c %u:%g:%a "$etab") == 0:0:644 ]] ||
+	fail 'unexpected NFS export state file'
 systemctl is-active --quiet firewalld.service ||
 	fail 'firewalld must be active'
 ! systemctl is-active --quiet nfs-server.service ||
@@ -44,9 +49,17 @@ if mountpoint -q /proc/fs/nfsd &&
 fi
 [[ -z $(exportfs -v) ]] || fail 'refusing existing NFS exports'
 [[ ! -e $export_mount ]] || fail "refusing existing $export_mount"
-if firewall-cmd --get-zones | tr ' ' '\n' |
-	grep -qx "$firewall_zone"; then
-	fail "refusing existing firewall zone: $firewall_zone"
+[[ $(firewall-cmd --zone="$firewall_zone" --list-all |
+	awk '$1 == "target:" { print $2 }') == DROP ]] ||
+	fail "$firewall_zone firewall zone is not drop-by-default"
+for query in --list-interfaces --list-sources --list-services --list-ports \
+	--list-protocols --list-source-ports --list-forward-ports \
+	--list-icmp-blocks --list-rich-rules; do
+	[[ -z $(firewall-cmd --zone="$firewall_zone" "$query") ]] ||
+		fail "$firewall_zone firewall zone is already in use"
+done
+if firewall-cmd --zone="$firewall_zone" --query-masquerade >/dev/null; then
+	fail "$firewall_zone firewall zone has masquerading enabled"
 fi
 
 mapfile -t protected_zones < <(
@@ -60,7 +73,7 @@ mountd_tcp_drop_rule="rule family=\"ipv4\" priority=\"-300\" port port=\"$mountd
 mountd_udp_drop_rule="rule family=\"ipv4\" priority=\"-300\" port port=\"$mountd_port\" protocol=\"udp\" drop"
 nfs_allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"2049\" protocol=\"tcp\" accept"
 
-zone_created=0
+allow_rule_added=0
 drop_rules_added=0
 bind_mounted=0
 nfsd_mounted=0
@@ -74,15 +87,15 @@ cleanup() {
 	local interface zone
 	set +e
 	if [[ $export_active == 1 ]]; then
-		exportfs -i -u "$phone_ip:$export_mount"
+		exportfs -u "$phone_ip:$export_mount"
 		exportfs -f
 	fi
 	if [[ $nfsd_started == 1 ]]; then
 		rpc.nfsd 0
 	fi
 	if [[ -n $mountd_pid ]]; then
-		kill "$mountd_pid"
-		wait "$mountd_pid"
+		kill "$mountd_pid" 2>/dev/null
+		wait "$mountd_pid" 2>/dev/null
 	fi
 	if [[ $bind_mounted == 1 ]]; then
 		umount "$export_mount"
@@ -99,13 +112,15 @@ cleanup() {
 	for interface in "${touched_interfaces[@]}"; do
 		if [[ -e /sys/class/net/$interface ]]; then
 			ip address del "$host_cidr" dev "$interface" 2>/dev/null
+			firewall-cmd --zone="$firewall_zone" \
+				--remove-interface="$interface" >/dev/null 2>&1
 			nmcli device set "$interface" managed yes 2>/dev/null
-			if [[ $zone_created == 1 ]]; then
-				firewall-cmd --zone="$firewall_zone" \
-					--remove-interface="$interface" >/dev/null 2>&1
-			fi
 		fi
 	done
+	if [[ $allow_rule_added == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--remove-rich-rule="$nfs_allow_rule" >/dev/null 2>&1
+	fi
 	if [[ $drop_rules_added == 1 ]]; then
 		for zone in "${protected_zones[@]}"; do
 			firewall-cmd --zone="$zone" \
@@ -116,19 +131,14 @@ cleanup() {
 				--remove-rich-rule="$mountd_udp_drop_rule" >/dev/null 2>&1
 		done
 	fi
-	if [[ $zone_created == 1 ]]; then
-		firewall-cmd --delete-zone="$firewall_zone" >/dev/null 2>&1
-	fi
 	echo 'INFO network-root NFS and runtime firewall state removed'
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM HUP
 
-firewall-cmd --new-zone="$firewall_zone" >/dev/null
-zone_created=1
-firewall-cmd --zone="$firewall_zone" --set-target=DROP >/dev/null
 firewall-cmd --zone="$firewall_zone" \
 	--add-rich-rule="$nfs_allow_rule" >/dev/null
+allow_rule_added=1
 drop_rules_added=1
 for zone in "${protected_zones[@]}"; do
 	firewall-cmd --zone="$zone" \
@@ -151,7 +161,7 @@ findmnt -n -o OPTIONS --target "$export_mount" |
 	grep -Eq '(^|,)nosuid(,|$)'
 
 if ! mountpoint -q /proc/fs/nfsd; then
-	install -d -m 0755 /proc/fs/nfsd
+	mkdir -p /proc/fs/nfsd
 	mount -t nfsd nfsd /proc/fs/nfsd
 	nfsd_mounted=1
 fi
@@ -164,9 +174,9 @@ mountd_pid=$!
 sleep 1
 kill -0 "$mountd_pid"
 
+export_active=1
 exportfs -i -o ro,fsid=0,sync,no_subtree_check,no_root_squash \
 	"$phone_ip:$export_mount"
-export_active=1
 rpc.nfsd --host "$host_ip" --port 2049 --tcp --no-udp \
 	--no-nfs-version 3 --no-nfs-version 4.0 --no-nfs-version 4.1 \
 	--nfs-version 4.2 4
@@ -180,7 +190,12 @@ mapfile -t nfs_listeners < <(
 [[ ${#nfs_listeners[@]} == 1 &&
 	${nfs_listeners[0]} == "$host_ip:2049" ]] ||
 	fail 'NFS listener is not restricted to the USB host address'
-exportfs -v | grep -F "$phone_ip" | grep -Fq "$export_mount"
+export_listing=$(exportfs -v)
+[[ $(grep -Fc "$export_mount" <<<"$export_listing") == 1 ]]
+[[ $(grep -Fc "$phone_ip" <<<"$export_listing") == 1 ]]
+grep -Fq 'fsid=0' <<<"$export_listing"
+grep -Eq '(^|[,(])ro([,)]|$)' <<<"$export_listing"
+grep -Fq 'no_root_squash' <<<"$export_listing"
 
 find_target_interface() {
 	local interface properties

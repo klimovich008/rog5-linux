@@ -1,7 +1,8 @@
 # UFS-disabled network-root v1 offline result
 
-Status: **PASS offline bundle, rootfs, and host harness; privileged export/live
-gates pending**. The bundle is eligible only for an attended temporary
+Status: **PASS offline bundle, rootfs, and host harness**. The privileged host
+gate subsequently passed; the attended phone gate remains pending. The bundle
+is eligible only for an attended temporary
 `fastboot boot` followed by a separate kexec decision. It must never be
 flashed.
 
@@ -113,13 +114,15 @@ preserved and passed the complete rootfs verifier:
 The host scripts were then developed behind a failing contract test. Their
 offline test now proves fixed peer/address/product strings, no broad or
 persistent export, a read-only bind source, NFSv4.2-only startup, temporary
-firewall creation/removal, and no phone-storage write command. A disposable
-second extraction of the final archive also passed the independent
-path-based export verifier. No privileged NFS or firewall command was run.
+firewall rule/assignment cleanup, and no phone-storage write command. A
+disposable second extraction of the final archive also passed the independent
+path-based export verifier. No privileged NFS or firewall command was run
+during this offline result; the later host-only gate is recorded in
+`2026-07-24-network-root-host.md`.
 
-The host export must now be configured read-only and restricted to the
-dedicated USB peer. Live acceptance then requires exact kernel release,
-read-only NFS lower, volatile OverlayFS upper, zero storage,
+The later host gate configured and verified the export read-only and
+restricted to the dedicated USB peer. Phone-live acceptance now requires
+exact kernel release, read-only NFS lower, volatile OverlayFS upper, zero storage,
 `multi-user.target`, key-only SSH, stable USB, clean logs, and automatic
 fallback.
 

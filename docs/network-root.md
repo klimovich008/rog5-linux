@@ -4,9 +4,9 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **complete offline bundle and rootfs stage pass; host export and live
-boot remain pending**. No network-root image has been transferred to or booted
-on the phone.
+Status: **complete offline bundle, rootfs stage, and privileged host export
+pass; attended phone boot remains pending**. No network-root image has been
+transferred to or booted on the phone.
 
 ## Chosen design
 
@@ -142,8 +142,8 @@ with ACL/xattr support into `/var/lib/rog5-network-root-v1`, seals its artifact
 identity, and runs the independent path-based verifier.
 `serve-network-root.sh` then:
 
-1. refuses an existing NFS service, export, kernel server, firewall zone, or
-   unexpected root;
+1. refuses an existing NFS service, export, kernel server, unexpected root,
+   or an in-use/non-drop firewall boundary;
 2. creates only runtime firewalld rules and blocks the NFS and fixed mountd
    ports in every previously active zone;
 3. binds NFSv4.2/TCP only to `169.254.77.1`;
@@ -151,13 +151,19 @@ identity, and runs the independent path-based verifier.
    `no_root_squash` because PID 1 and root-owned key files must remain
    readable;
 5. recognizes only the `ROG5_network_root` CDC-NCM gadget and gives it the
-   `/30` host address in a temporary drop-by-default zone; and
+   `/30` host address in the verified-unused built-in `drop` zone; and
 6. unexports, stops its private server processes, unmounts, restores the
    temporary sysctl, and removes all runtime firewall state on exit.
 
-The privileged path has not been run. The current host still lacks
-`nfs-utils`, and its default workstation zone broadly allows high ports; that
-is why the dedicated zone and pre-zone drop rules are mandatory.
+After explicit approval, the Nobara host installed `nfs-utils`, prepared and
+reverified the fixed export root, and passed the privileged runtime gate. The
+server exposed one TCP listener at `169.254.77.1:2049`; the system
+`nfs-server`, rpcbind, and gssproxy units remained inactive; the export was
+NFSv4.2-only, read-only, and restricted to `169.254.77.2`; and no permanent
+firewall rule was created. An isolated namespace using the exact `/30` peer
+mounted the export read-only, matched `/etc/os-release`, and found the exact
+`7.1.4-g7a5cef0db479` module tree. Cleanup removed every runtime export,
+listener, mount, sysctl, rule, interface, and namespace.
 
 ## Acceptance gate
 
@@ -172,7 +178,7 @@ Before any live attempt:
 5. the staged rootfs must pass architecture, systemd, module, SSH, network,
    fstab, identity, secret, and archive round-trip checks — **passed**; and
 6. host NFS/firewall preflight must pass without broad network exposure —
-   **offline contract passed; privileged runtime test pending**.
+   **offline contract and privileged runtime mount passed**.
 
 Live acceptance requires exact kernel release, OverlayFS `/`, read-only NFS
 lower, tmpfs upper, zero physical block devices, zero block-backed mounts,

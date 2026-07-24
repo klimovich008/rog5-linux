@@ -36,16 +36,30 @@ for contract in \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \
 	'remount,bind,ro,nodev,nosuid' \
+	'etab=/var/lib/nfs/etab' \
+	'mkdir -p /proc/fs/nfsd' \
 	'trap cleanup EXIT' \
-	'--new-zone="$firewall_zone"' \
-	'--delete-zone="$firewall_zone"'; do
+	'firewall_zone=drop' \
+	'$1 == "target:"' \
+	'--add-rich-rule="$nfs_allow_rule"' \
+	'--remove-rich-rule="$nfs_allow_rule"' \
+	'export_listing=$(exportfs -v)' \
+	'grep -Fc "$export_mount"' \
+	'grep -Fc "$phone_ip"'; do
 	grep -Fq -- "$contract" "$serve" || {
 		echo "FAIL network-root host contract missing: $contract" >&2
 		exit 1
 	}
 done
 
-if grep -Eq -- '--permanent|/etc/exports|(^|[[:space:]])\*\(|no_root_squash.*\*' \
+export_flag_line=$(grep -n '^export_active=1$' "$serve" |
+	cut -d: -f1)
+export_line=$(grep -n '^exportfs -i -o ' "$serve" |
+	cut -d: -f1)
+[ "$export_flag_line" -lt "$export_line" ]
+grep -Fq 'exportfs -u "$phone_ip:$export_mount"' "$serve"
+
+if grep -Eq -- '--permanent|--new-zone|/etc/exports|(^|[[:space:]])\*\(|no_root_squash.*\*' \
 	"$prepare" "$verify" "$serve"; then
 	echo 'FAIL network-root host tools contain a persistent or broad export' >&2
 	exit 1

@@ -165,7 +165,7 @@ Goal: boot a normal modern distro before adding desktop complexity.
   Android temporary-boot package.
 - [x] Implement and offline-test a runtime-only, exact-peer host NFS/firewall
   harness with automatic cleanup.
-- [ ] Run the privileged host export gate on the dedicated USB address and
+- [x] Run the privileged host export gate on the dedicated USB address and
   keep it enabled only during attended tests.
 - [ ] Boot once with UFS disabled before combining normal userspace with any
   on-device storage driver.

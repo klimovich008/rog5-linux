@@ -42,7 +42,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
-| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle, exact Arch rootfs, and runtime-only host harness pass offline verification; privileged export/live gate pending; never flash |
+| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle, exact Arch rootfs, and privileged exact-peer host mount pass; attended phone boot pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
