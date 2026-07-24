@@ -70,8 +70,11 @@ network root now also passes its complete offline reproducibility gate: two
 Linux 7.1.4 builds, two target/staging initramfs builds, two ASUS wrappers, and
 two header-v3/AVB repacks are byte-identical. The dedicated kernel has
 NFSv4.2/OverlayFS built in and compiles SCSI/UFS/QMP storage paths out. The
-signed Arch input and Linux-native staging path pass, but the rootfs still
-needs its final module/package staging and the NFS/live boot gate remains
+signed Arch input and the final 2,007,208,337-byte headless-first Plasma
+rootfs pass Linux-native staging and archive round-trip verification with the
+exact network-root modules and pinned A660 firmware. The restricted host
+NFS harness also passes its offline exact-peer/runtime-cleanup contract, but
+installing or starting the host service and the attended live boot remain
 pending. Desktop and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
@@ -177,6 +180,21 @@ matching headless-first Plasma rootfs with an external public SSH key:
 scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
 ```
 
+After the separate host-service confirmation, prepare the manifest-pinned
+archive as a root-owned export source and run the attended foreground server:
+
+```sh
+sudo dnf install nfs-utils
+sudo scripts/host/prepare-network-root-export.sh
+sudo scripts/host/serve-network-root.sh
+```
+
+The server uses no permanent export or firewall configuration. It binds
+NFSv4.2 to `169.254.77.1`, exports a read-only bind mount only to
+`169.254.77.2`, moves only the exact network-root gadget into a temporary
+drop-by-default zone, and restores runtime state on exit. Do not run these
+commands until the external-service gate is explicitly approved.
+
 The equivalent Windows workflow remains available:
 
 ```powershell
@@ -209,12 +227,12 @@ recovery-contract skeleton plus USB2 recovery DTB are exported to
 `dist/linux-7.1.4/`. This compile-only result is not a boot image: neither the
 upstream DTBs nor the standalone ASUS DTBs may be booted directly on the phone.
 
-The signed Arch input and the locked minimal Plasma Desktop rootfs pass their
-historical offline staging suites, but the archive contains the previous
-kernel modules and must be restaged after the final kernel is accepted. No
-Arch image has booted on the phone. It remains outside the first RAM-only
-recovery and will not be mounted until USB recovery access and UFS discovery
-pass on hardware.
+The signed Arch input and the current locked minimal Plasma Desktop rootfs
+pass their offline suites. The current archive contains the exact
+`7.1.4-g7a5cef0db479` network-root modules, verified Qualcomm firmware,
+key-only SSH, no reusable host identity, and no VPN/Wi-Fi/KRDP secret. No Arch
+image has booted on the phone. It will be exposed only through the attended,
+read-only USB NFS gate; nothing is flashed.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

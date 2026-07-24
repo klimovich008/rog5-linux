@@ -155,15 +155,18 @@ the exact fallback kernel.
 
 Goal: boot a normal modern distro before adding desktop complexity.
 
-- [ ] Restage the Arch rootfs with the exact accepted kernel modules.
-- [ ] Verify package signatures, firmware hashes, ownership, symlinks, and modes.
+- [x] Restage the Arch rootfs with the exact accepted kernel modules.
+- [x] Verify package signatures, firmware hashes, ownership, symlinks, modes,
+  ACLs, xattrs, and a clean archive round trip.
 - [x] Add a fail-closed initramfs path that creates USB NCM, mounts a
   host-exported root read-only, adds a tmpfs overlay, and then `switch_root`s.
 - [x] Build the dedicated NFSv4.2/OverlayFS kernel twice with SCSI/UFS and its
   QMP PHY paths compiled out; reproduce both initramfs layers, wrapper, and
   Android temporary-boot package.
-- [ ] Restrict the host export to the dedicated USB address and keep it
-  disabled except during attended tests.
+- [x] Implement and offline-test a runtime-only, exact-peer host NFS/firewall
+  harness with automatic cleanup.
+- [ ] Run the privileged host export gate on the dedicated USB address and
+  keep it enabled only during attended tests.
 - [ ] Boot once with UFS disabled before combining normal userspace with any
   on-device storage driver.
 - [ ] Provision storage only after explicit confirmation and a recovery check.

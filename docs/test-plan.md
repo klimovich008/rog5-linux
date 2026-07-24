@@ -108,7 +108,8 @@ restored the exact fallback kernel.
 
 ## Tier 1.75 — UFS-disabled network root
 
-Status: **offline bundle passed; rootfs/export/live test pending**.
+Status: **offline bundle, rootfs, and host harness passed; privileged
+export/live test pending**.
 
 - Use only the fourteen-file manifest-pinned network-root bundle.
 - Require built-in NFSv4.2, TCP, OverlayFS, tmpfs xattrs, USB ACM/NCM, and
@@ -119,6 +120,10 @@ Status: **offline bundle passed; rootfs/export/live test pending**.
 - Restrict the host NFSv4 export to `169.254.77.2` on the dedicated USB
   interface, export it read-only, and remove the runtime export/firewall rule
   after the attended test.
+- Run `test-network-root-host.sh` before privilege; require a fixed
+  NFSv4.2-only listener address, exact gadget identity, read-only bind mount,
+  dedicated drop-by-default zone, pre-zone drops for broad host zones, and
+  cleanup traps.
 - Require read-only NFS lower, 2 GiB `nodev,nosuid` tmpfs upper, OverlayFS
   `/`, zero physical block devices, and zero block-backed mounts before
   accepting userspace.

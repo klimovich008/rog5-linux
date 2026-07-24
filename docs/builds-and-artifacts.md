@@ -37,12 +37,12 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
-| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | historical suite passes; contains the previous module set and must be restaged |
+| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | current 2,007,208,337-byte network-root archive has exact modules/firmware and passes clean round-trip verification; NFS/live gate pending |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v18 passes staging twice and one Linux 7.1 target/rollback cycle |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
-| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle passes two clean kernel/initramfs/wrapper/repack comparisons and complete offline verification; rootfs/export/live gate pending; never flash |
+| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle, exact Arch rootfs, and runtime-only host harness pass offline verification; privileged export/live gate pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
@@ -109,8 +109,9 @@ redacted summary belongs in `test-results/`; exact nonsecret output hashes
 belong in `manifests/`. The
 [network-root v1 offline report](../test-results/2026-07-24-network-root-v1-offline.md)
 records the reproducible UFS-disabled NFS/OverlayFS kernel, both initramfs
-layers, ASUS wrapper, Android package, signed Arch input, and pending live
-boundary. The
+layers, ASUS wrapper, Android package, signed Arch input, verified exact-module
+Plasma rootfs, offline host isolation harness, and pending privileged
+host-export/live boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

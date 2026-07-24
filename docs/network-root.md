@@ -4,7 +4,7 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **complete offline bundle passes; rootfs staging, host export, and live
+Status: **complete offline bundle and rootfs stage pass; host export and live
 boot remain pending**. No network-root image has been transferred to or booted
 on the phone.
 
@@ -90,8 +90,14 @@ The v1 bundle passes its fourteen-file verifier:
 
 The signed 818,293,654-byte Arch Linux ARM input also re-verifies under the
 pinned Arch Linux ARM key, and the Linux-native rootfs path preserves metadata
-and executes the extracted userspace as `aarch64`. Final package/module
-staging is intentionally separate from the boot bundle.
+and executes the extracted userspace as `aarch64`. The final
+2,007,208,337-byte archive was staged from a fresh volume with the exact
+`7.1.4-g7a5cef0db479` modules, pinned A660 firmware, key-only SSH, and the
+headless-first Plasma/server package set. Its SHA-256 is
+`e0de832fadc4005dc46aca17c3b9ecb4b4b5c107e1e35472e2971172d2a2861b`.
+Re-extraction into a second clean volume passed the complete architecture,
+ownership/mode/xattr, module, firmware, identity, networking, SSH, and desktop
+contract.
 
 ## Rootfs policy
 
@@ -129,6 +135,30 @@ Installing `nfs-utils`, starting `nfs-server`, or changing the runtime firewall
 is an external service setup and requires user confirmation. Offline kernel,
 initramfs, rootfs, and preflight work does not.
 
+The offline host implementation now passes
+`scripts/host/test-network-root-host.sh`. After confirmation,
+`prepare-network-root-export.sh` authenticates the exact archive, extracts it
+with ACL/xattr support into `/var/lib/rog5-network-root-v1`, seals its artifact
+identity, and runs the independent path-based verifier.
+`serve-network-root.sh` then:
+
+1. refuses an existing NFS service, export, kernel server, firewall zone, or
+   unexpected root;
+2. creates only runtime firewalld rules and blocks the NFS and fixed mountd
+   ports in every previously active zone;
+3. binds NFSv4.2/TCP only to `169.254.77.1`;
+4. exports a read-only bind mount only to `169.254.77.2`, using
+   `no_root_squash` because PID 1 and root-owned key files must remain
+   readable;
+5. recognizes only the `ROG5_network_root` CDC-NCM gadget and gives it the
+   `/30` host address in a temporary drop-by-default zone; and
+6. unexports, stops its private server processes, unmounts, restores the
+   temporary sysctl, and removes all runtime firewall state on exit.
+
+The privileged path has not been run. The current host still lacks
+`nfs-utils`, and its default workstation zone broadly allows high ports; that
+is why the dedicated zone and pre-zone drop rules are mandatory.
+
 ## Acceptance gate
 
 Before any live attempt:
@@ -139,9 +169,10 @@ Before any live attempt:
    **passed**;
 4. the reused recovery DTB hash and disabled-node contract must pass —
    **passed**;
-5. the rootfs export must pass architecture, systemd, module, SSH, network,
-   fstab, identity, and secret checks; and
-6. host NFS/firewall preflight must pass without broad network exposure.
+5. the staged rootfs must pass architecture, systemd, module, SSH, network,
+   fstab, identity, secret, and archive round-trip checks — **passed**; and
+6. host NFS/firewall preflight must pass without broad network exposure —
+   **offline contract passed; privileged runtime test pending**.
 
 Live acceptance requires exact kernel release, OverlayFS `/`, read-only NFS
 lower, tmpfs upper, zero physical block devices, zero block-backed mounts,

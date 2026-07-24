@@ -1,8 +1,9 @@
 # UFS-disabled network-root v1 offline result
 
-Status: **PASS offline; rootfs/export/live gates pending**. The bundle is
-eligible only for an attended temporary `fastboot boot` followed by a separate
-kexec decision. It must never be flashed.
+Status: **PASS offline bundle, rootfs, and host harness; privileged export/live
+gates pending**. The bundle is eligible only for an attended temporary
+`fastboot boot` followed by a separate kexec decision. It must never be
+flashed.
 
 ## Purpose
 
@@ -85,7 +86,7 @@ command line, and the unsigned AVB footer.
 The exact local manifest is `artifacts/network-root-v1/SHA256SUMS`; all
 fourteen canonical identities are mirrored in `manifests/artifacts.tsv`.
 
-## Arch input and remaining boundary
+## Arch rootfs and remaining boundary
 
 The signed Arch Linux ARM input reverified at 818,293,654 bytes with SHA-256
 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`
@@ -93,12 +94,34 @@ under the pinned signing-key fingerprint. Rootless Podman extracted it with
 ACL/xattr support, and the registered emulator executed the filesystem as
 `aarch64`.
 
-The final rootfs still needs a clean-repository package/module stage and
-round-trip verification. After that, the host export must be configured
-read-only and restricted to the dedicated USB peer. Live acceptance then
-requires exact kernel release, read-only NFS lower, volatile OverlayFS upper,
-zero storage, `multi-user.target`, key-only SSH, stable USB, clean logs, and
-automatic fallback.
+The final rootfs was staged from a fresh volume with signature checking
+enabled, the generic kernel removed, the exact
+`7.1.4-g7a5cef0db479` modules installed, and the pinned A660 firmware
+verified. The headless-first package set includes systemd, NetworkManager,
+OpenSSH, WireGuard/hotspot tools, Plasma Wayland, KRDP, Chromium, Node/npm,
+Python/pip, and Mesa/Freedreno. Password accounts are locked, SSH is key-only,
+`usb0` is unmanaged, the default target is `multi-user.target`, and reusable
+machine/SSH host identity plus network, VPN, and KRDP secrets are absent.
+
+The archive was re-extracted into a second clean volume with ACLs and xattrs
+preserved and passed the complete rootfs verifier:
+
+- Size: 2,007,208,337 bytes
+- SHA-256:
+  `e0de832fadc4005dc46aca17c3b9ecb4b4b5c107e1e35472e2971172d2a2861b`
+
+The host scripts were then developed behind a failing contract test. Their
+offline test now proves fixed peer/address/product strings, no broad or
+persistent export, a read-only bind source, NFSv4.2-only startup, temporary
+firewall creation/removal, and no phone-storage write command. A disposable
+second extraction of the final archive also passed the independent
+path-based export verifier. No privileged NFS or firewall command was run.
+
+The host export must now be configured read-only and restricted to the
+dedicated USB peer. Live acceptance then requires exact kernel release,
+read-only NFS lower, volatile OverlayFS upper, zero storage,
+`multi-user.target`, key-only SSH, stable USB, clean logs, and automatic
+fallback.
 
 No network-root artifact was transferred to or booted on the phone. No
 partition was mounted, written, resized, formatted, or flashed.

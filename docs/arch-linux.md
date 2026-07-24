@@ -50,12 +50,20 @@ archival, and verification use Linux volumes plus libarchive ACL/xattr
 support; the output is re-extracted and checked so ownership, modes, and
 extended attributes survive the round trip.
 
-The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256 `d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`. The staged Plasma image is 2,022,113,204 bytes with SHA-256 `31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`. Both pass their historical offline suites, but they contain the previous Linux 7.1.4 module set. Restage the Plasma image with the final reproducible kernel modules before any first boot; neither archive is a current boot candidate.
+The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256
+`d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`.
+The historical Plasma image is 2,022,113,204 bytes with SHA-256
+`31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`.
+Both contain the previous Linux 7.1.4 module set and remain non-candidates.
 
-The current network-root kernel/module bundle is reproducible and
-manifest-pinned, and the signed base archive has been reverified on Nobara
-Linux. The final Plasma rootfs has not yet been restaged, so the historical
-archives remain non-candidates.
+The current network-root Plasma archive is 2,007,208,337 bytes with SHA-256
+`e0de832fadc4005dc46aca17c3b9ecb4b4b5c107e1e35472e2971172d2a2861b`.
+It was staged from the authenticated base on Nobara Linux, contains only the
+exact `7.1.4-g7a5cef0db479` module tree, and passed a clean archive
+re-extraction plus the complete rootfs verifier. It contains the selected
+public SSH key but no private key, reusable host identity, network secret,
+remote-desktop credential, or user data. It is the current offline rootfs
+candidate; restricted NFS export and live boot are still required.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
@@ -76,11 +84,12 @@ set a local-only password with `passwd rog5`, then enter
 remains disabled. Unattended graphical login stays opt-in until storage
 encryption and the email/CV credential policy are decided.
 
-This is still a staging contract, not a live result. Rejected recovery v6
-enumerated ACM/NCM and exposed the SSH port, but it did not pass ACM data,
-RAM-only, storage, or rollback gates. The rebuilt recovery must pass first;
-then the restaged Arch rootfs, systemd targets, NetworkManager, greetd, Plasma,
-KRDP, and Mesa must all pass first-boot tests before being called usable.
+This remains an offline rootfs result, not a live Arch result. Credential-free
+recovery, attended Linux 7.1 kexec, and read-only UFS discovery have passed,
+and the UFS-disabled network-root bundle plus this rootfs pass offline. Host
+NFS isolation and the first headless boot must pass next; systemd,
+NetworkManager, greetd, Plasma, KRDP, and Mesa then require their separate
+hardware gates before the device is called usable.
 
 ## VPN hotspot
 

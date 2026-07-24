@@ -201,10 +201,19 @@ nested credential-free staging archives, two clean ASUS wrappers, and two
 header-v3/AVB repacks are also byte-identical. The fourteen-file manifest
 passes nested hash, config, no-credential, boot-header, and AVB verification.
 The signed Arch Linux ARM base was reverified under the pinned signing key,
-and its metadata-preserving Linux staging path executes as AArch64. Final
-package/module staging, the restricted host NFS export, and the attended live
-boot remain pending; no network-root artifact has been transferred to the
-phone.
+and its metadata-preserving Linux staging path executes as AArch64. The final
+2,007,208,337-byte Plasma/server network-root archive now passes a fresh stage
+and clean archive round-trip with the exact kernel modules and pinned
+firmware. The restricted host NFS export and attended live boot remain
+pending; no network-root artifact has been transferred to the phone.
+
+The runtime-only host export implementation now passes its static safety test
+and the final archive passes a second disposable extraction through the
+independent export-root verifier. It binds the future server to the USB
+address, isolates the exact gadget in a temporary firewall zone, blocks the
+same ports in the host's broad workstation zone, and cleans up on exit. It has
+not been run with privileges: `nfs-utils` is not installed and external
+service/firewall setup still awaits confirmation.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
