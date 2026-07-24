@@ -9,7 +9,6 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
 mkdir -p /dev/pts /var/log /sys/kernel/config
 mount -t devpts devpts /dev/pts 2>/dev/null || true
 mount -t tmpfs tmpfs /run 2>/dev/null || true
-mkdir -p /run/sshd
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 hostname rog5-recovery
 
@@ -163,10 +162,19 @@ else
 	log 'no USB device controller found'
 fi
 
-rm -f /etc/ssh/ssh_host_*
-ssh-keygen -A
-/usr/sbin/sshd -t
-/usr/sbin/sshd -E /var/log/sshd.log
+if [ -s /root/.ssh/authorized_keys ]; then
+	mkdir -p /run/sshd
+	rm -f /etc/ssh/ssh_host_*
+	if ssh-keygen -A &&
+		/usr/sbin/sshd -t &&
+		/usr/sbin/sshd -E /var/log/sshd.log; then
+		log 'SSH recovery enabled'
+	else
+		log 'SSH setup failed; ACM remains available'
+	fi
+else
+	log 'ACM-only recovery; SSH disabled'
+fi
 log 'recovery ready; remove /run/rog5-recovery-armed only after validation'
 
 while :; do sleep 3600; done

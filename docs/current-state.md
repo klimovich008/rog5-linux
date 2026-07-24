@@ -1,4 +1,4 @@
-# Current state — 2026-07-23
+# Current state — 2026-07-24
 
 ## Hardware and boot
 
@@ -72,7 +72,12 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
 - Radio startup is delayed to avoid a low-battery boot power spike.
 - The current vendor kernel has BPF and uprobes but no `/sys/kernel/btf/vmlinux`; GodShell cannot run its CO-RE eBPF programs on this baseline.
 - The boot image is not persistent. Any normal reboot returns to the installed fallback kernel.
-- PC cross-compilation is active in Docker. Linux 7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile successfully on the PC.
+- PC cross-compilation is active on Nobara Linux under rootless Podman. Linux
+  7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile
+  reproducibly with container networking disabled.
+- The connected fallback system enumerates as USB gadget `1d6b:0104` and
+  `/dev/ttyACM0`. The Linux host still needs normal serial-group access and
+  `adb`/`fastboot` before any attended live recovery test.
 - Credentials and private identifiers are deliberately excluded from this repository.
 
 ## Mainline recovery status
@@ -94,8 +99,13 @@ The later v6 candidate embedded the staging initramfs in the ASUS 5.4 kernel
 and carried a USB2-only target DTB with UFS, QMP/SuperSpeed, and the secondary
 USB controller disabled. It passed its then-current offline suite, but live
 ACM data and automatic rollback failed. Source fixes now supervise ACM and
-hold a timed wake lock with repeated forced-reboot fallback. Two fresh Linux
-7.1 kernel/module/DTB builds are byte-identical, but the target/staging
-initramfs, ASUS wrapper, boot image, hash pins, and complete verifier have not
-been rebuilt. There is no current boot candidate. The raw ramoops reader and
-bootloader restart-reason helper remain under `tools/diagnostics/`.
+hold a timed wake lock with repeated forced-reboot fallback.
+
+Recovery v12 is a fresh credential-free bundle built twice from clean inputs
+on the native Linux host. The Linux 7.1 kernel/DTB, both initramfs layers, ASUS
+wrapper, raw boot image, and unsigned AVB image are byte-identical across
+their comparison builds. The complete verifier passes in `acm-only` mode and
+proves that neither initramfs contains `authorized_keys`. V12 is an offline
+candidate only: no phone boot, write, or flash has been attempted, so none of
+the live recovery gates is accepted. The raw ramoops reader and bootloader
+restart-reason helper remain under `tools/diagnostics/`.

@@ -64,14 +64,15 @@ storage or desktop userspace.
 - [x] Reject non-empty kernel output directories.
 - [x] Verify the final kernel configuration and recovery-init markers.
 - [x] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
-- [ ] Rebuild and compare the ASUS recovery DTB from both clean builds.
-- [ ] With approval to use the recovery public key, build the target and staging
-  initramfs twice and compare them.
-- [ ] Build the ASUS 5.4 kexec wrapper twice from clean source/output pairs.
-- [ ] Repack and verify a new unsigned AVB temporary-boot image.
-- [ ] Record every input/output hash in the artifact manifest and test report.
+- [x] Rebuild and compare the ASUS recovery DTB from both clean builds.
+- [x] Build credential-free ACM-only target and staging initramfs twice and
+  compare them.
+- [x] Build the ASUS 5.4 kexec wrapper twice from clean source/output pairs.
+- [x] Repack and verify a new unsigned AVB temporary-boot image.
+- [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: two identical offline builds and a complete verifier pass.
+Exit gate: **passed by recovery v12** — two identical offline builds and a
+complete verifier pass. This does not satisfy any live Phase 1 gate.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -80,7 +81,9 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 - [ ] Boot the candidate with `fastboot boot`; do not flash it.
 - [ ] Verify ACM and NCM enumerate on the host.
 - [ ] Verify the rollback wake lock and supervised ACM process.
-- [ ] Authenticate only after separate approval to use the recovery key.
+- [ ] Complete the first rollback test through credential-free ACM.
+- [ ] Authenticate only after separate approval to build an SSH-enabled
+  candidate with the recovery public key.
 - [ ] Prove the live root and writable paths are tmpfs/ramfs.
 - [ ] Prove no physical storage block device is mounted or writable.
 - [ ] Run the storage-isolation and USB gadget smoke suites.

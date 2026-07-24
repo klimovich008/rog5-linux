@@ -8,18 +8,19 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - Board DTS compiles with `dtbs_check` warnings reviewed.
 - Configuration fragment contains only real symbols.
 - `Image`, DTB, modules, initramfs, and boot image hashes are recorded.
-- Boot image contains no credentials or host-specific SSH private keys.
+- The first recovery candidate is `acm-only` and contains no
+  `authorized_keys`, credentials, or host-specific SSH private keys.
 - Build logs contain no errors and are retained outside Git if large.
 - `verify-mainline-build.sh` validates the pinned Python hash seed, raw and
   compressed Images, artifact hashes, final boot/BTF config, and parseability
   of every comparison DTB.
-- `compare-mainline-builds.sh` requires byte-identical configuration, raw and
-  compressed kernels, module archive, metadata, and all reviewed DTBs from two
-  fresh output directories.
-- `verify-kexec-recovery-stage.sh` requires a separately recorded nine-file
-  SHA-256 manifest, then validates the staging kernel config, recovery DTB
-  allowlist, both initramfs layers, nested payload hashes, boot header, AVB
-  footer, and absence of private-key blocks.
+- `compare-mainline-builds.sh` rejects the same directory through aliases and
+  requires byte-identical configuration, raw and compressed kernels, module
+  archive, metadata, and all reviewed DTBs from two fresh output directories.
+- `verify-kexec-recovery-stage.sh` requires an explicit `acm-only` or `ssh`
+  access mode and a separately recorded artifact SHA-256 manifest, then
+  validates the staging kernel config, recovery DTB allowlist, both initramfs
+  layers, nested payload hashes, boot header, AVB footer, and access material.
 - The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
@@ -31,7 +32,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 ## Tier 1 — boot and recovery
 
 - `fastboot boot` reaches the 5.4 kexec staging initramfs without flashing or mounting storage.
-- USB ACM works even if USB networking has no address; SSH is optional in this first sub-tier.
+- The first candidate exposes supervised USB ACM without credentials or SSH;
+  USB networking may remain unaddressed in this sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
 - The mainline payload loads, then starts only after a separate attended `kexec -e`.
 - Before kexec, exactly one Haven hypervisor watchdog control is disabled and verified; a secure-watchdog deactivation failure aborts the test.

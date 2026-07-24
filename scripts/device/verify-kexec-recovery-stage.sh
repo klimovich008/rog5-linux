@@ -1,11 +1,33 @@
 #!/bin/sh
 set -eu
 
-artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL EXPECTED_SHA256}
+artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL EXPECTED_SHA256 ACCESS_MODE [AUTHORIZED_KEY]}
 mkbootimg_dir=${2:?missing mkbootimg directory}
 avbtool=${3:?missing avbtool}
 expected_sums=${4:?missing expected SHA-256 manifest}
+access_mode=${5:?missing access mode}
+authorized_key=${6:-}
 [ -r "$expected_sums" ] || { echo "FAIL missing $expected_sums" >&2; exit 1; }
+case $access_mode in
+	acm-only)
+		[ -z "$authorized_key" ] || {
+			echo 'FAIL acm-only mode cannot include an authorized key' >&2
+			exit 1
+		}
+		;;
+	ssh)
+		[ -r "$authorized_key" ] ||
+			{ echo 'FAIL authorized key is not readable' >&2; exit 1; }
+		grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" ||
+			{ echo 'FAIL invalid authorized key format' >&2; exit 1; }
+		awk 'NF { count++ } END { exit count != 1 }' "$authorized_key" ||
+			{ echo 'FAIL expected exactly one authorized key' >&2; exit 1; }
+		;;
+	*)
+		echo 'FAIL access mode must be acm-only or ssh' >&2
+		exit 1
+		;;
+esac
 
 check_hash() {
 	file=$1
@@ -52,6 +74,7 @@ config=$artifact_dir/config-5.4.210-kexec-stage-builtin-recovery
 grep -qx 'CONFIG_KEXEC=y' "$config"
 grep -qx '# CONFIG_KEXEC_FILE is not set' "$config"
 grep -qx 'CONFIG_BLK_DEV_INITRD=y' "$config"
+grep -qx 'CONFIG_PM_WAKELOCKS=y' "$config"
 grep -qx 'CONFIG_INITRAMFS_SOURCE="/root/build/rog5-kexec-stage-initramfs.cpio.gz"' "$config"
 grep -qx 'CONFIG_INITRAMFS_COMPRESSION=".gz"' "$config"
 cmp "$artifact_dir/embedded-kexec-stage-initramfs.cpio.gz" \
@@ -108,11 +131,13 @@ cmp "$stage/staging/init" "$(dirname "$0")/../../initramfs/recovery-init"
 cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
 	"$(dirname "$0")/load-mainline-recovery.sh"
 for root in "$stage/target" "$stage/staging"; do
-	[ -s "$root/root/.ssh/authorized_keys" ]
-	[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]
-	awk 'NF { count++ } END { exit count != 1 }' "$root/root/.ssh/authorized_keys"
-	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
-		"$root/root/.ssh/authorized_keys"
+	if [ "$access_mode" = ssh ]; then
+		[ -s "$root/root/.ssh/authorized_keys" ]
+		[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]
+		cmp "$root/root/.ssh/authorized_keys" "$authorized_key"
+	else
+		[ ! -e "$root/root/.ssh/authorized_keys" ]
+	fi
 	grep -qx 'PasswordAuthentication no' "$root/etc/ssh/sshd_config"
 	grep -qx 'PermitRootLogin prohibit-password' "$root/etc/ssh/sshd_config"
 done
@@ -159,7 +184,7 @@ python3 "$avbtool" info_image \
 	--image "$avb" >"$stage/avb-info"
 grep -q '^Algorithm:[[:space:]]*NONE$' "$stage/avb-info"
 grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
-ln -s "$avb" "$stage/boot.img"
+ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
 echo 'PASS self-contained two-stage kexec recovery bundle; offline validation only'

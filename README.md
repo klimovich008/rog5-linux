@@ -22,9 +22,13 @@ used a USB2-only target DTB with UFS and QMP disabled. It passed its then-curren
 offline suite, but live ACM data and automatic rollback failed, so v6 is also
 rejected. Source fixes for both failures and a fresh Linux 7.1 build exist;
 two clean Linux 7.1 kernel/module/DTB builds are now byte-identical. The
-dependent initramfs, wrapper, and boot image have not yet been rebuilt, so
-there is no current boot candidate. Live RAM-only, kexec, rollback, host
-USB/SSH, storage, Arch rootfs, desktop, and mainline GPU gates remain pending.
+credential-free v12 target/staging initramfs, ASUS wrapper, and temporary boot
+image were each rebuilt twice and are byte-identical. The complete offline
+verifier passes in explicit `acm-only` mode, including the PM wake-lock,
+USB2-only DTB, nested hashes, boot-header, AVB, and no-authorized-key checks.
+V12 is the current offline candidate, but it has not been booted. Live
+RAM-only, kexec, rollback, host USB, storage, Arch rootfs, desktop, and
+mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
