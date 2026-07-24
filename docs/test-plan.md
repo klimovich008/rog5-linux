@@ -27,7 +27,7 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
 - `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
-- `recovery-v12-linux.sh preflight` hash-checks the manifest-pinned image and
+- `recovery-linux.sh preflight` hash-checks the manifest-pinned current image and
   requires exactly one fastboot target; `boot` remains inert unless
   `ALLOW_TEMPORARY_BOOT=1` is explicit.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
@@ -38,6 +38,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - The first candidate exposes supervised USB ACM without credentials or SSH;
   USB networking may remain unaddressed in this sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
+- Before exposing USB, both stages reject any block-backed mount and use
+  `BLKROSET` through `blockdev --setro`; every enumerated block device must
+  report read-only.
 - The mainline payload loads, then starts only after a separate attended `kexec -e`.
 - Before kexec, exactly one Haven hypervisor watchdog control is disabled and verified; a secure-watchdog deactivation failure aborts the test.
 - The Linux 7.1 target reports the expected release, starts `/init`, mounts configfs, configures NCM/ACM, binds the expected UDC, creates `usb0`, and runs its independent rollback timer.

@@ -61,6 +61,8 @@ storage or desktop userspace.
 - [x] Keep a supervised ACM shell open so host writes cannot be left unqueued.
 - [x] Make rollback retry a forced reboot and emergency SysRq reboot.
 - [x] Prevent suspend from consuming the rollback window.
+- [x] Reject any block-backed mount and force every enumerated block device
+  read-only before exposing USB recovery.
 - [x] Reject non-empty kernel output directories.
 - [x] Verify the final kernel configuration and recovery-init markers.
 - [x] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
@@ -71,8 +73,9 @@ storage or desktop userspace.
 - [x] Repack and verify a new unsigned AVB temporary-boot image.
 - [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: **passed by recovery v12** — two identical offline builds and a
-complete verifier pass. This does not satisfy any live Phase 1 gate.
+Exit gate: **passed offline by recovery v13**. Recovery v12 remains unbooted
+and is superseded because it lacked the fail-closed pre-USB block-device
+write-protection gate.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -85,7 +88,8 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 - [ ] Authenticate only after separate approval to build an SSH-enabled
   candidate with the recovery public key.
 - [ ] Prove the live root and writable paths are tmpfs/ramfs.
-- [ ] Prove no physical storage block device is mounted or writable.
+- [ ] Prove no physical storage block device is mounted and every enumerated
+  block device reports read-only.
 - [ ] Run the storage-isolation and USB gadget smoke suites.
 - [ ] Let the short rollback timer expire and prove return to the fallback OS.
 - [ ] Repeat the boot and rollback test to exclude a one-off success.

@@ -24,6 +24,34 @@ force_rollback() {
 	done
 }
 
+isolate_storage() {
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		log "block-backed mount detected at $mountpoint"
+		return 1
+	done </proc/self/mountinfo
+
+	count=0
+	for sys_block in /sys/class/block/*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		[ -b "$device" ] || {
+			log "missing block node: $device"
+			return 1
+		}
+		blockdev --setro "$device" || {
+			log "failed to lock block device: $device"
+			return 1
+		}
+		[ "$(blockdev --getro "$device")" = 1 ] || {
+			log "block device remains writable: $device"
+			return 1
+		}
+		count=$((count + 1))
+	done
+	log "storage isolation ready; read-only block devices=$count"
+}
+
 serve_acm() {
 	while :; do
 		while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
@@ -78,6 +106,11 @@ touch /run/rog5-recovery-armed
 ) &
 echo $! >/run/rog5-recovery-watchdog.pid
 log 'rollback timer armed'
+
+if ! isolate_storage; then
+	log 'storage isolation failed; rebooting'
+	force_rollback
+fi
 
 usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 [ -e "$usb_mode" ] && echo peripheral >"$usb_mode"

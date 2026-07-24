@@ -104,11 +104,17 @@ USB controller disabled. It passed its then-current offline suite, but live
 ACM data and automatic rollback failed. Source fixes now supervise ACM and
 hold a timed wake lock with repeated forced-reboot fallback.
 
-Recovery v12 is a fresh credential-free bundle built twice from clean inputs
-on the native Linux host. The Linux 7.1 kernel/DTB, both initramfs layers, ASUS
-wrapper, raw boot image, and unsigned AVB image are byte-identical across
-their comparison builds. The complete verifier passes in `acm-only` mode and
-proves that neither initramfs contains `authorized_keys`. V12 is an offline
-candidate only: no phone boot, write, or flash has been attempted, so none of
-the live recovery gates is accepted. The raw ramoops reader and bootloader
-restart-reason helper remain under `tools/diagnostics/`.
+Recovery v12 was rebuilt reproducibly but remained unbooted after a final
+safety audit found that it did not lock enumerated block devices before USB
+exposure. Recovery v13 supersedes it. Both v13 initramfs layers reject a
+block-backed mount, apply and verify `BLKROSET` on every block device, and
+force rollback before exposing USB if any check fails.
+
+The Linux 7.1 kernel/DTB, both v13 initramfs layers, two clean ASUS wrapper
+builds, and two header-v3/AVB repacks are byte-identical across their
+comparison builds. The expanded verifier passes in `acm-only` mode and proves
+that both layers contain the storage-lock utility and neither contains
+`authorized_keys`. V13 is an offline candidate only: no v13 phone boot, write,
+or flash has been attempted, so none of the live recovery gates is accepted.
+The raw ramoops reader and bootloader restart-reason helper remain under
+`tools/diagnostics/`.

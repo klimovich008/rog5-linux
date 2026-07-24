@@ -124,6 +124,12 @@ cmp "$stage/target/init" "$(dirname "$0")/../../initramfs/recovery-init"
 grep -Fq 'rog5-recovery-rollback' "$stage/target/init"
 grep -Fq '>/sys/power/wake_lock' "$stage/target/init"
 grep -Fq 'rog5-recovery-acm.pid' "$stage/target/init"
+grep -Fq '</proc/self/mountinfo' "$stage/target/init"
+grep -Fq 'blockdev --setro' "$stage/target/init"
+grep -Fq 'blockdev --getro' "$stage/target/init"
+storage_line=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
+usb_line=$(grep -n '^usb_mode=' "$stage/target/init" | cut -d: -f1)
+[ "$storage_line" -lt "$usb_line" ]
 [ -x "$stage/staging/usr/sbin/kexec" ]
 [ -x "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" ]
 grep -qx 'set -u' "$stage/staging/init"
@@ -131,6 +137,8 @@ cmp "$stage/staging/init" "$(dirname "$0")/../../initramfs/recovery-init"
 cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
 	"$(dirname "$0")/load-mainline-recovery.sh"
 for root in "$stage/target" "$stage/staging"; do
+	[ -x "$root/bin/busybox" ]
+	[ "$(readlink "$root/sbin/blockdev")" = /bin/busybox ]
 	if [ "$access_mode" = ssh ]; then
 		[ -s "$root/root/.ssh/authorized_keys" ]
 		[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]

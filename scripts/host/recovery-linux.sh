@@ -4,7 +4,7 @@ set -eu
 action=${1:-preflight}
 case $action in
 	preflight|boot) ;;
-	*) echo 'usage: recovery-v12-linux.sh [preflight|boot]' >&2; exit 2 ;;
+	*) echo 'usage: recovery-linux.sh [preflight|boot]' >&2; exit 2 ;;
 esac
 
 fail() {
@@ -14,7 +14,7 @@ fail() {
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 manifest=$repo/manifests/artifacts.tsv
-boot_image=${BOOT_IMAGE:-$repo/artifacts/recovery-stage-v12/boot-5.4.210-kexec-stage-builtin-recovery.avb.img}
+boot_image=${BOOT_IMAGE:-$repo/artifacts/recovery-stage-v13/boot-5.4.210-kexec-stage-builtin-recovery.avb.img}
 fastboot=${FASTBOOT:-fastboot}
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}

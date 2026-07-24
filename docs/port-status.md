@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v12 passes reproducible offline checks but has not been booted | verify RAM-only staging, kexec, rollback, and fallback through attended temporary boot |
+| reversible boot | passing | v13 passes expanded reproducible offline checks but has not been booted | verify RAM-only staging, kexec, rollback, and fallback through attended temporary boot |
 | UFS root | passing | blocked: recovery DTB disables UFS offline, but no current bundle has proved the live storage boundary | prove zero block-backed mounts before a separate read-only discovery tier |
-| USB NCM/SSH | passing | v12 is credential-free ACM-only and passes offline checks; live USB is untested | verify supervised ACM first, then NCM; build an SSH variant only after key approval |
+| USB NCM/SSH | passing | v13 is credential-free ACM-only and passes offline checks; live USB is untested | verify supervised ACM first, then NCM; build an SSH variant only after key approval |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

@@ -6,13 +6,13 @@ fastboot-mode device and live recovery boot.
 ## Host checks
 
 - Nobara Linux 44 runs the repository from native Btrfs.
-- Rootless Podman 5.8.4 built and verified recovery v12 with networking
+- Rootless Podman 5.8.4 built and verified recovery v13 with networking
   disabled.
 - Fedora/Nobara `android-tools` 35.0.2 supplies `adb` and `fastboot`.
 - The development user is listed in `dialout`. The current desktop process
   predates that change, but `sg dialout` proves read/write access to
   `/dev/ttyACM0`; a new login will inherit it normally.
-- `recovery-v12-linux.sh` passes a fake-device positive preflight, rejects an
+- `recovery-linux.sh` passes a fake-device positive preflight, rejects an
   absent fastboot target, rejects an unmanifested image, and refuses to invoke
   boot without `ALLOW_TEMPORARY_BOOT=1`.
 

@@ -26,7 +26,14 @@ credential-free v12 target/staging initramfs, ASUS wrapper, and temporary boot
 image were each rebuilt twice and are byte-identical. The complete offline
 verifier passes in explicit `acm-only` mode, including the PM wake-lock,
 USB2-only DTB, nested hashes, boot-header, AVB, and no-authorized-key checks.
-V12 is the current offline candidate, but it has not been booted. Live
+V12 was not booted: a final audit found that it did not force block devices
+read-only before exposing USB, so it is superseded. Recovery v13 adds a
+fail-closed pre-USB storage gate to both initramfs layers: it rejects any
+block-backed mount, applies and verifies `BLKROSET` on every enumerated block
+device, and forces rollback on any failure. Its complete credential-free
+dependency chain and temporary boot image were independently reproduced and
+pass the expanded offline verifier. V13 is the current offline candidate, but
+it has not been booted. Live
 RAM-only, kexec, rollback, host USB, storage, Arch rootfs, desktop, and
 mainline GPU gates remain pending.
 
@@ -70,17 +77,17 @@ sudo usermod -aG dialout "$(id -un)"
 ```
 
 The Linux recovery workflow is read-only by default. It validates the exact
-manifest-pinned v12 image and requires exactly one fastboot device:
+manifest-pinned current image and requires exactly one fastboot device:
 
 ```sh
-scripts/host/recovery-v12-linux.sh preflight
+scripts/host/recovery-linux.sh preflight
 ```
 
 The attended temporary boot has a separate explicit guard and invokes only
 `fastboot boot`. It never flashes:
 
 ```sh
-ALLOW_TEMPORARY_BOOT=1 scripts/host/recovery-v12-linux.sh boot
+ALLOW_TEMPORARY_BOOT=1 scripts/host/recovery-linux.sh boot
 ```
 
 After ACM enumerates, the script prints the `socat` command for the
