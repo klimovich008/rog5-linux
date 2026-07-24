@@ -1,7 +1,10 @@
 # Read-only UFS discovery v1 offline result
 
-Status: **PASS offline; live gate pending**. This bundle is for one attended
-temporary `fastboot boot` and kexec test. It must never be flashed.
+Status: **PASS offline; subsequent live gate rejected safely**. This bundle
+was used for one attended temporary `fastboot boot` and kexec test. It must
+never be flashed. See
+[`2026-07-24-ufs-discovery-v1-live.md`](2026-07-24-ufs-discovery-v1-live.md)
+for the runtime-PM/BKOPS rejection and verified fallback recovery.
 
 ## Safety boundary
 

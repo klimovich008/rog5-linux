@@ -6,8 +6,8 @@ target_source=${2:?missing target source}
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 patch_dir=$repo/patches/linux-7.1.4
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-expected_patched=44fd886a77b8edd4ea2abda8f72835045d877e18
-expected_tree=c3eb1dcf56c5b2047e04fcc83a512a971c75f387
+expected_patched=cfd385a1c754684dd28b63a4559e04baa5e902b1
+expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a
 
 [ -d "$base_source/.git" ] || { echo 'FAIL missing pinned Linux source' >&2; exit 1; }
 [ "$(git -C "$base_source" rev-parse HEAD)" = "$expected_commit" ]
@@ -18,7 +18,7 @@ expected_tree=c3eb1dcf56c5b2047e04fcc83a512a971c75f387
 }
 
 patches=$(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' -print | sort)
-[ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 2 ]
+[ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 3 ]
 
 mkdir -p "$(dirname "$target_source")"
 git clone -q --no-hardlinks "$base_source" "$target_source"

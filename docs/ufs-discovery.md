@@ -9,21 +9,29 @@ Nothing in this phase is flashed. The Android boot image is used only with
 `fastboot boot`, the Linux 7.1 payload is entered through kexec, and both
 stages retain independent 180-second forced-reboot watchdogs.
 
-## Current offline status
+## Current status
 
-Discovery v1 passes two clean mainline builds, two clean ASUS wrapper builds,
+Discovery v1 passed two clean mainline builds, two clean ASUS wrapper builds,
 two deterministic boot-image repacks, and the complete network-isolated
-thirteen-file bundle verifier. The accepted Linux image is
-`65a31b61d4c81c6c4d46825f0111de66ecb1eb668331a89ba0e7f8154a89aa68`;
-the temporary-boot AVB image is
-`a991f1d2bbd7b63ce854e9d8d4bcde17fffc125fcd2928629213dc72a53f17ca`.
+thirteen-file bundle verifier. Its attended temporary boot then safely
+enumerated 7 UFS disks and 109 partitions. All 116 physical nodes were
+read-only through independent ioctl and sysfs checks, the root was RAM-backed,
+and there were zero block-backed mounts.
 
-A pre-acceptance audit rejected an earlier unbooted build because the QMP UFS
-PHY was a module while the initramfs intentionally carries no mainline
-modules. The accepted config requires the UFS host, QMP UFS PHY, RPMh
-regulator, pinctrl, interconnect, resets, and USB recovery path to be built in,
-and the verifiers enforce those final `.config` values. No discovery candidate
-has been booted yet.
+The live gate was nevertheless rejected. Runtime PM attempted to enable
+auto-BKOPS three times after enumeration. The query guard blocked every
+`SET_FLAG`, but upstream UFS recovery entered a fatal state and orderly reboot
+stalled in WLUN shutdown. The authorized emergency reset immediately restored
+the exact fallback kernel; no UFS filesystem was probed or mounted, no
+partition was changed, and nothing was flashed. The full result is in
+[`2026-07-24-ufs-discovery-v1-live.md`](../test-results/2026-07-24-ufs-discovery-v1-live.md).
+
+The three-patch replacement at deterministic Linux commit
+`cfd385a1c754684dd28b63a4559e04baa5e902b1` and tree
+`d2f03d2055227b8b72ab41be949847a066924c5a` pins UFS active for the
+short discovery interval and skips shutdown power transitions. Its
+patch/config/object verifier passes. Reproducible bundle rebuilds and a new
+live gate are pending.
 
 ## Build chain
 
@@ -62,6 +70,11 @@ from the command line or userspace.
 - WriteBooster, background-operation setup, RTC/timestamp updates,
   exception-event writes, devfreq setup, and the high-speed gear switch are
   skipped.
+- The host retains its pre-scan runtime reference, host and WLUN runtime PM
+  are forbidden, and auto-hibern8 is disabled.
+- WLUN and host power-transition helpers reject discovery-mode calls before
+  BKOPS or suspend protocol commands; shutdown leaves the read-only link
+  active for platform reset.
 - SCSI generic, block BSG, UFS BSG, RPMB, UFS crypto, and UFS hwmon user
   interfaces are disabled in the discovery configuration.
 
@@ -102,10 +115,13 @@ The candidate may proceed only if all of these conditions hold:
 5. `/proc/config.gz` contains the compile-time discovery option.
 6. At least one UFS physical disk appears; every disk and partition reports
    read-only through both sysfs and the block ioctl.
-7. The sysfs-only inventory is complete, the Qualcomm UFS driver is bound,
+7. Host and WLUN runtime PM report forbidden, auto-hibern8 is zero, no
+   blocked query or SCSI command appears, and no UFS error handler runs.
+8. The sysfs-only inventory is complete, the Qualcomm UFS driver is bound,
    USB ACM/NCM works, and no fatal kernel signature appears.
-8. The untouched rollback marker returns the phone to the exact fallback
-   kernel with a changed boot identity.
+9. The untouched rollback marker performs an orderly forced reboot and
+   returns the phone to the exact fallback kernel with a changed boot
+   identity.
 
 Any missing attestation, unexpected write command, block-backed mount,
 writable device, USB identity mismatch, watchdog failure, or fatal kernel log

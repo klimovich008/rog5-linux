@@ -161,18 +161,24 @@ no-credential/no-SSH, and zero fatal-log-signature checks before automatically
 returning to a changed fallback boot identity. The next gate is read-only UFS
 discovery.
 
-The read-only UFS discovery v1 bundle now passes its complete offline gate.
-Linux 7.1.4 commit `44fd886a77b8` adds the compile-time
-`CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY` command boundary. A final dependency
-audit rejected an earlier unbooted build because its Qualcomm UFS QMP PHY was
-modular; the accepted config builds the host, PHY, regulator, reset, pinctrl,
-interconnect, and USB recovery paths into the kernel and excludes unused QMP
-drivers. Two clean mainline builds, two clean ASUS transport-wrapper builds,
-both initramfs layers, the discovery DTB, and two header-v3/AVB repacks are
-byte-identical. The exact thirteen-file manifest passes the network-isolated
-bundle verifier. No discovery image has been booted yet, and nothing has been
-flashed; the next action is one attended manifest-pinned `fastboot boot` and
-kexec cycle with both rollback watchdogs armed.
+The read-only UFS discovery v1 bundle passed its complete offline gate and
+then safely reached Linux `7.1.4-g44fd886a77b8` through temporary boot and
+kexec. It enumerated 7 UFS disks and 109 partitions with all 116 physical
+nodes independently read-only, a RAM root, zero block-backed mounts, the
+Qualcomm host bound, and recovery USB/watchdog services live. The live gate
+was rejected because runtime PM attempted three auto-BKOPS `SET_FLAG`
+queries. The compile-time command gate blocked every query, but the resulting
+UFS fatal-recovery state also stalled orderly reboot. An authorized SysRq
+reset returned the phone to the exact fallback kernel; no storage was mounted,
+written, or flashed.
+
+The three-patch replacement source at commit `cfd385a1c754` / tree
+`d2f03d205522` retains the UFS runtime reference, forbids host and WLUN
+runtime PM, disables auto-hibern8, and returns before discovery suspend or
+shutdown transitions. Its patch/config/object verifier passes. The next gate
+is two clean mainline builds, two clean ASUS wrapper builds, complete
+network-isolated bundle verification, and only then another attended
+temporary boot requiring zero blocked queries and orderly rollback.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

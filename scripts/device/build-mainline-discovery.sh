@@ -6,7 +6,7 @@ output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4-discovery}
 base_fragment=${BASE_FRAGMENT:-/root/rog5-build/rog5-mainline.fragment}
 discovery_fragment=${DISCOVERY_FRAGMENT:-/root/rog5-build/rog5-ufs-discovery.fragment}
 expected_base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-expected_tree=c3eb1dcf56c5b2047e04fcc83a512a971c75f387
+expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a
 jobs=${JOBS:-1}
 btf_jobs=1
 

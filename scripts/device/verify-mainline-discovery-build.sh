@@ -4,8 +4,8 @@ set -eu
 output_dir=${1:?usage: verify-mainline-discovery-build.sh BUILD_DIR}
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 expected_base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-expected_patched=44fd886a77b8edd4ea2abda8f72835045d877e18
-expected_tree=c3eb1dcf56c5b2047e04fcc83a512a971c75f387
+expected_patched=cfd385a1c754684dd28b63a4559e04baa5e902b1
+expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a
 meta=$output_dir/build-meta.txt
 config=$output_dir/.config
 image=$output_dir/arch/arm64/boot/Image
@@ -80,7 +80,13 @@ for marker in \
 	'ROG5 UFS discovery: forced read-only before registration' \
 	'ROG5 UFS discovery: blocked SCSI opcode' \
 	'ROG5 UFS discovery: blocked device query' \
-	'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled'; do
+	'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled' \
+	'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' \
+	'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
+	'ROG5 UFS discovery: WL power transition rejected' \
+	'ROG5 UFS discovery: host power transition rejected' \
+	'ROG5 UFS discovery: shutdown power transition skipped' \
+	'ROG5 UFS discovery: WLUN runtime PM forbidden'; do
 	strings "$image" | grep -Fq "$marker" || {
 		echo "FAIL compiled guard marker missing: $marker" >&2
 		exit 1

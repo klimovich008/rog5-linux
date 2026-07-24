@@ -13,8 +13,8 @@ expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 [ -r "$base_fragment" ] && [ -r "$discovery_fragment" ]
 
 patches=$(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' -print | sort)
-[ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 2 ] || {
-	echo 'FAIL expected exactly two Linux 7.1.4 discovery patches' >&2
+[ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 3 ] || {
+	echo 'FAIL expected exactly three Linux 7.1.4 discovery patches' >&2
 	exit 1
 }
 
@@ -45,6 +45,18 @@ grep -Fq 'ROG5 UFS discovery: blocked SCSI opcode' \
 	"$stage/linux/drivers/ufs/core/ufshcd.c"
 grep -Fq 'ROG5 UFS discovery: blocked device query' \
 	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: WL power transition rejected' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: host power transition rejected' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: shutdown power transition skipped' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
+grep -Fq 'ROG5 UFS discovery: WLUN runtime PM forbidden' \
+	"$stage/linux/drivers/ufs/core/ufshcd.c"
 grep -Fq 'QUERY_FLAG_IDN_FDEVICEINIT' "$stage/linux/drivers/ufs/core/ufshcd.c"
 grep -Fq 'QUERY_FLAG_IDN_FDEVICEINIT && !index && !selector' \
 	"$stage/linux/drivers/ufs/core/ufshcd.c"
@@ -58,6 +70,53 @@ grep -Fq 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY' "$stage/linux/drivers/ufs/core/uf
 	"$stage/linux/drivers/ufs/core/ufshcd.c")" -ge 2 ]
 ! grep -Fq 'struct scsi_cmnd *cmd = ufshcd_get_dev_mgmt_cmd(hba);' \
 	"$stage/linux/drivers/ufs/core/ufshcd.c"
+
+assert_before() {
+	file=$1
+	earlier=$2
+	later=$3
+	earlier_line=$(grep -nF "$earlier" "$file" | head -1 | cut -d: -f1)
+	later_line=$(grep -nF "$later" "$file" | head -1 | cut -d: -f1)
+	[ -n "$earlier_line" ] && [ -n "$later_line" ]
+	[ "$earlier_line" -lt "$later_line" ]
+}
+
+core=$stage/linux/drivers/ufs/core/ufshcd.c
+sed -n '/^static int __ufshcd_wl_suspend(/,/^}/p' "$core" \
+	>"$stage/wl-suspend"
+assert_before "$stage/wl-suspend" \
+	'ROG5 UFS discovery: WL power transition rejected' \
+	'hba->pm_op_in_progress = true;'
+grep -Fq 'return -EBUSY;' "$stage/wl-suspend"
+
+sed -n '/^static int ufshcd_suspend(/,/^}/p' "$core" \
+	>"$stage/host-suspend"
+assert_before "$stage/host-suspend" \
+	'ROG5 UFS discovery: host power transition rejected' \
+	'if (!hba->is_powered)'
+grep -Fq 'return -EBUSY;' "$stage/host-suspend"
+
+sed -n '/^static void ufshcd_wl_shutdown(/,/^}/p' "$core" \
+	>"$stage/wl-shutdown"
+assert_before "$stage/wl-shutdown" \
+	'ROG5 UFS discovery: shutdown power transition skipped' \
+	'ufshcd_rpm_get_sync(hba);'
+grep -Fq 'return;' "$stage/wl-shutdown"
+
+sed -n '/^static void ufshcd_async_scan(/,/^}/p' "$core" \
+	>"$stage/async-scan"
+grep -Fq 'pm_runtime_forbid(hba->dev);' "$stage/async-scan"
+grep -Fq 'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
+	"$stage/async-scan"
+grep -Fq '} else {' "$stage/async-scan"
+[ "$(grep -Fc 'pm_runtime_put_sync(hba->dev);' "$stage/async-scan")" -eq 1 ]
+
+sed -n '/^static int ufshcd_wl_probe(/,/^}/p' "$core" \
+	>"$stage/wl-probe"
+grep -Fq 'pm_runtime_forbid(dev);' "$stage/wl-probe"
+grep -Fq 'ROG5 UFS discovery: WLUN runtime PM forbidden' "$stage/wl-probe"
+grep -Fq '} else {' "$stage/wl-probe"
+[ "$(grep -Fc 'pm_runtime_allow(dev);' "$stage/wl-probe")" -eq 1 ]
 
 sed -n '/^static bool ufshcd_discovery_query_allowed(/,/^}/p' \
 	"$stage/linux/drivers/ufs/core/ufshcd.c" |

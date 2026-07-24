@@ -27,9 +27,11 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
 - `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
-- `verify-ufs-discovery-patch.sh` applies the two-patch discovery series to the
-  pinned tree, enforces exact query/SCSI whitelists, rejects data-to-device and
-  bidirectional payloads, and compiles the guarded SCSI/UFS objects.
+- `verify-ufs-discovery-patch.sh` applies the three-patch discovery series to
+  the pinned tree, enforces exact query/SCSI whitelists, rejects
+  data-to-device and bidirectional payloads, proves discovery returns before
+  runtime-PM/BKOPS and shutdown transitions, and compiles the guarded
+  SCSI/UFS objects.
 - `verify-ufs-discovery-bundle.sh` requires exactly thirteen manifest-pinned
   products, rebuilds the reviewed UFS/USB2 DTB, verifies both nested
   credential-free initramfs layers, and checks the wrapper, boot header,
@@ -82,9 +84,10 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   block ioctl before ACM/NCM is exposed.
 - Collect only the sysfs topology inventory; do not run `blkid`, mount, fsck,
   partitioning tools, raw-device reads, or write tests.
-- Require the Qualcomm UFS driver, exact compiled guard markers, working
-  ACM/NCM, no fatal log signature, and automatic return to the exact fallback
-  kernel.
+- Require the Qualcomm UFS driver, forbidden host/WLUN runtime PM,
+  auto-hibern8 disabled, zero blocked commands, exact compiled guard markers,
+  working ACM/NCM, no UFS error handler or fatal log signature, and orderly
+  automatic return to the exact fallback kernel.
 - Treat the resulting topology as design input only. Persistent rootfs or
   partition changes require a later explicit authorization.
 

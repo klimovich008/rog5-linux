@@ -113,8 +113,8 @@ mainline_config=$artifact_dir/config-7.1.4-ufs-discovery
 mainline_image=$artifact_dir/Image-7.1.4-ufs-discovery
 mainline_meta=$artifact_dir/build-meta-7.1.4-ufs-discovery.txt
 grep -qx 'base_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40' "$mainline_meta"
-grep -qx 'patched_commit=44fd886a77b8edd4ea2abda8f72835045d877e18' "$mainline_meta"
-grep -qx 'patched_tree=c3eb1dcf56c5b2047e04fcc83a512a971c75f387' "$mainline_meta"
+grep -qx 'patched_commit=cfd385a1c754684dd28b63a4559e04baa5e902b1' "$mainline_meta"
+grep -qx 'patched_tree=d2f03d2055227b8b72ab41be949847a066924c5a' "$mainline_meta"
 grep -qx 'python_hash_seed=0' "$mainline_meta"
 grep -qx 'pahole_jobs=1' "$mainline_meta"
 check_meta_hash "$mainline_meta" /repo/configs/kernel/rog5-mainline.fragment \
@@ -164,12 +164,18 @@ for symbol in \
 		exit 1
 	}
 done
-strings "$mainline_image" | grep -q '^Linux version 7\.1\.4-g44fd886a77b8'
+strings "$mainline_image" | grep -q '^Linux version 7\.1\.4-gcfd385a1c754'
 for marker in \
 	'ROG5 UFS discovery: forced read-only before registration' \
 	'ROG5 UFS discovery: blocked SCSI opcode' \
 	'ROG5 UFS discovery: blocked device query' \
-	'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled'; do
+	'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled' \
+	'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' \
+	'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
+	'ROG5 UFS discovery: WL power transition rejected' \
+	'ROG5 UFS discovery: host power transition rejected' \
+	'ROG5 UFS discovery: shutdown power transition skipped' \
+	'ROG5 UFS discovery: WLUN runtime PM forbidden'; do
 	strings "$mainline_image" | grep -Fq "$marker" || {
 		echo "FAIL compiled guard marker missing: $marker" >&2
 		exit 1
