@@ -37,7 +37,15 @@ mainline Image is
 `bdc72155b4ff2de3a655f53e0570a18690778025cac86425fccd5d3b9699ac8c`;
 the temporary-boot AVB image is
 `d22790e5b8aebba0dc78a6704b7d2845b0e4637e1256acd379e7dd6170f1540b`.
-The attended v2 live gate is pending.
+The attended v2 live gate passes. Exact `7.1.4-gcfd385a1c754` exposed 7 UFS
+disks and 109 partitions, with all 116 physical nodes independently
+read-only, zero block-backed mounts, and a complete 117-line sysfs inventory.
+Auto-hibern8 was zero, host runtime PM remained forbidden and active, blocked
+query/SCSI counts were zero, and no BKOPS, UFS error-handler, or fatal
+signature appeared. The untouched watchdog chain automatically restored the
+exact fallback kernel with a changed boot identity. The complete evidence is
+in
+[`2026-07-24-ufs-discovery-v2-live.md`](../test-results/2026-07-24-ufs-discovery-v2-live.md).
 
 ## Build chain
 
@@ -111,7 +119,7 @@ to attest the compile-time discovery option before waiting for UFS.
 - No SSH key, host key, password, credential, or private identifier is
   embedded.
 
-## Live acceptance gate
+## Live acceptance gate — passed by v2
 
 The candidate may proceed only if all of these conditions hold:
 
@@ -129,9 +137,10 @@ The candidate may proceed only if all of these conditions hold:
    blocked query or SCSI command appears, and no UFS error handler runs.
 8. The sysfs-only inventory is complete, the Qualcomm UFS driver is bound,
    USB ACM/NCM works, and no fatal kernel signature appears.
-9. The untouched rollback marker performs an orderly forced reboot and
-   returns the phone to the exact fallback kernel with a changed boot
-   identity.
+9. The untouched rollback chain returns the phone automatically to the exact
+   fallback kernel with a changed boot identity and no manual emergency
+   action. Retained logs should distinguish the primary reboot from the
+   delayed SysRq fallback where available.
 
 Any missing attestation, unexpected write command, block-backed mount,
 writable device, USB identity mismatch, watchdog failure, or fatal kernel log
@@ -139,10 +148,12 @@ ends the test and leaves rollback armed.
 
 ## What follows
 
-The inventory determines the safe next boot strategy; it does not authorize a
-partition change. The next low-risk native userspace gate is a pure
-Arch/Debian root filesystem served from the development PC over USB NCM
-(NFS/NBD or an initramfs-carried minimal root). That runs directly on Linux,
-not inside Android, while avoiding UFS writes. A persistent on-device root is
-a later explicit migration decision after charging, thermals, USB, networking,
-display, input, suspend, and recovery have passed.
+The accepted inventory determines the safe next boot strategy; it does not
+authorize a partition change. The next low-risk native userspace gate is a
+pure Arch/Debian root filesystem served from the development PC over USB NCM.
+NFS is preferred over NBD for the first iteration because the block-device
+surface stays on the host and the phone mounts only the explicitly exported
+root. That runs directly on Linux, not inside Android, while UFS remains
+unmounted. A persistent on-device root is a later explicit migration decision
+after charging, thermals, USB, networking, display, input, suspend, and
+recovery have passed.

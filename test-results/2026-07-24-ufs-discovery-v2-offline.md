@@ -1,8 +1,8 @@
 # Read-only UFS discovery v2 offline result
 
-Status: **PASS offline; live gate pending**. The corrected bundle is eligible
-only for one attended temporary `fastboot boot` plus separately authorized
-kexec execution. It must never be flashed.
+Status: **PASS offline; subsequent live gate passed**. The corrected bundle
+was eligible only for one attended temporary `fastboot boot` plus separately
+authorized kexec execution. It must never be flashed.
 
 ## Reason for v2
 
@@ -84,19 +84,20 @@ The exact local manifest is
 mirrored in `manifests/artifacts.tsv`.
 
 No v2 artifact was transferred to or booted on the phone during this offline
-phase. No partition was read, mounted, written, resized, formatted, or
-flashed.
+phase. The later attended result is recorded in
+[`2026-07-24-ufs-discovery-v2-live.md`](2026-07-24-ufs-discovery-v2-live.md).
+No partition was mounted, written, resized, formatted, or flashed.
 
-## Live gate
+## Completed live gate
 
-The v2 target must reach exact release `7.1.4-gcfd385a1c754`, attest the
-compile-time guard, report all physical nodes read-only with zero
-block-backed mounts, and expose both automatic containment passes with:
+The v2 target reached exact release `7.1.4-gcfd385a1c754`, attested the
+compile-time guard, reported all 116 physical nodes read-only with zero
+block-backed mounts, and exposed both automatic containment passes with:
 
 ```text
 blocked queries=0 blocked SCSI=0
 ```
 
-No UFS error handler, forced reset, blocked command, or fatal signature may
-appear. The untouched target watchdog must complete an orderly forced reboot
-and return to the exact fallback kernel with a changed boot identity.
+No UFS error handler, blocked command, or fatal signature appeared. The
+untouched target watchdog chain automatically returned the phone to the exact
+fallback kernel with a changed boot identity and no manual intervention.

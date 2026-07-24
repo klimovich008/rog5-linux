@@ -181,10 +181,18 @@ an independent five-second emergency SysRq reset before starting orderly
 forced reboot in the background, fixing the v1 watchdog wait deadlock. Two
 clean mainline builds, both initramfs layers, the reviewed DTB, two clean ASUS
 wrapper builds, and two header-v3/AVB repacks are byte-identical. The exact v2
-thirteen-file manifest passes the complete network-isolated verifier. The next
-gate is another attended temporary boot requiring exact
-`7.1.4-gcfd385a1c754`, zero blocked commands, no UFS error handler, and
-orderly watchdog rollback.
+thirteen-file manifest passes the complete network-isolated verifier.
+
+The attended v2 temporary boot now passes. Exact
+`7.1.4-gcfd385a1c754` exposed 7 UFS disks and 109 partitions; all 116 nodes
+were independently read-only with zero block-backed mounts and a complete
+117-line sysfs inventory. Auto-hibern8 was zero, the host remained active with
+runtime PM forbidden, blocked query/SCSI counts were zero, and no BKOPS,
+error-handler, or fatal signature appeared. The untouched watchdog chain
+automatically returned the phone to the exact fallback kernel with a changed
+boot identity. Nothing was flashed. Read-only UFS discovery is accepted; the
+next gate is a minimal Arch/Debian root served over USB NCM while UFS remains
+unmounted.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

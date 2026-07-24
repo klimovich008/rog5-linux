@@ -62,8 +62,11 @@ read-only, ACM/NCM, no SSH, and changed fallback boot identities. The separate
 attended kexec gate now also passes: Linux `7.1.4-g7a5cef0db479` reached its
 RAM-only recovery with zero physical block devices, working ACM/NCM and
 watchdog, no fatal log signatures, and automatic return to a changed fallback
-boot identity. Read-only UFS discovery, Arch rootfs, desktop, and mainline GPU
-gates remain pending.
+boot identity. The corrected read-only UFS discovery v2 gate also passes:
+Linux `7.1.4-gcfd385a1c754` enumerated all 116 UFS disks and partitions
+read-only with zero blocked commands, disabled auto-hibern8, pinned-active
+runtime PM, no UFS error handler, and automatic fallback recovery. Arch/Debian
+network root, desktop, and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

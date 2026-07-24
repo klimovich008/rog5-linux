@@ -74,6 +74,11 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 
 ## Tier 1.5 — read-only UFS discovery
 
+Status: **passed by discovery v2**. Exact `7.1.4-gcfd385a1c754` exposed all
+116 physical nodes read-only with zero blocked commands and no UFS
+error-handler signature, then the untouched watchdog chain automatically
+restored the exact fallback kernel.
+
 - Use only the dedicated compile-time discovery kernel and its exact
   UFS/USB2 DTB; no normal mainline image is interchangeable.
 - Arm rollback before enumeration and attest

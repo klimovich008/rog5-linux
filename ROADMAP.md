@@ -25,10 +25,12 @@ for a working feature.
 - [x] Create reproducible build, verification, and artifact-manifest tooling.
 - [x] Build a normal Arch Plasma rootfs offline.
 - [x] Implement Linux 7.1.4 USB gadget/rollback source and offline build tooling.
-- [ ] Prove the corrected recovery bundle twice from clean inputs.
-- [ ] Pass live RAM-only, storage-isolation, USB, SSH, and rollback gates.
-- [ ] Kexec from the temporary vendor kernel into Linux 7.1.4.
-- [ ] Discover UFS read-only, then design the persistent storage layout.
+- [x] Prove the corrected recovery bundle twice from clean inputs.
+- [x] Pass live RAM-only, storage-isolation, USB, and rollback gates.
+- [x] Kexec from the temporary vendor kernel into Linux 7.1.4.
+- [x] Discover the complete UFS topology read-only with zero blocked commands.
+- [ ] Boot a headless Arch/Debian root over USB NCM while UFS stays unmounted.
+- [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Boot Arch headlessly.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -134,16 +136,19 @@ safe rollback path.
 
 Goal: learn the phone storage topology without mounting or modifying it.
 
-- [ ] Enable only the UFS controller and required PHY/IOMMU dependencies.
-- [ ] Retain the proven USB2 recovery channel and RAM-only root.
-- [ ] Confirm block enumeration and collect redacted topology/size data.
-- [ ] Confirm zero block-backed mounts and zero write tests.
-- [ ] Check UFS, IOMMU, watchdog, and USB logs for faults.
-- [ ] Prove rollback and fallback boot again.
+- [x] Enable only the UFS controller and required PHY/IOMMU dependencies.
+- [x] Retain the proven USB2 recovery channel and RAM-only root.
+- [x] Confirm block enumeration and collect redacted topology/size data.
+- [x] Confirm zero block-backed mounts and zero write tests.
+- [x] Check UFS, IOMMU, watchdog, and USB logs for faults.
+- [x] Prove rollback and fallback boot again.
 - [ ] Document candidate persistent layouts and Android coexistence choices.
 - [ ] Request confirmation before provisioning or changing any partition.
 
-Exit gate: stable read-only UFS enumeration with working recovery and rollback.
+Exit gate: **passed by v2**. Exact Linux `7.1.4-gcfd385a1c754`
+enumerated all 116 physical nodes read-only with zero blocked commands, kept
+the UFS host active without a power transition, and automatically returned to
+the exact fallback kernel.
 
 ## Phase 4 — headless Arch Linux first boot
 
@@ -151,7 +156,12 @@ Goal: boot a normal modern distro before adding desktop complexity.
 
 - [ ] Restage the Arch rootfs with the exact accepted kernel modules.
 - [ ] Verify package signatures, firmware hashes, ownership, symlinks, and modes.
-- [ ] Define the rootfs deployment and `switch_root` path.
+- [ ] Add a fail-closed initramfs path that creates USB NCM, mounts a
+  host-exported root read-only, adds a tmpfs overlay, and then `switch_root`s.
+- [ ] Restrict the host export to the dedicated USB address and keep it
+  disabled except during attended tests.
+- [ ] Boot once with UFS disabled before combining normal userspace with any
+  on-device storage driver.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
 - [ ] Boot to `multi-user.target`.
 - [ ] Verify console, SSH, time, entropy, logs, clean reboot, and clean shutdown.
