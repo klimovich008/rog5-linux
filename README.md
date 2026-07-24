@@ -55,11 +55,36 @@ containers/           reproducible PC cross-build environment
 docs/                 state, architecture, research, and operating guidance
 manifests/            artifact identities and provenance (no binaries)
 scripts/device/       recovery and Arch device tests, staging, and runtime tools
-scripts/host/         PowerShell fastboot/SSH orchestration and validation
+scripts/host/         Linux/PowerShell fastboot, SSH, and build orchestration
 test-results/         redacted, reviewable test reports
 ```
 
 ## Quick start
+
+On the current Nobara Linux development host, install the native Android tools
+and grant serial access once, then log out and back in:
+
+```sh
+sudo dnf install android-tools
+sudo usermod -aG dialout "$(id -un)"
+```
+
+The Linux recovery workflow is read-only by default. It validates the exact
+manifest-pinned v12 image and requires exactly one fastboot device:
+
+```sh
+scripts/host/recovery-v12-linux.sh preflight
+```
+
+The attended temporary boot has a separate explicit guard and invokes only
+`fastboot boot`. It never flashes:
+
+```sh
+ALLOW_TEMPORARY_BOOT=1 scripts/host/recovery-v12-linux.sh boot
+```
+
+After ACM enumerates, the script prints the `socat` command for the
+credential-free recovery shell. Its 180-second rollback remains armed.
 
 Validate the repository and a local artifact directory:
 

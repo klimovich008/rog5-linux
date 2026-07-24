@@ -27,6 +27,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
 - `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
+- `recovery-v12-linux.sh preflight` hash-checks the manifest-pinned image and
+  requires exactly one fastboot target; `boot` remains inert unless
+  `ALLOW_TEMPORARY_BOOT=1` is explicit.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery

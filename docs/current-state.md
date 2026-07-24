@@ -76,8 +76,11 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile
   reproducibly with container networking disabled.
 - The connected fallback system enumerates as USB gadget `1d6b:0104` and
-  `/dev/ttyACM0`. The Linux host still needs normal serial-group access and
-  `adb`/`fastboot` before any attended live recovery test.
+  `/dev/ttyACM0`. Android platform tools 35.0.2 are installed and the user is
+  configured in `dialout`; the current desktop login has not refreshed that
+  supplementary group, but a temporary group shell verifies access.
+- A non-autoconnecting host-only USB profile at `169.254.77.1/16` reaches the
+  fallback server at `169.254.77.2`; ICMP and TCP/22 pass. No SSH key was used.
 - Credentials and private identifiers are deliberately excluded from this repository.
 
 ## Mainline recovery status

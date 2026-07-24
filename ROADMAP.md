@@ -252,20 +252,18 @@ devices, USB permissions, and containerized offline builds all match their
 target environment more directly. Raw compile time will still be governed
 mostly by CPU, RAM, cooling, storage, and parallel-job count.
 
-The low-risk migration is dual boot or a separate SSD first. Keep Windows until
-Linux can build the repository, detect fastboot/ADB and `/dev/ttyACM*`, and
-access all backups. Do not erase the existing PC installation as part of the
-kernel bring-up.
+The project now runs from a native Nobara Linux Btrfs workspace with rootless
+Podman. Keep the previous Windows environment available until Linux can detect
+fastboot/ADB and `/dev/ttyACM*` and all restored backups are verified.
 
 Suggested host migration:
 
 - [ ] Back up the repository, ignored artifact store, hashes, and recovery
   material without placing private keys in Git.
-- [ ] Install a supported Ubuntu LTS release on a separate SSD or dual-boot
-  partition.
-- [ ] Install Git, Android platform tools, Docker Engine, and the Android udev
-  rules; keep the kernel compiler inside the pinned builder container.
-- [ ] Clone this repository and restore ignored artifacts, then verify every
+- [x] Install a native Linux workstation on a separate partition.
+- [x] Install Android platform tools and add the development user to `dialout`;
+  the current desktop login still needs a group refresh.
+- [x] Clone this repository and restore ignored artifacts, then verify every
   restored file against `manifests/artifacts.tsv`.
 - [ ] Run the repository policy suite and two clean kernel builds.
 - [ ] Compare Linux-produced hashes and build times with the Windows baseline.
