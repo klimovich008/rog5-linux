@@ -26,12 +26,18 @@ the exact fallback kernel; no UFS filesystem was probed or mounted, no
 partition was changed, and nothing was flashed. The full result is in
 [`2026-07-24-ufs-discovery-v1-live.md`](../test-results/2026-07-24-ufs-discovery-v1-live.md).
 
-The three-patch replacement at deterministic Linux commit
+The three-patch v2 replacement at deterministic Linux commit
 `cfd385a1c754684dd28b63a4559e04baa5e902b1` and tree
 `d2f03d2055227b8b72ab41be949847a066924c5a` pins UFS active for the
-short discovery interval and skips shutdown power transitions. Its
-patch/config/object verifier passes. Reproducible bundle rebuilds and a new
-live gate are pending.
+short discovery interval and skips shutdown power transitions. Two clean
+mainline builds, both initramfs layers, the reviewed DTB, two clean ASUS
+wrapper builds, and two boot-image repacks are byte-identical. The exact
+thirteen-file manifest passes the complete network-isolated verifier. The v2
+mainline Image is
+`bdc72155b4ff2de3a655f53e0570a18690778025cac86425fccd5d3b9699ac8c`;
+the temporary-boot AVB image is
+`d22790e5b8aebba0dc78a6704b7d2845b0e4637e1256acd379e7dd6170f1540b`.
+The attended v2 live gate is pending.
 
 ## Build chain
 
@@ -98,6 +104,10 @@ to attest the compile-time discovery option before waiting for UFS.
   the kernel, offsets, sizes, logical block size, read-only state, and sysfs
   path.
 - ACM and NCM are configured only after a second storage-isolation check.
+- Before USB binding, userspace twice requires the active-link kernel markers
+  and zero blocked UFS query or SCSI commands.
+- Rollback arms an independent five-second emergency SysRq reset before
+  launching orderly forced reboot in the background.
 - No SSH key, host key, password, credential, or private identifier is
   embedded.
 

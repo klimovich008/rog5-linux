@@ -17,11 +17,16 @@ log() {
 }
 
 force_rollback() {
-	while :; do
-		reboot -f
+	(
 		sleep 5
-		echo b >/proc/sysrq-trigger 2>/dev/null || true
-	done
+		while :; do
+			log 'orderly forced reboot still active; using emergency reset'
+			echo b >/proc/sysrq-trigger 2>/dev/null || true
+			sleep 5
+		done
+	) &
+	reboot -f &
+	while :; do sleep 3600; done
 }
 
 isolate_storage() {
@@ -95,6 +100,46 @@ wait_for_ufs_discovery() {
 	done
 	log 'UFS discovery did not enumerate a physical disk'
 	return 1
+}
+
+verify_ufs_power_containment() {
+	auto_marker='ROG5 UFS discovery: auto-hibern8 disabled; link remains active'
+	host_marker='ROG5 UFS discovery: host runtime PM forbidden; active reference retained'
+	wlun_marker='ROG5 UFS discovery: WLUN runtime PM forbidden'
+	attempt=0
+	auto_count=0
+	host_count=0
+	wlun_count=0
+	while [ "$attempt" -lt 100 ]; do
+		auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
+		host_count=$(dmesg | grep -F -c "$host_marker" || true)
+		wlun_count=$(dmesg | grep -F -c "$wlun_marker" || true)
+		if [ "$auto_count" -gt 0 ] &&
+			[ "$host_count" -gt 0 ] &&
+			[ "$wlun_count" -gt 0 ]; then
+			break
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	if [ "$auto_count" -eq 0 ] ||
+		[ "$host_count" -eq 0 ] ||
+		[ "$wlun_count" -eq 0 ]; then
+		log "UFS power-containment marker missing; auto=$auto_count host=$host_count wlun=$wlun_count"
+		return 1
+	fi
+
+	blocked_query_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	printf '%s\n' "$blocked_query_count" >/run/rog5-ufs-blocked-query-count
+	printf '%s\n' "$blocked_scsi_count" >/run/rog5-ufs-blocked-scsi-count
+	if [ "$blocked_query_count" -ne 0 ] || [ "$blocked_scsi_count" -ne 0 ]; then
+		log "UFS discovery blocked an unexpected command; queries=$blocked_query_count SCSI=$blocked_scsi_count"
+		return 1
+	fi
+	log 'UFS power containment ready; blocked queries=0 blocked SCSI=0'
 }
 
 write_ufs_inventory() {
@@ -211,6 +256,10 @@ if [ "$ufs_discovery" = 1 ]; then
 		log 'UFS discovery failed; rebooting'
 		force_rollback
 	fi
+	if ! verify_ufs_power_containment; then
+		log 'UFS power containment failed; rebooting'
+		force_rollback
+	fi
 fi
 
 if ! isolate_storage; then
@@ -260,6 +309,11 @@ fi
 }
 if ! isolate_storage; then
 	log 'storage isolation failed after device-node rescan; rebooting'
+	force_rollback
+fi
+if [ "$ufs_discovery" = 1 ] &&
+	! verify_ufs_power_containment; then
+	log 'UFS power containment failed after device-node rescan; rebooting'
 	force_rollback
 fi
 serve_acm &

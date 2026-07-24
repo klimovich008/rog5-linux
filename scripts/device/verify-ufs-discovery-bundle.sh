@@ -213,9 +213,27 @@ target_init=$stage/target/init
 cmp "$target_init" "$repo/initramfs/recovery-init"
 grep -qx 'set -u' "$target_init"
 grep -Fq 'touch /run/rog5-recovery-armed' "$target_init"
+grep -Fq 'reboot -f &' "$target_init"
+grep -Fq 'orderly forced reboot still active; using emergency reset' "$target_init"
+! grep -Eq '^[[:space:]]*reboot -f$' "$target_init"
+fallback_line=$(grep -n 'orderly forced reboot still active; using emergency reset' \
+	"$target_init" | cut -d: -f1)
+reboot_line=$(grep -n '^[[:space:]]*reboot -f &$' "$target_init" | cut -d: -f1)
+[ "$fallback_line" -lt "$reboot_line" ]
 grep -Fq 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$target_init"
 grep -Fq '/run/rog5-ufs-inventory.tsv' "$target_init"
 grep -Fq 'UFS sysfs-only inventory ready' "$target_init"
+grep -Fq 'verify_ufs_power_containment' "$target_init"
+grep -Fq 'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' \
+	"$target_init"
+grep -Fq 'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
+	"$target_init"
+grep -Fq 'ROG5 UFS discovery: WLUN runtime PM forbidden' "$target_init"
+grep -Fq '/run/rog5-ufs-blocked-query-count' "$target_init"
+grep -Fq '/run/rog5-ufs-blocked-scsi-count' "$target_init"
+grep -Fq 'UFS power containment ready; blocked queries=0 blocked SCSI=0' \
+	"$target_init"
+[ "$(grep -Fc '! verify_ufs_power_containment; then' "$target_init")" -eq 2 ]
 grep -Fq '[ "$(cat /run/rog5-physical-block-count)" -gt 0 ]' "$target_init"
 [ "$(grep -Fc '[ ! -e "$sys_disk/partition" ] || continue' "$target_init")" -eq 3 ]
 ! grep -Eq 'blkid|fsck|mount[[:space:]].*/dev/' "$target_init"
@@ -229,6 +247,8 @@ storage_line=$(printf '%s\n' "$storage_lines" | sed -n '1p')
 post_mdev_storage_line=$(printf '%s\n' "$storage_lines" | sed -n '2p')
 inventory_line=$(grep -n '^[[:space:]]*if ! write_ufs_inventory; then$' \
 	"$target_init" | cut -d: -f1)
+power_line=$(grep -n '^[[:space:]]*if ! verify_ufs_power_containment; then$' \
+	"$target_init" | cut -d: -f1)
 usb_line=$(grep -n '^usb_mode=' "$target_init" | cut -d: -f1)
 mdev_line=$(grep -n '^if ! mdev -s; then$' "$target_init" | cut -d: -f1)
 tty_line=$(grep -n '^\[ -c /dev/ttyGS0 \] || {$' "$target_init" | cut -d: -f1)
@@ -236,6 +256,8 @@ acm_line=$(grep -n '^serve_acm &$' "$target_init" | cut -d: -f1)
 bind_line=$(grep -n '^[[:space:]]*echo "\$udc" >"\$gadget/UDC"$' \
 	"$target_init" | cut -d: -f1)
 [ "$watchdog_line" -lt "$wait_line" ]
+[ "$wait_line" -lt "$power_line" ]
+[ "$power_line" -lt "$storage_line" ]
 [ "$wait_line" -lt "$storage_line" ]
 [ "$storage_line" -lt "$inventory_line" ]
 [ "$inventory_line" -lt "$usb_line" ]

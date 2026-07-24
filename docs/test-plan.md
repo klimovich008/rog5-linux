@@ -88,6 +88,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   auto-hibern8 disabled, zero blocked commands, exact compiled guard markers,
   working ACM/NCM, no UFS error handler or fatal log signature, and orderly
   automatic return to the exact fallback kernel.
+- Require rollback to arm an independent delayed SysRq reset before starting
+  `reboot -f` in the background, so shutdown cannot block the fallback path.
 - Treat the resulting topology as design input only. Persistent rootfs or
   partition changes require a later explicit authorization.
 

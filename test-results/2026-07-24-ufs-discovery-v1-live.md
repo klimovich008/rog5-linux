@@ -93,6 +93,10 @@ short-lived discovery link active:
 - skip WLUN shutdown state changes so platform reset can occur with the
   read-only link still active.
 
+Recovery userspace also arms a delayed emergency SysRq reset before launching
+orderly forced reboot in the background. This removes the v1 wait dependency:
+if device shutdown stalls again, the independent reset path can still run.
+
 The source verifier requires those branches to occur before BKOPS, suspend,
 quiesce, or shutdown calls and compiles the guarded objects. A replacement
 bundle must also reproduce twice, pass the complete network-off verifier,

@@ -175,10 +175,16 @@ written, or flashed.
 The three-patch replacement source at commit `cfd385a1c754` / tree
 `d2f03d205522` retains the UFS runtime reference, forbids host and WLUN
 runtime PM, disables auto-hibern8, and returns before discovery suspend or
-shutdown transitions. Its patch/config/object verifier passes. The next gate
-is two clean mainline builds, two clean ASUS wrapper builds, complete
-network-isolated bundle verification, and only then another attended
-temporary boot requiring zero blocked queries and orderly rollback.
+shutdown transitions. The target also requires the active-link markers and
+zero blocked query/SCSI commands twice before USB binding. Rollback now arms
+an independent five-second emergency SysRq reset before starting orderly
+forced reboot in the background, fixing the v1 watchdog wait deadlock. Two
+clean mainline builds, both initramfs layers, the reviewed DTB, two clean ASUS
+wrapper builds, and two header-v3/AVB repacks are byte-identical. The exact v2
+thirteen-file manifest passes the complete network-isolated verifier. The next
+gate is another attended temporary boot requiring exact
+`7.1.4-gcfd385a1c754`, zero blocked commands, no UFS error handler, and
+orderly watchdog rollback.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
