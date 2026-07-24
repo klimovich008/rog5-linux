@@ -1,8 +1,9 @@
 # Network-root PMIC RTC and power-key live report
 
-Status: **v4 RTC rejected safely; v5 power-key dependency passed; exact fallback
-restored**. The physical button-press observation remains pending. Nothing was
-flashed and no phone storage or RTC value was written.
+Status: **v4 RTC rejected safely; v5 normal coldplug, power-key registration,
+and reboot passed; exact fallback restored**. The physical button-press
+observation remains pending. Nothing was flashed and no phone storage or RTC
+value was written.
 
 ## Scope
 
@@ -128,12 +129,50 @@ non-autoconnecting host profile. Final cleanup proved zero NFS listeners,
 exports, mounts, and threads; no temporary drop-zone rules or interfaces; no
 network-root `/30`; no Fastboot or ADB device; and active ModemManager.
 
+## V5 normal-mode repeat
+
+After the development PC restart, the exact v5 manifest and full semantic
+bundle verifier passed again. The host started the exact-peer, read-only
+NFSv4.2 export and used only the manifest-pinned `fastboot boot` image.
+
+An initial staging-shell command used the source script's filename instead of
+the installed wrapper name and failed before loading kexec. The corrected
+installed wrapper then verified all three nested payload hashes and loaded the
+exact candidate in normal mode. No systemd mask was present.
+
+The resulting normal, unmasked target passed:
+
+- exact Linux `7.1.4-g7a5cef0db479`, systemd PID 1, running systemd,
+  successful udev-trigger/modules-load results, active `multi-user.target` and
+  SSH, and zero failed units;
+- OverlayFS `/`, exact read-only NFSv4.2 lower, zero physical block devices,
+  and zero block-backed mounts;
+- exact USB carrier/address plus a complete hash read of the module tree;
+- 33 thermal zones with a 37 C maximum and zero fatal signatures;
+- RTC disabled, no RTC module, and zero RTC devices;
+- `qcom_pon` loaded by normal coldplug; and
+- exactly one `pmic_pwrkey`/`pm8941-pwrkey` input with the PMK8350 compatible,
+  `KEY_POWER`, and wakeup enabled.
+
+The repository's fail-resumable watchdog-disarm helper then passed live. A
+120-second Python `input_event` monitor ran under a low-level
+`handle-power-key` systemd inhibitor. It received no press/release event and
+there was no contemporaneous confirmation that a physical press occurred, so
+the switch/IRQ path remains unclassified rather than failed.
+
+The target stayed healthy through the complete monitor window. Normal systemd
+reboot returned to the exact fallback, strict fallback SSH passed, and final
+cleanup again proved no NFS/export/mount/thread/firewall test state, no
+network-root `/30`, no Fastboot or ADB device, the exact fallback `/16`, and
+active ModemManager.
+
 ## Decision and next gate
 
 - Keep v4 only as rejected RTC evidence; never flash it.
 - Use v5 as the power-key-only hardware candidate; never flash it.
-- Repeat one normal-coldplug v5 boot and observe a real short press while
-  holding the low-level logind inhibitor.
+- Use `monitor-network-root-pwrkey.sh` during the next attended v5 boot and
+  observe one real short press and release. The normal-coldplug repeat is
+  already accepted; only physical switch/IRQ actuation remains pending.
 - Do not map the button to display wake until the display/backlight tier
   passes. Registration alone cannot provide a visible indicator while DRM,
   panel, backlight, and LEDs remain disabled.

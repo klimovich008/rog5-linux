@@ -109,7 +109,10 @@ enables only the PMK8350 power-key node. In a storage-isolated diagnostic boot,
 the guarded `qcom_pon` parent-module probe registered the built-in
 `pm8941-pwrkey` input with `KEY_POWER` and wakeup enabled, then survived normal
 systemd reboot and cleanup. A physical press/IRQ observation remains required
-before input is accepted.
+before input is accepted. A later normal, unmasked v5 repeat passed ordinary
+coldplug, full module-tree I/O, the live watchdog-disarm helper, 37 C maximum
+temperature, normal reboot, and complete host cleanup. The protected
+120-second event monitor received no confirmed press/release.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did

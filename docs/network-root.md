@@ -128,7 +128,10 @@ independently watched module probe, and registered exactly one
 `pmic_pwrkey`/`pm8941-pwrkey` input with `KEY_POWER` and wakeup enabled.
 Systemd reboot with the module loaded returned to fallback with complete host
 cleanup. A physical short press still needs an attended observation, so the
-switch/IRQ path is pending. See the
+switch/IRQ path is pending. A later normal, unmasked v5 repeat passed ordinary
+coldplug, a complete module-tree read, 37 C maximum temperature, the
+repository watchdog-disarm helper, normal reboot, and complete cleanup. Its
+protected 120-second event window received no confirmed press/release. See the
 [PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md).
 
 ## Offline result
@@ -261,9 +264,9 @@ and a validated return to the exact fallback kernel. These gates pass twice
 with normal coldplug. V3 also passes the executable retained-exitrd contract
 and one normal systemd reboot to the exact fallback with complete host
 cleanup. V4 records a safely rejected RTC result, while v5 passes the isolated
-power-key dependency, registration, and reboot gates; physical press
-observation remains pending. Failure leaves the watchdog armed until all
-acceptance gates pass.
+power-key dependency, diagnostic and normal registration, repeated reboot, and
+cleanup gates; physical press observation remains pending. Failure leaves the
+watchdog armed until all acceptance gates pass.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

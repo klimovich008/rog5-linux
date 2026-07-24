@@ -222,6 +222,8 @@ server.
 - [ ] Port panel, DSI, Pixelworks bridge, backlight, touch, and buttons.
 - [x] Isolate the PMK8350 power-key DT node and register one `KEY_POWER`
   device through the guarded `qcom_pon` parent-module probe.
+- [x] Repeat v5 in normal unmasked mode, live-test the fail-resumable watchdog
+  disarm, and return through a clean systemd reboot.
 - [ ] Observe a real short press through the switch/IRQ/input path; driver
   registration alone is not acceptance.
 - [ ] Validate 60 Hz first, then 90/120/144 Hz one mode at a time.

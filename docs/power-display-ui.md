@@ -48,12 +48,14 @@ Linux 7.1 network-root v5 now registers the PMK8350 power-key path after the
 reviewed `qcom_pon` parent module is loaded. The resulting input is named
 `pmic_pwrkey`, uses the `pm8941-pwrkey` driver, advertises `KEY_POWER`, and has
 wakeup enabled. A real short press was not observed during the bounded
-attended windows, so the physical switch/IRQ path is still pending. This tier
-cannot yet provide a visible power-button indication because DRM, panel,
-backlight, and LEDs remain intentionally disabled. Backlight control remains
-the fallback if DPMS is unavailable once display bring-up begins. Power
-measurements must compare panel-on, backlight-zero, DPMS-off, and
-compositor-stopped states.
+attended windows, including a protected 120-second normal-mode repeat, so the
+physical switch/IRQ path is still pending. The reusable
+`monitor-network-root-pwrkey.sh` gate holds a low-level logind inhibitor and
+requires both the Linux `KEY_POWER` press and release records. This tier cannot
+yet provide a visible power-button indication because DRM, panel, backlight,
+and LEDs remain intentionally disabled. Backlight control remains the fallback
+if DPMS is unavailable once display bring-up begins. Power measurements must
+compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
 
 ## Memory policy
 

@@ -276,7 +276,11 @@ for the built-in PM8941 input driver. The guarded probe registered exactly one
 PMK8350 compatible. Normal systemd reboot with the module loaded returned to
 fallback and complete host cleanup passed. A physical short press was not
 observed during the bounded attended windows, so switch/IRQ operation remains
-pending rather than passed. The
+pending rather than passed. A subsequent normal, unmasked v5 repeat passed
+ordinary coldplug, a complete module-tree read, zero-storage/NFS/USB gates,
+33 thermal zones at a 37 C maximum, the repository watchdog-disarm helper,
+normal systemd reboot, strict fallback SSH, and complete cleanup. The protected
+120-second low-level monitor received no confirmed press/release event. The
 [PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
 records the reproducible artifacts and live evidence.
 

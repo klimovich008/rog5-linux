@@ -156,7 +156,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   watchdog safely disarmed, `qcom_pon` loaded, exactly one
   `pmic_pwrkey`/`pm8941-pwrkey` event, `KEY_POWER`, wakeup enabled, unchanged
   NFS/USB/storage boundaries, and a clean systemd reboot to fallback.
-  **Dependency, registration, and reboot passed; physical press pending.**
+  **Dependency plus diagnostic and normal registration/reboot passed. The
+  fail-resumable disarm helper passed live; physical press remains pending
+  after a protected 120-second window received no confirmed event.**
+- Run `monitor-network-root-pwrkey.sh` only after the full normal-mode gate and
+  watchdog disarm. Require its explicit guard, exact storage/NFS/RTC/input
+  state, low-level logind inhibitor, and both `KEY_POWER` press and release
+  records before accepting the physical switch/IRQ path.
 - Treat display, battery, charging, radio, physical input actuation, and GPU
   as untested despite the normal headless coldplug and input-registration
   passes.
