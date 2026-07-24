@@ -74,7 +74,7 @@ config=$artifact_dir/config-5.4.210-kexec-stage-builtin-recovery
 grep -qx 'CONFIG_KEXEC=y' "$config"
 grep -qx '# CONFIG_KEXEC_FILE is not set' "$config"
 grep -qx 'CONFIG_BLK_DEV_INITRD=y' "$config"
-grep -qx 'CONFIG_PM_WAKELOCKS=y' "$config"
+grep -qx '# CONFIG_PM_AUTOSLEEP is not set' "$config"
 grep -qx 'CONFIG_INITRAMFS_SOURCE="/root/build/rog5-kexec-stage-initramfs.cpio.gz"' "$config"
 grep -qx 'CONFIG_INITRAMFS_COMPRESSION=".gz"' "$config"
 cmp "$artifact_dir/embedded-kexec-stage-initramfs.cpio.gz" \
@@ -121,16 +121,16 @@ gzip -dc "$artifact_dir/rog5-kexec-stage-initramfs.cpio.gz" | \
 ! grep -q 'mount.*\(userdata\|rootdev\)' "$stage/target/init"
 grep -qx 'set -u' "$stage/target/init"
 cmp "$stage/target/init" "$(dirname "$0")/../../initramfs/recovery-init"
-grep -Fq 'rog5-recovery-rollback' "$stage/target/init"
-grep -Fq '>/sys/power/wake_lock' "$stage/target/init"
+grep -Fq 'touch /run/rog5-recovery-armed' "$stage/target/init"
+grep -Fq 'sleep "$timeout"' "$stage/target/init"
+grep -Fq 'echo $! >/run/rog5-recovery-watchdog.pid' "$stage/target/init"
+! grep -Fq '/sys/power/wake_lock' "$stage/target/init"
 grep -Fq 'rog5-recovery-acm.pid' "$stage/target/init"
 grep -Fq '</proc/self/mountinfo' "$stage/target/init"
 grep -Fq 'blockdev --setro' "$stage/target/init"
 grep -Fq 'blockdev --getro' "$stage/target/init"
 grep -Fq '[ -e "$sys_disk/device" ] || continue' "$stage/target/init"
 grep -Fq '[ -e "$sys_block/partition" ] || continue' "$stage/target/init"
-grep -Fq 'storage_failure_delay=30' "$stage/target/init"
-grep -Fq 'sleep "$storage_failure_delay"' "$stage/target/init"
 storage_line=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
 usb_line=$(grep -n '^usb_mode=' "$stage/target/init" | cut -d: -f1)
 [ "$storage_line" -lt "$usb_line" ]

@@ -38,10 +38,10 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
 | locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | historical suite passes; contains the previous module set and must be restaged |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v15 timing diagnostic is reproducible and credential-free; no functional candidate is accepted |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v16 is reproducible, credential-free, storage-locked, and offline-verified; live pending |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
-| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v15 diagnostic is reproducible and passes storage/nested checks; kexec prohibited |
-| temporary Android boot image | reversible two-stage `fastboot boot` testing | v15 diagnostic image is reproducible and attended-only; never flash |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v16 is reproducible and passes storage/nested checks; kexec prohibited until staging passes twice |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | v16 is reproducible and attended-only; live pending; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
@@ -62,7 +62,7 @@ Native phone builds default to one parallel job. Four jobs heated rapidly; even 
 
 When a native build is unavoidable, run `guard-kernel-build.sh BUILD_PID` alongside it. The default 45.0 C battery-sensor ceiling terminates the active `make` child and build wrapper while preserving the object cache.
 
-Normal development uses the PC cross-builder. The current v15 diagnostic bundle
+Normal development uses the PC cross-builder. The current v16 candidate bundle
 was built on Nobara Linux with rootless Podman and container networking
 disabled; the existing Windows wrapper remains available:
 
@@ -88,8 +88,11 @@ Their live staging root was writable physical UFS, and their target DTB enabled
 UFS and QMP/SuperSpeed despite the former zero-storage and USB2-only claims.
 Nothing was flashed. Do not boot v2, the rejected v6 candidate, or the
 superseded unbooted v12 candidate. V13 and v14 are also rejected because their
-exact recovery USB identity never appeared during live temporary boot. V15 is
-a reproducible `acm-only` timing diagnostic, not a functional candidate.
+exact recovery USB identity never appeared during live temporary boot. V15
+identified the unnecessary wake-lock gate through its 31-second timing result
+and is retained only as diagnostic evidence. V16 is the reproducible
+`acm-only` live candidate; it is not accepted until two staging and rollback
+cycles pass.
 
 ## Reproduction records
 
@@ -99,8 +102,10 @@ belong in `manifests/`. The
 [current clean-build report](../test-results/2026-07-23-mainline-reproducibility.md)
 records the rejected comparisons and the combined Python hash-seed/BTF
 serialization fix. The
+[recovery v16 report](../test-results/2026-07-24-recovery-v16-offline.md)
+records the current reproducible candidate and artifact set. The
 [recovery v15 report](../test-results/2026-07-24-recovery-v15-diagnostic.md)
-records the bounded timing diagnostic and artifact set. The
+records the completed timing diagnosis. The
 [v14 live report](../test-results/2026-07-24-recovery-v14-live.md) records its
 matching early return. The
 [v13 live report](../test-results/2026-07-24-recovery-v13-live.md) records its

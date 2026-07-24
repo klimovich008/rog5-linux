@@ -42,7 +42,11 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - The staging rollback timer returns to the installed fallback kernel.
 - The v15 diagnostic maps approximately 21/31/51/71-second fallback intervals
   to pre-`/init`, wake-lock, block-backed-mount, and physical-lock paths; it
-  stops after one measurement and never runs kexec.
+  stopped after the 31-second wake-lock result and never ran kexec.
+- V16 contains no wake-lock gate because staging PM autosleep is disabled. It
+  must expose exact `ROG5_recovery`, prove a RAM-backed root and read-only
+  physical storage, and return through its 180-second watchdog twice before
+  kexec is eligible.
 - Before exposing USB, both stages reject any block-backed mount and use
   `BLKROSET` through `blockdev --setro`; every physical disk and partition
   must report read-only. Volatile loop, RAM, and zram devices are excluded.

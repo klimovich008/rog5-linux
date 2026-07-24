@@ -57,10 +57,12 @@ Goal: produce a small recovery environment that can be trusted before touching
 storage or desktop userspace.
 
 - [x] Pin the Linux source revision and offline builder image.
-- [x] Add the required USB ACM/NCM and PM wake-lock kernel configuration.
+- [x] Add the required USB ACM/NCM kernel configuration and verify that PM
+  autosleep is disabled in the staging wrapper.
 - [x] Keep a supervised ACM shell open so host writes cannot be left unqueued.
 - [x] Make rollback retry a forced reboot and emergency SysRq reboot.
-- [x] Prevent suspend from consuming the rollback window.
+- [x] Prevent suspend from consuming the rollback window without a
+  capability-dependent wake-lock gate.
 - [x] Reject any block-backed mount and force every physical block device and
   partition read-only before exposing USB recovery.
 - [x] Reject non-empty kernel output directories.
@@ -73,9 +75,10 @@ storage or desktop userspace.
 - [x] Repack and verify a new unsigned AVB temporary-boot image.
 - [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: **reproducible offline tooling passes through v15**. Recovery v12
+Exit gate: **reproducible offline tooling passes through v16**. Recovery v12
 remained unbooted; v13 and v14 both returned to fallback before their exact
-recovery USB identity appeared. V15 is diagnostic-only.
+recovery USB identity appeared. V15 identified the unnecessary wake-lock gate;
+v16 is the current live candidate.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -83,7 +86,7 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 
 - [ ] Boot the candidate with `fastboot boot`; do not flash it.
 - [ ] Verify ACM and NCM enumerate on the host.
-- [ ] Verify the rollback wake lock and supervised ACM process.
+- [ ] Verify the rollback watchdog and supervised ACM process.
 - [ ] Complete the first rollback test through credential-free ACM.
 - [ ] Authenticate only after separate approval to build an SSH-enabled
   candidate with the recovery public key.
@@ -97,8 +100,10 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 Recovery v13 and v14 completed non-flashing fastboot transfers but each
 returned to fallback 21 seconds after fastboot disconnected, without
 enumerating the exact recovery USB product. Neither satisfies a Phase 1 gate.
-V15 uses bounded failure delays to identify the shared early-return path; it is
-not eligible for kexec or promotion.
+V15's 31-second live interval identified the wake-lock gate as the shared
+early-return path. V16 removes that gate while retaining storage isolation and
+the rollback watchdog. It is not eligible for kexec or promotion until two
+complete RAM-only staging and rollback cycles pass.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.

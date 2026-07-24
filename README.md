@@ -44,12 +44,16 @@ and the expanded offline verifier passes. Its live attempt nevertheless
 returned to fallback in the same 21-second interval without recovery USB, so
 v14 is also rejected.
 
-Recovery v15 is a diagnostic-only, reproducible timing image. It keeps USB
-closed on failure and adds distinct rollback delays to identify whether reset
-occurs before `/init`, at the wake-lock gate, on a block-backed mount, or
-during physical-storage locking. It is not a functional candidate and must
-not run kexec. Live
-RAM-only, kexec, rollback, host USB, storage, Arch rootfs, desktop, and
+Recovery v15 was a diagnostic-only timing image. Its temporary boot returned
+to fallback in exactly 31 seconds, selecting the 10-second wake-lock failure
+branch and proving `/init` ran before storage isolation. The wrapper has
+`CONFIG_PM_AUTOSLEEP` disabled and recovery has no userspace power manager, so
+that wake-lock gate was unnecessary. Recovery v16 removes it and all
+timing-only delays while retaining the 180-second forced-reboot watchdog and
+the pre-USB physical-storage lock. Two complete v16 builds and repacks are
+byte-identical, and the network-isolated offline verifier passes. Its live
+RAM-only, rollback, host USB, and storage gates are pending; kexec remains
+prohibited until the staging cycle passes twice. Arch rootfs, desktop, and
 mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.

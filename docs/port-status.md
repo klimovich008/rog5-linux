@@ -2,7 +2,7 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v13/v14 returned before recovery USB; v15 timing diagnostic passes offline | identify early-return gate, then verify RAM-only staging, rollback, and kexec |
+| reversible boot | passing | v15 identified the wake-lock early return; v16 passes reproducible offline gates | verify v16 RAM-only staging and rollback twice, then attempt attended kexec |
 | UFS root | passing | blocked: recovery DTB disables UFS offline, but no current bundle has proved the live storage boundary | prove zero block-backed mounts before a separate read-only discovery tier |
 | USB NCM/SSH | passing | host requires exact recovery identity; no current candidate has reached it | verify supervised ACM first, then NCM; build an SSH variant only after key approval |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |

@@ -2,12 +2,12 @@
 
 Status: **PASS** for build, local USB, real fastboot preflight, and safe
 fallback return; **REJECTED** for the v13 and v14 live recovery identities;
-**PENDING** for the v15 timing diagnostic.
+**PASS** for the completed v15 diagnosis; **PENDING** for the v16 live gate.
 
 ## Host checks
 
 - Nobara Linux 44 runs the repository from native Btrfs.
-- Rootless Podman 5.8.4 built and verified recovery v15 with networking
+- Rootless Podman 5.8.4 built and verified recovery v16 with networking
   disabled.
 - Fedora/Nobara `android-tools` 35.0.2 supplies `adb` and `fastboot`.
 - The development user is listed in `dialout`. The current desktop process
@@ -44,8 +44,11 @@ fallback return; **REJECTED** for the v13 and v14 live recovery identities;
   was deliberately not loaded.
 
 V14 repeated the same exact result: fallback returned 21 seconds after
-fastboot disconnected with no recovery product. V15 is limited to one
-USB-closed timing measurement and cannot proceed to kexec.
+fastboot disconnected with no recovery product. V15 then returned in exactly
+31 seconds, selecting the USB-closed wake-lock failure branch and proving
+`/init` ran before storage isolation. V16 removes that unnecessary gate and
+passes duplicate offline builds; it remains limited to attended staging and
+automatic rollback until that cycle passes twice.
 
 The credential was not copied into the repository or recovery image. No
 partition, filesystem, slot, or persistent boot state was intentionally

@@ -1,7 +1,8 @@
 # Recovery v15 timing diagnostic
 
-Status: **PASS offline; live timing pending**. This is not a functional
-recovery candidate and must never be flashed or used for kexec.
+Status: **PASS offline; live diagnostic complete; superseded by v16**. This
+was not a functional recovery candidate and must never be flashed or used for
+kexec.
 
 ## Question
 
@@ -24,6 +25,24 @@ failure rollback:
 USB remains closed on every failure path. The 180-second watchdog remains
 armed for storage failures. No failure path mounts, repairs, formats, or
 writes storage.
+
+## Live result
+
+- The manifest-pinned v15 image passed the real fastboot preflight.
+- `fastboot boot` accepted and started the image; nothing was flashed.
+- Fastboot disconnected at 06:10:23 local time.
+- The known Alpine fallback gadget enumerated at 06:10:54.
+- No exact `ROG5_recovery` USB identity appeared between them.
+- The measured disconnect-to-fallback interval was exactly 31 seconds.
+- Kexec was not loaded or executed.
+
+The 31-second result selects the 10-second wake-lock failure branch. It proves
+that recovery `/init` ran and returned through its forced-reboot path before
+storage isolation or USB exposure. The wrapper configuration has
+`CONFIG_PM_AUTOSLEEP` disabled, and recovery has no userspace power manager,
+so automatic suspend cannot consume the rollback window. The wake-lock gate
+was therefore unnecessary and was the immediate cause of the v13/v14-style
+early return.
 
 ## Offline result
 
@@ -50,6 +69,6 @@ writes storage.
 | unsigned AVB image | 100,663,296 | `0f11061fbdcac80039d82acf29033f2d24f5d34ad7a57dde909480e3e83f6a35` |
 | wrapper metadata | 442 | `2f7f2f6652381976d51eb84cf9d4fe1c27f5212681e92a7e95eb9318f7a548fb` |
 
-The attended live command must set `BOOT_IMAGE` explicitly to the
-manifest-pinned v15 AVB image. After measuring one interval, stop and replace
-the timing code with a real fix; do not proceed to kexec.
+V16 removes the wake-lock gate and all diagnostic delays while retaining the
+armed rollback watchdog and fail-closed physical-storage isolation. V15 is
+retained only as reproducible diagnostic evidence.

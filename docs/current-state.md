@@ -103,8 +103,8 @@ is superseded and must not be booted again.
 The later v6 candidate embedded the staging initramfs in the ASUS 5.4 kernel
 and carried a USB2-only target DTB with UFS, QMP/SuperSpeed, and the secondary
 USB controller disabled. It passed its then-current offline suite, but live
-ACM data and automatic rollback failed. Source fixes now supervise ACM and
-hold a timed wake lock with repeated forced-reboot fallback.
+ACM data and automatic rollback failed. Later source fixes supervise ACM and
+use repeated forced-reboot fallback.
 
 Recovery v12 was rebuilt reproducibly but remained unbooted after a final
 safety audit found that it did not lock block devices before USB exposure.
@@ -127,8 +127,19 @@ recovery gate is accepted.
 Recovery v15 is a reproducible diagnostic-only image. It keeps USB closed on
 failure and adds 10/30/50-second rollback delays for PM wake-lock failure,
 block-backed mount detection, and physical-device lock failure respectively.
-An unchanged 21-second return means reset before those `/init` branches; exact
-recovery USB means all gates passed. V15 must not execute kexec.
+Its live temporary boot returned to fallback in exactly 31 seconds, proving
+that `/init` ran and the wake-lock branch failed before storage isolation.
+Kexec was not loaded or executed.
+
+Recovery v16 removes the wake-lock gate and timing-only delays. The wrapper
+configuration has `CONFIG_PM_AUTOSLEEP` disabled, and the initramfs has no
+userspace power manager, so no automatic suspend path needs that lock. The
+forced-reboot watchdog, block-backed-mount rejection, physical-device
+`BLKROSET` verification, USB-closed failure paths, and exact host identity
+check remain. Both initramfs layers, two independent ASUS wrapper builds, and
+two boot-image repacks are byte-identical; the network-isolated offline
+verifier passes. Live v16 staging and rollback remain pending, and kexec is
+prohibited until they pass twice.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

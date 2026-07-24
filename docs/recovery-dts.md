@@ -72,10 +72,13 @@ failed live ACM data and rollback. Recovery v12 incorporated the ACM/wake-lock
 fixes but remained unbooted after a final audit found no pre-USB block-device
 lock. V13 added that fail-closed gate to both stages, and v14 limited
 `BLKROSET` to physical disks and partitions. Both returned to fallback after
-21 seconds without exact recovery USB. V15 reproduces the physical-storage
-design with bounded timing diagnostics and passes the expanded offline
-verifier, but is not a functional candidate. Live USB, storage isolation, and
-rollback remain mandatory gates.
+21 seconds without exact recovery USB. V15 reproduced the physical-storage
+design with bounded timing diagnostics; its 31-second live interval proved
+the wake-lock gate failed before storage isolation. V16 removes that
+unnecessary gate, retains the watchdog and storage contract, reproduces
+byte-for-byte, and passes the expanded offline verifier. Live USB, storage
+isolation, and rollback remain mandatory gates and must pass twice before
+kexec.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.
