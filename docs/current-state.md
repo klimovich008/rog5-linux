@@ -161,5 +161,18 @@ no-credential/no-SSH, and zero fatal-log-signature checks before automatically
 returning to a changed fallback boot identity. The next gate is read-only UFS
 discovery.
 
+The read-only UFS discovery v1 bundle now passes its complete offline gate.
+Linux 7.1.4 commit `44fd886a77b8` adds the compile-time
+`CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY` command boundary. A final dependency
+audit rejected an earlier unbooted build because its Qualcomm UFS QMP PHY was
+modular; the accepted config builds the host, PHY, regulator, reset, pinctrl,
+interconnect, and USB recovery paths into the kernel and excludes unused QMP
+drivers. Two clean mainline builds, two clean ASUS transport-wrapper builds,
+both initramfs layers, the discovery DTB, and two header-v3/AVB repacks are
+byte-identical. The exact thirteen-file manifest passes the network-isolated
+bundle verifier. No discovery image has been booted yet, and nothing has been
+flashed; the next action is one attended manifest-pinned `fastboot boot` and
+kexec cycle with both rollback watchdogs armed.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

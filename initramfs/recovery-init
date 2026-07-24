@@ -34,6 +34,7 @@ isolate_storage() {
 	count=0
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -55,7 +56,83 @@ isolate_storage() {
 			count=$((count + 1))
 		done
 	done
+	printf '%s\n' "$count" >/run/rog5-physical-block-count
 	log "storage isolation ready; read-only physical block devices=$count"
+}
+
+physical_topology_count() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			count=$((count + 1))
+		done
+	done
+	printf '%s\n' "$count"
+}
+
+wait_for_ufs_discovery() {
+	attempt=0
+	stable=0
+	previous=-1
+	while [ "$attempt" -lt 450 ]; do
+		mdev -s || return 1
+		count=$(physical_topology_count)
+		if [ "$count" -gt 0 ] && [ "$count" = "$previous" ]; then
+			stable=$((stable + 1))
+		else
+			stable=0
+		fi
+		[ "$stable" -ge 20 ] && return 0
+		previous=$count
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	log 'UFS discovery did not enumerate a physical disk'
+	return 1
+}
+
+write_ufs_inventory() {
+	inventory=/run/rog5-ufs-inventory.tsv
+	printf 'name\tkind\tpartition_number\tpartition_name\tmajor_minor\tread_only\tstart_sectors\tsize_sectors\tlogical_block_bytes\tsysfs_path\n' \
+			>"$inventory"
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		logical_block_bytes=$(cat "$sys_disk/queue/logical_block_size")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			if [ "$sys_block" = "$sys_disk" ]; then
+				kind=disk
+				partition_number=0
+				partition_name=-
+				start=0
+			else
+				[ -e "$sys_block/partition" ] || continue
+				kind=partition
+				partition_number=$(cat "$sys_block/partition")
+				partition_name=$(sed -n 's/^PARTNAME=//p' "$sys_block/uevent" |
+					sed -n '1p')
+				[ -n "$partition_name" ] || partition_name=-
+				start=$(cat "$sys_block/start")
+			fi
+			name=$(basename "$sys_block")
+			printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+				"$name" "$kind" "$partition_number" "$partition_name" \
+				"$(cat "$sys_block/dev")" \
+				"$(cat "$sys_block/ro")" "$start" \
+				"$(cat "$sys_block/size")" "$logical_block_bytes" \
+				"$(readlink -f "$sys_block")" \
+				>>"$inventory"
+		done
+	done
+	[ "$(wc -l <"$inventory")" -gt 1 ]
 }
 
 serve_acm() {
@@ -86,11 +163,22 @@ esac
 timeout=180
 device_cidr=
 gateway=
+ufs_discovery=0
+ufs_discovery_count=0
+ufs_discovery_invalid=0
 for argument in $(cat /proc/cmdline); do
 	case $argument in
 		rog5.recovery_timeout=*) timeout=${argument#*=} ;;
 		rog5.recovery_cidr=*) device_cidr=${argument#*=} ;;
 		rog5.recovery_gateway=*) gateway=${argument#*=} ;;
+		rog5.ufs_discovery=*)
+			ufs_discovery_count=$((ufs_discovery_count + 1))
+			if [ "$argument" = rog5.ufs_discovery=1 ]; then
+				ufs_discovery=1
+			else
+				ufs_discovery_invalid=1
+			fi
+			;;
 	esac
 done
 case $timeout in *[!0-9]*|'') timeout=180 ;; esac
@@ -107,9 +195,38 @@ touch /run/rog5-recovery-armed
 echo $! >/run/rog5-recovery-watchdog.pid
 log 'rollback timer armed'
 
+if [ "$ufs_discovery_count" -gt 1 ] || [ "$ufs_discovery_invalid" = 1 ]; then
+	log 'invalid UFS discovery command line; rebooting'
+	force_rollback
+fi
+if [ "$ufs_discovery" = 1 ]; then
+	if [ ! -r /proc/config.gz ] ||
+		! gzip -dc /proc/config.gz |
+			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y'; then
+		log 'dedicated UFS discovery kernel attestation failed; rebooting'
+		force_rollback
+	fi
+	log 'waiting for stable UFS discovery'
+	if ! wait_for_ufs_discovery; then
+		log 'UFS discovery failed; rebooting'
+		force_rollback
+	fi
+fi
+
 if ! isolate_storage; then
 	log 'storage isolation failed; rebooting'
 	force_rollback
+fi
+if [ "$ufs_discovery" = 1 ]; then
+	[ "$(cat /run/rog5-physical-block-count)" -gt 0 ] || {
+		log 'UFS discovery did not enumerate a physical disk'
+		force_rollback
+	}
+	if ! write_ufs_inventory; then
+		log 'UFS sysfs inventory failed; rebooting'
+		force_rollback
+	fi
+	log 'UFS sysfs-only inventory ready'
 fi
 
 usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode

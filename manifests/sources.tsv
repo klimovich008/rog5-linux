@@ -1,5 +1,7 @@
 project	revision	date	note
 linux-stable	7a5cef0db4795d9d453a12e0f61b5b7634fc4d40	2026-07-18	Linux v7.1.4 research baseline
+linux-stable-ufs-discovery	44fd886a77b8edd4ea2abda8f72835045d877e18	2026-07-24	Linux v7.1.4 plus two deterministic compile-time read-only UFS patches; tree c3eb1dcf56c5b2047e04fcc83a512a971c75f387
+asus-zs673ks-5.4.210	3bfe58a00bfdd3839f9b626c2d34f0cc6778945458f1eef93cbfdea90bf2e5a8	2026-07-24	hash-pinned vendor wrapper source plus six reproducibility/toolchain patches
 linux-lts-6.18	e871c68dfd325de01351d6d1c009337c97ee3dcd	2026-07-18	Linux v6.18.39 deployment comparison; projected EOL Dec 2028
 godshell	4530e0fdee0dc98bea20b268273d7a3e438ceb37	2026-03-18	optional eBPF/LLM observability workload
 pmaports	29afb81ed2249d1ca0148a5dc6b4280bf0402af0	2026-07-20	no anakin package; old generic SM8350 fork archived
