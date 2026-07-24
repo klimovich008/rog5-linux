@@ -194,5 +194,17 @@ boot identity. Nothing was flashed. Read-only UFS discovery is accepted; the
 next gate is a minimal Arch/Debian root served over USB NCM while UFS remains
 unmounted.
 
+That network-root gate now passes offline. Two clean Linux 7.1.4 builds are
+byte-identical with NFSv4.2/OverlayFS built in and SCSI/UFS plus the related
+QMP storage/SuperSpeed paths compiled out. Two target initramfs builds, two
+nested credential-free staging archives, two clean ASUS wrappers, and two
+header-v3/AVB repacks are also byte-identical. The fourteen-file manifest
+passes nested hash, config, no-credential, boot-header, and AVB verification.
+The signed Arch Linux ARM base was reverified under the pinned signing key,
+and its metadata-preserving Linux staging path executes as AArch64. Final
+package/module staging, the restricted host NFS export, and the attended live
+boot remain pending; no network-root artifact has been transferred to the
+phone.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -49,6 +49,8 @@ install -Dm0644 "$repo/packaging/arch/rog5-chromium-headless.service" \
 install -Dm0644 "$repo/packaging/arch/rog5-server-inhibit.service" \
 	/etc/systemd/system/rog5-server-inhibit.service
 install -Dm0644 "$repo/packaging/arch/rog5-ttyd.service" /etc/systemd/system/rog5-ttyd.service
+install -Dm0644 "$repo/packaging/arch/10-rog5-usb-unmanaged.conf" \
+	/etc/NetworkManager/conf.d/10-rog5-usb-unmanaged.conf
 
 if getent passwd alarm >/dev/null; then
 	usermod -l rog5 alarm
@@ -119,6 +121,11 @@ modules_sha256=$MODULES_SHA256
 kernel_release=$TARGET_KERNEL_RELEASE
 EOF
 pacman -Q | LC_ALL=C sort > /etc/rog5/packages.txt
+if [[ -r /etc/fstab ]]; then
+	! awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// || $1 ~ /^(UUID|PARTUUID)=/) {
+		exit 1
+	}' /etc/fstab
+fi
 gpgconf --homedir /etc/pacman.d/gnupg --kill all || true
 find /etc/pacman.d/gnupg -type s -delete
 

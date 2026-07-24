@@ -14,6 +14,12 @@ The target userspace is the official generic AArch64 Arch Linux ARM root filesys
 
 Fetch and verify the generic rootfs into the ignored local artifact cache:
 
+```sh
+scripts/host/get-arch-rootfs.sh
+```
+
+On Windows, the equivalent wrapper is:
+
 ```powershell
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
@@ -24,13 +30,32 @@ The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7b
 
 Stage a server rootfs with an external public SSH key:
 
+```sh
+scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+On Windows, the equivalent wrapper is:
+
 ```powershell
 powershell -NoProfile -File scripts/host/Stage-ArchRootfs.ps1 -AuthorizedKey C:\path\to\rog5_ed25519.pub
 ```
 
-Staging runs the AArch64 userspace under Docker emulation, keeps pacman signature enforcement, removes the generic Arch kernel, installs the server/VPN packages and minimal Plasma target, adds the matching custom modules, locks published password accounts, removes reusable host identity, and enables key-only SSH. It does not include VPN/Wi-Fi/KRDP credentials, enable the hotspot, or alter the phone. Extraction, staging, archival, and verification use Linux Docker volumes plus libarchive ACL/xattr support; the output is re-extracted and checked so ownership, modes, and extended attributes survive the round trip.
+Staging runs the AArch64 userspace under Podman/Docker emulation, keeps pacman
+signature enforcement, removes the generic Arch kernel, installs the
+server/VPN packages and minimal Plasma target, adds the exact manifest-pinned
+network-root modules, locks published password accounts, removes reusable host
+identity, and enables key-only SSH. It does not include VPN/Wi-Fi/KRDP
+credentials, enable the hotspot, or alter the phone. Extraction, staging,
+archival, and verification use Linux volumes plus libarchive ACL/xattr
+support; the output is re-extracted and checked so ownership, modes, and
+extended attributes survive the round trip.
 
 The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256 `d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`. The staged Plasma image is 2,022,113,204 bytes with SHA-256 `31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`. Both pass their historical offline suites, but they contain the previous Linux 7.1.4 module set. Restage the Plasma image with the final reproducible kernel modules before any first boot; neither archive is a current boot candidate.
+
+The current network-root kernel/module bundle is reproducible and
+manifest-pinned, and the signed base archive has been reverified on Nobara
+Linux. The final Plasma rootfs has not yet been restaged, so the historical
+archives remain non-candidates.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 

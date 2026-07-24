@@ -42,6 +42,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
+| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle passes two clean kernel/initramfs/wrapper/repack comparisons and complete offline verification; rootfs/export/live gate pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
@@ -63,10 +64,12 @@ Native phone builds default to one parallel job. Four jobs heated rapidly; even 
 
 When a native build is unavoidable, run `guard-kernel-build.sh BUILD_PID` alongside it. The default 45.0 C battery-sensor ceiling terminates the active `make` child and build wrapper while preserving the object cache.
 
-Normal development uses the PC cross-builder. The current v18 recovery and
-read-only UFS discovery bundles were built on Nobara Linux with rootless
-Podman and container networking disabled; the existing Windows wrapper
-remains available:
+Normal development uses the PC cross-builder. The current v18 recovery,
+read-only UFS discovery, and UFS-disabled network-root bundles were built on
+Nobara Linux with rootless Podman and container networking disabled. The
+network-root Linux 7.1.4 config, Images, module archive, target/staging
+initramfs, ASUS wrapper, and header-v3/AVB package each reproduce
+byte-for-byte. The existing Windows wrapper remains available:
 
 ```powershell
 powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
@@ -104,6 +107,10 @@ kexec/target/rollback gate now pass.
 The build log and private DTS stay out of Git if they contain identifiers. A
 redacted summary belongs in `test-results/`; exact nonsecret output hashes
 belong in `manifests/`. The
+[network-root v1 offline report](../test-results/2026-07-24-network-root-v1-offline.md)
+records the reproducible UFS-disabled NFS/OverlayFS kernel, both initramfs
+layers, ASUS wrapper, Android package, signed Arch input, and pending live
+boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

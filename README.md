@@ -66,7 +66,13 @@ boot identity. The corrected read-only UFS discovery v2 gate also passes:
 Linux `7.1.4-gcfd385a1c754` enumerated all 116 UFS disks and partitions
 read-only with zero blocked commands, disabled auto-hibern8, pinned-active
 runtime PM, no UFS error handler, and automatic fallback recovery. Arch/Debian
-network root, desktop, and mainline GPU gates remain pending.
+network root now also passes its complete offline reproducibility gate: two
+Linux 7.1.4 builds, two target/staging initramfs builds, two ASUS wrappers, and
+two header-v3/AVB repacks are byte-identical. The dedicated kernel has
+NFSv4.2/OverlayFS built in and compiles SCSI/UFS/QMP storage paths out. The
+signed Arch input and Linux-native staging path pass, but the rootfs still
+needs its final module/package staging and the NFS/live boot gate remains
+pending. Desktop and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -75,6 +81,7 @@ See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
 [builds and artifacts](docs/builds-and-artifacts.md),
 [subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md),
 [read-only UFS discovery](docs/ufs-discovery.md),
+[native network root](docs/network-root.md),
 [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md),
 [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
 
@@ -158,6 +165,19 @@ powershell -NoProfile -File scripts/host/Build-MainlineInDocker.ps1
 ```
 
 Fetch and authenticate the Arch Linux ARM userspace input:
+
+```sh
+scripts/host/get-arch-rootfs.sh
+```
+
+After an offline bundle is accepted and the repository is clean, stage the
+matching headless-first Plasma rootfs with an external public SSH key:
+
+```sh
+scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+The equivalent Windows workflow remains available:
 
 ```powershell
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1

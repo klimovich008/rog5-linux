@@ -29,6 +29,7 @@ for a working feature.
 - [x] Pass live RAM-only, storage-isolation, USB, and rollback gates.
 - [x] Kexec from the temporary vendor kernel into Linux 7.1.4.
 - [x] Discover the complete UFS topology read-only with zero blocked commands.
+- [x] Reproduce the UFS-disabled Linux 7.1.4 USB network-root bundle offline.
 - [ ] Boot a headless Arch/Debian root over USB NCM while UFS stays unmounted.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Boot Arch headlessly.
@@ -156,8 +157,11 @@ Goal: boot a normal modern distro before adding desktop complexity.
 
 - [ ] Restage the Arch rootfs with the exact accepted kernel modules.
 - [ ] Verify package signatures, firmware hashes, ownership, symlinks, and modes.
-- [ ] Add a fail-closed initramfs path that creates USB NCM, mounts a
+- [x] Add a fail-closed initramfs path that creates USB NCM, mounts a
   host-exported root read-only, adds a tmpfs overlay, and then `switch_root`s.
+- [x] Build the dedicated NFSv4.2/OverlayFS kernel twice with SCSI/UFS and its
+  QMP PHY paths compiled out; reproduce both initramfs layers, wrapper, and
+  Android temporary-boot package.
 - [ ] Restrict the host export to the dedicated USB address and keep it
   disabled except during attended tests.
 - [ ] Boot once with UFS disabled before combining normal userspace with any

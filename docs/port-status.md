@@ -3,8 +3,8 @@
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
 | reversible boot | passing | v18 staging passes twice; Linux 7.1 target and rollback pass once | retain the same boundary for each new DTB tier |
-| UFS root | passing baseline only | no-mount discovery passes: 116/116 nodes read-only, zero blocked commands, host active, automatic rollback | boot the first USB-NCM network root; persistent UFS root remains unauthorized |
-| USB NCM/SSH | passing | Linux 7.1 credential-free ACM/NCM and UFS-discovery transport pass; v17 keyed SSH passed | provide key-only SSH in the network-root userspace; keep access explicit |
+| UFS root | passing baseline only | no-mount discovery passes; the dedicated network-root kernel compiles UFS out and passes offline | boot the first USB-NCM network root; persistent UFS root remains unauthorized |
+| USB NCM/SSH | passing | Linux 7.1 ACM/NCM passes; credential-free network-root transport is reproducible offline; v17 keyed SSH passed | stage key-only SSH in the network-root userspace and pass the live NFS gate |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

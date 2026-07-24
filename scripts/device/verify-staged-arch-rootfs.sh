@@ -38,6 +38,8 @@ grep -qx 'PasswordAuthentication no' /etc/ssh/sshd_config.d/10-rog5-server.conf
 grep -qx 'PermitRootLogin prohibit-password' /etc/ssh/sshd_config.d/10-rog5-server.conf
 [[ $(systemctl is-enabled NetworkManager.service) == enabled ]]
 [[ $(systemctl is-enabled NetworkManager-wait-online.service) == enabled ]]
+grep -qx 'unmanaged-devices=interface-name:usb0' \
+	/etc/NetworkManager/conf.d/10-rog5-usb-unmanaged.conf
 for unit in systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service; do
 	[[ $(systemctl is-enabled "$unit" 2>/dev/null || true) != enabled ]]
 done
@@ -72,6 +74,11 @@ sh /workspace/repo/scripts/device/verify-a660-firmware.sh /usr/lib/firmware
 [[ -r /usr/lib/firmware/regulatory.db ]]
 [[ ! -e /etc/wireguard/wg0.conf ]]
 [[ ! -s /etc/machine-id ]]
+if [[ -r /etc/fstab ]]; then
+	! awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// || $1 ~ /^(UUID|PARTUUID)=/) {
+		exit 1
+	}' /etc/fstab
+fi
 [[ -z $(find /etc/pacman.d/gnupg -type s -print -quit) ]]
 [[ $(getfattr --only-values -n user.rog5 /etc/rog5/xattr-probe 2>/dev/null) == preserved ]]
 

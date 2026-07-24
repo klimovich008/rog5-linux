@@ -36,6 +36,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   products, rebuilds the reviewed UFS/USB2 DTB, verifies both nested
   credential-free initramfs layers, and checks the wrapper, boot header,
   command line, and AVB footer.
+- `verify-network-root-bundle.sh` requires exactly fourteen manifest-pinned
+  products, delegates the dedicated kernel and target-initramfs checks,
+  rejects an enabled UFS path or UFS module, verifies both credential-free
+  initramfs layers and nested hashes, and checks the wrapper, boot header,
+  command line, and AVB footer.
+- `test-linux-rootfs-tools.sh` checks the pinned signed-Arch input path,
+  metadata-preserving rootfs stage path, exact network-root module input, and
+  absence of broad container privilege or phone-write commands.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
@@ -97,6 +105,26 @@ restored the exact fallback kernel.
   `reboot -f` in the background, so shutdown cannot block the fallback path.
 - Treat the resulting topology as design input only. Persistent rootfs or
   partition changes require a later explicit authorization.
+
+## Tier 1.75 — UFS-disabled network root
+
+Status: **offline bundle passed; rootfs/export/live test pending**.
+
+- Use only the fourteen-file manifest-pinned network-root bundle.
+- Require built-in NFSv4.2, TCP, OverlayFS, tmpfs xattrs, USB ACM/NCM, and
+  `/proc/config.gz`.
+- Require SCSI/UFS, SCSI disk/BSG/RPMB, and UFS/combo/PCIe/SuperSpeed QMP PHY
+  paths to be absent from the final kernel config and module archive.
+- Keep the accepted USB2 recovery DTB with UFS and its PHY disabled.
+- Restrict the host NFSv4 export to `169.254.77.2` on the dedicated USB
+  interface, export it read-only, and remove the runtime export/firewall rule
+  after the attended test.
+- Require read-only NFS lower, 2 GiB `nodev,nosuid` tmpfs upper, OverlayFS
+  `/`, zero physical block devices, and zero block-backed mounts before
+  accepting userspace.
+- Boot `multi-user.target`, leave `usb0` unmanaged, and require key-only SSH.
+- Verify exact kernel release, systemd state, nested mounts, watchdog, stable
+  USB traffic, no fatal log signature, and automatic return to fallback.
 
 ## Tier 2 — core hardware
 
