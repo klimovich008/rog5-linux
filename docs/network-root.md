@@ -134,6 +134,34 @@ repository watchdog-disarm helper, normal reboot, and complete cleanup. Its
 protected 120-second event window received no confirmed press/release. See the
 [PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md).
 
+## Trusted volatile time
+
+V4 proved that the raw PMK8350 RTC cannot be trusted. V5 therefore keeps that
+node disabled and never loads or writes an RTC device.
+`sync-network-root-time.sh` provides the minimal temporary bootstrap for the
+USB network-root tier:
+
+```bash
+ALLOW_NETWORK_ROOT_TIME_SYNC=1 \
+SSH_KEY=/secure/path/network-root-client-key \
+KNOWN_HOSTS=/secure/path/network-root-known-hosts \
+scripts/host/sync-network-root-time.sh
+```
+
+The host tool refuses to run unless the host reports NTP synchronization, the
+private key is not group/world-accessible, known-host checking is strict, and
+the target passes exact normal-kernel, systemd, read-only NFS/OverlayFS,
+zero-storage, USB, fatal-log, disabled-RTC, and armed-watchdog gates. It steps
+only Linux `CLOCK_REALTIME` through GNU `date` when drift exceeds two seconds,
+then requires convergence within three seconds and repeats the RTC, storage,
+watchdog, USB, systemd, and fatal-log checks. It never invokes `hwclock`,
+`timedatectl set-time`, a storage command, or a PMIC offset mechanism.
+
+This is an offline-tested host tool, not yet a live acceptance result. Run it
+after the full target safety gate and before watchdog disarm. Once Wi-Fi is
+accepted, normal authenticated NTP should take over; the SSH bootstrap remains
+the recovery/network-root fallback.
+
 ## Offline result
 
 The v3 bundle passes its fourteen-file verifier:

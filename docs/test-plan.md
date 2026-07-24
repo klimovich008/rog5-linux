@@ -163,6 +163,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   watchdog disarm. Require its explicit guard, exact storage/NFS/RTC/input
   state, low-level logind inhibitor, and both `KEY_POWER` press and release
   records before accepting the physical switch/IRQ path.
+- Before TLS, package, or automation tests, run
+  `sync-network-root-time.sh` while the rollback watchdog is still armed.
+  Require an NTP-synchronized host, strict dedicated SSH identity, normal
+  unmasked Linux, read-only NFS/OverlayFS, zero storage, RTC disabled and
+  absent, exact USB state, and no failed/fatal state before and after changing
+  only the volatile Linux system clock. **Offline fake-SSH contract passed;
+  live gate pending.**
 - Treat display, battery, charging, radio, physical input actuation, and GPU
   as untested despite the normal headless coldplug and input-registration
   passes.
