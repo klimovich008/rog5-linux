@@ -75,10 +75,12 @@ lock. V13 added that fail-closed gate to both stages, and v14 limited
 21 seconds without exact recovery USB. V15 reproduced the physical-storage
 design with bounded timing diagnostics; its 31-second live interval proved
 the wake-lock gate failed before storage isolation. V16 removes that
-unnecessary gate, retains the watchdog and storage contract, reproduces
-byte-for-byte, and passes the expanded offline verifier. Live USB, storage
-isolation, and rollback remain mandatory gates and must pass twice before
-kexec.
+unnecessary gate and reached exact USB, NCM, and rollback, but its ACM device
+node was absent. The authorized local v17 diagnostic proved the RAM/storage
+contract and restored ACM with `mdev -s`. V18 requires that rescan, the
+`ttyGS0` node, and a second storage gate before UDC binding; it reproduces
+byte-for-byte and passes the expanded offline verifier. Credential-free live
+USB, storage isolation, and rollback must pass twice before kexec.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.

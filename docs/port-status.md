@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v15 identified the wake-lock early return; v16 passes reproducible offline gates | verify v16 RAM-only staging and rollback twice, then attempt attended kexec |
-| UFS root | passing | blocked: recovery DTB disables UFS offline, but no current bundle has proved the live storage boundary | prove zero block-backed mounts before a separate read-only discovery tier |
-| USB NCM/SSH | passing | host requires exact recovery identity; no current candidate has reached it | verify supervised ACM first, then NCM; build an SSH variant only after key approval |
+| reversible boot | passing | v16 exact USB/NCM/rollback passed; v18 reproducible offline candidate | verify v18 RAM-only staging and rollback twice, then attempt attended kexec |
+| UFS root | passing | v17 proved RAM root, zero block mounts, and all 116 physical nodes read-only | repeat through credential-free ACM before a separate read-only discovery tier |
+| USB NCM/SSH | passing | v16 NCM passed; v17 keyed SSH passed and isolated missing tty node | verify v18 supervised ACM twice; keep SSH key-only and explicit |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

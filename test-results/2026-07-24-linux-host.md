@@ -2,12 +2,13 @@
 
 Status: **PASS** for build, local USB, real fastboot preflight, and safe
 fallback return; **REJECTED** for the v13 and v14 live recovery identities;
-**PASS** for the completed v15 diagnosis; **PENDING** for the v16 live gate.
+**PASS** for the v15 diagnosis and v17 live storage/ACM diagnosis;
+**PARTIAL** for v16; **PENDING** for the v18 live gate.
 
 ## Host checks
 
 - Nobara Linux 44 runs the repository from native Btrfs.
-- Rootless Podman 5.8.4 built and verified recovery v16 with networking
+- Rootless Podman 5.8.4 built and verified recovery v18 with networking
   disabled.
 - Fedora/Nobara `android-tools` 35.0.2 supplies `adb` and `fastboot`.
 - The development user is listed in `dialout`. The current desktop process
@@ -46,10 +47,15 @@ fallback return; **REJECTED** for the v13 and v14 live recovery identities;
 V14 repeated the same exact result: fallback returned 21 seconds after
 fastboot disconnected with no recovery product. V15 then returned in exactly
 31 seconds, selecting the USB-closed wake-lock failure branch and proving
-`/init` ran before storage isolation. V16 removes that unnecessary gate and
-passes duplicate offline builds; it remains limited to attended staging and
-automatic rollback until that cycle passes twice.
+`/init` ran before storage isolation. V16 removed that gate, then passed exact
+USB, NCM, and automatic rollback but returned no ACM shell data. The
+authorized local v17 SSH diagnostic proved RAM root, zero block mounts, all
+116 physical nodes read-only, and a working watchdog. It isolated ACM to the
+missing `/dev/ttyGS0` node and proved a live `mdev -s` rescan fixes it. V18
+implements that rescan plus a second storage gate and passes duplicate offline
+builds.
 
-The credential was not copied into the repository or recovery image. No
-partition, filesystem, slot, or persistent boot state was intentionally
-written.
+The private credential was not copied into the repository, logs, or any
+recovery image. Only its public key entered the local never-publish v17
+diagnostic. No partition, filesystem, slot, or persistent boot state was
+intentionally written.

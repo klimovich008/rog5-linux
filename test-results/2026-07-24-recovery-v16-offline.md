@@ -1,7 +1,8 @@
 # Recovery v16 offline result
 
-Status: **PASS offline; live temporary boot pending**. V16 is an attended,
-credential-free, RAM-only recovery candidate. It must never be flashed.
+Status: **PASS offline; partial live result; superseded by v18**. V16 was an
+attended, credential-free, RAM-only recovery candidate and must never be
+flashed. See the [live result](2026-07-24-recovery-v16-live.md).
 
 ## Change from v15
 
@@ -48,12 +49,9 @@ partition read-only still forces rollback while USB is closed.
 | unsigned AVB image | 100,663,296 | `019e62ee07b8d2c1bad3d47ae0730dad741df4af14a4a31858fedabdd6200b08` |
 | wrapper metadata | 442 | `4035a4818379d1522ca59ce35a98ce33a2e14946633167a4b6ab1ace5e1a95fd` |
 
-## Live gate
+## Superseded live gate
 
-Set `BOOT_IMAGE` explicitly to the manifest-pinned v16 AVB image and use only
-the guarded `fastboot boot` workflow. Accept the staging environment only if
-the host sees exact normalized product `ROG5_recovery`, the root is
-RAM-backed, no block-backed mount exists, every physical disk and partition is
-read-only, the watchdog and supervised ACM process are alive, and the
-180-second timer returns the phone to a changed fallback boot identity. Repeat
-the complete staging/rollback cycle before any attended kexec attempt.
+V16 reached exact normalized product `ROG5_recovery`, working NCM, and
+automatic rollback to a changed fallback boot identity, but ACM returned no
+shell bytes. V17 isolated the cause to the missing `/dev/ttyGS0` node. V18
+supersedes this image with a fail-closed node rescan and second storage gate.

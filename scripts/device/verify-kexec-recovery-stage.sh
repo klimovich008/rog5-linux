@@ -131,9 +131,21 @@ grep -Fq 'blockdev --setro' "$stage/target/init"
 grep -Fq 'blockdev --getro' "$stage/target/init"
 grep -Fq '[ -e "$sys_disk/device" ] || continue' "$stage/target/init"
 grep -Fq '[ -e "$sys_block/partition" ] || continue' "$stage/target/init"
-storage_line=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
+storage_lines=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
+[ "$(printf '%s\n' "$storage_lines" | awk 'NF { count++ } END { print count + 0 }')" -eq 2 ]
+storage_line=$(printf '%s\n' "$storage_lines" | sed -n '1p')
+post_mdev_storage_line=$(printf '%s\n' "$storage_lines" | sed -n '2p')
 usb_line=$(grep -n '^usb_mode=' "$stage/target/init" | cut -d: -f1)
+mdev_line=$(grep -n '^if ! mdev -s; then$' "$stage/target/init" | cut -d: -f1)
+tty_line=$(grep -n '^\[ -c /dev/ttyGS0 \] || {$' "$stage/target/init" | cut -d: -f1)
+acm_line=$(grep -n '^serve_acm &$' "$stage/target/init" | cut -d: -f1)
+bind_line=$(grep -n '^[[:space:]]*echo "\$udc" >"\$gadget/UDC"$' \
+	"$stage/target/init" | cut -d: -f1)
 [ "$storage_line" -lt "$usb_line" ]
+[ "$mdev_line" -lt "$tty_line" ]
+[ "$tty_line" -lt "$post_mdev_storage_line" ]
+[ "$post_mdev_storage_line" -lt "$acm_line" ]
+[ "$acm_line" -lt "$bind_line" ]
 [ -x "$stage/staging/usr/sbin/kexec" ]
 [ -x "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" ]
 grep -qx 'set -u' "$stage/staging/init"

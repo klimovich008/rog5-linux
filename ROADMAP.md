@@ -65,6 +65,8 @@ storage or desktop userspace.
   capability-dependent wake-lock gate.
 - [x] Reject any block-backed mount and force every physical block device and
   partition read-only before exposing USB recovery.
+- [x] Rescan configfs-created device nodes, require `/dev/ttyGS0`, and repeat
+  storage isolation before starting ACM or binding USB.
 - [x] Reject non-empty kernel output directories.
 - [x] Verify the final kernel configuration and recovery-init markers.
 - [x] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
@@ -75,10 +77,11 @@ storage or desktop userspace.
 - [x] Repack and verify a new unsigned AVB temporary-boot image.
 - [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: **reproducible offline tooling passes through v16**. Recovery v12
+Exit gate: **reproducible offline tooling passes through v18**. Recovery v12
 remained unbooted; v13 and v14 both returned to fallback before their exact
 recovery USB identity appeared. V15 identified the unnecessary wake-lock gate;
-v16 is the current live candidate.
+v16 reached USB/NCM/rollback but not ACM; v17 identified the missing device
+node; v18 is the current credential-free candidate.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -101,9 +104,11 @@ Recovery v13 and v14 completed non-flashing fastboot transfers but each
 returned to fallback 21 seconds after fastboot disconnected, without
 enumerating the exact recovery USB product. Neither satisfies a Phase 1 gate.
 V15's 31-second live interval identified the wake-lock gate as the shared
-early-return path. V16 removes that gate while retaining storage isolation and
-the rollback watchdog. It is not eligible for kexec or promotion until two
-complete RAM-only staging and rollback cycles pass.
+early-return path. V16 removed that gate and reached exact USB, NCM, and
+rollback, but ACM lacked `/dev/ttyGS0`. V17 proved the RAM/storage boundary and
+confirmed a live `mdev -s` rescan fixes ACM. V18 implements the fail-closed
+rescan and second storage check. It is not eligible for kexec or promotion
+until two complete RAM-only staging and rollback cycles pass.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.

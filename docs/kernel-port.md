@@ -59,7 +59,7 @@ Enable BTF/eBPF and run GodShell as an optional systemd-managed workload. Then a
 
 ROG Phone 5 uses Android boot header v3, and the stock-style boot template has no DTB field. Passing the new ASUS DTB directly through a normal boot image is therefore not available without changing `vendor_boot`, which is outside the recovery safety boundary.
 
-The v16 candidate uses this intended reversible two-stage route:
+The v18 candidate uses this intended reversible two-stage route:
 
 1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with the staging initramfs built into the kernel. Nothing is flashed.
 2. The built-in initramfs contains the Linux 7.1 `Image`, USB2-only recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. Its offline contract contains no storage-mount logic.
@@ -82,10 +82,13 @@ v14 narrowed it to physical storage, but both returned to fallback after 21
 seconds without exact recovery USB. V15 reproduced the chain with bounded
 failure delays; its exact 31-second live return identified the unnecessary
 wake-lock gate before storage isolation. V16 removes that gate and all timing
-delays while retaining the watchdog and physical-storage boundary. Its
-duplicate builds and offline verifier pass, but live ACM, RAM-backed root,
-physical-block read-only state, kexec, and rollback remain unproven. Kexec is
-prohibited until v16 staging and rollback pass twice.
+delays while retaining the watchdog and physical-storage boundary. It reached
+exact USB, NCM, and rollback but lacked `/dev/ttyGS0`. A local keyed v17
+diagnostic proved the RAM-backed root, zero block mounts, all 116 physical
+nodes read-only, and the live `mdev -s` ACM fix. V18 makes that rescan and a
+second storage gate mandatory before USB binding. Its duplicate builds and
+offline verifier pass; kexec is prohibited until v18 staging and rollback pass
+twice.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did

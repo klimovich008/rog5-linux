@@ -48,13 +48,17 @@ Recovery v15 was a diagnostic-only timing image. Its temporary boot returned
 to fallback in exactly 31 seconds, selecting the 10-second wake-lock failure
 branch and proving `/init` ran before storage isolation. The wrapper has
 `CONFIG_PM_AUTOSLEEP` disabled and recovery has no userspace power manager, so
-that wake-lock gate was unnecessary. Recovery v16 removes it and all
-timing-only delays while retaining the 180-second forced-reboot watchdog and
-the pre-USB physical-storage lock. Two complete v16 builds and repacks are
-byte-identical, and the network-isolated offline verifier passes. Its live
-RAM-only, rollback, host USB, and storage gates are pending; kexec remains
-prohibited until the staging cycle passes twice. Arch rootfs, desktop, and
-mainline GPU gates remain pending.
+that wake-lock gate was unnecessary. Recovery v16 removed it and reached exact
+recovery USB, working NCM, and automatic rollback, but ACM returned no shell
+data. An authorized local v17 SSH diagnostic proved the root was RAM-backed,
+there were zero block-backed mounts, all 116 physical devices were read-only,
+and the watchdog worked. It isolated ACM to a missing `/dev/ttyGS0` node; a
+live `mdev -s` rescan immediately restored the shell. Recovery v18 makes that
+rescan fail-closed, requires the node, and repeats storage isolation before
+binding USB. Two complete v18 builds and repacks are byte-identical, and the
+network-isolated verifier passes. Two credential-free live staging/rollback
+cycles remain mandatory before kexec. Arch rootfs, desktop, and mainline GPU
+gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

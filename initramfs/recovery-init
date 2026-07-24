@@ -133,6 +133,18 @@ echo 'NCM and ACM recovery' >"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
 ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
 ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+if ! mdev -s; then
+	log 'device-node rescan failed; rollback timer remains armed'
+	force_rollback
+fi
+[ -c /dev/ttyGS0 ] || {
+	log 'ACM device node missing after rescan; rollback timer remains armed'
+	force_rollback
+}
+if ! isolate_storage; then
+	log 'storage isolation failed after device-node rescan; rebooting'
+	force_rollback
+fi
 serve_acm &
 echo $! >/run/rog5-recovery-acm.pid
 log 'gadget functions configured'

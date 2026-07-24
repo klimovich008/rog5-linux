@@ -136,10 +136,22 @@ configuration has `CONFIG_PM_AUTOSLEEP` disabled, and the initramfs has no
 userspace power manager, so no automatic suspend path needs that lock. The
 forced-reboot watchdog, block-backed-mount rejection, physical-device
 `BLKROSET` verification, USB-closed failure paths, and exact host identity
-check remain. Both initramfs layers, two independent ASUS wrapper builds, and
-two boot-image repacks are byte-identical; the network-isolated offline
-verifier passes. Live v16 staging and rollback remain pending, and kexec is
-prohibited until they pass twice.
+check remain. V16 reached exact recovery USB, working NCM, and automatic
+rollback to a changed fallback boot, but ACM returned no bytes.
+
+The separately authorized local v17 SSH diagnostic proved a RAM-backed
+`rootfs`, zero block-backed mounts, 116 physical disks/partitions read-only,
+and live watchdog/ACM supervisor processes. Its configfs ACM function exposed
+`/sys/class/tty/ttyGS0`, but `/dev/ttyGS0` was absent. A live RAM-only
+`mdev -s` created the node and the supervised ACM shell worked immediately.
+The diagnostic then rolled back automatically; it was never published and
+kexec was not attempted.
+
+Recovery v18 adds that explicit rescan, requires the character node, and
+repeats storage isolation before ACM or UDC binding. Both initramfs layers,
+two independent ASUS wrapper builds, and two boot-image repacks are
+byte-identical; the strengthened network-isolated verifier passes. Two live
+credential-free staging and rollback cycles remain mandatory before kexec.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
