@@ -45,9 +45,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   stopped after the 31-second wake-lock result and never ran kexec.
 - V16 exposed exact `ROG5_recovery`, NCM, and automatic rollback but lacked an
   ACM device node. V17 proved the RAM/storage gates and live rescan fix.
-- V18 must expose credential-free ACM, prove a RAM-backed root and read-only
-  physical storage, and return through its 180-second watchdog twice before
-  kexec is eligible.
+- V18 exposed credential-free ACM, proved a RAM-backed root and read-only
+  physical storage, and returned through its 180-second watchdog twice. The
+  separate attended kexec gate is now eligible.
 - Before exposing USB, both stages reject any block-backed mount and use
   `BLKROSET` through `blockdev --setro`; every physical disk and partition
   must report read-only. Volatile loop, RAM, and zram devices are excluded.

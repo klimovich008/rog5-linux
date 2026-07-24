@@ -87,18 +87,18 @@ node; v18 is the current credential-free candidate.
 
 Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 
-- [ ] Boot the candidate with `fastboot boot`; do not flash it.
-- [ ] Verify ACM and NCM enumerate on the host.
-- [ ] Verify the rollback watchdog and supervised ACM process.
-- [ ] Complete the first rollback test through credential-free ACM.
-- [ ] Authenticate only after separate approval to build an SSH-enabled
+- [x] Boot the candidate with `fastboot boot`; do not flash it.
+- [x] Verify ACM and NCM enumerate on the host.
+- [x] Verify the rollback watchdog and supervised ACM process.
+- [x] Complete the first rollback test through credential-free ACM.
+- [x] Authenticate only after separate approval to build an SSH-enabled
   candidate with the recovery public key.
-- [ ] Prove the live root and writable paths are tmpfs/ramfs.
-- [ ] Prove no physical storage block device is mounted and every enumerated
+- [x] Prove the live root and writable paths are tmpfs/ramfs.
+- [x] Prove no physical storage block device is mounted and every enumerated
   block device reports read-only.
-- [ ] Run the storage-isolation and USB gadget smoke suites.
-- [ ] Let the short rollback timer expire and prove return to the fallback OS.
-- [ ] Repeat the boot and rollback test to exclude a one-off success.
+- [x] Run the storage-isolation and USB gadget smoke suites.
+- [x] Let the short rollback timer expire and prove return to the fallback OS.
+- [x] Repeat the boot and rollback test to exclude a one-off success.
 
 Recovery v13 and v14 completed non-flashing fastboot transfers but each
 returned to fallback 21 seconds after fastboot disconnected, without
@@ -108,7 +108,8 @@ early-return path. V16 removed that gate and reached exact USB, NCM, and
 rollback, but ACM lacked `/dev/ttyGS0`. V17 proved the RAM/storage boundary and
 confirmed a live `mdev -s` rescan fixes ACM. V18 implements the fail-closed
 rescan and second storage check. It is not eligible for kexec or promotion
-until two complete RAM-only staging and rollback cycles pass.
+until two complete RAM-only staging and rollback cycles pass. Both cycles now
+pass; the nested recovery is eligible for one separate attended kexec attempt.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.

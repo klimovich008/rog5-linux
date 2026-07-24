@@ -1,7 +1,8 @@
 # Recovery v18 offline result
 
-Status: **PASS offline; live temporary boot pending**. V18 is the current
-credential-free ACM-only candidate and must never be flashed.
+Status: **PASS offline and twice live for staging/rollback**. V18 is the
+current credential-free ACM-only candidate and must never be flashed. See the
+[live result](2026-07-24-recovery-v18-live.md).
 
 ## Change from v16/v17
 
@@ -44,10 +45,9 @@ failure forces rollback while USB remains closed.
 | unsigned AVB image | 100,663,296 | `b06f016a5f9697a4e51b13159dede83990c30fc9bd36ff642214ac6715c05af7` |
 | wrapper metadata | 442 | `f2ec55649b2951f3774ad2e26458506f4125ffff886f478f4ceb08a23a3851a0` |
 
-## Live gate
+## Completed live gate
 
-Use only the explicit manifest-pinned `fastboot boot` workflow. Through ACM,
-verify the wrapper release, RAM root, zero block-backed mounts, all 116
-physical devices read-only, armed watchdog, live ACM supervisor, absence of
-authorization and SSH, then allow automatic rollback to a changed fallback
-boot identity. Repeat the complete cycle before kexec becomes eligible.
+Two explicit manifest-pinned `fastboot boot` cycles passed the wrapper release,
+RAM root, zero block-backed mounts, all 116 physical devices read-only, armed
+watchdog, live ACM supervisor, no-authorization/no-SSH, NCM, and automatic
+fallback checks. Kexec was not loaded or executed during either cycle.

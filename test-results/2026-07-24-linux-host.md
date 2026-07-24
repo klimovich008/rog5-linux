@@ -3,7 +3,7 @@
 Status: **PASS** for build, local USB, real fastboot preflight, and safe
 fallback return; **REJECTED** for the v13 and v14 live recovery identities;
 **PASS** for the v15 diagnosis and v17 live storage/ACM diagnosis;
-**PARTIAL** for v16; **PENDING** for the v18 live gate.
+**PARTIAL** for v16; **PASS twice** for the v18 staging/rollback gate.
 
 ## Host checks
 
@@ -53,7 +53,9 @@ authorized local v17 SSH diagnostic proved RAM root, zero block mounts, all
 116 physical nodes read-only, and a working watchdog. It isolated ACM to the
 missing `/dev/ttyGS0` node and proved a live `mdev -s` rescan fixes it. V18
 implements that rescan plus a second storage gate and passes duplicate offline
-builds.
+builds. Two credential-free v18 cycles then passed exact USB, ACM/NCM,
+RAM-root, zero-block-mount, 116-device read-only, watchdog, no-SSH, and
+automatic changed-boot fallback checks.
 
 The private credential was not copied into the repository, logs, or any
 recovery image. Only its public key entered the local never-publish v17

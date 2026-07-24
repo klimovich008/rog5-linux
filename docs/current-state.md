@@ -151,7 +151,11 @@ Recovery v18 adds that explicit rescan, requires the character node, and
 repeats storage isolation before ACM or UDC binding. Both initramfs layers,
 two independent ASUS wrapper builds, and two boot-image repacks are
 byte-identical; the strengthened network-isolated verifier passes. Two live
-credential-free staging and rollback cycles remain mandatory before kexec.
+credential-free staging/rollback cycles also pass: both reported RAM root,
+zero block mounts, 116 read-only physical nodes with zero failures, live
+watchdog/ACM, no authorization or SSH, configured NCM, and automatic return to
+a changed fallback boot identity. The nested Linux 7.1 recovery is eligible
+for one separate attended kexec attempt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

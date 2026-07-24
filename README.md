@@ -57,8 +57,10 @@ live `mdev -s` rescan immediately restored the shell. Recovery v18 makes that
 rescan fail-closed, requires the node, and repeats storage isolation before
 binding USB. Two complete v18 builds and repacks are byte-identical, and the
 network-isolated verifier passes. Two credential-free live staging/rollback
-cycles remain mandatory before kexec. Arch rootfs, desktop, and mainline GPU
-gates remain pending.
+cycles now pass with RAM root, zero block mounts, all 116 physical devices
+read-only, ACM/NCM, no SSH, and changed fallback boot identities. The nested
+Linux 7.1 recovery is eligible for one separate attended kexec attempt. Arch
+rootfs, desktop, and mainline GPU gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

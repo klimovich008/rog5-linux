@@ -87,8 +87,10 @@ exact USB, NCM, and rollback but lacked `/dev/ttyGS0`. A local keyed v17
 diagnostic proved the RAM-backed root, zero block mounts, all 116 physical
 nodes read-only, and the live `mdev -s` ACM fix. V18 makes that rescan and a
 second storage gate mandatory before USB binding. Its duplicate builds and
-offline verifier pass; kexec is prohibited until v18 staging and rollback pass
-twice.
+offline verifier pass. V18 staging and rollback now also pass twice with RAM
+root, zero block mounts, 116 read-only physical nodes, ACM/NCM, and changed
+fallback boot identities. One separately attended Linux 7.1 kexec attempt is
+now eligible.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did

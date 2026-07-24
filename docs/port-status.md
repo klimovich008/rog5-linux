@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v16 exact USB/NCM/rollback passed; v18 reproducible offline candidate | verify v18 RAM-only staging and rollback twice, then attempt attended kexec |
-| UFS root | passing | v17 proved RAM root, zero block mounts, and all 116 physical nodes read-only | repeat through credential-free ACM before a separate read-only discovery tier |
-| USB NCM/SSH | passing | v16 NCM passed; v17 keyed SSH passed and isolated missing tty node | verify v18 supervised ACM twice; keep SSH key-only and explicit |
+| reversible boot | passing | v18 RAM-only staging and rollback pass twice | attempt one separately attended Linux 7.1 kexec |
+| UFS root | passing | v18 twice proved RAM root, zero block mounts, and all 116 physical nodes read-only | retain isolation through kexec before a separate read-only discovery tier |
+| USB NCM/SSH | passing | v18 supervised ACM/NCM pass twice; v17 keyed SSH passed | revalidate after kexec; keep SSH key-only and explicit |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
