@@ -290,11 +290,14 @@ interface state are absent. The v3-v5 images remain attended RAM-only
 development transports and must never be flashed. Display, battery, charging,
 Wi-Fi, and GPU hardware remain unaccepted separate tiers. Trusted time must
 currently be bootstrapped from the host or network rather than the PMIC RTC.
-The new `sync-network-root-time.sh` host tool is offline-tested for that role:
-it requires host NTP synchronization, strict SSH, normal zero-storage
-network-root, RTC disabled, and an armed rollback watchdog, changes only the
-volatile Linux system clock, then repeats the safety gates. Its live test is
-still pending.
+The new `sync-network-root-time.sh` host tool now passes that live role. It
+required host NTP synchronization, strict SSH, normal zero-storage
+network-root, RTC disabled, and an armed rollback watchdog. It corrected a
+measured 2,378,466-second drift through only the volatile Linux system clock,
+passed an independent bounded comparison, then repeated the safety gates and
+returned through normal reboot and complete cleanup. The
+[time-bootstrap report](../test-results/2026-07-25-network-root-time-bootstrap-live.md)
+records the evidence.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

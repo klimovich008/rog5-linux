@@ -122,5 +122,5 @@ done
 	fail "$acm is not accessible; log in again after joining dialout"
 
 echo "PASS credential-free staging ACM ready at $acm"
-echo "INFO rollback remains armed; open the console with:"
-echo "socat -,rawer,escape=0x1d $acm,rawer,b115200"
+echo "INFO rollback remains armed; use only the fixed-action, control-safe ACM helper:"
+echo "ALLOW_NETWORK_ROOT_ACM=1 $repo/scripts/host/network-root-acm.py load-normal"

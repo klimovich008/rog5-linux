@@ -126,6 +126,10 @@ systemd reboot, fallback SSH restoration, and complete host cleanup. The
 records the safely rejected v4 RTC result and the v5 power-key dependency,
 registration, reboot, and cleanup evidence; physical press observation
 remains pending. The
+[network-root time-bootstrap report](../test-results/2026-07-25-network-root-time-bootstrap-live.md)
+records the guarded volatile correction of a 2,378,466-second drift, disabled
+RTC and zero-storage proof, normal reboot, control-safe serial transport, and
+complete cleanup. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

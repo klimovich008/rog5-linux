@@ -151,8 +151,18 @@ BOOT_IMAGE="$PWD/artifacts/recovery-stage-vNN/boot-5.4.210-kexec-stage-builtin-r
   scripts/host/recovery-linux.sh boot
 ```
 
-After ACM enumerates, the script prints the `socat` command for the
-credential-free recovery shell. Its 180-second rollback remains armed.
+After ACM enumerates, use the fixed-action helper rather than attaching a
+terminal. It opens ACM with no controlling terminal, strips cursor-position
+queries, accepts no arbitrary command, and keeps rollback armed:
+
+```sh
+ALLOW_NETWORK_ROOT_ACM=1 \
+  scripts/host/network-root-acm.py load-normal
+
+ALLOW_NETWORK_ROOT_ACM=1 \
+ALLOW_ATTENDED_KEXEC=1 \
+  scripts/host/network-root-acm.py execute
+```
 
 Validate the repository and a local artifact directory:
 

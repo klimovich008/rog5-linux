@@ -157,10 +157,15 @@ then requires convergence within three seconds and repeats the RTC, storage,
 watchdog, USB, systemd, and fatal-log checks. It never invokes `hwclock`,
 `timedatectl set-time`, a storage command, or a PMIC offset mechanism.
 
-This is an offline-tested host tool, not yet a live acceptance result. Run it
-after the full target safety gate and before watchdog disarm. Once Wi-Fi is
-accepted, normal authenticated NTP should take over; the SSH bootstrap remains
-the recovery/network-root fallback.
+The live gate now passes. After a controlled ten-second volatile skew, the
+tool measured a much larger 2,378,466-second boot-chain drift, reported
+`changed=1`, converged inside the bounded host sampling interval, kept RTC and
+storage absent, and left rollback armed. Normal reboot returned to exact
+fallback with complete cleanup. Run it after the full target safety gate and
+before watchdog disarm. Once Wi-Fi is accepted, normal authenticated NTP
+should take over; the SSH bootstrap remains the recovery/network-root fallback.
+See the
+[live time-bootstrap report](../test-results/2026-07-25-network-root-time-bootstrap-live.md).
 
 ## Offline result
 

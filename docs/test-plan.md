@@ -49,6 +49,10 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
   normalized product `ROG5_recovery`; the fallback gadget sharing
   `1d6b:0104` is a hard failure.
+- `network-root-acm.py` replaces terminal attachment with three fixed staging
+  actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
+  kexec guard, and sanitized console output. Its pseudoterminal regression
+  proves cursor-position queries are never returned as shell input.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
@@ -168,8 +172,9 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   Require an NTP-synchronized host, strict dedicated SSH identity, normal
   unmasked Linux, read-only NFS/OverlayFS, zero storage, RTC disabled and
   absent, exact USB state, and no failed/fatal state before and after changing
-  only the volatile Linux system clock. **Offline fake-SSH contract passed;
-  live gate pending.**
+  only the volatile Linux system clock. **Offline fake-SSH contract and live
+  `changed=1` correction of a 2,378,466-second drift passed; independent host
+  interval, normal reboot, and cleanup passed.**
 - Treat display, battery, charging, radio, physical input actuation, and GPU
   as untested despite the normal headless coldplug and input-registration
   passes.

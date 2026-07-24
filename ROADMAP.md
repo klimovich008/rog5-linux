@@ -190,8 +190,10 @@ Goal: boot a normal modern distro before adding desktop complexity.
   mainline-to-fallback reboot cycles while adding only isolated PMIC nodes.
 - [x] Implement and offline-test a strict-SSH, host-authoritative volatile
   time bootstrap that leaves RTC disabled and the rollback watchdog armed.
-- [ ] Pass the live host-time bootstrap and later hand off to authenticated
-  network time; the raw PMK8350 RTC remains rejected as a server-time source.
+- [x] Pass the live host-time bootstrap with RTC/storage absent and rollback
+  armed; correct the measured 2,378,466-second drift and reboot cleanly.
+- [ ] Hand off to authenticated network time after Wi-Fi acceptance; the raw
+  PMK8350 RTC remains rejected as a server-time source.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
 - [ ] Measure baseline RAM, idle CPU, temperature, and power.
 - [ ] Add zram only if measurements justify it.
