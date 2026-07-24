@@ -2,9 +2,9 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v18 RAM-only staging and rollback pass twice | attempt one separately attended Linux 7.1 kexec |
-| UFS root | passing | v18 twice proved RAM root, zero block mounts, and all 116 physical nodes read-only | retain isolation through kexec before a separate read-only discovery tier |
-| USB NCM/SSH | passing | v18 supervised ACM/NCM pass twice; v17 keyed SSH passed | revalidate after kexec; keep SSH key-only and explicit |
+| reversible boot | passing | v18 staging passes twice; Linux 7.1 target and rollback pass once | retain the same boundary for each new DTB tier |
+| UFS root | passing baseline only | Linux 7.1 recovery kept UFS disabled and exposed zero physical devices | build a separate no-mount read-only UFS discovery tier |
+| USB NCM/SSH | passing | Linux 7.1 credential-free ACM/NCM pass; v17 keyed SSH passed | retain ACM/NCM through UFS discovery; keep SSH key-only and explicit |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
 | thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |

@@ -154,8 +154,12 @@ byte-identical; the strengthened network-isolated verifier passes. Two live
 credential-free staging/rollback cycles also pass: both reported RAM root,
 zero block mounts, 116 read-only physical nodes with zero failures, live
 watchdog/ACM, no authorization or SSH, configured NCM, and automatic return to
-a changed fallback boot identity. The nested Linux 7.1 recovery is eligible
-for one separate attended kexec attempt.
+a changed fallback boot identity. A subsequent attended kexec loaded the
+hash-verified payload and booted `7.1.4-g7a5cef0db479`. The target again passed
+RAM root, zero block mounts, zero physical block devices, watchdog/ACM/NCM,
+no-credential/no-SSH, and zero fatal-log-signature checks before automatically
+returning to a changed fallback boot identity. The next gate is read-only UFS
+discovery.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

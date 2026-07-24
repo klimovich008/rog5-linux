@@ -81,7 +81,10 @@ contract and restored ACM with `mdev -s`. V18 requires that rescan, the
 `ttyGS0` node, and a second storage gate before UDC binding; it reproduces
 byte-for-byte and passes the expanded offline verifier. Credential-free live
 USB, storage isolation, and rollback now pass twice, promoting the nested
-Linux 7.1 recovery to one separately attended kexec attempt.
+Linux 7.1 recovery to one separately attended kexec attempt. That attempt
+booted `7.1.4-g7a5cef0db479` with the recovery DTB, exposed zero physical
+block devices as required, passed ACM/NCM and watchdog checks, and rolled back
+automatically.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.

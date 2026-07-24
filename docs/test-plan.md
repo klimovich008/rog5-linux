@@ -47,7 +47,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   ACM device node. V17 proved the RAM/storage gates and live rescan fix.
 - V18 exposed credential-free ACM, proved a RAM-backed root and read-only
   physical storage, and returned through its 180-second watchdog twice. The
-  separate attended kexec gate is now eligible.
+  separate attended kexec then passed Linux 7.1 RAM-root, zero-storage,
+  ACM/NCM, watchdog, fatal-log, and automatic rollback checks.
 - Before exposing USB, both stages reject any block-backed mount and use
   `BLKROSET` through `blockdev --setro`; every physical disk and partition
   must report read-only. Volatile loop, RAM, and zram devices are excluded.

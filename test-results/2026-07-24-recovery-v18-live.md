@@ -39,7 +39,7 @@ did not affect the device gates or supervised ACM transport.
 
 ## Promotion
 
-V18 satisfies the two required staging/rollback cycles. The nested Linux 7.1
-payload is now eligible for one separate attended load and kexec attempt. The
-loader must verify nested hashes, disable exactly one allowlisted Haven
-watchdog, load without executing, and retain the host fallback path.
+V18 satisfied the two required staging/rollback cycles. The subsequent
+separate attended Linux 7.1 load, kexec, target validation, and automatic
+rollback also passed. See the
+[mainline live result](2026-07-24-recovery-v18-mainline-live.md).

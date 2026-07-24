@@ -3,7 +3,8 @@
 Status: **PASS** for build, local USB, real fastboot preflight, and safe
 fallback return; **REJECTED** for the v13 and v14 live recovery identities;
 **PASS** for the v15 diagnosis and v17 live storage/ACM diagnosis;
-**PARTIAL** for v16; **PASS twice** for the v18 staging/rollback gate.
+**PARTIAL** for v16; **PASS twice** for v18 staging/rollback and **PASS** for
+one attended Linux 7.1 target/rollback gate.
 
 ## Host checks
 
@@ -56,6 +57,12 @@ implements that rescan plus a second storage gate and passes duplicate offline
 builds. Two credential-free v18 cycles then passed exact USB, ACM/NCM,
 RAM-root, zero-block-mount, 116-device read-only, watchdog, no-SSH, and
 automatic changed-boot fallback checks.
+
+The subsequent attended loader verified all nested hashes, loaded without
+executing, and reported `kexec_loaded=1`. A separate `kexec -e` booted
+`7.1.4-g7a5cef0db479`; the target passed RAM root, zero block-backed mounts,
+zero physical devices, watchdog/ACM/NCM, no-credential/no-SSH, host
+reachability, zero fatal-log signatures, and automatic changed-boot fallback.
 
 The private credential was not copied into the repository, logs, or any
 recovery image. Only its public key entered the local never-publish v17

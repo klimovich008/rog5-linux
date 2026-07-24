@@ -58,9 +58,12 @@ rescan fail-closed, requires the node, and repeats storage isolation before
 binding USB. Two complete v18 builds and repacks are byte-identical, and the
 network-isolated verifier passes. Two credential-free live staging/rollback
 cycles now pass with RAM root, zero block mounts, all 116 physical devices
-read-only, ACM/NCM, no SSH, and changed fallback boot identities. The nested
-Linux 7.1 recovery is eligible for one separate attended kexec attempt. Arch
-rootfs, desktop, and mainline GPU gates remain pending.
+read-only, ACM/NCM, no SSH, and changed fallback boot identities. The separate
+attended kexec gate now also passes: Linux `7.1.4-g7a5cef0db479` reached its
+RAM-only recovery with zero physical block devices, working ACM/NCM and
+watchdog, no fatal log signatures, and automatic return to a changed fallback
+boot identity. Read-only UFS discovery, Arch rootfs, desktop, and mainline GPU
+gates remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

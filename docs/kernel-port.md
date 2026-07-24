@@ -89,8 +89,10 @@ nodes read-only, and the live `mdev -s` ACM fix. V18 makes that rescan and a
 second storage gate mandatory before USB binding. Its duplicate builds and
 offline verifier pass. V18 staging and rollback now also pass twice with RAM
 root, zero block mounts, 116 read-only physical nodes, ACM/NCM, and changed
-fallback boot identities. One separately attended Linux 7.1 kexec attempt is
-now eligible.
+fallback boot identities. A separately attended kexec then booted
+`7.1.4-g7a5cef0db479`; its zero-storage RAM recovery, ACM/NCM, independent
+watchdog, fatal-log check, and automatic fallback also passed. The next board
+tier enables only reviewed UFS dependencies for read-only, no-mount discovery.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did

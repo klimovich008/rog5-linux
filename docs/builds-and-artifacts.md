@@ -30,17 +30,17 @@ Private inputs live outside the repository and are referenced only by path or ha
 | Product | Purpose | Current status |
 |---|---|---|
 | vendor-derived 5.4.210 image #20 | recoverable working server baseline | passes core suite; GPU rejected |
-| Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | PC cross-build and verification pass; never boot alone |
+| Linux 7.1.4 `Image.gz` and modules | current-stable compile/toolchain baseline | reproducible PC build; recovery Image passes one attended kexec |
 | upstream SM8350 comparison DTBs | schema and subsystem reference | five build/parse/hash checks pass; never boot on ASUS hardware |
 | ASUS serial skeleton DTB | verify board source and DTB toolchain | memory, TLMM, disabled UFS, and left-side USB contracts compile and pass static checks; never boot |
-| ASUS minimal recovery DTB | USB2 high-speed NCM/ACM recovery with storage disabled | corrected USB2-only DTB passes offline and two staging cycles |
+| ASUS minimal recovery DTB | USB2 high-speed NCM/ACM recovery with storage disabled | passes offline, two staging cycles, and Linux 7.1 target recovery |
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
 | locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | historical suite passes; contains the previous module set and must be restaged |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v18 is reproducible and passes two credential-free staging/rollback cycles |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v18 passes staging twice and one Linux 7.1 target/rollback cycle |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
-| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 is reproducible and passes dual-storage, ACM-node, nested, and two live staging gates |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
@@ -94,8 +94,8 @@ and is retained only as diagnostic evidence. V16 reached exact USB, NCM, and
 rollback but not an ACM shell. The local v17 keyed diagnostic proved the
 RAM/storage boundary and identified the missing `/dev/ttyGS0` node. V18 is the
 reproducible credential-free candidate; it is not accepted until two staging
-and rollback cycles pass. Both cycles now pass; only the separate attended
-Linux 7.1 kexec gate remains.
+and rollback cycles pass. Both cycles and the separate attended Linux 7.1
+kexec/target/rollback gate now pass.
 
 ## Reproduction records
 
@@ -109,6 +109,8 @@ serialization fix. The
 records the current reproducible candidate and artifact set. The
 [v18 live report](../test-results/2026-07-24-recovery-v18-live.md) records its
 two passing credential-free staging and rollback cycles. The
+[Linux 7.1 live report](../test-results/2026-07-24-recovery-v18-mainline-live.md)
+records the passing load, kexec, zero-storage target, and rollback. The
 [v17 diagnostic](../test-results/2026-07-24-recovery-v17-ssh-diagnostic.md)
 records the live storage proof and ACM root cause. The
 [v16 live report](../test-results/2026-07-24-recovery-v16-live.md) records

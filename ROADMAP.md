@@ -107,9 +107,9 @@ V15's 31-second live interval identified the wake-lock gate as the shared
 early-return path. V16 removed that gate and reached exact USB, NCM, and
 rollback, but ACM lacked `/dev/ttyGS0`. V17 proved the RAM/storage boundary and
 confirmed a live `mdev -s` rescan fixes ACM. V18 implements the fail-closed
-rescan and second storage check. It is not eligible for kexec or promotion
-until two complete RAM-only staging and rollback cycles pass. Both cycles now
-pass; the nested recovery is eligible for one separate attended kexec attempt.
+rescan and second storage check. Kexec was prohibited until two complete
+RAM-only staging and rollback cycles passed. Both cycles passed, followed by a
+passing attended Linux 7.1 target and rollback.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.
@@ -119,14 +119,16 @@ rollback tests all pass twice.
 Goal: kexec from the temporary ASUS wrapper into a current mainline-derived
 kernel without relying on phone storage.
 
-- [ ] Load the verified Linux `Image`, recovery DTB, and target initramfs.
-- [ ] Capture the final vendor-kernel log before kexec.
-- [ ] Execute kexec and verify the new kernel release and boot identity.
-- [ ] Re-run ACM/NCM, SSH, RAM-only, storage-isolation, and rollback gates.
-- [ ] Record boot logs and all observed regressions.
+- [x] Load the verified Linux `Image`, recovery DTB, and target initramfs.
+- [ ] Capture a complete final vendor-kernel log before a future kexec; the
+  redacted pre-kexec state and loader result are recorded.
+- [x] Execute kexec and verify the new kernel release and boot identity.
+- [x] Re-run ACM/NCM, RAM-only, storage-isolation, and rollback gates; the
+  accepted credential-free target intentionally keeps SSH disabled.
+- [x] Record redacted target logs and all observed regressions.
 
-Exit gate: Linux 7.1 runs the recovery userspace and retains the safe rollback
-path.
+Exit gate: **passed**. Linux 7.1 runs the recovery userspace and retains the
+safe rollback path.
 
 ## Phase 3 — read-only UFS discovery
 
