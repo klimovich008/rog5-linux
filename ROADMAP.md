@@ -73,8 +73,9 @@ storage or desktop userspace.
 - [x] Repack and verify a new unsigned AVB temporary-boot image.
 - [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: **passed offline by recovery v14**. Recovery v12 remained unbooted;
-v13 returned to fallback before its exact recovery USB identity appeared.
+Exit gate: **reproducible offline tooling passes through v15**. Recovery v12
+remained unbooted; v13 and v14 both returned to fallback before their exact
+recovery USB identity appeared. V15 is diagnostic-only.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -93,9 +94,11 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 - [ ] Let the short rollback timer expire and prove return to the fallback OS.
 - [ ] Repeat the boot and rollback test to exclude a one-off success.
 
-Recovery v13 completed the non-flashing fastboot transfer but returned to
-fallback 21 seconds after fastboot disconnected, without enumerating its exact
-USB product. It does not satisfy a Phase 1 gate. V14 is the next candidate.
+Recovery v13 and v14 completed non-flashing fastboot transfers but each
+returned to fallback 21 seconds after fastboot disconnected, without
+enumerating the exact recovery USB product. Neither satisfies a Phase 1 gate.
+V15 uses bounded failure delays to identify the shared early-return path; it is
+not eligible for kexec or promotion.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.

@@ -129,6 +129,8 @@ grep -Fq 'blockdev --setro' "$stage/target/init"
 grep -Fq 'blockdev --getro' "$stage/target/init"
 grep -Fq '[ -e "$sys_disk/device" ] || continue' "$stage/target/init"
 grep -Fq '[ -e "$sys_block/partition" ] || continue' "$stage/target/init"
+grep -Fq 'storage_failure_delay=30' "$stage/target/init"
+grep -Fq 'sleep "$storage_failure_delay"' "$stage/target/init"
 storage_line=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
 usb_line=$(grep -n '^usb_mode=' "$stage/target/init" | cut -d: -f1)
 [ "$storage_line" -lt "$usb_line" ]

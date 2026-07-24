@@ -40,8 +40,15 @@ and fallback share `1d6b:0104`, so the exact product string is now mandatory.
 Recovery v14 keeps the block-backed-mount rejection but applies `BLKROSET`
 only to physical disks and their partitions, excluding volatile loop, RAM,
 and zram objects. Two complete clean builds and two repacks are byte-identical,
-and the expanded offline verifier passes. V14 is the current offline
-candidate, but it has not been booted. Live
+and the expanded offline verifier passes. Its live attempt nevertheless
+returned to fallback in the same 21-second interval without recovery USB, so
+v14 is also rejected.
+
+Recovery v15 is a diagnostic-only, reproducible timing image. It keeps USB
+closed on failure and adds distinct rollback delays to identify whether reset
+occurs before `/init`, at the wake-lock gate, on a block-backed mount, or
+during physical-storage locking. It is not a functional candidate and must
+not run kexec. Live
 RAM-only, kexec, rollback, host USB, storage, Arch rootfs, desktop, and
 mainline GPU gates remain pending.
 
@@ -85,17 +92,21 @@ sudo usermod -aG dialout "$(id -un)"
 ```
 
 The Linux recovery workflow is read-only by default. It validates the exact
-manifest-pinned current image and requires exactly one fastboot device:
+manifest-pinned image and requires exactly one fastboot device. Rejected
+candidates are never selected by default:
 
 ```sh
-scripts/host/recovery-linux.sh preflight
+BOOT_IMAGE="$PWD/artifacts/recovery-stage-vNN/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" \
+  scripts/host/recovery-linux.sh preflight
 ```
 
 The attended temporary boot has a separate explicit guard and invokes only
 `fastboot boot`. It never flashes:
 
 ```sh
-ALLOW_TEMPORARY_BOOT=1 scripts/host/recovery-linux.sh boot
+ALLOW_TEMPORARY_BOOT=1 \
+BOOT_IMAGE="$PWD/artifacts/recovery-stage-vNN/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" \
+  scripts/host/recovery-linux.sh boot
 ```
 
 After ACM enumerates, the script prints the `socat` command for the

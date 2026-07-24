@@ -14,7 +14,7 @@ fail() {
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 manifest=$repo/manifests/artifacts.tsv
-boot_image=${BOOT_IMAGE:-$repo/artifacts/recovery-stage-v14/boot-5.4.210-kexec-stage-builtin-recovery.avb.img}
+boot_image=${BOOT_IMAGE:-}
 fastboot=${FASTBOOT:-fastboot}
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -23,6 +23,8 @@ acm_timeout=${ACM_TIMEOUT:-90}
 for command in awk cut date grep realpath sed sha256sum socat stat; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
+[ -n "$boot_image" ] ||
+	fail 'set BOOT_IMAGE to one manifest-pinned candidate; no default is currently accepted'
 [ -r "$boot_image" ] || fail "missing recovery image: $boot_image"
 boot_image=$(realpath "$boot_image")
 case $boot_image in

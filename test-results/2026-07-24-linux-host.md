@@ -1,13 +1,13 @@
 # Native Linux host result
 
 Status: **PASS** for build, local USB, real fastboot preflight, and safe
-fallback return; **REJECTED** for the v13 live recovery identity; **PENDING**
-for v14.
+fallback return; **REJECTED** for the v13 and v14 live recovery identities;
+**PENDING** for the v15 timing diagnostic.
 
 ## Host checks
 
 - Nobara Linux 44 runs the repository from native Btrfs.
-- Rootless Podman 5.8.4 built and verified recovery v14 with networking
+- Rootless Podman 5.8.4 built and verified recovery v15 with networking
   disabled.
 - Fedora/Nobara `android-tools` 35.0.2 supplies `adb` and `fastboot`.
 - The development user is listed in `dialout`. The current desktop process
@@ -42,6 +42,10 @@ for v14.
 - Kexec was not loaded or executed.
 - Standard pstore had no retained record; an older unguarded diagnostic module
   was deliberately not loaded.
+
+V14 repeated the same exact result: fallback returned 21 seconds after
+fastboot disconnected with no recovery product. V15 is limited to one
+USB-closed timing measurement and cannot proceed to kexec.
 
 The credential was not copied into the repository or recovery image. No
 partition, filesystem, slot, or persistent boot state was intentionally

@@ -120,8 +120,15 @@ UFS LUNs and 109 partitions while excluding 33 volatile loop, RAM, and zram
 objects. Both initramfs layers, two fresh ASUS wrapper builds, and two
 header-v3/AVB repacks are byte-identical. The expanded `acm-only` verifier
 passes, and the host now requires exact product `ROG5_recovery` rather than
-accepting the shared vendor/product ID. V14 has not been booted, so no live
+accepting the shared vendor/product ID. Its live attempt still returned to
+fallback after the same 21-second interval, so v14 is rejected and no live
 recovery gate is accepted.
+
+Recovery v15 is a reproducible diagnostic-only image. It keeps USB closed on
+failure and adds 10/30/50-second rollback delays for PM wake-lock failure,
+block-backed mount detection, and physical-device lock failure respectively.
+An unchanged 21-second return means reset before those `/init` branches; exact
+recovery USB means all gates passed. V15 must not execute kexec.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

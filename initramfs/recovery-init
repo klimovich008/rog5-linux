@@ -24,9 +24,12 @@ force_rollback() {
 	done
 }
 
+storage_failure_delay=50
+
 isolate_storage() {
 	while read -r _ _ device _ mountpoint _ rest; do
 		[ -e "/sys/dev/block/$device" ] || continue
+		storage_failure_delay=30
 		log "block-backed mount detected at $mountpoint"
 		return 1
 	done </proc/self/mountinfo
@@ -100,7 +103,8 @@ fi
 rollback_lock_timeout_ns=$(( (timeout + 30) * 1000000000 ))
 if ! printf 'rog5-recovery-rollback %s\n' \
 	"$rollback_lock_timeout_ns" >/sys/power/wake_lock; then
-	log 'rollback suspend inhibitor unavailable; rebooting'
+	log 'rollback suspend inhibitor unavailable; diagnostic delay=10'
+	sleep 10
 	force_rollback
 fi
 touch /run/rog5-recovery-armed
@@ -114,7 +118,8 @@ echo $! >/run/rog5-recovery-watchdog.pid
 log 'rollback timer armed'
 
 if ! isolate_storage; then
-	log 'storage isolation failed; rebooting'
+	log "storage isolation failed; diagnostic delay=$storage_failure_delay"
+	sleep "$storage_failure_delay"
 	force_rollback
 fi
 

@@ -1,8 +1,10 @@
 # Recovery v14 offline result
 
 Status: **PASS** for a reproducible, credential-free two-stage recovery bundle
-with fail-closed physical-storage isolation. This candidate has not yet been
-booted. Nothing was flashed or written to the phone while building it.
+with fail-closed physical-storage isolation. At the time of this report the
+candidate had not been booted. Its later live attempt returned to fallback
+before exact recovery USB enumeration, so v14 is now rejected. See the
+[live result](2026-07-24-recovery-v14-live.md). Nothing was flashed.
 
 ## Change from rejected v13
 
@@ -59,10 +61,8 @@ pass.
 | unsigned AVB image | 100,663,296 | `9cd6f875b3a32293eda7805ed0d68c09aa7d6b93fc98e096e34328900632a86d` |
 | wrapper build metadata | 442 | `7889f5119401e0e9c264f52f17b3493c791d7089ab9c0e5497083fbe49d6207c` |
 
-## Remaining live gate
+## Superseded live gate
 
-Use the manifest-pinned v14 image through attended `fastboot boot`. Accept
-only `ID_MODEL=ROG5_recovery`, then prove the rollback marker and processes,
-RAM-backed root, zero block-backed mounts, and read-only state of every
-physical disk and partition. Let the timer return to fallback and repeat
-before any attended Linux 7.1 kexec.
+The one v14 temporary boot returned fallback in the same 21-second interval as
+v13, without exact recovery USB. V15 supersedes it only as a timing diagnostic;
+there is no accepted functional recovery candidate.

@@ -27,9 +27,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
 - `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
-- `recovery-linux.sh preflight` hash-checks the manifest-pinned current image and
-  requires exactly one fastboot target; `boot` remains inert unless
-  `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
+- `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
+  exactly one fastboot target; no candidate is selected by default and `boot`
+  remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
   normalized product `ROG5_recovery`; the fallback gadget sharing
   `1d6b:0104` is a hard failure.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
@@ -40,6 +40,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - The first candidate exposes supervised USB ACM without credentials or SSH;
   USB networking may remain unaddressed in this sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
+- The v15 diagnostic maps approximately 21/31/51/71-second fallback intervals
+  to pre-`/init`, wake-lock, block-backed-mount, and physical-lock paths; it
+  stops after one measurement and never runs kexec.
 - Before exposing USB, both stages reject any block-backed mount and use
   `BLKROSET` through `blockdev --setro`; every physical disk and partition
   must report read-only. Volatile loop, RAM, and zram devices are excluded.

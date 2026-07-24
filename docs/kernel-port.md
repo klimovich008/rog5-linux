@@ -59,7 +59,7 @@ Enable BTF/eBPF and run GodShell as an optional systemd-managed workload. Then a
 
 ROG Phone 5 uses Android boot header v3, and the stock-style boot template has no DTB field. Passing the new ASUS DTB directly through a normal boot image is therefore not available without changing `vendor_boot`, which is outside the recovery safety boundary.
 
-Recovery v14 implements this reversible two-stage route:
+The v15 timing diagnostic uses this intended reversible two-stage route:
 
 1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with the staging initramfs built into the kernel. Nothing is flashed.
 2. The built-in initramfs contains the Linux 7.1 `Image`, USB2-only recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. Its offline contract contains no storage-mount logic.
@@ -77,12 +77,12 @@ the secondary `usb_2` controller, display, charging, radios, remote processors,
 and GPU remain disabled. The overlay passes static inspection. The v6 bundle
 passed its then-current offline verifier but failed live ACM data and rollback;
 recovery v12 rebuilt the dependency chain but remained unbooted because it
-lacked the pre-USB block-device lock. V13 added an all-block-device gate but
-returned to fallback before its exact recovery USB identity appeared. V14
-narrows the gate to physical storage and rebuilds the complete
-credential-free dependency chain twice. It passes the expanded offline
-verifier but has not been booted, so live ACM, RAM-backed root, physical-block
-read-only state, kexec, and rollback remain unproven.
+lacked the pre-USB block-device lock. V13 added an all-block-device gate and
+v14 narrowed it to physical storage, but both returned to fallback after 21
+seconds without exact recovery USB. V15 reproduces the v14 chain with bounded
+failure delays to identify the shared early-return path. It is diagnostic-only
+and may not execute kexec; live ACM, RAM-backed root, physical-block read-only
+state, kexec, and rollback remain unproven.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did
