@@ -29,5 +29,8 @@ then read both mode-0600 files and matched them to the host public key. This
 test also exposed and fixed the NFSv4 startup-grace race: server readiness now
 waits for the explicit 10-second grace to end.
 
-The previous archive and prepared export are retained under explicit
-orphaned-key backup names until the first phone-live network-root gate passes.
+The subsequent authorized live step added the same public key to the
+persistent fallback authorization file while preserving its previous file as
+an on-device backup. Key-only fallback login then passed across a complete
+reboot, and both root and `rog5` login passed in the Arch diagnostic target.
+The private key never left the development host.

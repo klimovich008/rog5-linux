@@ -4,9 +4,10 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **complete offline bundle, rootfs stage, and privileged host export
-pass; attended phone boot remains pending**. No network-root image has been
-transferred to or booted on the phone.
+Status: **headless Arch boot passes twice in diagnostic mode**. Linux 7.1.4,
+systemd, OverlayFS, read-only NFS, key-only SSH, and the zero-storage boundary
+are accepted. The normal systemd hardware-coldplug path still resets the
+phone, so display, battery, radio, and GPU work remain blocked.
 
 ## Chosen design
 
@@ -71,6 +72,41 @@ disabled in the final configuration, not merely left unused by the DTB.
 The target watchdog PID remains in `/run/rog5-network-root-watchdog.pid`.
 During the first attended test it is disarmed only after the host verifies the
 kernel, mounts, zero-storage state, network path, systemd target, and SSH.
+
+## Live result
+
+Four normal attempts crossed the NFS mount, OverlayFS, `switch_root`, and
+systemd boundary, then reset at the same 16-second target uptime. A live ACM
+capture showed active NFS traffic and systemd coldplug/module startup before
+the reset; fallback ramoops contained no retained crash record.
+
+The loader now has an explicit `ROG5_SYSTEMD_DIAGNOSTIC=1` mode. It appends
+runtime masks for `systemd-udev-trigger.service` and
+`systemd-modules-load.service`; the default command line is unchanged, and an
+invalid value exits before kexec is loaded. Two clean ASUS wrapper builds and
+two repacks containing this loader are byte-identical.
+
+Two diagnostic boots then passed:
+
+- exact kernel `7.1.4-g7a5cef0db479` with systemd as PID 1;
+- `systemctl is-system-running=running`, active `multi-user.target` and SSH,
+  zero failed units, and no fatal kernel signature;
+- OverlayFS `/`, exact NFSv4.2 lower at `169.254.77.1:/` read-only, and a
+  2 GiB `nodev,nosuid` tmpfs state layer;
+- zero physical block devices and zero block-backed mounts;
+- exact `169.254.77.2/30` USB address, carrier up, sustained NFS reads, ICMP,
+  and key-only SSH for both root and the unprivileged `rog5` account; and
+- successful watchdog disarm only after every acceptance gate.
+
+The first diagnostic boot returned orderly to the persistent Alpine fallback.
+The second is suitable for a bounded long-running SSH/server test while the
+host export remains active.
+
+Loading `qcomtee` manually after acceptance remained stable for 30 seconds,
+so that module alone is not the reset trigger. The remaining evidence points
+to the automatic udev coldplug transaction, but does not yet identify one
+driver. This mode intentionally skips normal hardware discovery and therefore
+does not count as display, input, battery, Wi-Fi, or GPU acceptance.
 
 ## Offline result
 
@@ -156,6 +192,12 @@ identity, and runs the independent path-based verifier.
 6. unexports, stops its private server processes, unmounts, restores the
    temporary sysctl, and removes all runtime firewall state on exit.
 
+The default attended window remains 900 seconds. An explicitly requested
+long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
+phone must reboot orderly before that deadline: removing NFS while it is the
+live lower root would strand userspace. This PC-backed root is a bring-up
+transport, not the final independent storage design.
+
 After explicit approval, the Nobara host installed `nfs-utils`, prepared and
 reverified the fixed export root, and passed the privileged runtime gate. The
 server exposed one TCP listener at `169.254.77.1:2049`; the system
@@ -186,5 +228,8 @@ Before any live attempt:
 Live acceptance requires exact kernel release, OverlayFS `/`, read-only NFS
 lower, tmpfs upper, zero physical block devices, zero block-backed mounts,
 `multi-user.target`, key-only SSH, stable USB traffic, no fatal kernel log,
-and automatic return to the exact fallback kernel. Failure leaves the
-watchdog armed.
+and automatic or orderly return to the exact fallback kernel. These gates
+pass in diagnostic mode. Failure leaves the watchdog armed.
+
+See the [redacted live report](../test-results/2026-07-24-network-root-v1-live.md)
+for the exact artifact identities, repeated gates, and coldplug evidence.

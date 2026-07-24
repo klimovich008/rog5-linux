@@ -7,8 +7,8 @@
 - Active Android slot during the recorded tests: slot B.
 - Stable 5.4 baseline userspace: Alpine 3.24 on the userdata-backed root filesystem.
 - Target userspace: Arch Linux ARM with systemd and minimal Plasma. The locked
-  archive passed its historical suite but contains the previous module set;
-  restaging with the accepted kernel is mandatory before first boot.
+  archive contains the exact accepted network-root modules, pinned firmware,
+  and key-only SSH; its Linux-native stage and clean archive round trip pass.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
@@ -80,9 +80,11 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   configured in `dialout`; the current desktop login has not refreshed that
   supplementary group, but a temporary group shell verifies access.
 - A non-autoconnecting host-only USB profile at `169.254.77.1/16` reaches the
-  fallback server at `169.254.77.2`; ICMP and TCP/22 pass. After explicit
-  approval, the recovery key was copied only to host tmpfs and used for
-  read-only fallback inspection and the authorized reboot to fastboot.
+  fallback server at `169.254.77.2`; the network-root target uses an isolated
+  `169.254.77.1/30` link. After explicit approval, the dedicated public key
+  was added to the persistent fallback authorization file while preserving a
+  backup. Key-only fallback login passed across a full reboot. Its private
+  half remains mode 0600 outside the repository.
 - Credentials and private identifiers are deliberately excluded from this repository.
 
 ## Mainline recovery status
@@ -194,19 +196,16 @@ boot identity. Nothing was flashed. Read-only UFS discovery is accepted; the
 next gate is a minimal Arch/Debian root served over USB NCM while UFS remains
 unmounted.
 
-That network-root gate now passes offline. Two clean Linux 7.1.4 builds are
-byte-identical with NFSv4.2/OverlayFS built in and SCSI/UFS plus the related
-QMP storage/SuperSpeed paths compiled out. Two target initramfs builds, two
-nested credential-free staging archives, two clean ASUS wrappers, and two
-header-v3/AVB repacks are also byte-identical. The fourteen-file manifest
-passes nested hash, config, no-credential, boot-header, and AVB verification.
-The signed Arch Linux ARM base was reverified under the pinned signing key,
-and its metadata-preserving Linux staging path executes as AArch64. The final
-2,007,186,653-byte Plasma/server network-root archive now passes a fresh stage
-and clean archive round-trip with the exact kernel modules and pinned
-firmware. The restricted host NFS export has passed; the attended live boot
-remains pending, and no network-root artifact has been transferred to the
-phone.
+The network-root gate now passes its offline and live headless boundaries.
+Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built
+in and SCSI/UFS plus the related QMP storage/SuperSpeed paths compiled out.
+Two target initramfs builds, two nested credential-free staging archives, two
+clean ASUS wrappers, and two header-v3/AVB repacks are also byte-identical.
+The fourteen-file manifest passes nested hash, config, no-credential,
+boot-header, and AVB verification. The signed Arch Linux ARM base was
+reverified under the pinned signing key, and its metadata-preserving Linux
+staging path executes as AArch64. The final 2,007,186,653-byte Plasma/server
+archive passes a clean round trip with the exact modules and pinned firmware.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
@@ -224,14 +223,32 @@ exact Arch root. Attended shutdown removed the export, listener, mounts,
 kernel NFS filesystem, temporary sysctl, firewall rules, and test namespace;
 the fallback USB link was restored.
 
-The host reboot intentionally erased the earlier mode-0600 SSH key that had
-existed only in tmpfs. A replacement dedicated key now persists outside the
-repository at mode 0600, and a fresh two-pass rootfs stage embeds only its
-public half. The replacement archive is 2,007,186,653 bytes with SHA-256
-`8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
-The fallback phone still authorizes only the erased key, so the next temporary
-boot requires a physical reboot to fastboot; the new Arch target will be
-reachable with the replacement key.
+Four normal Arch boots mounted NFS, created OverlayFS, completed
+`switch_root`, and entered systemd, then reset at the same 16-second target
+uptime. Live ACM showed active NFS traffic and early systemd hardware
+coldplug/module startup before reset; ramoops retained no record. The
+reproducible loader now provides an explicit diagnostic mode that masks
+`systemd-udev-trigger.service` and `systemd-modules-load.service` without
+changing the default path.
+
+Two diagnostic boots pass exact Linux `7.1.4-g7a5cef0db479`, systemd running,
+active `multi-user.target` and SSH, OverlayFS `/`, read-only NFSv4.2 lower,
+2 GiB tmpfs state, zero physical block devices, zero block-backed mounts,
+stable USB traffic, root and unprivileged key login, zero failed units, and
+zero fatal signatures. Their rollback watchdogs were disarmed only after all
+gates. The first returned orderly to fallback; the second is the current
+bounded long-running server boot. Nothing was flashed.
+
+Manual `qcomtee` loading remained stable, so that module is not the reset
+trigger by itself. The next kernel gate is controlled udev coldplug isolation.
+Until it passes, this is a native headless server shell without accepted
+display, battery, charging, Wi-Fi, or GPU hardware.
+
+The replacement dedicated SSH key persists outside the repository at mode
+0600, and the rootfs contains only its public half for root and `rog5`. The
+fallback also authorizes that public key and passed login after reboot.
+Network-root SSH host keys remain intentionally ephemeral, so their exact
+client trust entry must be refreshed on each temporary boot.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -30,9 +30,10 @@ for a working feature.
 - [x] Kexec from the temporary vendor kernel into Linux 7.1.4.
 - [x] Discover the complete UFS topology read-only with zero blocked commands.
 - [x] Reproduce the UFS-disabled Linux 7.1.4 USB network-root bundle offline.
-- [ ] Boot a headless Arch/Debian root over USB NCM while UFS stays unmounted.
+- [x] Boot Arch over USB NCM with UFS absent and reach systemd/SSH twice in
+  diagnostic mode.
+- [ ] Isolate the reset in normal systemd hardware coldplug.
 - [ ] Design the persistent storage layout from measured hardware results.
-- [ ] Boot Arch headlessly.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
 
@@ -167,11 +168,18 @@ Goal: boot a normal modern distro before adding desktop complexity.
   harness with automatic cleanup.
 - [x] Run the privileged host export gate on the dedicated USB address and
   keep it enabled only during attended tests.
-- [ ] Boot once with UFS disabled before combining normal userspace with any
+- [x] Boot twice with UFS disabled before combining normal userspace with any
   on-device storage driver.
+- [x] Reach running systemd, `multi-user.target`, and key-only SSH for root and
+  the unprivileged account.
+- [x] Prove OverlayFS, read-only NFS lower, stable USB traffic, no physical
+  block devices, no block-backed mounts, and zero failed units.
+- [x] Return orderly to fallback after a passing diagnostic boot.
+- [ ] Isolate and fix the normal udev coldplug reset; the current diagnostic
+  mode masks hardware discovery and is not the final boot path.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
-- [ ] Boot to `multi-user.target`.
-- [ ] Verify console, SSH, time, entropy, logs, clean reboot, and clean shutdown.
+- [ ] Verify time, entropy, repeated clean reboot, and clean shutdown after
+  restoring normal coldplug.
 - [ ] Measure baseline RAM, idle CPU, temperature, and power.
 - [ ] Add zram only if measurements justify it.
 

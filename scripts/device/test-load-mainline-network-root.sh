@@ -55,6 +55,31 @@ grep -qx -- -l "$KEXEC_RECORD"
 ! grep -q 'rog5\.netroot=0' "$KEXEC_RECORD"
 [ "$(grep -c 'rog5.recovery_timeout=600' "$KEXEC_RECORD")" -eq 1 ]
 ! grep -q 'rog5.recovery_timeout=180' "$KEXEC_RECORD"
+! grep -q 'systemd.mask=' "$KEXEC_RECORD"
+
+rm -f "$KEXEC_RECORD"
+PATH=$stage/bin:$PATH \
+	PAYLOAD=$stage/payload \
+	SYS_DEVICES=$stage/sys \
+	PROC_CMDLINE=$stage/cmdline \
+	ROG5_RECOVERY_TIMEOUT=600 \
+	ROG5_SYSTEMD_DIAGNOSTIC=1 \
+	"$target" >/dev/null
+[ "$(grep -c 'systemd.mask=systemd-udev-trigger.service' "$KEXEC_RECORD")" -eq 1 ]
+[ "$(grep -c 'systemd.mask=systemd-modules-load.service' "$KEXEC_RECORD")" -eq 1 ]
+
+rm -f "$KEXEC_RECORD"
+set +e
+PATH=$stage/bin:$PATH \
+	PAYLOAD=$stage/payload \
+	SYS_DEVICES=$stage/sys \
+	PROC_CMDLINE=$stage/cmdline \
+	ROG5_SYSTEMD_DIAGNOSTIC=invalid \
+	"$target" >/dev/null 2>&1
+status=$?
+set -e
+[ "$status" -ne 0 ]
+[ ! -e "$KEXEC_RECORD" ]
 
 for invalid in 59 901 not-a-number; do
 	rm -f "$KEXEC_RECORD"
@@ -71,4 +96,4 @@ for invalid in 59 901 not-a-number; do
 	[ ! -e "$KEXEC_RECORD" ]
 done
 
-echo 'PASS network-root loader pins mode, watchdog allowlist, and 60-900 second timeout'
+echo 'PASS network-root loader pins mode, diagnostic masks, watchdog allowlist, and timeout'

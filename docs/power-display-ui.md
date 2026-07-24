@@ -58,7 +58,11 @@ Do not optimize an 11 GiB device by killing useful caches. Prefer:
 - cap log retention and stop duplicate supervisors;
 - measure proportional set size and idle CPU before removing packages.
 
-No Arch idle-memory result exists yet. Record headless and graphical baselines after the first successful boot before setting a numeric target.
+The first diagnostic Arch headless sample reports 11,296,876 KiB total,
+10,947,312 KiB available, about 341 MiB unavailable, 12 running services, and
+0.06 one-minute load. This is a useful server baseline, but automatic hardware
+coldplug is masked; repeat the measurement after normal boot is fixed and
+before trimming services.
 
 ## Battery policy
 
@@ -69,4 +73,7 @@ No Arch idle-memory result exists yet. Record headless and graphical baselines a
 - Charging limits should use a real supported driver interface; never write guessed values to undocumented ASUS nodes.
 - Record battery voltage/current/temperature and wall-power measurements for each profile.
 
-These are target policies. Linux 7.1 currently reaches recovery `/init` and configures its USB gadget internally, but Windows enumeration and target SSH remain blocked; the Arch display, session, and power behavior has not been exercised on hardware.
+These are target policies. Linux 7.1 now runs Arch/systemd and key-only SSH
+over USB network root in diagnostic mode. Display, session, battery, charging,
+and power behavior remain untested because normal hardware coldplug is still
+masked.

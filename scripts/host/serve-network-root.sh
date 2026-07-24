@@ -20,8 +20,8 @@ serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 
 [[ $EUID == 0 ]] || fail 'run with sudo; do not share the sudo password'
 [[ $serve_timeout =~ ^[0-9]+$ ]] &&
-	((serve_timeout >= 60 && serve_timeout <= 1800)) ||
-	fail 'ROG5_NFS_TIMEOUT must be between 60 and 1800 seconds'
+	((serve_timeout >= 60 && serve_timeout <= 86400)) ||
+	fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 	mkdir mountpoint nmcli pgrep realpath rpc.mountd rpc.nfsd ss sysctl udevadm \
 	stat systemctl tr umount; do

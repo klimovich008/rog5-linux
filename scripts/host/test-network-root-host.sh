@@ -35,6 +35,8 @@ for contract in \
 	'--nfs-version 4.2' \
 	'--grace-time "$grace_time"' \
 	'--lease-time "$lease_time"' \
+	'ROG5_NFS_TIMEOUT:-900' \
+	'serve_timeout <= 86400' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \

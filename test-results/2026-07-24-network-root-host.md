@@ -57,5 +57,6 @@ mount, `/proc/fs/nfsd` mount, nonlocal-bind sysctl change, runtime firewall
 rule, test interface, or namespace. The pre-existing fallback USB profile was
 restored and its peer remained reachable.
 
-The next gate is a temporary `fastboot boot` of the staging wrapper followed
-by a separate attended kexec into the UFS-disabled network-root kernel.
+The subsequent temporary `fastboot boot` and separate attended kexec gate
+passed in systemd diagnostic mode. See
+`2026-07-24-network-root-v1-live.md`.

@@ -76,8 +76,15 @@ exact network-root modules and pinned A660 firmware. The restricted host
 NFS harness now also passes its privileged runtime gate on Nobara: one
 NFSv4.2/TCP listener on the USB address, one exact-peer read-only export, a
 successful isolated client mount, no persistent firewall state, and complete
-cleanup. The attended phone boot, desktop, and mainline GPU gates remain
-pending.
+cleanup. Four normal phone boots then reached systemd but reset during the
+same early hardware-coldplug interval. A reproducibly rebuilt diagnostic mode
+that masks udev coldplug and module autoload now boots Arch successfully
+twice: exact Linux 7.1.4, running systemd, `multi-user.target`, key-only SSH,
+OverlayFS with read-only NFS lower, zero physical storage, stable USB, zero
+failed units, and safe watchdog disarm all pass. One boot returned orderly to
+fallback and one supports the current bounded server test. The next blocker
+is isolating the exact coldplug rule/device/driver before any display,
+battery, radio, desktop, or mainline GPU claim.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -198,6 +205,10 @@ NFSv4.2 to `169.254.77.1`, exports a read-only bind mount only to
 `169.254.77.2`, moves only the exact network-root gadget into the verified
 unused built-in `drop` zone, and restores runtime state on exit. Do not run
 these commands until the external-service gate is explicitly approved.
+Its default attended window is 900 seconds. For a deliberately bounded
+long-running diagnostic, set `ROG5_NFS_TIMEOUT=86400`; reboot the phone
+orderly before that deadline because this temporary root depends on the host
+export.
 
 The equivalent Windows workflow remains available:
 
@@ -234,9 +245,10 @@ upstream DTBs nor the standalone ASUS DTBs may be booted directly on the phone.
 The signed Arch input and the current locked minimal Plasma Desktop rootfs
 pass their offline suites. The current archive contains the exact
 `7.1.4-g7a5cef0db479` network-root modules, verified Qualcomm firmware,
-key-only SSH, no reusable host identity, and no VPN/Wi-Fi/KRDP secret. No Arch
-image has booted on the phone. It will be exposed only through the attended,
-read-only USB NFS gate; nothing is flashed.
+key-only SSH, no reusable host identity, and no VPN/Wi-Fi/KRDP secret. Arch
+has now passed two native diagnostic boots through the attended, read-only USB
+NFS gate; nothing was flashed. Normal hardware coldplug remains disabled in
+that mode.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

@@ -108,8 +108,9 @@ restored the exact fallback kernel.
 
 ## Tier 1.75 — UFS-disabled network root
 
-Status: **offline bundle, rootfs, and host harness passed; privileged
-export/live test pending**.
+Status: **offline, privileged host, and diagnostic live gates passed**. The
+default systemd coldplug path resets at 16 seconds and remains under
+isolation.
 
 - Use only the fourteen-file manifest-pinned network-root bundle.
 - Require built-in NFSv4.2, TCP, OverlayFS, tmpfs xattrs, USB ACM/NCM, and
@@ -130,6 +131,17 @@ export/live test pending**.
 - Boot `multi-user.target`, leave `usb0` unmanaged, and require key-only SSH.
 - Verify exact kernel release, systemd state, nested mounts, watchdog, stable
   USB traffic, no fatal log signature, and automatic return to fallback.
+- Require the default loader path to carry no systemd mask. Diagnostic mode
+  may mask only the two named coldplug/module units and must fail before kexec
+  for any other value.
+- The diagnostic target must reach running systemd, active
+  `multi-user.target`, key-only root and unprivileged SSH, zero failed units,
+  and a controlled watchdog disarm. **Passed twice.**
+- Retain `systemd-modules-load` first, then replay udev coldplug in bounded
+  device batches. Keep the watchdog armed until the exact reset-triggering
+  rule, device, or driver is isolated.
+- Treat display, battery, charging, radio, input, and GPU as untested while
+  automatic hardware coldplug is masked.
 
 ## Tier 2 — core hardware
 

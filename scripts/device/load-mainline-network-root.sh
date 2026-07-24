@@ -13,6 +13,12 @@ manifest=$payload/SHA256SUMS
 (cd "$payload" && sha256sum -c SHA256SUMS)
 gzip -t "$initramfs"
 
+systemd_diagnostic=${ROG5_SYSTEMD_DIAGNOSTIC:-0}
+case $systemd_diagnostic in
+	0|1) ;;
+	*) exit 1 ;;
+esac
+
 control_count=0
 for file in $(find "$sys_devices" -type f -name disable 2>/dev/null); do
 	parent=${file%/disable}
@@ -43,6 +49,10 @@ for argument in $(cat "$proc_cmdline"); do
 	esac
 done
 command_line="$command_line rog5.recovery_timeout=$recovery_timeout"
+if [ "$systemd_diagnostic" = 1 ]; then
+	command_line="$command_line systemd.mask=systemd-udev-trigger.service"
+	command_line="$command_line systemd.mask=systemd-modules-load.service"
+fi
 
 [ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
 	grep -c '^rog5\.netroot=1$')" -eq 1 ]

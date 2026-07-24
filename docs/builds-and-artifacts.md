@@ -37,12 +37,12 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS A660 tier DTB | upstream Freedreno/GMU bring-up after recovery | isolated two-node overlay and pinned upstream firmware pass offline guards; hardware tests pending |
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
-| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | current 2,007,186,653-byte network-root archive has exact modules/firmware, a recoverable host key, and passes clean round-trip verification; privileged NFS gate passed, phone live gate pending |
+| locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | current 2,007,186,653-byte network-root archive has exact modules/firmware, persistent client authorization, and passes clean round-trip plus two diagnostic phone boots |
 | target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | v18 passes staging twice and one Linux 7.1 target/rollback cycle |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
-| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle, exact Arch rootfs, and privileged exact-peer host mount pass; attended phone boot pending; never flash |
+| UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v1 bundle passes offline and twice in diagnostic live boot; normal udev coldplug reset remains; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
@@ -98,9 +98,8 @@ identified the unnecessary wake-lock gate through its 31-second timing result
 and is retained only as diagnostic evidence. V16 reached exact USB, NCM, and
 rollback but not an ACM shell. The local v17 keyed diagnostic proved the
 RAM/storage boundary and identified the missing `/dev/ttyGS0` node. V18 is the
-reproducible credential-free candidate; it is not accepted until two staging
-and rollback cycles pass. Both cycles and the separate attended Linux 7.1
-kexec/target/rollback gate now pass.
+reproducible credential-free candidate; both required staging/rollback cycles
+and the separate attended Linux 7.1 kexec/target/rollback gate now pass.
 
 ## Reproduction records
 
@@ -110,8 +109,11 @@ belong in `manifests/`. The
 [network-root v1 offline report](../test-results/2026-07-24-network-root-v1-offline.md)
 records the reproducible UFS-disabled NFS/OverlayFS kernel, both initramfs
 layers, ASUS wrapper, Android package, signed Arch input, verified exact-module
-Plasma rootfs, offline host isolation harness, and pending privileged
-host-export/live boundary. The
+Plasma rootfs, and offline host isolation harness. The
+[network-root v1 live report](../test-results/2026-07-24-network-root-v1-live.md)
+records the privileged export, four bounded coldplug resets, two passing
+diagnostic Arch boots, persistent client authorization, and next isolation
+gate. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The
