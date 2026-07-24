@@ -108,9 +108,8 @@ restored the exact fallback kernel.
 
 ## Tier 1.75 — UFS-disabled network root
 
-Status: **offline, privileged host, and diagnostic live gates passed**. The
-default systemd coldplug path resets at 16 seconds and remains under
-isolation.
+Status: **offline, privileged host, normal-coldplug, and retained-exitrd reboot
+gates passed**. Persistent storage and hardware bring-up remain isolated.
 
 - Use only the fourteen-file manifest-pinned network-root bundle.
 - Require built-in NFSv4.2, TCP, OverlayFS, tmpfs xattrs, USB ACM/NCM, and
@@ -144,6 +143,11 @@ isolation.
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host
   identity to pass strict verification across two boots. **Passed.**
+- Require `/run/initramfs/shutdown` to match the reviewed source and execute
+  with its retained AArch64 BusyBox/musl runtime. Unmount OverlayFS before its
+  tmpfs and NFS backing filesystems, then prove normal `systemctl reboot`
+  returns to the exact fallback and removes all host runtime state.
+  **Passed once with v3; repeated clean cycles remain a Phase 4 gate.**
 - Treat display, battery, charging, radio, input, and GPU as untested despite
   the normal headless coldplug pass.
 

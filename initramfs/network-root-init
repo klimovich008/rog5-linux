@@ -166,6 +166,24 @@ mount_network_root() {
 	return 0
 }
 
+prepare_shutdown_root() {
+	exitrd=/run/initramfs
+
+	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
+		"$exitrd/sys" "$exitrd/run" "$exitrd/oldroot" "$exitrd/oldsys" ||
+		return 1
+	cp -p /bin/busybox "$exitrd/bin/busybox" || return 1
+	cp -p /lib/ld-musl-aarch64.so.1 \
+		"$exitrd/lib/ld-musl-aarch64.so.1" || return 1
+	ln -s ld-musl-aarch64.so.1 \
+		"$exitrd/lib/libc.musl-aarch64.so.1" || return 1
+	ln -s busybox "$exitrd/bin/sh" || return 1
+	cp -p /shutdown "$exitrd/shutdown" || return 1
+	chroot "$exitrd" /bin/sh -n /shutdown || return 1
+	touch /run/rog5-network-root-exitrd-ready
+	return 0
+}
+
 recovery_timeout=600
 netroot_count=0
 netroot_invalid=0
@@ -213,6 +231,11 @@ fi
 
 if ! verify_no_phone_storage; then
 	log 'phone-storage exclusion failed before switch_root; rebooting'
+	force_rollback
+fi
+
+if ! prepare_shutdown_root; then
+	log 'shutdown initramfs preparation failed; rebooting'
 	force_rollback
 fi
 

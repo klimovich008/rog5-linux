@@ -246,21 +246,28 @@ deployment-local Ed25519 server host key outside Git and pins `sshd` to that
 single identity. The same client authorization and server identity passed on
 two separate native-Linux boots.
 
-Normal mainline `systemctl reboot` remains defective: the gadget departed but
-fallback, fastboot, and ADB did not return within 120 seconds. The attended
-SysRq reset returned to fallback after both v2 boots and complete NFS/firewall
-cleanup passed. A later unchanged boot proved that
-`systemctl reboot --force --force` returns to fallback in about 21 seconds, so
-the kernel PSCI/Qualcomm restart path is healthy and the remaining defect is
-normal userspace teardown. That boot also passed the same pinned Arch SSH
-identity and another strict fallback key-only login. The current leading cause
-is the absence of a retained shutdown initramfs while the generated NFS-lower
-and tmpfs-upper mount units still back OverlayFS `/`.
+The v2 normal `systemctl reboot` test removed the gadget but did not return to
+fallback, Fastboot, or ADB within 120 seconds. A forced double reboot returned
+in about 21 seconds, isolating the defect to userspace teardown rather than the
+kernel restart path. V3 fixes that boundary by preparing `/run/initramfs`
+before `switch_root` and retaining BusyBox, its AArch64 musl loader, and a
+reviewed shutdown script. The exitrd moves the NFS lower and tmpfs state out
+of the old root, unmounts OverlayFS first, then its backing filesystems.
+
+The complete v3 bundle was reproduced twice and passed its fourteen-file
+offline verifier. Its attended normal, unmasked Arch boot passed the prior
+kernel, systemd, coldplug, storage, NFS, SSH, thermal, and fatal-log gates plus
+the executable retained-exitrd contract. `systemctl reboot --no-block` then
+removed the target gadget after about six seconds and returned the persistent
+fallback after about 25 seconds. Strict fallback SSH passed, and the NFS
+listener, export, bind mount, kernel threads, runtime firewall rules,
+temporary sysctl, and `/30` interface state were all absent afterward.
 
 The phone is currently in persistent Alpine fallback. The attended NFS
 listener, export, bind mount, runtime firewall changes, and temporary target
-interface state are absent. Display, battery, charging, Wi-Fi, and GPU
-hardware remain unaccepted separate tiers.
+interface state are absent. The v3 image remains an attended RAM-only
+development transport and must never be flashed. Display, battery, charging,
+Wi-Fi, and GPU hardware remain unaccepted separate tiers.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

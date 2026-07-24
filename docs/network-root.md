@@ -4,10 +4,10 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **headless Arch boot passes twice with normal hardware coldplug**.
-Linux 7.1.4, systemd, OverlayFS, read-only NFS, persistent key-only SSH, and
-the zero-storage boundary are accepted. Display, battery, radio, and GPU
-remain separate untested hardware tiers.
+Status: **headless Arch boot and normal systemd reboot pass**. Linux 7.1.4,
+systemd, OverlayFS, read-only NFS, persistent key-only SSH, the zero-storage
+boundary, and one retained-exitrd power cycle are accepted. Repeated power
+cycles plus display, battery, radio, and GPU remain separate test tiers.
 
 ## Chosen design
 
@@ -67,8 +67,10 @@ disabled in the final configuration, not merely left unused by the DTB.
 7. mounts the exact NFS export read-only;
 8. creates the tmpfs/OverlayFS merged root;
 9. repeats the no-phone-storage check;
-10. moves `/dev`, `/proc`, `/sys`, and `/run`; and
-11. executes the distribution's `/sbin/init`.
+10. prepares `/run/initramfs` with the reviewed shutdown script, BusyBox, and
+    its AArch64 musl loader;
+11. moves `/dev`, `/proc`, `/sys`, and `/run`; and
+12. executes the distribution's `/sbin/init`.
 
 The target watchdog PID remains in `/run/rog5-network-root-watchdog.pid`.
 During the first attended test it is disarmed only after the host verifies the
@@ -107,17 +109,28 @@ drop-by-default zone and only NFS is allowed to the host. SSH and sustained
 NFS traffic passed. The full evidence and exact artifact identities are in
 the [v2 live report](../test-results/2026-07-24-network-root-v2-live.md).
 
+Network-root v3 retains the minimal shutdown environment that v2 lacked. Its
+normal live boot repeated the accepted coldplug, storage, NFS, SSH, thermal,
+and fatal-log gates. The retained exitrd matched the reviewed source,
+executed in an AArch64 chroot, and remained executable at
+`/run/initramfs/shutdown`. After watchdog disarm,
+`systemctl reboot --no-block` returned to persistent fallback in about
+25 seconds. Strict fallback SSH and complete NFS/firewall/interface cleanup
+passed. The [v3 report](../test-results/2026-07-24-network-root-v3-live.md)
+records the reproducible artifact identities and live result.
+
 ## Offline result
 
-The v2 bundle passes its fourteen-file verifier:
+The v3 bundle passes its fourteen-file verifier:
 
 - two fresh Linux 7.1.4 output volumes produced byte-identical config, raw and
   compressed Images, modules, and metadata;
 - NFSv4.2, OverlayFS, tmpfs xattrs, ACM, and NCM are built in;
 - SCSI, UFS, SCSI disk/BSG/RPMB, and the UFS/combo/PCIe/SuperSpeed QMP PHY
   paths are absent from the final config, with no UFS module in the archive;
-- target and nested staging initramfs builds are byte-identical and contain no
-  authorization key, host key, machine identity, or private key;
+- target and nested staging initramfs builds are byte-identical, contain the
+  reviewed executable exitrd, and contain no authorization key, host key,
+  machine identity, or private key;
 - two clean ASUS wrapper builds and two header-v3/AVB repacks are
   byte-identical; and
 - nested hashes, wrapper metadata, boot command line, recovery-DTB node
@@ -198,9 +211,9 @@ The default attended window remains 900 seconds. An explicitly requested
 long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
 phone must return to fallback with the validated attended procedure before
 that deadline: removing NFS while it is the live lower root would strand
-userspace. Normal mainline `systemctl reboot` is not yet an accepted return
-path. This PC-backed root is a bring-up transport, not the final independent
-storage design.
+userspace. V3 has one passing normal mainline reboot through its retained
+exitrd. This PC-backed root remains an attended bring-up transport, not the
+final independent storage design.
 
 After explicit approval, the Nobara host installed `nfs-utils`, prepared and
 reverified the fixed export root, and passed the privileged runtime gate. The
@@ -233,9 +246,10 @@ Live acceptance requires exact kernel release, OverlayFS `/`, read-only NFS
 lower, tmpfs upper, zero physical block devices, zero block-backed mounts,
 `multi-user.target`, key-only SSH, stable USB traffic, no fatal kernel log,
 and a validated return to the exact fallback kernel. These gates pass twice
-with normal coldplug. The separate orderly-reboot gate remains open. Failure
-leaves the watchdog armed.
+with normal coldplug. V3 also passes the executable retained-exitrd contract
+and one normal systemd reboot to the exact fallback with complete host
+cleanup. Failure leaves the watchdog armed until all acceptance gates pass.
 
-See the [redacted v2 live report](../test-results/2026-07-24-network-root-v2-live.md)
-for the exact artifact identities, repeated gates, coldplug evidence, SSH
-persistence proof, and remaining reboot boundary.
+See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
+for the exact artifact identities, retained-exitrd proof, normal-reboot
+timeline, SSH persistence, and cleanup result.

@@ -11,8 +11,11 @@ trap 'rm -rf "$stage"' EXIT INT TERM
 gzip -dc "$archive" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 
+[ -x "$stage/init" ] && [ -x "$stage/shutdown" ]
 cmp "$stage/init" "$repo/initramfs/network-root-init"
+cmp "$stage/shutdown" "$repo/initramfs/network-root-shutdown"
 sh -n "$stage/init"
+sh -n "$stage/shutdown"
 
 for path in \
 	bin/sh \
@@ -26,7 +29,8 @@ for path in \
 	usr/bin/awk \
 	usr/bin/find \
 	usr/bin/readlink \
-	usr/bin/setsid; do
+	usr/bin/setsid \
+	usr/sbin/chroot; do
 	[ -e "$stage/$path" ] || [ -L "$stage/$path" ] || {
 		echo "FAIL initramfs command missing: /$path" >&2
 		exit 1
@@ -41,4 +45,4 @@ done
 ! find "$stage" -type f -exec grep -Il 'BEGIN .*PRIVATE KEY' {} + |
 	grep -q .
 
-echo 'PASS credential-free network-root initramfs and required BusyBox applets'
+echo 'PASS credential-free network-root initramfs, retained exitrd source, and required BusyBox applets'

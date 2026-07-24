@@ -1,14 +1,19 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-recovery-initramfs.sh BASE_INITRAMFS INIT OUTPUT [AUTHORIZED_KEY]}
+base=${1:?usage: build-recovery-initramfs.sh BASE_INITRAMFS INIT OUTPUT [AUTHORIZED_KEY] [SHUTDOWN]}
 init=${2:?missing recovery init}
 output=${3:?missing output}
 authorized_key=${4:-}
+shutdown=${5:-}
 expected_base=100e33ea4bc7e2d568450418bba3617f24394e8bb122a39fd5db334555d3bdca
 epoch=1681862400
 
 [ -r "$base" ] && [ -x "$init" ] || { echo 'FAIL missing initramfs input' >&2; exit 1; }
+[ -z "$shutdown" ] || [ -x "$shutdown" ] || {
+	echo 'FAIL shutdown must be executable' >&2
+	exit 1
+}
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || {
 	echo 'FAIL base initramfs hash mismatch' >&2
 	exit 1
@@ -18,6 +23,8 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 gzip -dc "$base" | (cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
+[ -z "$shutdown" ] ||
+	install -m 0755 "$shutdown" "$stage/shutdown"
 rm -f "$stage"/etc/ssh/ssh_host_* "$stage/etc/machine-id" \
 	"$stage/var/lib/dbus/machine-id" "$stage/root/.ssh/authorized_keys"
 if [ -n "$authorized_key" ]; then
@@ -44,4 +51,4 @@ mkdir -p "$(dirname "$output")"
 mv "$output.tmp" "$output"
 gzip -t "$output"
 sha256sum "$output"
-echo "PASS deterministic recovery initramfs with NCM, ACM, rollback, and $([ -n "$authorized_key" ] && echo SSH || echo no credentials)"
+echo "PASS deterministic recovery initramfs with NCM, ACM, rollback, $([ -n "$shutdown" ] && echo exitrd || echo no-exitrd), and $([ -n "$authorized_key" ] && echo SSH || echo no credentials)"

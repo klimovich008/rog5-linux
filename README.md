@@ -85,10 +85,12 @@ Linux 7.1.4, running systemd, successful udev coldplug, `multi-user.target`,
 key-only SSH, OverlayFS with read-only NFS lower, zero physical storage,
 stable USB/NFS, zero failed units, sane thermals, and safe watchdog disarm.
 Client authorization and a single pinned server host identity also persist
-across boots. Normal mainline `systemctl reboot` remains defective; the
-validated attended reset returns to fallback. The next gate is core hardware
-bring-up, starting with power/charging and the display path while GPU remains
-isolated.
+across boots. Network-root v3 now retains a minimal shutdown initramfs that
+unmounts OverlayFS before its tmpfs and NFS backing filesystems. Its attended
+normal `systemctl reboot` test returned to the persistent fallback in about
+25 seconds, with strict fallback SSH and complete NFS/firewall cleanup. The
+next gate is core hardware bring-up, starting with power/charging and the
+display path while GPU remains isolated.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -212,8 +214,9 @@ these commands until the external-service gate is explicitly approved.
 Its default attended window is 900 seconds. For a deliberately bounded
 long-running diagnostic, set `ROG5_NFS_TIMEOUT=86400`; return the phone to
 fallback with the validated attended procedure before that deadline because
-this temporary root depends on the host export. Normal mainline
-`systemctl reboot` is not yet an accepted return path.
+this temporary root depends on the host export. The v3 retained-exitrd path
+has one passing normal systemd reboot, but the bundle remains an attended
+temporary-boot transport and must never be flashed.
 
 The equivalent Windows workflow remains available:
 

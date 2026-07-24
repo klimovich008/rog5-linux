@@ -36,7 +36,7 @@ for a working feature.
   reservation; reproduce and boot the guarded v2 DTB.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
-- [ ] Fix the normal mainline orderly reboot path.
+- [x] Fix the normal mainline orderly reboot path with a retained exitrd.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -181,11 +181,12 @@ Goal: boot a normal modern distro before adding desktop complexity.
 - [x] Return to fallback through the validated attended reset after two normal
   v2 boots.
 - [x] Isolate and fix the normal udev coldplug reset in the recovery tier.
-- [ ] Fix and repeat normal orderly reboot; current `systemctl reboot` can
-  leave the device electrically absent.
+- [x] Fix normal orderly reboot with a retained shutdown initramfs; one
+  attended v3 `systemctl reboot` returned to fallback with complete host
+  cleanup.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
-- [ ] Verify time, entropy, repeated clean reboot, and clean shutdown after
-  restoring normal coldplug.
+- [ ] Verify time, entropy, and repeated clean reboot/shutdown cycles after
+  the first passing v3 orderly-reboot gate.
 - [ ] Measure baseline RAM, idle CPU, temperature, and power.
 - [ ] Add zram only if measurements justify it.
 

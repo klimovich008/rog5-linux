@@ -3,12 +3,14 @@ set -eu
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/network-root-init
+shutdown=$repo/initramfs/network-root-shutdown
 
-[ -x "$init" ] || {
-	echo 'FAIL missing executable network-root init' >&2
+[ -x "$init" ] && [ -x "$shutdown" ] || {
+	echo 'FAIL missing executable network-root init or shutdown' >&2
 	exit 1
 }
 sh -n "$init"
+sh -n "$shutdown"
 
 for text in \
 	'rog5.netroot=1' \
@@ -22,6 +24,9 @@ for text in \
 	'vers=4.2,proto=tcp,port=2049,ro,nolock' \
 	'mount -t tmpfs -o nodev,nosuid' \
 	'mount -t overlay overlay' \
+	'/run/initramfs' \
+	'cp -p /shutdown "$exitrd/shutdown"' \
+	'chroot "$exitrd" /bin/sh -n /shutdown' \
 	'exec switch_root /newroot /sbin/init'; do
 	grep -Fq "$text" "$init" || {
 		echo "FAIL network-root init contract missing: $text" >&2
@@ -42,6 +47,8 @@ usb_line=$(grep -n '^[[:space:]]*configure_usb$' "$init" |
 	head -n1 | cut -d: -f1)
 nfs_line=$(grep -n '^[[:space:]]*mount_network_root$' "$init" |
 	head -n1 | cut -d: -f1)
+exitrd_line=$(grep -n '^[[:space:]]*if ! prepare_shutdown_root; then$' "$init" |
+	head -n1 | cut -d: -f1)
 switch_line=$(grep -n 'exec switch_root /newroot /sbin/init' "$init" |
 	tail -n1 | cut -d: -f1)
 
@@ -49,6 +56,8 @@ switch_line=$(grep -n 'exec switch_root /newroot /sbin/init' "$init" |
 [ "$storage_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$usb_line" ]
 [ "$usb_line" -lt "$nfs_line" ]
+[ "$nfs_line" -lt "$exitrd_line" ]
+[ "$exitrd_line" -lt "$switch_line" ]
 [ "$nfs_line" -lt "$switch_line" ]
 
 [ "$(grep -Fc 'rog5.netroot=1' "$init")" -eq 1 ]
@@ -59,4 +68,20 @@ grep -Fq 'mount --move /proc /newroot/proc' "$init"
 grep -Fq 'mount --move /sys /newroot/sys' "$init"
 grep -Fq 'mount --move /run /newroot/run' "$init"
 
-echo 'PASS network-root init keeps UFS absent, mounts read-only NFS plus tmpfs overlay, and preserves rollback'
+for text in \
+	'mount --move "$source" "$target"' \
+	'move_mount /oldroot/.rog5/root-ro /oldsys/root-ro' \
+	'move_mount /oldroot/.rog5/state /oldsys/state' \
+	'unmount_mount /oldroot' \
+	'umount -l "$target"' \
+	'reboot -f -n' \
+	'printf b >/proc/sysrq-trigger'; do
+	grep -Fq "$text" "$shutdown" || {
+		echo "FAIL network-root shutdown contract missing: $text" >&2
+		exit 1
+	}
+done
+! grep -Eq 'mount[[:space:]].*/dev/|mkfs|wipefs|blkdiscard|fastboot|flash' \
+	"$shutdown"
+
+echo 'PASS network-root init keeps UFS absent, retains an exitrd, tears down overlay backing mounts, and preserves rollback'
