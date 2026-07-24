@@ -119,6 +119,18 @@ executed in an AArch64 chroot, and remained executable at
 passed. The [v3 report](../test-results/2026-07-24-network-root-v3-live.md)
 records the reproducible artifact identities and live result.
 
+Network-root v4 then isolated the PMK8350 RTC and power key. The target stayed
+stable, but the raw RTC was near the Unix epoch and set Linux about 56 years
+behind the host. V4 is rejected as a server-time source; no clock or RTC write
+was attempted. V5 keeps RTC disabled and enables only the power key. Its true
+diagnostic boot identified `qcom_pon` as the missing modular parent, passed the
+independently watched module probe, and registered exactly one
+`pmic_pwrkey`/`pm8941-pwrkey` input with `KEY_POWER` and wakeup enabled.
+Systemd reboot with the module loaded returned to fallback with complete host
+cleanup. A physical short press still needs an attended observation, so the
+switch/IRQ path is pending. See the
+[PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md).
+
 ## Offline result
 
 The v3 bundle passes its fourteen-file verifier:
@@ -248,8 +260,13 @@ lower, tmpfs upper, zero physical block devices, zero block-backed mounts,
 and a validated return to the exact fallback kernel. These gates pass twice
 with normal coldplug. V3 also passes the executable retained-exitrd contract
 and one normal systemd reboot to the exact fallback with complete host
-cleanup. Failure leaves the watchdog armed until all acceptance gates pass.
+cleanup. V4 records a safely rejected RTC result, while v5 passes the isolated
+power-key dependency, registration, and reboot gates; physical press
+observation remains pending. Failure leaves the watchdog armed until all
+acceptance gates pass.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
-timeline, SSH persistence, and cleanup result.
+timeline, SSH persistence, and cleanup result. See the
+[PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
+for the v4 RTC rejection and v5 power-key evidence.

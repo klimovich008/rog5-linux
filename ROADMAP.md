@@ -37,6 +37,8 @@ for a working feature.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
+- [x] Reject the near-epoch PMK8350 RTC without writing it, then isolate and
+  register the PMK8350 power-key path with RTC still disabled.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -184,9 +186,11 @@ Goal: boot a normal modern distro before adding desktop complexity.
 - [x] Fix normal orderly reboot with a retained shutdown initramfs; one
   attended v3 `systemctl reboot` returned to fallback with complete host
   cleanup.
+- [x] Verify runtime timekeeping, entropy, and two additional clean
+  mainline-to-fallback reboot cycles while adding only isolated PMIC nodes.
+- [ ] Bootstrap trusted time from the host or network on each boot; the raw
+  PMK8350 RTC is near the Unix epoch and is rejected as a server-time source.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
-- [ ] Verify time, entropy, and repeated clean reboot/shutdown cycles after
-  the first passing v3 orderly-reboot gate.
 - [ ] Measure baseline RAM, idle CPU, temperature, and power.
 - [ ] Add zram only if measurements justify it.
 
@@ -216,6 +220,10 @@ Goal: make the phone locally usable while remaining an efficient screen-off
 server.
 
 - [ ] Port panel, DSI, Pixelworks bridge, backlight, touch, and buttons.
+- [x] Isolate the PMK8350 power-key DT node and register one `KEY_POWER`
+  device through the guarded `qcom_pon` parent-module probe.
+- [ ] Observe a real short press through the switch/IRQ/input path; driver
+  registration alone is not acceptance.
 - [ ] Validate 60 Hz first, then 90/120/144 Hz one mode at a time.
 - [ ] Use 60 Hz and panel-off as server defaults; expose higher rates on demand.
 - [ ] Make a short power-button press toggle panel/DPMS state without suspending

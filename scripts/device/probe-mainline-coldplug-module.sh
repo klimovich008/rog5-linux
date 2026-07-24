@@ -14,8 +14,8 @@ case $module in
 	authenc|gpucc_sm8350|libdes|nvmem_qcom_spmi_sdam|nvmem_reboot_mode|\
 	pinctrl_lpass_lpi|pinctrl_sc7280_lpass_lpi|qcom_pon|\
 	qcom_refgen_regulator|qcom_rng|qcom_spmi_adc5|qcom_spmi_temp_alarm|\
-	qcom_stats|qcom_vadc_common|qcomtee|qcrypto|rmtfs_mem|sha1|sha256|\
-	socinfo) ;;
+	qcom_stats|qcom_vadc_common|qcomtee|qcrypto|rmtfs_mem|rtc_pm8xxx|\
+	sha1|sha256|socinfo) ;;
 	*) fail 'module is not in the reviewed coldplug allowlist' ;;
 esac
 
@@ -192,6 +192,21 @@ post_fail() {
 
 [ -d "/sys/module/$normalized_module" ] ||
 	post_fail 'module did not remain loaded'
+if [ "$module" = rtc_pm8xxx ]; then
+	[ "$(find /sys/class/rtc -mindepth 1 -maxdepth 1 -name 'rtc*' |
+		wc -l)" -eq 1 ] ||
+		post_fail 'RTC module did not register exactly one RTC'
+	rtc=/sys/class/rtc/rtc0
+	[ -r "$rtc/device/of_node/compatible" ] ||
+		post_fail 'RTC has no device-tree identity'
+	tr '\000' '\n' <"$rtc/device/of_node/compatible" |
+		grep -qx 'qcom,pmk8350-rtc' ||
+		post_fail 'RTC bound to an unexpected device-tree node'
+	cat "$rtc/date" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' ||
+		post_fail 'RTC date is unreadable'
+	cat "$rtc/time" | grep -Eq '^[0-9]{2}:[0-9]{2}:[0-9]{2}$' ||
+		post_fail 'RTC time is unreadable'
+fi
 system_state=
 for unused in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
 	system_state=$(systemctl is-system-running 2>/dev/null || true)

@@ -28,6 +28,7 @@ qcom_vadc_common
 qcomtee
 qcrypto
 rmtfs_mem
+rtc_pm8xxx
 sha1
 sha256
 socinfo
@@ -38,7 +39,7 @@ for module in $modules; do
 		exit 1
 	}
 done
-[ "$(printf '%s\n' "$modules" | awk 'NF { count++ } END { print count }')" -eq 20 ]
+[ "$(printf '%s\n' "$modules" | awk 'NF { count++ } END { print count }')" -eq 21 ]
 
 for contract in \
 	'ALLOW_MAINLINE_COLDPLUG_PROBE' \
@@ -61,6 +62,8 @@ for contract in \
 	'modprobe --first-time "$module"' \
 	'rog5-coldplug-probe: begin module=$module' \
 	'rog5-coldplug-probe: modprobe returned module=$module' \
+	'/sys/class/rtc/rtc0' \
+	'qcom,pmk8350-rtc' \
 	'Kernel panic|Oops:|BUG:' \
 	'starting|initializing' \
 	'EVIDENCE thermal_zones_begin' \

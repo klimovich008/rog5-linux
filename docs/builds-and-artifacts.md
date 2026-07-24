@@ -43,6 +43,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
+| isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
@@ -121,6 +122,10 @@ gates, and the original orderly-reboot defect. The
 [network-root v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 records the reproducible retained-exitrd candidate, full live gate, normal
 systemd reboot, fallback SSH restoration, and complete host cleanup. The
+[network-root PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
+records the safely rejected v4 RTC result and the v5 power-key dependency,
+registration, reboot, and cleanup evidence; physical press observation
+remains pending. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

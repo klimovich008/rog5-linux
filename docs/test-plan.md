@@ -148,15 +148,27 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   tmpfs and NFS backing filesystems, then prove normal `systemctl reboot`
   returns to the exact fallback and removes all host runtime state.
   **Passed once with v3; repeated clean cycles remain a Phase 4 gate.**
-- Treat display, battery, charging, radio, input, and GPU as untested despite
-  the normal headless coldplug pass.
+- Keep v4 as rejected RTC evidence only: the raw PMK8350 clock was near the
+  Unix epoch and set Linux about 56 years behind the host. Require no RTC,
+  system-clock, offset-storage, or phone-storage write in this tier.
+- For v5 diagnostic input isolation, require RTC disabled, `qcom_pon` absent
+  and zero power-key events before the guarded probe, then require the
+  watchdog safely disarmed, `qcom_pon` loaded, exactly one
+  `pmic_pwrkey`/`pm8941-pwrkey` event, `KEY_POWER`, wakeup enabled, unchanged
+  NFS/USB/storage boundaries, and a clean systemd reboot to fallback.
+  **Dependency, registration, and reboot passed; physical press pending.**
+- Treat display, battery, charging, radio, physical input actuation, and GPU
+  as untested despite the normal headless coldplug and input-registration
+  passes.
 
 ## Tier 2 — core hardware
 
 - USB NCM remains stable during sustained traffic.
 - Battery capacity, voltage, current, temperature, and charging status are real.
 - Thermal zones and CPU frequency policies are present.
-- DRM connector, backlight, touch, and power button work.
+- DRM connector, backlight, and touch work; a physically observed short
+  power-button press traverses the switch/IRQ/input path. Driver registration
+  alone does not satisfy this gate.
 - Screen-off state does not stop SSH, networking, or scheduled work.
 - At least 30 minutes of idle and load operation produce no fatal kernel warnings.
 

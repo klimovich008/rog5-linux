@@ -263,11 +263,29 @@ fallback after about 25 seconds. Strict fallback SSH passed, and the NFS
 listener, export, bind mount, kernel threads, runtime firewall rules,
 temporary sysctl, and `/30` interface state were all absent afterward.
 
+The next isolated PMIC experiment was also reproduced twice. Network-root v4
+enabled only the PMK8350 RTC and power key. Its normal live boot was stable,
+but the raw RTC was near the Unix epoch and set Linux about 56 years behind
+the host. V4 is rejected as a server-time source; no clock or RTC write was
+attempted.
+
+Network-root v5 retains only the power-key enablement and keeps RTC disabled.
+Its true diagnostic boot proved that `qcom_pon` is the reviewed modular parent
+for the built-in PM8941 input driver. The guarded probe registered exactly one
+`pmic_pwrkey` event device with `KEY_POWER`, wakeup enabled, and the expected
+PMK8350 compatible. Normal systemd reboot with the module loaded returned to
+fallback and complete host cleanup passed. A physical short press was not
+observed during the bounded attended windows, so switch/IRQ operation remains
+pending rather than passed. The
+[PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
+records the reproducible artifacts and live evidence.
+
 The phone is currently in persistent Alpine fallback. The attended NFS
 listener, export, bind mount, runtime firewall changes, and temporary target
-interface state are absent. The v3 image remains an attended RAM-only
-development transport and must never be flashed. Display, battery, charging,
-Wi-Fi, and GPU hardware remain unaccepted separate tiers.
+interface state are absent. The v3-v5 images remain attended RAM-only
+development transports and must never be flashed. Display, battery, charging,
+Wi-Fi, and GPU hardware remain unaccepted separate tiers. Trusted time must
+currently be bootstrapped from the host or network rather than the PMIC RTC.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

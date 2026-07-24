@@ -44,7 +44,16 @@ rog5-screen-toggle.sh toggle
 
 It discovers the writable backlight, validates its range, preserves brightness, and changes its state record only after a successful sysfs write. `rog5-server-inhibit.service` uses systemd's native inhibitor API to block system sleep and short power-key shutdown without blocking idle display blanking; stopping that service restores explicit suspend policy. Headless logind ignores a short power press, while a long press retains the emergency power-off action. Plasma/PowerDevil power-button screen toggling still requires a live input test after the mainline input port.
 
-The same behavior is staged, not yet a hardware result, for Arch and Linux 7.1. Backlight control remains the fallback if DPMS is unavailable. Power measurements must compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
+Linux 7.1 network-root v5 now registers the PMK8350 power-key path after the
+reviewed `qcom_pon` parent module is loaded. The resulting input is named
+`pmic_pwrkey`, uses the `pm8941-pwrkey` driver, advertises `KEY_POWER`, and has
+wakeup enabled. A real short press was not observed during the bounded
+attended windows, so the physical switch/IRQ path is still pending. This tier
+cannot yet provide a visible power-button indication because DRM, panel,
+backlight, and LEDs remain intentionally disabled. Backlight control remains
+the fallback if DPMS is unavailable once display bring-up begins. Power
+measurements must compare panel-on, backlight-zero, DPMS-off, and
+compositor-stopped states.
 
 ## Memory policy
 

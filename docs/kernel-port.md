@@ -102,6 +102,15 @@ minimal shutdown initramfs and passes one normal systemd reboot to the
 persistent fallback with complete host cleanup. Repeated clean cycles remain
 required as new hardware tiers are enabled.
 
+The first PMIC input tier was then narrowed in two steps. V4 proved that the
+PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
+remains disabled and trusted time must come from the host or network. V5
+enables only the PMK8350 power-key node. In a storage-isolated diagnostic boot,
+the guarded `qcom_pon` parent-module probe registered the built-in
+`pm8941-pwrkey` input with `KEY_POWER` and wakeup enabled, then survived normal
+systemd reboot and cleanup. A physical press/IRQ observation remains required
+before input is accepted.
+
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did
 not, however, satisfy the claimed recovery boundary: its staging `/` was
