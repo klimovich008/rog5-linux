@@ -94,6 +94,12 @@ fallback boot identities. A separately attended kexec then booted
 watchdog, fatal-log check, and automatic fallback also passed. The next board
 tier enables only reviewed UFS dependencies for read-only, no-mount discovery.
 
+That UFS discovery tier now passes, and network-root v2 advances the same
+two-stage route to a normal Arch PID 1. Its recovery DTB additionally disables
+RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU; two unmasked coldplug boots pass
+the headless systemd/SSH/storage/USB/NFS gates. Normal orderly reboot remains
+the next recovery-path defect.
+
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did
 not, however, satisfy the claimed recovery boundary: its staging `/` was

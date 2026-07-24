@@ -4,10 +4,10 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **headless Arch boot passes twice in diagnostic mode**. Linux 7.1.4,
-systemd, OverlayFS, read-only NFS, key-only SSH, and the zero-storage boundary
-are accepted. The normal systemd hardware-coldplug path still resets the
-phone, so display, battery, radio, and GPU work remain blocked.
+Status: **headless Arch boot passes twice with normal hardware coldplug**.
+Linux 7.1.4, systemd, OverlayFS, read-only NFS, persistent key-only SSH, and
+the zero-storage boundary are accepted. Display, battery, radio, and GPU
+remain separate untested hardware tiers.
 
 ## Chosen design
 
@@ -33,8 +33,9 @@ block device. The only new mount is the exact read-only network export.
 
 - The Android wrapper remains temporary `fastboot boot`; no image is flashed.
 - Kexec load and execution remain separate attended actions.
-- The target reuses the accepted USB2 recovery DTB, where UFS, its PHY,
-  SuperSpeed QMP, and the secondary USB controller are disabled.
+- The target uses the v2 USB2 recovery DTB, where UFS, its PHY, SuperSpeed
+  QMP, the secondary USB controller, RMTFS, GPUCC, GPU, GMU, and the Adreno
+  SMMU are disabled.
 - The dedicated kernel also compiles out SCSI, UFS host drivers, UFS/QMP PHY
   drivers, BSG, RPMB, and SCSI disk support.
 - Initramfs rejects any physical block device or block-backed mount before USB
@@ -75,42 +76,40 @@ kernel, mounts, zero-storage state, network path, systemd target, and SSH.
 
 ## Live result
 
-Four normal attempts crossed the NFS mount, OverlayFS, `switch_root`, and
-systemd boundary, then reset at the same 16-second target uptime. A live ACM
-capture showed active NFS traffic and systemd coldplug/module startup before
-the reset; fallback ramoops contained no retained crash record.
+Four initial normal attempts crossed the NFS mount, OverlayFS, `switch_root`,
+and systemd boundary, then reset at the same 16-second target uptime.
+Diagnostic-mode boots and the rollback-guarded coldplug probe then established:
 
-The loader now has an explicit `ROG5_SYSTEMD_DIAGNOSTIC=1` mode. It appends
-runtime masks for `systemd-udev-trigger.service` and
-`systemd-modules-load.service`; the default command line is unchanged, and an
-invalid value exits before kexec is loaded. Two clean ASUS wrapper builds and
-two repacks containing this loader are byte-identical.
+- `qcomtee` and the reviewed NVMEM, pinctrl, PON, regulator, RNG, ADC/thermal,
+  stats, crypto, and SoC-info modules remain stable;
+- `gpucc_sm8350` stalls during live probe and the watchdog resets the phone;
+  and
+- the enabled `rmtfs_mem` node overlaps the 4 MiB recovery ramoops reservation.
 
-Two diagnostic boots then passed:
+Network-root v2 disables RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU in the
+recovery DTB. Two boots with `ROG5_SYSTEMD_DIAGNOSTIC=0` then passed:
 
-- exact kernel `7.1.4-g7a5cef0db479` with systemd as PID 1;
-- `systemctl is-system-running=running`, active `multi-user.target` and SSH,
-  zero failed units, and no fatal kernel signature;
+- exact kernel `7.1.4-g7a5cef0db479` with systemd as PID 1 and no
+  `systemd.mask=` argument;
+- running systemd, active `multi-user.target`, SSH and udev, successful
+  unmasked udev-trigger/modules-load, zero failed units, and no fatal kernel
+  signature;
 - OverlayFS `/`, exact NFSv4.2 lower at `169.254.77.1:/` read-only, and a
   2 GiB `nodev,nosuid` tmpfs state layer;
 - zero physical block devices and zero block-backed mounts;
-- exact `169.254.77.2/30` USB address, carrier up, sustained NFS reads, ICMP,
-  and key-only SSH for both root and the unprivileged `rog5` account; and
+- exact USB NCM address/carrier and a sustained full module-tree NFS read;
+- five disabled live DT nodes, with `gpucc_sm8350` and `rmtfs_mem` absent;
+- 33 sane thermal zones and about 10.4 GiB available memory; and
 - successful watchdog disarm only after every acceptance gate.
 
-The first diagnostic boot returned orderly to the persistent Alpine fallback.
-The second is suitable for a bounded long-running SSH/server test while the
-host export remains active.
-
-Loading `qcomtee` manually after acceptance remained stable for 30 seconds,
-so that module alone is not the reset trigger. The remaining evidence points
-to the automatic udev coldplug transaction, but does not yet identify one
-driver. This mode intentionally skips normal hardware discovery and therefore
-does not count as display, input, battery, Wi-Fi, or GPU acceptance.
+ICMP to the host is expected to fail because the USB interface is in the
+drop-by-default zone and only NFS is allowed to the host. SSH and sustained
+NFS traffic passed. The full evidence and exact artifact identities are in
+the [v2 live report](../test-results/2026-07-24-network-root-v2-live.md).
 
 ## Offline result
 
-The v1 bundle passes its fourteen-file verifier:
+The v2 bundle passes its fourteen-file verifier:
 
 - two fresh Linux 7.1.4 output volumes produced byte-identical config, raw and
   compressed Images, modules, and metadata;
@@ -121,8 +120,8 @@ The v1 bundle passes its fourteen-file verifier:
   authorization key, host key, machine identity, or private key;
 - two clean ASUS wrapper builds and two header-v3/AVB repacks are
   byte-identical; and
-- nested hashes, wrapper metadata, boot command line, accepted recovery-DTB
-  identity, and unsigned AVB footer all pass.
+- nested hashes, wrapper metadata, boot command line, recovery-DTB node
+  semantics, and unsigned AVB footer all pass.
 
 The signed 818,293,654-byte Arch Linux ARM input also re-verifies under the
 pinned Arch Linux ARM key, and the Linux-native rootfs path preserves metadata
@@ -133,8 +132,9 @@ headless-first Plasma/server package set. Its SHA-256 is
 `8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
 Re-extraction into a second clean volume passed the complete architecture,
 ownership/mode/xattr, module, firmware, identity, networking, SSH, and desktop
-contract. Only the public half of a dedicated persistent host key is present;
-the private half remains mode 0600 outside the repository and artifacts.
+contract. The archive contains only client authorization. Preparing an export
+creates one deployment-local Ed25519 server host key outside the repository,
+checks its private/public pair and modes, and pins `sshd` to that identity.
 
 ## Rootfs policy
 
@@ -150,8 +150,10 @@ The first boot is deliberately headless:
 - no Wi-Fi, hotspot, VPN, browser, KDE, GNOME, or GPU test;
 - NetworkManager must leave `usb0` unmanaged so it cannot remove the address
   carrying its own NFS root;
-- no `/etc/fstab` entry may name a block device, UUID, or PARTUUID; and
-- SSH host keys and machine identity are generated only in the tmpfs overlay.
+- no `/etc/fstab` entry may name a block device, UUID, or PARTUUID;
+- client authorization is persistent but contains no private client key; and
+- the prepared root supplies one persistent server host identity, while
+  machine identity remains volatile.
 
 KDE Plasma is preferred over GNOME for the eventual GUI because the repository
 already has a minimal Plasma/KRDP path and measured baseline. It is enabled
@@ -194,9 +196,11 @@ identity, and runs the independent path-based verifier.
 
 The default attended window remains 900 seconds. An explicitly requested
 long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
-phone must reboot orderly before that deadline: removing NFS while it is the
-live lower root would strand userspace. This PC-backed root is a bring-up
-transport, not the final independent storage design.
+phone must return to fallback with the validated attended procedure before
+that deadline: removing NFS while it is the live lower root would strand
+userspace. Normal mainline `systemctl reboot` is not yet an accepted return
+path. This PC-backed root is a bring-up transport, not the final independent
+storage design.
 
 After explicit approval, the Nobara host installed `nfs-utils`, prepared and
 reverified the fixed export root, and passed the privileged runtime gate. The
@@ -228,8 +232,10 @@ Before any live attempt:
 Live acceptance requires exact kernel release, OverlayFS `/`, read-only NFS
 lower, tmpfs upper, zero physical block devices, zero block-backed mounts,
 `multi-user.target`, key-only SSH, stable USB traffic, no fatal kernel log,
-and automatic or orderly return to the exact fallback kernel. These gates
-pass in diagnostic mode. Failure leaves the watchdog armed.
+and a validated return to the exact fallback kernel. These gates pass twice
+with normal coldplug. The separate orderly-reboot gate remains open. Failure
+leaves the watchdog armed.
 
-See the [redacted live report](../test-results/2026-07-24-network-root-v1-live.md)
-for the exact artifact identities, repeated gates, and coldplug evidence.
+See the [redacted v2 live report](../test-results/2026-07-24-network-root-v2-live.md)
+for the exact artifact identities, repeated gates, coldplug evidence, SSH
+persistence proof, and remaining reboot boundary.

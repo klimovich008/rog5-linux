@@ -65,8 +65,26 @@ for file in $required_files; do
 done
 
 dtb=$artifact_dir/sm8350-asus-rog-phone5-recovery.dtb
-[ "$(sha256sum "$dtb" | cut -d ' ' -f 1)" = \
-	255c5ac199b0412c499aae39bb596507b934e71c003396040d4952f0c5ffabe6 ]
+for node in /soc@0/usb@a6f8800 /soc@0/phy@88e3000; do
+	[ "$(fdtget -t s "$dtb" "$node" status)" = okay ]
+done
+for node in \
+	/soc@0/ufshc@1d84000 \
+	/soc@0/phy@1d87000 \
+	/soc@0/phy@88e8000 \
+	/soc@0/usb@a8f8800 \
+	/reserved-memory/memory@9b800000 \
+	/soc@0/gpu@3d00000 \
+	/soc@0/gmu@3d6a000 \
+	/soc@0/clock-controller@3d90000 \
+	/soc@0/iommu@3da0000
+do
+	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
+done
+usb_dwc3=/soc@0/usb@a6f8800/usb@a600000
+[ "$(fdtget -t s "$dtb" "$usb_dwc3" maximum-speed)" = high-speed ]
+[ "$(fdtget -t s "$dtb" "$usb_dwc3" phy-names)" = usb2-phy ]
+[ "$(fdtget -t x "$dtb" "$usb_dwc3" phys | wc -w)" = 1 ]
 
 wrapper_config=$artifact_dir/config-5.4.210-network-root-stage
 wrapper_image=$artifact_dir/Image-5.4.210-network-root-stage

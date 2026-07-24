@@ -13,7 +13,7 @@ archive_name=artifacts/arch/rog5-arch-plasma-network-root-7.1.4.tar.gz
 manifest=$repo/manifests/artifacts.tsv
 
 [[ $EUID == 0 ]] || fail 'run with sudo; do not share the sudo password'
-for command in awk bsdtar df install realpath sha256sum stat; do
+for command in awk bsdtar df install realpath sha256sum ssh-keygen stat; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
 [[ $export_root == /var/lib/rog5-network-root-v1 ]] ||
@@ -64,6 +64,15 @@ install -d -m 0755 "$stage/etc/rog5"
 	printf 'archive_sha256=%s\n' "$expected_hash"
 } >"$stage/etc/rog5/network-root-export"
 chmod 0444 "$stage/etc/rog5/network-root-export"
+
+install -Dm0644 "$repo/packaging/arch/10-rog5-sshd.conf" \
+	"$stage/etc/ssh/sshd_config.d/10-rog5-server.conf"
+host_key=$stage/etc/ssh/ssh_host_ed25519_key
+[[ ! -e $host_key && ! -e $host_key.pub ]]
+ssh-keygen -q -t ed25519 -N '' -C rog5-network-root -f "$host_key"
+chown root:root "$host_key" "$host_key.pub"
+chmod 0600 "$host_key"
+chmod 0644 "$host_key.pub"
 
 "$repo/scripts/host/verify-network-root-export.sh" "$stage"
 mv "$stage" "$export_root"

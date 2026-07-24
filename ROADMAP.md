@@ -32,7 +32,11 @@ for a working feature.
 - [x] Reproduce the UFS-disabled Linux 7.1.4 USB network-root bundle offline.
 - [x] Boot Arch over USB NCM with UFS absent and reach systemd/SSH twice in
   diagnostic mode.
-- [ ] Isolate the reset in normal systemd hardware coldplug.
+- [x] Isolate the normal-coldplug reset to GPUCC and an overlapping RMTFS
+  reservation; reproduce and boot the guarded v2 DTB.
+- [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
+  and server identity.
+- [ ] Fix the normal mainline orderly reboot path.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -174,9 +178,11 @@ Goal: boot a normal modern distro before adding desktop complexity.
   the unprivileged account.
 - [x] Prove OverlayFS, read-only NFS lower, stable USB traffic, no physical
   block devices, no block-backed mounts, and zero failed units.
-- [x] Return orderly to fallback after a passing diagnostic boot.
-- [ ] Isolate and fix the normal udev coldplug reset; the current diagnostic
-  mode masks hardware discovery and is not the final boot path.
+- [x] Return to fallback through the validated attended reset after two normal
+  v2 boots.
+- [x] Isolate and fix the normal udev coldplug reset in the recovery tier.
+- [ ] Fix and repeat normal orderly reboot; current `systemctl reboot` can
+  leave the device electrically absent.
 - [ ] Provision storage only after explicit confirmation and a recovery check.
 - [ ] Verify time, entropy, repeated clean reboot, and clean shutdown after
   restoring normal coldplug.

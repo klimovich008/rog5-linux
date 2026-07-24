@@ -223,32 +223,34 @@ exact Arch root. Attended shutdown removed the export, listener, mounts,
 kernel NFS filesystem, temporary sysctl, firewall rules, and test namespace;
 the fallback USB link was restored.
 
-Four normal Arch boots mounted NFS, created OverlayFS, completed
+Four initial normal Arch boots mounted NFS, created OverlayFS, completed
 `switch_root`, and entered systemd, then reset at the same 16-second target
-uptime. Live ACM showed active NFS traffic and early systemd hardware
-coldplug/module startup before reset; ramoops retained no record. The
-reproducible loader now provides an explicit diagnostic mode that masks
-`systemd-udev-trigger.service` and `systemd-modules-load.service` without
-changing the default path.
+uptime. Diagnostic boots and the attended coldplug probe isolated two recovery
+DT hazards: `gpucc_sm8350` stalls during live clock-controller probe, and the
+enabled `rmtfs_mem` reserved-memory node overlaps the recovery ramoops span.
 
-Two diagnostic boots pass exact Linux `7.1.4-g7a5cef0db479`, systemd running,
-active `multi-user.target` and SSH, OverlayFS `/`, read-only NFSv4.2 lower,
-2 GiB tmpfs state, zero physical block devices, zero block-backed mounts,
-stable USB traffic, root and unprivileged key login, zero failed units, and
-zero fatal signatures. Their rollback watchdogs were disarmed only after all
-gates. The first returned orderly to fallback; the second is the current
-bounded long-running server boot. Nothing was flashed.
+Network-root v2 disables RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU. Its DTB,
+nested initramfs, ASUS wrapper, and header-v3/AVB image reproduce
+byte-for-byte and pass the expanded semantic verifier. Two normal boots with
+no systemd masks now pass exact Linux `7.1.4-g7a5cef0db479`, running systemd,
+successful udev-trigger/modules-load, active `multi-user.target` and SSH,
+OverlayFS `/`, read-only NFSv4.2 lower, 2 GiB tmpfs state, zero physical block
+devices, zero block-backed mounts, stable USB/NFS reads, 33 sane thermal
+zones, zero failed units, and zero fatal signatures. Each rollback watchdog
+was disarmed only after all gates. Nothing was flashed.
 
-Manual `qcomtee` loading remained stable, so that module is not the reset
-trigger by itself. The next kernel gate is controlled udev coldplug isolation.
-Until it passes, this is a native headless server shell without accepted
-display, battery, charging, Wi-Fi, or GPU hardware.
+The dedicated client key remains outside the repository at mode 0600. Its
+public half is authorized for root and `rog5`, and the persistent fallback
+also passes strict key-only login after reset. Root preparation now creates a
+deployment-local Ed25519 server host key outside Git and pins `sshd` to that
+single identity. The same client authorization and server identity passed on
+two separate native-Linux boots.
 
-The replacement dedicated SSH key persists outside the repository at mode
-0600, and the rootfs contains only its public half for root and `rog5`. The
-fallback also authorizes that public key and passed login after reboot.
-Network-root SSH host keys remain intentionally ephemeral, so their exact
-client trust entry must be refreshed on each temporary boot.
+Normal mainline `systemctl reboot` remains defective: the gadget departed but
+fallback, fastboot, and ADB did not return within 120 seconds. The attended
+SysRq reset returned to fallback after both v2 boots and complete NFS/firewall
+cleanup passed. The phone is currently in fallback. Display, battery,
+charging, Wi-Fi, and GPU hardware remain unaccepted separate tiers.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

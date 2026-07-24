@@ -28,7 +28,11 @@ Three ASUS deltas are explicit and compile-checked:
 - the region at `0x9b800000` is enlarged so the whole vendor safety/debug allocation stays out of the page allocator;
 - boot splash and display-refresh data spans are added as `no-map` reservations.
 
-The `rmtfs_mem` label is retained only because disabled upstream remote-processor nodes reference its phandle. Its ASUS recovery size is deliberately conservative; modem/rmtfs enablement requires a separate dynamic-memory review and must not reuse this placeholder contract unchanged.
+The `rmtfs_mem` label remains available for disabled upstream remote-processor
+references, but the recovery overlay now disables the reserved-memory node
+itself. Its span overlaps the 4 MiB ramoops reservation carried by the
+recovery command line, so normal coldplug must not remap or SCM-reassign it.
+Modem/RMTFS enablement requires a separate non-overlapping memory design.
 
 ## Early-boot hardware guards
 
@@ -63,8 +67,11 @@ The base skeleton deliberately keeps UFS and USB disabled. A separate
 wrapper and its HS PHY. It forces the DWC3 child to high-speed operation with
 only `usb2-phy` and selects the UTMI clock in place of the absent SuperSpeed
 pipe clock. The FEMTO USB2 PHY driver is built into the recovery kernel.
-Static checks require exactly two `status = "okay"` changes and keep UFS, the
-QMP/SuperSpeed PHY, and the secondary `usb_2` controller disabled.
+Static checks require exactly two `status = "okay"` changes and five explicit
+`status = "disabled"` changes. They keep UFS, the QMP/SuperSpeed PHY, the
+secondary `usb_2` controller, RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU
+disabled. GPUCC isolation is required because an attended live
+`gpucc_sm8350` probe stalled until the rollback watchdog reset the phone.
 
 The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6
@@ -85,6 +92,11 @@ Linux 7.1 recovery to one separately attended kexec attempt. That attempt
 booted `7.1.4-g7a5cef0db479` with the recovery DTB, exposed zero physical
 block devices as required, passed ACM/NCM and watchdog checks, and rolled back
 automatically.
+
+The same overlay, with the new GPU/RMTFS isolation, is the reproducible
+network-root v2 DTB. Two normal, unmasked Linux 7.1.4 boots now pass udev
+coldplug, systemd, storage exclusion, USB/NFS, thermal, fatal-log, and watchdog
+gates. GPU remains deliberately outside this recovery tier.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.

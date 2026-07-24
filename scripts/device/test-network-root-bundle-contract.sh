@@ -48,6 +48,15 @@ grep -Fq 'load-mainline-network-root.sh' "$verifier"
 grep -Fq 'CONFIG_SCSI_UFSHCD' "$verifier"
 grep -Fq 'rog5.netroot=1' "$verifier"
 grep -Fq 'Algorithm:' "$verifier"
+for node in \
+	/reserved-memory/memory@9b800000 \
+	/soc@0/gpu@3d00000 \
+	/soc@0/gmu@3d6a000 \
+	/soc@0/clock-controller@3d90000 \
+	/soc@0/iommu@3da0000
+do
+	grep -Fq "$node" "$verifier"
+done
 
 if grep -Eq '(^|[[:space:]])fastboot[[:space:]]+flash|(^|[[:space:]])dd[[:space:]].*of=/dev/' \
 	"$writer" "$verifier"; then

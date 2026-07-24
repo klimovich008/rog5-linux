@@ -76,15 +76,19 @@ exact network-root modules and pinned A660 firmware. The restricted host
 NFS harness now also passes its privileged runtime gate on Nobara: one
 NFSv4.2/TCP listener on the USB address, one exact-peer read-only export, a
 successful isolated client mount, no persistent firewall state, and complete
-cleanup. Four normal phone boots then reached systemd but reset during the
-same early hardware-coldplug interval. A reproducibly rebuilt diagnostic mode
-that masks udev coldplug and module autoload now boots Arch successfully
-twice: exact Linux 7.1.4, running systemd, `multi-user.target`, key-only SSH,
-OverlayFS with read-only NFS lower, zero physical storage, stable USB, zero
-failed units, and safe watchdog disarm all pass. One boot returned orderly to
-fallback and one supports the current bounded server test. The next blocker
-is isolating the exact coldplug rule/device/driver before any display,
-battery, radio, desktop, or mainline GPU claim.
+cleanup. Four early normal boots localized a deterministic reset to hardware
+coldplug. Attended, rollback-guarded module isolation then proved
+`gpucc_sm8350` stalls and showed that `rmtfs_mem` overlaps the recovery
+ramoops reservation. Network-root v2 disables RMTFS, GPUCC, GPU, GMU, and the
+Adreno SMMU in the recovery DTB. Two normal, unmasked boots now pass exact
+Linux 7.1.4, running systemd, successful udev coldplug, `multi-user.target`,
+key-only SSH, OverlayFS with read-only NFS lower, zero physical storage,
+stable USB/NFS, zero failed units, sane thermals, and safe watchdog disarm.
+Client authorization and a single pinned server host identity also persist
+across boots. Normal mainline `systemctl reboot` remains defective; the
+validated attended reset returns to fallback. The next gate is core hardware
+bring-up, starting with power/charging and the display path while GPU remains
+isolated.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -206,9 +210,10 @@ NFSv4.2 to `169.254.77.1`, exports a read-only bind mount only to
 unused built-in `drop` zone, and restores runtime state on exit. Do not run
 these commands until the external-service gate is explicitly approved.
 Its default attended window is 900 seconds. For a deliberately bounded
-long-running diagnostic, set `ROG5_NFS_TIMEOUT=86400`; reboot the phone
-orderly before that deadline because this temporary root depends on the host
-export.
+long-running diagnostic, set `ROG5_NFS_TIMEOUT=86400`; return the phone to
+fallback with the validated attended procedure before that deadline because
+this temporary root depends on the host export. Normal mainline
+`systemctl reboot` is not yet an accepted return path.
 
 The equivalent Windows workflow remains available:
 
@@ -245,10 +250,10 @@ upstream DTBs nor the standalone ASUS DTBs may be booted directly on the phone.
 The signed Arch input and the current locked minimal Plasma Desktop rootfs
 pass their offline suites. The current archive contains the exact
 `7.1.4-g7a5cef0db479` network-root modules, verified Qualcomm firmware,
-key-only SSH, no reusable host identity, and no VPN/Wi-Fi/KRDP secret. Arch
-has now passed two native diagnostic boots through the attended, read-only USB
-NFS gate; nothing was flashed. Normal hardware coldplug remains disabled in
-that mode.
+key-only SSH, and no VPN/Wi-Fi/KRDP secret. Root preparation generates one
+deployment-local server host key outside Git and pins `sshd` to it. Arch has
+now passed two native boots with normal hardware coldplug through the
+attended, read-only USB NFS gate; nothing was flashed.
 
 The ARM64 device-side compile helpers pin and verify the source before building. The first output is deliberately a compile-only upstream SM8350 comparison build; none of its existing board DTBs is safe to boot on this phone.
 

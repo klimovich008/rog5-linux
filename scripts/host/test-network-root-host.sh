@@ -23,7 +23,14 @@ grep -Fq '7.1.4-g7a5cef0db479' "$verify"
 grep -Fq 'modules-7.1.4-network-root.tar.gz' "$verify"
 grep -Fq 'unmanaged-devices=interface-name:usb0' "$verify"
 grep -Fq 'nfs_export_all_ro' "$verify"
+grep -Fq 'ssh_host_ed25519_key' "$verify"
+grep -Fq 'ssh-keygen -y' "$verify"
+grep -Fq '10-rog5-sshd.conf' "$verify"
 grep -Fq 'PASS prepared network-root export' "$verify"
+grep -Fq "ssh-keygen -q -t ed25519 -N ''" "$prepare"
+grep -Fq '10-rog5-sshd.conf' "$prepare"
+grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
+	"$repo/packaging/arch/10-rog5-sshd.conf"
 
 for contract in \
 	'169.254.77.1' \

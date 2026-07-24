@@ -73,13 +73,8 @@ install -d -o rog5 -g rog5 -m0755 /home/rog5/.config \
 	/home/rog5/.config/systemd/user/app-org.kde.krdpserver.service.d
 install -o rog5 -g rog5 -m0644 "$repo/packaging/arch/krdp-loopback.conf" \
 	/home/rog5/.config/systemd/user/app-org.kde.krdpserver.service.d/10-rog5-loopback.conf
-install -d -m0755 /etc/ssh/sshd_config.d
-cat > /etc/ssh/sshd_config.d/10-rog5-server.conf <<'EOF'
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-PermitRootLogin prohibit-password
-PubkeyAuthentication yes
-EOF
+install -Dm0644 "$repo/packaging/arch/10-rog5-sshd.conf" \
+	/etc/ssh/sshd_config.d/10-rog5-server.conf
 
 usermod -L root
 rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id

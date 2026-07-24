@@ -21,7 +21,9 @@ grep -Fq '68B3537F39A313B3E574D06777193F152BDBE6A6' \
 grep -Fq 'verify-staged-arch-rootfs.sh' "$stage"
 grep -Fq 'modules-7.1.4-network-root.tar.gz' "$stage"
 grep -Fq 'bsdtar --acls --xattrs --fflags' "$stage"
-grep -Fq 'PasswordAuthentication no' "$repo/scripts/device/stage-arch-rootfs.sh"
+grep -Fq '10-rog5-sshd.conf' "$repo/scripts/device/stage-arch-rootfs.sh"
+grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
+	"$repo/packaging/arch/10-rog5-sshd.conf"
 grep -Fq 'unmanaged-devices=interface-name:usb0' \
 	"$repo/packaging/arch/10-rog5-usb-unmanaged.conf"
 

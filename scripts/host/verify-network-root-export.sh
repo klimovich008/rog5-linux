@@ -15,7 +15,7 @@ modules_name=artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz
 source_commit=8c35d4e72382fab6217d510e17108fca60d3bd6f
 
 for command in awk cmp file find getfattr grep readelf realpath readlink \
-	sha256sum stat; do
+	sha256sum ssh-keygen stat; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
 [[ -d $root && ! -L $root ]] || fail 'export root must be a real directory'
@@ -95,6 +95,19 @@ grep -qx 'PasswordAuthentication no' \
 	"$root/etc/ssh/sshd_config.d/10-rog5-server.conf"
 grep -qx 'PermitRootLogin prohibit-password' \
 	"$root/etc/ssh/sshd_config.d/10-rog5-server.conf"
+cmp "$root/etc/ssh/sshd_config.d/10-rog5-server.conf" \
+	"$repo/packaging/arch/10-rog5-sshd.conf"
+host_key=$root/etc/ssh/ssh_host_ed25519_key
+host_public_key=$host_key.pub
+[[ -f $host_key && ! -L $host_key && -s $host_key ]]
+[[ -f $host_public_key && ! -L $host_public_key && -s $host_public_key ]]
+[[ $(stat -c %u:%g:%a "$host_key") == 0:0:600 ]]
+[[ $(stat -c %u:%g:%a "$host_public_key") == 0:0:644 ]]
+[[ $(find "$root/etc/ssh" -maxdepth 1 -type f -name 'ssh_host_*' |
+	wc -l) == 2 ]]
+cmp \
+	<(ssh-keygen -y -f "$host_key" | awk '{ print $1, $2 }') \
+	<(awk '{ print $1, $2 }' "$host_public_key")
 grep -qx 'unmanaged-devices=interface-name:usb0' \
 	"$root/etc/NetworkManager/conf.d/10-rog5-usb-unmanaged.conf"
 [[ $(readlink "$root/etc/systemd/system/default.target") == \
@@ -104,7 +117,6 @@ for unit in NetworkManager.service rog5-server-inhibit.service sshd.service; do
 done
 
 [[ ! -s $root/etc/machine-id ]]
-[[ -z $(find "$root/etc/ssh" -maxdepth 1 -name 'ssh_host_*' -print -quit) ]]
 [[ -z $(find "$root/etc/NetworkManager/system-connections" \
 	-type f -print -quit) ]]
 [[ ! -e $root/etc/wireguard/wg0.conf ]]

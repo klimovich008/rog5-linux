@@ -62,9 +62,10 @@ It was staged from the authenticated base on Nobara Linux, contains only the
 exact `7.1.4-g7a5cef0db479` module tree, and passed a clean archive
 re-extraction plus the complete rootfs verifier. It contains the selected
 public SSH key but no private key, reusable host identity, network secret,
-remote-desktop credential, or user data. It is the current offline rootfs
-candidate; the restricted NFS host gate passes and the phone-live boot is
-still required.
+remote-desktop credential, or user data. Preparing the PC-backed export
+creates one deployment-local Ed25519 server host key outside Git and pins
+`sshd` to it. The restricted NFS host gate and two normal-coldplug phone boots
+now pass, including persistent client authorization and server identity.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
@@ -85,12 +86,12 @@ set a local-only password with `passwd rog5`, then enter
 remains disabled. Unattended graphical login stays opt-in until storage
 encryption and the email/CV credential policy are decided.
 
-This remains an offline rootfs result, not a live Arch result. Credential-free
-recovery, attended Linux 7.1 kexec, and read-only UFS discovery have passed,
-and the UFS-disabled network-root bundle plus this rootfs pass offline. Host
-NFS isolation and the first headless boot must pass next; systemd,
-NetworkManager, greetd, Plasma, KRDP, and Mesa then require their separate
-hardware gates before the device is called usable.
+This rootfs is now a live native-Arch result for the headless tier:
+credential-free recovery, attended Linux 7.1 kexec, read-only UFS discovery,
+host NFS isolation, normal systemd coldplug, key-only SSH, and zero-storage
+boots pass. NetworkManager's USB exclusion is accepted, but Wi-Fi, greetd,
+Plasma, KRDP, and Mesa still require their separate hardware gates before the
+device is called usable.
 
 ## VPN hotspot
 

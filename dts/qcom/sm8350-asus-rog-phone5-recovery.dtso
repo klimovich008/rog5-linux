@@ -6,6 +6,32 @@
 	compatible = "asus,rog-phone5", "qcom,sm8350";
 };
 
+/*
+ * Keep unproven Qualcomm clients out of normal coldplug in the recovery tier.
+ * gpucc_sm8350 stalls while programming the live GPU clock controller after
+ * kexec.  rmtfs_mem overlaps the ramoops reservation carried on the recovery
+ * command line and must not remap or reassign that memory.
+ */
+&rmtfs_mem {
+	status = "disabled";
+};
+
+&gpu {
+	status = "disabled";
+};
+
+&gmu {
+	status = "disabled";
+};
+
+&gpucc {
+	status = "disabled";
+};
+
+&adreno_smmu {
+	status = "disabled";
+};
+
 &usb_1 {
 	qcom,select-utmi-as-pipe-clk;
 	status = "okay";

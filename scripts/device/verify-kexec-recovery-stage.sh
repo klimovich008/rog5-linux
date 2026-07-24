@@ -99,7 +99,12 @@ for node in \
 	/soc@0/ufshc@1d84000 \
 	/soc@0/phy@1d87000 \
 	/soc@0/phy@88e8000 \
-	/soc@0/usb@a8f8800
+	/soc@0/usb@a8f8800 \
+	/reserved-memory/memory@9b800000 \
+	/soc@0/gpu@3d00000 \
+	/soc@0/gmu@3d6a000 \
+	/soc@0/clock-controller@3d90000 \
+	/soc@0/iommu@3da0000
 do
 	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
 done

@@ -2,11 +2,11 @@
 
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
-| reversible boot | passing | v18 staging passes twice; Linux 7.1 target and rollback pass once | retain the same boundary for each new DTB tier |
-| UFS root | passing baseline only | no-mount discovery passes; the dedicated network-root kernel compiles UFS out and passes offline | boot the first USB-NCM network root; persistent UFS root remains unauthorized |
-| USB NCM/SSH | passing | Linux 7.1 ACM/NCM passes; credential-free network-root transport is reproducible offline; v17 keyed SSH passed | stage key-only SSH in the network-root userspace and pass the live NFS gate |
+| reversible boot | passing | v18 staging/rollback and v2 network-root attended reset pass; normal mainline reboot is defective | fix orderly reboot and retain the same boundary for each new DTB tier |
+| UFS root | passing baseline only | no-mount discovery passes; network-root v2 boots normally with UFS compiled out | design persistent storage only after explicit approval and recovery retest |
+| USB NCM/SSH | passing | Linux 7.1 normal-coldplug NCM/NFS and persistent client/server SSH identities pass twice | convert the attended PC-backed transport into an independent deployment path |
 | battery/charging | passing | PMIC GLINK/power supply framework present | dual-battery/charger topology and current-direction validation |
-| thermals/CPUfreq | passing | SM8350 thermal/cpufreq infrastructure present | board zones, cooling maps, sustained-load characterization |
+| thermals/CPUfreq | passing | 33 thermal zones are readable and sane in two normal network-root boots | cooling maps, cpufreq policy checks, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
 | touch/power button | passing | input framework present | exact FocalTech main/rear controllers and GPIO/pinctrl |
 | GPU | rejected: KGSL second-open fault | A660 DRM/MSM present | firmware/IOMMU/GMU DTS and full Tier 5 validation |

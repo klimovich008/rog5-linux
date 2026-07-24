@@ -7,8 +7,18 @@ output=${3:?missing output}
 [ -s "$base" ] && [ -r "$overlay_source" ] || { echo 'FAIL missing DTB input' >&2; exit 1; }
 
 [ "$(grep -c 'status = "okay";' "$overlay_source")" -eq 2 ]
-[ "$(grep -c '^&' "$overlay_source")" -eq 3 ]
-for label in usb_1 usb_1_dwc3 usb_1_hsphy; do
+[ "$(grep -c 'status = "disabled";' "$overlay_source")" -eq 5 ]
+[ "$(grep -c '^&' "$overlay_source")" -eq 8 ]
+for label in \
+	rmtfs_mem \
+	gpu \
+	gmu \
+	gpucc \
+	adreno_smmu \
+	usb_1 \
+	usb_1_dwc3 \
+	usb_1_hsphy
+do
 	grep -q "^&$label {" "$overlay_source"
 done
 ! grep -q '^&ufs_mem_' "$overlay_source"
@@ -31,6 +41,15 @@ done
 [ "$(fdtget -t s "$output" /soc@0/phy@1d87000 status)" = disabled ]
 [ "$(fdtget -t s "$output" /soc@0/phy@88e8000 status)" = disabled ]
 [ "$(fdtget -t s "$output" /soc@0/usb@a8f8800 status)" = disabled ]
+for node in \
+	/reserved-memory/memory@9b800000 \
+	/soc@0/gpu@3d00000 \
+	/soc@0/gmu@3d6a000 \
+	/soc@0/clock-controller@3d90000 \
+	/soc@0/iommu@3da0000
+do
+	[ "$(fdtget -t s "$output" "$node" status)" = disabled ]
+done
 usb_dwc3=/soc@0/usb@a6f8800/usb@a600000
 [ "$(fdtget -t s "$output" "$usb_dwc3" dr_mode)" = peripheral ]
 [ "$(fdtget -t s "$output" "$usb_dwc3" maximum-speed)" = high-speed ]
@@ -41,4 +60,4 @@ fdtget "$output" /soc@0/usb@a6f8800 qcom,select-utmi-as-pipe-clk >/dev/null
 	'0 80000000 0 37100000 2 0 1 80000000 0 c0000000 1 40000000 0 b9500000 0 0' ]
 
 sha256sum "$output"
-echo 'PASS kexec-only USB2 recovery DTB; storage, SuperSpeed, and secondary USB disabled'
+echo 'PASS kexec-only USB2 recovery DTB; storage, GPU, RMTFS, SuperSpeed, and secondary USB disabled'

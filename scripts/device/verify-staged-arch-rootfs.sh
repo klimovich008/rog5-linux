@@ -36,6 +36,8 @@ awk -F: '$1 == "root" { exit substr($2,1,1) != "!" }' /etc/shadow
 awk -F: '$1 == "rog5" { exit substr($2,1,1) != "!" }' /etc/shadow
 grep -qx 'PasswordAuthentication no' /etc/ssh/sshd_config.d/10-rog5-server.conf
 grep -qx 'PermitRootLogin prohibit-password' /etc/ssh/sshd_config.d/10-rog5-server.conf
+cmp /etc/ssh/sshd_config.d/10-rog5-server.conf \
+	/workspace/repo/packaging/arch/10-rog5-sshd.conf
 [[ $(systemctl is-enabled NetworkManager.service) == enabled ]]
 [[ $(systemctl is-enabled NetworkManager-wait-online.service) == enabled ]]
 grep -qx 'unmanaged-devices=interface-name:usb0' \

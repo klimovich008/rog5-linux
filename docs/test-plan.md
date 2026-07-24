@@ -137,11 +137,15 @@ isolation.
 - The diagnostic target must reach running systemd, active
   `multi-user.target`, key-only root and unprivileged SSH, zero failed units,
   and a controlled watchdog disarm. **Passed twice.**
-- Retain `systemd-modules-load` first, then replay udev coldplug in bounded
-  device batches. Keep the watchdog armed until the exact reset-triggering
-  rule, device, or driver is isolated.
-- Treat display, battery, charging, radio, input, and GPU as untested while
-  automatic hardware coldplug is masked.
+- Replay coldplug candidates only through the explicit allowlisted probe with
+  an independent process-group watchdog. **Passed; `gpucc_sm8350` isolated as
+  the live stall, and overlapping `rmtfs_mem` rejected by DT review.**
+- Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
+  Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
+- Require persistent client authorization plus one pinned server host
+  identity to pass strict verification across two boots. **Passed.**
+- Treat display, battery, charging, radio, input, and GPU as untested despite
+  the normal headless coldplug pass.
 
 ## Tier 2 — core hardware
 
