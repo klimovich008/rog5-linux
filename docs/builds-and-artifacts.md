@@ -38,10 +38,10 @@ Private inputs live outside the repository and are referenced only by path or ha
 | ASUS hardware DTB and modules | incremental subsystem bring-up | planned behind tier gates |
 | locked Arch server rootfs | signed packages, SSH, VPN/hotspot tools | historical suite passes; contains the previous module set and is not a current boot candidate |
 | locked Arch Plasma rootfs | headless-first target with Plasma/KRDP and browser/network tools | historical suite passes; contains the previous module set and must be restaged |
-| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | credential-free v13 is reproducible, locks block devices before USB, and passes offline checks; not booted |
+| target initramfs | RAM-only recovery shell, USB NCM/ACM, optional SSH, rollback | credential-free v14 is reproducible, locks physical storage before USB, and passes offline checks; not booted |
 | GPU target initramfs | isolated A660 probe after base recovery passes | historical archive is derived from the unsafe v2 base; do not boot |
-| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | credential-free v13 is reproducible and passes storage and nested-payload checks; not booted |
-| temporary Android boot image | reversible two-stage `fastboot boot` testing | v13 raw and unsigned AVB images are reproducible offline candidates; never flash |
+| kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | credential-free v14 is reproducible and passes storage and nested-payload checks; not booted |
+| temporary Android boot image | reversible two-stage `fastboot boot` testing | v14 raw and unsigned AVB images are reproducible offline candidates; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
 | release boot image | possible persistent deployment | prohibited until every release gate passes |
 
@@ -62,7 +62,7 @@ Native phone builds default to one parallel job. Four jobs heated rapidly; even 
 
 When a native build is unavoidable, run `guard-kernel-build.sh BUILD_PID` alongside it. The default 45.0 C battery-sensor ceiling terminates the active `make` child and build wrapper while preserving the object cache.
 
-Normal development uses the PC cross-builder. The current v13 recovery bundle
+Normal development uses the PC cross-builder. The current v14 recovery bundle
 was built on Nobara Linux with rootless Podman and container networking
 disabled; the existing Windows wrapper remains available:
 
@@ -87,9 +87,10 @@ The archived v2 recovery products retain their hashes for provenance only.
 Their live staging root was writable physical UFS, and their target DTB enabled
 UFS and QMP/SuperSpeed despite the former zero-storage and USB2-only claims.
 Nothing was flashed. Do not boot v2, the rejected v6 candidate, or the
-superseded unbooted v12 candidate. Recovery v13 is the rebuilt, reproducible
-`acm-only` offline candidate with a fail-closed pre-USB block-device lock; it
-still requires all attended live gates before it can be accepted.
+superseded unbooted v12 candidate. V13 is also rejected because its exact
+recovery USB identity never appeared during live temporary boot. Recovery v14
+is the rebuilt, reproducible `acm-only` offline candidate with fail-closed
+physical-storage locking; it still requires all attended live gates.
 
 ## Reproduction records
 
@@ -99,8 +100,9 @@ belong in `manifests/`. The
 [current clean-build report](../test-results/2026-07-23-mainline-reproducibility.md)
 records the rejected comparisons and the combined Python hash-seed/BTF
 serialization fix. The
-[recovery v13 report](../test-results/2026-07-24-recovery-v13-offline.md)
-records the native Linux builder, storage-isolation change, and complete
-two-stage artifact set. The earlier
+[recovery v14 report](../test-results/2026-07-24-recovery-v14-offline.md)
+records the narrowed physical-storage gate and current artifact set. The
+[v13 live report](../test-results/2026-07-24-recovery-v13-live.md) records its
+early return and the corrected host USB identity check. The earlier
 [v12 report](../test-results/2026-07-24-recovery-v12-offline.md) is retained
 as superseded provenance.

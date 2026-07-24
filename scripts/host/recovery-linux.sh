@@ -14,7 +14,7 @@ fail() {
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 manifest=$repo/manifests/artifacts.tsv
-boot_image=${BOOT_IMAGE:-$repo/artifacts/recovery-stage-v13/boot-5.4.210-kexec-stage-builtin-recovery.avb.img}
+boot_image=${BOOT_IMAGE:-$repo/artifacts/recovery-stage-v14/boot-5.4.210-kexec-stage-builtin-recovery.avb.img}
 fastboot=${FASTBOOT:-fastboot}
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -82,6 +82,20 @@ find_recovery_acm() {
 		properties=$(udevadm info --query=property --name="$device" 2>/dev/null || true)
 		printf '%s\n' "$properties" | grep -qx 'ID_VENDOR_ID=1d6b' || continue
 		printf '%s\n' "$properties" | grep -qx 'ID_MODEL_ID=0104' || continue
+		printf '%s\n' "$properties" | grep -qx 'ID_MODEL=ROG5_recovery' || continue
+		printf '%s\n' "$device"
+		return
+	done
+	return 0
+}
+
+find_other_rog5_acm() {
+	for device in /dev/ttyACM*; do
+		[ -e "$device" ] || continue
+		properties=$(udevadm info --query=property --name="$device" 2>/dev/null || true)
+		printf '%s\n' "$properties" | grep -qx 'ID_VENDOR_ID=1d6b' || continue
+		printf '%s\n' "$properties" | grep -qx 'ID_MODEL_ID=0104' || continue
+		printf '%s\n' "$properties" | grep -qx 'ID_MODEL=ROG5_recovery' && continue
 		printf '%s\n' "$device"
 		return
 	done
@@ -97,6 +111,8 @@ acm=
 while [ "$(date +%s)" -lt "$deadline" ]; do
 	acm=$(find_recovery_acm)
 	[ -z "$acm" ] || break
+	[ -z "$(find_other_rog5_acm)" ] ||
+		fail 'the fallback ACM gadget returned before recovery enumerated'
 	sleep 1
 done
 [ -n "$acm" ] || fail 'recovery ACM gadget did not enumerate before timeout'

@@ -1,12 +1,13 @@
 # Native Linux host result
 
-Status: **PASS** for build and local USB-link preparation; **PENDING** for a
-fastboot-mode device and live recovery boot.
+Status: **PASS** for build, local USB, real fastboot preflight, and safe
+fallback return; **REJECTED** for the v13 live recovery identity; **PENDING**
+for v14.
 
 ## Host checks
 
 - Nobara Linux 44 runs the repository from native Btrfs.
-- Rootless Podman 5.8.4 built and verified recovery v13 with networking
+- Rootless Podman 5.8.4 built and verified recovery v14 with networking
   disabled.
 - Fedora/Nobara `android-tools` 35.0.2 supplies `adb` and `fastboot`.
 - The development user is listed in `dialout`. The current desktop process
@@ -15,6 +16,8 @@ fastboot-mode device and live recovery boot.
 - `recovery-linux.sh` passes a fake-device positive preflight, rejects an
   absent fastboot target, rejects an unmanifested image, and refuses to invoke
   boot without `ALLOW_TEMPORARY_BOOT=1`.
+- The detector now requires `ID_MODEL=ROG5_recovery` and rejects the Alpine
+  fallback gadget even though both intentionally share `1d6b:0104`.
 
 ## Connected fallback
 
@@ -24,8 +27,22 @@ fastboot-mode device and live recovery boot.
   link.
 - The fallback server responds at `169.254.77.2` with zero packet loss over
   three probes, and TCP/22 is reachable.
-- The current ACM endpoint produced no shell data during a bounded probe.
-- Neither ADB nor fastboot currently lists a device.
+- The approved recovery key works against the fallback server from a
+  mode-0600 host tmpfs copy.
+- The authorized helper successfully rebooted to exactly one fastboot target.
 
-No credential was used, no partition was mounted or written, and the phone was
-not rebooted during these checks.
+## V13 live attempt
+
+- The manifest-pinned image passed the real preflight and `fastboot boot`
+  completed without flashing.
+- No exact recovery USB product appeared. The fallback gadget returned 21
+  seconds after fastboot disconnected.
+- A VID/PID-only detector initially misidentified that fallback ACM endpoint;
+  direct kernel/root/marker inspection caught the error immediately.
+- Kexec was not loaded or executed.
+- Standard pstore had no retained record; an older unguarded diagnostic module
+  was deliberately not loaded.
+
+The credential was not copied into the repository or recovery image. No
+partition, filesystem, slot, or persistent boot state was intentionally
+written.

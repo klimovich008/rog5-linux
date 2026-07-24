@@ -70,10 +70,12 @@ The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6
 failed live ACM data and rollback. Recovery v12 incorporated the ACM/wake-lock
 fixes but remained unbooted after a final audit found no pre-USB block-device
-lock. Recovery v13 adds that fail-closed gate to both stages. Its complete
-credential-free dependency chain was built twice, is byte-identical, and
-passes the expanded offline verifier. It has not been booted, so live USB,
-storage isolation, and rollback remain mandatory gates.
+lock. V13 added that fail-closed gate to both stages but returned to fallback
+before the exact recovery USB identity appeared. V14 limits `BLKROSET` to
+physical disks and partitions, rebuilds the complete credential-free
+dependency chain twice, and passes the expanded offline verifier. It has not
+been booted, so live USB, storage isolation, and rollback remain mandatory
+gates.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.

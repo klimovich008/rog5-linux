@@ -59,14 +59,15 @@ Enable BTF/eBPF and run GodShell as an optional systemd-managed workload. Then a
 
 ROG Phone 5 uses Android boot header v3, and the stock-style boot template has no DTB field. Passing the new ASUS DTB directly through a normal boot image is therefore not available without changing `vendor_boot`, which is outside the recovery safety boundary.
 
-Recovery v13 implements this reversible two-stage route:
+Recovery v14 implements this reversible two-stage route:
 
 1. `fastboot boot` starts an ASUS-source-compatible 5.4.210 kernel with the staging initramfs built into the kernel. Nothing is flashed.
 2. The built-in initramfs contains the Linux 7.1 `Image`, USB2-only recovery DTB, target initramfs, and signed Alpine ARM64 `kexec` runtime. Its offline contract contains no storage-mount logic.
 3. `rog5-load-mainline-recovery` verifies all three nested hashes, disables and verifies the single Haven hypervisor watchdog, and loads the mainline kernel, DTB, and initramfs. Execution remains a separate attended command.
 4. Both the staging and target initramfs arm a 180-second forced-reboot timer,
    reject block-backed mounts, apply and verify `BLKROSET` on every enumerated
-   block device, and expose USB only after that gate passes. USB ACM is the
+   physical disk and partition, and expose USB only after that gate passes.
+   Volatile loop, RAM, and zram objects remain writable. USB ACM is the
    credential-free fallback; USB NCM may use an explicitly supplied test
    address.
 
@@ -76,11 +77,12 @@ the secondary `usb_2` controller, display, charging, radios, remote processors,
 and GPU remain disabled. The overlay passes static inspection. The v6 bundle
 passed its then-current offline verifier but failed live ACM data and rollback;
 recovery v12 rebuilt the dependency chain but remained unbooted because it
-lacked the pre-USB block-device lock. Recovery v13 adds that fail-closed gate,
-rebuilds the complete credential-free dependency chain twice, and passes the
-expanded offline verifier. It has not been booted, so live ACM,
-RAM-backed-root, block read-only state, kexec, and rollback behavior remain
-unproven.
+lacked the pre-USB block-device lock. V13 added an all-block-device gate but
+returned to fallback before its exact recovery USB identity appeared. V14
+narrows the gate to physical storage and rebuilds the complete
+credential-free dependency chain twice. It passes the expanded offline
+verifier but has not been booted, so live ACM, RAM-backed root, physical-block
+read-only state, kexec, and rollback remain unproven.
 
 The historical v2 image produced staging and Linux 7.1.4 logs, including
 target `/init`, NCM/ACM configuration, the `a600000` UDC, and `usb0`. It did

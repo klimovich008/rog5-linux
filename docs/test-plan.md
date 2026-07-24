@@ -29,7 +29,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
 - `recovery-linux.sh preflight` hash-checks the manifest-pinned current image and
   requires exactly one fastboot target; `boot` remains inert unless
-  `ALLOW_TEMPORARY_BOOT=1` is explicit.
+  `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
+  normalized product `ROG5_recovery`; the fallback gadget sharing
+  `1d6b:0104` is a hard failure.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
@@ -39,8 +41,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   USB networking may remain unaddressed in this sub-tier.
 - The staging rollback timer returns to the installed fallback kernel.
 - Before exposing USB, both stages reject any block-backed mount and use
-  `BLKROSET` through `blockdev --setro`; every enumerated block device must
-  report read-only.
+  `BLKROSET` through `blockdev --setro`; every physical disk and partition
+  must report read-only. Volatile loop, RAM, and zram devices are excluded.
 - The mainline payload loads, then starts only after a separate attended `kexec -e`.
 - Before kexec, exactly one Haven hypervisor watchdog control is disabled and verified; a secure-watchdog deactivation failure aborts the test.
 - The Linux 7.1 target reports the expected release, starts `/init`, mounts configfs, configures NCM/ACM, binds the expected UDC, creates `usb0`, and runs its independent rollback timer.

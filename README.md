@@ -32,8 +32,16 @@ fail-closed pre-USB storage gate to both initramfs layers: it rejects any
 block-backed mount, applies and verifies `BLKROSET` on every enumerated block
 device, and forces rollback on any failure. Its complete credential-free
 dependency chain and temporary boot image were independently reproduced and
-pass the expanded offline verifier. V13 is the current offline candidate, but
-it has not been booted. Live
+pass the expanded offline verifier. Its first temporary boot returned to the
+fallback system before the exact recovery USB identity appeared, so v13 is
+rejected. The host workflow also exposed and fixed an identity bug: recovery
+and fallback share `1d6b:0104`, so the exact product string is now mandatory.
+
+Recovery v14 keeps the block-backed-mount rejection but applies `BLKROSET`
+only to physical disks and their partitions, excluding volatile loop, RAM,
+and zram objects. Two complete clean builds and two repacks are byte-identical,
+and the expanded offline verifier passes. V14 is the current offline
+candidate, but it has not been booted. Live
 RAM-only, kexec, rollback, host USB, storage, Arch rootfs, desktop, and
 mainline GPU gates remain pending.
 

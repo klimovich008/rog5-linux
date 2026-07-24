@@ -61,8 +61,8 @@ storage or desktop userspace.
 - [x] Keep a supervised ACM shell open so host writes cannot be left unqueued.
 - [x] Make rollback retry a forced reboot and emergency SysRq reboot.
 - [x] Prevent suspend from consuming the rollback window.
-- [x] Reject any block-backed mount and force every enumerated block device
-  read-only before exposing USB recovery.
+- [x] Reject any block-backed mount and force every physical block device and
+  partition read-only before exposing USB recovery.
 - [x] Reject non-empty kernel output directories.
 - [x] Verify the final kernel configuration and recovery-init markers.
 - [x] Finish two clean Linux 7.1.4 builds and compare all outputs byte-for-byte.
@@ -73,9 +73,8 @@ storage or desktop userspace.
 - [x] Repack and verify a new unsigned AVB temporary-boot image.
 - [x] Record every input/output hash in the artifact manifest and test report.
 
-Exit gate: **passed offline by recovery v13**. Recovery v12 remains unbooted
-and is superseded because it lacked the fail-closed pre-USB block-device
-write-protection gate.
+Exit gate: **passed offline by recovery v14**. Recovery v12 remained unbooted;
+v13 returned to fallback before its exact recovery USB identity appeared.
 
 ## Phase 1 — live RAM-only recovery
 
@@ -93,6 +92,10 @@ Goal: prove that the recovery mechanism is usable and cannot silently touch UFS.
 - [ ] Run the storage-isolation and USB gadget smoke suites.
 - [ ] Let the short rollback timer expire and prove return to the fallback OS.
 - [ ] Repeat the boot and rollback test to exclude a one-off success.
+
+Recovery v13 completed the non-flashing fastboot transfer but returned to
+fallback 21 seconds after fastboot disconnected, without enumerating its exact
+USB product. It does not satisfy a Phase 1 gate. V14 is the next candidate.
 
 Exit gate: RAM-only, USB, authentication, storage-isolation, and automatic
 rollback tests all pass twice.

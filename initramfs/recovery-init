@@ -32,24 +32,30 @@ isolate_storage() {
 	done </proc/self/mountinfo
 
 	count=0
-	for sys_block in /sys/class/block/*; do
-		[ -e "$sys_block/dev" ] || continue
-		device=/dev/$(basename "$sys_block")
-		[ -b "$device" ] || {
-			log "missing block node: $device"
-			return 1
-		}
-		blockdev --setro "$device" || {
-			log "failed to lock block device: $device"
-			return 1
-		}
-		[ "$(blockdev --getro "$device")" = 1 ] || {
-			log "block device remains writable: $device"
-			return 1
-		}
-		count=$((count + 1))
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || {
+				log "missing physical block node: $device"
+				return 1
+			}
+			blockdev --setro "$device" || {
+				log "failed to lock physical block device: $device"
+				return 1
+			}
+			[ "$(blockdev --getro "$device")" = 1 ] || {
+				log "physical block device remains writable: $device"
+				return 1
+			}
+			count=$((count + 1))
+		done
 	done
-	log "storage isolation ready; read-only block devices=$count"
+	log "storage isolation ready; read-only physical block devices=$count"
 }
 
 serve_acm() {

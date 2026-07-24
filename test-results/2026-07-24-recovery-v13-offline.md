@@ -2,7 +2,10 @@
 
 Status: **PASS** for a reproducible, credential-free two-stage recovery
 bundle with fail-closed storage isolation. This is an offline candidate only:
-it has not been booted, flashed, or written to the phone.
+at the time of this report it had not been booted, flashed, or written to the
+phone. Its later live attempt returned before exact recovery USB enumeration;
+v13 is now rejected. See the
+[live result](2026-07-24-recovery-v13-live.md).
 
 ## Why v13 supersedes v12
 
@@ -87,11 +90,9 @@ No credential was read or used to build or verify v13.
 | unsigned AVB image | 100,663,296 | `ba25c2b765e92c23d048e0aab7cc4722e448dd97f3c9bd05df7102f34ef15e15` |
 | wrapper build metadata | 442 | `481d9157c2455515c1f1175ea1a87aab77dd145143e688575b9773e085cf1f9e` |
 
-## Remaining live gate
+## Superseded live gate
 
-Use only the manifest-pinned v13 image through attended `fastboot boot`.
-First prove credential-free ACM, RAM-backed root, live read-only status for
-every enumerated block device, watchdog/rollback health, and automatic return
-to the fallback OS. Repeat that cycle before loading Linux 7.1 with the
-separate attended kexec command. Persistent writes and flashing remain
-prohibited.
+The one v13 `fastboot boot` transfer succeeded, but exact recovery USB never
+appeared and fallback returned. V14 supersedes it with physical-storage-only
+locking and a strict recovery-product host check. Persistent writes and
+flashing remain prohibited.

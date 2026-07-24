@@ -80,7 +80,9 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   configured in `dialout`; the current desktop login has not refreshed that
   supplementary group, but a temporary group shell verifies access.
 - A non-autoconnecting host-only USB profile at `169.254.77.1/16` reaches the
-  fallback server at `169.254.77.2`; ICMP and TCP/22 pass. No SSH key was used.
+  fallback server at `169.254.77.2`; ICMP and TCP/22 pass. After explicit
+  approval, the recovery key was copied only to host tmpfs and used for
+  read-only fallback inspection and the authorized reboot to fastboot.
 - Credentials and private identifiers are deliberately excluded from this repository.
 
 ## Mainline recovery status
@@ -105,16 +107,21 @@ ACM data and automatic rollback failed. Source fixes now supervise ACM and
 hold a timed wake lock with repeated forced-reboot fallback.
 
 Recovery v12 was rebuilt reproducibly but remained unbooted after a final
-safety audit found that it did not lock enumerated block devices before USB
-exposure. Recovery v13 supersedes it. Both v13 initramfs layers reject a
-block-backed mount, apply and verify `BLKROSET` on every block device, and
-force rollback before exposing USB if any check fails.
+safety audit found that it did not lock block devices before USB exposure.
+Recovery v13 added an all-block-device `BLKROSET` gate and passed duplicate
+offline builds. Its first `fastboot boot` transfer succeeded, but the exact
+recovery USB identity never appeared; the known fallback gadget returned 21
+seconds after fastboot disconnected. No intervening recovery USB product was
+recorded, no image was flashed, and kexec was not attempted. V13 is rejected.
 
-The Linux 7.1 kernel/DTB, both v13 initramfs layers, two clean ASUS wrapper
-builds, and two header-v3/AVB repacks are byte-identical across their
-comparison builds. The expanded verifier passes in `acm-only` mode and proves
-that both layers contain the storage-lock utility and neither contains
-`authorized_keys`. V13 is an offline candidate only: no v13 phone boot, write,
-or flash has been attempted, so none of the live recovery gates is accepted.
+Recovery v14 retains the pre-USB rejection of any block-backed mount but locks
+only physical disks and their partitions. This covers seven fallback-visible
+UFS LUNs and 109 partitions while excluding 33 volatile loop, RAM, and zram
+objects. Both initramfs layers, two fresh ASUS wrapper builds, and two
+header-v3/AVB repacks are byte-identical. The expanded `acm-only` verifier
+passes, and the host now requires exact product `ROG5_recovery` rather than
+accepting the shared vendor/product ID. V14 has not been booted, so no live
+recovery gate is accepted.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
