@@ -368,7 +368,7 @@ records the exact build inputs and contracts; the
 records the exact phase boundary, rollback, cleanup, and required per-orphan
 v12 trace.
 
-Network-root v12 now passes that complete offline prerequisite. Its
+Network-root v12 passed that complete offline prerequisite. Its
 exact-device/default-off extension traces at most four orphan entries, with
 fourteen boundaries per entry around parent lookup, before/after reparent
 callbacks, accuracy/rate recalculation, and requested-rate assignment. The
@@ -377,11 +377,26 @@ budget remains inside the independent 75-second watchdog. Source-order and
 mutation contracts pass, two clean Linux builds match including BTF and the
 modified CCF object, and two staging initramfs, ASUS wrapper, header-v3, and
 AVB paths are byte-identical. The exported symbol table, GPUCC-only DTB, and
-RAM-only target initramfs remain unchanged. No v12 phone action has occurred.
+RAM-only target initramfs remain unchanged.
+
+Its one attended probe completed parent lookup and scan completion for
+`gpu_cc_ahb_clk`, then advanced to the second orphan,
+`disp_cc_mdss_pclk0_clk_src`. The final marker brackets
+`__clk_init_parent()` for that display clock. On SM8350 it is a three-parent
+RCG using `clk_pixel_ops`; source order calls `clk_rcg2_get_parent()` before
+the cached-parent lookup. V12 has no markers inside that function, so it does
+not prove the callback, its regmap read, or the later lookup as the exact
+non-returning operation. The independent watchdog restored the exact
+fallback, zero pstore records remained, and complete NFS/firewall/service
+cleanup passed.
+
 The
 [v12 offline report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-offline.md)
-records the exact hashes and gates. GPUCC remains rejected pending one
-attended RAM-only v12 probe and complete rollback cleanup.
+records the exact hashes and gates; the
+[v12 live report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-live.md)
+records the ordered orphan trace, source-bounded interpretation, rollback, and
+cleanup. GPUCC remains rejected pending a reproducible default-off v13 trace
+that separately brackets the display callback and parent-cache lookup.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

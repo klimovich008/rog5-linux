@@ -110,13 +110,18 @@ index-0 phase through orphan insertion, rate handling, and the non-critical
 branch, then stopped inside `clk_core_reparent_orphans_nolock()`. Independent
 rollback and complete cleanup passed. This still does not prove
 branch-register access because that global scan may invoke another orphan's
-callbacks. Network-root v12 now passes the offline half of the next gate: an
+callbacks. Network-root v12 passed the offline half of the next gate: an
 exact-device/default-off trace covers at most four orphan entries and all
 existing parent lookup, reparent, accuracy/rate, and requested-rate operations
 with a 5.6-second maximum marker delay. Source-order/mutation tests and two
-clean kernel, wrapper, and package paths pass byte-for-byte. GPUCC cannot
-advance until one attended RAM-only v12 probe passes the independent watchdog,
-fallback, and cleanup gates.
+clean kernel, wrapper, and package paths pass byte-for-byte. Its one attended
+probe completed `gpu_cc_ahb_clk` as a no-parent orphan and advanced to
+`disp_cc_mdss_pclk0_clk_src`, where `__clk_init_parent()` did not return.
+The first source operation is that display RCG's `get_parent()` callback,
+followed by CCF's parent-cache lookup, but v12 cannot distinguish them. Exact
+fallback and cleanup passed. GPUCC cannot advance until a reproducible v13
+trace brackets those inner operations without changing hardware or runtime-PM
+state.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

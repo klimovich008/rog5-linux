@@ -43,7 +43,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
-| GPUCC/CCF network-root diagnostic | trace the SM8350 GPU clock-controller with every consumer disabled | v11 localizes the live index-0 stall to `clk_core_reparent_orphans_nolock()` and rolls back cleanly; v12 passes duplicate offline kernel/wrapper/package builds with a four-entry, 5.6-second-bounded per-orphan trace; live v12 remains pending, normal coldplug remains rejected, and this is never a flash target |
+| GPUCC/CCF network-root diagnostic | trace the SM8350 GPU clock-controller with every consumer disabled | v12 passes duplicate offline kernel/wrapper/package builds and one live probe; the GPUCC orphan completes, then the scan stalls inside `__clk_init_parent()` for a DISPCC orphan and rolls back cleanly; v13 inner-call tracing is required, normal coldplug remains rejected, and this is never a flash target |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -147,7 +147,10 @@ records the exact orphan-scan boundary, watchdog rollback, complete cleanup,
 and required v12 per-orphan trace. The
 [GPUCC per-orphan offline report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-offline.md)
 records the source-order/budget contracts, duplicate v12 builds and packages,
-exact hashes, and pending attended gate. The
+and exact hashes. The
+[GPUCC per-orphan live report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-live.md)
+records the completed GPUCC orphan, the second-orphan display-clock boundary,
+watchdog rollback, cleanup, and v13 inner-call gate. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

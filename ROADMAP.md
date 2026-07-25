@@ -46,8 +46,12 @@ for a working feature.
 - [x] Build and offline-accept a source-tested v12 per-orphan trace that
   brackets parent lookup and each reparent callback without changing normal
   CCF behavior; reproduce both kernel/wrapper/package paths byte-for-byte.
-- [ ] Run one attended RAM-only v12 probe with the independent 75-second
-  watchdog, exact fallback verification, and complete host cleanup.
+- [x] Run one attended RAM-only v12 probe with the independent 75-second
+  watchdog; localize the stall to `__clk_init_parent()` for the second,
+  DISPCC-owned orphan, then verify exact fallback and complete host cleanup.
+- [ ] Build and reproduce a default-off v13 trace that separately brackets the
+  display orphan's `get_parent()` callback and cached-parent lookup, then run
+  one attended probe only if every offline safety gate passes.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

@@ -373,7 +373,7 @@ for clocks outside GPUCC, so the result does not prove GPUCC MMIO. The
 independent watchdog restored exact fallback and full host cleanup passed.
 V11 remains rejected for normal coldplug.
 
-Network-root v12 adds the required bounded trace without changing the original
+Network-root v12 added the required bounded trace without changing the original
 orphan operations. Only the exact GPUCC-triggered registration scan emits
 markers; provider-wide scans remain silent. The first four orphan entries
 receive at most fourteen boundaries each around parent lookup,
@@ -385,8 +385,17 @@ builds, matching split-BTF modules, credential-free staging initramfs files,
 ASUS wrappers, and Android packages are byte-identical. The GPUCC module
 remains external, the target initramfs remains unchanged, and every consumer
 remains disabled exactly as before.
-V12 has not been booted and remains diagnostic-only pending one attended
-RAM-only probe.
+
+The one attended v12 probe completed the `gpu_cc_ahb_clk` no-parent lookup and
+scan, then entered `__clk_init_parent()` for the next orphan,
+`disp_cc_mdss_pclk0_clk_src`, without reaching its completion marker. Source
+maps that SM8350 clock to the display clock-controller's three-parent
+`clk_pixel_ops` RCG. Its `get_parent()` callback precedes the generic cached
+parent lookup, but v12 does not separate those operations and therefore does
+not prove a specific register access. The independent watchdog restored exact
+fallback and complete cleanup passed. V12 remains diagnostic-only; v13 must
+add a default-off inner-call trace and pass duplicate offline builds before
+one further attended probe.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -411,3 +420,7 @@ records the reproducible v11 implementation. The
 records its exact orphan-scan boundary, rollback, cleanup, and v12 gate. The
 [GPUCC per-orphan offline report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-offline.md)
 records the accepted v12 source, timing, reproducibility, and bundle gates.
+The
+[GPUCC per-orphan live report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-live.md)
+records the ordered two-orphan boundary, source interpretation, rollback,
+cleanup, and v13 gate.

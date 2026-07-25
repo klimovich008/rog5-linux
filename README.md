@@ -110,12 +110,16 @@ insertion, phase/duty/rate, and the non-critical branch for
 `clk_core_reparent_orphans_nolock()`. Its independent watchdog restored the
 exact fallback and complete cleanup passed. The result does not prove GPUCC
 MMIO: the generic scan can inspect or reparent any existing orphan clock.
-Network-root v12 now passes its complete offline gate with a default-off trace
-around parent resolution and every existing reparent/recalculation operation
-for at most four orphan entries. Two clean kernels, wrappers, and packages are
-byte-identical, and the maximum added marker delay is 5.6 seconds. GPUCC
-remains rejected; the next gate is one attended RAM-only v12 probe with the
-independent watchdog and exact fallback cleanup.
+Network-root v12 passed its complete offline gate and one attended RAM-only
+probe. The global scan completed the no-parent entry for newly registered
+`gpu_cc_ahb_clk`, advanced to the existing
+`disp_cc_mdss_pclk0_clk_src` orphan, and stopped inside that clock's
+`__clk_init_parent()` call. Source order places its display RCG
+`get_parent()` callback before CCF's cached-parent lookup, but v12 does not yet
+distinguish those operations or prove a register access. The independent
+watchdog restored the exact fallback and complete host cleanup passed. GPUCC
+remains rejected; the next gate is a reproducible default-off v13 trace that
+separately brackets those two inner operations before any further live probe.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
