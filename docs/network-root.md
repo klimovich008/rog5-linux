@@ -416,10 +416,25 @@ but v13 has no marker inside that function and does not prove the read began.
 The independent watchdog restored exact fallback and complete host cleanup
 passed.
 
-GPUCC normal coldplug remains rejected. V14 must begin offline with an
-exact-clock/default-off trace around the one existing RCG regmap read and
-source tests that reject extra reads, broad tracing, runtime-PM control, and
-hardware changes. A provider runtime resume cannot simply be inserted in the
+GPUCC normal coldplug remains rejected. Network-root v14 now passes the
+required offline successor gate. Its mode-`0400`, default-off trace matches
+only `disp_cc_mdss_pclk0_clk_src` and emits `parent-read-begin` and
+`parent-read-complete` immediately around the one existing RCG regmap read.
+Source and mutation tests preserve exactly one read and all original return
+behavior while rejecting broad tracing, extra register accesses, runtime-PM
+control, and hardware changes. The inherited orphan trace is reduced to the
+two entries already localized by v13. Its 4.2-second maximum marker delay
+preserves the 15-second forced-reset margin and leaves 5.8 seconds spare inside
+the independent 75-second watchdog.
+
+Two network-isolated Linux builds match through BTF, CCF/RCG2 objects, exported
+symbols, modules, and metadata. Two credential-free staging initramfs files,
+independently prepared ASUS wrappers, and header-v3/AVB packages are
+byte-identical. The exact bundle verifier passes with the module and firmware
+external, every GPU/display consumer disabled, and all three trace parameters
+absent from the default boot command line. V14 has not been booted. It is
+eligible only for one attended zero-storage probe with the existing watchdog
+and cleanup gates. A provider runtime resume cannot simply be inserted in the
 global orphan scan because it runs under CCF's `prepare_lock` and a provider
 resume callback may need that lock.
 
@@ -455,4 +470,7 @@ records the accepted v13 source, timing, reproducibility, and bundle gates.
 The
 [GPUCC inner-parent live report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-live.md)
 records the callback boundary, runtime-state interpretation, source and
-lock-order limits, rollback, and cleanup.
+lock-order limits, rollback, and cleanup. The
+[GPUCC RCG parent-read offline report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
+records the accepted v14 source boundary, 4.2-second timing cap, duplicate
+build/package paths, exact hashes, and complete offline acceptance.

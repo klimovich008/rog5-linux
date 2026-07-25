@@ -83,6 +83,18 @@ if [ "$module" = gpucc_sm8350 ]; then
 		fail 'CCF registration trace core parameter is not enabled'
 	[ "$(stat -c %a "$ccf_trace")" = 400 ] ||
 		fail 'CCF registration trace core parameter became writable'
+	rcg2_trace_count=$(tr ' ' '\n' </proc/cmdline |
+		awk '$0 == "rog5_rcg2_parent_trace=1" { count++ }
+			END { print count + 0 }')
+	[ "$rcg2_trace_count" -eq 1 ] ||
+		fail 'RCG2 parent trace boot parameter is not exact'
+	rcg2_trace=/sys/module/kernel/parameters/rog5_rcg2_parent_trace
+	[ -r "$rcg2_trace" ] ||
+		fail 'RCG2 parent trace core parameter is absent'
+	[ "$(cat "$rcg2_trace")" = Y ] ||
+		fail 'RCG2 parent trace core parameter is not enabled'
+	[ "$(stat -c %a "$rcg2_trace")" = 400 ] ||
+		fail 'RCG2 parent trace core parameter became writable'
 fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'

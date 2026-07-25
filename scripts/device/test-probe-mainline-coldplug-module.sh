@@ -53,6 +53,9 @@ for contract in \
 	'rog5_ccf_register_trace=1' \
 	'/sys/module/kernel/parameters/rog5_ccf_register_trace' \
 	'CCF registration trace core parameter is not enabled' \
+	'rog5_rcg2_parent_trace=1' \
+	'/sys/module/kernel/parameters/rog5_rcg2_parent_trace' \
+	'RCG2 parent trace core parameter is not enabled' \
 	'findmnt -n -o SOURCE /.rog5/root-ro' \
 	'169.254.77.1:/' \
 	'physical block device is present' \
@@ -104,6 +107,8 @@ trace_line=$(grep -n 'core_trace=/sys/module/kernel/parameters/rog5_qcom_cc_prob
 	head -n1 | cut -d: -f1)
 ccf_trace_line=$(grep -n 'ccf_trace=/sys/module/kernel/parameters/rog5_ccf_register_trace' "$probe" |
 	head -n1 | cut -d: -f1)
+rcg2_trace_line=$(grep -n 'rcg2_trace=/sys/module/kernel/parameters/rog5_rcg2_parent_trace' "$probe" |
+	head -n1 | cut -d: -f1)
 watchdog_line=$(grep -n '^setsid sh -c' "$probe" | cut -d: -f1)
 module_line=$(grep -n '^[[:space:]]*modprobe --first-time ' "$probe" |
 	cut -d: -f1)
@@ -111,7 +116,8 @@ settle_line=$(grep -n '^sleep "\$settle_seconds"' "$probe" | cut -d: -f1)
 safe_line=$(grep -n '^probe_safe=1$' "$probe" | cut -d: -f1)
 [ "$guard_line" -lt "$trace_line" ]
 [ "$trace_line" -lt "$ccf_trace_line" ]
-[ "$ccf_trace_line" -lt "$watchdog_line" ]
+[ "$ccf_trace_line" -lt "$rcg2_trace_line" ]
+[ "$rcg2_trace_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$module_line" ]
 [ "$module_line" -lt "$settle_line" ]
 [ "$settle_line" -lt "$safe_line" ]

@@ -170,9 +170,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   no runtime-PM or hardware control. Its one attended probe recorded the
   display provider runtime-suspended, entered that callback, and did not reach
   the callback-complete or later parent-cache markers. Independent rollback,
-  exact fallback, and cleanup passed. V14 must first source-test a default-off
-  boundary around the exact existing display-RCG regmap read. It may not add a
-  runtime resume while the global prepare lock is held.**
+  exact fallback, and cleanup passed. V14 passes the next offline gate with a
+  default-off exact-clock boundary around the existing display-RCG regmap
+  read. Source/mutation/integration tests preserve one read, reject PM or
+  hardware control, and cap its two-orphan trace at 4.2 seconds. Two clean
+  kernel, wrapper, and package paths match byte-for-byte, and the exact bundle
+  verifier passes. One attended zero-storage probe remains pending. It may not
+  add a runtime resume while the global prepare lock is held.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

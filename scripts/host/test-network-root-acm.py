@@ -265,6 +265,7 @@ class SerialTransportTest(unittest.TestCase):
             MODULE.ACTIONS["load-gpucc-diagnostic"][0],
             "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
             "ROG5_CCF_REGISTER_TRACE=1 "
+            "ROG5_RCG2_PARENT_TRACE=1 "
             "ROG5_RECOVERY_TIMEOUT=900 "
             "/usr/local/sbin/rog5-load-mainline-recovery",
         )

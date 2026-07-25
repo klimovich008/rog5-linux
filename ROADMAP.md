@@ -56,9 +56,13 @@ for a working feature.
   watchdog; prove the runtime-suspended DISPCC orphan enters its
   `get_parent()` callback without returning, then verify exact fallback and
   complete host cleanup.
-- [ ] Design and source-test a default-off v14 trace around the exact display
-  RCG's existing regmap read, with no runtime-PM or hardware behavior change,
-  before producing any new live candidate.
+- [x] Design, source-test, reproduce, and offline-accept a default-off v14
+  trace around the exact display RCG's existing regmap read, with no
+  runtime-PM or hardware behavior change; pass two mainline, wrapper, and
+  package paths byte-for-byte.
+- [ ] Run one attended RAM-only v14 probe with the independent 75-second
+  watchdog, then verify exact fallback and complete host cleanup before
+  interpreting its first non-returning marker.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

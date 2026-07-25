@@ -20,15 +20,16 @@ for file in \
 	drivers/clk/clk.o \
 	drivers/clk/qcom/common.o \
 	drivers/clk/qcom/clk-regmap.o \
+	drivers/clk/qcom/clk-rcg2.o \
 	drivers/clk/qcom/gpucc-sm8350.ko \
 	modules.tar.gz \
 	build-meta.txt
 do
 	[ -s "$build_a/$file" ] && [ -s "$build_b/$file" ]
 	cmp -s "$build_a/$file" "$build_b/$file" || {
-		echo "FAIL orphan-parent diagnostic clean-build mismatch: $file" >&2
+		echo "FAIL GPUCC diagnostic clean-build mismatch: $file" >&2
 		exit 1
 	}
 done
 
-echo 'PASS two clean orphan-parent diagnostic builds are byte-identical through BTF, objects, symbols, modules, and metadata'
+echo 'PASS two clean GPUCC diagnostic builds are byte-identical through BTF, objects, symbols, modules, and metadata'

@@ -37,3 +37,5 @@ test-results/private/
 Thumbs.db
 .idea/
 .vscode/
+__pycache__/
+*.py[cod]

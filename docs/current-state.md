@@ -422,9 +422,28 @@ The
 records the ordered markers, runtime-state interpretation, source boundary,
 rollback, and host audit. Source maps the callback to
 `clk_rcg2_get_parent()`, but v13 does not prove that its regmap read began.
-GPUCC remains rejected. V14 must first bracket that one existing read without
-changing runtime-PM or hardware behavior; directly resuming DISPCC while the
-global CCF prepare lock is held is not an acceptable shortcut.
+GPUCC remains rejected, and directly resuming DISPCC while the global CCF
+prepare lock is held is not an acceptable shortcut.
+
+Network-root v14 now passes that complete offline prerequisite. Its
+exact-clock, default-off, mode-`0400` core parameter adds only
+`parent-read-begin` and `parent-read-complete` around the existing
+`clk_rcg2_get_parent()` regmap read. Source, mutation, integration, and timing
+tests preserve exactly one read and reject broad tracing, runtime-PM control,
+and hardware control. Reducing the inherited orphan limit to the two already
+localized entries caps marker delay at 4.2 seconds, retains the 15-second
+forced-reset margin, and leaves 5.8 seconds spare inside the 75-second
+watchdog.
+
+Two network-isolated Linux builds match through BTF, CCF/RCG2 objects, symbols,
+modules, and metadata. Two credential-free staging archives, independently
+prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
+The exact bundle verifier passes with all GPU/display consumers disabled and
+no trace parameter enabled by default. The
+[v14 offline report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
+records its hashes and gates. V14 has not been booted and is eligible only for
+one attended RAM-only probe with the existing zero-storage, watchdog,
+fallback, and host-cleanup boundaries.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

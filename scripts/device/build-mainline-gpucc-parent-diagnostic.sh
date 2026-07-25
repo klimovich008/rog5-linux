@@ -12,6 +12,7 @@ common_patch=${COMMON_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0006-qcom
 ccf_patch=${CCF_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0007-clk-trace-attended-SM8350-GPUCC-CCF-registration.patch}
 orphan_patch=${ORPHAN_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0008-clk-trace-attended-SM8350-GPUCC-orphan-reparent.patch}
 parent_patch=${PARENT_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0009-clk-trace-attended-SM8350-GPUCC-orphan-parent-lookup.patch}
+rcg2_patch=${RCG2_TRACE_PATCH:-}
 expected_base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 expected_gpucc=86f3c68a666446d9bbcb9bd9f90df50f989ba8ea
 expected_common=d4bb00313e92514f89bc0a9e7a7dffcb4884834f
@@ -19,6 +20,13 @@ expected_ccf=6eef0ab56609f5a5ee6d2de9807178daf1065fa7
 expected_orphan=b2059b161861d6d7d1aeb9b7d93ad86b13d85048
 expected_parent=f7c0a9d067db77f05a40a5bc242c1e14ac297ac5
 expected_tree=adec6b40ce25145e3e18cd82a788aa458514017d
+expected_rcg2=
+diagnostic_label=orphan-parent
+if [ -n "$rcg2_patch" ]; then
+	expected_rcg2=6e40861cc51c067f9989c4513003e8fbd046c22f
+	expected_tree=49ef6cb95768496b8f926b11e428ea224406464e
+	diagnostic_label=RCG2-parent-read
+fi
 expected_release=7.1.4-g7a5cef0db479
 jobs=${JOBS:-1}
 btf_jobs=1
@@ -40,12 +48,23 @@ for input in "$base_fragment" "$network_fragment" "$gpucc_patch" \
 do
 	[ -r "$input" ]
 done
-[ "$(git -C "$source_dir" rev-parse HEAD^^^^^)" = "$expected_base" ]
-[ "$(git -C "$source_dir" rev-parse HEAD^^^^)" = "$expected_gpucc" ]
-[ "$(git -C "$source_dir" rev-parse HEAD^^^)" = "$expected_common" ]
-[ "$(git -C "$source_dir" rev-parse HEAD^^)" = "$expected_ccf" ]
-[ "$(git -C "$source_dir" rev-parse HEAD^)" = "$expected_orphan" ]
-[ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_parent" ]
+[ -z "$rcg2_patch" ] || [ -r "$rcg2_patch" ]
+if [ -n "$rcg2_patch" ]; then
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^^)" = "$expected_base" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^)" = "$expected_gpucc" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^)" = "$expected_common" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^)" = "$expected_ccf" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^)" = "$expected_orphan" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^)" = "$expected_parent" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_rcg2" ]
+else
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^)" = "$expected_base" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^)" = "$expected_gpucc" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^)" = "$expected_common" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^)" = "$expected_ccf" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^)" = "$expected_orphan" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_parent" ]
+fi
 [ "$(git -C "$source_dir" rev-parse HEAD^{tree})" = "$expected_tree" ]
 [ -z "$(git -C "$source_dir" status --porcelain)" ]
 [ ! -d "$output_dir" ] ||
@@ -90,6 +109,9 @@ module=$output_dir/drivers/clk/qcom/gpucc-sm8350.ko
 	printf 'ccf_patched_commit=%s\n' "$expected_ccf"
 	printf 'orphan_patched_commit=%s\n' "$expected_orphan"
 	printf 'parent_patched_commit=%s\n' "$expected_parent"
+	if [ -n "$expected_rcg2" ]; then
+		printf 'rcg2_patched_commit=%s\n' "$expected_rcg2"
+	fi
 	printf 'patched_tree=%s\n' "$expected_tree"
 	printf 'kernel_release=%s\n' "$expected_release"
 	printf 'compiler=%s\n' "$(clang --version | head -1)"
@@ -105,6 +127,10 @@ module=$output_dir/drivers/clk/qcom/gpucc-sm8350.ko
 		"$(sha256sum "$orphan_patch" | cut -d ' ' -f 1)"
 	printf 'parent_trace_patch_sha256=%s\n' \
 		"$(sha256sum "$parent_patch" | cut -d ' ' -f 1)"
+	if [ -n "$rcg2_patch" ]; then
+		printf 'rcg2_trace_patch_sha256=%s\n' \
+			"$(sha256sum "$rcg2_patch" | cut -d ' ' -f 1)"
+	fi
 	printf 'base_fragment_sha256=%s\n' \
 		"$(sha256sum "$base_fragment" | cut -d ' ' -f 1)"
 	printf 'network_fragment_sha256=%s\n' \
@@ -122,4 +148,4 @@ module=$output_dir/drivers/clk/qcom/gpucc-sm8350.ko
 } >"$output_dir/build-meta.txt"
 
 cat "$output_dir/build-meta.txt"
-echo 'PASS Linux 7.1.4 network-root build with bounded GPUCC orphan-parent tracing'
+echo "PASS Linux 7.1.4 network-root build with bounded GPUCC $diagnostic_label tracing"
