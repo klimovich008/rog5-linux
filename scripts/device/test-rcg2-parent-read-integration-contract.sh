@@ -40,7 +40,8 @@ done
 for contract in \
 	'rog5_rcg2_parent_trace=1' \
 	'/sys/module/kernel/parameters/rog5_rcg2_parent_trace' \
-	'RCG2 parent trace core parameter became writable'
+	'RCG2 parent trace core parameter became writable' \
+	'9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a'
 do
 	grep -Fq "$contract" "$probe"
 done

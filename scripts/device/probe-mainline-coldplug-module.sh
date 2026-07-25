@@ -123,7 +123,7 @@ normalized_module=$(printf '%s\n' "$module" | tr '-' '_')
 	fail 'module is already loaded; use a fresh candidate'
 gpucc_module=
 gpucc_expected_sha=
-gpucc_pinned_sha=574fefd282fbff6577c921a116a5485546e788ca338802b960b26b9ad9fc6d9c
+gpucc_pinned_sha=9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
 if [ "$module" = gpucc_sm8350 ]; then
 	gpucc_module=${ROG5_GPUCC_MODULE:-}
 	gpucc_expected_sha=${ROG5_GPUCC_MODULE_SHA256:-}
