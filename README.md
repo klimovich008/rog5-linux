@@ -136,12 +136,20 @@ before the display RCG's existing `regmap_read()` but never reached
 existing call without proving whether MMIO, interconnect, regmap locking, or
 runtime-suspended provider state is responsible. The independent watchdog
 restored the exact fallback; zero retained pstore/fatal records and complete
-host cleanup passed. V14 must not be rerun and is not a GPU fix. The next gate
-is a source-modeled, test-first behavioral correction that never
-runtime-resumes a provider beneath `prepare_lock`. See the
+host cleanup passed. V14 must not be rerun and is not a GPU fix. Network-root
+v15 now passes the complete offline gate for an experimental partial backport
+of the March 2025 CCF runtime-PM RFC. Its exhaustive lock model, red/green
+source and mutation tests, clock KUnit suite, two mainline builds, and two
+nested wrapper/package paths pass; exported symbols, modules, and the RCG2
+object remain byte-identical to v14. It acquires generic all-provider
+runtime-PM references before `prepare_lock`, preserves the orphan scan, and
+releases them after unlocking. It is unbooted and eligible only for one
+attended RAM-only, zero-storage probe. See the
 [v14 offline report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
 and
-[v14 live report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md).
+[v14 live report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md),
+then the
+[v15 offline report](test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

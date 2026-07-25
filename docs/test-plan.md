@@ -178,9 +178,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   verifier passes. Its one attended zero-storage probe reached
   `parent-read-begin` and never reached `parent-read-complete`; independent
   rollback, exact fallback, and complete cleanup passed. V14 must not be
-  rerun. The next gate requires a source lock/PM model plus failing mutation
-  and concurrency tests before a behavioral candidate. It may not add a
-  runtime resume while the global prepare lock is held.**
+  rerun. V15 passes the successor offline gate: an exhaustive lock model,
+  red/green source/integration/mutation contracts, and 118 clock KUnit tests
+  validate an experimental CCF ordering candidate that acquires generic
+  all-provider runtime-PM references before the global prepare lock and
+  releases them after unlocking. Two clean kernel, wrapper, and package paths
+  match byte-for-byte; exported symbols, modules, and RCG2 remain v14-exact.
+  V15 is unbooted and may receive at most one attended RAM-only, zero-storage
+  probe with independent rollback.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

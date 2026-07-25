@@ -63,11 +63,14 @@ for a working feature.
 - [x] Run one attended RAM-only v14 probe with the independent 75-second
   watchdog; localize the boundary to the display RCG's existing regmap read,
   then verify exact fallback and complete host cleanup.
-- [ ] Model CCF prepare-lock, orphan-list, DISPCC runtime-PM, and regmap lock
+- [x] Model CCF prepare-lock, orphan-list, DISPCC runtime-PM, and regmap lock
   ordering; write failing source, mutation, and concurrency tests before
   implementing a behavioral candidate.
-- [ ] Reproduce any behavioral candidate through two clean kernel, wrapper,
+- [x] Reproduce the v15 behavioral candidate through two clean kernel, wrapper,
   and package paths before considering one new attended zero-storage probe.
+- [ ] Run at most one attended RAM-only v15 probe with independent rollback;
+  accept only the first non-returning boundary, exact fallback, and complete
+  host cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

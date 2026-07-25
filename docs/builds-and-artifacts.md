@@ -43,7 +43,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
-| GPUCC/CCF network-root diagnostic | trace the SM8350 GPU clock-controller with every consumer disabled | v14 reproducibly reaches the runtime-suspended DISPCC orphan's existing RCG regmap read and does not return; independent rollback, exact fallback, and cleanup pass; normal coldplug remains rejected, the mechanism still needs a tested behavioral correction, and this is never a flash target |
+| GPUCC/CCF network-root diagnostic/candidate | trace the SM8350 GPU clock-controller with every consumer disabled | v14 reproducibly stops in the runtime-suspended DISPCC orphan's existing RCG read; v15 offline-accepts a tested experimental CCF runtime-PM ordering candidate through duplicate kernel/wrapper/package paths but remains unbooted and limited to one attended RAM-only probe; never flash |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -166,6 +166,10 @@ complete offline acceptance. The
 [GPUCC RCG parent-read live report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md)
 records the non-returning regmap-call boundary, independent watchdog rollback,
 exact fallback, and complete host cleanup. The
+[GPUCC runtime-PM candidate offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
+records the exhaustive lock model, red/green source and mutation tests, clock
+KUnit result, two reproducible mainline/wrapper/package paths, exact hashes,
+and one-shot live boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

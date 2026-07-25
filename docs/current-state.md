@@ -453,8 +453,26 @@ pstore/fatal records and complete NFS, firewall, service, address, inhibitor,
 and profile cleanup passed. The
 [v14 live report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md)
 records the ordered trace and rollback evidence. V14 must not be rerun. The
-next gate is test-first lock/runtime-PM modeling for a general behavioral
-correction; no provider runtime resume may be added under `prepare_lock`.
+next gate could not add a provider runtime resume under `prepare_lock`.
+
+Network-root v15 now passes that complete offline behavioral gate. An
+exhaustive finite-state model makes the old order and get-beneath-lock
+mutations reach ABBA deadlock, while the candidate core and both OF-provider
+paths reach neither deadlock nor reference leak. Red/green source,
+integration, mutation, and exact-patch tests pass, as do 118 clock KUnit tests
+with zero failures. The candidate is an experimental partial backport of the
+unmerged March 2025 CCF runtime-PM RFC: acquire all registered provider
+runtime-PM references before `prepare_lock`, run the unchanged orphan scan,
+unlock, then release the references.
+
+Two clean mainline builds match through BTF, CCF/QCOM objects, symbols,
+modules, and metadata. Two credential-free staging archives, independently
+prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
+The exported ABI, complete module archive, GPUCC module, and RCG2 object are
+unchanged from v14. The
+[v15 offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
+records the exact identities and residual risk. V15 is unbooted and eligible
+only for one attended RAM-only, zero-storage probe with independent rollback.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

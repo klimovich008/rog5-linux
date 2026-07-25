@@ -146,11 +146,23 @@ records, and complete host cleanup passed. This localizes the non-returning
 boundary to the existing regmap call without identifying the mechanism. V14
 must not be rerun.
 
-A behavioral fix remains a separate design problem: the global orphan scan
-holds CCF's `prepare_lock`, so runtime-resuming the display provider inside
-that scan can deadlock if a provider callback tries to acquire the same lock.
-The next gate must model that lock order and add failing source, mutation, and
-concurrency tests before changing CCF or provider runtime-PM behavior.
+The behavioral gate now has an offline-accepted v15 candidate. Its exhaustive
+finite-state model makes the old order and get-beneath-`prepare_lock`
+mutations reach ABBA deadlock, while the candidate core and both OF-provider
+paths reach neither deadlock nor reference leak. Red/green source,
+integration, mutation, exact-patch, and clock KUnit tests pass. The candidate
+is an experimental partial backport of the unmerged March 2025 CCF runtime-PM
+RFC: it acquires generic all-provider runtime-PM references before
+`prepare_lock`, preserves the orphan scan, unlocks, and then releases the
+references.
+
+Two clean mainline builds and two independently prepared nested
+wrapper/package paths match byte-for-byte. Exported symbols, the full module
+archive, GPUCC module, and RCG2 object remain identical to v14. V15 adds no
+device-specific path, direct display-provider resume, register access, forced
+parent, or consumer. It is unbooted and eligible only for one attended
+RAM-only, zero-storage probe with independent rollback. See the
+[v15 offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

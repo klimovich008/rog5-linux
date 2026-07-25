@@ -13,6 +13,7 @@ ccf_patch=${CCF_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0007-clk-trace-
 orphan_patch=${ORPHAN_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0008-clk-trace-attended-SM8350-GPUCC-orphan-reparent.patch}
 parent_patch=${PARENT_TRACE_PATCH:-/workspace/repo/patches/linux-7.1.4/0009-clk-trace-attended-SM8350-GPUCC-orphan-parent-lookup.patch}
 rcg2_patch=${RCG2_TRACE_PATCH:-}
+runtime_pm_patch=${ORPHAN_RUNTIME_PM_PATCH:-}
 expected_base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 expected_gpucc=86f3c68a666446d9bbcb9bd9f90df50f989ba8ea
 expected_common=d4bb00313e92514f89bc0a9e7a7dffcb4884834f
@@ -21,11 +22,21 @@ expected_orphan=b2059b161861d6d7d1aeb9b7d93ad86b13d85048
 expected_parent=f7c0a9d067db77f05a40a5bc242c1e14ac297ac5
 expected_tree=adec6b40ce25145e3e18cd82a788aa458514017d
 expected_rcg2=
+expected_runtime_pm=
 diagnostic_label=orphan-parent
 if [ -n "$rcg2_patch" ]; then
 	expected_rcg2=6e40861cc51c067f9989c4513003e8fbd046c22f
 	expected_tree=49ef6cb95768496b8f926b11e428ea224406464e
 	diagnostic_label=RCG2-parent-read
+fi
+if [ -n "$runtime_pm_patch" ]; then
+	[ -n "$rcg2_patch" ] || {
+		echo 'FAIL runtime-PM candidate requires the accepted v14 RCG2 source' >&2
+		exit 1
+	}
+	expected_runtime_pm=d9ac316489f4258d389d6298659d5e9c22183400
+	expected_tree=c796deb1cc54e942f8bb46a2c76a7199e19e5c92
+	diagnostic_label=orphan-runtime-PM-candidate
 fi
 expected_release=7.1.4-g7a5cef0db479
 jobs=${JOBS:-1}
@@ -49,7 +60,17 @@ do
 	[ -r "$input" ]
 done
 [ -z "$rcg2_patch" ] || [ -r "$rcg2_patch" ]
-if [ -n "$rcg2_patch" ]; then
+[ -z "$runtime_pm_patch" ] || [ -r "$runtime_pm_patch" ]
+if [ -n "$runtime_pm_patch" ]; then
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^^^)" = "$expected_base" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^^)" = "$expected_gpucc" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^)" = "$expected_common" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^^)" = "$expected_ccf" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^^)" = "$expected_orphan" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^^)" = "$expected_parent" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD^)" = "$expected_rcg2" ]
+	[ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_runtime_pm" ]
+elif [ -n "$rcg2_patch" ]; then
 	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^^)" = "$expected_base" ]
 	[ "$(git -C "$source_dir" rev-parse HEAD^^^^^)" = "$expected_gpucc" ]
 	[ "$(git -C "$source_dir" rev-parse HEAD^^^^)" = "$expected_common" ]
@@ -112,6 +133,10 @@ module=$output_dir/drivers/clk/qcom/gpucc-sm8350.ko
 	if [ -n "$expected_rcg2" ]; then
 		printf 'rcg2_patched_commit=%s\n' "$expected_rcg2"
 	fi
+	if [ -n "$expected_runtime_pm" ]; then
+		printf 'orphan_runtime_pm_patched_commit=%s\n' \
+			"$expected_runtime_pm"
+	fi
 	printf 'patched_tree=%s\n' "$expected_tree"
 	printf 'kernel_release=%s\n' "$expected_release"
 	printf 'compiler=%s\n' "$(clang --version | head -1)"
@@ -130,6 +155,10 @@ module=$output_dir/drivers/clk/qcom/gpucc-sm8350.ko
 	if [ -n "$rcg2_patch" ]; then
 		printf 'rcg2_trace_patch_sha256=%s\n' \
 			"$(sha256sum "$rcg2_patch" | cut -d ' ' -f 1)"
+	fi
+	if [ -n "$runtime_pm_patch" ]; then
+		printf 'orphan_runtime_pm_patch_sha256=%s\n' \
+			"$(sha256sum "$runtime_pm_patch" | cut -d ' ' -f 1)"
 	fi
 	printf 'base_fragment_sha256=%s\n' \
 		"$(sha256sum "$base_fragment" | cut -d ' ' -f 1)"

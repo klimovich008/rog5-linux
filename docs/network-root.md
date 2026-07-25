@@ -442,9 +442,24 @@ the existing regmap call, but does not prove that the fault is an MMIO
 transaction rather than an interconnect, regmap-lock, or provider-state
 interaction. V14 must not be rerun. A provider runtime resume cannot simply
 be inserted in the global orphan scan because it runs under CCF's
-`prepare_lock` and a provider resume callback may need that lock. The next
-candidate requires source-modeled locking plus failing tests before any
-behavior change.
+`prepare_lock` and a provider resume callback may need that lock.
+
+Network-root v15 passes the complete offline gate for an experimental partial
+backport of the unmerged March 2025 CCF runtime-PM RFC. Its exhaustive lock
+model makes the old and get-beneath-lock orders deadlock, while the candidate
+core and both OF-provider paths have no modeled deadlock or reference leak.
+Red/green source, integration, mutation, exact-patch, and clock KUnit tests
+pass. The candidate acquires generic all-provider runtime-PM references before
+`prepare_lock`, preserves each orphan scan, unlocks, and then releases the
+references. It adds no device-specific resume, RCG/regmap change, forced
+parent, skipped orphan, DT change, or consumer.
+
+Two clean mainline builds match through BTF, symbols, CCF/QCOM objects,
+modules, and metadata. Two credential-free staging archives, independently
+prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
+The exported ABI, full module archive, GPUCC module, and RCG2 object are
+unchanged from v14. V15 is unbooted and eligible only for one attended
+RAM-only, zero-storage probe with independent rollback.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -484,4 +499,7 @@ records the accepted v14 source boundary, 4.2-second timing cap, duplicate
 build/package paths, exact hashes, and complete offline acceptance. The
 [GPUCC RCG parent-read live report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md)
 records the regmap-call boundary, watchdog rollback, exact fallback, and
-complete host cleanup.
+complete host cleanup. The
+[GPUCC runtime-PM candidate offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
+records its model, tests, reproducibility, exact identities, residual risk,
+and one-shot live gate.
