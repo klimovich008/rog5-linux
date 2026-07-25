@@ -95,11 +95,16 @@ read-only SM8350 battery snapshot through the audited QRTR/PDR and
 battery-only PMIC GLINK path. Charging, Type-C control, sustained
 current-direction validation, display, and GPU remain isolated.
 Network-root v9 independently reproduced a GPUCC-only diagnostic with every
-GPU consumer disabled. Live tracing reached MMIO mapping and completed both
-PLL configurations, then lost USB/SSH at the clock/reset/GDSC registration
-boundary. Its independent watchdog restored the exact fallback and complete
-host cleanup passed. GPUCC therefore remains rejected; the next gate traces
-the built-in Qualcomm common-clock registration phases.
+GPU consumer disabled. V10 then added a default-off, exact-compatible trace to
+the built-in Qualcomm common-clock path. Duplicate clean kernels, matching
+module archives, wrappers, and packages were byte-identical. The guarded live
+trace completed mapping, both PLL configurations, reset registration, and both
+GDSC steps, then stopped while registering clock index 0
+(`gpu_cc_ahb_clk`). Its independent watchdog restored the exact fallback and
+complete host cleanup passed. Source analysis does not prove an access to the
+branch register: this clock is non-critical and should enter CCF as an orphan.
+GPUCC therefore remains rejected; the next gate traces the generic CCF
+registration internals.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -167,6 +172,10 @@ queries, accepts no arbitrary command, and keeps rollback armed:
 ```sh
 ALLOW_NETWORK_ROOT_ACM=1 \
   scripts/host/network-root-acm.py load-normal
+
+# Only with the reviewed GPUCC common-clock diagnostic bundle:
+ALLOW_NETWORK_ROOT_ACM=1 \
+  scripts/host/network-root-acm.py load-gpucc-diagnostic
 
 ALLOW_NETWORK_ROOT_ACM=1 \
 ALLOW_ATTENDED_KEXEC=1 \

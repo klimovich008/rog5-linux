@@ -336,18 +336,23 @@ behavior/control, dual-cell interpretation, and sustained current-direction
 validation remain untested and disabled.
 
 Network-root v9 retested GPUCC with only its clock-controller DT node enabled.
-GPU, GMU, Adreno SMMU, display, UFS, RTC, input, and every remote processor
-remained disabled. Two traced module builds, two DTBs, two nested initramfs
-builds, two ASUS wrappers, and two Android repacks were byte-identical. The
-guarded live probe reached MMIO mapping and completed both Lucid PLL
-configurations, then USB/SSH stopped before registration returned. The
-independent SysRq watchdog restored the exact fallback, pstore retained no
-record, and complete NFS/firewall/service cleanup passed. This rules out GPU
-consumer binding as the original stall trigger but does not distinguish the
-first internal `qcom_cc_really_probe()` phase. The
+V10 added a read-only, default-off common-clock phase trace and rebuilt the
+matching kernel/module set. Duplicate clean Linux builds, ASUS wrappers, and
+Android repacks were byte-identical. GPU, GMU, Adreno SMMU, display, UFS, RTC,
+input, and every remote processor remained disabled. The guarded v10 probe
+completed MMIO mapping, both Lucid PLL configurations, reset registration,
+both GDSC steps, and protected-clock handling, then stopped during regmap clock
+index 0 registration. Sources map that index to non-critical
+`gpu_cc_ahb_clk`, whose parent has not yet registered; ordinary CCF should
+orphan it and should not invoke its branch enable operation. The evidence does
+not prove a read or write at `0x1078`. The independent SysRq watchdog restored
+the exact fallback, pstore retained no record, and complete
+NFS/firewall/service cleanup passed. The
 [GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
-defines the required common-clock phase instrumentation before another live
-attempt.
+records the v9 boundary. The
+[GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
+defines the required generic CCF instrumentation and ACM load-recovery gate
+before another live attempt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

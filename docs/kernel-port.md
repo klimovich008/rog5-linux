@@ -100,7 +100,11 @@ RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU; two unmasked coldplug boots pass
 the headless systemd/SSH/storage/USB/NFS gates. Network-root v3 retains a
 minimal shutdown initramfs and passes one normal systemd reboot to the
 persistent fallback with complete host cleanup. Repeated clean cycles remain
-required as new hardware tiers are enabled.
+required as new hardware tiers are enabled. GPUCC-only v10 keeps every
+consumer disabled and narrows the stall to generic CCF registration of
+non-critical clock index 0. It does not prove branch-register access; a
+default-off trace inside CCF allocation, locking, runtime-PM, and orphan
+topology is required before GPUCC can advance.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

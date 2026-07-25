@@ -34,6 +34,14 @@ ACTIONS = {
         False,
         60,
     ),
+    "load-gpucc-diagnostic": (
+        "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
+        "ROG5_RECOVERY_TIMEOUT=900 "
+        "/usr/local/sbin/rog5-load-mainline-recovery",
+        LOAD_MARKER,
+        False,
+        60,
+    ),
     "execute": ("kexec -e", None, True, 20),
 }
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
@@ -146,11 +154,58 @@ def find_recovery_acm() -> str:
     return matches[0]
 
 
+def recovery_acm_identity(path: str) -> tuple[str, int, str, str, str]:
+    properties = udev_properties(path)
+    device = os.stat(path, follow_symlinks=False)
+    return (
+        path,
+        device.st_rdev,
+        properties.get("DEVPATH", ""),
+        properties.get("ID_PATH", ""),
+        properties.get("ID_SERIAL", ""),
+    )
+
+
+def wait_for_stable_recovery_acm(
+    *,
+    settle_seconds: float = 2.0,
+    timeout_seconds: float = 12.0,
+    poll_seconds: float = 0.2,
+) -> str:
+    deadline = time.monotonic() + timeout_seconds
+    candidate: tuple[str, int, str, str, str] | None = None
+    stable_since = 0.0
+    while True:
+        now = time.monotonic()
+        if now >= deadline:
+            fail("recovery ACM identity did not remain stable")
+        try:
+            path = find_recovery_acm()
+            identity = recovery_acm_identity(path)
+        except (OSError, RuntimeError, subprocess.CalledProcessError):
+            candidate = None
+            stable_since = 0.0
+        else:
+            if identity != candidate:
+                candidate = identity
+                stable_since = now
+            elif now - stable_since >= settle_seconds:
+                final_path = find_recovery_acm()
+                if recovery_acm_identity(final_path) == candidate:
+                    return final_path
+                candidate = None
+                stable_since = 0.0
+        time.sleep(poll_seconds)
+
+
 def main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_NETWORK_ROOT_ACM") != "1":
         fail("set ALLOW_NETWORK_ROOT_ACM=1 for one fixed staging action")
     if len(arguments) != 1 or arguments[0] not in ACTIONS:
-        fail("usage: network-root-acm.py load-normal|load-diagnostic|execute")
+        fail(
+            "usage: network-root-acm.py "
+            "load-normal|load-diagnostic|load-gpucc-diagnostic|execute"
+        )
     action = arguments[0]
     if action == "execute" and os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":
         fail("set ALLOW_ATTENDED_KEXEC=1 after the loader PASS marker")
@@ -165,7 +220,7 @@ def main(arguments: list[str]) -> int:
     ).returncode == 0:
         fail("stop ModemManager before using the recovery ACM")
 
-    path = find_recovery_acm()
+    path = wait_for_stable_recovery_acm()
     command, marker, expect_disconnect, timeout_seconds = ACTIONS[action]
     output = run_serial(path, command, marker, expect_disconnect, timeout_seconds)
     if output:

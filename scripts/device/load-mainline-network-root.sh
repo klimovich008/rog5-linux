@@ -19,6 +19,20 @@ case $systemd_diagnostic in
 	*) exit 1 ;;
 esac
 
+qcom_cc_probe_trace=${ROG5_QCOM_CC_PROBE_TRACE:-0}
+case $qcom_cc_probe_trace in
+	0|1) ;;
+	*) exit 1 ;;
+esac
+
+recovery_timeout=${ROG5_RECOVERY_TIMEOUT:-600}
+case $recovery_timeout in
+	*[!0-9]*|'') exit 1 ;;
+esac
+if [ "$recovery_timeout" -lt 60 ] || [ "$recovery_timeout" -gt 900 ]; then
+	exit 1
+fi
+
 control_count=0
 for file in $(find "$sys_devices" -type f -name disable 2>/dev/null); do
 	parent=${file%/disable}
@@ -34,14 +48,6 @@ done
 [ "$control_count" -eq 1 ]
 ! dmesg | grep -q 'Failed to deactivate secure wdog'
 
-recovery_timeout=${ROG5_RECOVERY_TIMEOUT:-600}
-case $recovery_timeout in
-	*[!0-9]*|'') exit 1 ;;
-esac
-if [ "$recovery_timeout" -lt 60 ] || [ "$recovery_timeout" -gt 900 ]; then
-	exit 1
-fi
-
 command_line='console=ttyMSM0,115200n8 rdinit=/init panic=10 oops=panic loglevel=8 ignore_loglevel printk.always_kmsg_dump=Y rog5.netroot=1'
 for argument in $(cat "$proc_cmdline"); do
 	case $argument in
@@ -53,11 +59,18 @@ if [ "$systemd_diagnostic" = 1 ]; then
 	command_line="$command_line systemd.mask=systemd-udev-trigger.service"
 	command_line="$command_line systemd.mask=systemd-modules-load.service"
 fi
+if [ "$qcom_cc_probe_trace" = 1 ]; then
+	command_line="$command_line rog5_qcom_cc_probe_trace=1"
+fi
 
 [ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
 	grep -c '^rog5\.netroot=1$')" -eq 1 ]
 [ "$(printf '%s\n' "$command_line" |
 	grep -o 'ramoops\.[a-z_]*=' | sort -u | wc -l)" -eq 7 ]
+trace_count=$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	awk '$0 == "rog5_qcom_cc_probe_trace=1" { count++ }
+		END { print count + 0 }')
+[ "$trace_count" -eq "$qcom_cc_probe_trace" ]
 
 kexec -c -l "$image" \
 	--dtb="$dtb" \

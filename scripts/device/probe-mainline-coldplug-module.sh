@@ -58,6 +58,20 @@ fi
 	fail 'network-root watchdog is still active'
 [ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
 	fail 'missing network-root watchdog disarm marker'
+if [ "$module" = gpucc_sm8350 ]; then
+	trace_count=$(tr ' ' '\n' </proc/cmdline |
+		awk '$0 == "rog5_qcom_cc_probe_trace=1" { count++ }
+			END { print count + 0 }')
+	[ "$trace_count" -eq 1 ] ||
+		fail 'common-clock trace boot parameter is not exact'
+	core_trace=/sys/module/kernel/parameters/rog5_qcom_cc_probe_trace
+	[ -r "$core_trace" ] ||
+		fail 'common-clock trace core parameter is absent'
+	[ "$(cat "$core_trace")" = Y ] ||
+		fail 'common-clock trace core parameter is not enabled'
+	[ "$(stat -c %a "$core_trace")" = 400 ] ||
+		fail 'common-clock trace core parameter became writable'
+fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'
 [ "$(findmnt -n -o SOURCE /.rog5/root-ro)" = 169.254.77.1:/ ] ||
@@ -85,7 +99,7 @@ normalized_module=$(printf '%s\n' "$module" | tr '-' '_')
 	fail 'module is already loaded; use a fresh candidate'
 gpucc_module=
 gpucc_expected_sha=
-gpucc_pinned_sha=5f7018e53eb576579fe8d199171ae6e17c4e9d31ad099a330d21e050c0ad4454
+gpucc_pinned_sha=0ccb0059ec1960becb3676903aaccb623f105dbc8df08984cbd13a7d1ea6e73c
 if [ "$module" = gpucc_sm8350 ]; then
 	gpucc_module=${ROG5_GPUCC_MODULE:-}
 	gpucc_expected_sha=${ROG5_GPUCC_MODULE_SHA256:-}

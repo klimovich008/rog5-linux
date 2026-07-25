@@ -34,6 +34,9 @@ for a working feature.
   diagnostic mode.
 - [x] Isolate the normal-coldplug reset to GPUCC and an overlapping RMTFS
   reservation; reproduce and boot the guarded v2 DTB.
+- [x] Reproduce GPUCC with every consumer disabled and narrow its first
+  non-returning operation to CCF registration of clock index 0, with
+  independent watchdog rollback and complete cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

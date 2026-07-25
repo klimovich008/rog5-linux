@@ -11,6 +11,7 @@ import subprocess
 import sys
 import threading
 import unittest
+from unittest import mock
 
 
 sys.dont_write_bytecode = True
@@ -111,8 +112,51 @@ class SerialTransportTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("ALLOW_NETWORK_ROOT_ACM", result.stderr)
 
+    def test_acm_must_stabilize_after_reenumeration(self) -> None:
+        paths = [
+            "/dev/ttyACM0",
+            RuntimeError("device departed"),
+            "/dev/ttyACM1",
+            "/dev/ttyACM1",
+            "/dev/ttyACM1",
+        ]
+
+        def identity(path: str) -> tuple[str, int, str, str, str]:
+            return (path, 16640 if path.endswith("0") else 16641, "", "", "")
+
+        with (
+            mock.patch.object(MODULE, "find_recovery_acm", side_effect=paths),
+            mock.patch.object(MODULE, "recovery_acm_identity", side_effect=identity),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0, 0.1, 0.2, 0.3],
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+        ):
+            path = MODULE.wait_for_stable_recovery_acm(
+                settle_seconds=0.05,
+                timeout_seconds=1.0,
+                poll_seconds=0.0,
+            )
+        self.assertEqual(path, "/dev/ttyACM1")
+
     def test_actions_are_fixed_and_storage_safe(self) -> None:
-        self.assertEqual(set(MODULE.ACTIONS), {"load-normal", "load-diagnostic", "execute"})
+        self.assertEqual(
+            set(MODULE.ACTIONS),
+            {
+                "load-normal",
+                "load-diagnostic",
+                "load-gpucc-diagnostic",
+                "execute",
+            },
+        )
+        self.assertEqual(
+            MODULE.ACTIONS["load-gpucc-diagnostic"][0],
+            "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
+            "ROG5_RECOVERY_TIMEOUT=900 "
+            "/usr/local/sbin/rog5-load-mainline-recovery",
+        )
         self.assertEqual(MODULE.ACTIONS["execute"][0], "kexec -e")
         source = SOURCE.read_text()
         self.assertNotRegex(source, r"fastboot\s+flash|dd\s+.*of=/dev/")

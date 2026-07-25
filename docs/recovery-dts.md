@@ -87,7 +87,11 @@ disabled. GPUCC isolation is required because an attended live
 `gpucc_sm8350` probe stalled until the rollback watchdog reset the phone. A
 later GPUCC-only v9 trace kept every consumer disabled, completed mapping and
 both PLL configuration calls, then stalled at the common-clock registration
-boundary. GPUCC therefore remains outside the accepted recovery DT.
+boundary. V10 traced that path through reset and both GDSC steps and localized
+the stop to generic CCF registration of non-critical index-0
+`gpu_cc_ahb_clk`. Its parent has not yet registered, so the source indicates a
+normal orphan-registration path and does not prove branch-register access.
+GPUCC therefore remains outside the accepted recovery DT.
 
 The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6

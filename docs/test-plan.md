@@ -146,10 +146,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Before any further GPUCC attempt, require a GPUCC-only DT with every
   consumer disabled, an external hash-pinned module, default-off read-only
   tracing, two byte-identical builds, and the same zero-storage/watchdog gate.
-  **V9 passed those offline and baseline gates; live tracing completed mapping
-  and both PLL configurations, then stalled at the unresolved common-clock
-  registration boundary and rolled back safely. Instrument power-domain,
-  reset, GDSC, per-clock, and provider registration before retest.**
+  **V9 passed those offline and baseline gates. V10 then passed duplicate
+  kernel/module, wrapper/package, mutation, and bundle gates; live tracing
+  completed power-domain, reset, GDSC, and protected-clock phases, then stopped
+  during CCF registration of index-0 `gpu_cc_ahb_clk` and rolled back safely.
+  Before retest, trace regmap lookup, devres allocation, prepare-lock/runtime
+  PM, parent/orphan/hash, phase/duty/rate, orphan reparenting, debug
+  registration, and return. Also recover only an idempotent lost loader action;
+  never retry kexec execution.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

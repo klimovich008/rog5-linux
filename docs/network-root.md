@@ -333,6 +333,20 @@ passed. GPUCC remains rejected; disabled consumers do not remove the stall.
 The next gate must instrument the built-in Qualcomm common-clock registration
 sub-phases before another attended probe.
 
+Network-root v10 adds that default-off common-clock trace, gated to the exact
+SM8350 GPUCC compatible. Duplicate clean Linux builds, matching module
+archives, ASUS wrappers, and Android packages were byte-identical. The live
+trace completed power-domain attachment, reset registration, both GDSC steps,
+and protected-clock handling. It stopped after
+`clock-regmap-register-begin index=0`, before the matching completion marker.
+Binding and driver sources map index 0 to non-critical `gpu_cc_ahb_clk`; its
+single parent is index 17 and has not registered yet, so CCF should initially
+place the clock on the orphan list. This does not prove that its `0x1078`
+branch register was accessed. The watchdog restored exact fallback, pstore
+contained no record, and full cleanup passed. A narrower trace inside generic
+CCF registration, plus stronger recovery from a lost idempotent ACM load
+marker, is required before another attempt.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
@@ -345,4 +359,7 @@ records the v8 dependency diagnosis, live values, watchdog handling, and
 rollback. The
 [GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
 records the reproducible v9 candidate, live phase boundary, watchdog rollback,
-and next instrumentation gate.
+and first common-clock instrumentation gate. The
+[GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
+records the reproducible v10 candidate, exact index-0 localization,
+source-bounded interpretation, rollback, cleanup, and next CCF trace gate.

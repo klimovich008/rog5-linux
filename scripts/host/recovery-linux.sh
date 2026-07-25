@@ -124,3 +124,4 @@ done
 echo "PASS credential-free staging ACM ready at $acm"
 echo "INFO rollback remains armed; use only the fixed-action, control-safe ACM helper:"
 echo "ALLOW_NETWORK_ROOT_ACM=1 $repo/scripts/host/network-root-acm.py load-normal"
+echo "INFO the GPUCC phase trace uses the separate load-gpucc-diagnostic action"

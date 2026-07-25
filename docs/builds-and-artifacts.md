@@ -43,7 +43,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | kexec staging initramfs | carry mainline kernel/DTB/initramfs through header-v3 boot | v18 passes nested load, separate execute, Linux 7.1 target, and rollback |
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
-| GPUCC-only network-root diagnostic | trace the SM8350 GPU clock-controller with every consumer disabled | v9 bundle and external module reproduce; live mapping/PLL phases complete but registration stalls, watchdog rollback and cleanup pass; rejected for normal coldplug; never flash |
+| GPUCC-only network-root diagnostic | trace the SM8350 GPU clock-controller with every consumer disabled | v10 kernel, matching modules, wrapper, package, and external module reproduce; live trace localizes the stall to CCF registration of non-critical clock index 0, watchdog rollback and cleanup pass; rejected for normal coldplug; never flash |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -134,7 +134,11 @@ complete cleanup. The
 [GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
 records duplicate v9 builds, the GPUCC-only DT and external traced-module
 contract, the mapping/PLL live trace, watchdog rollback, complete cleanup, and
-the next common-clock instrumentation gate. The
+the first common-clock instrumentation gate. The
+[GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
+records duplicate v10 builds, the built-in trace contract, exact index-0 live
+boundary, CCF source localization, rollback, cleanup, and next narrower trace
+gate. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

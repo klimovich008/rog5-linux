@@ -35,7 +35,7 @@ EOF
 chmod +x "$stage/bin/dmesg" "$stage/bin/kexec"
 
 cat >"$stage/cmdline" <<'EOF'
-rog5.netroot=0 rog5.recovery_timeout=180 ramoops.mem_address=0x1000000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x100000 ramoops.pmsg_size=0x100000 ramoops.ftrace_size=0 ramoops.dump_oops=1
+rog5.netroot=0 rog5.recovery_timeout=180 rog5_qcom_cc_probe_trace=1 ramoops.mem_address=0x1000000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x100000 ramoops.pmsg_size=0x100000 ramoops.ftrace_size=0 ramoops.dump_oops=1
 EOF
 
 export KEXEC_RECORD=$stage/kexec.args
@@ -56,6 +56,7 @@ grep -qx -- -l "$KEXEC_RECORD"
 [ "$(grep -c 'rog5.recovery_timeout=600' "$KEXEC_RECORD")" -eq 1 ]
 ! grep -q 'rog5.recovery_timeout=180' "$KEXEC_RECORD"
 ! grep -q 'systemd.mask=' "$KEXEC_RECORD"
+! grep -q 'rog5_qcom_cc_probe_trace=' "$KEXEC_RECORD"
 
 rm -f "$KEXEC_RECORD"
 PATH=$stage/bin:$PATH \
@@ -64,9 +65,23 @@ PATH=$stage/bin:$PATH \
 	PROC_CMDLINE=$stage/cmdline \
 	ROG5_RECOVERY_TIMEOUT=600 \
 	ROG5_SYSTEMD_DIAGNOSTIC=1 \
+"$target" >/dev/null
+[ "$(grep -c 'systemd.mask=systemd-udev-trigger.service' "$KEXEC_RECORD")" -eq 1 ]
+[ "$(grep -c 'systemd.mask=systemd-modules-load.service' "$KEXEC_RECORD")" -eq 1 ]
+! grep -q 'rog5_qcom_cc_probe_trace=' "$KEXEC_RECORD"
+
+rm -f "$KEXEC_RECORD"
+PATH=$stage/bin:$PATH \
+	PAYLOAD=$stage/payload \
+	SYS_DEVICES=$stage/sys \
+	PROC_CMDLINE=$stage/cmdline \
+	ROG5_RECOVERY_TIMEOUT=600 \
+	ROG5_SYSTEMD_DIAGNOSTIC=1 \
+	ROG5_QCOM_CC_PROBE_TRACE=1 \
 	"$target" >/dev/null
 [ "$(grep -c 'systemd.mask=systemd-udev-trigger.service' "$KEXEC_RECORD")" -eq 1 ]
 [ "$(grep -c 'systemd.mask=systemd-modules-load.service' "$KEXEC_RECORD")" -eq 1 ]
+[ "$(grep -o 'rog5_qcom_cc_probe_trace=1' "$KEXEC_RECORD" | wc -l)" -eq 1 ]
 
 rm -f "$KEXEC_RECORD"
 set +e
@@ -80,6 +95,21 @@ status=$?
 set -e
 [ "$status" -ne 0 ]
 [ ! -e "$KEXEC_RECORD" ]
+
+for invalid in -1 2 yes; do
+	rm -f "$KEXEC_RECORD"
+	set +e
+	PATH=$stage/bin:$PATH \
+		PAYLOAD=$stage/payload \
+		SYS_DEVICES=$stage/sys \
+		PROC_CMDLINE=$stage/cmdline \
+		ROG5_QCOM_CC_PROBE_TRACE=$invalid \
+		"$target" >/dev/null 2>&1
+	status=$?
+	set -e
+	[ "$status" -ne 0 ]
+	[ ! -e "$KEXEC_RECORD" ]
+done
 
 for invalid in 59 901 not-a-number; do
 	rm -f "$KEXEC_RECORD"
@@ -96,4 +126,4 @@ for invalid in 59 901 not-a-number; do
 	[ ! -e "$KEXEC_RECORD" ]
 done
 
-echo 'PASS network-root loader pins mode, diagnostic masks, watchdog allowlist, and timeout'
+echo 'PASS network-root loader pins mode, trace flag, diagnostic masks, watchdog allowlist, and timeout'
