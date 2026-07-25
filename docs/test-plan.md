@@ -175,9 +175,17 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   only the volatile Linux system clock. **Offline fake-SSH contract and live
   `changed=1` correction of a 2,378,466-second drift passed; independent host
   interval, normal reboot, and cleanup passed.**
-- Treat display, battery, charging, radio, physical input actuation, and GPU
-  as untested despite the normal headless coldplug and input-registration
-  passes.
+- Require the board DTS to reserve the exact three stock-owned RAM spans
+  before enabling any remote processor. For the ADSP-only gate, keep every
+  other remote processor and PMIC GLINK disabled, stage exact stock firmware
+  only in tmpfs, arm an independent SysRq watchdog, and require PAS/SCM
+  success, ADSP `running`, only the reviewed PAS/GLINK plus `qrtr` module set,
+  zero power supplies/storage, stable USB/NFS, clean logs, and fallback
+  restoration. **Passed twice at the hardware boundary; the second run
+  passed the complete corrected harness.**
+- Treat display, battery values, charging, radio, physical input actuation,
+  and GPU as untested despite the normal headless coldplug, input
+  registration, and accepted ADSP prerequisite.
 
 ## Tier 2 — core hardware
 

@@ -88,9 +88,11 @@ Client authorization and a single pinned server host identity also persist
 across boots. Network-root v3 now retains a minimal shutdown initramfs that
 unmounts OverlayFS before its tmpfs and NFS backing filesystems. Its attended
 normal `systemctl reboot` test returned to the persistent fallback in about
-25 seconds, with strict fallback SSH and complete NFS/firewall cleanup. The
-next gate is core hardware bring-up, starting with power/charging and the
-display path while GPU remains isolated.
+25 seconds, with strict fallback SSH and complete NFS/firewall cleanup.
+Network-root v7 also passes the isolated ADSP prerequisite after adding the
+exact stock-owned ASUS RAM spans. Read-only battery telemetry is the next
+core-hardware gate; charging, Type-C control, display, and GPU remain
+isolated.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

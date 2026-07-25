@@ -4,10 +4,11 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **headless Arch boot and normal systemd reboot pass**. Linux 7.1.4,
-systemd, OverlayFS, read-only NFS, persistent key-only SSH, the zero-storage
-boundary, and one retained-exitrd power cycle are accepted. Repeated power
-cycles plus display, battery, radio, and GPU remain separate test tiers.
+Status: **headless Arch boot, normal systemd reboot, and the ADSP-only
+prerequisite pass**. Linux 7.1.4, systemd, OverlayFS, read-only NFS,
+persistent key-only SSH, the zero-storage boundary, retained-exitrd power
+cycles, and guarded ADSP startup are accepted. Battery values, charging,
+display, radio, and GPU remain separate test tiers.
 
 ## Chosen design
 
@@ -301,8 +302,19 @@ power-key dependency, diagnostic and normal registration, repeated reboot, and
 cleanup gates; physical press observation remains pending. Failure leaves the
 watchdog armed until all acceptance gates pass.
 
+Network-root v7 adds only the three stock-owned ASUS RAM reservations and the
+ADSP status change. Two clean builds and repacks are reproducible. Live PAS
+metadata moved from the rejected stock-owned address `0xfe400000` to
+`0xec000000`; both SCM layers returned zero and ADSP reached `running`.
+After correcting the strict allowlist for the expected `qrtr` IPC core, the
+same-tier repeat passed with zero power supplies, zero storage, stable
+USB/NFS, clean logs, normal reboot, and complete cleanup. PMIC GLINK and
+battery telemetry remain the next separate gate.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
 [PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
-for the v4 RTC rejection and v5 power-key evidence.
+for the v4 RTC rejection and v5 power-key evidence, and the
+[ADSP report](../test-results/2026-07-25-network-root-adsp-live.md) for the v7
+memory-contract diagnosis and live prerequisite.

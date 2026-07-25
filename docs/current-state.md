@@ -1,4 +1,4 @@
-# Current state — 2026-07-24
+# Current state — 2026-07-25
 
 ## Hardware and boot
 
@@ -298,6 +298,24 @@ passed an independent bounded comparison, then repeated the safety gates and
 returned through normal reboot and complete cleanup. The
 [time-bootstrap report](../test-results/2026-07-25-network-root-time-bootstrap-live.md)
 records the evidence.
+
+The mainline ADSP prerequisite now passes in network-root v7. Stock runtime
+FDT and `/proc/iomem` evidence identified three missing ASUS-owned RAM spans:
+`0xcbc00000+68 MiB`, `0xd8000000+8 MiB` (`no-map`), and
+`0xedc00000+288 MiB`. Before that correction, PAS metadata landed at
+`0xfe400000` inside the high stock-owned span and secure firmware returned
+`-EINVAL`. With the exact reservations present, metadata moved to
+`0xec000000`; both PAS layers returned zero and ADSP reached `running`.
+
+The first corrected boot was deliberately rolled back after the strict module
+allowlist omitted the expected `qrtr` IPC core. After requiring `qrtr` absent
+before startup and present afterward, a same-tier repeat passed its settle,
+module, USB/NFS, zero-storage, zero-power-supply, systemd, and log gates.
+Normal reboot restored exact Alpine fallback and complete host cleanup. The
+[ADSP live report](../test-results/2026-07-25-network-root-adsp-live.md)
+records the reproducible bundle, memory diagnosis, both guarded runs, and
+remaining boundary. Read-only battery telemetry is next; charging and
+Type-C control remain untested and disabled.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

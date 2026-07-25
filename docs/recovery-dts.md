@@ -20,13 +20,26 @@ The vendor `vdd-hba` reference points at the UFS GDSC. Mainline `sm8350.dtsi` al
 
 ## Memory safety map
 
-The board DTS now records the four live memory-bank tuples, including the vendor zero-sized placeholder tuple. The upstream SM8350 fixed reserved-memory map already matches the board for the secure heaps, remote-processor regions, SMEM, command DB, and firmware spans used by the recovery tier.
+The board DTS now records the four live memory-bank tuples, including the
+vendor zero-sized placeholder tuple. The upstream SM8350 fixed map supplies
+the named secure heaps, remote-processor regions, SMEM, command DB, and
+firmware spans, but the ASUS runtime FDT and `/proc/iomem` prove three broader
+board-owned ranges that upstream does not describe.
 
-Three ASUS deltas are explicit and compile-checked:
+The ASUS deltas are explicit and compile-checked:
 
+- `0xcbc00000+68 MiB` remains mapped like stock;
+- `0xd8000000+8 MiB` is the stock `no-map` memshare span;
 - the removed-memory span at `0xd8800000` is enlarged to the vendor size;
+- `0xedc00000+288 MiB` remains mapped like stock;
 - the region at `0x9b800000` is enlarged so the whole vendor safety/debug allocation stays out of the page allocator;
 - boot splash and display-refresh data spans are added as `no-map` reservations.
+
+The broad ranges are now live-proven. Without them, ADSP PAS metadata was
+allocated at stock-owned `0xfe400000` and secure firmware returned `-EINVAL`.
+With them, metadata moved to free `0xec000000`, both SCM layers returned zero,
+and ADSP stayed `running`. See the
+[v7 ADSP report](../test-results/2026-07-25-network-root-adsp-live.md).
 
 The `rmtfs_mem` label remains available for disabled upstream remote-processor
 references, but the recovery overlay now disables the reserved-memory node

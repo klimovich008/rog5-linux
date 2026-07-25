@@ -70,6 +70,13 @@ export_line=$(grep -n '^exportfs -i -o ' "$serve" |
 	cut -d: -f1)
 [ "$export_flag_line" -lt "$export_line" ]
 grep -Fq 'exportfs -u "$phone_ip:$export_mount"' "$serve"
+target_seen_line=$(grep -n 'if \[\[ \$target_seen == 0 \]\]; then' "$serve" |
+	tail -n1 | cut -d: -f1)
+configure_line=$(grep -n 'configure_target_interface "$target_interface"' "$serve" |
+	tail -n1 | cut -d: -f1)
+target_mark_line=$(grep -n 'target_seen=1' "$serve" | tail -n1 | cut -d: -f1)
+[ "$target_seen_line" -lt "$configure_line" ]
+[ "$configure_line" -lt "$target_mark_line" ]
 
 if grep -Eq -- '--permanent|--new-zone|/etc/exports|(^|[[:space:]])\*\(|no_root_squash.*\*' \
 	"$prepare" "$verify" "$serve"; then

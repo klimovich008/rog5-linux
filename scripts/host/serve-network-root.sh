@@ -264,8 +264,9 @@ absent_since=0
 while (( $(date +%s) < deadline )); do
 	target_interface=$(find_target_interface || true)
 	if [[ -n $target_interface ]]; then
-		configure_target_interface "$target_interface"
 		if [[ $target_seen == 0 ]]; then
+			[[ -e /sys/class/net/$target_interface ]] || continue
+			configure_target_interface "$target_interface"
 			echo "PASS exact network-root USB link ready on $target_interface"
 			target_seen=1
 		fi
