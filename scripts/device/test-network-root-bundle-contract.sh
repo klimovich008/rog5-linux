@@ -50,6 +50,8 @@ grep -Fq 'rog5.netroot=1' "$verifier"
 grep -Fq 'Algorithm:' "$verifier"
 grep -Fq 'gpucc_status=${5:-disabled}' "$verifier"
 grep -Fq 'disabled|okay' "$verifier"
+grep -Fq '/root/build/asus-kexec-stage|/root/build/output' "$verifier"
+grep -Fq 'wrapper metadata must record exactly one build root' "$verifier"
 for node in \
 	/reserved-memory/memory@9b800000 \
 	/soc@0/gpu@3d00000 \

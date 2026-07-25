@@ -347,6 +347,23 @@ contained no record, and full cleanup passed. A narrower trace inside generic
 CCF registration, plus stronger recovery from a lost idempotent ACM load
 marker, is required before another attempt.
 
+Network-root v11 passes that offline prerequisite. Its read-only,
+default-off, exact-compatible trace brackets 63 generic CCF boundaries and 9
+Qualcomm regmap-wrapper boundaries. Source contracts preserve the exact
+single-call counts of the original registration, lock, runtime-PM, topology,
+orphan, and debug operations. The 100 ms marker settles deliberately perturb
+timing, including while the prepare lock is held, so this is diagnostic-only.
+State-valued `ret` markers are not all errors, and the orphan-reparent bracket
+does not prove direct GPUCC MMIO.
+
+The fixed ACM load action may rediscover the endpoint and retry the identical
+idempotent action once after a missing PASS marker; a second miss fails and
+`execute` is never retried. Two clean Linux builds, module archives, ASUS
+wrappers, staging initramfs files, and Android packages match byte-for-byte.
+The target initramfs and DTB remain identical to v10, every GPU consumer stays
+disabled, and the external BTF module and all 14 manifest artifacts are
+hash-pinned. V11 has not been booted and does not advance GPUCC acceptance.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
@@ -363,3 +380,7 @@ and first common-clock instrumentation gate. The
 [GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
 records the reproducible v10 candidate, exact index-0 localization,
 source-bounded interpretation, rollback, cleanup, and next CCF trace gate.
+The
+[GPUCC generic-CCF offline report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-offline.md)
+records the reproducible v11 implementation and its attended RAM-only next
+gate.

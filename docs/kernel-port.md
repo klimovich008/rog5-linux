@@ -104,7 +104,12 @@ required as new hardware tiers are enabled. GPUCC-only v10 keeps every
 consumer disabled and narrows the stall to generic CCF registration of
 non-critical clock index 0. It does not prove branch-register access; a
 default-off trace inside CCF allocation, locking, runtime-PM, and orphan
-topology is required before GPUCC can advance.
+topology is required before GPUCC can advance. Network-root v11 implements
+that exact-compatible trace and passes duplicate clean builds, source
+contracts, mutations, transport tests, wrappers, and package verification.
+Its marker delays deliberately perturb timing and it remains unbooted;
+GPUCC cannot advance until the same attended RAM-only watchdog/rollback gate
+localizes the live phase.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

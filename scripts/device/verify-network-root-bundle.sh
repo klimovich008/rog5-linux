@@ -120,6 +120,20 @@ grep -qx 'kexec_file=0' "$wrapper_meta"
 grep -qx "initramfs_sha256=$(sha256sum "$staging_initramfs" | cut -d ' ' -f 1)" \
 	"$wrapper_meta"
 
+wrapper_build_root=$(awk '$2 ~ /\/[.]config$/ {
+	sub("/[.]config$", "", $2)
+	print $2
+}' "$wrapper_meta")
+[ "$(printf '%s\n' "$wrapper_build_root" |
+	awk 'NF { count++ } END { print count + 0 }')" -eq 1 ] || {
+	echo 'FAIL wrapper metadata must record exactly one build root' >&2
+	exit 1
+}
+case $wrapper_build_root in
+	/root/build/asus-kexec-stage|/root/build/output) ;;
+	*) echo 'FAIL unrecognized wrapper metadata build root' >&2; exit 1 ;;
+esac
+
 check_meta_hash() {
 	meta=$1
 	recorded_path=$2
@@ -135,10 +149,10 @@ check_meta_hash() {
 		exit 1
 	}
 }
-check_meta_hash "$wrapper_meta" /root/build/asus-kexec-stage/.config \
+check_meta_hash "$wrapper_meta" "$wrapper_build_root/.config" \
 	"$wrapper_config"
 check_meta_hash "$wrapper_meta" \
-	/root/build/asus-kexec-stage/arch/arm64/boot/Image "$wrapper_image"
+	"$wrapper_build_root/arch/arm64/boot/Image" "$wrapper_image"
 
 mainline_config=$artifact_dir/config-7.1.4-network-root
 mainline_image=$artifact_dir/Image-7.1.4-network-root

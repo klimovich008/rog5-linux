@@ -71,6 +71,18 @@ if [ "$module" = gpucc_sm8350 ]; then
 		fail 'common-clock trace core parameter is not enabled'
 	[ "$(stat -c %a "$core_trace")" = 400 ] ||
 		fail 'common-clock trace core parameter became writable'
+	ccf_trace_count=$(tr ' ' '\n' </proc/cmdline |
+		awk '$0 == "rog5_ccf_register_trace=1" { count++ }
+			END { print count + 0 }')
+	[ "$ccf_trace_count" -eq 1 ] ||
+		fail 'CCF registration trace boot parameter is not exact'
+	ccf_trace=/sys/module/kernel/parameters/rog5_ccf_register_trace
+	[ -r "$ccf_trace" ] ||
+		fail 'CCF registration trace core parameter is absent'
+	[ "$(cat "$ccf_trace")" = Y ] ||
+		fail 'CCF registration trace core parameter is not enabled'
+	[ "$(stat -c %a "$ccf_trace")" = 400 ] ||
+		fail 'CCF registration trace core parameter became writable'
 fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'

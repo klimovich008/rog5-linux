@@ -36,6 +36,7 @@ ACTIONS = {
     ),
     "load-gpucc-diagnostic": (
         "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
+        "ROG5_CCF_REGISTER_TRACE=1 "
         "ROG5_RECOVERY_TIMEOUT=900 "
         "/usr/local/sbin/rog5-load-mainline-recovery",
         LOAD_MARKER,
@@ -45,6 +46,10 @@ ACTIONS = {
     "execute": ("kexec -e", None, True, 20),
 }
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
+
+
+class MissingLoadMarkerError(RuntimeError):
+    """The fixed load command completed without its success marker."""
 
 
 def fail(message: str) -> NoReturn:
@@ -108,7 +113,7 @@ def run_serial(
         os.close(fd)
 
     if marker is not None and marker not in output:
-        fail("expected staging PASS marker was not observed")
+        raise MissingLoadMarkerError("expected staging PASS marker was not observed")
     if expect_disconnect and not disconnected:
         fail("staging ACM did not depart after kexec execute")
     return sanitize_console(bytes(output))
@@ -198,6 +203,23 @@ def wait_for_stable_recovery_acm(
         time.sleep(poll_seconds)
 
 
+def run_fixed_action(action: str) -> str:
+    command, marker, expect_disconnect, timeout_seconds = ACTIONS[action]
+    path = wait_for_stable_recovery_acm()
+    try:
+        return run_serial(path, command, marker, expect_disconnect, timeout_seconds)
+    except MissingLoadMarkerError:
+        if action == "execute":
+            raise
+        print(
+            "INFO staging marker missing; rediscovering ACM and retrying "
+            f"action={action} once",
+            file=sys.stderr,
+        )
+        path = wait_for_stable_recovery_acm()
+        return run_serial(path, command, marker, expect_disconnect, timeout_seconds)
+
+
 def main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_NETWORK_ROOT_ACM") != "1":
         fail("set ALLOW_NETWORK_ROOT_ACM=1 for one fixed staging action")
@@ -220,9 +242,7 @@ def main(arguments: list[str]) -> int:
     ).returncode == 0:
         fail("stop ModemManager before using the recovery ACM")
 
-    path = wait_for_stable_recovery_acm()
-    command, marker, expect_disconnect, timeout_seconds = ACTIONS[action]
-    output = run_serial(path, command, marker, expect_disconnect, timeout_seconds)
+    output = run_fixed_action(action)
     if output:
         print(output, end="" if output.endswith("\n") else "\n")
     print(f"PASS control-safe network-root ACM action={action}")

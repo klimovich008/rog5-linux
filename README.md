@@ -103,8 +103,11 @@ GDSC steps, then stopped while registering clock index 0
 (`gpu_cc_ahb_clk`). Its independent watchdog restored the exact fallback and
 complete host cleanup passed. Source analysis does not prove an access to the
 branch register: this clock is non-critical and should enter CCF as an orphan.
-GPUCC therefore remains rejected; the next gate traces the generic CCF
-registration internals.
+Network-root v11 now passes its offline gate with 63 generic CCF boundaries,
+9 Qualcomm regmap-wrapper boundaries, exactly-once idempotent ACM load
+recovery, and byte-identical duplicate kernels, wrappers, and packages. It has
+not been booted. GPUCC therefore remains rejected; the next gate is the same
+attended, independent-watchdog RAM-only probe and rollback used by v10.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -173,7 +176,7 @@ queries, accepts no arbitrary command, and keeps rollback armed:
 ALLOW_NETWORK_ROOT_ACM=1 \
   scripts/host/network-root-acm.py load-normal
 
-# Only with the reviewed GPUCC common-clock diagnostic bundle:
+# Only with the reviewed GPUCC generic-CCF diagnostic bundle:
 ALLOW_NETWORK_ROOT_ACM=1 \
   scripts/host/network-root-acm.py load-gpucc-diagnostic
 

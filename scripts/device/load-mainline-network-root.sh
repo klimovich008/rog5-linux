@@ -25,6 +25,12 @@ case $qcom_cc_probe_trace in
 	*) exit 1 ;;
 esac
 
+ccf_register_trace=${ROG5_CCF_REGISTER_TRACE:-0}
+case $ccf_register_trace in
+	0|1) ;;
+	*) exit 1 ;;
+esac
+
 recovery_timeout=${ROG5_RECOVERY_TIMEOUT:-600}
 case $recovery_timeout in
 	*[!0-9]*|'') exit 1 ;;
@@ -62,6 +68,9 @@ fi
 if [ "$qcom_cc_probe_trace" = 1 ]; then
 	command_line="$command_line rog5_qcom_cc_probe_trace=1"
 fi
+if [ "$ccf_register_trace" = 1 ]; then
+	command_line="$command_line rog5_ccf_register_trace=1"
+fi
 
 [ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
 	grep -c '^rog5\.netroot=1$')" -eq 1 ]
@@ -71,6 +80,10 @@ trace_count=$(printf '%s\n' "$command_line" | tr ' ' '\n' |
 	awk '$0 == "rog5_qcom_cc_probe_trace=1" { count++ }
 		END { print count + 0 }')
 [ "$trace_count" -eq "$qcom_cc_probe_trace" ]
+ccf_trace_count=$(printf '%s\n' "$command_line" | tr ' ' '\n' |
+	awk '$0 == "rog5_ccf_register_trace=1" { count++ }
+		END { print count + 0 }')
+[ "$ccf_trace_count" -eq "$ccf_register_trace" ]
 
 kexec -c -l "$image" \
 	--dtb="$dtb" \

@@ -37,6 +37,9 @@ for a working feature.
 - [x] Reproduce GPUCC with every consumer disabled and narrow its first
   non-returning operation to CCF registration of clock index 0, with
   independent watchdog rollback and complete cleanup.
+- [x] Build and offline-accept the exact-device v11 generic CCF trace with 72
+  new registration boundaries, bounded idempotent ACM load recovery, and two
+  byte-identical kernel/wrapper/package paths; live v11 remains pending.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

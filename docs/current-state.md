@@ -351,8 +351,19 @@ NFS/firewall/service cleanup passed. The
 [GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
 records the v9 boundary. The
 [GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
-defines the required generic CCF instrumentation and ACM load-recovery gate
-before another live attempt.
+defines the required generic CCF instrumentation and ACM load-recovery gate.
+Network-root v11 now passes that offline gate: 63 generic CCF and 9 Qualcomm
+regmap-wrapper boundaries are default-off, read-only, and exact-compatible
+gated; the idempotent fixed load action retries at most once after a missing
+ACM marker, while `execute` is never retried. Two clean Linux builds, ASUS
+wrappers, nested initramfs files, and header-v3/AVB packages match
+byte-for-byte. The target initramfs and GPUCC-only DTB are unchanged from v10,
+the exported symbol table is unchanged, and all GPU consumers remain
+disabled. This is an offline-only diagnostic candidate and was not booted.
+The
+[v11 offline report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-offline.md)
+records the exact hashes, timing perturbation, interpretation limits, and
+attended RAM-only next gate.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

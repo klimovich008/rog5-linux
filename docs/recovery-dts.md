@@ -91,7 +91,10 @@ boundary. V10 traced that path through reset and both GDSC steps and localized
 the stop to generic CCF registration of non-critical index-0
 `gpu_cc_ahb_clk`. Its parent has not yet registered, so the source indicates a
 normal orphan-registration path and does not prove branch-register access.
-GPUCC therefore remains outside the accepted recovery DT.
+V11 now passes offline source, mutation, duplicate-build, and package gates
+for a narrower generic CCF trace, but its 100 ms delivery settles perturb
+registration timing and it has not been booted. GPUCC therefore remains
+outside the accepted recovery DT.
 
 The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6

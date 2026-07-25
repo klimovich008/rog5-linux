@@ -141,6 +141,116 @@ class SerialTransportTest(unittest.TestCase):
             )
         self.assertEqual(path, "/dev/ttyACM1")
 
+    def test_load_retries_once_after_marker_race(self) -> None:
+        with (
+            mock.patch.object(
+                MODULE,
+                "wait_for_stable_recovery_acm",
+                side_effect=["/dev/ttyACM0", "/dev/ttyACM1"],
+            ) as wait,
+            mock.patch.object(
+                MODULE,
+                "run_serial",
+                side_effect=[
+                    MODULE.MissingLoadMarkerError(
+                        "expected staging PASS marker was not observed"
+                    ),
+                    MODULE.LOAD_MARKER.decode() + "\n",
+                ],
+            ) as run,
+        ):
+            output = MODULE.run_fixed_action("load-gpucc-diagnostic")
+        self.assertEqual(output, MODULE.LOAD_MARKER.decode() + "\n")
+        self.assertEqual(wait.call_count, 2)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(run.call_args_list[0].args[0], "/dev/ttyACM0")
+        self.assertEqual(run.call_args_list[1].args[0], "/dev/ttyACM1")
+        self.assertEqual(run.call_args_list[0].args[1:], run.call_args_list[1].args[1:])
+
+    def test_load_retry_replays_same_command_on_two_real_ptys(self) -> None:
+        command = MODULE.ACTIONS["load-normal"][0]
+        endpoints = [pty.openpty(), pty.openpty()]
+        paths = [os.ttyname(slave) for _, slave in endpoints]
+        received = [bytearray(), bytearray()]
+        release_second = threading.Event()
+
+        def emulate(index: int, response: bytes) -> None:
+            master, _ = endpoints[index]
+            received[index].extend(read_line(master))
+            if response:
+                os.write(master, response)
+                release_second.wait(timeout=5)
+            os.close(master)
+
+        threads = [
+            threading.Thread(target=emulate, args=(0, b"")),
+            threading.Thread(
+                target=emulate,
+                args=(1, MODULE.LOAD_MARKER + b"\r\n"),
+            ),
+        ]
+        for thread in threads:
+            thread.start()
+        try:
+            with mock.patch.object(
+                MODULE,
+                "wait_for_stable_recovery_acm",
+                side_effect=paths,
+            ):
+                output = MODULE.run_fixed_action("load-normal")
+        finally:
+            release_second.set()
+            for _, slave in endpoints:
+                os.close(slave)
+            for thread in threads:
+                thread.join(timeout=5)
+
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+        self.assertEqual(
+            [bytes(value) for value in received],
+            [(command + "\n").encode()] * 2,
+        )
+        self.assertIn(MODULE.LOAD_MARKER.decode(), output)
+
+    def test_load_retry_is_bounded_to_one(self) -> None:
+        missing = MODULE.MissingLoadMarkerError(
+            "expected staging PASS marker was not observed"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "wait_for_stable_recovery_acm",
+                side_effect=["/dev/ttyACM0", "/dev/ttyACM1"],
+            ) as wait,
+            mock.patch.object(
+                MODULE,
+                "run_serial",
+                side_effect=[missing, missing],
+            ) as run,
+        ):
+            with self.assertRaises(MODULE.MissingLoadMarkerError):
+                MODULE.run_fixed_action("load-normal")
+        self.assertEqual(wait.call_count, 2)
+        self.assertEqual(run.call_count, 2)
+
+    def test_execute_is_never_retried(self) -> None:
+        with (
+            mock.patch.object(
+                MODULE,
+                "wait_for_stable_recovery_acm",
+                return_value="/dev/ttyACM0",
+            ) as wait,
+            mock.patch.object(
+                MODULE,
+                "run_serial",
+                side_effect=MODULE.MissingLoadMarkerError("synthetic failure"),
+            ) as run,
+        ):
+            with self.assertRaises(MODULE.MissingLoadMarkerError):
+                MODULE.run_fixed_action("execute")
+        wait.assert_called_once_with()
+        run.assert_called_once()
+
     def test_actions_are_fixed_and_storage_safe(self) -> None:
         self.assertEqual(
             set(MODULE.ACTIONS),
@@ -154,6 +264,7 @@ class SerialTransportTest(unittest.TestCase):
         self.assertEqual(
             MODULE.ACTIONS["load-gpucc-diagnostic"][0],
             "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
+            "ROG5_CCF_REGISTER_TRACE=1 "
             "ROG5_RECOVERY_TIMEOUT=900 "
             "/usr/local/sbin/rog5-load-mainline-recovery",
         )
@@ -165,6 +276,7 @@ class SerialTransportTest(unittest.TestCase):
         self.assertIn("ROG5_recovery", source)
         self.assertIn("os.O_NOCTTY", source)
         self.assertIn("ALLOW_ATTENDED_KEXEC", source)
+        self.assertIn('if action == "execute":', source)
         recovery = SOURCE.with_name("recovery-linux.sh").read_text()
         self.assertIn("network-root-acm.py load-normal", recovery)
         self.assertNotIn("socat -,rawer", recovery)

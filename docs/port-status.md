@@ -9,7 +9,7 @@
 | thermals/CPUfreq | passing | 33 thermal zones are readable and sane in two normal network-root boots | cooling maps, cpufreq policy checks, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
 | touch/power button | passing | input framework present | exact FocalTech main/rear controllers and GPIO/pinctrl |
-| GPU | rejected: KGSL second-open fault | GPUCC-only v10 localizes a watchdog-bounded stall to CCF registration of clock index 0; A660 DRM/MSM remains untested | finish generic CCF localization, then power-domain/clock/regulator/IOMMU/GMU/firmware and full Tier 5 validation |
+| GPU | rejected: KGSL second-open fault | GPUCC-only v10 localizes a watchdog-bounded stall to CCF registration of clock index 0; v11 generic CCF tracing passes offline only; A660 DRM/MSM remains untested | run the attended v11 localization with independent rollback, then power-domain/clock/regulator/IOMMU/GMU/firmware and full Tier 5 validation |
 | Wi-Fi/hotspot | passing | ath11k modules and fail-closed VPN routing test pass offline | board PCIe/power/calibration/firmware and device routing tests |
 | modem/DSPs | passing with delayed startup | ASUS reserved-memory contract and ADSP-only PAS/SCM startup pass | CDSP/modem/SLPI firmware names and one-processor-at-a-time validation |
 | audio | basic services present | Qualcomm audio frameworks present | codecs, routing, speakers, microphones, headset safety |

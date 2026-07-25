@@ -150,10 +150,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   kernel/module, wrapper/package, mutation, and bundle gates; live tracing
   completed power-domain, reset, GDSC, and protected-clock phases, then stopped
   during CCF registration of index-0 `gpu_cc_ahb_clk` and rolled back safely.
-  Before retest, trace regmap lookup, devres allocation, prepare-lock/runtime
-  PM, parent/orphan/hash, phase/duty/rate, orphan reparenting, debug
-  registration, and return. Also recover only an idempotent lost loader action;
-  never retry kexec execution.**
+  V11 now passes the required offline gate with exact-compatible traces over
+  regmap lookup, devres, prepare-lock/runtime PM, parent/orphan/hash,
+  phase/duty/rate, orphan reparenting, debug registration, and return. Two
+  clean kernel, wrapper, and package paths match. A missing marker may retry
+  only the identical idempotent load action once; kexec execution is never
+  retried. The live v11 gate remains the full attended zero-storage baseline,
+  independent watchdog, one-shot execute, exact fallback, and cleanup
+  protocol.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host
