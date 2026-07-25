@@ -347,7 +347,7 @@ contained no record, and full cleanup passed. A narrower trace inside generic
 CCF registration, plus stronger recovery from a lost idempotent ACM load
 marker, is required before another attempt.
 
-Network-root v11 passes that offline prerequisite. Its read-only,
+Network-root v11 passed that offline prerequisite. Its read-only,
 default-off, exact-compatible trace brackets 63 generic CCF boundaries and 9
 Qualcomm regmap-wrapper boundaries. Source contracts preserve the exact
 single-call counts of the original registration, lock, runtime-PM, topology,
@@ -362,7 +362,17 @@ idempotent action once after a missing PASS marker; a second miss fails and
 wrappers, staging initramfs files, and Android packages match byte-for-byte.
 The target initramfs and DTB remain identical to v10, every GPU consumer stays
 disabled, and the external BTF module and all 14 manifest artifacts are
-hash-pinned. V11 has not been booted and does not advance GPUCC acceptance.
+hash-pinned.
+
+The attended v11 probe completed 46 generic CCF markers through index-0
+allocation, prepare-lock/runtime-PM, parent lookup, orphan insertion,
+phase/duty/rate, and the non-critical branch. It stopped after
+`orphan-reparent-begin` and before its matching completion. The source call
+scans every CCF orphan while holding the prepare lock and can invoke callbacks
+for clocks outside GPUCC, so the result does not prove GPUCC MMIO. The
+independent watchdog restored exact fallback and full host cleanup passed.
+V11 remains rejected for normal coldplug; v12 must add bounded per-orphan
+parent-resolution and reparent-callback boundaries.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -382,5 +392,6 @@ records the reproducible v10 candidate, exact index-0 localization,
 source-bounded interpretation, rollback, cleanup, and next CCF trace gate.
 The
 [GPUCC generic-CCF offline report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-offline.md)
-records the reproducible v11 implementation and its attended RAM-only next
-gate.
+records the reproducible v11 implementation. The
+[GPUCC generic-CCF live report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-live.md)
+records its exact orphan-scan boundary, rollback, cleanup, and v12 gate.

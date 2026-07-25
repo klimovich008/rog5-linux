@@ -102,14 +102,16 @@ minimal shutdown initramfs and passes one normal systemd reboot to the
 persistent fallback with complete host cleanup. Repeated clean cycles remain
 required as new hardware tiers are enabled. GPUCC-only v10 keeps every
 consumer disabled and narrows the stall to generic CCF registration of
-non-critical clock index 0. It does not prove branch-register access; a
-default-off trace inside CCF allocation, locking, runtime-PM, and orphan
-topology is required before GPUCC can advance. Network-root v11 implements
-that exact-compatible trace and passes duplicate clean builds, source
-contracts, mutations, transport tests, wrappers, and package verification.
-Its marker delays deliberately perturb timing and it remains unbooted;
-GPUCC cannot advance until the same attended RAM-only watchdog/rollback gate
-localizes the live phase.
+non-critical clock index 0. Network-root v11 implements the exact-compatible
+allocation, locking, runtime-PM, topology, and orphan trace and passes
+duplicate clean builds, source contracts, mutations, transport tests,
+wrappers, and package verification. Its attended probe completed every traced
+index-0 phase through orphan insertion, rate handling, and the non-critical
+branch, then stopped inside `clk_core_reparent_orphans_nolock()`. Independent
+rollback and complete cleanup passed. This still does not prove
+branch-register access because that global scan may invoke another orphan's
+callbacks. GPUCC cannot advance until a v12 per-orphan parent/reparent trace
+passes the same offline and RAM-only gates.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

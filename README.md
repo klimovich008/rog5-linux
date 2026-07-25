@@ -103,11 +103,15 @@ GDSC steps, then stopped while registering clock index 0
 (`gpu_cc_ahb_clk`). Its independent watchdog restored the exact fallback and
 complete host cleanup passed. Source analysis does not prove an access to the
 branch register: this clock is non-critical and should enter CCF as an orphan.
-Network-root v11 now passes its offline gate with 63 generic CCF boundaries,
-9 Qualcomm regmap-wrapper boundaries, exactly-once idempotent ACM load
-recovery, and byte-identical duplicate kernels, wrappers, and packages. It has
-not been booted. GPUCC therefore remains rejected; the next gate is the same
-attended, independent-watchdog RAM-only probe and rollback used by v10.
+Network-root v11 passed its offline gate and the attended RAM-only probe. The
+trace completed allocation, prepare-lock/runtime-PM, parent lookup, orphan
+insertion, phase/duty/rate, and the non-critical branch for
+`gpu_cc_ahb_clk`, then stopped inside
+`clk_core_reparent_orphans_nolock()`. Its independent watchdog restored the
+exact fallback and complete cleanup passed. The result does not prove GPUCC
+MMIO: the generic scan can inspect or reparent any existing orphan clock.
+GPUCC remains rejected; the next gate is a default-off per-orphan trace around
+parent resolution and reparent callbacks.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

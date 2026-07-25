@@ -39,7 +39,12 @@ for a working feature.
   independent watchdog rollback and complete cleanup.
 - [x] Build and offline-accept the exact-device v11 generic CCF trace with 72
   new registration boundaries, bounded idempotent ACM load recovery, and two
-  byte-identical kernel/wrapper/package paths; live v11 remains pending.
+  byte-identical kernel/wrapper/package paths.
+- [x] Run the attended v11 probe once and localize the stall to
+  `clk_core_reparent_orphans_nolock()` after orphan insertion and all earlier
+  index-0 CCF phases, with independent rollback and complete cleanup.
+- [ ] Build a source-tested v12 per-orphan trace that brackets parent lookup
+  and each reparent callback without changing normal CCF behavior.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

@@ -352,18 +352,21 @@ NFS/firewall/service cleanup passed. The
 records the v9 boundary. The
 [GPUCC common-clock report](../test-results/2026-07-25-network-root-gpucc-common-diagnostic-live.md)
 defines the required generic CCF instrumentation and ACM load-recovery gate.
-Network-root v11 now passes that offline gate: 63 generic CCF and 9 Qualcomm
-regmap-wrapper boundaries are default-off, read-only, and exact-compatible
-gated; the idempotent fixed load action retries at most once after a missing
-ACM marker, while `execute` is never retried. Two clean Linux builds, ASUS
-wrappers, nested initramfs files, and header-v3/AVB packages match
-byte-for-byte. The target initramfs and GPUCC-only DTB are unchanged from v10,
-the exported symbol table is unchanged, and all GPU consumers remain
-disabled. This is an offline-only diagnostic candidate and was not booted.
-The
+Network-root v11 passed that offline gate and one attended RAM-only probe.
+After a bounded replay of one lost idempotent staging-load marker, the one-shot
+execute reached Linux 7.1 with zero storage. For index-0
+`gpu_cc_ahb_clk`, CCF completed allocation, prepare-lock/runtime-PM, parent
+lookup, orphan insertion, phase/duty/rate, and the non-critical branch. The
+last marker was `orphan-reparent-begin`; its completion never arrived.
+`topology-insert-complete ret=1` confirms orphan state rather than an error.
+The generic scan can inspect and invoke callbacks for other orphan clocks, so
+this does not prove GPUCC MMIO. The independent watchdog restored the exact
+fallback and complete host cleanup passed. The
 [v11 offline report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-offline.md)
-records the exact hashes, timing perturbation, interpretation limits, and
-attended RAM-only next gate.
+records the exact build inputs and contracts; the
+[v11 live report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-live.md)
+records the exact phase boundary, rollback, cleanup, and required per-orphan
+v12 trace.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
