@@ -287,9 +287,11 @@ records the reproducible artifacts and live evidence.
 The phone is currently in persistent Alpine fallback. The attended NFS
 listener, export, bind mount, runtime firewall changes, and temporary target
 interface state are absent. The v3-v5 images remain attended RAM-only
-development transports and must never be flashed. Display, battery, charging,
-Wi-Fi, and GPU hardware remain unaccepted separate tiers. Trusted time must
-currently be bootstrapped from the host or network rather than the PMIC RTC.
+development transports and must never be flashed. The same applies to every
+v6-v8 ADSP/telemetry candidate. Display, charging, Wi-Fi,
+and GPU hardware remain unaccepted separate tiers; one read-only mainline
+battery snapshot now passes. Trusted time must currently be bootstrapped from
+the host or network rather than the PMIC RTC.
 The new `sync-network-root-time.sh` host tool now passes that live role. It
 required host NTP synchronization, strict SSH, normal zero-storage
 network-root, RTC disabled, and an armed rollback watchdog. It corrected a
@@ -314,8 +316,24 @@ module, USB/NFS, zero-storage, zero-power-supply, systemd, and log gates.
 Normal reboot restored exact Alpine fallback and complete host cleanup. The
 [ADSP live report](../test-results/2026-07-25-network-root-adsp-live.md)
 records the reproducible bundle, memory diagnosis, both guarded runs, and
-remaining boundary. Read-only battery telemetry is next; charging and
-Type-C control remain untested and disabled.
+remaining boundary.
+
+Network-root v8 now passes the separate read-only battery gate. The first run
+registered the exact supplies but remained `EAGAIN`; source review proved
+that Linux 7.1 already contains QRTR name service and that the missing pieces
+were the `IPCRTR` transport plus the local SM8350 PD mapper. Both modules were
+source-audited and hash-pinned. A second guarded run safely rejected an
+incorrect unprefixed auxiliary-driver sysfs assertion before PMIC GLINK
+loaded. After the live-informed correction and a 31-test pass, the final run
+kept ADSP running and read 84%, 8.255 V, 81 mA, 30.3 C, `Discharging`, USB
+online, and wireless offline from exactly three read-only supplies. It
+exposed zero Type-C devices or charging thresholds, retained zero storage and
+clean logs, disarmed its watchdog only after every gate, and returned through
+normal reboot with complete cleanup. The
+[battery telemetry report](../test-results/2026-07-25-network-root-battery-telemetry-live.md)
+records the reproducible inputs and all three guarded outcomes. Charging
+behavior/control, dual-cell interpretation, and sustained current-direction
+validation remain untested and disabled.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

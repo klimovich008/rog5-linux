@@ -69,6 +69,9 @@ for symbol in \
 	CONFIG_RPMSG=y \
 	CONFIG_RPMSG_QCOM_GLINK=y \
 	CONFIG_RPMSG_QCOM_GLINK_SMEM=m \
+	CONFIG_QRTR=m \
+	CONFIG_QRTR_SMD=m \
+	CONFIG_QCOM_PD_MAPPER=m \
 	CONFIG_QCOM_PDR_HELPERS=m \
 	CONFIG_QCOM_PDR_MSG=m \
 	CONFIG_QCOM_PMIC_GLINK=m \
@@ -85,6 +88,9 @@ for module in \
 	qcom_common \
 	qcom_pil_info \
 	qcom_glink_smem \
+	qrtr \
+	qrtr-smd \
+	qcom_pd_mapper \
 	pdr_interface \
 	qcom_pdr_msg \
 	pmic_glink \
@@ -93,6 +99,20 @@ do
 	[ "$(printf '%s\n' "$module_listing" |
 		grep -Ec "/$module\\.ko$")" -eq 1 ]
 done
+
+verify_archived_module_hash() {
+	module=$1
+	expected_sha=$2
+	module_path=$(printf '%s\n' "$module_listing" |
+		grep -E "/$module[.]ko$")
+	[ "$(printf '%s\n' "$module_path" | wc -l)" -eq 1 ]
+	[ "$(tar -xOzf "$modules" "$module_path" | sha256sum |
+		cut -d ' ' -f 1)" = "$expected_sha" ]
+}
+verify_archived_module_hash qrtr-smd \
+	87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178
+verify_archived_module_hash qcom_pd_mapper \
+	7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7
 
 for archive in \
 	"$artifact_dir/rog5-network-root-initramfs.cpio.gz" \
@@ -115,4 +135,4 @@ if [ "$mode" = telemetry ]; then
 		grep -Fxq 'battery_only:Expose only the battery client for attended diagnostics (bool)'
 fi
 
-echo "PASS $mode battery-telemetry bundle; stock-owned RAM and ADSP are isolated, storage/RTC remain disabled, and private firmware stays external"
+echo "PASS $mode battery-telemetry bundle; audited QRTR/PDR inputs are pinned, stock-owned RAM and ADSP are isolated, storage/RTC remain disabled, and private firmware stays external"

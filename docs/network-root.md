@@ -4,11 +4,13 @@ This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
 
-Status: **headless Arch boot, normal systemd reboot, and the ADSP-only
-prerequisite pass**. Linux 7.1.4, systemd, OverlayFS, read-only NFS,
-persistent key-only SSH, the zero-storage boundary, retained-exitrd power
-cycles, and guarded ADSP startup are accepted. Battery values, charging,
-display, radio, and GPU remain separate test tiers.
+Status: **headless Arch boot, normal systemd reboot, ADSP startup, and one
+read-only battery-telemetry snapshot pass**. Linux 7.1.4, systemd, OverlayFS,
+read-only NFS, persistent key-only SSH, the zero-storage boundary,
+retained-exitrd power cycles, guarded ADSP startup, and the audited
+QRTR/PDR-to-PMIC GLINK telemetry path are accepted. Charging, Type-C control,
+sustained current-direction validation, display, radio, and GPU remain
+separate test tiers.
 
 ## Chosen design
 
@@ -308,8 +310,18 @@ metadata moved from the rejected stock-owned address `0xfe400000` to
 `0xec000000`; both SCM layers returned zero and ADSP reached `running`.
 After correcting the strict allowlist for the expected `qrtr` IPC core, the
 same-tier repeat passed with zero power supplies, zero storage, stable
-USB/NFS, clean logs, normal reboot, and complete cleanup. PMIC GLINK and
-battery telemetry remain the next separate gate.
+USB/NFS, clean logs, normal reboot, and complete cleanup.
+
+Network-root v8 adds only the root PMIC GLINK compatible and uses the
+battery-only diagnostic module. Source and live evidence proved that
+`qrtr_smd` must bind the ADSP `IPCRTR` endpoint and `qcom_pd_mapper` must
+provide the local SM8350 service-location metadata before PMIC GLINK can
+become ready. Both modules are source-audited and hash-pinned. The corrected
+guarded run exposed exactly three read-only SM8350 supplies, reported one
+real aggregate battery snapshot, kept UCSI/alt-mode/Type-C and charging
+thresholds absent, passed clean-log and zero-storage gates, then returned
+through a normal systemd reboot with complete cleanup. Charging behavior and
+control remain separate and unaccepted.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -317,4 +329,7 @@ timeline, SSH persistence, and cleanup result. See the
 [PMIC input report](../test-results/2026-07-24-network-root-pmic-input-live.md)
 for the v4 RTC rejection and v5 power-key evidence, and the
 [ADSP report](../test-results/2026-07-25-network-root-adsp-live.md) for the v7
-memory-contract diagnosis and live prerequisite.
+memory-contract diagnosis and live prerequisite. The
+[battery telemetry report](../test-results/2026-07-25-network-root-battery-telemetry-live.md)
+records the v8 dependency diagnosis, live values, watchdog handling, and
+rollback.

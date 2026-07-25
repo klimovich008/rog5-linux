@@ -5,7 +5,7 @@
 | reversible boot | passing | v18 staging/rollback and v3 retained-exitrd normal reboot pass | repeat clean cycles and retain the same boundary for each new DTB tier |
 | UFS root | passing baseline only | no-mount discovery passes; network-root v3 boots and reboots normally with UFS compiled out | design persistent storage only after explicit approval and recovery retest |
 | USB NCM/SSH | passing | Linux 7.1 normal-coldplug NCM/NFS and persistent client/server SSH identities pass twice | convert the attended PC-backed transport into an independent deployment path |
-| battery/charging | passing | stock RAM contract and ADSP prerequisite pass; PMIC GLINK/power-supply framework present | read-only telemetry, dual-battery/charger topology, and current-direction validation; charging remains disabled |
+| battery/charging | passing | guarded read-only SM8350 battery/USB/wireless telemetry passes through audited ADSP QRTR/PDR and battery-only PMIC GLINK | repeat physical-state/current-direction checks, dual-cell topology, then separately review charging; controls remain disabled |
 | thermals/CPUfreq | passing | 33 thermal zones are readable and sane in two normal network-root boots | cooling maps, cpufreq policy checks, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
 | touch/power button | passing | input framework present | exact FocalTech main/rear controllers and GPIO/pinctrl |

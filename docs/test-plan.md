@@ -183,14 +183,22 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   zero power supplies/storage, stable USB/NFS, clean logs, and fallback
   restoration. **Passed twice at the hardware boundary; the second run
   passed the complete corrected harness.**
-- Treat display, battery values, charging, radio, physical input actuation,
-  and GPU as untested despite the normal headless coldplug, input
-  registration, and accepted ADSP prerequisite.
+- For the separate telemetry tier, require hash-pinned `qrtr_smd` and
+  `qcom_pd_mapper` before PDR and battery-only PMIC GLINK, exact read-only
+  SM8350 battery/USB/wireless supplies, zero UCSI/alt-mode/Type-C devices,
+  zero charger-control thresholds, clean logs, and the unchanged
+  storage/NFS/watchdog boundary. **Passed once with v8; a normal reboot and
+  complete cleanup also passed.**
+- Treat charging behavior/control, display, radio, physical input actuation,
+  sustained battery-current direction, and GPU as untested despite accepted
+  read-only battery values and the normal headless coldplug/input gates.
 
 ## Tier 2 — core hardware
 
 - USB NCM remains stable during sustained traffic.
-- Battery capacity, voltage, current, temperature, and charging status are real.
+- Battery capacity, voltage, current, temperature, and status are real.
+  **One read-only aggregate snapshot passed; charging-state comparison and
+  sustained validation remain pending.**
 - Thermal zones and CPU frequency policies are present.
 - DRM connector, backlight, and touch work; a physically observed short
   power-button press traverses the switch/IRQ/input path. Driver registration

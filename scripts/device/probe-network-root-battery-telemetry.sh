@@ -17,16 +17,26 @@ esac
 
 probe_timeout=${ROG5_PROBE_TIMEOUT:-120}
 settle_seconds=${ROG5_PROBE_SETTLE:-20}
+telemetry_wait_seconds=${ROG5_TELEMETRY_WAIT:-30}
 scm_trace=${ROG5_ADSP_SCM_TRACE:-0}
-case $probe_timeout:$settle_seconds in
-	*[!0-9:]*|:*|*:) fail 'probe timeout and settle interval must be integers' ;;
+case $probe_timeout:$settle_seconds:$telemetry_wait_seconds in
+	*[!0-9:]*|:*|*:) fail 'probe timeout, settle, and telemetry wait must be integers' ;;
 esac
 [ "$probe_timeout" -ge 75 ] && [ "$probe_timeout" -le 180 ] ||
 	fail 'ROG5_PROBE_TIMEOUT must be between 75 and 180 seconds'
 [ "$settle_seconds" -ge 10 ] && [ "$settle_seconds" -le 45 ] ||
 	fail 'ROG5_PROBE_SETTLE must be between 10 and 45 seconds'
-[ "$probe_timeout" -ge $((settle_seconds + 45)) ] ||
-	fail 'probe timeout must exceed the settle interval by at least 45 seconds'
+[ "$telemetry_wait_seconds" -ge 10 ] &&
+	[ "$telemetry_wait_seconds" -le 45 ] ||
+	fail 'ROG5_TELEMETRY_WAIT must be between 10 and 45 seconds'
+if [ "$mode" = telemetry ]; then
+	[ "$probe_timeout" -ge \
+		$((settle_seconds + telemetry_wait_seconds + 45)) ] ||
+		fail 'telemetry probe timeout leaves less than 45 seconds of rollback margin'
+else
+	[ "$probe_timeout" -ge $((settle_seconds + 45)) ] ||
+		fail 'probe timeout must exceed the settle interval by at least 45 seconds'
+fi
 case $scm_trace in
 	0) ;;
 	1) [ "$mode" = adsp ] || fail 'SCM tracing is limited to the ADSP-only tier' ;;
@@ -172,8 +182,8 @@ actual_firmware_files=$(find "$firmware_dir" -mindepth 1 -maxdepth 1 \
 	fail 'stock zero-length ADSP segment changed'
 
 for module in qcom_q6v5_pas qcom_q6v5 qcom_common qcom_pil_info \
-	qcom_glink_smem qrtr pdr_interface qcom_pdr_msg pmic_glink qcom_battmgr \
-	ucsi_glink pmic_glink_altmode qcom_pd_mapper qcom_apr fastrpc
+	qcom_glink_smem qrtr qrtr_smd pdr_interface qcom_pdr_msg pmic_glink \
+	qcom_battmgr ucsi_glink pmic_glink_altmode qcom_pd_mapper qcom_apr fastrpc
 do
 	[ ! -d "/sys/module/$module" ] ||
 		fail "candidate module is already loaded: $module"
@@ -194,6 +204,32 @@ if [ "$mode" = telemetry ]; then
 	modinfo -p "$pmic_module" |
 		grep -Fxq 'battery_only:Expose only the battery client for attended diagnostics (bool)' ||
 		fail 'PMIC GLINK battery-only parameter is absent'
+
+	verify_root_module() {
+		module_name=$1
+		expected_sha=$2
+		expected_depends=$3
+		module_path=$(modinfo -n "$module_name" 2>/dev/null) ||
+			fail "missing reviewed root module: $module_name"
+		[ -f "$module_path" ] && [ ! -L "$module_path" ] ||
+			fail "reviewed root module is not a regular file: $module_name"
+		[ "$(sha256sum "$module_path" | cut -d ' ' -f 1)" = \
+			"$expected_sha" ] ||
+			fail "reviewed root module hash mismatch: $module_name"
+		[ "$(modinfo -F name "$module_path")" = "$module_name" ] ||
+			fail "reviewed root module name mismatch: $module_name"
+		[ "$(modinfo -F depends "$module_path")" = "$expected_depends" ] ||
+			fail "reviewed root module dependency mismatch: $module_name"
+		[ "$(modinfo -F vermagic "$module_path")" = \
+			'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
+			fail "reviewed root module ABI mismatch: $module_name"
+	}
+	verify_root_module qrtr_smd \
+		87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178 \
+		qrtr
+	verify_root_module qcom_pd_mapper \
+		7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7 \
+		qcom_pdr_msg
 fi
 
 fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
@@ -278,6 +314,14 @@ post_fail() {
 	fail "$reason"
 }
 
+read_telemetry_property() {
+	telemetry_path=$1
+	telemetry_name=$2
+	if ! telemetry_value=$(cat "$telemetry_path" 2>/dev/null); then
+		post_fail "battery telemetry became unreadable: $telemetry_name"
+	fi
+}
+
 if [ "$scm_trace" = 1 ]; then
 	if [ "$(findmnt -n -o FSTYPE "$trace_root" 2>/dev/null || true)" != tracefs ]; then
 		mount -t tracefs tracefs "$trace_root"
@@ -301,7 +345,7 @@ if [ "$scm_trace" = 1 ]; then
 fi
 
 udevadm control --stop-exec-queue
-echo "BEGIN battery-telemetry mode=$mode watchdog=${probe_timeout}s settle=${settle_seconds}s"
+echo "BEGIN battery-telemetry mode=$mode watchdog=${probe_timeout}s settle=${settle_seconds}s telemetry_wait=${telemetry_wait_seconds}s"
 echo "rog5-battery-probe: begin mode=$mode" >/dev/kmsg
 if ! modprobe --first-time qcom_q6v5_pas; then
 	post_fail 'ADSP module load failed'
@@ -332,32 +376,69 @@ do
 	[ -d "/sys/module/$module" ] || fail "ADSP dependency is absent: $module"
 done
 for module in pmic_glink qcom_battmgr ucsi_glink pmic_glink_altmode \
-	qcom_pd_mapper qcom_apr fastrpc
+	qrtr_smd qcom_pd_mapper qcom_apr fastrpc
 do
 	[ ! -d "/sys/module/$module" ] ||
 		fail "udev loaded an unrequested module: $module"
 done
 
 if [ "$mode" = telemetry ]; then
-	modprobe --first-time pdr_interface
-	insmod "$pmic_module" battery_only=1
+	if ! modprobe --first-time qrtr_smd; then
+		post_fail 'ADSP IPCRTR transport load failed'
+	fi
+	[ "$(find /sys/bus/rpmsg/drivers/qcom_smd_qrtr \
+		-mindepth 1 -maxdepth 1 -type l ! -name module 2>/dev/null |
+		wc -l)" -eq 1 ] ||
+		post_fail 'ADSP IPCRTR transport did not bind exactly one endpoint'
+
+	if ! modprobe --first-time qcom_pd_mapper; then
+		post_fail 'SM8350 protection-domain mapper load failed'
+	fi
+	pdm_bound=0
+	for pdm_device in \
+		/sys/bus/auxiliary/devices/qcom_common.pd-mapper.*
+	do
+		[ -L "$pdm_device/driver" ] || continue
+		[ "$(basename "$(readlink -f "$pdm_device/driver")")" = \
+			qcom_pd_mapper.qcom-pdm-mapper ] || continue
+		pdm_bound=$((pdm_bound + 1))
+	done
+	[ "$pdm_bound" -eq 1 ] ||
+		post_fail 'SM8350 protection-domain mapper did not bind exactly once'
+
+	if ! modprobe --first-time pdr_interface; then
+		post_fail 'protection-domain restart helper load failed'
+	fi
+	if ! insmod "$pmic_module" battery_only=1; then
+		post_fail 'battery-only PMIC GLINK load failed'
+	fi
 	[ "$(cat /sys/module/pmic_glink/parameters/battery_only)" = Y ] ||
-		fail 'PMIC GLINK did not enter battery-only mode'
+		post_fail 'PMIC GLINK did not enter battery-only mode'
 	[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
 		-name 'pmic_glink.power-supply.*' | wc -l)" -eq 1 ] ||
-		fail 'PMIC GLINK did not expose exactly one battery auxiliary device'
+		post_fail 'PMIC GLINK did not expose exactly one battery auxiliary device'
 	[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
 		\( -name 'pmic_glink.ucsi.*' -o -name 'pmic_glink.altmode.*' \) |
 		wc -l)" -eq 0 ] ||
-		fail 'PMIC GLINK exposed a USB-C control auxiliary device'
+		post_fail 'PMIC GLINK exposed a USB-C control auxiliary device'
 
-	modprobe --first-time qcom_battmgr
-	for unused in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+	if ! modprobe --first-time qcom_battmgr; then
+		post_fail 'battery-manager load failed'
+	fi
+	telemetry_ready=0
+	telemetry_waited=0
+	while [ "$telemetry_waited" -lt "$telemetry_wait_seconds" ]; do
 		[ -r /sys/class/power_supply/qcom-battmgr-bat/capacity ] &&
 			cat /sys/class/power_supply/qcom-battmgr-bat/capacity \
-				>/dev/null 2>&1 && break
+				>/dev/null 2>&1 && {
+				telemetry_ready=1
+				break
+			}
+		telemetry_waited=$((telemetry_waited + 1))
 		sleep 1
 	done
+	[ "$telemetry_ready" -eq 1 ] ||
+		post_fail 'battery telemetry did not become readable'
 
 	actual_supplies=$(find /sys/class/power_supply -mindepth 1 -maxdepth 1 \
 		-printf '%f\n' | sort)
@@ -365,60 +446,69 @@ if [ "$mode" = telemetry ]; then
 qcom-battmgr-usb
 qcom-battmgr-wls'
 	[ "$actual_supplies" = "$expected_supplies" ] ||
-		fail 'battery manager did not expose the exact SM8350 supplies'
+		post_fail 'battery manager did not expose the exact SM8350 supplies'
 
 	battery=/sys/class/power_supply/qcom-battmgr-bat
 	usb=/sys/class/power_supply/qcom-battmgr-usb
 	wls=/sys/class/power_supply/qcom-battmgr-wls
 	for property in capacity voltage_now current_now temp status; do
 		[ "$(stat -c %a "$battery/$property")" = 444 ] ||
-			fail "battery property is not read-only: $property"
+			post_fail "battery property is not read-only: $property"
 	done
 	for supply in "$battery" "$usb" "$wls"; do
 		[ ! -e "$supply/charge_control_start_threshold" ] &&
 			[ ! -e "$supply/charge_control_end_threshold" ] ||
-			fail 'a charge-control threshold became writable'
+			post_fail 'a charge-control threshold became writable'
 	done
 	[ "$(stat -c %a "$usb/input_current_limit")" = 444 ] ||
-		fail 'USB input-current limit is not read-only'
+		post_fail 'USB input-current limit is not read-only'
 
-	capacity=$(cat "$battery/capacity")
-	voltage_now=$(cat "$battery/voltage_now")
-	current_now=$(cat "$battery/current_now")
-	temperature=$(cat "$battery/temp")
-	status=$(cat "$battery/status")
-	usb_online=$(cat "$usb/online")
-	wls_online=$(cat "$wls/online")
+	read_telemetry_property "$battery/capacity" capacity
+	capacity=$telemetry_value
+	read_telemetry_property "$battery/voltage_now" voltage_now
+	voltage_now=$telemetry_value
+	read_telemetry_property "$battery/current_now" current_now
+	current_now=$telemetry_value
+	read_telemetry_property "$battery/temp" temperature
+	temperature=$telemetry_value
+	read_telemetry_property "$battery/status" status
+	status=$telemetry_value
+	read_telemetry_property "$usb/online" usb_online
+	usb_online=$telemetry_value
+	read_telemetry_property "$wls/online" wls_online
+	wls_online=$telemetry_value
 	case $capacity:$voltage_now:$current_now:$temperature:$usb_online:$wls_online in
-		*[!0-9:-]*|:*|*:) fail 'telemetry returned a non-integer value' ;;
+		*[!0-9:-]*|:*|*:) post_fail 'telemetry returned a non-integer value' ;;
 	esac
 	[ "$capacity" -ge 0 ] && [ "$capacity" -le 100 ] ||
-		fail 'battery capacity is outside 0..100 percent'
+		post_fail 'battery capacity is outside 0..100 percent'
 	[ "$voltage_now" -ge 2500000 ] && [ "$voltage_now" -le 10000000 ] ||
-		fail 'battery voltage is outside the diagnostic range'
+		post_fail 'battery voltage is outside the diagnostic range'
 	[ "$current_now" -ge -20000000 ] && [ "$current_now" -le 20000000 ] ||
-		fail 'battery current is outside the diagnostic range'
+		post_fail 'battery current is outside the diagnostic range'
 	[ "$temperature" -ge -200 ] && [ "$temperature" -le 1000 ] ||
-		fail 'battery temperature is outside the diagnostic range'
+		post_fail 'battery temperature is outside the diagnostic range'
 	case $status in
 		Unknown|Charging|Discharging|'Not charging'|Full) ;;
-		*) fail 'battery status is unknown' ;;
+		*) post_fail 'battery status is unknown' ;;
 	esac
 	[ "$usb_online" -eq 0 ] || [ "$usb_online" -eq 1 ] ||
-		fail 'USB online state is not boolean'
+		post_fail 'USB online state is not boolean'
 	[ "$wls_online" -eq 0 ] || [ "$wls_online" -eq 1 ] ||
-		fail 'wireless online state is not boolean'
+		post_fail 'wireless online state is not boolean'
 
-	for module in qcom_battmgr pmic_glink pdr_interface qcom_pdr_msg; do
+	for module in qcom_battmgr pmic_glink pdr_interface qcom_pdr_msg \
+		qrtr_smd qcom_pd_mapper
+	do
 		[ -d "/sys/module/$module" ] ||
-			fail "telemetry dependency is absent: $module"
+			post_fail "telemetry dependency is absent: $module"
 	done
-	for module in ucsi_glink pmic_glink_altmode qcom_pd_mapper qcom_apr fastrpc; do
+	for module in ucsi_glink pmic_glink_altmode qcom_apr fastrpc; do
 		[ ! -d "/sys/module/$module" ] ||
-			fail "unreviewed module loaded during telemetry: $module"
+			post_fail "unreviewed module loaded during telemetry: $module"
 	done
 	[ "$(find /sys/class/typec -mindepth 1 -maxdepth 1 2>/dev/null |
-		wc -l)" -eq 0 ] || fail 'Type-C control device appeared'
+		wc -l)" -eq 0 ] || post_fail 'Type-C control device appeared'
 
 	echo "EVIDENCE capacity_percent=$capacity voltage_uV=$voltage_now current_uA=$current_now temp_dC=$temperature status=$status usb_online=$usb_online wls_online=$wls_online"
 else
@@ -468,7 +558,9 @@ if [ "$mode" = telemetry ]; then
 pdr_interface
 qcom_pdr_msg
 pmic_glink
-qcom_battmgr"
+qcom_battmgr
+qrtr_smd
+qcom_pd_mapper"
 fi
 unexpected_modules=$(printf '%s\n' "$new_modules" |
 	while IFS= read -r module; do

@@ -10,6 +10,7 @@ sh -n "$probe"
 for contract in \
 	'ALLOW_NETWORK_ROOT_BATTERY_PROBE' \
 	'ROG5_ADSP_SCM_TRACE' \
+	'ROG5_TELEMETRY_WAIT' \
 	'7.1.4-g7a5cef0db479' \
 	'systemd-udev-trigger.service' \
 	'systemd-modules-load.service' \
@@ -35,8 +36,13 @@ for contract in \
 	'r:rog5_adsp/pas_smc_ret __qcom_scm_pas_init_image' \
 	'EVIDENCE scm_trace_begin' \
 	'modprobe --first-time qcom_q6v5_pas' \
-	'qcom_glink_smem qrtr pdr_interface' \
+	'qcom_glink_smem qrtr qrtr_smd pdr_interface' \
 	'qcom_glink_smem qrtr' \
+	'87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178' \
+	'7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7' \
+	'modprobe --first-time qrtr_smd' \
+	'modprobe --first-time qcom_pd_mapper' \
+	'qcom_pd_mapper.qcom-pdm-mapper' \
 	'insmod "$pmic_module" battery_only=1' \
 	'modprobe --first-time pdr_interface' \
 	'modprobe --first-time qcom_battmgr' \
@@ -51,6 +57,10 @@ for contract in \
 	'kill -STOP -- "-$watchdog_pid"' \
 	'kill -KILL -- "-$watchdog_pid"' \
 	'Kernel panic|Oops:|BUG:' \
+	'telemetry_ready=0' \
+	"post_fail 'battery telemetry did not become readable'" \
+	'read_telemetry_property()' \
+	'post_fail "battery telemetry became unreadable: $telemetry_name"' \
 	'probe_safe=1'
 do
 	grep -Fq "$contract" "$probe" || {
@@ -66,17 +76,30 @@ udev_line=$(grep -n '^udevadm control --stop-exec-queue' "$probe" | cut -d: -f1)
 adsp_line=$(grep -n 'modprobe --first-time qcom_q6v5_pas' "$probe" |
 	head -n1 | cut -d: -f1)
 evidence_line=$(grep -n '^post_fail()' "$probe" | cut -d: -f1)
-pmic_line=$(grep -n '^[[:space:]]*insmod "$pmic_module"' "$probe" | cut -d: -f1)
-battmgr_line=$(grep -n '^[[:space:]]*modprobe --first-time qcom_battmgr' "$probe" |
+qrtr_transport_line=$(grep -n '^[[:space:]]*if ! modprobe --first-time qrtr_smd' \
+	"$probe" | cut -d: -f1)
+pdm_line=$(grep -n '^[[:space:]]*if ! modprobe --first-time qcom_pd_mapper' \
+	"$probe" | cut -d: -f1)
+pdr_line=$(grep -n '^[[:space:]]*if ! modprobe --first-time pdr_interface' \
+	"$probe" | cut -d: -f1)
+pmic_line=$(grep -n '^[[:space:]]*if ! insmod "$pmic_module"' "$probe" | cut -d: -f1)
+battmgr_line=$(grep -n '^[[:space:]]*if ! modprobe --first-time qcom_battmgr' "$probe" |
 	cut -d: -f1)
+readiness_line=$(grep -n "post_fail 'battery telemetry did not become readable'" \
+	"$probe" | cut -d: -f1)
 settle_line=$(grep -n '^sleep "$settle_seconds"' "$probe" | cut -d: -f1)
 safe_line=$(grep -n '^probe_safe=1$' "$probe" | cut -d: -f1)
 [ "$guard_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$udev_line" ]
 [ "$evidence_line" -lt "$udev_line" ]
 [ "$udev_line" -lt "$adsp_line" ]
+[ "$adsp_line" -lt "$qrtr_transport_line" ]
+[ "$qrtr_transport_line" -lt "$pdm_line" ]
+[ "$pdm_line" -lt "$pdr_line" ]
+[ "$pdr_line" -lt "$pmic_line" ]
 [ "$adsp_line" -lt "$pmic_line" ]
 [ "$pmic_line" -lt "$battmgr_line" ]
+[ "$battmgr_line" -lt "$readiness_line" ]
 [ "$battmgr_line" -lt "$settle_line" ]
 [ "$settle_line" -lt "$safe_line" ]
 
@@ -84,6 +107,10 @@ grep -Fq "post_fail 'ADSP module load failed'" "$probe"
 grep -Fq "post_fail 'ADSP remoteproc did not register'" "$probe"
 grep -Fq "post_fail 'ADSP did not reach running state'" "$probe"
 [ "$(grep -c "^qrtr'\$" "$probe")" -eq 1 ]
+if grep -Fq '/sys/bus/auxiliary/drivers/qcom-pdm-mapper' "$probe"; then
+	echo 'FAIL probe uses the unprefixed auxiliary-driver sysfs directory' >&2
+	exit 1
+fi
 
 if grep -Eq 'udevadm control --start-exec-queue|rmmod|modprobe[[:space:]].*(-r|--remove)|fastboot[[:space:]]+flash|dd[[:space:]].*of=/dev/|hwclock|/dev/rtc' \
 	"$probe"; then
@@ -103,5 +130,31 @@ set -e
 [ "$missing_guard" -ne 0 ]
 [ "$invalid_mode" -ne 0 ]
 [ "$trace_telemetry" -ne 0 ]
+
+check_structured_readiness() {
+	candidate=$1
+	grep -Fq 'telemetry_ready=0' "$candidate" &&
+		grep -Fq '[ "$telemetry_ready" -eq 1 ] ||' "$candidate" &&
+		grep -Fq "post_fail 'battery telemetry did not become readable'" \
+			"$candidate" &&
+		grep -Fq 'read_telemetry_property()' "$candidate" &&
+		grep -Fq \
+			'post_fail "battery telemetry became unreadable: $telemetry_name"' \
+			"$candidate"
+}
+
+check_structured_readiness "$probe"
+mutation_dir=$(mktemp -d)
+mutant=$mutation_dir/probe.sh
+trap 'rm -f "$mutant"; rmdir "$mutation_dir"' EXIT
+sed "s/post_fail 'battery telemetry did not become readable'/fail 'battery telemetry did not become readable'/" \
+	"$probe" >"$mutant"
+if check_structured_readiness "$mutant" >/dev/null 2>&1; then
+	echo 'FAIL readiness mutation escaped the structured-failure contract' >&2
+	exit 1
+fi
+rm -f "$mutant"
+rmdir "$mutation_dir"
+trap - EXIT
 
 echo 'PASS battery-telemetry probe is two-tiered, explicit, volatile-firmware-only, USB-C-control-free, and rollback-guarded'

@@ -90,9 +90,10 @@ unmounts OverlayFS before its tmpfs and NFS backing filesystems. Its attended
 normal `systemctl reboot` test returned to the persistent fallback in about
 25 seconds, with strict fallback SSH and complete NFS/firewall cleanup.
 Network-root v7 also passes the isolated ADSP prerequisite after adding the
-exact stock-owned ASUS RAM spans. Read-only battery telemetry is the next
-core-hardware gate; charging, Type-C control, display, and GPU remain
-isolated.
+exact stock-owned ASUS RAM spans. Network-root v8 then passes one guarded
+read-only SM8350 battery snapshot through the audited QRTR/PDR and
+battery-only PMIC GLINK path. Charging, Type-C control, sustained
+current-direction validation, display, and GPU remain isolated.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
