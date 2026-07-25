@@ -471,8 +471,21 @@ prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
 The exported ABI, complete module archive, GPUCC module, and RCG2 object are
 unchanged from v14. The
 [v15 offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
-records the exact identities and residual risk. V15 is unbooted and eligible
-only for one attended RAM-only, zero-storage probe with independent rollback.
+records the exact identities and residual risk.
+
+Its single attended RAM-only probe made the DISPCC provider active (`ret=11`
+instead of v14's suspended `ret=7`), completed 7/7 observed RCG reads, and
+advanced common-clock registration through completed index 6 and into index
+7. The probe delivered 552 CCF markers over 73.901 seconds, with no gap over
+0.116 seconds, until the 75-second watchdog reset at
+`consumer-allocation-complete`. This strongly supports trace-budget
+exhaustion rather than a new localized stall, but GPUCC registration and
+post-load stability did not return. Exact fallback, zero retained
+pstore/fatal evidence, and complete host cleanup passed. The
+[v15 live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
+records the trace and inference. V15 must not be rerun; the next gate is an
+offline-verified trace-free v16 confirmation using unchanged behavior and
+disabled consumers.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -68,9 +68,14 @@ for a working feature.
   implementing a behavioral candidate.
 - [x] Reproduce the v15 behavioral candidate through two clean kernel, wrapper,
   and package paths before considering one new attended zero-storage probe.
-- [ ] Run at most one attended RAM-only v15 probe with independent rollback;
+- [x] Run at most one attended RAM-only v15 probe with independent rollback;
   accept only the first non-returning boundary, exact fallback, and complete
   host cleanup.
+- [ ] Offline-accept a v16 confirmation using the exact v15 behavior with all
+  high-volume core traces absent and only the bounded outer GPUCC trace.
+- [ ] Run at most one attended RAM-only v16 confirmation; require complete
+  GPUCC bind/stability, disabled consumers, zero storage, exact rollback, and
+  complete host cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

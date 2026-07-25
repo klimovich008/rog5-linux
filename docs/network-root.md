@@ -458,8 +458,17 @@ Two clean mainline builds match through BTF, symbols, CCF/QCOM objects,
 modules, and metadata. Two credential-free staging archives, independently
 prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
 The exported ABI, full module archive, GPUCC module, and RCG2 object are
-unchanged from v14. V15 is unbooted and eligible only for one attended
-RAM-only, zero-storage probe with independent rollback.
+unchanged from v14.
+
+V15's one attended RAM-only probe made the display provider active, completed
+7/7 observed RCG reads, and completed common-clock registration indexes 0
+through 6 before entering index 7. Its 552 CCF markers arrived continuously
+for 73.901 seconds with no gap over 0.116 seconds; the 75-second watchdog then
+reset at `consumer-allocation-complete`. This supports trace-budget exhaustion
+rather than a new source stall, but does not accept full GPUCC registration.
+Exact fallback, zero retained pstore/fatal evidence, and complete host cleanup
+passed. V15 must not be rerun; an offline-verified trace-free v16 confirmation
+is next.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -502,4 +511,7 @@ records the regmap-call boundary, watchdog rollback, exact fallback, and
 complete host cleanup. The
 [GPUCC runtime-PM candidate offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
 records its model, tests, reproducibility, exact identities, residual risk,
-and one-shot live gate.
+and one-shot live gate. The
+[GPUCC runtime-PM candidate live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
+records the completed DISPCC reads, later GPUCC progress, continuous
+trace-budget exhaustion, rollback, cleanup, and v16 gate.

@@ -160,9 +160,18 @@ Two clean mainline builds and two independently prepared nested
 wrapper/package paths match byte-for-byte. Exported symbols, the full module
 archive, GPUCC module, and RCG2 object remain identical to v14. V15 adds no
 device-specific path, direct display-provider resume, register access, forced
-parent, or consumer. It is unbooted and eligible only for one attended
-RAM-only, zero-storage probe with independent rollback. See the
+parent, or consumer. See the
 [v15 offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
+
+Its single attended RAM-only probe made DISPCC active, completed all seven
+observed RCG reads, and completed GPUCC clock indexes 0 through 6 before
+starting index 7. The 75-second watchdog fired after 73.901 seconds of
+uninterrupted 100 ms trace delivery, with no marker gap above 0.116 seconds.
+This supports the runtime-PM ordering hypothesis but does not prove complete
+GPUCC registration. Exact fallback and host cleanup passed. V15 must not be
+rerun. The
+[v15 live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
+defines the next trace-free v16 confirmation gate.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

@@ -143,13 +143,21 @@ source and mutation tests, clock KUnit suite, two mainline builds, and two
 nested wrapper/package paths pass; exported symbols, modules, and the RCG2
 object remain byte-identical to v14. It acquires generic all-provider
 runtime-PM references before `prepare_lock`, preserves the orphan scan, and
-releases them after unlocking. It is unbooted and eligible only for one
-attended RAM-only, zero-storage probe. See the
+releases them after unlocking. Its one attended RAM-only probe made DISPCC
+active, completed all seven observed parent reads, and advanced GPUCC clock
+registration through completed index 6 and into index 7. The 75-second
+watchdog reset while 100 ms markers were still arriving continuously: a
+73.901-second trace span with no gap over 0.116 seconds. This supports the
+ordering hypothesis but does not prove complete GPUCC registration. V15 must
+not be rerun; the next gate is an offline-verified trace-free confirmation.
+See the
 [v14 offline report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
 and
 [v14 live report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md),
 then the
-[v15 offline report](test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
+[v15 offline report](test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md)
+and
+[v15 live report](test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

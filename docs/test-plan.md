@@ -184,8 +184,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   all-provider runtime-PM references before the global prepare lock and
   releases them after unlocking. Two clean kernel, wrapper, and package paths
   match byte-for-byte; exported symbols, modules, and RCG2 remain v14-exact.
-  V15 is unbooted and may receive at most one attended RAM-only, zero-storage
-  probe with independent rollback.**
+  V15's one probe made DISPCC active, completed 7/7 observed RCG reads, and
+  completed common-clock indexes 0 through 6 before entering index 7. Its 552
+  CCF markers arrived continuously for 73.901 seconds with no gap over 0.116
+  seconds until the 75-second watchdog reset. Exact fallback and cleanup pass,
+  but registration did not return. V15 must not be rerun. Require a v16
+  trace-free confirmation to reject all three core trace flags, retain only
+  the bounded outer GPUCC trace, bind exactly one GPUCC device, remain stable,
+  keep every consumer/storage path disabled, and pass exact rollback.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host
