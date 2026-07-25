@@ -185,6 +185,18 @@ bundle verifier pass.
 See the
 [v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
 
+V16's attended cycle stopped before Linux 7.1 target entry: the trace-free
+payload loaded, a 284-second operator gap exceeded the staging watchdog, and
+both later execute paths failed before serial transmission. Exact fallback
+and cleanup passed, so this is no evidence for or against the kernel
+candidate. V16 is consumed. V17 offline-accepts the same kernel and target
+contract with an atomic, guard-first load-to-execute host sequence. Its 12 ACM
+tests, semantic/mutation suite, and complete nested bundle verifier pass. See
+the
+[v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+and
+[v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

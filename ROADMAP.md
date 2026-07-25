@@ -73,7 +73,13 @@ for a working feature.
   host cleanup.
 - [x] Offline-accept a v16 confirmation using the exact v15 behavior with all
   high-volume core traces absent and only the bounded outer GPUCC trace.
-- [ ] Run at most one attended RAM-only v16 confirmation; require complete
+- [x] Consume one attended v16 cycle safely at the staging boundary: no
+  `kexec -e` reached the target, the staging watchdog restored exact fallback,
+  and complete host cleanup passed.
+- [x] Offline-accept a v17 atomic load-to-execute transport using the exact
+  v15 artifacts and v16 target gates, with guard-first ordering, bounded
+  identical-load replay, and non-retryable execute.
+- [ ] Run at most one attended RAM-only v17 confirmation; require complete
   GPUCC bind/stability, disabled consumers, zero storage, exact rollback, and
   complete host cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization

@@ -112,6 +112,21 @@ class SerialTransportTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("ALLOW_NETWORK_ROOT_ACM", result.stderr)
 
+    def test_atomic_confirmation_requires_kexec_guard_before_discovery(self) -> None:
+        environment = os.environ.copy()
+        environment["ALLOW_NETWORK_ROOT_ACM"] = "1"
+        environment.pop("ALLOW_ATTENDED_KEXEC", None)
+        result = subprocess.run(
+            [sys.executable, SOURCE, "confirm-gpucc"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ALLOW_ATTENDED_KEXEC", result.stderr)
+
     def test_acm_must_stabilize_after_reenumeration(self) -> None:
         paths = [
             "/dev/ttyACM0",
@@ -251,6 +266,30 @@ class SerialTransportTest(unittest.TestCase):
         wait.assert_called_once_with()
         run.assert_called_once()
 
+    def test_atomic_confirmation_loads_then_executes_without_gap(self) -> None:
+        with mock.patch.object(
+            MODULE,
+            "run_fixed_action",
+            side_effect=[MODULE.LOAD_MARKER.decode() + "\n", ""],
+        ) as run:
+            output = MODULE.run_fixed_sequence("confirm-gpucc")
+        self.assertEqual(output, MODULE.LOAD_MARKER.decode() + "\n")
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            ["load-gpucc-confirmation", "execute"],
+        )
+
+    def test_atomic_confirmation_never_executes_after_load_failure(self) -> None:
+        failure = MODULE.MissingLoadMarkerError("synthetic load failure")
+        with mock.patch.object(
+            MODULE,
+            "run_fixed_action",
+            side_effect=failure,
+        ) as run:
+            with self.assertRaises(MODULE.MissingLoadMarkerError):
+                MODULE.run_fixed_sequence("confirm-gpucc")
+        run.assert_called_once_with("load-gpucc-confirmation")
+
     def test_actions_are_fixed_and_storage_safe(self) -> None:
         self.assertEqual(
             set(MODULE.ACTIONS),
@@ -261,6 +300,10 @@ class SerialTransportTest(unittest.TestCase):
                 "load-gpucc-diagnostic",
                 "execute",
             },
+        )
+        self.assertEqual(
+            MODULE.SEQUENCES,
+            {"confirm-gpucc": ("load-gpucc-confirmation", "execute")},
         )
         self.assertEqual(
             MODULE.ACTIONS["load-gpucc-confirmation"][0],
@@ -284,9 +327,13 @@ class SerialTransportTest(unittest.TestCase):
         self.assertIn("os.O_NOCTTY", source)
         self.assertIn("ALLOW_ATTENDED_KEXEC", source)
         self.assertIn('if action == "execute":', source)
+        self.assertIn("run_fixed_sequence", source)
+        self.assertIn('"confirm-gpucc"', source)
         recovery = SOURCE.with_name("recovery-linux.sh").read_text()
         self.assertIn("network-root-acm.py load-normal", recovery)
         self.assertIn("load-gpucc-confirmation", recovery)
+        self.assertIn("ALLOW_ATTENDED_KEXEC=1", recovery)
+        self.assertIn("network-root-acm.py confirm-gpucc", recovery)
         self.assertNotIn("socat -,rawer", recovery)
 
 

@@ -501,5 +501,18 @@ nested-bundle tests pass. The
 [v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md)
 records the pinned procedure and one-shot acceptance gate.
 
+The attended v16 cycle stopped safely before target entry. One temporary boot
+and the trace-free load passed, but a 284-second operator gap exceeded the
+staging recovery's 180-second watchdog. The missing-guard and later
+stability-check failures both occurred before serial execute, the target NFS
+link never appeared, and exact fallback and host cleanup passed. V16 is
+consumed. V17 now offline-accepts a compound `confirm-gpucc` mode that requires
+both guards before discovery and runs trace-free load followed immediately by
+non-retryable execute in one process. Its 12 ACM tests, semantic/mutation
+suite, and complete exact nested bundle verifier pass. See the
+[v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+and
+[v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

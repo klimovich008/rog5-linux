@@ -200,7 +200,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   only the read-only, delay-free outer GPUCC trace. **Passed offline through
   red/green semantic and mutation tests, baseline source checks, existing
   guarded-probe checks, nine ACM pseudoterminal tests, and the exact
-  nested-bundle verifier; one attended live confirmation remains pending.**
+  nested-bundle verifier. The attended cycle stopped before target entry when
+  a 284-second operator gap exceeded the staging watchdog; no execute was
+  transmitted, exact fallback/cleanup passed, and v16 is consumed.**
+- Require v17 to preserve the exact v15 artifacts and v16 target gates while
+  one guard-first host process performs trace-free load then execute. Permit
+  only the existing one-time identical-load replay; make execute unreachable
+  after load failure and non-retryable after serial transmission. **Passed
+  offline through 12 ACM tests, semantic and mutation rejection, and the
+  complete exact nested-bundle verifier; one attended live confirmation
+  remains pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

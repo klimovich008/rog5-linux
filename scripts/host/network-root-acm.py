@@ -53,6 +53,9 @@ ACTIONS = {
     ),
     "execute": ("kexec -e", None, True, 20),
 }
+SEQUENCES = {
+    "confirm-gpucc": ("load-gpucc-confirmation", "execute"),
+}
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 
@@ -228,18 +231,34 @@ def run_fixed_action(action: str) -> str:
         return run_serial(path, command, marker, expect_disconnect, timeout_seconds)
 
 
+def run_fixed_sequence(sequence: str) -> str:
+    output = []
+    for action in SEQUENCES[sequence]:
+        result = run_fixed_action(action)
+        if result:
+            output.append(result)
+    return "".join(output)
+
+
 def main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_NETWORK_ROOT_ACM") != "1":
-        fail("set ALLOW_NETWORK_ROOT_ACM=1 for one fixed staging action")
-    if len(arguments) != 1 or arguments[0] not in ACTIONS:
+        fail("set ALLOW_NETWORK_ROOT_ACM=1 for one fixed staging action or sequence")
+    if (
+        len(arguments) != 1
+        or arguments[0] not in ACTIONS
+        and arguments[0] not in SEQUENCES
+    ):
         fail(
             "usage: network-root-acm.py "
             "load-normal|load-diagnostic|load-gpucc-confirmation|"
-            "load-gpucc-diagnostic|execute"
+            "load-gpucc-diagnostic|execute|confirm-gpucc"
         )
     action = arguments[0]
-    if action == "execute" and os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":
-        fail("set ALLOW_ATTENDED_KEXEC=1 after the loader PASS marker")
+    needs_kexec = action in SEQUENCES
+    if action == "execute":
+        needs_kexec = True
+    if needs_kexec and os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":
+        fail("set ALLOW_ATTENDED_KEXEC=1 for an attended execute-capable action")
     if os.uname().sysname != "Linux":
         fail("this host workflow requires Linux")
     for command in ("systemctl", "udevadm"):
@@ -251,10 +270,15 @@ def main(arguments: list[str]) -> int:
     ).returncode == 0:
         fail("stop ModemManager before using the recovery ACM")
 
-    output = run_fixed_action(action)
+    if action in SEQUENCES:
+        output = run_fixed_sequence(action)
+        result_label = f"sequence={action}"
+    else:
+        output = run_fixed_action(action)
+        result_label = f"action={action}"
     if output:
         print(output, end="" if output.endswith("\n") else "\n")
-    print(f"PASS control-safe network-root ACM action={action}")
+    print(f"PASS control-safe network-root ACM {result_label}")
     return 0
 
 

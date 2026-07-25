@@ -166,6 +166,15 @@ hash-pinned read-only target baseline proves those conditions, zero storage,
 consumer isolation, and the still-armed initial watchdog before any disarm.
 See the
 [v16 offline report](test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
+The attended v16 cycle never entered the Linux 7.1 target: a 284-second
+operator gap after load exceeded the staging watchdog, both later execute
+invocations failed before serial transmission, and exact fallback/cleanup
+passed. V16 is consumed. V17 now passes an offline gate that runs the same
+trace-free load and execute actions in one guarded process, while preserving
+bounded identical-load replay and non-retryable execute. See the
+[v16 staging-only report](test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+and
+[v17 offline report](test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

@@ -480,6 +480,23 @@ isolated. Only the delay-free outer GPUCC trace remains. Red/green semantic
 and mutation tests, baseline source checks, existing probe safeguards, nine
 ACM transport tests, and the complete nested exact-bundle verifier pass.
 
+The attended v16 cycle never reached this target. The trace-free load passed,
+but a 284-second operator gap exceeded the independent 180-second staging
+watchdog. A missing kexec guard and a later recovery-identity stability check
+both failed before serial execute. The exact target link never appeared;
+fallback and complete host cleanup passed. V16 is consumed.
+
+V17 keeps the same image and target checks but adds one compound
+`confirm-gpucc` ACM mode. Both safety guards are checked before discovery;
+the same process then performs trace-free load and immediately calls the
+existing non-retryable execute path. A missing load marker may still replay
+only the identical load once, and any load failure makes execute unreachable.
+Twelve ACM tests, semantic/mutation rejection, and the complete exact v17
+bundle verifier pass. See the
+[v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+and
+[v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
