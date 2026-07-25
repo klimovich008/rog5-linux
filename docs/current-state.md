@@ -397,7 +397,7 @@ records the exact hashes and gates; the
 records the ordered orphan trace, source-bounded interpretation, rollback, and
 cleanup.
 
-Network-root v13 now passes the complete offline successor gate. Its
+Network-root v13 passed the complete offline successor gate. Its
 default-off extension adds six exact-trigger markers for parent shape,
 read-only provider runtime state, the existing display RCG `get_parent()`
 callback, and CCF's parent-cache lookup. Contracts preserve one call to each
@@ -411,9 +411,20 @@ header-v3/AVB packages also match byte-for-byte.
 
 The
 [v13 offline report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-offline.md)
-records exact hashes and every acceptance gate. V13 has not been booted.
-GPUCC remains rejected pending one attended RAM-only probe, exact fallback,
-and complete host cleanup.
+records exact hashes and every acceptance gate. Its one attended probe
+completed the GPUCC orphan, recorded the three-parent DISPCC pixel-clock
+provider runtime-suspended, and entered its `get_parent()` callback without
+reaching the callback-complete or later parent-cache markers. The independent
+watchdog restored exact fallback and complete cleanup passed.
+
+The
+[v13 live report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-live.md)
+records the ordered markers, runtime-state interpretation, source boundary,
+rollback, and host audit. Source maps the callback to
+`clk_rcg2_get_parent()`, but v13 does not prove that its regmap read began.
+GPUCC remains rejected. V14 must first bracket that one existing read without
+changing runtime-PM or hardware behavior; directly resuming DISPCC while the
+global CCF prepare lock is held is not an acceptable shortcut.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

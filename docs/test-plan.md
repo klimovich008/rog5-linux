@@ -163,12 +163,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   exact-bundle gates, then ran once. It completed the new GPUCC orphan's
   no-parent scan and stopped inside `__clk_init_parent()` for the next,
   DISPCC-owned orphan. Independent rollback, exact fallback, and complete
-  cleanup passed. V13 now passes its source-order, mutation, strict-style,
+  cleanup passed. V13 passed its source-order, mutation, strict-style,
   8-second trace-budget, duplicate kernel/wrapper/package, and exact-bundle
   gates. It separately brackets the display clock's existing `get_parent()`
   callback and cached-parent lookup, records read-only runtime state, and adds
-  no runtime-PM or hardware control. It remains unbooted; one attended
-  RAM-only probe is the next gate.**
+  no runtime-PM or hardware control. Its one attended probe recorded the
+  display provider runtime-suspended, entered that callback, and did not reach
+  the callback-complete or later parent-cache markers. Independent rollback,
+  exact fallback, and cleanup passed. V14 must first source-test a default-off
+  boundary around the exact existing display-RCG regmap read. It may not add a
+  runtime resume while the global prepare lock is held.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

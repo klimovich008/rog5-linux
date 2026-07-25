@@ -124,8 +124,18 @@ gate: six exact-trigger markers bracket those two original operations and
 record read-only provider runtime state without hardware or runtime-PM
 control. Source/mutation tests, an 8-second trace bound, two clean
 kernel/module builds, and two wrapper/package paths pass byte-for-byte. V13
-remains unbooted; GPUCC cannot advance until one attended RAM-only probe also
-passes independent rollback and cleanup.
+then ran once: it recorded the display orphan's provider runtime-suspended,
+entered its `get_parent()` callback, and did not reach the callback-complete or
+later parent-cache markers. Source resolves that callback to
+`clk_rcg2_get_parent()`, but v13 does not instrument inside it and therefore
+does not prove that its regmap read began. Independent rollback, exact
+fallback, and cleanup passed.
+
+The next source gate is a default-off v14 trace around the exact existing
+display-RCG regmap read, preserving one read and all return behavior. A
+behavioral fix remains a separate design problem: the global orphan scan holds
+CCF's `prepare_lock`, so runtime-resuming the display provider inside that scan
+can deadlock if a provider callback tries to acquire the same lock.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

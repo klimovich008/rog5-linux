@@ -397,7 +397,7 @@ fallback and complete cleanup passed. V12 remains diagnostic-only. That live
 result established the v13 requirement: a default-off inner-call trace with
 duplicate offline builds before one further attended probe.
 
-Network-root v13 now passes that offline prerequisite. Six new markers record
+Network-root v13 passed that offline prerequisite. Six new markers record
 parent shape and read-only provider runtime state, then separately bracket the
 existing `get_parent()` callback and generic parent-cache lookup. Source and
 mutation tests preserve exactly one callback and one cache lookup and reject
@@ -405,8 +405,23 @@ runtime-PM or hardware control. Together with v12, the four-entry trace has an
 8-second maximum delay and leaves the required 15-second reset margin inside
 the independent 75-second watchdog. Two network-isolated Linux builds,
 credential-free staging initramfs files, independently prepared ASUS wrappers,
-and corrected header-v3/AVB packages are byte-identical. V13 has not been
-booted; only one attended RAM-only probe may follow the full baseline audit.
+and corrected header-v3/AVB packages are byte-identical.
+
+Its one attended probe completed the GPUCC orphan, recorded the existing
+`disp_cc_mdss_pclk0_clk_src` provider as runtime-PM-enabled and suspended, and
+entered its three-parent `get_parent()` callback. The callback-complete and
+later CCF parent-cache markers never appeared. Source resolves the callback to
+`clk_rcg2_get_parent()`, whose first substantive operation is a regmap read,
+but v13 has no marker inside that function and does not prove the read began.
+The independent watchdog restored exact fallback and complete host cleanup
+passed.
+
+GPUCC normal coldplug remains rejected. V14 must begin offline with an
+exact-clock/default-off trace around the one existing RCG regmap read and
+source tests that reject extra reads, broad tracing, runtime-PM control, and
+hardware changes. A provider runtime resume cannot simply be inserted in the
+global orphan scan because it runs under CCF's `prepare_lock` and a provider
+resume callback may need that lock.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -437,3 +452,7 @@ records the ordered two-orphan boundary, source interpretation, rollback,
 cleanup, and v13 gate. The
 [GPUCC inner-parent offline report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-offline.md)
 records the accepted v13 source, timing, reproducibility, and bundle gates.
+The
+[GPUCC inner-parent live report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-live.md)
+records the callback boundary, runtime-state interpretation, source and
+lock-order limits, rollback, and cleanup.

@@ -118,14 +118,19 @@ probe. The global scan completed the no-parent entry for newly registered
 `get_parent()` callback before CCF's cached-parent lookup, but v12 does not yet
 distinguish those operations or prove a register access. The independent
 watchdog restored the exact fallback and complete host cleanup passed. GPUCC
-remains rejected. Network-root v13 now passes its complete offline gate. Its
-default-off extension separately brackets the existing display-clock
-`get_parent()` callback and CCF parent-cache lookup, records only read-only
-runtime state, and preserves one call to each original operation. Source,
-mutation, and 8-second trace-budget tests pass; two clean kernel/module,
-staging-initramfs, ASUS-wrapper, and corrected boot-package paths are
-byte-identical. V13 has not been booted. The next gate is one attended,
-RAM-only v13 probe with the same independent 75-second watchdog.
+remains rejected. Network-root v13 passed its complete offline gate and one
+attended RAM-only probe. It recorded the display orphan as a three-parent
+clock whose runtime-PM-enabled provider was suspended, then entered
+`disp_cc_mdss_pclk0_clk_src`'s `get_parent()` callback without reaching the
+callback-complete or later parent-cache markers. Source maps that callback to
+`clk_rcg2_get_parent()`, whose first substantive operation is a regmap read,
+but v13 does not instrument inside the callback and therefore does not prove
+that read began or identify a register access as the cause. The independent
+watchdog restored the exact fallback and complete host cleanup passed. A
+runtime resume must not simply be added while CCF's global `prepare_lock` is
+held because provider callbacks may need the same lock. The next gate is an
+offline-first v14 source/test design that brackets the one existing RCG regmap
+read without changing runtime-PM or hardware behavior.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

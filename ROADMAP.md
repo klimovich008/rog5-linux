@@ -52,8 +52,13 @@ for a working feature.
 - [x] Build, source-test, and reproduce a default-off v13 trace that separately
   brackets the display orphan's `get_parent()` callback and cached-parent
   lookup; pass two kernel, wrapper, and package paths byte-for-byte.
-- [ ] Run one attended RAM-only v13 probe with the independent 75-second
-  watchdog, then verify exact fallback and complete host cleanup.
+- [x] Run one attended RAM-only v13 probe with the independent 75-second
+  watchdog; prove the runtime-suspended DISPCC orphan enters its
+  `get_parent()` callback without returning, then verify exact fallback and
+  complete host cleanup.
+- [ ] Design and source-test a default-off v14 trace around the exact display
+  RCG's existing regmap read, with no runtime-PM or hardware behavior change,
+  before producing any new live candidate.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
