@@ -19,6 +19,16 @@ case $module in
 	*) fail 'module is not in the reviewed coldplug allowlist' ;;
 esac
 
+gpucc_trace_mode=${ROG5_GPUCC_TRACE_MODE:-diagnostic}
+case $gpucc_trace_mode in
+	diagnostic|confirmation) ;;
+	*) fail 'ROG5_GPUCC_TRACE_MODE must be diagnostic or confirmation' ;;
+esac
+if [ "$module" != gpucc_sm8350 ] &&
+	[ "$gpucc_trace_mode" != diagnostic ]; then
+	fail 'GPUCC confirmation mode requires gpucc_sm8350'
+fi
+
 probe_timeout=${ROG5_PROBE_TIMEOUT:-75}
 settle_seconds=${ROG5_PROBE_SETTLE:-30}
 case $probe_timeout:$settle_seconds in
@@ -59,42 +69,38 @@ fi
 [ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
 	fail 'missing network-root watchdog disarm marker'
 if [ "$module" = gpucc_sm8350 ]; then
-	trace_count=$(tr ' ' '\n' </proc/cmdline |
-		awk '$0 == "rog5_qcom_cc_probe_trace=1" { count++ }
-			END { print count + 0 }')
-	[ "$trace_count" -eq 1 ] ||
-		fail 'common-clock trace boot parameter is not exact'
-	core_trace=/sys/module/kernel/parameters/rog5_qcom_cc_probe_trace
-	[ -r "$core_trace" ] ||
-		fail 'common-clock trace core parameter is absent'
-	[ "$(cat "$core_trace")" = Y ] ||
-		fail 'common-clock trace core parameter is not enabled'
-	[ "$(stat -c %a "$core_trace")" = 400 ] ||
-		fail 'common-clock trace core parameter became writable'
-	ccf_trace_count=$(tr ' ' '\n' </proc/cmdline |
-		awk '$0 == "rog5_ccf_register_trace=1" { count++ }
-			END { print count + 0 }')
-	[ "$ccf_trace_count" -eq 1 ] ||
-		fail 'CCF registration trace boot parameter is not exact'
-	ccf_trace=/sys/module/kernel/parameters/rog5_ccf_register_trace
-	[ -r "$ccf_trace" ] ||
-		fail 'CCF registration trace core parameter is absent'
-	[ "$(cat "$ccf_trace")" = Y ] ||
-		fail 'CCF registration trace core parameter is not enabled'
-	[ "$(stat -c %a "$ccf_trace")" = 400 ] ||
-		fail 'CCF registration trace core parameter became writable'
-	rcg2_trace_count=$(tr ' ' '\n' </proc/cmdline |
-		awk '$0 == "rog5_rcg2_parent_trace=1" { count++ }
-			END { print count + 0 }')
-	[ "$rcg2_trace_count" -eq 1 ] ||
-		fail 'RCG2 parent trace boot parameter is not exact'
-	rcg2_trace=/sys/module/kernel/parameters/rog5_rcg2_parent_trace
-	[ -r "$rcg2_trace" ] ||
-		fail 'RCG2 parent trace core parameter is absent'
-	[ "$(cat "$rcg2_trace")" = Y ] ||
-		fail 'RCG2 parent trace core parameter is not enabled'
-	[ "$(stat -c %a "$rcg2_trace")" = 400 ] ||
-		fail 'RCG2 parent trace core parameter became writable'
+	trace_expected_count=1
+	trace_expected_state=Y
+	if [ "$gpucc_trace_mode" = confirmation ]; then
+		trace_expected_count=0
+		trace_expected_state=N
+	fi
+	for parameter in \
+		rog5_qcom_cc_probe_trace \
+		rog5_ccf_register_trace \
+		rog5_rcg2_parent_trace
+	do
+		boot_argument=$parameter=1
+		trace_prefix=$parameter=
+		trace_count=$(tr ' ' '\n' </proc/cmdline |
+			awk -v prefix="$trace_prefix" \
+				'index($0, prefix) == 1 { count++ }
+				END { print count + 0 }')
+		[ "$trace_count" -eq "$trace_expected_count" ] ||
+			fail "$parameter boot argument is not exact"
+		trace_enabled_count=$(tr ' ' '\n' </proc/cmdline |
+			awk -v argument="$boot_argument" '$0 == argument { count++ }
+				END { print count + 0 }')
+		[ "$trace_enabled_count" -eq "$trace_expected_count" ] ||
+			fail "$parameter enabled argument is not exact"
+		trace_path=/sys/module/kernel/parameters/$parameter
+		[ -r "$trace_path" ] ||
+			fail "$parameter core parameter is absent"
+		[ "$(cat "$trace_path")" = "$trace_expected_state" ] ||
+			fail "$parameter core parameter state is not exact"
+		[ "$(stat -c %a "$trace_path")" = 400 ] ||
+			fail "$parameter core parameter became writable"
+	done
 fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'

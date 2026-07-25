@@ -470,6 +470,14 @@ Exact fallback, zero retained pstore/fatal evidence, and complete host cleanup
 passed. V15 must not be rerun; an offline-verified trace-free v16 confirmation
 is next.
 
+V16 now passes that complete offline gate while reusing the exact v15
+kernel/module/DTB/initramfs/wrapper/package manifest. The fixed confirmation
+load action omits all three high-volume trace flags. Before the independent
+watchdog is armed, the probe requires each built-in parameter at command-line
+count zero, mode `0400`, and value `N`. Only the delay-free outer GPUCC trace
+remains. Red/green semantic and mutation tests, existing probe safeguards,
+nine ACM transport tests, and the complete nested exact-bundle verifier pass.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
@@ -514,4 +522,7 @@ records its model, tests, reproducibility, exact identities, residual risk,
 and one-shot live gate. The
 [GPUCC runtime-PM candidate live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
 records the completed DISPCC reads, later GPUCC progress, continuous
-trace-budget exhaustion, rollback, cleanup, and v16 gate.
+trace-budget exhaustion, rollback, cleanup, and v16 gate. The
+[GPUCC trace-free confirmation offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md)
+records its unchanged artifacts, fail-closed transport/probe, tests, and
+one-shot acceptance criteria.

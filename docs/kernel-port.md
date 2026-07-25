@@ -173,6 +173,15 @@ rerun. The
 [v15 live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
 defines the next trace-free v16 confirmation gate.
 
+V16 now passes that offline gate with byte-identical v15 kernel/package
+artifacts. Its explicit load action supplies no Qualcomm/CCF/RCG2 trace flag,
+and its confirmation probe requires all three built-in parameters to be
+mode-`0400` `N` with command-line count zero. Only the delay-free outer GPUCC
+trace remains. Semantic and mutation tests, the existing guarded-probe suite,
+nine ACM pseudoterminal tests, and the complete exact bundle verifier pass.
+See the
+[v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

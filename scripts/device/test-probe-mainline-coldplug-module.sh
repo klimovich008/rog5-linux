@@ -47,15 +47,18 @@ for contract in \
 	'systemd-udev-trigger.service' \
 	'systemd-modules-load.service' \
 	'/run/rog5-network-root-watchdog.disarmed.pid' \
-	'rog5_qcom_cc_probe_trace=1' \
-	'/sys/module/kernel/parameters/rog5_qcom_cc_probe_trace' \
-	'common-clock trace core parameter is not enabled' \
-	'rog5_ccf_register_trace=1' \
-	'/sys/module/kernel/parameters/rog5_ccf_register_trace' \
-	'CCF registration trace core parameter is not enabled' \
-	'rog5_rcg2_parent_trace=1' \
-	'/sys/module/kernel/parameters/rog5_rcg2_parent_trace' \
-	'RCG2 parent trace core parameter is not enabled' \
+	'gpucc_trace_mode=${ROG5_GPUCC_TRACE_MODE:-diagnostic}' \
+	'diagnostic|confirmation)' \
+	'trace_expected_count=0' \
+	'trace_expected_state=N' \
+	'rog5_qcom_cc_probe_trace' \
+	'rog5_ccf_register_trace' \
+	'rog5_rcg2_parent_trace' \
+	'boot_argument=$parameter=1' \
+	'trace_prefix=$parameter=' \
+	'trace_enabled_count=' \
+	'/sys/module/kernel/parameters/$parameter' \
+	'core parameter state is not exact' \
 	'findmnt -n -o SOURCE /.rog5/root-ro' \
 	'169.254.77.1:/' \
 	'physical block device is present' \
@@ -103,21 +106,19 @@ done
 
 guard_line=$(grep -n 'ALLOW_MAINLINE_COLDPLUG_PROBE' "$probe" |
 	head -n1 | cut -d: -f1)
-trace_line=$(grep -n 'core_trace=/sys/module/kernel/parameters/rog5_qcom_cc_probe_trace' "$probe" |
+mode_line=$(grep -n \
+	'gpucc_trace_mode=${ROG5_GPUCC_TRACE_MODE:-diagnostic}' "$probe" |
 	head -n1 | cut -d: -f1)
-ccf_trace_line=$(grep -n 'ccf_trace=/sys/module/kernel/parameters/rog5_ccf_register_trace' "$probe" |
-	head -n1 | cut -d: -f1)
-rcg2_trace_line=$(grep -n 'rcg2_trace=/sys/module/kernel/parameters/rog5_rcg2_parent_trace' "$probe" |
+trace_line=$(grep -n 'trace_expected_count=1' "$probe" |
 	head -n1 | cut -d: -f1)
 watchdog_line=$(grep -n '^setsid sh -c' "$probe" | cut -d: -f1)
 module_line=$(grep -n '^[[:space:]]*modprobe --first-time ' "$probe" |
 	cut -d: -f1)
 settle_line=$(grep -n '^sleep "\$settle_seconds"' "$probe" | cut -d: -f1)
 safe_line=$(grep -n '^probe_safe=1$' "$probe" | cut -d: -f1)
-[ "$guard_line" -lt "$trace_line" ]
-[ "$trace_line" -lt "$ccf_trace_line" ]
-[ "$ccf_trace_line" -lt "$rcg2_trace_line" ]
-[ "$rcg2_trace_line" -lt "$watchdog_line" ]
+[ "$guard_line" -lt "$mode_line" ]
+[ "$mode_line" -lt "$trace_line" ]
+[ "$trace_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$module_line" ]
 [ "$module_line" -lt "$settle_line" ]
 [ "$settle_line" -lt "$safe_line" ]

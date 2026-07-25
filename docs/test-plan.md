@@ -192,6 +192,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   trace-free confirmation to reject all three core trace flags, retain only
   the bounded outer GPUCC trace, bind exactly one GPUCC device, remain stable,
   keep every consumer/storage path disabled, and pass exact rollback.**
+- Require v16 to reuse the exact v15 artifact manifest while its explicit
+  confirmation action omits all three core trace flags. Before its independent
+  watchdog arms, require command-line count zero plus mode-`0400` state `N`
+  for each built-in parameter. Retain only the read-only, delay-free outer
+  GPUCC trace. **Passed offline through red/green semantic and mutation tests,
+  existing guarded-probe checks, nine ACM pseudoterminal tests, and the exact
+  nested-bundle verifier; one attended live confirmation remains pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

@@ -34,6 +34,13 @@ ACTIONS = {
         False,
         60,
     ),
+    "load-gpucc-confirmation": (
+        "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_RECOVERY_TIMEOUT=900 "
+        "/usr/local/sbin/rog5-load-mainline-recovery",
+        LOAD_MARKER,
+        False,
+        60,
+    ),
     "load-gpucc-diagnostic": (
         "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_QCOM_CC_PROBE_TRACE=1 "
         "ROG5_CCF_REGISTER_TRACE=1 "
@@ -227,7 +234,8 @@ def main(arguments: list[str]) -> int:
     if len(arguments) != 1 or arguments[0] not in ACTIONS:
         fail(
             "usage: network-root-acm.py "
-            "load-normal|load-diagnostic|load-gpucc-diagnostic|execute"
+            "load-normal|load-diagnostic|load-gpucc-confirmation|"
+            "load-gpucc-diagnostic|execute"
         )
     action = arguments[0]
     if action == "execute" and os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":

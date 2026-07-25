@@ -71,7 +71,7 @@ for a working feature.
 - [x] Run at most one attended RAM-only v15 probe with independent rollback;
   accept only the first non-returning boundary, exact fallback, and complete
   host cleanup.
-- [ ] Offline-accept a v16 confirmation using the exact v15 behavior with all
+- [x] Offline-accept a v16 confirmation using the exact v15 behavior with all
   high-volume core traces absent and only the bounded outer GPUCC trace.
 - [ ] Run at most one attended RAM-only v16 confirmation; require complete
   GPUCC bind/stability, disabled consumers, zero storage, exact rollback, and

@@ -257,9 +257,15 @@ class SerialTransportTest(unittest.TestCase):
             {
                 "load-normal",
                 "load-diagnostic",
+                "load-gpucc-confirmation",
                 "load-gpucc-diagnostic",
                 "execute",
             },
+        )
+        self.assertEqual(
+            MODULE.ACTIONS["load-gpucc-confirmation"][0],
+            "ROG5_SYSTEMD_DIAGNOSTIC=1 ROG5_RECOVERY_TIMEOUT=900 "
+            "/usr/local/sbin/rog5-load-mainline-recovery",
         )
         self.assertEqual(
             MODULE.ACTIONS["load-gpucc-diagnostic"][0],
@@ -280,6 +286,7 @@ class SerialTransportTest(unittest.TestCase):
         self.assertIn('if action == "execute":', source)
         recovery = SOURCE.with_name("recovery-linux.sh").read_text()
         self.assertIn("network-root-acm.py load-normal", recovery)
+        self.assertIn("load-gpucc-confirmation", recovery)
         self.assertNotIn("socat -,rawer", recovery)
 
 

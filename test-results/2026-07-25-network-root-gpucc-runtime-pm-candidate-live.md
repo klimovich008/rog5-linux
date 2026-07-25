@@ -238,7 +238,8 @@ behavior change:
 1. keep the exact v15 source, module, DTB, disabled consumers, UFS-disabled
    kernel, read-only NFS root, rollback, and 75-second independent watchdog;
 2. boot with all high-volume Qualcomm/CCF/RCG2 trace parameters absent;
-3. retain only the bounded seven-phase outer GPUCC module trace;
+3. retain only the bounded, delay-free outer GPUCC module trace, which emits
+   eight markers when the probe returns;
 4. add source and mutation contracts that reject accidental core-trace
    enablement and prove the confirmation probe cannot accept a traced boot;
 5. offline-verify the exact trace-free loader transport and package before
