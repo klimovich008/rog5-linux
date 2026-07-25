@@ -176,9 +176,12 @@ defines the next trace-free v16 confirmation gate.
 V16 now passes that offline gate with byte-identical v15 kernel/package
 artifacts. Its explicit load action supplies no Qualcomm/CCF/RCG2 trace flag,
 and its confirmation probe requires all three built-in parameters to be
-mode-`0400` `N` with command-line count zero. Only the delay-free outer GPUCC
-trace remains. Semantic and mutation tests, the existing guarded-probe suite,
-nine ACM pseudoterminal tests, and the complete exact bundle verifier pass.
+mode-`0400` `N` with command-line count zero. A hash-pinned read-only baseline
+checks those states, zero storage, and consumer isolation while the initial
+watchdog remains armed. Only the delay-free outer GPUCC trace remains.
+Semantic and mutation tests, the baseline source test, the existing
+guarded-probe suite, nine ACM pseudoterminal tests, and the complete exact
+bundle verifier pass.
 See the
 [v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
 

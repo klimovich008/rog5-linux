@@ -102,6 +102,11 @@ The new confirmation test failed against the traced-only workflow before
 implementation. After implementation, all focused tests pass:
 
 - semantic confirmation verification;
+- a read-only pre-disarm target baseline proving the original 900-second
+  watchdog remains armed while all three core traces are absent and `N`;
+- source verification that the baseline checks exact network-root,
+  zero-storage, consumer-isolation, thermal, module-tree, and quiet-log gates
+  without a control or persistent-write path;
 - mutation rejection for confirmation count `1`, state `Y`, an unsafe
   confirmation default, omitted RCG2 checking, an allowed `trace=0` argument,
   disabled outer trace, a traced confirmation load action, and an added outer
@@ -121,6 +126,8 @@ The pinned procedure sources are:
 | control-safe ACM helper | `cd5cfabca51a4709e87e268ac93d3f37eb61e5c3100d1406bfdf46941834ec33` |
 | semantic confirmation verifier | `d2220b3f53f6f2d7c9c90e5d6f8f31dc1c5b8017cfd44b12cc6e52b6cf7a53ee` |
 | confirmation mutation test | `0f865b6ab581d89af5defb54f4a7ff3755a5d7f03af58a59529e7a22403fcd9c` |
+| pre-disarm confirmation baseline | `cbbbce7149ea35c67cfefac6b312c86a88ecf81dc34b0f77d124d6d0007267a6` |
+| pre-disarm baseline source test | `b745eabbfdd7a19d49f178b9100b6b12bc47e73f07eef26da6f965bd6c731a5b` |
 
 No boot image, kernel, module, firmware, credential, private identifier, or
 personal data is committed.
@@ -132,6 +139,8 @@ The checkpoint passes:
 - the complete v15 lock model, source/mutation tests, KUnit suite, duplicate
   build/package evidence, and exact bundle verifier;
 - an explicit fixed confirmation load action with all core traces absent;
+- a hash-pinned read-only baseline that must pass while the initial watchdog
+  is still armed;
 - a fail-closed probe mode requiring command-line count zero and mode-`0400`
   `N` state for each core parameter;
 - a delay-free read-only outer trace with exactly eight notices on return;

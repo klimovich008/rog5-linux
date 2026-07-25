@@ -161,8 +161,10 @@ and
 Network-root v16 now passes its complete offline gate without changing any
 kernel/package bit: its explicit confirmation transport omits all three core
 trace flags, its fail-closed probe requires each parameter at count zero and
-mode-`0400` state `N`, and only the delay-free outer GPUCC trace remains. See
-the
+mode-`0400` state `N`, and only the delay-free outer GPUCC trace remains. A
+hash-pinned read-only target baseline proves those conditions, zero storage,
+consumer isolation, and the still-armed initial watchdog before any disarm.
+See the
 [v16 offline report](test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.

@@ -491,10 +491,13 @@ Network-root v16 now passes that complete offline gate without rebuilding or
 changing any accepted artifact. Its explicit fixed ACM action omits all three
 core trace flags. The guarded probe requires confirmation mode, exact
 command-line count zero, and mode-`0400` state `N` for every core parameter
-before arming the 75-second watchdog. Only the read-only outer GPUCC trace
-remains; source proves its eight successful-return notices add no deliberate
-delay. Red/green, semantic, mutation, existing probe, nine pseudoterminal
-transport, and exact nested-bundle tests pass. The
+before arming the 75-second watchdog. A hash-pinned read-only target baseline
+also requires the initial 900-second watchdog to remain armed while it checks
+zero storage, consumer isolation, thermals, the module tree, and a quiet
+kernel log. Only the read-only outer GPUCC trace remains; source proves its
+eight successful-return notices add no deliberate delay. Red/green, semantic,
+mutation, baseline, existing probe, nine pseudoterminal transport, and exact
+nested-bundle tests pass. The
 [v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md)
 records the pinned procedure and one-shot acceptance gate.
 

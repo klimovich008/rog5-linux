@@ -473,10 +473,12 @@ is next.
 V16 now passes that complete offline gate while reusing the exact v15
 kernel/module/DTB/initramfs/wrapper/package manifest. The fixed confirmation
 load action omits all three high-volume trace flags. Before the independent
-watchdog is armed, the probe requires each built-in parameter at command-line
-count zero, mode `0400`, and value `N`. Only the delay-free outer GPUCC trace
-remains. Red/green semantic and mutation tests, existing probe safeguards,
-nine ACM transport tests, and the complete nested exact-bundle verifier pass.
+watchdog is armed, a hash-pinned read-only baseline requires the initial
+watchdog to remain armed and proves each built-in parameter has command-line
+count zero, mode `0400`, and value `N`, with zero storage and every consumer
+isolated. Only the delay-free outer GPUCC trace remains. Red/green semantic
+and mutation tests, baseline source checks, existing probe safeguards, nine
+ACM transport tests, and the complete nested exact-bundle verifier pass.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

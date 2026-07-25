@@ -10,6 +10,8 @@ repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 v15_verifier=$repo/scripts/device/verify-network-root-gpucc-runtime-pm-candidate-bundle.sh
 confirmation_verifier=$repo/scripts/device/verify-gpucc-trace-free-confirmation.sh
 confirmation_test=$repo/scripts/device/test-gpucc-trace-free-confirmation.sh
+baseline=$repo/scripts/device/check-network-root-gpucc-confirmation-baseline.sh
+baseline_test=$repo/scripts/device/test-network-root-gpucc-confirmation-baseline.sh
 probe_test=$repo/scripts/device/test-probe-mainline-coldplug-module.sh
 acm_test=$repo/scripts/host/test-network-root-acm.py
 probe=$repo/scripts/device/probe-mainline-coldplug-module.sh
@@ -22,6 +24,7 @@ accepted_manifest=a739f975f87ac30918625178007b4cd7302449ae96c26e5c42185e9e1a0425
 	"$expected_sums" "$expected_manifest" >/dev/null
 "$confirmation_verifier" "$probe" "$acm" "$gpucc_patch" >/dev/null
 "$confirmation_test" >/dev/null
+"$baseline_test" >/dev/null
 "$probe_test" >/dev/null
 PYTHONDONTWRITEBYTECODE=1 python3 "$acm_test" >/dev/null 2>&1
 
@@ -31,6 +34,10 @@ PYTHONDONTWRITEBYTECODE=1 python3 "$acm_test" >/dev/null 2>&1
 	cd5cfabca51a4709e87e268ac93d3f37eb61e5c3100d1406bfdf46941834ec33 ]
 [ "$(sha256sum "$gpucc_patch" | cut -d ' ' -f 1)" = \
 	50ec8d394583951ab00e65c38686775031d0abadc6a3faf1730edda13eb7be94 ]
+[ "$(sha256sum "$baseline" | cut -d ' ' -f 1)" = \
+	cbbbce7149ea35c67cfefac6b312c86a88ecf81dc34b0f77d124d6d0007267a6 ]
+[ "$(sha256sum "$baseline_test" | cut -d ' ' -f 1)" = \
+	b745eabbfdd7a19d49f178b9100b6b12bc47e73f07eef26da6f965bd6c731a5b ]
 
 for contract in \
 	'probe_timeout=${ROG5_PROBE_TIMEOUT:-75}' \
@@ -73,4 +80,4 @@ for trace in (
     assert trace in diagnostic
 PY
 
-echo 'PASS exact v16 trace-free confirmation reuses the v15 bundle, rejects all core traces, and retains bounded rollback'
+echo 'PASS exact v16 trace-free confirmation reuses the v15 bundle, proves traces absent before watchdog disarm, and retains bounded rollback'
