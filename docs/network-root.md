@@ -323,6 +323,16 @@ thresholds absent, passed clean-log and zero-storage gates, then returned
 through a normal systemd reboot with complete cleanup. Charging behavior and
 control remain separate and unaccepted.
 
+Network-root v9 enables only GPUCC while keeping GPU, GMU, the Adreno SMMU,
+display, every remote processor, RTC, input, and storage disabled. Duplicate
+kernel/module, DTB, initramfs, wrapper, and Android package builds matched.
+The live trace completed MMIO mapping plus both existing PLL configuration
+calls, then lost USB/SSH before clock/reset/GDSC registration returned. The
+independent SysRq watchdog restored exact fallback and full host cleanup
+passed. GPUCC remains rejected; disabled consumers do not remove the stall.
+The next gate must instrument the built-in Qualcomm common-clock registration
+sub-phases before another attended probe.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
@@ -332,4 +342,7 @@ for the v4 RTC rejection and v5 power-key evidence, and the
 memory-contract diagnosis and live prerequisite. The
 [battery telemetry report](../test-results/2026-07-25-network-root-battery-telemetry-live.md)
 records the v8 dependency diagnosis, live values, watchdog handling, and
-rollback.
+rollback. The
+[GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
+records the reproducible v9 candidate, live phase boundary, watchdog rollback,
+and next instrumentation gate.

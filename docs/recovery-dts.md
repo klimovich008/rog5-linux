@@ -84,7 +84,10 @@ Static checks require exactly two `status = "okay"` changes and five explicit
 `status = "disabled"` changes. They keep UFS, the QMP/SuperSpeed PHY, the
 secondary `usb_2` controller, RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU
 disabled. GPUCC isolation is required because an attended live
-`gpucc_sm8350` probe stalled until the rollback watchdog reset the phone.
+`gpucc_sm8350` probe stalled until the rollback watchdog reset the phone. A
+later GPUCC-only v9 trace kept every consumer disabled, completed mapping and
+both PLL configuration calls, then stalled at the common-clock registration
+boundary. GPUCC therefore remains outside the accepted recovery DT.
 
 The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6

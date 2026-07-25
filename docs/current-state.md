@@ -335,5 +335,19 @@ records the reproducible inputs and all three guarded outcomes. Charging
 behavior/control, dual-cell interpretation, and sustained current-direction
 validation remain untested and disabled.
 
+Network-root v9 retested GPUCC with only its clock-controller DT node enabled.
+GPU, GMU, Adreno SMMU, display, UFS, RTC, input, and every remote processor
+remained disabled. Two traced module builds, two DTBs, two nested initramfs
+builds, two ASUS wrappers, and two Android repacks were byte-identical. The
+guarded live probe reached MMIO mapping and completed both Lucid PLL
+configurations, then USB/SSH stopped before registration returned. The
+independent SysRq watchdog restored the exact fallback, pstore retained no
+record, and complete NFS/firewall/service cleanup passed. This rules out GPU
+consumer binding as the original stall trigger but does not distinguish the
+first internal `qcom_cc_really_probe()` phase. The
+[GPUCC diagnostic report](../test-results/2026-07-25-network-root-gpucc-diagnostic-live.md)
+defines the required common-clock phase instrumentation before another live
+attempt.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

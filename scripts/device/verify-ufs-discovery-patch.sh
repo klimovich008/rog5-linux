@@ -12,7 +12,8 @@ expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 [ -z "$(git -C "$source_dir" status --porcelain)" ]
 [ -r "$base_fragment" ] && [ -r "$discovery_fragment" ]
 
-patches=$(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' -print | sort)
+patches=$(find "$patch_dir" -maxdepth 1 -type f \
+	-name '000[1-3]-*.patch' -print | sort)
 [ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 3 ] || {
 	echo 'FAIL expected exactly three Linux 7.1.4 discovery patches' >&2
 	exit 1

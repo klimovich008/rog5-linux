@@ -94,6 +94,12 @@ exact stock-owned ASUS RAM spans. Network-root v8 then passes one guarded
 read-only SM8350 battery snapshot through the audited QRTR/PDR and
 battery-only PMIC GLINK path. Charging, Type-C control, sustained
 current-direction validation, display, and GPU remain isolated.
+Network-root v9 independently reproduced a GPUCC-only diagnostic with every
+GPU consumer disabled. Live tracing reached MMIO mapping and completed both
+PLL configurations, then lost USB/SSH at the clock/reset/GDSC registration
+boundary. Its independent watchdog restored the exact fallback and complete
+host cleanup passed. GPUCC therefore remains rejected; the next gate traces
+the built-in Qualcomm common-clock registration phases.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

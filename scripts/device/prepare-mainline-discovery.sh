@@ -17,7 +17,8 @@ expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a
 	exit 1
 }
 
-patches=$(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' -print | sort)
+patches=$(find "$patch_dir" -maxdepth 1 -type f \
+	-name '000[1-3]-*.patch' -print | sort)
 [ "$(printf '%s\n' "$patches" | awk 'NF { count++ } END { print count + 0 }')" -eq 3 ]
 
 mkdir -p "$(dirname "$target_source")"

@@ -62,6 +62,22 @@ for contract in \
 	'modprobe --first-time "$module"' \
 	'rog5-coldplug-probe: begin module=$module' \
 	'rog5-coldplug-probe: modprobe returned module=$module' \
+	'/run/rog5-gpucc-diagnostic/gpucc-sm8350.ko' \
+	'ROG5_GPUCC_MODULE_SHA256' \
+	'5f7018e53eb576579fe8d199171ae6e17c4e9d31ad099a330d21e050c0ad4454' \
+	'GPUCC diagnostic module SHA-256 is not the reviewed build' \
+	'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' \
+	'probe_trace:Emit progress notices for attended SM8350 GPUCC diagnostics (bool)' \
+	'/soc@0/clock-controller@3d90000' \
+	'/soc@0/gpu@3d00000' \
+	'/soc@0/gmu@3d6a000' \
+	'/soc@0/iommu@3da0000' \
+	'dmesg --follow-new &' \
+	'insmod "$module_file" probe_trace=1' \
+	'/sys/module/gpucc_sm8350/parameters/probe_trace' \
+	'/sys/bus/platform/drivers/sm8350-gpucc' \
+	'a disabled GPUCC consumer bound after registration' \
+	'a render node appeared during the GPUCC-only probe' \
 	'/sys/class/rtc/rtc0' \
 	'qcom,pmk8350-rtc' \
 	'Kernel panic|Oops:|BUG:' \
@@ -79,7 +95,8 @@ done
 guard_line=$(grep -n 'ALLOW_MAINLINE_COLDPLUG_PROBE' "$probe" |
 	head -n1 | cut -d: -f1)
 watchdog_line=$(grep -n '^setsid sh -c' "$probe" | cut -d: -f1)
-module_line=$(grep -n '^modprobe --first-time ' "$probe" | cut -d: -f1)
+module_line=$(grep -n '^[[:space:]]*modprobe --first-time ' "$probe" |
+	cut -d: -f1)
 settle_line=$(grep -n '^sleep "\$settle_seconds"' "$probe" | cut -d: -f1)
 safe_line=$(grep -n '^probe_safe=1$' "$probe" | cut -d: -f1)
 [ "$guard_line" -lt "$watchdog_line" ]

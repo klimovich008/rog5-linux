@@ -48,6 +48,8 @@ grep -Fq 'load-mainline-network-root.sh' "$verifier"
 grep -Fq 'CONFIG_SCSI_UFSHCD' "$verifier"
 grep -Fq 'rog5.netroot=1' "$verifier"
 grep -Fq 'Algorithm:' "$verifier"
+grep -Fq 'gpucc_status=${5:-disabled}' "$verifier"
+grep -Fq 'disabled|okay' "$verifier"
 for node in \
 	/reserved-memory/memory@9b800000 \
 	/soc@0/gpu@3d00000 \
@@ -57,6 +59,15 @@ for node in \
 do
 	grep -Fq "$node" "$verifier"
 done
+
+stage=$(mktemp -d)
+trap 'rm -rf "$stage"' EXIT INT TERM
+if "$verifier" /nonexistent /nonexistent /nonexistent /nonexistent unsafe \
+	>"$stage/invalid-status" 2>&1; then
+	echo 'FAIL bundle verifier accepted an unsafe GPUCC status' >&2
+	exit 1
+fi
+grep -Fq 'GPUCC status must be disabled or okay' "$stage/invalid-status"
 
 if grep -Eq '(^|[[:space:]])fastboot[[:space:]]+flash|(^|[[:space:]])dd[[:space:]].*of=/dev/' \
 	"$writer" "$verifier"; then

@@ -143,6 +143,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Replay coldplug candidates only through the explicit allowlisted probe with
   an independent process-group watchdog. **Passed; `gpucc_sm8350` isolated as
   the live stall, and overlapping `rmtfs_mem` rejected by DT review.**
+- Before any further GPUCC attempt, require a GPUCC-only DT with every
+  consumer disabled, an external hash-pinned module, default-off read-only
+  tracing, two byte-identical builds, and the same zero-storage/watchdog gate.
+  **V9 passed those offline and baseline gates; live tracing completed mapping
+  and both PLL configurations, then stalled at the unresolved common-clock
+  registration boundary and rolled back safely. Instrument power-domain,
+  reset, GDSC, per-clock, and provider registration before retest.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

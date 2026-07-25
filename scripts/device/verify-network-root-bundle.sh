@@ -5,8 +5,13 @@ artifact_dir=${1:?usage: verify-network-root-bundle.sh ARTIFACT_DIR MKBOOTIMG_DI
 mkbootimg_dir=${2:?missing mkbootimg directory}
 avbtool=${3:?missing avbtool}
 expected_sums=${4:?missing expected SHA-256 manifest}
+gpucc_status=${5:-disabled}
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 
+case $gpucc_status in
+	disabled|okay) ;;
+	*) echo 'FAIL GPUCC status must be disabled or okay' >&2; exit 1 ;;
+esac
 [ -r "$expected_sums" ] || {
 	echo "FAIL missing $expected_sums" >&2
 	exit 1
@@ -76,11 +81,12 @@ for node in \
 	/reserved-memory/memory@9b800000 \
 	/soc@0/gpu@3d00000 \
 	/soc@0/gmu@3d6a000 \
-	/soc@0/clock-controller@3d90000 \
 	/soc@0/iommu@3da0000
 do
 	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
 done
+[ "$(fdtget -t s "$dtb" \
+	/soc@0/clock-controller@3d90000 status)" = "$gpucc_status" ]
 usb_dwc3=/soc@0/usb@a6f8800/usb@a600000
 [ "$(fdtget -t s "$dtb" "$usb_dwc3" maximum-speed)" = high-speed ]
 [ "$(fdtget -t s "$dtb" "$usb_dwc3" phy-names)" = usb2-phy ]
@@ -224,4 +230,4 @@ grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
 ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
-echo 'PASS reproducible credential-free network-root bundle; offline validation only'
+echo "PASS reproducible credential-free network-root bundle; GPUCC=$gpucc_status; offline validation only"

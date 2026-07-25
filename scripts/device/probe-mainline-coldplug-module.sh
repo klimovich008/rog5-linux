@@ -31,11 +31,19 @@ esac
 [ "$probe_timeout" -ge $((settle_seconds + 20)) ] ||
 	fail 'probe timeout must exceed the settle interval by at least 20 seconds'
 
-for command in awk basename cat dmesg find findmnt grep ip kill mktemp \
+for command in awk basename cat cut dmesg find findmnt grep ip kill mktemp \
 	modinfo modprobe ps readlink rm rmdir setsid sleep sort systemctl tail tr \
 	uname wc; do
 	command -v "$command" >/dev/null || fail "missing command: $command"
 done
+if [ "$module" = gpucc_sm8350 ]; then
+	for command in insmod sha256sum stat; do
+		command -v "$command" >/dev/null ||
+			fail "missing GPUCC diagnostic command: $command"
+	done
+	dmesg --help 2>&1 | grep -q -- '--follow-new' ||
+		fail 'dmesg lacks follow-new support'
+fi
 
 [ "$(uname -r)" = 7.1.4-g7a5cef0db479 ] ||
 	fail 'unexpected kernel'
@@ -75,11 +83,77 @@ findmnt -n -o OPTIONS /.rog5/root-ro | tr ',' '\n' | grep -qx ro ||
 normalized_module=$(printf '%s\n' "$module" | tr '-' '_')
 [ ! -d "/sys/module/$normalized_module" ] ||
 	fail 'module is already loaded; use a fresh candidate'
-module_file=$(modinfo -F filename "$module" 2>/dev/null || true)
+gpucc_module=
+gpucc_expected_sha=
+gpucc_pinned_sha=5f7018e53eb576579fe8d199171ae6e17c4e9d31ad099a330d21e050c0ad4454
+if [ "$module" = gpucc_sm8350 ]; then
+	gpucc_module=${ROG5_GPUCC_MODULE:-}
+	gpucc_expected_sha=${ROG5_GPUCC_MODULE_SHA256:-}
+	[ "$gpucc_module" = \
+		/run/rog5-gpucc-diagnostic/gpucc-sm8350.ko ] ||
+		fail 'GPUCC diagnostic module must use the reviewed tmpfs path'
+	[ -f "$gpucc_module" ] && [ ! -L "$gpucc_module" ] ||
+		fail 'GPUCC diagnostic module is missing or is a symlink'
+	[ "$(stat -c '%u:%g:%a' "$gpucc_module")" = 0:0:400 ] ||
+		fail 'GPUCC diagnostic module ownership or mode is not exact'
+	case $gpucc_expected_sha in
+		*[!0-9a-f]*|'') fail 'invalid GPUCC diagnostic module SHA-256' ;;
+	esac
+	[ "${#gpucc_expected_sha}" -eq 64 ] ||
+		fail 'invalid GPUCC diagnostic module SHA-256 length'
+	[ "$gpucc_expected_sha" = "$gpucc_pinned_sha" ] ||
+		fail 'GPUCC diagnostic module SHA-256 is not the reviewed build'
+	[ "$(sha256sum "$gpucc_module" | cut -d ' ' -f 1)" = \
+		"$gpucc_expected_sha" ] ||
+		fail 'GPUCC diagnostic module hash mismatch'
+	[ "$(modinfo -F name "$gpucc_module")" = gpucc_sm8350 ] ||
+		fail 'GPUCC diagnostic module name mismatch'
+	[ -z "$(modinfo -F depends "$gpucc_module")" ] ||
+		fail 'GPUCC diagnostic module has unexpected dependencies'
+	[ "$(modinfo -F vermagic "$gpucc_module")" = \
+		'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
+		fail 'GPUCC diagnostic module ABI mismatch'
+	modinfo -p "$gpucc_module" |
+		grep -Fxq \
+		'probe_trace:Emit progress notices for attended SM8350 GPUCC diagnostics (bool)' ||
+		fail 'GPUCC diagnostic module lacks the read-only trace parameter'
+	module_file=$gpucc_module
+else
+	module_file=$(modinfo -F filename "$module" 2>/dev/null || true)
+fi
 case $module_file in
 	*.ko|*.ko.*) ;;
 	*) fail 'candidate is not a loadable module in this kernel' ;;
 esac
+
+gpucc_dt=/sys/firmware/devicetree/base/soc@0/clock-controller@3d90000
+gpu_dt=/sys/firmware/devicetree/base/soc@0/gpu@3d00000
+gmu_dt=/sys/firmware/devicetree/base/soc@0/gmu@3d6a000
+smmu_dt=/sys/firmware/devicetree/base/soc@0/iommu@3da0000
+if [ "$module" = gpucc_sm8350 ]; then
+	[ "$(tr '\000' '\n' <"$gpucc_dt/status")" = okay ] ||
+		fail 'GPUCC device-tree node is not explicitly enabled'
+	tr '\000' '\n' <"$gpucc_dt/compatible" |
+		grep -qx 'qcom,sm8350-gpucc' ||
+		fail 'GPUCC device-tree identity is unexpected'
+	for node in "$gpu_dt" "$gmu_dt" "$smmu_dt"; do
+		[ "$(tr '\000' '\n' <"$node/status")" = disabled ] ||
+			fail 'a GPUCC consumer is not explicitly disabled'
+	done
+	for device in /sys/bus/platform/devices/*; do
+		[ -L "$device/of_node" ] || continue
+		of_node=$(readlink -f "$device/of_node")
+		case $of_node in
+			"$gpu_dt"|"$gmu_dt"|"$smmu_dt")
+				[ ! -e "$device/driver" ] ||
+					fail 'a disabled GPUCC consumer is already bound'
+				;;
+		esac
+	done
+	[ -z "$(find /dev/dri -maxdepth 1 -name 'renderD*' -print \
+		2>/dev/null)" ] ||
+		fail 'a render node exists before the GPUCC-only probe'
+fi
 
 dependency_parent=
 case $module in
@@ -110,9 +184,14 @@ dmesg_start=$(( $(dmesg | wc -l) + 1 ))
 probe_safe=0
 watchdog_pid=
 state_dir=
+log_follower_pid=
 disarm_watchdog() {
 	[ "$probe_safe" = 1 ] || return 0
 	set +e
+	if [ -n "$log_follower_pid" ]; then
+		kill "$log_follower_pid" 2>/dev/null
+		wait "$log_follower_pid" 2>/dev/null
+	fi
 	if [ -n "$watchdog_pid" ]; then
 		# Freeze both the shell and its sleep child before terminating the
 		# process group, so child exit cannot race into the reset branch.
@@ -125,6 +204,7 @@ disarm_watchdog() {
 		rmdir "$state_dir" 2>/dev/null
 	fi
 	watchdog_pid=
+	log_follower_pid=
 	state_dir=
 	set -e
 }
@@ -159,7 +239,18 @@ done
 
 echo "BEGIN coldplug module=$module watchdog=${probe_timeout}s settle=${settle_seconds}s"
 echo "rog5-coldplug-probe: begin module=$module" >/dev/kmsg
-modprobe --first-time "$module"
+if [ "$module" = gpucc_sm8350 ]; then
+	dmesg --follow-new &
+	log_follower_pid=$!
+	sleep 1
+	kill -0 "$log_follower_pid" ||
+		fail 'GPUCC live kernel-log follower did not start'
+	echo "rog5-coldplug-probe: external module load begin module=$module" \
+		>/dev/kmsg
+	insmod "$module_file" probe_trace=1
+else
+	modprobe --first-time "$module"
+fi
 echo "rog5-coldplug-probe: modprobe returned module=$module" >/dev/kmsg
 sleep "$settle_seconds"
 
@@ -192,6 +283,37 @@ post_fail() {
 
 [ -d "/sys/module/$normalized_module" ] ||
 	post_fail 'module did not remain loaded'
+if [ "$module" = gpucc_sm8350 ]; then
+	parameter=/sys/module/gpucc_sm8350/parameters/probe_trace
+	[ "$(cat "$parameter")" = Y ] ||
+		post_fail 'GPUCC trace parameter is not enabled'
+	[ "$(stat -c %a "$parameter")" = 400 ] ||
+		post_fail 'GPUCC trace parameter became writable'
+	driver=/sys/bus/platform/drivers/sm8350-gpucc
+	[ -d "$driver" ] ||
+		post_fail 'GPUCC platform driver is absent'
+	bound=0
+	for link in "$driver"/*; do
+		[ -L "$link" ] || continue
+		[ "$(basename "$link")" = module ] && continue
+		bound=$((bound + 1))
+	done
+	[ "$bound" -eq 1 ] ||
+		post_fail 'GPUCC did not bind exactly one platform device'
+	for device in /sys/bus/platform/devices/*; do
+		[ -L "$device/of_node" ] || continue
+		of_node=$(readlink -f "$device/of_node")
+		case $of_node in
+			"$gpu_dt"|"$gmu_dt"|"$smmu_dt")
+				[ ! -e "$device/driver" ] ||
+					post_fail 'a disabled GPUCC consumer bound after registration'
+				;;
+		esac
+	done
+	[ -z "$(find /dev/dri -maxdepth 1 -name 'renderD*' -print \
+		2>/dev/null)" ] ||
+		post_fail 'a render node appeared during the GPUCC-only probe'
+fi
 if [ "$module" = rtc_pm8xxx ]; then
 	[ "$(find /sys/class/rtc -mindepth 1 -maxdepth 1 -name 'rtc*' |
 		wc -l)" -eq 1 ] ||
