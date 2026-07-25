@@ -158,8 +158,11 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   retried. Its one live probe passed the full zero-storage baseline and
   stopped inside `clk_core_reparent_orphans_nolock()` after index-0 orphan
   insertion and all earlier traced phases. Independent rollback, exact
-  fallback, and cleanup passed. V12 must identify and bracket each orphan
-  parent lookup and reparent callback before another live attempt.**
+  fallback, and cleanup passed. V12 now passes the required source-order,
+  mutation, 5.6-second trace-budget, duplicate kernel/wrapper/package, and
+  exact-bundle gates while bracketing each orphan parent lookup and existing
+  reparent/recalculation operation. One attended RAM-only v12 probe with the
+  independent 75-second watchdog remains required.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

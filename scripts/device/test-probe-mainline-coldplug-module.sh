@@ -70,7 +70,7 @@ for contract in \
 	'rog5-coldplug-probe: modprobe returned module=$module' \
 	'/run/rog5-gpucc-diagnostic/gpucc-sm8350.ko' \
 	'ROG5_GPUCC_MODULE_SHA256' \
-	'3c663bed417bb3bd7438b422ebf3531eca48e53afebc66a4574c7d87f7a8f421' \
+	'79a7d3b7d81c28821dd5199cdbcfe9b2cea5b8bc59b6d6e983a61a15f05424ba' \
 	'GPUCC diagnostic module SHA-256 is not the reviewed build' \
 	'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' \
 	'probe_trace:Emit progress notices for attended SM8350 GPUCC diagnostics (bool)' \

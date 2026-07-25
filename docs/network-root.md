@@ -371,8 +371,22 @@ phase/duty/rate, and the non-critical branch. It stopped after
 scans every CCF orphan while holding the prepare lock and can invoke callbacks
 for clocks outside GPUCC, so the result does not prove GPUCC MMIO. The
 independent watchdog restored exact fallback and full host cleanup passed.
-V11 remains rejected for normal coldplug; v12 must add bounded per-orphan
-parent-resolution and reparent-callback boundaries.
+V11 remains rejected for normal coldplug.
+
+Network-root v12 adds the required bounded trace without changing the original
+orphan operations. Only the exact GPUCC-triggered registration scan emits
+markers; provider-wide scans remain silent. The first four orphan entries
+receive at most fourteen boundaries each around parent lookup,
+before/after-parent callbacks, accuracy/rate recalculation, and requested-rate
+assignment. At 100 ms per marker, the maximum added delay is 5.6 seconds and
+the complete offline fixture leaves a 15-second forced-reset margin inside the
+75-second watchdog. Source-order and mutation tests pass. Two clean Linux
+builds, matching split-BTF modules, credential-free staging initramfs files,
+ASUS wrappers, and Android packages are byte-identical. The GPUCC module
+remains external, the target initramfs remains unchanged, and every consumer
+remains disabled exactly as before.
+V12 has not been booted and remains diagnostic-only pending one attended
+RAM-only probe.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -394,4 +408,6 @@ The
 [GPUCC generic-CCF offline report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-offline.md)
 records the reproducible v11 implementation. The
 [GPUCC generic-CCF live report](../test-results/2026-07-25-network-root-gpucc-ccf-diagnostic-live.md)
-records its exact orphan-scan boundary, rollback, cleanup, and v12 gate.
+records its exact orphan-scan boundary, rollback, cleanup, and v12 gate. The
+[GPUCC per-orphan offline report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-offline.md)
+records the accepted v12 source, timing, reproducibility, and bundle gates.

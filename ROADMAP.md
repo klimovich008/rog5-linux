@@ -43,8 +43,11 @@ for a working feature.
 - [x] Run the attended v11 probe once and localize the stall to
   `clk_core_reparent_orphans_nolock()` after orphan insertion and all earlier
   index-0 CCF phases, with independent rollback and complete cleanup.
-- [ ] Build a source-tested v12 per-orphan trace that brackets parent lookup
-  and each reparent callback without changing normal CCF behavior.
+- [x] Build and offline-accept a source-tested v12 per-orphan trace that
+  brackets parent lookup and each reparent callback without changing normal
+  CCF behavior; reproduce both kernel/wrapper/package paths byte-for-byte.
+- [ ] Run one attended RAM-only v12 probe with the independent 75-second
+  watchdog, exact fallback verification, and complete host cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

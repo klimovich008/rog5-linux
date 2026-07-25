@@ -110,8 +110,12 @@ insertion, phase/duty/rate, and the non-critical branch for
 `clk_core_reparent_orphans_nolock()`. Its independent watchdog restored the
 exact fallback and complete cleanup passed. The result does not prove GPUCC
 MMIO: the generic scan can inspect or reparent any existing orphan clock.
-GPUCC remains rejected; the next gate is a default-off per-orphan trace around
-parent resolution and reparent callbacks.
+Network-root v12 now passes its complete offline gate with a default-off trace
+around parent resolution and every existing reparent/recalculation operation
+for at most four orphan entries. Two clean kernels, wrappers, and packages are
+byte-identical, and the maximum added marker delay is 5.6 seconds. GPUCC
+remains rejected; the next gate is one attended RAM-only v12 probe with the
+independent watchdog and exact fallback cleanup.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

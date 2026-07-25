@@ -368,5 +368,20 @@ records the exact build inputs and contracts; the
 records the exact phase boundary, rollback, cleanup, and required per-orphan
 v12 trace.
 
+Network-root v12 now passes that complete offline prerequisite. Its
+exact-device/default-off extension traces at most four orphan entries, with
+fourteen boundaries per entry around parent lookup, before/after reparent
+callbacks, accuracy/rate recalculation, and requested-rate assignment. The
+maximum added marker delay is 5.6 seconds and the complete collection/reset
+budget remains inside the independent 75-second watchdog. Source-order and
+mutation contracts pass, two clean Linux builds match including BTF and the
+modified CCF object, and two staging initramfs, ASUS wrapper, header-v3, and
+AVB paths are byte-identical. The exported symbol table, GPUCC-only DTB, and
+RAM-only target initramfs remain unchanged. No v12 phone action has occurred.
+The
+[v12 offline report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-offline.md)
+records the exact hashes and gates. GPUCC remains rejected pending one
+attended RAM-only v12 probe and complete rollback cleanup.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
