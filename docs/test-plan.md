@@ -175,8 +175,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   read. Source/mutation/integration tests preserve one read, reject PM or
   hardware control, and cap its two-orphan trace at 4.2 seconds. Two clean
   kernel, wrapper, and package paths match byte-for-byte, and the exact bundle
-  verifier passes. One attended zero-storage probe remains pending. It may not
-  add a runtime resume while the global prepare lock is held.**
+  verifier passes. Its one attended zero-storage probe reached
+  `parent-read-begin` and never reached `parent-read-complete`; independent
+  rollback, exact fallback, and complete cleanup passed. V14 must not be
+  rerun. The next gate requires a source lock/PM model plus failing mutation
+  and concurrency tests before a behavioral candidate. It may not add a
+  runtime resume while the global prepare lock is held.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

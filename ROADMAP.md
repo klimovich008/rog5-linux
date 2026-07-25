@@ -60,9 +60,14 @@ for a working feature.
   trace around the exact display RCG's existing regmap read, with no
   runtime-PM or hardware behavior change; pass two mainline, wrapper, and
   package paths byte-for-byte.
-- [ ] Run one attended RAM-only v14 probe with the independent 75-second
-  watchdog, then verify exact fallback and complete host cleanup before
-  interpreting its first non-returning marker.
+- [x] Run one attended RAM-only v14 probe with the independent 75-second
+  watchdog; localize the boundary to the display RCG's existing regmap read,
+  then verify exact fallback and complete host cleanup.
+- [ ] Model CCF prepare-lock, orphan-list, DISPCC runtime-PM, and regmap lock
+  ordering; write failing source, mutation, and concurrency tests before
+  implementing a behavioral candidate.
+- [ ] Reproduce any behavioral candidate through two clean kernel, wrapper,
+  and package paths before considering one new attended zero-storage probe.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

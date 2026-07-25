@@ -128,20 +128,20 @@ but v13 does not instrument inside the callback and therefore does not prove
 that read began or identify a register access as the cause. The independent
 watchdog restored the exact fallback and complete host cleanup passed. A
 runtime resume must not simply be added while CCF's global `prepare_lock` is
-held because provider callbacks may need the same lock. Network-root v14 now
-passes the complete offline successor gate. Its exact-clock, default-off,
-mode-`0400` trace brackets only the one existing RCG regmap read and reduces
-the inherited orphan limit to the two already localized entries. Source,
-mutation, integration, and timing tests reject extra reads, broad tracing,
-runtime-PM control, and hardware control. The 4.2-second trace maximum leaves
-5.8 seconds spare while preserving the 15-second forced-reset margin inside
-the independent 75-second watchdog. Two clean mainline builds, two
-credential-free staging initramfs builds, two independently prepared ASUS
-wrappers, and two header-v3/AVB packages are byte-identical. The complete
-bundle verifier passes with every GPU consumer still disabled. V14 is eligible
-only for one attended RAM-only diagnostic; it has not yet been booted and is
-not a GPU fix. See the
-[v14 offline report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md).
+held because provider callbacks may need the same lock. Network-root v14
+passed the complete offline successor gate and one attended RAM-only
+diagnostic. Its exact-clock markers reached `parent-read-begin` immediately
+before the display RCG's existing `regmap_read()` but never reached
+`parent-read-complete`. This localizes the non-returning boundary to that
+existing call without proving whether MMIO, interconnect, regmap locking, or
+runtime-suspended provider state is responsible. The independent watchdog
+restored the exact fallback; zero retained pstore/fatal records and complete
+host cleanup passed. V14 must not be rerun and is not a GPU fix. The next gate
+is a source-modeled, test-first behavioral correction that never
+runtime-resumes a provider beneath `prepare_lock`. See the
+[v14 offline report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
+and
+[v14 live report](test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

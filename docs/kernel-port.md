@@ -131,7 +131,7 @@ later parent-cache markers. Source resolves that callback to
 does not prove that its regmap read began. Independent rollback, exact
 fallback, and cleanup passed.
 
-V14 passes that complete offline source gate. Its exact-clock, default-off,
+V14 passed that complete offline source gate. Its exact-clock, default-off,
 mode-`0400` trace brackets the one existing display-RCG regmap read while
 preserving one read and all return behavior. The inherited orphan limit drops
 from four to the two entries already localized by v13. Source, mutation,
@@ -140,12 +140,17 @@ extra register accesses, broad tracing, runtime-PM control, and hardware
 control. Two mainline builds, credential-free staging initramfs files,
 independently prepared ASUS wrappers, and Android packages match
 byte-for-byte. The exact bundle verifier passes with every consumer disabled.
-V14 has not been booted and is eligible only for one attended RAM-only
-diagnostic.
+Its one attended RAM-only diagnostic reached `parent-read-begin` and did not
+reach `parent-read-complete`. Exact fallback, zero retained pstore/fatal
+records, and complete host cleanup passed. This localizes the non-returning
+boundary to the existing regmap call without identifying the mechanism. V14
+must not be rerun.
 
 A behavioral fix remains a separate design problem: the global orphan scan
 holds CCF's `prepare_lock`, so runtime-resuming the display provider inside
 that scan can deadlock if a provider callback tries to acquire the same lock.
+The next gate must model that lock order and add failing source, mutation, and
+concurrency tests before changing CCF or provider runtime-PM behavior.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

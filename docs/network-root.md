@@ -416,8 +416,8 @@ but v13 has no marker inside that function and does not prove the read began.
 The independent watchdog restored exact fallback and complete host cleanup
 passed.
 
-GPUCC normal coldplug remains rejected. Network-root v14 now passes the
-required offline successor gate. Its mode-`0400`, default-off trace matches
+GPUCC normal coldplug remains rejected. Network-root v14 passed the required
+offline successor gate. Its mode-`0400`, default-off trace matches
 only `disp_cc_mdss_pclk0_clk_src` and emits `parent-read-begin` and
 `parent-read-complete` immediately around the one existing RCG regmap read.
 Source and mutation tests preserve exactly one read and all original return
@@ -432,11 +432,19 @@ symbols, modules, and metadata. Two credential-free staging initramfs files,
 independently prepared ASUS wrappers, and header-v3/AVB packages are
 byte-identical. The exact bundle verifier passes with the module and firmware
 external, every GPU/display consumer disabled, and all three trace parameters
-absent from the default boot command line. V14 has not been booted. It is
-eligible only for one attended zero-storage probe with the existing watchdog
-and cleanup gates. A provider runtime resume cannot simply be inserted in the
-global orphan scan because it runs under CCF's `prepare_lock` and a provider
-resume callback may need that lock.
+absent from the default boot command line.
+
+Its one attended zero-storage probe emitted `parent-read-begin` after entering
+the runtime-suspended DISPCC orphan's callback, but never emitted
+`parent-read-complete`. The independent watchdog restored exact fallback and
+complete host cleanup passed. This places the non-returning boundary inside
+the existing regmap call, but does not prove that the fault is an MMIO
+transaction rather than an interconnect, regmap-lock, or provider-state
+interaction. V14 must not be rerun. A provider runtime resume cannot simply
+be inserted in the global orphan scan because it runs under CCF's
+`prepare_lock` and a provider resume callback may need that lock. The next
+candidate requires source-modeled locking plus failing tests before any
+behavior change.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -473,4 +481,7 @@ records the callback boundary, runtime-state interpretation, source and
 lock-order limits, rollback, and cleanup. The
 [GPUCC RCG parent-read offline report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
 records the accepted v14 source boundary, 4.2-second timing cap, duplicate
-build/package paths, exact hashes, and complete offline acceptance.
+build/package paths, exact hashes, and complete offline acceptance. The
+[GPUCC RCG parent-read live report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md)
+records the regmap-call boundary, watchdog rollback, exact fallback, and
+complete host cleanup.

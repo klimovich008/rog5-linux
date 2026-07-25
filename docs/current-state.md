@@ -425,7 +425,7 @@ rollback, and host audit. Source maps the callback to
 GPUCC remains rejected, and directly resuming DISPCC while the global CCF
 prepare lock is held is not an acceptable shortcut.
 
-Network-root v14 now passes that complete offline prerequisite. Its
+Network-root v14 passed that complete offline prerequisite. Its
 exact-clock, default-off, mode-`0400` core parameter adds only
 `parent-read-begin` and `parent-read-complete` around the existing
 `clk_rcg2_get_parent()` regmap read. Source, mutation, integration, and timing
@@ -441,9 +441,20 @@ prepared ASUS wrappers, and header-v3/AVB packages also match byte-for-byte.
 The exact bundle verifier passes with all GPU/display consumers disabled and
 no trace parameter enabled by default. The
 [v14 offline report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-offline.md)
-records its hashes and gates. V14 has not been booted and is eligible only for
-one attended RAM-only probe with the existing zero-storage, watchdog,
-fallback, and host-cleanup boundaries.
+records its hashes and gates.
+
+Its one attended probe reached `parent-read-begin` after recording the DISPCC
+provider runtime-suspended, but never reached `parent-read-complete`, the
+outer callback completion, or the later CCF parent-cache lookup. This
+localizes the non-returning boundary to the existing `regmap_read()` call
+without distinguishing MMIO, interconnect, regmap-lock, or provider-state
+causes. The independent watchdog restored the exact fallback; zero retained
+pstore/fatal records and complete NFS, firewall, service, address, inhibitor,
+and profile cleanup passed. The
+[v14 live report](../test-results/2026-07-25-network-root-gpucc-rcg2-diagnostic-live.md)
+records the ordered trace and rollback evidence. V14 must not be rerun. The
+next gate is test-first lock/runtime-PM modeling for a general behavioral
+correction; no provider runtime resume may be added under `prepare_lock`.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
