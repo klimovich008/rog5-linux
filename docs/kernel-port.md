@@ -119,9 +119,13 @@ probe completed `gpu_cc_ahb_clk` as a no-parent orphan and advanced to
 `disp_cc_mdss_pclk0_clk_src`, where `__clk_init_parent()` did not return.
 The first source operation is that display RCG's `get_parent()` callback,
 followed by CCF's parent-cache lookup, but v12 cannot distinguish them. Exact
-fallback and cleanup passed. GPUCC cannot advance until a reproducible v13
-trace brackets those inner operations without changing hardware or runtime-PM
-state.
+fallback and cleanup passed. V13 now passes the complete offline half of that
+gate: six exact-trigger markers bracket those two original operations and
+record read-only provider runtime state without hardware or runtime-PM
+control. Source/mutation tests, an 8-second trace bound, two clean
+kernel/module builds, and two wrapper/package paths pass byte-for-byte. V13
+remains unbooted; GPUCC cannot advance until one attended RAM-only probe also
+passes independent rollback and cleanup.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

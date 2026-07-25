@@ -118,8 +118,14 @@ probe. The global scan completed the no-parent entry for newly registered
 `get_parent()` callback before CCF's cached-parent lookup, but v12 does not yet
 distinguish those operations or prove a register access. The independent
 watchdog restored the exact fallback and complete host cleanup passed. GPUCC
-remains rejected; the next gate is a reproducible default-off v13 trace that
-separately brackets those two inner operations before any further live probe.
+remains rejected. Network-root v13 now passes its complete offline gate. Its
+default-off extension separately brackets the existing display-clock
+`get_parent()` callback and CCF parent-cache lookup, records only read-only
+runtime state, and preserves one call to each original operation. Source,
+mutation, and 8-second trace-budget tests pass; two clean kernel/module,
+staging-initramfs, ASUS-wrapper, and corrected boot-package paths are
+byte-identical. V13 has not been booted. The next gate is one attended,
+RAM-only v13 probe with the same independent 75-second watchdog.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

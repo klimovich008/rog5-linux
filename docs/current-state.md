@@ -395,8 +395,25 @@ The
 records the exact hashes and gates; the
 [v12 live report](../test-results/2026-07-25-network-root-gpucc-orphan-diagnostic-live.md)
 records the ordered orphan trace, source-bounded interpretation, rollback, and
-cleanup. GPUCC remains rejected pending a reproducible default-off v13 trace
-that separately brackets the display callback and parent-cache lookup.
+cleanup.
+
+Network-root v13 now passes the complete offline successor gate. Its
+default-off extension adds six exact-trigger markers for parent shape,
+read-only provider runtime state, the existing display RCG `get_parent()`
+callback, and CCF's parent-cache lookup. Contracts preserve one call to each
+original operation and reject broad tracing, duplicate calls, runtime-PM
+control, and hardware control. The four-orphan maximum adds at most 8 seconds;
+the full 73-second fixture retains the 15-second forced-reset margin inside
+the independent 75-second watchdog. Two network-isolated Linux builds match
+through BTF, CCF objects, symbols, modules, and metadata. Two credential-free
+staging archives, independently prepared ASUS wrappers, and corrected
+header-v3/AVB packages also match byte-for-byte.
+
+The
+[v13 offline report](../test-results/2026-07-25-network-root-gpucc-parent-diagnostic-offline.md)
+records exact hashes and every acceptance gate. V13 has not been booted.
+GPUCC remains rejected pending one attended RAM-only probe, exact fallback,
+and complete host cleanup.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
