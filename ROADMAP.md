@@ -79,9 +79,11 @@ for a working feature.
 - [x] Offline-accept a v17 atomic load-to-execute transport using the exact
   v15 artifacts and v16 target gates, with guard-first ordering, bounded
   identical-load replay, and non-retryable execute.
-- [ ] Run at most one attended RAM-only v17 confirmation; require complete
+- [x] Run at most one attended RAM-only v17 confirmation; require complete
   GPUCC bind/stability, disabled consumers, zero storage, exact rollback, and
   complete host cleanup.
+- [ ] Source-test and reproduce the next isolated Adreno dependency tier
+  before enabling the SMMU, GPU power path, GMU, firmware, or DRM consumers.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -295,6 +297,10 @@ thermal safety, and measured power profiles.
 
 Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software rendering.
 
+- [x] Complete trace-free GPUCC registration, one-device bind, 30-second
+  stability, normal reboot, and cleanup with every consumer disabled.
+- [ ] Source-test the exact GPU/GX, regulator, interconnect, Adreno SMMU, GMU,
+  reserved-memory, and firmware dependency graph.
 - [ ] Rebuild the GPU DTB from the corrected, storage-safe base.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.

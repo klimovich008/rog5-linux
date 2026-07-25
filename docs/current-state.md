@@ -513,6 +513,18 @@ suite, and complete exact nested bundle verifier pass. See the
 [v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
 and
 [v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+The one permitted live v17 cycle then passed the complete gate. Its atomic
+transport performed one execute, Linux 7.1.4 passed the trace-free baseline,
+and the guarded module reached all eight outer markers through
+`registration-complete ret=0`. GPUCC bound exactly one device and stayed
+stable for 30 seconds with GPU, GMU, Adreno SMMU, render nodes, and storage
+still absent. A normal reboot restored a changed exact fallback boot with zero
+pstore/fatal evidence, 73 readable thermal zones at a 38.5 C maximum, and
+complete host cleanup. The
+[v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md)
+accepts only the isolated GPUCC/CCF foundation. Acceleration remains pending
+an offline-tested and reproducible power-domain, regulator, interconnect,
+Adreno SMMU, GMU, firmware, and DRM consumer sequence.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

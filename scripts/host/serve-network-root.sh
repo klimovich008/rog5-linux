@@ -114,10 +114,12 @@ cleanup() {
 	for interface in "${touched_interfaces[@]}"; do
 		if [[ -e /sys/class/net/$interface ]]; then
 			ip address del "$host_cidr" dev "$interface" 2>/dev/null
-			firewall-cmd --zone="$firewall_zone" \
-				--remove-interface="$interface" >/dev/null 2>&1
 			nmcli device set "$interface" managed yes 2>/dev/null
 		fi
+		# The gadget can disappear before cleanup runs, but firewalld keeps
+		# the runtime interface assignment until it is removed explicitly.
+		firewall-cmd --zone="$firewall_zone" \
+			--remove-interface="$interface" >/dev/null 2>&1
 	done
 	if [[ $allow_rule_added == 1 ]]; then
 		firewall-cmd --zone="$firewall_zone" \

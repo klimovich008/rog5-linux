@@ -256,7 +256,8 @@ identity, and runs the independent path-based verifier.
 5. recognizes only the `ROG5_network_root` CDC-NCM gadget and gives it the
    `/30` host address in the verified-unused built-in `drop` zone; and
 6. unexports, stops its private server processes, unmounts, restores the
-   temporary sysctl, and removes all runtime firewall state on exit.
+   temporary sysctl, and removes all runtime firewall state on exit, including
+   the interface assignment when the USB gadget has already disappeared.
 
 The default attended window remains 900 seconds. An explicitly requested
 long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
@@ -496,6 +497,14 @@ bundle verifier pass. See the
 [v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
 and
 [v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+The one-shot live v17 gate also passes. Exactly one execute entered the
+trace-free Linux 7.1 target; all eight outer GPUCC markers returned through
+`registration-complete ret=0`, one platform device remained bound for the
+required 30 seconds, and the independent watchdog was safely disarmed. GPU,
+GMU, Adreno SMMU, render nodes, and storage stayed absent, and no new warning
+or fault appeared. Normal systemd reboot restored exact fallback and complete
+host cleanup. The result accepts only the GPUCC/CCF foundation; see the
+[v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
@@ -544,4 +553,11 @@ records the completed DISPCC reads, later GPUCC progress, continuous
 trace-budget exhaustion, rollback, cleanup, and v16 gate. The
 [GPUCC trace-free confirmation offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md)
 records its unchanged artifacts, fail-closed transport/probe, tests, and
-one-shot acceptance criteria.
+one-shot acceptance criteria. The
+[v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+records the no-execute rollback and cleanup. The
+[v17 atomic confirmation offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md)
+records the guard-first transport and unchanged target gates. The
+[v17 atomic confirmation live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md)
+records complete trace-free GPUCC registration, one-device stability, normal
+reboot, exact fallback, cleanup, and the next isolated Adreno dependency gate.

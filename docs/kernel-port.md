@@ -196,6 +196,16 @@ the
 [v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
 and
 [v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+V17's sole live cycle passes: the compound transport sent exactly one execute,
+the trace-free GPUCC module completed registration, bound one device, and
+remained stable for 30 seconds. Every real consumer, render node, and storage
+path stayed absent; no new warning or fault appeared. Normal reboot restored
+the exact fallback and complete cleanup. This accepts the experimental CCF
+ordering only as the isolated GPUCC foundation. Before enabling a consumer,
+the next candidate must source-test and reproduce the complete GPU
+power/regulator/interconnect, Adreno SMMU, GMU, reserved-memory, and firmware
+dependency graph. See the
+[v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

@@ -175,6 +175,15 @@ bounded identical-load replay and non-retryable execute. See the
 [v16 staging-only report](test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
 and
 [v17 offline report](test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+The one permitted live v17 cycle now passes. The atomic transport transmitted
+one execute, the trace-free GPUCC driver reached
+`registration-complete ret=0`, bound exactly one device, and stayed stable for
+30 seconds with every GPU/GMU/SMMU consumer, render node, and storage path
+absent. Normal systemd reboot restored the exact fallback with zero retained
+pstore/fatal evidence and complete host cleanup. This accepts only the
+GPUCC/CCF foundation, not acceleration; the next gate is an offline-tested,
+reproducible Adreno power/SMMU/GMU/firmware dependency tier. See the
+[v17 live report](test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

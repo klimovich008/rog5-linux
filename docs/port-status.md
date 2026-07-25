@@ -9,7 +9,7 @@
 | thermals/CPUfreq | passing | 33 thermal zones are readable and sane in two normal network-root boots | cooling maps, cpufreq policy checks, sustained-load characterization |
 | OLED/DPU/DSI | passing with vendor DRM | DPU/DSI present | AMS678 ER2 plus missing Pixelworks Iris/i6 bridge path |
 | touch/power button | passing | input framework present | exact FocalTech main/rear controllers and GPIO/pinctrl |
-| GPU | rejected: KGSL second-open fault | v15 makes DISPCC active, completes seven formerly stalled RCG reads, and advances GPUCC through index 6; v16 never entered the target; v17 offline-accepts the same trace-free target with atomic load-to-execute transport | run one v17 full GPUCC bind/stability confirmation; then continue power-domain/clock/regulator/IOMMU/GMU/firmware and full Tier 5 validation |
+| GPU | rejected: KGSL second-open fault | v17 trace-free confirmation completes GPUCC registration and a one-device 30-second bind with all consumers disabled, then reboots cleanly | source-test and reproduce the power-domain/regulator/interconnect/Adreno-SMMU/GMU/firmware tier before enabling consumers; acceleration and full Tier 5 validation remain pending |
 | Wi-Fi/hotspot | passing | ath11k modules and fail-closed VPN routing test pass offline | board PCIe/power/calibration/firmware and device routing tests |
 | modem/DSPs | passing with delayed startup | ASUS reserved-memory contract and ADSP-only PAS/SCM startup pass | CDSP/modem/SLPI firmware names and one-processor-at-a-time validation |
 | audio | basic services present | Qualcomm audio frameworks present | codecs, routing, speakers, microphones, headset safety |

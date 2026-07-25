@@ -78,6 +78,16 @@ target_mark_line=$(grep -n 'target_seen=1' "$serve" | tail -n1 | cut -d: -f1)
 [ "$target_seen_line" -lt "$configure_line" ]
 [ "$configure_line" -lt "$target_mark_line" ]
 
+cleanup_guard_line=$(grep -n \
+	'if \[\[ -e /sys/class/net/\$interface \]\]; then' "$serve" |
+	head -n1 | cut -d: -f1)
+cleanup_guard_end_line=$(awk -v start="$cleanup_guard_line" \
+	'NR > start && /^[[:space:]]*fi$/ { print NR; exit }' "$serve")
+cleanup_remove_line=$(grep -n -- '--remove-interface="$interface"' "$serve" |
+	head -n1 | cut -d: -f1)
+[ "$cleanup_guard_line" -lt "$cleanup_guard_end_line" ]
+[ "$cleanup_guard_end_line" -lt "$cleanup_remove_line" ]
+
 if grep -Eq -- '--permanent|--new-zone|/etc/exports|(^|[[:space:]])\*\(|no_root_squash.*\*' \
 	"$prepare" "$verify" "$serve"; then
 	echo 'FAIL network-root host tools contain a persistent or broad export' >&2

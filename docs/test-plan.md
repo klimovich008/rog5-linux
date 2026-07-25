@@ -208,8 +208,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   only the existing one-time identical-load replay; make execute unreachable
   after load failure and non-retryable after serial transmission. **Passed
   offline through 12 ACM tests, semantic and mutation rejection, and the
-  complete exact nested-bundle verifier; one attended live confirmation
-  remains pending.**
+  complete exact nested-bundle verifier. Its one live cycle sent exactly one
+  execute, completed all eight GPUCC markers, bound one device for 30 seconds,
+  kept every consumer/render/storage path absent, rebooted normally, and
+  restored exact fallback with complete cleanup. V17 must not be rerun.**
+- Before enabling an Adreno consumer, source-test the exact GPU/GX,
+  regulator, interconnect, Adreno SMMU, GMU, reserved-memory, and firmware
+  dependency graph. Reproduce every kernel/DTB/module/wrapper/package output
+  twice, keep UFS and unrelated consumers disabled, and require an independent
+  watchdog plus fail-closed warning, IOMMU-fault, storage, thermal, reboot, and
+  cleanup gates. **Pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host
