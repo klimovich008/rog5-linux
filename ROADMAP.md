@@ -442,6 +442,11 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   pre-live **HOLD** while the root remains non-runnable and the phone remains
   untouched. See the
   [pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md).
+- [x] Lift HOLD through a read-only fallback/host/credential preflight and a
+  fail-first-tested, verifier-before-state, explicit-opt-in NFS case for only
+  v5. Keep NFS inactive and authorize only the one attended RAM-only
+  transition described in the
+  [pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md).
 - [ ] Run at most one attended ucode-allocation gate only after its offline
   package is accepted and every documented HOLD-lift requirement passes;
   require balanced maps/unmaps, zero surviving GEM/DRM state, no

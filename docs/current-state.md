@@ -771,7 +771,11 @@ scripts, SSH identity, one invocation, expected reboot disconnect, and
 mode-`0600` private evidence. The
 [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
 records **HOLD**: NFS remains inactive, the root is absent from its allowlist,
-the phone was not contacted, and no live cycle is authorized.
+the phone was not contacted, and no live cycle is authorized. The later
+[pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+passes exact fallback, host, credential, root, package, runner, and unarmed
+refusal checks. A verifier-first opt-in now permits only v5 for one attended
+RAM-only cycle; NFS remains inactive until that bounded transition.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

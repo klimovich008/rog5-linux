@@ -23,12 +23,13 @@ build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contra
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-offline.md
 hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md
+go_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md
 
 [ -f "$helper_source" ] && [ ! -L "$helper_source" ] || {
 	echo 'FAIL missing accepted A660 one-open helper source' >&2
 	exit 1
 }
-for document in "$report" "$hold_report"; do
+for document in "$report" "$hold_report" "$go_report"; do
 	[ -f "$document" ] && [ ! -L "$document" ] || {
 		echo "FAIL missing A660 ucode-allocation v5 report: $document" >&2
 		exit 1
@@ -122,7 +123,10 @@ for contract in \
 	'umask 077' \
 	c6df42496b2fa6920187773bc7a97a8dc8bc5a7afb518f98ff1265a585580225 \
 	d8e08191c50b6f5c925c82d03f837c9757e7e8aa0a9323fd63a8bb9871688cf7 \
+	306474f71518ba1ff59373b9a13368b5a7f2a49753c6abba94feba3a05bbc3dc \
+	0c5f1fb69ee377a42146be97a9c3f0a44338231fdc2c19b8383ccf170ad6f4c5 \
 	'Decision: **HOLD.' \
+	'Decision: **GO for exactly one attended RAM-only ucode-allocation cycle' \
 	'The phone was not contacted.' \
 	c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c \
 	'verify-a660-registration-v3-live-acceptance.sh' \
@@ -136,7 +140,7 @@ do
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
 		"$export_test" "$live_runner" "$live_runner_test" \
 		"$live_window_test" "$serve" "$build_test" "$package_test" \
-		"$report" "$hold_report"
+		"$report" "$hold_report" "$go_report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
 		exit 1
@@ -147,8 +151,8 @@ for document in README.md ROADMAP.md docs/current-state.md \
 	docs/kernel-port.md docs/network-root.md docs/test-plan.md \
 	docs/builds-and-artifacts.md docs/port-status.md
 do
-	grep -Fq 'ucode-allocation-v5-prelive-hold.md' "$repo/$document" || {
-		echo "FAIL project status omits ucode-allocation v5 HOLD: $document" >&2
+	grep -Fq 'ucode-allocation-v5-prelive-go.md' "$repo/$document" || {
+		echo "FAIL project status omits ucode-allocation v5 GO: $document" >&2
 		exit 1
 	}
 done
@@ -171,4 +175,4 @@ fi
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, explicit-window-only, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, preflight-GO, explicit-window-only, and non-flashing'

@@ -342,7 +342,11 @@ transport suite with strict SSH identity and private evidence handling. The
 [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
 keeps the decision at **HOLD**: the root remains non-runnable through the NFS
 launcher, the phone was not contacted, and any live cycle is still
-unauthorized.
+unauthorized at that checkpoint. The subsequent
+[pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+adds one fail-first-tested, explicit-opt-in, verifier-before-state NFS case
+for exact v5 and passes the fallback/host preflight. This authorizes at most
+one attended RAM-only ucode-allocation cycle, not any later GPU tier.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

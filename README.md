@@ -347,7 +347,11 @@ unchanged complete boot package. The subsequent
 [pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
 accepts a fail-first-tested, exact one-invocation host runner, but records a
 deliberate **HOLD**: the root is not served, NFS remains inactive, and no
-phone cycle is authorized.
+phone cycle is authorized. The subsequent
+[pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+lifts that HOLD for exactly one attended RAM-only cycle: an explicit opt-in
+now permits only the exact v5 root after its full verifier runs, while NFS
+remains inactive until the bounded transition begins.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
