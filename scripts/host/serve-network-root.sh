@@ -35,6 +35,12 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
+	/var/lib/rog5-network-root-a660-ucode-allocation-v7)
+		[[ ${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7_NFS:-} == 1 ]] ||
+			fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7_NFS=1 for the attended v7 window'
+		"$repo/scripts/host/verify-a660-ucode-allocation-v7-export.sh" \
+			"$root" /var/lib/rog5-network-root-a660-ucode-allocation-v6
+		;;
 	*)
 		fail 'unexpected export root'
 		;;
