@@ -887,8 +887,20 @@ three-object/logical-`4/4` cleanup and proves the atomic entry hit is compiled
 before inner PM, clocks, IRQ, and HFI. Semantic and mutation tests require one
 outer and zero inner runtime-PM operations, exact `EUCLEAN`, successful
 rollback, equal settled GEM snapshots, and zero clock/IRQ/HFI/devfreq/LLC/
-hardware/ZAP/SCM work. V8 is still **HOLD**: no protected root, NFS case,
-runner, package, phone transition, or flash has been prepared or authorized.
+hardware/ZAP/SCM work. The
+[v8 protected-root acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
+now also passes. A PolicyKit-only builder derives a root-owned mode-`0555`
+copy-on-write root from permanently consumed v7, replaces only the versioned
+controls and exact v8 MSM module, and preserves all other bytes, metadata,
+credentials, host keys, modules, and firmware. The complete verifier passed
+during construction and twice against the final root; predecessor, parameter
+mode, build-evidence, trace-policy, and old-MSM mutations were rejected. The
+compound target gate passes offline with the initial watchdog retained
+through baseline, an overlapping 240-second transition watchdog, exactly one
+probe, and mandatory normal reboot. NFS/RPC stayed inactive, the bounded
+server has no v8 case, and the phone was not contacted. V8 is still **HOLD**:
+no host runner, server case, package/control GO review, phone transition,
+retry, or flash is authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

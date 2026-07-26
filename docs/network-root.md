@@ -753,15 +753,19 @@ and
 [offline runtime](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
 pass. The runtime reproducibly derives from consumed v7, pins the v8 module
 relocations, preserves logical `4/4` cleanup and equal GEM snapshots, and
-forbids every inner PM/resource/HFI/hardware/SCM event. No root-owned export,
-server allowlist case, target/root gate, host runner, or pre-live package
-exists. NFS must remain inactive for v8 until a fresh root derives only from
-the immutable accepted predecessor, carries the new exact MSM module and
-required firmware, preserves credentials and every storage/watchdog/thermal/
-systemd constraint, and passes exact-delta plus mutation verification. A
-later HOLD review may add a no-authority runner; only a separate
-verifier-before-state GO review may add one exact-root server case. Neither
-checkpoint may authorize flashing or retry.
+forbids every inner PM/resource/HFI/hardware/SCM event. The
+[protected-root acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
+now passes as well. Its PolicyKit-only builder derives from the immutable
+consumed predecessor, carries the exact new MSM module and two required
+firmware files, preserves credentials and every undeclared rootfs byte and
+metadata field, and rejects five seal/module mutations. The compound target
+gate pins the storage-free read-only-NFS/OverlayFS environment, generated
+controls, nested watchdog handoff, one probe, and mandatory normal reboot.
+The root is deliberately absent from the bounded server and has no host
+runner. NFS must remain inactive for v8 while a separate no-authority runner
+and pre-live HOLD are developed. Only a later verifier-before-state GO review
+may add one exact-root server case. Neither checkpoint may authorize flashing
+or retry.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

@@ -435,9 +435,17 @@ MMIO, IRQ, firmware start, HFI, hardware initialization, ZAP/SCM, submit, or
 rendering, then reuses the accepted v7 rollback. The zero-fuzz runtime is
 reproducible, pins the compiled call/relocation layout, and rejects mode,
 resume, rollback, inner-PM, clock, IRQ, HFI, snapshot, errno, predecessor,
-and writable-parameter mutations. V8 remains **HOLD**: no protected network
-root, NFS case, runner, temporary-boot package, phone cycle, or flash is
-authorized.
+and writable-parameter mutations. The
+[v8 protected-root acceptance](test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
+now also passes. PolicyKit created a consumed-v7-derived, root-owned
+mode-`0555` copy-on-write root, replaced only its four versioned controls and
+exact MSM module, and preserved every other file, metadata item, credential,
+host identity, module, and firmware input. The verifier passed during
+construction and twice afterward; five predecessor, mode, evidence, trace,
+and MSM mutations were rejected. Its compound target gate also passes
+offline with overlapping watchdogs and mandatory reboot. V8 remains
+**HOLD**: it has no NFS server case, host runner, pre-live package/control
+review, phone cycle, retry, or flash authority.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
