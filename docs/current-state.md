@@ -898,9 +898,18 @@ mode, build-evidence, trace-policy, and old-MSM mutations were rejected. The
 compound target gate passes offline with the initial watchdog retained
 through baseline, an overlapping 240-second transition watchdog, exactly one
 probe, and mandatory normal reboot. NFS/RPC stayed inactive, the bounded
-server has no v8 case, and the phone was not contacted. V8 is still **HOLD**:
-no host runner, server case, package/control GO review, phone transition,
-retry, or flash is authorized.
+server has no v8 case, and the phone was not contacted. The
+[v8 pre-live control acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+now also passes. Its one-invocation runner pins clean synchronized Git,
+caller-owned credentials and private evidence, the unchanged RAM-only
+package, complete protected-root verifier, target gate, and watchdog helper.
+The mock proves one prepare/copy/remote-verify/gate sequence, expected reboot
+disconnect, and no retry. Local-only fingerprint checks agree across the
+client key, both protected authorized-key files, and pinned server identity;
+the real root verifier and an actual unarmed runner refusal pass with
+NFS/RPC inactive and no phone contact. V8 is still **HOLD**: no server case,
+attended package/fallback GO review, phone transition, retry, or flash is
+authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
