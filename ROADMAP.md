@@ -388,7 +388,10 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   lock, create and independently verify the isolated v2 export, reject the old
   and consumed roots, and re-run the unchanged binary package's full exact
   verifier.
-- [ ] Define and fail-first test an atomic one-shot registration host/target
+- [x] Carry the accepted exact-device SMMU reprobe into v3, verify the unset
+  override and at-most-one `3da0000.iommu` write before DRM dependencies, and
+  replace v2 with a new independently verified export.
+- [x] Define and fail-first test an atomic one-shot registration host/target
   control plane with nested watchdogs, private evidence, immediate normal
   fallback, exact persistent-fallback verification, and complete host cleanup.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,

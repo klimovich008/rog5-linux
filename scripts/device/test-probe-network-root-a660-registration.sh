@@ -24,6 +24,10 @@ for contract in \
 	'systemd-modules-load.service' \
 	'/soc@0/clock-controller@3d90000' \
 	'/soc@0/iommu@3da0000' \
+	'rog5-adreno-smmu-driver-override-check' \
+	'unset-null-representation' \
+	'driver_override=%s' \
+	'drivers_probe=locked' \
 	'/soc@0/gpu@3d00000' \
 	'/soc@0/gmu@3d6a000' \
 	'/sys/module/gpucc_sm8350' \
@@ -64,6 +68,10 @@ for contract in \
 	'/sys/module/msm/parameters/separate_gpu_kms' \
 	'/sys/bus/platform/drivers/sm8350-gpucc' \
 	'/sys/bus/platform/drivers/arm-smmu' \
+	'/sys/bus/platform/drivers_probe' \
+	'3da0000.iommu' \
+	'exact platform-device reprobe' \
+	'exact_reprobe=' \
 	'/sys/bus/platform/drivers/adreno' \
 	'/sys/kernel/iommu_groups' \
 	'/dev/dri/renderD' \
@@ -109,14 +117,19 @@ gpucc_line=$(grep -n 'insmod "$gpucc_module" probe_trace=1' "$probe" |
 # shellcheck disable=SC2016
 msm_line=$(grep -n 'insmod "$msm_module" separate_gpu_kms=1' "$probe" |
 	cut -d: -f1)
+reprobe_line=$(grep -n \
+	'printf.*smmu_name.*drivers_probe' "$probe" | cut -d: -f1)
 fd_line=$(grep -n '^check_no_drm_fds ||' "$probe" | head -n 1 |
 	cut -d: -f1)
 safe_line=$(grep -n '^registration_safe=1$' "$probe" | cut -d: -f1)
 [ "$watchdog_line" -lt "$gpucc_line" ]
+[ "$gpucc_line" -lt "$reprobe_line" ]
+[ "$reprobe_line" -lt "$msm_line" ]
 [ "$gpucc_line" -lt "$msm_line" ]
 [ "$msm_line" -lt "$fd_line" ]
 [ "$fd_line" -lt "$safe_line" ]
 [ "$(grep -Ec '^[[:space:]]*(if ! )?insmod ' "$probe")" -eq 7 ]
+[ "$(grep -Ec 'printf.*smmu_name.*drivers_probe' "$probe")" -eq 1 ]
 [ "$(grep -c '^smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875$' \
 	"$probe")" -eq 1 ]
 if grep -Fq NOT_ACCEPTED "$probe"; then

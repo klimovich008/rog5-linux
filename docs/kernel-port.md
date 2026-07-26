@@ -287,8 +287,13 @@ only from the immutable NFS lower, removes `NOT_ACCEPTED`, builds a new
 root-owned seven-module/zero-firmware export, rejects the old and consumed
 roots, and re-passes the unchanged package's complete verifier. See the
 [registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
-An atomic one-shot host/rollback control plane still needs offline acceptance
-before one registration-only live decision.
+Registration v3 then fixes the remaining automatic-bind assumption by carrying
+the accepted exact `3da0000.iommu` reprobe forward before DRM dependencies.
+Its new export, A660 watchdog handoff, compound target gate, strict one-shot
+host runner, and complete verifier all pass offline. See the
+[registration v3 report](../test-results/2026-07-26-a660-registration-v3-offline.md).
+One final clean pushed read-only preflight remains before the sole
+registration-only live decision.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

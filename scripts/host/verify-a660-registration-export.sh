@@ -30,29 +30,39 @@ base_root=$(realpath -e "$base_root")
 seal=$root/etc/rog5/a660-registration-export
 [[ -f $seal && ! -L $seal ]]
 [[ $(stat -c '%u:%g:%a' "$seal") == 0:0:444 ]]
-grep -qx 'registration_generation=v2' "$seal"
+grep -qx 'registration_generation=v3' "$seal"
 grep -qx 'base_export=rog5-network-root-v1' "$seal"
 grep -qx "kernel_release=$release" "$seal"
 grep -qx "module_archive_sha256=$archive_hash" "$seal"
 grep -qx 'smmu_acceptance=ACCEPTED_IDLE_V21' "$seal"
 grep -qx "smmu_acceptance_sha=$acceptance_sha" "$seal"
 grep -qx "smmu_acceptance_report_sha=$acceptance_report_sha" "$seal"
+grep -qx 'smmu_reprobe=EXACT_PLATFORM_DEVICE_AT_MOST_ONCE' "$seal"
 
 baseline=$root/usr/local/sbin/rog5-a660-registration-baseline
 probe=$root/usr/local/sbin/rog5-a660-registration-probe
+driver_override_check=$root/usr/local/sbin/rog5-adreno-smmu-driver-override-check
 acceptance=$root/etc/rog5/adreno-smmu-v21-live.accepted
 cmp "$baseline" \
 	"$repo/scripts/device/check-network-root-a660-registration-baseline.sh"
 cmp "$probe" "$repo/scripts/device/probe-network-root-a660-registration.sh"
+cmp "$driver_override_check" \
+	"$repo/scripts/device/check-adreno-smmu-driver-override-state.sh"
 cmp "$acceptance" \
 	"$repo/manifests/acceptance/adreno-smmu-v21-live.accepted"
 [[ $(stat -c '%u:%g:%a' "$baseline") == 0:0:755 ]]
 [[ $(stat -c '%u:%g:%a' "$probe") == 0:0:755 ]]
+[[ $(stat -c '%u:%g:%a' "$driver_override_check") == 0:0:755 ]]
 [[ $(stat -c '%u:%g:%a' "$acceptance") == 0:0:444 ]]
 grep -qx "baseline_sha256=$(sha256sum "$baseline" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx "probe_sha256=$(sha256sum "$probe" | cut -d ' ' -f 1)" \
 	"$seal"
+grep -qx \
+	"driver_override_check_sha256=$(sha256sum "$driver_override_check" | cut -d ' ' -f 1)" \
+	"$seal"
+[[ $(sha256sum "$driver_override_check" | cut -d ' ' -f 1) == \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45 ]]
 grep -qx "smmu_acceptance_sha=$acceptance_sha" "$probe"
 [[ $(sha256sum "$acceptance" | cut -d ' ' -f 1) == "$acceptance_sha" ]]
 "$repo/scripts/device/verify-adreno-smmu-v21-live-acceptance.sh" \
@@ -143,6 +153,7 @@ unchanged_manifest() {
 		! -path "$tree/usr/local/sbin" \
 		! -path "$tree/usr/local/sbin/rog5-a660-registration-baseline" \
 		! -path "$tree/usr/local/sbin/rog5-a660-registration-probe" \
+		! -path "$tree/usr/local/sbin/rog5-adreno-smmu-driver-override-check" \
 		! -path "$tree/etc/rog5/adreno-smmu-v21-live.accepted" \
 		! -path "$tree/etc/rog5/a660-registration-export" \
 		-printf '%P|%y|%m|%U|%G|%s|%l\n' | sort
@@ -162,6 +173,7 @@ unchanged_hashes() {
 			! -path "./usr/lib/modules/$release/*" \
 			! -path './usr/local/sbin/rog5-a660-registration-baseline' \
 			! -path './usr/local/sbin/rog5-a660-registration-probe' \
+			! -path './usr/local/sbin/rog5-adreno-smmu-driver-override-check' \
 			! -path './etc/rog5/adreno-smmu-v21-live.accepted' \
 			! -path './etc/rog5/a660-registration-export' \
 			-print0 | sort -z | xargs -0 sha256sum
@@ -171,4 +183,4 @@ unchanged_hashes "$base_root" >"$work/base.sha256"
 unchanged_hashes "$root" >"$work/candidate.sha256"
 cmp "$work/base.sha256" "$work/candidate.sha256"
 
-echo "PASS v21-accepted A660 registration v2 export modules=7 firmware=0 credentials=preserved base=unchanged"
+echo "PASS v21-accepted exact-reprobe A660 registration v3 export modules=7 firmware=0 credentials=preserved base=unchanged"

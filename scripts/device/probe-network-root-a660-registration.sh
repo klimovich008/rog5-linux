@@ -203,6 +203,31 @@ for device in "$gpucc_device" "$smmu_device" "$gpu_device" "$gmu_device"; do
 done
 [ -d /sys/bus/platform/drivers/arm-smmu ] ||
 	fail 'built-in ARM SMMU driver is absent'
+smmu_name=$(basename "$smmu_device")
+[ "$smmu_name" = 3da0000.iommu ] ||
+	fail 'Adreno SMMU platform device name is unexpected'
+[ -r "$smmu_device/driver_override" ] ||
+	fail 'Adreno SMMU driver_override is unreadable'
+driver_override_check=/.rog5/root-ro/usr/local/sbin/rog5-adreno-smmu-driver-override-check
+[ -f "$driver_override_check" ] && [ ! -L "$driver_override_check" ] &&
+	[ -x "$driver_override_check" ] ||
+	fail 'Adreno SMMU driver_override checker is not exact'
+[ "$(stat -c '%u:%g:%a' "$driver_override_check")" = 0:0:755 ] ||
+	fail 'Adreno SMMU driver_override checker metadata is not exact'
+driver_override_state=$(
+	"$driver_override_check" "$smmu_device/driver_override"
+) || fail 'Adreno SMMU driver_override is not the reviewed unset state'
+[ "$driver_override_state" = unset-null-representation ] ||
+	fail 'Adreno SMMU driver_override classification is unexpected'
+[ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
+	fail 'platform driver autoprobe is disabled'
+drivers_probe=/sys/bus/platform/drivers_probe
+[ "$(stat -c '%u:%g:%a' "$drivers_probe")" = 0:0:200 ] &&
+	[ -w "$drivers_probe" ] ||
+	fail 'platform drivers_probe control is not exact'
+[ ! -e /sys/bus/platform/drivers/arm-smmu/bind ] &&
+	[ ! -e /sys/bus/platform/drivers/arm-smmu/unbind ] ||
+	fail 'ARM SMMU force-bind controls unexpectedly exist'
 [ -z "$(find /dev/dri -maxdepth 1 -name 'renderD*' -print 2>/dev/null)" ] ||
 	fail 'a /dev/dri/renderD node exists before registration'
 for fd in /proc/[0-9]*/fd/*; do
@@ -227,6 +252,7 @@ fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|gl
 [ "$(dmesg | grep -Eic "$fault_pattern" || true)" -eq 0 ] ||
 	fail 'IOMMU fault signature exists before registration'
 dmesg_start=$(( $(dmesg | wc -l) + 1 ))
+reprobe_attempted=0
 
 registration_safe=0
 watchdog_pid=
@@ -331,8 +357,23 @@ gpucc_parameter=/sys/module/gpucc_sm8350/parameters/probe_trace
 [ "$(readlink -f "$gpucc_device/driver")" = \
 	/sys/bus/platform/drivers/sm8350-gpucc ] ||
 	post_fail 'GPUCC bound an unexpected driver'
+
+for _ in 1 2 3 4 5; do
+	[ ! -e "$smmu_device/driver" ] || break
+	sleep 1
+done
+if [ ! -e "$smmu_device/driver" ]; then
+	echo 'rog5-a660-registration: exact platform-device reprobe begin' \
+		>/dev/kmsg
+	if ! printf '%s\n' "$smmu_name" >"$drivers_probe"; then
+		post_fail 'exact Adreno SMMU platform reprobe write failed'
+	fi
+	reprobe_attempted=1
+	echo 'rog5-a660-registration: exact platform-device reprobe returned' \
+		>/dev/kmsg
+fi
 [ -e "$smmu_device/driver" ] ||
-	post_fail 'Adreno SMMU did not bind after GPUCC'
+	post_fail 'Adreno SMMU did not bind after at most one exact reprobe'
 [ "$(readlink -f "$smmu_device/driver")" = \
 	/sys/bus/platform/drivers/arm-smmu ] ||
 	post_fail 'Adreno SMMU bound an unexpected driver'
@@ -472,5 +513,6 @@ done
 registration_safe=1
 disarm_watchdog
 trap - EXIT HUP INT TERM
-printf 'PASS A660 registration GPUCC=1 SMMU=1 GPU=1 GMU=1 iommu=2 render=1 drm_fds=0 firmware=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s watchdog=disarmed\n' \
-	"$thermal_count" "$thermal_max"
+printf 'PASS A660 registration GPUCC=1 SMMU=1 GPU=1 GMU=1 iommu=2 render=1 drm_fds=0 firmware=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
+	"$driver_override_state"

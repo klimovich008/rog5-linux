@@ -296,10 +296,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   new root-owned export verifies seven modules, zero firmware, preserved
   credentials, and an unchanged base. Old/consumed roots are rejected and the
   unchanged fourteen-file package passes its full exact verifier.**
-- Before running registration v2, fail-first test one atomic host/target
+- Before running registration v3, carry the accepted exact-device reprobe into
+  the probe, accept only exact unset override state, wait five seconds for
+  ordinary autoprobe, and permit at most one `3da0000.iommu` write before DRM
+  dependencies. **Passed offline; v3 replaces v2 in the runnable allowlist.**
+- Before running registration v3, fail-first test one atomic host/target
   launcher with exact Git/artifact/export/SSH identity, nested watchdogs, one
   invocation, private evidence, immediate normal reboot, persistent-fallback
-  health, and complete privileged host cleanup. **Pending.**
+  health, and complete privileged host cleanup. **Passed offline. Dedicated
+  A660 disarm, compound gate, and host-runner suites pass; the full exact
+  bundle and actual root-owned v3 export reverify with NFS inactive.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

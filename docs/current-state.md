@@ -692,10 +692,24 @@ server-allowlisted; NFS stayed inactive. The complete exact binary verifier
 passed again and the phone was not contacted. See the
 [registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
 
-The next step remains offline: build and fail-first test an atomic one-shot
-host/target launcher with overlapping rollback authority, private evidence,
-normal reboot, exact persistent-fallback verification, and complete host
-cleanup before deciding on one registration-only cycle.
+A follow-up offline review found that v2 assumed automatic SMMU bind after
+GPUCC even though accepted v21 required an exact reprobe. Registration v3 now
+checks the immutable-lower NULL-override helper, exact device name, autoprobe,
+root-owned mode-`0200` control, and absent force-bind files; after five seconds
+of ordinary autoprobe it may write only `3da0000.iommu` once, before any DRM
+dependency load. PolicyKit created and independently verified the new
+root-owned v3 export; v2 is preserved but no longer allowlisted.
+
+V3 also passes the missing live-control suite: A660-release-specific original
+watchdog disarm, independent 90/180-second probe/transition watchdogs, one
+target invocation, immediate normal reboot, strict SSH identity, clean
+synchronized Git, exact AVB/export hashes, mode-`0600` private evidence, and
+no retry. The complete binary verifier passes again. The phone was not
+contacted and NFS stayed inactive. See the
+[registration v3 report](../test-results/2026-07-26-a660-registration-v3-offline.md).
+
+The next step is one final clean pushed read-only host/fallback preflight,
+followed by a decision on the sole registration-only RAM cycle.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

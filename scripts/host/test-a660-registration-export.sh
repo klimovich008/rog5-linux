@@ -16,7 +16,7 @@ done
 
 for contract in \
 	'/var/lib/rog5-network-root-v1' \
-	'/var/lib/rog5-network-root-a660-registration-v2' \
+	'/var/lib/rog5-network-root-a660-registration-v3' \
 	'cp -a --reflink=always' \
 	e3cb1ef31b6c1c803bee98748660f92b3b192d460cb41d5d4691f9953a91a42b \
 	'7.1.4-rog5-a660reg1' \
@@ -35,12 +35,14 @@ for contract in \
 	5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d \
 	'rog5-a660-registration-baseline' \
 	'rog5-a660-registration-probe' \
+	'rog5-adreno-smmu-driver-override-check' \
 	'adreno-smmu-v21-live.accepted' \
 	'verify-adreno-smmu-v21-live-acceptance.sh' \
-	'registration_generation=v2' \
+	'registration_generation=v3' \
 	'smmu_acceptance=ACCEPTED_IDLE_V21' \
 	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
 	'smmu_acceptance_report_sha=0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc' \
+	'smmu_reprobe=EXACT_PLATFORM_DEVICE_AT_MOST_ONCE' \
 	'credentials=preserved' \
 	'verify-network-root-export.sh'
 do
@@ -50,9 +52,9 @@ do
 	}
 done
 
-grep -Fq '/var/lib/rog5-network-root-a660-registration-v2)' "$serve" ||
+grep -Fq '/var/lib/rog5-network-root-a660-registration-v3)' "$serve" ||
 	{
-		echo 'FAIL NFS server omits the v21-accepted A660 v2 export' >&2
+		echo 'FAIL NFS server omits the exact-reprobe A660 v3 export' >&2
 		exit 1
 	}
 grep -Fq 'verify-a660-registration-export.sh' "$serve" ||
@@ -62,6 +64,7 @@ grep -Fq 'verify-a660-registration-export.sh' "$serve" ||
 	}
 for rejected in \
 	/var/lib/rog5-network-root-a660-registration \
+	/var/lib/rog5-network-root-a660-registration-v2 \
 	/var/lib/rog5-network-root-adreno-smmu-v20 \
 	/var/lib/rog5-network-root-adreno-smmu-v21
 do
@@ -83,4 +86,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS A660 v2 export is copy-on-write, v21-accepted, seven-module exact, firmware-free, credential-preserving, and exclusively allowlisted'
+echo 'PASS A660 v3 export is copy-on-write, v21-accepted, exact-reprobe bounded, seven-module exact, firmware-free, credential-preserving, and exclusively allowlisted'

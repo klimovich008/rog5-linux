@@ -19,6 +19,12 @@ for contract in \
 	'test-a660-registration-asus-kexec-stage-build-contract.sh' \
 	'test-probe-network-root-a660-registration.sh' \
 	'test-a660-registration-export.sh' \
+	'disarm-network-root-a660-watchdog.sh' \
+	'test-disarm-network-root-a660-watchdog.sh' \
+	'run-network-root-a660-registration-gate.sh' \
+	'test-run-network-root-a660-registration-gate.sh' \
+	'run-a660-registration-live-gate.sh' \
+	'test-run-a660-registration-live-gate.sh' \
 	'verify-adreno-smmu-v21-live-acceptance.sh' \
 	'test-adreno-smmu-v21-live-acceptance.sh' \
 	c4b9a2ec5afdd73a555031425a5eaedf5ab97a36a69eeefdcfede279ad7ffcd0 \
@@ -33,6 +39,12 @@ for contract in \
 	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875 \
 	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc \
 	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
+	'check-adreno-smmu-driver-override-state.sh' \
+	'EXACT_PLATFORM_DEVICE_AT_MOST_ONCE' \
+	'3da0000.iommu' \
+	733a2ba85e192e982883de1afee04e9fee0d137d737a611ad0914f185885fbbc \
+	13224d8ac0a6eafddac6554a77d08d381312ead2730268859b3a375b778b3364 \
+	512ab814fdc17d25ff8ee555b4b515059695ab95052be85c76a10d26470d7315 \
 	'CONFIG_DRM_MSM=m' \
 	'DRM_MSM_KMS' \
 	'qcom/sm8350/a660_zap.mbn' \

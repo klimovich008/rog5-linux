@@ -34,6 +34,13 @@ acceptance_verifier=$repo/scripts/device/verify-adreno-smmu-v21-live-acceptance.
 acceptance_test=$repo/scripts/device/test-adreno-smmu-v21-live-acceptance.sh
 acceptance_report=$repo/test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md
 acceptance_marker=$repo/manifests/acceptance/adreno-smmu-v21-live.accepted
+driver_override_check=$repo/scripts/device/check-adreno-smmu-driver-override-state.sh
+a660_disarm=$repo/scripts/device/disarm-network-root-a660-watchdog.sh
+a660_disarm_test=$repo/scripts/device/test-disarm-network-root-a660-watchdog.sh
+a660_gate=$repo/scripts/device/run-network-root-a660-registration-gate.sh
+a660_gate_test=$repo/scripts/device/test-run-network-root-a660-registration-gate.sh
+a660_host_runner=$repo/scripts/host/run-a660-registration-live-gate.sh
+a660_host_runner_test=$repo/scripts/host/test-run-a660-registration-live-gate.sh
 
 check_hash() {
 	file=$1
@@ -68,8 +75,19 @@ check_hash "$acceptance_report" \
 	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc
 check_hash "$acceptance_marker" \
 	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+check_hash "$driver_override_check" \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45
+check_hash "$a660_disarm" \
+	733a2ba85e192e982883de1afee04e9fee0d137d737a611ad0914f185885fbbc
+check_hash "$a660_gate" \
+	13224d8ac0a6eafddac6554a77d08d381312ead2730268859b3a375b778b3364
+check_hash "$a660_host_runner" \
+	512ab814fdc17d25ff8ee555b4b515059695ab95052be85c76a10d26470d7315
 "$acceptance_verifier" "$acceptance_report" "$acceptance_marker" >/dev/null
 "$acceptance_test" >/dev/null
+"$a660_disarm_test" >/dev/null
+"$a660_gate_test" >/dev/null
+"$a660_host_runner_test" >/dev/null
 
 required_files='
 Image-5.4.210-network-root-stage
@@ -261,6 +279,10 @@ fi
 grep -qx \
 	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
 	"$repo/scripts/device/probe-network-root-a660-registration.sh"
+grep -Fq 'smmu_reprobe=EXACT_PLATFORM_DEVICE_AT_MOST_ONCE' \
+	"$repo/scripts/host/prepare-a660-registration-export.sh"
+grep -Fq '3da0000.iommu' \
+	"$repo/scripts/device/probe-network-root-a660-registration.sh"
 if grep -Fq NOT_ACCEPTED \
 	"$repo/scripts/device/probe-network-root-a660-registration.sh"
 then
@@ -299,4 +321,4 @@ grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
 ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
-echo 'PASS exact v21-accepted A660 registration bundle; four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only'
+echo 'PASS exact v21-accepted A660 registration bundle; exact SMMU reprobe, four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only'

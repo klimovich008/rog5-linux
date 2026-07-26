@@ -603,16 +603,19 @@ and
 then the
 [v21 live acceptance report](../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md).
 
-The A660 registration v2 export is the only diagnostic sibling now eligible
+The A660 registration v3 export is the only diagnostic sibling now eligible
 for the server allowlist. Its probe reads the exact v21 acceptance marker from
 the immutable NFS lower, and its root-owned mode-`0444` seal pins the marker
-and live-report hashes. The independently verified root preserves the accepted
-v1 base and credentials, contains exactly seven registration modules and zero
-A660 firmware, and rejects the old A660 export plus consumed v20/v21 roots.
-The unchanged registration kernel/DT/wrapper/AVB package passes its complete
-exact verifier again. NFS remained inactive and the phone was not contacted.
+and live-report hashes. It also pins the exact NULL-override checker and at
+most one `3da0000.iommu` reprobe before DRM dependencies. The independently
+verified root preserves the accepted v1 base and credentials, contains exactly
+seven registration modules and zero A660 firmware, and rejects the old A660,
+v2, and consumed SMMU roots. Dedicated target watchdog handoff, compound-gate,
+strict host-runner, private-evidence, and no-retry tests pass. The unchanged
+registration kernel/DT/wrapper/AVB package passes its complete exact verifier
+again. NFS remained inactive and the phone was not contacted.
 See the
-[A660 registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
+[A660 registration v3 report](../test-results/2026-07-26-a660-registration-v3-offline.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

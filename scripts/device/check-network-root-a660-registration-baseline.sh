@@ -124,18 +124,47 @@ done
 [ ! -d /sys/bus/platform/drivers/adreno ] ||
 	fail 'Adreno driver exists before the guarded module load'
 
+smmu_device=
 for target in "$gpucc_dt" "$smmu_dt" "$gpu_dt" "$gmu_dt"; do
 	device_count=0
 	for device in /sys/bus/platform/devices/*; do
 		[ -L "$device/of_node" ] || continue
 		[ "$(readlink -f "$device/of_node")" = "$target" ] || continue
 		device_count=$((device_count + 1))
+		[ "$target" != "$smmu_dt" ] || smmu_device=$device
 		[ ! -e "$device/driver" ] ||
 			fail "registration device bound before its guarded probe: $target"
 	done
 	[ "$device_count" -eq 1 ] ||
 		fail "registration platform-device count is not one: $target"
 done
+
+[ -n "$smmu_device" ] || fail 'Adreno SMMU platform device is absent'
+smmu_name=$(basename "$smmu_device")
+[ "$smmu_name" = 3da0000.iommu ] ||
+	fail 'Adreno SMMU platform device name is unexpected'
+[ -r "$smmu_device/driver_override" ] ||
+	fail 'Adreno SMMU driver_override is unreadable'
+driver_override_check=/.rog5/root-ro/usr/local/sbin/rog5-adreno-smmu-driver-override-check
+[ -f "$driver_override_check" ] && [ ! -L "$driver_override_check" ] &&
+	[ -x "$driver_override_check" ] ||
+	fail 'Adreno SMMU driver_override checker is not exact'
+[ "$(stat -c '%u:%g:%a' "$driver_override_check")" = 0:0:755 ] ||
+	fail 'Adreno SMMU driver_override checker metadata is not exact'
+driver_override_state=$(
+	"$driver_override_check" "$smmu_device/driver_override"
+) || fail 'Adreno SMMU driver_override is not the reviewed unset state'
+[ "$driver_override_state" = unset-null-representation ] ||
+	fail 'Adreno SMMU driver_override classification is unexpected'
+[ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
+	fail 'platform driver autoprobe is disabled'
+drivers_probe=/sys/bus/platform/drivers_probe
+[ "$(stat -c '%u:%g:%a' "$drivers_probe")" = 0:0:200 ] &&
+	[ -w "$drivers_probe" ] ||
+	fail 'platform drivers_probe control is not exact'
+[ ! -e /sys/bus/platform/drivers/arm-smmu/bind ] &&
+	[ ! -e /sys/bus/platform/drivers/arm-smmu/unbind ] ||
+	fail 'ARM SMMU force-bind controls unexpectedly exist'
 
 [ -z "$(find /dev/dri -maxdepth 1 -name 'renderD*' -print 2>/dev/null)" ] ||
 	fail 'a /dev/dri/renderD node exists before registration'
@@ -193,5 +222,6 @@ fi
 
 pstore_records=$(find /sys/fs/pstore -mindepth 1 -maxdepth 1 -type f \
 	2>/dev/null | wc -l)
-printf 'PASS A660-registration baseline storage=0 mounts=0 firmware=0 render=0 drm_fds=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed modules=unloaded\n' \
-	"$thermal_count" "$thermal_max" "$module_files" "$pstore_records"
+printf 'PASS A660-registration baseline storage=0 mounts=0 firmware=0 render=0 drm_fds=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed modules=unloaded smmu_name=%s driver_override=%s drivers_probe=locked\n' \
+	"$thermal_count" "$thermal_max" "$module_files" "$pstore_records" \
+	"$smmu_name" "$driver_override_state"

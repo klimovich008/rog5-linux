@@ -283,14 +283,22 @@ report and acceptance marker into the probe's immutable NFS lower, removes
 `NOT_ACCEPTED`, creates a new independently verified root-owned export with
 seven modules and zero firmware, rejects the old export and all consumed
 SMMU roots, and re-passes the unchanged binary package's complete verifier.
-The phone was not contacted. A new atomic one-shot host/rollback runner must
-pass offline before one registration-only decision. Firmware and first DRM
-open remain later, separate gates. See the
+The next offline review caught v2's assumption that SMMU would bind
+automatically after GPUCC. Registration v3 now validates the exact unset
+override and performs at most one `3da0000.iommu` reprobe before any DRM
+dependency load. Its new root-owned export, A660-release watchdog handoff,
+180-second transition rollback, one-invocation target gate, strict host runner,
+private evidence contract, and complete unchanged-binary verifier all pass.
+V2 is no longer runnable. The phone was not contacted. One final clean pushed
+host/fallback preflight remains before the single registration-only decision.
+Firmware and first DRM open remain later, separate gates. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
 then the
-[A660 registration v2 report](test-results/2026-07-26-a660-registration-v2-offline.md).
+[A660 registration v2 report](test-results/2026-07-26-a660-registration-v2-offline.md)
+and
+[A660 registration v3 report](test-results/2026-07-26-a660-registration-v3-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
