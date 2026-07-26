@@ -535,12 +535,22 @@ v19 export preserves the complete module tree and credentials, contains zero
 A660 firmware, and leaves the accepted base unchanged. The target launcher
 still runs the baseline under the original watchdog, overlaps a 120-second
 transition watchdog across disarm and one 75-second probe, and requests
-immediate fallback. The inert host entry point is
-`run-adreno-smmu-live-gate.sh`; it requires both explicit guards and new
-private evidence. See the
+immediate fallback.
+
+Its one attended invocation passed the corrected baseline and completed GPUCC
+registration, but the exact SMMU platform device remained unbound after the
+30-second settle. No warning, fault, firmware, GPU/GMU consumer, render,
+storage, failed-unit, or unsafe-temperature message appeared. The armed
+watchdogs restored fallback automatically and the host removed every
+temporary NFS, address, sysctl, and firewall change. V19 is consumed and
+cannot be served or retried. The next version must capture exact
+deferred/supplier state and source-test one exact platform `drivers_probe`
+request; broad timeout or bus-rescan changes are rejected. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
-[v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
+[v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
+then the
+[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

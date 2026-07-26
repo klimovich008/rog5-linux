@@ -254,7 +254,17 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   Exact fallback and cleanup passed; v18 must not be retried. V19 keeps the
   unchanged reproduced binary, corrects the token-delimited fault detector,
   passes regressions and full offline re-verification, and has a new isolated
-  exact-allowlist export. One v19 live result is pending; no retry.**
+  exact-allowlist export. V19 passed baseline and GPUCC registration but
+  rejected because the SMMU remained unbound after 30 seconds. No warning,
+  fault, firmware, render, storage, failed-unit, or thermal message appeared;
+  direct post-bind checks were not reached. Watchdog fallback and complete
+  cleanup passed. V19 must not be retried.**
+- Before another SMMU cycle, source-pin the platform `drivers_probe` path and
+  capture the exact device's `waiting_for_supplier`, deferred-list, driver,
+  modalias, and device-link state before and after GPUCC registration. Permit
+  only one exact-device reprobe after both watchdogs are armed. Reject any
+  global deferred-timeout extension, broad bus rescan, force-bind, unload,
+  retry, firmware, render, or storage path. **V20 offline work pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
@@ -271,7 +281,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Require a read-only pre-disarm baseline and an independent SysRq-watchdog
   probe that manually loads the exact seven-module chain, never opens DRM,
   detects any firmware request, and disarms only after stable registration.
-  Keep a source lock until the v19 SMMU live marker is hash-pinned. **Passed
+  Keep a source lock until a passing SMMU live marker is hash-pinned. **Passed
   offline against the exact build; deliberately locked for live use.**
 - Reproduce the initramfs/module stage carrying the accepted baseline and
   probe, then the nested wrapper and temporary-boot package before permitting

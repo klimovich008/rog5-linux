@@ -7,6 +7,11 @@ false positive; v18 must not be retried. The corrected v19 external control
 plane passes offline acceptance. No SMMU bind, GPU/GMU enablement, firmware
 request, DRM/render node, acceleration, flash, or storage write occurred.**
 
+Update: v19 subsequently ran once. Its corrected baseline and GPUCC
+registration passed, but the SMMU remained unbound; watchdog fallback and
+cleanup passed. V19 is now consumed too. See the
+[v19 no-bind report](2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
+
 ## Attended v18 boundary
 
 The exact manifest-pinned 100,663,296-byte v18 AVB image was used once through
@@ -120,16 +125,11 @@ general v1 root and this v19 sibling only; the historical v18 sibling cannot
 be served. NFS remained inactive with no export mount, listener, or mount
 daemon after preparation and verification.
 
-## Next gate
+## Superseded next gate
 
-V19 is eligible for review as one new attended external-control candidate.
-If run, it must use the same temporary-boot-only binary, a new private evidence
-directory, the original and transition watchdogs, one compound invocation,
-and immediate normal fallback. Acceptance still requires one GPUCC bind, one
-exact runtime-suspended SMMU bind, and zero GPU/GMU clients, firmware, render
-nodes, storage, warnings, faults, unsafe thermals, failed units, or cleanup
-failures.
-
-A v19 PASS would accept only the idle SMMU prerequisite. A660 registration,
-first DRM open, GPU firmware/authentication, Mesa/Freedreno, display,
-suspend, battery tuning, and accelerated desktop remain separate tiers.
+The v19 procedure described by this report has been consumed and is no longer
+authorized. The next version must capture exact deferred/supplier state and
+source-test one narrow platform `drivers_probe` request before another
+attended cycle. A660 registration, first DRM open, GPU
+firmware/authentication, Mesa/Freedreno, display, suspend, battery tuning, and
+accelerated desktop remain separate locked tiers.

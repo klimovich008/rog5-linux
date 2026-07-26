@@ -222,9 +222,16 @@ module load, or SMMU bind. Exact fallback and cleanup passed, so v18 is
 consumed and must not be retried. V19 retains the exact reproduced v18 binary
 while correcting and regression-testing only the external detectors, source
 locks, export seal, and NFS allowlist. Its isolated firmware-free export and
-full offline verifier pass. One attended v19 bind/runtime-suspend probe is
-next; acceleration remains out of scope. See the
-[safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
+full offline verifier pass. Its attended gate then passed baseline and GPUCC
+registration but safely rejected because the SMMU remained unbound after the
+full settle. No warning, fault, firmware, render, storage, failed-unit, or
+unsafe-temperature message appeared; watchdog fallback and cleanup passed.
+V19 is consumed. The next version must capture exact deferred/supplier state
+and source-test one exact platform `drivers_probe` request, not extend the
+global timeout or rescan the bus. Acceleration remains out of scope. See the
+[safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md)
+and the
+[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
 
 The complete A660/GMU graph has now passed source audit, and the guarded
 registration kernel is built. Linux `7.1.4-rog5-a660reg1` keeps DRM/MSM,
@@ -237,10 +244,10 @@ firmware is embedded and no phone state changed. See the
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules, while a source lock prevents live
-use until v19 SMMU acceptance is pinned. The isolated seven-module export,
+use until a later SMMU acceptance is pinned. The isolated seven-module export,
 nested stage, two clean ASUS wrappers, two boot repacks, and exact
-fourteen-file bundle now reproduce and pass offline. The v19 SMMU live gate is
-the next tier.
+fourteen-file bundle now reproduce and pass offline. A source-tested v20
+exact-device SMMU reprobe gate is the next tier.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

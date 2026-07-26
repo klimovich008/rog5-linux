@@ -577,7 +577,27 @@ accepted base unchanged. The runtime NFS allowlist accepts v1 and v19, not
 historical v18; NFS remains inactive. The strict five-file launcher retains
 the original watchdog, overlapping 120-second transition watchdog, one
 75-second probe, one invocation, private evidence, and immediate fallback.
-One attended v19 SMMU bind/runtime-suspend gate remains pending.
+
+The one attended v19 gate passed that baseline, armed both handoff/probe
+watchdogs, and completed the same trace-free GPUCC registration with
+`ret=0`. After the full 30-second settle, however, the exact SMMU platform
+device still had no driver link. Systemd remained running with zero failed
+units, the maximum observed target temperature was 37.1 C, and no warning,
+fault, firmware request, GPU/GMU bind, render, or storage message appeared.
+The armed watchdogs automatically removed the gadget; exact fallback and
+complete host cleanup then passed. V19 is consumed and must not be retried.
+See the
+[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
+
+Pinned source shows a late-provider/deferred-probe boundary: the SMMU needs
+GPUCC clocks, the kernel's deferred-probe timeout is ten seconds, GPUCC was
+loaded at target uptime 193 seconds, and the built-in `arm-smmu` driver
+suppresses its force-bind attribute. V19 did not capture enough supplier and
+deferred-list state to assign a single cause. The next offline-only v20 work
+must capture `waiting_for_supplier` and `devices_deferred`, then source-test at
+most one exact platform `drivers_probe` request. It must not extend the global
+timeout, rescan the bus, force-bind a driver, or contact the phone before full
+offline acceptance.
 
 The complete pinned A660 graph now also passes source audit. Its guarded
 Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,
@@ -589,12 +609,14 @@ not contacted. The exact v18-derived four-node DT now also passes mutation
 tests and duplicate byte-identical builds while preserving storage, display,
 remote-processor, RTC, and USB containment. Its baseline and manually ordered
 seven-module registration probe pass offline; a compile-time `NOT_ACCEPTED`
-lock prevents live use until the v19 SMMU result supplies a pinned marker. The
+lock prevents live use until a later passing SMMU result supplies a pinned
+marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 now also records the verified isolated seven-module NFS export, duplicate
 nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
-fourteen-file source-locked bundle. The v19 SMMU live gate remains the next
-required predecessor before a registration-only candidate may be rebuilt.
+fourteen-file source-locked bundle. A source-tested v20 SMMU exact-reprobe
+gate is the next required predecessor before a registration-only candidate
+may be rebuilt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

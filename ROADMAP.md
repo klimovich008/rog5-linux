@@ -87,8 +87,12 @@ for a working feature.
 - [x] Consume the one-shot attended v18 Adreno SMMU gate safely at its
   read-only baseline; a detector false-positive stopped before watchdog
   disarm, module load, or SMMU bind, and exact fallback/cleanup passed.
-- [ ] Run the corrected one-shot v19 Adreno SMMU bind/runtime-suspend gate,
-  then pin its acceptance before unlocking A660 registration.
+- [x] Consume the corrected one-shot v19 gate safely: baseline and GPUCC
+  registration passed, the SMMU remained unbound, and watchdog rollback plus
+  exact fallback/cleanup passed with zero-storage baseline and no new warning,
+  fault, or storage log.
+- [ ] Source-test a v20 exact-device deferred/supplier diagnostic and one
+  narrow platform `drivers_probe` request before any new attended cycle.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -324,8 +328,14 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Consume v18 safely at the baseline after a false match on the normal
   word `Default`; prove no watchdog disarm, GPUCC load, SMMU bind, firmware,
   render node, storage access, or cleanup failure, and do not retry v18.
-- [ ] Run the corrected one-shot attended v19 RAM-only SMMU
-  bind/runtime-suspend gate using the unchanged reproduced binary.
+- [x] Consume the corrected one-shot attended v19 gate: accept its baseline
+  and GPUCC result but reject the no-bind SMMU result, preserve private
+  evidence, and prove watchdog fallback plus complete cleanup.
+- [ ] Capture exact deferred/supplier state and test a v20 exact-device
+  platform reprobe control plane; forbid a global timeout extension, broad bus
+  rescan, force-bind, unload, retry, firmware, render, and storage path.
+- [ ] Run at most one v20 SMMU bind/runtime-suspend gate after complete
+  offline acceptance, then pin its result before unlocking A660 registration.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
@@ -340,7 +350,7 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   display, remote-processor, RTC, and USB containment.
 - [x] Define and artifact-test the read-only registration baseline and
   independent-watchdog probe; pin the seven-module load order, forbid DRM
-  opens/firmware requests, and source-lock it behind the v19 SMMU live result.
+  opens/firmware requests, and source-lock it behind a passing SMMU live result.
 - [x] Build and reproduce the module/initramfs stage carrying the accepted
   baseline and probe, then its ASUS wrapper and temporary-boot package before
   any registration attempt; verify the isolated seven-module NFS export,

@@ -218,11 +218,20 @@ reproduced RAM-only binary but corrects and regression-tests the external
 fault detectors, source locks, export seal, and exact NFS allowlist. Its new
 independently verified copy-on-write root has all 1,008 module files, zero A660
 firmware, preserved credentials, and an unchanged accepted base; NFS remains
-inactive. This is not acceleration; one attended v19 SMMU probe remains
-pending. See the
+inactive. Its one attended gate passed the corrected baseline and again
+completed GPUCC registration, but the SMMU remained unbound after the full
+30-second settle. No warning, fault, firmware/render/storage log, failed unit,
+or unsafe temperature appeared; the armed watchdogs restored
+exact fallback and complete host cleanup. V19 is consumed and must not be
+retried. Source review points to a late-provider/deferred-probe boundary; a
+future v20 control plane must first capture exact supplier/deferred state and
+source-test one exact platform `drivers_probe` request rather than lengthening
+the global timeout or rescanning the bus. See the
 [v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
-[v18 safe-rejection/v19 correction report](test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
+[v18 safe-rejection/v19 correction report](test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
+then the
+[v19 no-bind report](test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
 The complete pinned A660/GMU source graph and its first guarded kernel build
 now pass offline. Registration is a real hardware boundary: it attaches three
 IOMMU contexts and programs GMU RSCC/PDC registers, while firmware, GPU
@@ -234,12 +243,12 @@ error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
 builds. Its read-only baseline and no-open registration probe pass offline but
-remain source-locked until the corrected v19 SMMU live gate succeeds; the
+remain source-locked until a later SMMU live gate succeeds; the
 isolated seven-module NFS export, nested stage, two clean ASUS wrappers, two
 header-v3/AVB repacks, and exact fourteen-file bundle now also reproduce and
 pass their complete offline verifier. The package is intentionally not
-authorized for live use; the v19 SMMU gate and both later GPU live gates remain
-pending. See the
+authorized for live use; the v20 SMMU reprobe candidate must pass offline and
+live before either later GPU gate. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md).
