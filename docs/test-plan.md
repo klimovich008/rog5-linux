@@ -313,6 +313,15 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   temperature was 38.1 C; persistent fallback returned with zero pstore and
   project modules; v3 is consumed and absent from the runnable allowlist. The
   exact report/marker pair is hash-pinned and mutation-tested.**
+- Prove whether exact A660 firmware requests can be separated from the normal
+  first-open ucode, runtime-power, hardware-init, HFI, and ZAP/SCM path.
+  **Passed offline. The pinned source has one seam after SQE/GMU requests; a
+  no-open provisioning gate would test nothing.**
+- Before any firmware live cycle, fail-first test a default-off, read-only
+  module parameter and one-shot failed-open helper; include only exact
+  mode-`0644` SQE/GMU files, exclude ZAP, reproduce every build/export/package
+  twice, and require independent rollback. **Pending; no v4 source patch,
+  build, export, or live authorization exists.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

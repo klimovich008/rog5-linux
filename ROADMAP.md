@@ -104,6 +104,13 @@ for a working feature.
 - [x] Consume the one-shot v21 gate successfully: one exact-device reprobe
   bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage
   activity, and returned through exact fallback and complete host cleanup.
+- [x] Consume one A660 registration v3 cycle successfully: seven reviewed
+  modules attached GPU/GMU to two IOMMU groups and exposed one unopened
+  headless render node with zero firmware/storage/faults before exact fallback.
+- [x] Source-prove a first-open seam after exact SQE/GMU requests and before
+  ucode, runtime power, hardware initialization, HFI, and ZAP/SCM.
+- [ ] Build and reproduce the default-off one-shot firmware-request failed-open
+  diagnostic before deciding whether one attended RAM-only cycle is justified.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

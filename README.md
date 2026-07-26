@@ -296,7 +296,12 @@ descriptors, display connectors, storage, mounts, faults, and failed units
 stayed zero. Normal reboot restored exact fallback with complete host cleanup.
 V3 is consumed and no longer server-allowlisted. A mutation-tested nonsecret
 marker pins the exact live report and evidence checkpoint for later tiers.
-Firmware provisioning and first DRM open remain separate gates. See the
+The next source audit corrected the earlier “provision without open”
+shorthand: firmware files alone trigger no request, while normal `msm_open()`
+immediately couples requests to ucode, runtime power, HFI, and ZAP/SCM. The
+accepted next design is therefore a one-shot diagnostic open that requests
+only exact SQE/GMU firmware and deliberately fails before every later step;
+no such kernel has been built or run. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
@@ -306,6 +311,8 @@ and
 [A660 registration v3 offline report](test-results/2026-07-26-a660-registration-v3-offline.md),
 then the
 [A660 registration v3 live acceptance](test-results/2026-07-26-a660-registration-v3-live-accepted.md).
+The next-tier source boundary is recorded in the
+[A660 firmware-only boundary report](test-results/2026-07-26-a660-firmware-only-boundary.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

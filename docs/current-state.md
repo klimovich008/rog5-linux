@@ -720,9 +720,13 @@ longer server-allowlisted. A mutation-tested nonsecret acceptance marker pins
 the exact report hash and evidence checkpoint for every later GPU tier. See the
 [registration v3 live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 
-The next GPU boundary is exact firmware provisioning while every DRM node
-remains unopened. First DRM open, GMU resume/HFI, ZAP/SCM authentication, and
-rendering remain later, separate gates.
+The next source audit proved that copying firmware without a DRM open causes
+no request, while the ordinary first-open path continues immediately into
+ucode, runtime power, hardware initialization, HFI, and ZAP/SCM. The accepted
+next design is a custom, read-only-armed one-shot open that requests only the
+exact SQE and GMU files and then fails before file-context creation or every
+later hardware step. No v4 kernel has been built or run. See the
+[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md).
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

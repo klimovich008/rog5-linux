@@ -297,7 +297,12 @@ registration, two IOMMU attachments, one unopened headless render node, a
 zero-firmware 30-second settle, exact fallback, and complete host cleanup.
 V3 is consumed. See the
 [registration v3 live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
-Exact firmware provisioning without a DRM open is the next boundary.
+The next audit proves that provisioning files without an open triggers
+nothing. It accepts only a future diagnostic first-open branch that requests
+SQE/GMU firmware and deliberately fails before ucode, runtime power, hardware
+initialization, HFI, or ZAP/SCM. No patched kernel has been built or run. See
+the
+[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md).
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

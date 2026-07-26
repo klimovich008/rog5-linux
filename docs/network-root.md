@@ -620,6 +620,14 @@ server allowlist; only the persistent v1 root remains runnable. See the
 and
 [live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 
+The next offline source contract proves that firmware files alone do not
+trigger requests: the lazy request path begins at `msm_open()` and normally
+continues into ucode, runtime power, HFI, and ZAP/SCM. A future v4 root must
+therefore use a source-tested one-shot failed-open diagnostic, install only
+the exact SQE and GMU files as mode `0644`, keep ZAP absent, and reject every
+later hardware marker. No v4 export exists or is runnable. See the
+[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md).
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
