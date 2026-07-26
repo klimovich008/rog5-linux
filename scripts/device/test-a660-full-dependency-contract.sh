@@ -15,9 +15,9 @@ for contract in \
 	c796deb1cc54e942f8bb46a2c76a7199e19e5c92 \
 	'qcom,adreno-660.1' \
 	'qcom,adreno-gmu-660.1' \
-	'reg = <0 0x03d00000 0 0x40000>;' \
-	'reg = <0 0x03d6a000 0 0x34000>;' \
-	'reg = <0 0x08b51a000 0 0x2000>;' \
+	'reg = <0 0x03d00000 0 0x40000>,' \
+	'reg = <0 0x03d6a000 0 0x34000>,' \
+	'reg = <0x0 0x8b51a000 0x0 0x2000>;' \
 	'iommus = <&adreno_smmu 0 0x400>, <&adreno_smmu 1 0x400>;' \
 	'iommus = <&adreno_smmu 5 0x400>;' \
 	'power-domains = <&gpucc GPU_CX_GDSC>,' \
