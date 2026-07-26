@@ -16,6 +16,7 @@ verify_export=$repo/scripts/host/verify-a660-firmware-request-only-export.sh
 export_test=$repo/scripts/host/test-a660-firmware-request-only-export.sh
 run_live=$repo/scripts/host/run-a660-firmware-request-only-live-gate.sh
 run_live_test=$repo/scripts/host/test-run-a660-firmware-request-only-live-gate.sh
+live_acceptance_test=$repo/scripts/device/test-a660-firmware-request-only-v4-live-acceptance.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-firmware-request-only-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
@@ -27,7 +28,7 @@ package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 for input in "$helper_builder" "$helper_verifier" "$helper_test" "$baseline" \
 	"$probe" "$probe_test" "$gate" "$gate_test" "$prepare" \
 	"$verify_export" "$export_test" "$run_live" "$run_live_test" \
-	"$build_test" "$package_test"
+	"$live_acceptance_test" "$build_test" "$package_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 firmware-request-only v4 tool: $input" >&2
@@ -102,7 +103,8 @@ fi
 "$probe_test"
 "$gate_test"
 "$export_test"
-"$run_live_test"
+	"$run_live_test"
+"$live_acceptance_test"
 "$build_test"
 "$package_test"
 

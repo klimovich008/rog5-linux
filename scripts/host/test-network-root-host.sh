@@ -45,13 +45,12 @@ for contract in \
 	'ROG5_NFS_TIMEOUT:-900' \
 	'serve_timeout <= 86400' \
 	'/var/lib/rog5-network-root-v1)' \
-	'/var/lib/rog5-network-root-a660-firmware-request-only-v4)' \
-	'verify-a660-firmware-request-only-export.sh' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \
 	'remount,bind,ro,nodev,nosuid' \
 	'etab=/var/lib/nfs/etab' \
+	'0:0:600|0:0:644)' \
 	'mkdir -p /proc/fs/nfsd' \
 	'trap cleanup EXIT' \
 	'firewall_zone=drop' \
@@ -72,7 +71,8 @@ for consumed in \
 	/var/lib/rog5-network-root-adreno-smmu-v21 \
 	/var/lib/rog5-network-root-a660-registration \
 	/var/lib/rog5-network-root-a660-registration-v2 \
-	/var/lib/rog5-network-root-a660-registration-v3
+	/var/lib/rog5-network-root-a660-registration-v3 \
+	/var/lib/rog5-network-root-a660-firmware-request-only-v4
 do
 	if grep -Fq "$consumed)" "$serve"; then
 		echo "FAIL network-root host still allowlists consumed root: $consumed" >&2
