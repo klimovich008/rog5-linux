@@ -595,11 +595,12 @@ loaded at target uptime 193 seconds, and the built-in `arm-smmu` driver
 suppresses its force-bind attribute. V19 did not capture enough supplier and
 deferred-list state to assign a single cause.
 
-V20 now passes that offline boundary without changing the v18 binary. A
+V20 passed that offline boundary without changing the v18 binary. A
 hash-pinned Linux 7.1.4 driver-core verifier proves that platform
 `drivers_probe` resolves one exact name with `sysfs_streq()` and calls
 `device_attach()` only for that unbound device. The target baseline and probe
-validate the exact `3da0000.iommu` identity, empty `driver_override`, enabled
+validate the exact `3da0000.iommu` identity, an assumed-empty
+`driver_override`, enabled
 autoprobe, mode-0200 exact-device control, and absent ARM SMMU force-bind
 files. They record `waiting_for_supplier`, the already-mounted
 `devices_deferred` view, supplier links, driver state, and direct
@@ -609,14 +610,29 @@ request inside a 150-second transition watchdog. Global timeout extension,
 broad rescan, force-bind, unload, retry, firmware, render, and storage paths
 are rejected.
 
-The full binary verifier passes, and PolicyKit created and independently
+The full binary verifier passed, and PolicyKit created and independently
 verified `/var/lib/rog5-network-root-adreno-smmu-v20`: all 1,008 modules and
 credentials are preserved, all three A660 firmware files are absent, and the
-accepted base is unchanged. The NFS server now accepts v1 and v20 only;
-consumed v18 and v19 are rejected. NFS stayed inactive and the phone was not
-contacted. V20 is offline-accepted for at most one attended RAM-only live
-cycle; SMMU acceptance remains pending. See the
-[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md).
+accepted base is unchanged. Its one permitted live cycle reached the exact
+network root, then stopped before handoff because the fresh platform device
+exposed its unset override pointer as `(null)`, not an empty line. The
+original watchdog remained armed; the transition/probe watchdogs were not
+armed, GPUCC stayed absent, `drivers_probe` was not written, and the SMMU
+remained unbound. Read-only diagnosis found two supplier links and zero
+waiting, deferred, storage, mount, render, firmware, or failed-unit evidence.
+Normal fallback and complete host cleanup passed. V20 is consumed and must not
+be served or retried. See the
+[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md)
+and
+[v20 safe baseline-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md).
+
+Pinned source explains the value: `platform_device_alloc()` zero-initializes
+the device, `driver_override_show()` formats the NULL name pointer with `%s`,
+the kernel formatter emits `(null)`, and platform matching falls through to
+OF matching when no override exists. V21 must lock those semantics, accept
+only exact `(null)`, reject every other nonempty value, and never write the
+override. It also needs a new preserved root/seal and an allowlist that
+rejects consumed v20 before another live decision.
 
 The complete pinned A660 graph now also passes source audit. Its guarded
 Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,
@@ -633,9 +649,9 @@ marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 now also records the verified isolated seven-module NFS export, duplicate
 nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
-fourteen-file source-locked bundle. The offline-accepted v20 SMMU
-exact-reprobe gate must now pass its single live cycle before a
-registration-only candidate may be rebuilt.
+fourteen-file source-locked bundle. A corrected, offline-accepted v21 SMMU
+exact-reprobe gate must pass before a registration-only candidate may be
+rebuilt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -233,16 +233,22 @@ attributes remain suppressed and the ten-second global deferred timeout stays
 unchanged. The target captures waiting/deferred/supplier state, permits five
 seconds of normal autoprobe, and can issue only one `3da0000.iommu` request
 under nested 90/150-second watchdogs. The full binary verifier and isolated
-firmware-free v20 root pass offline; the phone was not contacted.
-Acceleration and SMMU acceptance remain out of scope until its one live cycle
-passes. See the
+firmware-free v20 root passed offline; the phone was not contacted at that
+checkpoint. Its one live cycle later stopped at the read-only baseline because
+the source-consistent unset `driver_override` text is `(null)`, not an empty
+line. The original watchdog remained armed; no GPUCC load,
+`drivers_probe` write, SMMU bind, firmware/render/storage action, or unsafe
+cleanup occurred. V20 is consumed. Acceleration and SMMU acceptance remain out
+of scope until a separately source-tested v21 correction passes. See the
 [safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md)
 and the
 [v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
 The
 [v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md)
 records the source proof, exact live boundary, fail-first suite, root seal, and
-live-eligibility decision.
+historical live-eligibility decision. The
+[v20 safe baseline-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md)
+records the no-action stop, source diagnosis, fallback, and v21 boundary.
 
 The complete A660/GMU graph has now passed source audit, and the guarded
 registration kernel is built. Linux `7.1.4-rog5-a660reg1` keeps DRM/MSM,
@@ -257,8 +263,9 @@ The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules, while a source lock prevents live
 use until a later SMMU acceptance is pinned. The isolated seven-module export,
 nested stage, two clean ASUS wrappers, two boot repacks, and exact
-fourteen-file bundle now reproduce and pass offline. The offline-accepted v20
-exact-device SMMU reprobe gate is the next single live tier.
+fourteen-file bundle now reproduce and pass offline. A corrected v21
+exact-device SMMU reprobe gate is the next possible live tier after complete
+offline acceptance.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

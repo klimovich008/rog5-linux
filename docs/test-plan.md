@@ -270,8 +270,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   safety state; the 90-second probe permits one `3da0000.iommu` request inside
   a 150-second transition watchdog. The isolated v20 root verifies with 1,008
   modules, zero A660 firmware, preserved credentials, and unchanged base.
-  V18/v19 are no longer server-allowlisted. One attended v20 cycle remains
-  pending.**
+  V18/v19 are no longer server-allowlisted. The single v20 cycle stopped
+  safely at baseline because the fresh unset override reads `(null)`, not an
+  empty line. No handoff, GPUCC load, reprobe write, or SMMU bind occurred;
+  fallback and cleanup passed. V20 is consumed.**
+- Before another exact-device SMMU cycle, source-pin platform zero-allocation,
+  override display/match behavior, and NULL `%s` formatting. Accept only exact
+  `(null)` as the reviewed unset state, reject every other nonempty value,
+  forbid any `driver_override` write, and preserve the v20 one-device and
+  watchdog boundaries. **Pending as separately versioned v21; it also requires
+  a new verified root/seal and a runnable allowlist that rejects v20.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

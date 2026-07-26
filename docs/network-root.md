@@ -557,19 +557,28 @@ storage paths are absent. Failure evidence now directly counts storage,
 block-backed mounts, render nodes, firmware requests, failed units, and
 system state before watchdog fallback.
 
-The v20 source/control-plane suite and full unchanged-binary verifier pass.
+The v20 source/control-plane suite and full unchanged-binary verifier passed.
 Its independently verified copy-on-write export has all 1,008 modules,
 preserved credentials, zero A660 firmware, and an unchanged base. A
 90-second probe watchdog remains nested inside a 150-second transition
-watchdog. V20 is offline-accepted for at most one attended RAM-only cycle; it
-has not been booted and does not yet accept the SMMU. See the
+watchdog. Its one live cycle reached the exact network root but stopped at the
+read-only baseline because the kernel displays the fresh unset
+`driver_override` pointer as `(null)`, while v20 required an empty line. The
+original watchdog stayed armed; no transition/probe watchdog, GPUCC load,
+`drivers_probe` write, SMMU bind, firmware, render, or storage action occurred.
+Normal fallback and complete host cleanup passed. V20 is consumed and cannot
+be served or retried. V21 must source-lock this representation, accept only
+exact `(null)`, never write the override, and use a new independently verified
+root before another live decision. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
 [v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
 then the
 [v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md)
 and
-[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md).
+[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md),
+then the
+[v20 safe baseline-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

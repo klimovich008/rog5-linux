@@ -94,6 +94,13 @@ for a working feature.
 - [x] Source-test and offline-accept a v20 exact-device deferred/supplier
   diagnostic and one narrow platform `drivers_probe` request before any new
   attended cycle.
+- [x] Consume the one-shot v20 gate safely at its read-only baseline; the
+  kernel exposed the fresh unset `driver_override` as `(null)`, no handoff,
+  module load, reprobe, or SMMU bind occurred, and exact fallback/cleanup
+  passed.
+- [ ] Source-test and offline-accept a v21 null-representation correction
+  with no `driver_override` write, a new preserved export, and the same
+  exact-device/watchdog boundary before deciding on another live cycle.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -339,8 +346,18 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   with all 1,008 modules, zero A660 firmware, preserved credentials, unchanged
   base, exact source/control-plane seal, and an allowlist that rejects v18 and
   v19.
-- [ ] Run at most one v20 SMMU bind/runtime-suspend gate after complete
-  offline acceptance, then pin its result before unlocking A660 registration.
+- [x] Consume the single v20 gate at its read-only baseline: reject the
+  verifier's empty-line assumption after observing the source-consistent
+  `(null)` unset representation; prove the original watchdog stayed armed,
+  GPUCC stayed absent, `drivers_probe` was never written, and complete
+  fallback/cleanup passed.
+- [ ] Source-test a v21 correction that pins platform allocation,
+  `driver_override` display/match semantics, and kernel NULL-string
+  formatting; accept only exact `(null)`, reject every other nonempty value,
+  and forbid any write to `driver_override`.
+- [ ] Prepare and independently verify a new v21 copy-on-write root and
+  source/control-plane seal; preserve v20 and remove it from every runnable
+  allowlist before deciding whether one v21 cycle is justified.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
