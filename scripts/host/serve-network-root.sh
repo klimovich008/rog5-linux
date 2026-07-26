@@ -29,9 +29,18 @@ for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 done
 [[ -d $root && ! -L $root ]] || fail 'missing prepared export root'
 root=$(realpath -e "$root")
-[[ $root == /var/lib/rog5-network-root-v1 ]] ||
-	fail 'unexpected export root'
-"$repo/scripts/host/verify-network-root-export.sh" "$root"
+case $root in
+	/var/lib/rog5-network-root-v1)
+		"$repo/scripts/host/verify-network-root-export.sh" "$root"
+		;;
+	/var/lib/rog5-network-root-adreno-smmu-v18)
+		"$repo/scripts/host/verify-adreno-smmu-export.sh" \
+			"$root" /var/lib/rog5-network-root-v1
+		;;
+	*)
+		fail 'unexpected export root'
+		;;
+esac
 
 etab=/var/lib/nfs/etab
 [[ -e $etab ]] || install -m 0644 /dev/null "$etab"
