@@ -16,7 +16,8 @@ live_runner=$repo/scripts/host/run-a660-gmu-resume-entry-v8-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-gmu-resume-entry-v8-live-gate.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
-	"$relocation_verify" "$consumed_v7_test" "$gate" "$gate_test"; do
+	"$relocation_verify" "$consumed_v7_test" "$gate" "$gate_test" \
+	"$live_runner" "$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable GMU resume-entry v8 export tool: $script" >&2
 		exit 1
@@ -57,7 +58,8 @@ for contract in \
 	'base=consumed-v7' \
 	'root-owned mode 0555'
 do
-	grep -Fq "$contract" "$prepare" "$verify" "$gate" "$gate_test" || {
+	grep -Fq "$contract" "$prepare" "$verify" "$gate" "$gate_test" \
+		"$live_runner" "$live_runner_test" || {
 		echo "FAIL GMU resume-entry v8 export path omits: $contract" >&2
 		exit 1
 	}
@@ -81,13 +83,9 @@ do
 		exit 1
 	fi
 done
-[[ ! -e $live_runner && ! -e $live_runner_test ]] || {
-	echo 'FAIL v8 live runner exists before export acceptance' >&2
-	exit 1
-}
-
 "$consumed_v7_test" >/dev/null
 "$gate_test" >/dev/null
+"$live_runner_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ $EUID == 0 ]] || {
@@ -150,4 +148,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	fi
 fi
 
-echo 'PASS A660 GMU resume-entry v8 export is consumed-v7-derived, exact-delta, compiler/entry/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, non-runnable, and non-flashing'
+echo 'PASS A660 GMU resume-entry v8 export is consumed-v7-derived, exact-delta, compiler/entry/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, non-runnable, and non-flashing'
