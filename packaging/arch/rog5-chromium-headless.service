@@ -2,6 +2,8 @@
 Description=ROG5 loopback-only headless Chromium automation
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -13,7 +15,15 @@ UMask=0077
 # ponytail: software rendering decouples automation from GPU bring-up; remove after Tier 5 passes.
 ExecStart=/usr/bin/chromium --headless=new --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --user-data-dir=/var/lib/rog5-agent/chromium about:blank
 Restart=on-failure
-RestartSec=3
+RestartSec=15s
+CPUQuota=200%
+CPUWeight=25
+MemoryHigh=1536M
+MemoryMax=2048M
+MemorySwapMax=512M
+TasksMax=256
+IOWeight=25
+OOMPolicy=stop
 NoNewPrivileges=yes
 PrivateDevices=yes
 PrivateTmp=yes
