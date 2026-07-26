@@ -245,7 +245,8 @@ full package verification, and pre-live boundary. The
 [A660 request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md)
 records the sole exact two-firmware request, `EUCLEAN` rejection, zero later
 hardware/storage/fault evidence, exact fallback, cleanup, and consumed-root
-lockout. The
+lockout. Its mutation-tested nonsecret marker pins the exact report and
+evidence checkpoint. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

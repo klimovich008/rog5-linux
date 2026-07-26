@@ -330,8 +330,8 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   ucode/power/HFI/ZAP/SCM/storage/display/fault evidence, exact fallback, and
   complete cleanup. **Passed live. Maximum target temperature was 38.5 C;
   persistent fallback returned with zero pstore/project modules; v4 is
-  consumed and absent from the runnable allowlist. The exact nonsecret
-  acceptance marker remains to be pinned; see the
+  consumed and absent from the runnable allowlist. The exact report/marker
+  pair is hash-pinned and mutation-tested; see the
   [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete

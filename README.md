@@ -309,8 +309,9 @@ offline contracts. The sole v4 RAM-only cycle then requested SQE and GMU
 exactly once, returned `EUCLEAN`, and retained zero ucode, power, HFI,
 ZAP/SCM, DRM descriptors, storage, display, warning, or fault evidence.
 Normal reboot restored exact fallback and complete host cleanup. V4 is
-consumed and no longer server-allowlisted; its exact nonsecret acceptance
-marker remains the next post-live checkpoint. See the
+consumed and no longer server-allowlisted. A mutation-tested nonsecret marker
+pins the exact live report and evidence checkpoint for the next GPU tier. See
+the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),

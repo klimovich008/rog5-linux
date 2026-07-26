@@ -417,7 +417,7 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Run one attended request-only failed-open gate; require exact
   `EUCLEAN`, bounded success evidence, no surviving DRM descriptor, and zero
   ucode, power, HFI, ZAP/SCM, storage, display, warning, or fault evidence.
-- [ ] Pin the exact request-only report and evidence checkpoint in a
+- [x] Pin the exact request-only report and evidence checkpoint in a
   mutation-tested nonsecret acceptance marker, and consume the v4 export.
 - [ ] Source-audit and fail-first test whether ucode buffer creation can be
   isolated after accepted firmware requests but before runtime power or

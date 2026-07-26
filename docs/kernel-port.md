@@ -307,8 +307,8 @@ static one-open helper, mutation-tested watchdog gate, strict host runner, and
 unchanged package pass offline. The sole live cycle then requested SQE and GMU
 exactly once, returned `EUCLEAN`, crossed no ucode/power/HFI/ZAP boundary,
 retained zero DRM descriptors/storage/faults, and returned through exact
-fallback plus complete cleanup. V4 is consumed; its exact nonsecret
-acceptance marker remains to be pinned. See the
+fallback plus complete cleanup. V4 is consumed. A mutation-tested nonsecret
+marker pins the exact report and evidence checkpoint. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),

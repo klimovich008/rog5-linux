@@ -735,8 +735,8 @@ once and returned `EUCLEAN` before ucode, runtime power, HFI, or ZAP/SCM.
 No DRM descriptor survived; storage, display, warnings, and faults stayed
 zero. Maximum target temperature was 38.5 C. Normal reboot restored exact
 fallback with zero pstore/project modules and complete host cleanup. V4 is
-consumed and removed from the runnable allowlist; its exact nonsecret
-acceptance marker remains to be pinned. See the
+consumed and removed from the runnable allowlist. A mutation-tested nonsecret
+acceptance marker pins the exact report and evidence checkpoint. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),

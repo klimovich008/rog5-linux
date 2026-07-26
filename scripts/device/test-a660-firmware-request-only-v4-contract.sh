@@ -16,7 +16,10 @@ verify_export=$repo/scripts/host/verify-a660-firmware-request-only-export.sh
 export_test=$repo/scripts/host/test-a660-firmware-request-only-export.sh
 run_live=$repo/scripts/host/run-a660-firmware-request-only-live-gate.sh
 run_live_test=$repo/scripts/host/test-run-a660-firmware-request-only-live-gate.sh
+live_acceptance_verifier=$repo/scripts/device/verify-a660-firmware-request-only-v4-live-acceptance.sh
 live_acceptance_test=$repo/scripts/device/test-a660-firmware-request-only-v4-live-acceptance.sh
+live_acceptance_report=$repo/test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md
+live_acceptance_marker=$repo/manifests/acceptance/a660-firmware-request-only-v4-live.accepted
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-firmware-request-only-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
@@ -25,10 +28,17 @@ package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 	echo 'FAIL missing A660 firmware-request-only open-helper source' >&2
 	exit 1
 }
+for input in "$live_acceptance_report" "$live_acceptance_marker"; do
+	[ -f "$input" ] && [ ! -L "$input" ] || {
+		echo "FAIL missing A660 firmware-request-only v4 live input: $input" >&2
+		exit 1
+	}
+done
 for input in "$helper_builder" "$helper_verifier" "$helper_test" "$baseline" \
 	"$probe" "$probe_test" "$gate" "$gate_test" "$prepare" \
 	"$verify_export" "$export_test" "$run_live" "$run_live_test" \
-	"$live_acceptance_test" "$build_test" "$package_test"
+	"$live_acceptance_verifier" "$live_acceptance_test" "$build_test" \
+	"$package_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 firmware-request-only v4 tool: $input" >&2
@@ -38,7 +48,7 @@ done
 
 for input in "$helper_builder" "$helper_verifier" "$helper_test" "$baseline" \
 	"$probe" "$probe_test" "$gate" "$gate_test" "$build_test" \
-	"$package_test"
+	"$package_test" "$live_acceptance_verifier" "$live_acceptance_test"
 do
 	sh -n "$input"
 done
@@ -79,11 +89,17 @@ for contract in \
 	'zap=absent' \
 	'storage=0' \
 	'drm_fds=0' \
-	'watchdog=disarmed'
+	'watchdog=disarmed' \
+	9c140753e1d188de141be90c253d5d42af21a3ce \
+	f5e1226923f82528e8cc2ad2727d38834c64761d7691559e295da43fafcfbd8c \
+	912846d98ef6ee9fb3c0fa9f0b455c49d47a2f43ff72e2ba1d14c1c284cbfe32 \
+	'v4_reuse=FORBIDDEN'
 do
 	if ! grep -Fq "$contract" "$helper_source" "$helper_builder" \
 		"$helper_verifier" "$baseline" "$probe" "$gate" "$prepare" \
-		"$verify_export" "$run_live" "$serve"
+		"$verify_export" "$run_live" "$serve" "$live_acceptance_verifier" \
+		"$live_acceptance_test" "$live_acceptance_report" \
+		"$live_acceptance_marker"
 	then
 		echo "FAIL A660 firmware-request-only v4 path omits: $contract" >&2
 		exit 1
@@ -108,4 +124,4 @@ fi
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 firmware-request-only v4 contract is exact-root, SQE/GMU-only, one-open, watchdog-guarded, storage-isolated, and non-flashing'
+echo 'PASS A660 firmware-request-only v4 contract is exact-root, SQE/GMU-only, one-open, watchdog-guarded, live-accepted, consumed, storage-isolated, and non-flashing'

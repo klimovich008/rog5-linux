@@ -627,8 +627,8 @@ one-shot target/host watchdog gate and unchanged AVB package pass offline.
 The sole live cycle then requested SQE and GMU exactly once, rejected the open
 with `EUCLEAN`, crossed no ucode/power/HFI/ZAP boundary, retained zero DRM
 descriptors/storage/faults, and returned through exact fallback plus complete
-cleanup. V4 is consumed and server-rejected; its exact nonsecret acceptance
-marker remains to be pinned. See the
+cleanup. V4 is consumed and server-rejected. A mutation-tested nonsecret
+marker pins the exact report and evidence checkpoint. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
