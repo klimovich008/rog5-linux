@@ -426,9 +426,11 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   destroy path does not fully release that state.
 - [x] Implement and mutation-test a default-off, exact-A660.1, atomic one-shot
   ucode-allocation diagnostic with balanced three-object rollback.
-- [ ] Reproduce two isolated builds, require unchanged Image/config/ABI and
-  only the reviewed MSM module delta, then prepare a fresh independently
-  verified RAM-only root and watchdog gate.
+- [x] Reproduce two isolated builds and require unchanged Image/config/ABI,
+  only the reviewed MSM module delta, byte-identical outputs, BTF, and zero
+  embedded firmware.
+- [ ] Prepare a fresh independently verified RAM-only root and watchdog gate
+  with map/unmap and surviving-state evidence.
 - [ ] Run at most one attended ucode-allocation gate only after its offline
   package is accepted; require balanced maps/unmaps, zero surviving GEM/DRM
   state, no power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and

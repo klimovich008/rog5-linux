@@ -643,7 +643,12 @@ proves that exact A660.1 adds three GPU-VM/SMMU mappings for SQE, shadow, and
 the power-up reglist before GPU/GMU runtime power or register access. Because
 normal A6xx teardown does not fully release that state, a new root must not be
 prepared until a default-off one-shot diagnostic has explicit all-path
-rollback and duplicate-build acceptance.
+rollback and duplicate-build acceptance. Both conditions now pass; see the
+[ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md)
+and
+[ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
+A fresh root has not yet been prepared or served, and no new live cycle is
+authorized.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

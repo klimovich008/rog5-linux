@@ -50,6 +50,10 @@ for contract in \
 	001c1526eef5526b35663e9d3d16621e07949e3adc0ca4aa4ddd5f1f7a4e4be3 \
 	eb2df946472603d932d63a25f5350535b104303e5db6ac8dc66273647460b082 \
 	04149f41648f12925a6f04261eed96bfecdd6174a10462c82c36213fef0d1bc9 \
+	9fced0679b2fa0a4a434fba7ff4b6e33ded021d7376e19c08dd09926689b8654 \
+	ad3c4b441db6d2701e0e6bb945c1a4bf52d284e209873cb4b9250014386da680 \
+	fe5d59675e4f7d490c38cc7e9c02cadb7bbf89047ceb8056aa0a3e13353bcc45 \
+	'accepted ucode-allocation build metadata' \
 	'ALLOW_UNPINNED_BUILD' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \
 	'accepted firmware-only Image is unchanged' \

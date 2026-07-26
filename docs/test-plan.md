@@ -333,6 +333,19 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   consumed and absent from the runnable allowlist. The exact report/marker
   pair is hash-pinned and mutation-tested; see the
   [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).**
+- Source-audit exact A660.1 ucode allocation, then require a default-off,
+  read-only, atomic one-shot patch with balanced SQE, shadow, power-up
+  reglist, IOVA, CPU-vmap, and firmware rollback on every path. **Passed
+  offline. The exact patch passes eight mutations and strict checkpatch.**
+- Build the exact `0012` → `0013` → `0014` stack twice in network-disabled
+  isolated containers. Require byte-identical outputs, unchanged
+  Image/config/ABI and non-MSM modules, exact MSM-only delta, BTF, both
+  diagnostic modes, and zero embedded firmware. **Passed offline; see the
+  [ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).**
+- Before any ucode-allocation live cycle, fail-first test a fresh versioned
+  root/export and watchdog gate with exact map/unmap counts, zero surviving
+  GEM/DRM state, no runtime power/HFI/ZAP/SCM/storage path, immutable fallback,
+  and complete host cleanup. **Pending; no root has been prepared or served.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

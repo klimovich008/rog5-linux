@@ -336,8 +336,11 @@ runtime power or register access and must explicitly roll back SQE, shadow,
 and power-up reglist state. It does not authorize another live cycle.
 The corresponding
 [rollback-safe patch report](test-results/2026-07-26-a660-ucode-allocation-patch.md)
-now passes exact stacked-source verification and eight mutations; compilation
-and duplicate-build acceptance are still pending.
+passes exact stacked-source verification and eight mutations. The subsequent
+[duplicate-build report](test-results/2026-07-26-a660-ucode-allocation-build.md)
+accepts two byte-identical isolated builds with an unchanged
+Image/config/ABI and exact MSM-only delta. A fresh root/gate and any live
+cycle remain pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

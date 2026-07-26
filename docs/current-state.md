@@ -756,8 +756,11 @@ That default-off patch now passes its exact stacked-source verifier, strict
 checkpatch, and eight source mutations; it also replaces normal A6xx teardown
 with the balanced helper. See the
 [ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md).
-Compilation, duplicate-build acceptance, a fresh root, and any live cycle
-remain pending.
+Two isolated builds now pass with byte-identical outputs, unchanged
+Image/config/ABI and non-MSM modules, an exact MSM-only delta, BTF, and zero
+embedded firmware; see the
+[ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
+A fresh root/gate and any live cycle remain pending.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

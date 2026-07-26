@@ -2,7 +2,8 @@
 
 Date: 2026-07-26
 
-Status: **PASS at source/patch level; build and live use remain pending**
+Status: **PASS at source/patch level; subsequent build accepted separately;
+live use remains pending**
 
 ## Outcome
 
@@ -155,7 +156,7 @@ PASS A660 ucode-allocation diagnostic patch is mutation-tested, one-shot, rollba
 The patch is accepted for isolated compilation. It is not accepted for a
 rootfs or phone.
 
-Next: add fail-first build tooling, compile the exact 0012→0013→0014 stack
-twice in separate network-disabled containers, compare all outputs, and
-require the unchanged Image/config/ABI and expected MSM-only delta before
-considering any root/gate work.
+Subsequent duplicate-build acceptance is recorded in the
+[ucode-allocation build report](2026-07-26-a660-ucode-allocation-build.md).
+That later checkpoint does not retroactively authorize a root or phone cycle;
+those remain separately gated.
