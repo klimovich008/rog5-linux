@@ -814,5 +814,17 @@ pinned SSH identities, credential/root/package/runner inputs, and inactive
 NFS/RPC pass. This lifts HOLD for at most one attended RAM-only v6 cycle; it
 does not accept any GPU result and does not permit a retry.
 
+That sole cycle is now complete and
+[safely rejected](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md).
+The exact kernel diagnostic requested both firmware files, completed three
+allocations and rollback, and emitted its success marker. The userspace entry
+probe correctly observed raw request sizes `43288`, `4`, and `4096`, but v6
+incorrectly expected page-rounded object sizes `45056`, `4096`, and `4096`.
+It stopped before settle and GEM snapshot comparison. The transition watchdog
+restored exact fallback, privileged host cleanup passed, and v6 is consumed
+and absent from the runnable server. A separately reviewed v7 must fix the
+raw-size oracle while retaining every pointer, forbidden-event, storage,
+watchdog, and equal-snapshot constraint.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

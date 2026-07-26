@@ -381,6 +381,17 @@ fallback, SSH identity, credential, root, package, runner, and inactive-host
 checks. It authorizes at most one RAM-only v6 cycle under nested watchdogs and
 immediate fallback. It does not accept the hardware path or permit a retry.
 
+The [sole v6 cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
+then reached the successful kernel allocation-and-rollback marker but was
+rejected by a second userspace-oracle error. A function-entry kprobe sees raw
+sizes: SQE `fw->size - 4 = 43288`, one-ring shadow `sizeof(u32) = 4`, and
+reglist `PAGE_SIZE = 4096`. `msm_gem_new()` page-aligns those only after
+entry, yielding the v6 expected set `45056/4096/4096`. The gate failed closed
+before its settled snapshot comparison. Watchdog fallback and full cleanup
+passed; v6 is consumed and non-runnable. A new v7 must source-pin the raw
+entry-size set and still pass the unchanged equal-snapshot gate before the
+port advances to GMU resume or successful open.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

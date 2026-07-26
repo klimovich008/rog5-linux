@@ -475,9 +475,16 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   preflight. The
   [v6 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
   authorizes at most one attended RAM-only cycle with no retry.
-- [ ] Run at most one attended v6 cycle only after its new offline package,
-  root, runner, cleanup, and HOLD-lift requirements pass. V5 authorization
-  cannot be inherited.
+- [x] Run at most one attended v6 cycle only after its new offline package,
+  root, runner, cleanup, and HOLD-lift requirements pass. The
+  [sole v6 cycle](test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
+  reached successful kernel allocation/rollback but safely rejected raw
+  kernel-new sizes `43288`, `4`, and `4096` against page-rounded expectations.
+  The snapshot check was not reached; watchdog fallback and cleanup passed.
+  V6 is consumed and cannot be retried.
+- [ ] Build v7 from the unchanged accepted module with a source-pinned raw-size
+  oracle, all v6 rollback/storage/watchdog constraints, and the mandatory
+  equal post-settle GEM snapshot. Require a fresh HOLD/GO review.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
