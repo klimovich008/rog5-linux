@@ -383,7 +383,10 @@ kernel/rootfs build input.
 - [ ] Require confirmation before connecting email or other external accounts.
 - [ ] Separate read-only research from actions such as sending mail or applying
   to jobs; require explicit approval for consequential actions.
-- [ ] Add resource, thermal, network, and rate limits.
+- [x] Add native CPU, memory, swap, task, I/O-weight, OOM, and restart limits
+  to the browser service and pass a clean rootfs archive round trip.
+- [ ] Add measured thermal/job-time, provider-rate, and egress limits for each
+  model or external-service client.
 - [ ] Back up only configuration and encrypted user data, not secrets in logs.
 
 Exit gate: auditable, least-privilege automation with explicit credential and

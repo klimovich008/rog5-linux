@@ -30,7 +30,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   and absence of baked network or remote-desktop credentials. It also requires
   the separate locked `rog5-agent` identity, exact mode-`0700` empty state
   directories, no SSH or supplementary groups, a loopback-only service that
-  does not reuse `rog5`, and a successful in-rootfs `systemd-analyze verify`.
+  does not reuse `rog5`, exact CPU/memory/swap/task/I/O/restart controls, and a
+  successful in-rootfs `systemd-analyze verify`.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

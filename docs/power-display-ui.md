@@ -69,6 +69,12 @@ Do not optimize an 11 GiB device by killing useful caches. Prefer:
 - cap log retention and stop duplicate supervisors;
 - measure proportional set size and idle CPU before removing packages.
 
+The staged `rog5-agent` browser unit has a 200% CPU quota, CPU/I/O weights of
+25, 1536 MiB `MemoryHigh`, 2048 MiB `MemoryMax`, 512 MiB `MemorySwapMax`,
+`TasksMax=256`, OOM stop policy, and a three-start/five-minute restart limit.
+These are safety ceilings, not measured optimums; retain or lower them only
+after an on-phone workload, thermal, latency, and battery comparison.
+
 The first diagnostic Arch headless sample reported 11,296,876 KiB total,
 10,947,312 KiB available, about 341 MiB unavailable, 12 running services, and
 0.06 one-minute load. Network-root v2 then passed normal coldplug twice with

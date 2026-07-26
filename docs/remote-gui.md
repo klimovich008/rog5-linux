@@ -32,10 +32,12 @@ Neither endpoint is a substitute for SSH authentication.
 Browser automation runs separately from the interactive Plasma user: the
 locked `rog5-agent` account owns its profile at
 `/var/lib/rog5-agent/chromium`, and the loopback-only service remains disabled
-until explicitly started. The image contains no browser session or provider
-credential. Initial capability is read, summarize, and draft. Connecting an
-account, sending mail, or submitting job applications stays behind explicit
-approval, as described in
+until explicitly started. Its systemd cgroup caps it at two CPUs, 2 GiB RAM,
+512 MiB swap, and 256 tasks, with lower CPU/I/O scheduling weight and restart
+throttling. The image contains no browser session or provider credential.
+Initial capability is read, summarize, and draft. Connecting an account,
+sending mail, or submitting job applications stays behind explicit approval,
+as described in
 [security-automation.md](security-automation.md).
 
 None of this is live on Linux 7.1 yet. Rejected recovery v6 did enumerate

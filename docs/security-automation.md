@@ -20,7 +20,11 @@ The headless Chromium service is disabled by default and must be started on
 demand. It exposes CDP only on `127.0.0.1:9222`; has empty capability sets,
 private devices and temporary files, no privilege escalation, and no access
 to home directories; mounts the system read-only; and permits writes only
-under `/var/lib/rog5-agent`.
+under `/var/lib/rog5-agent`. Its cgroup is limited to two CPUs, a 1.5 GiB
+memory-high threshold, a 2 GiB hard memory cap, 512 MiB of swap, and 256
+tasks. Low CPU/I/O weights yield to interactive and system work. Three starts
+within five minutes trip systemd's start limiter, avoiding an unbounded crash
+or OOM restart loop.
 
 The verified image contains no API key, OAuth token, mailbox data, CV,
 browser session, remote-desktop credential, or automation answer. The
@@ -46,6 +50,8 @@ store. No model provider or personal account has been connected.
   external results without recording secrets.
 - Keep browser automation in the separate `rog5-agent` profile with no
   unrelated saved sessions.
+- Measure the current cgroup limits on the phone before raising them; model
+  clients need separate provider-rate, egress, thermal, and job-time limits.
 
 The first runtime capability should be read, summarize, and draft. Automatic
 submission remains a later, separately approved capability.

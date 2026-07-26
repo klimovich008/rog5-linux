@@ -19,7 +19,9 @@ The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
 service is loopback-only, cannot reuse the Plasma user's home or credentials,
 has no device access or capabilities, and can write only its private
-`/var/lib/rog5-agent` state. No email, CV, browser session, API token, or
+`/var/lib/rog5-agent` state. Native systemd controls cap it at two CPUs, 2 GiB
+RAM, 512 MiB swap, and 256 tasks, lower its CPU/I/O scheduling weight, and
+stop rapid restart loops. No email, CV, browser session, API token, or
 provider account is present. This artifact is verified offline but has not
 replaced the live-tested network root or run on the phone.
 
