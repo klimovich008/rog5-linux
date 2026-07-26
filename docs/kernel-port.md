@@ -422,6 +422,25 @@ fault evidence remained zero. Exact fallback and complete cleanup passed,
 and v7 is permanently consumed. The port may advance only to a new isolated
 runtime-power/GMU-resume boundary.
 
+That next boundary is now accepted offline, but not live. The
+[GMU resume-entry source audit](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+pins the lazy-open, firmware/ucode, outer runtime-PM, A6xx callback, and error
+propagation call graph. The default-off exact-A660.1 patch stops immediately
+after the GMU initialized guard and before `gmu->hung`, inner PM domains,
+clocks, secure setup, bandwidth, MMIO, IRQ, GMU firmware, HFI, hardware
+initialization, or ZAP/SCM. It then requires the balanced outer error path and
+accepted v7 cleanup before deliberately failing the open.
+
+The
+[v8 offline build report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+records two complete clean Linux 7.1.4 builds. They match byte-for-byte; the
+config, Image, ABI/symbols, GPUCC, MDT loader, and every installed module
+except `msm.ko` remain exactly v7. This accepts only the compiled diagnostic.
+V8 stays **HOLD** until a fresh storage-free root, bounded target and host
+control plane, unchanged package, fallback proof, and separate GO review
+pass. A later GMU power-preparation tier must remain separate from HFI,
+ZAP/SCM, successful open, submission, and rendering.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

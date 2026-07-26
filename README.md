@@ -421,6 +421,18 @@ and an equal GEM snapshot after the mandatory settle. Power/HFI/ZAP/SCM,
 hardware initialization, submission, and rendering stayed zero. Normal
 fallback and complete host cleanup passed; v7 is consumed and non-runnable.
 The next isolated tier starts at runtime power and GMU resume, not rendering.
+Its
+[GMU resume-entry source audit](test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+and
+[v8 offline build acceptance](test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+now pass. Two clean Linux 7.1.4 builds are byte-identical; the Image, config,
+ABI, GPUCC, MDT loader, and every installed module except `msm.ko` remain
+exactly v7. The default-off, read-only, exact-A660.1 one-shot rejects
+`a6xx_gmu_resume()` before GMU software mutation, inner runtime power, clocks,
+MMIO, IRQ, firmware start, HFI, hardware initialization, ZAP/SCM, submit, or
+rendering, then reuses the accepted v7 rollback. V8 remains **HOLD**: no
+network root, NFS case, runner, temporary-boot package, phone cycle, or flash
+is authorized by the build report.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

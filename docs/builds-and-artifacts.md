@@ -48,6 +48,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | A660/GMU registration tier | separate registration from first DRM open before building a live candidate | the sole v3 cycle used one exact SMMU reprobe, loaded seven reviewed modules, attached GPU/GMU to two IOMMU groups, created one unopened headless render node, retained zero firmware/storage/faults, and returned through exact fallback with complete cleanup; consumed and removed from the runnable allowlist; never flash |
 | A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | the sole v4 cycle requested SQE/GMU exactly once, returned `EUCLEAN`, retained zero later hardware/storage/fault evidence, and returned through exact fallback plus cleanup; consumed and removed from the runnable allowlist; never flash |
 | A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source/patch and duplicate builds pass; v5 exposed a compiler-inlining-blind wrapper oracle; the [sole v6 cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md) safely rejected raw sizes `43288/4/4096` against page-rounded expectations before snapshot comparison; v5/v6 are consumed; the [v7 offline correction](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md), [HOLD](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md), and [GO](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md) chain pins separate raw/object layers, logical `4/4`, equal snapshots, a protected root, and a one-shot runner; the [sole v7 live cycle](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md) passes exact allocation/rollback plus settled snapshot with zero later hardware events; consumed and non-runnable; never flash |
+| A660 GMU resume-entry v8 tier | prove the normal first-open call graph reaches GMU resume while excluding every inner GMU resource operation | source/patch mutation suites and two complete clean builds pass; config/Image/ABI and every installed module except `msm.ko` remain exactly v7; [offline accepted](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md) but **HOLD** with no root, server case, runner, package, or live cycle; never flash |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -302,6 +303,15 @@ records three successful raw-size-pinned allocations, exact pointer-set
 rollback, compiler-aware logical `4/4`, equal settled GEM state, zero
 power/HFI/ZAP/SCM/storage/fault activity, normal fallback, complete cleanup,
 private evidence hashes, and permanent v7 consumption. The
+[A660 GMU resume-entry boundary report](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+records the source-pinned normal first-open propagation, entry-only seam,
+outer runtime-PM rollback, v7 cleanup dependency, and exclusion of every GMU
+inner power/clock/MMIO/IRQ/firmware/HFI operation. The
+[A660 GMU resume-entry v8 offline report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+records the fail-first build contract, default-off exact-chip patch and
+mutations, two network-disabled clean builds, byte-identical outputs,
+MSM-only predecessor/archive delta, pinned hashes, zero embedded firmware,
+and offline-only HOLD decision. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The
