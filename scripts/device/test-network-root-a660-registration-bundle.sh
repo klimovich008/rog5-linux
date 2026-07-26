@@ -3,12 +3,34 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier=$repo/scripts/device/verify-network-root-a660-registration-bundle.sh
+artifact_manifest=$repo/manifests/artifacts.tsv
 
 [ -x "$verifier" ] || {
 	echo 'FAIL missing executable A660 registration bundle verifier' >&2
 	exit 1
 }
+[ -f "$artifact_manifest" ] && [ ! -L "$artifact_manifest" ] || {
+	echo 'FAIL missing global artifact manifest' >&2
+	exit 1
+}
 sh -n "$verifier"
+
+awk -F '\t' '
+	$1 == "artifacts/network-root-a660-registration/boot-5.4.210-network-root-stage.raw.img" &&
+	$2 == "95711232" &&
+	$3 == "1f98e136913a924e6338c6b7bfc3fb925146f00efd3c77e1192f4e25c0be26bb" {
+		raw++
+	}
+	$1 == "artifacts/network-root-a660-registration/boot-5.4.210-network-root-stage.avb.img" &&
+	$2 == "100663296" &&
+	$3 == "c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c" {
+		avb++
+	}
+	END { exit !(raw == 1 && avb == 1) }
+' "$artifact_manifest" || {
+	echo 'FAIL global manifest omits exact A660 temporary-boot images' >&2
+	exit 1
+}
 
 for contract in \
 	'verify-network-root-adreno-smmu-bundle.sh' \
