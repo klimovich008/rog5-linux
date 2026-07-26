@@ -374,6 +374,13 @@ adds a fail-first-tested exact one-invocation runner, but it cannot start NFS
 or boot the phone. V6 is still non-runnable and **HOLD**; no phone cycle is
 authorized.
 
+The
+[v6 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+then adds one verifier-first, explicit-opt-in NFS case and passes exact
+fallback, SSH identity, credential, root, package, runner, and inactive-host
+checks. It authorizes at most one RAM-only v6 cycle under nested watchdogs and
+immediate fallback. It does not accept the hardware path or permit a retry.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

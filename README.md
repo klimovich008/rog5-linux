@@ -377,6 +377,13 @@ identity, exact root/package/gate inputs, and private evidence. It has no NFS
 or boot control, the root still has no server case, and the decision remains
 **HOLD** until a separate attended fallback and live-window review.
 
+That [v6 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+now passes. One explicit opt-in server case runs the full protected verifier
+before any host-state mutation; an actual unarmed invocation refused cleanly.
+Exact fallback, distinct SSH identities, credentials, root, package, runner,
+and inactive host services pass. This authorizes at most one attended
+RAM-only v6 cycle under the recorded sequence, never flash and never retry.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),

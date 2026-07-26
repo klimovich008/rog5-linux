@@ -694,6 +694,15 @@ adds an exact one-invocation runner with strict SSH identity, private evidence,
 and no NFS/boot/retry control. V6 remains **HOLD** pending a separate attended
 fallback, credential, and NFS-window review.
 
+The
+[v6 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+now passes that review. A fail-first-tested server case accepts only the exact
+v6 root with an explicit opt-in and executes its complete verifier before
+`etab`, NFS, firewall, mount, interface, or sysctl state. An actual unarmed
+privileged call refused with zero residue. Exact fallback, distinct SSH
+identities, credentials, package, root, runner, and inactive host services
+pass, authorizing at most one attended RAM-only v6 transition with no retry.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

@@ -805,5 +805,14 @@ private evidence, protected root verification, and no NFS/boot/retry control.
 NFS remains inactive, v6 is absent from the server allowlist, and the decision
 remains **HOLD**. The phone was not contacted.
 
+The subsequent
+[pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+adds one explicit-opt-in v6 NFS case guarded by the complete root verifier
+before any host mutation. Its fail-first/static tests and actual unarmed
+privileged refusal pass. Clean synchronized Git, exact fallback, distinct
+pinned SSH identities, credential/root/package/runner inputs, and inactive
+NFS/RPC pass. This lifts HOLD for at most one attended RAM-only v6 cycle; it
+does not accept any GPU result and does not permit a retry.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
