@@ -10,13 +10,13 @@ builder=$repo/scripts/device/build-a660-ucode-allocation-v7-runtime.sh
 runtime_verify=$repo/scripts/device/verify-a660-ucode-allocation-v7-runtime-sources.sh
 relocation_verify=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
 consumed_v6_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
+consumed_v7_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v7.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-v7-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v7-live-gate.sh
-live_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-v7-live-window.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
-	"$relocation_verify" "$consumed_v6_test" "$live_runner" \
-	"$live_runner_test" "$live_window_test"; do
+	"$relocation_verify" "$consumed_v6_test" "$consumed_v7_test" \
+	"$live_runner" "$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable ucode-allocation v7 export tool: $script" >&2
 		exit 1
@@ -52,7 +52,6 @@ for contract in \
 	'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' \
 	'v6_reuse=FORBIDDEN' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7_LIVE_GATE' \
-	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7_NFS' \
 	'HostKeyAlias=rog5-network-root' \
 	'umask 077' \
 	'credentials=preserved' \
@@ -60,7 +59,7 @@ for contract in \
 	'root-owned mode 0555'
 do
 	grep -Fq "$contract" "$prepare" "$verify" "$live_runner" \
-		"$live_runner_test" "$live_window_test" "$serve" || {
+		"$live_runner_test" || {
 		echo "FAIL ucode-allocation v7 export path omits: $contract" >&2
 		exit 1
 	}
@@ -75,8 +74,8 @@ then
 fi
 
 "$consumed_v6_test" >/dev/null
+"$consumed_v7_test" >/dev/null
 "$live_runner_test" >/dev/null
-"$live_window_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ $EUID == 0 ]] || {
@@ -116,4 +115,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 		'raw_size_contract=4096,4096,45056'
 fi
 
-echo 'PASS A660 ucode-allocation v7 export is consumed-v6-derived, exact-delta, compiler/size/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, explicit-window-only, and non-flashing'
+echo 'PASS A660 ucode-allocation v7 export is consumed-v6-derived, exact-delta, compiler/size/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, consumed, non-runnable, and non-flashing'
