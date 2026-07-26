@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2329
 set -euo pipefail
 
 fail() {
@@ -19,9 +20,10 @@ lease_time=10
 serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
-[[ $serve_timeout =~ ^[0-9]+$ ]] &&
-	((serve_timeout >= 60 && serve_timeout <= 86400)) ||
+if [[ ! $serve_timeout =~ ^[0-9]+$ ]] ||
+	((serve_timeout < 60 || serve_timeout > 86400)); then
 	fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
+fi
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 	mkdir mountpoint nmcli pgrep realpath rpc.mountd rpc.nfsd ss sysctl udevadm \
 	stat systemctl tr umount; do
@@ -32,6 +34,12 @@ root=$(realpath -e "$root")
 case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
+		;;
+	/var/lib/rog5-network-root-a660-ucode-allocation-v6)
+		[[ ${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_NFS:-} == 1 ]] ||
+			fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_NFS=1 for the attended v6 window'
+		"$repo/scripts/host/verify-a660-ucode-allocation-v6-export.sh" \
+			"$root" /var/lib/rog5-network-root-a660-registration-v3
 		;;
 	*)
 		fail 'unexpected export root'

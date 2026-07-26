@@ -1,13 +1,16 @@
 #!/bin/sh
+# shellcheck disable=SC2016
 set -eu
 
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 prepare=$repo/scripts/host/prepare-network-root-export.sh
 verify=$repo/scripts/host/verify-network-root-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
 ucode_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+ucode_v6_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-v6-live-window.sh
 
-for script in "$prepare" "$verify" "$serve" "$ucode_consumed_test"; do
+for script in "$prepare" "$verify" "$serve" "$ucode_consumed_test" \
+	"$ucode_v6_window_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable network-root host tool: $script" >&2
 		exit 1
@@ -44,7 +47,7 @@ for contract in \
 	'--grace-time "$grace_time"' \
 	'--lease-time "$lease_time"' \
 	'ROG5_NFS_TIMEOUT:-900' \
-	'serve_timeout <= 86400' \
+	'serve_timeout > 86400' \
 	'/var/lib/rog5-network-root-v1)' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
@@ -118,5 +121,6 @@ if grep -Eq '(^|[[:space:]])fastboot[[:space:]]+flash|(^|[[:space:]])dd[[:space:
 fi
 
 "$ucode_consumed_test" >/dev/null
+"$ucode_v6_window_test" >/dev/null
 
 echo 'PASS host gate is exact-peer, runtime-only, read-only, and fail-closed'
