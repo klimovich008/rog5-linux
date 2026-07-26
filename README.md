@@ -192,6 +192,15 @@ guarded probe, mutation suite, and exact bundle verifier pass. The phone was
 not contacted. This is not acceleration; one attended RAM-only SMMU probe
 remains pending. See the
 [v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+The complete pinned A660/GMU source graph now also passes its offline
+contract. Registration is a real hardware boundary: it attaches three IOMMU
+contexts and programs GMU RSCC/PDC registers, while firmware, GPU power-up,
+ZAP/SCM authentication, and hardware initialization wait for the first DRM
+open. The safest next build therefore makes DRM/MSM a manually loaded module,
+uses `msm.separate_gpu_kms=1`, and separates registration from first-open
+testing. The known unchecked `a6xx_gmu_pwrlevels_probe()` return must be fixed
+or guarded first. See the
+[A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

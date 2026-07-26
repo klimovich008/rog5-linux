@@ -305,8 +305,16 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Rebuild and reproduce the smallest GPUCC plus Adreno SMMU DTB, nested
   stage, ASUS wrapper, and temporary-boot package from the storage-safe base.
 - [ ] Run the one-shot attended RAM-only SMMU bind/runtime-suspend gate.
-- [ ] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
-  reserved-memory, firmware, and complete consumer dependency graph.
+- [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
+  reserved-memory, firmware, and complete consumer dependency graph; separate
+  probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
+- [ ] Define fail-first contracts for a storage-disabled candidate with
+  DRM/MSM and GPUCC loaded manually, headless GPU KMS, no automatic DRM opens,
+  a watchdog, and checked GMU power-level probe errors.
+- [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
+  interrupt, thermal, and fault evidence before permitting a DRM open.
+- [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,
+  ZAP/SCM authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
