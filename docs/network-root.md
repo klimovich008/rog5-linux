@@ -660,7 +660,11 @@ evidence, and has no NFS or boot control. The
 [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
 records **HOLD**: NFS remains inactive, the candidate is absent from the
 serve allowlist, the phone was not contacted, and no new live cycle is
-authorized.
+authorized at that checkpoint. The
+[pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+now accepts one exact v5 case guarded by an explicit opt-in and the complete
+export verifier before any host-state mutation. NFS is still inactive; only
+one bounded attended RAM-only cycle is authorized.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

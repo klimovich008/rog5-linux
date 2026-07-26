@@ -358,6 +358,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   separate
   [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
   records HOLD; it does not authorize contacting the phone.**
+- Lift HOLD only after exact fallback, SSH identity, root, package, runner,
+  service, and clean-Git checks pass. Add only one explicit-opt-in v5 server
+  case and require its complete verifier before any host mutation. **Passed;
+  the
+  [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+  authorizes at most one attended RAM-only cycle.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
