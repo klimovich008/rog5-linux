@@ -7,8 +7,9 @@ reviewed A660 SQE and GMU firmware, then deliberately reject the first DRM
 open before ucode mapping, runtime power, GPU hardware initialization, GMU
 firmware/HFI startup, or ZAP/SCM authentication**. The default-off patch now
 passes mutation tests and two isolated clean builds reproduce byte-for-byte.
-No firmware export, package, or live v4 candidate exists. The phone was not
-contacted, NFS stayed inactive, and nothing was flashed.
+At this source-only checkpoint no firmware export, package, or live v4
+candidate existed. The phone was not contacted, NFS stayed inactive, and
+nothing was flashed.
 
 This acceptance corrects the earlier shorthand “firmware provisioning without
 DRM open.” Copying firmware files into a root filesystem causes no kernel
@@ -119,3 +120,9 @@ The implemented patch and duplicate clean-build evidence are recorded in the
 The accepted Image is unchanged, only `msm.ko` differs, all other modules and
 the ABI remain exact, and no firmware is embedded. This still does not
 authorize an export or live cycle.
+
+The subsequent
+[request-only v4 offline report](2026-07-26-a660-firmware-request-only-v4-offline.md)
+records the independently verified helper, root-owned SQE/GMU-only export,
+watchdog gate, strict host runner, and unchanged package. No live v4 cycle had
+run at that later checkpoint.

@@ -320,8 +320,11 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Before any firmware live cycle, fail-first test a default-off, read-only
   module parameter and one-shot failed-open helper; include only exact
   mode-`0644` SQE/GMU files, exclude ZAP, reproduce every build/export/package
-  twice, and require independent rollback. **Pending; no v4 source patch,
-  build, export, or live authorization exists.**
+  twice, and require independent rollback. **Passed offline. The exact patch,
+  two clean kernel builds, two static-helper builds, root-owned SQE/GMU-only
+  export, mutation-tested target/host watchdog gate, and unchanged AVB package
+  pass their complete contracts. No live v4 cycle has run; see the
+  [request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

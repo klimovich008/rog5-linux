@@ -5,20 +5,29 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 helper_source=$repo/tools/diagnostics/a660-firmware-request-only-open.c
 helper_builder=$repo/scripts/device/build-a660-firmware-request-only-open-helper.sh
 helper_verifier=$repo/scripts/device/verify-a660-firmware-request-only-open-helper.sh
+helper_test=$repo/scripts/device/test-a660-firmware-request-only-open-helper.sh
 baseline=$repo/scripts/device/check-network-root-a660-firmware-request-only-baseline.sh
 probe=$repo/scripts/device/probe-network-root-a660-firmware-request-only.sh
+probe_test=$repo/scripts/device/test-probe-network-root-a660-firmware-request-only.sh
 gate=$repo/scripts/device/run-network-root-a660-firmware-request-only-gate.sh
+gate_test=$repo/scripts/device/test-run-network-root-a660-firmware-request-only-gate.sh
 prepare=$repo/scripts/host/prepare-a660-firmware-request-only-export.sh
 verify_export=$repo/scripts/host/verify-a660-firmware-request-only-export.sh
+export_test=$repo/scripts/host/test-a660-firmware-request-only-export.sh
 run_live=$repo/scripts/host/run-a660-firmware-request-only-live-gate.sh
+run_live_test=$repo/scripts/host/test-run-a660-firmware-request-only-live-gate.sh
 serve=$repo/scripts/host/serve-network-root.sh
+build_test=$repo/scripts/device/test-mainline-a660-firmware-request-only-build-contract.sh
+package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 
 [ -f "$helper_source" ] && [ ! -L "$helper_source" ] || {
 	echo 'FAIL missing A660 firmware-request-only open-helper source' >&2
 	exit 1
 }
-for input in "$helper_builder" "$helper_verifier" "$baseline" "$probe" \
-	"$gate" "$prepare" "$verify_export" "$run_live"
+for input in "$helper_builder" "$helper_verifier" "$helper_test" "$baseline" \
+	"$probe" "$probe_test" "$gate" "$gate_test" "$prepare" \
+	"$verify_export" "$export_test" "$run_live" "$run_live_test" \
+	"$build_test" "$package_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 firmware-request-only v4 tool: $input" >&2
@@ -26,12 +35,15 @@ do
 	}
 done
 
-for input in "$helper_builder" "$helper_verifier" "$baseline" "$probe" \
-	"$gate"
+for input in "$helper_builder" "$helper_verifier" "$helper_test" "$baseline" \
+	"$probe" "$probe_test" "$gate" "$gate_test" "$build_test" \
+	"$package_test"
 do
 	sh -n "$input"
 done
-for input in "$prepare" "$verify_export" "$run_live" "$serve"; do
+for input in "$prepare" "$verify_export" "$export_test" "$run_live" \
+	"$run_live_test" "$serve"
+do
 	bash -n "$input"
 done
 
@@ -85,5 +97,13 @@ then
 	echo 'FAIL A660 firmware-request-only v4 path can write phone storage' >&2
 	exit 1
 fi
+
+"$helper_test"
+"$probe_test"
+"$gate_test"
+"$export_test"
+"$run_live_test"
+"$build_test"
+"$package_test"
 
 echo 'PASS A660 firmware-request-only v4 contract is exact-root, SQE/GMU-only, one-open, watchdog-guarded, storage-isolated, and non-flashing'

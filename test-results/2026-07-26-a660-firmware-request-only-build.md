@@ -11,10 +11,10 @@ The changed MSM module requests only the exact A660 SQE and GMU catalog
 entries, then rejects the first DRM open before ucode, runtime power, GPU
 hardware initialization, GMU/HFI startup, or ZAP/SCM authentication.
 
-This is an offline kernel acceptance only. No firmware export, NFS root,
-staging archive, wrapper, temporary-boot package, or live v4 candidate has
-been accepted. The phone was not contacted, NFS stayed inactive, and nothing
-was flashed.
+This is an offline kernel acceptance only. At this build checkpoint no
+firmware export, NFS root, staging archive, wrapper, temporary-boot package,
+or live v4 candidate had been accepted. The phone was not contacted, NFS
+stayed inactive, and nothing was flashed.
 
 ## Exact boundary
 
@@ -154,16 +154,16 @@ PASS A660 firmware-request-only kernel build is exact-patch, unchanged-Image, mo
 All four build scripts pass POSIX shell syntax, ShellCheck 0.11.0, and
 `git diff --check`. The pinned source worktree remains clean.
 
-## Next boundary
+## Subsequent boundary
 
-The next permissible work is offline only: create and independently verify a
+The next permissible offline work was to create and independently verify a
 new root-owned, versioned export derived from the accepted registration
 baseline; replace only `msm.ko`; install exact SQE and GMU files mode `0644`;
 keep ZAP absent; add a one-open AArch64 helper; and build a source-locked
-watchdog gate. The unchanged accepted Image means the existing DT, staging
-archive, ASUS wrapper, and AVB temporary-boot image can be reused only after
-their exact hashes are reverified.
+watchdog gate. That work subsequently passed, including exact revalidation of
+the unchanged DT, staging archive, ASUS wrapper, and AVB temporary-boot image;
+see the
+[request-only v4 offline report](2026-07-26-a660-firmware-request-only-v4-offline.md).
 
-Nothing in this report authorizes a live v4 cycle. The export, helper, target
-gate, host runner, duplicate offline verification, consumed-root lockout, and
-attended go/no-go review must pass first.
+Nothing in this build report alone authorizes a live v4 cycle. No live v4
+cycle had run at the later offline checkpoint.

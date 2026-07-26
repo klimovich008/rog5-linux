@@ -411,7 +411,7 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Build that patch twice in isolated clean environments; require an
   unchanged Image/config/ABI, only one changed MSM module, byte-identical
   archives and metadata, zero embedded firmware, and hard-pinned hashes.
-- [ ] Prepare and independently verify a new root-owned v4 export with only
+- [x] Prepare and independently verify a new root-owned v4 export with only
   exact SQE/GMU firmware mode `0644`, ZAP absent, the accepted registration-v3
   marker, one tiny open helper, watchdog rollback, and consumed-root lockout.
 - [ ] Run one attended request-only failed-open gate; require exact

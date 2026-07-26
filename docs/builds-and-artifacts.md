@@ -46,7 +46,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | GPUCC/CCF network-root diagnostic/candidate | trace the SM8350 GPU clock-controller with every consumer disabled | v17 reuses the exact v15 bits, atomically enters the trace-free target, completes GPUCC registration, binds one device for 30 seconds, and reboots cleanly; this accepts only the isolated clock-controller foundation, never flash |
 | GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped on a detector false positive; v19 safely rejected no-bind; v20 stopped before action on the unset `(null)` override representation; the sole v21 cycle bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage activity, and rolled back cleanly; consumed and removed from the runnable allowlist; never flash |
 | A660/GMU registration tier | separate registration from first DRM open before building a live candidate | the sole v3 cycle used one exact SMMU reprobe, loaded seven reviewed modules, attached GPU/GMU to two IOMMU groups, created one unopened headless render node, retained zero firmware/storage/faults, and returned through exact fallback with complete cleanup; consumed and removed from the runnable allowlist; never flash |
-| A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | default-off patch and two clean builds accepted byte-for-byte; unchanged Image/ABI and only MSM differs; no export, package, or live candidate exists |
+| A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | patch/builds plus root-owned seven-module, SQE/GMU-only, ZAP-absent export and one-open watchdog gate accepted offline; unchanged Image/AVB package; no live v4 cycle yet |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -238,6 +238,10 @@ for a failed-open diagnostic. The
 records the fail-first corrections, six patch mutations, two isolated clean
 builds, exact accepted hashes, unchanged Image/ABI, and offline-only boundary.
 The
+[A660 request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
+records the reproducible static helper, runtime mutations, root-owned
+SQE/GMU-only export, ZAP exclusion, one-shot watchdog control plane, unchanged
+full package verification, and still-pending live boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

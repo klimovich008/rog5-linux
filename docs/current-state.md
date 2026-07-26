@@ -727,10 +727,15 @@ next design is a custom, read-only-armed one-shot open that requests only the
 exact SQE and GMU files and then fails before file-context creation or every
 later hardware step. Its default-off patch and two isolated clean builds now
 pass byte-for-byte: the Image, config, ABI, and every non-MSM module remain
-accepted. No v4 export, package, or live candidate exists. See the
+accepted. A new root-owned v4 export now contains only exact SQE/GMU firmware,
+the changed MSM module, and a reproducible 896-byte one-open helper; ZAP is
+absent. Its mutation-tested target/host watchdog gate and the unchanged full
+AVB package pass offline. No live v4 cycle has run. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
-[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md).
+[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
+then the
+[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -302,8 +302,10 @@ immediately couples requests to ucode, runtime power, HFI, and ZAP/SCM. The
 accepted next design is therefore a one-shot diagnostic open that requests
 only exact SQE/GMU firmware and deliberately fails before every later step;
 the default-off patch and two isolated clean builds now pass byte-for-byte,
-with an unchanged Image and only `msm.ko` changed. No export, package, or live
-v4 candidate exists. See the
+with an unchanged Image and only `msm.ko` changed. The root-owned v4 export,
+two exact firmware files, static one-open helper, mutation-tested runtime
+gate, strict host runner, and unchanged AVB package now also pass their full
+offline contracts. No live v4 cycle has run. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
@@ -317,6 +319,8 @@ The next-tier source boundary is recorded in the
 [A660 firmware-only boundary report](test-results/2026-07-26-a660-firmware-only-boundary.md),
 and the duplicate build acceptance is in the
 [A660 request-only build report](test-results/2026-07-26-a660-firmware-request-only-build.md).
+The complete pre-live root and gate are recorded in the
+[A660 request-only v4 offline report](test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

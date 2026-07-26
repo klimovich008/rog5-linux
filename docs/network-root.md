@@ -624,12 +624,18 @@ The next offline source contract proves that firmware files alone do not
 trigger requests: the lazy request path begins at `msm_open()` and normally
 continues into ucode, runtime power, HFI, and ZAP/SCM. The source-tested
 one-shot failed-open patch and two clean kernel/module builds now pass with an
-unchanged Image and only `msm.ko` changed. A future v4 root must install only
-the exact SQE and GMU files as mode `0644`, keep ZAP absent, and reject every
-later hardware marker. No v4 export exists or is runnable. See the
+unchanged Image and only `msm.ko` changed. The v4 root installs only
+the exact SQE and GMU files as mode `0644`, keeps ZAP absent, and rejects every
+later hardware marker. That root now exists as root-owned mode `0555` and
+passes its complete verifier with seven modules, two firmware files, exact
+helper, preserved credentials, and accepted registration-v3 base. Its
+one-shot target/host watchdog gate and unchanged AVB package pass offline; no
+live v4 cycle has run. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
-[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md).
+[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
+then the
+[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
