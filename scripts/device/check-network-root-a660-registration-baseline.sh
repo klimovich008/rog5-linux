@@ -164,9 +164,11 @@ fault='IOMMU.*fault|arm-smmu.*fault|context fault|global fault'
 module_root=/usr/lib/modules/$release
 [ -d "$module_root" ] || module_root=/lib/modules/$release
 [ -d "$module_root" ] || fail 'exact registration module tree is absent'
-module_files=$(find "$module_root" -type f | wc -l)
-[ "$module_files" -gt 100 ] || fail 'module tree is incomplete'
-find "$module_root" -type f -exec cat {} + >/dev/null
+module_files=$(find "$module_root" -type f -name '*.ko' | wc -l)
+[ "$module_files" -eq 7 ] || fail 'registration module set is not exact'
+[ -s "$module_root/modules.dep" ] ||
+	fail 'registration module dependency file is absent'
+find "$module_root" -type f -name '*.ko' -exec cat {} + >/dev/null
 
 thermal_count=0
 thermal_max=-1000000

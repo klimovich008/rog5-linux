@@ -32,6 +32,7 @@ for contract in \
 	'physical block device is present' \
 	'block-backed mount is present' \
 	'IOMMU.*fault|arm-smmu.*fault|context fault|global fault' \
+	'registration module set is not exact' \
 	'thermal_count'
 do
 	grep -Fq "$contract" "$baseline" || {
