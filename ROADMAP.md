@@ -82,8 +82,10 @@ for a working feature.
 - [x] Run at most one attended RAM-only v17 confirmation; require complete
   GPUCC bind/stability, disabled consumers, zero storage, exact rollback, and
   complete host cleanup.
-- [ ] Source-test and reproduce the next isolated Adreno dependency tier
-  before enabling the SMMU, GPU power path, GMU, firmware, or DRM consumers.
+- [x] Source-test and reproduce the isolated GPUCC plus Adreno SMMU tier with
+  GPU/GMU consumers, A660 firmware, storage, and display still disabled.
+- [ ] Run the one-shot attended v18 Adreno SMMU bind/runtime-suspend gate,
+  then pin its acceptance before unlocking A660 registration.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.

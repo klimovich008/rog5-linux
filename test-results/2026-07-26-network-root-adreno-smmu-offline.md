@@ -216,6 +216,19 @@ Its mocked end-to-end call-order test passes. The complete v18 bundle verifier
 was rerun after pinning both helpers and still returned the exact PASS above.
 The phone remained disconnected.
 
+After the PC reboot, the host-ready checkpoint was independently revalidated.
+The fourteen-file package manifest and separately pinned GPUCC module still
+matched, the v18 bundle, compound-gate, export, and host-launcher contract tests
+passed, and the privileged export verifier again reported 1,008 exact modules,
+zero A660 firmware, preserved credentials, and an unchanged accepted base. The
+dedicated client key and pinned host file remained mode `0600`, while the
+private evidence directory remained mode `0700`. NFS was inactive with zero
+active exports and no RPC/NFS listener, ModemManager was active, and neither
+ADB nor fastboot saw a device. The source-locked A660 successor export also
+passed its privileged verifier without changing its `NOT_ACCEPTED` dependency
+boundary. No phone was contacted and no service, export, firewall rule, or
+device state was changed.
+
 ## One-shot live gate
 
 This offline result does not prove that the SMMU registers safely on this ASUS
