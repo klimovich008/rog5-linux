@@ -761,9 +761,14 @@ firmware files, preserves credentials and every undeclared rootfs byte and
 metadata field, and rejects five seal/module mutations. The compound target
 gate pins the storage-free read-only-NFS/OverlayFS environment, generated
 controls, nested watchdog handoff, one probe, and mandatory normal reboot.
-The root is deliberately absent from the bounded server and has no host
-runner. NFS must remain inactive for v8 while a separate no-authority runner
-and pre-live HOLD are developed. Only a later verifier-before-state GO review
+The
+[pre-live control acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+adds a strict one-invocation host runner, but it cannot start NFS or boot the
+phone. Its mock proves one prepare, copy, remote verification, and target-gate
+call with private evidence, expected reboot disconnect, and no retry. Local
+credential agreement, complete root reverification, and an actual unarmed
+refusal pass. The root remains deliberately absent from the bounded server
+and NFS/RPC remains inactive. Only a later verifier-before-state GO review
 may add one exact-root server case. Neither checkpoint may authorize flashing
 or retry.
 

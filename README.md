@@ -443,9 +443,15 @@ exact MSM module, and preserved every other file, metadata item, credential,
 host identity, module, and firmware input. The verifier passed during
 construction and twice afterward; five predecessor, mode, evidence, trace,
 and MSM mutations were rejected. Its compound target gate also passes
-offline with overlapping watchdogs and mandatory reboot. V8 remains
-**HOLD**: it has no NFS server case, host runner, pre-live package/control
-review, phone cycle, retry, or flash authority.
+offline with overlapping watchdogs and mandatory reboot. The separate
+[v8 pre-live control acceptance](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+adds a fail-first-tested one-invocation host runner with strict SSH identity,
+immutable root/package/gate inputs, private evidence, expected reboot
+disconnect, and no retry or NFS/boot/flash authority. Its mock transport,
+local credential agreement, complete root re-verification, and actual
+unarmed refusal pass while NFS/RPC remains inactive and the phone remains
+uncontacted. V8 remains **HOLD**: it has no server case, attended
+fallback/package GO review, phone cycle, retry, or flash authority.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

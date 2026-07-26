@@ -446,11 +446,15 @@ hardware/SCM event remains forbidden. The
 accepts the fresh consumed-v7-derived mode-`0555` root, exact v8 MSM-only
 payload delta, preserved credentials and firmware, complete tree comparison,
 five rejected mutations, and compound overlapping-watchdog target gate.
-NFS remained inactive and the phone was not contacted. V8 stays **HOLD**
-until the strict host runner, unchanged-package/fallback review, one
-verifier-before-state server case, and separate GO review pass. A later GMU
-power-preparation tier must remain separate from HFI, ZAP/SCM, successful
-open, submission, and rendering.
+NFS remained inactive and the phone was not contacted. The
+[v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+then accepts the strict one-invocation/no-retry host runner, immutable inputs,
+private evidence boundary, local credential agreement, expected reboot
+disconnect, root reverification, and actual unarmed refusal. It cannot start
+NFS or boot the phone. V8 stays **HOLD** until the attended
+unchanged-package/fallback review, one verifier-before-state server case, and
+separate GO review pass. A later GMU power-preparation tier must remain
+separate from HFI, ZAP/SCM, successful open, submission, and rendering.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

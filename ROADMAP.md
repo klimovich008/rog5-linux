@@ -534,8 +534,11 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   relocations, five negative mutations, overlapping watchdogs, inactive NFS,
   and non-runnable HOLD all pass; see the
   [v8 protected-root report](test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md).
-- [ ] Add and independently test a strict one-invocation v8 host runner with
-  no NFS/boot/retry authority, then record a separate pre-live HOLD.
+- [x] Add and independently test a strict one-invocation v8 host runner with
+  no NFS/boot/retry authority. Mock one-call transport, private evidence,
+  local credential agreement, actual unarmed refusal, synchronized Git,
+  protected-root reverification, and inactive NFS/RPC pass; see the
+  [v8 pre-live HOLD report](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md).
 - [ ] In a later attended GO review, reverify the unchanged temporary-boot
   package, fallback, credentials, clean synchronized Git, exact root and
   controls, and add only one verifier-before-state exact-root NFS case before
