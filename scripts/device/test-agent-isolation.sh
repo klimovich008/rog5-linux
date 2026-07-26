@@ -60,4 +60,23 @@ if grep -Eq \
 	exit 1
 fi
 
+for control in \
+	'StartLimitIntervalSec=300' \
+	'StartLimitBurst=3' \
+	'RestartSec=15s' \
+	'CPUQuota=200%' \
+	'CPUWeight=25' \
+	'MemoryHigh=1536M' \
+	'MemoryMax=2048M' \
+	'MemorySwapMax=512M' \
+	'TasksMax=256' \
+	'IOWeight=25' \
+	'OOMPolicy=stop'
+do
+	grep -Fqx "$control" "$service" || {
+		echo "FAIL automation service omits resource control: $control" >&2
+		exit 1
+	}
+done
+
 echo 'PASS browser automation is locked, isolated from the desktop account, loopback-only, credential-free, and on-demand'
