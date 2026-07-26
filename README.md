@@ -400,9 +400,13 @@ v6 root and accepted module, separately pins raw entry sizes
 `4/4096/43288` and page-rounded object sizes `4096/4096/45056`, retains the
 compiler-specific logical `4/4` vmap and equal settled-snapshot contracts,
 and rejects changed-predecessor and rounded-as-raw seal mutations. Its
-root-owned mode-`0555` Btrfs export has no NFS server case or live runner.
-The phone was not contacted. A separate fail-first runner checkpoint and
-later GO review are required before at most one RAM-only v7 cycle.
+root-owned mode-`0555` Btrfs export had no NFS server case or live runner at
+that checkpoint. The phone was not contacted. The subsequent
+[v7 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+adds a fail-first-tested exact one-invocation runner with strict SSH identity,
+immutable inputs, private logging, expected reboot disconnect, and no retry.
+It has no NFS/server/boot authority, the actual unarmed invocation refused,
+and NFS/RPC stayed inactive. V7 remains **HOLD** until a separate GO review.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

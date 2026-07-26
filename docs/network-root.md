@@ -723,7 +723,12 @@ plus rounded-as-raw mutations pass. The generated probe expects raw
 `4/4096/43288`, separately pins object `4096/4096/45056`, and retains every
 logical-vmap, rollback, storage, thermal, systemd, watchdog, and settled
 snapshot guard. NFS remained inactive; no v7 server case or live runner
-exists and the phone was not contacted. V7 is **HOLD**.
+existed and the phone was not contacted at that checkpoint. The subsequent
+[v7 pre-live HOLD review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+adds a fail-first-tested exact one-invocation runner, strict SSH identity,
+private evidence, and no retry. Local credential/root checks and an actual
+unarmed refusal pass. The runner has no NFS/server/boot control, NFS/RPC
+remains inactive, and no phone contact occurred. V7 is still **HOLD**.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

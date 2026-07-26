@@ -488,9 +488,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   consumed-v6-derived root, compiler/source verifiers, exact-delta checks, and
   two seal mutations pass offline. It remains non-runnable **HOLD**; see the
   [v7 offline report](test-results/2026-07-26-a660-ucode-allocation-v7-offline.md).
-- [ ] Fail-first test an exact one-invocation v7 host runner with strict SSH
+- [x] Fail-first test an exact one-invocation v7 host runner with strict SSH
   identity, immutable inputs, private evidence, no retry, and no
-  NFS/boot/flash authority. Record a separate non-runnable HOLD checkpoint.
+  NFS/boot/flash authority. Its mock transport, local credential/root checks,
+  and actual unarmed refusal pass; the
+  [v7 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+  records the separate non-runnable **HOLD** checkpoint.
 - [ ] Lift v7 HOLD only in a later verifier-first, explicit-opt-in NFS review
   with clean Git, exact fallback, credentials, inactive services, and an
   actual unarmed-refusal test.
