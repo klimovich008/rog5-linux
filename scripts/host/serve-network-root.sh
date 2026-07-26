@@ -35,6 +35,12 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
+	/var/lib/rog5-network-root-a660-gmu-resume-entry-v8)
+		[[ ${ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_NFS:-} == 1 ]] ||
+			fail 'set ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_NFS=1 for the attended v8 window'
+		"$repo/scripts/host/verify-a660-gmu-resume-entry-v8-export.sh" \
+			"$root" /var/lib/rog5-network-root-a660-ucode-allocation-v7
+		;;
 	*)
 		fail 'unexpected export root'
 		;;

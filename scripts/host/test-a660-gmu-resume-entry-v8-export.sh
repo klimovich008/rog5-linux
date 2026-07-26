@@ -14,10 +14,11 @@ gate=$repo/scripts/device/run-network-root-a660-gmu-resume-entry-v8-gate.sh
 gate_test=$repo/scripts/device/test-run-network-root-a660-gmu-resume-entry-v8-gate.sh
 live_runner=$repo/scripts/host/run-a660-gmu-resume-entry-v8-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-gmu-resume-entry-v8-live-gate.sh
+live_window_test=$repo/scripts/host/test-serve-a660-gmu-resume-entry-v8-live-window.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
 	"$relocation_verify" "$consumed_v7_test" "$gate" "$gate_test" \
-	"$live_runner" "$live_runner_test"; do
+	"$live_runner" "$live_runner_test" "$live_window_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable GMU resume-entry v8 export tool: $script" >&2
 		exit 1
@@ -73,19 +74,10 @@ then
 	exit 1
 fi
 
-for forbidden in \
-	'/var/lib/rog5-network-root-a660-gmu-resume-entry-v8)' \
-	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_NFS' \
-	'verify-a660-gmu-resume-entry-v8-export.sh'
-do
-	if grep -Fq "$forbidden" "$serve"; then
-		echo "FAIL v8 export is prematurely NFS-runnable: $forbidden" >&2
-		exit 1
-	fi
-done
 "$consumed_v7_test" >/dev/null
 "$gate_test" >/dev/null
 "$live_runner_test" >/dev/null
+"$live_window_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ $EUID == 0 ]] || {
@@ -148,4 +140,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	fi
 fi
 
-echo 'PASS A660 GMU resume-entry v8 export is consumed-v7-derived, exact-delta, compiler/entry/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, non-runnable, and non-flashing'
+echo 'PASS A660 GMU resume-entry v8 export is consumed-v7-derived, exact-delta, compiler/entry/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, explicit-window-only, and non-flashing'
