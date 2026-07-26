@@ -406,7 +406,13 @@ that checkpoint. The phone was not contacted. The subsequent
 adds a fail-first-tested exact one-invocation runner with strict SSH identity,
 immutable inputs, private logging, expected reboot disconnect, and no retry.
 It has no NFS/server/boot authority, the actual unarmed invocation refused,
-and NFS/RPC stayed inactive. V7 remains **HOLD** until a separate GO review.
+and NFS/RPC stayed inactive. The separate
+[v7 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+adds only an exact-root, verifier-before-state, explicit-opt-in NFS case.
+Clean synchronized Git, protected root/package/runner hashes, distinct SSH
+identities, strict read-only fallback health, inactive host services, and an
+actual unarmed privileged refusal all pass with zero residue. This authorizes
+at most one attended RAM-only v7 cycle with no retry and never any flash.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
