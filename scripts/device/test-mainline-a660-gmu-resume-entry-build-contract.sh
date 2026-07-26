@@ -17,6 +17,7 @@ done
 for contract in \
 	'verify-mainline-a660-ucode-allocation-build.sh' \
 	'verify-a660-gmu-resume-entry-patch.sh' \
+	'SKIP_V7_UMBRELLA_RUN=1' \
 	'0012-drm-msm-a6xx-propagate-gmu-pwrlevels-error.patch' \
 	'0013-drm-msm-add-a660-firmware-request-only-diagnostic.patch' \
 	'0014-drm-msm-add-a660-ucode-allocation-diagnostic.patch' \
@@ -25,6 +26,7 @@ for contract in \
 	3413678758f97ea16d8e53e7a24a2bc62a871b333851c32bd8242687bbdc1054 \
 	6966d868585e11c5f614598368eb70595025c9543653582e0234aa313edfa3f2 \
 	a179ff9e31792238a3bd254297008d805e6a37b5d08125712c0151b1f39b3051 \
+	5d6a982bea8fca55959cbc0cdd1b5ba7a6b64e884c8efd619adbba6490319ea5 \
 	d9ac316489f4258d389d6298659d5e9c22183400 \
 	c796deb1cc54e942f8bb46a2c76a7199e19e5c92 \
 	'7.1.4-rog5-a660reg1' \
@@ -51,6 +53,8 @@ for contract in \
 	001c1526eef5526b35663e9d3d16621e07949e3adc0ca4aa4ddd5f1f7a4e4be3 \
 	fe5d59675e4f7d490c38cc7e9c02cadb7bbf89047ceb8056aa0a3e13353bcc45 \
 	b485e8719d6ddf80542a5dc2fdf5bba795d40c69fa220b44571323a8a1d7d861 \
+	116f702a4605363c153cb35a908b1b1031f4e430478993394fe0fdc230db42bc \
+	38045b4c68d85d32dadf7d8db28f6ce1665fa2718ded3a9777dc0429035da6e7 \
 	'accepted_resume_meta_sha256' \
 	'accepted_resume_archive_sha256' \
 	'accepted_resume_msm_sha256' \
