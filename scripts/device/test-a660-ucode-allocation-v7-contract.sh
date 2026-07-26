@@ -20,6 +20,7 @@ serve=$repo/scripts/host/serve-network-root.sh
 boundary_report=$repo/test-results/2026-07-26-a660-ucode-allocation-boundary.md
 rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v7-offline.md
+hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md
 
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
@@ -31,7 +32,7 @@ do
 		exit 1
 	}
 done
-for input in "$boundary_report" "$rejection" "$report"; do
+for input in "$boundary_report" "$rejection" "$report" "$hold_report"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || {
 		echo "FAIL missing immutable A660 ucode-allocation v7 input: $input" >&2
 		exit 1
@@ -89,7 +90,7 @@ do
 		"$runtime_test" "$probe_test" "$gate" "$gate_test" "$prepare" \
 		"$verify_export" "$export_test" "$relocation_verifier" \
 		"$consumed_v6_test" "$live_runner" "$live_runner_test" \
-		"$boundary_report" "$rejection" "$report"
+		"$boundary_report" "$rejection" "$report" "$hold_report"
 	then
 		echo "FAIL A660 ucode-allocation v7 path omits: $contract" >&2
 		exit 1
@@ -108,9 +109,12 @@ for status_file in \
 do
 	if [ ! -f "$status_file" ] || [ -L "$status_file" ] ||
 		! grep -Fq '2026-07-26-a660-ucode-allocation-v7-offline.md' \
+			"$status_file" ||
+		! grep -Fq \
+			'2026-07-26-a660-ucode-allocation-v7-prelive-hold.md' \
 			"$status_file"
 	then
-		echo "FAIL project status omits A660 v7 offline report: $status_file" >&2
+		echo "FAIL project status omits A660 v7 report chain: $status_file" >&2
 		exit 1
 	fi
 done

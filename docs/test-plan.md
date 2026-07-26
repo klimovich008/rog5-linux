@@ -421,7 +421,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Fail-first test an exact one-invocation v7 host runner with strict SSH
   identity, immutable inputs, private evidence, no retry, and no
   NFS/boot/flash control. Reverify the protected root and record a separate
-  non-runnable HOLD. **Pending.**
+  non-runnable HOLD. **Passed offline. The mock proves one prepare, copy,
+  verify, and gate call with expected reboot disconnect; local
+  credential/root checks and an actual unarmed refusal pass, NFS remains
+  inactive, and the
+  [v7 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+  records HOLD without contacting the phone.**
 - Lift v7 HOLD only through a later verifier-before-state,
   explicit-opt-in server case plus clean Git, exact fallback, credentials,
   root/package/runner hashes, inactive host services, and actual unarmed

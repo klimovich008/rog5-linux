@@ -401,8 +401,13 @@ returns, two kernel puts, wrapper `1/2`, logical `4/4`, complete object-set
 rollback, and equal settled GEM snapshots. Its root-owned protected export is
 an exact COW delta from consumed v6 and rejects predecessor and size-layer
 seal mutations. It is absent from the NFS allowlist and has no live runner.
-No phone contact occurred; v7 remains **HOLD** until separate runner and GO
-reviews.
+No phone contact occurred at that checkpoint. The
+[v7 pre-live HOLD review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+now adds an exact one-shot host runner with strict SSH identity, immutable
+inputs, private logging, expected reboot disconnect, and no retry. Its mock,
+credential/root, and actual unarmed-refusal checks pass. It has no
+NFS/server/boot authority, so v7 remains non-runnable **HOLD** until a
+separate GO review.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

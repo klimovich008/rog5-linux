@@ -836,8 +836,15 @@ kernel puts, wrapper `1/2`, logical `4/4`, exact rollback object sets, and an
 equal post-settle GEM snapshot. Whole-tree comparison preserves credentials
 and every undeclared payload; changed-predecessor and rounded-as-raw roots
 are rejected. NFS/RPC stayed inactive, v7 has no server case or live runner,
-and the phone was not contacted. Decision: **HOLD** pending a separately
-tested one-invocation runner and later GO review.
+and the phone was not contacted at that checkpoint. The subsequent
+[v7 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+adds a fail-first-tested exact one-invocation runner. Its strict SSH identity,
+immutable input, private logging, expected disconnect, one-call, and no-retry
+mock contracts pass; local credential fingerprints match the protected root,
+and an actual unarmed invocation refused before any state change. The runner
+cannot start NFS or boot the phone. NFS/RPC remains inactive, the v7 root
+still has no server case, no phone contact occurred, and the decision remains
+**HOLD** pending a later GO review.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
