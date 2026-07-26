@@ -59,6 +59,8 @@ ssh_options=(
 	-o HostKeyAlias=rog5-fallback
 	-o ConnectTimeout=8
 	-o ConnectionAttempts=1
+	-o ServerAliveInterval=5
+	-o ServerAliveCountMax=2
 	-o LogLevel=ERROR
 )
 

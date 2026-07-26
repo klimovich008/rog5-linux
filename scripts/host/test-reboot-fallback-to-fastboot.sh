@@ -25,6 +25,8 @@ for contract in \
 	'HostKeyAlias=rog5-fallback' \
 	'StrictHostKeyChecking=yes' \
 	'ConnectionAttempts=1' \
+	'ServerAliveInterval=5' \
+	'ServerAliveCountMax=2' \
 	'5.4.134-qgki-perf-00001-g6c308144c23e' \
 	'qcom,lahaina-mtp' \
 	'/bin/busybox' \
