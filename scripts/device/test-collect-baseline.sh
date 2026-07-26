@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 target=${TARGET:-$repo/scripts/device/collect-baseline.sh}
 stage_script=$repo/scripts/device/stage-arch-rootfs.sh
 verify_script=$repo/scripts/device/verify-staged-arch-rootfs.sh

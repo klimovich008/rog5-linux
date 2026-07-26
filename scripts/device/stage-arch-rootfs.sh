@@ -42,6 +42,8 @@ install -Dm0644 "$firmware/qcom/sm8350/a660_zap.mbn" \
 install -Dm0755 "$repo/scripts/device/display-profile.sh" /usr/local/bin/rog5-display-profile.sh
 install -Dm0755 "$repo/scripts/device/power-profile.sh" /usr/local/bin/rog5-power-profile.sh
 install -Dm0755 "$repo/scripts/device/screen-toggle.sh" /usr/local/bin/rog5-screen-toggle.sh
+install -Dm0755 "$repo/scripts/device/collect-baseline.sh" \
+	/usr/local/bin/rog5-collect-baseline.sh
 install -Dm0755 "$repo/scripts/device/vpn-hotspot.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
 install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot.service" /etc/systemd/system/rog5-vpn-hotspot.service
 install -Dm0644 "$repo/packaging/arch/rog5-chromium-headless.service" \

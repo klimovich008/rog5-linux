@@ -79,10 +79,13 @@ awk -F: '$1 == "rog5-agent" { exit substr($2,1,1) != "!" }' /etc/shadow
 [[ ! -e /var/lib/rog5-agent/.ssh ]]
 [[ -z $(find /var/lib/rog5-agent -mindepth 1 \
 	! -path /var/lib/rog5-agent/private -print -quit) ]]
-for file in /usr/local/bin/rog5-display-profile.sh /usr/local/bin/rog5-power-profile.sh \
+for file in /usr/local/bin/rog5-collect-baseline.sh \
+	/usr/local/bin/rog5-display-profile.sh /usr/local/bin/rog5-power-profile.sh \
 	/usr/local/bin/rog5-screen-toggle.sh /usr/local/sbin/rog5-vpn-hotspot.sh; do
 	[[ -x $file ]]
 done
+cmp /usr/local/bin/rog5-collect-baseline.sh \
+	/workspace/repo/scripts/device/collect-baseline.sh
 [[ -r /etc/systemd/system/rog5-vpn-hotspot.service ]]
 [[ -r /etc/systemd/system/rog5-chromium-headless.service ]]
 [[ -r /etc/systemd/system/rog5-server-inhibit.service ]]
