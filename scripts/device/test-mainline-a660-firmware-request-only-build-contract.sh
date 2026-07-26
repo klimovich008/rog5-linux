@@ -24,7 +24,8 @@ for contract in \
 	d9ac316489f4258d389d6298659d5e9c22183400 \
 	c796deb1cc54e942f8bb46a2c76a7199e19e5c92 \
 	'7.1.4-rog5-a660reg1' \
-	'/root/build/rog5-linux-7.1.4-a660-firmware-only' \
+	'work_source=/tmp/rog5-a660-registration-source' \
+	'/root/build/rog5-linux-7.1.4-a660-registration' \
 	'CONFIG_DRM_MSM=m' \
 	'CONFIG_DRM_MSM_KMS=n' \
 	'CONFIG_SM_GPUCC_8350=m' \
@@ -36,14 +37,29 @@ for contract in \
 	'drivers/soc/qcom/mdt_loader.ko' \
 	'Module.symvers' \
 	'modules.tar.gz' \
+	04149f41648f12925a6f04261eed96bfecdd6174a10462c82c36213fef0d1bc9 \
+	eb2df946472603d932d63a25f5350535b104303e5db6ac8dc66273647460b082 \
+	1cf2ea81cfc836f852827a8e0dbe8d8803c288a405f6ae66625de5dca7e51824 \
+	'accepted firmware-only build metadata' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \
 	'accepted registration Image is unchanged' \
-	'firmware-only MSM module differs'
+	'firmware-only MSM module differs' \
+	'module archive build links differ'
 do
 	if ! grep -Fq "$contract" "$builder" "$verifier" "$comparator"; then
 		echo "FAIL A660 firmware-only build tools omit: $contract" >&2
 		exit 1
 	fi
+done
+
+for signal_contract in \
+	"trap 'exit 130' INT" \
+	"trap 'exit 143' TERM"
+do
+	grep -Fq "$signal_contract" "$builder" || {
+		echo "FAIL builder signal handling omits: $signal_contract" >&2
+		exit 1
+	}
 done
 
 if grep -Eq \

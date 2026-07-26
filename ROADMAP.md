@@ -405,8 +405,18 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [x] Pin the exact registration report and evidence checkpoint in a
   mutation-tested nonsecret acceptance marker, and consume the v3 export.
-- [ ] Provision only the exact SQE/GMU/ZAP firmware under a no-open gate and
-  verify request paths, ownership, hashes, SCM boundary, rollback, and cleanup.
+- [x] Source-test the exact first-open boundary and implement a default-off,
+  read-only-armed, atomic one-shot A660.1 diagnostic that requests only SQE
+  and GMU, returns `EUCLEAN`, and cannot reach ucode, power, HFI, or ZAP/SCM.
+- [x] Build that patch twice in isolated clean environments; require an
+  unchanged Image/config/ABI, only one changed MSM module, byte-identical
+  archives and metadata, zero embedded firmware, and hard-pinned hashes.
+- [ ] Prepare and independently verify a new root-owned v4 export with only
+  exact SQE/GMU firmware mode `0644`, ZAP absent, the accepted registration-v3
+  marker, one tiny open helper, watchdog rollback, and consumed-root lockout.
+- [ ] Run one attended request-only failed-open gate; require exact
+  `EUCLEAN`, bounded success evidence, no surviving DRM descriptor, and zero
+  ucode, power, HFI, ZAP/SCM, storage, display, warning, or fault evidence.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.

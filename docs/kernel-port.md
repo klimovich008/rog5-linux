@@ -300,9 +300,13 @@ V3 is consumed. See the
 The next audit proves that provisioning files without an open triggers
 nothing. It accepts only a future diagnostic first-open branch that requests
 SQE/GMU firmware and deliberately fails before ucode, runtime power, hardware
-initialization, HFI, or ZAP/SCM. No patched kernel has been built or run. See
-the
-[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md).
+initialization, HFI, or ZAP/SCM. The default-off patch, six mutation
+rejections, and two isolated clean builds now pass; the Image is unchanged
+and only `msm.ko` differs. No export, package, or live v4 candidate exists.
+See the
+[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
+and
+[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md).
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

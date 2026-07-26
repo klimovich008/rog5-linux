@@ -301,7 +301,9 @@ shorthand: firmware files alone trigger no request, while normal `msm_open()`
 immediately couples requests to ucode, runtime power, HFI, and ZAP/SCM. The
 accepted next design is therefore a one-shot diagnostic open that requests
 only exact SQE/GMU firmware and deliberately fails before every later step;
-no such kernel has been built or run. See the
+the default-off patch and two isolated clean builds now pass byte-for-byte,
+with an unchanged Image and only `msm.ko` changed. No export, package, or live
+v4 candidate exists. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
@@ -312,7 +314,9 @@ and
 then the
 [A660 registration v3 live acceptance](test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 The next-tier source boundary is recorded in the
-[A660 firmware-only boundary report](test-results/2026-07-26-a660-firmware-only-boundary.md).
+[A660 firmware-only boundary report](test-results/2026-07-26-a660-firmware-only-boundary.md),
+and the duplicate build acceptance is in the
+[A660 request-only build report](test-results/2026-07-26-a660-firmware-request-only-build.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

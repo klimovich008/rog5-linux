@@ -725,8 +725,12 @@ no request, while the ordinary first-open path continues immediately into
 ucode, runtime power, hardware initialization, HFI, and ZAP/SCM. The accepted
 next design is a custom, read-only-armed one-shot open that requests only the
 exact SQE and GMU files and then fails before file-context creation or every
-later hardware step. No v4 kernel has been built or run. See the
-[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md).
+later hardware step. Its default-off patch and two isolated clean builds now
+pass byte-for-byte: the Image, config, ABI, and every non-MSM module remain
+accepted. No v4 export, package, or live candidate exists. See the
+[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
+and
+[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md).
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

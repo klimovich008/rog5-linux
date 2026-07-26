@@ -5,9 +5,10 @@ Date: 2026-07-26
 Result: **the exact Linux 7.1.4 source has a narrow seam that can request the
 reviewed A660 SQE and GMU firmware, then deliberately reject the first DRM
 open before ucode mapping, runtime power, GPU hardware initialization, GMU
-firmware/HFI startup, or ZAP/SCM authentication**. No diagnostic kernel has
-been patched or built yet. The phone was not contacted, NFS stayed inactive,
-and nothing was flashed.
+firmware/HFI startup, or ZAP/SCM authentication**. The default-off patch now
+passes mutation tests and two isolated clean builds reproduce byte-for-byte.
+No firmware export, package, or live v4 candidate exists. The phone was not
+contacted, NFS stayed inactive, and nothing was flashed.
 
 This acceptance corrects the earlier shorthand “firmware provisioning without
 DRM open.” Copying firmware files into a root filesystem causes no kernel
@@ -63,12 +64,12 @@ The verifier proves the exact definition-plus-call counts and this order:
 
 Therefore a small diagnostic branch immediately after successful
 `adreno_load_fw()` can return a fixed error without reaching a GPU/GMU power
-or hardware boundary. This is a source-level design proof, not yet a live
-result.
+or hardware boundary. This source proof is now backed by the accepted
+compile/reproducibility result, but it is not a live result.
 
-## Required v4 diagnostic design
+## Implemented diagnostic kernel design
 
-The smallest acceptable patch will:
+The accepted patch:
 
 - add one read-only module parameter, disabled by default and enabled only at
   `msm.ko` insertion;
@@ -90,10 +91,11 @@ fault, storage, mount, display, or second-open evidence. Independent watchdog,
 immediate normal reboot, exact fallback, full host cleanup, private evidence,
 and consumed-root lockout remain mandatory.
 
-Nothing in this report authorizes a live cycle. Source mutation tests, two
-clean kernel/module builds, two sanitized exports, duplicate stages/wrappers/
-temporary-boot packages, and a complete one-shot host/target gate must pass
-before deciding whether to run v4.
+Nothing in this report authorizes a live cycle. Source mutation tests and two
+clean kernel/module builds now pass. A root-owned sanitized export, exact
+one-open helper, complete one-shot host/target gate, unchanged-package
+verification, and independent duplicate checks must still pass before
+deciding whether to run v4.
 
 ## Test-first evidence
 
@@ -111,3 +113,9 @@ The implemented verifier and wrapper test now return:
 Both scripts pass POSIX shell syntax, ShellCheck 0.10.0, and
 `git diff --check`. The verifier controls no phone, transport, mount, or block
 device.
+
+The implemented patch and duplicate clean-build evidence are recorded in the
+[A660 request-only build report](2026-07-26-a660-firmware-request-only-build.md).
+The accepted Image is unchanged, only `msm.ko` differs, all other modules and
+the ABI remain exact, and no firmware is embedded. This still does not
+authorize an export or live cycle.
