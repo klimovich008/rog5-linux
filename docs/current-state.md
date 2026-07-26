@@ -632,7 +632,7 @@ Pinned source explains the value: `of_device_alloc()` uses
 formatter emits `(null)`; and platform matching falls through to OF when no
 override exists.
 
-V21 now locks those semantics. Its pure read-only checker requires exactly
+V21 locks those semantics. Its pure read-only checker requires exactly
 `(null)\n` and rejects empty, malformed, nonempty, and linked inputs. Static
 tests forbid any `driver_override` write. The baseline, probe, and compound
 gate retain the exact-device-only request and nested 90/150-second watchdogs.
@@ -640,11 +640,28 @@ The full unchanged-binary verifier passes. PolicyKit created and a separate
 invocation independently verified
 `/var/lib/rog5-network-root-adreno-smmu-v21`: all 1,008 modules and
 credentials are preserved, A660 firmware is absent, and the accepted base is
-unchanged. V20 remains preserved but the NFS server accepts only v1 and v21.
-NFS stayed inactive and the phone was not contacted. V21 is offline-accepted
-for at most one attended RAM-only cycle; SMMU acceptance remains pending. See
-the
-[v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md).
+unchanged.
+
+The sole v21 live cycle passed. Its read-only baseline saw an unbound SMMU,
+the exact unset-null override representation, two supplier links, zero
+waiting/deferred entries, and zero firmware/render/storage activity. The
+accepted GPUCC module loaded once; ordinary autoprobe still left the SMMU
+unbound, then exactly one `3da0000.iommu` request to `drivers_probe` bound
+`arm-smmu`. It remained bound through the 30-second settle with runtime status
+`suspended`. Target temperature peaked at 37.1 C before action and 36.2 C at
+acceptance, systemd stayed running, and no new warning, fault, or fatal
+signature appeared. Normal reboot restored the exact persistent Alpine
+fallback, whose final health check reported 39.1 C maximum, zero pstore
+records, and zero project modules; complete NFS/firewall/network cleanup
+passed. Nothing was flashed.
+
+This accepts only idle GPUCC plus Adreno SMMU registration/runtime suspend.
+A660 registration, firmware, DRM open, rendering, display, suspend, and an
+accelerated desktop remain unaccepted. V21 is consumed, must never be retried,
+and is now absent from the runnable NFS allowlist. See the
+[v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md)
+and
+[v21 live acceptance report](../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md).
 
 The complete pinned A660 graph now also passes source audit. Its guarded
 Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,
@@ -656,14 +673,16 @@ not contacted. The exact v18-derived four-node DT now also passes mutation
 tests and duplicate byte-identical builds while preserving storage, display,
 remote-processor, RTC, and USB containment. Its baseline and manually ordered
 seven-module registration probe pass offline; a compile-time `NOT_ACCEPTED`
-lock prevents live use until a later passing SMMU result supplies a pinned
+lock still prevents live use because the package predates the accepted v21
 marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 now also records the verified isolated seven-module NFS export, duplicate
 nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
-fourteen-file source-locked bundle. The offline-accepted v21 SMMU exact-reprobe
-gate must pass its single live cycle before a registration-only candidate may
-be rebuilt.
+fourteen-file source-locked bundle. The next step is offline only: pin the
+exact v21 acceptance into that lock, rebuild or reseal every dependent
+artifact, remove all consumed roots from the runnable path, and rerun the
+complete verifier before deciding whether one registration-only cycle is
+justified.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

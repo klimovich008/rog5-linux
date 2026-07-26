@@ -101,6 +101,9 @@ for a working feature.
 - [x] Source-test and offline-accept a v21 null-representation correction
   with no `driver_override` write, a new preserved export, and the same
   exact-device/watchdog boundary before deciding on another live cycle.
+- [x] Consume the one-shot v21 gate successfully: one exact-device reprobe
+  bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage
+  activity, and returned through exact fallback and complete host cleanup.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -358,8 +361,10 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Prepare and independently verify a new v21 copy-on-write root and
   source/control-plane seal; preserve v20 and remove it from every runnable
   allowlist before deciding whether one v21 cycle is justified.
-- [ ] Run at most one attended RAM-only v21 SMMU bind/runtime-suspend gate;
-  require exact fallback and host cleanup, pin the result, and never retry.
+- [x] Run the sole attended RAM-only v21 SMMU bind/runtime-suspend gate;
+  accept one exact bind at runtime suspend with zero firmware/render/storage
+  activity, exact fallback, and complete host cleanup; consume v21 and remove
+  it from the runnable NFS allowlist.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
@@ -379,6 +384,9 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   baseline and probe, then its ASUS wrapper and temporary-boot package before
   any registration attempt; verify the isolated seven-module NFS export,
   duplicate nested stages/wrappers/repacks, and exact fourteen-file manifest.
+- [ ] Pin the exact v21 live acceptance into the A660 registration-only source
+  lock, then rebuild or reseal and fully re-verify its isolated export, stage,
+  wrapper, temporary-boot package, and one-shot host control plane offline.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,

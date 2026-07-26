@@ -45,21 +45,15 @@ do
 	}
 done
 
-grep -Fq \
-	'/var/lib/rog5-network-root-adreno-smmu-v21)' "$serve" ||
-	{
-		echo 'FAIL NFS server omits the exact v21 export allowlist' >&2
+for consumed in \
+	/var/lib/rog5-network-root-adreno-smmu-v20 \
+	/var/lib/rog5-network-root-adreno-smmu-v21
+do
+	if grep -Fq "$consumed)" "$serve"; then
+		echo "FAIL NFS server still allowlists consumed root: $consumed" >&2
 		exit 1
-	}
-grep -Fq 'verify-adreno-smmu-export.sh' "$serve" ||
-	{
-		echo 'FAIL NFS server omits the v21 export verifier' >&2
-		exit 1
-	}
-if grep -Fq '/var/lib/rog5-network-root-adreno-smmu-v20)' "$serve"; then
-	echo 'FAIL NFS server still allowlists consumed v20' >&2
-	exit 1
-fi
+	fi
+done
 
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|rm[[:space:]]+-rf[[:space:]]+["$]*(base_root|export_root)' \
@@ -74,4 +68,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS v21 export is copy-on-write, firmware-free, module-complete, credential-preserving, and exclusively server-allowlisted'
+echo 'PASS v21 export remains verifiable but is consumed and absent from the runnable server allowlist'

@@ -577,11 +577,18 @@ or linked input; no target or host path writes `driver_override`. The baseline
 and probe record `driver_override=unset-null-representation` while preserving
 the one exact `drivers_probe` request and 90/150-second watchdogs.
 
-The full unchanged-binary verifier passes. The independently verified v21
+The full unchanged-binary verifier passed. The independently verified v21
 copy-on-write export has all 1,008 modules, preserved credentials, zero A660
-firmware, and an unchanged base. V20 remains preserved, but the server accepts
-only v1 and v21. NFS stayed inactive and the phone was not contacted. V21 is
-offline-accepted for at most one attended RAM-only cycle. See the
+firmware, and an unchanged base. Its sole attended RAM-only cycle then passed:
+the accepted GPUCC module registered, ordinary autoprobe left the exact SMMU
+unbound, and one exact `3da0000.iommu` request bound `arm-smmu`. The device
+remained bound through 30 seconds at runtime suspend with zero firmware
+requests, render nodes, storage, block-backed mounts, or failed units. Normal
+reboot restored the exact Alpine fallback and complete host cleanup.
+
+V21 accepts only the idle GPUCC/SMMU foundation. It is consumed, must never be
+served or retried, and has been removed from the runnable server allowlist.
+The preserved root remains verifiable historical evidence. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
 [v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
@@ -592,7 +599,9 @@ and
 then the
 [v20 safe baseline-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md)
 and
-[v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md).
+[v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md),
+then the
+[v21 live acceptance report](../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

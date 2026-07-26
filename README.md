@@ -237,15 +237,21 @@ read-only baseline: Linux exposes a fresh unset platform `driver_override` as
 remained armed; GPUCC was not loaded, `drivers_probe` was not written, the SMMU
 remained unbound, and no firmware, render, or storage path appeared. Normal
 fallback and complete host cleanup passed. V20 is consumed and must not be
-retried. V21 now passes that correction offline. Its pinned source contract
+retried. V21 passed that correction offline. Its pinned source contract
 proves OF allocation starts with a NULL override, `%s` emits exact `(null)`,
 and matching falls through to OF. A new read-only checker accepts only the
 seven-byte `(null)\n` representation; mutation tests reject empty, malformed,
 nonempty, and linked inputs, and no path writes `driver_override`. The
 unchanged binary verifier passes, and the independently verified v21 root
-preserves all 1,008 modules and credentials with zero A660 firmware. The
-server now accepts v1 and v21 only; v20 is rejected. The phone was not
-contacted for v21 offline acceptance. See the
+preserves all 1,008 modules and credentials with zero A660 firmware. Its one
+permitted live cycle then passed: after accepted GPUCC registration, exactly
+one `3da0000.iommu` reprobe bound `arm-smmu`, stayed bound through the
+30-second settle, and reached runtime suspend. Firmware requests, render
+nodes, physical storage, block-backed mounts, and failed units remained zero;
+normal reboot restored exact Alpine fallback and complete host cleanup. This
+accepts only the idle GPUCC/SMMU foundation, not acceleration. V21 is consumed,
+must never be rerun, and has been removed from the runnable NFS allowlist. See
+the
 [v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
 [v18 safe-rejection/v19 correction report](test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
@@ -256,7 +262,9 @@ and
 followed by the
 [v20 safe baseline-rejection report](test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md)
 and
-[v21 offline report](test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md).
+[v21 offline report](test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md),
+then the
+[v21 live acceptance report](test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md).
 The complete pinned A660/GMU source graph and its first guarded kernel build
 now pass offline. Registration is a real hardware boundary: it attaches three
 IOMMU contexts and programs GMU RSCC/PDC registers, while firmware, GPU
@@ -268,13 +276,14 @@ error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
 builds. Its read-only baseline and no-open registration probe pass offline but
-remain source-locked until a later SMMU live gate succeeds; the
+remain source-locked to the pre-acceptance `NOT_ACCEPTED` marker; the
 isolated seven-module NFS export, nested stage, two clean ASUS wrappers, two
 header-v3/AVB repacks, and exact fourteen-file bundle now also reproduce and
 pass their complete offline verifier. The package is intentionally not
-authorized for live use; v20 was consumed before reprobe, and the
-offline-accepted v21 SMMU gate must pass its one permitted live cycle before
-either later GPU gate. See the
+authorized for live use. It must now pin the exact v21 live acceptance,
+rebuild or reseal every dependent root/package artifact, and pass the complete
+offline suite before one registration-only decision. Firmware and first DRM
+open remain later, separate gates. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md).

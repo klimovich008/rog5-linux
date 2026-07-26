@@ -240,14 +240,19 @@ line. The original watchdog remained armed; no GPUCC load,
 `drivers_probe` write, SMMU bind, firmware/render/storage action, or unsafe
 cleanup occurred. V20 is consumed.
 
-V21 now passes the separately source-tested correction. It pins the OF
+V21 passed the separately source-tested correction. It pins the OF
 platform allocation path, zero initialization, NULL `%s` formatting,
 override match semantics, and OF fallthrough. Its read-only seven-byte
 checker accepts exact `(null)\n`, rejects mutations, and is the only change to
 the unchanged binary's target control plane. The complete verifier and a new
 isolated, firmware-free v21 root pass; v20 remains preserved but cannot be
-served. The phone was not contacted. Acceleration and SMMU acceptance remain
-out of scope until the single v21 live cycle passes. See the
+served. Its sole live cycle then loaded accepted GPUCC, issued one exact
+platform reprobe, bound `arm-smmu`, and reached runtime suspend with zero
+firmware, render, storage, mount, or failed-unit activity. Normal reboot,
+persistent fallback, and complete host cleanup passed. V21 is consumed,
+removed from the runnable NFS allowlist, and must never be retried. This
+accepts only the idle SMMU foundation; acceleration remains out of scope. See
+the
 [safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md)
 and the
 [v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
@@ -259,7 +264,10 @@ historical live-eligibility decision. The
 records the no-action stop, source diagnosis, fallback, and v21 boundary. The
 [v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md)
 records the source proof, mutation suite, unchanged binary, isolated root, and
-one-shot live boundary.
+one-shot live boundary. The
+[v21 live acceptance report](../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md)
+records the exact bind, runtime suspend, zero-consumer boundary, fallback, and
+cleanup.
 
 The complete A660/GMU graph has now passed source audit, and the guarded
 registration kernel is built. Linux `7.1.4-rog5-a660reg1` keeps DRM/MSM,
@@ -272,10 +280,12 @@ firmware is embedded and no phone state changed. See the
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules, while a source lock prevents live
-use until a later SMMU acceptance is pinned. The isolated seven-module export,
+use until the exact v21 acceptance is pinned. The isolated seven-module export,
 nested stage, two clean ASUS wrappers, two boot repacks, and exact
-fourteen-file bundle now reproduce and pass offline. The offline-accepted v21
-exact-device SMMU reprobe gate is the next single live tier.
+fourteen-file bundle now reproduce and pass offline, but still carry the
+pre-acceptance `NOT_ACCEPTED` marker. The next tier is offline re-locking,
+rebuilding or resealing, and full verification; only then may one
+registration-only live decision be made.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

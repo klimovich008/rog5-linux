@@ -283,8 +283,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   and OF fallthrough. The seven-byte checker passes positive and mutation
   tests. The unchanged binary and a new isolated root verify with 1,008
   modules, zero A660 firmware, preserved credentials, and unchanged base.
-  The runnable allowlist accepts v1/v21 and rejects v20. One v21 live cycle
-  remains pending.**
+  The sole v21 live cycle passed: GPUCC registered, one exact-device reprobe
+  bound `arm-smmu`, runtime status reached `suspended`, firmware/render/storage
+  counters stayed zero, and exact fallback plus complete cleanup passed. V21
+  is consumed, must not be retried, and is absent from the runnable
+  allowlist.**
+- Before any A660 registration-only cycle, hash-pin the exact v21 live
+  acceptance into the compile-time source lock, rebuild or reseal every
+  dependent export/stage/wrapper/package artifact, reject consumed diagnostic
+  roots, and rerun the full offline verifier. **Pending; the existing
+  `7.1.4-rog5-a660reg1` package remains intentionally live-locked.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
