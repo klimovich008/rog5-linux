@@ -294,8 +294,9 @@ the exact SMMU reprobe completed, seven modules registered the GPU/GMU with
 two IOMMU attachments and one unopened render node, and firmware, DRM
 descriptors, display connectors, storage, mounts, faults, and failed units
 stayed zero. Normal reboot restored exact fallback with complete host cleanup.
-V3 is consumed and no longer server-allowlisted. Firmware provisioning and
-first DRM open remain later, separate gates. See the
+V3 is consumed and no longer server-allowlisted. A mutation-tested nonsecret
+marker pins the exact live report and evidence checkpoint for later tiers.
+Firmware provisioning and first DRM open remain separate gates. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),

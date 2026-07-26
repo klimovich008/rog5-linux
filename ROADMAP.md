@@ -396,6 +396,8 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   fallback, exact persistent-fallback verification, and complete host cleanup.
 - [x] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
+- [x] Pin the exact registration report and evidence checkpoint in a
+  mutation-tested nonsecret acceptance marker, and consume the v3 export.
 - [ ] Provision only the exact SQE/GMU/ZAP firmware under a no-open gate and
   verify request paths, ownership, hashes, SCM boundary, rollback, and cleanup.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM

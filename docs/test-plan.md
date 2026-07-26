@@ -311,7 +311,8 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   headless render node, zero firmware/connectors/storage/faults, normal
   fallback, and complete host cleanup. **Passed live. Maximum target
   temperature was 38.1 C; persistent fallback returned with zero pstore and
-  project modules; v3 is consumed and absent from the runnable allowlist.**
+  project modules; v3 is consumed and absent from the runnable allowlist. The
+  exact report/marker pair is hash-pinned and mutation-tested.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

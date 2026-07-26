@@ -41,6 +41,10 @@ a660_gate=$repo/scripts/device/run-network-root-a660-registration-gate.sh
 a660_gate_test=$repo/scripts/device/test-run-network-root-a660-registration-gate.sh
 a660_host_runner=$repo/scripts/host/run-a660-registration-live-gate.sh
 a660_host_runner_test=$repo/scripts/host/test-run-a660-registration-live-gate.sh
+a660_acceptance_verifier=$repo/scripts/device/verify-a660-registration-v3-live-acceptance.sh
+a660_acceptance_test=$repo/scripts/device/test-a660-registration-v3-live-acceptance.sh
+a660_acceptance_report=$repo/test-results/2026-07-26-a660-registration-v3-live-accepted.md
+a660_acceptance_marker=$repo/manifests/acceptance/a660-registration-v3-live.accepted
 
 check_hash() {
 	file=$1
@@ -75,6 +79,13 @@ check_hash "$acceptance_report" \
 	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc
 check_hash "$acceptance_marker" \
 	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+check_hash "$a660_acceptance_report" \
+	2af09c087c917b7d1325c0b8a361c7ec3594779983034be0736acac841f8da79
+check_hash "$a660_acceptance_marker" \
+	8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f
+grep -qx \
+	'evidence_git_checkpoint=5a8d18f6c4a85c7828d3a9f87fe6d5a5d75b703d' \
+	"$a660_acceptance_marker"
 check_hash "$driver_override_check" \
 	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45
 check_hash "$a660_disarm" \
@@ -88,6 +99,9 @@ check_hash "$a660_host_runner" \
 "$a660_disarm_test" >/dev/null
 "$a660_gate_test" >/dev/null
 "$a660_host_runner_test" >/dev/null
+"$a660_acceptance_verifier" \
+	"$a660_acceptance_report" "$a660_acceptance_marker" >/dev/null
+"$a660_acceptance_test" >/dev/null
 
 required_files='
 Image-5.4.210-network-root-stage
@@ -321,4 +335,4 @@ grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
 ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
-echo 'PASS exact v21-accepted A660 registration bundle; exact SMMU reprobe, four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only'
+echo 'PASS exact live-accepted A660 registration bundle; exact SMMU reprobe, four nodes, seven modules, unopened render, zero firmware/storage/display, consumed and reproducible'

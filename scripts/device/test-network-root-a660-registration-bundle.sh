@@ -25,6 +25,8 @@ for contract in \
 	'test-run-network-root-a660-registration-gate.sh' \
 	'run-a660-registration-live-gate.sh' \
 	'test-run-a660-registration-live-gate.sh' \
+	'verify-a660-registration-v3-live-acceptance.sh' \
+	'test-a660-registration-v3-live-acceptance.sh' \
 	'verify-adreno-smmu-v21-live-acceptance.sh' \
 	'test-adreno-smmu-v21-live-acceptance.sh' \
 	c4b9a2ec5afdd73a555031425a5eaedf5ab97a36a69eeefdcfede279ad7ffcd0 \
@@ -38,6 +40,9 @@ for contract in \
 	c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c \
 	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875 \
 	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc \
+	8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f \
+	2af09c087c917b7d1325c0b8a361c7ec3594779983034be0736acac841f8da79 \
+	5a8d18f6c4a85c7828d3a9f87fe6d5a5d75b703d \
 	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
 	'check-adreno-smmu-driver-override-state.sh' \
 	'EXACT_PLATFORM_DEVICE_AT_MOST_ONCE' \

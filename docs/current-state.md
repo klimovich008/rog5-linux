@@ -716,7 +716,8 @@ stayed zero through the 30-second settle. Maximum target temperature was
 38.1 C. Normal reboot restored exact persistent fallback with zero pstore and
 project modules; privileged host cleanup removed all NFS/firewall/sysctl
 state and restored NetworkManager and ModemManager. V3 is consumed and no
-longer server-allowlisted. See the
+longer server-allowlisted. A mutation-tested nonsecret acceptance marker pins
+the exact report hash and evidence checkpoint for every later GPU tier. See the
 [registration v3 live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 
 The next GPU boundary is exact firmware provisioning while every DRM node
