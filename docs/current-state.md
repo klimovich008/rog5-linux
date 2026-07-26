@@ -826,5 +826,18 @@ and absent from the runnable server. A separately reviewed v7 must fix the
 raw-size oracle while retaining every pointer, forbidden-event, storage,
 watchdog, and equal-snapshot constraint.
 
+That
+[v7 offline contract](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+now passes without rebuilding the kernel. It derives exact controls and a
+root-owned mode-`0555` export from immutable consumed v6, expects the raw
+entry set `4/4096/43288`, separately source-pins page-rounded objects
+`4096/4096/45056`, and retains three successful kernel-new returns, two
+kernel puts, wrapper `1/2`, logical `4/4`, exact rollback object sets, and an
+equal post-settle GEM snapshot. Whole-tree comparison preserves credentials
+and every undeclared payload; changed-predecessor and rounded-as-raw roots
+are rejected. NFS/RPC stayed inactive, v7 has no server case or live runner,
+and the phone was not contacted. Decision: **HOLD** pending a separately
+tested one-invocation runner and later GO review.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

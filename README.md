@@ -393,6 +393,17 @@ passed, v6 is absent from the server allowlist, and it must not be retried.
 A fresh v7 must correct only this userspace oracle and still prove an equal
 post-settle GEM snapshot before any GMU or rendering tier.
 
+That
+[v7 offline package](test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+now passes and remains **HOLD**. It derives only from the immutable consumed
+v6 root and accepted module, separately pins raw entry sizes
+`4/4096/43288` and page-rounded object sizes `4096/4096/45056`, retains the
+compiler-specific logical `4/4` vmap and equal settled-snapshot contracts,
+and rejects changed-predecessor and rounded-as-raw seal mutations. Its
+root-owned mode-`0555` Btrfs export has no NFS server case or live runner.
+The phone was not contacted. A separate fail-first runner checkpoint and
+later GO review are required before at most one RAM-only v7 cycle.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
