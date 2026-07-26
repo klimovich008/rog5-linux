@@ -539,10 +539,16 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   local credential agreement, actual unarmed refusal, synchronized Git,
   protected-root reverification, and inactive NFS/RPC pass; see the
   [v8 pre-live HOLD report](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md).
-- [ ] In a later attended GO review, reverify the unchanged temporary-boot
-  package, fallback, credentials, clean synchronized Git, exact root and
-  controls, and add only one verifier-before-state exact-root NFS case before
-  deciding on at most one RAM-only cycle.
+- [x] In an attended GO review, reverify the unchanged temporary-boot package,
+  fallback, credentials, clean synchronized Git, exact root and controls, and
+  add only one verifier-before-state exact-root NFS case. Full package/root
+  suites, five hostile mutations, distinct SSH identities, strict read-only
+  fallback health, both real unarmed refusals, and final residue-free host
+  state pass; see the
+  [v8 pre-live GO report](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).
+- [ ] Run exactly one attended RAM-only v8 cycle, require normal fallback and
+  complete cleanup, then consume v8 and remove its server case regardless of
+  acceptance or rejection. Never retry and never flash.
 - [ ] After v8 is consumed, source-test a separate bounded GMU power-preparation
   tier; do not combine GMU runtime power, clocks, HFI, ZAP/SCM, hardware
   initialization, successful open, submit, or rendering.

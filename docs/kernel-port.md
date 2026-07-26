@@ -451,10 +451,15 @@ NFS remained inactive and the phone was not contacted. The
 then accepts the strict one-invocation/no-retry host runner, immutable inputs,
 private evidence boundary, local credential agreement, expected reboot
 disconnect, root reverification, and actual unarmed refusal. It cannot start
-NFS or boot the phone. V8 stays **HOLD** until the attended
-unchanged-package/fallback review, one verifier-before-state server case, and
-separate GO review pass. A later GMU power-preparation tier must remain
-separate from HFI, ZAP/SCM, successful open, submission, and rendering.
+NFS or boot the phone. The
+[v8 pre-live GO report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md)
+now accepts one fail-first exact-root NFS window, the complete unchanged
+temporary-boot package, all protected-root mutations, separate pinned SSH
+identities, strict read-only fallback health, both actual unarmed refusals,
+and residue-free final host state. This authorizes exactly one attended
+RAM-only v8 entry cycle with no retry or flash. A later GMU
+power-preparation tier must remain separate from HFI, ZAP/SCM, successful
+open, submission, and rendering.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

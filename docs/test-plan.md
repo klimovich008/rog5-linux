@@ -476,14 +476,20 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   separate pre-live HOLD now also pass: one mocked
   prepare/copy/remote-verify/gate sequence, private evidence, expected reboot
   disconnect, no retry, local credential agreement, complete root
-  reverification, actual unarmed refusal, and inactive NFS/RPC. The server
-  case and attended unchanged-package/fallback GO review remain pending; no
-  v8 phone contact or flash is authorized. See the
+  reverification, actual unarmed refusal, and inactive NFS/RPC. The separate
+  attended GO review now passes too: one fail-first, verifier-before-state,
+  exact-root NFS case; complete fourteen-file package and protected-root
+  verification; all five hostile mutations; distinct SSH identities; strict
+  read-only fallback health; real unarmed server/runner refusals; and final
+  residue-free host state. Exactly one RAM-only v8 cycle is authorized, with
+  no retry and no flash. See the
   [v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
   and
   [v8 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
   and
-  [v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md).**
+  [v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+  and
+  [v8 pre-live GO report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

@@ -449,9 +449,14 @@ adds a fail-first-tested one-invocation host runner with strict SSH identity,
 immutable root/package/gate inputs, private evidence, expected reboot
 disconnect, and no retry or NFS/boot/flash authority. Its mock transport,
 local credential agreement, complete root re-verification, and actual
-unarmed refusal pass while NFS/RPC remains inactive and the phone remains
-uncontacted. V8 remains **HOLD**: it has no server case, attended
-fallback/package GO review, phone cycle, retry, or flash authority.
+unarmed refusal pass while NFS/RPC remains inactive. The subsequent
+[v8 pre-live GO review](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md)
+adds only one verifier-before-state exact-root NFS case and revalidates the
+complete fourteen-file transport package, protected root and all five
+mutations, clean synchronized Git, separate client/server SSH identities,
+strict read-only fallback health, and residue-free host state. Both real
+unarmed controls refuse before action. V8 is authorized for exactly one
+attended RAM-only cycle, with no retry and never any flash.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

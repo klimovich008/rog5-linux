@@ -767,10 +767,14 @@ adds a strict one-invocation host runner, but it cannot start NFS or boot the
 phone. Its mock proves one prepare, copy, remote verification, and target-gate
 call with private evidence, expected reboot disconnect, and no retry. Local
 credential agreement, complete root reverification, and an actual unarmed
-refusal pass. The root remains deliberately absent from the bounded server
-and NFS/RPC remains inactive. Only a later verifier-before-state GO review
-may add one exact-root server case. Neither checkpoint may authorize flashing
-or retry.
+refusal pass. The
+[pre-live GO review](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md)
+adds exactly one fail-first, explicit-opt-in v8 server case whose complete
+root verifier runs before host-state mutation. The unchanged package,
+protected root and five mutations, separate SSH identities, read-only
+fallback, and real unarmed controls all pass. NFS/RPC and the temporary USB
+profile are inactive with zero residue afterward. This authorizes exactly
+one attended RAM-only v8 cycle; flashing and retry remain forbidden.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
