@@ -10,9 +10,12 @@ builder=$repo/scripts/device/build-a660-ucode-allocation-v7-runtime.sh
 runtime_verify=$repo/scripts/device/verify-a660-ucode-allocation-v7-runtime-sources.sh
 relocation_verify=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
 consumed_v6_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
+live_runner=$repo/scripts/host/run-a660-ucode-allocation-v7-live-gate.sh
+live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v7-live-gate.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
-	"$relocation_verify" "$consumed_v6_test"; do
+	"$relocation_verify" "$consumed_v6_test" "$live_runner" \
+	"$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable ucode-allocation v7 export tool: $script" >&2
 		exit 1
@@ -47,11 +50,15 @@ for contract in \
 	'trace_policy=PID_FILTERED_LOGICAL_VMAP_BALANCE' \
 	'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' \
 	'v6_reuse=FORBIDDEN' \
+	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7_LIVE_GATE' \
+	'HostKeyAlias=rog5-network-root' \
+	'umask 077' \
 	'credentials=preserved' \
 	'base=consumed-v6' \
 	'root-owned mode 0555'
 do
-	grep -Fq "$contract" "$prepare" "$verify" || {
+	grep -Fq "$contract" "$prepare" "$verify" "$live_runner" \
+		"$live_runner_test" || {
 		echo "FAIL ucode-allocation v7 export path omits: $contract" >&2
 		exit 1
 	}
@@ -77,6 +84,7 @@ do
 done
 
 "$consumed_v6_test" >/dev/null
+"$live_runner_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ $EUID == 0 ]] || {
@@ -116,4 +124,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 		'raw_size_contract=4096,4096,45056'
 fi
 
-echo 'PASS A660 ucode-allocation v7 export is consumed-v6-derived, exact-delta, compiler/size/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, offline-only, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v7 export is consumed-v6-derived, exact-delta, compiler/size/logical-vmap/snapshot guarded, credential-preserving, mutation-tested, host-runner-tested, offline-only, non-runnable, and non-flashing'
