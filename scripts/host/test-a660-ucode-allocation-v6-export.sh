@@ -10,9 +10,12 @@ builder=$repo/scripts/device/build-a660-ucode-allocation-v6-runtime.sh
 runtime_verify=$repo/scripts/device/verify-a660-ucode-allocation-v6-runtime-sources.sh
 relocation_verify=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
 consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+live_runner=$repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh
+live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v6-live-gate.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
-	"$relocation_verify" "$consumed_test"; do
+	"$relocation_verify" "$consumed_test" "$live_runner" \
+	"$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable ucode-allocation v6 export tool: $script" >&2
 		exit 1
@@ -44,13 +47,17 @@ for contract in \
 	'trace_policy=PID_FILTERED_LOGICAL_VMAP_BALANCE' \
 	'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' \
 	'v5_reuse=FORBIDDEN' \
+	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_LIVE_GATE' \
+	'HostKeyAlias=rog5-network-root' \
+	'umask 077' \
 	'verify-a660-ucode-vmap-relocations.sh' \
 	'verify-a660-registration-export.sh' \
 	'credentials=preserved' \
 	'base=registration-v3' \
 	'root-owned mode 0555'
 do
-	grep -Fq "$contract" "$prepare" "$verify" || {
+	grep -Fq "$contract" "$prepare" "$verify" "$live_runner" \
+		"$live_runner_test" || {
 		echo "FAIL ucode-allocation v6 export path omits: $contract" >&2
 		exit 1
 	}
@@ -61,11 +68,6 @@ if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v6)' \
 	echo 'FAIL pre-live HOLD root is runnable through bounded NFS server' >&2
 	exit 1
 fi
-[[ ! -e $repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh ]] || {
-	echo 'FAIL pre-live HOLD unexpectedly has a v6 live runner' >&2
-	exit 1
-}
-
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/|rm[[:space:]]+-rf[[:space:]]+["$]*(base_root|export_root)' \
 	"$prepare" "$verify"
@@ -75,6 +77,7 @@ then
 fi
 
 "$consumed_test" >/dev/null
+"$live_runner_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ -n ${BASE_ROOT:-} ]]
@@ -99,4 +102,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	fi
 fi
 
-echo 'PASS A660 ucode-allocation v6 export is exact-base, compiler-pinned, logical-vmap/snapshot guarded, credential-preserving, consumed-v5-derived, mutation-tested, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v6 export is exact-base, compiler-pinned, logical-vmap/snapshot guarded, credential-preserving, consumed-v5-derived, mutation-tested, host-runner-tested, non-runnable, and non-flashing'

@@ -14,6 +14,8 @@ export_test=$repo/scripts/host/test-a660-ucode-allocation-v6-export.sh
 relocation_verifier=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
 relocation_test=$repo/scripts/device/test-a660-ucode-vmap-relocations.sh
 consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+live_runner=$repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh
+live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v6-live-gate.sh
 serve=$repo/scripts/host/serve-network-root.sh
 rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-offline.md
@@ -21,7 +23,7 @@ report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-offline.md
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
 	"$export_test" "$relocation_verifier" "$relocation_test" \
-	"$consumed_test" "$serve"
+	"$consumed_test" "$live_runner" "$live_runner_test" "$serve"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v6 tool: $input" >&2
@@ -43,7 +45,7 @@ do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify_export" "$export_test" \
-	"$relocation_verifier" "$serve"
+	"$relocation_verifier" "$live_runner" "$live_runner_test" "$serve"
 do
 	bash -n "$input"
 done
@@ -68,6 +70,9 @@ for contract in \
 	'logical_gets=4' \
 	'logical_puts=4' \
 	'gem_snapshot=equal' \
+	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_LIVE_GATE' \
+	'HostKeyAlias=rog5-network-root' \
+	'umask 077' \
 	'power=0' \
 	'hfi=0' \
 	'scm=0' \
@@ -78,7 +83,7 @@ do
 	if ! grep -Fq "$contract" "$runtime_builder" "$runtime_verifier" \
 		"$runtime_test" "$probe_test" "$gate" "$gate_test" "$prepare" \
 		"$verify_export" "$export_test" "$relocation_verifier" \
-		"$rejection" "$report"
+		"$live_runner" "$live_runner_test" "$rejection" "$report"
 	then
 		echo "FAIL A660 ucode-allocation v6 path omits: $contract" >&2
 		exit 1
@@ -108,12 +113,6 @@ if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v6)' "$serve"; the
 	echo 'FAIL pre-live HOLD root is runnable through bounded NFS server' >&2
 	exit 1
 fi
-[ ! -e "$repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh" ] ||
-	{
-		echo 'FAIL pre-live HOLD unexpectedly has a v6 live runner' >&2
-		exit 1
-	}
-
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/' \
 	"$runtime_builder" "$runtime_verifier" "$prepare" "$verify_export"
@@ -126,7 +125,8 @@ fi
 "$probe_test"
 "$gate_test"
 "$export_test"
+"$live_runner_test"
 "$relocation_test"
 "$consumed_test"
 
-echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, storage-isolated, non-runnable, and pre-live HOLD'
+echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, non-runnable, and pre-live HOLD'
