@@ -766,8 +766,12 @@ and firmware-reference evidence, equal pre/post GEM snapshots, nine
 power/HFI/ZAP/SCM zero-event probes, nested watchdogs, and the unchanged full
 temporary-boot package. See the
 [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
-NFS remains inactive, the root is absent from its allowlist, no live runner
-exists, and any phone cycle remains pending.
+A fail-first-tested host runner now pins the exact root, package, target
+scripts, SSH identity, one invocation, expected reboot disconnect, and
+mode-`0600` private evidence. The
+[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+records **HOLD**: NFS remains inactive, the root is absent from its allowlist,
+the phone was not contacted, and no live cycle is authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

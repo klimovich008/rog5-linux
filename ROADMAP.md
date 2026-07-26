@@ -436,10 +436,17 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   unchanged fully reverified boot package. Keep it absent from the NFS
   allowlist and do not create a live runner at this checkpoint. See the
   [ucode-allocation v5 offline report](test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
+- [x] Fail-first test and accept an exact one-invocation host runner with
+  strict SSH identity, private evidence, immutable root/package inputs, and
+  no NFS, boot, retry, ADB, fastboot, or flash control. Record a separate
+  pre-live **HOLD** while the root remains non-runnable and the phone remains
+  untouched. See the
+  [pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md).
 - [ ] Run at most one attended ucode-allocation gate only after its offline
-  package is accepted; require balanced maps/unmaps, zero surviving GEM/DRM
-  state, no power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and
-  complete host cleanup.
+  package is accepted and every documented HOLD-lift requirement passes;
+  require balanced maps/unmaps, zero surviving GEM/DRM state, no
+  power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and complete host
+  cleanup.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.

@@ -654,8 +654,13 @@ pointers, balanced CPU-vmap and firmware-reference evidence, equal pre/post
 GEM snapshots, and zero power/HFI/ZAP/SCM events. The complete unchanged boot
 package was reverified; see the
 [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
-NFS remains inactive, the candidate is absent from the serve allowlist, no
-live runner exists, and no new live cycle is authorized.
+The subsequent fail-first host runner passes a mock one-invocation transport
+suite, pins strict SSH identity and immutable inputs, writes only private
+evidence, and has no NFS or boot control. The
+[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+records **HOLD**: NFS remains inactive, the candidate is absent from the
+serve allowlist, the phone was not contacted, and no new live cycle is
+authorized.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

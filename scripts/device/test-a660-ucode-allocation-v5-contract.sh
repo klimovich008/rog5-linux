@@ -15,23 +15,29 @@ gate_test=$repo/scripts/device/test-run-network-root-a660-ucode-allocation-gate.
 prepare=$repo/scripts/host/prepare-a660-ucode-allocation-export.sh
 verify_export=$repo/scripts/host/verify-a660-ucode-allocation-export.sh
 export_test=$repo/scripts/host/test-a660-ucode-allocation-export.sh
+live_runner=$repo/scripts/host/run-a660-ucode-allocation-live-gate.sh
+live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-live-gate.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-offline.md
+hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md
 
 [ -f "$helper_source" ] && [ ! -L "$helper_source" ] || {
 	echo 'FAIL missing accepted A660 one-open helper source' >&2
 	exit 1
 }
-[ -f "$report" ] && [ ! -L "$report" ] || {
-	echo 'FAIL missing A660 ucode-allocation v5 offline report' >&2
-	exit 1
-}
+for document in "$report" "$hold_report"; do
+	[ -f "$document" ] && [ ! -L "$document" ] || {
+		echo "FAIL missing A660 ucode-allocation v5 report: $document" >&2
+		exit 1
+	}
+done
 
 for input in "$baseline" "$probe" "$runtime_verifier" "$probe_test" "$gate" \
 	"$gate_test" "$prepare" "$verify_export" "$export_test" "$helper_builder" \
-	"$helper_verifier" "$helper_test" "$build_test" "$package_test"
+	"$helper_verifier" "$helper_test" "$build_test" "$package_test" \
+	"$live_runner" "$live_runner_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v5 tool: $input" >&2
@@ -45,7 +51,9 @@ for input in "$baseline" "$probe" "$runtime_verifier" "$probe_test" "$gate" \
 do
 	sh -n "$input"
 done
-for input in "$prepare" "$verify_export" "$export_test" "$serve"; do
+for input in "$prepare" "$verify_export" "$export_test" "$live_runner" \
+	"$live_runner_test" "$serve"
+do
 	bash -n "$input"
 done
 
@@ -102,6 +110,18 @@ for contract in \
 	'watchdog=disarmed' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_GATE=1' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_REBOOT=1' \
+	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_LIVE_GATE=1' \
+	'SSH_KEY' \
+	'KNOWN_HOSTS' \
+	'EVIDENCE_DIR' \
+	'HostKeyAlias=rog5-network-root' \
+	'StrictHostKeyChecking=yes' \
+	'ConnectionAttempts=1' \
+	'umask 077' \
+	c6df42496b2fa6920187773bc7a97a8dc8bc5a7afb518f98ff1265a585580225 \
+	d8e08191c50b6f5c925c82d03f837c9757e7e8aa0a9323fd63a8bb9871688cf7 \
+	'Decision: **HOLD.' \
+	'The phone was not contacted.' \
 	c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c \
 	'verify-a660-registration-v3-live-acceptance.sh' \
 	'verify-mainline-a660-ucode-allocation-build.sh' \
@@ -112,7 +132,8 @@ do
 	if ! grep -Fq "$contract" "$helper_source" "$helper_builder" \
 		"$helper_verifier" "$baseline" "$probe" "$runtime_verifier" \
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
-		"$export_test" "$build_test" "$package_test" "$report"
+		"$export_test" "$live_runner" "$live_runner_test" "$build_test" \
+		"$package_test" "$report" "$hold_report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
 		exit 1
@@ -123,11 +144,10 @@ for document in README.md ROADMAP.md docs/current-state.md \
 	docs/kernel-port.md docs/network-root.md docs/test-plan.md \
 	docs/builds-and-artifacts.md docs/port-status.md
 do
-	grep -Fq 'ucode-allocation v5' "$repo/$document" ||
-		grep -Fq 'ucode-allocation-v5-offline.md' "$repo/$document" || {
-			echo "FAIL project status omits ucode-allocation v5: $document" >&2
-			exit 1
-		}
+	grep -Fq 'ucode-allocation-v5-prelive-hold.md' "$repo/$document" || {
+		echo "FAIL project status omits ucode-allocation v5 HOLD: $document" >&2
+		exit 1
+	}
 done
 
 if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v5' "$serve"; then
@@ -147,8 +167,9 @@ fi
 "$helper_test"
 "$probe_test"
 "$gate_test"
+"$live_runner_test"
 "$export_test"
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, HOLD, non-runnable, and non-flashing'
