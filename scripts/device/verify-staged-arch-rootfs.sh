@@ -17,8 +17,8 @@ done < /etc/rog5/packages.requested.txt
 [[ $(find /lib/modules -mindepth 1 -maxdepth 1 -type d | wc -l) == 1 ]]
 
 for command in chromium dnsmasq eglinfo git krdpserver kscreen-doctor kwin_wayland \
-	nmcli node npm nft pip sshd startplasma-wayland systemd-inhibit tmux ttyd \
-	vulkaninfo wg; do
+	nmcli node npm nft pip sshd startplasma-wayland systemd-analyze \
+	systemd-inhibit tmux ttyd vulkaninfo wg; do
 	command -v "$command" >/dev/null
 done
 [[ $(stat -c %a /root/.ssh/authorized_keys) == 600 ]]
@@ -62,6 +62,23 @@ grep -qx 'ExecStart=/usr/bin/krdpserver --address 127.0.0.1' \
 	/home/rog5/.config/systemd/user/app-org.kde.krdpserver.service.d/10-rog5-loopback.conf
 [[ ! -e /home/rog5/.config/krdpserverrc ]]
 [[ ! -e /home/rog5/.local/share/kwalletd ]]
+agent_passwd=$(getent passwd rog5-agent)
+IFS=: read -r agent_name agent_password agent_uid agent_gid _ \
+	agent_home agent_shell \
+	<<<"$agent_passwd"
+[[ $agent_name == rog5-agent ]]
+[[ $agent_password == x ]]
+((agent_uid > 0 && agent_uid != 1000))
+((agent_gid > 0 && agent_gid != 1000))
+[[ $agent_home == /var/lib/rog5-agent ]]
+[[ $agent_shell == /usr/bin/nologin ]]
+awk -F: '$1 == "rog5-agent" { exit substr($2,1,1) != "!" }' /etc/shadow
+[[ $(id -nG rog5-agent) == rog5-agent ]]
+[[ $(stat -c %U:%G:%a /var/lib/rog5-agent) == rog5-agent:rog5-agent:700 ]]
+[[ $(stat -c %U:%G:%a /var/lib/rog5-agent/private) == rog5-agent:rog5-agent:700 ]]
+[[ ! -e /var/lib/rog5-agent/.ssh ]]
+[[ -z $(find /var/lib/rog5-agent -mindepth 1 \
+	! -path /var/lib/rog5-agent/private -print -quit) ]]
 for file in /usr/local/bin/rog5-display-profile.sh /usr/local/bin/rog5-power-profile.sh \
 	/usr/local/bin/rog5-screen-toggle.sh /usr/local/sbin/rog5-vpn-hotspot.sh; do
 	[[ -x $file ]]
@@ -72,6 +89,24 @@ done
 [[ -r /etc/systemd/system/rog5-ttyd.service ]]
 grep -qx 'ExecStart=/usr/bin/systemd-inhibit --what=sleep:handle-power-key --who=rog5-server --why=keep-server-workloads-running --mode=block /usr/bin/sleep infinity' \
 	/etc/systemd/system/rog5-server-inhibit.service
+cmp /etc/systemd/system/rog5-chromium-headless.service \
+	/workspace/repo/packaging/arch/rog5-chromium-headless.service
+grep -qx 'User=rog5-agent' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'Group=rog5-agent' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'NoNewPrivileges=yes' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'PrivateDevices=yes' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'ProtectHome=yes' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'ProtectSystem=strict' \
+	/etc/systemd/system/rog5-chromium-headless.service
+grep -qx 'ReadWritePaths=/var/lib/rog5-agent' \
+	/etc/systemd/system/rog5-chromium-headless.service
+systemd-analyze verify \
+	/etc/systemd/system/rog5-chromium-headless.service >/dev/null
 sh /workspace/repo/scripts/device/verify-a660-firmware.sh /usr/lib/firmware
 [[ -r /usr/lib/firmware/regulatory.db ]]
 [[ ! -e /etc/wireguard/wg0.conf ]]

@@ -64,6 +64,17 @@ for group in input render video; do
 	getent group "$group" >/dev/null && usermod -aG "$group" rog5
 done
 
+getent passwd rog5-agent >/dev/null && {
+	echo 'FAIL reserved rog5-agent account already exists' >&2
+	exit 1
+}
+useradd --system --user-group \
+	--home-dir /var/lib/rog5-agent --no-create-home \
+	--shell /usr/bin/nologin rog5-agent
+usermod -L rog5-agent
+install -d -o rog5-agent -g rog5-agent -m0700 \
+	/var/lib/rog5-agent /var/lib/rog5-agent/private
+
 install -d -m0700 /root/.ssh
 install -m0600 "$authorized_key" /root/.ssh/authorized_keys
 install -d -o rog5 -g rog5 -m0700 /home/rog5/.ssh

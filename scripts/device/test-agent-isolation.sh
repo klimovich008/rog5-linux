@@ -11,7 +11,6 @@ for file in "$stage" "$verify" "$service"; do
 done
 bash -n "$stage"
 bash -n "$verify"
-systemd-analyze verify "$service" >/dev/null
 
 for contract in \
 	'User=rog5-agent' \
@@ -29,8 +28,10 @@ for contract in \
 	'ReadWritePaths=/var/lib/rog5-agent' \
 	'CapabilityBoundingSet=' \
 	'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK' \
+	'systemd-analyze verify' \
 	'useradd --system --user-group' \
 	'--home-dir /var/lib/rog5-agent' \
+	'--no-create-home' \
 	'--shell /usr/bin/nologin' \
 	'rog5-agent' \
 	'/var/lib/rog5-agent/private' \
@@ -47,11 +48,15 @@ do
 	}
 done
 
+if grep -Eq '^User=rog5$|^Group=rog5$|/home/rog5/[.]config/chromium-server' \
+	"$service"; then
+	echo 'FAIL automation service reuses the desktop account' >&2
+	exit 1
+fi
 if grep -Eq \
-	'^User=rog5$|^Group=rog5$|/home/rog5/[.]config/chromium-server|BEGIN .*PRIVATE KEY|OPENROUTER_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY' \
-	"$stage" "$verify" "$service"
-then
-	echo 'FAIL automation service reuses the desktop account or embeds a secret' >&2
+	'BEGIN .*PRIVATE KEY|OPENROUTER_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY' \
+	"$stage" "$service"; then
+	echo 'FAIL automation rootfs input embeds a secret' >&2
 	exit 1
 fi
 

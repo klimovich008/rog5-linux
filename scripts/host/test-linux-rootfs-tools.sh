@@ -1,17 +1,19 @@
 #!/bin/sh
 set -eu
 
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 fetch=$repo/scripts/host/get-arch-rootfs.sh
 stage=$repo/scripts/host/stage-arch-rootfs.sh
+agent_test=$repo/scripts/device/test-agent-isolation.sh
 
-for script in "$fetch" "$stage"; do
+for script in "$fetch" "$stage" "$agent_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable Linux host tool: $script" >&2
 		exit 1
 	}
 	bash -n "$script"
 done
+"$agent_test" >/dev/null
 
 grep -Fq 'verify-arch-rootfs.sh' "$fetch"
 grep -Fq '91e6b11698f8df66042d56aaa56fbe9c9263847d' "$fetch"
