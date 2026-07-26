@@ -1,0 +1,243 @@
+--- a/probe-network-root-a660-ucode-allocation.sh
++++ b/probe-network-root-a660-ucode-allocation-v6.sh
+@@ -6,15 +6,15 @@
+ 	exit 1
+ }
+ 
+-[ "${ALLOW_MAINLINE_A660_UCODE_ALLOCATION:-}" = 1 ] ||
+-	fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION=1 for one attended probe'
++[ "${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6:-}" = 1 ] ||
++	fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6=1 for one attended probe'
+ [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
+ 
+ release=7.1.4-rog5-a660reg1
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+-helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-open
++helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v6-open
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ acceptance_sha=8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f
+ probe_timeout=${ROG5_PROBE_TIMEOUT:-110}
+@@ -258,6 +258,8 @@
+ rog5_ucode_vma_close
+ rog5_ucode_gem_unpin
+ rog5_ucode_gem_free
++rog5_ucode_kernel_new
++rog5_ucode_kernel_new_ret
+ rog5_ucode_get_vaddr
+ rog5_ucode_put_vaddr
+ rog5_ucode_kernel_put
+@@ -282,15 +284,15 @@
+ 		cp "$trace_root/trace" "$trace_snapshot" || trace_status=1
+ 	fi
+ 	printf '\n' >"$trace_root/set_event_pid" || trace_status=1
+-	if [ -d "$trace_root/events/rog5_ucode" ]; then
+-		printf '0\n' >"$trace_root/events/rog5_ucode/enable" ||
++	if [ -d "$trace_root/events/rog5_ucode_v6" ]; then
++		printf '0\n' >"$trace_root/events/rog5_ucode_v6/enable" ||
+ 			trace_status=1
+ 	fi
+ 	for event in $trace_events; do
+-		printf '%s\n' "-:rog5_ucode/$event" \
++		printf '%s\n' "-:rog5_ucode_v6/$event" \
+ 			>>"$trace_root/kprobe_events" || trace_status=1
+ 	done
+-	[ ! -d "$trace_root/events/rog5_ucode" ] || trace_status=1
++	[ ! -d "$trace_root/events/rog5_ucode_v6" ] || trace_status=1
+ 	trace_active=0
+ 	set -e
+ 	[ "$trace_status" -eq 0 ]
+@@ -317,7 +319,14 @@
+ 			"$state_dir/gem.after" "$state_dir/maps" \
+ 			"$state_dir/unmaps" "$state_dir/closes" \
+ 			"$state_dir/unpins" "$state_dir/frees" \
+-			"$state_dir/vmaps" "$state_dir/vunmaps"
++			"$state_dir/vmaps" "$state_dir/vunmaps" \
++			"$state_dir/kernel-new-sizes" \
++			"$state_dir/kernel-new-sizes.expected" \
++			"$state_dir/kernel-new-rets" \
++			"$state_dir/kernel-puts" \
++			"$state_dir/wrapper-get-objects" \
++			"$state_dir/wrapper-put-objects" \
++			"$state_dir/logical-objects"
+ 		rmdir "$state_dir" 2>/dev/null
+ 	fi
+ 	watchdog_pid=
+@@ -328,7 +337,7 @@
+ trap disarm_watchdog EXIT
+ trap 'exit 1' HUP INT TERM
+ 
+-state_dir=$(mktemp -d /run/rog5-a660-ucode-allocation.XXXXXX)
++state_dir=$(mktemp -d /run/rog5-a660-ucode-allocation-v6.XXXXXX)
+ trace_snapshot=$state_dir/trace
+ # Positional parameters are intentionally expanded by the child shell.
+ # shellcheck disable=SC2016
+@@ -508,12 +517,12 @@
+ 	post_fail 'tracefs is unavailable'
+ [ ! -s "$trace_root/kprobe_events" ] ||
+ 	post_fail 'an unrelated kprobe event already exists'
+-[ ! -d "$trace_root/events/rog5_ucode" ] ||
++[ ! -d "$trace_root/events/rog5_ucode_v6" ] ||
+ 	post_fail 'stale ucode-allocation trace group exists'
+ for symbol in adreno_load_ucode_only msm_gem_vma_map \
+ 	msm_gem_vma_unmap msm_gem_vma_close msm_gem_unpin_iova \
+-	msm_gem_free_object msm_gem_get_vaddr msm_gem_put_vaddr \
+-	msm_gem_kernel_put a6xx_ucode_unload msm_gpu_pm_resume \
++	msm_gem_free_object msm_gem_kernel_new msm_gem_get_vaddr \
++	msm_gem_put_vaddr msm_gem_kernel_put a6xx_ucode_unload msm_gpu_pm_resume \
+ 	adreno_runtime_resume a6xx_pm_resume a6xx_gmu_resume adreno_hw_init \
+ 	a6xx_hw_init a6xx_zap_shader_init
+ do
+@@ -530,36 +539,38 @@
+ 
+ # shellcheck disable=SC2016
+ if ! printf '%s\n' \
+-	'p:rog5_ucode/rog5_ucode_diag msm:adreno_load_ucode_only dev=$arg1:x64' \
+-	'r:rog5_ucode/rog5_ucode_diag_ret msm:adreno_load_ucode_only ret=$retval:s64' \
+-	'p:rog5_ucode/rog5_ucode_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
+-	'r:rog5_ucode/rog5_ucode_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
+-	'p:rog5_ucode/rog5_ucode_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_fw_request request_firmware_direct' \
+-	'p:rog5_ucode/rog5_ucode_fw_release release_firmware fw=$arg1:x64' \
+-	'p:rog5_ucode/rog5_ucode_pm_resume msm:msm_gpu_pm_resume' \
+-	'p:rog5_ucode/rog5_ucode_runtime_resume msm:adreno_runtime_resume' \
+-	'p:rog5_ucode/rog5_ucode_a6xx_pm_resume msm:a6xx_pm_resume' \
+-	'p:rog5_ucode/rog5_ucode_gmu_resume msm:a6xx_gmu_resume' \
+-	'p:rog5_ucode/rog5_ucode_hw_init msm:adreno_hw_init' \
+-	'p:rog5_ucode/rog5_ucode_a6xx_hw_init msm:a6xx_hw_init' \
+-	'p:rog5_ucode/rog5_ucode_zap_init msm:a6xx_zap_shader_init' \
+-	'p:rog5_ucode/rog5_ucode_scm_pas qcom_scm_pas_auth_and_reset' \
+-	'p:rog5_ucode/rog5_ucode_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
++	'p:rog5_ucode_v6/rog5_ucode_diag msm:adreno_load_ucode_only dev=$arg1:x64' \
++	'r:rog5_ucode_v6/rog5_ucode_diag_ret msm:adreno_load_ucode_only ret=$retval:s64' \
++	'p:rog5_ucode_v6/rog5_ucode_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
++	'r:rog5_ucode_v6/rog5_ucode_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
++	'p:rog5_ucode_v6/rog5_ucode_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_kernel_new msm:msm_gem_kernel_new size=$arg2:u64' \
++	'r:rog5_ucode_v6/rog5_ucode_kernel_new_ret msm:msm_gem_kernel_new ret=$retval:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_fw_request request_firmware_direct' \
++	'p:rog5_ucode_v6/rog5_ucode_fw_release release_firmware fw=$arg1:x64' \
++	'p:rog5_ucode_v6/rog5_ucode_pm_resume msm:msm_gpu_pm_resume' \
++	'p:rog5_ucode_v6/rog5_ucode_runtime_resume msm:adreno_runtime_resume' \
++	'p:rog5_ucode_v6/rog5_ucode_a6xx_pm_resume msm:a6xx_pm_resume' \
++	'p:rog5_ucode_v6/rog5_ucode_gmu_resume msm:a6xx_gmu_resume' \
++	'p:rog5_ucode_v6/rog5_ucode_hw_init msm:adreno_hw_init' \
++	'p:rog5_ucode_v6/rog5_ucode_a6xx_hw_init msm:a6xx_hw_init' \
++	'p:rog5_ucode_v6/rog5_ucode_zap_init msm:a6xx_zap_shader_init' \
++	'p:rog5_ucode_v6/rog5_ucode_scm_pas qcom_scm_pas_auth_and_reset' \
++	'p:rog5_ucode_v6/rog5_ucode_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
+ 	>>"$trace_root/kprobe_events"
+ then
+ 	post_fail 'ucode-allocation trace registration failed'
+ fi
+-[ -d "$trace_root/events/rog5_ucode" ] ||
++[ -d "$trace_root/events/rog5_ucode_v6" ] ||
+ 	post_fail 'ucode-allocation trace group was not created'
+-printf '1\n' >"$trace_root/events/rog5_ucode/enable" ||
++printf '1\n' >"$trace_root/events/rog5_ucode_v6/enable" ||
+ 	post_fail 'ucode-allocation trace enable failed'
+ trace_active=1
+ 
+@@ -644,8 +655,10 @@
+ require_event_count rog5_ucode_vma_close 3 'VMA close'
+ require_event_count rog5_ucode_gem_unpin 3 'GEM unpin'
+ require_event_count rog5_ucode_gem_free 3 'GEM free'
+-require_event_count rog5_ucode_get_vaddr 4 'CPU vmap'
+-require_event_count rog5_ucode_put_vaddr 4 'CPU vunmap'
++require_event_count rog5_ucode_kernel_new 3 'kernel GEM new'
++require_event_count rog5_ucode_kernel_new_ret 3 'kernel GEM new return'
++require_event_count rog5_ucode_get_vaddr 1 'public CPU vmap wrapper'
++require_event_count rog5_ucode_put_vaddr 2 'public CPU vunmap wrapper'
+ require_event_count rog5_ucode_kernel_put 2 'kernel GEM put'
+ require_event_count rog5_ucode_unload 1 'ucode unload'
+ require_event_count rog5_ucode_fw_request 2 'firmware request'
+@@ -665,23 +678,61 @@
+ extract_field rog5_ucode_gem_free obj >"$state_dir/frees"
+ extract_field rog5_ucode_get_vaddr obj >"$state_dir/vmaps"
+ extract_field rog5_ucode_put_vaddr obj >"$state_dir/vunmaps"
++extract_field rog5_ucode_kernel_new size >"$state_dir/kernel-new-sizes"
++extract_field rog5_ucode_kernel_new_ret ret >"$state_dir/kernel-new-rets"
++extract_field rog5_ucode_kernel_put obj >"$state_dir/kernel-puts"
+ for exact in maps unmaps closes unpins frees; do
+ 	[ "$(wc -l <"$state_dir/$exact")" -eq 3 ] ||
+ 		post_fail "$exact pointer count is not three"
+ 	[ "$(uniq "$state_dir/$exact" | wc -l)" -eq 3 ] ||
+ 		post_fail "$exact pointers are not unique"
+ done
+-[ "$(wc -l <"$state_dir/vmaps")" -eq 4 ] &&
+-	[ "$(wc -l <"$state_dir/vunmaps")" -eq 4 ] ||
+-	post_fail 'CPU vmap pointer count is not balanced'
++[ "$(wc -l <"$state_dir/kernel-new-rets")" -eq 3 ] &&
++	[ "$(uniq "$state_dir/kernel-new-rets" | wc -l)" -eq 3 ] ||
++	post_fail 'kernel GEM new return pointers are not three and unique'
++if grep -Eiq \
++	'^(0|0x0|0xfffffffffffff[0-9a-f]{3}|fffffffffffff[0-9a-f]{3})$' \
++	"$state_dir/kernel-new-rets"
++then
++	post_fail 'kernel GEM new returned NULL or an error pointer'
++fi
++printf '4096\n4096\n45056\n' >"$state_dir/kernel-new-sizes.expected"
++cmp "$state_dir/kernel-new-sizes.expected" \
++	"$state_dir/kernel-new-sizes" ||
++	post_fail 'kernel GEM new sizes are not exact'
++[ "$(wc -l <"$state_dir/vmaps")" -eq 1 ] &&
++	[ "$(uniq "$state_dir/vmaps" | wc -l)" -eq 1 ] ||
++	post_fail 'public CPU vmap wrapper object is not exact'
++[ "$(wc -l <"$state_dir/vunmaps")" -eq 2 ] &&
++	[ "$(uniq "$state_dir/vunmaps" | wc -l)" -eq 1 ] ||
++	post_fail 'public CPU vunmap wrapper objects are not exact'
++sort -u "$state_dir/vmaps" >"$state_dir/wrapper-get-objects"
++sort -u "$state_dir/vunmaps" >"$state_dir/wrapper-put-objects"
++cmp "$state_dir/wrapper-get-objects" \
++	"$state_dir/wrapper-put-objects" ||
++	post_fail 'public wrapper object identities differ'
++[ "$(wc -l <"$state_dir/kernel-puts")" -eq 2 ] &&
++	[ "$(uniq "$state_dir/kernel-puts" | wc -l)" -eq 2 ] ||
++	post_fail 'kernel GEM put objects are not two and unique'
++cat "$state_dir/wrapper-get-objects" "$state_dir/kernel-puts" |
++	sort >"$state_dir/logical-objects"
++[ "$(wc -l <"$state_dir/logical-objects")" -eq 3 ] &&
++	[ "$(uniq "$state_dir/logical-objects" | wc -l)" -eq 3 ] ||
++	post_fail 'logical rollback object identities are not three and unique'
+ cmp "$state_dir/maps" "$state_dir/unmaps" ||
+ 	post_fail 'mapped and unmapped VMA pointer sets differ'
+ cmp "$state_dir/maps" "$state_dir/closes" ||
+ 	post_fail 'mapped and closed VMA pointer sets differ'
+ cmp "$state_dir/unpins" "$state_dir/frees" ||
+ 	post_fail 'unpinned and freed GEM pointer sets differ'
+-cmp "$state_dir/vmaps" "$state_dir/vunmaps" ||
+-	post_fail 'CPU vmap and vunmap pointer multisets differ'
++cmp "$state_dir/logical-objects" "$state_dir/unpins" ||
++	post_fail 'logical rollback and unpinned GEM object sets differ'
++logical_gets=$(( $(event_count rog5_ucode_kernel_new) +
++	$(event_count rog5_ucode_get_vaddr) ))
++logical_puts=$(( $(event_count rog5_ucode_kernel_put) +
++	$(event_count rog5_ucode_put_vaddr) ))
++[ "$logical_gets" -eq 4 ] && [ "$logical_puts" -eq 4 ] ||
++	post_fail 'logical CPU vmap balance is not four/four'
+ 
+ open_log=$(dmesg | tail -n +"$open_dmesg_start")
+ [ "$(printf '%s\n' "$open_log" | grep -Fc "$success_marker")" -eq 1 ] ||
+@@ -758,6 +809,6 @@
+ probe_safe=1
+ disarm_watchdog
+ trap - EXIT HUP INT TERM
+-printf 'PASS A660 ucode-allocation open_invocations=1 open_errno=117 firmware_requests=2 firmware_releases=2 success_markers=1 maps=3 unmaps=3 closes=3 gem_frees=3 cpu_vmaps=4 cpu_vunmaps=4 gem_snapshot=equal zap=absent power=0 hfi=0 scm=0 drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
++printf 'PASS A660 ucode-allocation-v6 open_invocations=1 open_errno=117 firmware_requests=2 firmware_releases=2 success_markers=1 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent power=0 hfi=0 scm=0 drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+ 	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
+ 	"$driver_override_state"
