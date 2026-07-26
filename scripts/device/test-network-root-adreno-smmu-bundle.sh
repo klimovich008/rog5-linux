@@ -3,12 +3,24 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier=$repo/scripts/device/verify-network-root-adreno-smmu-bundle.sh
+manifest=$repo/manifests/artifacts.tsv
+boot_name=artifacts/network-root-v18-adreno-smmu-diagnostic/boot-5.4.210-network-root-stage.avb.img
 
 [ -x "$verifier" ] || {
 	echo 'FAIL missing executable Adreno SMMU bundle verifier' >&2
 	exit 1
 }
 sh -n "$verifier"
+
+manifest_entry=$(awk -F '\t' -v name="$boot_name" \
+	'$1 == name { print $2 "\t" $3 "\t" $5 }' "$manifest")
+[ "$manifest_entry" = "$(printf '%s\t%s\t%s' \
+	100663296 \
+	37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf \
+	no)" ] || {
+	echo 'FAIL v18 temporary-boot image is not pinned for Linux preflight' >&2
+	exit 1
+}
 
 for contract in \
 	'verify-network-root-gpucc-runtime-pm-candidate-bundle.sh' \

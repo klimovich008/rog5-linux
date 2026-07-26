@@ -155,6 +155,13 @@ The inherited accepted v15 manifest remains
 The external GPUCC module is pinned separately and is not one of the
 fourteen package-manifest entries.
 
+The central host artifact manifest now also records all fourteen package
+files plus the external GPUCC module. The Linux recovery preflight therefore
+accepts only the exact 100,663,296-byte temporary-boot AVB image above. On the
+disconnected host it validates the image path, size, and hash before stopping
+at the expected zero-fastboot-device boundary. The source-locked A660
+registration image is intentionally absent from this boot allowlist.
+
 The exact verifier also pins `mkbootimg.py`,
 `unpack_bootimg.py`, and `avbtool` to
 `d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a6845a`,
