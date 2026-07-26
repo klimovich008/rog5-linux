@@ -317,8 +317,17 @@ then the
 and
 [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
-The next source boundary is ucode buffer creation after accepted firmware
-objects but before runtime power or hardware access.
+The ucode-allocation source boundary is now accepted offline. On exact
+A660.1 it creates one SQE object, one privileged shadow object, and one
+privileged power-up reglist object through three GPU-VM/SMMU mappings before
+GPU/GMU runtime power or register access. The normal A6xx destroy path does
+not fully release this state, so a future diagnostic must provide explicit
+all-path rollback and an atomic one-shot gate. See the
+[ucode-allocation boundary report](../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
+
+The next step is a default-off rollback-safe diagnostic, duplicate isolated
+builds, and a fresh offline root/gate review. No later live cycle is yet
+authorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

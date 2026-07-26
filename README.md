@@ -329,6 +329,11 @@ The complete pre-live root and gate are recorded in the
 [A660 request-only v4 offline report](test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
 The one permitted hardware cycle is recorded in the
 [A660 request-only v4 live acceptance](test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
+The following offline
+[A660 ucode-allocation boundary audit](test-results/2026-07-26-a660-ucode-allocation-boundary.md)
+proves that the next seam adds exactly three SMMU mappings before GPU/GMU
+runtime power or register access and must explicitly roll back SQE, shadow,
+and power-up reglist state. It does not authorize another live cycle.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

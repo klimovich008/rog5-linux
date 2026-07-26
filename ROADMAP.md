@@ -419,9 +419,20 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   ucode, power, HFI, ZAP/SCM, storage, display, warning, or fault evidence.
 - [x] Pin the exact request-only report and evidence checkpoint in a
   mutation-tested nonsecret acceptance marker, and consume the v4 export.
-- [ ] Source-audit and fail-first test whether ucode buffer creation can be
-  isolated after accepted firmware requests but before runtime power or
-  hardware access.
+- [x] Source-audit and fail-first test the exact A660.1 ucode-allocation
+  boundary. It creates SQE, privileged shadow, and privileged power-up
+  reglist objects through three SMMU mappings before GPU/GMU runtime power or
+  register access, and requires explicit all-path rollback because the normal
+  destroy path does not fully release that state.
+- [ ] Implement and mutation-test a default-off, exact-A660.1, atomic one-shot
+  ucode-allocation diagnostic with balanced three-object rollback.
+- [ ] Reproduce two isolated builds, require unchanged Image/config/ABI and
+  only the reviewed MSM module delta, then prepare a fresh independently
+  verified RAM-only root and watchdog gate.
+- [ ] Run at most one attended ucode-allocation gate only after its offline
+  package is accepted; require balanced maps/unmaps, zero surviving GEM/DRM
+  state, no power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and
+  complete host cleanup.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.

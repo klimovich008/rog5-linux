@@ -40,6 +40,9 @@ for contract in \
 	'msm_gem_pin_vma_locked' \
 	'msm_gem_vma_map' \
 	'iommu_map_sgtable' \
+	'put_iova_spaces(obj, vm, true, "close")' \
+	'iommu_unmap' \
+	'vmap_count == 0' \
 	'three new GPU-VM mappings' \
 	'one SQE object, one shadow object, and one power-up reglist object' \
 	'no AQE object' \
@@ -47,6 +50,7 @@ for contract in \
 	'explicitly release all three objects and mappings' \
 	'one-shot' \
 	'normal a6xx_destroy does not release pwrup_reglist_bo' \
+	'normal a6xx_destroy does not drop the shadow CPU vaddr' \
 	'PASS A660 ucode allocation is source-isolatable with three SMMU mappings and mandatory explicit rollback'
 do
 	grep -Fq "$contract" "$verifier" || {

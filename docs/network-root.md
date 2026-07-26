@@ -637,6 +637,14 @@ then the
 and
 [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
+The following offline
+[ucode-allocation boundary audit](../test-results/2026-07-26-a660-ucode-allocation-boundary.md)
+proves that exact A660.1 adds three GPU-VM/SMMU mappings for SQE, shadow, and
+the power-up reglist before GPU/GMU runtime power or register access. Because
+normal A6xx teardown does not fully release that state, a new root must not be
+prepared until a default-off one-shot diagnostic has explicit all-path
+rollback and duplicate-build acceptance.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

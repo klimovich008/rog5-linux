@@ -745,8 +745,14 @@ then the
 and
 [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
-The next GPU boundary is offline isolation of ucode buffer creation before
-runtime power or hardware access.
+The next GPU source boundary now passes offline: exact A660.1 ucode allocation
+creates SQE, privileged shadow, and privileged power-up reglist objects
+through three SMMU mappings before GPU/GMU runtime power or register access.
+The audit also proves that normal A6xx teardown is insufficient for an early
+return, so the next patch must be atomic-one-shot and explicitly roll back all
+three objects on every path. See the
+[ucode-allocation boundary report](../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
+No new build or live cycle is accepted yet.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
