@@ -773,9 +773,21 @@ mode-`0600` private evidence. The
 records **HOLD**: NFS remains inactive, the root is absent from its allowlist,
 the phone was not contacted, and no live cycle is authorized. The later
 [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
-passes exact fallback, host, credential, root, package, runner, and unarmed
-refusal checks. A verifier-first opt-in now permits only v5 for one attended
-RAM-only cycle; NFS remains inactive until that bounded transition.
+passed exact fallback, host, credential, root, package, runner, and unarmed
+refusal checks. A verifier-first opt-in permitted only v5 for one attended
+RAM-only cycle; NFS remained inactive until that bounded transition.
+That sole cycle is now complete and
+[safely rejected](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).
+The kernel reported successful three-object rollback with balanced map,
+unmap, close, unpin, free, and firmware-reference traces. The gate then
+stopped at public-wrapper `get=1`, expected `4`, before its settle and GEM
+snapshot comparison. The accepted Clang module inlines the other three
+logical acquisitions inside `msm_gem_kernel_new()` and two releases inside
+`msm_gem_kernel_put()`; an exact hash/symbol/relocation verifier now pins
+logical balance `4/4` and live wrapper counts `get=1, put=2`. V5 is consumed,
+non-runnable, and cannot be retried. A fresh v6 offline contract must trace
+the convenience helpers directly and still require equal post-settle GEM
+snapshots before another GO review.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

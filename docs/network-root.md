@@ -662,9 +662,21 @@ records **HOLD**: NFS remains inactive, the candidate is absent from the
 serve allowlist, the phone was not contacted, and no new live cycle is
 authorized at that checkpoint. The
 [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
-now accepts one exact v5 case guarded by an explicit opt-in and the complete
-export verifier before any host-state mutation. NFS is still inactive; only
-one bounded attended RAM-only cycle is authorized.
+accepted one exact v5 case guarded by an explicit opt-in and the complete
+export verifier before any host-state mutation. NFS remained inactive until
+that one bounded attended RAM-only cycle began.
+That one cycle has run and is
+[rejected](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).
+The target completed three successful maps and balanced rollback, then the
+gate stopped because it observed one public get-wrapper call instead of four.
+The accepted Clang module inlines three logical gets and two puts inside
+`msm_gem_kernel_new()`/`put()`, so exact relocation evidence predicts the live
+wrapper counts `get=1, put=2` and logical balance `4/4`. The gate stopped
+before its settle and equal-snapshot comparison, so v5 is not accepted. The
+root was removed from the NFS allowlist, exact fallback and privileged cleanup
+passed, and v5 must not be retried. Any v6 requires a fresh non-runnable root,
+direct convenience-helper traces, the original snapshot gate, and a new
+review.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

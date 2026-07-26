@@ -447,11 +447,23 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   v5. Keep NFS inactive and authorize only the one attended RAM-only
   transition described in the
   [pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md).
-- [ ] Run at most one attended ucode-allocation gate only after its offline
-  package is accepted and every documented HOLD-lift requirement passes;
-  require balanced maps/unmaps, zero surviving GEM/DRM state, no
-  power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and complete host
-  cleanup.
+- [x] Run the sole attended v5 ucode-allocation gate. The kernel completed
+  three mappings and balanced rollback, but the userspace gate safely
+  rejected public-wrapper `get=1` against an incorrect expected count of
+  four. The snapshot comparison was not reached; exact fallback and complete
+  host cleanup passed. V5 is consumed and must not be retried. See the
+  [v5 live rejection](test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).
+- [x] Pin the accepted MSM module's symbol and `.rela.text` layout. It proves
+  Clang inlined three logical vmap gets and two puts inside
+  `msm_gem_kernel_new()`/`put()`, while public wrappers correctly report
+  `get=1, put=2`.
+- [ ] Prepare and mutation-test a fresh v6 root/gate that requires three
+  successful `kernel_new` calls, two `kernel_put` calls, logical vmap balance
+  `4/4`, and the original equal post-settle GEM snapshot. Keep it default-off
+  and non-runnable until a separate GO review.
+- [ ] Run at most one attended v6 cycle only after its new offline package,
+  root, runner, cleanup, and HOLD-lift requirements pass. V5 authorization
+  cannot be inherited.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.

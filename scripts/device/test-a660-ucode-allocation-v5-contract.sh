@@ -18,18 +18,21 @@ export_test=$repo/scripts/host/test-a660-ucode-allocation-export.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-live-gate.sh
 consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+relocation_verifier=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
+relocation_test=$repo/scripts/device/test-a660-ucode-vmap-relocations.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-offline.md
 hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md
 go_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md
+live_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md
 
 [ -f "$helper_source" ] && [ ! -L "$helper_source" ] || {
 	echo 'FAIL missing accepted A660 one-open helper source' >&2
 	exit 1
 }
-for document in "$report" "$hold_report" "$go_report"; do
+for document in "$report" "$hold_report" "$go_report" "$live_report"; do
 	[ -f "$document" ] && [ ! -L "$document" ] || {
 		echo "FAIL missing A660 ucode-allocation v5 report: $document" >&2
 		exit 1
@@ -39,7 +42,8 @@ done
 for input in "$baseline" "$probe" "$runtime_verifier" "$probe_test" "$gate" \
 	"$gate_test" "$prepare" "$verify_export" "$export_test" "$helper_builder" \
 	"$helper_verifier" "$helper_test" "$build_test" "$package_test" \
-	"$live_runner" "$live_runner_test" "$consumed_test"
+	"$live_runner" "$live_runner_test" "$consumed_test" \
+	"$relocation_verifier" "$relocation_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v5 tool: $input" >&2
@@ -54,7 +58,7 @@ do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify_export" "$export_test" "$live_runner" \
-	"$live_runner_test" "$consumed_test" "$serve"
+	"$live_runner_test" "$consumed_test" "$serve" "$relocation_verifier"
 do
 	bash -n "$input"
 done
@@ -133,14 +137,29 @@ for contract in \
 	'verify-mainline-a660-ucode-allocation-build.sh' \
 	'credentials=preserved' \
 	'root-owned mode 0555' \
-	'v4_reuse=FORBIDDEN'
+	'v4_reuse=FORBIDDEN' \
+	4a7238c \
+	86b6663 \
+	'FAIL CPU vmap trace count is 1, expected 4' \
+	'cpu wrapper get=1 put=2' \
+	'snapshot comparison was not reached' \
+	e94a1cc45f5366c8ceb3be75a785ae2d0efa9ec2771f27e6206cba115e801dfe \
+	bcf1743eafc31fbc16e947375766368cc75afbf1980f68db7525032669db21b3 \
+	'logical_gets=4' \
+	'logical_puts=4' \
+	'wrapper_gets=1' \
+	'wrapper_puts=2' \
+	'kernel_news=3' \
+	'kernel_puts=2' \
+	'snapshot=still-required'
 do
 	if ! grep -Fq "$contract" "$helper_source" "$helper_builder" \
 		"$helper_verifier" "$baseline" "$probe" "$runtime_verifier" \
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
 		"$export_test" "$live_runner" "$live_runner_test" \
 		"$consumed_test" "$serve" "$build_test" "$package_test" \
-		"$report" "$hold_report" "$go_report"
+		"$relocation_verifier" "$relocation_test" \
+		"$report" "$hold_report" "$go_report" "$live_report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
 		exit 1
@@ -153,6 +172,10 @@ for document in README.md ROADMAP.md docs/current-state.md \
 do
 	grep -Fq 'ucode-allocation-v5-prelive-go.md' "$repo/$document" || {
 		echo "FAIL project status omits ucode-allocation v5 GO: $document" >&2
+		exit 1
+	}
+	grep -Fq 'a660-ucode-allocation-v5-live-rejected.md' "$repo/$document" || {
+		echo "FAIL project status omits ucode-allocation v5 rejection: $document" >&2
 		exit 1
 	}
 done
@@ -171,8 +194,9 @@ fi
 "$gate_test"
 "$live_runner_test"
 "$consumed_test"
+"$relocation_test"
 "$export_test"
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, live-rejected, consumed, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 is offline-snapshot-guarded, live-evidence-rejected, compiler-diagnosed, consumed, non-runnable, storage-isolated, and non-flashing'
