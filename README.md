@@ -383,6 +383,15 @@ before any host-state mutation; an actual unarmed invocation refused cleanly.
 Exact fallback, distinct SSH identities, credentials, root, package, runner,
 and inactive host services pass. This authorizes at most one attended
 RAM-only v6 cycle under the recorded sequence, never flash and never retry.
+The [sole v6 live cycle](test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
+is now safely rejected and consumed. The kernel emitted its successful
+allocation-and-rollback marker, but the entry probe observed raw GEM request
+sizes `43288`, `4`, and `4096` while the gate expected their page-rounded
+forms `45056`, `4096`, and `4096`. The gate therefore stopped before the
+settle and equal-snapshot check. Watchdog fallback and complete host cleanup
+passed, v6 is absent from the server allowlist, and it must not be retried.
+A fresh v7 must correct only this userspace oracle and still prove an equal
+post-settle GEM snapshot before any GMU or rendering tier.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2016
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -22,6 +23,7 @@ rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.m
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-offline.md
 hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md
 go_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md
+live_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md
 
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
@@ -48,6 +50,15 @@ done
 }
 [ -f "$go_report" ] && [ ! -L "$go_report" ] || {
 	echo 'FAIL missing A660 ucode-allocation v6 pre-live GO report' >&2
+	exit 1
+}
+[ -f "$live_report" ] && [ ! -L "$live_report" ] || {
+	echo 'FAIL missing A660 ucode-allocation v6 live rejection report' >&2
+	exit 1
+}
+[ "$(sha256sum "$live_report" | cut -d ' ' -f 1)" = \
+	cfdd0837e6da7d06ba74e0557c6abeea396f12f02e345d9ab87ba1a47ade89e6 ] || {
+	echo 'FAIL A660 ucode-allocation v6 live rejection report hash changed' >&2
 	exit 1
 }
 
@@ -83,6 +94,9 @@ for contract in \
 	'logical_gets=4' \
 	'logical_puts=4' \
 	'gem_snapshot=equal' \
+	'raw kernel-new entry sizes `4`, `4096`, and `43288`' \
+	'page-rounded object sizes' \
+	'V6 must never be re-enabled or retried.' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_LIVE_GATE' \
 	'HostKeyAlias=rog5-network-root' \
 	'umask 077' \
@@ -97,7 +111,7 @@ do
 		"$runtime_test" "$probe_test" "$gate" "$gate_test" "$prepare" \
 		"$verify_export" "$export_test" "$relocation_verifier" \
 		"$live_runner" "$live_runner_test" \
-		"$rejection" "$report" "$hold_report" "$go_report"
+		"$rejection" "$report" "$hold_report" "$go_report" "$live_report"
 	then
 		echo "FAIL A660 ucode-allocation v6 path omits: $contract" >&2
 		exit 1
@@ -120,9 +134,11 @@ do
 		! grep -Fq '2026-07-26-a660-ucode-allocation-v6-prelive-hold.md' \
 			"$status_file" ||
 		! grep -Fq '2026-07-26-a660-ucode-allocation-v6-prelive-go.md' \
+			"$status_file" ||
+		! grep -Fq '2026-07-26-a660-ucode-allocation-v6-live-rejected.md' \
 			"$status_file"
 	then
-		echo "FAIL project status omits A660 v6 offline report: $status_file" >&2
+		echo "FAIL project status omits A660 v6 report chain: $status_file" >&2
 		exit 1
 	fi
 done
@@ -144,4 +160,4 @@ fi
 "$consumed_v5_test"
 "$consumed_v6_test"
 
-echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, consumed, and non-runnable'
+echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, live-rejected, consumed, and non-runnable'

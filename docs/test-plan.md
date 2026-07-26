@@ -398,6 +398,19 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   privileged launcher refused with zero residue, and the
   [v6 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
   authorizes at most one attended RAM-only cycle with no retry.**
+- Run that v6 cycle exactly once and consume it regardless of result.
+  **Completed with safe rejection. The kernel allocation-and-rollback marker
+  passed, but the entry probe saw raw sizes `43288`, `4`, and `4096` while
+  the oracle expected page-rounded `45056`, `4096`, and `4096`. The settled
+  GEM snapshot was not reached. Watchdog fallback and complete host cleanup
+  passed; v6 is consumed and non-runnable. See the
+  [v6 live rejection](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md).**
+- Build a fresh v7 userspace gate from the unchanged accepted module. Pin the
+  source-derived raw-size set, retain every v6 logical-vmap, pointer-union,
+  firmware, forbidden-event, storage, thermal, systemd, and watchdog
+  constraint, and require an equal post-settle GEM snapshot. Require a new
+  protected root, runner, HOLD, and GO review; never reuse v6 authorization.
+  **Pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

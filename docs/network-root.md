@@ -703,6 +703,16 @@ privileged call refused with zero residue. Exact fallback, distinct SSH
 identities, credentials, package, root, runner, and inactive host services
 pass, authorizing at most one attended RAM-only v6 transition with no retry.
 
+The [one v6 transition](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
+is complete and rejected. The read-only baseline and kernel allocation/
+rollback marker passed, but the entry probe delivered raw GEM sizes
+`43288/4/4096` while the userspace oracle expected page-rounded
+`45056/4096/4096`. The snapshot comparison was not reached. The transition
+watchdog returned the phone to exact fallback; the server observed gadget
+departure and removed every export, listener, mount, firewall, interface, and
+sysctl change. V6 is consumed and no longer has a server case. A fresh v7
+requires a new protected root and review; no v6 opt-in can be reused.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
