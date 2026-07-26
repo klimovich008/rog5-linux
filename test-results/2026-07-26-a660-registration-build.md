@@ -83,14 +83,37 @@ to the differently named `separate_gpu_drm` parameter. The verifier checks the
 actual exported parameter needed by this candidate. No cosmetic source patch
 was added.
 
+## DT candidate
+
+The registration overlay and builder now also pass offline. The builder
+accepts only the exact v18 SMMU DTB with SHA-256
+`da471966073cfb26581b4a5224218904162c5925155b0aa8c24a2b3e4ad0526f`.
+The overlay contains exactly five references and changes only four statuses
+plus the ZAP firmware name:
+
+- GPUCC, Adreno SMMU, A660 GPU, and GMU are `okay`;
+- the ZAP child names `qcom/sm8350/a660_zap.mbn`;
+- all register, IRQ, IOMMU, clock, power-domain, OPP, reserved-memory, and
+  cooling properties remain byte-for-byte derived from the pinned base;
+- UFS, QMP/SuperSpeed, the second USB controller, RMTFS, display, remote
+  processors, RTC, and the power key remain disabled;
+- recovery USB2 high-speed and the accepted RAM map remain unchanged.
+
+Mutation tests reject a missing GMU or ZAP node, a disabled dependency, a
+different firmware path, a GPU register override, an added display consumer,
+a modified v18 base, and an output that aliases an input. Two independent
+builds produced byte-identical 102,908-byte DTBs:
+
+```text
+b96f4350b35ff3bfc987ce97828e22bd7136100323752c2ac68c537580bd35d6
+```
+
 ## What remains
 
-The next offline artifact is a DT overlay derived from the accepted
-storage-disabled v18 recovery DT. It must enable exactly GPUCC, the Adreno
-SMMU, GPU, and GMU and select the pinned ZAP firmware name. Only after the DT,
-initramfs/module staging, watchdog, read-only baseline, guarded probe, nested
-wrapper, package, and duplicate-build contracts pass can an attended,
-RAM-only registration test be considered.
+The next offline artifacts are the initramfs/module stage, watchdog, read-only
+baseline, guarded probe, nested wrapper, package, and duplicate-build
+contracts. Only after all of them pass can an attended, RAM-only registration
+test be considered.
 
 The independent v18 SMMU bind/runtime-suspend gate remains pending and must run
 first. A registration-only test must not open a DRM node; firmware loading,

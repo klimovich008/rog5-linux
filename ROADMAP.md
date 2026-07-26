@@ -314,9 +314,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Build and independently reproduce Linux `7.1.4-rog5-a660reg1`; require
   exact config, Image, compressed Image, module archive, symbols, MSM, GPUCC,
   MDT-loader, and metadata outputs, with zero UFS and zero embedded firmware.
-- [ ] Build and reproduce the exact four-node DT, module/initramfs stage,
-  read-only baseline, watchdog-guarded probe, ASUS wrapper, and temporary-boot
-  package before any registration attempt.
+- [x] Build and reproduce the exact v18-derived four-node DT; mutation-test
+  every changed status and the pinned ZAP name while retaining storage,
+  display, remote-processor, RTC, and USB containment.
+- [ ] Build and reproduce the module/initramfs stage, read-only baseline,
+  watchdog-guarded probe, ASUS wrapper, and temporary-boot package before any
+  registration attempt.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,

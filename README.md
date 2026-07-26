@@ -201,7 +201,8 @@ GPUCC manually loaded modules, disables display KMS and UFS, exports
 `separate_gpu_kms`, and propagates the previously unchecked GMU power-level
 error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
-four-node DT/runtime bundle and both live gates remain pending. See the
+exact four-node DT also passes mutation tests and duplicate byte-identical
+builds; its runtime bundle and both live gates remain pending. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md).

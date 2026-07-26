@@ -233,9 +233,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   failures; embed no A660 firmware; and reproduce its config, Images, module
   archive, symbols, critical modules, and metadata twice. **Passed offline;
   nine outputs are byte-identical and the phone was not contacted.**
-- Reproduce the exact four-node DT, initramfs/module stage, read-only baseline,
-  watchdog-guarded probe, nested wrapper, and temporary-boot package before
-  permitting registration. **Pending.**
+- Reproduce the exact v18-derived four-node DT and reject missing nodes,
+  disabled dependencies, wrong firmware, hardware-property overrides, extra
+  consumers, modified bases, and input/output aliasing. **Passed; duplicate
+  DTBs are byte-identical and storage/display containment is unchanged.**
+- Reproduce the initramfs/module stage, read-only baseline, watchdog-guarded
+  probe, nested wrapper, and temporary-boot package before permitting
+  registration. **Pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

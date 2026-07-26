@@ -543,10 +543,11 @@ disables MSM display KMS and UFS, and propagates a GMU power-level probe
 failure before later initialization. Two rootless, network-isolated builds
 produced byte-identical configs, Images, module archives, symbols, three
 critical modules, and metadata. No A660 firmware is embedded and the phone was
-not contacted. The
+not contacted. The exact v18-derived four-node DT now also passes mutation
+tests and duplicate byte-identical builds while preserving storage, display,
+remote-processor, RTC, and USB containment. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
-defines the pending four-node DT/runtime bundle and later registration-only
-gate.
+defines the pending runtime bundle and later registration-only gate.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
