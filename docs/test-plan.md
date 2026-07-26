@@ -451,6 +451,22 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
   IOMMU/RSCC/PDC work from first-open firmware/power/SCM work.**
+- Source-test the first normal GMU resume entry after the initialized guard
+  and before software mutation, inner runtime-PM, clocks, MMIO, IRQ, firmware,
+  HFI, hardware initialization, or ZAP/SCM. Require an exact-A660.1,
+  read-only, atomic-one-shot failed-open path and complete accepted-v7
+  rollback. **Passed source and mutation tests; see the
+  [boundary report](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md).**
+- Build that v8 diagnostic twice from clean pinned source in isolated,
+  network-disabled containers. Require byte-identical config, Images,
+  symbols, module archive, metadata, and critical modules; relative to
+  accepted v7, permit only `msm.ko` to change. **Passed offline; the
+  [v8 build report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+  records exact hashes and HOLD.**
+- Before any v8 live decision, build and mutation-test a fresh protected
+  storage-free root, target gate, strict no-retry runner, exact-root NFS case,
+  unchanged package verifier, fallback preflight, and separate HOLD/GO
+  reports. **Pending; no v8 phone contact or flash is authorized.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

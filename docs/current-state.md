@@ -862,5 +862,24 @@ faults, and retained DRM descriptors remained zero. The normal reboot
 restored exact fallback and complete host cleanup. V7 is consumed,
 non-runnable, and must not be retried.
 
+The next source-only boundary and kernel build now pass offline. The
+[GMU resume-entry audit](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+pins the normal first-open call graph through outer GPU runtime PM into
+`a6xx_gmu_resume()`, then places an exact-A660.1 one-shot stop after the GMU
+initialized guard and before `gmu->hung`. Its patch is default-off,
+mode-`0400`, independently consumes the open and entry hit, deliberately
+returns `EUCLEAN`, rejects mixed/repeated/missed paths, balances outer runtime
+PM, and reuses the v7-proven ucode/firmware rollback.
+
+The
+[v8 offline build acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+records two complete network-disabled clean builds with byte-identical config,
+Images, symbols, modules, archive, and metadata. Relative to accepted v7,
+only the BTF-bearing `msm.ko` changes; KMS, UFS, embedded A660 firmware, GMU
+inner power/clock/MMIO/IRQ/firmware/HFI, hardware initialization, ZAP/SCM,
+submit, and rendering remain outside the accepted boundary. V8 is **HOLD**:
+no protected root, NFS case, runner, package, phone transition, or flash has
+been prepared or authorized.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

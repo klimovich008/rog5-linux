@@ -745,6 +745,19 @@ the gadget; the attended server removed every export, listener, mount,
 firewall rule, interface assignment, and sysctl change; and strict fallback
 health passed. V7 is consumed and absent from the server.
 
+V8 currently has no network-root authority. Its
+[source boundary](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+and
+[offline kernel build](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+pass, but no root-owned export, server allowlist case, target gate, host
+runner, or pre-live package exists. NFS must remain inactive for v8 until a
+fresh root derives only from the immutable accepted predecessor, carries the
+new exact MSM module and required firmware, preserves credentials and every
+storage/watchdog/thermal/systemd constraint, and passes exact-delta plus
+mutation verification. A later HOLD review may add a no-authority runner;
+only a separate verifier-before-state GO review may add one exact-root server
+case. Neither checkpoint may authorize flashing or retry.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

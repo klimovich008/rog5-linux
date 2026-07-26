@@ -109,8 +109,16 @@ for a working feature.
   headless render node with zero firmware/storage/faults before exact fallback.
 - [x] Source-prove a first-open seam after exact SQE/GMU requests and before
   ucode, runtime power, hardware initialization, HFI, and ZAP/SCM.
-- [ ] Build and reproduce the default-off one-shot firmware-request failed-open
-  diagnostic before deciding whether one attended RAM-only cycle is justified.
+- [x] Build, reproduce, and live-accept the default-off one-shot
+  firmware-request failed-open diagnostic; consume v4 after exact fallback
+  and complete cleanup.
+- [x] Build, reproduce, and live-accept rollback-safe A660 ucode allocation;
+  consume v5/v6 after their fail-closed oracle diagnoses and consume passing
+  v7 after exact rollback plus equal settled GEM state.
+- [x] Source-test and reproduce the default-off v8 GMU resume-entry stop
+  before every GMU inner power/clock/MMIO/IRQ/firmware/HFI operation. Keep its
+  offline-accepted kernel **HOLD** until a fresh protected root and control
+  plane pass separate review.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -507,8 +515,20 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   passed every gate with zero power/HFI/ZAP/SCM/storage/fault evidence,
   returned through exact fallback and complete cleanup, and is permanently
   consumed.
-- [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
-  authentication, and GPU hardware initialization.
+- [x] Source-test the GMU resume-entry seam after the initialized guard and
+  before `gmu->hung`, inner runtime-PM, clocks, secure setup, bandwidth,
+  MMIO, IRQ, GMU firmware, HFI, hardware initialization, or ZAP/SCM.
+- [x] Fail-first test, build twice, and offline-accept the default-off,
+  read-only, exact-A660.1 v8 entry diagnostic. The two complete builds are
+  byte-identical; only `msm.ko` differs from accepted v7. See the
+  [v8 offline report](test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md).
+- [ ] Prepare and independently verify a fresh storage-free v8 root, target
+  gate, strict one-invocation runner, server allowlist case, unchanged
+  temporary-boot package, and separate HOLD/GO reviews before deciding on at
+  most one RAM-only cycle.
+- [ ] After v8 is consumed, source-test a separate bounded GMU power-preparation
+  tier; do not combine GMU runtime power, clocks, HFI, ZAP/SCM, hardware
+  initialization, successful open, submit, or rendering.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
