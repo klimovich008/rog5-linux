@@ -466,7 +466,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Before any v8 live decision, build and mutation-test a fresh protected
   storage-free root, target gate, strict no-retry runner, exact-root NFS case,
   unchanged package verifier, fallback preflight, and separate HOLD/GO
-  reports. **Pending; no v8 phone contact or flash is authorized.**
+  reports. **The reproducible target runtime and compiler-relocation gate now
+  pass, including predecessor, mode, resume, rollback, inner-PM, clock, IRQ,
+  HFI, snapshot, errno, and writable-parameter mutations. The protected root,
+  target/root gate, runner, server case, package review, and HOLD/GO reports
+  remain pending; no v8 phone contact or flash is authorized. See the
+  [v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md).**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

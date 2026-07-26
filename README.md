@@ -425,14 +425,19 @@ Its
 [GMU resume-entry source audit](test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
 and
 [v8 offline build acceptance](test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+and
+[v8 runtime acceptance](test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
 now pass. Two clean Linux 7.1.4 builds are byte-identical; the Image, config,
 ABI, GPUCC, MDT loader, and every installed module except `msm.ko` remain
 exactly v7. The default-off, read-only, exact-A660.1 one-shot rejects
 `a6xx_gmu_resume()` before GMU software mutation, inner runtime power, clocks,
 MMIO, IRQ, firmware start, HFI, hardware initialization, ZAP/SCM, submit, or
-rendering, then reuses the accepted v7 rollback. V8 remains **HOLD**: no
-network root, NFS case, runner, temporary-boot package, phone cycle, or flash
-is authorized by the build report.
+rendering, then reuses the accepted v7 rollback. The zero-fuzz runtime is
+reproducible, pins the compiled call/relocation layout, and rejects mode,
+resume, rollback, inner-PM, clock, IRQ, HFI, snapshot, errno, predecessor,
+and writable-parameter mutations. V8 remains **HOLD**: no protected network
+root, NFS case, runner, temporary-boot package, phone cycle, or flash is
+authorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
