@@ -17,7 +17,7 @@ verify_export=$repo/scripts/host/verify-a660-ucode-allocation-export.sh
 export_test=$repo/scripts/host/test-a660-ucode-allocation-export.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-live-gate.sh
-live_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-live-window.sh
+consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
@@ -39,7 +39,7 @@ done
 for input in "$baseline" "$probe" "$runtime_verifier" "$probe_test" "$gate" \
 	"$gate_test" "$prepare" "$verify_export" "$export_test" "$helper_builder" \
 	"$helper_verifier" "$helper_test" "$build_test" "$package_test" \
-	"$live_runner" "$live_runner_test" "$live_window_test"
+	"$live_runner" "$live_runner_test" "$consumed_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v5 tool: $input" >&2
@@ -54,7 +54,7 @@ do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify_export" "$export_test" "$live_runner" \
-	"$live_runner_test" "$live_window_test" "$serve"
+	"$live_runner_test" "$consumed_test" "$serve"
 do
 	bash -n "$input"
 done
@@ -139,7 +139,7 @@ do
 		"$helper_verifier" "$baseline" "$probe" "$runtime_verifier" \
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
 		"$export_test" "$live_runner" "$live_runner_test" \
-		"$live_window_test" "$serve" "$build_test" "$package_test" \
+		"$consumed_test" "$serve" "$build_test" "$package_test" \
 		"$report" "$hold_report" "$go_report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
@@ -170,9 +170,9 @@ fi
 "$probe_test"
 "$gate_test"
 "$live_runner_test"
-"$live_window_test"
+"$consumed_test"
 "$export_test"
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, preflight-GO, explicit-window-only, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, live-rejected, consumed, non-runnable, and non-flashing'
