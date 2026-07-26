@@ -359,6 +359,18 @@ V5 is consumed and non-runnable. A versioned v6 must trace the convenience
 helpers directly, preserve every storage/watchdog/forbidden-event guard, and
 pass a new offline HOLD/GO process before hardware use.
 
+The
+[v6 offline package](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
+now passes that offline half. It deliberately reuses the exact accepted
+kernel module because the defect was in the userspace oracle, then
+hash-pins the module and its `.rela.text` layout. Generated v6 controls trace
+three successful `msm_gem_kernel_new()` returns and two
+`msm_gem_kernel_put()` calls, combine them with the remaining public wrapper
+events into logical `4/4` balance, verify exact rollback object sets, and
+retain equal post-settle GEM snapshots. Runtime, root, gate, and changed-seal
+mutation suites pass. V6 is still non-runnable and **HOLD**; no phone cycle is
+authorized.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

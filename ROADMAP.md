@@ -457,10 +457,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   Clang inlined three logical vmap gets and two puts inside
   `msm_gem_kernel_new()`/`put()`, while public wrappers correctly report
   `get=1, put=2`.
-- [ ] Prepare and mutation-test a fresh v6 root/gate that requires three
+- [x] Prepare and mutation-test a fresh v6 root/gate that requires three
   successful `kernel_new` calls, two `kernel_put` calls, logical vmap balance
   `4/4`, and the original equal post-settle GEM snapshot. Keep it default-off
-  and non-runnable until a separate GO review.
+  and non-runnable until a separate GO review. The compiler-pinned generated
+  runtime, protected root, tamper test, nested watchdog gate, unchanged boot
+  package, and NFS-inactive HOLD boundary pass; see the
+  [v6 offline report](test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).
 - [ ] Run at most one attended v6 cycle only after its new offline package,
   root, runner, cleanup, and HOLD-lift requirements pass. V5 authorization
   cannot be inherited.

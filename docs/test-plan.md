@@ -379,7 +379,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   `kernel_new` and two `kernel_put` operations, retains every v5 pointer,
   firmware, forbidden-event, storage, and watchdog constraint, and reaches
   an equal post-settle GEM snapshot. Require independent mock tests and a new
-  HOLD/GO review; never reuse v5 authorization. **Pending.**
+  HOLD/GO review; never reuse v5 authorization. **Passed offline and remains
+  HOLD. Generated-runtime reproducibility, semantic mutations, compound-gate
+  ordering, exact compiler relocations, protected whole-tree export checks,
+  a changed-seal mutation, and the unchanged boot package pass. NFS is
+  inactive and no live runner exists; see the
+  [v6 offline report](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

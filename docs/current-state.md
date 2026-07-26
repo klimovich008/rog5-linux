@@ -789,5 +789,17 @@ non-runnable, and cannot be retried. A fresh v6 offline contract must trace
 the convenience helpers directly and still require equal post-settle GEM
 snapshots before another GO review.
 
+That
+[v6 offline contract](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
+now passes without rebuilding the kernel. Zero-fuzz patches reproducibly
+derive new runtime scripts from hash-pinned v5 sources, while an exact
+relocation verifier binds the oracle to the accepted MSM module. The new
+probe requires three successful `kernel_new` results, two `kernel_put`
+operations, public wrappers `get=1, put=2`, logical `4/4`, exact object-set
+relationships, and the original equal post-settle GEM snapshot. Its
+root-owned reflink export passed whole-tree verification and a changed-seal
+mutation. NFS remains inactive; v6 is absent from the server allowlist, has no
+live host runner, and remains **HOLD**. The phone was not contacted.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
