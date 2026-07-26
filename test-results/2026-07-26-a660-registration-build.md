@@ -108,12 +108,37 @@ builds produced byte-identical 102,908-byte DTBs:
 b96f4350b35ff3bfc987ce97828e22bd7136100323752c2ac68c537580bd35d6
 ```
 
+## Guarded runtime contracts
+
+The read-only baseline and one-shot registration probe now pass their offline
+source and artifact contracts. The baseline requires the exact kernel, four
+enabled DT nodes, armed original watchdog, masked coldplug/module loading,
+unbound devices, unloaded modules, no render node or DRM descriptor, no A660
+firmware or request, zero physical storage and block mounts, safe thermals,
+and a quiet kernel log.
+
+The probe pins and verifies the exact GPUCC, DRM exec/GPUVM/scheduler,
+MDT-loader, UBWC, and MSM modules before arming an independent 90-second SysRq
+watchdog. It loads all seven modules explicitly, with GPUCC first and MSM last
+using `separate_gpu_kms=1`. Acceptance requires the exact GPUCC, SMMU, A660,
+and GMU registration graph; two IOMMU attachments; one headless render node;
+zero display connectors; zero DRM file descriptors; zero firmware requests;
+runtime-suspended SMMU/GMU state; stable systemd, USB/NFS, storage, thermal,
+and kernel-log state; and watchdog disarm only after every check passes.
+
+The probe is deliberately not runnable yet:
+`smmu_acceptance_sha=NOT_ACCEPTED` is a source lock. After the independent v18
+SMMU live gate passes, that lock must be replaced with the SHA-256 of a
+root-owned, mode-0400 acceptance marker included in the reviewed runtime
+stage. This prevents the later registration gate from overtaking its required
+predecessor.
+
 ## What remains
 
-The next offline artifacts are the initramfs/module stage, watchdog, read-only
-baseline, guarded probe, nested wrapper, package, and duplicate-build
-contracts. Only after all of them pass can an attended, RAM-only registration
-test be considered.
+The next offline artifacts are the initramfs/module stage, nested wrapper,
+temporary-boot package, and duplicate-build contracts. The v18 SMMU live gate
+must then supply the pinned acceptance marker. Only after all of those steps
+pass can an attended, RAM-only registration test be considered.
 
 The independent v18 SMMU bind/runtime-suspend gate remains pending and must run
 first. A registration-only test must not open a DRM node; firmware loading,

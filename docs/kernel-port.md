@@ -228,8 +228,10 @@ module archives, symbol tables, critical modules, and metadata. No A660
 firmware is embedded and no phone state changed. See the
 [registration build report](../test-results/2026-07-26-a660-registration-build.md).
 The exact four-node DT now also passes mutation tests and duplicate builds.
-The guarded runtime bundle remains the next offline tier, and the independent
-v18 SMMU gate must still pass before registration is tried.
+The read-only baseline and independent-watchdog registration probe pass
+offline against the exact seven modules, while a source lock prevents live
+use until v18 SMMU acceptance is pinned. The guarded runtime bundle remains
+the next offline tier.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

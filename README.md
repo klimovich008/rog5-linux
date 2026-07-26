@@ -202,7 +202,9 @@ GPUCC manually loaded modules, disables display KMS and UFS, exports
 error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
-builds; its runtime bundle and both live gates remain pending. See the
+builds. Its read-only baseline and no-open registration probe pass offline but
+remain source-locked until the earlier v18 SMMU live gate succeeds; the
+runtime bundle and both live gates remain pending. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md).

@@ -545,7 +545,9 @@ produced byte-identical configs, Images, module archives, symbols, three
 critical modules, and metadata. No A660 firmware is embedded and the phone was
 not contacted. The exact v18-derived four-node DT now also passes mutation
 tests and duplicate byte-identical builds while preserving storage, display,
-remote-processor, RTC, and USB containment. The
+remote-processor, RTC, and USB containment. Its baseline and manually ordered
+seven-module registration probe pass offline; a compile-time `NOT_ACCEPTED`
+lock prevents live use until the v18 SMMU result supplies a pinned marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 defines the pending runtime bundle and later registration-only gate.
 

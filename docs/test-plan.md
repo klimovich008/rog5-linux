@@ -237,8 +237,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   disabled dependencies, wrong firmware, hardware-property overrides, extra
   consumers, modified bases, and input/output aliasing. **Passed; duplicate
   DTBs are byte-identical and storage/display containment is unchanged.**
-- Reproduce the initramfs/module stage, read-only baseline, watchdog-guarded
-  probe, nested wrapper, and temporary-boot package before permitting
+- Require a read-only pre-disarm baseline and an independent SysRq-watchdog
+  probe that manually loads the exact seven-module chain, never opens DRM,
+  detects any firmware request, and disarms only after stable registration.
+  Keep a source lock until the v18 SMMU live marker is hash-pinned. **Passed
+  offline against the exact build; deliberately locked for live use.**
+- Reproduce the initramfs/module stage carrying the accepted baseline and
+  probe, then the nested wrapper and temporary-boot package before permitting
   registration. **Pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
