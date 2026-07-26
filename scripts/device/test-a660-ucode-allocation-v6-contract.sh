@@ -13,10 +13,10 @@ verify_export=$repo/scripts/host/verify-a660-ucode-allocation-v6-export.sh
 export_test=$repo/scripts/host/test-a660-ucode-allocation-v6-export.sh
 relocation_verifier=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
 relocation_test=$repo/scripts/device/test-a660-ucode-vmap-relocations.sh
-consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+consumed_v5_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+consumed_v6_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v6-live-gate.sh
-live_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-v6-live-window.sh
 serve=$repo/scripts/host/serve-network-root.sh
 rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-offline.md
@@ -26,8 +26,8 @@ go_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
 	"$export_test" "$relocation_verifier" "$relocation_test" \
-	"$consumed_test" "$live_runner" "$live_runner_test" \
-	"$live_window_test" "$serve"
+	"$consumed_v5_test" "$consumed_v6_test" "$live_runner" \
+	"$live_runner_test" "$serve"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v6 tool: $input" >&2
@@ -58,7 +58,7 @@ do
 done
 for input in "$prepare" "$verify_export" "$export_test" \
 	"$relocation_verifier" "$live_runner" "$live_runner_test" \
-	"$live_window_test" "$serve"
+	"$serve"
 do
 	bash -n "$input"
 done
@@ -84,7 +84,6 @@ for contract in \
 	'logical_puts=4' \
 	'gem_snapshot=equal' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_LIVE_GATE' \
-	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_NFS' \
 	'HostKeyAlias=rog5-network-root' \
 	'umask 077' \
 	'power=0' \
@@ -97,7 +96,7 @@ do
 	if ! grep -Fq "$contract" "$runtime_builder" "$runtime_verifier" \
 		"$runtime_test" "$probe_test" "$gate" "$gate_test" "$prepare" \
 		"$verify_export" "$export_test" "$relocation_verifier" \
-		"$live_runner" "$live_runner_test" "$live_window_test" \
+		"$live_runner" "$live_runner_test" \
 		"$rejection" "$report" "$hold_report" "$go_report"
 	then
 		echo "FAIL A660 ucode-allocation v6 path omits: $contract" >&2
@@ -141,8 +140,8 @@ fi
 "$gate_test"
 "$export_test"
 "$live_runner_test"
-"$live_window_test"
 "$relocation_test"
-"$consumed_test"
+"$consumed_v5_test"
+"$consumed_v6_test"
 
-echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, explicit-window-only, and pre-live GO'
+echo 'PASS A660 ucode-allocation v6 is compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, consumed, and non-runnable'
