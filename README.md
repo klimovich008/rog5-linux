@@ -25,6 +25,12 @@ stop rapid restart loops. No email, CV, browser session, API token, or
 provider account is present. This artifact is verified offline but has not
 replaced the live-tested network root or run on the phone.
 
+The same image stages a one-shot redacted runtime collector for later
+headless, Plasma, KRDP, browser, and screen-off comparisons. It records
+aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,
+cgroup usage, and interface byte counters while omitting command-line,
+address, MAC, SSID, serial, and credential data.
+
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
 The historical v2 recovery image temporarily booted and produced logs showing

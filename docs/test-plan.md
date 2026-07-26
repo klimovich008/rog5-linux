@@ -32,6 +32,11 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   directories, no SSH or supplementary groups, a loopback-only service that
   does not reuse `rog5`, exact CPU/memory/swap/task/I/O/restart controls, and a
   successful in-rootfs `systemd-analyze verify`.
+- `test-collect-baseline.sh` runs the staged runtime collector against a
+  synthetic proc/sys/systemd fixture; requires memory, CPU, Plasma PSS,
+  automation cgroup, battery, thermal, display, target, inhibitor, DRM, and
+  interface-counter fields; and rejects address, MAC, SSID, serial, or kernel
+  command-line sources.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

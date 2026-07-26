@@ -362,6 +362,8 @@ when no desktop is needed.
 - [ ] Enable KRDP or another maintained remote-desktop service only after
   credentials and exposure policy are explicitly configured.
 - [ ] Test remote use with the physical panel off.
+- [x] Stage and fixture-test a redacted collector for CPU, memory/PSS,
+  cgroup, thermal, battery, display, and network-counter comparisons.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.

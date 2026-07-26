@@ -216,15 +216,17 @@ reverified under the pinned signing key, and its metadata-preserving Linux
 staging path executes as AArch64. The final 2,007,186,653-byte Plasma/server
 archive passes a clean round trip with the exact modules and pinned firmware.
 
-The newer 2,006,969,518-byte resource-bounded, agent-isolated development
+The newer 2,007,027,068-byte resource-bounded, agent-isolated development
 archive has SHA-256
-`246b6e67482472756edef5641ab190a9bde9245cacda1dac6accaf16edb855e2`.
+`5863cacf23a9c0cb972b37e3c71f801df77ccb708a277c0f2787d3afd9ac51e4`.
 Its full verifier passes both before archival and after extraction into a
 clean volume. The locked `rog5-agent` system account has no login, SSH access,
 supplementary group, credential, or desktop-user data; its on-demand Chromium
 service is loopback-only, systemd-hardened, capped at two CPUs/2 GiB
-RAM/512 MiB swap/256 tasks, and restart-limited. This artifact remains
-outside Git and has not been promoted to the NFS export or booted.
+RAM/512 MiB swap/256 tasks, and restart-limited. A staged redacted collector
+can capture the later headless/desktop/browser/screen-off comparison without
+network or device identifiers. This artifact remains outside Git and has not
+been promoted to the NFS export or booted.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the

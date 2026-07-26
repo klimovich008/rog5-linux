@@ -75,6 +75,22 @@ The staged `rog5-agent` browser unit has a 200% CPU quota, CPU/I/O weights of
 These are safety ceilings, not measured optimums; retain or lower them only
 after an on-phone workload, thermal, latency, and battery comparison.
 
+The development Arch image stages a one-shot collector:
+
+```sh
+rog5-collect-baseline.sh
+```
+
+Capture it before and after a fixed interval for each headless, Plasma,
+KRDP, browser, panel-on, and panel-off state. It reports CPU total/idle ticks,
+memory and swap, selected Plasma PSS, agent cgroup usage, battery values,
+thermal maximum, screen/backlight/DSI state, and interface byte counters.
+Compute CPU busy percent as
+`100 * (delta_total - delta_idle) / delta_total`. It deliberately omits the
+kernel command line, addresses, MACs, SSIDs, serials, process arguments, and
+credentials. Battery-current sign is driver-defined, so evaluate it with
+reported charge status and external wall-power measurement.
+
 The first diagnostic Arch headless sample reported 11,296,876 KiB total,
 10,947,312 KiB available, about 341 MiB unavailable, 12 running services, and
 0.06 one-minute load. Network-root v2 then passed normal coldplug twice with

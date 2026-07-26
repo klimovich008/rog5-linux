@@ -69,19 +69,20 @@ creates one deployment-local Ed25519 server host key outside Git and pins
 now pass, including persistent client authorization and server identity.
 
 A newer resource-bounded, agent-isolated development archive is
-2,006,969,518 bytes with
+2,007,027,068 bytes with
 SHA-256
-`246b6e67482472756edef5641ab190a9bde9245cacda1dac6accaf16edb855e2`.
+`5863cacf23a9c0cb972b37e3c71f801df77ccb708a277c0f2787d3afd9ac51e4`.
 It was staged from source commit
-`efea034488df41b7bf672309cb45462accbe02bb`, passed the complete verifier
+`5292f3caf4acba7e548505a004f55e6c3276661e`, passed the complete verifier
 before archival and again after extraction into a clean volume, and passed an
 independent gzip/hash check. It adds a locked `rog5-agent` account, an empty
 mode-`0700` private-data boundary, and a hardened loopback-only Chromium
 service without changing the desktop user. The service is capped at two CPUs,
 1.5/2 GiB memory high/max, 512 MiB swap, and 256 tasks, and its restarts are
-rate-limited. This development artifact remains outside Git and has not
-replaced the manifest-pinned live root, been exported over NFS, or booted on
-the phone.
+rate-limited. It also stages `rog5-collect-baseline.sh`, a redacted one-shot
+runtime metrics helper. This development artifact remains outside Git and has
+not replaced the manifest-pinned live root, been exported over NFS, or booted
+on the phone.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
