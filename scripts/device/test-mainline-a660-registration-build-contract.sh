@@ -47,9 +47,11 @@ for contract in \
 	'CONFIG_DRM_MSM=m' \
 	'CONFIG_DRM_MSM_KMS=n' \
 	'CONFIG_SM_GPUCC_8350=m' \
+	'CONFIG_QCOM_MDT_LOADER=m' \
 	'drivers/gpu/drm/msm/msm.ko' \
 	'drivers/clk/qcom/gpucc-sm8350.ko' \
-	'separate_gpu_kms:Use separate DRM device for the GPU' \
+	'drivers/soc/qcom/mdt_loader.ko' \
+	'separate_gpu_kms: (bool)' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \
 	'Module.symvers' \
 	'modules.tar.gz' \
