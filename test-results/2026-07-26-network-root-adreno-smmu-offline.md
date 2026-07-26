@@ -224,10 +224,18 @@ zero A660 firmware, preserved credentials, and an unchanged accepted base. The
 dedicated client key and pinned host file remained mode `0600`, while the
 private evidence directory remained mode `0700`. NFS was inactive with zero
 active exports and no RPC/NFS listener, ModemManager was active, and neither
-ADB nor fastboot saw a device. The source-locked A660 successor export also
-passed its privileged verifier without changing its `NOT_ACCEPTED` dependency
-boundary. No phone was contacted and no service, export, firewall rule, or
-device state was changed.
+ADB nor fastboot saw a device. A later USB-bus check found the persistent
+Alpine fallback gadget still running across the PC reboot. A read-only SSH
+query through its separately pinned fallback identity confirmed that no
+diagnostic stage remained.
+
+The first real OpenSSH invocation also rejected the launcher's misspelled
+`ConnectAttempts` option before any connection was made. The launcher now uses
+OpenSSH's `ConnectionAttempts` option, and its contract test performs a real
+`ssh -G` parse in addition to the mocked call-order test. The source-locked
+A660 successor export passed its privileged verifier without changing its
+`NOT_ACCEPTED` dependency boundary. No temporary boot, reboot, service,
+export, firewall rule, or device state was changed.
 
 ## One-shot live gate
 

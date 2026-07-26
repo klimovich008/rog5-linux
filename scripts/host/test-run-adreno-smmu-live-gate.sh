@@ -9,6 +9,7 @@ runner=$repo/scripts/host/run-adreno-smmu-live-gate.sh
 	exit 1
 }
 bash -n "$runner"
+ssh -G -T -F /dev/null -o ConnectionAttempts=1 localhost >/dev/null
 
 for contract in \
 	'ALLOW_MAINLINE_ADRENO_SMMU_LIVE_GATE' \
@@ -33,7 +34,7 @@ for contract in \
 	'HostKeyAlias=rog5-network-root' \
 	'StrictHostKeyChecking=yes' \
 	'BatchMode=yes' \
-	'ConnectAttempts=1' \
+	'ConnectionAttempts=1' \
 	'ssh -n' \
 	'scp -q' \
 	'chmod 0400 "$directory/gpucc-sm8350.ko"' \
