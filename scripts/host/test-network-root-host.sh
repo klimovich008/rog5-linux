@@ -5,8 +5,9 @@ repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 prepare=$repo/scripts/host/prepare-network-root-export.sh
 verify=$repo/scripts/host/verify-network-root-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
+ucode_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-live-window.sh
 
-for script in "$prepare" "$verify" "$serve"; do
+for script in "$prepare" "$verify" "$serve" "$ucode_window_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable network-root host tool: $script" >&2
 		exit 1
@@ -114,5 +115,7 @@ if grep -Eq '(^|[[:space:]])fastboot[[:space:]]+flash|(^|[[:space:]])dd[[:space:
 	echo 'FAIL network-root host tools contain a phone-storage write command' >&2
 	exit 1
 fi
+
+"$ucode_window_test" >/dev/null
 
 echo 'PASS host gate is exact-peer, runtime-only, read-only, and fail-closed'
