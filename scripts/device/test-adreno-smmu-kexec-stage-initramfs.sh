@@ -26,7 +26,7 @@ for contract in \
 	'--reproducible' \
 	'gzip -n'
 do
-	grep -Fq "$contract" "$builder" || {
+	grep -Fq -- "$contract" "$builder" || {
 		echo "FAIL staging-initramfs builder omits: $contract" >&2
 		exit 1
 	}
