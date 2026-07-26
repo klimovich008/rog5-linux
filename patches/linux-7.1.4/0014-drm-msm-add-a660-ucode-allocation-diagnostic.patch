@@ -1,0 +1,250 @@
+From: ROG5 Linux maintainers <rog5-linux@invalid>
+Date: Sun, 26 Jul 2026 00:00:00 +0000
+Subject: [PATCH] drm/msm: add rollback-safe A660 ucode allocation diagnostic
+
+Add a default-off, read-only module option for one exact A660.1
+first-open attempt.  Request the catalog firmware, create and validate the
+SQE, shadow, and power-up reglist objects, then release every new GPU
+mapping, CPU vmap, GEM object, and firmware reference before deliberately
+rejecting the open.
+
+Keep the diagnostic mutually exclusive with the earlier
+firmware-request-only mode and reject every later attempt atomically.
+Reuse the balanced ucode cleanup helper from normal A6xx destruction so
+the power-up reglist and retained CPU vmaps are no longer omitted there.
+
+Runtime power, GPU hardware initialization, GMU/HFI, and ZAP/SCM remain
+behind the unchanged normal path.
+
+Signed-off-by: ROG5 Linux maintainers <rog5-linux@invalid>
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gpu.c      | 46 +++++++++++++------
+ drivers/gpu/drm/msm/adreno/a6xx_gpu.h      |  1 +
+ drivers/gpu/drm/msm/adreno/adreno_device.c | 71 ++++++++++++++++++++++++++++++
+ drivers/gpu/drm/msm/msm_drv.c              | 26 +++++++++++
+ drivers/gpu/drm/msm/msm_gpu.h              |  1 +
+ 5 files changed, 131 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+index 7a3e3c2..c5614f4 100644
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -1198,6 +1198,37 @@ static int a6xx_ucode_load(struct msm_gpu *gpu)
+ 	return 0;
+ }
+ 
++void a6xx_ucode_unload(struct msm_gpu *gpu)
++{
++	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
++	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
++
++	if (a6xx_gpu->sqe_bo) {
++		msm_gem_unpin_iova(a6xx_gpu->sqe_bo, gpu->vm);
++		drm_gem_object_put(a6xx_gpu->sqe_bo);
++	}
++	a6xx_gpu->sqe_bo = NULL;
++	a6xx_gpu->sqe_iova = 0;
++
++	if (a6xx_gpu->aqe_bo) {
++		msm_gem_unpin_iova(a6xx_gpu->aqe_bo, gpu->vm);
++		drm_gem_object_put(a6xx_gpu->aqe_bo);
++	}
++	a6xx_gpu->aqe_bo = NULL;
++	a6xx_gpu->aqe_iova = 0;
++
++	msm_gem_kernel_put(a6xx_gpu->shadow_bo, gpu->vm);
++	a6xx_gpu->shadow_bo = NULL;
++	a6xx_gpu->shadow = NULL;
++	a6xx_gpu->shadow_iova = 0;
++
++	msm_gem_kernel_put(a6xx_gpu->pwrup_reglist_bo, gpu->vm);
++	a6xx_gpu->pwrup_reglist_bo = NULL;
++	a6xx_gpu->pwrup_reglist_ptr = NULL;
++	a6xx_gpu->pwrup_reglist_iova = 0;
++	a6xx_gpu->pwrup_reglist_emitted = false;
++}
++
+ int a6xx_zap_shader_init(struct msm_gpu *gpu)
+ {
+ 	static bool loaded;
+@@ -2392,20 +2423,7 @@ static void a6xx_destroy(struct msm_gpu *gpu)
+ 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
+ 	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
+ 
+-	if (a6xx_gpu->sqe_bo) {
+-		msm_gem_unpin_iova(a6xx_gpu->sqe_bo, gpu->vm);
+-		drm_gem_object_put(a6xx_gpu->sqe_bo);
+-	}
+-
+-	if (a6xx_gpu->aqe_bo) {
+-		msm_gem_unpin_iova(a6xx_gpu->aqe_bo, gpu->vm);
+-		drm_gem_object_put(a6xx_gpu->aqe_bo);
+-	}
+-
+-	if (a6xx_gpu->shadow_bo) {
+-		msm_gem_unpin_iova(a6xx_gpu->shadow_bo, gpu->vm);
+-		drm_gem_object_put(a6xx_gpu->shadow_bo);
+-	}
++	a6xx_ucode_unload(gpu);
+ 
+ 	a6xx_llc_slices_destroy(a6xx_gpu);
+ 
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gpu.h b/drivers/gpu/drm/msm/adreno/a6xx_gpu.h
+index eb431e5..78126d1 100644
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.h
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.h
+@@ -317,6 +317,7 @@ void a6xx_bus_clear_pending_transactions(struct adreno_gpu *adreno_gpu, bool gx_
+ void a6xx_gpu_sw_reset(struct msm_gpu *gpu, bool assert);
+ int a6xx_fenced_write(struct a6xx_gpu *gpu, u32 offset, u64 value, u32 mask, bool is_64b);
+ void a6xx_flush(struct msm_gpu *gpu, struct msm_ringbuffer *ring);
++void a6xx_ucode_unload(struct msm_gpu *gpu);
+ int a6xx_zap_shader_init(struct msm_gpu *gpu);
+ 
+ void a8xx_bus_clear_pending_transactions(struct adreno_gpu *adreno_gpu, bool gx_off);
+diff --git a/drivers/gpu/drm/msm/adreno/adreno_device.c b/drivers/gpu/drm/msm/adreno/adreno_device.c
+index 326a216..e3e6120 100644
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include "adreno_gpu.h"
++#include "a6xx_gpu.h"
+ 
+ bool hang_debug = false;
+ MODULE_PARM_DESC(hang_debug, "Dump registers when hang is detected (can be slow!)");
+@@ -88,6 +89,76 @@ int adreno_load_fw_only(struct drm_device *dev)
+ 	return adreno_load_fw(adreno_gpu);
+ }
+ 
++static void adreno_release_diagnostic_fw(struct adreno_gpu *adreno_gpu)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(adreno_gpu->fw); i++) {
++		if (!adreno_gpu->fw[i])
++			continue;
++
++		release_firmware(adreno_gpu->fw[i]);
++		adreno_gpu->fw[i] = NULL;
++	}
++}
++
++int adreno_load_ucode_only(struct drm_device *dev)
++{
++	struct msm_drm_private *priv = dev->dev_private;
++	struct platform_device *pdev = priv->gpu_pdev;
++	struct msm_gpu *gpu;
++	struct adreno_gpu *adreno_gpu;
++	struct a6xx_gpu *a6xx_gpu;
++	int i, ret;
++
++	if (!pdev)
++		return -ENODEV;
++
++	gpu = dev_to_gpu(&pdev->dev);
++	if (!gpu || !gpu->funcs->ucode_load)
++		return -ENODEV;
++
++	adreno_gpu = to_adreno_gpu(gpu);
++
++	/* This diagnostic is intentionally limited to the ROG5 A660.1. */
++	if (adreno_gpu->chip_id != 0x06060001)
++		return -ENODEV;
++
++	a6xx_gpu = to_a6xx_gpu(adreno_gpu);
++	if (a6xx_gpu->sqe_bo || a6xx_gpu->aqe_bo ||
++	    a6xx_gpu->shadow_bo || a6xx_gpu->pwrup_reglist_bo ||
++	    a6xx_gpu->shadow || a6xx_gpu->pwrup_reglist_ptr ||
++	    a6xx_gpu->sqe_iova || a6xx_gpu->aqe_iova ||
++	    a6xx_gpu->shadow_iova || a6xx_gpu->pwrup_reglist_iova)
++		return -EBUSY;
++
++	for (i = 0; i < ARRAY_SIZE(adreno_gpu->fw); i++)
++		if (adreno_gpu->fw[i])
++			return -EBUSY;
++
++	ret = adreno_load_fw(adreno_gpu);
++	if (ret)
++		goto out_release_fw;
++
++	ret = gpu->funcs->ucode_load(gpu);
++	if (ret)
++		goto out_unload;
++
++	if (!a6xx_gpu->sqe_bo || a6xx_gpu->aqe_bo ||
++	    !a6xx_gpu->shadow_bo || !a6xx_gpu->shadow ||
++	    !a6xx_gpu->pwrup_reglist_bo || !a6xx_gpu->pwrup_reglist_ptr ||
++	    !a6xx_gpu->sqe_iova || !a6xx_gpu->shadow_iova ||
++	    !a6xx_gpu->pwrup_reglist_iova)
++		ret = -EPROTO;
++
++out_unload:
++	a6xx_ucode_unload(gpu);
++out_release_fw:
++	adreno_release_diagnostic_fw(adreno_gpu);
++
++	return ret;
++}
++
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev)
+ {
+ 	struct msm_drm_private *priv = dev->dev_private;
+diff --git a/drivers/gpu/drm/msm/msm_drv.c b/drivers/gpu/drm/msm/msm_drv.c
+index c1c4f22..5443563 100644
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -65,6 +65,12 @@ module_param(firmware_request_only, bool, 0400);
+ 
+ static atomic_t firmware_request_only_consumed = ATOMIC_INIT(0);
+ 
++static bool ucode_allocation_only;
++MODULE_PARM_DESC(ucode_allocation_only, "Allocate and roll back exact A660 ucode once before GPU power");
++module_param(ucode_allocation_only, bool, 0400);
++
++static atomic_t ucode_allocation_only_consumed = ATOMIC_INIT(0);
++
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+ 
+@@ -274,6 +280,26 @@ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ {
+ 	int ret;
+ 
++	if (firmware_request_only && ucode_allocation_only)
++		return -EINVAL;
++
++	if (ucode_allocation_only) {
++		if (atomic_cmpxchg(&ucode_allocation_only_consumed, 0, 1))
++			return -EALREADY;
++
++		ret = adreno_load_ucode_only(dev);
++		if (ret) {
++			DRM_DEV_ERROR(dev->dev,
++				      "A660 ucode-allocation-only failed: %d\n",
++				      ret);
++			return ret;
++		}
++
++		DRM_DEV_INFO(dev->dev,
++			     "A660 ucode-allocation-only passed and rolled back; reject open\n");
++		return -EUCLEAN;
++	}
++
+ 	if (firmware_request_only) {
+ 		if (atomic_cmpxchg(&firmware_request_only_consumed, 0, 1))
+ 			return -EALREADY;
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+index be85461..8ed48ec 100644
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -709,6 +709,7 @@ void msm_gpu_cleanup(struct msm_gpu *gpu);
+ 
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev);
+ int adreno_load_fw_only(struct drm_device *dev);
++int adreno_load_ucode_only(struct drm_device *dev);
+ bool adreno_has_gpu(struct device_node *node);
+ void __init adreno_register(void);
+ void __exit adreno_unregister(void);
+-- 
+2.50.1

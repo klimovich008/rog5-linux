@@ -334,6 +334,10 @@ The following offline
 proves that the next seam adds exactly three SMMU mappings before GPU/GMU
 runtime power or register access and must explicitly roll back SQE, shadow,
 and power-up reglist state. It does not authorize another live cycle.
+The corresponding
+[rollback-safe patch report](test-results/2026-07-26-a660-ucode-allocation-patch.md)
+now passes exact stacked-source verification and eight mutations; compilation
+and duplicate-build acceptance are still pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

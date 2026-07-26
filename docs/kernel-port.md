@@ -325,9 +325,11 @@ not fully release this state, so a future diagnostic must provide explicit
 all-path rollback and an atomic one-shot gate. See the
 [ucode-allocation boundary report](../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
 
-The next step is a default-off rollback-safe diagnostic, duplicate isolated
-builds, and a fresh offline root/gate review. No later live cycle is yet
-authorized.
+The default-off rollback-safe diagnostic now passes its exact patch verifier,
+strict checkpatch, and eight source mutations; see the
+[ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md).
+The next step is duplicate isolated builds. A fresh root/gate review and any
+later live cycle remain unauthorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

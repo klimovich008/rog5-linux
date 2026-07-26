@@ -752,7 +752,12 @@ The audit also proves that normal A6xx teardown is insufficient for an early
 return, so the next patch must be atomic-one-shot and explicitly roll back all
 three objects on every path. See the
 [ucode-allocation boundary report](../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
-No new build or live cycle is accepted yet.
+That default-off patch now passes its exact stacked-source verifier, strict
+checkpatch, and eight source mutations; it also replaces normal A6xx teardown
+with the balanced helper. See the
+[ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md).
+Compilation, duplicate-build acceptance, a fresh root, and any live cycle
+remain pending.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

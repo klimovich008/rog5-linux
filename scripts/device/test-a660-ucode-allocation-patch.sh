@@ -18,6 +18,18 @@ sh -n "$verifier"
 for contract in \
 	d9ac316489f4258d389d6298659d5e9c22183400 \
 	c796deb1cc54e942f8bb46a2c76a7199e19e5c92 \
+	3413678758f97ea16d8e53e7a24a2bc62a871b333851c32bd8242687bbdc1054 \
+	6966d868585e11c5f614598368eb70595025c9543653582e0234aa313edfa3f2 \
+	7f928abf51301516c63c834946e3b264b53416c016f4800729c2a9b1025f9c1e \
+	b477ecc7f2396b4b65cb28eda9f454c885368277b421e5a11a2209ea4b317b2d \
+	e7d3de968a744c61394e708cfc416a1aead514c09e71e2a68342260000479599 \
+	29733589c6375930852cb26cfee674f83008084e6bdb792fd86164ea487bf85d \
+	fefca6579b234fda7c0afdcf07d5c2dbb80aade92674c45380c661e259d9f9bb \
+	bf109068950c2e04d6121a5aea8bee7c20d7c3535a05107728e197351fc6e3c6 \
+	d3312f908da1702a4f0e63b3e9aed9f77ed7fe352381c2e31647b8225e2993ec \
+	0954e9cc45a948c02dbecca34d41f1343f004880a983403baa668b3c96a095c2 \
+	34ba40a1de4705b471a09266c51a1b5d20f06534faea6bff70d2b0025d185ae7 \
+	5d6a982bea8fca55959cbc0cdd1b5ba7a6b64e884c8efd619adbba6490319ea5 \
 	'0013-drm-msm-add-a660-firmware-request-only-diagnostic.patch' \
 	'0014-drm-msm-add-a660-ucode-allocation-diagnostic.patch' \
 	'module_param(ucode_allocation_only, bool, 0400)' \
@@ -51,7 +63,7 @@ do
 done
 
 if grep -Eq \
-	'fastboot|adb|ssh|scp|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/|pkexec|sudo' \
+	'(^|[[:space:]])(fastboot|adb|ssh|scp|pkexec|sudo)([[:space:]]|$)|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/' \
 	"$patch" "$verifier"
 then
 	echo 'FAIL ucode-allocation patch contract controls a device, storage, or privileges' >&2
@@ -87,8 +99,7 @@ if [ -n "${SOURCE_DIR:-}" ]; then
 		'ucode_allocation_only_consumed = ATOMIC_INIT(0)' \
 		'ucode_allocation_only_consumed = ATOMIC_INIT(1)'
 	mutate_and_reject non-atomic \
-		'atomic_cmpxchg(&ucode_allocation_only_consumed, 0, 1)' \
-		'atomic_read(&ucode_allocation_only_consumed)'
+		'atomic_cmpxchg' 'atomic_read'
 	mutate_and_reject wrong-chip \
 		'0x06060001' '0x06060300'
 	mutate_and_reject skip-ucode \

@@ -424,7 +424,7 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   reglist objects through three SMMU mappings before GPU/GMU runtime power or
   register access, and requires explicit all-path rollback because the normal
   destroy path does not fully release that state.
-- [ ] Implement and mutation-test a default-off, exact-A660.1, atomic one-shot
+- [x] Implement and mutation-test a default-off, exact-A660.1, atomic one-shot
   ucode-allocation diagnostic with balanced three-object rollback.
 - [ ] Reproduce two isolated builds, require unchanged Image/config/ABI and
   only the reviewed MSM module delta, then prepare a fresh independently
