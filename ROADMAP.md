@@ -304,6 +304,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   firmware path.
 - [x] Rebuild and reproduce the smallest GPUCC plus Adreno SMMU DTB, nested
   stage, ASUS wrapper, and temporary-boot package from the storage-safe base.
+- [x] Prepare and independently verify the isolated v18 copy-on-write export
+  with 1,008 unchanged module files, zero A660 firmware, preserved
+  credentials, an unchanged accepted base, and an exact NFS allowlist.
+- [x] Test and pin the one-shot host/target control plane: five exact tmpfs
+  inputs, strict SSH identity, private evidence, baseline under the original
+  watchdog, a 120-second transition watchdog overlapping the existing
+  75-second probe, one invocation, and immediate fallback reboot.
 - [ ] Run the one-shot attended RAM-only SMMU bind/runtime-suspend gate.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate

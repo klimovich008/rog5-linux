@@ -189,8 +189,13 @@ GPUCC bits plus the built-in Adreno SMMU, with GPU, GMU, A660 firmware,
 DRM/render nodes, and storage still disabled. The dependency contract, DTB,
 nested staging archive, two clean ASUS wrapper builds, two repacks, baseline,
 guarded probe, mutation suite, and exact bundle verifier pass. The phone was
-not contacted. This is not acceleration; one attended RAM-only SMMU probe
-remains pending. See the
+not contacted. The host now also has an independently verified copy-on-write
+v18 export with the complete 1,008-file module tree and zero A660 firmware;
+the accepted fallback export remains unchanged. An exact NFS allowlist,
+five-file tmpfs launcher, 120-second transition watchdog overlapping the
+existing 75-second probe watchdog, immediate-reboot path, negative tests, and
+complete bundle re-verification pass offline. This is not acceleration; one
+attended RAM-only SMMU probe remains pending. See the
 [v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md).
 The complete pinned A660/GMU source graph and its first guarded kernel build
 now pass offline. Registration is a real hardware boundary: it attaches three

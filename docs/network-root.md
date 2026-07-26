@@ -259,6 +259,17 @@ identity, and runs the independent path-based verifier.
    temporary sysctl, and removes all runtime firewall state on exit, including
    the interface assignment when the USB gadget has already disappeared.
 
+The server accepts exactly two source directories: the accepted general
+`/var/lib/rog5-network-root-v1` export and the independently verified
+`/var/lib/rog5-network-root-adreno-smmu-v18` diagnostic sibling. The latter is
+a copy-on-write derivative with the same 1,008-file Linux
+`7.1.4-g7a5cef0db479` module tree and credentials, but with all three
+hash-pinned A660 firmware files absent. The source-locked A660 registration
+export and every other path are rejected before NFS or firewall setup.
+`prepare-adreno-smmu-export.sh` creates the sibling only when absent, and
+`verify-adreno-smmu-export.sh` independently compares it with the accepted
+base before `serve-network-root.sh` may expose it.
+
 The default attended window remains 900 seconds. An explicitly requested
 long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
 phone must return to fallback with the validated attended procedure before
@@ -510,9 +521,16 @@ V18 keeps that accepted GPUCC module and enables only its smallest reviewed
 consumer, the built-in Adreno SMMU. The pinned source audit, two-status DT
 overlay, credential-free nested stage, two clean ASUS wrapper builds, two
 repacks, read-only pre-disarm baseline, guarded 75-second probe, mutation
-suite, and exact bundle verifier pass offline. GPU, GMU, A660 firmware,
-render nodes, storage, and unrelated consumers remain disabled. The phone was
-not contacted, so SMMU registration is not yet a live claim. See the
+suite, and exact bundle verifier pass offline. The exact v18 host export,
+server allowlist, negative firmware-injection test, and strict five-file
+tmpfs launcher now pass too. The target launcher runs the baseline while the
+original watchdog remains armed, then overlaps a 120-second transition
+watchdog across the disarm and one 75-second probe before requesting immediate
+fallback reboot. GPU, GMU, A660 firmware, render nodes, storage, and unrelated
+consumers remain disabled. The phone was not contacted, so SMMU registration
+is not yet a live claim. The inert host entry point is
+`run-adreno-smmu-live-gate.sh`; it requires both explicit guards and private
+credential/evidence paths. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)

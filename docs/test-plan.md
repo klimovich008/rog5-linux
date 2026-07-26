@@ -219,11 +219,15 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   package builds, zero storage, and fail-closed baseline/probe contracts.
   **Passed offline; the phone was not contacted.**
 - Permit one attended RAM-only SMMU probe only after the read-only baseline
-  passes with the original watchdog armed. Atomically replace it with an
-  independent 75-second watchdog, load the exact external GPUCC module once,
-  and require one GPUCC bind, one exact SMMU bind, runtime suspend, no GPU/GMU
-  client, firmware, render node, warning, IOMMU fault, storage, thermal,
-  reboot, or cleanup failure. **Pending; no live retry.**
+  passes with the original watchdog armed. Arm a separate 120-second
+  transition watchdog before disarming the original, then run the existing
+  independent 75-second probe exactly once and request fallback reboot in the
+  same target process. Require one GPUCC bind, one exact SMMU bind, runtime
+  suspend, no GPU/GMU client, firmware, render node, warning, IOMMU fault,
+  storage, thermal, reboot, or cleanup failure. The isolated firmware-free
+  export, exact server allowlist, five-file strict-SSH launcher, negative
+  tests, watchdog ordering, and complete bundle re-verification pass offline.
+  **Live result pending; no retry.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

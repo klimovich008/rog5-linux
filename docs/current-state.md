@@ -535,7 +535,16 @@ disabled. Two clean ASUS wrapper builds and two independent repacks match
 byte-for-byte; source, DT, stage, baseline, probe, mutation, historical, and
 exact-bundle tests pass. This is offline evidence, not acceleration. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md);
-one attended RAM-only SMMU bind/runtime-suspend gate remains pending.
+one attended RAM-only SMMU bind/runtime-suspend gate remains pending. Its
+host side is now ready without changing the accepted export: a separate
+copy-on-write root preserves all 1,008 matching module files and credentials,
+removes only the three exact A660 firmware files, and is the only additional
+path accepted by the runtime NFS server. The full bundle verifier also pins a
+compound target gate that runs the baseline under the original watchdog,
+arms a 120-second transition watchdog before disarming it, runs the existing
+75-second probe once, and immediately requests fallback reboot. A strict
+five-file SSH/SCP launcher and mocked one-invocation test pass; no service was
+started and the phone was not contacted.
 
 The complete pinned A660 graph now also passes source audit. Its guarded
 Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,

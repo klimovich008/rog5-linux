@@ -177,6 +177,45 @@ The complete exact-bundle verifier returns:
 No binary artifact, credential, private identifier, or personal data is
 committed.
 
+## Host and watchdog-handoff readiness
+
+The accepted general export could not safely serve this gate because it
+intentionally contains the three A660 firmware files. A new root-owned,
+mode-`0555` copy-on-write sibling was therefore derived without modifying the
+accepted base. Independent verification proves:
+
+- all 1,008 files in the Linux `7.1.4-g7a5cef0db479` module tree match;
+- only the three exact hash-pinned A660 firmware files are absent;
+- credential files and their ownership/modes match without exposing them;
+- all unchanged file hashes and metadata match, while affected parent
+  directories retain their ownership and modes; and
+- the accepted base still passes its original verifier with its firmware.
+
+The NFS server now accepts only the general export and this exact v18 sibling.
+It rejects the source-locked A660 export before service or firewall setup. A
+negative mutation test also proved that adding even one A660 firmware file
+makes the v18 verifier fail. NFS remained inactive with zero exports and
+listeners throughout preparation.
+
+The target control plane now closes the earlier watchdog-handoff gap. One
+compound helper:
+
+1. hash-checks the module, baseline, disarm helper, probe, and itself;
+2. runs the complete baseline while the original watchdog remains armed;
+3. arms a separate 120-second SysRq transition watchdog;
+4. disarms the original watchdog only after that new watchdog is alive;
+5. invokes the existing independent 75-second probe exactly once; and
+6. requests fallback reboot immediately after probe PASS while the transition
+   watchdog remains armed.
+
+A strict host launcher verifies the export through PolicyKit, uses pinned
+key-only SSH identity, stages exactly those five files under target tmpfs,
+records output only in a private mode-`0600` log, invokes the compound gate
+once, and accepts only the baseline, SMMU probe, and reboot-request markers.
+Its mocked end-to-end call-order test passes. The complete v18 bundle verifier
+was rerun after pinning both helpers and still returned the exact PASS above.
+The phone remained disconnected.
+
 ## One-shot live gate
 
 This offline result does not prove that the SMMU registers safely on this ASUS
@@ -185,16 +224,18 @@ board. One attended cycle may be reviewed separately. It must:
 1. use only the exact temporary AVB image with `fastboot boot`, never flash;
 2. preserve the atomic staging load-to-execute route and its initial fallback
    watchdog;
-3. run the read-only baseline before disarming that initial watchdog;
-4. place only the exact hash-pinned GPUCC module, disarm helper, and probe
-   helper in target tmpfs;
-5. atomically replace the initial watchdog with the independent 75-second
-   SysRq watchdog before the one external GPUCC load;
+3. stage only the exact GPUCC module, baseline, disarm helper, probe, and
+   compound gate in target tmpfs;
+4. run the read-only baseline before disarming the initial watchdog;
+5. arm the 120-second transition watchdog before disarming the initial
+   watchdog, then let the existing probe arm its independent 75-second
+   watchdog before the one external GPUCC load;
 6. accept only one GPUCC bind, one exact Adreno SMMU bind, runtime-suspended
    SMMU state, no GPU/GMU clients, firmware, render node, storage, warning,
    fault, or unsafe thermal state; and
-7. normally reboot to the exact fallback after PASS, or allow the watchdog to
-   force fallback after any non-returning operation.
+7. request normal reboot to the exact fallback in the same compound process
+   after PASS, or allow the overlapping watchdogs to force fallback after any
+   non-returning operation.
 
 There is no live retry. A PASS would accept only the idle SMMU prerequisite.
 GPU/GX power, regulators, interconnects, GMU, reserved memory, firmware,
