@@ -29,6 +29,13 @@ The 5.4.210 #20 smoke test currently passes:
 
 At the last baseline capture the battery was full, the panel backlight was zero, zram was 3 GiB and unused, and the server remained reachable with the physical screen off. The screen toggle now applies Wayland DPMS as well as backlight zero, and restores DPMS plus the saved brightness on wake.
 
+The mainline userspace VPN-hotspot policy also has packet-level offline
+evidence. A network-disabled privileged container permits only the simulated
+VPN path, blocks one-way IPv4/IPv6 ordinary-uplink leakage, blocks unsolicited
+VPN-side client ingress, stays closed when the VPN interface disappears, and
+restores nftables/sysctls on cleanup. The real ath11k AP, WireGuard handshake,
+DHCP/DNS, coexistence, throughput, thermal, and battery gates remain pending.
+
 ## Display modes
 
 The vendor DRM connector publishes these mode names:

@@ -256,6 +256,10 @@ cycles. Debian is evaluated only if an Arch-specific blocker appears.
 Goal: make the phone useful as a network appliance without leaking client
 traffic outside the VPN.
 
+- [x] Send real packets through isolated client/VPN/uplink namespaces; allow
+  only the simulated VPN path, reject one-way IPv4/IPv6 ordinary-uplink
+  leakage and unsolicited client ingress, fail closed after VPN-interface
+  loss, and restore nftables/sysctls on cleanup.
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
 - [ ] Establish a real WireGuard or supported VPN handshake.

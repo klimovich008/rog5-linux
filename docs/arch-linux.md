@@ -129,4 +129,13 @@ Run the routing regression test in the builder container before packaging:
 docker run --rm --privileged --network none --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" rog5-kernel-builder:ubuntu-24.04 sh /workspace/repo/scripts/device/test-vpn-hotspot.sh
 ```
 
-That test proves rule generation, isolation, cleanup, and service ordering with dummy links. A real client still must pass DHCP, VPN DNS, endpoint reachability, VPN-loss fail-closed, recovery, and AP-to-phone isolation on hardware.
+That test now sends UDP packets across isolated client, simulated-VPN, and
+ordinary-uplink namespaces. It proves the VPN path works, IPv4 and IPv6
+datagrams never reach the ordinary uplink, unsolicited VPN-side traffic
+cannot enter the AP client, VPN-interface loss stays closed, and teardown
+restores nftables and forwarding sysctls. Receipt-marker mutation testing
+also detects one-way exfiltration when replies are dropped. See the
+[offline packet report](../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
+A real client still must pass ath11k AP capability, DHCP, VPN DNS, a real
+WireGuard handshake, endpoint reachability, VPN loss/recovery, radio
+coexistence, throughput, thermals, charging, and battery tests on hardware.

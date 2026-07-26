@@ -8,6 +8,13 @@ This repository contains documentation, test tooling, configuration fragments, a
 
 The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-perf #20`. Its smoke suite passes DRM/panel, touch, charging, USB networking, Plasma Mobile, power-button screen control, UPower, Wi-Fi client, and hotspot. The display defaults off while the server remains active.
 
+For the mainline userspace path, the fail-closed hotspot policy now passes a
+real packet regression in isolated, network-disabled namespaces: only the
+simulated VPN path works; IPv4/IPv6 ordinary-uplink leakage, unsolicited
+client ingress, and VPN-loss fallback are blocked; cleanup is exact. Radio,
+real WireGuard, DHCP/DNS, throughput, thermal, and battery acceptance remain
+hardware gates.
+
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
 The historical v2 recovery image temporarily booted and produced logs showing

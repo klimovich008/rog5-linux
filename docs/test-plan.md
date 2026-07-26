@@ -25,7 +25,11 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
-- `test-screen-toggle.sh` and `test-vpn-hotspot.sh` exercise idempotent display state and AP-scoped fail-closed nftables rules without phone hardware.
+- `test-screen-toggle.sh` exercises idempotent display state.
+  `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
+  packets through isolated AP, VPN, and ordinary-uplink namespaces; it
+  requires VPN-only forwarding, unsolicited-client isolation, fail-close
+  after VPN loss, and exact cleanup without phone hardware.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
 - `verify-ufs-discovery-patch.sh` applies the three-patch discovery series to
   the pinned tree, enforces exact query/SCSI whitelists, rejects
