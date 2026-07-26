@@ -11,6 +11,8 @@ root=${1:?usage: verify-a660-registration-export.sh ROOT BASE_ROOT}
 base_root=${2:-/var/lib/rog5-network-root-v1}
 release=7.1.4-rog5-a660reg1
 archive_hash=e3cb1ef31b6c1c803bee98748660f92b3b192d460cb41d5d4691f9953a91a42b
+acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+acceptance_report_sha=0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc
 
 for command in cmp cut find grep mktemp modinfo readelf readlink realpath rm \
 	sha256sum sort stat wc xargs; do
@@ -28,23 +30,34 @@ base_root=$(realpath -e "$base_root")
 seal=$root/etc/rog5/a660-registration-export
 [[ -f $seal && ! -L $seal ]]
 [[ $(stat -c '%u:%g:%a' "$seal") == 0:0:444 ]]
+grep -qx 'registration_generation=v2' "$seal"
 grep -qx 'base_export=rog5-network-root-v1' "$seal"
 grep -qx "kernel_release=$release" "$seal"
 grep -qx "module_archive_sha256=$archive_hash" "$seal"
-grep -qx 'smmu_acceptance=NOT_ACCEPTED' "$seal"
+grep -qx 'smmu_acceptance=ACCEPTED_IDLE_V21' "$seal"
+grep -qx "smmu_acceptance_sha=$acceptance_sha" "$seal"
+grep -qx "smmu_acceptance_report_sha=$acceptance_report_sha" "$seal"
 
 baseline=$root/usr/local/sbin/rog5-a660-registration-baseline
 probe=$root/usr/local/sbin/rog5-a660-registration-probe
+acceptance=$root/etc/rog5/adreno-smmu-v21-live.accepted
 cmp "$baseline" \
 	"$repo/scripts/device/check-network-root-a660-registration-baseline.sh"
 cmp "$probe" "$repo/scripts/device/probe-network-root-a660-registration.sh"
+cmp "$acceptance" \
+	"$repo/manifests/acceptance/adreno-smmu-v21-live.accepted"
 [[ $(stat -c '%u:%g:%a' "$baseline") == 0:0:755 ]]
 [[ $(stat -c '%u:%g:%a' "$probe") == 0:0:755 ]]
+[[ $(stat -c '%u:%g:%a' "$acceptance") == 0:0:444 ]]
 grep -qx "baseline_sha256=$(sha256sum "$baseline" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx "probe_sha256=$(sha256sum "$probe" | cut -d ' ' -f 1)" \
 	"$seal"
-grep -qx 'smmu_acceptance_sha=NOT_ACCEPTED' "$probe"
+grep -qx "smmu_acceptance_sha=$acceptance_sha" "$probe"
+[[ $(sha256sum "$acceptance" | cut -d ' ' -f 1) == "$acceptance_sha" ]]
+"$repo/scripts/device/verify-adreno-smmu-v21-live-acceptance.sh" \
+	"$repo/test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md" \
+	"$acceptance" >/dev/null
 
 module_root=$root/usr/lib/modules/$release
 [[ -d $module_root && ! -L $module_root ]]
@@ -130,6 +143,7 @@ unchanged_manifest() {
 		! -path "$tree/usr/local/sbin" \
 		! -path "$tree/usr/local/sbin/rog5-a660-registration-baseline" \
 		! -path "$tree/usr/local/sbin/rog5-a660-registration-probe" \
+		! -path "$tree/etc/rog5/adreno-smmu-v21-live.accepted" \
 		! -path "$tree/etc/rog5/a660-registration-export" \
 		-printf '%P|%y|%m|%U|%G|%s|%l\n' | sort
 }
@@ -148,6 +162,7 @@ unchanged_hashes() {
 			! -path "./usr/lib/modules/$release/*" \
 			! -path './usr/local/sbin/rog5-a660-registration-baseline' \
 			! -path './usr/local/sbin/rog5-a660-registration-probe' \
+			! -path './etc/rog5/adreno-smmu-v21-live.accepted' \
 			! -path './etc/rog5/a660-registration-export' \
 			-print0 | sort -z | xargs -0 sha256sum
 	)
@@ -156,4 +171,4 @@ unchanged_hashes "$base_root" >"$work/base.sha256"
 unchanged_hashes "$root" >"$work/candidate.sha256"
 cmp "$work/base.sha256" "$work/candidate.sha256"
 
-echo "PASS source-locked A660 registration export modules=7 firmware=0 credentials=preserved base=unchanged"
+echo "PASS v21-accepted A660 registration v2 export modules=7 firmware=0 credentials=preserved base=unchanged"

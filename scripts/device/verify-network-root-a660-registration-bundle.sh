@@ -30,6 +30,10 @@ stage_test=$repo/scripts/device/test-a660-registration-kexec-stage-initramfs.sh
 wrapper_test=$repo/scripts/device/test-a660-registration-asus-kexec-stage-build-contract.sh
 probe_test=$repo/scripts/device/test-probe-network-root-a660-registration.sh
 export_test=$repo/scripts/host/test-a660-registration-export.sh
+acceptance_verifier=$repo/scripts/device/verify-adreno-smmu-v21-live-acceptance.sh
+acceptance_test=$repo/scripts/device/test-adreno-smmu-v21-live-acceptance.sh
+acceptance_report=$repo/test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md
+acceptance_marker=$repo/manifests/acceptance/adreno-smmu-v21-live.accepted
 
 check_hash() {
 	file=$1
@@ -60,6 +64,12 @@ check_hash "$mkbootimg_dir/unpack_bootimg.py" \
 	7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef
 check_hash "$avbtool" \
 	6418646bb5bf3c57c3c702bfd1e157917e59f9ce25c3c81bcce79d85655e56ff
+check_hash "$acceptance_report" \
+	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc
+check_hash "$acceptance_marker" \
+	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+"$acceptance_verifier" "$acceptance_report" "$acceptance_marker" >/dev/null
+"$acceptance_test" >/dev/null
 
 required_files='
 Image-5.4.210-network-root-stage
@@ -248,8 +258,15 @@ then
 	echo 'FAIL A660 firmware exists in the registration module archive' >&2
 	exit 1
 fi
-grep -qx 'smmu_acceptance_sha=NOT_ACCEPTED' \
+grep -qx \
+	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
 	"$repo/scripts/device/probe-network-root-a660-registration.sh"
+if grep -Fq NOT_ACCEPTED \
+	"$repo/scripts/device/probe-network-root-a660-registration.sh"
+then
+	echo 'FAIL A660 registration probe retains the pre-v21 source lock' >&2
+	exit 1
+fi
 
 raw=$artifact_dir/boot-5.4.210-network-root-stage.raw.img
 avb=$artifact_dir/boot-5.4.210-network-root-stage.avb.img
@@ -282,4 +299,4 @@ grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
 ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
-echo 'PASS exact source-locked A660 registration bundle; four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only'
+echo 'PASS exact v21-accepted A660 registration bundle; four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only'

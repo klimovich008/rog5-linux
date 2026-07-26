@@ -384,9 +384,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   baseline and probe, then its ASUS wrapper and temporary-boot package before
   any registration attempt; verify the isolated seven-module NFS export,
   duplicate nested stages/wrappers/repacks, and exact fourteen-file manifest.
-- [ ] Pin the exact v21 live acceptance into the A660 registration-only source
-  lock, then rebuild or reseal and fully re-verify its isolated export, stage,
-  wrapper, temporary-boot package, and one-shot host control plane offline.
+- [x] Pin the exact v21 live acceptance into the A660 registration-only source
+  lock, create and independently verify the isolated v2 export, reject the old
+  and consumed roots, and re-run the unchanged binary package's full exact
+  verifier.
+- [ ] Define and fail-first test an atomic one-shot registration host/target
+  control plane with nested watchdogs, private evidence, immediate normal
+  fallback, exact persistent-fallback verification, and complete host cleanup.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,

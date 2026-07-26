@@ -672,17 +672,30 @@ critical modules, and metadata. No A660 firmware is embedded and the phone was
 not contacted. The exact v18-derived four-node DT now also passes mutation
 tests and duplicate byte-identical builds while preserving storage, display,
 remote-processor, RTC, and USB containment. Its baseline and manually ordered
-seven-module registration probe pass offline; a compile-time `NOT_ACCEPTED`
-lock still prevents live use because the package predates the accepted v21
-marker. The
+seven-module registration probe pass offline. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 now also records the verified isolated seven-module NFS export, duplicate
 nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
-fourteen-file source-locked bundle. The next step is offline only: pin the
-exact v21 acceptance into that lock, rebuild or reseal every dependent
-artifact, remove all consumed roots from the runnable path, and rerun the
-complete verifier before deciding whether one registration-only cycle is
-justified.
+fourteen-file source-locked bundle.
+
+Registration v2 now removes the `NOT_ACCEPTED` lock without changing any
+kernel, config, DT, module, initramfs, wrapper, or AVB bit. A mutation-tested
+nonsecret marker pins the exact v21 live report, candidate/evidence commits,
+one SMMU bind at runtime suspend, zero firmware/render/storage activity,
+passed fallback/cleanup, forbidden v21 reuse, and no flash. The probe reads
+that marker only from the immutable NFS lower. PolicyKit created and a
+separate invocation verified the new root-owned mode-`0555`
+`/var/lib/rog5-network-root-a660-registration-v2`: seven exact modules, zero
+A660 firmware, preserved credentials, unchanged base, and root-owned
+mode-`0444` marker/seal. The old A660 root and consumed SMMU roots are not
+server-allowlisted; NFS stayed inactive. The complete exact binary verifier
+passed again and the phone was not contacted. See the
+[registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
+
+The next step remains offline: build and fail-first test an atomic one-shot
+host/target launcher with overlapping rollback authority, private evidence,
+normal reboot, exact persistent-fallback verification, and complete host
+cleanup before deciding on one registration-only cycle.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

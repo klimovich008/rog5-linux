@@ -45,7 +45,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
 | GPUCC/CCF network-root diagnostic/candidate | trace the SM8350 GPU clock-controller with every consumer disabled | v17 reuses the exact v15 bits, atomically enters the trace-free target, completes GPUCC registration, binds one device for 30 seconds, and reboots cleanly; this accepts only the isolated clock-controller foundation, never flash |
 | GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped on a detector false positive; v19 safely rejected no-bind; v20 stopped before action on the unset `(null)` override representation; the sole v21 cycle bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage activity, and rolled back cleanly; consumed and removed from the runnable allowlist; never flash |
-| A660/GMU registration tier | separate registration from first DRM open before building a live candidate | full graph, modular kernel, exact DT, isolated seven-module export, nested stage, duplicate wrappers/repacks, read-only baseline, and no-open watchdog probe pass offline; current package still carries the pre-v21 `NOT_ACCEPTED` lock and must be rebuilt/resealed and fully reverified before any live decision |
+| A660/GMU registration tier | separate registration from first DRM open before building a live candidate | v2 pins the exact accepted v21 report/marker into the immutable-lower probe, builds an independently verified seven-module/zero-firmware export, rejects old/consumed roots, and re-passes the unchanged reproducible kernel/DT/wrapper/AVB package; atomic one-shot host/rollback runner remains pending |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -218,6 +218,10 @@ records its fail-closed fix, modular headless config, duplicate isolated
 builds, byte-identical acceptance outputs, zero UFS/firmware checks, and the
 exact DT, isolated export, nested wrapper/package reproducibility, and
 still-pending live boundary. The
+[A660 registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md)
+records the fail-first v21 acceptance re-lock, immutable-lower marker, new
+root-owned export, old/consumed-root rejection, and full unchanged-binary
+re-verification. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

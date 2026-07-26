@@ -19,6 +19,8 @@ for contract in \
 	'test-a660-registration-asus-kexec-stage-build-contract.sh' \
 	'test-probe-network-root-a660-registration.sh' \
 	'test-a660-registration-export.sh' \
+	'verify-adreno-smmu-v21-live-acceptance.sh' \
+	'test-adreno-smmu-v21-live-acceptance.sh' \
 	c4b9a2ec5afdd73a555031425a5eaedf5ab97a36a69eeefdcfede279ad7ffcd0 \
 	e433a95b3cfeeeabd8dd97b4321da3082f934e5bbbca5cb0bfd4f71074355d73 \
 	a739f975f87ac30918625178007b4cd7302449ae96c26e5c42185e9e1a0425cc \
@@ -28,7 +30,9 @@ for contract in \
 	763aae44f04840d6c151baa068bb83e874f9d32aea0023fc6a7eb8c89f975276 \
 	1f98e136913a924e6338c6b7bfc3fb925146f00efd3c77e1192f4e25c0be26bb \
 	c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c \
-	'smmu_acceptance_sha=NOT_ACCEPTED' \
+	c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875 \
+	0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc \
+	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
 	'CONFIG_DRM_MSM=m' \
 	'DRM_MSM_KMS' \
 	'qcom/sm8350/a660_zap.mbn' \

@@ -33,6 +33,10 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
+	/var/lib/rog5-network-root-a660-registration-v2)
+		"$repo/scripts/host/verify-a660-registration-export.sh" \
+			"$root" /var/lib/rog5-network-root-v1
+		;;
 	*)
 		fail 'unexpected export root'
 		;;

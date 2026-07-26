@@ -45,6 +45,8 @@ for contract in \
 	'ROG5_NFS_TIMEOUT:-900' \
 	'serve_timeout <= 86400' \
 	'/var/lib/rog5-network-root-v1)' \
+	'/var/lib/rog5-network-root-a660-registration-v2)' \
+	'verify-a660-registration-export.sh' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \
@@ -67,7 +69,8 @@ done
 
 for consumed in \
 	/var/lib/rog5-network-root-adreno-smmu-v20 \
-	/var/lib/rog5-network-root-adreno-smmu-v21
+	/var/lib/rog5-network-root-adreno-smmu-v21 \
+	/var/lib/rog5-network-root-a660-registration
 do
 	if grep -Fq "$consumed)" "$serve"; then
 		echo "FAIL network-root host still allowlists consumed root: $consumed" >&2

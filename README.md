@@ -275,18 +275,22 @@ GPUCC manually loaded modules, disables display KMS and UFS, exports
 error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
-builds. Its read-only baseline and no-open registration probe pass offline but
-remain source-locked to the pre-acceptance `NOT_ACCEPTED` marker; the
+builds. Its read-only baseline and no-open registration probe pass offline. The
 isolated seven-module NFS export, nested stage, two clean ASUS wrappers, two
 header-v3/AVB repacks, and exact fourteen-file bundle now also reproduce and
-pass their complete offline verifier. The package is intentionally not
-authorized for live use. It must now pin the exact v21 live acceptance,
-rebuild or reseal every dependent root/package artifact, and pass the complete
-offline suite before one registration-only decision. Firmware and first DRM
+pass their complete offline verifier. V2 now hash-pins the exact v21 live
+report and acceptance marker into the probe's immutable NFS lower, removes
+`NOT_ACCEPTED`, creates a new independently verified root-owned export with
+seven modules and zero firmware, rejects the old export and all consumed
+SMMU roots, and re-passes the unchanged binary package's complete verifier.
+The phone was not contacted. A new atomic one-shot host/rollback runner must
+pass offline before one registration-only decision. Firmware and first DRM
 open remain later, separate gates. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
-[A660 registration build report](test-results/2026-07-26-a660-registration-build.md).
+[A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
+then the
+[A660 registration v2 report](test-results/2026-07-26-a660-registration-v2-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

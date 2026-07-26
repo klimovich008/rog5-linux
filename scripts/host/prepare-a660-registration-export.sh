@@ -9,9 +9,12 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 archive=${1:-$repo/artifacts/a660-registration-build-a/modules.tar.gz}
 base_root=${2:-/var/lib/rog5-network-root-v1}
-export_root=${3:-/var/lib/rog5-network-root-a660-registration}
+export_root=${3:-/var/lib/rog5-network-root-a660-registration-v2}
 release=7.1.4-rog5-a660reg1
 archive_hash=e3cb1ef31b6c1c803bee98748660f92b3b192d460cb41d5d4691f9953a91a42b
+acceptance=$repo/manifests/acceptance/adreno-smmu-v21-live.accepted
+acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+acceptance_report_sha=0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
 for command in chmod chown cmp cp cut find install mktemp modinfo mv \
@@ -20,7 +23,7 @@ for command in chmod chown cmp cp cut find install mktemp modinfo mv \
 done
 [[ $base_root == /var/lib/rog5-network-root-v1 ]] ||
 	fail 'base export path is not exact'
-[[ $export_root == /var/lib/rog5-network-root-a660-registration ]] ||
+[[ $export_root == /var/lib/rog5-network-root-a660-registration-v2 ]] ||
 	fail 'candidate export path is not exact'
 [[ -d $base_root && ! -L $base_root ]] || fail 'accepted base export is absent'
 [[ ! -e $export_root ]] || fail 'candidate export already exists'
@@ -31,6 +34,10 @@ archive=$(realpath -e "$archive")
 	fail 'module archive path is not the accepted Build A artifact'
 [[ $(sha256sum "$archive" | cut -d ' ' -f 1) == "$archive_hash" ]] ||
 	fail 'module archive hash mismatch'
+"$repo/scripts/device/verify-adreno-smmu-v21-live-acceptance.sh" \
+	"$repo/test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md" \
+	"$acceptance" >/dev/null
+[[ $(sha256sum "$acceptance" | cut -d ' ' -f 1) == "$acceptance_sha" ]]
 
 "$repo/scripts/host/verify-network-root-export.sh" "$base_root" >/dev/null
 
@@ -107,9 +114,12 @@ install -Dm0755 "$baseline" \
 	"$stage/usr/local/sbin/rog5-a660-registration-baseline"
 install -Dm0755 "$probe" \
 	"$stage/usr/local/sbin/rog5-a660-registration-probe"
+install -Dm0444 "$acceptance" \
+	"$stage/etc/rog5/adreno-smmu-v21-live.accepted"
 
 seal=$stage/etc/rog5/a660-registration-export
 {
+	printf 'registration_generation=v2\n'
 	printf 'base_export=rog5-network-root-v1\n'
 	printf 'kernel_release=%s\n' "$release"
 	printf 'module_archive_sha256=%s\n' "$archive_hash"
@@ -117,7 +127,9 @@ seal=$stage/etc/rog5/a660-registration-export
 		"$(sha256sum "$baseline" | cut -d ' ' -f 1)"
 	printf 'probe_sha256=%s\n' \
 		"$(sha256sum "$probe" | cut -d ' ' -f 1)"
-	printf 'smmu_acceptance=NOT_ACCEPTED\n'
+	printf 'smmu_acceptance=ACCEPTED_IDLE_V21\n'
+	printf 'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875\n'
+	printf 'smmu_acceptance_report_sha=0c7bb22301b8203531a7e8f098e8a719fd7f29d7de2cdf3c63730ecb792e9bbc\n'
 } >"$seal"
 chown root:root "$seal"
 chmod 0444 "$seal"
@@ -126,4 +138,4 @@ chmod 0444 "$seal"
 	"$stage" "$base_root"
 mv "$stage" "$export_root"
 succeeded=1
-echo "PASS prepared source-locked A660 registration export at $export_root"
+echo "PASS prepared v21-accepted A660 registration v2 export at $export_root"

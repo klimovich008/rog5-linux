@@ -291,8 +291,15 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Before any A660 registration-only cycle, hash-pin the exact v21 live
   acceptance into the compile-time source lock, rebuild or reseal every
   dependent export/stage/wrapper/package artifact, reject consumed diagnostic
-  roots, and rerun the full offline verifier. **Pending; the existing
-  `7.1.4-rog5-a660reg1` package remains intentionally live-locked.**
+  roots, and rerun the full offline verifier. **Passed as registration v2.
+  The mutation-tested marker is read only from the immutable NFS lower; the
+  new root-owned export verifies seven modules, zero firmware, preserved
+  credentials, and an unchanged base. Old/consumed roots are rejected and the
+  unchanged fourteen-file package passes its full exact verifier.**
+- Before running registration v2, fail-first test one atomic host/target
+  launcher with exact Git/artifact/export/SSH identity, nested watchdogs, one
+  invocation, private evidence, immediate normal reboot, persistent-fallback
+  health, and complete privileged host cleanup. **Pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

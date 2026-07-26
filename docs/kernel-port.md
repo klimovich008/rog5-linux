@@ -279,13 +279,16 @@ firmware is embedded and no phone state changed. See the
 [registration build report](../test-results/2026-07-26-a660-registration-build.md).
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
-offline against the exact seven modules, while a source lock prevents live
-use until the exact v21 acceptance is pinned. The isolated seven-module export,
+offline against the exact seven modules. The isolated seven-module export,
 nested stage, two clean ASUS wrappers, two boot repacks, and exact
-fourteen-file bundle now reproduce and pass offline, but still carry the
-pre-acceptance `NOT_ACCEPTED` marker. The next tier is offline re-locking,
-rebuilding or resealing, and full verification; only then may one
-registration-only live decision be made.
+fourteen-file bundle reproduce and pass offline. Registration v2 now
+mutation-tests and hash-pins the exact accepted v21 report/marker, reads it
+only from the immutable NFS lower, removes `NOT_ACCEPTED`, builds a new
+root-owned seven-module/zero-firmware export, rejects the old and consumed
+roots, and re-passes the unchanged package's complete verifier. See the
+[registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
+An atomic one-shot host/rollback control plane still needs offline acceptance
+before one registration-only live decision.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

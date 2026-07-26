@@ -44,8 +44,10 @@ done
 
 for contract in \
 	'ALLOW_MAINLINE_A660_REGISTRATION' \
-	'smmu_acceptance_sha=NOT_ACCEPTED' \
-	'/run/rog5-adreno-smmu-live.accepted' \
+	'smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875' \
+	'/.rog5/root-ro/etc/rog5/adreno-smmu-v21-live.accepted' \
+	'v21 SMMU live acceptance marker' \
+	'0:0:444' \
 	'7.1.4-rog5-a660reg1' \
 	'/run/rog5-network-root-watchdog.disarmed.pid' \
 	'gpucc-sm8350.ko' \
@@ -115,7 +117,12 @@ safe_line=$(grep -n '^registration_safe=1$' "$probe" | cut -d: -f1)
 [ "$msm_line" -lt "$fd_line" ]
 [ "$fd_line" -lt "$safe_line" ]
 [ "$(grep -Ec '^[[:space:]]*(if ! )?insmod ' "$probe")" -eq 7 ]
-[ "$(grep -c '^smmu_acceptance_sha=NOT_ACCEPTED$' "$probe")" -eq 1 ]
+[ "$(grep -c '^smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875$' \
+	"$probe")" -eq 1 ]
+if grep -Fq NOT_ACCEPTED "$probe"; then
+	echo 'FAIL attended A660 registration probe retains its pre-v21 source lock' >&2
+	exit 1
+fi
 
 if [ -n "${BUILD_DIR:-}" ]; then
 	[ -d "$BUILD_DIR" ]

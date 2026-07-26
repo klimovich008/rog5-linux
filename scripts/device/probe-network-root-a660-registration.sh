@@ -10,19 +10,17 @@ fail() {
 	fail 'set ALLOW_MAINLINE_A660_REGISTRATION=1 for one attended probe'
 [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
 
-# Replace this source lock with the SHA-256 of a root-owned, mode-0400
-# acceptance marker only after the independent v18 SMMU live gate passes.
-smmu_acceptance_sha=NOT_ACCEPTED
-[ "$smmu_acceptance_sha" != NOT_ACCEPTED ] ||
-	fail 'registration remains locked until the v18 SMMU live gate passes'
-smmu_acceptance=/run/rog5-adreno-smmu-live.accepted
+# This source lock is the exact v21 live-acceptance marker. It is read from the
+# immutable NFS lower rather than the writable OverlayFS view.
+smmu_acceptance_sha=c5c97d92266088cb0ced1eda556faecc5c27c1e241ce3bc1ba6020431c7e9875
+smmu_acceptance=/.rog5/root-ro/etc/rog5/adreno-smmu-v21-live.accepted
 [ -f "$smmu_acceptance" ] && [ ! -L "$smmu_acceptance" ] ||
-	fail 'v18 SMMU live acceptance marker is absent'
-[ "$(stat -c '%u:%g:%a' "$smmu_acceptance")" = 0:0:400 ] ||
-	fail 'v18 SMMU live acceptance marker metadata is not exact'
+	fail 'v21 SMMU live acceptance marker is absent'
+[ "$(stat -c '%u:%g:%a' "$smmu_acceptance")" = 0:0:444 ] ||
+	fail 'v21 SMMU live acceptance marker metadata is not exact'
 [ "$(sha256sum "$smmu_acceptance" | cut -d ' ' -f 1)" = \
 	"$smmu_acceptance_sha" ] ||
-	fail 'v18 SMMU live acceptance marker hash mismatch'
+	fail 'v21 SMMU live acceptance marker hash mismatch'
 
 probe_timeout=${ROG5_PROBE_TIMEOUT:-90}
 settle_seconds=${ROG5_PROBE_SETTLE:-30}
