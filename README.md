@@ -291,6 +291,24 @@ BOOT_IMAGE="$PWD/artifacts/recovery-stage-vNN/boot-5.4.210-kexec-stage-builtin-r
   scripts/host/recovery-linux.sh preflight
 ```
 
+If the exact persistent Alpine fallback is already reachable, enter fastboot
+without a physical button sequence through the stock Qualcomm restart
+handler. The helper first checks the pinned fallback SSH identity, kernel,
+init, compatible, ext4 root, pstore, diagnostic modules, and thermals. Its
+guarded action sends only Linux `RESTART2("bootloader")`, then requires exactly
+one fastboot device; it does not write NVMEM, sysfs, or a partition:
+
+```sh
+SSH_KEY=/secure/path/rog5-client-key \
+KNOWN_HOSTS=/secure/path/rog5-known-hosts \
+  scripts/host/reboot-fallback-to-fastboot.sh preflight
+
+ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+SSH_KEY=/secure/path/rog5-client-key \
+KNOWN_HOSTS=/secure/path/rog5-known-hosts \
+  scripts/host/reboot-fallback-to-fastboot.sh reboot
+```
+
 The attended temporary boot has a separate explicit guard and invokes only
 `fastboot boot`. It never flashes:
 

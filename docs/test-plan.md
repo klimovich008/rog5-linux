@@ -62,9 +62,15 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   absence of broad container privilege or phone-write commands.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
-  remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM detection requires exact
-  normalized product `ROG5_recovery`; the fallback gadget sharing
-  `1d6b:0104` is a hard failure.
+  remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
+  detection requires exact normalized product `ROG5_recovery`; the fallback
+  gadget sharing `1d6b:0104` is a hard failure.
+- `reboot-fallback-to-fastboot.sh` requires the separately pinned fallback
+  host identity, exact stock kernel/init/compatible/ext4 state, empty pstore,
+  zero project modules, safe thermals, and a separate reboot guard. Its only
+  reboot primitive is the standard AArch64 `RESTART2("bootloader")` syscall;
+  the host then requires exactly one fastboot target. The mocked test rejects
+  NVMEM, sysfs, partition, flash, and identity-bypass paths.
 - `network-root-acm.py` replaces terminal attachment with three fixed staging
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression
