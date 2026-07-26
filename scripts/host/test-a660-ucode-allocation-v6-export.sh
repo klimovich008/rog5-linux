@@ -9,14 +9,14 @@ serve=$repo/scripts/host/serve-network-root.sh
 builder=$repo/scripts/device/build-a660-ucode-allocation-v6-runtime.sh
 runtime_verify=$repo/scripts/device/verify-a660-ucode-allocation-v6-runtime-sources.sh
 relocation_verify=$repo/scripts/device/verify-a660-ucode-vmap-relocations.sh
-consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+consumed_v5_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
+consumed_v6_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-v6-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v6-live-gate.sh
-live_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-v6-live-window.sh
 
 for script in "$prepare" "$verify" "$serve" "$builder" "$runtime_verify" \
-	"$relocation_verify" "$consumed_test" "$live_runner" \
-	"$live_runner_test" "$live_window_test"; do
+	"$relocation_verify" "$consumed_v5_test" "$consumed_v6_test" \
+	"$live_runner" "$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable ucode-allocation v6 export tool: $script" >&2
 		exit 1
@@ -49,7 +49,6 @@ for contract in \
 	'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' \
 	'v5_reuse=FORBIDDEN' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_LIVE_GATE' \
-	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6_NFS' \
 	'HostKeyAlias=rog5-network-root' \
 	'umask 077' \
 	'verify-a660-ucode-vmap-relocations.sh' \
@@ -59,7 +58,7 @@ for contract in \
 	'root-owned mode 0555'
 do
 	grep -Fq "$contract" "$prepare" "$verify" "$live_runner" \
-		"$live_runner_test" "$live_window_test" || {
+		"$live_runner_test" || {
 		echo "FAIL ucode-allocation v6 export path omits: $contract" >&2
 		exit 1
 	}
@@ -73,9 +72,9 @@ then
 	exit 1
 fi
 
-"$consumed_test" >/dev/null
+"$consumed_v5_test" >/dev/null
+"$consumed_v6_test" >/dev/null
 "$live_runner_test" >/dev/null
-"$live_window_test" >/dev/null
 
 if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	[[ -n ${BASE_ROOT:-} ]]
@@ -100,4 +99,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	fi
 fi
 
-echo 'PASS A660 ucode-allocation v6 export is exact-base, compiler-pinned, logical-vmap/snapshot guarded, credential-preserving, consumed-v5-derived, mutation-tested, host-runner-tested, explicit-window-only, and non-flashing'
+echo 'PASS A660 ucode-allocation v6 export is exact-base, compiler-pinned, logical-vmap/snapshot guarded, credential-preserving, consumed-v5-derived, mutation-tested, host-runner-tested, consumed, non-runnable, and non-flashing'
