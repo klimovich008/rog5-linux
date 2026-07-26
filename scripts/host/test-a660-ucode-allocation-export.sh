@@ -7,8 +7,10 @@ prepare=$repo/scripts/host/prepare-a660-ucode-allocation-export.sh
 verify=$repo/scripts/host/verify-a660-ucode-allocation-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-live-gate.sh
+live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-live-gate.sh
 
-for script in "$prepare" "$verify" "$serve"; do
+for script in "$prepare" "$verify" "$serve" "$live_runner" \
+	"$live_runner_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable ucode-allocation export tool: $script" >&2
 		exit 1
@@ -61,11 +63,7 @@ if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v5' "$serve"; then
 	echo 'FAIL NFS server allowlists unaccepted ucode-allocation root' >&2
 	exit 1
 fi
-[[ ! -e $live_runner ]] ||
-	{
-		echo 'FAIL live ucode-allocation runner exists before offline acceptance' >&2
-		exit 1
-	}
+"$live_runner_test" >/dev/null
 
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|rm[[:space:]]+-rf[[:space:]]+["$]*(base_root|export_root)' \
@@ -80,4 +78,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS A660 ucode-allocation v5 export contract is exact-base, seven-module, SQE/GMU-only, ZAP-absent, trace-backed, credential-preserving, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 export contract is exact-base, seven-module, SQE/GMU-only, ZAP-absent, trace-backed, credential-preserving, host-runner-tested, non-runnable, and non-flashing'
