@@ -440,7 +440,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   flash.**
 - Run at most one RAM-only v7 cycle under nested watchdogs, require the full
   raw-size, pointer-union, logical `4/4`, complete rollback, and equal settled
-  snapshot contract, then consume v7 regardless of result. **Pending.**
+  snapshot contract, then consume v7 regardless of result. **Passed live.
+  Three successful allocations matched raw `4/4096/43288`, every pointer set
+  and logical `4/4` rollback check passed, the 20-second settled GEM snapshot
+  was equal, and power/HFI/ZAP/SCM/storage/fault evidence stayed zero. Normal
+  reboot restored exact fallback and complete host cleanup; v7 is consumed
+  and non-runnable. See the
+  [v7 live acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

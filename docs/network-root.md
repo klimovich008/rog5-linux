@@ -736,6 +736,14 @@ opt-in. Clean synchronized Git, protected root/package/runner identities,
 credentials, distinct pinned SSH hosts, strict fallback health, inactive
 services, and actual unarmed refusals pass with zero residue. It authorizes
 at most one attended RAM-only v7 cycle, with no retry and no flash.
+The
+[sole v7 live cycle](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+then passed exact raw-size allocation, compiler-aware rollback, logical
+`4/4`, and the mandatory equal settled GEM snapshot while every later
+power/HFI/ZAP/SCM/storage/fault counter stayed zero. Its normal reboot removed
+the gadget; the attended server removed every export, listener, mount,
+firewall rule, interface assignment, and sysctl change; and strict fallback
+health passed. V7 is consumed and absent from the server.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

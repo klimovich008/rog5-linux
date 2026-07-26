@@ -413,6 +413,14 @@ Clean synchronized Git, immutable inputs, distinct SSH identities, strict
 fallback health, inactive services, and actual unarmed refusals pass with
 zero residue. This authorizes at most one attended RAM-only v7 cycle with no
 retry and no flash.
+The
+[sole v7 live acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+now proves the corrected raw-size set, three successful allocations, exact
+pointer-set rollback, logical `4/4`, and an equal settled GEM snapshot on
+hardware. Runtime power, HFI, ZAP/SCM, hardware initialization, storage, and
+fault evidence remained zero. Exact fallback and complete cleanup passed,
+and v7 is permanently consumed. The port may advance only to a new isolated
+runtime-power/GMU-resume boundary.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
