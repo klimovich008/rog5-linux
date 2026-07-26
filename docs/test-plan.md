@@ -244,7 +244,9 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   offline against the exact build; deliberately locked for live use.**
 - Reproduce the initramfs/module stage carrying the accepted baseline and
   probe, then the nested wrapper and temporary-boot package before permitting
-  registration. **Pending.**
+  registration. **Passed offline: the isolated seven-module export, duplicate
+  stages, clean wrappers, header-v3/AVB repacks, and exact fourteen-file
+  bundle all verify; the source lock remains.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

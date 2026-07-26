@@ -230,8 +230,10 @@ firmware is embedded and no phone state changed. See the
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules, while a source lock prevents live
-use until v18 SMMU acceptance is pinned. The guarded runtime bundle remains
-the next offline tier.
+use until v18 SMMU acceptance is pinned. The isolated seven-module export,
+nested stage, two clean ASUS wrappers, two boot repacks, and exact
+fourteen-file bundle now reproduce and pass offline. The v18 SMMU live gate is
+the next tier.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

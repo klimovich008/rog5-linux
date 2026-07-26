@@ -549,7 +549,10 @@ remote-processor, RTC, and USB containment. Its baseline and manually ordered
 seven-module registration probe pass offline; a compile-time `NOT_ACCEPTED`
 lock prevents live use until the v18 SMMU result supplies a pinned marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
-defines the pending runtime bundle and later registration-only gate.
+now also records the verified isolated seven-module NFS export, duplicate
+nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
+fourteen-file source-locked bundle. The v18 SMMU live gate remains the next
+required predecessor before a registration-only candidate may be rebuilt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

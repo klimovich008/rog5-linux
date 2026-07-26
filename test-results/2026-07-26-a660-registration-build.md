@@ -2,10 +2,12 @@
 
 Date: 2026-07-26
 
-Result: **the storage-disabled, headless A660 registration kernel and module
-set pass their complete offline build contract and reproduce byte-for-byte**.
-The phone was not contacted. This is not a bootable bundle, a live registration
-result, a render-node result, or GPU acceleration.
+Result: **the storage-disabled, headless A660 registration kernel, isolated
+network-root export, nested staging path, ASUS wrapper, and temporary-boot
+package pass their complete offline contracts and reproduce byte-for-byte**.
+The phone was not contacted. The runtime probe remains deliberately
+source-locked, so this is not a live registration result, a render-node result,
+or GPU acceleration.
 
 ## Boundary
 
@@ -133,12 +135,64 @@ root-owned, mode-0400 acceptance marker included in the reviewed runtime
 stage. This prevents the later registration gate from overtaking its required
 predecessor.
 
+## Isolated network-root export
+
+The accepted network-root export was preserved unchanged. A separate,
+root-owned mode-`0555` Btrfs reflink copy at
+`/var/lib/rog5-network-root-a660-registration` contains only the exact
+`7.1.4-rog5-a660reg1` seven-module runtime set, the reviewed baseline and
+probe, and a source-lock seal. Its privileged verifier reports:
+
+```text
+PASS source-locked A660 registration export modules=7 firmware=0 credentials=preserved base=unchanged
+```
+
+The copy adds about 14.16 MiB of exclusive storage while sharing the
+approximately 2.79 GiB base extent set. All three A660 firmware files are
+absent. The existing SSH authorization and host identity are preserved
+byte-for-byte without recording their values or hashes in this report.
+
+## Nested stage, wrapper, and temporary-boot package
+
+Two independently generated staging archives are byte-identical. Each changes
+only the Linux Image, board DTB, and nested `SHA256SUMS` from the accepted v18
+stage; the target initramfs is unchanged. No module, firmware, credential, or
+host identity is embedded.
+
+Two clean ASUS 5.4.210 wrapper builds then completed from separate source and
+output trees in rootless, network-disabled, read-only containers. The accepted
+wrapper config remained byte-identical, the new staging archive occurs exactly
+once in each Image, and both Images and metadata match byte-for-byte. Finally,
+two independent header-v3 repacks produced identical raw and unsigned
+AVB-footer images. AVB verification passes when the image is presented under
+its declared `boot` partition name.
+
+| Output | Size | SHA-256 |
+|---|---:|---|
+| registration staging initramfs | 26,330,430 | `8275e22dc5e2894c5bb73bcf25c989c475b6a7e28a6da13b5aa0741e5eb75722` |
+| ASUS wrapper Image | 69,372,416 | `763aae44f04840d6c151baa068bb83e874f9d32aea0023fc6a7eb8c89f975276` |
+| ASUS wrapper metadata | 422 | `1dd98e43cd7aabbd46745033477744365b2cd925e9b788f7800517620785e513` |
+| raw header-v3 boot image | 95,711,232 | `1f98e136913a924e6338c6b7bfc3fb925146f00efd3c77e1192f4e25c0be26bb` |
+| temporary-boot AVB image | 100,663,296 | `c1eabc572c27fdd6ba5944526d563907fc9c250ab7a9cc6696685ca16b630f9c` |
+| fourteen-file manifest | 1,419 | `c4b9a2ec5afdd73a555031425a5eaedf5ab97a36a69eeefdcfede279ad7ffcd0` |
+
+The final exact verifier re-runs the accepted v18 predecessor, pinned source
+and firmware contracts, registration build verifier, DT and stage mutation
+tests, baseline/probe and export source tests, all fourteen artifact hashes,
+header-v3 extraction, AVB verification, storage/display containment, and the
+`NOT_ACCEPTED` source lock. It returns:
+
+```text
+PASS exact source-locked A660 registration bundle; four nodes, seven modules, zero firmware/storage/display, reproducible and offline-only
+```
+
 ## What remains
 
-The next offline artifacts are the initramfs/module stage, nested wrapper,
-temporary-boot package, and duplicate-build contracts. The v18 SMMU live gate
-must then supply the pinned acceptance marker. Only after all of those steps
-pass can an attended, RAM-only registration test be considered.
+The complete registration package is ready offline but intentionally cannot
+run its probe. The v18 SMMU live gate must first supply the reviewed,
+root-owned acceptance marker and its pinned SHA-256. Only then may a new
+registration package be built and an attended, RAM-only registration test be
+considered.
 
 The independent v18 SMMU bind/runtime-suspend gate remains pending and must run
 first. A registration-only test must not open a DRM node; firmware loading,

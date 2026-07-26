@@ -204,7 +204,11 @@ byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
 builds. Its read-only baseline and no-open registration probe pass offline but
 remain source-locked until the earlier v18 SMMU live gate succeeds; the
-runtime bundle and both live gates remain pending. See the
+isolated seven-module NFS export, nested stage, two clean ASUS wrappers, two
+header-v3/AVB repacks, and exact fourteen-file bundle now also reproduce and
+pass their complete offline verifier. The package is intentionally not
+authorized for live use; the v18 SMMU gate and both later GPU live gates remain
+pending. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md).

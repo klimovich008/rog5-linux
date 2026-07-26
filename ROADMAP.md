@@ -320,9 +320,10 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Define and artifact-test the read-only registration baseline and
   independent-watchdog probe; pin the seven-module load order, forbid DRM
   opens/firmware requests, and source-lock it behind the v18 SMMU live result.
-- [ ] Build and reproduce the module/initramfs stage carrying the accepted
+- [x] Build and reproduce the module/initramfs stage carrying the accepted
   baseline and probe, then its ASUS wrapper and temporary-boot package before
-  any registration attempt.
+  any registration attempt; verify the isolated seven-module NFS export,
+  duplicate nested stages/wrappers/repacks, and exact fourteen-file manifest.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,
