@@ -308,9 +308,15 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
-- [ ] Define fail-first contracts for a storage-disabled candidate with
+- [x] Define fail-first kernel contracts for a storage-disabled candidate with
   DRM/MSM and GPUCC loaded manually, headless GPU KMS, no automatic DRM opens,
-  a watchdog, and checked GMU power-level probe errors.
+  and checked GMU power-level probe errors.
+- [x] Build and independently reproduce Linux `7.1.4-rog5-a660reg1`; require
+  exact config, Image, compressed Image, module archive, symbols, MSM, GPUCC,
+  MDT-loader, and metadata outputs, with zero UFS and zero embedded firmware.
+- [ ] Build and reproduce the exact four-node DT, module/initramfs stage,
+  read-only baseline, watchdog-guarded probe, ASUS wrapper, and temporary-boot
+  package before any registration attempt.
 - [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
 - [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,

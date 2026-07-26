@@ -45,7 +45,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
 | GPUCC/CCF network-root diagnostic/candidate | trace the SM8350 GPU clock-controller with every consumer disabled | v17 reuses the exact v15 bits, atomically enters the trace-free target, completes GPUCC registration, binds one device for 30 seconds, and reboots cleanly; this accepts only the isolated clock-controller foundation, never flash |
 | GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 pins the exact seven-clock/one-domain/twelve-IRQ source graph and reproducibly rebuilds the DT, nested stage, ASUS wrapper, and package; all offline gates pass, live bind pending, never flash |
-| A660/GMU complete dependency tier | separate registration from first DRM open before building a live candidate | exact GPU/GMU/IOMMU/power/firmware/SCM graph passes its offline source contract; registration already writes RSCC/PDC, so the next build must use manually loaded DRM/MSM and a separate first-open gate |
+| A660/GMU registration tier | separate registration from first DRM open before building a live candidate | full dependency graph passes source audit; guarded modular Linux `7.1.4-rog5-a660reg1` kernel and all nine acceptance outputs reproduce byte-for-byte with zero UFS/firmware; four-node DT/runtime bundle and live gates pending |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -198,6 +198,10 @@ records the exact GPU/GMU/IOMMU/power/firmware graph, the probe-time
 RSCC/PDC writes, the deferred first-open path, the ZAP reserved-memory fit,
 the unchecked GMU power-level error, and the manually loaded DRM/MSM
 recommendation. The
+[A660 registration build report](../test-results/2026-07-26-a660-registration-build.md)
+records its fail-closed fix, modular headless config, duplicate isolated
+builds, byte-identical acceptance outputs, zero UFS/firmware checks, and the
+still-pending DT/runtime boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

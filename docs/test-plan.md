@@ -226,8 +226,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   reboot, or cleanup failure. **Pending; no live retry.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
-  consumer dependency graph. Reproduce each changed output twice and retain
-  all recovery gates. **Pending.**
+  consumer dependency graph. **Passed. The audit separates probe-time
+  IOMMU/RSCC/PDC work from first-open firmware/power/SCM work.**
+- Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
+  loading modular; disable display KMS and UFS; propagate GMU power-level
+  failures; embed no A660 firmware; and reproduce its config, Images, module
+  archive, symbols, critical modules, and metadata twice. **Passed offline;
+  nine outputs are byte-identical and the phone was not contacted.**
+- Reproduce the exact four-node DT, initramfs/module stage, read-only baseline,
+  watchdog-guarded probe, nested wrapper, and temporary-boot package before
+  permitting registration. **Pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

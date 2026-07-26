@@ -1,4 +1,4 @@
-# Current state — 2026-07-25
+# Current state — 2026-07-26
 
 ## Hardware and boot
 
@@ -536,6 +536,17 @@ byte-for-byte; source, DT, stage, baseline, probe, mutation, historical, and
 exact-bundle tests pass. This is offline evidence, not acceleration. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md);
 one attended RAM-only SMMU bind/runtime-suspend gate remains pending.
+
+The complete pinned A660 graph now also passes source audit. Its guarded
+Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,
+disables MSM display KMS and UFS, and propagates a GMU power-level probe
+failure before later initialization. Two rootless, network-isolated builds
+produced byte-identical configs, Images, module archives, symbols, three
+critical modules, and metadata. No A660 firmware is embedded and the phone was
+not contacted. The
+[registration build report](../test-results/2026-07-26-a660-registration-build.md)
+defines the pending four-node DT/runtime bundle and later registration-only
+gate.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

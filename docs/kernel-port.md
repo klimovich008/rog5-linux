@@ -219,6 +219,17 @@ the phone. See the
 One attended RAM-only bind/runtime-suspend probe is next; acceleration remains
 out of scope.
 
+The complete A660/GMU graph has now passed source audit, and the guarded
+registration kernel is built. Linux `7.1.4-rog5-a660reg1` keeps DRM/MSM,
+GPUCC, and MDT loading modular; disables MSM display KMS and all UFS paths;
+and applies a fail-closed fix for the ignored GMU power-level result. Two
+rootless, network-isolated builds produced byte-identical configs, Images,
+module archives, symbol tables, critical modules, and metadata. No A660
+firmware is embedded and no phone state changed. See the
+[registration build report](../test-results/2026-07-26-a660-registration-build.md).
+The four-node DT and guarded runtime bundle remain the next offline tier, and
+the independent v18 SMMU gate must still pass before registration is tried.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5
