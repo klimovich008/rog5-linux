@@ -363,7 +363,23 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   case and require its complete verifier before any host mutation. **Passed;
   the
   [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
-  authorizes at most one attended RAM-only cycle.**
+  authorized at most one attended RAM-only cycle.**
+- Run the one authorized v5 cycle exactly once, never flash, and consume the
+  tier whether it passes or rejects. **Completed with safe rejection. The
+  kernel completed balanced three-object rollback, but the gate stopped at
+  public wrapper `get=1`, expected `4`, before settle/snapshot comparison.
+  Exact fallback and host cleanup passed; v5 is consumed. See the
+  [v5 live rejection](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).**
+- Before designing v6, hash-pin the accepted MSM module and test its symbols
+  and `.rela.text` call layout. Require three logical gets inlined through
+  `msm_gem_kernel_new()`, two logical puts inlined through
+  `msm_gem_kernel_put()`, public wrapper counts `get=1, put=2`, and logical
+  balance `4/4`. **Passed offline.**
+- Build a fresh default-off v6 root and gate that traces three successful
+  `kernel_new` and two `kernel_put` operations, retains every v5 pointer,
+  firmware, forbidden-event, storage, and watchdog constraint, and reaches
+  an equal post-settle GEM snapshot. Require independent mock tests and a new
+  HOLD/GO review; never reuse v5 authorization. **Pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

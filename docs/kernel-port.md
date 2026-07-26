@@ -344,9 +344,20 @@ keeps the decision at **HOLD**: the root remains non-runnable through the NFS
 launcher, the phone was not contacted, and any live cycle is still
 unauthorized at that checkpoint. The subsequent
 [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
-adds one fail-first-tested, explicit-opt-in, verifier-before-state NFS case
-for exact v5 and passes the fallback/host preflight. This authorizes at most
+added one fail-first-tested, explicit-opt-in, verifier-before-state NFS case
+for exact v5 and passed the fallback/host preflight. This authorized at most
 one attended RAM-only ucode-allocation cycle, not any later GPU tier.
+The [sole v5 cycle](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md)
+then completed the kernel rollback but was rejected at the userspace
+public-wrapper count (`get=1`, expected `4`) before snapshot comparison.
+Exact `.rela.text` analysis shows that Clang inlined three logical
+acquisitions into `msm_gem_kernel_new()` and two releases into
+`msm_gem_kernel_put()`; wrapper counts `get=1, put=2` therefore match the
+compiled path and logical balance remains `4/4`. This diagnosis does not turn
+v5 into a PASS because the equal post-settle GEM snapshot was never reached.
+V5 is consumed and non-runnable. A versioned v6 must trace the convenience
+helpers directly, preserve every storage/watchdog/forbidden-event guard, and
+pass a new offline HOLD/GO process before hardware use.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
