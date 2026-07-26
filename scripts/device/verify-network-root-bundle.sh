@@ -6,11 +6,16 @@ mkbootimg_dir=${2:?missing mkbootimg directory}
 avbtool=${3:?missing avbtool}
 expected_sums=${4:?missing expected SHA-256 manifest}
 gpucc_status=${5:-disabled}
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+smmu_status=${6:-disabled}
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 
 case $gpucc_status in
 	disabled|okay) ;;
 	*) echo 'FAIL GPUCC status must be disabled or okay' >&2; exit 1 ;;
+esac
+case $smmu_status in
+	disabled|okay) ;;
+	*) echo 'FAIL Adreno SMMU status must be disabled or okay' >&2; exit 1 ;;
 esac
 [ -r "$expected_sums" ] || {
 	echo "FAIL missing $expected_sums" >&2
@@ -80,13 +85,14 @@ for node in \
 	/soc@0/usb@a8f8800 \
 	/reserved-memory/memory@9b800000 \
 	/soc@0/gpu@3d00000 \
-	/soc@0/gmu@3d6a000 \
-	/soc@0/iommu@3da0000
+	/soc@0/gmu@3d6a000
 do
 	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
 done
 [ "$(fdtget -t s "$dtb" \
 	/soc@0/clock-controller@3d90000 status)" = "$gpucc_status" ]
+[ "$(fdtget -t s "$dtb" \
+	/soc@0/iommu@3da0000 status)" = "$smmu_status" ]
 usb_dwc3=/soc@0/usb@a6f8800/usb@a600000
 [ "$(fdtget -t s "$dtb" "$usb_dwc3" maximum-speed)" = high-speed ]
 [ "$(fdtget -t s "$dtb" "$usb_dwc3" phy-names)" = usb2-phy ]
@@ -198,8 +204,12 @@ cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
 [ ! -e "$stage/staging/root/.ssh/authorized_keys" ]
 [ -z "$(find "$stage/staging/etc/ssh" -maxdepth 1 -type f \
 	-name 'ssh_host_*' -print -quit)" ]
-! find "$stage/target" "$stage/staging" -type f \
+if find "$stage/target" "$stage/staging" -type f \
 	-exec grep -Il 'BEGIN .*PRIVATE KEY' {} + | grep -q .
+then
+	echo 'FAIL private key exists in a network-root initramfs' >&2
+	exit 1
+fi
 (
 	cd "$stage/staging/opt/rog5-recovery"
 	sha256sum -c SHA256SUMS
@@ -231,8 +241,12 @@ command_line=$(awk '$0 == "--cmdline" { getline; print; exit }' \
 	grep -c '^rog5\.recovery_cidr=169\.254\.77\.2/16$')" -eq 1 ]
 [ "$(printf '%s\n' "$command_line" | tr ' ' '\n' |
 	grep -c '^rog5\.recovery_timeout=180$')" -eq 1 ]
-! printf '%s\n' "$command_line" | tr ' ' '\n' |
+if printf '%s\n' "$command_line" | tr ' ' '\n' |
 	grep -q '^rog5\.netroot='
+then
+	echo 'FAIL Android staging command line enables network root' >&2
+	exit 1
+fi
 cmp "$stage/boot/kernel" "$wrapper_image"
 cmp "$stage/boot/ramdisk" "$staging_initramfs"
 
@@ -244,4 +258,4 @@ grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
 ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
-echo "PASS reproducible credential-free network-root bundle; GPUCC=$gpucc_status; offline validation only"
+echo "PASS reproducible credential-free network-root bundle; GPUCC=$gpucc_status; Adreno-SMMU=$smmu_status; offline validation only"

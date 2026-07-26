@@ -207,6 +207,18 @@ power/regulator/interconnect, Adreno SMMU, GMU, reserved-memory, and firmware
 dependency graph. See the
 [v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
+V18 splits that graph at the first independently testable consumer boundary.
+Pinned Linux 7.1.4 source proves the Adreno SMMU needs exactly seven clocks,
+one GPUCC CX GDSC, twelve IRQs, and generic ARM SMMU runtime PM, with no
+firmware path. Its overlay enables only GPUCC and the SMMU; GPU and GMU remain
+disabled. The unchanged v15 Image/modules/target initramfs and external GPUCC
+module are combined with a reproducible DT, nested stage, clean-built ASUS
+wrapper, and temporary-boot package. All offline gates pass without contacting
+the phone. See the
+[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+One attended RAM-only bind/runtime-suspend probe is next; acceleration remains
+out of scope.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

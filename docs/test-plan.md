@@ -212,12 +212,22 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   execute, completed all eight GPUCC markers, bound one device for 30 seconds,
   kept every consumer/render/storage path absent, rebooted normally, and
   restored exact fallback with complete cleanup. V17 must not be rerun.**
-- Before enabling an Adreno consumer, source-test the exact GPU/GX,
-  regulator, interconnect, Adreno SMMU, GMU, reserved-memory, and firmware
-  dependency graph. Reproduce every kernel/DTB/module/wrapper/package output
-  twice, keep UFS and unrelated consumers disabled, and require an independent
-  watchdog plus fail-closed warning, IOMMU-fault, storage, thermal, reboot, and
-  cleanup gates. **Pending.**
+- Before enabling GPU or GMU, source-test and reproduce the smallest
+  consumer-disabled Adreno SMMU slice. Require exactly seven clocks, one CX
+  domain, twelve IRQs, runtime PM, no firmware path, a two-status DT change,
+  unchanged Linux Image/modules/target initramfs, clean duplicate wrapper and
+  package builds, zero storage, and fail-closed baseline/probe contracts.
+  **Passed offline; the phone was not contacted.**
+- Permit one attended RAM-only SMMU probe only after the read-only baseline
+  passes with the original watchdog armed. Atomically replace it with an
+  independent 75-second watchdog, load the exact external GPUCC module once,
+  and require one GPUCC bind, one exact SMMU bind, runtime suspend, no GPU/GMU
+  client, firmware, render node, warning, IOMMU fault, storage, thermal,
+  reboot, or cleanup failure. **Pending; no live retry.**
+- Before enabling an Adreno rendering consumer, source-test the remaining
+  GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
+  consumer dependency graph. Reproduce each changed output twice and retain
+  all recovery gates. **Pending.**
 - Require the recovery DT contract to disable RMTFS, GPUCC, GPU, GMU, and the
   Adreno SMMU. **Passed reproducibly and in two normal-coldplug boots.**
 - Require persistent client authorization plus one pinned server host

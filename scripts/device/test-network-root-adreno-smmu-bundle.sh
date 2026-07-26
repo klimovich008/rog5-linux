@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier=$repo/scripts/device/verify-network-root-adreno-smmu-bundle.sh
 
 [ -x "$verifier" ] || {
@@ -27,9 +27,17 @@ for contract in \
 	'probe-network-root-adreno-smmu.sh' \
 	'd9ac316489f4258d389d6298659d5e9c22183400' \
 	'c796deb1cc54e942f8bb46a2c76a7199e19e5c92' \
+	'e433a95b3cfeeeabd8dd97b4321da3082f934e5bbbca5cb0bfd4f71074355d73' \
 	'd30df38804750ded48607135a7d23d4f95e0947c49b68395a8f6818c4a27c54b' \
 	'9350e5a010c0af11fe4bde48527d056701c83a0072be4ad29cce2565a75204a1' \
 	'9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a' \
+	'da471966073cfb26581b4a5224218904162c5925155b0aa8c24a2b3e4ad0526f' \
+	'85f764dd206afd3a2b652c7119eb266f62d687a02b1c32a5d303a51d012157b4' \
+	'9b953088c3da1a757f07b219572cd3409dc8bba3698207833259822ef8bc0aac' \
+	'ce730ff01f76b455a751c9f5d7204e722cc62ee56e77dcd632fd9aaa2d692613' \
+	'37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf' \
+	'2385fbed96a59362cfb7d34cf1970362fcf2937eb7a238aa6628158141b4a592' \
+	'14ef5916fdecc6ac412f8f5f7deb8121eb7c668614e4bd5b7b91ac6df96597bb' \
 	'CONFIG_ARM_SMMU=y' \
 	'CONFIG_ARM_SMMU_QCOM=y' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \

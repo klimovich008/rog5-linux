@@ -526,5 +526,16 @@ accepts only the isolated GPUCC/CCF foundation. Acceleration remains pending
 an offline-tested and reproducible power-domain, regulator, interconnect,
 Adreno SMMU, GMU, firmware, and DRM consumer sequence.
 
+V18 now offline-accepts the smallest next slice without contacting the phone:
+GPUCC plus the built-in Adreno SMMU only. The pinned Linux 7.1.4 source
+contract proves seven clocks, one CX GDSC, twelve IRQs, runtime PM with 20 ms
+autosuspend, and no SMMU firmware path. The two-status overlay leaves GPU,
+GMU, A660 firmware, render nodes, storage, and every unrelated consumer
+disabled. Two clean ASUS wrapper builds and two independent repacks match
+byte-for-byte; source, DT, stage, baseline, probe, mutation, historical, and
+exact-bundle tests pass. This is offline evidence, not acceleration. See the
+[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md);
+one attended RAM-only SMMU bind/runtime-suspend gate remains pending.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

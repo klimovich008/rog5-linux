@@ -184,6 +184,14 @@ pstore/fatal evidence and complete host cleanup. This accepts only the
 GPUCC/CCF foundation, not acceleration; the next gate is an offline-tested,
 reproducible Adreno power/SMMU/GMU/firmware dependency tier. See the
 [v17 live report](test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
+V18 now passes the first, deliberately smaller offline slice: the exact v17
+GPUCC bits plus the built-in Adreno SMMU, with GPU, GMU, A660 firmware,
+DRM/render nodes, and storage still disabled. The dependency contract, DTB,
+nested staging archive, two clean ASUS wrapper builds, two repacks, baseline,
+guarded probe, mutation suite, and exact bundle verifier pass. The phone was
+not contacted. This is not acceleration; one attended RAM-only SMMU probe
+remains pending. See the
+[v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

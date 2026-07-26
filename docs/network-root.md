@@ -506,6 +506,15 @@ or fault appeared. Normal systemd reboot restored exact fallback and complete
 host cleanup. The result accepts only the GPUCC/CCF foundation; see the
 [v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
+V18 keeps that accepted GPUCC module and enables only its smallest reviewed
+consumer, the built-in Adreno SMMU. The pinned source audit, two-status DT
+overlay, credential-free nested stage, two clean ASUS wrapper builds, two
+repacks, read-only pre-disarm baseline, guarded 75-second probe, mutation
+suite, and exact bundle verifier pass offline. GPU, GMU, A660 firmware,
+render nodes, storage, and unrelated consumers remain disabled. The phone was
+not contacted, so SMMU registration is not yet a live claim. See the
+[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
@@ -561,3 +570,7 @@ records the guard-first transport and unchanged target gates. The
 [v17 atomic confirmation live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md)
 records complete trace-free GPUCC registration, one-device stability, normal
 reboot, exact fallback, cleanup, and the next isolated Adreno dependency gate.
+The
+[v18 Adreno SMMU offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
+records the pinned source graph, consumer-disabled DT and probe contracts,
+duplicate wrapper/repack evidence, exact identities, and one-shot live gate.
