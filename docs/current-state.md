@@ -798,8 +798,12 @@ probe requires three successful `kernel_new` results, two `kernel_put`
 operations, public wrappers `get=1, put=2`, logical `4/4`, exact object-set
 relationships, and the original equal post-settle GEM snapshot. Its
 root-owned reflink export passed whole-tree verification and a changed-seal
-mutation. NFS remains inactive; v6 is absent from the server allowlist, has no
-live host runner, and remains **HOLD**. The phone was not contacted.
+mutation. At that checkpoint v6 had no live host runner. The subsequent
+[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+adds a fail-first-tested, exact one-invocation runner with strict SSH identity,
+private evidence, protected root verification, and no NFS/boot/retry control.
+NFS remains inactive, v6 is absent from the server allowlist, and the decision
+remains **HOLD**. The phone was not contacted.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

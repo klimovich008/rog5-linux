@@ -383,8 +383,15 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   HOLD. Generated-runtime reproducibility, semantic mutations, compound-gate
   ordering, exact compiler relocations, protected whole-tree export checks,
   a changed-seal mutation, and the unchanged boot package pass. NFS is
-  inactive and no live runner exists; see the
+  inactive and no live runner existed at this checkpoint; see the
   [v6 offline report](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).**
+- Fail-first test a v6 host runner with exact immutable inputs, strict SSH
+  identity, private evidence, one invocation, no retry, and no NFS/boot/flash
+  control. **Passed offline. The mock proves one prepare, copy, verify, and
+  gate call; local credential/root/service checks pass, NFS remains inactive,
+  and the separate
+  [v6 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+  records HOLD without contacting the phone.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

@@ -687,9 +687,12 @@ compiler relocation layout, directly traces three `kernel_new` and two
 unchanged post-settle GEM snapshot. The root-owned Btrfs export passed
 whole-tree verification before atomic promotion, two independent reverifies,
 and a changed-predecessor-seal mutation. NFS remained inactive with zero
-exports/listeners/mounts, no v6 server case or live runner exists, and the
-phone was not contacted. V6 therefore remains **HOLD** pending a separate
-attended runner, fallback, credential, and NFS-window review.
+exports/listeners/mounts; no v6 server case existed and the phone was not
+contacted. The subsequent
+[v6 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+adds an exact one-invocation runner with strict SSH identity, private evidence,
+and no NFS/boot/retry control. V6 remains **HOLD** pending a separate attended
+fallback, credential, and NFS-window review.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
