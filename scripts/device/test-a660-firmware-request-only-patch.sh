@@ -18,11 +18,19 @@ sh -n "$verifier"
 for contract in \
 	d9ac316489f4258d389d6298659d5e9c22183400 \
 	c796deb1cc54e942f8bb46a2c76a7199e19e5c92 \
+	3413678758f97ea16d8e53e7a24a2bc62a871b333851c32bd8242687bbdc1054 \
+	7f928abf51301516c63c834946e3b264b53416c016f4800729c2a9b1025f9c1e \
+	b477ecc7f2396b4b65cb28eda9f454c885368277b421e5a11a2209ea4b317b2d \
+	e7d3de968a744c61394e708cfc416a1aead514c09e71e2a68342260000479599 \
+	c350e28c18ca723372fc044240a69b452b3698ce57df269a2dad0ad9e2cb569e \
+	431f78761bbbfe92eab44f685aba653c6e05b54f140fd24fef1358667f05a6c7 \
+	3654f703a3930add3c131e2bc77453fd1bc506a374075168a5ddbcd66f558379 \
 	'0013-drm-msm-add-a660-firmware-request-only-diagnostic.patch' \
 	'drivers/gpu/drm/msm/msm_drv.c' \
 	'drivers/gpu/drm/msm/msm_gpu.h' \
 	'drivers/gpu/drm/msm/adreno/adreno_device.c' \
 	'git apply --check' \
+	'checkpatch.pl' \
 	'module_param(firmware_request_only, bool, 0400)' \
 	'ATOMIC_INIT(0)' \
 	'atomic_cmpxchg' \
