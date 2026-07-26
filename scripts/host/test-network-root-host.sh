@@ -8,9 +8,10 @@ verify=$repo/scripts/host/verify-network-root-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
 ucode_v5_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
 ucode_v6_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
+ucode_v7_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-v7-live-window.sh
 
 for script in "$prepare" "$verify" "$serve" "$ucode_v5_consumed_test" \
-	"$ucode_v6_consumed_test"; do
+	"$ucode_v6_consumed_test" "$ucode_v7_window_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable network-root host tool: $script" >&2
 		exit 1
@@ -123,5 +124,6 @@ fi
 
 "$ucode_v5_consumed_test" >/dev/null
 "$ucode_v6_consumed_test" >/dev/null
+"$ucode_v7_window_test" >/dev/null
 
 echo 'PASS host gate is exact-peer, runtime-only, read-only, and fail-closed'
