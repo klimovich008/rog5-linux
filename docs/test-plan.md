@@ -351,6 +351,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   package pass; NFS remains inactive and the root is deliberately not
   runnable. See the
   [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).**
+- Fail-first test the host-side live controller independently. Require a
+  clean synchronized checkpoint, exact immutable root/package/gate inputs,
+  strict SSH identity, one invocation, no retry or NFS/boot/flash control,
+  and private evidence. **Passed offline in a mock transport suite. The
+  separate
+  [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+  records HOLD; it does not authorize contacting the phone.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

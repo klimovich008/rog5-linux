@@ -343,8 +343,11 @@ Image/config/ABI and exact MSM-only delta. The fresh
 [ucode-allocation v5 offline report](test-results/2026-07-26-a660-ucode-allocation-v5-offline.md)
 accepts the root-owned SQE/GMU-only export, PID-filtered balanced-trace
 contract, equal pre/post GEM snapshot requirement, nested watchdog gate, and
-unchanged complete boot package. The root is not served and no live runner
-exists; any phone cycle remains pending.
+unchanged complete boot package. The subsequent
+[pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+accepts a fail-first-tested, exact one-invocation host runner, but records a
+deliberate **HOLD**: the root is not served, NFS remains inactive, and no
+phone cycle is authorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

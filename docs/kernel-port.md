@@ -337,8 +337,12 @@ mapping/GEM/firmware trace requirements, equal pre/post GEM snapshots, nine
 forbidden power/HFI/ZAP/SCM probes, nested watchdogs, and a fully reverified
 unchanged boot package; see the
 [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
-The root remains non-runnable through the NFS launcher and any live cycle is
-still unauthorized.
+The exact one-invocation host runner now passes its fail-first and mock
+transport suite with strict SSH identity and private evidence handling. The
+[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+keeps the decision at **HOLD**: the root remains non-runnable through the NFS
+launcher, the phone was not contacted, and any live cycle is still
+unauthorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
