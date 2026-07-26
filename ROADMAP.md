@@ -470,6 +470,11 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   boot, retry, or flash control. The
   [v6 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
   records **HOLD** with inactive NFS and no phone contact.
+- [x] Lift v6 HOLD through a fail-first-tested, verifier-before-state,
+  explicit-opt-in server case and read-only fallback/credential/host
+  preflight. The
+  [v6 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+  authorizes at most one attended RAM-only cycle with no retry.
 - [ ] Run at most one attended v6 cycle only after its new offline package,
   root, runner, cleanup, and HOLD-lift requirements pass. V5 authorization
   cannot be inherited.
