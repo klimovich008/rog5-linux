@@ -528,10 +528,18 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   zero resources/HFI/hardware/SCM, exact `EUCLEAN`, and equal GEM snapshots.
   See the
   [v8 runtime report](test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md).
-- [ ] Prepare and independently verify a fresh storage-free v8 root, target
-  gate, strict one-invocation runner, server allowlist case, unchanged
-  temporary-boot package, and separate HOLD/GO reviews before deciding on at
-  most one RAM-only cycle.
+- [x] Prepare and independently verify a fresh consumed-v7-derived,
+  storage-free v8 root and compound target gate. Whole-tree exact-delta,
+  preserved credentials, seven-module/two-firmware payload, compiled
+  relocations, five negative mutations, overlapping watchdogs, inactive NFS,
+  and non-runnable HOLD all pass; see the
+  [v8 protected-root report](test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md).
+- [ ] Add and independently test a strict one-invocation v8 host runner with
+  no NFS/boot/retry authority, then record a separate pre-live HOLD.
+- [ ] In a later attended GO review, reverify the unchanged temporary-boot
+  package, fallback, credentials, clean synchronized Git, exact root and
+  controls, and add only one verifier-before-state exact-root NFS case before
+  deciding on at most one RAM-only cycle.
 - [ ] After v8 is consumed, source-test a separate bounded GMU power-preparation
   tier; do not combine GMU runtime power, clocks, HFI, ZAP/SCM, hardware
   initialization, successful open, submit, or rendering.
