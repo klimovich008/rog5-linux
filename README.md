@@ -370,8 +370,12 @@ operations directly, requires wrapper `get=1, put=2`, logical vmap balance
 `4/4`, matching rollback object sets, and the original equal post-settle GEM
 snapshot. The root-owned export and generated runtime are reproducible and
 mutation-tested, while NFS remains inactive and v6 has no server case or live
-runner. The decision remains **HOLD** until a separate attended control-plane
-and fallback review.
+runner at that root-acceptance checkpoint. The subsequent
+[v6 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+now adds a fail-first-tested one-invocation host runner with strict SSH
+identity, exact root/package/gate inputs, and private evidence. It has no NFS
+or boot control, the root still has no server case, and the decision remains
+**HOLD** until a separate attended fallback and live-window review.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

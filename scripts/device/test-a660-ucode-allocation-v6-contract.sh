@@ -19,6 +19,7 @@ live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-v6-live-gate.
 serve=$repo/scripts/host/serve-network-root.sh
 rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-offline.md
+hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md
 
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
@@ -36,6 +37,10 @@ done
 }
 [ -f "$report" ] && [ ! -L "$report" ] || {
 	echo 'FAIL missing A660 ucode-allocation v6 offline report' >&2
+	exit 1
+}
+[ -f "$hold_report" ] && [ ! -L "$hold_report" ] || {
+	echo 'FAIL missing A660 ucode-allocation v6 pre-live HOLD report' >&2
 	exit 1
 }
 
@@ -83,7 +88,8 @@ do
 	if ! grep -Fq "$contract" "$runtime_builder" "$runtime_verifier" \
 		"$runtime_test" "$probe_test" "$gate" "$gate_test" "$prepare" \
 		"$verify_export" "$export_test" "$relocation_verifier" \
-		"$live_runner" "$live_runner_test" "$rejection" "$report"
+		"$live_runner" "$live_runner_test" "$rejection" "$report" \
+		"$hold_report"
 	then
 		echo "FAIL A660 ucode-allocation v6 path omits: $contract" >&2
 		exit 1
@@ -102,6 +108,8 @@ for status_file in \
 do
 	if [ ! -f "$status_file" ] || [ -L "$status_file" ] ||
 		! grep -Fq '2026-07-26-a660-ucode-allocation-v6-offline.md' \
+			"$status_file" ||
+		! grep -Fq '2026-07-26-a660-ucode-allocation-v6-prelive-hold.md' \
 			"$status_file"
 	then
 		echo "FAIL project status omits A660 v6 offline report: $status_file" >&2

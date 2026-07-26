@@ -368,7 +368,10 @@ three successful `msm_gem_kernel_new()` returns and two
 `msm_gem_kernel_put()` calls, combine them with the remaining public wrapper
 events into logical `4/4` balance, verify exact rollback object sets, and
 retain equal post-settle GEM snapshots. Runtime, root, gate, and changed-seal
-mutation suites pass. V6 is still non-runnable and **HOLD**; no phone cycle is
+mutation suites pass. The subsequent
+[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+adds a fail-first-tested exact one-invocation runner, but it cannot start NFS
+or boot the phone. V6 is still non-runnable and **HOLD**; no phone cycle is
 authorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the

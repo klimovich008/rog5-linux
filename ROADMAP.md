@@ -464,6 +464,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   runtime, protected root, tamper test, nested watchdog gate, unchanged boot
   package, and NFS-inactive HOLD boundary pass; see the
   [v6 offline report](test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).
+- [x] Fail-first test a v6 one-invocation host runner that requires clean
+  synchronized Git, exact root/package/gate inputs, strict SSH identity,
+  private evidence, and expected reboot disconnect, while having no NFS,
+  boot, retry, or flash control. The
+  [v6 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+  records **HOLD** with inactive NFS and no phone contact.
 - [ ] Run at most one attended v6 cycle only after its new offline package,
   root, runner, cleanup, and HOLD-lift requirements pass. V5 authorization
   cannot be inherited.
