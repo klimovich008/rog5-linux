@@ -15,6 +15,8 @@ live_window_test=$repo/scripts/host/test-serve-a660-gmu-resume-entry-v8-live-win
 predecessor_verify=$repo/scripts/host/verify-a660-ucode-allocation-v7-export.sh
 predecessor_consumed=$repo/scripts/host/test-consume-a660-ucode-allocation-v7.sh
 serve=$repo/scripts/host/serve-network-root.sh
+hold_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md
+go_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md
 
 for input in "$runtime_test" "$gate" "$gate_test" "$prepare" "$verify" \
 	"$export_test" "$live_runner" "$live_runner_test" "$predecessor_verify" \
@@ -25,6 +27,15 @@ do
 		exit 1
 	}
 done
+
+for input in "$hold_report" "$go_report"; do
+	[ -f "$input" ] && [ ! -L "$input" ] || {
+		echo "FAIL missing immutable A660 GMU resume-entry v8 input: $input" >&2
+		exit 1
+	}
+done
+[ "$(sha256sum "$go_report" | cut -d ' ' -f 1)" = \
+	432cdfa196f5a418060adba0e902108bc1eeaf8dd466d3e5b0b73a29221bf242 ]
 
 for input in "$runtime_test" "$gate" "$gate_test" "$live_window_test"; do
 	sh -n "$input"
@@ -101,6 +112,29 @@ then
 	exit 1
 fi
 
+for status_file in \
+	"$repo/README.md" \
+	"$repo/ROADMAP.md" \
+	"$repo/docs/builds-and-artifacts.md" \
+	"$repo/docs/current-state.md" \
+	"$repo/docs/kernel-port.md" \
+	"$repo/docs/network-root.md" \
+	"$repo/docs/port-status.md" \
+	"$repo/docs/test-plan.md"
+do
+	if [ ! -f "$status_file" ] || [ -L "$status_file" ] ||
+		! grep -Fq \
+			'2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md' \
+			"$status_file" ||
+		! grep -Fq \
+			'2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md' \
+			"$status_file"
+	then
+		echo "FAIL project status omits A660 v8 report chain: $status_file" >&2
+		exit 1
+	fi
+done
+
 "$runtime_test"
 "$gate_test"
 "$export_test"
@@ -108,4 +142,4 @@ fi
 "$live_window_test"
 "$predecessor_consumed"
 
-echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, explicit-window-only, and pre-live HOLD'
+echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, explicit-window-only, and pre-live GO'
