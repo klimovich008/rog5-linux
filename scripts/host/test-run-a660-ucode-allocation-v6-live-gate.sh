@@ -35,6 +35,7 @@ for contract in \
 	'scp -q' \
 	'chmod 0500' \
 	'a660-ucode-allocation-v6-export' \
+	e9a9bf460b62d91c44fa15b8258ae5a5660ef387846530e8cf93fce67f7f17ea \
 	'diagnostic_generation=v6' \
 	'predecessor=v5_live_rejected_consumed' \
 	'compiler_policy=PINNED_MSM_RELOCATIONS' \
