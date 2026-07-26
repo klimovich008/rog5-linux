@@ -713,6 +713,18 @@ departure and removed every export, listener, mount, firewall, interface, and
 sysctl change. V6 is consumed and no longer has a server case. A fresh v7
 requires a new protected root and review; no v6 opt-in can be reused.
 
+The
+[v7 offline root acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+now passes that new-root boundary. PolicyKit built a root-owned mode-`0555`
+Btrfs reflink from immutable consumed v6, replacing only the versioned
+helper, baseline, probe, and seal. Full predecessor verification, exact-delta
+content/metadata comparison, credential preservation, and changed-predecessor
+plus rounded-as-raw mutations pass. The generated probe expects raw
+`4/4096/43288`, separately pins object `4096/4096/45056`, and retains every
+logical-vmap, rollback, storage, thermal, systemd, watchdog, and settled
+snapshot guard. NFS remained inactive; no v7 server case or live runner
+exists and the phone was not contacted. V7 is **HOLD**.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

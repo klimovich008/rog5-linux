@@ -410,7 +410,25 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   firmware, forbidden-event, storage, thermal, systemd, and watchdog
   constraint, and require an equal post-settle GEM snapshot. Require a new
   protected root, runner, HOLD, and GO review; never reuse v6 authorization.
-  **Pending.**
+  **Runtime, target gate, and protected root pass offline; runner and GO
+  remain pending. The accepted contract separately pins raw
+  `4/4096/43288` and page-rounded `4096/4096/45056`, inherits the exact
+  accepted module from consumed v6, preserves logical `4/4` and settled
+  snapshot checks, and rejects predecessor and size-layer mutations. V7 has
+  no server case or runner, NFS stayed inactive, and the phone was not
+  contacted. See the
+  [v7 offline report](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md).**
+- Fail-first test an exact one-invocation v7 host runner with strict SSH
+  identity, immutable inputs, private evidence, no retry, and no
+  NFS/boot/flash control. Reverify the protected root and record a separate
+  non-runnable HOLD. **Pending.**
+- Lift v7 HOLD only through a later verifier-before-state,
+  explicit-opt-in server case plus clean Git, exact fallback, credentials,
+  root/package/runner hashes, inactive host services, and actual unarmed
+  refusal. **Pending.**
+- Run at most one RAM-only v7 cycle under nested watchdogs, require the full
+  raw-size, pointer-union, logical `4/4`, complete rollback, and equal settled
+  snapshot contract, then consume v7 regardless of result. **Pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

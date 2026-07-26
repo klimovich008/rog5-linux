@@ -47,7 +47,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped on a detector false positive; v19 safely rejected no-bind; v20 stopped before action on the unset `(null)` override representation; the sole v21 cycle bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage activity, and rolled back cleanly; consumed and removed from the runnable allowlist; never flash |
 | A660/GMU registration tier | separate registration from first DRM open before building a live candidate | the sole v3 cycle used one exact SMMU reprobe, loaded seven reviewed modules, attached GPU/GMU to two IOMMU groups, created one unopened headless render node, retained zero firmware/storage/faults, and returned through exact fallback with complete cleanup; consumed and removed from the runnable allowlist; never flash |
 | A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | the sole v4 cycle requested SQE/GMU exactly once, returned `EUCLEAN`, retained zero later hardware/storage/fault evidence, and returned through exact fallback plus cleanup; consumed and removed from the runnable allowlist; never flash |
-| A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source/patch and duplicate builds pass; v5 was rejected by a compiler-inlining-blind wrapper oracle; the [v6 offline correction](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md) pins direct helper traces and equal snapshots, but its [sole live cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md) safely rejected raw sizes `43288/4/4096` against page-rounded expectations before snapshot comparison; v6 is consumed and non-runnable; v7 must correct only the raw-size oracle and retain every rollback/snapshot guard; never flash |
+| A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source/patch and duplicate builds pass; v5 exposed a compiler-inlining-blind wrapper oracle; the [sole v6 cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md) safely rejected raw sizes `43288/4/4096` against page-rounded expectations before snapshot comparison; v5/v6 are consumed; the [v7 offline correction](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md) separately pins raw `4/4096/43288` and object `4096/4096/45056` layers, preserves logical `4/4` rollback and equal snapshots, and has a protected non-runnable root; **HOLD**, no server case/runner/phone contact; never flash |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -278,6 +278,13 @@ records the passing storage-free baseline, successful kernel
 allocation/rollback marker, raw-versus-page-rounded size-oracle diagnosis,
 unreached settled GEM snapshot, watchdog fallback, private evidence hashes,
 complete host cleanup, and permanent v6 lockout. The
+[A660 ucode-allocation v7 offline report](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+records immutable v6 derivation, separate source-pinned raw/object size
+layers, reproducible zero-fuzz runtime, unchanged accepted module and boot
+package, compiler-relocation and logical `4/4` contracts, root-owned
+copy-on-write export, exact-delta/credential checks, two changed-seal
+rejections, inactive NFS, zero server cases/runners, no phone contact, and
+the continued HOLD boundary. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

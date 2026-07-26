@@ -392,6 +392,18 @@ passed; v6 is consumed and non-runnable. A new v7 must source-pin the raw
 entry-size set and still pass the unchanged equal-snapshot gate before the
 port advances to GMU resume or successful open.
 
+The
+[v7 offline package](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+now satisfies that source boundary while reusing the unchanged accepted
+module. Zero-fuzz generation and semantic mutations pin raw entry sizes
+`4/4096/43288`, page-rounded objects `4096/4096/45056`, three kernel-new
+returns, two kernel puts, wrapper `1/2`, logical `4/4`, complete object-set
+rollback, and equal settled GEM snapshots. Its root-owned protected export is
+an exact COW delta from consumed v6 and rejects predecessor and size-layer
+seal mutations. It is absent from the NFS allowlist and has no live runner.
+No phone contact occurred; v7 remains **HOLD** until separate runner and GO
+reviews.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

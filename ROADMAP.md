@@ -482,9 +482,21 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   kernel-new sizes `43288`, `4`, and `4096` against page-rounded expectations.
   The snapshot check was not reached; watchdog fallback and cleanup passed.
   V6 is consumed and cannot be retried.
-- [ ] Build v7 from the unchanged accepted module with a source-pinned raw-size
+- [x] Build v7 from the unchanged accepted module with a source-pinned raw-size
   oracle, all v6 rollback/storage/watchdog constraints, and the mandatory
-  equal post-settle GEM snapshot. Require a fresh HOLD/GO review.
+  equal post-settle GEM snapshot. Its generated runtime, protected
+  consumed-v6-derived root, compiler/source verifiers, exact-delta checks, and
+  two seal mutations pass offline. It remains non-runnable **HOLD**; see the
+  [v7 offline report](test-results/2026-07-26-a660-ucode-allocation-v7-offline.md).
+- [ ] Fail-first test an exact one-invocation v7 host runner with strict SSH
+  identity, immutable inputs, private evidence, no retry, and no
+  NFS/boot/flash authority. Record a separate non-runnable HOLD checkpoint.
+- [ ] Lift v7 HOLD only in a later verifier-first, explicit-opt-in NFS review
+  with clean Git, exact fallback, credentials, inactive services, and an
+  actual unarmed-refusal test.
+- [ ] Run at most one RAM-only v7 cycle, require the raw-size, logical `4/4`,
+  complete rollback, and equal settled-snapshot gates, then consume v7
+  regardless of result.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
