@@ -261,10 +261,17 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   cleanup passed. V19 must not be retried.**
 - Before another SMMU cycle, source-pin the platform `drivers_probe` path and
   capture the exact device's `waiting_for_supplier`, deferred-list, driver,
-  modalias, and device-link state before and after GPUCC registration. Permit
+  identity, and device-link state before and after GPUCC registration. Permit
   only one exact-device reprobe after both watchdogs are armed. Reject any
   global deferred-timeout extension, broad bus rescan, force-bind, unload,
-  retry, firmware, render, or storage path. **V20 offline work pending.**
+  retry, firmware, render, or storage path. **Passed offline. The source lock
+  proves exact-name `device_attach()` semantics and suppressed SMMU bind
+  attributes; baseline/probe evidence covers deferred/supplier and direct
+  safety state; the 90-second probe permits one `3da0000.iommu` request inside
+  a 150-second transition watchdog. The isolated v20 root verifies with 1,008
+  modules, zero A660 firmware, preserved credentials, and unchanged base.
+  V18/v19 are no longer server-allowlisted. One attended v20 cycle remains
+  pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

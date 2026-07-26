@@ -53,11 +53,11 @@ verify_file() {
 verify_file "$module" 400 \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
 verify_file "$baseline" 500 \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
 verify_file "$disarm" 500 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 verify_file "$probe" 500 \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
 
 pid_file=/run/rog5-network-root-watchdog.pid
 marker=/run/rog5-network-root-watchdog.disarmed.pid
@@ -70,7 +70,7 @@ marker=/run/rog5-network-root-watchdog.disarmed.pid
 [ ! -e "$marker" ] || fail 'initial watchdog changed state after baseline'
 [ -w /proc/sysrq-trigger ] || fail 'SysRq reset control is unavailable'
 
-transition_timeout=120
+transition_timeout=150
 state_dir=$(mktemp -d /run/rog5-adreno-smmu-transition.XXXXXX)
 # Positional parameters are intentionally expanded by the child shell.
 # shellcheck disable=SC2016

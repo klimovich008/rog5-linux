@@ -59,17 +59,17 @@ verify_input() {
 verify_input "$module" \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
 verify_input "$baseline" \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
 verify_input "$disarm" \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 verify_input "$probe" \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
 verify_input "$gate" \
-	0604e5a1d86a3ca5beaa79421bf487f9a75cbb28d33382ceeac1859501bd33c7
+	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
 
 pkexec --disable-internal-agent env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	"$repo/scripts/host/verify-adreno-smmu-export.sh" \
-	/var/lib/rog5-network-root-adreno-smmu-v19 \
+	/var/lib/rog5-network-root-adreno-smmu-v20 \
 	/var/lib/rog5-network-root-v1 >/dev/null
 
 target=root@169.254.77.2
@@ -128,15 +128,19 @@ check() {
 check "$directory/gpucc-sm8350.ko" 400 \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
 check "$directory/check-network-root-adreno-smmu-baseline.sh" 500 \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
 check "$directory/disarm-network-root-watchdog.sh" 500 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 check "$directory/probe-network-root-adreno-smmu.sh" 500 \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
 check "$directory/run-network-root-adreno-smmu-gate.sh" 500 \
-	0604e5a1d86a3ca5beaa79421bf487f9a75cbb28d33382ceeac1859501bd33c7
+	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
+grep -qx "diagnostic_generation=v20" \
+	/etc/rog5/adreno-smmu-v20-export
+grep -qx "smmu_reprobe=EXACT_PLATFORM_DEVICE_ONCE" \
+	/etc/rog5/adreno-smmu-v20-export
 grep -qx "smmu_acceptance=NOT_ACCEPTED" \
-	/etc/rog5/adreno-smmu-v19-export
+	/etc/rog5/adreno-smmu-v20-export
 '
 ssh -n "${ssh_options[@]}" "$target" "$remote_verify"
 

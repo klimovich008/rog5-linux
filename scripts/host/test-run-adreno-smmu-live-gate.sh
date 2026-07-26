@@ -17,7 +17,7 @@ for contract in \
 	'SSH_KEY' \
 	'KNOWN_HOSTS' \
 	'EVIDENCE_DIR' \
-	'/var/lib/rog5-network-root-adreno-smmu-v19' \
+	'/var/lib/rog5-network-root-adreno-smmu-v20' \
 	'verify-adreno-smmu-export.sh' \
 	'pkexec --disable-internal-agent' \
 	'artifacts/network-root-v18-adreno-smmu-diagnostic/gpucc-sm8350.ko' \
@@ -26,10 +26,10 @@ for contract in \
 	'probe-network-root-adreno-smmu.sh' \
 	'run-network-root-adreno-smmu-gate.sh' \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402 \
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6 \
-	0604e5a1d86a3ca5beaa79421bf487f9a75cbb28d33382ceeac1859501bd33c7 \
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985 \
+	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe \
 	'root@169.254.77.2' \
 	'HostKeyAlias=rog5-network-root' \
 	'StrictHostKeyChecking=yes' \
@@ -51,6 +51,11 @@ do
 		exit 1
 	}
 done
+
+if grep -Fq '/var/lib/rog5-network-root-adreno-smmu-v19' "$runner"; then
+	echo 'FAIL host live runner still accepts consumed v19' >&2
+	exit 1
+fi
 
 [[ $(grep -Fc 'exec env ALLOW_MAINLINE_ADRENO_SMMU_GATE=1' \
 	"$runner") == 1 ]]

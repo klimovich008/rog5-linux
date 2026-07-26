@@ -10,17 +10,17 @@ fail() {
 	fail 'set ALLOW_MAINLINE_ADRENO_SMMU_PROBE=1 for one attended probe'
 [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
 
-probe_timeout=${ROG5_PROBE_TIMEOUT:-75}
+probe_timeout=${ROG5_PROBE_TIMEOUT:-90}
 settle_seconds=${ROG5_PROBE_SETTLE:-30}
 case $probe_timeout:$settle_seconds in
 	*[!0-9:]*|:*|*:) fail 'probe timeout and settle interval must be integers' ;;
 esac
-[ "$probe_timeout" -ge 45 ] && [ "$probe_timeout" -le 180 ] ||
-	fail 'ROG5_PROBE_TIMEOUT must be between 45 and 180 seconds'
+[ "$probe_timeout" -ge 75 ] && [ "$probe_timeout" -le 180 ] ||
+	fail 'ROG5_PROBE_TIMEOUT must be between 75 and 180 seconds'
 [ "$settle_seconds" -ge 20 ] && [ "$settle_seconds" -le 60 ] ||
 	fail 'ROG5_PROBE_SETTLE must be between 20 and 60 seconds'
-[ "$probe_timeout" -ge $((settle_seconds + 20)) ] ||
-	fail 'probe timeout must exceed settling by at least 20 seconds'
+[ "$probe_timeout" -ge $((settle_seconds + 45)) ] ||
+	fail 'probe timeout must exceed settling by at least 45 seconds'
 
 for command in awk basename cat cut dmesg find findmnt grep id insmod ip \
 	kill mktemp modinfo ps readlink rm rmdir sed setsid sha256sum sleep \
@@ -136,8 +136,25 @@ for device in /sys/bus/platform/devices/*; do
 done
 [ "$smmu_devices" -eq 1 ] ||
 	fail 'Adreno SMMU platform device count is not one'
+smmu_name=$(basename "$smmu_device")
+[ "$smmu_name" = 3da0000.iommu ] ||
+	fail 'Adreno SMMU platform device name is unexpected'
 [ ! -e "$smmu_device/driver" ] ||
 	fail 'Adreno SMMU is already bound'
+[ -r "$smmu_device/driver_override" ] ||
+	fail 'Adreno SMMU driver_override is unreadable'
+[ -z "$(cat "$smmu_device/driver_override")" ] ||
+	fail 'Adreno SMMU driver_override is not empty'
+[ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
+	fail 'platform driver autoprobe is disabled'
+drivers_probe=/sys/bus/platform/drivers_probe
+[ "$(stat -c '%u:%g:%a' "$drivers_probe")" = 0:0:200 ] ||
+	fail 'platform drivers_probe ownership or mode is not exact'
+[ -w "$drivers_probe" ] ||
+	fail 'platform drivers_probe is unavailable'
+[ ! -e /sys/bus/platform/drivers/arm-smmu/bind ] &&
+	[ ! -e /sys/bus/platform/drivers/arm-smmu/unbind ] ||
+	fail 'ARM SMMU force-bind controls unexpectedly exist'
 for device in /sys/bus/platform/devices/*; do
 	[ -L "$device/of_node" ] || continue
 	of_node=$(readlink -f "$device/of_node")
@@ -159,13 +176,100 @@ firmware_files=$(find /lib/firmware /usr/lib/firmware -type f \
 [ "$(dmesg | grep -Ec "$firmware_pattern" || true)" -eq 0 ] ||
 	fail 'an A660 firmware request already occurred'
 
-fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
 fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
 	fail 'fatal kernel signature exists before probe'
 [ "$(dmesg | grep -Eic "$fault_pattern" || true)" -eq 0 ] ||
 	fail 'IOMMU fault signature exists before probe'
 dmesg_start=$(( $(dmesg | wc -l) + 1 ))
+reprobe_attempted=0
+
+read_waiting_for_supplier() {
+	if [ ! -r "$smmu_device/waiting_for_supplier" ]; then
+		printf unavailable
+		return
+	fi
+	evidence_waiting=$(cat "$smmu_device/waiting_for_supplier" 2>/dev/null ||
+		true)
+	case $evidence_waiting in
+		0|1) printf '%s' "$evidence_waiting" ;;
+		*) printf invalid ;;
+	esac
+}
+
+count_deferred_entries() {
+	if [ ! -r /sys/kernel/debug/devices_deferred ]; then
+		printf unavailable
+		return
+	fi
+	awk -v name="$smmu_name" \
+		'$1 == name { count++ } END { print count + 0 }' \
+		/sys/kernel/debug/devices_deferred 2>/dev/null || printf unreadable
+}
+
+count_supplier_links() {
+	evidence_suppliers=0
+	for evidence_link in "$smmu_device"/supplier:*; do
+		[ -L "$evidence_link" ] || continue
+		evidence_suppliers=$((evidence_suppliers + 1))
+	done
+	printf '%s' "$evidence_suppliers"
+}
+
+collect_dependency_state() {
+	evidence_phase=$1
+	evidence_driver=unbound
+	if [ -e "$smmu_device/driver" ]; then
+		evidence_driver=$(basename "$(readlink -f "$smmu_device/driver")")
+	fi
+	evidence_waiting=$(read_waiting_for_supplier)
+	evidence_deferred=$(count_deferred_entries)
+	evidence_suppliers=$(count_supplier_links)
+	printf 'EVIDENCE dependency phase=%s smmu_name=%s driver=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s exact_reprobe=%s\n' \
+		"$evidence_phase" "$smmu_name" "$evidence_driver" \
+		"$evidence_waiting" "$evidence_deferred" "$evidence_suppliers" \
+		"$reprobe_attempted"
+}
+
+collect_safety_state() {
+	evidence_phase=$1
+	evidence_storage=$(find /sys/class/block -mindepth 1 -maxdepth 1 \
+		-type l -exec test -e {}/device \; -print 2>/dev/null | wc -l)
+	evidence_mounts=$(findmnt -rn -o SOURCE |
+		awk '/^\/dev\// { count++ } END { print count + 0 }')
+	evidence_render=$(find /dev/dri -maxdepth 1 -name 'renderD*' \
+		-print 2>/dev/null | wc -l)
+	evidence_firmware=$(dmesg | tail -n +"$dmesg_start" |
+		grep -Ec "$firmware_pattern" || true)
+	evidence_failed=$(systemctl --failed --no-legend --plain 2>/dev/null |
+		awk 'NF { count++ } END { print count + 0 }')
+	evidence_system=$(systemctl is-system-running 2>/dev/null || true)
+	printf 'EVIDENCE safety phase=%s storage=%s mounts=%s render=%s firmware_requests=%s failed_units=%s system=%s\n' \
+		"$evidence_phase" "$evidence_storage" "$evidence_mounts" \
+		"$evidence_render" "$evidence_firmware" "$evidence_failed" \
+		"$evidence_system"
+}
+
+post_fail() {
+	reason=$1
+	echo "EVIDENCE adreno-smmu reason=$reason"
+	collect_dependency_state failure
+	collect_safety_state failure
+	echo 'EVIDENCE thermal_zones_begin'
+	for zone in /sys/class/thermal/thermal_zone*; do
+		[ -d "$zone" ] || continue
+		type=$(cat "$zone/type" 2>/dev/null || echo unreadable)
+		temp=$(cat "$zone/temp" 2>/dev/null || echo unreadable)
+		printf 'zone=%s type=%s temp_mC=%s\n' \
+			"$(basename "$zone")" "$type" "$temp"
+	done
+	echo 'EVIDENCE thermal_zones_end'
+	echo 'EVIDENCE new_dmesg_begin'
+	dmesg | tail -n +"$dmesg_start" | tail -n 200
+	echo 'EVIDENCE new_dmesg_end'
+	fail "$reason"
+}
 
 probe_safe=0
 watchdog_pid=
@@ -223,40 +327,17 @@ for _ in 1 2 3 4 5; do
 done
 [ "$armed" -eq 1 ] || fail 'probe watchdog did not arm'
 
-echo "BEGIN adreno-smmu watchdog=${probe_timeout}s settle=${settle_seconds}s"
+echo "BEGIN adreno-smmu watchdog=${probe_timeout}s settle=${settle_seconds}s auto_bind_wait=5s exact_reprobe_budget=1"
 echo 'rog5-adreno-smmu-probe: begin' >/dev/kmsg
 dmesg --follow-new &
 log_follower_pid=$!
 sleep 1
 kill -0 "$log_follower_pid" ||
 	fail 'live kernel-log follower did not start'
+collect_dependency_state before-gpucc
 echo 'rog5-adreno-smmu-probe: external GPUCC load begin' >/dev/kmsg
 insmod "$module_file" probe_trace=1
 echo 'rog5-adreno-smmu-probe: insmod returned' >/dev/kmsg
-sleep "$settle_seconds"
-
-post_fail() {
-	reason=$1
-	echo "EVIDENCE adreno-smmu reason=$reason"
-	echo "EVIDENCE system_state=$(systemctl is-system-running 2>/dev/null ||
-		true)"
-	echo 'EVIDENCE failed_units_begin'
-	systemctl --failed --no-legend --plain 2>/dev/null || true
-	echo 'EVIDENCE failed_units_end'
-	echo 'EVIDENCE thermal_zones_begin'
-	for zone in /sys/class/thermal/thermal_zone*; do
-		[ -d "$zone" ] || continue
-		type=$(cat "$zone/type" 2>/dev/null || echo unreadable)
-		temp=$(cat "$zone/temp" 2>/dev/null || echo unreadable)
-		printf 'zone=%s type=%s temp_mC=%s\n' \
-			"$(basename "$zone")" "$type" "$temp"
-	done
-	echo 'EVIDENCE thermal_zones_end'
-	echo 'EVIDENCE new_dmesg_begin'
-	dmesg | tail -n +"$dmesg_start" | tail -n 200
-	echo 'EVIDENCE new_dmesg_end'
-	fail "$reason"
-}
 
 [ -d /sys/module/gpucc_sm8350 ] ||
 	post_fail 'GPUCC module did not remain loaded'
@@ -277,8 +358,27 @@ done
 [ "$gpucc_bound" -eq 1 ] ||
 	post_fail 'GPUCC did not bind exactly one platform device'
 
+for _ in 1 2 3 4 5; do
+	[ ! -e "$smmu_device/driver" ] || break
+	sleep 1
+done
+collect_dependency_state after-gpucc-auto
+if [ ! -e "$smmu_device/driver" ]; then
+	echo 'rog5-adreno-smmu-probe: exact platform-device reprobe begin' \
+		>/dev/kmsg
+	if ! printf '%s\n' "$smmu_name" >"$drivers_probe"; then
+		post_fail 'exact Adreno SMMU platform reprobe write failed'
+	fi
+	reprobe_attempted=1
+	echo 'rog5-adreno-smmu-probe: exact platform-device reprobe returned' \
+		>/dev/kmsg
+	collect_dependency_state after-exact-reprobe
+fi
+sleep "$settle_seconds"
+collect_dependency_state after-settle
+
 [ -e "$smmu_device/driver" ] ||
-	post_fail 'Adreno SMMU did not bind after GPUCC registration'
+	post_fail 'Adreno SMMU did not bind after one exact platform reprobe'
 [ "$(readlink -f "$smmu_device/driver")" = \
 	/sys/bus/platform/drivers/arm-smmu ] ||
 	post_fail 'Adreno SMMU bound an unexpected driver'
@@ -377,8 +477,11 @@ done
 	true)" -eq 0 ] ||
 	post_fail 'new warning or fault appeared'
 
+collect_dependency_state success
+collect_safety_state success
 probe_safe=1
 disarm_watchdog
 trap - EXIT HUP INT TERM
-printf 'PASS Adreno-SMMU probe GPUCC=1 SMMU=1 runtime=%s firmware=0 render=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s watchdog=disarmed\n' \
-	"$runtime_status" "$thermal_count" "$thermal_max"
+printf 'PASS Adreno-SMMU probe GPUCC=1 SMMU=1 runtime=%s firmware=0 render=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s watchdog=disarmed\n' \
+	"$runtime_status" "$thermal_count" "$thermal_max" \
+	"$reprobe_attempted"

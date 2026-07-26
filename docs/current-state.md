@@ -573,8 +573,8 @@ fatal detection likewise rejects benign `dynamic_debug` and `panic:1` config
 text. The full exact binary verifier and all affected contracts pass. A new
 copy-on-write v19 root preserves all 1,008 matching module files and
 credentials, removes only the three exact A660 firmware files, and leaves the
-accepted base unchanged. The runtime NFS allowlist accepts v1 and v19, not
-historical v18; NFS remains inactive. The strict five-file launcher retains
+accepted base unchanged. At that checkpoint, the runtime NFS allowlist
+accepted v1 and v19, not historical v18. The strict five-file launcher retains
 the original watchdog, overlapping 120-second transition watchdog, one
 75-second probe, one invocation, private evidence, and immediate fallback.
 
@@ -593,11 +593,30 @@ Pinned source shows a late-provider/deferred-probe boundary: the SMMU needs
 GPUCC clocks, the kernel's deferred-probe timeout is ten seconds, GPUCC was
 loaded at target uptime 193 seconds, and the built-in `arm-smmu` driver
 suppresses its force-bind attribute. V19 did not capture enough supplier and
-deferred-list state to assign a single cause. The next offline-only v20 work
-must capture `waiting_for_supplier` and `devices_deferred`, then source-test at
-most one exact platform `drivers_probe` request. It must not extend the global
-timeout, rescan the bus, force-bind a driver, or contact the phone before full
-offline acceptance.
+deferred-list state to assign a single cause.
+
+V20 now passes that offline boundary without changing the v18 binary. A
+hash-pinned Linux 7.1.4 driver-core verifier proves that platform
+`drivers_probe` resolves one exact name with `sysfs_streq()` and calls
+`device_attach()` only for that unbound device. The target baseline and probe
+validate the exact `3da0000.iommu` identity, empty `driver_override`, enabled
+autoprobe, mode-0200 exact-device control, and absent ARM SMMU force-bind
+files. They record `waiting_for_supplier`, the already-mounted
+`devices_deferred` view, supplier links, driver state, and direct
+storage/mount/render/firmware/system counters. After five seconds of normal
+autoprobe, the 90-second guarded probe may issue exactly one device-name
+request inside a 150-second transition watchdog. Global timeout extension,
+broad rescan, force-bind, unload, retry, firmware, render, and storage paths
+are rejected.
+
+The full binary verifier passes, and PolicyKit created and independently
+verified `/var/lib/rog5-network-root-adreno-smmu-v20`: all 1,008 modules and
+credentials are preserved, all three A660 firmware files are absent, and the
+accepted base is unchanged. The NFS server now accepts v1 and v20 only;
+consumed v18 and v19 are rejected. NFS stayed inactive and the phone was not
+contacted. V20 is offline-accepted for at most one attended RAM-only live
+cycle; SMMU acceptance remains pending. See the
+[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md).
 
 The complete pinned A660 graph now also passes source audit. Its guarded
 Linux `7.1.4-rog5-a660reg1` build makes DRM/MSM and GPUCC manual modules,
@@ -614,9 +633,9 @@ marker. The
 [registration build report](../test-results/2026-07-26-a660-registration-build.md)
 now also records the verified isolated seven-module NFS export, duplicate
 nested stages, clean ASUS wrappers, header-v3/AVB repacks, and exact
-fourteen-file source-locked bundle. A source-tested v20 SMMU exact-reprobe
-gate is the next required predecessor before a registration-only candidate
-may be rebuilt.
+fourteen-file source-locked bundle. The offline-accepted v20 SMMU
+exact-reprobe gate must now pass its single live cycle before a
+registration-only candidate may be rebuilt.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -21,6 +21,8 @@ base_verifier=$repo/scripts/device/verify-network-root-bundle.sh
 base_test=$repo/scripts/device/test-network-root-bundle-contract.sh
 dependency_verifier=$repo/scripts/device/verify-adreno-smmu-dependency-contract.sh
 dependency_test=$repo/scripts/device/test-adreno-smmu-dependency-contract.sh
+reprobe_verifier=$repo/scripts/device/verify-adreno-smmu-platform-reprobe-contract.sh
+reprobe_test=$repo/scripts/device/test-adreno-smmu-platform-reprobe-contract.sh
 dt_builder=$repo/scripts/device/build-adreno-smmu-diagnostic-candidate-dtb.sh
 dt_test=$repo/scripts/device/test-adreno-smmu-diagnostic-candidate-dtb.sh
 stage_builder=$repo/scripts/device/build-adreno-smmu-kexec-stage-initramfs.sh
@@ -69,6 +71,10 @@ check_hash "$dependency_verifier" \
 	d02d84c6c7f1d7569c76ea4d366feda3b5c1f73c66b0166080dbcb3e92cccdea
 check_hash "$dependency_test" \
 	ca497af7896341972ce9bc63ae77c9809a131628cb290734524ced6d369e7153
+check_hash "$reprobe_verifier" \
+	45916e12f97887e1f3b6c6d3e4137167465ef48d2479d0811444a8880be22643
+check_hash "$reprobe_test" \
+	9b175a6837b542713358f65d828ef2278209581c57db981174d83e74a06cd93e
 check_hash "$dt_builder" \
 	16b0f34e2d03625e39036c5cb96879dbb6db24ce7f0ffa816611ee7d09322fa4
 check_hash "$dt_test" \
@@ -82,17 +88,17 @@ check_hash "$wrapper_builder" \
 check_hash "$wrapper_test" \
 	3d6ffbb9cdae7a24b1ade96eeeb281d63b725570bbbde65ad910e64acfab2d43
 check_hash "$baseline" \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
 check_hash "$baseline_test" \
-	b3d3862edf829986b3f10f6edc37d533b11a7bbbe4e28aa2d6c6abe2ff4ee7e5
+	c18df0160c6c91a0a38fcbe50b09cd9dfdf8598dd30b697e8e7044e50aa9b49a
 check_hash "$probe" \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
 check_hash "$probe_test" \
-	2f740349528837e73cd6a0bbfdcd841703b9fd2066fdafe70ce8fbb712891504
+	129f5bcf18821bc3be105ae2c3473eb176bf718eb2a78d80b00d85172f6bdce5
 check_hash "$gate" \
-	0604e5a1d86a3ca5beaa79421bf487f9a75cbb28d33382ceeac1859501bd33c7
+	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
 check_hash "$gate_test" \
-	381355e9be5dd3bf054574465f67931aea11c368a0dc63642e33b788d1248c54
+	44b1e31e26cdfe90de626544129e7e0044ef1086108459ab2269f05894e577cd
 check_hash "$disarm" \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 
@@ -100,6 +106,11 @@ check_hash "$disarm" \
 	"$base_sums" "$base_manifest" >/dev/null
 "$dependency_verifier" "$source_dir" >/dev/null
 SOURCE_DIR=$source_dir "$dependency_test" >/dev/null
+"$reprobe_verifier" "$source_dir" \
+	"$artifact_dir/config-7.1.4-network-root" >/dev/null
+SOURCE_DIR=$source_dir \
+	KERNEL_CONFIG=$artifact_dir/config-7.1.4-network-root \
+	"$reprobe_test" >/dev/null
 BASE_DTB=$base_artifact_dir/sm8350-asus-rog-phone5-recovery.dtb \
 	"$dt_test" >/dev/null
 BASE_STAGE=$base_artifact_dir/rog5-network-root-kexec-stage-initramfs.cpio.gz \
@@ -238,4 +249,4 @@ then
 fi
 
 "$bundle_test" >/dev/null
-echo 'PASS exact v18 GPUCC plus Adreno SMMU bundle; consumer-disabled, firmware-free, zero-storage, reproducible, and offline-only'
+echo 'PASS exact v18 binary with v20 GPUCC plus exact-device Adreno SMMU control plane; consumer-disabled, firmware-free, zero-storage, reproducible, and offline-only'

@@ -21,10 +21,10 @@ for contract in \
 	'/run/rog5-gpucc-diagnostic/disarm-network-root-watchdog.sh' \
 	'/run/rog5-gpucc-diagnostic/probe-network-root-adreno-smmu.sh' \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a \
-	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402 \
+	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a \
-	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6 \
-	'transition_timeout=120' \
+	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985 \
+	'transition_timeout=150' \
 	'/run/rog5-adreno-smmu-transition.' \
 	'exec 9>/proc/sysrq-trigger' \
 	'echo b >&9' \

@@ -114,8 +114,47 @@ for device in /sys/bus/platform/devices/*; do
 done
 [ "$smmu_devices" -eq 1 ] ||
 	fail 'Adreno SMMU platform device count is not one'
+smmu_name=$(basename "$smmu_device")
+[ "$smmu_name" = 3da0000.iommu ] ||
+	fail 'Adreno SMMU platform device name is unexpected'
 [ ! -e "$smmu_device/driver" ] ||
 	fail 'Adreno SMMU bound before guarded GPUCC registration'
+[ -r "$smmu_device/driver_override" ] ||
+	fail 'Adreno SMMU driver_override is unreadable'
+[ -z "$(cat "$smmu_device/driver_override")" ] ||
+	fail 'Adreno SMMU driver_override is not empty'
+[ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
+	fail 'platform driver autoprobe is disabled'
+drivers_probe=/sys/bus/platform/drivers_probe
+[ "$(stat -c '%u:%g:%a' "$drivers_probe")" = 0:0:200 ] ||
+	fail 'platform drivers_probe control is not exact'
+[ -w "$drivers_probe" ] ||
+	fail 'platform drivers_probe control is unavailable'
+[ ! -e /sys/bus/platform/drivers/arm-smmu/bind ] &&
+	[ ! -e /sys/bus/platform/drivers/arm-smmu/unbind ] ||
+	fail 'ARM SMMU force-bind controls unexpectedly exist'
+
+waiting_for_supplier=unavailable
+if [ -r "$smmu_device/waiting_for_supplier" ]; then
+	waiting_for_supplier=$(cat "$smmu_device/waiting_for_supplier")
+	case $waiting_for_supplier in
+		0|1) ;;
+		*) fail 'Adreno SMMU waiting_for_supplier is invalid' ;;
+	esac
+fi
+deferred_entries=unavailable
+if [ -r /sys/kernel/debug/devices_deferred ]; then
+	deferred_entries=$(awk -v name="$smmu_name" \
+		'$1 == name { count++ } END { print count + 0 }' \
+		/sys/kernel/debug/devices_deferred)
+	[ "$deferred_entries" -le 1 ] ||
+		fail 'Adreno SMMU has duplicate deferred-probe entries'
+fi
+supplier_links=0
+for link in "$smmu_device"/supplier:*; do
+	[ -L "$link" ] || continue
+	supplier_links=$((supplier_links + 1))
+done
 for device in /sys/bus/platform/devices/*; do
 	[ -L "$device/of_node" ] || continue
 	of_node=$(readlink -f "$device/of_node")
@@ -137,7 +176,7 @@ firmware_files=$(find /lib/firmware /usr/lib/firmware -type f \
 [ "$(dmesg | grep -Ec "$firmware_pattern" || true)" -eq 0 ] ||
 	fail 'an A660 firmware request already occurred'
 
-fatal='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+fatal='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
 fault='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 [ "$(dmesg | grep -Ec "$fatal" || true)" -eq 0 ] ||
 	fail 'fatal kernel signature exists'
@@ -173,5 +212,7 @@ fi
 
 pstore_records=$(find /sys/fs/pstore -mindepth 1 -maxdepth 1 -type f \
 	2>/dev/null | wc -l)
-printf 'PASS Adreno-SMMU baseline storage=0 mounts=0 firmware=0 render=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed smmu=deferred\n' \
-	"$thermal_count" "$thermal_max" "$module_files" "$pstore_records"
+printf 'PASS Adreno-SMMU baseline storage=0 mounts=0 firmware=0 render=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed smmu=unbound smmu_name=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s drivers_probe=locked\n' \
+	"$thermal_count" "$thermal_max" "$module_files" "$pstore_records" \
+	"$smmu_name" "$waiting_for_supplier" "$deferred_entries" \
+	"$supplier_links"

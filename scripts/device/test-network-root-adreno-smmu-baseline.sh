@@ -33,6 +33,13 @@ for contract in \
 	'soc@0/gmu@3d6a000' \
 	'/sys/module/gpucc_sm8350' \
 	'/sys/bus/platform/drivers/arm-smmu' \
+	'3da0000.iommu' \
+	'waiting_for_supplier' \
+	'/sys/kernel/debug/devices_deferred' \
+	'supplier:' \
+	'driver_override' \
+	'/sys/bus/platform/drivers_autoprobe' \
+	'/sys/bus/platform/drivers_probe' \
 	'/dev/dri' \
 	'a660_sqe.fw|a660_gmu.bin|a660_zap.mbn' \
 	'Kernel panic|Oops:|BUG:' \
@@ -63,7 +70,7 @@ do
 	}
 done
 
-if grep -Eq '^[[:space:]]*(fastboot|mount|umount|modprobe|insmod|rmmod)([[:space:]]|$)|fastboot[[:space:]]+flash|dd[[:space:]].*of=/dev/|echo[[:space:]].*>[[:space:]]*/(sys|proc|dev)/|tee[[:space:]].*/(sys|proc|dev)/' \
+if grep -Eq '^[[:space:]]*(fastboot|mount|umount|modprobe|insmod|rmmod)([[:space:]]|$)|fastboot[[:space:]]+flash|dd[[:space:]].*of=/dev/|echo[[:space:]].*>[[:space:]]*/(sys|proc|dev)/|tee[[:space:]].*/(sys|proc|dev)/|>[[:space:]]*/sys/' \
 	"$baseline"
 then
 	echo 'FAIL Adreno SMMU baseline contains a control or persistent-write path' >&2

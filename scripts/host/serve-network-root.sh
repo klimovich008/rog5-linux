@@ -18,7 +18,7 @@ grace_time=10
 lease_time=10
 serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 
-[[ $EUID == 0 ]] || fail 'run with sudo; do not share the sudo password'
+[[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
 [[ $serve_timeout =~ ^[0-9]+$ ]] &&
 	((serve_timeout >= 60 && serve_timeout <= 86400)) ||
 	fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
@@ -33,7 +33,7 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
-	/var/lib/rog5-network-root-adreno-smmu-v19)
+	/var/lib/rog5-network-root-adreno-smmu-v20)
 		"$repo/scripts/host/verify-adreno-smmu-export.sh" \
 			"$root" /var/lib/rog5-network-root-v1
 		;;

@@ -91,8 +91,9 @@ for a working feature.
   registration passed, the SMMU remained unbound, and watchdog rollback plus
   exact fallback/cleanup passed with zero-storage baseline and no new warning,
   fault, or storage log.
-- [ ] Source-test a v20 exact-device deferred/supplier diagnostic and one
-  narrow platform `drivers_probe` request before any new attended cycle.
+- [x] Source-test and offline-accept a v20 exact-device deferred/supplier
+  diagnostic and one narrow platform `drivers_probe` request before any new
+  attended cycle.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
@@ -331,9 +332,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Consume the corrected one-shot attended v19 gate: accept its baseline
   and GPUCC result but reject the no-bind SMMU result, preserve private
   evidence, and prove watchdog fallback plus complete cleanup.
-- [ ] Capture exact deferred/supplier state and test a v20 exact-device
+- [x] Capture exact deferred/supplier state and test a v20 exact-device
   platform reprobe control plane; forbid a global timeout extension, broad bus
   rescan, force-bind, unload, retry, firmware, render, and storage path.
+- [x] Prepare and independently verify the isolated v20 copy-on-write root
+  with all 1,008 modules, zero A660 firmware, preserved credentials, unchanged
+  base, exact source/control-plane seal, and an allowlist that rejects v18 and
+  v19.
 - [ ] Run at most one v20 SMMU bind/runtime-suspend gate after complete
   offline acceptance, then pin its result before unlocking A660 registration.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,

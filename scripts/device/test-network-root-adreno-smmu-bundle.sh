@@ -26,6 +26,8 @@ for contract in \
 	'verify-network-root-gpucc-runtime-pm-candidate-bundle.sh' \
 	'verify-adreno-smmu-dependency-contract.sh' \
 	'test-adreno-smmu-dependency-contract.sh' \
+	'verify-adreno-smmu-platform-reprobe-contract.sh' \
+	'test-adreno-smmu-platform-reprobe-contract.sh' \
 	'test-adreno-smmu-diagnostic-candidate-dtb.sh' \
 	'test-adreno-smmu-kexec-stage-initramfs.sh' \
 	'test-adreno-smmu-asus-kexec-stage-build-contract.sh' \
@@ -50,10 +52,14 @@ for contract in \
 	'9b953088c3da1a757f07b219572cd3409dc8bba3698207833259822ef8bc0aac' \
 	'ce730ff01f76b455a751c9f5d7204e722cc62ee56e77dcd632fd9aaa2d692613' \
 	'37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf' \
-	'db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402' \
-	'c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6' \
-	'0604e5a1d86a3ca5beaa79421bf487f9a75cbb28d33382ceeac1859501bd33c7' \
-	'381355e9be5dd3bf054574465f67931aea11c368a0dc63642e33b788d1248c54' \
+	'45916e12f97887e1f3b6c6d3e4137167465ef48d2479d0811444a8880be22643' \
+	'9b175a6837b542713358f65d828ef2278209581c57db981174d83e74a06cd93e' \
+	'cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db' \
+	'c18df0160c6c91a0a38fcbe50b09cd9dfdf8598dd30b697e8e7044e50aa9b49a' \
+	'220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985' \
+	'129f5bcf18821bc3be105ae2c3473eb176bf718eb2a78d80b00d85172f6bdce5' \
+	'ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe' \
+	'44b1e31e26cdfe90de626544129e7e0044ef1086108459ab2269f05894e577cd' \
 	'CONFIG_ARM_SMMU=y' \
 	'CONFIG_ARM_SMMU_QCOM=y' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \

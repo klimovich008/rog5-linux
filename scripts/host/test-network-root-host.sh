@@ -45,7 +45,7 @@ for contract in \
 	'ROG5_NFS_TIMEOUT:-900' \
 	'serve_timeout <= 86400' \
 	'/var/lib/rog5-network-root-v1)' \
-	'/var/lib/rog5-network-root-adreno-smmu-v19)' \
+	'/var/lib/rog5-network-root-adreno-smmu-v20)' \
 	'verify-adreno-smmu-export.sh' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
@@ -66,6 +66,11 @@ for contract in \
 		exit 1
 	}
 done
+
+if grep -Fq '/var/lib/rog5-network-root-adreno-smmu-v19)' "$serve"; then
+	echo 'FAIL network-root host still allowlists consumed v19' >&2
+	exit 1
+fi
 
 export_flag_line=$(grep -n '^export_active=1$' "$serve" |
 	cut -d: -f1)

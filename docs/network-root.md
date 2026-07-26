@@ -261,12 +261,12 @@ identity, and runs the independent path-based verifier.
 
 The server accepts exactly two source directories: the accepted general
 `/var/lib/rog5-network-root-v1` export and the independently verified
-`/var/lib/rog5-network-root-adreno-smmu-v19` diagnostic sibling. The latter is
+`/var/lib/rog5-network-root-adreno-smmu-v20` diagnostic sibling. The latter is
 a copy-on-write derivative with the same 1,008-file Linux
 `7.1.4-g7a5cef0db479` module tree and credentials, but with all three
 hash-pinned A660 firmware files absent. The source-locked A660 registration
-export, the consumed v18 sibling, and every other path are rejected before NFS
-or firewall setup.
+export, the consumed v18/v19 siblings, and every other path are rejected
+before NFS or firewall setup.
 `prepare-adreno-smmu-export.sh` creates the sibling only when absent, and
 `verify-adreno-smmu-export.sh` independently compares it with the accepted
 base before `serve-network-root.sh` may expose it.
@@ -543,14 +543,33 @@ registration, but the exact SMMU platform device remained unbound after the
 storage, failed-unit, or unsafe-temperature message appeared. The armed
 watchdogs restored fallback automatically and the host removed every
 temporary NFS, address, sysctl, and firewall change. V19 is consumed and
-cannot be served or retried. The next version must capture exact
-deferred/supplier state and source-test one exact platform `drivers_probe`
-request; broad timeout or bus-rescan changes are rejected. See the
+cannot be served or retried.
+
+V20 keeps the same reproducible binary and replaces only the external
+control plane. Its source contract pins `drivers_probe` to exact-name lookup
+plus one unbound-device `device_attach()`, verifies the ten-second global
+deferred timeout remains unchanged, and verifies that `arm-smmu` suppresses
+force-bind attributes. The read-only baseline and attended probe capture the
+exact `3da0000.iommu` driver, waiting, deferred-list, and supplier-link state.
+After five seconds of normal autoprobe, only one exact-device request is
+possible; broad rescan, force-bind, unload, retry, firmware, render, and
+storage paths are absent. Failure evidence now directly counts storage,
+block-backed mounts, render nodes, firmware requests, failed units, and
+system state before watchdog fallback.
+
+The v20 source/control-plane suite and full unchanged-binary verifier pass.
+Its independently verified copy-on-write export has all 1,008 modules,
+preserved credentials, zero A660 firmware, and an unchanged base. A
+90-second probe watchdog remains nested inside a 150-second transition
+watchdog. V20 is offline-accepted for at most one attended RAM-only cycle; it
+has not been booted and does not yet accept the SMMU. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
 and
 [v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md),
 then the
-[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
+[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md)
+and
+[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

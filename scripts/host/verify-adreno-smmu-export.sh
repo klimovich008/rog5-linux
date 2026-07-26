@@ -25,30 +25,51 @@ base_root=$(realpath -e "$base_root")
 	fail 'base export path is not exact'
 [[ $root != / && $root != "$base_root" ]] ||
 	fail 'unsafe or aliased export roots'
-[[ $root == /var/lib/rog5-network-root-adreno-smmu-v19 ||
-	$root =~ ^/var/lib/rog5-network-root-adreno-smmu-v19[.]partial[.][0-9]+$ ]] ||
+[[ $root == /var/lib/rog5-network-root-adreno-smmu-v20 ||
+	$root =~ ^/var/lib/rog5-network-root-adreno-smmu-v20[.]partial[.][0-9]+$ ]] ||
 	fail 'candidate export path is not exact'
 
 "$repo/scripts/host/verify-network-root-export.sh" "$base_root" >/dev/null
 
-seal=$root/etc/rog5/adreno-smmu-v19-export
+seal=$root/etc/rog5/adreno-smmu-v20-export
 [[ -f $seal && ! -L $seal ]]
 [[ $(stat -c '%u:%g:%a' "$seal") == 0:0:444 ]]
+grep -qx 'diagnostic_generation=v20' "$seal"
 grep -qx 'base_export=rog5-network-root-v1' "$seal"
 grep -qx "kernel_release=$kernel_release" "$seal"
+grep -qx 'source_commit=d9ac316489f4258d389d6298659d5e9c22183400' \
+	"$seal"
+grep -qx 'source_tree=c796deb1cc54e942f8bb46a2c76a7199e19e5c92' \
+	"$seal"
+grep -qx 'kernel_config_sha256=68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f' \
+	"$seal"
 grep -qx "boot_avb_sha256=$boot_hash" "$seal"
 grep -qx "gpucc_module_sha256=$module_hash" "$seal"
+grep -qx 'probe_timeout_seconds=90' "$seal"
+grep -qx 'transition_timeout_seconds=150' "$seal"
 grep -qx 'firmware_state=ABSENT' "$seal"
+grep -qx 'smmu_reprobe=EXACT_PLATFORM_DEVICE_ONCE' "$seal"
 grep -qx 'smmu_acceptance=NOT_ACCEPTED' "$seal"
 
 baseline=$repo/scripts/device/check-network-root-adreno-smmu-baseline.sh
 disarm=$repo/scripts/device/disarm-network-root-watchdog.sh
 probe=$repo/scripts/device/probe-network-root-adreno-smmu.sh
+gate=$repo/scripts/device/run-network-root-adreno-smmu-gate.sh
+reprobe_verifier=$repo/scripts/device/verify-adreno-smmu-platform-reprobe-contract.sh
+reprobe_test=$repo/scripts/device/test-adreno-smmu-platform-reprobe-contract.sh
 grep -qx "baseline_sha256=$(sha256sum "$baseline" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx "disarm_sha256=$(sha256sum "$disarm" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx "probe_sha256=$(sha256sum "$probe" | cut -d ' ' -f 1)" \
+	"$seal"
+grep -qx "gate_sha256=$(sha256sum "$gate" | cut -d ' ' -f 1)" \
+	"$seal"
+grep -qx \
+	"reprobe_verifier_sha256=$(sha256sum "$reprobe_verifier" | cut -d ' ' -f 1)" \
+	"$seal"
+grep -qx \
+	"reprobe_test_sha256=$(sha256sum "$reprobe_test" | cut -d ' ' -f 1)" \
 	"$seal"
 
 module_root=$root/usr/lib/modules/$kernel_release
@@ -117,7 +138,7 @@ unchanged_metadata() {
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
 			! -path './etc/rog5' \
-			! -path './etc/rog5/adreno-smmu-v19-export' \
+			! -path './etc/rog5/adreno-smmu-v20-export' \
 			-printf '%P|%y|%m|%U|%G|%s|%T@|%l\n' |
 			LC_ALL=C sort
 	)
@@ -134,7 +155,7 @@ unchanged_hashes() {
 			! -path './usr/lib/firmware/qcom/a660_sqe.fw' \
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
-			! -path './etc/rog5/adreno-smmu-v19-export' \
+			! -path './etc/rog5/adreno-smmu-v20-export' \
 			-print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 	)
 }
@@ -142,4 +163,4 @@ unchanged_hashes "$base_root" >"$work/base.sha256"
 unchanged_hashes "$root" >"$work/candidate.sha256"
 cmp "$work/base.sha256" "$work/candidate.sha256"
 
-echo "PASS isolated v19 export module_files=$module_files firmware=0 credentials=preserved base=unchanged"
+echo "PASS isolated v20 export module_files=$module_files firmware=0 credentials=preserved base=unchanged reprobe=exact-once"

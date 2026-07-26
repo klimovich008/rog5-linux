@@ -27,6 +27,18 @@ for contract in \
 	'qcom,adreno-smmu' \
 	'/sys/bus/platform/drivers/sm8350-gpucc' \
 	'/sys/bus/platform/drivers/arm-smmu' \
+	'3da0000.iommu' \
+	'waiting_for_supplier' \
+	'/sys/kernel/debug/devices_deferred' \
+	'supplier:' \
+	'driver_override' \
+	'/sys/bus/platform/drivers_autoprobe' \
+	'/sys/bus/platform/drivers_probe' \
+	'[ "$(stat -c '\''%u:%g:%a'\'' "$drivers_probe")" = 0:0:200 ]' \
+	'printf '\''%s\n'\'' "$smmu_name" >"$drivers_probe"' \
+	'reprobe_attempted=1' \
+	'EVIDENCE dependency phase=' \
+	'EVIDENCE safety phase=' \
 	'/sys/module/gpucc_sm8350/parameters/probe_trace' \
 	'insmod "$module_file" probe_trace=1' \
 	'power/runtime_status' \
@@ -52,10 +64,16 @@ do
 	}
 done
 
-if grep -Eq 'rmmod|modprobe[[:space:]].*(-r|--remove)|fastboot[[:space:]]+flash|dd[[:space:]].*of=/dev/' \
+[ "$(grep -Fc \
+	'printf '\''%s\n'\'' "$smmu_name" >"$drivers_probe"' "$probe")" -eq 1 ] || {
+	echo 'FAIL attended probe must write the exact platform device once' >&2
+	exit 1
+}
+
+if grep -Eq 'rmmod|modprobe[[:space:]].*(-r|--remove)|fastboot[[:space:]]+flash|dd[[:space:]].*of=/dev/|bus_rescan_devices|>.*arm-smmu/(bind|unbind)|deferred_probe_timeout' \
 	"$probe"
 then
-	echo 'FAIL attended Adreno SMMU probe unloads a driver or writes storage' >&2
+	echo 'FAIL attended probe contains a broad rescan, force-bind, timeout, unload, or storage path' >&2
 	exit 1
 fi
 
