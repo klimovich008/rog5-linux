@@ -44,7 +44,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | read-only UFS discovery bundle | enumerate the UFS topology without mounts or host-originated writes | v1 was rejected safely; reproducible v2 passes offline and live with 116/116 nodes read-only, zero blocked commands, contained power state, and automatic rollback; never flash |
 | UFS-disabled network-root bundle | boot an ordinary distro from read-only NFS plus a volatile OverlayFS upper | fourteen-file v3 bundle reproduces with a retained exitrd; normal coldplug and one normal systemd reboot pass with complete cleanup; never flash |
 | GPUCC/CCF network-root diagnostic/candidate | trace the SM8350 GPU clock-controller with every consumer disabled | v17 reuses the exact v15 bits, atomically enters the trace-free target, completes GPUCC registration, binds one device for 30 seconds, and reboots cleanly; this accepts only the isolated clock-controller foundation, never flash |
-| GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped before probe on a detector false positive; v19 passed baseline/GPUCC but safely rejected a no-bind result; v20 passed offline but its live gate stopped before action because unset `driver_override` reads `(null)`; v20 is consumed, and v21 must source-lock that representation plus use a new verified root; never flash |
+| GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped on a detector false positive; v19 safely rejected no-bind; v20 stopped before action on the unset `(null)` override representation; v21 source-locks and mutation-tests that representation, passes the unchanged-binary verifier, and has a new isolated verified root for at most one live cycle; never flash |
 | A660/GMU registration tier | separate registration from first DRM open before building a live candidate | full graph, modular kernel, exact DT, isolated seven-module export, nested stage, duplicate wrappers/repacks, read-only baseline, and no-open watchdog probe pass offline; probe remains source-locked behind a passing SMMU result, live gates pending |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
@@ -201,6 +201,10 @@ v20 root, and live-eligibility decision. The
 records the baseline-only stop, exact null-representation source diagnosis,
 zero-action boundary, normal fallback, complete cleanup, and v21 requirements.
 The
+[v21 Adreno SMMU offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md)
+records the OF allocation and NULL-format source proof, exact seven-byte
+mutation suite, unchanged binary verification, isolated v21 root, and
+one-shot live boundary. The
 [A660 full dependency audit](../test-results/2026-07-26-a660-full-dependency-audit.md)
 records the exact GPU/GMU/IOMMU/power/firmware graph, the probe-time
 RSCC/PDC writes, the deferred first-open path, the ZAP reserved-memory fit,

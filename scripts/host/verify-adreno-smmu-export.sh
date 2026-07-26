@@ -25,16 +25,16 @@ base_root=$(realpath -e "$base_root")
 	fail 'base export path is not exact'
 [[ $root != / && $root != "$base_root" ]] ||
 	fail 'unsafe or aliased export roots'
-[[ $root == /var/lib/rog5-network-root-adreno-smmu-v20 ||
-	$root =~ ^/var/lib/rog5-network-root-adreno-smmu-v20[.]partial[.][0-9]+$ ]] ||
+[[ $root == /var/lib/rog5-network-root-adreno-smmu-v21 ||
+	$root =~ ^/var/lib/rog5-network-root-adreno-smmu-v21[.]partial[.][0-9]+$ ]] ||
 	fail 'candidate export path is not exact'
 
 "$repo/scripts/host/verify-network-root-export.sh" "$base_root" >/dev/null
 
-seal=$root/etc/rog5/adreno-smmu-v20-export
+seal=$root/etc/rog5/adreno-smmu-v21-export
 [[ -f $seal && ! -L $seal ]]
 [[ $(stat -c '%u:%g:%a' "$seal") == 0:0:444 ]]
-grep -qx 'diagnostic_generation=v20' "$seal"
+grep -qx 'diagnostic_generation=v21' "$seal"
 grep -qx 'base_export=rog5-network-root-v1' "$seal"
 grep -qx "kernel_release=$kernel_release" "$seal"
 grep -qx 'source_commit=d9ac316489f4258d389d6298659d5e9c22183400' \
@@ -43,11 +43,21 @@ grep -qx 'source_tree=c796deb1cc54e942f8bb46a2c76a7199e19e5c92' \
 	"$seal"
 grep -qx 'kernel_config_sha256=68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f' \
 	"$seal"
+grep -qx 'platform_source_sha256=c1967f53f66da20c515d32ca3242bd6f365b31f2678f7125bf71cc16ed56a258' \
+	"$seal"
+grep -qx 'device_header_sha256=68ad17f3670b7fcedbfa70e8cab1b2044dff1e7525697efc953527fec2825fbe' \
+	"$seal"
+grep -qx 'vsprintf_source_sha256=314241c733f99bf8b45e64c173d78b1449b4da3fdad90a63500166376d2774eb' \
+	"$seal"
+grep -qx 'of_platform_source_sha256=821937acef295d986caa4470166571b0d18cef2a2f9d1a730e1d0cb4cec70131' \
+	"$seal"
 grep -qx "boot_avb_sha256=$boot_hash" "$seal"
 grep -qx "gpucc_module_sha256=$module_hash" "$seal"
 grep -qx 'probe_timeout_seconds=90' "$seal"
 grep -qx 'transition_timeout_seconds=150' "$seal"
 grep -qx 'firmware_state=ABSENT' "$seal"
+grep -qx 'driver_override_state=UNSET_NULL_REPRESENTATION' "$seal"
+grep -qx 'driver_override_write=FORBIDDEN' "$seal"
 grep -qx 'smmu_reprobe=EXACT_PLATFORM_DEVICE_ONCE' "$seal"
 grep -qx 'smmu_acceptance=NOT_ACCEPTED' "$seal"
 
@@ -55,6 +65,7 @@ baseline=$repo/scripts/device/check-network-root-adreno-smmu-baseline.sh
 disarm=$repo/scripts/device/disarm-network-root-watchdog.sh
 probe=$repo/scripts/device/probe-network-root-adreno-smmu.sh
 gate=$repo/scripts/device/run-network-root-adreno-smmu-gate.sh
+driver_override_check=$repo/scripts/device/check-adreno-smmu-driver-override-state.sh
 reprobe_verifier=$repo/scripts/device/verify-adreno-smmu-platform-reprobe-contract.sh
 reprobe_test=$repo/scripts/device/test-adreno-smmu-platform-reprobe-contract.sh
 grep -qx "baseline_sha256=$(sha256sum "$baseline" | cut -d ' ' -f 1)" \
@@ -64,6 +75,9 @@ grep -qx "disarm_sha256=$(sha256sum "$disarm" | cut -d ' ' -f 1)" \
 grep -qx "probe_sha256=$(sha256sum "$probe" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx "gate_sha256=$(sha256sum "$gate" | cut -d ' ' -f 1)" \
+	"$seal"
+grep -qx \
+	"driver_override_checker_sha256=$(sha256sum "$driver_override_check" | cut -d ' ' -f 1)" \
 	"$seal"
 grep -qx \
 	"reprobe_verifier_sha256=$(sha256sum "$reprobe_verifier" | cut -d ' ' -f 1)" \
@@ -138,7 +152,7 @@ unchanged_metadata() {
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
 			! -path './etc/rog5' \
-			! -path './etc/rog5/adreno-smmu-v20-export' \
+			! -path './etc/rog5/adreno-smmu-v21-export' \
 			-printf '%P|%y|%m|%U|%G|%s|%T@|%l\n' |
 			LC_ALL=C sort
 	)
@@ -155,7 +169,7 @@ unchanged_hashes() {
 			! -path './usr/lib/firmware/qcom/a660_sqe.fw' \
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
-			! -path './etc/rog5/adreno-smmu-v20-export' \
+			! -path './etc/rog5/adreno-smmu-v21-export' \
 			-print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 	)
 }
@@ -163,4 +177,4 @@ unchanged_hashes "$base_root" >"$work/base.sha256"
 unchanged_hashes "$root" >"$work/candidate.sha256"
 cmp "$work/base.sha256" "$work/candidate.sha256"
 
-echo "PASS isolated v20 export module_files=$module_files firmware=0 credentials=preserved base=unchanged reprobe=exact-once"
+echo "PASS isolated v21 export module_files=$module_files firmware=0 credentials=preserved base=unchanged reprobe=exact-once driver_override=unset-null-representation"

@@ -32,6 +32,9 @@ for contract in \
 	'/sys/kernel/debug/devices_deferred' \
 	'supplier:' \
 	'driver_override' \
+	'/run/rog5-gpucc-diagnostic/check-adreno-smmu-driver-override-state.sh' \
+	'unset-null-representation' \
+	'driver_override=%s' \
 	'/sys/bus/platform/drivers_autoprobe' \
 	'/sys/bus/platform/drivers_probe' \
 	'[ "$(stat -c '\''%u:%g:%a'\'' "$drivers_probe")" = 0:0:200 ]' \
@@ -64,6 +67,17 @@ do
 	}
 done
 
+if grep -Fq '[ -z "$(cat "$smmu_device/driver_override")" ]' "$probe"; then
+	echo 'FAIL attended probe still assumes an empty override line' >&2
+	exit 1
+fi
+if grep -Eq 'driver_override.*>|>.*driver_override|tee.*driver_override' \
+	"$probe"
+then
+	echo 'FAIL attended probe can alter driver_override' >&2
+	exit 1
+fi
+
 [ "$(grep -Fc \
 	'printf '\''%s\n'\'' "$smmu_name" >"$drivers_probe"' "$probe")" -eq 1 ] || {
 	echo 'FAIL attended probe must write the exact platform device once' >&2
@@ -86,4 +100,4 @@ set -e
 [ "$missing_guard" -ne 0 ]
 [ "$invalid_guard" -ne 0 ]
 
-echo 'PASS attended Adreno SMMU probe is one-shot, watchdog-bounded, firmware-free, and zero-storage'
+echo 'PASS attended Adreno SMMU probe is NULL-override exact, one-shot, watchdog-bounded, firmware-free, and zero-storage'

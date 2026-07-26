@@ -23,6 +23,8 @@ dependency_verifier=$repo/scripts/device/verify-adreno-smmu-dependency-contract.
 dependency_test=$repo/scripts/device/test-adreno-smmu-dependency-contract.sh
 reprobe_verifier=$repo/scripts/device/verify-adreno-smmu-platform-reprobe-contract.sh
 reprobe_test=$repo/scripts/device/test-adreno-smmu-platform-reprobe-contract.sh
+driver_override_check=$repo/scripts/device/check-adreno-smmu-driver-override-state.sh
+driver_override_test=$repo/scripts/device/test-adreno-smmu-driver-override-state.sh
 dt_builder=$repo/scripts/device/build-adreno-smmu-diagnostic-candidate-dtb.sh
 dt_test=$repo/scripts/device/test-adreno-smmu-diagnostic-candidate-dtb.sh
 stage_builder=$repo/scripts/device/build-adreno-smmu-kexec-stage-initramfs.sh
@@ -52,6 +54,14 @@ check_hash() {
 [ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" = "$accepted_tree" ]
 check_hash "$expected_sums" "$accepted_manifest"
 check_hash "$base_sums" "$accepted_base_manifest"
+check_hash "$source_dir/drivers/base/platform.c" \
+	c1967f53f66da20c515d32ca3242bd6f365b31f2678f7125bf71cc16ed56a258
+check_hash "$source_dir/include/linux/device.h" \
+	68ad17f3670b7fcedbfa70e8cab1b2044dff1e7525697efc953527fec2825fbe
+check_hash "$source_dir/lib/vsprintf.c" \
+	314241c733f99bf8b45e64c173d78b1449b4da3fdad90a63500166376d2774eb
+check_hash "$source_dir/drivers/of/platform.c" \
+	821937acef295d986caa4470166571b0d18cef2a2f9d1a730e1d0cb4cec70131
 check_hash "$mkbootimg_dir/mkbootimg.py" \
 	d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a6845a
 check_hash "$mkbootimg_dir/unpack_bootimg.py" \
@@ -72,9 +82,13 @@ check_hash "$dependency_verifier" \
 check_hash "$dependency_test" \
 	ca497af7896341972ce9bc63ae77c9809a131628cb290734524ced6d369e7153
 check_hash "$reprobe_verifier" \
-	45916e12f97887e1f3b6c6d3e4137167465ef48d2479d0811444a8880be22643
+	94ae43da4033daec9e6d80cdb0b0c3d0ff9436e6e873241ac97cf7884c86eff4
 check_hash "$reprobe_test" \
-	9b175a6837b542713358f65d828ef2278209581c57db981174d83e74a06cd93e
+	9dfdd5b553ff3569d5a3177ca667b92d38f7e5ee51e3775df9565f9f5853d833
+check_hash "$driver_override_check" \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45
+check_hash "$driver_override_test" \
+	5348d98000865dd52a47ac5eacd4d04d16d2a92da719776e79971a2b040e2703
 check_hash "$dt_builder" \
 	16b0f34e2d03625e39036c5cb96879dbb6db24ce7f0ffa816611ee7d09322fa4
 check_hash "$dt_test" \
@@ -88,17 +102,17 @@ check_hash "$wrapper_builder" \
 check_hash "$wrapper_test" \
 	3d6ffbb9cdae7a24b1ade96eeeb281d63b725570bbbde65ad910e64acfab2d43
 check_hash "$baseline" \
-	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
+	a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51
 check_hash "$baseline_test" \
-	c18df0160c6c91a0a38fcbe50b09cd9dfdf8598dd30b697e8e7044e50aa9b49a
+	79540031bc10ab9c284bcf2db86e6bdbbcef11b8e8ee294094f43c63704e76c9
 check_hash "$probe" \
-	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
+	ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07
 check_hash "$probe_test" \
-	129f5bcf18821bc3be105ae2c3473eb176bf718eb2a78d80b00d85172f6bdce5
+	28d58f249027775b4bb1688a9421bdaccad38c94ce2a2ffd2d96b77992223c0c
 check_hash "$gate" \
-	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
+	7d15f897fd7e0beef6089bd20b3de0bce3fc68b6fdc5b832644ccf3bb583fb62
 check_hash "$gate_test" \
-	44b1e31e26cdfe90de626544129e7e0044ef1086108459ab2269f05894e577cd
+	d82a08d85082df97a3015f67c668bc0648d2c11f56779b9086db4953d8b8f18b
 check_hash "$disarm" \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 
@@ -111,6 +125,7 @@ SOURCE_DIR=$source_dir "$dependency_test" >/dev/null
 SOURCE_DIR=$source_dir \
 	KERNEL_CONFIG=$artifact_dir/config-7.1.4-network-root \
 	"$reprobe_test" >/dev/null
+"$driver_override_test" >/dev/null
 BASE_DTB=$base_artifact_dir/sm8350-asus-rog-phone5-recovery.dtb \
 	"$dt_test" >/dev/null
 BASE_STAGE=$base_artifact_dir/rog5-network-root-kexec-stage-initramfs.cpio.gz \
@@ -249,4 +264,4 @@ then
 fi
 
 "$bundle_test" >/dev/null
-echo 'PASS exact v18 binary with v20 GPUCC plus exact-device Adreno SMMU control plane; consumer-disabled, firmware-free, zero-storage, reproducible, and offline-only'
+echo 'PASS exact v18 binary with v21 GPUCC plus exact-device Adreno SMMU control plane; NULL-override exact, consumer-disabled, firmware-free, zero-storage, reproducible, and offline-only'

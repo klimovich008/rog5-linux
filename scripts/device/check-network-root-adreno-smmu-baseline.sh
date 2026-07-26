@@ -121,8 +121,15 @@ smmu_name=$(basename "$smmu_device")
 	fail 'Adreno SMMU bound before guarded GPUCC registration'
 [ -r "$smmu_device/driver_override" ] ||
 	fail 'Adreno SMMU driver_override is unreadable'
-[ -z "$(cat "$smmu_device/driver_override")" ] ||
-	fail 'Adreno SMMU driver_override is not empty'
+driver_override_check=/run/rog5-gpucc-diagnostic/check-adreno-smmu-driver-override-state.sh
+[ -f "$driver_override_check" ] && [ ! -L "$driver_override_check" ] &&
+	[ -x "$driver_override_check" ] ||
+	fail 'Adreno SMMU driver_override checker is not exact'
+driver_override_state=$(
+	"$driver_override_check" "$smmu_device/driver_override"
+) || fail 'Adreno SMMU driver_override is not the reviewed unset state'
+[ "$driver_override_state" = unset-null-representation ] ||
+	fail 'Adreno SMMU driver_override classification is unexpected'
 [ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
 	fail 'platform driver autoprobe is disabled'
 drivers_probe=/sys/bus/platform/drivers_probe
@@ -212,7 +219,7 @@ fi
 
 pstore_records=$(find /sys/fs/pstore -mindepth 1 -maxdepth 1 -type f \
 	2>/dev/null | wc -l)
-printf 'PASS Adreno-SMMU baseline storage=0 mounts=0 firmware=0 render=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed smmu=unbound smmu_name=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s drivers_probe=locked\n' \
+printf 'PASS Adreno-SMMU baseline storage=0 mounts=0 firmware=0 render=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=%s pstore_records=%s watchdog=armed smmu=unbound smmu_name=%s driver_override=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s drivers_probe=locked\n' \
 	"$thermal_count" "$thermal_max" "$module_files" "$pstore_records" \
-	"$smmu_name" "$waiting_for_supplier" "$deferred_entries" \
+	"$smmu_name" "$driver_override_state" "$waiting_for_supplier" "$deferred_entries" \
 	"$supplier_links"

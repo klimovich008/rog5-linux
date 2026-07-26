@@ -38,6 +38,9 @@ for contract in \
 	'/sys/kernel/debug/devices_deferred' \
 	'supplier:' \
 	'driver_override' \
+	'/run/rog5-gpucc-diagnostic/check-adreno-smmu-driver-override-state.sh' \
+	'unset-null-representation' \
+	'driver_override=%s' \
 	'/sys/bus/platform/drivers_autoprobe' \
 	'/sys/bus/platform/drivers_probe' \
 	'/dev/dri' \
@@ -52,6 +55,17 @@ do
 		exit 1
 	}
 done
+
+if grep -Fq '[ -z "$(cat "$smmu_device/driver_override")" ]' "$baseline"; then
+	echo 'FAIL Adreno SMMU baseline still assumes an empty override line' >&2
+	exit 1
+fi
+if grep -Eq 'driver_override.*>|>.*driver_override|tee.*driver_override' \
+	"$baseline"
+then
+	echo 'FAIL Adreno SMMU baseline can alter driver_override' >&2
+	exit 1
+fi
 
 if printf '%s\n' 'iommu: Default domain type: Translated' |
 	grep -Ei "$fault_pattern" >/dev/null
@@ -77,4 +91,4 @@ then
 	exit 1
 fi
 
-echo 'PASS Adreno SMMU baseline is read-only, watchdog-first, firmware-free, and zero-storage'
+echo 'PASS Adreno SMMU baseline is read-only, NULL-override exact, watchdog-first, firmware-free, and zero-storage'

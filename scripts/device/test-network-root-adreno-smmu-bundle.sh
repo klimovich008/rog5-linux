@@ -28,6 +28,8 @@ for contract in \
 	'test-adreno-smmu-dependency-contract.sh' \
 	'verify-adreno-smmu-platform-reprobe-contract.sh' \
 	'test-adreno-smmu-platform-reprobe-contract.sh' \
+	'check-adreno-smmu-driver-override-state.sh' \
+	'test-adreno-smmu-driver-override-state.sh' \
 	'test-adreno-smmu-diagnostic-candidate-dtb.sh' \
 	'test-adreno-smmu-kexec-stage-initramfs.sh' \
 	'test-adreno-smmu-asus-kexec-stage-build-contract.sh' \
@@ -52,14 +54,20 @@ for contract in \
 	'9b953088c3da1a757f07b219572cd3409dc8bba3698207833259822ef8bc0aac' \
 	'ce730ff01f76b455a751c9f5d7204e722cc62ee56e77dcd632fd9aaa2d692613' \
 	'37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf' \
-	'45916e12f97887e1f3b6c6d3e4137167465ef48d2479d0811444a8880be22643' \
-	'9b175a6837b542713358f65d828ef2278209581c57db981174d83e74a06cd93e' \
-	'cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db' \
-	'c18df0160c6c91a0a38fcbe50b09cd9dfdf8598dd30b697e8e7044e50aa9b49a' \
-	'220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985' \
-	'129f5bcf18821bc3be105ae2c3473eb176bf718eb2a78d80b00d85172f6bdce5' \
-	'ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe' \
-	'44b1e31e26cdfe90de626544129e7e0044ef1086108459ab2269f05894e577cd' \
+	'94ae43da4033daec9e6d80cdb0b0c3d0ff9436e6e873241ac97cf7884c86eff4' \
+	'9dfdd5b553ff3569d5a3177ca667b92d38f7e5ee51e3775df9565f9f5853d833' \
+	'884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45' \
+	'5348d98000865dd52a47ac5eacd4d04d16d2a92da719776e79971a2b040e2703' \
+	'c1967f53f66da20c515d32ca3242bd6f365b31f2678f7125bf71cc16ed56a258' \
+	'68ad17f3670b7fcedbfa70e8cab1b2044dff1e7525697efc953527fec2825fbe' \
+	'314241c733f99bf8b45e64c173d78b1449b4da3fdad90a63500166376d2774eb' \
+	'821937acef295d986caa4470166571b0d18cef2a2f9d1a730e1d0cb4cec70131' \
+	'a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51' \
+	'79540031bc10ab9c284bcf2db86e6bdbbcef11b8e8ee294094f43c63704e76c9' \
+	'ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07' \
+	'28d58f249027775b4bb1688a9421bdaccad38c94ce2a2ffd2d96b77992223c0c' \
+	'7d15f897fd7e0beef6089bd20b3de0bce3fc68b6fdc5b832644ccf3bb583fb62' \
+	'd82a08d85082df97a3015f67c668bc0648d2c11f56779b9086db4953d8b8f18b' \
 	'CONFIG_ARM_SMMU=y' \
 	'CONFIG_ARM_SMMU_QCOM=y' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \
@@ -80,4 +88,4 @@ then
 	exit 1
 fi
 
-echo 'PASS Adreno SMMU bundle contract pins source, DT, target gates, artifacts, and offline safety'
+echo 'PASS v21 Adreno SMMU bundle contract pins source, NULL override state, target gates, artifacts, and offline safety'

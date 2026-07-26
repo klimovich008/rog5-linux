@@ -11,6 +11,10 @@ core=$source_dir/drivers/base/core.c
 deferred=$source_dir/drivers/base/dd.c
 bus_header=$source_dir/include/linux/device/bus.h
 smmu=$source_dir/drivers/iommu/arm/arm-smmu/arm-smmu.c
+platform=$source_dir/drivers/base/platform.c
+device_header=$source_dir/include/linux/device.h
+vsprintf=$source_dir/lib/vsprintf.c
+of_platform=$source_dir/drivers/of/platform.c
 
 [ -d "$source_dir/.git" ]
 [ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_commit" ]
@@ -34,6 +38,14 @@ check_hash "$bus_header" \
 	5169854996f5ea801f7df1d4714604483be925335f07f5f036e9ab5f50106db4
 check_hash "$smmu" \
 	580bcc9326837da0607e45843f4906694c28a0a5b68ca9297bc516747704d55f
+check_hash "$platform" \
+	c1967f53f66da20c515d32ca3242bd6f365b31f2678f7125bf71cc16ed56a258
+check_hash "$device_header" \
+	68ad17f3670b7fcedbfa70e8cab1b2044dff1e7525697efc953527fec2825fbe
+check_hash "$vsprintf" \
+	314241c733f99bf8b45e64c173d78b1449b4da3fdad90a63500166376d2774eb
+check_hash "$of_platform" \
+	821937acef295d986caa4470166571b0d18cef2a2f9d1a730e1d0cb4cec70131
 check_hash "$kernel_config" \
 	68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f
 
@@ -84,6 +96,76 @@ match_name=$(sed -n '/^int device_match_name(/,/^}$/p' "$core")
 printf '%s\n' "$match_name" |
 	grep -Fq 'return sysfs_streq(dev_name(dev), name);'
 
+override_show=$(sed -n \
+	'/^static ssize_t driver_override_show(/,/^}$/p' "$bus")
+printf '%s\n' "$override_show" |
+	grep -Fq 'return sysfs_emit(buf, "%s\n", dev->driver_override.name);'
+[ "$(printf '%s\n' "$override_show" |
+	grep -Fc 'sysfs_emit(buf, "%s\n", dev->driver_override.name)')" -eq 1 ]
+
+of_alloc=$(sed -n '/^struct platform_device \*of_device_alloc(/,/^}$/p' \
+	"$of_platform")
+printf '%s\n' "$of_alloc" |
+	grep -Fq 'dev = platform_device_alloc("", PLATFORM_DEVID_NONE);'
+platform_alloc=$(sed -n \
+	'/^struct platform_device \*platform_device_alloc(/,/^}$/p' "$platform")
+printf '%s\n' "$platform_alloc" |
+	grep -Fq 'pa = kzalloc(sizeof(*pa) + strlen(name) + 1, GFP_KERNEL);'
+if printf '%s\n' "$platform_alloc" | grep -Fq 'driver_override'; then
+	echo 'FAIL platform allocation acquired an override initializer' >&2
+	exit 1
+fi
+
+pointer_message=$(sed -n \
+	'/^static const char \*check_pointer_msg(/,/^}$/p' "$vsprintf")
+for behavior in \
+	'if (!ptr)' \
+	'return "(null)";'
+do
+	printf '%s\n' "$pointer_message" | grep -Fq "$behavior"
+done
+string_formatter=$(sed -n \
+	'/^char \*string(char \*buf, char \*end, const char \*s,/,/^}$/p' \
+	"$vsprintf")
+printf '%s\n' "$string_formatter" |
+	grep -Fq 'if (check_pointer(&buf, end, s, spec))'
+
+has_override=$(sed -n \
+	'/^static inline bool device_has_driver_override(/,/^}$/p' \
+	"$device_header")
+printf '%s\n' "$has_override" |
+	grep -Fq 'return !!dev->driver_override.name;'
+match_override=$(sed -n \
+	'/^static inline int device_match_driver_override(/,/^}$/p' \
+	"$device_header")
+for behavior in \
+	'if (dev->driver_override.name)' \
+	'return !strcmp(dev->driver_override.name, drv->name);' \
+	'return -1;'
+do
+	printf '%s\n' "$match_override" | grep -Fq "$behavior"
+done
+platform_match=$(sed -n '/^static int platform_match(/,/^}$/p' "$platform")
+for behavior in \
+	'ret = device_match_driver_override(dev, drv);' \
+	'if (ret >= 0)' \
+	'return ret;' \
+	'if (of_driver_match_device(dev, drv))'
+do
+	printf '%s\n' "$platform_match" | grep -Fq "$behavior"
+done
+
+set_override=$(sed -n \
+	'/^int __device_set_driver_override(/,/^}$/p' "$deferred")
+for behavior in \
+	'const char *new = NULL, *old;' \
+	'if (len) {' \
+	'new = kstrndup(s, len, GFP_KERNEL);' \
+	'dev->driver_override.name = new;'
+do
+	printf '%s\n' "$set_override" | grep -Fq "$behavior"
+done
+
 for evidence in \
 	'static ssize_t waiting_for_supplier_show' \
 	'static DEVICE_ATTR_RO(waiting_for_supplier);' \
@@ -109,4 +191,4 @@ grep -qx 'CONFIG_DRIVER_DEFERRED_PROBE_TIMEOUT=10' "$kernel_config"
 grep -qx 'CONFIG_DEBUG_FS=y' "$kernel_config"
 grep -qx 'CONFIG_DEBUG_FS_ALLOW_ALL=y' "$kernel_config"
 
-echo 'PASS pinned Linux 7.1.4 driver core exposes one exact-name unbound-device attach path; ARM SMMU force-bind is suppressed and deferred evidence is read-only'
+echo 'PASS pinned Linux 7.1.4 source proves OF platform allocation starts with a NULL override, sysfs emits exact (null), normal OF matching remains enabled, and one exact-name unbound-device attach is available'

@@ -98,7 +98,7 @@ for a working feature.
   kernel exposed the fresh unset `driver_override` as `(null)`, no handoff,
   module load, reprobe, or SMMU bind occurred, and exact fallback/cleanup
   passed.
-- [ ] Source-test and offline-accept a v21 null-representation correction
+- [x] Source-test and offline-accept a v21 null-representation correction
   with no `driver_override` write, a new preserved export, and the same
   exact-device/watchdog boundary before deciding on another live cycle.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
@@ -351,13 +351,15 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   `(null)` unset representation; prove the original watchdog stayed armed,
   GPUCC stayed absent, `drivers_probe` was never written, and complete
   fallback/cleanup passed.
-- [ ] Source-test a v21 correction that pins platform allocation,
+- [x] Source-test a v21 correction that pins platform allocation,
   `driver_override` display/match semantics, and kernel NULL-string
   formatting; accept only exact `(null)`, reject every other nonempty value,
   and forbid any write to `driver_override`.
-- [ ] Prepare and independently verify a new v21 copy-on-write root and
+- [x] Prepare and independently verify a new v21 copy-on-write root and
   source/control-plane seal; preserve v20 and remove it from every runnable
   allowlist before deciding whether one v21 cycle is justified.
+- [ ] Run at most one attended RAM-only v21 SMMU bind/runtime-suspend gate;
+  require exact fallback and host cleanup, pin the result, and never retry.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.

@@ -17,19 +17,21 @@ for contract in \
 	'SSH_KEY' \
 	'KNOWN_HOSTS' \
 	'EVIDENCE_DIR' \
-	'/var/lib/rog5-network-root-adreno-smmu-v20' \
+	'/var/lib/rog5-network-root-adreno-smmu-v21' \
 	'verify-adreno-smmu-export.sh' \
 	'pkexec --disable-internal-agent' \
 	'artifacts/network-root-v18-adreno-smmu-diagnostic/gpucc-sm8350.ko' \
+	'check-adreno-smmu-driver-override-state.sh' \
 	'check-network-root-adreno-smmu-baseline.sh' \
 	'disarm-network-root-watchdog.sh' \
 	'probe-network-root-adreno-smmu.sh' \
 	'run-network-root-adreno-smmu-gate.sh' \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a \
-	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45 \
+	a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a \
-	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985 \
-	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe \
+	ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07 \
+	7d15f897fd7e0beef6089bd20b3de0bce3fc68b6fdc5b832644ccf3bb583fb62 \
 	'root@169.254.77.2' \
 	'HostKeyAlias=rog5-network-root' \
 	'StrictHostKeyChecking=yes' \
@@ -39,7 +41,9 @@ for contract in \
 	'scp -q' \
 	'chmod 0400 "$directory/gpucc-sm8350.ko"' \
 	'chmod 0500' \
-	'file_count" -eq 5' \
+	'driver_override_state=UNSET_NULL_REPRESENTATION' \
+	'driver_override_write=FORBIDDEN' \
+	'file_count" -eq 6' \
 	'ALLOW_MAINLINE_ADRENO_SMMU_GATE=1' \
 	'ALLOW_MAINLINE_ADRENO_SMMU_REBOOT=1' \
 	'transition_watchdog=armed reboot=requested' \
@@ -52,8 +56,8 @@ do
 	}
 done
 
-if grep -Fq '/var/lib/rog5-network-root-adreno-smmu-v19' "$runner"; then
-	echo 'FAIL host live runner still accepts consumed v19' >&2
+if grep -Fq '/var/lib/rog5-network-root-adreno-smmu-v20' "$runner"; then
+	echo 'FAIL host live runner still accepts consumed v20' >&2
 	exit 1
 fi
 
@@ -134,4 +138,4 @@ EVIDENCE_DIR=$stage/evidence \
 [[ $(grep -Fxc gate "$calls") == 1 ]]
 [[ $(stat -c %a "$stage/evidence/adreno-smmu-live-gate.log") == 600 ]]
 
-echo 'PASS host live gate stages five exact tmpfs inputs, invokes once, logs privately, and never retries'
+echo 'PASS host live gate stages six exact tmpfs inputs, invokes once, logs privately, and never retries'

@@ -143,8 +143,15 @@ smmu_name=$(basename "$smmu_device")
 	fail 'Adreno SMMU is already bound'
 [ -r "$smmu_device/driver_override" ] ||
 	fail 'Adreno SMMU driver_override is unreadable'
-[ -z "$(cat "$smmu_device/driver_override")" ] ||
-	fail 'Adreno SMMU driver_override is not empty'
+driver_override_check=/run/rog5-gpucc-diagnostic/check-adreno-smmu-driver-override-state.sh
+[ -f "$driver_override_check" ] && [ ! -L "$driver_override_check" ] &&
+	[ -x "$driver_override_check" ] ||
+	fail 'Adreno SMMU driver_override checker is not exact'
+driver_override_state=$(
+	"$driver_override_check" "$smmu_device/driver_override"
+) || fail 'Adreno SMMU driver_override is not the reviewed unset state'
+[ "$driver_override_state" = unset-null-representation ] ||
+	fail 'Adreno SMMU driver_override classification is unexpected'
 [ "$(cat /sys/bus/platform/drivers_autoprobe)" = 1 ] ||
 	fail 'platform driver autoprobe is disabled'
 drivers_probe=/sys/bus/platform/drivers_probe
@@ -226,8 +233,9 @@ collect_dependency_state() {
 	evidence_waiting=$(read_waiting_for_supplier)
 	evidence_deferred=$(count_deferred_entries)
 	evidence_suppliers=$(count_supplier_links)
-	printf 'EVIDENCE dependency phase=%s smmu_name=%s driver=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s exact_reprobe=%s\n' \
+	printf 'EVIDENCE dependency phase=%s smmu_name=%s driver=%s driver_override=%s waiting_for_supplier=%s deferred_entries=%s supplier_links=%s exact_reprobe=%s\n' \
 		"$evidence_phase" "$smmu_name" "$evidence_driver" \
+		"$driver_override_state" \
 		"$evidence_waiting" "$evidence_deferred" "$evidence_suppliers" \
 		"$reprobe_attempted"
 }
@@ -327,7 +335,7 @@ for _ in 1 2 3 4 5; do
 done
 [ "$armed" -eq 1 ] || fail 'probe watchdog did not arm'
 
-echo "BEGIN adreno-smmu watchdog=${probe_timeout}s settle=${settle_seconds}s auto_bind_wait=5s exact_reprobe_budget=1"
+echo "BEGIN adreno-smmu watchdog=${probe_timeout}s settle=${settle_seconds}s auto_bind_wait=5s exact_reprobe_budget=1 driver_override=${driver_override_state}"
 echo 'rog5-adreno-smmu-probe: begin' >/dev/kmsg
 dmesg --follow-new &
 log_follower_pid=$!
@@ -482,6 +490,6 @@ collect_safety_state success
 probe_safe=1
 disarm_watchdog
 trap - EXIT HUP INT TERM
-printf 'PASS Adreno-SMMU probe GPUCC=1 SMMU=1 runtime=%s firmware=0 render=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s watchdog=disarmed\n' \
+printf 'PASS Adreno-SMMU probe GPUCC=1 SMMU=1 runtime=%s firmware=0 render=0 storage=0 mounts=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
 	"$runtime_status" "$thermal_count" "$thermal_max" \
-	"$reprobe_attempted"
+	"$reprobe_attempted" "$driver_override_state"

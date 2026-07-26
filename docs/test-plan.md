@@ -278,8 +278,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   override display/match behavior, and NULL `%s` formatting. Accept only exact
   `(null)` as the reviewed unset state, reject every other nonempty value,
   forbid any `driver_override` write, and preserve the v20 one-device and
-  watchdog boundaries. **Pending as separately versioned v21; it also requires
-  a new verified root/seal and a runnable allowlist that rejects v20.**
+  watchdog boundaries. **Passed offline as v21. The source verifier pins OF
+  allocation, zero initialization, `%s` NULL formatting, override matching,
+  and OF fallthrough. The seven-byte checker passes positive and mutation
+  tests. The unchanged binary and a new isolated root verify with 1,008
+  modules, zero A660 firmware, preserved credentials, and unchanged base.
+  The runnable allowlist accepts v1/v21 and rejects v20. One v21 live cycle
+  remains pending.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

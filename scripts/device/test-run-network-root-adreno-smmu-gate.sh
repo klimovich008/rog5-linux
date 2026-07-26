@@ -17,13 +17,15 @@ for contract in \
 	'/run/rog5-network-root-watchdog.pid' \
 	'/run/rog5-network-root-watchdog.disarmed.pid' \
 	'/run/rog5-gpucc-diagnostic/gpucc-sm8350.ko' \
+	'/run/rog5-gpucc-diagnostic/check-adreno-smmu-driver-override-state.sh' \
 	'/run/rog5-gpucc-diagnostic/check-network-root-adreno-smmu-baseline.sh' \
 	'/run/rog5-gpucc-diagnostic/disarm-network-root-watchdog.sh' \
 	'/run/rog5-gpucc-diagnostic/probe-network-root-adreno-smmu.sh' \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a \
-	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45 \
+	a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a \
-	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985 \
+	ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07 \
 	'transition_timeout=150' \
 	'/run/rog5-adreno-smmu-transition.' \
 	'exec 9>/proc/sysrq-trigger' \

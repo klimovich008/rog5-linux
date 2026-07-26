@@ -44,6 +44,7 @@ known_hosts_mode=$(stat -c %a "$known_hosts")
 	fail 'KNOWN_HOSTS must not be writable by group or other users'
 
 module=$repo/artifacts/network-root-v18-adreno-smmu-diagnostic/gpucc-sm8350.ko
+driver_override_check=$repo/scripts/device/check-adreno-smmu-driver-override-state.sh
 baseline=$repo/scripts/device/check-network-root-adreno-smmu-baseline.sh
 disarm=$repo/scripts/device/disarm-network-root-watchdog.sh
 probe=$repo/scripts/device/probe-network-root-adreno-smmu.sh
@@ -58,18 +59,20 @@ verify_input() {
 }
 verify_input "$module" \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
+verify_input "$driver_override_check" \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45
 verify_input "$baseline" \
-	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
+	a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51
 verify_input "$disarm" \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 verify_input "$probe" \
-	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
+	ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07
 verify_input "$gate" \
-	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
+	7d15f897fd7e0beef6089bd20b3de0bce3fc68b6fdc5b832644ccf3bb583fb62
 
 pkexec --disable-internal-agent env PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	"$repo/scripts/host/verify-adreno-smmu-export.sh" \
-	/var/lib/rog5-network-root-adreno-smmu-v20 \
+	/var/lib/rog5-network-root-adreno-smmu-v21 \
 	/var/lib/rog5-network-root-v1 >/dev/null
 
 target=root@169.254.77.2
@@ -100,7 +103,7 @@ install -d -m 0700 "$directory"
 ssh -n "${ssh_options[@]}" "$target" "$remote_prepare"
 
 scp -q "${ssh_options[@]}" \
-	"$module" "$baseline" "$disarm" "$probe" "$gate" \
+	"$module" "$driver_override_check" "$baseline" "$disarm" "$probe" "$gate" \
 	"$target:/run/rog5-gpucc-diagnostic/"
 
 remote_verify='
@@ -110,13 +113,14 @@ chown root:root "$directory" "$directory"/*
 chmod 0700 "$directory"
 chmod 0400 "$directory/gpucc-sm8350.ko"
 chmod 0500 \
+	"$directory/check-adreno-smmu-driver-override-state.sh" \
 	"$directory/check-network-root-adreno-smmu-baseline.sh" \
 	"$directory/disarm-network-root-watchdog.sh" \
 	"$directory/probe-network-root-adreno-smmu.sh" \
 	"$directory/run-network-root-adreno-smmu-gate.sh"
 file_count=$(find "$directory" -mindepth 1 -maxdepth 1 -type f | wc -l)
 entry_count=$(find "$directory" -mindepth 1 -maxdepth 1 | wc -l)
-[ "$file_count" -eq 5 ] && [ "$entry_count" -eq 5 ]
+[ "$file_count" -eq 6 ] && [ "$entry_count" -eq 6 ]
 check() {
 	file=$1
 	mode=$2
@@ -127,20 +131,26 @@ check() {
 }
 check "$directory/gpucc-sm8350.ko" 400 \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
+check "$directory/check-adreno-smmu-driver-override-state.sh" 500 \
+	884dfcd287dd892ec0698bedaa4475045967459282811da640e48f5f7d503e45
 check "$directory/check-network-root-adreno-smmu-baseline.sh" 500 \
-	cf08ada160359b7f193b6d4d0d8eb721a95788195432a488d383c1db498771db
+	a2eb74c66815a38e2ad3476a80d1fe5ffbc5de2f32a50429a84f2d4c9f3f4e51
 check "$directory/disarm-network-root-watchdog.sh" 500 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 check "$directory/probe-network-root-adreno-smmu.sh" 500 \
-	220b40676269cf36c5159a8c5fcda99512bc910c56fb2bbd28b24f745b7cb985
+	ae5d3f57d8411cd35b0c6265ec7a3f53b826cf1bb96ba651743c694b79c64c07
 check "$directory/run-network-root-adreno-smmu-gate.sh" 500 \
-	ba2d81c3e7f3d4ffc1a873e235f7e35dab5ce56a6c90c0de011ce06a0bae6cfe
-grep -qx "diagnostic_generation=v20" \
-	/etc/rog5/adreno-smmu-v20-export
+	7d15f897fd7e0beef6089bd20b3de0bce3fc68b6fdc5b832644ccf3bb583fb62
+grep -qx "diagnostic_generation=v21" \
+	/etc/rog5/adreno-smmu-v21-export
+grep -qx "driver_override_state=UNSET_NULL_REPRESENTATION" \
+	/etc/rog5/adreno-smmu-v21-export
+grep -qx "driver_override_write=FORBIDDEN" \
+	/etc/rog5/adreno-smmu-v21-export
 grep -qx "smmu_reprobe=EXACT_PLATFORM_DEVICE_ONCE" \
-	/etc/rog5/adreno-smmu-v20-export
+	/etc/rog5/adreno-smmu-v21-export
 grep -qx "smmu_acceptance=NOT_ACCEPTED" \
-	/etc/rog5/adreno-smmu-v20-export
+	/etc/rog5/adreno-smmu-v21-export
 '
 ssh -n "${ssh_options[@]}" "$target" "$remote_verify"
 
