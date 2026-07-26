@@ -877,9 +877,18 @@ records two complete network-disabled clean builds with byte-identical config,
 Images, symbols, modules, archive, and metadata. Relative to accepted v7,
 only the BTF-bearing `msm.ko` changes; KMS, UFS, embedded A660 firmware, GMU
 inner power/clock/MMIO/IRQ/firmware/HFI, hardware initialization, ZAP/SCM,
-submit, and rendering remain outside the accepted boundary. V8 is **HOLD**:
-no protected root, NFS case, runner, package, phone transition, or flash has
-been prepared or authorized.
+submit, and rendering remain outside the accepted boundary.
+
+The
+[v8 runtime acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
+now reproducibly derives both target controls from immutable consumed v7 with
+two zero-fuzz patches. The compiler-relocation gate preserves the accepted
+three-object/logical-`4/4` cleanup and proves the atomic entry hit is compiled
+before inner PM, clocks, IRQ, and HFI. Semantic and mutation tests require one
+outer and zero inner runtime-PM operations, exact `EUCLEAN`, successful
+rollback, equal settled GEM snapshots, and zero clock/IRQ/HFI/devfreq/LLC/
+hardware/ZAP/SCM work. V8 is still **HOLD**: no protected root, NFS case,
+runner, package, phone transition, or flash has been prepared or authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

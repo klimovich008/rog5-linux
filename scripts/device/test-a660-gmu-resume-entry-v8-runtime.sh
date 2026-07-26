@@ -25,6 +25,7 @@ done
 for contract in \
 	'build-a660-ucode-allocation-v7-runtime.sh' \
 	'verify-a660-gmu-resume-entry-patch.sh' \
+	'verify-a660-gmu-resume-entry-vmap-relocations.sh' \
 	'2026-07-26-a660-ucode-allocation-v7-live-accepted.md' \
 	'2026-07-26-a660-gmu-resume-entry-boundary.md' \
 	'2026-07-26-a660-gmu-resume-entry-v8-offline.md' \
@@ -55,9 +56,12 @@ for contract in \
 	'a6xx_zap_shader_init' \
 	'qcom_scm_pas_auth_and_reset' \
 	'qcom_scm_set_gpu_smmu_aperture' \
+	'qcom_scm_is_available' \
+	'qcom_scm_gpu_init_regs' \
 	'logical_gets=4' \
 	'logical_puts=4' \
 	'gem_snapshot=equal' \
+	'outer_runtime_pm=1' \
 	'inner_runtime_pm=0' \
 	'clocks=0' \
 	'irq=0' \
@@ -137,10 +141,16 @@ mutate_probe enable-old-ucode-mode \
 	's/gmu_resume_entry_only=1/ucode_allocation_only=1/'
 mutate_probe skip-gmu-resume \
 	"/require_event_count rog5_gmu_v8_resume 1/d"
+mutate_probe skip-rollback \
+	"/require_event_count rog5_gmu_v8_rollback 1/d"
+mutate_probe allow-inner-runtime-pm \
+	"s/rog5_gmu_v8_runtime_pm 1/rog5_gmu_v8_runtime_pm 2/"
 mutate_probe allow-clock-rate \
 	"s/rog5_gmu_v8_clk_rate 0/rog5_gmu_v8_clk_rate 1/"
 mutate_probe allow-irq \
 	"s/rog5_gmu_v8_enable_irq 0/rog5_gmu_v8_enable_irq 1/"
+mutate_probe allow-hfi \
+	's/rog5_gmu_v8_a6xx_pm_resume rog5_gmu_v8_hfi_start/rog5_gmu_v8_a6xx_pm_resume rog5_gmu_v8_resume/'
 mutate_probe missing-snapshot \
 	'/cmp "$state_dir\/gem.before" "$state_dir\/gem.after"/d'
 mutate_probe successful-open \
@@ -150,4 +160,4 @@ mutate_baseline wrong-predecessor \
 mutate_baseline writable-entry-mode \
 	's/gmu_entry_parameter_mode=0400/gmu_entry_parameter_mode=0600/'
 
-echo 'PASS A660 GMU resume-entry v8 runtime is reproducibly generated and rejects mode, resume, clock, IRQ, snapshot, errno, predecessor, and writable-parameter mutations'
+echo 'PASS A660 GMU resume-entry v8 runtime is reproducibly generated and rejects mode, resume, rollback, inner-PM, clock, IRQ, HFI, snapshot, errno, predecessor, and writable-parameter mutations'

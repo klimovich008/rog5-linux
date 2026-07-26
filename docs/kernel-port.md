@@ -436,10 +436,16 @@ The
 records two complete clean Linux 7.1.4 builds. They match byte-for-byte; the
 config, Image, ABI/symbols, GPUCC, MDT loader, and every installed module
 except `msm.ko` remain exactly v7. This accepts only the compiled diagnostic.
-V8 stays **HOLD** until a fresh storage-free root, bounded target and host
-control plane, unchanged package, fallback proof, and separate GO review
-pass. A later GMU power-preparation tier must remain separate from HFI,
-ZAP/SCM, successful open, submission, and rendering.
+The
+[v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
+also accepts the zero-fuzz target controls and compiler-relocation oracle:
+accepted-v7 allocation and rollback remain logical `4/4`, one outer runtime
+resume reaches the diagnostic, and every inner PM/clock/IRQ/HFI/devfreq/LLC/
+hardware/SCM event remains forbidden. V8 stays **HOLD** until a fresh
+storage-free root, bounded target and host control plane, unchanged package,
+fallback proof, and separate GO review pass. A later GMU power-preparation
+tier must remain separate from HFI, ZAP/SCM, successful open, submission, and
+rendering.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

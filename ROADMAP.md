@@ -522,6 +522,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   read-only, exact-A660.1 v8 entry diagnostic. The two complete builds are
   byte-identical; only `msm.ko` differs from accepted v7. See the
   [v8 offline report](test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md).
+- [x] Reproducibly derive and mutation-test the v8 target runtime from
+  immutable consumed v7 controls. Pin the compiled call/relocation layout,
+  accepted allocation/rollback accounting, one outer and zero inner PM,
+  zero resources/HFI/hardware/SCM, exact `EUCLEAN`, and equal GEM snapshots.
+  See the
+  [v8 runtime report](test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md).
 - [ ] Prepare and independently verify a fresh storage-free v8 root, target
   gate, strict one-invocation runner, server allowlist case, unchanged
   temporary-boot package, and separate HOLD/GO reviews before deciding on at
