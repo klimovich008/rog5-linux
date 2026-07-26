@@ -17,6 +17,7 @@ verify_export=$repo/scripts/host/verify-a660-ucode-allocation-export.sh
 export_test=$repo/scripts/host/test-a660-ucode-allocation-export.sh
 live_runner=$repo/scripts/host/run-a660-ucode-allocation-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-ucode-allocation-live-gate.sh
+live_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-live-window.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
@@ -37,7 +38,7 @@ done
 for input in "$baseline" "$probe" "$runtime_verifier" "$probe_test" "$gate" \
 	"$gate_test" "$prepare" "$verify_export" "$export_test" "$helper_builder" \
 	"$helper_verifier" "$helper_test" "$build_test" "$package_test" \
-	"$live_runner" "$live_runner_test"
+	"$live_runner" "$live_runner_test" "$live_window_test"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 ucode-allocation v5 tool: $input" >&2
@@ -52,7 +53,7 @@ do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify_export" "$export_test" "$live_runner" \
-	"$live_runner_test" "$serve"
+	"$live_runner_test" "$live_window_test" "$serve"
 do
 	bash -n "$input"
 done
@@ -111,6 +112,7 @@ for contract in \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_GATE=1' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_REBOOT=1' \
 	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_LIVE_GATE=1' \
+	'ALLOW_MAINLINE_A660_UCODE_ALLOCATION_NFS' \
 	'SSH_KEY' \
 	'KNOWN_HOSTS' \
 	'EVIDENCE_DIR' \
@@ -132,8 +134,9 @@ do
 	if ! grep -Fq "$contract" "$helper_source" "$helper_builder" \
 		"$helper_verifier" "$baseline" "$probe" "$runtime_verifier" \
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
-		"$export_test" "$live_runner" "$live_runner_test" "$build_test" \
-		"$package_test" "$report" "$hold_report"
+		"$export_test" "$live_runner" "$live_runner_test" \
+		"$live_window_test" "$serve" "$build_test" "$package_test" \
+		"$report" "$hold_report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
 		exit 1
@@ -150,11 +153,6 @@ do
 	}
 done
 
-if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v5' "$serve"; then
-	echo 'FAIL unaccepted A660 ucode-allocation v5 root is runnable' >&2
-	exit 1
-fi
-
 if grep -Eq \
 	'fastboot[[:space:]]+(boot|flash)|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/' \
 	"$helper_builder" "$helper_verifier" "$baseline" "$probe" \
@@ -168,8 +166,9 @@ fi
 "$probe_test"
 "$gate_test"
 "$live_runner_test"
+"$live_window_test"
 "$export_test"
 "$build_test"
 "$package_test"
 
-echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, HOLD, non-runnable, and non-flashing'
+echo 'PASS A660 ucode-allocation v5 contract is exact-root, trace-balanced, snapshot-clean, watchdog-guarded, storage-isolated, package-accepted, host-runner-tested, explicit-window-only, and non-flashing'
