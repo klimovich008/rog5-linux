@@ -31,6 +31,8 @@ baseline=$repo/scripts/device/check-network-root-adreno-smmu-baseline.sh
 baseline_test=$repo/scripts/device/test-network-root-adreno-smmu-baseline.sh
 probe=$repo/scripts/device/probe-network-root-adreno-smmu.sh
 probe_test=$repo/scripts/device/test-probe-network-root-adreno-smmu.sh
+gate=$repo/scripts/device/run-network-root-adreno-smmu-gate.sh
+gate_test=$repo/scripts/device/test-run-network-root-adreno-smmu-gate.sh
 bundle_test=$repo/scripts/device/test-network-root-adreno-smmu-bundle.sh
 overlay=$repo/dts/qcom/sm8350-asus-rog-phone5-adreno-smmu-diagnostic.dtso
 disarm=$repo/scripts/device/disarm-network-root-watchdog.sh
@@ -87,6 +89,10 @@ check_hash "$probe" \
 	14ef5916fdecc6ac412f8f5f7deb8121eb7c668614e4bd5b7b91ac6df96597bb
 check_hash "$probe_test" \
 	b2b1c19524a02e9225b080abf570c14f6b619828bf40dbe1d59ee8b2b980514a
+check_hash "$gate" \
+	57aea7d0996c901deaea898d64dbd5ac5beae57518392bd0f7c5028a46469e09
+check_hash "$gate_test" \
+	0fd5c7d09ba4bc69d952a1fe6409219fe64fe793d48dcf23ce671c6fcc616a26
 check_hash "$disarm" \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 
@@ -102,6 +108,7 @@ BASE_STAGE=$base_artifact_dir/rog5-network-root-kexec-stage-initramfs.cpio.gz \
 "$wrapper_test" >/dev/null
 "$baseline_test" >/dev/null
 "$probe_test" >/dev/null
+"$gate_test" >/dev/null
 "$base_test" >/dev/null
 
 "$base_verifier" "$artifact_dir" "$mkbootimg_dir" "$avbtool" \

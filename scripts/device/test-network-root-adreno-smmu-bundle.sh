@@ -31,12 +31,14 @@ for contract in \
 	'test-adreno-smmu-asus-kexec-stage-build-contract.sh' \
 	'test-network-root-adreno-smmu-baseline.sh' \
 	'test-probe-network-root-adreno-smmu.sh' \
+	'test-run-network-root-adreno-smmu-gate.sh' \
 	'sm8350-asus-rog-phone5-adreno-smmu-diagnostic.dtso' \
 	'build-adreno-smmu-diagnostic-candidate-dtb.sh' \
 	'build-adreno-smmu-kexec-stage-initramfs.sh' \
 	'build-adreno-smmu-asus-kexec-stage.sh' \
 	'check-network-root-adreno-smmu-baseline.sh' \
 	'probe-network-root-adreno-smmu.sh' \
+	'run-network-root-adreno-smmu-gate.sh' \
 	'd9ac316489f4258d389d6298659d5e9c22183400' \
 	'c796deb1cc54e942f8bb46a2c76a7199e19e5c92' \
 	'e433a95b3cfeeeabd8dd97b4321da3082f934e5bbbca5cb0bfd4f71074355d73' \
@@ -50,6 +52,8 @@ for contract in \
 	'37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf' \
 	'2385fbed96a59362cfb7d34cf1970362fcf2937eb7a238aa6628158141b4a592' \
 	'14ef5916fdecc6ac412f8f5f7deb8121eb7c668614e4bd5b7b91ac6df96597bb' \
+	'57aea7d0996c901deaea898d64dbd5ac5beae57518392bd0f7c5028a46469e09' \
+	'0fd5c7d09ba4bc69d952a1fe6409219fe64fe793d48dcf23ce671c6fcc616a26' \
 	'CONFIG_ARM_SMMU=y' \
 	'CONFIG_ARM_SMMU_QCOM=y' \
 	'a660_sqe[.]fw|a660_gmu[.]bin|a660_zap[.]mbn' \
