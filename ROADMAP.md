@@ -374,7 +374,10 @@ screen-off server operation.
 Goal: let the phone host automation tools without making personal credentials a
 kernel/rootfs build input.
 
-- [ ] Run model/API clients as an unprivileged, isolated service account.
+- [x] Stage a locked, unprivileged `rog5-agent` account and its on-demand,
+  loopback-only browser service; pass the complete rootfs archive round trip.
+- [ ] Run model/API clients under `rog5-agent` only after the runtime secret
+  and approval boundaries are implemented.
 - [ ] Keep email, CV, browser sessions, API tokens, and provider credentials in
   an encrypted runtime secret store, never in Git or build artifacts.
 - [ ] Require confirmation before connecting email or other external accounts.

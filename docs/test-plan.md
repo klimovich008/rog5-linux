@@ -24,7 +24,13 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
-- `verify-staged-arch-rootfs.sh` checks the requested packages, modules, firmware, locked accounts, key-only SSH, NetworkManager ownership, headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools, and absence of baked network or remote-desktop credentials.
+- `verify-staged-arch-rootfs.sh` checks the requested packages, modules,
+  firmware, locked accounts, key-only SSH, NetworkManager ownership,
+  headless/no-autologin default, on-demand ttyd/Chromium, Plasma/KRDP tools,
+  and absence of baked network or remote-desktop credentials. It also requires
+  the separate locked `rog5-agent` identity, exact mode-`0700` empty state
+  directories, no SSH or supplementary groups, a loopback-only service that
+  does not reuse `rog5`, and a successful in-rootfs `systemd-analyze verify`.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

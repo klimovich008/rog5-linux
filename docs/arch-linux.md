@@ -44,11 +44,12 @@ Staging runs the AArch64 userspace under Podman/Docker emulation, keeps pacman
 signature enforcement, removes the generic Arch kernel, installs the
 server/VPN packages and minimal Plasma target, adds the exact manifest-pinned
 network-root modules, locks published password accounts, removes reusable host
-identity, and enables key-only SSH. It does not include VPN/Wi-Fi/KRDP
-credentials, enable the hotspot, or alter the phone. Extraction, staging,
-archival, and verification use Linux volumes plus libarchive ACL/xattr
-support; the output is re-extracted and checked so ownership, modes, and
-extended attributes survive the round trip.
+identity, enables key-only SSH, and creates the locked `rog5-agent` automation
+account. It does not include VPN/Wi-Fi/KRDP/model/email credentials, enable
+the hotspot, connect an external account, or alter the phone. Extraction,
+staging, archival, and verification use Linux volumes plus libarchive
+ACL/xattr support; the output is re-extracted and checked so ownership, modes,
+and extended attributes survive the round trip.
 
 The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256
 `d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`.
@@ -67,11 +68,27 @@ creates one deployment-local Ed25519 server host key outside Git and pins
 `sshd` to it. The restricted NFS host gate and two normal-coldplug phone boots
 now pass, including persistent client authorization and server identity.
 
+A newer agent-isolated development archive is 2,006,969,651 bytes with
+SHA-256
+`9f6ca6181f6d43101cd8b836d63ca96bdeea97aea225bb78b22aafe33fc24e53`.
+It was staged from source commit
+`f279343192f10a5f86ca9389733ed3abf2c8e8da`, passed the complete verifier
+before archival and again after extraction into a clean volume, and passed an
+independent gzip/hash check. It adds a locked `rog5-agent` account, an empty
+mode-`0700` private-data boundary, and a hardened loopback-only Chromium
+service without changing the desktop user. This development artifact remains
+outside Git and has not replaced the manifest-pinned live root, been exported
+over NFS, or booted on the phone.
+
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
 ## Boot and session model
 
-The target defaults to `multi-user.target`: SSH, networking, VPN, hotspot support, ttyd, and headless Chromium can run without a compositor. `greetd` owns the physical login path and starts the packaged Plasma Wayland session only through `graphical.target`.
+The target defaults to `multi-user.target`: SSH, networking, VPN, hotspot
+support, ttyd, and on-demand headless Chromium can run without a compositor.
+Chromium runs as `rog5-agent`, not the interactive desktop user. `greetd` owns
+the physical login path and starts the packaged Plasma Wayland session only
+through `graphical.target`.
 
 ```sh
 systemctl isolate graphical.target   # request the local/remote Plasma session

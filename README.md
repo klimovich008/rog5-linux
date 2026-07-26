@@ -15,6 +15,14 @@ client ingress, and VPN-loss fallback are blocked; cleanup is exact. Radio,
 real WireGuard, DHCP/DNS, throughput, thermal, and battery acceptance remain
 hardware gates.
 
+The newer Arch development root now also passes its full stage and clean
+archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
+service is loopback-only, cannot reuse the Plasma user's home or credentials,
+has no device access or capabilities, and can write only its private
+`/var/lib/rog5-agent` state. No email, CV, browser session, API token, or
+provider account is present. This artifact is verified offline but has not
+replaced the live-tested network root or run on the phone.
+
 One hard blocker remains: the vendor KGSL driver initializes Adreno 660 on the first `/dev/kgsl-3d0` open, but the second open fails while the GMU handles `PwrLimitsExitIdl`, followed by a CP page fault. This reproduces without Mesa and remains after disabling optional power features and forcing rails/clocks on. GPU acceleration is therefore not an accepted feature yet.
 
 The historical v2 recovery image temporarily booted and produced logs showing

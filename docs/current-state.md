@@ -9,6 +9,8 @@
 - Target userspace: Arch Linux ARM with systemd and minimal Plasma. The locked
   archive contains the exact accepted network-root modules, pinned firmware,
   and key-only SSH; its Linux-native stage and clean archive round trip pass.
+  A newer offline-verified development archive adds a locked automation
+  account without replacing the live-tested root.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
@@ -213,6 +215,14 @@ boot-header, and AVB verification. The signed Arch Linux ARM base was
 reverified under the pinned signing key, and its metadata-preserving Linux
 staging path executes as AArch64. The final 2,007,186,653-byte Plasma/server
 archive passes a clean round trip with the exact modules and pinned firmware.
+
+The newer 2,006,969,651-byte agent-isolated development archive has SHA-256
+`9f6ca6181f6d43101cd8b836d63ca96bdeea97aea225bb78b22aafe33fc24e53`.
+Its full verifier passes both before archival and after extraction into a
+clean volume. The locked `rog5-agent` system account has no login, SSH access,
+supplementary group, credential, or desktop-user data; its on-demand Chromium
+service is loopback-only and systemd-hardened. This artifact remains outside
+Git and has not been promoted to the NFS export or booted.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
