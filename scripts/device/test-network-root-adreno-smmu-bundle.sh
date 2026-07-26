@@ -15,10 +15,12 @@ for contract in \
 	'verify-adreno-smmu-dependency-contract.sh' \
 	'test-adreno-smmu-dependency-contract.sh' \
 	'test-adreno-smmu-diagnostic-candidate-dtb.sh' \
+	'test-adreno-smmu-kexec-stage-initramfs.sh' \
 	'test-network-root-adreno-smmu-baseline.sh' \
 	'test-probe-network-root-adreno-smmu.sh' \
 	'sm8350-asus-rog-phone5-adreno-smmu-diagnostic.dtso' \
 	'build-adreno-smmu-diagnostic-candidate-dtb.sh' \
+	'build-adreno-smmu-kexec-stage-initramfs.sh' \
 	'check-network-root-adreno-smmu-baseline.sh' \
 	'probe-network-root-adreno-smmu.sh' \
 	'd9ac316489f4258d389d6298659d5e9c22183400' \
