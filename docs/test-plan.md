@@ -306,6 +306,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   health, and complete privileged host cleanup. **Passed offline. Dedicated
   A660 disarm, compound gate, and host-runner suites pass; the full exact
   bundle and actual root-owned v3 export reverify with NFS inactive.**
+- Run registration v3 at most once, require one exact SMMU reprobe, seven
+  loaded modules, GPU/GMU attachment to two IOMMU groups, one unopened
+  headless render node, zero firmware/connectors/storage/faults, normal
+  fallback, and complete host cleanup. **Passed live. Maximum target
+  temperature was 38.1 C; persistent fallback returned with zero pstore and
+  project modules; v3 is consumed and absent from the runnable allowlist.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

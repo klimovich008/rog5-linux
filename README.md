@@ -289,16 +289,22 @@ override and performs at most one `3da0000.iommu` reprobe before any DRM
 dependency load. Its new root-owned export, A660-release watchdog handoff,
 180-second transition rollback, one-invocation target gate, strict host runner,
 private evidence contract, and complete unchanged-binary verifier all pass.
-V2 is no longer runnable. The phone was not contacted. One final clean pushed
-host/fallback preflight remains before the single registration-only decision.
-Firmware and first DRM open remain later, separate gates. See the
+V2 is no longer runnable. The sole v3 RAM-only cycle then passed: GPUCC and
+the exact SMMU reprobe completed, seven modules registered the GPU/GMU with
+two IOMMU attachments and one unopened render node, and firmware, DRM
+descriptors, display connectors, storage, mounts, faults, and failed units
+stayed zero. Normal reboot restored exact fallback with complete host cleanup.
+V3 is consumed and no longer server-allowlisted. Firmware provisioning and
+first DRM open remain later, separate gates. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
 then the
 [A660 registration v2 report](test-results/2026-07-26-a660-registration-v2-offline.md)
 and
-[A660 registration v3 report](test-results/2026-07-26-a660-registration-v3-offline.md).
+[A660 registration v3 offline report](test-results/2026-07-26-a660-registration-v3-offline.md),
+then the
+[A660 registration v3 live acceptance](test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

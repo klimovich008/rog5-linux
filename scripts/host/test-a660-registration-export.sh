@@ -52,19 +52,10 @@ do
 	}
 done
 
-grep -Fq '/var/lib/rog5-network-root-a660-registration-v3)' "$serve" ||
-	{
-		echo 'FAIL NFS server omits the exact-reprobe A660 v3 export' >&2
-		exit 1
-	}
-grep -Fq 'verify-a660-registration-export.sh' "$serve" ||
-	{
-		echo 'FAIL NFS server omits the A660 v2 export verifier' >&2
-		exit 1
-	}
 for rejected in \
 	/var/lib/rog5-network-root-a660-registration \
 	/var/lib/rog5-network-root-a660-registration-v2 \
+	/var/lib/rog5-network-root-a660-registration-v3 \
 	/var/lib/rog5-network-root-adreno-smmu-v20 \
 	/var/lib/rog5-network-root-adreno-smmu-v21
 do
@@ -86,4 +77,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS A660 v3 export is copy-on-write, v21-accepted, exact-reprobe bounded, seven-module exact, firmware-free, credential-preserving, and exclusively allowlisted'
+echo 'PASS A660 v3 export remains exact and independently verifiable but is consumed and absent from the runnable server allowlist'

@@ -708,8 +708,20 @@ no retry. The complete binary verifier passes again. The phone was not
 contacted and NFS stayed inactive. See the
 [registration v3 report](../test-results/2026-07-26-a660-registration-v3-offline.md).
 
-The next step is one final clean pushed read-only host/fallback preflight,
-followed by a decision on the sole registration-only RAM cycle.
+The sole v3 RAM-only cycle then passed. After the accepted exact SMMU reprobe,
+all seven reviewed modules loaded in order; A660 bound, GPU and GMU joined two
+IOMMU groups, one headless render node appeared, no process opened DRM, and
+firmware, connectors, storage, mounts, failed units, warnings, and faults
+stayed zero through the 30-second settle. Maximum target temperature was
+38.1 C. Normal reboot restored exact persistent fallback with zero pstore and
+project modules; privileged host cleanup removed all NFS/firewall/sysctl
+state and restored NetworkManager and ModemManager. V3 is consumed and no
+longer server-allowlisted. See the
+[registration v3 live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
+
+The next GPU boundary is exact firmware provisioning while every DRM node
+remains unopened. First DRM open, GMU resume/HFI, ZAP/SCM authentication, and
+rendering remain later, separate gates.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

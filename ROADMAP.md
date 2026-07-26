@@ -394,10 +394,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Define and fail-first test an atomic one-shot registration host/target
   control plane with nested watchdogs, private evidence, immediate normal
   fallback, exact persistent-fallback verification, and complete host cleanup.
-- [ ] Run one registration-only gate, reboot, and review all IOMMU, power,
+- [x] Run one registration-only gate, reboot, and review all IOMMU, power,
   interrupt, thermal, and fault evidence before permitting a DRM open.
-- [ ] Run a separate first-open gate for SQE/GMU firmware, GMU resume,
-  ZAP/SCM authentication, and GPU hardware initialization.
+- [ ] Provision only the exact SQE/GMU/ZAP firmware under a no-open gate and
+  verify request paths, ownership, hashes, SCM boundary, rollback, and cleanup.
+- [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
+  authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
