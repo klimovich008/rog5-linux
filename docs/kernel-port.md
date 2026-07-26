@@ -332,8 +332,13 @@ Two isolated builds now pass with byte-identical outputs, an unchanged
 Image/config/ABI, an exact MSM-only delta, BTF, and zero embedded firmware;
 see the
 [ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
-The next step is a fresh root/gate review. Any live cycle remains
-unauthorized.
+The fresh root/gate now passes offline with exact PID-filtered balanced
+mapping/GEM/firmware trace requirements, equal pre/post GEM snapshots, nine
+forbidden power/HFI/ZAP/SCM probes, nested watchdogs, and a fully reverified
+unchanged boot package; see the
+[ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
+The root remains non-runnable through the NFS launcher and any live cycle is
+still unauthorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

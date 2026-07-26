@@ -339,8 +339,12 @@ The corresponding
 passes exact stacked-source verification and eight mutations. The subsequent
 [duplicate-build report](test-results/2026-07-26-a660-ucode-allocation-build.md)
 accepts two byte-identical isolated builds with an unchanged
-Image/config/ABI and exact MSM-only delta. A fresh root/gate and any live
-cycle remain pending.
+Image/config/ABI and exact MSM-only delta. The fresh
+[ucode-allocation v5 offline report](test-results/2026-07-26-a660-ucode-allocation-v5-offline.md)
+accepts the root-owned SQE/GMU-only export, PID-filtered balanced-trace
+contract, equal pre/post GEM snapshot requirement, nested watchdog gate, and
+unchanged complete boot package. The root is not served and no live runner
+exists; any phone cycle remains pending.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

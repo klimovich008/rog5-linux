@@ -18,9 +18,14 @@ export_test=$repo/scripts/host/test-a660-ucode-allocation-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
 build_test=$repo/scripts/device/test-mainline-a660-ucode-allocation-build-contract.sh
 package_test=$repo/scripts/device/test-network-root-a660-registration-bundle.sh
+report=$repo/test-results/2026-07-26-a660-ucode-allocation-v5-offline.md
 
 [ -f "$helper_source" ] && [ ! -L "$helper_source" ] || {
 	echo 'FAIL missing accepted A660 one-open helper source' >&2
+	exit 1
+}
+[ -f "$report" ] && [ ! -L "$report" ] || {
+	echo 'FAIL missing A660 ucode-allocation v5 offline report' >&2
 	exit 1
 }
 
@@ -107,11 +112,22 @@ do
 	if ! grep -Fq "$contract" "$helper_source" "$helper_builder" \
 		"$helper_verifier" "$baseline" "$probe" "$runtime_verifier" \
 		"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
-		"$export_test" "$build_test" "$package_test"
+		"$export_test" "$build_test" "$package_test" "$report"
 	then
 		echo "FAIL A660 ucode-allocation v5 path omits: $contract" >&2
 		exit 1
 	fi
+done
+
+for document in README.md ROADMAP.md docs/current-state.md \
+	docs/kernel-port.md docs/network-root.md docs/test-plan.md \
+	docs/builds-and-artifacts.md docs/port-status.md
+do
+	grep -Fq 'ucode-allocation v5' "$repo/$document" ||
+		grep -Fq 'ucode-allocation-v5-offline.md' "$repo/$document" || {
+			echo "FAIL project status omits ucode-allocation v5: $document" >&2
+			exit 1
+		}
 done
 
 if grep -Fq '/var/lib/rog5-network-root-a660-ucode-allocation-v5' "$serve"; then

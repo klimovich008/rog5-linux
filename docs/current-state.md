@@ -760,7 +760,14 @@ Two isolated builds now pass with byte-identical outputs, unchanged
 Image/config/ABI and non-MSM modules, an exact MSM-only delta, BTF, and zero
 embedded firmware; see the
 [ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
-A fresh root/gate and any live cycle remain pending.
+The fresh root/gate now passes offline with a root-owned SQE/GMU-only export,
+PID-filtered exact map/unmap/close and GEM-free contracts, balanced CPU-vmap
+and firmware-reference evidence, equal pre/post GEM snapshots, nine
+power/HFI/ZAP/SCM zero-event probes, nested watchdogs, and the unchanged full
+temporary-boot package. See the
+[ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
+NFS remains inactive, the root is absent from its allowlist, no live runner
+exists, and any phone cycle remains pending.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

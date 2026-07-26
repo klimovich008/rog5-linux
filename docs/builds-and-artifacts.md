@@ -47,7 +47,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | GPUCC plus Adreno SMMU network-root candidate | register only the idle SMMU before any GPU/GMU consumer | v18 stopped on a detector false positive; v19 safely rejected no-bind; v20 stopped before action on the unset `(null)` override representation; the sole v21 cycle bound `arm-smmu`, reached runtime suspend with zero firmware/render/storage activity, and rolled back cleanly; consumed and removed from the runnable allowlist; never flash |
 | A660/GMU registration tier | separate registration from first DRM open before building a live candidate | the sole v3 cycle used one exact SMMU reprobe, loaded seven reviewed modules, attached GPU/GMU to two IOMMU groups, created one unopened headless render node, retained zero firmware/storage/faults, and returned through exact fallback with complete cleanup; consumed and removed from the runnable allowlist; never flash |
 | A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | the sole v4 cycle requested SQE/GMU exactly once, returned `EUCLEAN`, retained zero later hardware/storage/fault evidence, and returned through exact fallback plus cleanup; consumed and removed from the runnable allowlist; never flash |
-| A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source audit and rollback-safe one-shot patch pass; two isolated builds are byte-identical with unchanged Image/config/ABI and non-MSM modules, exact MSM-only delta, BTF, and zero embedded firmware; fresh root/gate and any live use remain pending |
+| A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source/patch and duplicate builds pass; fresh root-owned v5 adds PID-filtered balanced mapping/GEM/firmware trace contracts, equal pre/post GEM snapshots, nine forbidden-event probes, nested watchdogs, and unchanged full-package acceptance; it is not NFS-runnable and live use remains pending |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -248,6 +248,11 @@ records the sole exact two-firmware request, `EUCLEAN` rejection, zero later
 hardware/storage/fault evidence, exact fallback, cleanup, and consumed-root
 lockout. Its mutation-tested nonsecret marker pins the exact report and
 evidence checkpoint. The
+[A660 ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md)
+records the fail-first contract, trace-backed runtime design, root-owned
+reflink export, exact SQE/GMU inputs, ZAP exclusion, whole-tree comparison,
+inactive NFS/non-runnable boundary, duplicate-build replay, and unchanged
+full-package acceptance. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

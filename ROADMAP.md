@@ -429,8 +429,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Reproduce two isolated builds and require unchanged Image/config/ABI,
   only the reviewed MSM module delta, byte-identical outputs, BTF, and zero
   embedded firmware.
-- [ ] Prepare a fresh independently verified RAM-only root and watchdog gate
-  with map/unmap and surviving-state evidence.
+- [x] Prepare a fresh independently verified RAM-only root and watchdog gate
+  with PID-filtered exact map/unmap/close and GEM-free evidence, balanced CPU
+  vmaps and firmware references, equal pre/post GEM snapshots, nine
+  power/HFI/ZAP/SCM zero-event probes, nested fallback watchdogs, and an
+  unchanged fully reverified boot package. Keep it absent from the NFS
+  allowlist and do not create a live runner at this checkpoint. See the
+  [ucode-allocation v5 offline report](test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
 - [ ] Run at most one attended ucode-allocation gate only after its offline
   package is accepted; require balanced maps/unmaps, zero surviving GEM/DRM
   state, no power/HFI/ZAP/SCM/storage/fault evidence, exact fallback, and

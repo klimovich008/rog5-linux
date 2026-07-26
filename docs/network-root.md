@@ -647,8 +647,15 @@ rollback and duplicate-build acceptance. Both conditions now pass; see the
 [ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md)
 and
 [ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
-A fresh root has not yet been prepared or served, and no new live cycle is
-authorized.
+The fresh root-owned v5 export and target gate now pass offline. The gate
+stops the sole helper, PID-filters tracefs before continuing it, requires
+three matching map/unmap/close VMA pointers, three matching unpin/free GEM
+pointers, balanced CPU-vmap and firmware-reference evidence, equal pre/post
+GEM snapshots, and zero power/HFI/ZAP/SCM events. The complete unchanged boot
+package was reverified; see the
+[ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
+NFS remains inactive, the candidate is absent from the serve allowlist, no
+live runner exists, and no new live cycle is authorized.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

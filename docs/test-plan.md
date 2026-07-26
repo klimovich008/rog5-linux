@@ -345,7 +345,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Before any ucode-allocation live cycle, fail-first test a fresh versioned
   root/export and watchdog gate with exact map/unmap counts, zero surviving
   GEM/DRM state, no runtime power/HFI/ZAP/SCM/storage path, immutable fallback,
-  and complete host cleanup. **Pending; no root has been prepared or served.**
+  and complete host cleanup. **Passed offline. The root-owned candidate,
+  PID-filtered exact pointer/count contract, equal pre/post GEM snapshots,
+  nine forbidden-event probes, nested watchdogs, and unchanged full boot
+  package pass; NFS remains inactive and the root is deliberately not
+  runnable. See the
+  [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
