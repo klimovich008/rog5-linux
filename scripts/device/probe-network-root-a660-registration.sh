@@ -223,7 +223,7 @@ firmware_files=$(find /lib/firmware /usr/lib/firmware -type f \
 	fail 'an A660 firmware request already occurred'
 
 fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
-fault_pattern='IOMMU.*fault|arm-smmu.*fault|context fault|global fault'
+fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
 	fail 'fatal kernel signature exists before registration'
 [ "$(dmesg | grep -Eic "$fault_pattern" || true)" -eq 0 ] ||

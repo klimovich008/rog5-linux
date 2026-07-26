@@ -6,6 +6,12 @@ Result: **offline acceptance passed; one attended RAM-only probe is eligible
 after review; no GPU, GMU, firmware, DRM/render, or acceleration claim**. The
 phone was not contacted, booted, or modified. Nothing was flashed.
 
+Update: the subsequent v18 live cycle stopped safely at its read-only baseline
+because the detector matched `fault` inside the normal word `Default`. V18 is
+consumed and the live procedure below is no longer authorized. The unchanged
+binary is now wrapped by the corrected v19 control plane; see the
+[safe-rejection and v19 correction report](2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
+
 V17 accepted only trace-free GPUCC registration and a stable one-device bind
 with every consumer disabled. V18 takes the smallest next dependency step:
 the same external GPUCC module plus the built-in Adreno SMMU driver. GPU and

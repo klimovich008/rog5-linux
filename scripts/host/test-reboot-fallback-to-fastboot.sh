@@ -17,6 +17,7 @@ source = pathlib.Path(sys.argv[1]).read_text()
 embedded = source.split("python3 - <<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
 compile(embedded, "fallback-restart2.py", "exec")
 PY
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
 
 for contract in \
 	'ALLOW_FALLBACK_BOOTLOADER_REBOOT' \
@@ -36,11 +37,35 @@ for contract in \
 	'SYS_REBOOT = 142' \
 	'b"bootloader"' \
 	'os.sync()' \
+	"$fatal_pattern" \
 	'PASS guarded fallback RESTART2 bootloader request sent' \
 	'PASS exact fastboot device reached'
 do
 	grep -Fq "$contract" "$helper" || {
 		echo "FAIL fallback-to-fastboot helper omits: $contract" >&2
+		exit 1
+	}
+done
+
+if printf '%s\n' \
+	'dynamic_debug: Ignore empty _ddebug table' \
+	'evtlog_status: enable:11, panic:1, dump:2' |
+	grep -Ei "$fatal_pattern" >/dev/null
+then
+	echo 'FAIL fallback fatal detector accepts benign debug configuration' >&2
+	exit 1
+fi
+for line in \
+	'Kernel panic - not syncing' \
+	'Oops: fatal exception' \
+	'BUG: unable to handle page fault' \
+	'watchdog bite detected' \
+	'Kernel fault at address 0' \
+	'Unable to handle kernel paging request' \
+	'Synchronous External Abort'
+do
+	printf '%s\n' "$line" | grep -Ei "$fatal_pattern" >/dev/null || {
+		echo "FAIL fallback fatal detector misses: $line" >&2
 		exit 1
 	}
 done

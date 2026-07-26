@@ -25,10 +25,13 @@ base_root=$(realpath -e "$base_root")
 	fail 'base export path is not exact'
 [[ $root != / && $root != "$base_root" ]] ||
 	fail 'unsafe or aliased export roots'
+[[ $root == /var/lib/rog5-network-root-adreno-smmu-v19 ||
+	$root =~ ^/var/lib/rog5-network-root-adreno-smmu-v19[.]partial[.][0-9]+$ ]] ||
+	fail 'candidate export path is not exact'
 
 "$repo/scripts/host/verify-network-root-export.sh" "$base_root" >/dev/null
 
-seal=$root/etc/rog5/adreno-smmu-v18-export
+seal=$root/etc/rog5/adreno-smmu-v19-export
 [[ -f $seal && ! -L $seal ]]
 [[ $(stat -c '%u:%g:%a' "$seal") == 0:0:444 ]]
 grep -qx 'base_export=rog5-network-root-v1' "$seal"
@@ -114,7 +117,7 @@ unchanged_metadata() {
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
 			! -path './etc/rog5' \
-			! -path './etc/rog5/adreno-smmu-v18-export' \
+			! -path './etc/rog5/adreno-smmu-v19-export' \
 			-printf '%P|%y|%m|%U|%G|%s|%T@|%l\n' |
 			LC_ALL=C sort
 	)
@@ -131,7 +134,7 @@ unchanged_hashes() {
 			! -path './usr/lib/firmware/qcom/a660_sqe.fw' \
 			! -path './usr/lib/firmware/qcom/a660_gmu.bin' \
 			! -path './usr/lib/firmware/qcom/sm8350/a660_zap.mbn' \
-			! -path './etc/rog5/adreno-smmu-v18-export' \
+			! -path './etc/rog5/adreno-smmu-v19-export' \
 			-print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 	)
 }
@@ -139,4 +142,4 @@ unchanged_hashes "$base_root" >"$work/base.sha256"
 unchanged_hashes "$root" >"$work/candidate.sha256"
 cmp "$work/base.sha256" "$work/candidate.sha256"
 
-echo "PASS isolated v18 export module_files=$module_files firmware=0 credentials=preserved base=unchanged"
+echo "PASS isolated v19 export module_files=$module_files firmware=0 credentials=preserved base=unchanged"

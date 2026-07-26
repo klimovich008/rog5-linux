@@ -216,8 +216,15 @@ module are combined with a reproducible DT, nested stage, clean-built ASUS
 wrapper, and temporary-boot package. All offline gates pass without contacting
 the phone. See the
 [v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
-One attended RAM-only bind/runtime-suspend probe is next; acceleration remains
-out of scope.
+Its one attended control-plane run stopped safely at the read-only baseline:
+`fault` matched inside the normal word `Default`, before watchdog disarm,
+module load, or SMMU bind. Exact fallback and cleanup passed, so v18 is
+consumed and must not be retried. V19 retains the exact reproduced v18 binary
+while correcting and regression-testing only the external detectors, source
+locks, export seal, and NFS allowlist. Its isolated firmware-free export and
+full offline verifier pass. One attended v19 bind/runtime-suspend probe is
+next; acceleration remains out of scope. See the
+[safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
 
 The complete A660/GMU graph has now passed source audit, and the guarded
 registration kernel is built. Linux `7.1.4-rog5-a660reg1` keeps DRM/MSM,
@@ -230,9 +237,9 @@ firmware is embedded and no phone state changed. See the
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules, while a source lock prevents live
-use until v18 SMMU acceptance is pinned. The isolated seven-module export,
+use until v19 SMMU acceptance is pinned. The isolated seven-module export,
 nested stage, two clean ASUS wrappers, two boot repacks, and exact
-fourteen-file bundle now reproduce and pass offline. The v18 SMMU live gate is
+fourteen-file bundle now reproduce and pass offline. The v19 SMMU live gate is
 the next tier.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the

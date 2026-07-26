@@ -207,19 +207,22 @@ pstore/fatal evidence and complete host cleanup. This accepts only the
 GPUCC/CCF foundation, not acceleration; the next gate is an offline-tested,
 reproducible Adreno power/SMMU/GMU/firmware dependency tier. See the
 [v17 live report](test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
-V18 now passes the first, deliberately smaller offline slice: the exact v17
-GPUCC bits plus the built-in Adreno SMMU, with GPU, GMU, A660 firmware,
-DRM/render nodes, and storage still disabled. The dependency contract, DTB,
-nested staging archive, two clean ASUS wrapper builds, two repacks, baseline,
-guarded probe, mutation suite, and exact bundle verifier pass. The phone was
-not contacted. The host now also has an independently verified copy-on-write
-v18 export with the complete 1,008-file module tree and zero A660 firmware;
-the accepted fallback export remains unchanged. An exact NFS allowlist,
-five-file tmpfs launcher, 120-second transition watchdog overlapping the
-existing 75-second probe watchdog, immediate-reboot path, negative tests, and
-complete bundle re-verification pass offline. This is not acceleration; one
-attended RAM-only SMMU probe remains pending. See the
-[v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+V18 passed the first, deliberately smaller offline slice: the exact v17 GPUCC
+bits plus the built-in Adreno SMMU, with GPU, GMU, A660 firmware, DRM/render
+nodes, and storage still disabled. Its one attended cycle then stopped safely
+at the read-only baseline. A case-insensitive detector matched `fault` inside
+the normal word `Default`; no watchdog was disarmed, GPUCC was not loaded, the
+SMMU remained unbound, and normal reboot restored exact fallback with complete
+host cleanup. V18 is consumed and must not be retried. V19 retains the exact
+reproduced RAM-only binary but corrects and regression-tests the external
+fault detectors, source locks, export seal, and exact NFS allowlist. Its new
+independently verified copy-on-write root has all 1,008 module files, zero A660
+firmware, preserved credentials, and an unchanged accepted base; NFS remains
+inactive. This is not acceleration; one attended v19 SMMU probe remains
+pending. See the
+[v18 offline report](test-results/2026-07-26-network-root-adreno-smmu-offline.md)
+and
+[v18 safe-rejection/v19 correction report](test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
 The complete pinned A660/GMU source graph and its first guarded kernel build
 now pass offline. Registration is a real hardware boundary: it attaches three
 IOMMU contexts and programs GMU RSCC/PDC registers, while firmware, GPU
@@ -231,11 +234,11 @@ error. Two isolated rootless builds and all nine acceptance outputs are
 byte-identical; no firmware is embedded and the phone was not contacted. The
 exact four-node DT also passes mutation tests and duplicate byte-identical
 builds. Its read-only baseline and no-open registration probe pass offline but
-remain source-locked until the earlier v18 SMMU live gate succeeds; the
+remain source-locked until the corrected v19 SMMU live gate succeeds; the
 isolated seven-module NFS export, nested stage, two clean ASUS wrappers, two
 header-v3/AVB repacks, and exact fourteen-file bundle now also reproduce and
 pass their complete offline verifier. The package is intentionally not
-authorized for live use; the v18 SMMU gate and both later GPU live gates remain
+authorized for live use; the v19 SMMU gate and both later GPU live gates remain
 pending. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and

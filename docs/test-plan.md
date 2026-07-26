@@ -249,7 +249,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   storage, thermal, reboot, or cleanup failure. The isolated firmware-free
   export, exact server allowlist, five-file strict-SSH launcher, negative
   tests, watchdog ordering, and complete bundle re-verification pass offline.
-  **Live result pending; no retry.**
+  **V18 was consumed by a safe baseline rejection: `fault` matched inside the
+  normal word `Default`, before any watchdog disarm, module load, or SMMU bind.
+  Exact fallback and cleanup passed; v18 must not be retried. V19 keeps the
+  unchanged reproduced binary, corrects the token-delimited fault detector,
+  passes regressions and full offline re-verification, and has a new isolated
+  exact-allowlist export. One v19 live result is pending; no retry.**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
@@ -266,7 +271,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Require a read-only pre-disarm baseline and an independent SysRq-watchdog
   probe that manually loads the exact seven-module chain, never opens DRM,
   detects any firmware request, and disarms only after stable registration.
-  Keep a source lock until the v18 SMMU live marker is hash-pinned. **Passed
+  Keep a source lock until the v19 SMMU live marker is hash-pinned. **Passed
   offline against the exact build; deliberately locked for live use.**
 - Reproduce the initramfs/module stage carrying the accepted baseline and
   probe, then the nested wrapper and temporary-boot package before permitting

@@ -15,6 +15,7 @@ probe=$repo/scripts/device/probe-network-root-a660-registration.sh
 }
 sh -n "$baseline"
 sh -n "$probe"
+fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 
 for contract in \
 	'7.1.4-rog5-a660reg1' \
@@ -31,7 +32,7 @@ for contract in \
 	'a660_sqe.fw|a660_gmu.bin|a660_zap.mbn' \
 	'physical block device is present' \
 	'block-backed mount is present' \
-	'IOMMU.*fault|arm-smmu.*fault|context fault|global fault' \
+	"$fault_pattern" \
 	'registration module set is not exact' \
 	'thermal_count'
 do
@@ -73,7 +74,7 @@ for contract in \
 	"kill -KILL -- \"-\$watchdog_pid\"" \
 	'physical block device appeared' \
 	'block-backed mount appeared' \
-	'IOMMU.*fault|arm-smmu.*fault|context fault|global fault' \
+	"$fault_pattern" \
 	'registration_safe=1'
 do
 	grep -Fq "$contract" "$probe" || {

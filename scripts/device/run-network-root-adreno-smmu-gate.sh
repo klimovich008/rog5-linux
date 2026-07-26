@@ -53,11 +53,11 @@ verify_file() {
 verify_file "$module" 400 \
 	9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
 verify_file "$baseline" 500 \
-	2385fbed96a59362cfb7d34cf1970362fcf2937eb7a238aa6628158141b4a592
+	db75fb268167a13b3f22b7fcdb73d17247d29e3551fcff5f3105022ca95fe402
 verify_file "$disarm" 500 \
 	b126182b615831e6f39784e4a2657cc60096ff906c26f1458be7d9a0d3ea065a
 verify_file "$probe" 500 \
-	14ef5916fdecc6ac412f8f5f7deb8121eb7c668614e4bd5b7b91ac6df96597bb
+	c005963f206a7c325bdb08eaab4f7adc45e6d2ee1d5f9be5b1dc86f3c5317df6
 
 pid_file=/run/rog5-network-root-watchdog.pid
 marker=/run/rog5-network-root-watchdog.disarmed.pid

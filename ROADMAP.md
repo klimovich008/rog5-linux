@@ -84,7 +84,10 @@ for a working feature.
   complete host cleanup.
 - [x] Source-test and reproduce the isolated GPUCC plus Adreno SMMU tier with
   GPU/GMU consumers, A660 firmware, storage, and display still disabled.
-- [ ] Run the one-shot attended v18 Adreno SMMU bind/runtime-suspend gate,
+- [x] Consume the one-shot attended v18 Adreno SMMU gate safely at its
+  read-only baseline; a detector false-positive stopped before watchdog
+  disarm, module load, or SMMU bind, and exact fallback/cleanup passed.
+- [ ] Run the corrected one-shot v19 Adreno SMMU bind/runtime-suspend gate,
   then pin its acceptance before unlocking A660 registration.
 - [x] Pass two normal-coldplug Arch boots with persistent SSH authorization
   and server identity.
@@ -310,14 +313,19 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   firmware path.
 - [x] Rebuild and reproduce the smallest GPUCC plus Adreno SMMU DTB, nested
   stage, ASUS wrapper, and temporary-boot package from the storage-safe base.
-- [x] Prepare and independently verify the isolated v18 copy-on-write export
-  with 1,008 unchanged module files, zero A660 firmware, preserved
-  credentials, an unchanged accepted base, and an exact NFS allowlist.
-- [x] Test and pin the one-shot host/target control plane: five exact tmpfs
+- [x] Preserve the consumed v18 root and prepare an independently verified
+  v19 copy-on-write export with 1,008 unchanged module files, zero A660
+  firmware, preserved credentials, an unchanged accepted base, and an exact
+  NFS allowlist that no longer serves v18.
+- [x] Test and pin the corrected v19 host/target control plane: five exact tmpfs
   inputs, strict SSH identity, private evidence, baseline under the original
   watchdog, a 120-second transition watchdog overlapping the existing
   75-second probe, one invocation, and immediate fallback reboot.
-- [ ] Run the one-shot attended RAM-only SMMU bind/runtime-suspend gate.
+- [x] Consume v18 safely at the baseline after a false match on the normal
+  word `Default`; prove no watchdog disarm, GPUCC load, SMMU bind, firmware,
+  render node, storage access, or cleanup failure, and do not retry v18.
+- [ ] Run the corrected one-shot attended v19 RAM-only SMMU
+  bind/runtime-suspend gate using the unchanged reproduced binary.
 - [x] Source-test the remaining GPU/GX, regulator, interconnect, GMU,
   reserved-memory, firmware, and complete consumer dependency graph; separate
   probe-time IOMMU/RSCC/PDC setup from first-open firmware and power-up.
@@ -332,7 +340,7 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   display, remote-processor, RTC, and USB containment.
 - [x] Define and artifact-test the read-only registration baseline and
   independent-watchdog probe; pin the seven-module load order, forbid DRM
-  opens/firmware requests, and source-lock it behind the v18 SMMU live result.
+  opens/firmware requests, and source-lock it behind the v19 SMMU live result.
 - [x] Build and reproduce the module/initramfs stage carrying the accepted
   baseline and probe, then its ASUS wrapper and temporary-boot package before
   any registration attempt; verify the isolated seven-module NFS export,

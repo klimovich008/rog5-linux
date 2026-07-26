@@ -33,7 +33,7 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
-	/var/lib/rog5-network-root-adreno-smmu-v18)
+	/var/lib/rog5-network-root-adreno-smmu-v19)
 		"$repo/scripts/host/verify-adreno-smmu-export.sh" \
 			"$root" /var/lib/rog5-network-root-v1
 		;;

@@ -261,11 +261,12 @@ identity, and runs the independent path-based verifier.
 
 The server accepts exactly two source directories: the accepted general
 `/var/lib/rog5-network-root-v1` export and the independently verified
-`/var/lib/rog5-network-root-adreno-smmu-v18` diagnostic sibling. The latter is
+`/var/lib/rog5-network-root-adreno-smmu-v19` diagnostic sibling. The latter is
 a copy-on-write derivative with the same 1,008-file Linux
 `7.1.4-g7a5cef0db479` module tree and credentials, but with all three
 hash-pinned A660 firmware files absent. The source-locked A660 registration
-export and every other path are rejected before NFS or firewall setup.
+export, the consumed v18 sibling, and every other path are rejected before NFS
+or firewall setup.
 `prepare-adreno-smmu-export.sh` creates the sibling only when absent, and
 `verify-adreno-smmu-export.sh` independently compares it with the accepted
 base before `serve-network-root.sh` may expose it.
@@ -518,20 +519,28 @@ host cleanup. The result accepts only the GPUCC/CCF foundation; see the
 [v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
 V18 keeps that accepted GPUCC module and enables only its smallest reviewed
-consumer, the built-in Adreno SMMU. The pinned source audit, two-status DT
-overlay, credential-free nested stage, two clean ASUS wrapper builds, two
-repacks, read-only pre-disarm baseline, guarded 75-second probe, mutation
-suite, and exact bundle verifier pass offline. The exact v18 host export,
-server allowlist, negative firmware-injection test, and strict five-file
-tmpfs launcher now pass too. The target launcher runs the baseline while the
-original watchdog remains armed, then overlaps a 120-second transition
-watchdog across the disarm and one 75-second probe before requesting immediate
-fallback reboot. GPU, GMU, A660 firmware, render nodes, storage, and unrelated
-consumers remain disabled. The phone was not contacted, so SMMU registration
-is not yet a live claim. The inert host entry point is
-`run-adreno-smmu-live-gate.sh`; it requires both explicit guards and private
-credential/evidence paths. See the
-[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+consumer, the built-in Adreno SMMU. Its pinned source audit, two-status DT
+overlay, credential-free nested stage, clean duplicate builds, baseline,
+guarded probe, mutation suite, and exact bundle verifier pass offline. Its one
+attended compound gate stopped safely in the read-only baseline because
+`fault` matched inside the normal word `Default`. No watchdog was disarmed,
+GPUCC was not loaded, the SMMU remained unbound, and exact fallback plus host
+cleanup passed. V18 is consumed and cannot be served or retried.
+
+V19 preserves the byte-identical v18 binary and corrects only the external
+detectors, source locks, export seal, and allowlist. Regression tests reject
+the benign `Default`, `dynamic_debug`, and `panic:1` inputs while accepting
+real token-delimited IOMMU and fatal signatures. Its independently verified
+v19 export preserves the complete module tree and credentials, contains zero
+A660 firmware, and leaves the accepted base unchanged. The target launcher
+still runs the baseline under the original watchdog, overlaps a 120-second
+transition watchdog across disarm and one 75-second probe, and requests
+immediate fallback. The inert host entry point is
+`run-adreno-smmu-live-gate.sh`; it requires both explicit guards and new
+private evidence. See the
+[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md)
+and
+[v18 safe-rejection/v19 correction report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

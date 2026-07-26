@@ -9,6 +9,7 @@ probe=$repo/scripts/device/probe-network-root-adreno-smmu.sh
 	exit 1
 }
 sh -n "$probe"
+fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 
 for contract in \
 	'ALLOW_MAINLINE_ADRENO_SMMU_PROBE' \
@@ -33,7 +34,7 @@ for contract in \
 	'/sys/kernel/iommu_groups' \
 	'/dev/dri' \
 	'a660_sqe.fw|a660_gmu.bin|a660_zap.mbn' \
-	'IOMMU.*fault|arm-smmu.*fault|context fault|global fault' \
+	"$fault_pattern" \
 	'exec 9>/proc/sysrq-trigger' \
 	'echo b >&9' \
 	'setsid sh -c' \

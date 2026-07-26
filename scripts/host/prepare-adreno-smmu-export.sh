@@ -8,7 +8,7 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 base_root=${1:-/var/lib/rog5-network-root-v1}
-export_root=${2:-/var/lib/rog5-network-root-adreno-smmu-v18}
+export_root=${2:-/var/lib/rog5-network-root-adreno-smmu-v19}
 kernel_release=7.1.4-g7a5cef0db479
 boot_hash=37e607795794713472d6944cfbc691211365184a2b674118a17c5d9763b893bf
 module_hash=9ac07151490fe4844462945014e0a74674b43841e4cea1cfc4c3560231067d2a
@@ -20,7 +20,7 @@ for command in chmod chown cp cut find install mv realpath rm sha256sum stat \
 done
 [[ $base_root == /var/lib/rog5-network-root-v1 ]] ||
 	fail 'base export path is not exact'
-[[ $export_root == /var/lib/rog5-network-root-adreno-smmu-v18 ]] ||
+[[ $export_root == /var/lib/rog5-network-root-adreno-smmu-v19 ]] ||
 	fail 'candidate export path is not exact'
 [[ -d $base_root && ! -L $base_root ]] || fail 'accepted base export is absent'
 [[ ! -e $export_root ]] || fail 'candidate export already exists'
@@ -79,7 +79,7 @@ module_root=$stage/usr/lib/modules/$kernel_release
 module_files=$(find "$module_root" -type f | wc -l)
 ((module_files > 100)) || fail 'candidate module tree is incomplete'
 
-seal=$stage/etc/rog5/adreno-smmu-v18-export
+seal=$stage/etc/rog5/adreno-smmu-v19-export
 {
 	printf 'base_export=rog5-network-root-v1\n'
 	printf 'kernel_release=%s\n' "$kernel_release"
@@ -103,4 +103,4 @@ touch -r "$base_root/etc/rog5" "$stage/etc/rog5"
 	"$stage" "$base_root"
 mv "$stage" "$export_root"
 succeeded=1
-echo "PASS prepared isolated v18 Adreno-SMMU export at $export_root"
+echo "PASS prepared isolated v19 Adreno-SMMU export at $export_root"

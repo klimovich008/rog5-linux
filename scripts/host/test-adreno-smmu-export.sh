@@ -16,7 +16,7 @@ done
 
 for contract in \
 	'/var/lib/rog5-network-root-v1' \
-	'/var/lib/rog5-network-root-adreno-smmu-v18' \
+	'/var/lib/rog5-network-root-adreno-smmu-v19' \
 	'cp -a --reflink=always' \
 	'7.1.4-g7a5cef0db479' \
 	'usr/lib/firmware/qcom/a660_sqe.fw' \
@@ -40,14 +40,14 @@ do
 done
 
 grep -Fq \
-	'/var/lib/rog5-network-root-adreno-smmu-v18)' "$serve" ||
+	'/var/lib/rog5-network-root-adreno-smmu-v19)' "$serve" ||
 	{
-		echo 'FAIL NFS server omits the exact v18 export allowlist' >&2
+		echo 'FAIL NFS server omits the exact v19 export allowlist' >&2
 		exit 1
 	}
 grep -Fq 'verify-adreno-smmu-export.sh' "$serve" ||
 	{
-		echo 'FAIL NFS server omits the v18 export verifier' >&2
+		echo 'FAIL NFS server omits the v19 export verifier' >&2
 		exit 1
 	}
 
@@ -64,4 +64,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS v18 export is copy-on-write, firmware-free, module-complete, credential-preserving, and server-allowlisted'
+echo 'PASS v19 export is copy-on-write, firmware-free, module-complete, credential-preserving, and server-allowlisted'

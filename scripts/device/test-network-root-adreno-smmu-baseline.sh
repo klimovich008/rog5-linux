@@ -9,6 +9,7 @@ baseline=$repo/scripts/device/check-network-root-adreno-smmu-baseline.sh
 	exit 1
 }
 sh -n "$baseline"
+fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
 
 for contract in \
 	'7.1.4-g7a5cef0db479' \
@@ -35,12 +36,29 @@ for contract in \
 	'/dev/dri' \
 	'a660_sqe.fw|a660_gmu.bin|a660_zap.mbn' \
 	'Kernel panic|Oops:|BUG:' \
-	'IOMMU.*fault|arm-smmu.*fault|context fault|global fault' \
+	"$fault_pattern" \
 	'thermal_count' \
 	'sleep 12'
 do
 	grep -Fq "$contract" "$baseline" || {
 		echo "FAIL Adreno SMMU baseline omits: $contract" >&2
+		exit 1
+	}
+done
+
+if printf '%s\n' 'iommu: Default domain type: Translated' |
+	grep -Ei "$fault_pattern" >/dev/null
+then
+	echo 'FAIL Adreno SMMU fault detector accepts the normal Default line' >&2
+	exit 1
+fi
+for line in \
+	'arm-smmu 3da0000.iommu: Unhandled context fault' \
+	'IOMMU page fault at address 0' \
+	'arm-smmu: global fault'
+do
+	printf '%s\n' "$line" | grep -Ei "$fault_pattern" >/dev/null || {
+		echo "FAIL Adreno SMMU fault detector misses: $line" >&2
 		exit 1
 	}
 done

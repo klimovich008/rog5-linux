@@ -106,8 +106,9 @@ for directory in /sys/fs/pstore /mnt/pstore; do
 	done
 done
 [ "$pstore_records" -eq 0 ] || fail 'fallback pstore is not empty'
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
 fatal_lines=$(dmesg 2>/dev/null |
-	grep -Eic 'panic|Oops:|BUG:|watchdog bite|Kernel fault' || true)
+	grep -Eic "$fatal_pattern" || true)
 [ "$fatal_lines" -eq 0 ] || fail 'fallback kernel log has a fatal signature'
 
 thermal_zones=0
