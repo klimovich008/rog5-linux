@@ -413,6 +413,14 @@ Clean synchronized Git, protected root/package/runner hashes, distinct SSH
 identities, strict read-only fallback health, inactive host services, and an
 actual unarmed privileged refusal all pass with zero residue. This authorizes
 at most one attended RAM-only v7 cycle with no retry and never any flash.
+The
+[sole v7 live cycle](test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+now passes the corrected raw-size oracle, three successful distinct
+allocations, exact rollback pointer sets, compiler-aware logical `4/4`,
+and an equal GEM snapshot after the mandatory settle. Power/HFI/ZAP/SCM,
+hardware initialization, submission, and rendering stayed zero. Normal
+fallback and complete host cleanup passed; v7 is consumed and non-runnable.
+The next isolated tier starts at runtime power and GMU resume, not rendering.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

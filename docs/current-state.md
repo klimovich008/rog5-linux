@@ -852,6 +852,15 @@ credentials, distinct SSH identities, strict read-only fallback health,
 inactive services, and actual unarmed runner/server refusals pass with zero
 residue. At most one attended RAM-only v7 cycle is authorized, with no retry
 and no flash.
+That
+[sole v7 live cycle](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+now passes. The raw `4/4096/43288` entry set, three successful allocations,
+exact map/unmap/close/unpin/free sets, compiler-aware logical `4/4`, and
+equal pre/post GEM snapshots after settle all matched. The intentional open
+returned `EUCLEAN`; power, HFI, ZAP/SCM, hardware initialization, storage,
+faults, and retained DRM descriptors remained zero. The normal reboot
+restored exact fallback and complete host cleanup. V7 is consumed,
+non-runnable, and must not be retried.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -500,9 +500,13 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   [v7 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
   passes every check with zero host residue and authorizes at most one
   attended RAM-only cycle with no retry and no flash.
-- [ ] Run at most one RAM-only v7 cycle, require the raw-size, logical `4/4`,
+- [x] Run at most one RAM-only v7 cycle, require the raw-size, logical `4/4`,
   complete rollback, and equal settled-snapshot gates, then consume v7
-  regardless of result.
+  regardless of result. The
+  [sole v7 live cycle](test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+  passed every gate with zero power/HFI/ZAP/SCM/storage/fault evidence,
+  returned through exact fallback and complete cleanup, and is permanently
+  consumed.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
