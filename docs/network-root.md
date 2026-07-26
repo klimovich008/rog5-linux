@@ -728,7 +728,14 @@ existed and the phone was not contacted at that checkpoint. The subsequent
 adds a fail-first-tested exact one-invocation runner, strict SSH identity,
 private evidence, and no retry. Local credential/root checks and an actual
 unarmed refusal pass. The runner has no NFS/server/boot control, NFS/RPC
-remains inactive, and no phone contact occurred. V7 is still **HOLD**.
+remains inactive, and no phone contact occurred at that checkpoint. The
+separate
+[v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+adds only an exact-root, verifier-before-state NFS case behind a dedicated
+opt-in. Clean synchronized Git, protected root/package/runner identities,
+credentials, distinct pinned SSH hosts, strict fallback health, inactive
+services, and actual unarmed refusals pass with zero residue. It authorizes
+at most one attended RAM-only v7 cycle, with no retry and no flash.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

@@ -22,6 +22,7 @@ boundary_report=$repo/test-results/2026-07-26-a660-ucode-allocation-boundary.md
 rejection=$repo/test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md
 report=$repo/test-results/2026-07-26-a660-ucode-allocation-v7-offline.md
 hold_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md
+go_report=$repo/test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md
 
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test" "$prepare" "$verify_export" \
@@ -33,7 +34,8 @@ do
 		exit 1
 	}
 done
-for input in "$boundary_report" "$rejection" "$report" "$hold_report"; do
+for input in "$boundary_report" "$rejection" "$report" "$hold_report" \
+	"$go_report"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || {
 		echo "FAIL missing immutable A660 ucode-allocation v7 input: $input" >&2
 		exit 1
@@ -43,6 +45,8 @@ done
 	a17847d18c21d5b2c039df4353a899abce37159ec0009b5afaa0dda6067d146f ]
 [ "$(sha256sum "$rejection" | cut -d ' ' -f 1)" = \
 	cfdd0837e6da7d06ba74e0557c6abeea396f12f02e345d9ab87ba1a47ade89e6 ]
+[ "$(sha256sum "$go_report" | cut -d ' ' -f 1)" = \
+	c7ced9b9796186e78f08f8121158ba98f35d1a4d088ef7c5e9647b017b1a5f6e ]
 
 for input in "$runtime_builder" "$runtime_verifier" "$runtime_test" \
 	"$probe_test" "$gate" "$gate_test"
@@ -93,7 +97,7 @@ do
 		"$verify_export" "$export_test" "$relocation_verifier" \
 		"$consumed_v6_test" "$live_runner" "$live_runner_test" \
 		"$live_window_test" "$serve" "$boundary_report" "$rejection" \
-		"$report" "$hold_report"
+		"$report" "$hold_report" "$go_report"
 	then
 		echo "FAIL A660 ucode-allocation v7 path omits: $contract" >&2
 		exit 1
@@ -115,6 +119,9 @@ do
 			"$status_file" ||
 		! grep -Fq \
 			'2026-07-26-a660-ucode-allocation-v7-prelive-hold.md' \
+			"$status_file" ||
+		! grep -Fq \
+			'2026-07-26-a660-ucode-allocation-v7-prelive-go.md' \
 			"$status_file"
 	then
 		echo "FAIL project status omits A660 v7 report chain: $status_file" >&2
@@ -138,4 +145,4 @@ fi
 "$live_window_test"
 "$consumed_v6_test"
 
-echo 'PASS A660 ucode-allocation v7 is raw-size-pinned, compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, explicit-window-only, and pre-live HOLD'
+echo 'PASS A660 ucode-allocation v7 is raw-size-pinned, compiler-pinned, logical-vmap-balanced, snapshot-guarded, host-runner-tested, storage-isolated, explicit-window-only, and pre-live GO'

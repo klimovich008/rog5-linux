@@ -406,8 +406,13 @@ No phone contact occurred at that checkpoint. The
 now adds an exact one-shot host runner with strict SSH identity, immutable
 inputs, private logging, expected reboot disconnect, and no retry. Its mock,
 credential/root, and actual unarmed-refusal checks pass. It has no
-NFS/server/boot authority, so v7 remains non-runnable **HOLD** until a
-separate GO review.
+NFS/server/boot authority at that checkpoint. The separate
+[v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+adds one exact-root, verifier-before-state, explicit-opt-in NFS window.
+Clean synchronized Git, immutable inputs, distinct SSH identities, strict
+fallback health, inactive services, and actual unarmed refusals pass with
+zero residue. This authorizes at most one attended RAM-only v7 cycle with no
+retry and no flash.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

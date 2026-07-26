@@ -843,8 +843,15 @@ immutable input, private logging, expected disconnect, one-call, and no-retry
 mock contracts pass; local credential fingerprints match the protected root,
 and an actual unarmed invocation refused before any state change. The runner
 cannot start NFS or boot the phone. NFS/RPC remains inactive, the v7 root
-still has no server case, no phone contact occurred, and the decision remains
-**HOLD** pending a later GO review.
+had no server case at that checkpoint, and no phone contact occurred. The
+separate
+[v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+now adds one exact-root, verifier-before-state NFS case behind a dedicated
+opt-in. Clean synchronized Git, immutable root/package/runner hashes,
+credentials, distinct SSH identities, strict read-only fallback health,
+inactive services, and actual unarmed runner/server refusals pass with zero
+residue. At most one attended RAM-only v7 cycle is authorized, with no retry
+and no flash.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

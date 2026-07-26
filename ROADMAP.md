@@ -494,9 +494,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   and actual unarmed refusal pass; the
   [v7 pre-live control acceptance](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
   records the separate non-runnable **HOLD** checkpoint.
-- [ ] Lift v7 HOLD only in a later verifier-first, explicit-opt-in NFS review
+- [x] Lift v7 HOLD only in a later verifier-first, explicit-opt-in NFS review
   with clean Git, exact fallback, credentials, inactive services, and an
-  actual unarmed-refusal test.
+  actual unarmed-refusal test. The
+  [v7 pre-live GO review](test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+  passes every check with zero host residue and authorizes at most one
+  attended RAM-only cycle with no retry and no flash.
 - [ ] Run at most one RAM-only v7 cycle, require the raw-size, logical `4/4`,
   complete rollback, and equal settled-snapshot gates, then consume v7
   regardless of result.

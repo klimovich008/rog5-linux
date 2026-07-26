@@ -430,7 +430,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Lift v7 HOLD only through a later verifier-before-state,
   explicit-opt-in server case plus clean Git, exact fallback, credentials,
   root/package/runner hashes, inactive host services, and actual unarmed
-  refusal. **Pending.**
+  refusal. **Passed. The fail-first exact-root case verifies immutable v7
+  before any host mutation; strict fallback and distinct SSH identities,
+  credentials, package/root/runner hashes, clean synchronized Git, inactive
+  services, and actual unarmed runner/server refusals pass with zero residue.
+  The
+  [v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+  authorizes at most one attended RAM-only cycle with no retry and no
+  flash.**
 - Run at most one RAM-only v7 cycle under nested watchdogs, require the full
   raw-size, pointer-union, logical `4/4`, complete rollback, and equal settled
   snapshot contract, then consume v7 regardless of result. **Pending.**
