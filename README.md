@@ -363,6 +363,16 @@ consumed, absent from the NFS allowlist, and must not be retried. A fresh v6
 must trace `kernel_new`/`kernel_put` directly and pass the equal-snapshot gate
 before any new attended decision.
 
+That [fresh v6 offline package](test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
+now passes. It reuses the exact accepted kernel bits, pins their compiler
+relocations, traces three successful `kernel_new` and two `kernel_put`
+operations directly, requires wrapper `get=1, put=2`, logical vmap balance
+`4/4`, matching rollback object sets, and the original equal post-settle GEM
+snapshot. The root-owned export and generated runtime are reproducible and
+mutation-tested, while NFS remains inactive and v6 has no server case or live
+runner. The decision remains **HOLD** until a separate attended control-plane
+and fallback review.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),

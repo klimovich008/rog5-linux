@@ -678,6 +678,19 @@ passed, and v5 must not be retried. Any v6 requires a fresh non-runnable root,
 direct convenience-helper traces, the original snapshot gate, and a new
 review.
 
+The
+[fresh v6 offline package](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
+now satisfies that non-runnable boundary. It reproducibly derives new
+baseline/probe scripts from immutable v5 inputs, pins the accepted module's
+compiler relocation layout, directly traces three `kernel_new` and two
+`kernel_put` operations, and requires logical vmap balance `4/4` plus the
+unchanged post-settle GEM snapshot. The root-owned Btrfs export passed
+whole-tree verification before atomic promotion, two independent reverifies,
+and a changed-predecessor-seal mutation. NFS remained inactive with zero
+exports/listeners/mounts, no v6 server case or live runner exists, and the
+phone was not contacted. V6 therefore remains **HOLD** pending a separate
+attended runner, fallback, credential, and NFS-window review.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the
