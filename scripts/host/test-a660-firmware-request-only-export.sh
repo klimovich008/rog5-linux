@@ -56,6 +56,7 @@ for consumed in \
 	/var/lib/rog5-network-root-a660-registration \
 	/var/lib/rog5-network-root-a660-registration-v2 \
 	/var/lib/rog5-network-root-a660-registration-v3 \
+	/var/lib/rog5-network-root-a660-firmware-request-only-v4 \
 	/var/lib/rog5-network-root-adreno-smmu-v20 \
 	/var/lib/rog5-network-root-adreno-smmu-v21
 do
@@ -64,12 +65,6 @@ do
 		exit 1
 	fi
 done
-grep -Fq \
-	'/var/lib/rog5-network-root-a660-firmware-request-only-v4)' "$serve" ||
-	{
-		echo 'FAIL NFS server does not allowlist exact request-only v4 root' >&2
-		exit 1
-	}
 
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|rm[[:space:]]+-rf[[:space:]]+["$]*(base_root|export_root)' \
@@ -84,4 +79,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	"$verify" "$CANDIDATE_ROOT" "$BASE_ROOT"
 fi
 
-echo 'PASS A660 request-only v4 export is exact-base, seven-module, SQE/GMU-only, ZAP-absent, helper-pinned, and credential-preserving'
+echo 'PASS A660 request-only v4 export is exact-base, seven-module, SQE/GMU-only, ZAP-absent, helper-pinned, credential-preserving, and consumed'

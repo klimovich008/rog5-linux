@@ -323,8 +323,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   twice, and require independent rollback. **Passed offline. The exact patch,
   two clean kernel builds, two static-helper builds, root-owned SQE/GMU-only
   export, mutation-tested target/host watchdog gate, and unchanged AVB package
-  pass their complete contracts. No live v4 cycle has run; see the
+  pass their complete contracts; see the
   [request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).**
+- Run request-only v4 at most once; require exact `EUCLEAN`, two firmware
+  requests, one success marker, no surviving DRM descriptor, zero
+  ucode/power/HFI/ZAP/SCM/storage/display/fault evidence, exact fallback, and
+  complete cleanup. **Passed live. Maximum target temperature was 38.5 C;
+  persistent fallback returned with zero pstore/project modules; v4 is
+  consumed and absent from the runnable allowlist. The exact nonsecret
+  acceptance marker remains to be pinned; see the
+  [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time

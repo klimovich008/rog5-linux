@@ -33,10 +33,6 @@ case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
-	/var/lib/rog5-network-root-a660-firmware-request-only-v4)
-		"$repo/scripts/host/verify-a660-firmware-request-only-export.sh" \
-			"$root" /var/lib/rog5-network-root-a660-registration-v3
-		;;
 	*)
 		fail 'unexpected export root'
 		;;
@@ -44,9 +40,12 @@ esac
 
 etab=/var/lib/nfs/etab
 [[ -e $etab ]] || install -m 0644 /dev/null "$etab"
-[[ -f $etab && ! -L $etab &&
-	$(stat -c %u:%g:%a "$etab") == 0:0:644 ]] ||
-	fail 'unexpected NFS export state file'
+[[ -f $etab && ! -L $etab ]] ||
+	fail 'unexpected NFS export state file type'
+case $(stat -c %u:%g:%a "$etab") in
+	0:0:600|0:0:644) ;;
+	*) fail 'unexpected NFS export state file metadata' ;;
+esac
 systemctl is-active --quiet firewalld.service ||
 	fail 'firewalld must be active'
 ! systemctl is-active --quiet nfs-server.service ||

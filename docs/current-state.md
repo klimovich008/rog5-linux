@@ -730,12 +730,23 @@ pass byte-for-byte: the Image, config, ABI, and every non-MSM module remain
 accepted. A new root-owned v4 export now contains only exact SQE/GMU firmware,
 the changed MSM module, and a reproducible 896-byte one-open helper; ZAP is
 absent. Its mutation-tested target/host watchdog gate and the unchanged full
-AVB package pass offline. No live v4 cycle has run. See the
+AVB package pass offline. The sole live cycle then loaded SQE and GMU exactly
+once and returned `EUCLEAN` before ucode, runtime power, HFI, or ZAP/SCM.
+No DRM descriptor survived; storage, display, warnings, and faults stayed
+zero. Maximum target temperature was 38.5 C. Normal reboot restored exact
+fallback with zero pstore/project modules and complete host cleanup. V4 is
+consumed and removed from the runnable allowlist; its exact nonsecret
+acceptance marker remains to be pinned. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
 then the
-[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
+[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
+and
+[request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
+
+The next GPU boundary is offline isolation of ucode buffer creation before
+runtime power or hardware access.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

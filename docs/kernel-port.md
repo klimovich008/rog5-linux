@@ -304,12 +304,21 @@ initialization, HFI, or ZAP/SCM. The default-off patch, six mutation
 rejections, and two isolated clean builds now pass; the Image is unchanged
 and only `msm.ko` differs. The exact SQE/GMU-only root, ZAP-absent policy,
 static one-open helper, mutation-tested watchdog gate, strict host runner, and
-unchanged package now pass offline. No live v4 cycle has run. See the
+unchanged package pass offline. The sole live cycle then requested SQE and GMU
+exactly once, returned `EUCLEAN`, crossed no ucode/power/HFI/ZAP boundary,
+retained zero DRM descriptors/storage/faults, and returned through exact
+fallback plus complete cleanup. V4 is consumed; its exact nonsecret
+acceptance marker remains to be pinned. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
 then the
-[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
+[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
+and
+[request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
+
+The next source boundary is ucode buffer creation after accepted firmware
+objects but before runtime power or hardware access.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

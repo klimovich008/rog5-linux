@@ -305,7 +305,12 @@ the default-off patch and two isolated clean builds now pass byte-for-byte,
 with an unchanged Image and only `msm.ko` changed. The root-owned v4 export,
 two exact firmware files, static one-open helper, mutation-tested runtime
 gate, strict host runner, and unchanged AVB package now also pass their full
-offline contracts. No live v4 cycle has run. See the
+offline contracts. The sole v4 RAM-only cycle then requested SQE and GMU
+exactly once, returned `EUCLEAN`, and retained zero ucode, power, HFI,
+ZAP/SCM, DRM descriptors, storage, display, warning, or fault evidence.
+Normal reboot restored exact fallback and complete host cleanup. V4 is
+consumed and no longer server-allowlisted; its exact nonsecret acceptance
+marker remains the next post-live checkpoint. See the
 [A660 full dependency audit](test-results/2026-07-26-a660-full-dependency-audit.md)
 and
 [A660 registration build report](test-results/2026-07-26-a660-registration-build.md),
@@ -321,6 +326,8 @@ and the duplicate build acceptance is in the
 [A660 request-only build report](test-results/2026-07-26-a660-firmware-request-only-build.md).
 The complete pre-live root and gate are recorded in the
 [A660 request-only v4 offline report](test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
+The one permitted hardware cycle is recorded in the
+[A660 request-only v4 live acceptance](test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

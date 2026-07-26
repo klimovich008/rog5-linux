@@ -414,9 +414,14 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Prepare and independently verify a new root-owned v4 export with only
   exact SQE/GMU firmware mode `0644`, ZAP absent, the accepted registration-v3
   marker, one tiny open helper, watchdog rollback, and consumed-root lockout.
-- [ ] Run one attended request-only failed-open gate; require exact
+- [x] Run one attended request-only failed-open gate; require exact
   `EUCLEAN`, bounded success evidence, no surviving DRM descriptor, and zero
   ucode, power, HFI, ZAP/SCM, storage, display, warning, or fault evidence.
+- [ ] Pin the exact request-only report and evidence checkpoint in a
+  mutation-tested nonsecret acceptance marker, and consume the v4 export.
+- [ ] Source-audit and fail-first test whether ucode buffer creation can be
+  isolated after accepted firmware requests but before runtime power or
+  hardware access.
 - [ ] Run a separate first-open gate for GMU resume/HFI, ZAP/SCM
   authentication, and GPU hardware initialization.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.

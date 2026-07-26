@@ -259,17 +259,11 @@ identity, and runs the independent path-based verifier.
    temporary sysctl, and removes all runtime firewall state on exit, including
    the interface assignment when the USB gadget has already disappeared.
 
-The server accepts exactly two source directories: the accepted general
-`/var/lib/rog5-network-root-v1` export and the independently verified
-`/var/lib/rog5-network-root-adreno-smmu-v20` diagnostic sibling. The latter is
-a copy-on-write derivative with the same 1,008-file Linux
-`7.1.4-g7a5cef0db479` module tree and credentials, but with all three
-hash-pinned A660 firmware files absent. The source-locked A660 registration
-export, the consumed v18/v19 siblings, and every other path are rejected
-before NFS or firewall setup.
-`prepare-adreno-smmu-export.sh` creates the sibling only when absent, and
-`verify-adreno-smmu-export.sh` independently compares it with the accepted
-base before `serve-network-root.sh` may expose it.
+After the request-only v4 live cycle, the server accepts exactly one source
+directory: the persistent general `/var/lib/rog5-network-root-v1` export.
+Every A660 registration, SMMU, GPUCC, and firmware-request diagnostic root is
+consumed and rejected before NFS or firewall setup. Their root-owned trees and
+independent verifiers remain preserved as offline evidence only.
 
 The default attended window remains 900 seconds. An explicitly requested
 long-running diagnostic may set `ROG5_NFS_TIMEOUT` up to 86400 seconds. The
@@ -629,13 +623,19 @@ the exact SQE and GMU files as mode `0644`, keeps ZAP absent, and rejects every
 later hardware marker. That root now exists as root-owned mode `0555` and
 passes its complete verifier with seven modules, two firmware files, exact
 helper, preserved credentials, and accepted registration-v3 base. Its
-one-shot target/host watchdog gate and unchanged AVB package pass offline; no
-live v4 cycle has run. See the
+one-shot target/host watchdog gate and unchanged AVB package pass offline.
+The sole live cycle then requested SQE and GMU exactly once, rejected the open
+with `EUCLEAN`, crossed no ucode/power/HFI/ZAP boundary, retained zero DRM
+descriptors/storage/faults, and returned through exact fallback plus complete
+cleanup. V4 is consumed and server-rejected; its exact nonsecret acceptance
+marker remains to be pinned. See the
 [firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
 [request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
 then the
-[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).
+[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
+and
+[request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

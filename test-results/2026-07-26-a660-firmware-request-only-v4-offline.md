@@ -194,3 +194,9 @@ preflight must prove exact persistent fallback and inactive NFS state, and an
 attended go/no-go decision must be recorded. A permitted cycle remains
 RAM-only `fastboot boot`, one invocation, immediate reboot, exact fallback,
 full host cleanup, and permanent consumption of v4 regardless of result.
+
+The subsequent
+[request-only v4 live acceptance](2026-07-26-a660-firmware-request-only-v4-live-accepted.md)
+records the sole permitted cycle: exact SQE/GMU requests, deliberate
+`EUCLEAN`, zero later hardware/storage/fault evidence, exact fallback,
+complete cleanup, and consumed-root lockout.
