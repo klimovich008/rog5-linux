@@ -5,9 +5,9 @@ repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 prepare=$repo/scripts/host/prepare-network-root-export.sh
 verify=$repo/scripts/host/verify-network-root-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
-ucode_window_test=$repo/scripts/host/test-serve-a660-ucode-allocation-live-window.sh
+ucode_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.sh
 
-for script in "$prepare" "$verify" "$serve" "$ucode_window_test"; do
+for script in "$prepare" "$verify" "$serve" "$ucode_consumed_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable network-root host tool: $script" >&2
 		exit 1
@@ -73,7 +73,8 @@ for consumed in \
 	/var/lib/rog5-network-root-a660-registration \
 	/var/lib/rog5-network-root-a660-registration-v2 \
 	/var/lib/rog5-network-root-a660-registration-v3 \
-	/var/lib/rog5-network-root-a660-firmware-request-only-v4
+	/var/lib/rog5-network-root-a660-firmware-request-only-v4 \
+	/var/lib/rog5-network-root-a660-ucode-allocation-v5
 do
 	if grep -Fq "$consumed)" "$serve"; then
 		echo "FAIL network-root host still allowlists consumed root: $consumed" >&2
@@ -116,6 +117,6 @@ if grep -Eq '(^|[[:space:]])fastboot[[:space:]]+flash|(^|[[:space:]])dd[[:space:
 	exit 1
 fi
 
-"$ucode_window_test" >/dev/null
+"$ucode_consumed_test" >/dev/null
 
 echo 'PASS host gate is exact-peer, runtime-only, read-only, and fail-closed'
