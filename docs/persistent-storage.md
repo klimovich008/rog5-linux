@@ -165,9 +165,14 @@ against the current fallback libraries without installing the package.
 
 See the
 [offline P1 result](../test-results/2026-07-27-persistent-arch-staging-offline.md).
-The live fallback was contacted only for read-only preflight and a `/run`
-runtime-link check. `/rog5` remains absent; no persistent root has been sent
-or staged. A fresh explicit persistent-write instruction is still required.
+The later
+[live P1 result](../test-results/2026-07-27-persistent-arch-staging-live.md)
+passed the exact production preflight, phone-side archive hash, atomic
+publication, and an independent post-publication whole-tree verification.
+`/rog5/roots/arch-a` now exists with promotion state `UNBOOTED`; neither
+`state/good` nor `state/next` exists. The redundant phone-side transfer
+archive was removed after verification. Alpine remained online and no root
+was selected or booted.
 
 ### Gate P2 — UFS read-only Arch boot (pending)
 
