@@ -1039,5 +1039,18 @@ firmware, or HFI. Only `msm.ko` changes from v10. No runtime oracle,
 protected root, target gate, runner, or server case exists, so v11 is
 non-runnable and v10 remains the next live GPU step.
 
+Normal userspace now has a newer, independent offline checkpoint. The
+[successor-v2 rootfs](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+retains the accepted v1 controls by hash while adding kill-switch-before-
+forwarding order, partial-failure rollback, stale-state refusal, and AP-first
+service cleanup. Isolated IPv4/IPv6/VPN-loss tests, a real WireGuard handshake,
+both complete AArch64 staged-root verifiers, and independent archive checks
+pass for the manifest-pinned 2,007,001,876-byte archive. Its separate
+[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+at `/var/lib/rog5-network-root-arch-successor-v2` is root-owned mode `0555`,
+Btrfs `ro=true`, recursively sealed over 181,239 entries, and rejects changed
+seal, hotspot control, hotspot service, and account snapshots. The v1 seal is
+unchanged, NFS/RPC remains inactive, and v2 is unserved, unbooted, and HOLD.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -105,6 +105,17 @@ runner covering coldplug, sysusers/tmpfiles, agent isolation, headless
 screen-off state, volatile machine identity, watchdog handoff, and normal
 reboot. It has not been booted and no live cycle is authorized.
 
+The newer
+[successor-v2 archive](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+is 2,007,001,876 bytes with SHA-256
+`0da5f1dbc05588fcda444b6ba6d8a66db8fa9749691b1f7e37132de9e8a88078`.
+It retains all 655 packages and accepted v1 evidence while adding
+kill-switch-first hotspot transitions, partial-failure rollback, and
+AP-before-firewall cleanup. Its separate
+[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+passes complete recursive verification and four mutation cases. It is not in
+an NFS allowlist, has not been booted, and remains HOLD.
+
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
 ## Boot and session model

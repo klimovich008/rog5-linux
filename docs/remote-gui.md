@@ -30,6 +30,14 @@ adds an explicit-token headless first-boot/reboot gate but does not start
 Plasma or KRDP. The root has not been booted, and remote GUI remains a later
 hardware/runtime acceptance tier.
 
+The newer
+[successor-v2 root](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+and its separate
+[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+retain the same headless/optional-Plasma model while hardening the VPN-hotspot
+transition boundary. They remain unserved and unbooted; neither result enables
+KRDP or authorizes a live cycle.
+
 ## Persistent tunnel on a Linux host
 
 First configure the `rog5-fallback` SSH host alias with the approved private
