@@ -10,11 +10,12 @@ gate=$repo/scripts/device/run-network-root-a660-gmu-resume-entry-v9-gate.sh
 gate_test=$repo/scripts/device/test-run-network-root-a660-gmu-resume-entry-v9-gate.sh
 predecessor_verify=$repo/scripts/host/verify-a660-gmu-resume-entry-v8-export.sh
 predecessor_consumed=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v8.sh
+consumed_v9=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v9.sh
 predecessor_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md
 runtime_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md
 
 for input in "$runtime_test" "$prepare" "$verify" "$gate" "$gate_test" \
-	"$predecessor_verify" "$predecessor_consumed"
+	"$predecessor_verify" "$predecessor_consumed" "$consumed_v9"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 GMU resume-entry v9 root tool: $input" >&2
@@ -33,7 +34,8 @@ done
 [ "$(sha256sum "$runtime_report" | cut -d ' ' -f 1)" = \
 	a9b99930799902cabf6c65bd877a21588b63ccb6b617d1ac526b9e0d159bf60d ]
 
-for input in "$runtime_test" "$gate" "$gate_test" "$predecessor_consumed"; do
+for input in "$runtime_test" "$gate" "$gate_test" "$predecessor_consumed" \
+	"$consumed_v9"; do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify" "$predecessor_verify"; do
@@ -94,5 +96,6 @@ fi
 "$runtime_test"
 "$gate_test"
 "$predecessor_consumed"
+"$consumed_v9"
 
-echo 'PASS A660 GMU resume-entry v9 root is consumed-v8-derived, exact-delta, signed-device-oracle guarded, runtime-mutation-tested, storage-free, target-gated, and HOLD'
+echo 'PASS A660 GMU resume-entry v9 root is consumed-v8-derived, exact-delta, signed-device-oracle guarded, runtime-mutation-tested, storage-free, target-gated, permanently consumed, and server-non-runnable'
