@@ -173,8 +173,11 @@ Plasma, KRDP, and Mesa still require their separate hardware gates before the
 device is called usable. The
 [read-only vendor Wi-Fi contract](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
 proves the exact `17cb:1103`/`17cb:0108` PCI endpoint and matching staged
-ath11k inputs, but remains HOLD pending a schema-checked PCIe/WCN6855 PMU
-board description and a separately authorized client-only probe.
+ath11k inputs. The later
+[offline WCN6855/PCIe acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+adds the schema-checked board graph and reproducible matching kernel/modules,
+but remains HOLD pending a packaged, separately authorized RAM-only
+client-only probe.
 
 ## VPN hotspot
 
@@ -241,6 +244,6 @@ requires endpoint loss to remain closed, restores both protocols after
 recovery, and mutation-tests one-way DNS leakage. A real client still must
 pass ath11k AP capability, DHCP/provider DNS, an on-phone/provider handshake,
 radio coexistence, throughput, thermals, charging, and battery tests.
-The vendor-contract checkpoint above does not authorize radio activation:
-its live tree has one stale WLAN I/O-regulator phandle, and the mainline board
-DTS does not yet encode the WCN6855 PMU supply graph.
+Neither Wi-Fi checkpoint authorizes radio activation. The isolated mainline
+candidate now encodes the source-backed WCN6855 PMU graph, but it has not been
+packaged or booted and provides no radio-runtime evidence.

@@ -59,6 +59,21 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   [live contract report](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
   records the exact endpoint and remaining stale regulator phandle without
   activating the radio.
+- `test-wifi-candidate-dtb.sh` requires the isolated WCN6855 PMU host/output
+  rail graph, PCI `17cb:1103` endpoint, PCIe0/QMP PHY and GPIO contract,
+  immutable accepted network-root v8 base, deterministic merge, and rejection
+  of incomplete rails or invented calibration/link-speed properties.
+- `test-validate-wifi-candidate-dtb.sh` pins dtschema `2026.6`, clean Linux
+  commit `7a5cef0db479`, a network-disabled validator, two identical merged
+  DTBs, and the WCN6855, ath11k PCI, PCIe0, QMP PHY, RPMh-regulator, and TLMM
+  schemas.
+- `test-mainline-wifi-build-contract.sh` requires the QMP PCIe PHY, PCI power
+  control, WCN sequencing, MHI, and ath11k symbols/modules and aliases. With
+  two distinct build directories supplied, it verifies both and requires
+  byte-identical `.config`, `Image`, `Image.gz`, module archive, and metadata.
+  The
+  [offline acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+  records the accepted hashes; no boot or radio action is implied.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

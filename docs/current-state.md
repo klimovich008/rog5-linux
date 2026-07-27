@@ -63,9 +63,15 @@ adds read-only board evidence. Fallback PCIe enumerates Qualcomm `17cb:1103`
 with ASUS subsystem `17cb:0108`, while the protected Arch root contains the
 matching ath11k modules, WCN6855 firmware records, regulatory data, and
 network packages. ASUS source resolves the intended WLAN I/O rail to fixed
-1.8 V `pm8350_s10`, but the live vendor tree references a stale phandle and
-the current mainline board DTS has no PCIe/WCN6855 PMU graph. This remains a
-hardware HOLD; no radio probe was run.
+1.8 V `pm8350_s10`, although the live vendor tree references a stale phandle.
+The later
+[offline WCN6855/PCIe acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+now supplies that graph as an isolated overlay over the unchanged accepted
+network-root v8 DTB. The merged DTB passes pinned WCN6855, ath11k PCI, PCIe0,
+QMP PHY, RPMh-regulator, and TLMM schemas, while two clean Linux 7.1.4 builds
+produce byte-identical Images and matching QMP PCIe/power-sequencing/MHI/
+ath11k modules. This remains a hardware HOLD: it is not a boot package and no
+radio probe was run.
 
 ## Display modes
 

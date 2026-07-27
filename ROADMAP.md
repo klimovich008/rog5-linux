@@ -136,6 +136,10 @@ for a working feature.
   preserving the complete v2 verifier byte-for-byte. Its separate
   verifier-first NFS, power-input target, and strict no-retry runner controls
   pass offline and remain live HOLD.
+- [x] Capture the exact vendor WLAN/PCIe contract, then build and
+  schema-validate an isolated WCN6855/PCIe0 board candidate plus two
+  byte-identical Linux 7.1.4 kernel/module outputs. Keep it unbooted and radio
+  HOLD.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -330,6 +334,18 @@ traffic outside the VPN.
   DNS traffic through real WireGuard, detect one-way DNS leakage, fail closed
   across endpoint/interface loss, and verify recovery plus exact cleanup. See
   the [v2 DNS/recovery report](test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md).
+- [x] Capture the read-only vendor PCI `17cb:1103`/`17cb:0108`, regulator,
+  GPIO, firmware, and board-data contract without activating the radio.
+- [x] Add the opt-in WCN6855 PMU, PCIe0/QMP PHY, regulator, GPIO, MHI, and
+  ath11k candidate. Pass immutable-base mutations, pinned dtschema `2026.6`,
+  exact module/alias checks, and two byte-identical clean kernel builds. See
+  the [offline WCN6855/PCIe report](test-results/2026-07-27-wcn6855-pcie-offline.md).
+- [ ] Package the exact candidate into a storage-disabled RAM-only,
+  client-only diagnostic with bounded logs, automatic fallback, a protected
+  root, watchdog, target oracle, and strict one-shot/no-retry runner.
+- [ ] Pass a current-state HOLD review, then request fresh explicit authority
+  for one attended RAM-only client probe; do not include AP mode, VPN
+  credentials, NFS, or provider setup.
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
 - [ ] Establish an on-phone handshake to the selected VPN provider.
