@@ -594,12 +594,22 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   passes every gate with one GPU-device outer PM event, zero specific inner
   resource events, no storage or retained DRM descriptors, complete cleanup,
   and permanent server lockout.
-- [ ] Source-test a separate bounded GMU/CX runtime-PM preparation tier.
-  Isolate only the first `pm_runtime_get_sync(gmu->dev)` and balanced
-  rollback; require exact GMU/CX-domain classification and retain every v9
-  rollback/snapshot/storage/watchdog gate. Keep GX runtime PM, clock
-  rate/enable, secure init, MMIO, IRQ, firmware start, HFI, ZAP/SCM,
-  successful open, submit, and rendering out of this tier.
+- [x] Source-test, mutation-test, and reproduce a separate bounded GMU/CX
+  runtime-PM preparation tier. V10 isolates the first
+  `pm_runtime_get_sync(gmu->dev)`, balances failed gets, synchronously
+  suspends the GMU consumer and linked CX supplier, and stops before GX or
+  later resources. Two isolated Linux 7.1.4 builds are byte-identical; only
+  `msm.ko` differs from accepted v8. See the
+  [v10 offline acceptance](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md).
+- [ ] Build and mutation-test a v10 runtime oracle, fresh protected root,
+  target gate, nested watchdog, one-shot/no-retry runner, and
+  verifier-before-state bounded server case. Require exact GMU/CX-domain
+  classification and retain every v9 rollback/snapshot/storage/watchdog
+  gate. Keep GX runtime PM, clock rate/enable, secure init, MMIO, IRQ,
+  firmware start, HFI, ZAP/SCM, successful open, submit, and rendering out
+  of this tier.
+- [ ] Complete separate pre-live HOLD and attended GO reviews before any
+  explicitly authorized, one-cycle RAM-only v10 test. No retry or flash.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.

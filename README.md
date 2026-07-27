@@ -490,9 +490,15 @@ GPU-device outer runtime-PM transition, signed `-EUCLEAN`, exact
 firmware/allocation/mapping rollback, logical `4/4`, and an equal settled GEM
 snapshot while every specific inner power, clock, IRQ, HFI, hardware, ZAP,
 and SCM probe stayed zero. Exact fallback and complete host cleanup passed.
-V9 is permanently consumed and absent from the bounded server. The next
-unauthorized tier must isolate only GMU/CX runtime-PM preparation before GX,
-clocks, secure init, MMIO, IRQ, firmware start, or HFI.
+V9 is permanently consumed and absent from the bounded server. The separate
+[v10 GMU/CX runtime-PM offline acceptance](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+now source-pins that next boundary, mutation-tests its default-off patch, and
+reproduces two complete Linux 7.1.4 builds. Only `msm.ko` changes from the
+accepted v8 build; Image, ABI, config, every other installed module, and
+storage/firmware containment remain unchanged. V10 stops after a balanced,
+synchronously suspended GMU/CX transition and before GX, clocks, secure
+init, MMIO, IRQ, firmware start, or HFI. It remains HOLD: no v10 runtime
+oracle, protected root, server case, boot authority, retry, or flash exists.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

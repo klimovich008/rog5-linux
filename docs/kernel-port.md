@@ -496,11 +496,17 @@ state were accepted; every specific inner power/clock/IRQ/HFI/hardware/
 ZAP/SCM probe remained zero. Fallback and host cleanup passed. V9 is
 permanently consumed and absent from the server.
 
-The next kernel tier must be separately versioned and stop after the first
-GMU-device runtime-PM get plus balanced put. Its offline suite must classify
-the GMU/CX-domain transition and reject any GX-domain, clock-rate/enable,
-secure-init, MMIO, IRQ, firmware-start, HFI, hardware-init, ZAP, or SCM
-activity. No live authority for that tier exists.
+The separately versioned
+[v10 GMU/CX runtime-PM offline tier](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+now passes its pinned-source boundary, twelve patch mutations, strict patch
+check, two isolated builds, and exact-v8 comparison. Its default-off
+one-shot stops after the first GMU-device runtime-PM get, balanced consumer
+put, and synchronous linked-CX suspend. It remains above GX, clock-rate/
+enable, secure-init, MMIO, IRQ, firmware-start, HFI, hardware-init, ZAP, and
+SCM. Only `msm.ko` changes; config, Image, ABI, and every other installed
+module remain accepted-v8-identical. Runtime classification, protected root,
+target/host controls, and HOLD/GO review remain pending. No v10 live
+authority exists.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
