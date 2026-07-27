@@ -38,6 +38,14 @@ refresh. It remains `UNBOOTED_HOLD`: no radio was activated, no phone action
 was taken, and a protected root plus separately authorized one-cycle probe
 are still required.
 
+The separate
+[WCN6855 protected-root pre-live HOLD](test-results/2026-07-27-wcn6855-v1-prelive-hold.md)
+now applies that exact overlay to a verified successor-v3 Btrfs snapshot,
+generates a dedicated SSH host identity, seals 181,276 entries, rejects five
+root mutations, and adds verifier-first NFS plus a strict one-invocation host
+runner. An actual unarmed NFS call preserved host state. The root remains
+unserved and unbooted; no phone or radio action occurred.
+
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
 service is loopback-only, cannot reuse the Plasma user's home or credentials,
