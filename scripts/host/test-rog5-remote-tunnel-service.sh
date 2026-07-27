@@ -20,8 +20,7 @@ for contract in \
 	'-L 127.0.0.1:9222:127.0.0.1:9222' \
 	'-L 127.0.0.1:13389:127.0.0.1:3389' \
 	'rog5-fallback' \
-	'ExecStartPost=/usr/bin/ssh' \
-	'/usr/local/sbin/rog5-desktop-start' \
+	'/usr/local/sbin/rog5-desktop-supervisor' \
 	'Restart=always' \
 	'RestartSec=5s' \
 	'NoNewPrivileges=yes' \
@@ -46,6 +45,11 @@ then
 	exit 1
 fi
 
+if grep -Eq '(^|[[:space:]])-N([[:space:]]|$)|^ExecStartPost=' "$unit"; then
+	echo 'FAIL remote-tunnel service does not keep the remote supervisor as its main process' >&2
+	exit 1
+fi
+
 if grep -Fq 'PrivateTmp=yes' "$unit"; then
 	echo 'FAIL PrivateTmp breaks OpenSSH system-config ownership checks in user services' >&2
 	exit 1
@@ -55,4 +59,4 @@ if command -v systemd-analyze >/dev/null 2>&1; then
 	systemd-analyze --user verify "$unit"
 fi
 
-echo 'PASS Linux host remote-tunnel service is loopback-only, identity-pinned, reconnecting, and desktop-starting'
+echo 'PASS Linux host remote-tunnel service is loopback-only, identity-pinned, reconnecting, and desktop-supervising'
