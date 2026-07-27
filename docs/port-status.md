@@ -3,7 +3,7 @@
 | Subsystem | 5.4.210 baseline | Linux 7.1 upstream base | ASUS work remaining |
 |---|---|---|---|
 | reversible boot | passing | v18 staging/rollback and v3 retained-exitrd normal reboot pass | repeat clean cycles and retain the same boundary for each new DTB tier |
-| UFS root | passing baseline only | no-mount discovery passes; network-root v3 boots and reboots normally with UFS compiled out | design persistent storage only after explicit approval and recovery retest |
+| UFS root | passing baseline only | no-mount discovery passes; network-root v3 boots and reboots normally with UFS compiled out; the [live layout preflight](../test-results/2026-07-27-persistent-layout-preflight-live.md) pins ext4 `userdata`, active fallback slot B, boot-critical A/B identities, and 189 GiB free without opening a block device | implement the [no-repartition P1/P2 gates](persistent-storage.md): deterministic `/rog5` staging, then read-only `ro,noload` UFS plus tmpfs-overlay Arch; require fresh authority before the first persistent write |
 | USB NCM/SSH | passing | Linux 7.1 normal-coldplug NCM/NFS and persistent client/server SSH identities pass twice | convert the attended PC-backed transport into an independent deployment path |
 | battery/charging | passing | guarded read-only SM8350 battery/USB/wireless telemetry passes through audited ADSP QRTR/PDR and battery-only PMIC GLINK | repeat physical-state/current-direction checks, dual-cell topology, then separately review charging; controls remain disabled |
 | thermals/CPUfreq | passing | 33 thermal zones are readable and sane in two normal network-root boots | cooling maps, cpufreq policy checks, sustained-load characterization |

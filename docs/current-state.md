@@ -287,6 +287,17 @@ boot identity. Nothing was flashed. Read-only UFS discovery is accepted; the
 next gate is a minimal Arch/Debian root served over USB NCM while UFS remains
 unmounted.
 
+The later
+[persistent-layout preflight](../test-results/2026-07-27-persistent-layout-preflight-live.md)
+reads that measured map from the installed Alpine fallback and passes exact
+ext4 `userdata`, active slot B, boot/vendor-boot/vbmeta A/B, root marker, and
+free-space checks. The accepted
+[storage design](persistent-storage.md) does not repartition: Alpine remains
+the recovery root, Arch generations live only below `/rog5`, and Linux 7.x is
+entered through one-shot kexec. The next storage tier is deterministic
+host-side staging followed by a `ro,noload` UFS/tmpfs-overlay Arch boot. No
+`/rog5` directory, phone file, partition content, or boot slot was changed.
+
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built
 in and SCSI/UFS plus the related QMP storage/SuperSpeed paths compiled out.

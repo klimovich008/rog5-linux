@@ -7,6 +7,7 @@ stage=$repo/scripts/host/stage-arch-rootfs.sh
 agent_test=$repo/scripts/device/test-agent-isolation.sh
 metrics_test=$repo/scripts/device/test-collect-baseline.sh
 component_metrics_test=$repo/scripts/device/test-collect-component-pss.sh
+persistent_layout_test=$repo/scripts/device/test-inspect-persistent-layout.sh
 vendor_log_capture=$repo/scripts/host/capture-vendor-kernel-log.sh
 vendor_log_capture_test=$repo/scripts/host/test-capture-vendor-kernel-log.sh
 wifi_contract=$repo/scripts/device/collect-vendor-wifi-contract.py
@@ -39,7 +40,7 @@ successor_v3_target_test=$repo/scripts/device/test-run-network-root-arch-success
 successor_v3_runner_test=$repo/scripts/host/test-run-arch-successor-v3-live-gate.sh
 
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
-	"$component_metrics_test" \
+	"$component_metrics_test" "$persistent_layout_test" \
 	"$vendor_log_capture" "$vendor_log_capture_test" \
 	"$wifi_candidate_test" "$wifi_schema_test" "$wifi_kernel_test" \
 	"$wifi_probe_test" "$wifi_overlay_test" \
@@ -68,6 +69,7 @@ done
 "$agent_test" >/dev/null
 "$metrics_test" >/dev/null
 "$component_metrics_test" >/dev/null
+"$persistent_layout_test" >/dev/null
 "$vendor_log_capture_test" >/dev/null
 "$wifi_contract_test" >/dev/null
 "$wifi_candidate_test" >/dev/null

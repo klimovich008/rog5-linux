@@ -141,7 +141,13 @@ for a working feature.
   byte-identical Linux 7.1.4 kernel/module outputs. Its deterministic runtime
   package, protected root, current fallback preflight, verifier-first server,
   and no-retry runner now also pass while remaining unbooted and radio HOLD.
-- [ ] Design the persistent storage layout from measured hardware results.
+- [x] Design the
+  [non-repartitioning persistent layout](docs/persistent-storage.md) from the
+  exact live UFS map. Preserve active Alpine slot B, use versioned Arch roots
+  below `userdata:/rog5`, enter Linux 7.x through one-shot kexec, and require
+  read-only UFS plus bounded-write gates before persistent promotion. The
+  [live preflight](test-results/2026-07-27-persistent-layout-preflight-live.md)
+  passes without opening or writing a block device.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
 
@@ -256,7 +262,11 @@ Goal: learn the phone storage topology without mounting or modifying it.
 - [x] Confirm zero block-backed mounts and zero write tests.
 - [x] Check UFS, IOMMU, watchdog, and USB logs for faults.
 - [x] Prove rollback and fallback boot again.
-- [ ] Document candidate persistent layouts and Android coexistence choices.
+- [x] Document the measured
+  [non-repartitioning persistent layout](docs/persistent-storage.md): retain
+  Alpine in active slot B and at the `userdata` filesystem root, stage Arch
+  generations only below `/rog5`, and use guarded kexec before considering
+  any direct-slot change.
 - [ ] Request confirmation before provisioning or changing any partition.
 
 Exit gate: **passed by v2**. Exact Linux `7.1.4-gcfd385a1c754`
