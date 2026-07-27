@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2016
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -21,6 +22,8 @@ for contract in \
 	'ALLOW_WCN6855_V1_NFS' \
 	'[[ ${ALLOW_WCN6855_V1_NFS:-} == 1 ]]' \
 	'verify-wcn6855-v1-export.sh' \
+	'e3961cc441ae6cb75f1a3dcbbd5e4ccc99b31c67018159ac10f61c11f1548769' \
+	"source <(sed -n '/^etab=/,\$p' \"\$accepted_serve\")" \
 	'for the attended WCN6855 enumeration-only window'
 do
 	grep -Fq "$contract" "$serve" || {
@@ -36,18 +39,15 @@ guard_line=$(grep -n 'ALLOW_WCN6855_V1_NFS:-' "$serve" |
 	head -n 1 | cut -d: -f1)
 verify_line=$(grep -n 'verify-wcn6855-v1-export.sh' "$serve" |
 	head -n 1 | cut -d: -f1)
-state_line=$(grep -n '^etab=' "$serve" | head -n 1 | cut -d: -f1)
+runtime_line=$(grep -n '^source <(sed' "$serve" | head -n 1 | cut -d: -f1)
 
 [ "$root_line" -lt "$guard_line" ]
 [ "$guard_line" -lt "$verify_line" ]
-[ "$verify_line" -lt "$state_line" ]
+[ "$verify_line" -lt "$runtime_line" ]
 [ "$(grep -Fc 'ALLOW_WCN6855_V1_NFS:-' "$serve")" -eq 1 ]
 [ "$(grep -Fc 'verify-wcn6855-v1-export.sh' "$serve")" -eq 1 ]
-accepted_runtime=$(sed -n '/^etab=/,$p' "$accepted_serve" | sha256sum |
-	cut -d ' ' -f 1)
-wifi_runtime=$(sed -n '/^etab=/,$p' "$serve" | sha256sum |
-	cut -d ' ' -f 1)
-[ "$wifi_runtime" = "$accepted_runtime" ]
+[ "$(sha256sum "$accepted_serve" | cut -d ' ' -f 1)" = \
+	e3961cc441ae6cb75f1a3dcbbd5e4ccc99b31c67018159ac10f61c11f1548769 ]
 
 if grep -Eq \
 	'(^|[[:space:]])(fastboot|adb)([[:space:]]|$)|dd[[:space:]].*of=/dev/' \
