@@ -1,0 +1,62 @@
+#!/bin/sh
+set -u
+
+bb=/bin/busybox
+
+log() {
+	printf 'rog5-p2-exitrd: %s\n' "$*" >/dev/kmsg 2>/dev/null ||
+		printf 'rog5-p2-exitrd: %s\n' "$*" >/dev/console 2>/dev/null ||
+		true
+}
+
+move_mount() {
+	source=$1
+	target=$2
+
+	[ -d "$source" ] || return 0
+	"$bb" mountpoint -q "$source" || return 0
+	"$bb" mkdir -p "$target" || return 1
+	"$bb" mount --move "$source" "$target" || return 1
+}
+
+unmount_mount() {
+	target=$1
+
+	"$bb" mountpoint -q "$target" || return 0
+	"$bb" umount "$target" || return 1
+}
+
+lazy_unmount() {
+	target=$1
+
+	"$bb" mountpoint -q "$target" || return 0
+	"$bb" umount -l "$target" 2>/dev/null || true
+}
+
+log 'discarding volatile root and returning through emergency reset'
+"$bb" mount -o remount,rw / 2>/dev/null || true
+"$bb" mkdir -p /oldsys
+
+clean=1
+move_mount /oldroot/.rog5/userdata-ro /oldsys/userdata-ro || clean=0
+move_mount /oldroot/.rog5/state /oldsys/state || clean=0
+for api in sys proc run dev; do
+	move_mount "/oldroot/$api" "/oldsys/$api" || clean=0
+done
+unmount_mount /oldroot || clean=0
+unmount_mount /oldsys/state || clean=0
+unmount_mount /oldsys/userdata-ro || clean=0
+
+if [ "$clean" -ne 1 ]; then
+	log 'clean volatile teardown incomplete; detaching mounts'
+	lazy_unmount /oldroot
+	lazy_unmount /oldsys/state
+	lazy_unmount /oldsys/userdata-ro
+fi
+for api in run dev sys proc; do
+	lazy_unmount "/oldsys/$api"
+done
+
+log 'triggering storage-quiescent reset'
+printf b >/proc/sysrq-trigger 2>/dev/null || true
+while :; do "$bb" sleep 3600; done

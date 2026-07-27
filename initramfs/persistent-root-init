@@ -1,0 +1,540 @@
+#!/bin/sh
+set -u
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
+mkdir -p /dev/pts /run /sys/kernel/config /var/log
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+hostname rog5-persistent-root
+mdev -s
+
+expected_physical_count=116
+expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff
+expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c
+userdata=/dev/sda23
+
+log() {
+	echo "rog5-persistent-root: $*" >/dev/kmsg
+}
+
+force_rollback() {
+	log 'forcing storage-quiescent emergency reset'
+	while :; do
+		printf b >/proc/sysrq-trigger 2>/dev/null || true
+		sleep 5
+	done
+}
+
+arm_watchdog() {
+	(
+		exec 8>/dev/kmsg
+		exec 9>/proc/sysrq-trigger
+		sleep "$recovery_timeout"
+		echo 'rog5-persistent-root: watchdog expired; using emergency reset' >&8
+		printf b >&9
+		while :; do sleep 3600; done
+	) &
+	echo $! >/run/rog5-p2-watchdog.pid
+	log "emergency-reset watchdog armed for $recovery_timeout seconds"
+}
+
+physical_topology_count() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			count=$((count + 1))
+		done
+	done
+	printf '%s\n' "$count"
+}
+
+wait_for_ufs_discovery() {
+	attempt=0
+	stable=0
+	previous=-1
+	while [ "$attempt" -lt 450 ]; do
+		mdev -s || return 1
+		count=$(physical_topology_count)
+		if [ "$count" = "$expected_physical_count" ] &&
+			[ "$count" = "$previous" ]; then
+			stable=$((stable + 1))
+		else
+			stable=0
+		fi
+		[ "$stable" -ge 20 ] && return 0
+		previous=$count
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	log "UFS topology did not stabilize at $expected_physical_count nodes"
+	return 1
+}
+
+verify_ufs_power_containment() {
+	auto_marker='ROG5 UFS discovery: auto-hibern8 disabled; link remains active'
+	host_marker='ROG5 UFS discovery: host runtime PM forbidden; active reference retained'
+	wlun_marker='ROG5 UFS discovery: WLUN runtime PM forbidden'
+	attempt=0
+	auto_count=0
+	host_count=0
+	wlun_count=0
+	while [ "$attempt" -lt 100 ]; do
+		auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
+		host_count=$(dmesg | grep -F -c "$host_marker" || true)
+		wlun_count=$(dmesg | grep -F -c "$wlun_marker" || true)
+		if [ "$auto_count" -gt 0 ] &&
+			[ "$host_count" -gt 0 ] &&
+			[ "$wlun_count" -gt 0 ]; then
+			break
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	[ "$auto_count" -gt 0 ] &&
+		[ "$host_count" -gt 0 ] &&
+		[ "$wlun_count" -gt 0 ] || return 1
+
+	blocked_query_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	[ "$blocked_query_count" -eq 0 ] &&
+		[ "$blocked_scsi_count" -eq 0 ] || return 1
+	return 0
+}
+
+has_block_backed_mount() {
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		log "unexpected block-backed mount at $mountpoint"
+		return 0
+	done </proc/self/mountinfo
+	return 1
+}
+
+lock_physical_storage() {
+	has_block_backed_mount && return 1
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			blockdev --setro "$device" || return 1
+			[ "$(blockdev --getro "$device")" = 1 ] || return 1
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq "$expected_physical_count" ] || return 1
+	printf '%s\n' "$count" >/run/rog5-physical-block-count
+	return 0
+}
+
+verify_physical_storage_read_only() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			[ "$(blockdev --getro "$device")" = 1 ] || return 1
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq "$expected_physical_count" ]
+}
+
+find_exact_userdata() {
+	count=0
+	found=
+	for sys_block in /sys/class/block/*; do
+		[ -e "$sys_block/partition" ] || continue
+		partition_name=$(sed -n 's/^PARTNAME=//p' "$sys_block/uevent" |
+			sed -n '1p')
+		[ "$partition_name" = userdata ] || continue
+		count=$((count + 1))
+		found=$(basename "$sys_block")
+	done
+	[ "$count" -eq 1 ] && [ "$found" = sda23 ] || return 1
+	[ "$(cat /sys/class/block/sda/size)" = 494927872 ] || return 1
+	[ "$(cat /sys/class/block/sda23/partition)" = 23 ] || return 1
+	[ "$(cat /sys/class/block/sda23/start)" = 18821440 ] || return 1
+	[ "$(cat /sys/class/block/sda23/size)" = 476106392 ] || return 1
+	[ "$(sed -n 's/^DEVNAME=//p' /sys/class/block/sda23/uevent)" = \
+		sda23 ] || return 1
+	[ "$(sed -n 's/^PARTNAME=//p' /sys/class/block/sda23/uevent)" = \
+		userdata ] || return 1
+	[ "$(cat /sys/class/block/sda23/ro)" = 1 ] || return 1
+	[ -b "$userdata" ] || return 1
+	return 0
+}
+
+write_ufs_inventory() {
+	inventory=/run/rog5-p2-ufs-inventory.tsv
+	printf 'name\tkind\tpartition_number\tpartition_name\tmajor_minor\tread_only\tstart_sectors\tsize_sectors\tlogical_block_bytes\n' \
+		>"$inventory"
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		logical_block_bytes=$(cat "$sys_disk/queue/logical_block_size")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			if [ "$sys_block" = "$sys_disk" ]; then
+				kind=disk
+				partition_number=0
+				partition_name=-
+				start=0
+			else
+				[ -e "$sys_block/partition" ] || continue
+				kind=partition
+				partition_number=$(cat "$sys_block/partition")
+				partition_name=$(sed -n 's/^PARTNAME=//p' \
+					"$sys_block/uevent" | sed -n '1p')
+				[ -n "$partition_name" ] || partition_name=-
+				start=$(cat "$sys_block/start")
+			fi
+			printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+				"$(basename "$sys_block")" "$kind" \
+				"$partition_number" "$partition_name" \
+				"$(cat "$sys_block/dev")" \
+				"$(cat "$sys_block/ro")" "$start" \
+				"$(cat "$sys_block/size")" \
+				"$logical_block_bytes" >>"$inventory"
+		done
+	done
+	[ "$(wc -l <"$inventory")" -eq $((expected_physical_count + 1)) ]
+}
+
+serve_acm() {
+	while :; do
+		while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
+		setsid sh -c 'exec sh -i <>/dev/ttyGS0 >&0 2>&0' || true
+		sleep 1
+	done
+}
+
+configure_usb() {
+	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
+	mount -t configfs configfs /sys/kernel/config || return 1
+
+	gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
+	mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+	echo 0x1d6b >"$gadget/idVendor"
+	echo 0x0104 >"$gadget/idProduct"
+	echo 0xef >"$gadget/bDeviceClass"
+	echo 0x02 >"$gadget/bDeviceSubClass"
+	echo 0x01 >"$gadget/bDeviceProtocol"
+	echo Linux >"$gadget/strings/0x409/manufacturer"
+	echo 'ROG5 persistent root' >"$gadget/strings/0x409/product"
+	echo 'Read-only Arch root with NCM and ACM' \
+		>"$gadget/configs/c.1/strings/0x409/configuration"
+	mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
+	ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
+	ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+	mdev -s || return 1
+	[ -c /dev/ttyGS0 ] || return 1
+
+	serve_acm &
+	echo $! >/run/rog5-p2-acm.pid
+
+	udc=
+	attempt=0
+	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
+		for candidate in /sys/class/udc/*; do
+			[ -e "$candidate" ] || continue
+			case $(basename "$candidate") in
+				*a600000*) udc=$(basename "$candidate"); break ;;
+			esac
+			[ -n "$udc" ] || udc=$(basename "$candidate")
+		done
+		[ -n "$udc" ] || sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -n "$udc" ] || return 1
+	echo "$udc" >"$gadget/UDC" || return 1
+
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -e /sys/class/net/usb0 ] || return 1
+	ip link set usb0 up || return 1
+	ip address add 169.254.77.2/30 dev usb0 || return 1
+	return 0
+}
+
+verify_only_userdata_mount() {
+	count=0
+	expected_device=$(cat /sys/class/block/sda23/dev)
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		[ "$device" = "$expected_device" ] &&
+			[ "$mountpoint" = /mnt/userdata ] || return 1
+	done </proc/self/mountinfo
+	[ "$count" -eq 1 ]
+}
+
+mount_persistent_root() {
+	mkdir -p /mnt/userdata /mnt/state /newroot
+	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
+	mountpoint -q /mnt/userdata || return 1
+	awk '$1 == "/dev/sda23" && $2 == "/mnt/userdata" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts || return 1
+	verify_only_userdata_mount || return 1
+	verify_physical_storage_read_only || return 1
+
+	for path in \
+		/mnt/userdata/rog5 \
+		/mnt/userdata/rog5/roots \
+		/mnt/userdata/rog5/roots/arch-a; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	[ ! -e /mnt/userdata/rog5/state/good ] || return 1
+	[ ! -e /mnt/userdata/rog5/state/next ] || return 1
+	[ -x /mnt/userdata/rog5/roots/arch-a/sbin/init ] || return 1
+	return 0
+}
+
+verify_ufs_health() {
+	blocked_query_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	journal_recovery_count=$(dmesg |
+		grep -E -i -c 'EXT4-fs.*(journal recovery|recovery complete|recovering journal)' ||
+		true)
+	ufs_error_count=$(dmesg |
+		grep -E -i -c '(ufshcd|ufshcd-qcom|scsi|sd [0-9]).*(fatal|abort|reset|I/O error|timed out)' ||
+		true)
+	printf '%s\n' "$blocked_query_count" >/run/rog5-p2-blocked-query-count
+	printf '%s\n' "$blocked_scsi_count" >/run/rog5-p2-blocked-scsi-count
+	printf '%s\n' "$journal_recovery_count" \
+		>/run/rog5-p2-journal-recovery-count
+	printf '%s\n' "$ufs_error_count" >/run/rog5-p2-ufs-error-count
+	[ "$blocked_query_count" -eq 0 ] &&
+		[ "$blocked_scsi_count" -eq 0 ] &&
+		[ "$journal_recovery_count" -eq 0 ] &&
+		[ "$ufs_error_count" -eq 0 ]
+}
+
+verify_persistent_root() {
+	root=/mnt/userdata/rog5/roots/arch-a
+	seal=$root/.rog5-persistent-seal
+	[ -f "$seal" ] && [ ! -L "$seal" ] &&
+		[ "$(stat -c %a "$seal")" = 444 ] || return 1
+	[ "$(sha256sum "$seal" | cut -d ' ' -f 1)" = \
+		"$expected_seal_sha256" ] || return 1
+	/usr/local/sbin/persistent-root-verify \
+		"$root" "$seal" "$expected_seal_sha256" \
+		>/run/rog5-p2-root-verification.txt || return 1
+	grep -Fxq \
+		"PASS persistent root matches anchored seal entries=181242 tree_sha256=$expected_tree_sha256" \
+		/run/rog5-p2-root-verification.txt || return 1
+
+	authorized=$root/root/.ssh/authorized_keys
+	[ -f "$authorized" ] && [ ! -L "$authorized" ] &&
+		[ "$(stat -c %a "$authorized")" = 600 ] || return 1
+	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
+		"$authorized" || return 1
+	awk 'NF { count++ } END { exit count != 1 }' "$authorized" ||
+		return 1
+	grep -Fqx 'PasswordAuthentication no' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'PermitRootLogin prohibit-password' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'PubkeyAuthentication yes' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	return 0
+}
+
+mount_overlay_root() {
+	mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
+		tmpfs /mnt/state || return 1
+	mkdir -p /mnt/state/upper /mnt/state/work
+	mount -t overlay overlay \
+		-o lowerdir=/mnt/userdata/rog5/roots/arch-a,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
+		/newroot || return 1
+	awk '$1 == "overlay" && $2 == "/newroot" && $3 == "overlay" &&
+		$4 ~ /(^|,)rw(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts || return 1
+	[ -x /newroot/sbin/init ] || return 1
+	return 0
+}
+
+prepare_runtime() {
+	exitrd=/run/initramfs
+	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
+		"$exitrd/sys" "$exitrd/run" "$exitrd/oldroot" \
+		"$exitrd/oldsys" || return 1
+	cp -p /bin/busybox "$exitrd/bin/busybox" || return 1
+	cp -p /lib/ld-musl-aarch64.so.1 \
+		"$exitrd/lib/ld-musl-aarch64.so.1" || return 1
+	ln -s ld-musl-aarch64.so.1 \
+		"$exitrd/lib/libc.musl-aarch64.so.1" || return 1
+	ln -s busybox "$exitrd/bin/sh" || return 1
+	cp -p /shutdown "$exitrd/shutdown" || return 1
+	chroot "$exitrd" /bin/sh -n /shutdown || return 1
+
+	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
+		return 1
+	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
+		/run/systemd/system/multi-user.target.wants
+	cat >/run/NetworkManager/conf.d/10-rog5-p2.conf <<'EOF'
+[keyfile]
+unmanaged-devices=interface-name:usb0
+EOF
+	cat >/run/udev/rules.d/10-rog5-p2-storage.rules <<'EOF'
+SUBSYSTEM=="block", KERNEL=="sd*", ENV{UDISKS_IGNORE}="1"
+EOF
+	cat >/run/systemd/system/rog5-p2-ready.service <<'EOF'
+[Unit]
+Description=Verify the read-only persistent-root P2 gate
+After=sshd.service network.target
+Wants=sshd.service
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-p2-attest
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+	ln -s ../rog5-p2-ready.service \
+		/run/systemd/system/multi-user.target.wants/rog5-p2-ready.service
+	ln -s /dev/null /run/systemd/system/udisks2.service
+	return 0
+}
+
+recovery_timeout=600
+persistent_count=0
+persistent_invalid=0
+discovery_count=0
+discovery_invalid=0
+for argument in $(cat /proc/cmdline); do
+	case $argument in
+		rog5.persistent_ro=1) persistent_count=$((persistent_count + 1)) ;;
+		rog5.persistent_ro=*) persistent_invalid=1 ;;
+		rog5.ufs_discovery=1) discovery_count=$((discovery_count + 1)) ;;
+		rog5.ufs_discovery=*) discovery_invalid=1 ;;
+		rog5.recovery_timeout=*) recovery_timeout=${argument#*=} ;;
+	esac
+done
+case $recovery_timeout in *[!0-9]*|'') recovery_timeout=600 ;; esac
+if [ "$recovery_timeout" -lt 300 ] || [ "$recovery_timeout" -gt 900 ]; then
+	recovery_timeout=600
+fi
+if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
+	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
+	log 'invalid persistent-root command line'
+	force_rollback
+fi
+if [ ! -r /proc/config.gz ] ||
+	! gzip -dc /proc/config.gz |
+		grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' ||
+	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_EXT4_FS=y' ||
+	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_OVERLAY_FS=y'; then
+	log 'dedicated read-only persistent-root kernel attestation failed'
+	force_rollback
+fi
+
+arm_watchdog
+log 'waiting for stable UFS discovery'
+if ! wait_for_ufs_discovery; then
+	force_rollback
+fi
+if ! verify_ufs_power_containment; then
+	log 'UFS power containment failed before storage lock'
+	force_rollback
+fi
+if ! lock_physical_storage; then
+	log 'physical storage lock failed'
+	force_rollback
+fi
+if ! find_exact_userdata; then
+	log 'exact userdata identity failed'
+	force_rollback
+fi
+if ! write_ufs_inventory; then
+	log 'UFS inventory failed'
+	force_rollback
+fi
+if ! configure_usb; then
+	log 'USB recovery transport failed'
+	force_rollback
+fi
+if ! verify_physical_storage_read_only ||
+	! verify_ufs_power_containment; then
+	log 'storage containment failed after USB rescan'
+	force_rollback
+fi
+if ! mount_persistent_root; then
+	log 'read-only noload userdata mount failed'
+	force_rollback
+fi
+if ! verify_persistent_root; then
+	log 'anchored persistent-root verification failed'
+	force_rollback
+fi
+if ! verify_ufs_health; then
+	log 'UFS or ext4 read-only health gate failed'
+	force_rollback
+fi
+if ! mount_overlay_root; then
+	log 'tmpfs OverlayFS root failed'
+	force_rollback
+fi
+if ! prepare_runtime; then
+	log 'volatile runtime preparation failed'
+	force_rollback
+fi
+if ! verify_physical_storage_read_only ||
+	! verify_only_userdata_mount ||
+	! verify_ufs_health; then
+	log 'final read-only storage gate failed'
+	force_rollback
+fi
+
+if [ -r /run/rog5-p2-acm.pid ]; then
+	kill "$(cat /run/rog5-p2-acm.pid)" 2>/dev/null || true
+fi
+
+mkdir -p /newroot/.rog5/userdata-ro /newroot/.rog5/state \
+	/newroot/dev /newroot/proc /newroot/sys /newroot/run
+touch /run/rog5-p2-root-mounted
+mount --move /mnt/userdata /newroot/.rog5/userdata-ro
+mount --move /mnt/state /newroot/.rog5/state
+mount --move /dev /newroot/dev
+mount --move /proc /newroot/proc
+mount --move /sys /newroot/sys
+mount --move /run /newroot/run
+
+exec switch_root /newroot /sbin/init
