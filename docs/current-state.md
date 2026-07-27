@@ -1025,7 +1025,12 @@ adds the exact consumed-v9-derived root, complete recursive verifier,
 compound target/watchdog gate, one-shot runner, and verifier-first
 explicit-token NFS case. Its actual unarmed invocation changes no host state,
 NFS/RPC stays inactive, and the connected Alpine fallback passes strict
-read-only health. No v10 boot, retry, or flash occurred.
+read-only health. The later
+[current-branch readiness HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+revalidates every v10 gate and the complete protected root after subsequent
+shared-server changes, repeats byte-identical unarmed refusal and exact
+fallback preflight, keeps v11 absent from all live paths, and selects v10 as
+the next candidate. No live authority, boot, retry, or flash follows.
 
 The provisional
 [v11 GMU clock-preparation offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)

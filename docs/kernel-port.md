@@ -511,8 +511,12 @@ mutations. The
 [protected-root/pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
 passes the exact consumed-v9 root delta, recursive verifier, target/watchdog
 gate, no-retry runner, verifier-first bounded server case, actual unarmed
-zero-state refusal, and connected fallback health. The attended GO review
-remains pending; no v10 live authority exists.
+zero-state refusal, and connected fallback health. The
+[current readiness HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+repeats those gates against the synchronized current branch, pins the changed
+shared-server identity, proves another byte-identical unarmed refusal, and
+selects v10 as the next candidate. The attended GO review remains pending;
+no v10 live authority exists.
 
 The provisional
 [v11 GMU clock-preparation tier](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)

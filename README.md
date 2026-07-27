@@ -545,7 +545,12 @@ strict one-shot host runner, and fail-first verifier-before-state bounded NFS
 case. The complete root verifier, actual unarmed zero-state refusal, all
 offline controls, and connected fallback health pass. V10 remains HOLD: no
 live cycle is authorized, no v10 boot has run, and retry or flash is
-prohibited.
+prohibited. A later
+[current-branch readiness refresh](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+revalidates every gate against the synchronized public branch, pins the
+newer accepted shared-server identity, repeats byte-identical unarmed state
+preservation and fallback health, and selects v10 as the next candidate.
+It still grants no live authority.
 
 The provisional
 [v11 GMU clock-preparation offline acceptance](test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
