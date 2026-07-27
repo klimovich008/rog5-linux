@@ -44,8 +44,8 @@ install -Dm0755 "$repo/scripts/device/power-profile.sh" /usr/local/bin/rog5-powe
 install -Dm0755 "$repo/scripts/device/screen-toggle.sh" /usr/local/bin/rog5-screen-toggle.sh
 install -Dm0755 "$repo/scripts/device/collect-baseline.sh" \
 	/usr/local/bin/rog5-collect-baseline.sh
-install -Dm0755 "$repo/scripts/device/vpn-hotspot.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
-install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot.service" /etc/systemd/system/rog5-vpn-hotspot.service
+install -Dm0755 "$repo/scripts/device/vpn-hotspot-v2.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
+install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot-v2.service" /etc/systemd/system/rog5-vpn-hotspot.service
 install -Dm0644 "$repo/packaging/arch/rog5-chromium-headless.service" \
 	/etc/systemd/system/rog5-chromium-headless.service
 install -Dm0644 "$repo/packaging/arch/rog5-server-inhibit.service" \
@@ -138,4 +138,4 @@ gpgconf --homedir /etc/pacman.d/gnupg --kill all || true
 find /etc/pacman.d/gnupg -type s -delete
 
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
-	/bin/bash "$repo/scripts/device/verify-staged-arch-rootfs.sh"
+	/bin/bash "$repo/scripts/device/verify-staged-arch-rootfs-v2.sh"
