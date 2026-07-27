@@ -50,6 +50,15 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   outside paths, partial artifacts, and remote mutation commands. The
   [live HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
   records why the current ring cannot close the boot-log gate.
+- `test-collect-vendor-wifi-contract.py` fixture-tests the read-only vendor
+  CNSS/PCIe collector. It requires one unambiguous QCA6490 node and matching
+  root complex, exact supplies/GPIOs/pinctrl and PCI endpoint identity,
+  deterministic output, and `HOLD` status for unresolved providers. It
+  rejects relative roots, duplicate CNSS nodes, malformed properties, and
+  mutation-capable implementation surfaces. The
+  [live contract report](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+  records the exact endpoint and remaining stale regulator phandle without
+  activating the radio.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

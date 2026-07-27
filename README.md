@@ -19,6 +19,15 @@ cleanup. Disposable keys and runtime state are removed. Radio,
 on-phone/provider WireGuard, real DHCP/provider DNS, throughput, thermal, and
 battery acceptance remain hardware gates.
 
+The later
+[vendor Wi-Fi contract checkpoint](test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+corrects one hardware assumption: fallback PCIe enumerates the Qualcomm
+`17cb:1103` endpoint with ASUS subsystem `17cb:0108`, and the protected Arch
+root has matching ath11k modules, WCN6855 firmware, regulatory data, and
+network packages. The live vendor tree still has one stale WLAN I/O-regulator
+phandle, and the mainline board DTS has no PCIe/WCN6855 PMU description.
+Linux 7.1 Wi-Fi therefore remains a hardware HOLD; no radio was activated.
+
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
 service is loopback-only, cannot reuse the Plasma user's home or credentials,
