@@ -105,6 +105,9 @@ bytes=$(stat -c %s "$tmp")
 	fail 'capture end marker is missing or ambiguous'
 [[ $(tail -n 1 "$tmp") == dmesg_end ]] ||
 	fail 'capture is incomplete'
+grep -Eq \
+	'^\[[^]]*\]( \[[[:space:]]*0\.[0-9]+\])?.*Linux version' "$tmp" ||
+	fail 'kernel ring no longer contains the boot origin'
 
 total_lines=$(wc -l <"$tmp")
 log_lines=$((total_lines - 4))
