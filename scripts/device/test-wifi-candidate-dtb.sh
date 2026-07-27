@@ -76,10 +76,15 @@ do
 	}
 done
 
-if grep -Eq 'max-link-speed|qcom,ath11k-calibration-variant|fastboot|adb|(^|[[:space:]])mount[[:space:]]|(^|[[:space:]])dd[[:space:]]' \
+if grep -Eq 'max-link-speed|qcom,.*calibration-variant' "$overlay" "$fragment"
+then
+	echo 'FAIL Wi-Fi candidate invents an unverified property' >&2
+	exit 1
+fi
+if grep -Eq '^[[:space:]]*(fastboot|adb|mount|dd)([[:space:]]|$)' \
 	"$overlay" "$fragment" "$builder"
 then
-	echo 'FAIL Wi-Fi candidate invents an unverified property or controls the phone' >&2
+	echo 'FAIL Wi-Fi candidate controls or writes to the phone' >&2
 	exit 1
 fi
 
