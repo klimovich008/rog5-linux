@@ -50,6 +50,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   outside paths, partial artifacts, and remote mutation commands. The
   [live HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
   records why the current ring cannot close the boot-log gate.
+- `test-inspect-persistent-layout.sh` fixture-tests the read-only,
+  no-repartition storage preflight. It pins the measured primary/boot LUN,
+  `super`, `metadata`, `userdata`, boot A/B, vendor-boot A/B, and vbmeta A/B
+  identities; requires the marked ext4 `userdata` fallback root, a valid
+  protected slot, unmounted boot-critical partitions, and at least 16 GiB
+  free; and rejects eight map/state mutations. The
+  [live result](../test-results/2026-07-27-persistent-layout-preflight-live.md)
+  authorizes design work only and no phone write.
 - `test-collect-vendor-wifi-contract.py` fixture-tests the read-only vendor
   CNSS/PCIe collector. It requires one unambiguous QCA6490 node and matching
   root complex, exact supplies/GPIOs/pinctrl and PCI endpoint identity,
@@ -131,6 +139,8 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `test-linux-rootfs-tools.sh` checks the pinned signed-Arch input path,
   metadata-preserving rootfs stage path, exact network-root module input, and
   absence of broad container privilege or phone-write commands. It also
+  delegates the exact persistent-layout fixture so a rootfs release cannot
+  silently assume a disposable Android partition. It also
   delegates the static v2 real-WireGuard hotspot contract so the aggregate
   rootfs gate cannot silently fall back to the superseded v1 control. It
   delegates

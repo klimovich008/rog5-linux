@@ -652,6 +652,7 @@ See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
 [builds and artifacts](docs/builds-and-artifacts.md),
 [subsystem status](docs/port-status.md), [recovery DTS](docs/recovery-dts.md),
 [read-only UFS discovery](docs/ufs-discovery.md),
+[persistent storage and rollback](docs/persistent-storage.md),
 [native network root](docs/network-root.md),
 [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md),
 [test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
