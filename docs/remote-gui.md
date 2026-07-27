@@ -35,8 +35,11 @@ The newer
 and its separate
 [protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 retain the same headless/optional-Plasma model while hardening the VPN-hotspot
-transition boundary. They remain unserved and unbooted; neither result enables
-KRDP or authorizes a live cycle.
+transition boundary. The
+[v2 pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+now verifies screen-off headless first boot, one normal reboot, and strict-SSH
+evidence flow, but does not start Plasma or KRDP. The root remains unserved
+and unbooted; no result authorizes a live cycle.
 
 ## Persistent tunnel on a Linux host
 

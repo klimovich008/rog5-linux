@@ -704,9 +704,11 @@ when no desktop is needed.
   [read-only protected export](test-results/2026-07-27-arch-successor-v2-protected-export-offline.md);
   reject seal, hotspot-control, hotspot-service, and account mutations while
   leaving v1 byte-exact and NFS inactive.
-- [ ] Add separately versioned successor-v2 target, one-shot runner, and
-  explicit-token verifier-first NFS controls; prove unarmed state
-  preservation before requesting any live authority.
+- [x] Add separately versioned successor-v2 target, one-shot runner, and
+  explicit-token verifier-first NFS controls. The
+  [v2 pre-live HOLD](test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+  passes all mocked controls and an actual unarmed invocation with
+  byte-identical normalized host state; it grants no live authority.
 - [ ] Choose v10 GPU diagnosis or a successor-v2 normal headless userspace
   cycle, repeat every preflight, and obtain a fresh explicit GO before NFS or
   boot.

@@ -1049,7 +1049,10 @@ pass for the manifest-pinned 2,007,001,876-byte archive. Its separate
 [protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 at `/var/lib/rog5-network-root-arch-successor-v2` is root-owned mode `0555`,
 Btrfs `ro=true`, recursively sealed over 181,239 entries, and rejects changed
-seal, hotspot control, hotspot service, and account snapshots. The v1 seal is
+seal, hotspot control, hotspot service, and account snapshots. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+adds dedicated v2 server/target/runner controls and proves an unarmed
+invocation preserves byte-identical host state. The v1 seal and controls are
 unchanged, NFS/RPC remains inactive, and v2 is unserved, unbooted, and HOLD.
 
 The raw ramoops reader and bootloader restart-reason helper remain under

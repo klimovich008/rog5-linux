@@ -92,6 +92,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   and
   [v2 protected-export result](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
   remain offline HOLD and add no NFS or boot authority.
+- `test-serve-arch-successor-v2-live-window.sh`,
+  `test-run-network-root-arch-successor-v2-gate.sh`, and
+  `test-run-arch-successor-v2-live-gate.sh` require a separate exact-root
+  token and verifier-first server, headless screen-off/storage-free target,
+  exact two-file tmpfs staging, strict SSH, private logging, one reboot, and
+  no retry. The
+  [v2 pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+  records their fail-first commits and the actual unarmed zero-state check.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
