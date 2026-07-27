@@ -126,7 +126,8 @@ for a working feature.
   register the PMK8350 power-key path with RTC still disabled.
 - [x] Validate the persistent Alpine fallback's software-rendered KDE/noVNC,
   ttyd, and Chromium endpoints with the physical panel off; enable and
-  failure-test a loopback-only reconnecting Linux host tunnel.
+  failure-test a loopback-only reconnecting Linux host tunnel plus a
+  singleton phone-side desktop supervisor.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -638,7 +639,9 @@ when no desktop is needed.
 - [ ] Test remote use with the physical panel off.
 - [x] Pass the narrower vendor-Alpine screen-off baseline with nested KWin
   Wayland, noVNC, ttyd, Chromium CDP, and an automatically reconnecting
-  loopback-only Linux host tunnel.
+  loopback-only Linux host tunnel. Prove Chromium recovery and reject a
+  duplicate-producing SSH-coupled supervisor before accepting the singleton
+  phone-side design.
 - [x] Stage and fixture-test a redacted collector for CPU, memory/PSS,
   cgroup, thermal, battery, display, and network-counter comparisons.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.

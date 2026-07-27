@@ -33,6 +33,13 @@ The 5.4.210 #20 smoke test currently passes:
 
 At the last baseline capture the battery was full, the panel backlight was zero, zram was 3 GiB and unused, and the server remained reachable with the physical screen off. The screen toggle now applies Wayland DPMS as well as backlight zero, and restores DPMS plus the saved brightness on wake.
 
+Those charging and battery claims belong to the 5.4.210 baseline. The
+currently installed 5.4.134 fallback has no matching ADSP/battery modules in
+its module tree, its guarded charging launcher therefore exits without
+loading anything, and `/sys/class/power_supply` is empty. Incompatible
+5.4.210 modules must not be force-loaded into it; battery-depletion work
+requires a matching kernel/module boot.
+
 The mainline userspace VPN-hotspot policy also has packet-level offline
 evidence. A network-disabled privileged container permits only the simulated
 VPN path, blocks one-way IPv4/IPv6 ordinary-uplink leakage, blocks unsolicited
@@ -82,8 +89,11 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   [live report](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
 - The Nobara host now runs an enabled reconnecting user service with four
   loopback-only SSH forwards. An induced main-process exit incremented the
-  restart counter, recreated the tunnel, reran the idempotent desktop
-  launcher, and restored all tested endpoints.
+  restart counter and recreated the tunnel while the same singleton
+  phone-side supervisor remained. A rejected SSH-coupled prototype produced
+  two supervisors; both were stopped before the accepted pidfile/flock design
+  was installed. The final browser-termination test restored Chromium and CDP
+  in eight seconds with exactly one supervisor.
 - The live desktop checkpoint retained about 10.2 GiB available memory and
   used zero swap. An earlier same-boot before/after observation put the
   incremental nested desktop/browser cost at roughly 264 MiB; full idle-power
