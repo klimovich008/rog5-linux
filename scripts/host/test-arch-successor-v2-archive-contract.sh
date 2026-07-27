@@ -10,9 +10,9 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 archive_name=artifacts/arch/rog5-arch-plasma-network-root-7.1.4-successor-v2.tar.gz
 archive=$repo/$archive_name
 manifest=$repo/manifests/artifacts.tsv
-minimum_commit=9a107591752689d4a04fe0870e1663f218029e1f
+expected_commit=ed7fa5e12e888c90edfe6e89a45beb30a7b222f6
 
-for command in awk bsdtar cmp cut git grep gzip mktemp rm sed sha256sum \
+for command in awk bsdtar cmp cut grep gzip mktemp rm sed sha256sum \
 	stat wc; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
@@ -93,9 +93,8 @@ bsdtar -xOf "$archive" ./etc/systemd/system/rog5-vpn-hotspot.service \
 project_commit=$(sed -n 's/^project_commit=//p' "$work/build")
 [[ $project_commit =~ ^[0-9a-f]{40}$ ]] ||
 	fail 'successor v2 build commit is malformed'
-git -C "$repo" cat-file -e "$project_commit^{commit}"
-git -C "$repo" merge-base --is-ancestor "$minimum_commit" "$project_commit" ||
-	fail 'successor v2 archive predates the hardened packaging'
+[[ $project_commit == "$expected_commit" ]] ||
+	fail 'successor v2 archive build commit changed'
 grep -qx 'rootfs_sha256=3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a' \
 	"$work/build"
 grep -qx 'modules_sha256=5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9' \
