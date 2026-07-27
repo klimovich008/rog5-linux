@@ -19,8 +19,11 @@ The sealed v10 diagnostic root contains the required Plasma/KRDP packages but
 predates the locked `rog5-agent` browser service. Keep its old Chromium unit
 disabled. The
 [offline userspace audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
-requires a freshly rebuilt normal Arch root with current agent isolation and
-systemd checks before remote automation is promoted.
+requires current agent isolation and systemd checks before remote automation
+is promoted. A
+[fresh successor root](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+now passes those offline checks but remains outside the protected export and
+has not been booted.
 
 ## Persistent tunnel on a Linux host
 

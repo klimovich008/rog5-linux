@@ -663,9 +663,13 @@ when no desktop is needed.
 - [x] Audit the sealed diagnostic root and current packaging for the normal
   Plasma/KRDP/server stack, headless defaults, loopback exposure, credentials,
   automation isolation, and systemd ordering.
-- [ ] Build and clean-round-trip a successor normal Arch archive containing
+- [x] Build and clean-round-trip a successor normal Arch archive containing
   the current locked `rog5-agent` service and corrected hotspot unit; do not
-  mutate the sealed v10 diagnostic root.
+  mutate the sealed v10 diagnostic root. The
+  [successor result](test-results/2026-07-27-arch-successor-rootfs-offline.md)
+  passes both full verifiers with 655 current packages.
+- [ ] Add a separate manifest/protected-export contract for the successor
+  archive before any boot or server allowlist change.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
