@@ -15,7 +15,7 @@
 | audio | basic services present | Qualcomm audio frameworks present | codecs, routing, speakers, microphones, headset safety |
 | cameras/sensors | not a server requirement | partial generic frameworks | deferred until core server release |
 | BTF/eBPF | BPF present, BTF absent | BTF generated and verified in 7.1 build | boot-time verifier/load tests, then optional GodShell systemd service |
-| KDE remote UI | software-rendered | userspace-independent | switch to hardware only after GPU gate passes |
+| KDE remote UI | [Alpine 3.24 nested KWin/Plasma, noVNC, ttyd, CDP, screen-off operation, and reconnecting loopback SSH tunnel pass live](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md) on installed 5.4.134 | userspace-independent; no Linux 7.1 DRM/KRDP acceptance yet | switch to physical DRM/KRDP and hardware rendering only after the display/GPU gates pass |
 
 “Present upstream” means the SoC framework exists, not that the phone is supported. No row becomes passing until its device test succeeds without new kernel warnings, resets, or recovery loss.
 

@@ -1,4 +1,4 @@
-# Current state — 2026-07-26
+# Current state — 2026-07-27
 
 ## Hardware and boot
 
@@ -12,6 +12,8 @@
   A newer offline-verified development archive adds a locked automation
   account without replacing the live-tested root.
 - Stable experimental kernel: `5.4.210-qgki-perf #20`.
+- Current persistent fallback boot: `5.4.134-qgki-perf-00001-g6c308144c23e`;
+  this is older than the separately proven temporary 5.4.210 artifact.
 - Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
 
 ## Passing baseline
@@ -73,7 +75,19 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
 - Plasma Mobile, Plasma Desktop, Plasma NetworkManager, Discover, and the Alpine APK backend are installed.
 - The physical session currently forces Qt Quick and OpenGL software rendering.
 - noVNC/Xvnc is also a software path and should remain an emergency/admin interface, not the GPU validation target.
-- Repaired localhost-only remote-session launchers are installed. The nested KDE/Chromium session remains stopped during the thermally limited native kernel compile.
+- Repaired localhost-only remote-session launchers are installed. On the
+  persistent Alpine 3.24 fallback, nested KWin Wayland, Plasma, Chromium CDP,
+  ttyd, and noVNC passed a live visual and endpoint check while the physical
+  panel state remained off with backlight zero. See the
+  [live report](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
+- The Nobara host now runs an enabled reconnecting user service with four
+  loopback-only SSH forwards. An induced main-process exit incremented the
+  restart counter, recreated the tunnel, reran the idempotent desktop
+  launcher, and restored all tested endpoints.
+- The live desktop checkpoint retained about 10.2 GiB available memory and
+  used zero swap. An earlier same-boot before/after observation put the
+  incremental nested desktop/browser cost at roughly 264 MiB; full idle-power
+  and per-process PSS measurement remains pending.
 - Recorded memory usage was about 0.85 GiB without the full physical UI and about 1.4 GiB with Plasma Mobile, radio services, and caches active. The device has roughly 11 GiB usable RAM, so reliability and idle power matter more than aggressive memory trimming.
 
 ## Known operational constraints
@@ -86,9 +100,10 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   reproducibly with container networking disabled.
 - The connected fallback system enumerates as USB gadget `1d6b:0104` and
   `/dev/ttyACM0`. Android platform tools 35.0.2 are installed and the user is
-  configured in `dialout`; the current desktop login has not refreshed that
-  supplementary group, but a temporary group shell verifies access.
-- A non-autoconnecting host-only USB profile at `169.254.77.1/16` reaches the
+  configured in `dialout`; the current desktop login includes the
+  supplementary group.
+- An autoconnecting, never-default host-only USB profile at
+  `169.254.77.1/16` reaches the
   fallback server at `169.254.77.2`; the network-root target uses an isolated
   `169.254.77.1/30` link. After explicit approval, the dedicated public key
   was added to the persistent fallback authorization file while preserving a
