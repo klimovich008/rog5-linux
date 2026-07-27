@@ -11,7 +11,7 @@ verify=$repo/scripts/host/verify-a660-gmu-resume-entry-v8-export.sh
 export_test=$repo/scripts/host/test-a660-gmu-resume-entry-v8-export.sh
 live_runner=$repo/scripts/host/run-a660-gmu-resume-entry-v8-live-gate.sh
 live_runner_test=$repo/scripts/host/test-run-a660-gmu-resume-entry-v8-live-gate.sh
-live_window_test=$repo/scripts/host/test-serve-a660-gmu-resume-entry-v8-live-window.sh
+consumed_v8_test=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v8.sh
 predecessor_verify=$repo/scripts/host/verify-a660-ucode-allocation-v7-export.sh
 predecessor_consumed=$repo/scripts/host/test-consume-a660-ucode-allocation-v7.sh
 serve=$repo/scripts/host/serve-network-root.sh
@@ -20,7 +20,7 @@ go_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md
 
 for input in "$runtime_test" "$gate" "$gate_test" "$prepare" "$verify" \
 	"$export_test" "$live_runner" "$live_runner_test" "$predecessor_verify" \
-	"$live_window_test" "$predecessor_consumed" "$serve"
+	"$consumed_v8_test" "$predecessor_consumed" "$serve"
 do
 	[ -x "$input" ] || {
 		echo "FAIL missing executable A660 GMU resume-entry v8 root tool: $input" >&2
@@ -37,7 +37,7 @@ done
 [ "$(sha256sum "$go_report" | cut -d ' ' -f 1)" = \
 	432cdfa196f5a418060adba0e902108bc1eeaf8dd466d3e5b0b73a29221bf242 ]
 
-for input in "$runtime_test" "$gate" "$gate_test" "$live_window_test"; do
+for input in "$runtime_test" "$gate" "$gate_test" "$consumed_v8_test"; do
 	sh -n "$input"
 done
 for input in "$prepare" "$verify" "$export_test" "$predecessor_verify" \
@@ -74,7 +74,6 @@ for contract in \
 	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_GATE' \
 	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_REBOOT' \
 	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_LIVE_GATE' \
-	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8_NFS' \
 	'HostKeyAlias=rog5-network-root' \
 	'umask 077' \
 	'ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8=1 "$probe"' \
@@ -97,7 +96,7 @@ for contract in \
 do
 	if ! grep -Fq "$contract" "$runtime_test" "$gate" "$gate_test" \
 		"$prepare" "$verify" "$export_test" "$live_runner" \
-		"$live_runner_test" "$live_window_test"
+		"$live_runner_test" "$consumed_v8_test"
 	then
 		echo "FAIL A660 GMU resume-entry v8 root path omits: $contract" >&2
 		exit 1
@@ -139,7 +138,7 @@ done
 "$gate_test"
 "$export_test"
 "$live_runner_test"
-"$live_window_test"
+"$consumed_v8_test"
 "$predecessor_consumed"
 
-echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, explicit-window-only, and pre-live GO'
+echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, permanently consumed, server-non-runnable, and pre-live evidence-pinned'
