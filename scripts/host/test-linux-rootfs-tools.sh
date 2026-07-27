@@ -9,6 +9,8 @@ metrics_test=$repo/scripts/device/test-collect-baseline.sh
 component_metrics_test=$repo/scripts/device/test-collect-component-pss.sh
 vendor_log_capture=$repo/scripts/host/capture-vendor-kernel-log.sh
 vendor_log_capture_test=$repo/scripts/host/test-capture-vendor-kernel-log.sh
+wifi_contract=$repo/scripts/device/collect-vendor-wifi-contract.py
+wifi_contract_test=$repo/scripts/device/test-collect-vendor-wifi-contract.py
 hotspot_wireguard_contract=$repo/scripts/device/test-vpn-hotspot-wireguard-contract.sh
 successor_export_test=$repo/scripts/host/test-arch-successor-export.sh
 successor_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v1-gate.sh
@@ -42,10 +44,17 @@ for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	}
 	bash -n "$script"
 done
+for script in "$wifi_contract" "$wifi_contract_test"; do
+	[ -x "$script" ] || {
+		echo "FAIL missing executable Linux device tool: $script" >&2
+		exit 1
+	}
+done
 "$agent_test" >/dev/null
 "$metrics_test" >/dev/null
 "$component_metrics_test" >/dev/null
 "$vendor_log_capture_test" >/dev/null
+"$wifi_contract_test" >/dev/null
 "$hotspot_wireguard_contract" >/dev/null
 "$successor_export_test" >/dev/null
 "$successor_target_test" >/dev/null
