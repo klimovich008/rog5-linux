@@ -14,6 +14,11 @@ wifi_contract_test=$repo/scripts/device/test-collect-vendor-wifi-contract.py
 wifi_candidate_test=$repo/scripts/device/test-wifi-candidate-dtb.sh
 wifi_schema_test=$repo/scripts/host/test-validate-wifi-candidate-dtb.sh
 wifi_kernel_test=$repo/scripts/device/test-mainline-wifi-build-contract.sh
+wifi_probe_test=$repo/scripts/device/test-probe-network-root-wifi.sh
+wifi_overlay_test=$repo/scripts/device/test-wifi-root-overlay-contract.sh
+wifi_bundle_contract_test=$repo/scripts/device/test-wifi-network-root-bundle-contract.sh
+wifi_bundle_test=$repo/scripts/device/test-network-root-wifi-bundle.sh
+wifi_gate_test=$repo/scripts/device/test-run-network-root-wifi-gate.sh
 hotspot_wireguard_contract=$repo/scripts/device/test-vpn-hotspot-wireguard-contract.sh
 successor_export_test=$repo/scripts/host/test-arch-successor-export.sh
 successor_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v1-gate.sh
@@ -34,6 +39,8 @@ for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	"$component_metrics_test" \
 	"$vendor_log_capture" "$vendor_log_capture_test" \
 	"$wifi_candidate_test" "$wifi_schema_test" "$wifi_kernel_test" \
+	"$wifi_probe_test" "$wifi_overlay_test" \
+	"$wifi_bundle_contract_test" "$wifi_bundle_test" "$wifi_gate_test" \
 	"$hotspot_wireguard_contract" \
 	"$successor_export_test" "$successor_target_test" \
 	"$successor_runner_test" "$successor_v2_test" \
@@ -62,6 +69,11 @@ done
 "$wifi_candidate_test" >/dev/null
 "$wifi_schema_test" >/dev/null
 "$wifi_kernel_test" >/dev/null
+"$wifi_probe_test" >/dev/null
+"$wifi_overlay_test" >/dev/null
+"$wifi_bundle_contract_test" >/dev/null
+"$wifi_bundle_test" >/dev/null
+"$wifi_gate_test" >/dev/null
 "$hotspot_wireguard_contract" >/dev/null
 "$successor_export_test" >/dev/null
 "$successor_target_test" >/dev/null
