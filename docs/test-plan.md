@@ -510,8 +510,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   generation, unchanged v8 module, all retained safety constraints, and
   twelve mutations pass; see the
   [v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
-  V9 remains HOLD because its protected root, gate, runner, and pre-live
-  reviews do not yet exist.**
+  The consumed-v8-derived protected root and compound target gate now also
+  pass: the exact unchanged kernel/seven-module/two-firmware payload,
+  versioned signed/device oracle, credentials, whole-tree delta, overlapping
+  watchdogs, construction cleanup, and independent final-path audit are
+  verified; see the
+  [v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
+  V9 remains HOLD because its strict no-retry runner and pre-live reviews do
+  not yet exist.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

@@ -564,9 +564,16 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   including the evidence-derived 21-call fixture; see the
   [v9 offline runtime report](test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
   This is runtime-only HOLD with no phone authority.
-- [ ] Derive and mutation-test a fresh consumed-v8-based v9 protected root,
-  compound target gate, strict no-retry runner, and immutable report chain.
-  Keep v9 absent from the bounded NFS server until a separate pre-live GO.
+- [x] Derive a fresh consumed-v8-based v9 protected root and compound target
+  gate. The exact-delta verifier preserves every kernel/module, firmware,
+  credential, and undeclared rootfs byte; the strengthened umbrella reruns
+  the runtime mutation suite and consumed-v8 lockout. Construction and an
+  independent final-path audit pass; see the
+  [v9 protected-root report](test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
+  The root remains absent from the bounded NFS server.
+- [ ] Fail-first test a strict one-invocation v9 host runner, mock its exact
+  prepare/copy/remote-verify/gate sequence with no retry, prove actual unarmed
+  refusal, and record a separate non-runnable pre-live HOLD checkpoint.
 - [ ] Only after a later v9 live acceptance and consumption, source-test a separate
   bounded GMU power-preparation tier; do not combine GMU runtime power,
   clocks, HFI, ZAP/SCM, hardware initialization, successful open, submit, or
