@@ -9,6 +9,22 @@ modules=${MODULES_ARCHIVE:-$repo/artifacts/network-root-v1/modules-7.1.4-network
 firmware=${FIRMWARE_DIRECTORY:-$repo/artifacts/firmware/linux-firmware-20260622}
 builder_image=${BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 manifest=$repo/manifests/artifacts.tsv
+generation=${ARCH_ROOTFS_GENERATION:-v2}
+
+case $generation in
+	v2)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-rootfs-v2.sh
+		;;
+	v3)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-v3-stage.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-rootfs-v3.sh
+		;;
+	*)
+		echo "FAIL unsupported Arch rootfs generation: $generation" >&2
+		exit 1
+		;;
+esac
 
 for command in bash bsdtar git podman realpath sha256sum stat tar; do
 	command -v "$command" >/dev/null
@@ -144,7 +160,7 @@ podman run --rm \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	--env "PROJECT_COMMIT=$project_commit" \
 	"$builder_image" \
-	/bin/bash /stage/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+	/bin/bash "/stage$stage_runner"
 
 output_dir=$(dirname "$output")
 output_name=$(basename "$output")
@@ -180,7 +196,7 @@ podman run --rm --network none \
 	--tmpfs /stage/run \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	"$builder_image" chroot /stage /bin/bash \
-	/workspace/repo/scripts/device/verify-staged-arch-rootfs-v2.sh
+	"$rootfs_verifier"
 
 mv "$gzip_part" "$output"
 succeeded=1
