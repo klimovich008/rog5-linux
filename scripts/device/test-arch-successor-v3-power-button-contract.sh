@@ -18,13 +18,16 @@ fail() {
 	exit 1
 }
 
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+
 for input in "$v2_stage" "$v3_stage" "$v2_verifier" "$v3_verifier" \
 	"$v3_runner" "$host_stage" "$host_v3" "$button" "$button_test" \
 	"$button_unit"; do
 	[ -f "$input" ] && [ ! -L "$input" ] ||
 		fail "missing or linked successor-v3 input: $input"
 done
-for script in "$v2_stage" "$v3_stage" "$v2_verifier" "$v3_verifier" \
+for script in "$v3_stage" "$v2_verifier" "$v3_verifier" \
 	"$v3_runner" "$host_stage" "$host_v3" "$button" "$button_test"; do
 	[ -x "$script" ] ||
 		fail "successor-v3 input is not executable: $script"
@@ -38,8 +41,10 @@ bash -n "$v2_stage" "$v3_stage" "$v2_verifier" "$v3_verifier" \
 
 for contract in \
 	'/bin/bash "$repo/scripts/device/stage-arch-rootfs.sh"' \
-	'install -Dm0755 "$repo/scripts/device/power-buttond.py" /usr/local/libexec/rog5-power-buttond' \
-	'install -Dm0644 "$repo/packaging/arch/rog5-power-button.service" /etc/systemd/system/rog5-power-button.service' \
+	'install -Dm0755 "$repo/scripts/device/power-buttond.py"' \
+	'/usr/local/libexec/rog5-power-buttond' \
+	'install -Dm0644 "$repo/packaging/arch/rog5-power-button.service"' \
+	'/etc/systemd/system/rog5-power-button.service' \
 	'systemctl enable rog5-power-button.service' \
 	'scripts/device/verify-staged-arch-rootfs-v3.sh'
 do
@@ -71,6 +76,14 @@ do
 done
 
 for contract in \
+	'ARCH_DEVICE_STAGE=scripts/device/stage-arch-rootfs-v3.sh' \
+	'exec /workspace/repo/scripts/device/run-arch-rootfs-stage.sh'
+do
+	grep -Fq "$contract" "$v3_runner" ||
+		fail "successor-v3 stage runner omits: $contract"
+done
+
+for contract in \
 	'ARCH_ROOTFS_GENERATION=v3' \
 	'rog5-arch-plasma-network-root-7.1.4-successor-v3.tar.gz' \
 	'exec "$repo/scripts/host/stage-arch-rootfs.sh"'
@@ -78,6 +91,15 @@ do
 	grep -Fq "$contract" "$host_v3" ||
 		fail "successor-v3 host wrapper omits: $contract"
 done
+
+if ARCH_ROOTFS_GENERATION=invalid "$host_stage" "$repo/missing.pub" \
+	>"$work/invalid.out" 2>&1
+then
+	fail 'host stage accepted an unknown rootfs generation'
+fi
+grep -Fq 'unsupported Arch rootfs generation: invalid' \
+	"$work/invalid.out" ||
+	fail 'unknown rootfs generation rejection was not explicit'
 
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/' \

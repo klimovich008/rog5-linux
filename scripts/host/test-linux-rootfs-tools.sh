@@ -15,13 +15,15 @@ successor_v2_export_test=$repo/scripts/host/test-arch-successor-v2-export.sh
 successor_v2_nfs_test=$repo/scripts/host/test-serve-arch-successor-v2-live-window.sh
 successor_v2_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v2-gate.sh
 successor_v2_runner_test=$repo/scripts/host/test-run-arch-successor-v2-live-gate.sh
+successor_v3_test=$repo/scripts/device/test-arch-successor-v3-power-button-contract.sh
 
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	"$hotspot_wireguard_contract" \
 	"$successor_export_test" "$successor_target_test" \
 	"$successor_runner_test" "$successor_v2_test" \
 	"$successor_v2_export_test" "$successor_v2_nfs_test" \
-	"$successor_v2_target_test" "$successor_v2_runner_test"; do
+	"$successor_v2_target_test" "$successor_v2_runner_test" \
+	"$successor_v3_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable Linux host tool: $script" >&2
 		exit 1
@@ -39,6 +41,7 @@ done
 "$successor_v2_nfs_test" >/dev/null
 "$successor_v2_target_test" >/dev/null
 "$successor_v2_runner_test" >/dev/null
+"$successor_v3_test" >/dev/null
 
 grep -Fq 'verify-arch-rootfs.sh' "$fetch"
 grep -Fq '91e6b11698f8df66042d56aaa56fbe9c9263847d' "$fetch"
