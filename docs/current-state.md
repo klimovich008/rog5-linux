@@ -294,9 +294,15 @@ ext4 `userdata`, active slot B, boot/vendor-boot/vbmeta A/B, root marker, and
 free-space checks. The accepted
 [storage design](persistent-storage.md) does not repartition: Alpine remains
 the recovery root, Arch generations live only below `/rog5`, and Linux 7.x is
-entered through one-shot kexec. The next storage tier is deterministic
-host-side staging followed by a `ro,noload` UFS/tmpfs-overlay Arch boot. No
-`/rog5` directory, phone file, partition content, or boot slot was changed.
+entered through one-shot kexec. The later
+[P1 staging acceptance](../test-results/2026-07-27-persistent-arch-staging-offline.md)
+pins the exact successor-v3 archive and signed aarch64 libarchive tool,
+rejects unsafe/device/credential members, preserves metadata, seals the
+complete extracted tree, detects mutation and interruption, and publishes
+only through an atomic rename. The next storage tier is an explicitly
+authorized P1 deployment followed by a `ro,noload` UFS/tmpfs-overlay Arch
+boot. `/rog5` remains absent; no persistent phone file, partition content, or
+boot slot was changed.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

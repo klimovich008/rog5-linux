@@ -135,13 +135,39 @@ boot media, insufficient space, missing fallback marker, and changed active
 boot label. The implementation contains no mount, partition, format, block
 read, flash, reboot, or kexec action.
 
-### Gate P1 — host-side root staging package (pending)
+### Gate P1 — host-side root staging package (passed offline)
 
-Build a deterministic, path-safe package for `/rog5/roots/arch-a.partial`.
-Verify the source archive, reject device nodes and unsafe paths, preserve
-required metadata, generate no credential, produce a complete tree seal, and
-test interrupted staging and atomic publication. Do not send it to the phone
-without a fresh persistent-write instruction.
+`scripts/device/stage-persistent-arch-root.sh` and
+`scripts/device/persistent-root-tool.py` now implement the first-generation
+stager for `/rog5/roots/arch-a.partial`. The production path accepts only the
+manifest-pinned 2,007,033,670-byte successor-v3 archive with SHA-256
+`a7c286491d2fde97e17024b36f514d595196975da1988c986f70819c964eb8d7`.
+Before creating `/rog5`, it requires the live P0 map and a separate
+`ALLOW_ROG5_PERSISTENT_STAGE=1` arm.
+
+The archive inspection rejects absolute/parent paths, duplicate entries,
+device nodes, FIFOs, unsupported members, escaping relative links, and known
+deployment-credential paths. Extraction uses libarchive with ACL, xattr,
+file-flag, ownership, mode, and timestamp preservation. A canonical
+whole-tree seal covers every directory, regular file, symlink, file-content
+hash, mode, owner, group, size, mtime, link count, link target, ACL,
+capability, and other xattr. The root remains `UNBOOTED`; staging never writes
+`state/good` or `state/next`.
+
+The fail-first fixture suite proves that an interrupted extraction leaves
+only `arch-a.partial`, a stale partial or existing final root is never
+overwritten, and the verified tree becomes visible only through one
+same-filesystem atomic rename. It also detects post-publication content
+changes. The real 181,242-entry archive passes the independent archive
+contract. Alpine's signed aarch64 `libarchive-tools 3.8.7-r0` package is
+size/hash pinned, signature-verified offline, and its `bsdtar` payload executes
+against the current fallback libraries without installing the package.
+
+See the
+[offline P1 result](../test-results/2026-07-27-persistent-arch-staging-offline.md).
+The live fallback was contacted only for read-only preflight and a `/run`
+runtime-link check. `/rog5` remains absent; no persistent root has been sent
+or staged. A fresh explicit persistent-write instruction is still required.
 
 ### Gate P2 — UFS read-only Arch boot (pending)
 

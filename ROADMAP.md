@@ -148,6 +148,12 @@ for a working feature.
   read-only UFS plus bounded-write gates before persistent promotion. The
   [live preflight](test-results/2026-07-27-persistent-layout-preflight-live.md)
   passes without opening or writing a block device.
+- [x] Build and fail-first test the P1 persistent Arch stager. Pin the exact
+  successor-v3 archive and signed Alpine libarchive input; reject unsafe
+  members and credentials; preserve ACLs/xattrs/capabilities; seal the entire
+  extracted tree; and publish `arch-a` atomically while leaving it unbooted.
+  The [offline result](test-results/2026-07-27-persistent-arch-staging-offline.md)
+  leaves `/rog5` absent on the phone pending a separate write instruction.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
 
@@ -829,7 +835,8 @@ Goal: turn the tested development system into something recoverable and
 maintainable.
 
 - [ ] Freeze accepted kernel, DTB, initramfs, modules, firmware, and rootfs hashes.
-- [ ] Define a persistent boot layout with a known-good fallback.
+- [x] Define a non-repartitioning persistent boot layout with the installed
+  Alpine slot-B root as the known-good fallback.
 - [ ] Add an atomic update or A/B rollback strategy where the storage layout
   allows it.
 - [ ] Document backup, restore, recovery entry, and unbrick procedures.

@@ -112,6 +112,15 @@ a strict no-retry runner. An actual unarmed invocation preserved
 byte-identical host state. V1/v2 remain unchanged; v3 is still unserved and
 unbooted, and GPU diagnostic v10 remains the selected next live candidate.
 
+The non-repartitioning persistent-storage P1 gate now also
+[passes offline](test-results/2026-07-27-persistent-arch-staging-offline.md).
+The exact successor-v3 archive and signed Alpine aarch64 libarchive tool are
+size/hash pinned; unsafe paths, device nodes, deployment credentials,
+interruption, stale partials, final-root overwrite, metadata loss, and tree
+mutation are rejected. A complete seal covers 181,242 source entries, and
+`arch-a` is published only by atomic rename with state `UNBOOTED`. The live
+fallback still has no `/rog5`; no root was transferred, selected, or booted.
+
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
 aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,

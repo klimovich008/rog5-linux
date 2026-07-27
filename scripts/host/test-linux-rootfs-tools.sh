@@ -8,6 +8,9 @@ agent_test=$repo/scripts/device/test-agent-isolation.sh
 metrics_test=$repo/scripts/device/test-collect-baseline.sh
 component_metrics_test=$repo/scripts/device/test-collect-component-pss.sh
 persistent_layout_test=$repo/scripts/device/test-inspect-persistent-layout.sh
+persistent_stage=$repo/scripts/device/stage-persistent-arch-root.sh
+persistent_stage_test=$repo/scripts/device/test-stage-persistent-arch-root.sh
+persistent_root_tool=$repo/scripts/device/persistent-root-tool.py
 vendor_log_capture=$repo/scripts/host/capture-vendor-kernel-log.sh
 vendor_log_capture_test=$repo/scripts/host/test-capture-vendor-kernel-log.sh
 wifi_contract=$repo/scripts/device/collect-vendor-wifi-contract.py
@@ -41,6 +44,7 @@ successor_v3_runner_test=$repo/scripts/host/test-run-arch-successor-v3-live-gate
 
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	"$component_metrics_test" "$persistent_layout_test" \
+	"$persistent_stage" "$persistent_stage_test" \
 	"$vendor_log_capture" "$vendor_log_capture_test" \
 	"$wifi_candidate_test" "$wifi_schema_test" "$wifi_kernel_test" \
 	"$wifi_probe_test" "$wifi_overlay_test" \
@@ -60,6 +64,11 @@ for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	}
 	bash -n "$script"
 done
+[ -x "$persistent_root_tool" ] || {
+	echo "FAIL missing executable Linux device tool: $persistent_root_tool" >&2
+	exit 1
+}
+python3 -m py_compile "$persistent_root_tool"
 for script in "$wifi_contract" "$wifi_contract_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable Linux device tool: $script" >&2
@@ -70,6 +79,7 @@ done
 "$metrics_test" >/dev/null
 "$component_metrics_test" >/dev/null
 "$persistent_layout_test" >/dev/null
+"$persistent_stage_test" >/dev/null
 "$vendor_log_capture_test" >/dev/null
 "$wifi_contract_test" >/dev/null
 "$wifi_candidate_test" >/dev/null
@@ -107,6 +117,11 @@ grep -Fq '68B3537F39A313B3E574D06777193F152BDBE6A6' \
 grep -Fq 'verify-staged-arch-rootfs-v2.sh' "$stage"
 grep -Fq 'modules-7.1.4-network-root.tar.gz' "$stage"
 grep -Fq 'bsdtar --acls --xattrs --fflags' "$stage"
+grep -Fq 'libarchive-tools-3.8.7-r0.apk' \
+	"$repo/scripts/host/Get-RecoveryPackages.ps1"
+grep -Fq \
+	'033049f6d53ff0d267341087adfe142d3e4abe8d3fcec6853e2ed7c95ce2d41e' \
+	"$repo/scripts/host/Get-RecoveryPackages.ps1"
 grep -Fq '10-rog5-sshd.conf' "$repo/scripts/device/stage-arch-rootfs.sh"
 grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
 	"$repo/packaging/arch/10-rog5-sshd.conf"
