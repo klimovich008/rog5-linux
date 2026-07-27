@@ -134,8 +134,13 @@ It keeps all 655 packages, reruns the byte-exact v2 verifier, then installs
 and enables a confined `pmic_pwrkey` press handler for the existing
 DPMS/backlight toggle. Both staged and clean-extracted roots pass the v3
 verifier, and an independent archive contract rejects unsafe paths and
-runtime credentials. It has no protected export or live gate; v2 remains the
-live candidate.
+runtime credentials. Its separate
+[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+adds a root-owned read-only Btrfs export, four rejected COW mutations, an
+exact-root verifier-first NFS control, a power-input-aware first-boot gate,
+and a strict no-retry runner. The unarmed server preserves byte-identical
+host state. V3 remains unserved and unbooted with no physical-button/display
+acceptance; GPU diagnostic v10 remains the selected next live candidate.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 

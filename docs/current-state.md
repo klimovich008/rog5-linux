@@ -1071,8 +1071,13 @@ keeps the complete v2 staged-root verifier byte-exact, then installs an
 enabled, input-device-confined `pmic_pwrkey` handler for the existing
 DPMS/backlight toggle. Its synthetic parser/service tests, full AArch64 stage,
 clean extraction, exact 2,007,033,670-byte archive, and independent
-credential/path checks pass. It has no protected export, NFS/live controls,
-or hardware acceptance; v2 remains the selected Arch server-path candidate.
+credential/path checks pass. Its separate
+[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+now pins a read-only Btrfs export, rejects four COW mutations, and adds an
+exact-root verifier-first NFS control, power-input-aware target gate, and
+strict no-retry runner. The actual unarmed invocation preserved
+byte-identical host state. It still has no hardware acceptance and remains
+unserved/unbooted; v10 remains the selected next live GPU diagnostic.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

@@ -113,8 +113,15 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   byte-exact v2 verifier, while
   `test-arch-successor-v3-archive-contract.sh` pins the clean archive and
   rejects unsafe paths or embedded host, VPN, desktop, and agent credentials.
-  See the
-  [v3 offline result](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md).
+  `test-arch-successor-v3-export.sh` then requires a separate recursively
+  sealed read-only Btrfs root and rejects seal, power-handler, power-service,
+  and account mutations. The v3 NFS, target, and runner tests require a
+  verifier-first exact-root token, exact seal/archive identities, one real
+  `pmic_pwrkey` character device, active zero-restart handler service, strict
+  SSH, one reboot, and no retry. See the
+  [v3 offline result](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+  and
+  [protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md).
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

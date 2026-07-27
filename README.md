@@ -71,8 +71,13 @@ layers an enabled, device-confined `pmic_pwrkey` handler over the byte-exact
 v2 verifier. Synthetic native `input_event` tests require press-only
 screen-toggle behavior, explicit failure propagation, and no boot or storage
 action. The 2,007,033,670-byte AArch64 archive passes both clean-root
-verifiers and an independent credential/path contract. It is an unbooted
-userspace-development artifact; v2 remains the protected live candidate.
+verifiers and an independent credential/path contract. Its separate
+[protected pre-live HOLD](test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+adds a recursively sealed read-only Btrfs root, four rejected COW mutations,
+an exact-root verifier-first NFS control, a real-input-aware target gate, and
+a strict no-retry runner. An actual unarmed invocation preserved
+byte-identical host state. V1/v2 remain unchanged; v3 is still unserved and
+unbooted, and GPU diagnostic v10 remains the selected next live candidate.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
