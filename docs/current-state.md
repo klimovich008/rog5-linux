@@ -913,8 +913,19 @@ then adds only a fail-first verifier-before-state exact-root server case and
 revalidates the complete package, protected root and five mutations,
 credentials, distinct host identities, strict read-only fallback health, and
 both actual unarmed refusals. The temporary USB profile was deactivated and
-final host state is residue-free. Exactly one attended RAM-only v8 cycle is
-authorized, with no retry and no flash.
+final host state is residue-free. The
+[sole v8 live cycle](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+then reached the exact GMU entry and accepted rollback. All three deliberate
+`-EUCLEAN` returns appeared as zero-extended `4294967179` in the `s64`
+kretprobe oracle, which failed closed. Complete trace review also found 21
+process-scoped generic `__pm_runtime_resume()` calls across mapping, the GPU
+callback, and rollback, invalidating the global count-of-one oracle. Direct
+inner GPU/GMU PM, clock, IRQ, HFI, devfreq, LLC, hardware, ZAP, and SCM
+probes remained zero. The runner was not retried; exact fallback and complete
+host cleanup passed. V8 is permanently consumed and absent from the bounded
+server. A separately versioned v9 must correct signed-`int` handling and
+scope runtime PM by GPU device while retaining every later settle, snapshot,
+rollback, zero-resource, and watchdog gate. No GMU power tier is authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

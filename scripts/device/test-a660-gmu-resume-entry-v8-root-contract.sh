@@ -17,6 +17,7 @@ predecessor_consumed=$repo/scripts/host/test-consume-a660-ucode-allocation-v7.sh
 serve=$repo/scripts/host/serve-network-root.sh
 hold_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md
 go_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md
+rejected_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md
 
 for input in "$runtime_test" "$gate" "$gate_test" "$prepare" "$verify" \
 	"$export_test" "$live_runner" "$live_runner_test" "$predecessor_verify" \
@@ -28,7 +29,7 @@ do
 	}
 done
 
-for input in "$hold_report" "$go_report"; do
+for input in "$hold_report" "$go_report" "$rejected_report"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || {
 		echo "FAIL missing immutable A660 GMU resume-entry v8 input: $input" >&2
 		exit 1
@@ -36,6 +37,8 @@ for input in "$hold_report" "$go_report"; do
 done
 [ "$(sha256sum "$go_report" | cut -d ' ' -f 1)" = \
 	432cdfa196f5a418060adba0e902108bc1eeaf8dd466d3e5b0b73a29221bf242 ]
+[ "$(sha256sum "$rejected_report" | cut -d ' ' -f 1)" = \
+	fe5a6130cce3063ef6a0b1093d492d2a35763781f23af029c2959548cb092a9c ]
 
 for input in "$runtime_test" "$gate" "$gate_test" "$consumed_v8_test"; do
 	sh -n "$input"
@@ -127,6 +130,9 @@ do
 			"$status_file" ||
 		! grep -Fq \
 			'2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md' \
+			"$status_file" ||
+		! grep -Fq \
+			'2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md' \
 			"$status_file"
 	then
 		echo "FAIL project status omits A660 v8 report chain: $status_file" >&2
@@ -141,4 +147,4 @@ done
 "$consumed_v8_test"
 "$predecessor_consumed"
 
-echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, permanently consumed, server-non-runnable, and pre-live evidence-pinned'
+echo 'PASS A660 GMU resume-entry v8 root is consumed-v7-derived, exact-delta, mutation-tested, host-runner-tested, storage-free, permanently consumed, server-non-runnable, and live-safe-rejection-pinned'

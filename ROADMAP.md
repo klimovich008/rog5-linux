@@ -546,12 +546,25 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   fallback health, both real unarmed refusals, and final residue-free host
   state pass; see the
   [v8 pre-live GO report](test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).
-- [ ] Run exactly one attended RAM-only v8 cycle, require normal fallback and
-  complete cleanup, then consume v8 and remove its server case regardless of
-  acceptance or rejection. Never retry and never flash.
-- [ ] After v8 is consumed, source-test a separate bounded GMU power-preparation
-  tier; do not combine GMU runtime power, clocks, HFI, ZAP/SCM, hardware
-  initialization, successful open, submit, or rendering.
+- [x] Run exactly one attended RAM-only v8 cycle, require normal fallback and
+  complete cleanup, then consume v8 regardless of acceptance or rejection.
+  The
+  [sole v8 live cycle](test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+  reached exact GMU entry and rollback with deliberate `EUCLEAN`, then failed
+  closed on a zero-extended signed-return oracle. Its complete trace also
+  found 21 process-scoped generic runtime-PM calls instead of the assumed one,
+  while every specific inner resource probe stayed zero. Fallback and cleanup
+  passed; v8 is permanently consumed, non-runnable, never retried, and never
+  flashed.
+- [ ] Build a separately versioned v9 userspace oracle around the unchanged
+  v8 kernel module. Fail-first test signed 32-bit return normalization and
+  compare runtime-PM device identity rather than a process-global call count;
+  retain every zero-resource, rollback, settle, snapshot, storage, and
+  watchdog gate.
+- [ ] Only after a later v9 acceptance and consumption, source-test a separate
+  bounded GMU power-preparation tier; do not combine GMU runtime power,
+  clocks, HFI, ZAP/SCM, hardware initialization, successful open, submit, or
+  rendering.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.

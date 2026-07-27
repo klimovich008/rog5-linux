@@ -773,8 +773,15 @@ adds exactly one fail-first, explicit-opt-in v8 server case whose complete
 root verifier runs before host-state mutation. The unchanged package,
 protected root and five mutations, separate SSH identities, read-only
 fallback, and real unarmed controls all pass. NFS/RPC and the temporary USB
-profile are inactive with zero residue afterward. This authorizes exactly
-one attended RAM-only v8 cycle; flashing and retry remain forbidden.
+profile are inactive with zero residue afterward. The
+[sole v8 live cycle](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+then reached exact GMU entry and rollback but failed closed on a
+zero-extended signed-return oracle. Complete trace review also rejected its
+process-global runtime-PM count assumption while every direct inner-resource
+probe stayed zero. The watchdog restored exact fallback and the server
+removed every NFS, RPC, mount, firewall, interface, and sysctl change. V8 is
+consumed and absent from the bounded server; retry and flashing remain
+forbidden. Any v9 work requires a fresh protected root and authorization.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
