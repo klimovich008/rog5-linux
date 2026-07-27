@@ -84,6 +84,15 @@ runtime metrics helper. This development artifact remains outside Git and has
 not replaced the manifest-pinned live root, been exported over NFS, or booted
 on the phone.
 
+The later
+[userspace readiness audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+keeps every sealed diagnostic root unchanged, confirms its full
+Plasma/KRDP/server package set and secret-free headless policy, and
+fail-first fixes a systemd ordering cycle in future hotspot packaging.
+Current staging now verifies both the hardened Chromium and hotspot units.
+Because the recorded development archive predates that correction, rebuild
+and clean-round-trip a fresh successor before promoting it.
+
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
 ## Boot and session model

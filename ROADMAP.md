@@ -304,6 +304,10 @@ traffic outside the VPN.
   production kill-switch, require nonzero encrypted transfer, erase
   disposable keys, repeat cleanly, and reject a connected container. See the
   [offline WireGuard report](test-results/2026-07-27-vpn-hotspot-wireguard-offline.md).
+- [x] Fail-first diagnose and remove the hotspot/dnsmasq/network-online
+  systemd ordering cycle, add the hotspot unit to the complete staged-root
+  verifier, and retain both packet suites. See the
+  [Arch userspace audit](test-results/2026-07-27-arch-userspace-readiness-offline.md).
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
 - [ ] Establish an on-phone handshake to the selected VPN provider.
@@ -656,6 +660,12 @@ when no desktop is needed.
   phone-side design.
 - [x] Stage and fixture-test a redacted collector for CPU, memory/PSS,
   cgroup, thermal, battery, display, and network-counter comparisons.
+- [x] Audit the sealed diagnostic root and current packaging for the normal
+  Plasma/KRDP/server stack, headless defaults, loopback exposure, credentials,
+  automation isolation, and systemd ordering.
+- [ ] Build and clean-round-trip a successor normal Arch archive containing
+  the current locked `rog5-agent` service and corrected hotspot unit; do not
+  mutate the sealed v10 diagnostic root.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.

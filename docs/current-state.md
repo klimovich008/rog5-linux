@@ -258,6 +258,17 @@ can capture the later headless/desktop/browser/screen-off comparison without
 network or device identifiers. This artifact remains outside Git and has not
 been promoted to the NFS export or booted.
 
+The
+[Arch userspace readiness audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+confirms that the sealed v10 diagnostic root has Plasma/KWin/KRDP,
+Chromium/Node/Python, network/VPN, audio, and Mesa/Freedreno packages with a
+headless default and no VPN, KRDP, NetworkManager, KWallet, or machine
+identity secret. It deliberately predates `rog5-agent` and remains immutable.
+The audit also found a systemd ordering cycle in its disabled historical
+hotspot unit. Current packaging removes the single cyclic `Before=dnsmasq`
+edge and the complete staged-root verifier now checks the hotspot service.
+A fresh normal Arch archive remains required before promotion.
+
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
 independent export-root verifier. It binds the future server to the USB
