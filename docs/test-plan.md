@@ -72,10 +72,16 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   `test-arch-successor-export.sh`, which requires one exact successor
   manifest identity, read-only Btrfs preparation, a recursive
   content/metadata/ACL/xattr seal, isolated agent and service identities,
-  no v10 dependency, no NFS allowlist, and optional COW mutation rejection.
+  no v10 dependency, an explicit-token verifier-first NFS case, and optional
+  COW mutation rejection. It also delegates the successor target and host
+  runner tests, which require first-boot/coldplug/sysusers/tmpfiles checks,
+  headless screen-off state, exact two-file tmpfs staging, strict SSH, one
+  reboot, a private log, and no retry or boot command.
   The
   [offline protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
-  records the exact accepted root and three rejected mutation cases.
+  records the exact accepted root and three rejected mutation cases; the
+  [pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+  records the fail-first controls and actual unarmed refusal.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

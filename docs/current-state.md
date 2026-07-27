@@ -273,8 +273,12 @@ contains 655 current packages plus the locked agent and corrected unit, and
 passes verification before archival and after clean extraction. Its
 [separate protected-export gate](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
 now passes with an exact manifest identity, read-only Btrfs subvolume,
-181,239-entry recursive seal, and three rejected COW mutations. It remains
-outside the NFS allowlist and has not been booted.
+181,239-entry recursive seal, and three rejected COW mutations. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+adds an explicit-token exact-root server case and strict-SSH
+first-boot/reboot controls. An actual unarmed PolicyKit invocation refused
+with identical normalized host state. The root has not been booted and has
+no live authority.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the

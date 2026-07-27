@@ -672,9 +672,14 @@ when no desktop is needed.
   archive before any boot or server allowlist change. The
   [protected-export result](test-results/2026-07-27-arch-successor-protected-export-offline.md)
   passes recursive verification and three read-only COW mutation cases while
-  NFS remains inactive and unallowlisted.
-- [ ] Add a one-token exact-root NFS/runner gate only after a new HOLD/GO
-  review; do not infer live authority from offline export acceptance.
+  NFS remained inactive and unallowlisted at that checkpoint.
+- [x] Add a one-token exact-root NFS/runner gate without inferring live
+  authority from offline export acceptance. The
+  [pre-live HOLD](test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+  passes verifier-first server ordering, first-boot target checks, strict-SSH
+  mocked invocation, one normal reboot, and actual unarmed state preservation.
+- [ ] Choose v10 GPU diagnosis or a normal headless userspace cycle, repeat
+  every preflight, and obtain a fresh explicit GO before NFS or boot.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.

@@ -830,8 +830,14 @@ is now manifest-pinned at
 mode-`0555`, Btrfs `ro=true` subvolume with a mode-`0444` seal over 181,239
 entries. The complete verifier passes and rejects changed seal, hotspot unit,
 and agent-account snapshots. It does not derive from or modify v10, and it
-has no `serve-network-root.sh` allowlist case. NFS/RPC remains inactive and
-the root is unbooted.
+now has one
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+`serve-network-root.sh` case guarded by
+`ALLOW_ARCH_SUCCESSOR_V1_NFS=1`. The guard and full recursive verifier both
+precede host-state mutation. Its strict-SSH target/host controls require
+headless first-boot, screen-off, storage exclusion, watchdog handoff, and one
+normal reboot. An actual unarmed invocation changed no normalized host state;
+NFS/RPC remains inactive and the root is unbooted.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

@@ -42,7 +42,12 @@ with 655 current packages. Its
 [protected-export gate](test-results/2026-07-27-arch-successor-protected-export-offline.md)
 also passes: the exact manifest-pinned root is a recursively sealed,
 root-owned, read-only Btrfs subvolume, and seal/service/account mutations are
-rejected. It remains absent from the NFS allowlist and unbooted.
+rejected. The later
+[pre-live HOLD](test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+adds a verifier-first, explicit-token NFS case plus a one-shot headless
+first-boot/reboot runner. An actual unarmed invocation preserves
+byte-identical normalized host state. The root remains unbooted, and this
+control-plane acceptance grants no live authority.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records

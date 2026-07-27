@@ -24,8 +24,11 @@ is promoted. A
 [fresh successor root](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
 now passes those offline checks. Its
 [protected export](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
-also passes recursive and mutation verification, but remains outside the NFS
-allowlist and has not been booted.
+also passes recursive and mutation verification. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+adds an explicit-token headless first-boot/reboot gate but does not start
+Plasma or KRDP. The root has not been booted, and remote GUI remains a later
+hardware/runtime acceptance tier.
 
 ## Persistent tunnel on a Linux host
 
