@@ -49,6 +49,7 @@ Private inputs live outside the repository and are referenced only by path or ha
 | A660 SQE/GMU request-only tier | make one diagnostic DRM open fail after exact firmware requests but before ucode/power/HFI/ZAP | the sole v4 cycle requested SQE/GMU exactly once, returned `EUCLEAN`, retained zero later hardware/storage/fault evidence, and returned through exact fallback plus cleanup; consumed and removed from the runnable allowlist; never flash |
 | A660 ucode-allocation tier | isolate SQE/shadow/reglist creation before GPU/GMU runtime power or register access | source/patch and duplicate builds pass; v5 exposed a compiler-inlining-blind wrapper oracle; the [sole v6 cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md) safely rejected raw sizes `43288/4/4096` against page-rounded expectations before snapshot comparison; v5/v6 are consumed; the [v7 offline correction](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md), [HOLD](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md), and [GO](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md) chain pins separate raw/object layers, logical `4/4`, equal snapshots, a protected root, and a one-shot runner; the [sole v7 live cycle](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md) passes exact allocation/rollback plus settled snapshot with zero later hardware events; consumed and non-runnable; never flash |
 | A660 GMU resume-entry v8 tier | prove the normal first-open call graph reaches GMU resume while excluding every inner GMU resource operation | source/patch mutation suites, two complete clean builds, zero-fuzz target runtime, compiler-relocation gate, and runtime mutations pass; config/Image/ABI and every installed module except `msm.ko` remain exactly v7; the [sole live cycle](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md) reached exact GMU entry/rollback and deliberate `EUCLEAN`, then safely rejected a zero-extended signed-return oracle and exposed a second process-global runtime-PM count flaw; specific inner resource probes remained zero; exact fallback/cleanup passed; v8 is consumed and non-runnable; never retry or flash |
+| A660 GMU resume-entry v9 oracle tier | correct only the two v8 userspace trace assumptions before any deeper hardware step | [offline runtime acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md) reuses the exact v8 kernel/module, normalizes signed/zero-extended 32-bit `EUCLEAN`, scopes generic runtime PM by matching GPU device, accepts the evidence-derived 21-call fixture, reproduces byte-identical controls, and rejects twelve mutations; no root, boot, or live authority; HOLD |
 | isolated PMIC network-root bundles | evaluate RTC and power key without exposing storage | v4 reproducibly exposed a near-epoch RTC and is rejected; v5 reproducibly registers the power-key path and passes guarded dependency/reboot gates, with physical press pending; never flash |
 | temporary Android boot image | reversible two-stage `fastboot boot` testing | v18 passes two attended live cycles; never flash |
 | diagnostic module sources | read raw ramoops and arm bootloader recovery without storage access | maintained under `tools/diagnostics/`; built privately against the exact fallback kernel |
@@ -339,8 +340,13 @@ records that sole cycle: exact entry and accepted rollback, three
 zero-extended `-EUCLEAN` returns, 21 unscoped generic runtime-PM calls, zero
 specific inner resource events, fail-closed handling, exact fallback,
 complete cleanup, private evidence hashes, and permanent v8 consumption.
-The next tier must correct signed-`int` and GPU-device identity oracles using
-the unchanged v8 module before any GMU power-preparation work. The
+The
+[A660 GMU resume-entry v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+records that correction using the unchanged v8 module: fail-first checker and
+runtime chains, signed/zero-extended `EUCLEAN`, exact GPU-device PM matching,
+the observed 21-call fixture, duplicate outputs, twelve rejected mutations,
+and continued live HOLD. A fresh protected root/control plane remains
+required before any phone decision or GMU power-preparation work. The
 [UFS discovery offline report](../test-results/2026-07-24-ufs-discovery-offline.md)
 records the guarded Linux 7.1.4 build, corrected built-in UFS PHY dependency,
 reproducible nested bundle, and exact candidate hashes. The

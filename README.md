@@ -463,9 +463,14 @@ It failed closed because the arm64 `int` returns appeared as zero-extended
 the global one-call `__pm_runtime_resume()` assumption. Specific inner
 GPU/GMU PM, clock, IRQ, HFI, hardware, ZAP, and SCM probes stayed zero.
 Exact fallback and complete host cleanup passed. V8 is permanently consumed
-and non-runnable. The next tier is a separately versioned signed-`int`,
-GPU-device-scoped v9 userspace oracle using the unchanged v8 kernel module;
-GMU power preparation remains unauthorized.
+and non-runnable. The separately versioned
+[v9 runtime oracle](test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+now passes offline using the unchanged v8 kernel module. Duplicate controls
+normalize signed/zero-extended `EUCLEAN`, match outer runtime PM by GPU device,
+accept the observed 21 generic calls, retain every direct zero-resource and
+settled-snapshot gate, and reject twelve mutations. V9 remains HOLD until a
+fresh protected root, gate, runner, and separate pre-live review pass; GMU
+power preparation remains unauthorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

@@ -556,12 +556,18 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   while every specific inner resource probe stayed zero. Fallback and cleanup
   passed; v8 is permanently consumed, non-runnable, never retried, and never
   flashed.
-- [ ] Build a separately versioned v9 userspace oracle around the unchanged
+- [x] Build a separately versioned v9 userspace oracle around the unchanged
   v8 kernel module. Fail-first test signed 32-bit return normalization and
   compare runtime-PM device identity rather than a process-global call count;
   retain every zero-resource, rollback, settle, snapshot, storage, and
-  watchdog gate.
-- [ ] Only after a later v9 acceptance and consumption, source-test a separate
+  watchdog gate. Duplicate generation and twelve runtime mutations pass,
+  including the evidence-derived 21-call fixture; see the
+  [v9 offline runtime report](test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
+  This is runtime-only HOLD with no phone authority.
+- [ ] Derive and mutation-test a fresh consumed-v8-based v9 protected root,
+  compound target gate, strict no-retry runner, and immutable report chain.
+  Keep v9 absent from the bounded NFS server until a separate pre-live GO.
+- [ ] Only after a later v9 live acceptance and consumption, source-test a separate
   bounded GMU power-preparation tier; do not combine GMU runtime power,
   clocks, HFI, ZAP/SCM, hardware initialization, successful open, submit, or
   rendering.
