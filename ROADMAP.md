@@ -131,6 +131,9 @@ for a working feature.
 - [x] Build and protect a successor-v2 Arch root with kill-switch-first
   forwarding, partial-failure rollback, exact v1 preservation, real
   WireGuard packet evidence, and four rejected protected-root mutations.
+- [x] Build and manifest-pin a successor-v3 Arch development root with a
+  confined, press-only power-button screen-toggle service while preserving
+  the complete v2 verifier byte-for-byte.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -343,6 +346,10 @@ server.
   device through the guarded `qcom_pon` parent-module probe.
 - [x] Repeat v5 in normal unmasked mode, live-test the fail-resumable watchdog
   disarm, and return through a clean systemd reboot.
+- [x] Add a dependency-free `pmic_pwrkey` event handler and confined systemd
+  service; reject release/repeat/other-key, truncated-event, failed-toggle,
+  unsafe-device, credential, and archive violations offline. See the
+  [successor-v3 result](test-results/2026-07-27-arch-successor-v3-power-button-offline.md).
 - [ ] Observe a real short press through the switch/IRQ/input path; driver
   registration alone is not acceptance.
 - [ ] Validate 60 Hz first, then 90/120/144 Hz one mode at a time.
@@ -719,6 +726,10 @@ when no desktop is needed.
   [v2 pre-live HOLD](test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
   passes all mocked controls and an actual unarmed invocation with
   byte-identical normalized host state; it grants no live authority.
+- [x] Build and independently verify a successor-v3 development archive that
+  enables the confined power-button screen toggle over the exact v2 root
+  verifier. Keep it unprotected, unserved, unbooted, and outside every live
+  allowlist until its physical input/display gates pass.
 - [x] Choose v10 GPU diagnosis as the next candidate because GPU acceleration
   is the critical unmet dependency; preserve successor-v2 as the independent
   server-path candidate. The

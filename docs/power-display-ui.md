@@ -44,6 +44,16 @@ rog5-screen-toggle.sh toggle
 
 It discovers the writable backlight, validates its range, preserves brightness, and changes its state record only after a successful sysfs write. `rog5-server-inhibit.service` uses systemd's native inhibitor API to block system sleep and short power-key shutdown without blocking idle display blanking; stopping that service restores explicit suspend policy. Headless logind ignores a short power press, while a long press retains the emergency power-off action. Plasma/PowerDevil power-button screen toggling still requires a live input test after the mainline input port.
 
+The
+[successor-v3 offline root](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+now enables a small standard-library handler that requires exactly one
+`pmic_pwrkey` character device and invokes the toggle only for
+`EV_KEY/KEY_POWER` press value `1`. Release, repeat, other-key, truncated
+record, and failed-toggle cases are rejected. Its root service has no network
+or block-device access and only the identity-switch capabilities needed by
+the existing KScreen helper. This is software readiness, not physical-button
+or display acceptance.
+
 Linux 7.1 network-root v5 now registers the PMK8350 power-key path after the
 reviewed `qcom_pon` parent module is loaded. The resulting input is named
 `pmic_pwrkey`, uses the `pm8941-pwrkey` driver, advertises `KEY_POWER`, and has

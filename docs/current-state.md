@@ -1065,5 +1065,14 @@ adds dedicated v2 server/target/runner controls and proves an unarmed
 invocation preserves byte-identical host state. The v1 seal and controls are
 unchanged, NFS/RPC remains inactive, and v2 is unserved, unbooted, and HOLD.
 
+The newer
+[successor-v3 development root](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+keeps the complete v2 staged-root verifier byte-exact, then installs an
+enabled, input-device-confined `pmic_pwrkey` handler for the existing
+DPMS/backlight toggle. Its synthetic parser/service tests, full AArch64 stage,
+clean extraction, exact 2,007,033,670-byte archive, and independent
+credential/path checks pass. It has no protected export, NFS/live controls,
+or hardware acceptance; v2 remains the selected Arch server-path candidate.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
