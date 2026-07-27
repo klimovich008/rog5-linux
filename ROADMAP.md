@@ -662,13 +662,17 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   passes every source/runtime/root/control gate, complete protected-root
   verification, byte-identical unarmed state preservation, strict fallback
   preflight, and v11 live-path exclusion. It grants no live authority.
+- [x] Repeat the full technical
+  [attended-GO review](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+  after successor-v3 publication. All nine suites, recursive root comparison,
+  unarmed zero-state proof, boot-image identity, and fallback preflight pass;
+  HOLD remains because the exact fresh user instruction is absent.
 - [ ] Keep v11 out of every root, package, export, and server allowlist until
   v10 is live-tested and consumed, then build v11-specific runtime controls,
   protected root, target/watchdog gate, no-retry runner, and separate
   HOLD/GO reviews.
-- [ ] Complete a fresh attended GO review before any explicitly authorized,
-  one-cycle RAM-only v10 test. No retry or flash; consume v10 regardless of
-  outcome.
+- [ ] Receive the exact fresh user GO before one RAM-only v10 cycle. No retry
+  or flash; consume v10 regardless of outcome.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
@@ -741,8 +745,10 @@ when no desktop is needed.
   is the critical unmet dependency; preserve successor-v2 and protected v3
   as independent server/userspace candidates. The
   [current readiness HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
-  records the comparison and repeats every non-live preflight. A fresh
-  explicit GO remains mandatory before NFS or boot.
+  records the comparison, while the later
+  [attended-GO HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+  repeats every technical prerequisite after v3 publication. A fresh exact
+  user GO remains mandatory before NFS or boot.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
