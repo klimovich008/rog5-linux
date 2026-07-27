@@ -79,13 +79,14 @@ valid_signed=$(printf '%s\n' "$valid_unsigned" |
 run_accept signed "$valid_signed" "$expected_unsigned"
 
 cx_already_suspended=$(printf '%s\n' "$valid_unsigned" |
-	sed '/runtime_pm_suspend_ret: ret=0/{
-		x
-		s/^$/first/
-		x
-		b
-	}
-	/runtime_pm_suspend_ret: ret=0/s/ret=0/ret=1/')
+	awk '
+		/runtime_pm_suspend_ret: ret=0/ {
+			count++
+			if (count == 2)
+				sub(/ret=0/, "ret=1")
+		}
+		{ print }
+	')
 run_accept cx-already-suspended "$cx_already_suspended" \
 	'PASS A660 GMU/CX runtime-PM v10 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 gmu_runtime_pm=1/1 cx_runtime_pm=1/1 cx_suspend_ret=1 generic_resume=3 generic_suspend=2'
 
@@ -142,13 +143,14 @@ run_reject failed-GMU-suspend "$bad_gmu_suspend" \
 	'GMU consumer runtime suspend did not return zero'
 
 bad_cx_suspend=$(printf '%s\n' "$valid_unsigned" |
-	sed '/runtime_pm_suspend_ret: ret=0/{
-		x
-		s/^$/first/
-		x
-		b
-	}
-	/runtime_pm_suspend_ret: ret=0/s/ret=0/ret=2/')
+	awk '
+		/runtime_pm_suspend_ret: ret=0/ {
+			count++
+			if (count == 2)
+				sub(/ret=0/, "ret=2")
+		}
+		{ print }
+	')
 run_reject invalid-CX-suspend "$bad_cx_suspend" \
 	'linked CX supplier runtime suspend did not return zero or already-suspended'
 
@@ -163,7 +165,7 @@ run_reject failed-pass-state "$failed_pass" \
 	'GMU/CX one-shot did not reach passed state'
 
 wrong_outer_return=$(printf '%s\n' "$valid_unsigned" |
-	sed '0,/resume_ret: ret=4294967179/s//resume_ret: ret=4294967178/')
+	sed 's/rog5_gmu_v10_resume_ret: ret=4294967179/rog5_gmu_v10_resume_ret: ret=4294967178/')
 run_reject non-EUCLEAN "$wrong_outer_return" \
 	'A6xx GMU resume return is not signed EUCLEAN'
 
