@@ -5,14 +5,17 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 serve=$repo/scripts/host/serve-arch-successor-v2.sh
 verify=$repo/scripts/host/verify-arch-successor-v2-export.sh
+accepted_serve=$repo/scripts/host/serve-network-root.sh
+accepted_test=$repo/scripts/host/test-network-root-host.sh
 
-for script in "$serve" "$verify"; do
+for script in "$serve" "$verify" "$accepted_serve" "$accepted_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing successor v2 NFS control: $script" >&2
 		exit 1
 	}
 	bash -n "$script"
 done
+"$accepted_test" >/dev/null
 
 for contract in \
 	'/var/lib/rog5-network-root-arch-successor-v2' \
@@ -41,6 +44,11 @@ state_line=$(grep -n '^etab=' "$serve" | head -n 1 | cut -d: -f1)
 [ "$verify_line" -lt "$state_line" ]
 [ "$(grep -Fc 'ALLOW_ARCH_SUCCESSOR_V2_NFS:-' "$serve")" -eq 1 ]
 [ "$(grep -Fc 'verify-arch-successor-v2-export.sh' "$serve")" -eq 1 ]
+accepted_runtime=$(sed -n '/^etab=/,$p' "$accepted_serve" | sha256sum |
+	cut -d ' ' -f 1)
+v2_runtime=$(sed -n '/^etab=/,$p' "$serve" | sha256sum |
+	cut -d ' ' -f 1)
+[ "$v2_runtime" = "$accepted_runtime" ]
 
 if grep -Fq '/var/lib/rog5-network-root-arch-successor-v1' "$serve"; then
 	echo 'FAIL successor v2 NFS window references the accepted v1 root' >&2
