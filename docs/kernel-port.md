@@ -477,8 +477,13 @@ now accepts the consumed-v8-derived exact-delta root and compound target gate.
 All kernel/module and firmware bytes remain v8-identical; the versioned
 signed/device-scoped controls, whole-tree/credential checks, runtime mutation
 suite, and independent final-root verification pass. It remains live HOLD
-pending a strict no-retry runner and separate pre-live review. HFI, ZAP/SCM,
-successful open, submission, and rendering remain separate.
+through the
+[v9 pre-live control review](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md),
+which accepts the strict no-retry runner, one-call mock, private evidence,
+local SSH agreement, actual unarmed refusal, synchronized Git, root
+reverification, and inactive NFS/RPC. A separate attended GO review remains
+required. HFI, ZAP/SCM, successful open, submission, and rendering remain
+separate.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

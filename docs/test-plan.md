@@ -516,8 +516,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   watchdogs, construction cleanup, and independent final-path audit are
   verified; see the
   [v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
-  V9 remains HOLD because its strict no-retry runner and pre-live reviews do
-  not yet exist.**
+  The strict one-invocation/no-retry runner and separate pre-live review also
+  pass: exact mock call counts, dynamic classified generic-PM evidence,
+  private logging, local client/server SSH agreement, real unarmed refusal,
+  clean synchronized Git, full root revalidation, inactive NFS/RPC, and zero
+  server tokens are verified; see the
+  [v9 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
+  V9 remains HOLD pending a separate verifier-first GO review.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

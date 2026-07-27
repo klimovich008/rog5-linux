@@ -571,9 +571,17 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   independent final-path audit pass; see the
   [v9 protected-root report](test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
   The root remains absent from the bounded NFS server.
-- [ ] Fail-first test a strict one-invocation v9 host runner, mock its exact
+- [x] Fail-first test a strict one-invocation v9 host runner, mock its exact
   prepare/copy/remote-verify/gate sequence with no retry, prove actual unarmed
-  refusal, and record a separate non-runnable pre-live HOLD checkpoint.
+  refusal, and record a separate non-runnable pre-live HOLD checkpoint. The
+  mock, local Ed25519 client/server agreement, clean synchronized Git,
+  complete protected-root reverification, inactive NFS/RPC, and zero v9
+  server tokens pass; see the
+  [v9 pre-live HOLD report](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
+- [ ] Lift v9 HOLD only through a fail-first-tested verifier-before-state,
+  explicit-opt-in exact-root NFS case plus clean fallback/package/credential
+  review. Any GO may authorize at most one attended RAM-only cycle with no
+  retry and no flash.
 - [ ] Only after a later v9 live acceptance and consumption, source-test a separate
   bounded GMU power-preparation tier; do not combine GMU runtime power,
   clocks, HFI, ZAP/SCM, hardware initialization, successful open, submit, or
