@@ -25,7 +25,7 @@ printf '0\n' >"$stage/mock/ipv6"
 cat >"$stage/bin/ip" <<'EOF'
 #!/bin/sh
 set -eu
-[ "$#" -eq 5 ]
+[ "$#" -eq 4 ]
 [ "$1" = link ]
 [ "$2" = show ]
 [ "$3" = dev ]
@@ -84,7 +84,7 @@ case ${1:-} in
 		printf 'v2\n' >"$MOCK_DIR/table"
 		;;
 	delete)
-		[ "$#" -eq 5 ]
+		[ "$#" -eq 4 ]
 		[ "$2" = table ] && [ "$3" = inet ]
 		printf 'nft-delete\n' >>"$MOCK_DIR/log"
 		rm -f "$MOCK_DIR/table"
