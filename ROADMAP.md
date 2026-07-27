@@ -627,6 +627,17 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
 - [x] Complete a separate v10 pre-live HOLD review without starting NFS or
   touching the phone. Every offline and recovery prerequisite passes, but
   this checkpoint grants no live authority.
+- [x] Source-audit, mutation-test, and reproduce the next GMU
+  clock-preparation boundary without making it runnable. The
+  [v11 offline acceptance](test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+  proves that a GX-only tier would add no SM8350 hardware transition, then
+  balances GX bookkeeping, both GMU rates, and all seven clocks before secure
+  init. Eighteen mutations and two byte-identical isolated builds pass; only
+  `msm.ko` differs from v10.
+- [ ] Keep v11 out of every root, package, export, and server allowlist until
+  v10 is live-tested and consumed, then build v11-specific runtime controls,
+  protected root, target/watchdog gate, no-retry runner, and separate
+  HOLD/GO reviews.
 - [ ] Complete a fresh attended GO review before any explicitly authorized,
   one-cycle RAM-only v10 test. No retry or flash; consume v10 regardless of
   outcome.

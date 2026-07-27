@@ -514,6 +514,18 @@ gate, no-retry runner, verifier-first bounded server case, actual unarmed
 zero-state refusal, and connected fallback health. The attended GO review
 remains pending; no v10 live authority exists.
 
+The provisional
+[v11 GMU clock-preparation tier](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+is source/build evidence only. The pinned SM8350 GPUCC implementation makes
+GX power-on a no-op, so a GX-only diagnostic would not cross a new hardware
+boundary. V11 keeps that reference balanced and instead isolates the normal
+200 MHz core and 150 MHz hub rates plus bulk preparation of all seven GMU
+clocks. It reverses clocks, rates, GX, GMU, and linked CX before the passed
+state and remains above secure init, MMIO, IRQ, firmware, and HFI. Eighteen
+mutations, strict style, and two isolated byte-identical builds pass; only
+`msm.ko` differs from v10. No v11 runtime/root/runner/server controls exist,
+so v10 remains the next live tier.
+
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
 remains disabled and trusted time must come from the host or network. V5

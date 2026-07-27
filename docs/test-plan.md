@@ -576,6 +576,18 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   root verification, actual unarmed zero-state refusal, and connected
   fallback health. The attended GO review remains pending; there is no v10
   live authority.**
+- Before extending v10, prove whether a GX-only stage crosses a hardware
+  boundary, then source-test the smallest meaningful next operation. **The
+  [v11 offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+  proves SM8350 GX power-on is a no-op, so v11 balances GX bookkeeping and
+  isolates both GMU rates plus all seven clocks. Strict style, eighteen
+  hostile mutations, two byte-identical isolated builds, and exact-v10
+  comparison pass; only `msm.ko` changes.**
+- Before any v11 runtime use, require accepted-and-consumed v10, a
+  source-pinned clock/runtime oracle, fresh protected root, target/watchdog
+  gate, one-shot/no-retry runner, verifier-before-state bounded-server case,
+  and separate HOLD/GO reviews. **Pending; v11 is not packaged, exported,
+  allowlisted, or authorized.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module
