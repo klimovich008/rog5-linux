@@ -500,6 +500,15 @@ synchronously suspended GMU/CX transition and before GX, clocks, secure
 init, MMIO, IRQ, firmware start, or HFI. It remains HOLD: no v10 runtime
 oracle, protected root, server case, boot authority, retry, or flash exists.
 
+Separately, the installed Alpine 3.24 fallback now passes a
+[live remote-GUI checkpoint](test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md)
+on its older `5.4.134` vendor kernel. Nested software-rendered KWin/Plasma,
+noVNC, ttyd, and Chromium CDP stayed usable with the physical panel off and
+zero swap use. The Nobara user tunnel is enabled, exposes only four host
+loopback ports, starts the phone desktop idempotently, and recovered after an
+induced SSH-process exit. This is a usable fallback administration path, not
+Linux 7.1 display, KRDP, or accelerated-GPU acceptance.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
@@ -540,6 +549,23 @@ and grant serial access once, then log out and back in:
 sudo dnf install android-tools
 sudo usermod -aG dialout "$(id -un)"
 ```
+
+For the persistent Alpine fallback GUI, configure the pinned
+`rog5-fallback` SSH alias outside Git, make the isolated USB profile
+autoconnect, and enable the repository's user tunnel:
+
+```sh
+nmcli connection modify rog5-usb-temporary \
+  connection.autoconnect yes ipv4.never-default yes ipv6.method disabled
+scripts/host/test-rog5-remote-tunnel-service.sh
+systemctl --user link \
+  "$PWD/packaging/host-systemd-user/rog5-remote-tunnel.service"
+systemctl --user enable --now rog5-remote-tunnel.service
+```
+
+Then open `http://127.0.0.1:6080/vnc.html` for the fallback desktop or
+`http://127.0.0.1:7681/` for the persistent terminal. See
+[remote GUI](docs/remote-gui.md) for the endpoint and security boundaries.
 
 The Linux recovery workflow is read-only by default. It validates the exact
 manifest-pinned image and requires exactly one fastboot device. Rejected

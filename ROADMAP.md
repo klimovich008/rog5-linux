@@ -124,6 +124,9 @@ for a working feature.
 - [x] Fix the normal mainline orderly reboot path with a retained exitrd.
 - [x] Reject the near-epoch PMK8350 RTC without writing it, then isolate and
   register the PMK8350 power-key path with RTC still disabled.
+- [x] Validate the persistent Alpine fallback's software-rendered KDE/noVNC,
+  ttyd, and Chromium endpoints with the physical panel off; enable and
+  failure-test a loopback-only reconnecting Linux host tunnel.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -633,6 +636,9 @@ when no desktop is needed.
 - [ ] Enable KRDP or another maintained remote-desktop service only after
   credentials and exposure policy are explicitly configured.
 - [ ] Test remote use with the physical panel off.
+- [x] Pass the narrower vendor-Alpine screen-off baseline with nested KWin
+  Wayland, noVNC, ttyd, Chromium CDP, and an automatically reconnecting
+  loopback-only Linux host tunnel.
 - [x] Stage and fixture-test a redacted collector for CPU, memory/PSS,
   cgroup, thermal, battery, display, and network-counter comparisons.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
@@ -700,8 +706,8 @@ Suggested host migration:
 - [ ] Back up the repository, ignored artifact store, hashes, and recovery
   material without placing private keys in Git.
 - [x] Install a native Linux workstation on a separate partition.
-- [x] Install Android platform tools and add the development user to `dialout`;
-  the current desktop login still needs a group refresh.
+- [x] Install Android platform tools, add the development user to `dialout`,
+  and verify the refreshed desktop login includes the group.
 - [x] Clone this repository and restore ignored artifacts, then verify every
   restored file against `manifests/artifacts.tsv`.
 - [ ] Run the repository policy suite and two clean kernel builds.
