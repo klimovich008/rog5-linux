@@ -6,13 +6,14 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 prepare=$repo/scripts/host/prepare-arch-successor-export.sh
 verify=$repo/scripts/host/verify-arch-successor-export.sh
 serve=$repo/scripts/host/serve-network-root.sh
+live_window_test=$repo/scripts/host/test-serve-arch-successor-v1-live-window.sh
 manifest=$repo/manifests/artifacts.tsv
 archive_name=artifacts/arch/rog5-arch-plasma-network-root-7.1.4-successor.tar.gz
 archive=$repo/$archive_name
 expected_size=2006999039
 expected_hash=88c2d671a26f577aef963212cda17bc61baa888d77d0c1aaf1ca25c6fb3ad62a
 
-for script in "$prepare" "$verify" "$serve"; do
+for script in "$prepare" "$verify" "$serve" "$live_window_test"; do
 	[[ -x $script ]] || {
 		echo "FAIL missing executable Arch successor export tool: $script" >&2
 		exit 1
@@ -70,10 +71,7 @@ if grep -Fq '/var/lib/rog5-network-root-a660-gmu-cx-runtime-pm-v10' \
 	echo 'FAIL successor export path references the sealed v10 root' >&2
 	exit 1
 fi
-if grep -Fq '/var/lib/rog5-network-root-arch-successor-v1)' "$serve"; then
-	echo 'FAIL unbooted successor is already NFS-allowlisted' >&2
-	exit 1
-fi
+"$live_window_test" >/dev/null
 if grep -Eq \
 	'(^|[;&|[:space:]])(fastboot|adb|ssh|scp)([[:space:]]|$)|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/' \
 	"$prepare" "$verify"
@@ -114,4 +112,4 @@ if [[ -n ${CANDIDATE_ROOT:-} ]]; then
 	reject_mutation agent etc/passwd
 fi
 
-echo 'PASS Arch successor export is manifest-pinned, recursively sealed, read-only Btrfs, mutation-tested, v10-independent, unbooted, non-NFS, and non-flashing'
+echo 'PASS Arch successor export is manifest-pinned, recursively sealed, read-only Btrfs, mutation-tested, v10-independent, unbooted, explicit-token NFS-gated, and non-flashing'
