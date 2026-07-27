@@ -77,9 +77,17 @@ NetworkManager hold, enumeration-only oracle, independent watchdog handoff,
 one-probe/one-reboot target gate, nested kexec stage, ASUS wrapper, and
 header-v3/AVB image. Two complete clean packages are byte-identical; DTB,
 overlay, and boot-image mutations are rejected after manifest refresh. The
-phone remained on Alpine and untouched. This tier is still `UNBOOTED_HOLD`
-until its separate protected root, host live-window runner, current preflight,
-and exact one-cycle authorization pass.
+separate
+[protected-root HOLD](../test-results/2026-07-27-wcn6855-v1-prelive-hold.md)
+then seals the exact successor-v3 plus overlay tree in a read-only Btrfs
+subvolume, generates a dedicated SSH identity, rejects five root mutations,
+and adds verifier-first NFS plus a strict one-invocation runner. The later
+[current-readiness HOLD](../test-results/2026-07-27-wcn6855-v1-current-readiness-hold.md)
+revalidates that complete root and every control after the host restart,
+proves byte-identical state around an actual unarmed refusal, and passes the
+exact persistent fallback preflight. This tier remains `UNBOOTED_HOLD` only
+because fresh explicit one-cycle authority is absent; no radio runtime
+evidence exists.
 
 ## Display modes
 

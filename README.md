@@ -45,6 +45,12 @@ generates a dedicated SSH host identity, seals 181,276 entries, rejects five
 root mutations, and adds verifier-first NFS plus a strict one-invocation host
 runner. An actual unarmed NFS call preserved host state. The root remains
 unserved and unbooted; no phone or radio action occurred.
+The later
+[current-readiness HOLD](test-results/2026-07-27-wcn6855-v1-current-readiness-hold.md)
+revalidates the synchronized branch, complete recursive root, all host
+controls, byte-identical unarmed refusal, and exact persistent fallback after
+the host restart. Every technical prerequisite passes; a fresh explicit
+one-cycle instruction is still absent.
 
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
