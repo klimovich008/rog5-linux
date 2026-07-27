@@ -14,7 +14,7 @@ boundary=$repo/scripts/device/verify-a660-gmu-cx-runtime-pm-boundary.sh
 expected_commit=d9ac316489f4258d389d6298659d5e9c22183400
 expected_tree=c796deb1cc54e942f8bb46a2c76a7199e19e5c92
 expected_boundary=6ba90691000f9369b5fdfdbf235495f9afeba4984c11596888cc1213717d7b06
-expected_patch=048a266a9d9da70c681d08a33348281fe73530d25034e2ed79fc55136b7e9d36
+expected_patch=5eef04eb711443acaaf4295e926577f90073b8ab62414cff3d18de2272d3a152
 
 msm_drv_rel=drivers/gpu/drm/msm/msm_drv.c
 msm_gpu_h_rel=drivers/gpu/drm/msm/msm_gpu.h

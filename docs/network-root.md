@@ -809,6 +809,14 @@ removed every export, listener, NFS thread, mount daemon, bind mount,
 firewall rule, `/30` address, and sysctl change before exact fallback health
 passed. V9 is now consumed and has no server allowlist case.
 
+The later
+[v10 GMU/CX runtime-PM offline acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+does not reopen that transport. It covers only pinned kernel source, a
+mutation-tested patch, and two isolated builds. No v10 network root, export,
+server token, NFS/RPC listener, phone contact, boot authority, retry, or
+flash exists. A fresh protected root and verifier-before-state bounded case
+must pass separately before any v10 pre-live review.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

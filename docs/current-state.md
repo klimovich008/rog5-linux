@@ -959,8 +959,14 @@ two-firmware/three-allocation rollback, logical `4/4`, and an equal settled
 GEM snapshot. All specific inner power, clock, IRQ, HFI, devfreq, LLC,
 hardware, ZAP, and SCM probes stayed zero; storage and retained DRM
 descriptors stayed zero. Exact fallback and complete host cleanup passed.
-V9 is permanently consumed and absent from the bounded server. No GMU/CX
-runtime-PM preparation or later resource tier is authorized yet.
+V9 is permanently consumed and absent from the bounded server. The separate
+[v10 GMU/CX runtime-PM offline acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+now passes a source-pinned pre-GX boundary, twelve patch mutations, strict
+patch checks, and two byte-identical isolated Linux 7.1.4 builds. It changes
+only `msm.ko` from accepted v8 while preserving Image, ABI, config, all other
+installed modules, and storage/firmware containment. V10 remains HOLD: no
+runtime oracle, protected root, target gate, bounded server case, boot
+authority, retry, or flash exists.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
