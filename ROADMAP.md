@@ -317,6 +317,10 @@ traffic outside the VPN.
   first. Pass isolated IPv4/IPv6, VPN-loss, unsolicited-ingress, and real
   WireGuard tests; then clean-round-trip and separately protect the exact
   [v2 archive](test-results/2026-07-27-arch-successor-v2-rootfs-offline.md).
+- [x] Default both isolated packet suites to successor v2, carry valid UDP/TCP
+  DNS traffic through real WireGuard, detect one-way DNS leakage, fail closed
+  across endpoint/interface loss, and verify recovery plus exact cleanup. See
+  the [v2 DNS/recovery report](test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md).
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
 - [ ] Establish an on-phone handshake to the selected VPN provider.

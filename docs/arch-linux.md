@@ -193,12 +193,13 @@ podman run --rm --privileged --network none \
   sh /workspace/repo/scripts/device/test-vpn-hotspot-wireguard.sh
 ```
 
-That test now sends UDP packets across isolated client, simulated-VPN, and
-ordinary-uplink namespaces. It proves the VPN path works, IPv4 and IPv6
-datagrams never reach the ordinary uplink, unsolicited VPN-side traffic
-cannot enter the AP client, VPN-interface loss stays closed, and teardown
-restores nftables and forwarding sysctls. Receipt-marker mutation testing
-also detects one-way exfiltration when replies are dropped. See the
+The first test sends IPv4/IPv6 and UDP/TCP DNS-port traffic across isolated
+client, simulated-VPN, and ordinary-uplink namespaces. It proves the VPN path
+works, packets never reach the ordinary uplink, unsolicited VPN-side traffic
+cannot enter the AP client, VPN-interface loss stays closed, recreating it
+restores DNS traffic, and teardown restores nftables and forwarding sysctls.
+Receipt-marker mutation testing detects one-way UDP datagrams and TCP SYNs
+even when replies are dropped. See the historical
 [offline packet report](../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
 The
 [real-WireGuard offline gate](../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
@@ -206,7 +207,10 @@ adds a credential-free kernel handshake over a local TEST-NET veth underlay
 and sends one hotspot-client packet through the unchanged production
 kill-switch. It requires nonzero handshake and encrypted transfer counters,
 refuses a network-connected container, erases its disposable mode-`0600`
-keys, and repeats with exact cleanup. A real client still must pass ath11k AP
-capability, DHCP, VPN DNS, an on-phone/provider handshake, endpoint
-reachability, VPN loss/recovery, radio coexistence, throughput, thermals,
-charging, and battery tests on hardware.
+keys, and repeats with exact cleanup. The
+[v2 DNS/recovery gate](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+then makes v2 the default, carries valid DNS framing over UDP and TCP,
+requires endpoint loss to remain closed, restores both protocols after
+recovery, and mutation-tests one-way DNS leakage. A real client still must
+pass ath11k AP capability, DHCP/provider DNS, an on-phone/provider handshake,
+radio coexistence, throughput, thermals, charging, and battery tests.

@@ -49,8 +49,13 @@ restores nftables/sysctls on cleanup. A separate
 routes one hotspot-client packet through the unchanged production
 kill-switch and a real kernel tunnel, requires nonzero handshake and encrypted
 transfer counters, refuses a network-connected container, erases disposable
-keys, and repeats cleanly. The real ath11k AP, on-phone/provider handshake,
-DHCP/DNS, coexistence, throughput, thermal, and battery gates remain pending.
+keys, and repeats cleanly. The later
+[v2 DNS/recovery gate](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+defaults both suites to the current v2 controls, sends valid UDP/TCP DNS
+traffic through WireGuard, detects one-way DNS leakage, and verifies
+fail-closed endpoint/interface loss plus recovery. The real ath11k AP,
+on-phone/provider handshake, DHCP/provider DNS, coexistence, throughput,
+thermal, and battery gates remain pending.
 
 ## Display modes
 
