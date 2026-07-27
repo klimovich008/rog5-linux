@@ -583,14 +583,23 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   The case and actual unarmed zero-state refusal pass, but the
   [attended GO review remains HOLD](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
   because the phone is physically absent; NFS never started.
-- [ ] Connect the phone in exact persistent fallback, rerun the
+- [x] Connect the phone in exact persistent fallback, rerun the
   identity-pinned read-only health preflight and every local GO gate, then
-  decide whether to authorize at most one attended RAM-only v9 cycle with no
-  retry and no flash.
-- [ ] Only after a later v9 live acceptance and consumption, source-test a separate
-  bounded GMU power-preparation tier; do not combine GMU runtime power,
-  clocks, HFI, ZAP/SCM, hardware initialization, successful open, submit, or
-  rendering.
+  authorize at most one attended RAM-only v9 cycle with no retry and no
+  flash. Every prerequisite passed from the current fallback.
+- [x] Run the sole v9 cycle, require signed/device-scoped runtime-PM evidence,
+  exact rollback and equal settled snapshots, prove fallback/host cleanup,
+  and consume v9 regardless of result. The
+  [v9 live acceptance](test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
+  passes every gate with one GPU-device outer PM event, zero specific inner
+  resource events, no storage or retained DRM descriptors, complete cleanup,
+  and permanent server lockout.
+- [ ] Source-test a separate bounded GMU/CX runtime-PM preparation tier.
+  Isolate only the first `pm_runtime_get_sync(gmu->dev)` and balanced
+  rollback; require exact GMU/CX-domain classification and retain every v9
+  rollback/snapshot/storage/watchdog gate. Keep GX runtime PM, clock
+  rate/enable, secure init, MMIO, IRQ, firmware start, HFI, ZAP/SCM,
+  successful open, submit, and rendering out of this tier.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
