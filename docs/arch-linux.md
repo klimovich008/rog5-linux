@@ -113,8 +113,11 @@ It retains all 655 packages and accepted v1 evidence while adding
 kill-switch-first hotspot transitions, partial-failure rollback, and
 AP-before-firewall cleanup. Its separate
 [protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
-passes complete recursive verification and four mutation cases. It is not in
-an NFS allowlist, has not been booted, and remains HOLD.
+passes complete recursive verification and four mutation cases. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+adds dedicated verifier-first NFS, screen-off first-boot, strict-SSH,
+watchdog-handoff, and one-reboot controls. The unarmed host check passed; no
+NFS window or boot ran, and the root remains HOLD.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 

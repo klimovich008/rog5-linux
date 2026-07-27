@@ -846,9 +846,13 @@ separate
 [protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 is `/var/lib/rog5-network-root-arch-successor-v2`, root-owned mode `0555`,
 Btrfs `ro=true`, and sealed over 181,239 entries. The full verifier passes and
-rejects seal, hotspot-script, hotspot-service, and account mutations. It has
-no NFS allowlist or live runner; NFS/RPC remained inactive, and no boot
-authority follows from this offline result.
+rejects seal, hotspot-script, hotspot-service, and account mutations. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+adds a dedicated exact-root, explicit-token server plus a strict-SSH
+first-boot target/runner pair. The server's accepted runtime suffix is
+byte-identical to v1, while all v2 paths and guards remain separate. An actual
+unarmed call changed no normalized host state; NFS/RPC remains inactive, the
+root remains unbooted, and no live authority follows.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

@@ -58,7 +58,12 @@ test, full AArch64 stage, and clean archive round trip pass. A wholly separate
 [successor-v2 protected export](test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 is root-owned, mode `0555`, Btrfs `ro=true`, recursively sealed over 181,239
 entries, and rejects seal, hotspot-script, hotspot-service, and account
-mutations. V1 is unchanged; v2 is unserved, unbooted, and remains HOLD.
+mutations. Its separate
+[pre-live HOLD](test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+adds a verifier-first explicit-token server, screen-off first-boot target
+gate, and strict-SSH one-shot runner. An actual unarmed invocation preserved
+byte-identical normalized host state. V1 is unchanged; v2 remains unserved,
+unbooted, and no live authority was granted.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
