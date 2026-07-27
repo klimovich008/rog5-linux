@@ -67,6 +67,7 @@ for contract in \
 	'drivers/bus/mhi/host/mhi_pci_generic.ko' \
 	'drivers/net/wireless/ath/ath11k/ath11k.ko' \
 	'drivers/net/wireless/ath/ath11k/ath11k_pci.ko' \
+	'of:N*T*Cpci17cb,1103' \
 	'pci:v000017CBd00001103' \
 	'of:N*T*Cqcom,wcn6855-pmu' \
 	'modules.tar.gz'

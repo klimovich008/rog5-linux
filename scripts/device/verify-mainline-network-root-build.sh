@@ -2,7 +2,7 @@
 set -eu
 
 output_dir=${1:?usage: verify-mainline-network-root-build.sh BUILD_DIR}
-repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 meta=$output_dir/build-meta.txt
 config=$output_dir/.config
@@ -73,7 +73,6 @@ for symbol in \
 	SCSI_UFS_HWMON \
 	PHY_QCOM_QMP_UFS \
 	PHY_QCOM_QMP_COMBO \
-	PHY_QCOM_QMP_PCIE \
 	PHY_QCOM_QMP_PCIE_8996 \
 	PHY_QCOM_QMP_USB \
 	PHY_QCOM_QMP_USB_LEGACY \
@@ -86,5 +85,21 @@ for symbol in \
 		exit 1
 	fi
 done
+
+case ${ALLOW_QMP_PCIE:-n} in
+	n)
+		if grep -Eq '^CONFIG_PHY_QCOM_QMP_PCIE=(y|m)$' "$config"; then
+			echo 'FAIL final network-root config enables CONFIG_PHY_QCOM_QMP_PCIE' >&2
+			exit 1
+		fi
+		;;
+	m)
+		grep -qx 'CONFIG_PHY_QCOM_QMP_PCIE=m' "$config"
+		;;
+	*)
+		echo 'FAIL ALLOW_QMP_PCIE must be n or m' >&2
+		exit 1
+		;;
+esac
 
 echo 'PASS final network-root config, Image, modules, and recorded hashes'
