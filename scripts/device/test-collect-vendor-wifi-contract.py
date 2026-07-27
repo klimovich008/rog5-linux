@@ -18,8 +18,9 @@ def fail(message: str) -> None:
 
 
 def write_property(node: Path, name: str, value: bytes) -> None:
-    node.mkdir(parents=True, exist_ok=True)
-    (node / name).write_bytes(value)
+    path = node / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(value)
 
 
 def cells(*values: int) -> bytes:
@@ -199,9 +200,33 @@ def build_fixture(root: Path, *, resolve_io: bool = False) -> None:
             )
 
 
-def run_collector(root: Path) -> subprocess.CompletedProcess[str]:
+def build_pci_fixture(root: Path) -> None:
+    endpoint = root / "0000:01:00.0"
+    for name, value in {
+        "vendor": "0x17cb\n",
+        "device": "0x1103\n",
+        "subsystem_vendor": "0x17cb\n",
+        "subsystem_device": "0x0108\n",
+        "revision": "0x01\n",
+        "class": "0x028000\n",
+        "modalias": (
+            "pci:v000017CBd00001103sv000017CBsd00000108bc02sc80i00\n"
+        ),
+        "enable": "0\n",
+        "power/control": "on\n",
+        "power/runtime_status": "active\n",
+    }.items():
+        write_property(endpoint, name, value.encode("ascii"))
+    driver = root.parent / "drivers/cnss_pci"
+    driver.mkdir(parents=True)
+    (endpoint / "driver").symlink_to(driver)
+
+
+def run_collector(
+    root: Path, pci_root: Path
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [TARGET, "--root", root],
+        [TARGET, "--root", root, "--pci-root", pci_root],
         check=False,
         capture_output=True,
         text=True,
@@ -220,8 +245,10 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary) / "device-tree"
+        pci_root = Path(temporary) / "pci-devices"
         build_fixture(root)
-        result = run_collector(root)
+        build_pci_fixture(pci_root)
+        result = run_collector(root, pci_root)
         if result.returncode != 2:
             fail(
                 "unresolved vendor supply did not produce HOLD status "
@@ -233,6 +260,7 @@ def main() -> int:
             "wlan_root_complex=0",
             "pcie_node=/soc/qcom,pcie@1c00000",
             "pcie_domain=0",
+            "pci_endpoint=0000:01:00.0|vendor=17cb|device=1103|subsystem_vendor=17cb|subsystem_device=0108|revision=01|class=028000|driver=cnss_pci|power_control=on|runtime_status=active|enable=0",
             "cnss_supply=vdd-wlan-aon|phandle=212|provider=/soc/rsc@18200000/rpmh-regulator-smpe2/regulator-pmr735a-s2|regulator=pmr735a_s2|provider_min=976000|provider_max=976000|requested_cells=976000,976000,0,0,1",
             "unresolved_supply=vdd-wlan-io|phandle=214",
             "cnss_gpio=wlan-enable|controller=/soc/pinctrl@f000000|number=64|flags=0",
@@ -251,8 +279,10 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary) / "device-tree"
+        pci_root = Path(temporary) / "pci-devices"
         build_fixture(root, resolve_io=True)
-        result = run_collector(root)
+        build_pci_fixture(pci_root)
+        result = run_collector(root, pci_root)
         if result.returncode:
             fail(
                 "complete fixture was rejected "
@@ -267,19 +297,27 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary) / "device-tree"
+        pci_root = Path(temporary) / "pci-devices"
         build_fixture(root, resolve_io=True)
+        build_pci_fixture(pci_root)
         duplicate = root / "soc/duplicate-cnss"
         write_property(
             duplicate, "compatible", strings("qcom,cnss-qca6490")
         )
-        result = run_collector(root)
+        result = run_collector(root, pci_root)
         if result.returncode != 1:
             fail("ambiguous CNSS nodes were not rejected")
         if "expected exactly one qcom,cnss-qca6490" not in result.stderr:
             fail("ambiguous CNSS rejection was not explicit")
 
     result = subprocess.run(
-        [TARGET, "--root", "relative/device-tree"],
+        [
+            TARGET,
+            "--root",
+            "relative/device-tree",
+            "--pci-root",
+            "/sys/bus/pci/devices",
+        ],
         check=False,
         capture_output=True,
         text=True,
