@@ -578,9 +578,14 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   complete protected-root reverification, inactive NFS/RPC, and zero v9
   server tokens pass; see the
   [v9 pre-live HOLD report](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
-- [ ] Lift v9 HOLD only through a fail-first-tested verifier-before-state,
-  explicit-opt-in exact-root NFS case plus clean fallback/package/credential
-  review. Any GO may authorize at most one attended RAM-only cycle with no
+- [x] Fail-first test one verifier-before-state, explicit-opt-in exact-v9-root
+  NFS case and rerun every local root/package/runner/credential/host gate.
+  The case and actual unarmed zero-state refusal pass, but the
+  [attended GO review remains HOLD](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+  because the phone is physically absent; NFS never started.
+- [ ] Connect the phone in exact persistent fallback, rerun the
+  identity-pinned read-only health preflight and every local GO gate, then
+  decide whether to authorize at most one attended RAM-only v9 cycle with no
   retry and no flash.
 - [ ] Only after a later v9 live acceptance and consumption, source-test a separate
   bounded GMU power-preparation tier; do not combine GMU runtime power,

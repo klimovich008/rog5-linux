@@ -942,7 +942,13 @@ now adds a strict one-invocation/no-retry runner, exact mocked transport,
 private evidence contract, local Ed25519 client/server agreement, real
 unarmed refusal, clean synchronized Git, and another full root audit. NFS/RPC
 remains inactive and the bounded server has no v9 token. No NFS case, boot, or
-live authority exists for v9, so it remains HOLD. No GMU power tier is
+live authority exists for v9 at that checkpoint. A later
+[attended GO review remains HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md):
+one fail-first-tested verifier-before-state exact-root NFS case now exists,
+and all local package/root/runner/server/credential/host gates plus an actual
+unarmed zero-state refusal pass. The phone is physically absent, however, so
+the mandatory identity-pinned persistent-fallback preflight cannot run. No
+NFS window opened and no live authority exists. No GMU power tier is
 authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under

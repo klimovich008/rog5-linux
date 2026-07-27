@@ -794,7 +794,13 @@ has no server allowlist case, boot, or live authority. Its
 accepts a strict one-call/no-retry host runner, mock transport, private
 evidence boundary, local client/server SSH agreement, actual unarmed refusal,
 and clean synchronized root/host checks while NFS/RPC stays inactive. Any v9
-transition still requires separate GO authorization.
+transition still requires separate GO authorization. One
+fail-first-tested, verifier-before-state exact-v9-root case now exists, but
+the
+[attended GO review remains HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md):
+its actual unarmed invocation changed no host state, all local package and
+host gates pass, and NFS stayed inactive, but no physical phone exists for
+the mandatory identity-pinned persistent-fallback preflight.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
