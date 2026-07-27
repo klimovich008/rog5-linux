@@ -228,7 +228,11 @@ kernel without relying on phone storage.
 
 - [x] Load the verified Linux `Image`, recovery DTB, and target initramfs.
 - [ ] Capture a complete final vendor-kernel log before a future kexec; the
-  redacted pre-kexec state and loader result are recorded.
+  redacted pre-kexec state and loader result are recorded. The
+  [private capture HOLD](test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+  adds atomic mode-`0600` storage and rejects incomplete rings. The current
+  ring lacks boot origin, so a separately authorized normal Alpine reboot
+  and immediate read-only capture remain required.
 - [x] Execute kexec and verify the new kernel release and boot identity.
 - [x] Re-run ACM/NCM, RAM-only, storage-isolation, and rollback gates; the
   accepted credential-free target intentionally keeps SSH disabled.

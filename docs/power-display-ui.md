@@ -123,6 +123,16 @@ service control, not package removal. They must be repeated on Arch with
 physical DRM/KWin, KRDP, fixed workloads, and valid battery or wall-power
 telemetry.
 
+The
+[vendor boot-log HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+also measured 272 KiB of `sda` writes and 56 ms of block-I/O time during one
+30-second screen-off interval. Chromium accounted for 88 KiB of attributable
+physical writes, compared with 12 KiB from the ext4 journal and 4 KiB from
+Plasma shell. The same interval added six vendor load reports and two SCSI
+cache-sync messages. Keep Chromium on demand, but do not alter ASUS debug or
+UFS runtime policy until a reversible wall-power test can distinguish log
+noise from energy-relevant wakeups.
+
 ## Battery policy
 
 - `schedutil` remains the initial CPU governor.

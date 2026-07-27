@@ -43,6 +43,13 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   process lacks readable PSS, rejects relative fixture roots, and forbids
   process arguments, environments, descriptors, network identities, and
   credentials. The full Linux-rootfs tool aggregate delegates this test.
+- `test-capture-vendor-kernel-log.sh` requires the fallback capture to use
+  strict pinned SSH, mode-`0600` ignored storage, atomic no-overwrite
+  publication, complete framing, the exact vendor identity, and a real
+  time-zero boot origin. It rejects SSH failure, malformed or late rings,
+  outside paths, partial artifacts, and remote mutation commands. The
+  [live HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+  records why the current ring cannot close the boot-log gate.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

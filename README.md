@@ -604,6 +604,14 @@ and a low-overhead 30-second sample measured 0.78% aggregate CPU. This
 supports headless-by-default operation with Plasma and Chromium on demand;
 it does not replace Arch/KRDP, battery, or wall-power measurements.
 
+A fail-closed
+[vendor boot-log capture checkpoint](test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+now preserves raw `dmesg` only in ignored mode-`0600` storage and requires a
+real time-zero boot marker. It correctly rejected the current 81-minute ring:
+startup had been overwritten by periodic ASUS load/kernel-top reports and
+SCSI cache-sync messages. A separately authorized normal Alpine reboot and
+immediate read-only capture remain required; the roadmap item is not closed.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
