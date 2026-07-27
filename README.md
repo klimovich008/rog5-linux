@@ -24,9 +24,13 @@ The later
 corrects one hardware assumption: fallback PCIe enumerates the Qualcomm
 `17cb:1103` endpoint with ASUS subsystem `17cb:0108`, and the protected Arch
 root has matching ath11k modules, WCN6855 firmware, regulatory data, and
-network packages. The live vendor tree still has one stale WLAN I/O-regulator
-phandle, and the mainline board DTS has no PCIe/WCN6855 PMU description.
-Linux 7.1 Wi-Fi therefore remains a hardware HOLD; no radio was activated.
+network packages. The subsequent
+[offline WCN6855/PCIe acceptance](test-results/2026-07-27-wcn6855-pcie-offline.md)
+adds the missing opt-in board graph, validates it against pinned upstream
+schemas, and reproduces two byte-identical Linux 7.1.4 kernel/module builds
+with QMP PCIe, power sequencing, MHI, and ath11k. It remains a hardware HOLD:
+the result is not a boot package, no radio was activated, and a separately
+authorized RAM-only/client-only probe is still required.
 
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
