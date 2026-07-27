@@ -35,7 +35,7 @@ do
 done
 
 if grep -Eqi \
-	'(curl|wget|nc|netcat|socat|ssh|scp|http://|https://|[[:alnum:]-]+[.](com|net|org))' \
+	'(^|[;&|[:space:]])(curl|wget|nc|netcat|socat|ssh|scp)([[:space:]]|$)|https?://|[[:alnum:]-]+[.](com|net|org)' \
 	"$test"
 then
 	echo 'FAIL real-WireGuard hotspot test can contact an external endpoint' >&2
