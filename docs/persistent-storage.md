@@ -174,7 +174,7 @@ publication, and an independent post-publication whole-tree verification.
 archive was removed after verification. Alpine remained online and no root
 was selected or booted.
 
-### Gate P2 — UFS read-only Arch boot (pending)
+### Gate P2 — UFS read-only Arch boot (offline-ready; live pending)
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
@@ -191,6 +191,23 @@ must:
 
 This gate proves mainline UFS and ext4 reads. It does not authorize a writable
 mainline root.
+
+The
+[offline P2 acceptance](../test-results/2026-07-28-persistent-root-p2-offline.md)
+now supplies the exact implementation. A hardened AArch64 verifier reproduces
+the complete P1 seal; the target forces all 116 physical nodes read-only,
+mounts only exact `/dev/sda23` as `ro,noload`, uses the sealed root below a
+2 GiB tmpfs OverlayFS, boots systemd with strict SSH and backlights off, and
+retains an independent 600-second reset. Target initramfs, Linux 7.1.4,
+nested stage, ASUS wrapper, and header-v3/AVB products all reproduce across
+two builds.
+
+The live gate has not run. Direct loading from Alpine failed safely because
+its exact 5.4.134 kernel has kexec disabled, and the subsequent guarded reboot
+disconnected without exposing fastboot or another phone USB identity. The
+manifest-pinned image is ready for one attended, non-flashing `fastboot boot`
+when the phone is physically visible. P3 remains blocked until the complete
+P2 target evidence and automatic Alpine fallback pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

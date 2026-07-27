@@ -1,4 +1,4 @@
-# Current state — 2026-07-27
+# Current state — 2026-07-28
 
 ## Hardware and boot
 
@@ -299,10 +299,21 @@ entered through one-shot kexec. The later
 pins the exact successor-v3 archive and signed aarch64 libarchive tool,
 rejects unsafe/device/credential members, preserves metadata, seals the
 complete extracted tree, detects mutation and interruption, and publishes
-only through an atomic rename. The next storage tier is an explicitly
-authorized P1 deployment followed by a `ro,noload` UFS/tmpfs-overlay Arch
-boot. `/rog5` remains absent; no persistent phone file, partition content, or
-boot slot was changed.
+only through an atomic rename. The separate
+[P1 live acceptance](../test-results/2026-07-27-persistent-arch-staging-live.md)
+published `/rog5/roots/arch-a`, independently re-verified all 181,242 entries,
+and left the generation `UNBOOTED` with both selectors absent.
+
+The
+[P2 offline acceptance](../test-results/2026-07-28-persistent-root-p2-offline.md)
+now provides a duplicate-built Linux 7.1.4 read-only UFS target, complete
+seal verifier, `ro,noload` ext4 plus volatile OverlayFS boot, strict SSH,
+screen-off attestation, nested ASUS recovery wrapper, and a reproducible
+temporary boot image. Direct kexec from the fallback refused safely because
+its exact kernel has kexec disabled. A guarded reboot then disconnected the
+phone without exposing fastboot or any replacement USB identity, so P2 has
+not run live. The next storage action is one attended, non-flashing P2 boot
+after the phone becomes visible in fastboot; P3 remains prohibited.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built
