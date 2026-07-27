@@ -614,8 +614,11 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   [pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
   now pass, including fourteen rejected oracle mutations, complete recursive
   root verification, actual unarmed zero-state refusal, and connected
-  fallback health. The attended GO review remains pending; there is no v10
-  live authority.**
+  fallback health. The later
+  [attended-GO HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+  repeats every technical prerequisite after successor-v3 publication and
+  stops only on the absent exact user instruction; there is no v10 live
+  authority.**
 - Before extending v10, prove whether a GX-only stage crosses a hardware
   boundary, then source-test the smallest meaningful next operation. **The
   [v11 offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)

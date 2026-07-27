@@ -1035,7 +1035,11 @@ read-only health. The later
 revalidates every v10 gate and the complete protected root after subsequent
 shared-server changes, repeats byte-identical unarmed refusal and exact
 fallback preflight, keeps v11 absent from all live paths, and selects v10 as
-the next candidate. No live authority, boot, retry, or flash follows.
+the next candidate. The subsequent
+[attended-GO HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+repeats every technical prerequisite after successor-v3 publication. All
+checks pass, but the exact fresh user instruction is absent. No live
+authority, boot, retry, or flash follows.
 
 The provisional
 [v11 GMU clock-preparation offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)

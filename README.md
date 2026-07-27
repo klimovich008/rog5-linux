@@ -564,7 +564,13 @@ prohibited. A later
 revalidates every gate against the synchronized public branch, pins the
 newer accepted shared-server identity, repeats byte-identical unarmed state
 preservation and fallback health, and selects v10 as the next candidate.
-It still grants no live authority.
+The later
+[attended-GO review](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+repeats all nine offline/control suites, the complete recursive root
+comparison, current unarmed state preservation, exact boot-image identity,
+and guarded fallback preflight after successor-v3 publication. Every
+technical prerequisite passes, but the missing fresh user instruction keeps
+the decision at HOLD and grants no live authority.
 
 The provisional
 [v11 GMU clock-preparation offline acceptance](test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
