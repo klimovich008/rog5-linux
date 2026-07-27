@@ -11,6 +11,8 @@ vendor_log_capture=$repo/scripts/host/capture-vendor-kernel-log.sh
 vendor_log_capture_test=$repo/scripts/host/test-capture-vendor-kernel-log.sh
 wifi_contract=$repo/scripts/device/collect-vendor-wifi-contract.py
 wifi_contract_test=$repo/scripts/device/test-collect-vendor-wifi-contract.py
+wifi_candidate_test=$repo/scripts/device/test-wifi-candidate-dtb.sh
+wifi_schema_test=$repo/scripts/host/test-validate-wifi-candidate-dtb.sh
 hotspot_wireguard_contract=$repo/scripts/device/test-vpn-hotspot-wireguard-contract.sh
 successor_export_test=$repo/scripts/host/test-arch-successor-export.sh
 successor_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v1-gate.sh
@@ -30,6 +32,7 @@ successor_v3_runner_test=$repo/scripts/host/test-run-arch-successor-v3-live-gate
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	"$component_metrics_test" \
 	"$vendor_log_capture" "$vendor_log_capture_test" \
+	"$wifi_candidate_test" "$wifi_schema_test" \
 	"$hotspot_wireguard_contract" \
 	"$successor_export_test" "$successor_target_test" \
 	"$successor_runner_test" "$successor_v2_test" \
@@ -55,6 +58,8 @@ done
 "$component_metrics_test" >/dev/null
 "$vendor_log_capture_test" >/dev/null
 "$wifi_contract_test" >/dev/null
+"$wifi_candidate_test" >/dev/null
+"$wifi_schema_test" >/dev/null
 "$hotspot_wireguard_contract" >/dev/null
 "$successor_export_test" >/dev/null
 "$successor_target_test" >/dev/null
