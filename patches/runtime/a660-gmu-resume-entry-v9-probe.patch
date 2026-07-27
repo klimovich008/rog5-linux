@@ -1,0 +1,114 @@
+--- probe-v9-base
++++ probe-v9
+@@ -6,15 +6,16 @@
+ 	exit 1
+ }
+ 
+-[ "${ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8:-}" = 1 ] ||
+-	fail 'set ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8=1 for one attended probe'
++[ "${ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V9:-}" = 1 ] ||
++	fail 'set ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V9=1 for one attended probe'
+ [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
+ 
+ release=7.1.4-rog5-a660reg1
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+ helper=$lower/usr/local/libexec/rog5-a660-gmu-resume-entry-v9-open
++trace_oracle=$lower/usr/local/libexec/rog5-a660-gmu-resume-entry-v9-trace-oracle
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ acceptance_sha=8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f
+ probe_timeout=${ROG5_PROBE_TIMEOUT:-110}
+@@ -131,6 +132,9 @@
+ verify_file "$helper" 755 \
+ 	d3303a04182625606e0dfc343205f677a80fcf55ab6928de53fad82852863bae \
+ 	'one-open helper'
++verify_file "$trace_oracle" 755 \
++	48325037a54fe737aa4c623a1be59f644952bd21d9f13f0bba6a6563fea6f223 \
++	'signed device-scoped v9 trace oracle'
+ verify_file "$firmware_root/qcom/a660_sqe.fw" 644 \
+ 	d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76 \
+ 	'SQE firmware'
+@@ -571,12 +575,12 @@
+ if ! printf '%s\n' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_load_gpu msm:adreno_load_gpu dev=$arg1:x64' \
+ 	'r:rog5_gmu_v9/rog5_gmu_v9_load_gpu_ret msm:adreno_load_gpu ret=$retval:x64' \
+-	'p:rog5_gmu_v9/rog5_gmu_v9_runtime_resume msm:adreno_runtime_resume' \
+-	'r:rog5_gmu_v9/rog5_gmu_v9_runtime_resume_ret msm:adreno_runtime_resume ret=$retval:s64' \
++	'p:rog5_gmu_v9/rog5_gmu_v9_runtime_resume msm:adreno_runtime_resume dev=$arg1:x64' \
++	'r:rog5_gmu_v9/rog5_gmu_v9_runtime_resume_ret msm:adreno_runtime_resume ret=$retval:u32' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_pm_resume msm:a6xx_gmu_pm_resume' \
+-	'r:rog5_gmu_v9/rog5_gmu_v9_pm_resume_ret msm:a6xx_gmu_pm_resume ret=$retval:s64' \
++	'r:rog5_gmu_v9/rog5_gmu_v9_pm_resume_ret msm:a6xx_gmu_pm_resume ret=$retval:u32' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_resume msm:a6xx_gmu_resume' \
+-	'r:rog5_gmu_v9/rog5_gmu_v9_resume_ret msm:a6xx_gmu_resume ret=$retval:s64' \
++	'r:rog5_gmu_v9/rog5_gmu_v9_resume_ret msm:a6xx_gmu_resume ret=$retval:u32' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_mark_hit msm:msm_a660_gmu_resume_entry_only_mark_hit' \
+ 	'r:rog5_gmu_v9/rog5_gmu_v9_mark_hit_ret msm:msm_a660_gmu_resume_entry_only_mark_hit ret=$retval:u64' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_rollback msm:adreno_rollback_gpu_load_only dev=$arg1:x64' \
+@@ -595,7 +599,7 @@
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_fw_request request_firmware_direct' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_fw_release release_firmware fw=$arg1:x64' \
+-	'p:rog5_gmu_v9/rog5_gmu_v9_runtime_pm __pm_runtime_resume' \
++	'p:rog5_gmu_v9/rog5_gmu_v9_runtime_pm __pm_runtime_resume dev=$arg1:x64' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_clk_rate clk_set_rate' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_enable_irq enable_irq' \
+ 	'p:rog5_gmu_v9/rog5_gmu_v9_msm_pm_resume msm:msm_gpu_pm_resume' \
+@@ -691,4 +695,13 @@
+ [ -s "$trace_snapshot" ] || post_fail 'PID-filtered trace is empty'
++trace_oracle_output=$("$trace_oracle" "$trace_snapshot") ||
++	post_fail 'signed device-scoped trace oracle rejected the live trace'
++printf '%s\n' "$trace_oracle_output" | grep -Eq \
++	'^PASS A660 GMU resume-entry v9 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 generic_runtime_pm=[1-9][0-9]*$' ||
++	post_fail 'signed device-scoped trace oracle output is not exact'
++generic_runtime_pm=${trace_oracle_output##*=}
++case $generic_runtime_pm in
++	*[!0-9]*|'') post_fail 'generic runtime-PM count is malformed' ;;
++esac
+ require_event_count rog5_gmu_v9_load_gpu 1 'adreno_load_gpu entry'
+ require_event_count rog5_gmu_v9_load_gpu_ret 1 'adreno_load_gpu return'
+ [ "$(grep -c 'rog5_gmu_v9_load_gpu_ret:.*ret=0' \
+@@ -697,19 +710,10 @@
+ require_event_count rog5_gmu_v9_runtime_resume 1 'Adreno runtime-resume entry'
+ require_event_count rog5_gmu_v9_runtime_resume_ret 1 \
+ 	'Adreno runtime-resume return'
+-[ "$(grep -c 'rog5_gmu_v9_runtime_resume_ret:.*ret=-117' \
+-	"$trace_snapshot" || true)" -eq 1 ] ||
+-	post_fail 'Adreno runtime resume did not return EUCLEAN'
+ require_event_count rog5_gmu_v9_pm_resume 1 'A6xx GMU PM-resume entry'
+ require_event_count rog5_gmu_v9_pm_resume_ret 1 'A6xx GMU PM-resume return'
+-[ "$(grep -c 'rog5_gmu_v9_pm_resume_ret:.*ret=-117' \
+-	"$trace_snapshot" || true)" -eq 1 ] ||
+-	post_fail 'A6xx GMU PM resume did not return EUCLEAN'
+ require_event_count rog5_gmu_v9_resume 1 'A6xx GMU-resume entry'
+ require_event_count rog5_gmu_v9_resume_ret 1 'A6xx GMU-resume return'
+-[ "$(grep -c 'rog5_gmu_v9_resume_ret:.*ret=-117' \
+-	"$trace_snapshot" || true)" -eq 1 ] ||
+-	post_fail 'A6xx GMU resume did not return EUCLEAN'
+ require_event_count rog5_gmu_v9_mark_hit 1 'GMU resume-entry one-shot hit'
+ require_event_count rog5_gmu_v9_mark_hit_ret 1 \
+ 	'GMU resume-entry one-shot result'
+@@ -738,10 +742,9 @@
+ require_event_count rog5_gmu_v9_ucode_unload 1 'ucode unload'
+ require_event_count rog5_gmu_v9_fw_request 2 'firmware request'
+ require_event_count rog5_gmu_v9_fw_release 2 'firmware release'
+-# v9 retained accepted v7 allocation and rollback state; only the bounded
+-# resume-entry path and its zero-work oracles are new.
+-require_event_count rog5_gmu_v9_runtime_pm 1 \
+-	'outer GPU runtime-PM resume with zero inner resumes'
++# V9 keeps the v8 kernel and v7-proven rollback. The signed/device-scoped
++# oracle above classifies the one GPU outer runtime-PM call without imposing
++# a false process-global count on unrelated runtime-PM devices.
+ require_event_count rog5_gmu_v9_clk_rate 0 'clock-rate activation'
+ require_event_count rog5_gmu_v9_enable_irq 0 'IRQ activation'
+ for forbidden_event in rog5_gmu_v9_msm_pm_resume \
+@@ -900,6 +903,6 @@
+ probe_safe=1
+ disarm_watchdog
+ trap - EXIT HUP INT TERM
+-printf 'PASS A660 gmu-resume-entry-v9 open_invocations=1 open_errno=117 gmu_resume_entry_only=Y firmware_request_only=N ucode_allocation_only=N firmware_requests=2 firmware_releases=2 entry_markers=1 rollback_markers=1 adreno_load_gpu=1 runtime_resume=1 gmu_pm_resume=1 gmu_resume=1 rollback=1 outer_runtime_pm=1 inner_runtime_pm=0 clocks=0 irq=0 hfi=0 devfreq=0 llc=0 hw_init=0 scm=0 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+-	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
++printf 'PASS A660 gmu-resume-entry-v9 open_invocations=1 open_errno=117 gmu_resume_entry_only=Y firmware_request_only=N ucode_allocation_only=N firmware_requests=2 firmware_releases=2 entry_markers=1 rollback_markers=1 adreno_load_gpu=1 runtime_resume=1 gmu_pm_resume=1 gmu_resume=1 rollback=1 gpu_runtime_pm=1 generic_runtime_pm=%s inner_runtime_pm=0 clocks=0 irq=0 hfi=0 devfreq=0 llc=0 hw_init=0 scm=0 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
++	"$generic_runtime_pm" "$thermal_count" "$thermal_max" "$reprobe_attempted" \
+ 	"$driver_override_state"
