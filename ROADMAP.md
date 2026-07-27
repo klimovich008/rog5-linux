@@ -643,6 +643,12 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   balances GX bookkeeping, both GMU rates, and all seven clocks before secure
   init. Eighteen mutations and two byte-identical isolated builds pass; only
   `msm.ko` differs from v10.
+- [x] Revalidate v10 against the current synchronized branch after later
+  shared-server changes. The
+  [current readiness HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+  passes every source/runtime/root/control gate, complete protected-root
+  verification, byte-identical unarmed state preservation, strict fallback
+  preflight, and v11 live-path exclusion. It grants no live authority.
 - [ ] Keep v11 out of every root, package, export, and server allowlist until
   v10 is live-tested and consumed, then build v11-specific runtime controls,
   protected root, target/watchdog gate, no-retry runner, and separate
@@ -709,9 +715,12 @@ when no desktop is needed.
   [v2 pre-live HOLD](test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
   passes all mocked controls and an actual unarmed invocation with
   byte-identical normalized host state; it grants no live authority.
-- [ ] Choose v10 GPU diagnosis or a successor-v2 normal headless userspace
-  cycle, repeat every preflight, and obtain a fresh explicit GO before NFS or
-  boot.
+- [x] Choose v10 GPU diagnosis as the next candidate because GPU acceleration
+  is the critical unmet dependency; preserve successor-v2 as the independent
+  server-path candidate. The
+  [current readiness HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+  records the comparison and repeats every non-live preflight. A fresh
+  explicit GO remains mandatory before NFS or boot.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
