@@ -21,7 +21,7 @@ for input in "$stage" "$host_stage" "$verifier" "$v1_target" \
 	[ -f "$input" ] && [ ! -L "$input" ] ||
 		fail "missing or linked packaging input: $input"
 done
-for script in "$stage" "$host_stage" "$verifier" "$v2_target"; do
+for script in "$host_stage" "$verifier" "$v2_target"; do
 	[ -x "$script" ] || fail "packaging script is not executable: $script"
 done
 bash -n "$stage"
@@ -61,12 +61,21 @@ for contract in \
 	'/workspace/repo/scripts/device/vpn-hotspot-v2.sh' \
 	'cmp /etc/systemd/system/rog5-vpn-hotspot.service' \
 	'/workspace/repo/packaging/arch/rog5-vpn-hotspot-v2.service' \
+	'e8ab452b1994ffbffe0a0e1db32e3b2f66866d813e8f32b03713fb4f2545e87f' \
+	'scripts/device/verify-staged-arch-rootfs.sh' \
+	'scripts/device/test-vpn-hotspot-transition-v2.sh'
+do
+	grep -Fq "$contract" "$verifier" ||
+		fail "successor v2 verifier omits: $contract"
+done
+
+for inherited_contract in \
 	'systemd-analyze verify' \
 	'[[ ! -e /etc/wireguard/wg0.conf ]]' \
 	'[[ -z $(find /etc/NetworkManager/system-connections'
 do
-	grep -Fq "$contract" "$verifier" ||
-		fail "successor v2 verifier omits: $contract"
+	grep -Fq "$inherited_contract" "$v1_verifier" ||
+		fail "accepted full-root verifier omits: $inherited_contract"
 done
 
 if grep -Eq \

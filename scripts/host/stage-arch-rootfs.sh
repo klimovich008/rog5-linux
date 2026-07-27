@@ -180,7 +180,7 @@ podman run --rm --network none \
 	--tmpfs /stage/run \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	"$builder_image" chroot /stage /bin/bash \
-	/workspace/repo/scripts/device/verify-staged-arch-rootfs.sh
+	/workspace/repo/scripts/device/verify-staged-arch-rootfs-v2.sh
 
 mv "$gzip_part" "$output"
 succeeded=1
