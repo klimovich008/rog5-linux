@@ -46,6 +46,11 @@ then
 	exit 1
 fi
 
+if grep -Fq 'PrivateTmp=yes' "$unit"; then
+	echo 'FAIL PrivateTmp breaks OpenSSH system-config ownership checks in user services' >&2
+	exit 1
+fi
+
 if command -v systemd-analyze >/dev/null 2>&1; then
 	systemd-analyze --user verify "$unit"
 fi
