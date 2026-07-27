@@ -6,6 +6,8 @@ target=${TARGET:-$repo/scripts/device/desktop-supervisor.sh}
 installer=$repo/scripts/device/install-runtime-tools.sh
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT HUP INT TERM
+run_runtime=$fixture/runtime-run
+mkdir -p "$run_runtime"
 
 [ -x "$target" ] || {
 	echo 'FAIL missing desktop supervisor' >&2
@@ -44,6 +46,7 @@ run_supervisor() {
 	ROG5_DESKTOP_START=$fixture/desktop-start \
 	ROG5_DESKTOP_SUPERVISOR_INTERVAL=1 \
 	ROG5_DESKTOP_SUPERVISOR_MAX_CYCLES=3 \
+	ROG5_DESKTOP_SUPERVISOR_RUNTIME=$run_runtime \
 	ROG5_TEST_COUNT=$fixture/count \
 	ROG5_TEST_HEALTHY=$fixture/healthy \
 	ROG5_TEST_MODE=$1 \
@@ -75,6 +78,7 @@ if PATH=$fixture/bin:$PATH \
 	ROG5_DESKTOP_START=$fixture/desktop-start \
 	ROG5_DESKTOP_SUPERVISOR_INTERVAL=0 \
 	ROG5_DESKTOP_SUPERVISOR_MAX_CYCLES=1 \
+	ROG5_DESKTOP_SUPERVISOR_RUNTIME=$run_runtime \
 		"$target" run >/dev/null 2>&1; then
 	echo 'FAIL zero supervisor interval was accepted' >&2
 	exit 1
