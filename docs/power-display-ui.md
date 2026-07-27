@@ -52,7 +52,12 @@ now enables a small standard-library handler that requires exactly one
 record, and failed-toggle cases are rejected. Its root service has no network
 or block-device access and only the identity-switch capabilities needed by
 the existing KScreen helper. This is software readiness, not physical-button
-or display acceptance.
+or display acceptance. The later
+[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+pins the handler/service into a recursively sealed read-only root and requires
+one real `pmic_pwrkey` character device plus an active, zero-restart service
+before any target gate could request fallback. It still does not synthesize
+or observe a physical press.
 
 Linux 7.1 network-root v5 now registers the PMK8350 power-key path after the
 reviewed `qcom_pon` parent module is loaded. The resulting input is named

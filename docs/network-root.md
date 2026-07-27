@@ -854,6 +854,17 @@ byte-identical to v1, while all v2 paths and guards remain separate. An actual
 unarmed call changed no normalized host state; NFS/RPC remains inactive, the
 root remains unbooted, and no live authority follows.
 
+The later
+[successor-v3 protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+uses `/var/lib/rog5-network-root-arch-successor-v3` and a dedicated
+`ALLOW_ARCH_SUCCESSOR_V3_NFS=1` boundary. Its recursive seal additionally
+pins the confined power-button handler/service, and four COW mutations are
+rejected. The dedicated target requires one `pmic_pwrkey` character device
+and an active zero-restart handler before watchdog handoff. Its server runtime
+suffix remains byte-identical to the accepted implementation, and an actual
+unarmed call preserves byte-identical host state. It remains unserved,
+unbooted, and live HOLD.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

@@ -131,9 +131,11 @@ for a working feature.
 - [x] Build and protect a successor-v2 Arch root with kill-switch-first
   forwarding, partial-failure rollback, exact v1 preservation, real
   WireGuard packet evidence, and four rejected protected-root mutations.
-- [x] Build and manifest-pin a successor-v3 Arch development root with a
-  confined, press-only power-button screen-toggle service while preserving
-  the complete v2 verifier byte-for-byte.
+- [x] Build, manifest-pin, and protect a successor-v3 Arch development root
+  with a confined, press-only power-button screen-toggle service while
+  preserving the complete v2 verifier byte-for-byte. Its separate
+  verifier-first NFS, power-input target, and strict no-retry runner controls
+  pass offline and remain live HOLD.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -728,11 +730,16 @@ when no desktop is needed.
   byte-identical normalized host state; it grants no live authority.
 - [x] Build and independently verify a successor-v3 development archive that
   enables the confined power-button screen toggle over the exact v2 root
-  verifier. Keep it unprotected, unserved, unbooted, and outside every live
-  allowlist until its physical input/display gates pass.
+  verifier.
+- [x] Create its separate
+  [protected pre-live HOLD](test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md):
+  recursively verify the read-only root, reject four COW mutations, add
+  exact-root verifier-first NFS plus power-input-aware target/runner
+  controls, and prove actual unarmed host-state preservation. Keep it
+  unserved and unbooted until a separate physical input/display review.
 - [x] Choose v10 GPU diagnosis as the next candidate because GPU acceleration
-  is the critical unmet dependency; preserve successor-v2 as the independent
-  server-path candidate. The
+  is the critical unmet dependency; preserve successor-v2 and protected v3
+  as independent server/userspace candidates. The
   [current readiness HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
   records the comparison and repeats every non-live preflight. A fresh
   explicit GO remains mandatory before NFS or boot.

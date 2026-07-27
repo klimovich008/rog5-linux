@@ -41,6 +41,14 @@ now verifies screen-off headless first boot, one normal reboot, and strict-SSH
 evidence flow, but does not start Plasma or KRDP. The root remains unserved
 and unbooted; no result authorizes a live cycle.
 
+The
+[successor-v3 protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+extends that headless path with the confined physical-power-key service. Its
+target gate requires one real `pmic_pwrkey` input plus the exact active
+service, while still keeping Chromium, Plasma/KRDP, ttyd, and VPN hotspot
+disabled by default. This is an offline control-plane pass, not proof of a
+physical press, display toggle, or remote GUI session.
+
 ## Persistent tunnel on a Linux host
 
 First configure the `rog5-fallback` SSH host alias with the approved private
