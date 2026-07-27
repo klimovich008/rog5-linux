@@ -1027,5 +1027,17 @@ explicit-token NFS case. Its actual unarmed invocation changes no host state,
 NFS/RPC stays inactive, and the connected Alpine fallback passes strict
 read-only health. No v10 boot, retry, or flash occurred.
 
+The provisional
+[v11 GMU clock-preparation offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+now passes a source-pinned boundary, eighteen hostile patch mutations,
+strict patch style, two isolated byte-identical Linux 7.1.4 builds, and exact
+v10 comparison. An intermediate GX-only stage was rejected as non-progress:
+SM8350 assigns a no-op GX power-on callback. V11 therefore balances GX
+runtime-PM bookkeeping, captures/programs/restores the two GMU rates, enables
+and reverses all seven GMU clocks, and stops before secure init, MMIO, IRQ,
+firmware, or HFI. Only `msm.ko` changes from v10. No runtime oracle,
+protected root, target gate, runner, or server case exists, so v11 is
+non-runnable and v10 remains the next live GPU step.
+
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

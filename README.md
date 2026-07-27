@@ -531,6 +531,19 @@ offline controls, and connected fallback health pass. V10 remains HOLD: no
 live cycle is authorized, no v10 boot has run, and retry or flash is
 prohibited.
 
+The provisional
+[v11 GMU clock-preparation offline acceptance](test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+now advances source/build evidence without advancing live authority. Source
+audit proved that an intermediate GX-only tier would add no hardware boundary
+because SM8350's GX power-on callback is a no-op. The default-off
+exact-A660.1 v11 diagnostic instead balances GX bookkeeping, programs and
+restores the normal core/hub rates, prepares and reverses all seven GMU
+clocks, and stops before secure init, MMIO, IRQ, firmware, or HFI. Eighteen
+patch mutations and two isolated byte-identical Linux 7.1.4 builds pass; only
+`msm.ko` changes from v10. V11 has no runtime oracle, protected root, runner,
+or bounded-server case and must not be run. V10 remains the next live GPU
+step.
+
 Separately, the installed Alpine 3.24 fallback now passes a
 [live remote-GUI checkpoint](test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md)
 on its older `5.4.134` vendor kernel. Nested software-rendered KWin/Plasma,
