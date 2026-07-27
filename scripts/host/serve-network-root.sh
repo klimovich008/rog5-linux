@@ -41,6 +41,11 @@ case $root in
 		"$repo/scripts/host/verify-a660-gmu-cx-runtime-pm-v10-export.sh" \
 			"$root" /var/lib/rog5-network-root-a660-gmu-resume-entry-v9
 		;;
+	/var/lib/rog5-network-root-arch-successor-v1)
+		[[ ${ALLOW_ARCH_SUCCESSOR_V1_NFS:-} == 1 ]] ||
+			fail 'set ALLOW_ARCH_SUCCESSOR_V1_NFS=1 for the attended Arch successor v1 window'
+		"$repo/scripts/host/verify-arch-successor-export.sh" "$root"
+		;;
 	*)
 		fail 'unexpected export root'
 		;;

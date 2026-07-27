@@ -7,9 +7,12 @@ stage=$repo/scripts/host/stage-arch-rootfs.sh
 agent_test=$repo/scripts/device/test-agent-isolation.sh
 metrics_test=$repo/scripts/device/test-collect-baseline.sh
 successor_export_test=$repo/scripts/host/test-arch-successor-export.sh
+successor_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v1-gate.sh
+successor_runner_test=$repo/scripts/host/test-run-arch-successor-v1-live-gate.sh
 
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
-	"$successor_export_test"; do
+	"$successor_export_test" "$successor_target_test" \
+	"$successor_runner_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable Linux host tool: $script" >&2
 		exit 1
@@ -19,6 +22,8 @@ done
 "$agent_test" >/dev/null
 "$metrics_test" >/dev/null
 "$successor_export_test" >/dev/null
+"$successor_target_test" >/dev/null
+"$successor_runner_test" >/dev/null
 
 grep -Fq 'verify-arch-rootfs.sh' "$fetch"
 grep -Fq '91e6b11698f8df66042d56aaa56fbe9c9263847d' "$fetch"
