@@ -10,10 +10,11 @@ ucode_v5_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v5.
 ucode_v6_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v6.sh
 ucode_v7_consumed_test=$repo/scripts/host/test-consume-a660-ucode-allocation-v7.sh
 gmu_v8_consumed_test=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v8.sh
+gmu_v9_consumed_test=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v9.sh
 
 for script in "$prepare" "$verify" "$serve" "$ucode_v5_consumed_test" \
 	"$ucode_v6_consumed_test" "$ucode_v7_consumed_test" \
-	"$gmu_v8_consumed_test"; do
+	"$gmu_v8_consumed_test" "$gmu_v9_consumed_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable network-root host tool: $script" >&2
 		exit 1
@@ -83,7 +84,8 @@ for consumed in \
 	/var/lib/rog5-network-root-a660-ucode-allocation-v5 \
 	/var/lib/rog5-network-root-a660-ucode-allocation-v6 \
 	/var/lib/rog5-network-root-a660-ucode-allocation-v7 \
-	/var/lib/rog5-network-root-a660-gmu-resume-entry-v8
+	/var/lib/rog5-network-root-a660-gmu-resume-entry-v8 \
+	/var/lib/rog5-network-root-a660-gmu-resume-entry-v9
 do
 	if grep -Fq "$consumed)" "$serve"; then
 		echo "FAIL network-root host still allowlists consumed root: $consumed" >&2
@@ -130,5 +132,6 @@ fi
 "$ucode_v6_consumed_test" >/dev/null
 "$ucode_v7_consumed_test" >/dev/null
 "$gmu_v8_consumed_test" >/dev/null
+"$gmu_v9_consumed_test" >/dev/null
 
 echo 'PASS host gate is exact-peer, runtime-only, read-only, and fail-closed'
