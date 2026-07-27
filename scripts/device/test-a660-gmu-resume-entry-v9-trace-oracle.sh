@@ -60,6 +60,23 @@ valid_signed=$(printf '%s\n' "$valid_unsigned" |
 run_accept signed "$valid_signed" \
 	'PASS A660 GMU resume-entry v9 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 generic_runtime_pm=3'
 
+twenty_one_runtime_pm=$(
+	awk 'BEGIN {
+		for (i = 1; i <= 20; i++)
+			printf "helper-1 [000] 1.%03d: rog5_gmu_v9_runtime_pm: dev=0x111\n", i
+	}'
+)
+valid_twenty_one="$twenty_one_runtime_pm
+helper-1 [000] 1.021: rog5_gmu_v9_runtime_pm: dev=0x222
+helper-1 [000] 1.022: rog5_gmu_v9_runtime_resume: dev=0x222
+helper-1 [000] 1.023: rog5_gmu_v9_pm_resume:
+helper-1 [000] 1.024: rog5_gmu_v9_resume:
+helper-1 [000] 1.025: rog5_gmu_v9_resume_ret: ret=4294967179
+helper-1 [000] 1.026: rog5_gmu_v9_pm_resume_ret: ret=4294967179
+helper-1 [000] 1.027: rog5_gmu_v9_runtime_resume_ret: ret=4294967179"
+run_accept observed-v8-count "$valid_twenty_one" \
+	'PASS A660 GMU resume-entry v9 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 generic_runtime_pm=21'
+
 wrong_return=$(printf '%s\n' "$valid_unsigned" |
 	sed '0,/ret=4294967179/s//ret=4294967178/')
 run_reject non-EUCLEAN "$wrong_return" \
