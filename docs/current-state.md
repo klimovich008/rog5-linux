@@ -44,7 +44,12 @@ The mainline userspace VPN-hotspot policy also has packet-level offline
 evidence. A network-disabled privileged container permits only the simulated
 VPN path, blocks one-way IPv4/IPv6 ordinary-uplink leakage, blocks unsolicited
 VPN-side client ingress, stays closed when the VPN interface disappears, and
-restores nftables/sysctls on cleanup. The real ath11k AP, WireGuard handshake,
+restores nftables/sysctls on cleanup. A separate
+[real-WireGuard offline gate](../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
+routes one hotspot-client packet through the unchanged production
+kill-switch and a real kernel tunnel, requires nonzero handshake and encrypted
+transfer counters, refuses a network-connected container, erases disposable
+keys, and repeats cleanly. The real ath11k AP, on-phone/provider handshake,
 DHCP/DNS, coexistence, throughput, thermal, and battery gates remain pending.
 
 ## Display modes
