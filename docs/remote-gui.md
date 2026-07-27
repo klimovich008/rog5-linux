@@ -15,6 +15,13 @@ The staged KRDP user-service override forces `krdpserver` to `127.0.0.1`.
 The host helper forwards KRDP, ttyd, Chromium CDP, and the legacy recovery
 noVNC port in one SSH process.
 
+The sealed v10 diagnostic root contains the required Plasma/KRDP packages but
+predates the locked `rog5-agent` browser service. Keep its old Chromium unit
+disabled. The
+[offline userspace audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+requires a freshly rebuilt normal Arch root with current agent isolation and
+systemd checks before remote automation is promoted.
+
 ## Persistent tunnel on a Linux host
 
 First configure the `rog5-fallback` SSH host alias with the approved private

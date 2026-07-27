@@ -29,6 +29,15 @@ stop rapid restart loops. No email, CV, browser session, API token, or
 provider account is present. This artifact is verified offline but has not
 replaced the live-tested network root or run on the phone.
 
+The later
+[Arch userspace readiness audit](test-results/2026-07-27-arch-userspace-readiness-offline.md)
+confirms that the sealed v10 diagnostic root contains the full
+Plasma/KWin/KRDP/server toolset but intentionally predates the isolated agent.
+It also found and fail-first fixed a future-image systemd ordering cycle
+between the disabled hotspot unit, dnsmasq, and `network-online.target`.
+Current packaging and the staged-root verifier are corrected; a fresh normal
+Arch archive still must be built and verified before promotion.
+
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
 aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,

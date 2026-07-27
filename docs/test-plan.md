@@ -48,6 +48,9 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   encrypted transfer counters, the production kill-switch, and exact
   teardown. Run the packet test only in the privileged network-disabled
   builder container.
+- `test-vpn-hotspot-systemd-order.sh` rejects the Arch
+  dnsmasq/network-online ordering cycle and requires the complete staged-root
+  verifier to run `systemd-analyze verify` on the hotspot unit.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
 - `verify-ufs-discovery-patch.sh` applies the three-patch discovery series to
   the pinned tree, enforces exact query/SCSI whitelists, rejects
