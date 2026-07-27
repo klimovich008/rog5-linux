@@ -504,9 +504,15 @@ one-shot stops after the first GMU-device runtime-PM get, balanced consumer
 put, and synchronous linked-CX suspend. It remains above GX, clock-rate/
 enable, secure-init, MMIO, IRQ, firmware-start, HFI, hardware-init, ZAP, and
 SCM. Only `msm.ko` changes; config, Image, ABI, and every other installed
-module remain accepted-v8-identical. Runtime classification, protected root,
-target/host controls, and HOLD/GO review remain pending. No v10 live
-authority exists.
+module remain accepted-v8-identical. The
+[v10 runtime acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-runtime-offline.md)
+adds exact GMU/linked-CX classification and fourteen rejected oracle
+mutations. The
+[protected-root/pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+passes the exact consumed-v9 root delta, recursive verifier, target/watchdog
+gate, no-retry runner, verifier-first bounded server case, actual unarmed
+zero-state refusal, and connected fallback health. The attended GO review
+remains pending; no v10 live authority exists.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
