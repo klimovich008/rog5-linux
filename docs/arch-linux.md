@@ -98,8 +98,12 @@ It contains 655 current packages and passes the complete verifier before
 archival and after clean extraction. The later
 [protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
 pins that identity in the manifest and verifies a 181,239-entry,
-root-owned, read-only Btrfs subvolume plus three tamper cases. It remains
-outside the NFS allowlist and has not been booted.
+root-owned, read-only Btrfs subvolume plus three tamper cases. The
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+adds one explicit-token, verifier-first NFS case and a strict-SSH first-boot
+runner covering coldplug, sysusers/tmpfiles, agent isolation, headless
+screen-off state, volatile machine identity, watchdog handoff, and normal
+reboot. It has not been booted and no live cycle is authorized.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
