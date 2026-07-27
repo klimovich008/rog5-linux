@@ -472,8 +472,7 @@ settled-snapshot gate, and reject twelve mutations. The
 [v9 protected root and compound target gate](test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
 now also pass offline as an exact copy-on-write delta from consumed v8:
 kernel, all seven modules, two firmware files, and credentials are unchanged;
-only the versioned controls and signed/device-scoped oracle differ. V9 remains
-HOLD. The
+only the versioned controls and signed/device-scoped oracle differ. The
 [v9 pre-live control review](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md)
 now accepts a strict one-invocation/no-retry host runner, exact local
 credential agreement, private evidence handling, real unarmed refusal, and
@@ -483,9 +482,17 @@ server at that checkpoint. A later
 after adding one fail-first-tested, verifier-before-state, explicit-opt-in v9
 case: every local root/package/runner/server/credential/host gate passed, but
 the phone was physically absent, so the mandatory identity-pinned persistent
-fallback preflight could not run. No NFS window opened. Connect the phone in
-persistent fallback before resuming; GMU power preparation remains
-unauthorized.
+fallback preflight could not run. No NFS window opened at that checkpoint.
+The later
+[sole v9 live cycle](test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
+passed after the exact fallback and every GO gate returned. It accepted one
+GPU-device outer runtime-PM transition, signed `-EUCLEAN`, exact
+firmware/allocation/mapping rollback, logical `4/4`, and an equal settled GEM
+snapshot while every specific inner power, clock, IRQ, HFI, hardware, ZAP,
+and SCM probe stayed zero. Exact fallback and complete host cleanup passed.
+V9 is permanently consumed and absent from the bounded server. The next
+unauthorized tier must isolate only GMU/CX runtime-PM preparation before GX,
+clocks, secure init, MMIO, IRQ, firmware start, or HFI.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

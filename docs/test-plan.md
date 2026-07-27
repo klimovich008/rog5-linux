@@ -525,9 +525,22 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   A fail-first verifier-before-state exact-root server case and every local
   GO gate now also pass, including the unchanged fourteen-file package and an
   actual unarmed zero-state refusal. The
-  [v9 attended GO review remains HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+  [v9 attended GO review stopped at HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
   because the phone is physically absent, so the identity-pinned current
-  fallback health preflight cannot run. NFS never started.**
+  fallback health preflight cannot run. NFS never started at that checkpoint.
+  The later
+  [sole v9 live cycle](../test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
+  passes one GPU-device outer PM event, signed `EUCLEAN`, exact rollback,
+  logical `4/4`, equal settled snapshots, zero specific inner resources,
+  exact fallback, and complete cleanup. V9 is permanently consumed and
+  server-non-runnable.**
+- Before any later GMU work, source-test a fresh GMU/CX runtime-PM-only tier.
+  Isolate the first `pm_runtime_get_sync(gmu->dev)` and its balanced rollback;
+  classify exact GMU/CX-domain activity and require zero GX, clock-rate/
+  enable, secure-init, MMIO, IRQ, firmware-start, HFI, hardware-init,
+  ZAP/SCM, storage, or retained DRM-descriptor activity. Require a separate
+  protected root, mutation suite, HOLD/GO review, and one-cycle/no-retry
+  authorization. **Pending; no live authority.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

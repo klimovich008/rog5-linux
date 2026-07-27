@@ -13,6 +13,7 @@ predecessor_consumed=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v8.sh
 consumed_v9=$repo/scripts/host/test-consume-a660-gmu-resume-entry-v9.sh
 predecessor_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md
 runtime_report=$repo/test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md
+live_report=$repo/test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md
 
 for input in "$runtime_test" "$prepare" "$verify" "$gate" "$gate_test" \
 	"$predecessor_verify" "$predecessor_consumed" "$consumed_v9"
@@ -23,7 +24,7 @@ do
 	}
 done
 
-for input in "$predecessor_report" "$runtime_report"; do
+for input in "$predecessor_report" "$runtime_report" "$live_report"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || {
 		echo "FAIL missing immutable A660 GMU resume-entry v9 input: $input" >&2
 		exit 1
@@ -33,6 +34,9 @@ done
 	fe5a6130cce3063ef6a0b1093d492d2a35763781f23af029c2959548cb092a9c ]
 [ "$(sha256sum "$runtime_report" | cut -d ' ' -f 1)" = \
 	a9b99930799902cabf6c65bd877a21588b63ccb6b617d1ac526b9e0d159bf60d ]
+[ "$(sha256sum "$live_report" | cut -d ' ' -f 1)" = \
+	57af6b4d0ddf6faaa708e7b409197dcf7aa8fcdb52a5a9612b59094aebc9dd2c ]
+grep -Fq 'Commit `3d708cd` removes the v9 NFS case' "$live_report"
 
 for input in "$runtime_test" "$gate" "$gate_test" "$predecessor_consumed" \
 	"$consumed_v9"; do
