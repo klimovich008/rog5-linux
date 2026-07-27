@@ -2,6 +2,7 @@
 """Read the vendor QCA6490 and matching PCIe device-tree contract."""
 
 import argparse
+import re
 import struct
 import sys
 from pathlib import Path
@@ -242,19 +243,97 @@ def collect_pinctrl(
             )
 
 
+def ascii_value(path: Path) -> str:
+    try:
+        value = path.read_text(encoding="ascii").strip()
+    except OSError as error:
+        raise ContractError(f"cannot read {path}") from error
+    if not value:
+        raise ContractError(f"{path} is empty")
+    return value
+
+
+def hex_value(path: Path, width: int) -> tuple[int, str]:
+    value = ascii_value(path)
+    try:
+        number = int(value, 16)
+    except ValueError as error:
+        raise ContractError(f"{path} is not hexadecimal") from error
+    return number, f"{number:0{width}x}"
+
+
+def collect_pci_endpoint(pci_root: Path, domain: int) -> str:
+    matches = []
+    for endpoint in sorted(pci_root.iterdir()):
+        match = re.fullmatch(
+            r"([0-9a-fA-F]{4}):[0-9a-fA-F]{2}:"
+            r"[0-9a-fA-F]{2}[.][0-7]",
+            endpoint.name,
+        )
+        if not match or int(match.group(1), 16) != domain:
+            continue
+        try:
+            vendor, _ = hex_value(endpoint / "vendor", 4)
+            device, _ = hex_value(endpoint / "device", 4)
+        except ContractError:
+            continue
+        if vendor == 0x17CB and device == 0x1103:
+            matches.append(endpoint)
+    if len(matches) != 1:
+        raise ContractError(
+            "expected exactly one 17cb:1103 PCI endpoint in "
+            f"domain {domain:04x}, found {len(matches)}"
+        )
+
+    endpoint = matches[0]
+    _, vendor = hex_value(endpoint / "vendor", 4)
+    _, device = hex_value(endpoint / "device", 4)
+    _, subsystem_vendor = hex_value(endpoint / "subsystem_vendor", 4)
+    _, subsystem_device = hex_value(endpoint / "subsystem_device", 4)
+    _, revision = hex_value(endpoint / "revision", 2)
+    _, device_class = hex_value(endpoint / "class", 6)
+    driver_path = endpoint / "driver"
+    if not driver_path.is_symlink():
+        raise ContractError(f"{driver_path} is not a bound driver link")
+    try:
+        driver = driver_path.resolve(strict=True).name
+    except OSError as error:
+        raise ContractError(f"cannot resolve {driver_path}") from error
+
+    return (
+        f"pci_endpoint={endpoint.name}|vendor={vendor}|device={device}"
+        f"|subsystem_vendor={subsystem_vendor}"
+        f"|subsystem_device={subsystem_device}|revision={revision}"
+        f"|class={device_class}|driver={driver}"
+        f"|power_control={ascii_value(endpoint / 'power/control')}"
+        f"|runtime_status={ascii_value(endpoint / 'power/runtime_status')}"
+        f"|enable={ascii_value(endpoint / 'enable')}"
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path("/proc/device-tree"))
+    parser.add_argument(
+        "--pci-root",
+        type=Path,
+        default=Path("/sys/bus/pci/devices"),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     global ROOT
-    root = parse_args().root
+    args = parse_args()
+    root = args.root
     if not root.is_absolute() or not root.is_dir():
         print("ERROR device-tree root must be an absolute directory", file=sys.stderr)
         return 1
+    if not args.pci_root.is_absolute() or not args.pci_root.is_dir():
+        print("ERROR PCI root must be an absolute directory", file=sys.stderr)
+        return 1
     ROOT = root.resolve()
+    pci_root = args.pci_root.resolve()
 
     try:
         cnss_nodes = compatible_nodes(ROOT, CNSS_COMPATIBLE)
@@ -277,6 +356,7 @@ def main() -> int:
                 f"{root_complex}, found {len(pcie_nodes)}"
             )
         pcie = pcie_nodes[0]
+        pcie_domain = one_cell(pcie, "linux,pci-domain")
         handles = phandle_map(ROOT)
         output = [
             "ROG5_VENDOR_WIFI_CONTRACT_V1",
@@ -285,7 +365,8 @@ def main() -> int:
             f"wlan_root_complex={root_complex}",
             f"pcie_node={relative(pcie)}",
             f"pcie_status={status(pcie)}",
-            f"pcie_domain={one_cell(pcie, 'linux,pci-domain')}",
+            f"pcie_domain={pcie_domain}",
+            collect_pci_endpoint(pci_root, pcie_domain),
         ]
         unresolved_supplies: list[tuple[str, int]] = []
         unresolved_references: list[str] = []
