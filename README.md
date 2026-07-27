@@ -8,16 +8,16 @@ This repository contains documentation, test tooling, configuration fragments, a
 
 The known-good temporary boot image runs vendor-derived kernel `5.4.210-qgki-perf #20`. Its smoke suite passes DRM/panel, touch, charging, USB networking, Plasma Mobile, power-button screen control, UPower, Wi-Fi client, and hotspot. The display defaults off while the server remains active.
 
-For the mainline userspace path, the fail-closed hotspot policy now passes
-two packet regressions in isolated, network-disabled namespaces. The first
-blocks IPv4/IPv6 ordinary-uplink leakage, unsolicited client ingress, and
-VPN-loss fallback. The
-[second](test-results/2026-07-27-vpn-hotspot-wireguard-offline.md) sends a
-hotspot-client packet through the unchanged production kill-switch and a real
-kernel WireGuard tunnel, requiring nonzero handshakes and encrypted transfer
-counters; disposable keys and all runtime state are removed. Radio,
-on-phone/provider WireGuard, DHCP/DNS, throughput, thermal, and battery
-acceptance remain hardware gates.
+For the mainline userspace path, the fail-closed hotspot policy passes
+isolated IPv4/IPv6 ordinary-uplink, unsolicited-ingress, VPN-loss, and real
+kernel WireGuard packet regressions. The later
+[v2 DNS/recovery gate](test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+defaults both suites to the current v2 control, sends valid UDP and TCP DNS
+traffic through encrypted WireGuard, detects one-way DNS leakage, remains
+closed across endpoint/interface loss, and verifies recovery plus exact
+cleanup. Disposable keys and runtime state are removed. Radio,
+on-phone/provider WireGuard, real DHCP/provider DNS, throughput, thermal, and
+battery acceptance remain hardware gates.
 
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium

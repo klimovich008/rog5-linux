@@ -40,14 +40,17 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it
-  requires VPN-only forwarding, unsolicited-client isolation, fail-close
-  after VPN loss, and exact cleanup without phone hardware.
+  defaults to successor v2 and requires VPN-only UDP/TCP DNS, one-way
+  ordinary-uplink leak detection, unsolicited-client isolation, fail-close
+  after VPN-interface loss, recovery after recreation, and exact cleanup.
 - `test-vpn-hotspot-wireguard-contract.sh` pins the separate
   `test-vpn-hotspot-wireguard.sh` to a network-disabled TEST-NET underlay,
-  mode-`0600` disposable keys, a real kernel WireGuard handshake, nonzero
-  encrypted transfer counters, the production kill-switch, and exact
-  teardown. Run the packet test only in the privileged network-disabled
-  builder container.
+  mode-`0600` disposable keys, the v2 production kill switch, valid UDP/TCP
+  DNS framing, a real kernel WireGuard handshake, endpoint loss/recovery,
+  increasing encrypted transfer counters, and exact teardown. Run both only
+  in privileged network-disabled builder containers. The
+  [offline result](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+  records the current hashes and mutation evidence.
 - `test-vpn-hotspot-systemd-order.sh` rejects the Arch
   dnsmasq/network-online ordering cycle and requires the complete staged-root
   verifier to run `systemd-analyze verify` on the hotspot unit.
@@ -68,7 +71,10 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   command line, and AVB footer.
 - `test-linux-rootfs-tools.sh` checks the pinned signed-Arch input path,
   metadata-preserving rootfs stage path, exact network-root module input, and
-  absence of broad container privilege or phone-write commands. It delegates
+  absence of broad container privilege or phone-write commands. It also
+  delegates the static v2 real-WireGuard hotspot contract so the aggregate
+  rootfs gate cannot silently fall back to the superseded v1 control. It
+  delegates
   `test-arch-successor-export.sh`, which requires one exact successor
   manifest identity, read-only Btrfs preparation, a recursive
   content/metadata/ACL/xattr seal, isolated agent and service identities,
