@@ -2,8 +2,8 @@
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
-target=$repo/scripts/device/power-buttond.py
-unit=$repo/packaging/arch/rog5-power-button.service
+target=${TARGET:-$repo/scripts/device/power-buttond.py}
+unit=${UNIT:-$repo/packaging/arch/rog5-power-button.service}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -18,6 +18,8 @@ fail() {
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
 PYTHONPYCACHEPREFIX=$work/pycache python3 -m py_compile "$target"
+command -v systemd-analyze >/dev/null ||
+	fail 'missing systemd-analyze'
 
 for contract in \
 	'/sys/class/input' \
@@ -49,6 +51,11 @@ do
 		fail "power-button service omits: $contract"
 done
 
+mkdir "$work/systemd"
+sed "s|^ExecStart=/usr/local/libexec/rog5-power-buttond$|ExecStart=$target|" \
+	"$unit" >"$work/systemd/rog5-power-button.service"
+systemd-analyze verify "$work/systemd/rog5-power-button.service"
+
 if grep -Eq \
 	'shell[[:space:]]*=[[:space:]]*True|os[.]system|/dev/(block|disk)|(^|[^[:alnum:]_])(fastboot|adb|reboot|poweroff)([^[:alnum:]_]|$)' \
 	"$target" "$unit"
@@ -62,6 +69,30 @@ cat >"$toggle" <<'EOF'
 printf '%s\n' "$*" >>"$TOGGLE_LOG"
 EOF
 chmod 0755 "$toggle"
+
+ignored=$work/ignored-events
+python3 - "$ignored" <<'PY'
+import struct
+import sys
+
+event = struct.Struct("@llHHi")
+records = (
+    (0, 0, 1, 116, 0),
+    (0, 0, 1, 116, 2),
+    (0, 0, 1, 114, 1),
+)
+with open(sys.argv[1], "wb") as output:
+    for record in records:
+        output.write(event.pack(*record))
+PY
+if TOGGLE_LOG=$work/ignored.log \
+	"$target" --input "$ignored" --toggle "$toggle" --once \
+	>"$work/ignored.out" 2>&1
+then
+	fail 'release, repeat, or non-power key completed the monitor'
+fi
+[ ! -e "$work/ignored.log" ] ||
+	fail 'release, repeat, or non-power key triggered a toggle'
 
 events=$work/events
 python3 - "$events" <<'PY'
