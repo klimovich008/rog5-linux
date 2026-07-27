@@ -21,6 +21,7 @@ for contract in \
 	2326e3de634eefe0468dfe03e5c11650f5e014fda08923861154d9a19d7f9d8e \
 	b8ad1677950edd4f8e372a59b8027282751434afb52f71f89151b978c89c6d18 \
 	'test-a660-gmu-resume-entry-v9-root-contract.sh' \
+	'adreno_is_a660_family(adreno_gpu)' \
 	'pm_runtime_enable(gmu->dev)' \
 	'dev_pm_domain_attach_by_name(gmu->dev, "cx")' \
 	'device_link_add(gmu->dev, gmu->cxpd, DL_FLAG_PM_RUNTIME)' \
@@ -35,6 +36,7 @@ for contract in \
 	'pm_runtime_suspend(gmu->cxpd)' \
 	'pm_runtime_suspended(gmu->dev)' \
 	'pm_runtime_suspended(gmu->cxpd)' \
+	'gmu->hung = false' \
 	'pm_runtime_get_sync(gmu->gxpd)' \
 	'clk_set_rate(gmu->core_clk, 200000000)' \
 	'clk_bulk_prepare_enable' \
