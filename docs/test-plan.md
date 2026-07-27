@@ -522,7 +522,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   clean synchronized Git, full root revalidation, inactive NFS/RPC, and zero
   server tokens are verified; see the
   [v9 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
-  V9 remains HOLD pending a separate verifier-first GO review.**
+  A fail-first verifier-before-state exact-root server case and every local
+  GO gate now also pass, including the unchanged fourteen-file package and an
+  actual unarmed zero-state refusal. The
+  [v9 attended GO review remains HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+  because the phone is physically absent, so the identity-pinned current
+  fallback health preflight cannot run. NFS never started.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

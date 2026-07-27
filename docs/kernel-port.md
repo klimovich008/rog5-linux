@@ -483,7 +483,12 @@ which accepts the strict no-retry runner, one-call mock, private evidence,
 local SSH agreement, actual unarmed refusal, synchronized Git, root
 reverification, and inactive NFS/RPC. A separate attended GO review remains
 required. HFI, ZAP/SCM, successful open, submission, and rendering remain
-separate.
+separate. The later
+[v9 attended GO review stopped at HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+after accepting a verifier-first explicit NFS case and every local immutable
+input. The phone is physically absent, so current fallback kernel, pstore,
+module, thermal, and identity health cannot be assumed and no cycle is
+authorized.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

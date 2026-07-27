@@ -478,8 +478,14 @@ HOLD. The
 now accepts a strict one-invocation/no-retry host runner, exact local
 credential agreement, private evidence handling, real unarmed refusal, and
 clean synchronized host/root checks. V9 is still absent from the bounded NFS
-server; a separate attended GO review is required. GMU power preparation
-remains unauthorized.
+server at that checkpoint. A later
+[attended GO review stopped at HOLD](test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+after adding one fail-first-tested, verifier-before-state, explicit-opt-in v9
+case: every local root/package/runner/server/credential/host gate passed, but
+the phone was physically absent, so the mandatory identity-pinned persistent
+fallback preflight could not run. No NFS window opened. Connect the phone in
+persistent fallback before resuming; GMU power preparation remains
+unauthorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
