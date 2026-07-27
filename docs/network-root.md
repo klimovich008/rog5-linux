@@ -781,7 +781,13 @@ process-global runtime-PM count assumption while every direct inner-resource
 probe stayed zero. The watchdog restored exact fallback and the server
 removed every NFS, RPC, mount, firewall, interface, and sysctl change. V8 is
 consumed and absent from the bounded server; retry and flashing remain
-forbidden. Any v9 work requires a fresh protected root and authorization.
+forbidden. The
+[v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+now passes corrected signed-return and GPU-device-scoped trace controls using
+the unchanged v8 module. V9 still has no network-root: no protected export,
+target gate, host runner, server allowlist case, or live authority exists.
+Any v9 transition requires a fresh consumed-v8-derived root and separate
+HOLD/GO authorization.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot

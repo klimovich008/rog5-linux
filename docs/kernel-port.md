@@ -466,8 +466,14 @@ oracle compared zero-extended arm64 `int` returns (`4294967179`) with signed
 clock, IRQ, HFI, hardware, ZAP, and SCM events. Fallback and cleanup passed;
 v8 is consumed and must not be retried. A v9 oracle must sign-normalize the
 returns and compare GPU device identity using the unchanged kernel module
-before a later GMU power-preparation tier. HFI, ZAP/SCM, successful open,
-submission, and rendering remain separate.
+before a later GMU power-preparation tier. The
+[v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+now accepts that userspace-only correction: three unsigned-32 transports,
+signed normalization, one matching GPU-device outer PM among arbitrary
+classified generic calls, unchanged `msm.ko`, duplicate controls, and twelve
+rejected mutations. It remains live HOLD pending a new protected root and
+control plane. HFI, ZAP/SCM, successful open, submission, and rendering
+remain separate.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

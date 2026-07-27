@@ -505,6 +505,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   32-bit return tests, GPU-device-scoped runtime-PM matching, all existing
   zero-resource and rollback constraints, full settle and equal snapshot,
   fresh protected-root/runner controls, and a separate HOLD/GO review.
+  **The runtime-only portion passes offline. Signed and zero-extended
+  `EUCLEAN`, the observed 21-call fixture with one GPU-device match, duplicate
+  generation, unchanged v8 module, all retained safety constraints, and
+  twelve mutations pass; see the
+  [v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
+  V9 remains HOLD because its protected root, gate, runner, and pre-live
+  reviews do not yet exist.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

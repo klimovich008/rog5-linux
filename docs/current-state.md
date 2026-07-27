@@ -925,7 +925,13 @@ probes remained zero. The runner was not retried; exact fallback and complete
 host cleanup passed. V8 is permanently consumed and absent from the bounded
 server. A separately versioned v9 must correct signed-`int` handling and
 scope runtime PM by GPU device while retaining every later settle, snapshot,
-rollback, zero-resource, and watchdog gate. No GMU power tier is authorized.
+rollback, zero-resource, and watchdog gate. The
+[v9 offline runtime acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+now passes that control-only correction. It reuses the exact v8 kernel/module,
+accepts signed and zero-extended `EUCLEAN` plus the observed 21 generic PM
+events with one GPU-device match, reproduces byte-identical controls, and
+rejects twelve semantic mutations. No root, runner, NFS case, boot, or phone
+contact exists for v9, so it remains HOLD. No GMU power tier is authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.
