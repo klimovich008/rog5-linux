@@ -468,8 +468,12 @@ and non-runnable. The separately versioned
 now passes offline using the unchanged v8 kernel module. Duplicate controls
 normalize signed/zero-extended `EUCLEAN`, match outer runtime PM by GPU device,
 accept the observed 21 generic calls, retain every direct zero-resource and
-settled-snapshot gate, and reject twelve mutations. V9 remains HOLD until a
-fresh protected root, gate, runner, and separate pre-live review pass; GMU
+settled-snapshot gate, and reject twelve mutations. The
+[v9 protected root and compound target gate](test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
+now also pass offline as an exact copy-on-write delta from consumed v8:
+kernel, all seven modules, two firmware files, and credentials are unchanged;
+only the versioned controls and signed/device-scoped oracle differ. V9 remains
+HOLD pending a strict no-retry host runner and separate pre-live review; GMU
 power preparation remains unauthorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.

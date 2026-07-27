@@ -471,9 +471,14 @@ before a later GMU power-preparation tier. The
 now accepts that userspace-only correction: three unsigned-32 transports,
 signed normalization, one matching GPU-device outer PM among arbitrary
 classified generic calls, unchanged `msm.ko`, duplicate controls, and twelve
-rejected mutations. It remains live HOLD pending a new protected root and
-control plane. HFI, ZAP/SCM, successful open, submission, and rendering
-remain separate.
+rejected mutations. The
+[v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
+now accepts the consumed-v8-derived exact-delta root and compound target gate.
+All kernel/module and firmware bytes remain v8-identical; the versioned
+signed/device-scoped controls, whole-tree/credential checks, runtime mutation
+suite, and independent final-root verification pass. It remains live HOLD
+pending a strict no-retry runner and separate pre-live review. HFI, ZAP/SCM,
+successful open, submission, and rendering remain separate.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC

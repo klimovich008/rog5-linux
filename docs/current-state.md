@@ -930,8 +930,14 @@ rollback, zero-resource, and watchdog gate. The
 now passes that control-only correction. It reuses the exact v8 kernel/module,
 accepts signed and zero-extended `EUCLEAN` plus the observed 21 generic PM
 events with one GPU-device match, reproduces byte-identical controls, and
-rejects twelve semantic mutations. No root, runner, NFS case, boot, or phone
-contact exists for v9, so it remains HOLD. No GMU power tier is authorized.
+rejects twelve semantic mutations. The
+[v9 protected-root acceptance](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
+now adds a consumed-v8-derived mode-`0555` root, exact unchanged
+kernel/seven-module/two-firmware payload, signed/device-scoped oracle,
+whole-tree and credential verification, and overlapping-watchdog target gate.
+Construction and an independent final-path audit pass with NFS/RPC inactive
+and no phone contact. No runner, NFS case, boot, or live authority exists for
+v9, so it remains HOLD. No GMU power tier is authorized.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

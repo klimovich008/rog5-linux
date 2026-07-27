@@ -784,10 +784,14 @@ consumed and absent from the bounded server; retry and flashing remain
 forbidden. The
 [v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
 now passes corrected signed-return and GPU-device-scoped trace controls using
-the unchanged v8 module. V9 still has no network-root: no protected export,
-target gate, host runner, server allowlist case, or live authority exists.
-Any v9 transition requires a fresh consumed-v8-derived root and separate
-HOLD/GO authorization.
+the unchanged v8 module. The
+[v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
+now accepts a root-owned consumed-v8-derived export and compound target gate.
+Its exact-delta verifier preserves the unchanged kernel, all seven modules,
+two firmware files, credentials, and every undeclared rootfs object. V9 still
+has no host runner, server allowlist case, boot, or live authority. Any v9
+transition requires a strict no-retry runner and separate HOLD/GO
+authorization.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
