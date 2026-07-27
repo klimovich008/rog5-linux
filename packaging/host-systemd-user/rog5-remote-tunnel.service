@@ -1,0 +1,32 @@
+[Unit]
+Description=ROG Phone 5 loopback-only remote UI tunnel
+Documentation=https://github.com/klimovich008/rog5-linux/blob/main/docs/remote-gui.md
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -N -T \
+	-o BatchMode=yes \
+	-o ExitOnForwardFailure=yes \
+	-o ServerAliveInterval=15 \
+	-o ServerAliveCountMax=3 \
+	-o ConnectionAttempts=1 \
+	-L 127.0.0.1:6080:127.0.0.1:6080 \
+	-L 127.0.0.1:7681:127.0.0.1:7681 \
+	-L 127.0.0.1:9222:127.0.0.1:9222 \
+	-L 127.0.0.1:13389:127.0.0.1:3389 \
+	rog5-fallback
+ExecStartPost=/usr/bin/ssh -T -o BatchMode=yes rog5-fallback /usr/local/sbin/rog5-desktop-start
+Restart=always
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=10s
+NoNewPrivileges=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=default.target
