@@ -65,6 +65,15 @@ gate, and strict-SSH one-shot runner. An actual unarmed invocation preserved
 byte-identical normalized host state. V1 is unchanged; v2 remains unserved,
 unbooted, and no live authority was granted.
 
+The separately versioned
+[successor-v3 archive](test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+layers an enabled, device-confined `pmic_pwrkey` handler over the byte-exact
+v2 verifier. Synthetic native `input_event` tests require press-only
+screen-toggle behavior, explicit failure propagation, and no boot or storage
+action. The 2,007,033,670-byte AArch64 archive passes both clean-root
+verifiers and an independent credential/path contract. It is an unbooted
+userspace-development artifact; v2 remains the protected live candidate.
+
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
 aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,

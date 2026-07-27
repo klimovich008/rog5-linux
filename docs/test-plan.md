@@ -106,6 +106,15 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   no retry. The
   [v2 pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
   records their fail-first commits and the actual unarmed zero-state check.
+- `test-power-buttond.sh` feeds native AArch64 input records to the
+  standard-library handler and requires press-only toggling, truncated-record
+  and failed-toggle rejection, and a parsed device-confined systemd unit.
+  `test-arch-successor-v3-power-button-contract.sh` layers it over the
+  byte-exact v2 verifier, while
+  `test-arch-successor-v3-archive-contract.sh` pins the clean archive and
+  rejects unsafe paths or embedded host, VPN, desktop, and agent credentials.
+  See the
+  [v3 offline result](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md).
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

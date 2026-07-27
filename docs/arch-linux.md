@@ -34,6 +34,13 @@ Stage a server rootfs with an external public SSH key:
 scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
 ```
 
+To build the separately versioned power-button development root without
+changing the v2 default:
+
+```sh
+scripts/host/stage-arch-successor-v3-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
 On Windows, the equivalent wrapper is:
 
 ```powershell
@@ -118,6 +125,17 @@ passes complete recursive verification and four mutation cases. Its
 adds dedicated verifier-first NFS, screen-off first-boot, strict-SSH,
 watchdog-handoff, and one-reboot controls. The unarmed host check passed; no
 NFS window or boot ran, and the root remains HOLD.
+
+The later
+[successor-v3 development archive](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+is 2,007,033,670 bytes with SHA-256
+`a7c286491d2fde97e17024b36f514d595196975da1988c986f70819c964eb8d7`.
+It keeps all 655 packages, reruns the byte-exact v2 verifier, then installs
+and enables a confined `pmic_pwrkey` press handler for the existing
+DPMS/backlight toggle. Both staged and clean-extracted roots pass the v3
+verifier, and an independent archive contract rejects unsafe paths and
+runtime credentials. It has no protected export or live gate; v2 remains the
+live candidate.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
