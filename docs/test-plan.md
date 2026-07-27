@@ -68,7 +68,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   command line, and AVB footer.
 - `test-linux-rootfs-tools.sh` checks the pinned signed-Arch input path,
   metadata-preserving rootfs stage path, exact network-root module input, and
-  absence of broad container privilege or phone-write commands.
+  absence of broad container privilege or phone-write commands. It delegates
+  `test-arch-successor-export.sh`, which requires one exact successor
+  manifest identity, read-only Btrfs preparation, a recursive
+  content/metadata/ACL/xattr seal, isolated agent and service identities,
+  no v10 dependency, no NFS allowlist, and optional COW mutation rejection.
+  The
+  [offline protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+  records the exact accepted root and three rejected mutation cases.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

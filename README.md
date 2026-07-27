@@ -38,7 +38,11 @@ between the disabled hotspot unit, dnsmasq, and `network-online.target`.
 Current packaging and the staged-root verifier are corrected. The resulting
 [successor Arch archive](test-results/2026-07-27-arch-successor-rootfs-offline.md)
 now passes both the in-stage verifier and a second clean-extraction verifier
-with 655 current packages. It remains unpromoted and unbooted.
+with 655 current packages. Its
+[protected-export gate](test-results/2026-07-27-arch-successor-protected-export-offline.md)
+also passes: the exact manifest-pinned root is a recursively sealed,
+root-owned, read-only Btrfs subvolume, and seal/service/account mutations are
+rejected. It remains absent from the NFS allowlist and unbooted.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records

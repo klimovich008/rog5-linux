@@ -95,8 +95,11 @@ The resulting
 is 2,006,999,039 bytes with SHA-256
 `88c2d671a26f577aef963212cda17bc61baa888d77d0c1aaf1ca25c6fb3ad62a`.
 It contains 655 current packages and passes the complete verifier before
-archival and after clean extraction. It remains outside the manifest and
-protected export, and has not been booted.
+archival and after clean extraction. The later
+[protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+pins that identity in the manifest and verifies a 181,239-entry,
+root-owned, read-only Btrfs subvolume plus three tamper cases. It remains
+outside the NFS allowlist and has not been booted.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 

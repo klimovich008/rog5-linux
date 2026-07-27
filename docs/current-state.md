@@ -270,8 +270,11 @@ edge and the complete staged-root verifier now checks the hotspot service.
 The
 [fresh successor archive](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
 contains 655 current packages plus the locked agent and corrected unit, and
-passes verification before archival and after clean extraction. It remains
-outside the manifest/export and has not been booted.
+passes verification before archival and after clean extraction. Its
+[separate protected-export gate](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+now passes with an exact manifest identity, read-only Btrfs subvolume,
+181,239-entry recursive seal, and three rejected COW mutations. It remains
+outside the NFS allowlist and has not been booted.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the
