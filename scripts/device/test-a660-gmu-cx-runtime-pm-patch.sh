@@ -23,10 +23,10 @@ for contract in \
 	3413678758f97ea16d8e53e7a24a2bc62a871b333851c32bd8242687bbdc1054 \
 	6966d868585e11c5f614598368eb70595025c9543653582e0234aa313edfa3f2 \
 	a179ff9e31792238a3bd254297008d805e6a37b5d08125712c0151b1f39b3051 \
-	PENDING_V10_PATCH_SHA256 \
-	PENDING_V10_MSM_DRV_SHA256 \
-	PENDING_V10_MSM_GPU_H_SHA256 \
-	PENDING_V10_A6XX_GMU_SHA256 \
+	048a266a9d9da70c681d08a33348281fe73530d25034e2ed79fc55136b7e9d36 \
+	ec7e4a1820b03b27ba51691a2b6afaa993384a467c68db353fc691adec8b5957 \
+	5fa397c9fd1dade1040074ec3dbbf67258eee3a6f23ef4da30169a40b3d4393a \
+	cc76b2865877853f5e9d9508f704d242dc35847625ce94aa4fa14f608743c1a4 \
 	0012-drm-msm-a6xx-propagate-gmu-pwrlevels-error.patch \
 	0013-drm-msm-add-a660-firmware-request-only-diagnostic.patch \
 	0014-drm-msm-add-a660-ucode-allocation-diagnostic.patch \
@@ -88,7 +88,8 @@ if [ -n "${SOURCE_DIR:-}" ]; then
 		old=$2
 		new=$3
 		mutant=$stage/$name.patch
-		sed "s|$old|$new|" "$patch" >"$mutant"
+		replacement=$(printf '%s\n' "$new" | sed 's/&/\\\&/g')
+		sed "s|$old|$replacement|" "$patch" >"$mutant"
 		grep -Fq "$new" "$mutant"
 		if ALLOW_UNPINNED_PATCH=1 SKIP_V9_UMBRELLA_RUN=1 \
 			"$verifier" "$mutant" "$SOURCE_DIR" >/dev/null 2>&1
