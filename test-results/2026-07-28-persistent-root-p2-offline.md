@@ -149,6 +149,18 @@ A synthetic target-attestation failure stops before any fallback acceptance
 claim, leaves the target watchdog untouched, and still restores host state.
 The test also proves that execute occurs exactly once.
 
+The real-host unarmed boundary also passes. The clean synchronized branch,
+manifest artifact, and approved external credential metadata validated, then
+zero fastboot devices produced:
+
+```text
+FAIL expected exactly one fastboot device, found 0
+```
+
+The refusal occurred before ModemManager stop, temporary boot, or ACM use.
+ModemManager remained active and no P2 evidence log was created. No SSH
+connection or credential use against a peer occurred.
+
 Prerequisites are exactly one phone in fastboot, the cable left connected, a
 clean branch synchronized with its remote, the approved client key and
 fallback known-hosts file, a caller-private evidence directory outside the
