@@ -22,8 +22,10 @@ disabled. The
 requires current agent isolation and systemd checks before remote automation
 is promoted. A
 [fresh successor root](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
-now passes those offline checks but remains outside the protected export and
-has not been booted.
+now passes those offline checks. Its
+[protected export](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+also passes recursive and mutation verification, but remains outside the NFS
+allowlist and has not been booted.
 
 ## Persistent tunnel on a Linux host
 

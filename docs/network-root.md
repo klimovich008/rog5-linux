@@ -823,6 +823,16 @@ refuses with byte-identical host state; NFS/RPC remains inactive and the
 connected fallback passes strict read-only health. No NFS window, v10 boot,
 retry, or flash occurred, and no live cycle is authorized.
 
+The independent normal-userspace
+[successor protected export](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+is now manifest-pinned at
+`/var/lib/rog5-network-root-arch-successor-v1`. It is a root-owned,
+mode-`0555`, Btrfs `ro=true` subvolume with a mode-`0444` seal over 181,239
+entries. The complete verifier passes and rejects changed seal, hotspot unit,
+and agent-account snapshots. It does not derive from or modify v10, and it
+has no `serve-network-root.sh` allowlist case. NFS/RPC remains inactive and
+the root is unbooted.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

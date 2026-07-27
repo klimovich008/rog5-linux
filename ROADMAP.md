@@ -668,8 +668,13 @@ when no desktop is needed.
   mutate the sealed v10 diagnostic root. The
   [successor result](test-results/2026-07-27-arch-successor-rootfs-offline.md)
   passes both full verifiers with 655 current packages.
-- [ ] Add a separate manifest/protected-export contract for the successor
-  archive before any boot or server allowlist change.
+- [x] Add a separate manifest/protected-export contract for the successor
+  archive before any boot or server allowlist change. The
+  [protected-export result](test-results/2026-07-27-arch-successor-protected-export-offline.md)
+  passes recursive verification and three read-only COW mutation cases while
+  NFS remains inactive and unallowlisted.
+- [ ] Add a one-token exact-root NFS/runner gate only after a new HOLD/GO
+  review; do not infer live authority from offline export acceptance.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
