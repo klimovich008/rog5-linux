@@ -10,7 +10,7 @@ unit=$repo/packaging/host-systemd-user/rog5-remote-tunnel.service
 }
 
 for contract in \
-	'ExecStart=/usr/bin/ssh' \
+	'ExecStart=/usr/bin/ssh -N -T' \
 	'-o BatchMode=yes' \
 	'-o ExitOnForwardFailure=yes' \
 	'-o ServerAliveInterval=15' \
@@ -20,7 +20,9 @@ for contract in \
 	'-L 127.0.0.1:9222:127.0.0.1:9222' \
 	'-L 127.0.0.1:13389:127.0.0.1:3389' \
 	'rog5-fallback' \
+	'ExecStartPost=/usr/bin/ssh' \
 	'/usr/local/sbin/rog5-desktop-supervisor' \
+	'start' \
 	'Restart=always' \
 	'RestartSec=5s' \
 	'NoNewPrivileges=yes' \
@@ -45,8 +47,8 @@ then
 	exit 1
 fi
 
-if grep -Eq '(^|[[:space:]])-N([[:space:]]|$)|^ExecStartPost=' "$unit"; then
-	echo 'FAIL remote-tunnel service does not keep the remote supervisor as its main process' >&2
+if grep -Eq '^ExecStart=.*rog5-desktop-supervisor' "$unit"; then
+	echo 'FAIL remote supervisor is tied to the forwarding SSH process' >&2
 	exit 1
 fi
 

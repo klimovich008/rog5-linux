@@ -11,17 +11,22 @@ trap 'rm -rf "$fixture"' EXIT HUP INT TERM
 	echo 'FAIL missing desktop supervisor' >&2
 	exit 1
 }
+grep -Fq 'start)' "$target" || {
+	echo 'FAIL desktop supervisor has no singleton start action' >&2
+	exit 1
+}
 
 mkdir -p "$fixture/bin"
 cat >"$fixture/bin/pgrep" <<'EOF'
 #!/bin/sh
 case "$*" in
-	*chromium*) [ -e "$ROG5_TEST_HEALTHY" ] ;;
+	*hromium*) [ -e "$ROG5_TEST_HEALTHY" ] ;;
 	*) exit 0 ;;
 esac
 EOF
 cat >"$fixture/bin/sleep" <<'EOF'
 #!/bin/sh
+[ "${ROG5_TEST_REAL_SLEEP:-0}" != 1 ] || exec /usr/bin/sleep "$@"
 exit 0
 EOF
 cat >"$fixture/desktop-start" <<'EOF'
@@ -42,7 +47,7 @@ run_supervisor() {
 	ROG5_TEST_COUNT=$fixture/count \
 	ROG5_TEST_HEALTHY=$fixture/healthy \
 	ROG5_TEST_MODE=$1 \
-		"$target"
+		"$target" run
 }
 
 : >"$fixture/healthy"
@@ -70,10 +75,56 @@ if PATH=$fixture/bin:$PATH \
 	ROG5_DESKTOP_START=$fixture/desktop-start \
 	ROG5_DESKTOP_SUPERVISOR_INTERVAL=0 \
 	ROG5_DESKTOP_SUPERVISOR_MAX_CYCLES=1 \
-		"$target" >/dev/null 2>&1; then
+		"$target" run >/dev/null 2>&1; then
 	echo 'FAIL zero supervisor interval was accepted' >&2
 	exit 1
 fi
+
+runtime=$fixture/runtime
+mkdir -p "$runtime"
+: >"$fixture/healthy"
+PATH=$fixture/bin:$PATH \
+ROG5_DESKTOP_START=$fixture/desktop-start \
+ROG5_DESKTOP_SUPERVISOR_INTERVAL=1 \
+ROG5_DESKTOP_SUPERVISOR_MAX_CYCLES=20 \
+ROG5_DESKTOP_SUPERVISOR_RUNTIME=$runtime \
+ROG5_TEST_COUNT=$fixture/count \
+ROG5_TEST_HEALTHY=$fixture/healthy \
+ROG5_TEST_REAL_SLEEP=1 \
+	"$target" start
+
+i=0
+while [ "$i" -lt 20 ] && [ ! -r "$runtime/pid" ]; do
+	i=$((i + 1))
+	/usr/bin/sleep 0.1
+done
+[ -r "$runtime/pid" ]
+first_pid=$(cat "$runtime/pid")
+kill -0 "$first_pid"
+
+PATH=$fixture/bin:$PATH \
+ROG5_DESKTOP_START=$fixture/desktop-start \
+ROG5_DESKTOP_SUPERVISOR_INTERVAL=1 \
+ROG5_DESKTOP_SUPERVISOR_MAX_CYCLES=20 \
+ROG5_DESKTOP_SUPERVISOR_RUNTIME=$runtime \
+ROG5_TEST_COUNT=$fixture/count \
+ROG5_TEST_HEALTHY=$fixture/healthy \
+ROG5_TEST_REAL_SLEEP=1 \
+	"$target" start
+second_pid=$(cat "$runtime/pid")
+[ "$first_pid" = "$second_pid" ] || {
+	echo 'FAIL second start created another supervisor' >&2
+	exit 1
+}
+
+ROG5_DESKTOP_SUPERVISOR_RUNTIME=$runtime "$target" stop
+i=0
+while [ "$i" -lt 20 ] && kill -0 "$first_pid" 2>/dev/null; do
+	i=$((i + 1))
+	/usr/bin/sleep 0.1
+done
+! kill -0 "$first_pid" 2>/dev/null
+[ ! -e "$runtime/pid" ]
 
 grep -Fq \
 	'desktop-supervisor.sh /usr/local/sbin/rog5-desktop-supervisor' \
@@ -87,4 +138,4 @@ then
 	exit 1
 fi
 
-echo 'PASS desktop supervisor leaves healthy services alone and retries a missing browser without touching boot state'
+echo 'PASS desktop supervisor is singleton, leaves healthy services alone, and retries a missing browser without touching boot state'
