@@ -789,9 +789,12 @@ the unchanged v8 module. The
 now accepts a root-owned consumed-v8-derived export and compound target gate.
 Its exact-delta verifier preserves the unchanged kernel, all seven modules,
 two firmware files, credentials, and every undeclared rootfs object. V9 still
-has no host runner, server allowlist case, boot, or live authority. Any v9
-transition requires a strict no-retry runner and separate HOLD/GO
-authorization.
+has no server allowlist case, boot, or live authority. Its
+[pre-live HOLD review](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md)
+accepts a strict one-call/no-retry host runner, mock transport, private
+evidence boundary, local client/server SSH agreement, actual unarmed refusal,
+and clean synchronized root/host checks while NFS/RPC stays inactive. Any v9
+transition still requires separate GO authorization.
 
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
