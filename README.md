@@ -35,8 +35,10 @@ confirms that the sealed v10 diagnostic root contains the full
 Plasma/KWin/KRDP/server toolset but intentionally predates the isolated agent.
 It also found and fail-first fixed a future-image systemd ordering cycle
 between the disabled hotspot unit, dnsmasq, and `network-online.target`.
-Current packaging and the staged-root verifier are corrected; a fresh normal
-Arch archive still must be built and verified before promotion.
+Current packaging and the staged-root verifier are corrected. The resulting
+[successor Arch archive](test-results/2026-07-27-arch-successor-rootfs-offline.md)
+now passes both the in-stage verifier and a second clean-extraction verifier
+with 655 current packages. It remains unpromoted and unbooted.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records

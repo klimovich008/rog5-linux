@@ -267,7 +267,11 @@ identity secret. It deliberately predates `rog5-agent` and remains immutable.
 The audit also found a systemd ordering cycle in its disabled historical
 hotspot unit. Current packaging removes the single cyclic `Before=dnsmasq`
 edge and the complete staged-root verifier now checks the hotspot service.
-A fresh normal Arch archive remains required before promotion.
+The
+[fresh successor archive](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+contains 655 current packages plus the locked agent and corrected unit, and
+passes verification before archival and after clean extraction. It remains
+outside the manifest/export and has not been booted.
 
 The runtime-only host export implementation now passes its static safety test
 and the final archive passes a second disposable extraction through the

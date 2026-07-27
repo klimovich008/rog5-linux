@@ -90,8 +90,13 @@ keeps every sealed diagnostic root unchanged, confirms its full
 Plasma/KRDP/server package set and secret-free headless policy, and
 fail-first fixes a systemd ordering cycle in future hotspot packaging.
 Current staging now verifies both the hardened Chromium and hotspot units.
-Because the recorded development archive predates that correction, rebuild
-and clean-round-trip a fresh successor before promoting it.
+The resulting
+[successor archive](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+is 2,006,999,039 bytes with SHA-256
+`88c2d671a26f577aef963212cda17bc61baa888d77d0c1aaf1ca25c6fb3ad62a`.
+It contains 655 current packages and passes the complete verifier before
+archival and after clean extraction. It remains outside the manifest and
+protected export, and has not been booted.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
