@@ -70,8 +70,16 @@ now supplies that graph as an isolated overlay over the unchanged accepted
 network-root v8 DTB. The merged DTB passes pinned WCN6855, ath11k PCI, PCIe0,
 QMP PHY, RPMh-regulator, and TLMM schemas, while two clean Linux 7.1.4 builds
 produce byte-identical Images and matching QMP PCIe/power-sequencing/MHI/
-ath11k modules. This remains a hardware HOLD: it is not a boot package and no
-radio probe was run.
+ath11k modules. The subsequent
+[offline WCN6855 runtime package](../test-results/2026-07-27-wcn6855-runtime-package-offline.md)
+adds a predecessor-pinned root overlay, default module blacklist,
+NetworkManager hold, enumeration-only oracle, independent watchdog handoff,
+one-probe/one-reboot target gate, nested kexec stage, ASUS wrapper, and
+header-v3/AVB image. Two complete clean packages are byte-identical; DTB,
+overlay, and boot-image mutations are rejected after manifest refresh. The
+phone remained on Alpine and untouched. This tier is still `UNBOOTED_HOLD`
+until its separate protected root, host live-window runner, current preflight,
+and exact one-cycle authorization pass.
 
 ## Display modes
 

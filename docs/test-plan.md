@@ -74,6 +74,28 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   The
   [offline acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
   records the accepted hashes; no boot or radio action is implied.
+- `test-wifi-root-overlay-contract.sh` and
+  `verify-wifi-root-overlay.sh` require the exact successor-v3 root and Wi-Fi
+  module tree, inherited pinned WCN6855 firmware, default module blacklist,
+  unmanaged `wlan0`, no connection/provider credentials, deterministic
+  output, and rejection of module, seal, mode, and credential-path mutations.
+- `test-wifi-network-root-bundle-contract.sh`,
+  `verify-network-root-wifi-bundle.sh`, and
+  `compare-network-root-wifi-bundles.sh` pin every predecessor and tool,
+  require UFS-disabled storage-free packaging, reconstruct the nested stage,
+  verify header-v3/AVB structure, and require two complete packages to match
+  byte-for-byte.
+- `test-network-root-wifi-bundle.sh` accepts the exact pristine package, then
+  refreshes the candidate manifest after separate DTB, root-overlay, and raw
+  boot-image mutations and requires every case to fail.
+- `test-probe-network-root-wifi.sh` and
+  `test-run-network-root-wifi-gate.sh` statically require explicit guards,
+  exact storage/NFS/kernel identity, a one-attempt enumeration-only probe,
+  independent watchdog handoff, one immediate reboot, no retry, no scan,
+  association, AP, Bluetooth, credentials, unload, phone, or host-network
+  action. The
+  [offline package result](../test-results/2026-07-27-wcn6855-runtime-package-offline.md)
+  passes all gates and remains `UNBOOTED_HOLD`.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it
