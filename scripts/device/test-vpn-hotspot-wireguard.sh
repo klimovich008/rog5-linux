@@ -2,7 +2,7 @@
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
-target=${TARGET:-$repo/scripts/device/vpn-hotspot.sh}
+target=${TARGET:-$repo/scripts/device/vpn-hotspot-v2.sh}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -40,12 +40,15 @@ run_target() {
 cleanup() {
 	set +e
 	run_target down >/dev/null 2>&1
-	[ -z "$server_pid" ] || kill "$server_pid" >/dev/null 2>&1
+	[ -z "$server_pid" ] || kill -KILL "$server_pid" >/dev/null 2>&1
+	[ -z "$server_pid" ] || wait "$server_pid" >/dev/null 2>&1
 	ip link delete wlan0 >/dev/null 2>&1
 	ip link delete wg0 >/dev/null 2>&1
 	ip link delete vpn-underlay0 >/dev/null 2>&1
-	[ -z "$client_pid" ] || kill "$client_pid" >/dev/null 2>&1
-	[ -z "$peer_pid" ] || kill "$peer_pid" >/dev/null 2>&1
+	[ -z "$client_pid" ] || kill -KILL "$client_pid" >/dev/null 2>&1
+	[ -z "$client_pid" ] || wait "$client_pid" >/dev/null 2>&1
+	[ -z "$peer_pid" ] || kill -KILL "$peer_pid" >/dev/null 2>&1
+	[ -z "$peer_pid" ] || wait "$peer_pid" >/dev/null 2>&1
 	sysctl -qw net.ipv4.ip_forward="$old_ipv4"
 	sysctl -qw net.ipv6.conf.all.forwarding="$old_ipv6"
 	rm -rf "$stage"
@@ -97,51 +100,160 @@ nsenter -t "$peer_pid" -n wg set peerwg0 \
 	endpoint 198.51.100.1:51820 persistent-keepalive 1
 nsenter -t "$peer_pid" -n ip link set peerwg0 up
 
-udp_echo='
+dns_server='
+import select
 import socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(("10.99.0.2", 9000))
-sock.settimeout(20)
-data, peer = sock.recvfrom(1024)
-sock.sendto(data, peer)
+import struct
+
+def read_exact(sock, length):
+    data = b""
+    while len(data) < length:
+        part = sock.recv(length - len(data))
+        if not part:
+            raise SystemExit(1)
+        data += part
+    return data
+
+def answer(query):
+    if len(query) < 12:
+        raise SystemExit(1)
+    return (
+        query[:2] + b"\x81\x80" + query[4:6] +
+        b"\x00\x00\x00\x00\x00\x00" + query[12:]
+    )
+
+udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+udp.bind(("10.99.0.2", 53))
+tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcp.bind(("10.99.0.2", 53))
+tcp.listen(1)
+served = 0
+while served < 2:
+    ready, unused, exceptional = select.select([udp, tcp], [], [], 20)
+    if not ready:
+        raise SystemExit(1)
+    for current in ready:
+        if current is udp:
+            query, peer = udp.recvfrom(4096)
+            udp.sendto(answer(query), peer)
+        else:
+            connection, peer = tcp.accept()
+            with connection:
+                length = struct.unpack("!H", read_exact(connection, 2))[0]
+                response = answer(read_exact(connection, length))
+                connection.sendall(struct.pack("!H", len(response)) + response)
+        served += 1
 '
-udp_query='
+dns_query='
 import socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.settimeout(8)
-payload = b"rog5-real-wireguard"
-sock.sendto(payload, ("10.99.0.2", 9000))
-data, unused = sock.recvfrom(1024)
-raise SystemExit(0 if data == payload else 1)
+import struct
+import sys
+
+def read_exact(sock, length):
+    data = b""
+    while len(data) < length:
+        part = sock.recv(length - len(data))
+        if not part:
+            raise SystemExit(1)
+        data += part
+    return data
+
+name = b"\x03vpn\x04test\x00"
+query = (
+    b"\x52\x35\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00" +
+    name + b"\x00\x01\x00\x01"
+)
+protocol = sys.argv[1]
+timeout = float(sys.argv[2])
+kind = socket.SOCK_DGRAM if protocol == "udp" else socket.SOCK_STREAM
+sock = socket.socket(socket.AF_INET, kind)
+sock.settimeout(timeout)
+if protocol == "udp":
+    sock.sendto(query, ("10.99.0.2", 53))
+    response, unused = sock.recvfrom(4096)
+else:
+    sock.connect(("10.99.0.2", 53))
+    sock.sendall(struct.pack("!H", len(query)) + query)
+    length = struct.unpack("!H", read_exact(sock, 2))[0]
+    response = read_exact(sock, length)
+valid = (
+    len(response) >= 12 and response[:2] == query[:2] and
+    struct.unpack("!H", response[2:4])[0] & 0x8000
+)
+raise SystemExit(0 if valid else 1)
 '
 
-nsenter -t "$peer_pid" -n python3 -c "$udp_echo" >/dev/null 2>&1 &
-server_pid=$!
-sleep 1
-kill -0 "$server_pid"
+start_dns_server() {
+	nsenter -t "$peer_pid" -n python3 -c "$dns_server" \
+		>/dev/null 2>&1 &
+	server_pid=$!
+	sleep 1
+	kill -0 "$server_pid"
+}
 
+query_dns() {
+	nsenter -t "$client_pid" -n python3 -c "$dns_query" "$1" "$2"
+}
+
+start_dns_server
 run_target up
 run_target check
-nsenter -t "$client_pid" -n python3 -c "$udp_query"
+query_dns udp 8
+query_dns tcp 8
 wait "$server_pid"
 server_pid=
 
-phone_handshake=$(wg show wg0 latest-handshakes |
+phone_handshake_before=$(wg show wg0 latest-handshakes |
 	awk 'NF == 2 { print $2; exit }')
-peer_handshake=$(nsenter -t "$peer_pid" -n \
+peer_handshake_before=$(nsenter -t "$peer_pid" -n \
 	wg show peerwg0 latest-handshakes |
 	awk 'NF == 2 { print $2; exit }')
-[ "${phone_handshake:-0}" -gt 0 ]
-[ "${peer_handshake:-0}" -gt 0 ]
+[ "${phone_handshake_before:-0}" -gt 0 ]
+[ "${peer_handshake_before:-0}" -gt 0 ]
 
-transfer=$(wg show wg0 transfer |
+transfer_before=$(wg show wg0 transfer |
 	awk 'NF == 3 { print $2 ":" $3; exit }')
-case $transfer in
+case $transfer_before in
 	*:*);;
 	*) fail 'WireGuard transfer counters are absent' ;;
 esac
-[ "${transfer%%:*}" -gt 0 ]
-[ "${transfer#*:}" -gt 0 ]
+[ "${transfer_before%%:*}" -gt 0 ]
+[ "${transfer_before#*:}" -gt 0 ]
+
+nsenter -t "$peer_pid" -n ip link set peer-underlay0 down
+sleep 2
+run_target check
+if query_dns udp 2 >/dev/null 2>&1; then
+	fail 'UDP DNS crossed a failed WireGuard endpoint'
+fi
+if query_dns tcp 2 >/dev/null 2>&1; then
+	fail 'TCP DNS crossed a failed WireGuard endpoint'
+fi
+
+nsenter -t "$peer_pid" -n ip link set peer-underlay0 up
+start_dns_server
+query_dns udp 10
+query_dns tcp 10
+wait "$server_pid"
+server_pid=
+
+phone_handshake_after=$(wg show wg0 latest-handshakes |
+	awk 'NF == 2 { print $2; exit }')
+peer_handshake_after=$(nsenter -t "$peer_pid" -n \
+	wg show peerwg0 latest-handshakes |
+	awk 'NF == 2 { print $2; exit }')
+[ "${phone_handshake_after:-0}" -ge "$phone_handshake_before" ]
+[ "${peer_handshake_after:-0}" -ge "$peer_handshake_before" ]
+
+transfer_after=$(wg show wg0 transfer |
+	awk 'NF == 3 { print $2 ":" $3; exit }')
+case $transfer_after in
+	*:*);;
+	*) fail 'WireGuard recovery counters are absent' ;;
+esac
+[ "${transfer_after%%:*}" -gt "${transfer_before%%:*}" ]
+[ "${transfer_after#*:}" -gt "${transfer_before#*:}" ]
 
 run_target down
 if nft list table inet rog5_vpn_hotspot >/dev/null 2>&1; then
@@ -154,4 +266,4 @@ rm -f "$stage/phone.key" "$stage/peer.key"
 [ ! -e "$stage/phone.key" ]
 [ ! -e "$stage/peer.key" ]
 
-echo 'PASS real WireGuard handshake, encrypted hotspot packet, and cleanup'
+echo 'PASS real WireGuard DNS UDP/TCP, endpoint loss/recovery, and cleanup'

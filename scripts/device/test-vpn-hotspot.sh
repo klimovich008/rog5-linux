@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-target=${TARGET:-/workspace/repo/scripts/device/vpn-hotspot.sh}
-service=${SERVICE:-/workspace/repo/packaging/arch/rog5-vpn-hotspot.service}
+target=${TARGET:-/workspace/repo/scripts/device/vpn-hotspot-v2.sh}
+service=${SERVICE:-/workspace/repo/packaging/arch/rog5-vpn-hotspot-v2.service}
 old_ipv4=$(sysctl -n net.ipv4.ip_forward)
 old_ipv6=$(sysctl -n net.ipv6.conf.all.forwarding)
 
@@ -54,12 +54,15 @@ run_target() {
 
 server_pids=
 cleanup() {
+	set +e
 	run_target down >/dev/null 2>&1 || true
 	for pid in $server_pids; do
-		kill "$pid" >/dev/null 2>&1 || true
+		kill -KILL "$pid" >/dev/null 2>&1 || true
+		wait "$pid" >/dev/null 2>&1 || true
 	done
 	for pid in "$client_pid" "$vpn_pid" "$wan_pid"; do
-		[ -z "$pid" ] || kill "$pid" >/dev/null 2>&1 || true
+		[ -z "$pid" ] || kill -KILL "$pid" >/dev/null 2>&1 || true
+		[ -z "$pid" ] || wait "$pid" >/dev/null 2>&1 || true
 	done
 	rm -rf "$stage"
 }
@@ -84,14 +87,19 @@ nsenter -t "$client_pid" -n ip link set client0 up
 nsenter -t "$client_pid" -n ip route add default via 10.42.0.1
 nsenter -t "$client_pid" -n ip -6 route add fd00::/64 via fd42::1
 
-ip link add wg0 type veth peer name vpn0
-ip link set vpn0 netns "$vpn_pid"
-ip address add 10.99.0.1/24 dev wg0
-ip link set wg0 up
 nsenter -t "$vpn_pid" -n ip link set lo up
-nsenter -t "$vpn_pid" -n ip address add 10.99.0.2/24 dev vpn0
-nsenter -t "$vpn_pid" -n ip link set vpn0 up
-nsenter -t "$vpn_pid" -n ip route add 10.42.0.0/24 via 10.99.0.1
+
+create_vpn_path() {
+	ip link add wg0 type veth peer name vpn0
+	ip link set vpn0 netns "$vpn_pid"
+	ip address add 10.99.0.1/24 dev wg0
+	ip link set wg0 up
+	nsenter -t "$vpn_pid" -n ip address add 10.99.0.2/24 dev vpn0
+	nsenter -t "$vpn_pid" -n ip link set vpn0 up
+	nsenter -t "$vpn_pid" -n \
+		ip route add 10.42.0.0/24 via 10.99.0.1
+}
+create_vpn_path
 
 ip link add uplink0 type veth peer name wan0
 ip link set wan0 netns "$wan_pid"
@@ -127,6 +135,54 @@ sock.sendto(payload, (sys.argv[2], int(sys.argv[3])))
 data, unused = sock.recvfrom(1024)
 raise SystemExit(0 if data == payload else 1)
 '
+tcp_echo='
+import socket
+import sys
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind((sys.argv[1], int(sys.argv[2])))
+sock.listen(1)
+sock.settimeout(20)
+connection, peer = sock.accept()
+with connection:
+    data = connection.recv(1024)
+    connection.sendall(data)
+'
+tcp_query='
+import socket
+import sys
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.settimeout(2)
+payload = b"rog5-vpn-hotspot-dns-tcp"
+sock.connect((sys.argv[1], int(sys.argv[2])))
+sock.sendall(payload)
+data = sock.recv(1024)
+raise SystemExit(0 if data == payload else 1)
+'
+tcp_probe='
+import socket
+import sys
+sock = socket.socket(
+    socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0800)
+)
+sock.bind((sys.argv[1], 0))
+sock.settimeout(20)
+while True:
+    packet = sock.recv(65535)
+    if len(packet) < 38 or packet[12:14] != b"\x08\x00":
+        continue
+    header = 14
+    if packet[header + 9] != 6:
+        continue
+    tcp = header + (packet[header] & 0x0f) * 4
+    if len(packet) < tcp + 4:
+        continue
+    if int.from_bytes(packet[tcp + 2:tcp + 4], "big") != 53:
+        continue
+    with open(sys.argv[2], "x", encoding="ascii") as marker:
+        marker.write("received\n")
+    break
+'
 udp_receive='
 import socket
 import sys
@@ -145,9 +201,14 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.sendto(b"unsolicited", (sys.argv[1], int(sys.argv[2])))
 '
 
-nsenter -t "$vpn_pid" -n python3 -c "$udp_echo" 4 10.99.0.2 9000 \
+nsenter -t "$vpn_pid" -n python3 -c "$udp_echo" 4 10.99.0.2 53 \
 	>/dev/null 2>&1 &
-server_pids="$server_pids $!"
+vpn_dns_udp_pid=$!
+server_pids="$server_pids $vpn_dns_udp_pid"
+nsenter -t "$vpn_pid" -n python3 -c "$tcp_echo" 10.99.0.2 53 \
+	>/dev/null 2>&1 &
+vpn_dns_tcp_pid=$!
+server_pids="$server_pids $vpn_dns_tcp_pid"
 nsenter -t "$wan_pid" -n python3 -c "$udp_echo" \
 	4 192.0.2.2 9001 "$stage/wan4.received" \
 	>/dev/null 2>&1 &
@@ -155,6 +216,13 @@ server_pids="$server_pids $!"
 nsenter -t "$wan_pid" -n python3 -c "$udp_echo" \
 	6 fd00::2 9002 "$stage/wan6.received" \
 	>/dev/null 2>&1 &
+server_pids="$server_pids $!"
+nsenter -t "$wan_pid" -n python3 -c "$udp_echo" \
+	4 192.0.2.2 53 "$stage/wan-dns-udp.received" \
+	>/dev/null 2>&1 &
+server_pids="$server_pids $!"
+nsenter -t "$wan_pid" -n python3 -c "$tcp_probe" \
+	wan0 "$stage/wan-dns-tcp.received" >/dev/null 2>&1 &
 server_pids="$server_pids $!"
 sleep 1
 for server_pid in $server_pids; do
@@ -174,7 +242,31 @@ printf '%s\n' "$rules" | grep -q 'iifname "wlan0" drop'
 printf '%s\n' "$rules" | grep -q 'oifname "wlan0" drop'
 printf '%s\n' "$rules" | grep -q 'iifname "wlan0" oifname "wg0" masquerade'
 
-nsenter -t "$client_pid" -n python3 -c "$udp_query" 4 10.99.0.2 9000
+nsenter -t "$client_pid" -n python3 -c "$udp_query" 4 10.99.0.2 53
+nsenter -t "$client_pid" -n python3 -c "$tcp_query" 10.99.0.2 53
+wait "$vpn_dns_udp_pid"
+wait "$vpn_dns_tcp_pid"
+
+assert_dns_no_uplink() {
+	if nsenter -t "$client_pid" -n python3 -c "$udp_query" \
+		4 192.0.2.2 53 >/dev/null 2>&1; then
+		echo 'FAIL UDP DNS escaped through the ordinary uplink' >&2
+		exit 1
+	fi
+	if nsenter -t "$client_pid" -n python3 -c "$tcp_query" \
+		192.0.2.2 53 >/dev/null 2>&1; then
+		echo 'FAIL TCP DNS escaped through the ordinary uplink' >&2
+		exit 1
+	fi
+	[ ! -e "$stage/wan-dns-udp.received" ] ||
+		echo 'FAIL UDP DNS reached the ordinary uplink' >&2
+	[ ! -e "$stage/wan-dns-udp.received" ]
+	[ ! -e "$stage/wan-dns-tcp.received" ] ||
+		echo 'FAIL TCP DNS reached the ordinary uplink' >&2
+	[ ! -e "$stage/wan-dns-tcp.received" ]
+}
+assert_dns_no_uplink
+
 if nsenter -t "$client_pid" -n python3 -c "$udp_query" \
 	4 192.0.2.2 9001 >/dev/null 2>&1; then
 	echo 'FAIL hotspot client escaped through the ordinary uplink' >&2
@@ -218,6 +310,25 @@ fi
 	echo 'FAIL VPN loss sent a datagram through the ordinary uplink' >&2
 	exit 1
 }
+assert_dns_no_uplink
+
+create_vpn_path
+run_target check
+nsenter -t "$vpn_pid" -n python3 -c "$udp_echo" 4 10.99.0.2 53 \
+	>/dev/null 2>&1 &
+recovery_dns_udp_pid=$!
+server_pids="$server_pids $recovery_dns_udp_pid"
+nsenter -t "$vpn_pid" -n python3 -c "$tcp_echo" 10.99.0.2 53 \
+	>/dev/null 2>&1 &
+recovery_dns_tcp_pid=$!
+server_pids="$server_pids $recovery_dns_tcp_pid"
+sleep 1
+kill -0 "$recovery_dns_udp_pid"
+kill -0 "$recovery_dns_tcp_pid"
+nsenter -t "$client_pid" -n python3 -c "$udp_query" 4 10.99.0.2 53
+nsenter -t "$client_pid" -n python3 -c "$tcp_query" 10.99.0.2 53
+wait "$recovery_dns_udp_pid"
+wait "$recovery_dns_tcp_pid"
 
 run_target down
 
@@ -231,4 +342,4 @@ status=$?
 set -e
 [ "$status" -eq 2 ]
 
-echo 'PASS isolated VPN path, IPv4/IPv6 leak blocking, unsolicited isolation, VPN-loss fail-close, and cleanup'
+echo 'PASS v2 VPN path, UDP/TCP DNS leak blocking, unsolicited isolation, VPN-loss fail-close/recovery, and cleanup'
