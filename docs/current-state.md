@@ -57,6 +57,16 @@ fail-closed endpoint/interface loss plus recovery. The real ath11k AP,
 on-phone/provider handshake, DHCP/provider DNS, coexistence, throughput,
 thermal, and battery gates remain pending.
 
+The
+[vendor Wi-Fi contract checkpoint](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+adds read-only board evidence. Fallback PCIe enumerates Qualcomm `17cb:1103`
+with ASUS subsystem `17cb:0108`, while the protected Arch root contains the
+matching ath11k modules, WCN6855 firmware records, regulatory data, and
+network packages. ASUS source resolves the intended WLAN I/O rail to fixed
+1.8 V `pm8350_s10`, but the live vendor tree references a stale phandle and
+the current mainline board DTS has no PCIe/WCN6855 PMU graph. This remains a
+hardware HOLD; no radio probe was run.
+
 ## Display modes
 
 The vendor DRM connector publishes these mode names:
