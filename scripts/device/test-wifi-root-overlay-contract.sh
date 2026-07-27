@@ -106,6 +106,49 @@ then
 		"$stage/two.tar.gz" >/dev/null
 	cmp "$stage/one.tar.gz" "$stage/two.tar.gz"
 	"$verifier" "$BASE_ROOTFS" "$WIFI_MODULES" "$stage/one.tar.gz"
+
+	reject_mutation() {
+		label=$1
+		mutant_root=$stage/mutations/$label
+		mutant_archive=$stage/mutations/$label.tar.gz
+		install -d "$mutant_root"
+		tar -xzf "$stage/one.tar.gz" -C "$mutant_root"
+		case $label in
+		module-byte)
+			printf '\000' >>"$mutant_root/usr/lib/modules/7.1.4-g7a5cef0db479/kernel/drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko"
+			;;
+		seal-byte)
+			chmod 0644 "$mutant_root/etc/rog5/wifi-enumeration-v1"
+			printf 'mutation=1\n' >>"$mutant_root/etc/rog5/wifi-enumeration-v1"
+			chmod 0444 "$mutant_root/etc/rog5/wifi-enumeration-v1"
+			;;
+		probe-mode)
+			chmod 0644 \
+				"$mutant_root/usr/local/sbin/rog5-wifi-enumeration-probe"
+			;;
+		credential-path)
+			install -d \
+				"$mutant_root/etc/NetworkManager/system-connections"
+			printf '[connection]\nid=forbidden\n' \
+				>"$mutant_root/etc/NetworkManager/system-connections/forbidden.nmconnection"
+			;;
+		esac
+		tar --sort=name --mtime='@1681862400' --owner=0 --group=0 \
+			--numeric-owner -C "$mutant_root" -cf - . |
+			gzip -n >"$mutant_archive"
+		if "$verifier" "$BASE_ROOTFS" "$WIFI_MODULES" \
+			"$mutant_archive" \
+			>"$stage/mutations/$label.log" 2>&1
+		then
+			echo "FAIL Wi-Fi root-overlay verifier accepts mutation: $label" >&2
+			exit 1
+		fi
+	}
+	install -d "$stage/mutations"
+	reject_mutation module-byte
+	reject_mutation seal-byte
+	reject_mutation probe-mode
+	reject_mutation credential-path
 fi
 
-echo 'PASS Wi-Fi root overlay is predecessor-pinned, deterministic, module-complete, auto-probe-locked, credential-clean, and offline-only'
+echo 'PASS Wi-Fi root overlay is predecessor-pinned, deterministic, module-complete, auto-probe-locked, credential-clean, mutation-tested, and offline-only'
