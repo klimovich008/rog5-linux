@@ -28,9 +28,15 @@ network packages. The subsequent
 [offline WCN6855/PCIe acceptance](test-results/2026-07-27-wcn6855-pcie-offline.md)
 adds the missing opt-in board graph, validates it against pinned upstream
 schemas, and reproduces two byte-identical Linux 7.1.4 kernel/module builds
-with QMP PCIe, power sequencing, MHI, and ath11k. It remains a hardware HOLD:
-the result is not a boot package, no radio was activated, and a separately
-authorized RAM-only/client-only probe is still required.
+with QMP PCIe, power sequencing, MHI, and ath11k. The subsequent
+[offline runtime-package acceptance](test-results/2026-07-27-wcn6855-runtime-package-offline.md)
+now adds a deterministic credential-free root overlay, auto-probe lockout,
+enumeration-only oracle, watchdog-handoff target gate, nested kexec stage,
+ASUS wrapper, and header-v3/AVB image. Two complete packages are
+byte-identical, and DTB/overlay/boot mutations are rejected after manifest
+refresh. It remains `UNBOOTED_HOLD`: no radio was activated, no phone action
+was taken, and a protected root plus separately authorized one-cycle probe
+are still required.
 
 The newer Arch development root now also passes its full stage and clean
 archive round trip with a locked `rog5-agent` account. Its on-demand Chromium
