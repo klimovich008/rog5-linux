@@ -481,7 +481,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   exact-root NFS case; complete fourteen-file package and protected-root
   verification; all five hostile mutations; distinct SSH identities; strict
   read-only fallback health; real unarmed server/runner refusals; and final
-  residue-free host state. Exactly one RAM-only v8 cycle is authorized, with
+  residue-free host state. Exactly one RAM-only v8 cycle was authorized, with
   no retry and no flash. See the
   [v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
   and
@@ -490,6 +490,21 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   [v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
   and
   [v8 pre-live GO report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).**
+- Run the authorized v8 cycle exactly once and consume it regardless of
+  result. **Completed with safe rejection. The kernel reached exact GMU
+  resume entry, propagated deliberate `EUCLEAN`, and completed accepted
+  rollback. Arm64 zero-extension made the three `int` returns appear as
+  `4294967179` to the `s64` oracle; complete trace review also found 21
+  process-scoped generic runtime-PM calls instead of the assumed one. Direct
+  inner PM/resource/HFI/hardware/ZAP/SCM probes stayed zero. The runner was
+  not retried, exact fallback and cleanup passed, and v8 is permanently
+  consumed. See the
+  [v8 live rejection](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md).**
+- Before any GMU power-preparation tier, build a separately versioned v9
+  userspace oracle around the unchanged v8 module. Require fail-first signed
+  32-bit return tests, GPU-device-scoped runtime-PM matching, all existing
+  zero-resource and rollback constraints, full settle and equal snapshot,
+  fresh protected-root/runner controls, and a separate HOLD/GO review.
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

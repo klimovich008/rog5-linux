@@ -455,8 +455,17 @@ adds only one verifier-before-state exact-root NFS case and revalidates the
 complete fourteen-file transport package, protected root and all five
 mutations, clean synchronized Git, separate client/server SSH identities,
 strict read-only fallback health, and residue-free host state. Both real
-unarmed controls refuse before action. V8 is authorized for exactly one
-attended RAM-only cycle, with no retry and never any flash.
+unarmed controls refuse before action. The
+[sole v8 live cycle](test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+then reached the exact GMU entry and rollback with deliberate `EUCLEAN`.
+It failed closed because the arm64 `int` returns appeared as zero-extended
+`4294967179` in an `s64` trace oracle; complete trace review also disproved
+the global one-call `__pm_runtime_resume()` assumption. Specific inner
+GPU/GMU PM, clock, IRQ, HFI, hardware, ZAP, and SCM probes stayed zero.
+Exact fallback and complete host cleanup passed. V8 is permanently consumed
+and non-runnable. The next tier is a separately versioned signed-`int`,
+GPU-device-scoped v9 userspace oracle using the unchanged v8 kernel module;
+GMU power preparation remains unauthorized.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 

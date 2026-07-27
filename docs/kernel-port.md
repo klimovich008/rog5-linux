@@ -457,9 +457,17 @@ now accepts one fail-first exact-root NFS window, the complete unchanged
 temporary-boot package, all protected-root mutations, separate pinned SSH
 identities, strict read-only fallback health, both actual unarmed refusals,
 and residue-free final host state. This authorizes exactly one attended
-RAM-only v8 entry cycle with no retry or flash. A later GMU
-power-preparation tier must remain separate from HFI, ZAP/SCM, successful
-open, submission, and rendering.
+RAM-only v8 entry cycle with no retry or flash. The
+[sole v8 live rejection](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+records that cycle. The exact entry and rollback ran, but the userspace
+oracle compared zero-extended arm64 `int` returns (`4294967179`) with signed
+`-117`. The complete trace also disproved the process-global one-call
+`__pm_runtime_resume()` invariant while retaining zero direct inner PM,
+clock, IRQ, HFI, hardware, ZAP, and SCM events. Fallback and cleanup passed;
+v8 is consumed and must not be retried. A v9 oracle must sign-normalize the
+returns and compare GPU device identity using the unchanged kernel module
+before a later GMU power-preparation tier. HFI, ZAP/SCM, successful open,
+submission, and rendering remain separate.
 
 The first PMIC input tier was then narrowed in two steps. V4 proved that the
 PMK8350 RTC read path ticks but contains an unusable near-epoch value, so RTC
