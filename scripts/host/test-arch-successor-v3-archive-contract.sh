@@ -14,8 +14,8 @@ expected_size=2007033670
 expected_hash=a7c286491d2fde97e17024b36f514d595196975da1988c986f70819c964eb8d7
 expected_commit=b8b80013d0acd912530ce42af7bc0adf7f9fd6ea
 
-for command in awk bsdtar cmp cut grep gzip mktemp sed sha256sum \
-	stat wc; do
+for command in awk bsdtar cmp cut grep gzip mktemp readlink sed \
+	sha256sum stat wc; do
 	command -v "$command" >/dev/null ||
 		fail "missing host command: $command"
 done
@@ -85,36 +85,44 @@ then
 	fail 'successor v3 archive embeds first-boot, VPN, desktop, or agent credentials'
 fi
 
-bsdtar -xOf "$archive" ./etc/rog5/build >"$work/build"
-bsdtar -xOf "$archive" ./etc/rog5/packages.txt >"$work/packages"
-bsdtar -xOf "$archive" ./etc/machine-id >"$work/machine-id"
-bsdtar -xOf "$archive" ./usr/local/libexec/rog5-power-buttond \
-	>"$work/power-buttond"
-bsdtar -xOf "$archive" ./etc/systemd/system/rog5-power-button.service \
-	>"$work/power-button.service"
-bsdtar -xOf "$archive" ./usr/local/sbin/rog5-vpn-hotspot.sh \
-	>"$work/hotspot"
-bsdtar -xOf "$archive" ./etc/systemd/system/rog5-vpn-hotspot.service \
-	>"$work/hotspot.service"
+selected=$work/selected
+mkdir "$selected"
+bsdtar -xzf "$archive" -C "$selected" \
+	./etc/rog5/build \
+	./etc/rog5/packages.txt \
+	./etc/machine-id \
+	./usr/local/libexec/rog5-power-buttond \
+	./etc/systemd/system/rog5-power-button.service \
+	./etc/systemd/system/multi-user.target.wants/rog5-power-button.service \
+	./usr/local/sbin/rog5-vpn-hotspot.sh \
+	./etc/systemd/system/rog5-vpn-hotspot.service
 
-grep -qx "project_commit=$expected_commit" "$work/build"
+build=$selected/etc/rog5/build
+packages=$selected/etc/rog5/packages.txt
+machine_id=$selected/etc/machine-id
+power_button=$selected/usr/local/libexec/rog5-power-buttond
+power_service=$selected/etc/systemd/system/rog5-power-button.service
+power_link=$selected/etc/systemd/system/multi-user.target.wants/rog5-power-button.service
+hotspot=$selected/usr/local/sbin/rog5-vpn-hotspot.sh
+hotspot_service=$selected/etc/systemd/system/rog5-vpn-hotspot.service
+
+grep -qx "project_commit=$expected_commit" "$build"
 grep -qx 'rootfs_sha256=3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a' \
-	"$work/build"
+	"$build"
 grep -qx 'modules_sha256=5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9' \
-	"$work/build"
-grep -qx 'kernel_release=7.1.4-g7a5cef0db479' "$work/build"
-[[ ! -s $work/machine-id ]] ||
+	"$build"
+grep -qx 'kernel_release=7.1.4-g7a5cef0db479' "$build"
+[[ ! -s $machine_id ]] ||
 	fail 'successor v3 machine ID is not empty'
-[[ $(wc -l <"$work/packages") == 655 ]] ||
+[[ $(wc -l <"$packages") == 655 ]] ||
 	fail 'successor v3 package count changed'
-cmp "$work/power-buttond" "$repo/scripts/device/power-buttond.py"
-cmp "$work/power-button.service" \
+cmp "$power_button" "$repo/scripts/device/power-buttond.py"
+cmp "$power_service" \
 	"$repo/packaging/arch/rog5-power-button.service"
-cmp "$work/hotspot" "$repo/scripts/device/vpn-hotspot-v2.sh"
-cmp "$work/hotspot.service" \
+cmp "$hotspot" "$repo/scripts/device/vpn-hotspot-v2.sh"
+cmp "$hotspot_service" \
 	"$repo/packaging/arch/rog5-vpn-hotspot-v2.service"
-bsdtar -tvzf "$archive" \
-	./etc/systemd/system/multi-user.target.wants/rog5-power-button.service |
-	grep -Fq -- ' -> /etc/systemd/system/rog5-power-button.service'
+[[ $(readlink "$power_link") == \
+	/etc/systemd/system/rog5-power-button.service ]]
 
 echo 'PASS successor v3 archive is manifest-pinned, path-safe, credential-clean, v2-preserving, and power-button-enabled'
