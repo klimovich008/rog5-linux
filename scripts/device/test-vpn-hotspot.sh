@@ -12,7 +12,10 @@ done
 
 grep -qx 'Requires=NetworkManager.service wg-quick@wg0.service' "$service"
 grep -qx 'Wants=network-online.target dnsmasq.service' "$service"
-grep -qx 'Before=dnsmasq.service' "$service"
+if grep -qx 'Before=dnsmasq.service' "$service"; then
+	echo 'FAIL VPN-hotspot service contains a systemd ordering cycle' >&2
+	exit 1
+fi
 grep -qx 'ConditionPathExists=/etc/wireguard/wg0.conf' "$service"
 grep -qx 'ConditionPathExists=/etc/dnsmasq.d/rog5-hotspot.conf' "$service"
 grep -qx 'ExecStart=/usr/local/sbin/rog5-vpn-hotspot.sh up' "$service"

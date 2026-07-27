@@ -109,7 +109,8 @@ grep -qx 'ProtectSystem=strict' \
 grep -qx 'ReadWritePaths=/var/lib/rog5-agent' \
 	/etc/systemd/system/rog5-chromium-headless.service
 systemd-analyze verify \
-	/etc/systemd/system/rog5-chromium-headless.service >/dev/null
+	/etc/systemd/system/rog5-chromium-headless.service \
+	/etc/systemd/system/rog5-vpn-hotspot.service >/dev/null
 sh /workspace/repo/scripts/device/verify-a660-firmware.sh /usr/lib/firmware
 [[ -r /usr/lib/firmware/regulatory.db ]]
 [[ ! -e /etc/wireguard/wg0.conf ]]
