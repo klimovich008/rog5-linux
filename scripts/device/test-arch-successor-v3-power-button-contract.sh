@@ -76,8 +76,9 @@ do
 done
 
 for contract in \
+	'stage=${STAGE_ROOT:-/stage}' \
 	'ARCH_DEVICE_STAGE=scripts/device/stage-arch-rootfs-v3.sh' \
-	'exec /workspace/repo/scripts/device/run-arch-rootfs-stage.sh'
+	'exec "$stage/workspace/repo/scripts/device/run-arch-rootfs-stage.sh"'
 do
 	grep -Fq "$contract" "$v3_runner" ||
 		fail "successor-v3 stage runner omits: $contract"
