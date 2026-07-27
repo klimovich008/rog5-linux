@@ -31,6 +31,16 @@ nmcli connection modify "$rog5_usb_profile" \
   ipv4.never-default yes ipv6.method disabled
 ```
 
+Stage and install the matching phone-side runtime tools. The installer backs
+up every replaced file before writing `/usr/local`:
+
+```sh
+ssh rog5-fallback 'mkdir -p /run/rog5-runtime-tools'
+scp scripts/device/{install-runtime-tools,display-profile,power-profile,screen-toggle,desktop-start,desktop-stop,desktop-supervisor,plasma-wayland-session}.sh \
+  rog5-fallback:/run/rog5-runtime-tools/
+ssh rog5-fallback /run/rog5-runtime-tools/install-runtime-tools.sh
+```
+
 Install the reconnecting user service from the repository:
 
 ```sh
@@ -42,8 +52,11 @@ systemctl --user enable --now rog5-remote-tunnel.service
 systemctl --user status rog5-remote-tunnel.service
 ```
 
-The unit retries while the phone is absent and invokes the idempotent Alpine
-desktop launcher after every successful connection. It retains
+The unit retries while the phone is absent and invokes an idempotent
+`start` action for the phone-side singleton desktop supervisor after every
+successful connection. The supervisor remains on the phone across host-tunnel
+reconnects, checks the six required processes every 30 seconds, and calls the
+existing desktop launcher only when one is missing. It retains
 `NoNewPrivileges`, a restricted socket-family allowlist, key-only SSH, and
 four explicit loopback forwards. `PrivateTmp` is intentionally absent:
 on this Nobara host, enabling it in a user service reproducibly makes OpenSSH
@@ -96,7 +109,9 @@ The persistent Alpine 3.24 fallback now passes a narrower live checkpoint on
 its installed `5.4.134` vendor kernel: nested KWin Wayland, Plasma,
 software-rendered Chromium, ttyd, and noVNC remain usable while the physical
 panel state is `off` and brightness is zero. The Linux host tunnel is enabled,
-loopback-only, and recovered after an induced SSH-process exit. See the
+loopback-only, and recovered after an induced SSH-process exit without
+duplicating the phone supervisor. An induced Chromium exit restored the
+browser and CDP in eight seconds. See the
 [live report](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
 This does not accept Linux 7.1 display/GPU support, a physical DRM Plasma
 session, KRDP, or a wide-area VPN path.

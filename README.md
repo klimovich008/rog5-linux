@@ -505,9 +505,11 @@ Separately, the installed Alpine 3.24 fallback now passes a
 on its older `5.4.134` vendor kernel. Nested software-rendered KWin/Plasma,
 noVNC, ttyd, and Chromium CDP stayed usable with the physical panel off and
 zero swap use. The Nobara user tunnel is enabled, exposes only four host
-loopback ports, starts the phone desktop idempotently, and recovered after an
-induced SSH-process exit. This is a usable fallback administration path, not
-Linux 7.1 display, KRDP, or accelerated-GPU acceptance.
+loopback ports, idempotently starts one phone-side supervisor, and recovered
+after an induced SSH-process exit without creating a duplicate. The
+supervisor restored Chromium and CDP eight seconds after an induced browser
+exit. This is a usable fallback administration path, not Linux 7.1 display,
+KRDP, or accelerated-GPU acceptance.
 
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
@@ -562,6 +564,9 @@ systemctl --user link \
   "$PWD/packaging/host-systemd-user/rog5-remote-tunnel.service"
 systemctl --user enable --now rog5-remote-tunnel.service
 ```
+
+The phone-side singleton supervisor must first be installed by the backed-up
+runtime-tool procedure in [remote GUI](docs/remote-gui.md).
 
 Then open `http://127.0.0.1:6080/vnc.html` for the fallback desktop or
 `http://127.0.0.1:7681/` for the persistent terminal. See
