@@ -112,11 +112,22 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   Battery and wall-power measurements remain unavailable, and the same
   comparison still must be repeated on successor Arch with physical DRM/KWin
   and KRDP.
+- The
+  [vendor boot-log HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+  preserves a private 209,449-byte current-ring snapshot but correctly
+  rejects it as complete boot evidence: its 81.3-minute window contains only
+  976 load reports, 734 SCSI cache synchronizations, and 711 ASUS kernel-top
+  lines. An immediate read-only capture after a separately authorized normal
+  Alpine reboot remains pending.
 - Recorded memory usage was about 0.85 GiB without the full physical UI and about 1.4 GiB with Plasma Mobile, radio services, and caches active. The device has roughly 11 GiB usable RAM, so reliability and idle power matter more than aggressive memory trimming.
 
 ## Known operational constraints
 
 - Radio startup is delayed to avoid a low-battery boot power spike.
+- ASUS vendor debug is enabled on the fallback with a 60-second kernel-top
+  worker and world-writable proc controls. Keep this fallback
+  administrator-only; do not change its debug/UFS knobs without a reversible
+  wall-power comparison.
 - The current vendor kernel has BPF and uprobes but no `/sys/kernel/btf/vmlinux`; GodShell cannot run its CO-RE eBPF programs on this baseline.
 - The boot image is not persistent. Any normal reboot returns to the installed fallback kernel.
 - PC cross-compilation is active on Nobara Linux under rootless Podman. Linux
