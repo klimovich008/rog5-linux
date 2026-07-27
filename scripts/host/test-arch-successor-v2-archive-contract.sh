@@ -56,8 +56,8 @@ awk '
 		path=$0
 		sub(/^[.]\//, "", path)
 		count=split(path, part, "/")
-		for (index=1; index <= count; index++)
-			if (part[index] == "..") bad=1
+		for (field=1; field <= count; field++)
+			if (part[field] == "..") bad=1
 	}
 	END { exit bad ? 1 : 0 }
 ' "$listing" || fail 'successor v2 archive contains an unsafe path'

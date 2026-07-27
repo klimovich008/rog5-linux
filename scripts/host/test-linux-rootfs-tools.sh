@@ -10,10 +10,12 @@ successor_export_test=$repo/scripts/host/test-arch-successor-export.sh
 successor_target_test=$repo/scripts/device/test-run-network-root-arch-successor-v1-gate.sh
 successor_runner_test=$repo/scripts/host/test-run-arch-successor-v1-live-gate.sh
 successor_v2_test=$repo/scripts/device/test-arch-successor-v2-packaging-contract.sh
+successor_v2_archive_test=$repo/scripts/host/test-arch-successor-v2-archive-contract.sh
 
 for script in "$fetch" "$stage" "$agent_test" "$metrics_test" \
 	"$successor_export_test" "$successor_target_test" \
-	"$successor_runner_test" "$successor_v2_test"; do
+	"$successor_runner_test" "$successor_v2_test" \
+	"$successor_v2_archive_test"; do
 	[ -x "$script" ] || {
 		echo "FAIL missing executable Linux host tool: $script" >&2
 		exit 1
@@ -26,6 +28,7 @@ done
 "$successor_target_test" >/dev/null
 "$successor_runner_test" >/dev/null
 "$successor_v2_test" >/dev/null
+"$successor_v2_archive_test" >/dev/null
 
 grep -Fq 'verify-arch-rootfs.sh' "$fetch"
 grep -Fq '91e6b11698f8df66042d56aaa56fbe9c9263847d' "$fetch"
