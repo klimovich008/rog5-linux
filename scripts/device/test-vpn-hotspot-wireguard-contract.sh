@@ -51,4 +51,4 @@ then
 	exit 1
 fi
 
-echo 'PASS real-WireGuard hotspot test is ephemeral, network-isolated, packet-based, and production-path-bound'
+echo 'PASS real-WireGuard hotspot test is v2-default, ephemeral, network-isolated, DNS UDP/TCP, endpoint-recovering, and production-path-bound'
