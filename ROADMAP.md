@@ -701,6 +701,12 @@ when no desktop is needed.
   loopback-only Linux host tunnel. Prove Chromium recovery and reject a
   duplicate-producing SSH-coupled supervisor before accepting the singleton
   phone-side design.
+- [x] Attribute the vendor-Alpine screen-off stack: about 390 MiB PSS for
+  KDE, 345 MiB for Chromium, and 66.7 MiB for remote transport, with about
+  10.1 GiB available, zero swap, and 0.78% aggregate CPU in the low-overhead
+  sample. Keep the desktop and browser on demand; do not remove packages from
+  this short baseline alone. See the
+  [resource report](test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md).
 - [x] Stage and fixture-test a redacted collector for CPU, memory/PSS,
   cgroup, thermal, battery, display, and network-counter comparisons.
 - [x] Audit the sealed diagnostic root and current packaging for the normal
@@ -749,7 +755,8 @@ when no desktop is needed.
   [attended-GO HOLD](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
   repeats every technical prerequisite after v3 publication. A fresh exact
   user GO remains mandatory before NFS or boot.
-- [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
+- [ ] Repeat Plasma, Baloo, browser, and remote-desktop memory/idle
+  measurements on the successor Arch image with physical DRM/KWin and KRDP.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
 

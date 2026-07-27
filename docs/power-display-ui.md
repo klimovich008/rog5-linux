@@ -113,6 +113,16 @@ about 10.4 GiB available and 33 sane thermal zones. Repeat idle CPU, service,
 temperature, and wall-power measurements over a longer interval before
 trimming services.
 
+The persistent Alpine fallback's
+[screen-off resource baseline](../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+measured about 390 MiB KDE PSS, 345 MiB Chromium PSS, and 66.7 MiB remote
+transport PSS. About 10.1 GiB remained available, swap stayed at zero, and a
+separate low-overhead 30-second sample measured 0.78% aggregate CPU with the
+panel off and brightness zero. These results justify headless-by-default
+service control, not package removal. They must be repeated on Arch with
+physical DRM/KWin, KRDP, fixed workloads, and valid battery or wall-power
+telemetry.
+
 ## Battery policy
 
 - `schedutil` remains the initial CPU governor.

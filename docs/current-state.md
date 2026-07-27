@@ -104,10 +104,14 @@ GPU tests are intentionally a separate opt-in tier because the failure poisons K
   two supervisors; both were stopped before the accepted pidfile/flock design
   was installed. The final browser-termination test restored Chromium and CDP
   in eight seconds with exactly one supervisor.
-- The live desktop checkpoint retained about 10.2 GiB available memory and
-  used zero swap. An earlier same-boot before/after observation put the
-  incremental nested desktop/browser cost at roughly 264 MiB; full idle-power
-  and per-process PSS measurement remains pending.
+- The
+  [screen-off resource baseline](../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+  retained about 10.1 GiB available memory and zero swap. It attributed about
+  390 MiB PSS to KDE, 345 MiB to Chromium, and 66.7 MiB to remote transport;
+  a separate low-overhead 30-second sample measured 0.78% aggregate CPU.
+  Battery and wall-power measurements remain unavailable, and the same
+  comparison still must be repeated on successor Arch with physical DRM/KWin
+  and KRDP.
 - Recorded memory usage was about 0.85 GiB without the full physical UI and about 1.4 GiB with Plasma Mobile, radio services, and caches active. The device has roughly 11 GiB usable RAM, so reliability and idle power matter more than aggressive memory trimming.
 
 ## Known operational constraints

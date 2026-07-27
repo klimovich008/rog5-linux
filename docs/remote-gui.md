@@ -149,3 +149,12 @@ browser and CDP in eight seconds. See the
 [live report](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
 This does not accept Linux 7.1 display/GPU support, a physical DRM Plasma
 session, KRDP, or a wide-area VPN path.
+
+A separate
+[screen-off resource report](../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+attributes about 390 MiB PSS to KDE, 345 MiB to Chromium, and 66.7 MiB to
+remote transport. With about 10.1 GiB available, zero swap, and 0.78%
+aggregate CPU in the low-overhead sample, the measured optimization is to
+keep Plasma and Chromium on demand while retaining the smaller independent
+remote path. The numbers describe this Alpine software-rendered fallback,
+not successor Arch/KRDP performance.
