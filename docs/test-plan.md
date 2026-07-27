@@ -37,6 +37,12 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   automation cgroup, battery, thermal, display, target, inhibitor, DRM, and
   interface-counter fields; and rejects address, MAC, SSID, serial, or kernel
   command-line sources.
+- `test-collect-component-pss.sh` fixture-tests the separate read-only
+  component collector for desktop, browser, remote-transport, and total
+  process counts/PSS. It fails closed to `unavailable` when a selected
+  process lacks readable PSS, rejects relative fixture roots, and forbids
+  process arguments, environments, descriptors, network identities, and
+  credentials. The full Linux-rootfs tool aggregate delegates this test.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it

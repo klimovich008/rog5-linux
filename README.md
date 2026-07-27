@@ -596,6 +596,14 @@ supervisor restored Chromium and CDP eight seconds after an induced browser
 exit. This is a usable fallback administration path, not Linux 7.1 display,
 KRDP, or accelerated-GPU acceptance.
 
+The separate
+[screen-off resource baseline](test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+attributes about 390 MiB PSS to KDE, 345 MiB to Chromium, and 66.7 MiB to
+remote transport while about 10.1 GiB remained available, swap stayed unused,
+and a low-overhead 30-second sample measured 0.78% aggregate CPU. This
+supports headless-by-default operation with Plasma and Chromium on demand;
+it does not replace Arch/KRDP, battery, or wall-power measurements.
+
 The panel exposes four fixed modes named 144/120/90/60. Its DRM capability blob says `qsync support=false`, `dfps support=false`, and `dyn bitclk support=false`; this is fixed refresh-rate switching, not VRR.
 
 See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
