@@ -990,8 +990,15 @@ now passes a source-pinned pre-GX boundary, twelve patch mutations, strict
 patch checks, and two byte-identical isolated Linux 7.1.4 builds. It changes
 only `msm.ko` from accepted v8 while preserving Image, ABI, config, all other
 installed modules, and storage/firmware containment. V10 remains HOLD: no
-runtime oracle, protected root, target gate, bounded server case, boot
-authority, retry, or flash exists.
+live cycle is authorized. The
+[runtime acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-runtime-offline.md)
+now regenerates both controls and rejects fourteen oracle mutations. The
+[protected-root/pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+adds the exact consumed-v9-derived root, complete recursive verifier,
+compound target/watchdog gate, one-shot runner, and verifier-first
+explicit-token NFS case. Its actual unarmed invocation changes no host state,
+NFS/RPC stays inactive, and the connected Alpine fallback passes strict
+read-only health. No v10 boot, retry, or flash occurred.
 
 The raw ramoops reader and bootloader restart-reason helper remain under
 `tools/diagnostics/`.

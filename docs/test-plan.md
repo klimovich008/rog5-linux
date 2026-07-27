@@ -548,7 +548,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   ZAP/SCM, storage, or retained DRM-descriptor activity. Require a fresh
   protected root, runtime mutation suite, target gate, watchdog,
   one-shot/no-retry runner, verifier-before-state server case, and separate
-  HOLD/GO review. **Pending; no v10 live authority.**
+  HOLD/GO review. **The runtime/root/control requirements and separate
+  [pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+  now pass, including fourteen rejected oracle mutations, complete recursive
+  root verification, actual unarmed zero-state refusal, and connected
+  fallback health. The attended GO review remains pending; there is no v10
+  live authority.**
 - Require the first registration kernel to keep DRM/MSM, GPUCC, and MDT
   loading modular; disable display KMS and UFS; propagate GMU power-level
   failures; embed no A660 firmware; and reproduce its config, Images, module

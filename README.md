@@ -497,8 +497,15 @@ reproduces two complete Linux 7.1.4 builds. Only `msm.ko` changes from the
 accepted v8 build; Image, ABI, config, every other installed module, and
 storage/firmware containment remain unchanged. V10 stops after a balanced,
 synchronously suspended GMU/CX transition and before GX, clocks, secure
-init, MMIO, IRQ, firmware start, or HFI. It remains HOLD: no v10 runtime
-oracle, protected root, server case, boot authority, retry, or flash exists.
+init, MMIO, IRQ, firmware start, or HFI. The
+[v10 protected-root and pre-live review](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+now adds a source-pinned runtime oracle that rejects fourteen mutations, an
+exact consumed-v9-derived protected root, compound target/watchdog gate,
+strict one-shot host runner, and fail-first verifier-before-state bounded NFS
+case. The complete root verifier, actual unarmed zero-state refusal, all
+offline controls, and connected fallback health pass. V10 remains HOLD: no
+live cycle is authorized, no v10 boot has run, and retry or flash is
+prohibited.
 
 Separately, the installed Alpine 3.24 fallback now passes a
 [live remote-GUI checkpoint](test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md)

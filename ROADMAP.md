@@ -605,15 +605,22 @@ Goal: run Plasma through DRM/MSM and Mesa/Freedreno instead of software renderin
   later resources. Two isolated Linux 7.1.4 builds are byte-identical; only
   `msm.ko` differs from accepted v8. See the
   [v10 offline acceptance](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md).
-- [ ] Build and mutation-test a v10 runtime oracle, fresh protected root,
+- [x] Build and mutation-test a v10 runtime oracle, fresh protected root,
   target gate, nested watchdog, one-shot/no-retry runner, and
   verifier-before-state bounded server case. Require exact GMU/CX-domain
   classification and retain every v9 rollback/snapshot/storage/watchdog
   gate. Keep GX runtime PM, clock rate/enable, secure init, MMIO, IRQ,
   firmware start, HFI, ZAP/SCM, successful open, submit, and rendering out
-  of this tier.
-- [ ] Complete separate pre-live HOLD and attended GO reviews before any
-  explicitly authorized, one-cycle RAM-only v10 test. No retry or flash.
+  of this tier. The complete runtime/root/control suite, exact-root server
+  case, actual unarmed zero-state refusal, and connected fallback preflight
+  pass; see the
+  [v10 protected-root and pre-live HOLD report](test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md).
+- [x] Complete a separate v10 pre-live HOLD review without starting NFS or
+  touching the phone. Every offline and recovery prerequisite passes, but
+  this checkpoint grants no live authority.
+- [ ] Complete a fresh attended GO review before any explicitly authorized,
+  one-cycle RAM-only v10 test. No retry or flash; consume v10 regardless of
+  outcome.
 - [ ] Bring up GPU power domains, clocks, regulators, IOMMU, GMU, and firmware.
 - [ ] Verify `/dev/dri/card*` and `/dev/dri/renderD*`.
 - [ ] Repeatedly open the render node and submit simple workloads.
