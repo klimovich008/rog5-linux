@@ -38,6 +38,15 @@ LOG
 	malformed)
 		printf '%s\n' ROG5_VENDOR_KERNEL_LOG_V1 dmesg_begin
 		;;
+	truncated)
+		cat <<'LOG'
+ROG5_VENDOR_KERNEL_LOG_V1
+kernel_release=5.4.134-qgki-perf-00001-g6c308144c23e
+dmesg_begin
+[    T0] [32000.000000] loadavg 3.00 0/500
+dmesg_end
+LOG
+		;;
 	fail)
 		exit 255
 		;;
@@ -115,5 +124,12 @@ if FAKE_MODE=malformed ROG5_CAPTURE_SSH=$fake_ssh \
 	fail 'capture accepted an incomplete framed log'
 fi
 [[ ! -e $malformed ]] || fail 'malformed capture left a partial artifact'
+
+truncated=$fixture/truncated.log
+if FAKE_MODE=truncated ROG5_CAPTURE_SSH=$fake_ssh \
+	"$target" "$truncated" >/dev/null 2>&1; then
+	fail 'capture accepted a ring buffer whose boot origin was overwritten'
+fi
+[[ ! -e $truncated ]] || fail 'truncated ring rejection left an artifact'
 
 echo 'PASS complete vendor-kernel log capture is read-only, private, atomic, and fail-closed'
