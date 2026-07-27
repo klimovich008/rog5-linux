@@ -14,6 +14,7 @@ artifacts/arch/rog5-arch-plasma-network-root-7.1.4-successor-v3.tar.gz	200703367
 artifacts/recovery-inputs/kexec-tools-2.0.32-r2.apk	80911	bd8b6951f862af1123972b521c355c655b7a2f40c2bf9cfe700edd590a101c94	signed Alpine aarch64 kexec loader input	no
 artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk	118819	76dce86852903fef7adba0285d816e5ce9ffbe9fb3ca86bbb349b97afaba1f63	signed Alpine aarch64 kexec dependency input	no
 artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk	365383	2bb5136c89f5b0bbe1554c8915a3b520d5aa63ae2a51d4d821eb81698db5a818	signed Alpine aarch64 kexec dependency input	no
+artifacts/recovery-inputs/libarchive-tools-3.8.7-r0.apk	674658	033049f6d53ff0d267341087adfe142d3e4abe8d3fcec6853e2ed7c95ce2d41e	signed Alpine aarch64 metadata-preserving persistent-root staging input	no
 dist/linux-7.1.4/Image.gz	14383924	377558f8235f3c8123ff5d1a2995ca8d48e8ed685db8d1cdbda0aa9500fee98b	compile-only Linux 7.1.4 ARM64 kernel	no
 dist/linux-7.1.4/kernel.config	242124	8a0febd7edf271ead88e25ba02b96144db2785459a14b1a1ba27293062698d60	verified Linux 7.1.4 final configuration	no
 dist/linux-7.1.4/modules.tar.gz	303147470	8befd30c458544db75b8b3a90aa87f96f01ac791831367be8f7b9562ae165bf5	matching deterministic Linux 7.1.4 modules and dependency metadata	no
