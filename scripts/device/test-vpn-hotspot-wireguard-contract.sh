@@ -12,6 +12,7 @@ test=$repo/scripts/device/test-vpn-hotspot-wireguard.sh
 sh -n "$test"
 
 for contract in \
+	'target=${TARGET:-$repo/scripts/device/vpn-hotspot-v2.sh}' \
 	'umask 077' \
 	'unshare --net --fork --kill-child=KILL' \
 	'ip link add wg0 type wireguard' \
@@ -23,10 +24,18 @@ for contract in \
 	'198.51.100.2/30' \
 	'wg show wg0 latest-handshakes' \
 	'wg show wg0 transfer' \
+	'dns_server=' \
+	'dns_query=' \
+	'socket.SOCK_DGRAM' \
+	'socket.SOCK_STREAM' \
+	'ip link set peer-underlay0 down' \
+	'ip link set peer-underlay0 up' \
+	'transfer_before=' \
+	'transfer_after=' \
 	'AP_IF=wlan0 VPN_IF=wg0 "$target" "$@"' \
 	'trap cleanup EXIT INT TERM' \
 	'rm -rf "$stage"' \
-	'PASS real WireGuard handshake, encrypted hotspot packet, and cleanup'
+	'PASS real WireGuard DNS UDP/TCP, endpoint loss/recovery, and cleanup'
 do
 	grep -Fq "$contract" "$test" || {
 		echo "FAIL real-WireGuard hotspot test omits: $contract" >&2
