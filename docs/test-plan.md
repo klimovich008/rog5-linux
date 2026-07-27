@@ -82,6 +82,16 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   records the exact accepted root and three rejected mutation cases; the
   [pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
   records the fail-first controls and actual unarmed refusal.
+- `test-arch-successor-v2-archive-contract.sh` pins the newer archive, rejects
+  unsafe paths and embedded runtime credentials, and compares both installed
+  hotspot files byte-for-byte with the reviewed v2 sources.
+  `test-arch-successor-v2-export.sh` then requires an exact, v1-independent,
+  root-owned read-only Btrfs export and optionally rejects COW mutations to
+  the seal, hotspot control, hotspot service, and account database. The
+  [v2 rootfs result](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+  and
+  [v2 protected-export result](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+  remain offline HOLD and add no NFS or boot authority.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

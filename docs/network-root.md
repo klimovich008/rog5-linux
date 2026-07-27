@@ -839,6 +839,17 @@ headless first-boot, screen-off, storage exclusion, watchdog handoff, and one
 normal reboot. An actual unarmed invocation changed no normalized host state;
 NFS/RPC remains inactive and the root is unbooted.
 
+The newer
+[successor-v2 archive](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+adds fail-closed transition ordering without changing v1 evidence. Its
+separate
+[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+is `/var/lib/rog5-network-root-arch-successor-v2`, root-owned mode `0555`,
+Btrfs `ro=true`, and sealed over 181,239 entries. The full verifier passes and
+rejects seal, hotspot-script, hotspot-service, and account mutations. It has
+no NFS allowlist or live runner; NFS/RPC remained inactive, and no boot
+authority follows from this offline result.
+
 See the [redacted v3 live report](../test-results/2026-07-24-network-root-v3-live.md)
 for the exact artifact identities, retained-exitrd proof, normal-reboot
 timeline, SSH persistence, and cleanup result. See the

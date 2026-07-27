@@ -49,6 +49,17 @@ first-boot/reboot runner. An actual unarmed invocation preserves
 byte-identical normalized host state. The root remains unbooted, and this
 control-plane acceptance grants no live authority.
 
+The newer
+[successor-v2 archive](test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+keeps the accepted v1 evidence byte-exact while adding kill-switch-first
+forwarding, partial-failure rollback, existing-table refusal, and access-point
+cleanup before firewall removal. Its isolated packet tests, real WireGuard
+test, full AArch64 stage, and clean archive round trip pass. A wholly separate
+[successor-v2 protected export](test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+is root-owned, mode `0555`, Btrfs `ro=true`, recursively sealed over 181,239
+entries, and rejects seal, hotspot-script, hotspot-service, and account
+mutations. V1 is unchanged; v2 is unserved, unbooted, and remains HOLD.
+
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
 aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,

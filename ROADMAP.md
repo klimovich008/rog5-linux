@@ -128,6 +128,9 @@ for a working feature.
   ttyd, and Chromium endpoints with the physical panel off; enable and
   failure-test a loopback-only reconnecting Linux host tunnel plus a
   singleton phone-side desktop supervisor.
+- [x] Build and protect a successor-v2 Arch root with kill-switch-first
+  forwarding, partial-failure rollback, exact v1 preservation, real
+  WireGuard packet evidence, and four rejected protected-root mutations.
 - [ ] Design the persistent storage layout from measured hardware results.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
@@ -308,6 +311,12 @@ traffic outside the VPN.
   systemd ordering cycle, add the hotspot unit to the complete staged-root
   verifier, and retain both packet suites. See the
   [Arch userspace audit](test-results/2026-07-27-arch-userspace-readiness-offline.md).
+- [x] Harden the successor-v2 transition boundary so the nftables kill switch
+  loads before forwarding, partial failures roll back, existing state is
+  refused, forwarding restores before firewall removal, and the AP lowers
+  first. Pass isolated IPv4/IPv6, VPN-loss, unsolicited-ingress, and real
+  WireGuard tests; then clean-round-trip and separately protect the exact
+  [v2 archive](test-results/2026-07-27-arch-successor-v2-rootfs-offline.md).
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
 - [ ] Establish an on-phone handshake to the selected VPN provider.
@@ -689,8 +698,18 @@ when no desktop is needed.
   [pre-live HOLD](test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
   passes verifier-first server ordering, first-boot target checks, strict-SSH
   mocked invocation, one normal reboot, and actual unarmed state preservation.
-- [ ] Choose v10 GPU diagnosis or a normal headless userspace cycle, repeat
-  every preflight, and obtain a fresh explicit GO before NFS or boot.
+- [x] Build the
+  [successor-v2 archive](test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+  and a wholly separate
+  [read-only protected export](test-results/2026-07-27-arch-successor-v2-protected-export-offline.md);
+  reject seal, hotspot-control, hotspot-service, and account mutations while
+  leaving v1 byte-exact and NFS inactive.
+- [ ] Add separately versioned successor-v2 target, one-shot runner, and
+  explicit-token verifier-first NFS controls; prove unarmed state
+  preservation before requesting any live authority.
+- [ ] Choose v10 GPU diagnosis or a successor-v2 normal headless userspace
+  cycle, repeat every preflight, and obtain a fresh explicit GO before NFS or
+  boot.
 - [ ] Measure Plasma, Baloo, browser, and remote-desktop memory/idle cost.
 - [ ] Disable or remove services only when measurements show a useful saving.
 - [ ] Evaluate GNOME only if Plasma fails a concrete requirement.
