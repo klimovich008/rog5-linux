@@ -299,9 +299,14 @@ traffic outside the VPN.
   only the simulated VPN path, reject one-way IPv4/IPv6 ordinary-uplink
   leakage and unsolicited client ingress, fail closed after VPN-interface
   loss, and restore nftables/sysctls on cleanup.
+- [x] Establish a real kernel WireGuard handshake over a network-disabled
+  TEST-NET veth underlay, route a hotspot-client packet through the unchanged
+  production kill-switch, require nonzero encrypted transfer, erase
+  disposable keys, repeat cleanly, and reject a connected container. See the
+  [offline WireGuard report](test-results/2026-07-27-vpn-hotspot-wireguard-offline.md).
 - [ ] Bring up Wi-Fi firmware, calibration, regulatory data, and client mode.
 - [ ] Verify the radio advertises and sustains AP mode.
-- [ ] Establish a real WireGuard or supported VPN handshake.
+- [ ] Establish an on-phone handshake to the selected VPN provider.
 - [ ] Add DHCP, DNS, forwarding, and nftables rules.
 - [ ] Force hotspot-client traffic through the VPN interface.
 - [ ] Drop forwarded client traffic when the VPN is down.

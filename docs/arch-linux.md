@@ -144,10 +144,18 @@ dhcp-option=option:dns-server,VPN_DNS_ADDRESS
 
 VPN configuration and keys live only under `/etc/wireguard/` on the device. They are never built into an image or stored in this repository. Override `AP_IF` or `VPN_IF` in `/etc/rog5/vpn-hotspot.env` when interface names differ; a non-default WireGuard unit also needs a matching systemd override. Before using simultaneous Wi-Fi client and AP interfaces, verify the radio's valid interface combinations with `iw phy`.
 
-Run the routing regression test in the builder container before packaging:
+Run both routing regressions in a privileged, network-disabled builder
+container before packaging:
 
-```powershell
-docker run --rm --privileged --network none --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" rog5-kernel-builder:ubuntu-24.04 sh /workspace/repo/scripts/device/test-vpn-hotspot.sh
+```sh
+podman run --rm --privileged --network none \
+  --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" \
+  rog5-kernel-builder:ubuntu-24.04 \
+  sh /workspace/repo/scripts/device/test-vpn-hotspot.sh
+podman run --rm --privileged --network none \
+  --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" \
+  rog5-kernel-builder:ubuntu-24.04 \
+  sh /workspace/repo/scripts/device/test-vpn-hotspot-wireguard.sh
 ```
 
 That test now sends UDP packets across isolated client, simulated-VPN, and
@@ -157,6 +165,13 @@ cannot enter the AP client, VPN-interface loss stays closed, and teardown
 restores nftables and forwarding sysctls. Receipt-marker mutation testing
 also detects one-way exfiltration when replies are dropped. See the
 [offline packet report](../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
-A real client still must pass ath11k AP capability, DHCP, VPN DNS, a real
-WireGuard handshake, endpoint reachability, VPN loss/recovery, radio
-coexistence, throughput, thermals, charging, and battery tests on hardware.
+The
+[real-WireGuard offline gate](../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
+adds a credential-free kernel handshake over a local TEST-NET veth underlay
+and sends one hotspot-client packet through the unchanged production
+kill-switch. It requires nonzero handshake and encrypted transfer counters,
+refuses a network-connected container, erases its disposable mode-`0600`
+keys, and repeats with exact cleanup. A real client still must pass ath11k AP
+capability, DHCP, VPN DNS, an on-phone/provider handshake, endpoint
+reachability, VPN loss/recovery, radio coexistence, throughput, thermals,
+charging, and battery tests on hardware.

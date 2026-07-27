@@ -42,6 +42,12 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   packets through isolated AP, VPN, and ordinary-uplink namespaces; it
   requires VPN-only forwarding, unsolicited-client isolation, fail-close
   after VPN loss, and exact cleanup without phone hardware.
+- `test-vpn-hotspot-wireguard-contract.sh` pins the separate
+  `test-vpn-hotspot-wireguard.sh` to a network-disabled TEST-NET underlay,
+  mode-`0600` disposable keys, a real kernel WireGuard handshake, nonzero
+  encrypted transfer counters, the production kill-switch, and exact
+  teardown. Run the packet test only in the privileged network-disabled
+  builder container.
 - `test-load-mainline-recovery.sh` rejects non-Haven watchdog controls and rollback timeouts outside 30-900 seconds before loading kexec.
 - `verify-ufs-discovery-patch.sh` applies the three-patch discovery series to
   the pinned tree, enforces exact query/SCSI whitelists, rejects
@@ -640,6 +646,8 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 
 - Wi-Fi client associates and routes to the internet.
 - Hotspot DHCP, DNS, NAT, and source-policy routing pass.
+- A real hotspot client reaches DNS and the internet only through the
+  on-phone VPN; endpoint loss and reconnect never expose the ordinary uplink.
 - Radio startup produces no modem watchdog, fatal interrupt, or WLAN RDDM.
 - SSH is key-only and remote access is not exposed directly to the public internet.
 
