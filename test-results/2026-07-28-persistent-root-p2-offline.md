@@ -104,6 +104,7 @@ scripts/device/test-persistent-root-initramfs.sh
 scripts/device/test-load-mainline-persistent-root.sh
 scripts/device/test-mainline-persistent-root-build.sh BUILD_A BUILD_B
 python3 scripts/host/test-persistent-root-acm.py
+scripts/host/test-run-persistent-root-p2-live-gate.sh
 git diff --check
 sh -n on every new shell source
 ShellCheck -S warning on every new shell source
@@ -128,35 +129,54 @@ is an external connection/boot-mode HOLD, not a P2 acceptance result.
 
 ## Attended live sequence
 
-Prerequisites are exactly one phone in fastboot, the cable left connected,
-inactive ModemManager, and the manifest-pinned local artifact:
+`scripts/host/run-persistent-root-p2-live-gate.sh` is the preferred entry
+point. Its mocked positive path proves this exact order:
+
+1. clean, pushed repository and manifest-pinned boot-image preflight;
+2. temporary `fastboot boot`;
+3. fixed ACM load and read-only staging preflight;
+4. one non-retryable `kexec -e`;
+5. exact target kernel, immutable readiness record, ongoing 116-node
+   read-only/storage-health state, strict SSH, systemd, screen-off state, and
+   live watchdog;
+6. no watchdog disarm or target reboot request;
+7. automatic return to the separately pinned Alpine SSH identity;
+8. exact fallback kernel/pstore/thermal state plus unchanged root seal,
+   `UNBOOTED` promotion state, absent selectors, and screen off; and
+9. restoration of the host's initial ModemManager state.
+
+A synthetic target-attestation failure stops before any fallback acceptance
+claim, leaves the target watchdog untouched, and still restores host state.
+The test also proves that execute occurs exactly once.
+
+Prerequisites are exactly one phone in fastboot, the cable left connected, a
+clean branch synchronized with its remote, the approved client key and
+fallback known-hosts file, a caller-private evidence directory outside the
+repository, and the manifest-pinned local artifact:
 
 ```sh
-systemctl stop ModemManager.service
-BOOT_IMAGE="$PWD/artifacts/persistent-root-p2/boot-5.4.210-persistent-root.avb.img" \
-  scripts/host/recovery-linux.sh preflight
-ALLOW_TEMPORARY_BOOT=1 \
-  BOOT_IMAGE="$PWD/artifacts/persistent-root-p2/boot-5.4.210-persistent-root.avb.img" \
-  scripts/host/recovery-linux.sh boot
-ALLOW_PERSISTENT_ROOT_ACM=1 \
-  scripts/host/persistent-root-acm.py load
-ALLOW_PERSISTENT_ROOT_ACM=1 \
-  scripts/host/persistent-root-acm.py preflight
-ALLOW_PERSISTENT_ROOT_ACM=1 ALLOW_ATTENDED_KEXEC=1 \
-  scripts/host/persistent-root-acm.py execute
+install -d -m 0700 /private/path/rog5-p2-evidence
+ALLOW_PERSISTENT_ROOT_P2_LIVE_GATE=1 \
+  ALLOW_TEMPORARY_BOOT=1 \
+  ALLOW_ATTENDED_KEXEC=1 \
+  SSH_KEY=/private/path/rog5-client-key \
+  KNOWN_HOSTS=/private/path/rog5-fallback-known-hosts \
+  EVIDENCE_DIR=/private/path/rog5-p2-evidence \
+  scripts/host/run-persistent-root-p2-live-gate.sh
 ```
 
-The host then waits for `169.254.77.2`, uses the separately approved client
-key with a temporary known-hosts file, and requires `/run/rog5-p2-ready`.
-Evidence must confirm exact Linux 7.1.4, systemd PID 1, one `ro,noload`
-userdata mount, volatile OverlayFS root, 116/116 read-only physical nodes,
-zero blocked/journal/UFS errors, strict SSH, zero failed units, and
-backlights at zero.
+The target generates a volatile SSH host key. The runner captures the first
+connection only into a fresh mode-0600 temporary file and proceeds only when
+that peer reports exact `7.1.4-gcfd385a1c754`; every later target connection
+is strict against the captured key. The temporary file is removed after the
+cycle. The stable fallback key remains separately pinned and is never
+replaced. Evidence is written mode 0600 outside the repository.
 
 The target watchdog is not disarmed. Its direct reset must return to the
 exact Alpine fallback with a changed boot identity, no fatal pstore record,
-the root still `UNBOOTED`, and both selector files absent. ModemManager is
-restored only after fallback verification.
+the root still `UNBOOTED`, and both selector files absent. Default timing
+bounds allow 480 seconds for the sealed target to become ready and 750
+seconds for the independent 600-second reset plus Alpine recovery.
 
 ## Decision
 

@@ -206,8 +206,11 @@ The live gate has not run. Direct loading from Alpine failed safely because
 its exact 5.4.134 kernel has kexec disabled, and the subsequent guarded reboot
 disconnected without exposing fastboot or another phone USB identity. The
 manifest-pinned image is ready for one attended, non-flashing `fastboot boot`
-when the phone is physically visible. P3 remains blocked until the complete
-P2 target evidence and automatic Alpine fallback pass.
+when the phone is physically visible. The same report documents the
+guard-first one-shot host runner that verifies target and fallback, never
+disarms the 600-second watchdog, stores evidence privately, and restores
+ModemManager. P3 remains blocked until the complete P2 target evidence and
+automatic Alpine fallback pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

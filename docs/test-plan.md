@@ -215,6 +215,12 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression
   proves cursor-position queries are never returned as shell input.
+- `run-persistent-root-p2-live-gate.sh` composes the manifest-pinned temporary
+  boot, fixed P2 ACM actions, volatile target-host-key capture, immutable
+  target readiness record, untouched 600-second watchdog, exact fallback
+  identity/root state, private evidence, and ModemManager restoration. Its
+  mocked positive path proves exact ordering and one execute; a target
+  rejection cannot reach fallback acceptance.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
