@@ -18,7 +18,7 @@ ExecStart=/usr/bin/ssh -N -T \
 	-L 127.0.0.1:9222:127.0.0.1:9222 \
 	-L 127.0.0.1:13389:127.0.0.1:3389 \
 	rog5-fallback
-ExecStartPost=/usr/bin/ssh -T -o BatchMode=yes rog5-fallback /usr/local/sbin/rog5-desktop-start
+ExecStartPost=/usr/bin/ssh -T -o BatchMode=yes rog5-fallback /usr/local/sbin/rog5-desktop-supervisor start
 Restart=always
 RestartSec=5s
 TimeoutStartSec=30s
