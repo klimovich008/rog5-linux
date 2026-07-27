@@ -7,6 +7,7 @@ avbtool=${3:?missing avbtool}
 expected_sums=${4:?missing expected SHA-256 manifest}
 gpucc_status=${5:-disabled}
 smmu_status=${6:-disabled}
+expected_loader_sha=${EXPECTED_NETWORK_ROOT_LOADER_SHA256:-current}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 
 case $gpucc_status in
@@ -199,8 +200,22 @@ gzip -dc "$staging_initramfs" |
 cmp "$stage/target/init" "$repo/initramfs/network-root-init"
 grep -Fq 'rog5.netroot=1' "$stage/target/init"
 cmp "$stage/staging/init" "$repo/initramfs/recovery-init"
-cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
-	"$repo/scripts/device/load-mainline-network-root.sh"
+embedded_loader=$stage/staging/usr/local/sbin/rog5-load-mainline-recovery
+case $expected_loader_sha in
+	current)
+		cmp "$embedded_loader" \
+			"$repo/scripts/device/load-mainline-network-root.sh"
+		;;
+	*[!0-9a-f]*|'')
+		echo 'FAIL invalid expected embedded loader SHA-256' >&2
+		exit 1
+		;;
+	*)
+		[ "${#expected_loader_sha}" -eq 64 ]
+		[ "$(sha256sum "$embedded_loader" | cut -d ' ' -f 1)" = \
+			"$expected_loader_sha" ]
+		;;
+esac
 [ ! -e "$stage/staging/root/.ssh/authorized_keys" ]
 [ -z "$(find "$stage/staging/etc/ssh" -maxdepth 1 -type f \
 	-name 'ssh_host_*' -print -quit)" ]
