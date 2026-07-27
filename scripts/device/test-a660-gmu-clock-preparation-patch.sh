@@ -71,6 +71,67 @@ fi
 
 if [ -n "${SOURCE_DIR:-}" ]; then
 	"$verifier" "$patch" "$SOURCE_DIR"
+
+	stage=$(mktemp -d)
+	trap 'rm -rf "$stage"' EXIT INT TERM
+
+	mutate_and_reject() {
+		name=$1
+		old=$2
+		new=$3
+		mutant=$stage/$name.patch
+		replacement=$(printf '%s\n' "$new" | sed 's/&/\\\&/g')
+		sed "s|$old|$replacement|" "$patch" >"$mutant"
+		grep -Fq "$new" "$mutant"
+		if ALLOW_UNPINNED_PATCH=1 SKIP_V9_UMBRELLA_RUN=1 \
+			"$verifier" "$mutant" "$SOURCE_DIR" >/dev/null 2>&1
+		then
+			echo "FAIL verifier accepts $name mutation" >&2
+			exit 1
+		fi
+	}
+
+	mutate_and_reject writable-parameter \
+		'module_param(gmu_clock_preparation_only, bool, 0400);' \
+		'module_param(gmu_clock_preparation_only, bool, 0600);'
+	mutate_and_reject preconsumed-open \
+		'gmu_clock_preparation_only_open_consumed = ATOMIC_INIT(0)' \
+		'gmu_clock_preparation_only_open_consumed = ATOMIC_INIT(1)'
+	mutate_and_reject preattempted-state \
+		'gmu_clock_preparation_only_state = ATOMIC_INIT(0)' \
+		'gmu_clock_preparation_only_state = ATOMIC_INIT(1)'
+	mutate_and_reject wrong-chip '0x06060001' '0x06060300'
+	mutate_and_reject wrong-clock-count \
+		'gmu->nr_clocks != 7' 'gmu->nr_clocks != 8'
+	mutate_and_reject missing-core-clock-check \
+		'IS_ERR_OR_NULL(gmu->core_clk)' 'false'
+	mutate_and_reject skip-gmu-get-balance \
+		'pm_runtime_put_noidle(gmu->dev);' 'gmu->dev = gmu->dev;'
+	mutate_and_reject skip-gx-get-balance \
+		'pm_runtime_put_noidle(gmu->gxpd);' 'gmu->gxpd = gmu->gxpd;'
+	mutate_and_reject wrong-core-rate '200000000' '201000000'
+	mutate_and_reject wrong-hub-rate '150000000' '151000000'
+	mutate_and_reject skip-clock-disable \
+		'clk_bulk_disable_unprepare(gmu->nr_clocks, gmu->clocks);' \
+		'gmu->nr_clocks = gmu->nr_clocks;'
+	mutate_and_reject skip-hub-rate-restore \
+		'clk_set_rate(gmu->hub_clk, hub_rate)' \
+		'clk_get_rate(gmu->hub_clk)'
+	mutate_and_reject skip-core-rate-restore \
+		'clk_set_rate(gmu->core_clk, core_rate)' \
+		'clk_get_rate(gmu->core_clk)'
+	mutate_and_reject async-gx-rollback \
+		'pm_runtime_put_sync_suspend(gmu->gxpd)' \
+		'pm_runtime_put(gmu->gxpd)'
+	mutate_and_reject async-gmu-rollback \
+		'pm_runtime_put_sync_suspend(gmu->dev)' \
+		'pm_runtime_put(gmu->dev)'
+	mutate_and_reject skip-cx-suspend \
+		'pm_runtime_suspend(gmu->cxpd)' \
+		'pm_runtime_active(gmu->cxpd)'
+	mutate_and_reject skip-gx-state-check \
+		'!pm_runtime_suspended(gmu->gxpd)' 'false'
+	mutate_and_reject successful-open 'return -EUCLEAN;' 'return 0;'
 fi
 
 echo 'PASS A660 GMU clock-preparation patch is default-off, exact-chip, one-shot, seven-clock, rollback-safe, and pre-secure'
