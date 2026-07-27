@@ -7,4 +7,4 @@ stage=${STAGE_ROOT:-/stage}
 	exit 1
 }
 ARCH_DEVICE_STAGE=scripts/device/stage-arch-rootfs-v3.sh \
-	exec "$stage/workspace/repo/scripts/device/run-arch-rootfs-stage.sh"
+	exec /bin/bash "$stage/workspace/repo/scripts/device/run-arch-rootfs-stage.sh"
