@@ -457,7 +457,10 @@ retry.
 6. Add the fixed read-only host-serving command and controller/firewall
    integration. **Complete offline; not installed on the host.**
 7. Remove all three interactive shells and update image verifiers.
+   **Complete offline.**
 8. Rebuild once, reproducibly, and create a new temporary-boot candidate.
+   **Initramfs integration passes with an ephemeral test key; production
+   trust root and wrapper remain.**
 9. Run the staging-only promotion sequence.
 10. Integrate the tested host-ledger semantics with the native responder and
    device-minted session.

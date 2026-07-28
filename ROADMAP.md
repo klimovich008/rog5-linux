@@ -95,20 +95,20 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **protocol core, fixed fetch/serving, trust verifier, and
-same-descriptor load are integrated offline; blocked on initramfs
-integration**
+Status: **protocol core, fixed fetch/serving, trust verifier,
+same-descriptor load, and interactive-shell-free initramfs integration pass
+offline; production trust root and wrapper re-freeze remain**
 
 - [x] Implement an offline-tested static responder whose production default
   owns `/dev/ttyGS0`.
-- [ ] Mint the per-boot device session before USB bind and retain it across
+- [x] Mint the per-boot device session before USB bind and retain it across
   responder restart under `/run`.
 - [x] Implement only `HELLO`, `STATUS`, `PREPARE`, and `COMMIT_EXEC`.
 - [x] Invoke the fixed production `kexec -e` path with `execve`; never invoke
   a shell.
 - [ ] Integrate the production responder, verifier, fixed kexec-tools, and
   public key into the initramfs before USB bind.
-- [ ] Remove `sh -i` from recovery, network-root, and persistent-root
+- [x] Remove `sh -i` from recovery, network-root, and persistent-root
   initramfs variants.
 - [x] Implement and independently test fixed-NCM-host binary bundle
   acquisition, an unprivileged chroot/seccomp worker, bounded RAM inventory,
@@ -132,7 +132,7 @@ integration**
 - [ ] Ask the user before creating or using the production signing key.
 - [x] Generate a fixed profiled command line; reject arbitrary `init=`,
   `root=`, and unsafe reserved-memory input.
-- [ ] Preserve storage isolation and rollback ordering before UDC bind.
+- [x] Preserve storage isolation and rollback ordering before UDC bind.
 - [ ] Build twice and prove byte-identical responder, initramfs, wrapper, and
   AVB outputs.
 - [ ] Update all source, hash, and verifier pins in one change.

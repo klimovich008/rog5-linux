@@ -250,14 +250,6 @@ write_ufs_inventory() {
 	[ "$(wc -l <"$inventory")" -eq $((expected_physical_count + 1)) ]
 }
 
-serve_acm() {
-	while :; do
-		while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
-		setsid sh -c 'exec sh -i <>/dev/ttyGS0 >&0 2>&0' || true
-		sleep 1
-	done
-}
-
 configure_usb() {
 	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
@@ -272,16 +264,11 @@ configure_usb() {
 	echo 0x01 >"$gadget/bDeviceProtocol"
 	echo Linux >"$gadget/strings/0x409/manufacturer"
 	echo 'ROG5 persistent root' >"$gadget/strings/0x409/product"
-	echo 'Read-only Arch root with NCM and ACM' \
+	echo 'Read-only Arch root over NCM' \
 		>"$gadget/configs/c.1/strings/0x409/configuration"
-	mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
+	mkdir -p "$gadget/functions/ncm.usb0"
 	ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
-	ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
 	mdev -s || return 1
-	[ -c /dev/ttyGS0 ] || return 1
-
-	serve_acm &
-	echo $! >/run/rog5-p2-acm.pid
 
 	udc=
 	attempt=0
@@ -537,10 +524,6 @@ if ! verify_physical_storage_read_only ||
 	! verify_ufs_health; then
 	log 'final read-only storage gate failed'
 	force_rollback
-fi
-
-if [ -r /run/rog5-p2-acm.pid ]; then
-	kill "$(cat /run/rog5-p2-acm.pid)" 2>/dev/null || true
 fi
 
 mkdir -p /newroot/.rog5/userdata-ro /newroot/.rog5/state \
