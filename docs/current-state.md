@@ -325,11 +325,17 @@ unchanged `UNBOOTED` seal, absent selectors, and screen off all passed. The
 success marker is now output-only, rejected volatile SSH keys are cleared
 between probes, the wrapper expressly omits target-only UFS discovery, and
 its ACM preflight independently requires all 116 physical nodes read-only.
-The Linux 7.1.4 loader still supplies exactly one target UFS flag. Two latest
-repacks are byte-identical and have not run live; P2 remains rejected/HOLD
-and P3 remains prohibited. Eight target pre-USB branches have unique bounded
-5-95 second timing markers. The next attended temporary boot is therefore a
-diagnostic interval measurement, not a blind retry.
+The Linux 7.1.4 loader still supplies exactly one target UFS flag. The next
+[timing run](../test-results/2026-07-28-persistent-root-p2-config-timing-live-rejected.md)
+passed recovery preflight, executed the target exactly once, and returned to
+exact Alpine after 37 seconds, selecting the previous broad kernel-config
+branch. The target Image's embedded config equals the pinned config exactly.
+A fail-first correction now decodes it once into RAM, requires its complete
+SHA-256 identity, and gives file, decode, and identity failures separate
+bounded timings. Two latest config-identity repacks are byte-identical and
+have not run live; P2 remains rejected/HOLD and P3 remains prohibited. Ten
+target pre-USB branches have unique bounded 5-110 second timing markers. One
+further attended temporary boot is a diagnostic, not a blind retry.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

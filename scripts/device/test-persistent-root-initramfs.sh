@@ -8,6 +8,7 @@ shutdown=$repo/initramfs/persistent-root-shutdown
 builder=$repo/scripts/device/build-persistent-root-initramfs.sh
 base=${1:-$repo/artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz}
 verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-verify}
+config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -21,17 +22,30 @@ done
 for path in "$init" "$attest" "$shutdown" "$builder"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
 done
-[ -s "$base" ] && [ -x "$verifier" ] ||
+[ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ] ||
 	fail 'missing P2 initramfs binary input'
+[ "$(sha256sum "$config" | cut -d ' ' -f 1)" = \
+	8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ] ||
+	fail 'P2 runtime-config identity does not match the pinned target config'
 
 for script in "$init" "$attest" "$shutdown" "$builder"; do
 	sh -n "$script"
 done
 
 grep -Fq 'rog5.persistent_ro=1' "$init"
-grep -Fq 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$init"
-grep -Fq 'CONFIG_EXT4_FS=y' "$init"
-grep -Fq 'CONFIG_OVERLAY_FS=y' "$init"
+grep -Fq 'expected_config_sha256=8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3' \
+	"$init"
+grep -Fq 'kernel_config=/run/rog5-kernel.config' "$init"
+grep -Fq 'gzip -dc /proc/config.gz >"$kernel_config"' "$init"
+grep -Fq 'chmod 0400 "$kernel_config"' "$init"
+grep -Fq 'sha256sum "$kernel_config"' "$init"
+config_decode_count=$(grep -Fc \
+	'gzip -dc /proc/config.gz >"$kernel_config"' "$init" || true)
+[ "$config_decode_count" -eq 1 ] ||
+	fail "expected one runtime-config decode, found $config_decode_count"
+config_hash_count=$(grep -Fc 'sha256sum "$kernel_config"' "$init" || true)
+[ "$config_hash_count" -eq 1 ] ||
+	fail "expected one runtime-config identity check, found $config_hash_count"
 grep -Fq 'expected_physical_count=116' "$init"
 grep -Fq 'expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff' \
 	"$init"
@@ -48,13 +62,15 @@ grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
 grep -Fq 'WantedBy=multi-user.target' "$init"
 for timing_marker in \
 	'cmdline:5' \
-	'kernel-config:10' \
-	'ufs-discovery:20' \
-	'ufs-power:35' \
-	'storage-lock:50' \
-	'userdata:65' \
-	'inventory:80' \
-	'usb:95'; do
+	'config-file:10' \
+	'config-decode:15' \
+	'config-identity:20' \
+	'ufs-discovery:35' \
+	'ufs-power:50' \
+	'storage-lock:65' \
+	'userdata:80' \
+	'inventory:95' \
+	'usb:110'; do
 	grep -Fq "$timing_marker" "$init"
 done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
@@ -127,4 +143,4 @@ cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
 ! find "$work/root" -type f -exec grep -Il 'BEGIN .*PRIVATE KEY' {} + |
 	grep -q .
 
-echo 'PASS deterministic credential-free P2 initramfs pins read-only UFS, exact userdata/root seal, tmpfs OverlayFS, runtime attestation, and SysRq rollback'
+echo 'PASS deterministic credential-free P2 initramfs pins one-pass runtime config identity, read-only UFS, exact userdata/root seal, tmpfs OverlayFS, and SysRq rollback'

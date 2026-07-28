@@ -88,13 +88,14 @@ Two independent repacks are byte-identical:
 | unsigned AVB image | 100,663,296 | `f4f33bae1e69c8499527be159d409b53cea424e09eefc7e25c73157516d54249` |
 
 The target Image, DTB, timing-diagnostic initramfs, nested stage, ASUS
-wrapper Image, watchdog, root seal, and target read-only UFS policy are
-unchanged.
+wrapper Image, watchdog, root seal, and target read-only UFS policy were
+unchanged in that correction.
 
 ## Decision
 
 The rejected wrapper image is superseded and must not be retried or flashed.
 P2 remains HOLD and P3 remains prohibited. After the corrected source,
-manifest, tests, and report are committed and pushed, one attended
-non-flashing run of the corrected package may proceed to the original
-target timing classification.
+manifest, tests, and report were committed and pushed, one attended
+non-flashing run proceeded to the original target timing classification. It
+reached recovery, executed the target exactly once, and
+[safely selected the runtime kernel-config branch](2026-07-28-persistent-root-p2-config-timing-live-rejected.md).
