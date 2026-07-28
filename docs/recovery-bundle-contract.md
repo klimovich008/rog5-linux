@@ -1,8 +1,8 @@
 # Recovery runtime bundle contract
 
-Status: **fixed-host fetch, native verifier handoff, and responder
-same-descriptor load integrated and tested offline; host serving and
-initramfs integration pending**
+Status: **fixed-host fetch, atomic host packaging, native verifier handoff,
+and responder same-descriptor load are integrated and tested offline;
+production trust root and live promotion remain**
 
 Live authority: **none**
 
@@ -16,11 +16,16 @@ and QEMU aggregate are `scripts/device/build-recovery-bundle-verifier.sh` and
 `scripts/host/test-recovery-bundle-aarch64.sh`. The timestamped no-cache
 builder bootstrap is
 `scripts/host/build-recovery-bundle-verifier-image.sh`.
+The atomic host packager is
+`scripts/host/prepare-recovery-runtime-bundle.py`, with refusal,
+determinism, metadata, native-verifier, and host-server coverage in
+`scripts/host/test-prepare-recovery-runtime-bundle.py`.
 
 The production responder source now invokes the fixed-host helper under the
 rollback watchdog, calls the verifier through a private descriptor handoff,
-and loads the exact verified files. None of those binaries is present in an
-initramfs. The helper and its protocol are documented in
+and loads the exact verified files. All three binaries are present in the
+reproducible offline initramfs and wrapper checkpoint, but no production
+release image has been authorized. The helper and its protocol are documented in
 [fixed recovery bundle transport](recovery-fetch-contract.md). This
 checkpoint cannot authorize a phone action. A production signing key does
 not exist. Tests generate an ephemeral Ed25519 key under a temporary
@@ -110,6 +115,58 @@ target timeout must leave at least 30 seconds of rollback margin.
 manifest bytes. The caller also supplies the expected manifest SHA-256. The
 verifier requires both the requested hash and the signature before accepting
 the bundle.
+
+## Atomic host preparation
+
+The host packager accepts one explicit bundle identity, fixed profile, three
+source artifacts, target identity, timeout pair, private Ed25519 key, and an
+empty bundle root. It does not generate a key, select a payload, modify an
+allowlist, serve a bundle, or contact the phone.
+
+The key must be an unencrypted Ed25519 private key owned by the caller, have
+one link, and have exact mode `0400` or `0600`. The bundle root must be a real
+caller-owned directory with exact mode `0700` and no entries. The packager
+opens source and key files without following their final symbolic link,
+copies the already-open source descriptors into a private staging directory,
+binds the copied sizes and hashes into the canonical manifest, signs through
+private file descriptors, and atomically renames the finalized `0500`
+directory. Every output file has exact mode `0400`, owner equal to the caller,
+and link count one. The private key and its pathname never enter the bundle.
+The root remains unchanged on validation or signing failure.
+
+An offline invocation has this shape:
+
+```sh
+scripts/host/prepare-recovery-runtime-bundle.py \
+  --bundle "$BUNDLE_ID" \
+  --profile "$BUNDLE_PROFILE" \
+  --image "$KERNEL_IMAGE" \
+  --dtb "$BOARD_DTB" \
+  --initramfs "$INITRAMFS" \
+  --target-id "$TARGET_ID" \
+  --target-release "$TARGET_RELEASE" \
+  --rollback-timeout "$ROLLBACK_TIMEOUT" \
+  --target-timeout "$TARGET_TIMEOUT" \
+  --private-key "$EPHEMERAL_ED25519_KEY" \
+  --bundle-root "$EMPTY_BUNDLE_ROOT"
+```
+
+Use only a disposable test key until the production-key approval gate is
+complete. Success prints a canonical non-secret record containing the bundle
+and profile, manifest hash, and raw public-key hash. Signing is not acceptance:
+the resulting bundle must still pass the native verifier and all release
+gates. The fixed profile mapping is:
+
+| Payload class | Profile |
+|---|---|
+| RAM-only diagnostic initramfs | `diagnostic-initramfs-v1` |
+| Accepted A660/network-root ancestry | `network-root-v1` |
+| Read-only persistent Arch root | `persistent-root-ro-v1` |
+
+The A660 mapping adds no free-form command line or replay permission. Target
+identity and artifact hashes distinguish candidates. In particular, the
+consumed v9 live payload remains evidence and cannot be executed again merely
+because the packaging path can represent its ancestry.
 
 ## Artifact policy
 
@@ -259,8 +316,10 @@ change requires a fresh two-build/QEMU result and updated pins.
 
 ## Remaining integration gates
 
-The verifier/responder boundary now completes these offline gates:
+The packager/verifier/responder boundary now completes these offline gates:
 
+- atomic caller-owned host packaging with deterministic manifests and
+  signatures under a fixed ephemeral key;
 - fixed same-peer `SOCK_SEQPACKET` plan and descriptor transfer;
 - exact canonical plan parsing and request identity matching;
 - write-sealed snapshots verified after copying, so source path replacement
@@ -272,25 +331,23 @@ The verifier/responder boundary now completes these offline gates:
 - host and real AArch64/QEMU tests for path replacement, in-place overwrite,
   malformed plans and rights without descriptor leaks, verifier/loader
   failure, bounded child reap, watchdog death, ledger-boundary replay, and
-  crash-after-load retry.
+  crash-after-load retry;
+- fixed-host serving, private device fetch, atomic device publication,
+  initramfs integration, shell removal, and two clean wrapper/AVB builds.
 
-Before this path may enter a recovery image:
+Before this path may replace the accepted recovery:
 
-1. fetch all five files from the fixed NCM host into a private temporary
-   directory;
-2. publish one finalized owner-private bundle directory atomically and leave
-   no mutator running;
-3. integrate both pinned binaries and the already pinned Alpine arm64
-   `kexec-tools 2.0.32-r2` build into the initramfs;
-4. prove `/proc` and the watchdog are ready before the responder and that
-   storage isolation precedes USB bind;
-5. run the separately authorized load-only `kexec_loaded` 0→1, repeat-load,
+1. create or use a production signing key only after separate user
+   confirmation, then embed and pin its public trust root;
+2. re-run the complete two-clean-build and independent-review gate with the
+   production public key and final release pins;
+3. run two staging-only RAM-root/storage/USB/rollback cycles and two
+   protocol-only malformed/replay cycles;
+4. run the separately authorized load-only `kexec_loaded` 0→1, repeat-load,
    and `kexec -c -u` 1→0 procfd gate without executing a payload, including
    the loaded-then-timeout reconciliation path;
-6. independently review the combined fetch/verifier/responder image boundary;
-7. create or use a production signing key only after separate user
-   confirmation.
+5. run one signed inert execute cycle with host write-ahead intent and
+   out-of-band outcome classification.
 
-Initramfs integration, shell removal, wrapper rebuild, image verification,
-staging-only live promotion, and any payload execution remain later,
+Production signing, staging promotion, and every payload execution remain
 separately reviewed gates.

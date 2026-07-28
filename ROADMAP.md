@@ -119,6 +119,9 @@ pins, and live promotion remain**
   integration for the canonical binary stream.
 - [x] Implement and test canonical signed manifests against the fixed
   production key path using ephemeral test keys only.
+- [x] Add an atomic host packager with deterministic output, exact private
+  metadata, no key copying, native-verifier coverage, host-server coverage,
+  and fail-closed staging cleanup.
 - [x] Copy the exact kernel, DTB, and initramfs into write-sealed snapshots,
   verify those immutable bytes, transfer their descriptors over a private
   `SOCK_SEQPACKET` channel, and load only those descriptors with bounded,
