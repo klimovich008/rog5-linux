@@ -1,7 +1,7 @@
 # Stable recovery control plane
 
-Status: **reference oracle and native protocol core implemented offline;
-signed-bundle verifier and image integration pending**
+Status: **reference oracle, native protocol core, and standalone signed-bundle
+verifier implemented offline; responder and image integration pending**
 
 Live authority: **none**
 
@@ -19,8 +19,10 @@ is `scripts/device/build-recovery-control.sh`. The reproducibility/QEMU
 aggregate is `scripts/host/test-recovery-control-aarch64.sh`. Host and
 QEMU-backed AArch64 tests exercise the same source. The production compile has
 no test backend, accepts no path override, and rejects every `PREPARE` until
-the signed-bundle verifier is implemented. It is not included in an initramfs
-and grants no live authority.
+the standalone signed-bundle verifier is integrated. The exact verifier
+contract and its separate reproducible AArch64/QEMU suite are documented in
+[recovery runtime bundle contract](recovery-bundle-contract.md). Neither
+binary is included in an initramfs, and neither grants live authority.
 
 The current recovery transport is reliable enough to reach USB, but its
 control plane is not reliable enough to authorize another payload execution.
@@ -223,22 +225,25 @@ payload automatically.
 
 ## Runtime bundle trust
 
-The stable image embeds only a public verification key and policy. A runtime
-bundle contains:
+The exact first-version format, bounds, fixed paths, generated command line,
+FDT policy, reproducible build, and remaining integration gates are in
+[recovery runtime bundle contract](recovery-bundle-contract.md). The stable
+image embeds only a public verification key and policy. A runtime bundle
+contains:
 
 - protocol and manifest version;
 - bundle ID and purpose;
-- kernel, DTB, and optional initramfs size and SHA-256;
+- kernel, DTB, and mandatory initramfs size and SHA-256;
 - expected target kernel release and USB/SSH identity;
 - a structured command-line policy;
 - rollback timeout and target acceptance timeout within frozen bounds;
 - a detached signature over canonical manifest bytes.
 
-The command-line policy represents fields rather than text. The first version
-should permit only reviewed console, log level, root mode, NFS identity,
-read-only storage, and ramoops parameters. It must reject at least arbitrary
-`init=`, arbitrary `root=`, unknown keys, duplicate keys, unsafe memory
-overlaps, writable-root flags, and unbounded timeouts.
+The first version does not accept command-line fields or text from the
+manifest. It generates an exact command line from the fixed profile, validated
+bundle ID, and bounded rollback timeout. That narrower rule rejects arbitrary
+`init=`, `root=`, unknown keys, duplicates, writable-root flags, and unbounded
+timeouts by construction.
 
 No signing key has been created. Creating or using that credential requires a
 separate user confirmation. Until then, the implementation and tests can use
@@ -349,13 +354,16 @@ retry.
 
 1. Implement the parser/state reference model and fault-injection tests.
 2. Implement the static responder and pseudo-terminal integration tests.
-3. Add signed-manifest and structured-command-line verification.
-4. Remove all three interactive shells and update image verifiers.
-5. Rebuild once, reproducibly, and create a new temporary-boot candidate.
-6. Run the staging-only promotion sequence.
-7. Integrate the tested host-ledger semantics with the native responder and
+3. Add signed-manifest and fixed-command-line verification. **Complete
+   offline; production integration remains disabled.**
+4. Add fixed-host fetch and same-descriptor `kexec -l`, then integrate the
+   verifier with `PREPARE`.
+5. Remove all three interactive shells and update image verifiers.
+6. Rebuild once, reproducibly, and create a new temporary-boot candidate.
+7. Run the staging-only promotion sequence.
+8. Integrate the tested host-ledger semantics with the native responder and
    device-minted session.
-8. Investigate recovery-side retained-marker reading and USB-C debug UART
+9. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 
 The accepted v18 image remains a legacy staging transport while this work is

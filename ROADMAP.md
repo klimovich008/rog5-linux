@@ -61,7 +61,8 @@ unsafe artifact can pass the generic recovery preflight.
 
 ## P1 — Recovery protocol test suite
 
-Status: **in progress; reference and native PTY suites pass offline**
+Status: **complete offline; reference, native PTY, and signed-bundle suites
+pass**
 
 Specification:
 [docs/recovery-control-plane.md](docs/recovery-control-plane.md)
@@ -85,7 +86,7 @@ Build the tests before the responder:
 - [x] Pseudo-terminal delayed-open, partial-I/O, dropped-reply, disconnect,
   and responder-restart tests.
 - [x] Proof that arbitrary shell input never reaches an execution primitive.
-- [ ] Signed-manifest, file-size/hash, DTB, path, and command-line policy
+- [x] Signed-manifest, file-size/hash, DTB, path, and command-line policy
   mutation tests.
 
 Exit: the model demonstrates at-most-once execute semantics under every
@@ -94,7 +95,8 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **protocol core implemented; blocked on remaining P1 trust tests**
+Status: **protocol core and standalone trust verifier implemented; blocked on
+fetch, same-descriptor load, and initramfs integration**
 
 - [x] Implement an offline-tested static responder whose production default
   owns `/dev/ttyGS0`.
@@ -108,9 +110,11 @@ Status: **protocol core implemented; blocked on remaining P1 trust tests**
 - [ ] Remove `sh -i` from recovery, network-root, and persistent-root
   initramfs variants.
 - [ ] Fetch bundles only over the fixed NCM host/path.
-- [ ] Verify canonical signed manifests against an embedded public key.
+- [x] Implement and test canonical signed manifests against the fixed
+  production key path using ephemeral test keys only.
+- [ ] Embed a separately approved production public key in the frozen image.
 - [ ] Ask the user before creating or using the production signing key.
-- [ ] Validate a structured command-line policy; reject arbitrary `init=`,
+- [x] Generate a fixed profiled command line; reject arbitrary `init=`,
   `root=`, and unsafe reserved-memory input.
 - [ ] Preserve storage isolation and rollback ordering before UDC bind.
 - [ ] Build twice and prove byte-identical responder, initramfs, wrapper, and
