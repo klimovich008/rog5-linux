@@ -2653,10 +2653,10 @@ int main(int argc, char **argv)
 	parse_arguments(argc, argv);
 	configure_test_runtime();
 	open_state_directories();
-	load_state(&state);
 	open_watchdog_lease();
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed at startup");
+	load_state(&state);
 	if (state.phase != PHASE_PREPARED)
 		reconcile_uncommitted_image("startup reconciliation");
 

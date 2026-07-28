@@ -72,16 +72,18 @@ implement the framed, device-session-bound, at-most-once protocol in
 
 The current source has now removed that shell from recovery, network-root,
 and persistent-root. A deterministic builder replaces the accepted v18
-userspace init, scrubs SSH/getty/credentials, and integrates the static
-responder, fetcher, verifier, pinned kexec runtime, and a caller-supplied raw
-public key. With an ephemeral key, two complete image builds are
-byte-identical and pass extraction verification. This is an offline
-re-freeze test, not a boot candidate: v18 itself remains unchanged and
-interactive, and no production trust root exists. Two clean vendor-wrapper,
-raw boot-v3, and AVB builds now also match byte-for-byte and pass unpacking,
-command-line, and AVB-descriptor verification. Those ephemeral-key images
-remain ignored test artifacts and are not boot-authorized. See
-[re-freeze integration](recovery-refreeze-integration.md).
+userspace init, removes SSH/getty/login/DHCP entry points and credentials,
+locks root, and integrates the static responder, fetcher, verifier, pinned
+kexec runtime, and a caller-supplied raw public key. Five init-policy tests
+and malicious-archive/init fixtures enforce that boundary. Builds under
+different locales and time zones are byte-identical. The ASUS wrapper path
+also requires the repeatedly measured 116 physical nodes before USB bind.
+This is an offline re-freeze test, not a boot candidate: v18 itself remains
+unchanged and interactive, and no production trust root exists. Two clean
+vendor-wrapper, raw boot-v3, and AVB builds also match byte-for-byte and pass
+unpacking, command-line, and AVB-descriptor verification. Those
+ephemeral-key images remain ignored test artifacts and are not
+boot-authorized. See [re-freeze integration](recovery-refreeze-integration.md).
 
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
@@ -288,8 +290,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 ## Current blockers
 
 1. Obtain explicit approval for the production recovery signing trust root.
-2. Rebuild, pin, independently review, and promote one stable recovery image
-   through staging-only tests.
+2. Rebuild and atomically pin one production-key stable recovery image, then
+   promote it through staging-only tests. The offline implementation has
+   independent review; production artifacts and live behavior do not.
 3. Re-enter persistent Arch boot with unambiguous outcome classification.
 4. Complete A660 clock/power/GMU bring-up to a stable render node.
 5. Run separately authorized WCN6855 and VPN-hotspot hardware gates.

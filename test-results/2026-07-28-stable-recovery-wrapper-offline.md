@@ -92,3 +92,11 @@ production candidate still requires explicit approval before creating or
 using its signing key, two clean release builds with the approved public key,
 independent review, atomic manifest/allowlist pin updates, and the separately
 authorized staging-only live sequence.
+
+## Superseded command-line note
+
+The `/30` command-line token above is historical evidence for this build.
+The subsequent independently reviewed hardening pass removes
+`rog5.recovery_cidr` entirely because the address is fixed by `/init`, and
+repeats the complete two-build wrapper/AVB gate. See
+[stable recovery review hardening](2026-07-28-stable-recovery-review-hardening-offline.md).

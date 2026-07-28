@@ -30,7 +30,7 @@ expected_builder_id=34ecc17078b364df195ad61253520b1cac487dca05773dc4b2fc2bacb094
 expected_builder_digest=sha256:7b2e3415dc638ca4864912c9aa4905425561e21b9d08f1e60e4cfb0a3aa6ff8c
 
 for command in awk cmp cp cut find git grep mkdir podman python3 realpath \
-	sha256sum stat tr; do
+	sha256sum stat touch tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing wrapper-test command: $command"
 done
@@ -38,6 +38,8 @@ done
 [[ $source_volume =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] ||
 	fail 'invalid source-volume name'
 [[ $builder_image != -* ]] || fail 'invalid kernel-builder image name'
+grep -Fqx 'set -f' "$repo/scripts/device/repack-android-boot-v3.sh" ||
+	fail 'boot repacker does not disable pathname expansion'
 
 for input in "$initramfs_a" "$initramfs_b" "$reference_config" "$template" \
 	"$mkbootimg_dir/mkbootimg.py" "$mkbootimg_dir/unpack_bootimg.py" "$avbtool"; do
@@ -98,7 +100,8 @@ source_sha256=$(
 	fail 'unexpected ASUS source-volume identity'
 
 mkdir -p "$output_root/wrapper-a" "$output_root/wrapper-b" \
-	"$output_root/repack" "$output_root/inspection"
+	"$output_root/repack" "$output_root/inspection" \
+	"$output_root/glob-cwd"
 
 build_wrapper() {
 	suffix=$1
@@ -139,7 +142,7 @@ repack_wrapper() {
 		"$mkbootimg_dir" "$avbtool" \
 		"$output_root/repack/stable-recovery-$suffix.raw.img" \
 		"$output_root/repack/stable-recovery-$suffix.avb.img" \
-		"$partition_size" 'rog5.recovery_cidr=169.254.77.2/30'
+		"$partition_size" '' 'rog5.recovery_cidr'
 }
 
 repack_wrapper a
@@ -181,8 +184,7 @@ for token in \
 	init=/init \
 	selinux=0 \
 	rog5linux.test=1 \
-	rog5.recovery_timeout=180 \
-	rog5.recovery_cidr=169.254.77.2/30
+	rog5.recovery_timeout=180
 do
 	count=$(
 		printf '%s\n' "$command_line" |
@@ -191,24 +193,56 @@ do
 	)
 	[[ $count == 1 ]] || fail "missing or duplicate boot token: $token"
 done
-if printf '%s\n' "$command_line" |
-	tr ' ' '\n' |
-	grep -Fxq 'rog5.recovery_cidr=169.254.77.2/16'
-then
-	fail 'obsolete /16 recovery address survived repack'
-fi
 cidr_count=$(
 	printf '%s\n' "$command_line" |
 		tr ' ' '\n' |
 		grep -Ec '^rog5\.recovery_cidr=' || true
 )
-[[ $cidr_count == 1 ]] || fail 'recovery address is missing or duplicated'
+[[ $cidr_count == 0 ]] || fail 'legacy recovery address survived repack'
 if printf '%s\n' "$command_line" |
 	tr ' ' '\n' |
 	grep -Eq '^rog5\.ufs_discovery='
 then
 	fail 'target-only UFS discovery token reached the ASUS wrapper'
 fi
+
+touch "$output_root/glob-cwd/rog5.glob=alpha" \
+	"$output_root/glob-cwd/rog5.glob=beta"
+(
+	cd "$output_root/glob-cwd"
+	"$repo/scripts/device/repack-android-boot-v3.sh" \
+		"$template" \
+		"$output_root/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image" \
+		"$output_root/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz" \
+		"$mkbootimg_dir" "$avbtool" \
+		"$output_root/repack/glob.raw.img" \
+		"$output_root/repack/glob.avb.img" \
+		"$partition_size" 'rog5.glob=[ab]*' 'rog5.recovery_cidr'
+)
+python3 "$mkbootimg_dir/unpack_bootimg.py" \
+	--boot_img "$output_root/repack/glob.raw.img" \
+	--out "$output_root/inspection/glob-args" \
+	--format=mkbootimg --null >"$output_root/inspection/glob-args.nul"
+tr '\000' '\n' <"$output_root/inspection/glob-args.nul" \
+	>"$output_root/inspection/glob-args.lines"
+glob_command_line=$(
+	awk '$0 == "--cmdline" { getline; print; exit }' \
+		"$output_root/inspection/glob-args.lines"
+)
+glob_count=$(
+	printf '%s\n' "$glob_command_line" |
+		tr ' ' '\n' |
+		grep -Fxc 'rog5.glob=[ab]*' || true
+)
+[[ $glob_count == 1 ]] ||
+	fail 'pathname expansion changed the literal boot override'
+glob_cidr_count=$(
+	printf '%s\n' "$glob_command_line" |
+		tr ' ' '\n' |
+		grep -Ec '^rog5\.recovery_cidr=' || true
+)
+[[ $glob_cidr_count == 0 ]] ||
+	fail 'legacy recovery address survived adversarial glob repack'
 
 cp "$output_root/repack/stable-recovery-a.avb.img" \
 	"$output_root/inspection/boot.img"

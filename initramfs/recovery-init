@@ -2,6 +2,7 @@
 set -u
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+expected_wrapper_physical_count=116
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -79,6 +80,16 @@ physical_topology_count() {
 		done
 	done
 	printf '%s\n' "$count"
+}
+
+verify_wrapper_storage_contract() {
+	case $release in
+		5.4.*)
+			[ "$(cat /run/rog5-physical-block-count)" -eq \
+				"$expected_wrapper_physical_count" ]
+			;;
+		*) return 0 ;;
+	esac
 }
 
 wait_for_ufs_discovery() {
@@ -273,6 +284,10 @@ if ! isolate_storage; then
 	log 'storage isolation failed; rebooting'
 	force_rollback
 fi
+if ! verify_wrapper_storage_contract; then
+	log 'ASUS wrapper storage topology mismatch before USB configuration'
+	force_rollback
+fi
 if [ "$ufs_discovery" = 1 ]; then
 	[ "$(cat /run/rog5-physical-block-count)" -gt 0 ] || {
 		log 'UFS discovery did not enumerate a physical disk'
@@ -289,8 +304,8 @@ usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 [ -e "$usb_mode" ] && echo peripheral >"$usb_mode"
 
 if ! mount -t configfs configfs /sys/kernel/config; then
-	log 'configfs unavailable; rollback timer remains armed'
-	while :; do sleep 3600; done
+	log 'configfs unavailable; rebooting'
+	force_rollback
 fi
 log 'configfs ready'
 gadget=/sys/kernel/config/usb_gadget/rog5-recovery
@@ -317,6 +332,10 @@ fi
 }
 if ! isolate_storage; then
 	log 'storage isolation failed after device-node rescan; rebooting'
+	force_rollback
+fi
+if ! verify_wrapper_storage_contract; then
+	log 'ASUS wrapper storage topology mismatch after device-node rescan'
 	force_rollback
 fi
 if [ "$ufs_discovery" = 1 ] &&

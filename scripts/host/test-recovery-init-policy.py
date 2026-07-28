@@ -53,16 +53,35 @@ class InitPolicyTest(unittest.TestCase):
         lease = source.index(
             "watchdog_lease=/run/rog5-recovery-watchdog.lease"
         )
-        isolation = source.rindex("if ! isolate_storage; then")
+        self.assertEqual(source.count("if ! isolate_storage; then"), 2)
+        first_isolation = source.index("if ! isolate_storage; then")
+        pre_contract = source.index(
+            "ASUS wrapper storage topology mismatch before USB configuration"
+        )
+        second_isolation = source.index(
+            "if ! isolate_storage; then",
+            first_isolation + 1,
+        )
+        post_contract = source.index(
+            "ASUS wrapper storage topology mismatch after device-node rescan"
+        )
         control = source.index("/usr/libexec/rog5-recovery-control &")
         session = source.index("/run/rog5-control/session")
         bind = source.index('echo "$udc" >"$gadget/UDC"')
-        self.assertLess(lease, isolation)
-        self.assertLess(isolation, control)
+        self.assertLess(lease, first_isolation)
+        self.assertLess(first_isolation, pre_contract)
+        self.assertLess(pre_contract, second_isolation)
+        self.assertLess(second_isolation, post_contract)
+        self.assertLess(post_contract, control)
         self.assertLessEqual(control, session)
         self.assertLess(session, bind)
         self.assertIn(
             "grep -Eq '^session=[0-9a-f]{64}$'",
+            source,
+        )
+        self.assertIn("expected_wrapper_physical_count=116", source)
+        self.assertIn(
+            '"$expected_wrapper_physical_count"',
             source,
         )
 
@@ -89,6 +108,13 @@ class InitPolicyTest(unittest.TestCase):
             "framed recovery responder exited; rebooting",
             source,
         )
+        configfs_failure = re.search(
+            r"if ! mount -t configfs.*?\nfi",
+            source,
+            flags=re.DOTALL,
+        )
+        self.assertIsNotNone(configfs_failure)
+        self.assertIn("force_rollback", configfs_failure.group(0))
 
 
 if __name__ == "__main__":

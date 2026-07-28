@@ -135,6 +135,8 @@ pins, and live promotion remain**
 - [x] Preserve storage isolation and rollback ordering before UDC bind.
 - [x] Build twice and prove byte-identical responder, initramfs, wrapper, and
   AVB outputs.
+- [x] Complete an independent read-only review of the offline implementation,
+  address its actionable findings, and repeat the full two-build gate.
 - [ ] Update all source, hash, and verifier pins in one change.
 
 Live promotion, separately authorized:
