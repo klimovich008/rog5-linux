@@ -1,6 +1,7 @@
 # Stable recovery control plane
 
-Status: **reference oracle implemented; native responder not yet implemented**
+Status: **reference oracle and native protocol core implemented offline;
+signed-bundle verifier and image integration pending**
 
 Live authority: **none**
 
@@ -9,8 +10,17 @@ Last reviewed: 2026-07-28
 The executable stdlib-only reference model is in
 `tools/recovery_control/reference.py`; its host test is
 `scripts/host/test-recovery-control-reference.py`. It defines protocol and
-crash semantics for the future native responder. It is not included in an
-initramfs and grants no live authority.
+crash semantics for the native responder.
+
+The native C source is
+`tools/recovery_control/rog5-recovery-control.c`; its pseudo-terminal suite is
+`scripts/host/test-recovery-control-native.py`, and its pinned AArch64 builder
+is `scripts/device/build-recovery-control.sh`. The reproducibility/QEMU
+aggregate is `scripts/host/test-recovery-control-aarch64.sh`. Host and
+QEMU-backed AArch64 tests exercise the same source. The production compile has
+no test backend, accepts no path override, and rejects every `PREPARE` until
+the signed-bundle verifier is implemented. It is not included in an initramfs
+and grants no live authority.
 
 The current recovery transport is reliable enough to reach USB, but its
 control plane is not reliable enough to authorize another payload execution.
@@ -110,13 +120,22 @@ matching rather than replacing manifest signatures.
 
 All-zero request IDs and manifest hashes are reserved unset values and are
 rejected. Fixed result codes are bound to their valid verb and transaction
-state. `DEPARTED` and `EXEC_FAILED` are valid only with the persisted
-execution-started marker.
+state. `EXEC_FAILED` is valid only with the persisted execution-started
+marker. Successful target departure is classified out of band; the last
+recoverable device state remains `CLAIMED` with `execution_started=YES`.
 
 The responder opens `/dev/ttyGS0` itself, applies raw/no-echo termios, and
-never starts a login shell. The same interactive-shell removal applies to
+uses nonblocking I/O with fixed deadlines for a started frame, response
+writes, and output drain. An idle poll continues to check the live watchdog.
+An incomplete prefix or body and a stalled write or drain close the
+connection without authorizing execution. The responder never starts a login
+shell. The same interactive-shell removal applies to
 `initramfs/recovery-init`, `initramfs/network-root-init`, and
 `initramfs/persistent-root-init`.
+
+The native parser reads one bounded frame at a time, so it never accumulates a
+multi-frame input batch. Coalesced frames remain in the TTY queue and are
+handled as separate bounded dispatches.
 
 ## Fixed verbs and state
 
@@ -129,18 +148,33 @@ The first protocol needs only four verbs:
 | `PREPARE` | Fetch and verify one signed bundle, then perform `kexec -l` with validated arguments | Safe only with the same request ID and body |
 | `COMMIT_EXEC` | Atomically claim the prepared bundle, flush a `CLAIMED` response, then call `kexec -e` | Never retransmit after an unknown outcome |
 
-One session may prepare only one bundle. A repeated request ID with the same
-canonical body returns the cached result. Retrying the same bundle with a new
-request ID returns `PREPARE_ID_CONFLICT`; the authoritative original prepare
-ID remains required by `COMMIT_EXEC`. Reusing any ID with a different body
-returns `REQUEST_CONFLICT`.
+One session may prepare only one bundle. For mutating verbs, a repeated
+request ID with the same canonical body returns its immutable recorded
+decision combined with the current monotonic state. Retrying the same bundle
+with a new request ID returns `PREPARE_ID_CONFLICT`; the authoritative
+original prepare ID remains required by `COMMIT_EXEC`. Reusing any mutation
+ID with a different body or verb returns `REQUEST_CONFLICT`. Each decision
+records its original verb so cross-verb replay cannot reinterpret or crash on
+the result. `HELLO` and `STATUS` are read-only current-state queries and do
+not consume replay-ledger entries.
 
 The device creates `/run/rog5-control/session` before USB binds using kernel
 randomness and mode `0600`. It also keeps a bounded replay ledger in the same
-RAM filesystem. Entries are not evicted during a recovery session; reaching
-the bound returns `LEDGER_FULL` before processing a new request. Responder
-restarts reuse that session and ledger; a full recovery reboot creates a new
+RAM filesystem. Entries are not evicted during a recovery session. Two slots
+are reserved for the first verified `PREPARE` and its exact `COMMIT_EXEC`, so
+rejected mutations cannot exhaust the ability to complete the active
+transaction. Other new mutations return `LEDGER_FULL` at the reserved
+boundary. `STATUS` remains available even at full capacity. Responder
+restarts reuse the session and ledger; a full recovery reboot creates a new
 session and rejects stale requests.
+
+The responder does not trust a pathname-only watchdog marker. At startup it
+opens an owner-private lease containing the watchdog PID and Linux process
+start time, validates that identity through `/proc`, pins it with `pidfd_open`,
+and polls the pidfd while ACM is absent, at idle, during framing, response,
+drain, and both sides of the execution marker. The production executor checks
+again before fork and child exec; its parent monitors and reaps the child
+while waiting. PID reuse and a dead or replaced lease fail closed.
 
 Before `COMMIT_EXEC` calls `kexec -e`, it must:
 
@@ -248,11 +282,14 @@ claimed working before a controlled test.
 ### State-model tests
 
 - `HELLO -> PREPARE -> COMMIT_EXEC`;
-- duplicate same-ID `PREPARE` returns the cached result;
+- duplicate same-ID `PREPARE` returns its immutable decision with current
+  state;
 - same-bundle `PREPARE` with a new ID is rejected;
 - second bundle in one session is rejected;
 - duplicate commit never increments an execute counter;
 - crash before claim, after claim, after reply, and after simulated execute;
+- crash before/after immutable writes, file fsync, link, unlink, rename, and
+  directory fsync;
 - `kexec -e` return records a permanent session failure;
 - fresh recovery session rejects every stale request;
 - watchdog remains armed on all parser, fetch, verification, and execute
@@ -264,7 +301,10 @@ Run the real responder against `openpty(3)` with fault injection:
 
 - delayed open and initial read race;
 - partial writes and reads;
+- incomplete-prefix/body timeouts, forced short writes, and drain timeout;
 - disconnect before and after the atomic claim;
+- watchdog death at startup, idle, before response, and after the execution
+  marker;
 - responder restart with `/run` state retained;
 - dropped response followed by safe `STATUS`;
 - `STATUS` correlates the exact prepare ID, commit ID/fingerprint, manifest,
