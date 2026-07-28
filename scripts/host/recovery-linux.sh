@@ -14,17 +14,34 @@ fail() {
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 manifest=$repo/manifests/artifacts.tsv
+boot_policy=$repo/manifests/temporary-boot-images.tsv
 boot_image=${BOOT_IMAGE:-}
 fastboot=${FASTBOOT:-fastboot}
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
 
 [ "$(uname -s)" = Linux ] || fail 'this host workflow requires Linux'
-for command in awk cut date grep realpath sed sha256sum socat stat; do
+for command in awk cut date grep realpath sed sha256sum stat; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
+[ -r "$boot_policy" ] || fail "missing temporary-boot policy: $boot_policy"
+[ -r "$manifest" ] || fail "missing artifact manifest: $manifest"
+awk -F '\t' '
+	NR == 1 {
+		exit !($1 == "name" && $2 == "status" &&
+			$3 == "basis" && NF == 3)
+	}
+' "$boot_policy" ||
+	fail 'temporary-boot policy has an invalid header'
+awk -F '\t' '
+	NR == 1 {
+		exit !($1 == "name" && $2 == "size" &&
+			$3 == "sha256" && NF >= 3)
+	}
+' "$manifest" ||
+	fail 'artifact manifest has an invalid header'
 [ -n "$boot_image" ] ||
-	fail 'set BOOT_IMAGE to one manifest-pinned candidate; no default is currently accepted'
+	fail 'set BOOT_IMAGE to one explicitly allowed temporary-boot image'
 [ -r "$boot_image" ] || fail "missing recovery image: $boot_image"
 boot_image=$(realpath "$boot_image")
 case $boot_image in
@@ -32,9 +49,25 @@ case $boot_image in
 	*) fail 'recovery image must be inside the repository artifact store' ;;
 esac
 
-entry=$(awk -F '\t' -v name="$artifact_name" '$1 == name { print $2 "\t" $3 }' "$manifest")
-[ "$(printf '%s\n' "$entry" | awk 'NF { count++ } END { print count + 0 }')" -eq 1 ] ||
+policy_matches=$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy")
+[ "$policy_matches" -eq 1 ] ||
+	fail "temporary boot is not authorized for $artifact_name"
+policy_entry=$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { print $2; exit }' "$boot_policy")
+[ "$policy_entry" = allow ] ||
+	fail "temporary boot policy does not allow $artifact_name"
+policy_basis=$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { print $3; exit }' "$boot_policy")
+[ -n "$policy_basis" ] ||
+	fail "temporary boot policy has no acceptance basis for $artifact_name"
+
+manifest_matches=$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { count++ } END { print count + 0 }' "$manifest")
+[ "$manifest_matches" -eq 1 ] ||
 	fail "expected one manifest row for $artifact_name"
+entry=$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { print $2 "\t" $3; exit }' "$manifest")
 expected_size=$(printf '%s\n' "$entry" | cut -f 1)
 expected_hash=$(printf '%s\n' "$entry" | cut -f 2)
 [ "$(stat -c %s "$boot_image")" = "$expected_size" ] ||
@@ -61,8 +94,11 @@ fi
 product=$("$fastboot" -s "$fastboot_serial" getvar product 2>&1) ||
 	fail 'unable to query the fastboot product'
 product=$(printf '%s\n' "$product" |
-	sed -n 's/^product:[[:space:]]*//p' | sed -n '1p')
-[ -z "$product" ] || echo "INFO fastboot product=$product"
+	sed -n 's/^(bootloader)[[:space:]]*//; s/^product:[[:space:]]*//p' |
+	sed -n '1p')
+[ "$product" = lahaina ] ||
+	fail "unexpected fastboot product: ${product:-missing}"
+echo "INFO fastboot product=$product"
 
 if [ "$action" = preflight ]; then
 	echo "PASS Linux recovery preflight image_sha256=$expected_hash"
@@ -122,9 +158,7 @@ done
 	fail "$acm is not accessible; log in again after joining dialout"
 
 echo "PASS credential-free staging ACM ready at $acm"
-echo "INFO rollback remains armed; use only the fixed-action, control-safe ACM helper:"
-echo "ALLOW_NETWORK_ROOT_ACM=1 $repo/scripts/host/network-root-acm.py load-normal"
-echo "INFO the GPUCC phase trace uses the separate load-gpucc-diagnostic action"
-echo "INFO load-gpucc-confirmation is load-only; do not split the v17 live gate"
-echo "INFO trace-free GPUCC confirmation uses one guarded compound action:"
-echo "ALLOW_NETWORK_ROOT_ACM=1 ALLOW_ATTENDED_KEXEC=1 $repo/scripts/host/network-root-acm.py confirm-gpucc"
+echo "INFO rollback remains armed; no payload execution is currently authorized"
+echo "INFO the legacy ACM shell and command helpers are retained only for evidence"
+echo "INFO wait for the framed recovery control plane described in:"
+echo "INFO $repo/docs/recovery-control-plane.md"
