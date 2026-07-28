@@ -111,6 +111,12 @@ class PersistentRootAcmTest(unittest.TestCase):
         self.assertIn('/sys/kernel/kexec_loaded)" = 1', MODULE.PREFLIGHT_COMMAND)
         self.assertIn("sha256sum -c SHA256SUMS", MODULE.PREFLIGHT_COMMAND)
         self.assertIn('block_mounts" = 0', MODULE.PREFLIGHT_COMMAND)
+        self.assertNotIn(
+            MODULE.PREFLIGHT_MARKER.decode(),
+            MODULE.PREFLIGHT_COMMAND,
+            "the serial console echoes commands, so the complete success "
+            "marker must exist only in successful command output",
+        )
 
     def test_load_guard_fails_before_device_discovery(self) -> None:
         environment = os.environ.copy()

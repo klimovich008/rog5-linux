@@ -220,7 +220,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   target readiness record, untouched 600-second watchdog, exact fallback
   identity/root state, private evidence, and ModemManager restoration. Its
   mocked positive path proves exact ordering and one execute; a target
-  rejection cannot reach fallback acceptance.
+  rejection cannot reach fallback acceptance. The volatile key is retained
+  only after the peer reports the exact target kernel; failed probes truncate
+  their temporary known-hosts file. The ACM preflight success marker must not
+  occur literally in its echoed command, and the P2 boot-contract test
+  requires exactly one `rog5.ufs_discovery=1` token in the boot-v3 header. If
+  strict SSH sees the exact pinned Alpine fallback before target acceptance,
+  the runner records elapsed time privately, restores host state, and exits
+  rejected immediately.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery

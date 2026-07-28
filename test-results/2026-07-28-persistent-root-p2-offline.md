@@ -2,9 +2,12 @@
 
 Date: 2026-07-28
 
-Result: **PASS OFFLINE; LIVE PENDING.** The complete temporary-boot and
-nested-kexec package is reproducible, credential-free, fail-closed, and ready
-for one attended boot. No P2 target boot has occurred, and Gate P3 remains
+Result: **PASS OFFLINE AFTER CONTROL CORRECTION; LIVE REJECTED/HOLD.** The
+complete temporary-boot and nested-kexec package remains reproducible and
+credential-free. The first live attempt returned safely to Alpine but exposed
+two fail-open control defects and did not reach the P2 target interface.
+Those defects now have fail-first regressions and corrected reproducible
+artifacts. The corrected artifact has not run live, and Gate P3 remains
 prohibited.
 
 ## Safety boundary
@@ -56,6 +59,9 @@ built in.
   Python whole-tree seal.
 - Two target initramfs builds are byte-identical and contain no private key,
   SSH host identity, authorization file, account token, or machine identity.
+  Each pre-USB failure has a unique 5-95 second bounded timing marker, allowing
+  the automatic fallback interval to identify the branch without exposing a
+  shell or mounting storage.
 - Two clean Linux 7.1.4 builds have identical config, `Image`, `Image.gz`,
   and metadata.
 - Two staging initramfs builds are byte-identical. Every inherited file from
@@ -66,8 +72,10 @@ built in.
   inspection finds the exact staging archive embedded once.
 - Two header-v3 repacks and unsigned AVB images are byte-identical. Unpacking
   the final raw image reproduces the exact wrapper and external staging
-  archive. The AVB footer uses algorithm `NONE` and the image is for an
-  unlocked, attended `fastboot boot` only.
+  archive. The command-line parser requires exactly one
+  `rog5.ufs_discovery=1`, and two corrected repacks are byte-identical. The
+  AVB footer uses algorithm `NONE` and the image is for an unlocked, attended
+  `fastboot boot` only.
 
 The two Linux 7.1.4 compiler processes completed successfully and printed
 their PASS records. Their parent shell invocations later returned nonzero
@@ -86,13 +94,13 @@ passes `sh -n`, ShellCheck at warning level, and its fail-first suite.
 | Linux 7.1.4 config | 242,248 | `8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3` |
 | Linux 7.1.4 metadata | 896 | `77c5049acdbecb529d9c3ba05e72e413964a9733f12354bda1c81e31e5babff9` |
 | UFS/USB2 target DTB | 102,766 | `36802458928e2970a0043f6a27d106e6aa4911fd89b2f548e7c08275d164aaf0` |
-| target initramfs | 5,853,365 | `a7518e67c0355efb3e31865ffb6c120739463b3a49794da66798250183f61d13` |
-| nested staging initramfs | 26,688,618 | `206ea5897fcbc12d8213041c133357a1f0055c3e233ec8d1a75fc6795e95a2a5` |
-| ASUS 5.4.210 wrapper Image | 69,372,416 | `e87c845b6e63bdd097f19058e36746c2bcbeb662dcb77b686c70ffdef161d0b4` |
+| target initramfs | 5,853,871 | `f69d31c78bd8ce154516e701f0166760d2934b009152242a752795249b1103f2` |
+| nested staging initramfs | 26,687,246 | `b14c2a54eb413f1dbb2b808691b5c6b77614b7a502cd4ff7eb5a34d9bac0c54e` |
+| ASUS 5.4.210 wrapper Image | 69,372,416 | `b133ebcee9c2b0a99876da1dd20615c9f569c67e7e91a089d9de5a54e6ad8d17` |
 | ASUS wrapper config | 185,763 | `df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f` |
-| ASUS wrapper metadata | 422 | `ca8d42d8c5de33b32a6ca252de6d8721393be2bc2a46b4e6ebdb2cb5f196556f` |
-| raw header-v3 boot image | 96,067,584 | `fd614701b859c77a1d5b7187cc7a83623d1ae71b673e3aebcb9691e1bb9b2237` |
-| unsigned AVB boot image | 100,663,296 | `ac60d65c7ca89c92320c978470a0cf3803a2e8b063a24489182fc031a42232ee` |
+| ASUS wrapper metadata | 422 | `33d4b3fdcdfea9cc20a2537949579cc2a3419263f9a137a9dc116b09e41a16a9` |
+| raw header-v3 boot image | 96,067,584 | `deaa9c047cd2251c4981f1c41ba5d144118b6ba1fceb216e58c310d6e6491bdf` |
+| unsigned AVB boot image | 100,663,296 | `439a945babb5af1af83b7f6ad07ec6a8c0bf3e74fe416925b2e1a416e3b39ae0` |
 
 ## Offline tests
 
@@ -103,6 +111,7 @@ scripts/device/test-persistent-root-verifier.sh
 scripts/device/test-persistent-root-initramfs.sh
 scripts/device/test-load-mainline-persistent-root.sh
 scripts/device/test-mainline-persistent-root-build.sh BUILD_A BUILD_B
+scripts/device/test-persistent-root-boot-contract.py
 python3 scripts/host/test-persistent-root-acm.py
 scripts/host/test-run-persistent-root-p2-live-gate.sh
 git diff --check
@@ -122,10 +131,25 @@ failed safely: that exact vendor kernel has both `CONFIG_KEXEC` and
 `CONFIG_KEXEC_FILE` disabled, so `kexec_load` returned “Function not
 implemented” and the target was never executed.
 
-The guarded fallback-to-fastboot reboot then disconnected USB, but no
-fastboot, ADB, recovery ACM, or other phone USB identity appeared on the
-host. The final P2 image has therefore not been transferred or booted. This
-is an external connection/boot-mode HOLD, not a P2 acceptance result.
+The first attended wrapper run subsequently reached recovery ACM, loaded the
+target, executed one `kexec -e`, and then returned to exact Alpine without
+ever exposing the P2 USB or SSH identity. Its preflight transcript showed a
+missing UFS discovery-counter file immediately followed by a false PASS:
+terminal echo had exposed the complete expected marker before the shell
+failed. Offline boot-image inspection then found that the wrapper command
+line lacked `rog5.ufs_discovery=1`, the flag that creates those counters.
+
+The complete marker is now generated only by successful `printf` output, a
+failed target peer cannot leave a volatile SSH key pinned, and the corrected
+wrapper carries exactly one UFS-discovery flag. Bounded timing markers now
+distinguish command-line, kernel-config, UFS-discovery, UFS-power,
+storage-lock, userdata, inventory, and USB failures before normal target
+enumeration. The full first-attempt event and fallback evidence is recorded in
+the
+[live rejection report](2026-07-28-persistent-root-p2-live-rejected.md).
+Because the target still failed before its USB setup, P2 remains HOLD. The
+next attended run is diagnostic rather than blind: its fallback interval must
+select one exact bounded pre-USB stage before any implementation change.
 
 ## Attended live sequence
 
@@ -147,7 +171,10 @@ point. Its mocked positive path proves this exact order:
 
 A synthetic target-attestation failure stops before any fallback acceptance
 claim, leaves the target watchdog untouched, and still restores host state.
-The test also proves that execute occurs exactly once.
+The test also proves that execute occurs exactly once. A separate mocked
+pre-acceptance fallback path requires the pinned Alpine key and exact kernel,
+records a private elapsed-seconds rejection, stops without target acceptance,
+and restores ModemManager immediately.
 
 The real-host unarmed boundary also passes. The clean synchronized branch,
 manifest artifact, and approved external credential metadata validated, then
@@ -177,12 +204,13 @@ ALLOW_PERSISTENT_ROOT_P2_LIVE_GATE=1 \
   scripts/host/run-persistent-root-p2-live-gate.sh
 ```
 
-The target generates a volatile SSH host key. The runner captures the first
-connection only into a fresh mode-0600 temporary file and proceeds only when
-that peer reports exact `7.1.4-gcfd385a1c754`; every later target connection
-is strict against the captured key. The temporary file is removed after the
-cycle. The stable fallback key remains separately pinned and is never
-replaced. Evidence is written mode 0600 outside the repository.
+The target generates a volatile SSH host key. Each candidate connection uses
+a fresh mode-0600 temporary known-hosts file. A failed exact-kernel probe
+truncates that file before retrying; the key is retained only when that peer
+reports exact `7.1.4-gcfd385a1c754`. Every later target connection is strict
+against the accepted key. The temporary file is removed after the cycle. The
+stable fallback key remains separately pinned and is never replaced. Evidence
+is written mode 0600 outside the repository.
 
 The target watchdog is not disarmed. Its direct reset must return to the
 exact Alpine fallback with a changed boot identity, no fatal pstore record,
@@ -192,7 +220,7 @@ seconds for the independent 600-second reset plus Alpine recovery.
 
 ## Decision
 
-The P2 package is accepted offline and may receive one attended temporary
-boot. It must never be flashed. P2 is not accepted live, and no writable UFS
-probe or P3 work is allowed until the complete target-and-fallback evidence
-passes.
+The timing-diagnostic P2 package is accepted offline for one attended
+temporary boot. It must never be flashed. P2 itself remains rejected/HOLD,
+and no writable UFS probe or P3 work is allowed until the complete
+target-and-fallback evidence passes.

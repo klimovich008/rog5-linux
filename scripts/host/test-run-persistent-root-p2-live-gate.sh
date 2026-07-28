@@ -55,6 +55,7 @@ for contract in \
 	'UNBOOTED' \
 	'PASS P2 target acceptance' \
 	'PASS P2 fallback acceptance' \
+	'REJECTED P2 target returned to exact fallback before acceptance elapsed_seconds=' \
 	'systemctl stop ModemManager.service' \
 	'systemctl start ModemManager.service'
 do
@@ -107,6 +108,8 @@ install -m 0755 "$runner" \
 	"$mock_repo/scripts/host/run-persistent-root-p2-live-gate.sh"
 calls=$stage/calls
 mm_state=$stage/modem-manager-active
+target_probes=$stage/target-probes
+target_accepted=$stage/target-accepted
 : >"$mm_state"
 
 cat >"$mock_repo/scripts/host/recovery-linux.sh" <<'MOCK'
@@ -182,7 +185,21 @@ done
 case $* in
 	*"HostKeyAlias=rog5-persistent-root"*"/proc/sys/kernel/random/boot_id"*)
 		[ -n "$known_hosts" ]
+		if [ ! -e "$MOCK_TARGET_PROBES" ]; then
+			echo 'mock rejected host key' >"$known_hosts"
+			: >"$MOCK_TARGET_PROBES"
+			echo target-boot-rejected >>"$MOCK_CALLS"
+			exit 1
+		fi
+		if [ "${MOCK_EARLY_FALLBACK:-0}" = 1 ]; then
+			echo target-boot-rejected >>"$MOCK_CALLS"
+			exit 1
+		fi
+		if [ -s "$known_hosts" ]; then
+			echo target-key-not-cleared >>"$MOCK_CALLS"
+		fi
 		echo 'mock target host key' >"$known_hosts"
+		: >"$MOCK_TARGET_ACCEPTED"
 		echo target-boot-id >>"$MOCK_CALLS"
 		echo 11111111-1111-4111-8111-111111111111
 		;;
@@ -203,7 +220,13 @@ case $* in
 		echo 'PASS P2 target acceptance kernel=7.1.4-gcfd385a1c754 storage=ro overlay=tmpfs watchdog=armed'
 		;;
 	*"HostKeyAlias=rog5-fallback"*"/proc/sys/kernel/random/boot_id"*)
-		echo fallback-boot-id >>"$MOCK_CALLS"
+		if [ "${MOCK_EARLY_FALLBACK:-0}" = 1 ]; then
+			echo early-fallback-boot-id >>"$MOCK_CALLS"
+		elif [ -e "$MOCK_TARGET_ACCEPTED" ]; then
+			echo fallback-boot-id >>"$MOCK_CALLS"
+		else
+			exit 1
+		fi
 		echo 22222222-2222-4222-8222-222222222222
 		;;
 	*"HostKeyAlias=rog5-fallback"*"PASS P2 fallback acceptance"*)
@@ -224,6 +247,8 @@ PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
 MOCK_MM_STATE=$mm_state \
 MOCK_REPO=$mock_repo \
+MOCK_TARGET_PROBES=$target_probes \
+MOCK_TARGET_ACCEPTED=$target_accepted \
 ALLOW_PERSISTENT_ROOT_P2_LIVE_GATE=1 \
 ALLOW_TEMPORARY_BOOT=1 \
 ALLOW_ATTENDED_KEXEC=1 \
@@ -239,6 +264,7 @@ recovery-boot
 acm-load
 acm-preflight
 acm-execute
+target-boot-rejected
 target-boot-id
 target-ready
 target-ready
@@ -263,11 +289,15 @@ grep -Fxq \
 install -d -m 0700 "$stage/evidence-rejected"
 : >"$calls"
 : >"$mm_state"
+rm -f -- "$target_probes"
+rm -f -- "$target_accepted"
 set +e
 PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
 MOCK_MM_STATE=$mm_state \
 MOCK_REPO=$mock_repo \
+MOCK_TARGET_PROBES=$target_probes \
+MOCK_TARGET_ACCEPTED=$target_accepted \
 MOCK_FAIL_TARGET_ATTEST=1 \
 ALLOW_PERSISTENT_ROOT_P2_LIVE_GATE=1 \
 ALLOW_TEMPORARY_BOOT=1 \
@@ -283,9 +313,47 @@ set -e
 [[ -e $mm_state ]]
 [[ $(grep -Fxc acm-execute "$calls") == 1 ]]
 [[ $(grep -Fxc target-attest "$calls") == 1 ]]
+! grep -Fq target-key-not-cleared "$calls"
 ! grep -Fq fallback-boot-id "$calls"
 ! grep -Fq fallback-preflight "$calls"
 ! grep -Fq fallback-state "$calls"
 [[ $(grep -Fxc modem-start "$calls") == 1 ]]
 
-echo 'PASS P2 live runner is guard-first, temporary-boot-only, target-attesting, watchdog-preserving, and fallback-verifying'
+install -d -m 0700 "$stage/evidence-early-fallback"
+: >"$calls"
+: >"$mm_state"
+rm -f -- "$target_probes" "$target_accepted"
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS=$calls \
+MOCK_MM_STATE=$mm_state \
+MOCK_REPO=$mock_repo \
+MOCK_TARGET_PROBES=$target_probes \
+MOCK_TARGET_ACCEPTED=$target_accepted \
+MOCK_EARLY_FALLBACK=1 \
+ALLOW_PERSISTENT_ROOT_P2_LIVE_GATE=1 \
+ALLOW_TEMPORARY_BOOT=1 \
+ALLOW_ATTENDED_KEXEC=1 \
+SSH_KEY=$stage/ssh-key \
+KNOWN_HOSTS=$stage/known-hosts \
+EVIDENCE_DIR=$stage/evidence-early-fallback \
+	"$mock_repo/scripts/host/run-persistent-root-p2-live-gate.sh" \
+	>/dev/null 2>&1
+early_fallback_status=$?
+set -e
+[[ $early_fallback_status -ne 0 ]]
+[[ -e $mm_state ]]
+[[ $(grep -Fxc acm-execute "$calls") == 1 ]]
+[[ $(grep -Fxc target-boot-rejected "$calls") == 1 ]]
+[[ $(grep -Fxc early-fallback-boot-id "$calls") == 1 ]]
+! grep -Fq target-attest "$calls"
+! grep -Fq fallback-preflight "$calls"
+! grep -Fq fallback-state "$calls"
+[[ $(grep -Fxc modem-start "$calls") == 1 ]]
+[[ $(stat -c %a \
+	"$stage/evidence-early-fallback/persistent-root-p2-fallback.log") == 600 ]]
+grep -Eq \
+	'^REJECTED P2 target returned to exact fallback before acceptance elapsed_seconds=[0-9]+$' \
+	"$stage/evidence-early-fallback/persistent-root-p2-fallback.log"
+
+echo 'PASS P2 live runner is guard-first, temporary-boot-only, target-attesting, early-fallback-recording, watchdog-preserving, and fallback-verifying'
