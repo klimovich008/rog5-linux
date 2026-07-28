@@ -113,6 +113,7 @@ fi
 
 tests=(
 	scripts/host/test-recovery-linux.sh
+	scripts/host/test-recovery-control-reference.py
 	scripts/host/test-reboot-fallback-to-fastboot.sh
 	scripts/host/test-network-root-acm.py
 	scripts/host/test-persistent-root-acm.py

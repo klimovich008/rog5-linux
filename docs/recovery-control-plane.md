@@ -1,10 +1,16 @@
 # Stable recovery control plane
 
-Status: **design and test plan; not yet implemented**
+Status: **reference oracle implemented; native responder not yet implemented**
 
 Live authority: **none**
 
 Last reviewed: 2026-07-28
+
+The executable stdlib-only reference model is in
+`tools/recovery_control/reference.py`; its host test is
+`scripts/host/test-recovery-control-reference.py`. It defines protocol and
+crash semantics for the future native responder. It is not included in an
+initramfs and grants no live authority.
 
 The current recovery transport is reliable enough to reach USB, but its
 control plane is not reliable enough to authorize another payload execution.
@@ -64,7 +70,8 @@ http://169.254.77.1:8080/bundles/<bundle-id>/
 ```
 
 `<bundle-id>` is limited to 1–64 lowercase ASCII letters, digits, `.`, `_`,
-and `-`; it cannot begin with punctuation or contain `..`.
+and `-`; it cannot begin with punctuation, contain `..`, or equal the reserved
+unset value `none`.
 
 ## Framing
 
@@ -74,10 +81,12 @@ Use a bounded netstring carrying canonical ASCII `key=value` records:
 <decimal-byte-length>:<payload>,
 ```
 
-The maximum payload is 4096 bytes. The parser must tolerate a frame split
-across any number of reads and multiple frames in one read. It must reject
-leading-zero lengths, non-decimal lengths, oversized frames, missing commas,
-duplicate keys, unknown keys, embedded NUL, and non-ASCII input.
+The maximum payload is 4096 bytes. One parser feed is capped at 8192 bytes and
+32 frames; callers perform additional bounded reads as needed. The parser must
+tolerate a frame split across any number of reads and multiple frames in one
+read. It must reject leading-zero lengths, non-decimal lengths, oversized
+frames, missing commas, duplicate keys, unknown keys, embedded NUL, non-ASCII
+input, and a truncated frame at end of stream.
 
 A request has these common fields:
 
@@ -90,11 +99,19 @@ verb=<fixed verb>
 body_sha256=<64 lowercase hex characters>
 ```
 
-A response repeats `session`, `request`, and `verb`, and adds a fixed result
-code. `HELLO` is the only request allowed with an all-zero session. Its
+A response repeats `session`, `request`, and `verb`, adds a fixed result code,
+and returns a body containing the exact state, prepared bundle, manifest hash,
+prepare request, commit request, commit fingerprint, execution-started marker,
+watchdog state, and last fixed error. Its `body_sha256` covers those canonical
+fields. `HELLO` is the only request allowed with an all-zero session. Its
 response returns the device-minted session ID. USB already provides link
-integrity; `body_sha256` protects canonical request identity and replay
+integrity; body hashes protect canonical request/response identity and replay
 matching rather than replacing manifest signatures.
+
+All-zero request IDs and manifest hashes are reserved unset values and are
+rejected. Fixed result codes are bound to their valid verb and transaction
+state. `DEPARTED` and `EXEC_FAILED` are valid only with the persisted
+execution-started marker.
 
 The responder opens `/dev/ttyGS0` itself, applies raw/no-echo termios, and
 never starts a login shell. The same interactive-shell removal applies to
@@ -113,27 +130,34 @@ The first protocol needs only four verbs:
 | `COMMIT_EXEC` | Atomically claim the prepared bundle, flush a `CLAIMED` response, then call `kexec -e` | Never retransmit after an unknown outcome |
 
 One session may prepare only one bundle. A repeated request ID with the same
-canonical body returns the cached result. Reusing an ID with a different body
+canonical body returns the cached result. Retrying the same bundle with a new
+request ID returns `PREPARE_ID_CONFLICT`; the authoritative original prepare
+ID remains required by `COMMIT_EXEC`. Reusing any ID with a different body
 returns `REQUEST_CONFLICT`.
 
 The device creates `/run/rog5-control/session` before USB binds using kernel
 randomness and mode `0600`. It also keeps a bounded replay ledger in the same
-RAM filesystem. Responder restarts reuse that session and ledger; a full
-recovery reboot creates a new session and rejects stale requests.
+RAM filesystem. Entries are not evicted during a recovery session; reaching
+the bound returns `LEDGER_FULL` before processing a new request. Responder
+restarts reuse that session and ledger; a full recovery reboot creates a new
+session and rejects stale requests.
 
 Before `COMMIT_EXEC` calls `kexec -e`, it must:
 
 1. verify that the referenced `PREPARE` transaction is still current;
-2. create the commit claim with `O_CREAT|O_EXCL`;
+2. create the commit claim with `O_CREAT|O_EXCL`, including the request
+   fingerprint;
 3. write and `fsync` the claim, then `fsync` its directory;
 4. send and drain a `CLAIMED` response;
 5. call `kexec -e` directly with `execve`, never through a shell.
 
-If `kexec -e` returns, the device records `EXEC_FAILED` and remains
-fail-closed until rollback. A duplicate commit never calls `kexec` again; it
-returns the recorded state if the responder is still alive. If USB disappears
-before the host receives a response, the result is `UNKNOWN`, not success or
-failure.
+Immediately before calling `kexec -e`, the responder persists an
+execution-started marker. If `kexec -e` returns, the device records
+`EXEC_FAILED` and remains fail-closed until rollback. A duplicate commit or a
+responder restart after either marker never calls `kexec` again; it returns
+the recorded transaction identity and state if the responder is still alive.
+If USB disappears before the host receives a response, the result is
+`UNKNOWN`, not success or failure.
 
 ## Host write-ahead ledger
 
@@ -143,19 +167,23 @@ meaningful only after `HELLO` supplies a device-minted session.
 Before transmitting `COMMIT_EXEC`, the host writes a record containing the
 device session, request ID, prepared-manifest hash, target identity, and
 timestamp. It uses temporary-file + `fsync` + atomic rename + directory
-`fsync` under an XDG state directory outside the repository. It marks the
-record `TRANSMITTED` before writing to ACM.
+`fsync` under an XDG state directory outside the repository. The durable
+record is keyed by device session, with the request ID inside it, so choosing
+a fresh request ID cannot bypass an unknown prior commit. It marks the record
+`TRANSMITTED` before writing to ACM.
 
 After transmission:
 
 - a clear protocol rejection resolves the record as rejected;
 - a target with the expected identity resolves it as executed;
 - the exact fallback with a changed boot ID resolves it as target not
-  accepted, while preserving whether execution itself was observed;
+  accepted without inferring whether execution occurred unless that was
+  independently observed;
 - the same recovery session may resolve it through `STATUS`;
 - transport loss without one of those observations remains `UNKNOWN`.
 
-The host never sends a second `COMMIT_EXEC` for a `TRANSMITTED` request. A new
+The host never sends a second `COMMIT_EXEC` in a device session that already
+has a `TRANSMITTED` record, even if a caller supplies a new request ID. A new
 device session is a new attended cycle, not permission to repeat a consumed
 payload automatically.
 
@@ -214,13 +242,14 @@ claimed working before a controlled test.
   non-ASCII input;
 - request-ID replay with same and different bodies;
 - stale and all-zero session rejection;
-- fixed-verb and fixed-field enforcement;
-- bounded ledger eviction without evicting the active commit.
+- fixed-verb, fixed-field, result/state, and reserved-sentinel enforcement;
+- ledger-capacity exhaustion before processing, with no in-session eviction.
 
 ### State-model tests
 
 - `HELLO -> PREPARE -> COMMIT_EXEC`;
-- duplicate `PREPARE` returns the cached result;
+- duplicate same-ID `PREPARE` returns the cached result;
+- same-bundle `PREPARE` with a new ID is rejected;
 - second bundle in one session is rejected;
 - duplicate commit never increments an execute counter;
 - crash before claim, after claim, after reply, and after simulated execute;
@@ -238,6 +267,8 @@ Run the real responder against `openpty(3)` with fault injection:
 - disconnect before and after the atomic claim;
 - responder restart with `/run` state retained;
 - dropped response followed by safe `STATUS`;
+- `STATUS` correlates the exact prepare ID, commit ID/fingerprint, manifest,
+  execution marker, watchdog, and last error;
 - terminal echo and cursor queries are absent;
 - arbitrary shell text is rejected and never reaches `execve`.
 
@@ -282,7 +313,8 @@ retry.
 4. Remove all three interactive shells and update image verifiers.
 5. Rebuild once, reproducibly, and create a new temporary-boot candidate.
 6. Run the staging-only promotion sequence.
-7. Only then implement the host ledger against the device-minted session.
+7. Integrate the tested host-ledger semantics with the native responder and
+   device-minted session.
 8. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 
