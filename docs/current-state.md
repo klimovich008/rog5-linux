@@ -141,6 +141,19 @@ NetworkManager override it creates. The reviewed helpers have not been
 installed and no live host network state was changed. See the
 [host server result](../test-results/2026-07-28-recovery-host-server-offline.md).
 
+The host now also has one atomic runtime-bundle packager. With an explicitly
+supplied ephemeral Ed25519 key, it snapshots the kernel, DTB, and initramfs
+through already-open descriptors, creates the canonical signed manifest in a
+private staging directory, enforces exact `0700/0500/0400` ownership and mode
+policy, and publishes with one rename. Its refusal suite covers unsafe
+identity, timeout, symlink, key, and root metadata; injected signing failure
+leaves the bundle root unchanged. All three fixed profiles pass the native
+verifier and host-server opener, and two roots produce byte-identical output
+with the same inputs. The persistent Arch payload maps to
+`persistent-root-ro-v1`; accepted A660 ancestry maps to `network-root-v1`.
+No production key, live bundle, allowlist change, host-network mutation, or
+phone action was created by this checkpoint.
+
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a
 matching module environment is unavailable. The fallback pstore-empty gate

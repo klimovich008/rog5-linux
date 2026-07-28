@@ -26,7 +26,7 @@ build outputs.
 | GPU | A660 registration/firmware/allocation boundaries progressed; stable accelerated desktop is not yet achieved |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
 | VPN hotspot | IPv4/IPv6 and real WireGuard fail-closed tests pass offline; radio/provider live gate remains |
-| New phone action | None authorized by repository state; build the stable recovery control plane first |
+| New phone action | None authorized by repository state; production trust-root approval and staging promotion remain |
 
 Nothing in this table grants permission to flash or repeat a consumed live
 gate.
