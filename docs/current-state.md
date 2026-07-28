@@ -337,16 +337,26 @@ bounded timings. Its sole
 again executed the target exactly once and returned to exact Alpine after
 37 seconds without target USB. That package is consumed.
 
-The latest fail-first successor keeps the recovery-stage exact Image hash,
-requires running release `7.1.4-gcfd385a1c754` before storage inspection, and
-removes the live `/proc/config.gz` dependency. Offline boot-contract
-inspection extracts the exact Image's IKCONFIG stream, requires byte identity
-with the pinned config, and checks IKCONFIG, read-only UFS, ext4, and
-OverlayFS. Two target initramfs, nested stage, ASUS wrapper, raw, and AVB
-builds are byte-identical. P2 remains rejected/HOLD and P3 remains
-prohibited. Eight target pre-USB branches have unique bounded 5-110 second
-timing markers. One further attended temporary boot is a diagnostic, not a
-blind retry.
+The next fail-first successor kept the recovery-stage exact Image hash,
+required running release `7.1.4-gcfd385a1c754` through `uname -r`, and
+removed the live `/proc/config.gz` dependency. Its sole
+[kernel-release run](../test-results/2026-07-28-persistent-root-p2-kernel-release-live-rejected.md)
+passed recovery, executed the target exactly once, and returned to exact
+Alpine after 36 seconds without target USB. The root and promotion state
+remained exact. The fallback panel was initially on and required one
+transient screen-off action, so automatic screen-off restoration remains
+unproven. That package is consumed.
+
+The latest fail-first successor reads
+`/proc/sys/kernel/osrelease` directly with the shell builtin and separates
+file/read failure from identity mismatch. Offline boot-contract inspection
+still extracts the exact Image's IKCONFIG stream, requires byte identity with
+the pinned config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS.
+Two target initramfs, nested stage, ASUS wrapper, raw, and AVB builds are
+byte-identical. P2 remains rejected/HOLD and P3 remains prohibited. Nine
+target pre-USB branches have unique bounded 5-110 second timing markers. One
+further attended temporary boot is a direct-procfs diagnostic, not a blind
+retry.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

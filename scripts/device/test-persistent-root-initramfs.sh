@@ -35,8 +35,13 @@ done
 grep -Fq 'rog5.persistent_ro=1' "$init"
 grep -Fq 'expected_kernel_release=7.1.4-gcfd385a1c754' \
 	"$init"
-release_check='if [ "$(uname -r)" != "$expected_kernel_release" ]; then'
+grep -Fq 'release_file=/proc/sys/kernel/osrelease' "$init"
+release_read='IFS= read -r running_kernel_release <"$release_file"'
+grep -Fq "$release_read" "$init"
+release_check='if [ "$running_kernel_release" != "$expected_kernel_release" ]; then'
 grep -Fqx "$release_check" "$init"
+! grep -Fq 'uname -r' "$init" ||
+	fail 'P2 target must read the kernel release directly from procfs'
 ! grep -Fq '/proc/config.gz' "$init" ||
 	fail 'P2 target must not depend on procfs IKCONFIG during live boot'
 grep -Fq 'expected_physical_count=116' "$init"
@@ -55,7 +60,8 @@ grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
 grep -Fq 'WantedBy=multi-user.target' "$init"
 for timing_marker in \
 	'cmdline:5' \
-	'kernel-release:20' \
+	'kernel-release-file:20' \
+	'kernel-release-identity:25' \
 	'ufs-discovery:35' \
 	'ufs-power:50' \
 	'storage-lock:65' \
@@ -67,6 +73,7 @@ done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
 grep -Fq 'sleep "$delay"' "$init"
 
+release_read_line=$(grep -Fn "$release_read" "$init" | cut -d: -f1)
 release_line=$(grep -Fn "$release_check" "$init" | cut -d: -f1)
 watchdog_line=$(grep -n '^arm_watchdog$' "$init" | cut -d: -f1)
 wait_line=$(grep -n "log 'waiting for stable UFS discovery'" "$init" |
@@ -80,6 +87,7 @@ verify_line=$(grep -n '^if ! verify_persistent_root; then$' "$init" |
 	cut -d: -f1)
 switch_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" |
 	cut -d: -f1)
+[ "$release_read_line" -lt "$release_line" ]
 [ "$release_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$wait_line" ]
 [ "$wait_line" -lt "$lock_line" ]

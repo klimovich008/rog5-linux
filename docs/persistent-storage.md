@@ -230,16 +230,25 @@ separated config-file, decode, and identity failures. Its sole
 also executed the target exactly once and returned to exact Alpine after
 37 seconds without target USB. That package is consumed.
 
-The latest successor removes the live proc-config dependency. Recovery pins
-the exact target Image hash, the target requires exact running release
-`7.1.4-gcfd385a1c754` before storage inspection, and the offline boot contract
-extracts that Image's IKCONFIG stream and requires byte identity with the
-pinned config and all critical settings. Two corrected raw/AVB repacks are
-byte-identical. Eight unique bounded timing markers identify any target
-pre-USB failure from the automatic-fallback interval without opening an early
-shell or mounting storage. P2 remains HOLD while allowing one corrected
-attended kernel-release diagnostic boot. P3 remains blocked until complete
-P2 target evidence and automatic Alpine fallback both pass.
+The next successor removed the live proc-config dependency and required exact
+running release `7.1.4-gcfd385a1c754` through `uname -r`. Its sole
+[kernel-release run](../test-results/2026-07-28-persistent-root-p2-kernel-release-live-rejected.md)
+passed recovery, executed the target exactly once, and returned to exact
+fallback after 36 seconds without target USB. The sealed root remained
+unchanged and `UNBOOTED`. The fallback panel was initially on and required
+one transient screen-off action, so automatic display restoration remains a
+separate defect. That package is consumed.
+
+The latest successor reads `/proc/sys/kernel/osrelease` directly and
+separates unavailable/read failure from release mismatch. Recovery still pins
+the exact target Image hash, and the offline boot contract extracts that
+Image's IKCONFIG stream and requires byte identity with the pinned config and
+all critical settings. Two corrected raw/AVB repacks are byte-identical. Nine
+unique bounded timing markers identify any target pre-USB failure from the
+automatic-fallback interval without opening an early shell or mounting
+storage. P2 remains HOLD while allowing one corrected attended direct-procfs
+diagnostic boot. P3 remains blocked until complete P2 target evidence and
+automatic Alpine fallback both pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 
