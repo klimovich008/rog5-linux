@@ -232,12 +232,17 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   acceptance, the runner records elapsed time privately, restores host state,
   and exits rejected immediately. The rejected one-pass package decoded
   `/proc/config.gz` once but returned to exact fallback after 37 seconds and
-  is consumed. The latest target instead requires exact running release
-  `7.1.4-gcfd385a1c754` before storage inspection and has no proc-config
+  is consumed. Its successor required exact running release
+  `7.1.4-gcfd385a1c754` through `uname -r`, then returned to exact fallback
+  after 36 seconds without target USB; it is also consumed. The latest target
+  reads `/proc/sys/kernel/osrelease` directly, invokes no `uname`, separates
+  file/read failure from identity mismatch, and has no proc-config
   dependency. The boot-contract regression extracts the recovery-hashed
   target Image's IKCONFIG stream, requires byte identity with the pinned
-  config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS. Eight
-  remaining pre-USB stages have distinct bounded timing markers.
+  config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS. Nine
+  remaining pre-USB stages have distinct bounded timing markers. The latest
+  live report also keeps automatic fallback screen-off unresolved because
+  the panel returned on before one transient corrective action.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery

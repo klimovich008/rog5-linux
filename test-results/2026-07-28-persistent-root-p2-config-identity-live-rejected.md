@@ -123,8 +123,11 @@ the accepted matching result.
 ## Decision
 
 The one-pass proc-config package is consumed and must not be retried or
-flashed. P2 remains HOLD and P3 remains prohibited. After the successor
-passes the complete offline suite and its source, manifest, and report are
-committed and pushed, it may receive one attended non-flashing diagnostic
-boot. Only complete target acceptance plus exact automatic fallback can pass
-P2.
+flashed. Its successor subsequently received its sole attended boot and
+[returned safely to exact fallback after 36 seconds without target
+USB](2026-07-28-persistent-root-p2-kernel-release-live-rejected.md). That
+kernel-release package is also consumed. P2 remains HOLD and P3 remains
+prohibited. The next fail-first successor reads
+`/proc/sys/kernel/osrelease` directly and separates file/read failure from
+identity mismatch. Only complete target acceptance plus exact automatic
+fallback can pass P2.

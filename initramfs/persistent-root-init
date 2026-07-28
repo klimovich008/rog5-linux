@@ -18,6 +18,7 @@ expected_kernel_release=7.1.4-gcfd385a1c754
 expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff
 expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c
 userdata=/dev/sda23
+release_file=/proc/sys/kernel/osrelease
 
 log() {
 	echo "rog5-persistent-root: $*" >/dev/kmsg
@@ -36,8 +37,9 @@ fail_stage() {
 	stage=$2
 	delay=$3
 	case "$stage:$delay" in
-		cmdline:5|kernel-release:20|ufs-discovery:35|ufs-power:50|\
-storage-lock:65|userdata:80|inventory:95|usb:110) ;;
+		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
+ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
+usb:110) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -475,8 +477,13 @@ if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
 	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
 	fail_stage 'invalid persistent-root command line' cmdline 5
 fi
-if [ "$(uname -r)" != "$expected_kernel_release" ]; then
-	fail_stage 'running kernel release changed' kernel-release 20
+running_kernel_release=
+if ! IFS= read -r running_kernel_release <"$release_file"; then
+	fail_stage 'running kernel release is unavailable' \
+		kernel-release-file 20
+fi
+if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
+	fail_stage 'running kernel release changed' kernel-release-identity 25
 fi
 
 arm_watchdog
