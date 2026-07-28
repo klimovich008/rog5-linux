@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -33,6 +35,11 @@
 #define CPIO_HEADER_SIZE 110
 #define CPIO_NAME_MAX 4096
 #define CPIO_ENTRIES_MAX 8192
+#define PLAN_MAX 2048
+#define HANDOFF_FD 3
+#define HANDOFF_DESCRIPTOR_COUNT 3
+#define REQUIRED_SEALS \
+	(F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE)
 
 #define FDT_MAGIC 0xd00dfeedU
 #define FDT_BEGIN_NODE 1U
@@ -1226,27 +1233,190 @@ static void verify_hash(int descriptor, const char *expected,
 		fail("%s SHA-256 mismatch", name);
 }
 
-static void parse_arguments(int argc, char **argv, int *bundle_index)
+static void validate_handoff_socket(void)
 {
-#ifdef ROG5_BUNDLE_TESTING
+	struct ucred peer;
+	struct stat metadata;
+	socklen_t peer_length = sizeof(peer);
+	socklen_t type_length;
+	int type;
+
+	if (fstat(HANDOFF_FD, &metadata) < 0 ||
+	    !S_ISSOCK(metadata.st_mode))
+		fail("handoff descriptor is not a socket");
+	type_length = sizeof(type);
+	if (getsockopt(HANDOFF_FD, SOL_SOCKET, SO_TYPE,
+		       &type, &type_length) < 0 ||
+	    type_length != sizeof(type) || type != SOCK_SEQPACKET)
+		fail("handoff descriptor is not a SEQPACKET socket");
+	if (getsockopt(HANDOFF_FD, SOL_SOCKET, SO_PEERCRED,
+		       &peer, &peer_length) < 0 ||
+	    peer_length != sizeof(peer) || peer.pid <= 0 ||
+	    peer.uid != geteuid() || peer.gid != getegid())
+		fail("handoff peer credentials violate policy");
+}
+
+static void rewind_artifact(int descriptor, const char *name)
+{
+	if (lseek(descriptor, 0, SEEK_SET) < 0)
+		fail("cannot rewind verified %s", name);
+}
+
+static int snapshot_artifact(int source, uint64_t expected_size,
+			     const char *name)
+{
+	unsigned char buffer[64 * 1024];
+	uint64_t remaining = expected_size;
+	int snapshot;
+
+	snapshot = memfd_create(
+		name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
+	if (snapshot < 0)
+		fail("cannot create sealed %s snapshot", name);
+	if (lseek(source, 0, SEEK_SET) < 0)
+		fail("cannot rewind source %s", name);
+	while (remaining != 0) {
+		size_t requested = remaining < sizeof(buffer) ?
+			(size_t)remaining : sizeof(buffer);
+		size_t offset = 0;
+		ssize_t count;
+
+		do {
+			count = read(source, buffer, requested);
+		} while (count < 0 && errno == EINTR);
+		if (count <= 0)
+			fail("cannot snapshot complete %s", name);
+		while (offset < (size_t)count) {
+			ssize_t written = write(
+				snapshot, buffer + offset,
+				(size_t)count - offset);
+
+			if (written < 0 && errno == EINTR)
+				continue;
+			if (written <= 0)
+				fail("cannot write %s snapshot", name);
+			offset += (size_t)written;
+		}
+		remaining -= (uint64_t)count;
+	}
+	while (true) {
+		ssize_t count = read(source, buffer, 1);
+
+		if (count < 0 && errno == EINTR)
+			continue;
+		if (count < 0)
+			fail("cannot finish %s snapshot", name);
+		if (count != 0)
+			fail("%s changed size during snapshot", name);
+		break;
+	}
+	if (fchmod(snapshot, 0400) < 0 ||
+	    fcntl(snapshot, F_ADD_SEALS, REQUIRED_SEALS) < 0 ||
+	    fcntl(snapshot, F_GET_SEALS) != REQUIRED_SEALS)
+		fail("cannot seal %s snapshot", name);
+	errno = 0;
+	if (pwrite(snapshot, buffer, 1, 0) >= 0 || errno != EPERM)
+		fail("%s snapshot remains writable", name);
+	rewind_artifact(snapshot, name);
+	return snapshot;
+}
+
+static void send_handoff(const char *plan, size_t plan_length,
+			 int kernel_fd, int dtb_fd, int initramfs_fd)
+{
+	int descriptors[HANDOFF_DESCRIPTOR_COUNT] = {
+		kernel_fd,
+		dtb_fd,
+		initramfs_fd,
+	};
+	union {
+		struct cmsghdr alignment;
+		unsigned char bytes[CMSG_SPACE(sizeof(descriptors))];
+	} control = { 0 };
+	struct iovec vector = {
+		.iov_base = (void *)plan,
+		.iov_len = plan_length,
+	};
+	struct msghdr message = {
+		.msg_iov = &vector,
+		.msg_iovlen = 1,
+		.msg_control = control.bytes,
+		.msg_controllen = sizeof(control.bytes),
+	};
+	struct cmsghdr *header = CMSG_FIRSTHDR(&message);
+	ssize_t count;
+
+	if (header == NULL)
+		fail("cannot construct descriptor handoff");
+	header->cmsg_level = SOL_SOCKET;
+	header->cmsg_type = SCM_RIGHTS;
+	header->cmsg_len = CMSG_LEN(sizeof(descriptors));
+	memcpy(CMSG_DATA(header), descriptors, sizeof(descriptors));
+	message.msg_controllen = CMSG_SPACE(sizeof(descriptors));
+	do {
+		count = sendmsg(HANDOFF_FD, &message, MSG_NOSIGNAL);
+	} while (count < 0 && errno == EINTR);
+	if (count < 0)
+		fail("cannot send verified descriptor handoff");
+	if ((size_t)count != plan_length)
+		fail("short verified descriptor handoff");
+}
+
+static size_t build_plan(const struct bundle_manifest *parsed,
+			 const char *manifest_hash,
+			 const char *command_hash,
+			 const char *command_line,
+			 char output[PLAN_MAX])
+{
+	int length;
+
+	length = snprintf(
+		output, PLAN_MAX,
+		"format=rog5-verified-plan-v1\n"
+		"bundle=%s\n"
+		"manifest_sha256=%s\n"
+		"profile=%s\n"
+		"kernel_file=Image\n"
+		"dtb_file=board.dtb\n"
+		"initramfs_file=initramfs.cpio.gz\n"
+		"target_id=%s\n"
+		"target_release=%s\n"
+		"target_timeout=%" PRIu64 "\n"
+		"cmdline_sha256=%s\n"
+		"cmdline=%s\n",
+		parsed->bundle, manifest_hash, parsed->profile,
+		parsed->target_id, parsed->target_release,
+		parsed->target_timeout, command_hash, command_line);
+	if (length < 0 || length >= PLAN_MAX)
+		fail("verified plan is too large");
+	return (size_t)length;
+}
+
+static void parse_arguments(int argc, char **argv, int *bundle_index,
+			    bool *handoff)
+{
 	int index = 1;
 
-	while (index + 1 < argc && strncmp(argv[index], "--", 2) == 0) {
+#ifdef ROG5_BUNDLE_TESTING
+	while (index + 1 < argc) {
 		if (strcmp(argv[index], "--bundle-root") == 0)
 			bundle_root = argv[index + 1];
 		else if (strcmp(argv[index], "--trust-key") == 0)
 			trust_key_path = argv[index + 1];
 		else
-			fail("unknown test-only option");
+			break;
 		index += 2;
 	}
-	*bundle_index = index;
-#else
-	(void)argv;
-	*bundle_index = 1;
 #endif
+	*handoff = false;
+	if (index < argc && strcmp(argv[index], "--handoff-fd3") == 0) {
+		*handoff = true;
+		index++;
+	}
+	*bundle_index = index;
 	if (argc - *bundle_index != 2)
-		fail("usage: rog5-bundle-verify BUNDLE MANIFEST_SHA256");
+		fail("usage: rog5-bundle-verify [--handoff-fd3] "
+		     "BUNDLE MANIFEST_SHA256");
 }
 
 int main(int argc, char **argv)
@@ -1256,6 +1426,7 @@ int main(int argc, char **argv)
 	char manifest_hash[HASH_LENGTH + 1];
 	char command_line[CMDLINE_MAX];
 	char command_hash[HASH_LENGTH + 1];
+	char plan[PLAN_MAX];
 	const char *bundle;
 	const char *expected_manifest_hash;
 	unsigned char *manifest;
@@ -1271,11 +1442,15 @@ int main(int argc, char **argv)
 	int dtb_fd;
 	int initramfs_fd;
 	int bundle_index;
+	size_t plan_length;
+	bool handoff;
 
 	umask(0077);
 	if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG, NULL) != 1)
 		fail("cannot initialize OpenSSL");
-	parse_arguments(argc, argv, &bundle_index);
+	parse_arguments(argc, argv, &bundle_index, &handoff);
+	if (handoff)
+		validate_handoff_socket();
 	bundle = argv[bundle_index];
 	expected_manifest_hash = argv[bundle_index + 1];
 	if (!valid_bundle(bundle) || !valid_hash(expected_manifest_hash))
@@ -1309,6 +1484,22 @@ int main(int argc, char **argv)
 	initramfs_fd = open_file_at_checked(
 		bundle_fd, "initramfs.cpio.gz", 2, INITRAMFS_MAX,
 		parsed.initramfs_size);
+	if (handoff) {
+		int source_kernel = kernel_fd;
+		int source_dtb = dtb_fd;
+		int source_initramfs = initramfs_fd;
+
+		kernel_fd = snapshot_artifact(
+			source_kernel, parsed.kernel_size, "rog5-kernel");
+		dtb_fd = snapshot_artifact(
+			source_dtb, parsed.dtb_size, "rog5-dtb");
+		initramfs_fd = snapshot_artifact(
+			source_initramfs, parsed.initramfs_size,
+			"rog5-initramfs");
+		if (close(source_initramfs) < 0 ||
+		    close(source_dtb) < 0 || close(source_kernel) < 0)
+			fail("cannot close source bundle artifacts");
+	}
 	verify_hash(kernel_fd, parsed.kernel_sha256, "kernel");
 	verify_hash(dtb_fd, parsed.dtb_sha256, "DTB");
 	verify_hash(initramfs_fd, parsed.initramfs_sha256, "initramfs");
@@ -1320,24 +1511,18 @@ int main(int argc, char **argv)
 	verify_fdt(dtb, (size_t)parsed.dtb_size);
 	build_cmdline(&parsed, command_line);
 	sha256_memory(command_line, strlen(command_line), command_hash);
-	if (printf(
-		"format=rog5-verified-plan-v1\n"
-		"bundle=%s\n"
-		"manifest_sha256=%s\n"
-		"profile=%s\n"
-		"kernel_file=Image\n"
-		"dtb_file=board.dtb\n"
-		"initramfs_file=initramfs.cpio.gz\n"
-		"target_id=%s\n"
-		"target_release=%s\n"
-		"target_timeout=%" PRIu64 "\n"
-		"cmdline_sha256=%s\n"
-		"cmdline=%s\n",
-		parsed.bundle, manifest_hash, parsed.profile,
-		parsed.target_id, parsed.target_release,
-		parsed.target_timeout, command_hash, command_line) < 0 ||
-	    fflush(stdout) != 0 || ferror(stdout) != 0)
+	plan_length = build_plan(
+		&parsed, manifest_hash, command_hash, command_line, plan);
+	rewind_artifact(kernel_fd, "kernel");
+	rewind_artifact(dtb_fd, "DTB");
+	rewind_artifact(initramfs_fd, "initramfs");
+	if (handoff) {
+		send_handoff(
+			plan, plan_length, kernel_fd, dtb_fd, initramfs_fd);
+	} else if (fwrite(plan, 1, plan_length, stdout) != plan_length ||
+		   fflush(stdout) != 0 || ferror(stdout) != 0) {
 		fail("cannot write verified plan");
+	}
 	free(dtb);
 	free(key);
 	free(signature);
@@ -1345,7 +1530,8 @@ int main(int argc, char **argv)
 	if (close(initramfs_fd) < 0 || close(dtb_fd) < 0 ||
 	    close(kernel_fd) < 0 || close(key_fd) < 0 ||
 	    close(signature_fd) < 0 || close(manifest_fd) < 0 ||
-	    close(bundle_fd) < 0 || close(root_fd) < 0)
+	    close(bundle_fd) < 0 || close(root_fd) < 0 ||
+	    (handoff && close(HANDOFF_FD) < 0))
 		fail("cannot close verified bundle");
 	return EXIT_SUCCESS;
 }

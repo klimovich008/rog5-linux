@@ -3,12 +3,15 @@
 
 from __future__ import annotations
 
+import array
+import fcntl
 import gzip
 import hashlib
 import os
 from pathlib import Path
 import shlex
 import shutil
+import socket
 import struct
 import subprocess
 import tempfile
@@ -347,6 +350,90 @@ class BundleFixture:
             check=False,
         )
 
+    def invoke_handoff(
+        self,
+        *,
+        socket_type: int = socket.SOCK_SEQPACKET,
+    ) -> tuple[
+        subprocess.CompletedProcess[bytes],
+        bytes,
+        list[int],
+        int,
+    ]:
+        saved_fd3: int | None = None
+        saved_fd3_flags = 0
+        try:
+            saved_fd3_flags = fcntl.fcntl(3, fcntl.F_GETFD)
+            saved_fd3 = os.dup(3)
+        except OSError:
+            pass
+        reservation = os.open("/dev/null", os.O_RDONLY)
+        if reservation != 3:
+            os.dup2(reservation, 3)
+        parent, child = socket.socketpair(socket.AF_UNIX, socket_type)
+        child_fd = child.fileno()
+
+        command = [
+            *self.test.runner,
+            str(self.test.binary),
+            "--bundle-root",
+            str(self.root),
+            "--trust-key",
+            str(self.key),
+            "--handoff-fd3",
+            self.name,
+            self.manifest_hash(),
+        ]
+        os.dup2(child_fd, 3, inheritable=True)
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=REPO,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                pass_fds=(3,),
+            )
+        finally:
+            if saved_fd3 is None:
+                os.close(3)
+            else:
+                os.dup2(saved_fd3, 3)
+                fcntl.fcntl(3, fcntl.F_SETFD, saved_fd3_flags)
+                os.close(saved_fd3)
+            if reservation != 3:
+                os.close(reservation)
+        child.close()
+        parent.settimeout(10)
+        try:
+            packet, ancillary, flags, _ = parent.recvmsg(
+                4096,
+                socket.CMSG_SPACE(3 * array.array("i").itemsize),
+                socket.MSG_CMSG_CLOEXEC,
+            )
+            stdout, stderr = process.communicate(timeout=10)
+        except BaseException:
+            process.kill()
+            process.wait(timeout=2)
+            raise
+        finally:
+            parent.close()
+        descriptors: list[int] = []
+        for level, kind, payload in ancillary:
+            if level != socket.SOL_SOCKET or kind != socket.SCM_RIGHTS:
+                continue
+            values = array.array("i")
+            usable = len(payload) - len(payload) % values.itemsize
+            values.frombytes(payload[:usable])
+            descriptors.extend(values)
+        result = subprocess.CompletedProcess(
+            command,
+            process.returncode,
+            stdout,
+            stderr,
+        )
+        return result, packet, descriptors, flags
+
     def assert_rejected(self, message: str | None = None, **kwargs) -> None:
         result = self.invoke(**kwargs)
         self.test.assertNotEqual(
@@ -560,10 +647,143 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 self.assertEqual(output, expected)
                 self.assertNotIn(str(fixture.root), output)
 
+    def test_handoff_preserves_exact_verified_open_files(self) -> None:
+        required_seals = (
+            fcntl.F_SEAL_SEAL
+            | fcntl.F_SEAL_SHRINK
+            | fcntl.F_SEAL_GROW
+            | fcntl.F_SEAL_WRITE
+        )
+
+        def read_snapshot(descriptor: int) -> bytes:
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            chunks: list[bytes] = []
+            while True:
+                chunk = os.read(descriptor, 65536)
+                if not chunk:
+                    return b"".join(chunks)
+                chunks.append(chunk)
+
+        fixture = self.fixture("handoff")
+        expected = fixture.invoke()
+        self.assertEqual(
+            expected.returncode,
+            0,
+            expected.stderr.decode(errors="replace"),
+        )
+        original = [
+            (fixture.bundle / name).read_bytes()
+            for name in ("Image", "board.dtb", "initramfs.cpio.gz")
+        ]
+        result, packet, descriptors, flags = fixture.invoke_handoff()
+        try:
+            self.assertEqual(
+                result.returncode,
+                0,
+                result.stderr.decode(errors="replace"),
+            )
+            self.assertEqual(result.stdout, b"")
+            self.assertEqual(packet, expected.stdout)
+            self.assertEqual(flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC), 0)
+            self.assertEqual(len(descriptors), 3)
+            for descriptor in descriptors:
+                metadata = os.fstat(descriptor)
+
+                self.assertEqual(os.lseek(descriptor, 0, os.SEEK_CUR), 0)
+                self.assertEqual(metadata.st_nlink, 0)
+                self.assertEqual(metadata.st_mode & 0o222, 0)
+                self.assertEqual(
+                    fcntl.fcntl(descriptor, fcntl.F_GET_SEALS),
+                    required_seals,
+                )
+                self.assertNotEqual(
+                    fcntl.fcntl(descriptor, fcntl.F_GETFD)
+                    & fcntl.FD_CLOEXEC,
+                    0,
+                )
+                with self.assertRaises(PermissionError):
+                    os.pwrite(descriptor, b"X", 0)
+
+            for index, name in enumerate(
+                ("Image", "board.dtb", "initramfs.cpio.gz")
+            ):
+                path = fixture.bundle / name
+                path.write_bytes(b"W" * len(original[index]))
+                self.assertNotEqual(path.read_bytes(), original[index])
+
+            for descriptor, expected_bytes in zip(
+                descriptors,
+                original,
+                strict=True,
+            ):
+                self.assertEqual(read_snapshot(descriptor), expected_bytes)
+
+            for index, name in enumerate(
+                ("Image", "board.dtb", "initramfs.cpio.gz")
+            ):
+                path = fixture.bundle / name
+                replacement = fixture.bundle / f".{name}.replacement"
+                replacement.write_bytes(f"replaced-{name}".encode("ascii"))
+                replacement.chmod(0o600)
+                os.replace(replacement, path)
+                self.assertNotEqual(path.read_bytes(), original[index])
+
+            for descriptor, expected_bytes in zip(
+                descriptors,
+                original,
+                strict=True,
+            ):
+                self.assertEqual(read_snapshot(descriptor), expected_bytes)
+        finally:
+            for descriptor in descriptors:
+                os.close(descriptor)
+
+    def test_handoff_rejects_non_seqpacket_descriptor(self) -> None:
+        fixture = self.fixture("handoff-stream")
+        result, packet, descriptors, _ = fixture.invoke_handoff(
+            socket_type=socket.SOCK_STREAM
+        )
+        try:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(packet, b"")
+            self.assertEqual(descriptors, [])
+            self.assertIn(
+                b"handoff descriptor is not a SEQPACKET socket",
+                result.stderr,
+            )
+        finally:
+            for descriptor in descriptors:
+                os.close(descriptor)
+
+    def test_handoff_rejects_missing_fixed_descriptor(self) -> None:
+        fixture = self.fixture("handoff-missing")
+        result = subprocess.run(
+            [
+                *self.runner,
+                str(self.binary),
+                "--bundle-root",
+                str(fixture.root),
+                "--trust-key",
+                str(fixture.key),
+                "--handoff-fd3",
+                fixture.name,
+                fixture.manifest_hash(),
+            ],
+            cwd=REPO,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"handoff descriptor is not a socket", result.stderr)
+
     def test_production_build_has_no_path_override_interface(self) -> None:
         strings = subprocess.check_output(["strings", str(self.production)])
         self.assertNotIn(b"--bundle-root", strings)
         self.assertNotIn(b"--trust-key", strings)
+        self.assertIn(b"--handoff-fd3", strings)
         result = subprocess.run(
             [
                 str(self.production),

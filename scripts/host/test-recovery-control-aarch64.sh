@@ -55,6 +55,28 @@ podman run --rm --network=none --platform linux/arm64 \
 	/workspace/tools/recovery_control/rog5-recovery-control.c \
 	-o /out/rog5-recovery-control-test
 
+podman run --rm --network=none --platform linux/arm64 \
+	-v "$repo:/workspace:ro,Z" \
+	-v "$test_tmp:/out:Z" \
+	"$image" \
+	sh -eu -c '
+		cp /workspace/tools/recovery_control/rog5-recovery-control.c \
+			/out/contaminated-responder.c
+		printf "%s\n" \
+			"const char rog5_contamination[] __attribute__((used)) = \"ROG5_TEST_CONTAMINATION\";" \
+			>>/out/contaminated-responder.c
+		if /workspace/scripts/device/build-recovery-control.sh \
+			/out/contaminated-responder.c \
+			/out/contaminated-responder \
+			>/out/contaminated-responder-build.log 2>&1; then
+			echo "FAIL contaminated production responder passed" >&2
+			exit 1
+		fi
+		grep -qx \
+			"FAIL production responder contains a test interface" \
+			/out/contaminated-responder-build.log
+	'
+
 ROG5_CONTROL_TEST_BINARY=$test_tmp/rog5-recovery-control-test \
 ROG5_CONTROL_TEST_RUNNER=$(command -v qemu-aarch64-static) \
 	python3 "$repo/scripts/host/test-recovery-control-native.py"

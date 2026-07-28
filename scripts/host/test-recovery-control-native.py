@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 import termios
+import textwrap
 import time
 import unittest
 
@@ -160,6 +161,10 @@ class NativeResponderTest(unittest.TestCase):
         drain_stall: str | None = None,
         execute_delay_ms: int = 0,
         persist_crash: str | None = None,
+        verifier_path: Path | None = None,
+        kexec_path: Path | None = None,
+        verify_timeout_ms: int | None = None,
+        load_timeout_ms: int | None = None,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -192,6 +197,19 @@ class NativeResponderTest(unittest.TestCase):
             environment["ROG5_TEST_DRAIN_STALL"] = drain_stall
         if persist_crash is not None:
             environment["ROG5_TEST_PERSIST_CRASH"] = persist_crash
+        if verifier_path is not None:
+            if kexec_path is None:
+                self.fail("test verifier and kexec paths must be paired")
+            environment["ROG5_TEST_VERIFIER_PATH"] = str(verifier_path)
+            environment["ROG5_TEST_KEXEC_PATH"] = str(kexec_path)
+        elif kexec_path is not None:
+            self.fail("test verifier and kexec paths must be paired")
+        if verify_timeout_ms is not None:
+            environment["ROG5_TEST_VERIFY_TIMEOUT_MS"] = str(
+                verify_timeout_ms
+            )
+        if load_timeout_ms is not None:
+            environment["ROG5_TEST_LOAD_TIMEOUT_MS"] = str(load_timeout_ms)
         process = subprocess.Popen(
             [
                 *self.runner,
@@ -327,11 +345,326 @@ class NativeResponderTest(unittest.TestCase):
             },
         )
 
+    def make_prepare_pipeline(
+        self,
+        name: str,
+        *,
+        verifier_mode: str = "ok",
+        loader_mode: str = "ok",
+    ) -> tuple[Path, Path, Path]:
+        pipeline = self.root / f"pipeline-{name}"
+        pipeline.mkdir(mode=0o700)
+        artifacts = pipeline / "artifacts"
+        artifacts.mkdir(mode=0o700)
+        content = {
+            "Image": b"K" * 64,
+            "board.dtb": b"D" * 40,
+            "initramfs.cpio.gz": b"I" * 2,
+        }
+        for filename, payload in content.items():
+            path = artifacts / filename
+            path.write_bytes(payload)
+            path.chmod(0o600)
+        marker = pipeline / "load-marker"
+        unload_marker = pipeline / "unload-marker"
+        loaded_state = pipeline / "loaded-state"
+        verifier_pid = pipeline / "verifier-pid"
+        verifier_runs = pipeline / "verifier-runs"
+        loader_pid = pipeline / "loader-pid"
+        executor_pid = pipeline / "executor-pid"
+        executor_marker = pipeline / "executor-marker"
+        verifier = pipeline / "fake-verifier"
+        loader = pipeline / "fake-kexec"
+        artifact_paths = [
+            str(artifacts / "Image"),
+            str(artifacts / "board.dtb"),
+            str(artifacts / "initramfs.cpio.gz"),
+        ]
+        verifier.write_text(
+            textwrap.dedent(
+                f"""\
+                #!/usr/bin/python3
+                import array
+                import fcntl
+                import hashlib
+                import os
+                from pathlib import Path
+                import socket
+                import sys
+                import time
+
+                mode = {verifier_mode!r}
+                paths = {artifact_paths!r}
+                Path({str(verifier_pid)!r}).write_text(
+                    str(os.getpid()), encoding="ascii"
+                )
+                with Path({str(verifier_runs)!r}).open(
+                    "a", encoding="ascii"
+                ) as stream:
+                    stream.write("run\\n")
+                if sys.argv[1] != "--handoff-fd3" or len(sys.argv) != 4:
+                    raise SystemExit(80)
+                if mode == "hang":
+                    time.sleep(5)
+                if mode == "no_packet":
+                    raise SystemExit(9)
+                bundle = sys.argv[2]
+                manifest = sys.argv[3]
+                if mode == "wrong_manifest":
+                    manifest = "b" * 64
+                command = (
+                    "console=ttyMSM0,115200n8 rdinit=/init "
+                    "rog5.bundle=" + bundle
+                )
+                command_hash = hashlib.sha256(
+                    command.encode("ascii")
+                ).hexdigest()
+                if mode == "wrong_command_hash":
+                    command_hash = "b" * 64
+                format_name = (
+                    "rog5-corrupt-plan-v1"
+                    if mode == "malformed_plan"
+                    else "rog5-verified-plan-v1"
+                )
+                plan = (
+                    f"format={{format_name}}\\n"
+                    f"bundle={{bundle}}\\n"
+                    f"manifest_sha256={{manifest}}\\n"
+                    "profile=network-root-v1\\n"
+                    "kernel_file=Image\\n"
+                    "dtb_file=board.dtb\\n"
+                    "initramfs_file=initramfs.cpio.gz\\n"
+                    "target_id=rog5-test\\n"
+                    "target_release=test-1\\n"
+                    "target_timeout=90\\n"
+                    f"cmdline_sha256={{command_hash}}\\n"
+                    f"cmdline={{command}}\\n"
+                ).encode("ascii")
+                if mode == "extra_plan_field":
+                    plan = plan.replace(
+                        b"cmdline=",
+                        b"unexpected=value\\ncmdline=",
+                    )
+                if mode == "embedded_nul":
+                    plan += b"\\0"
+                if mode == "oversized_plan":
+                    plan += b"X" * 2048
+                required_seals = (
+                    fcntl.F_SEAL_SEAL
+                    | fcntl.F_SEAL_SHRINK
+                    | fcntl.F_SEAL_GROW
+                    | fcntl.F_SEAL_WRITE
+                )
+                descriptors = []
+                for index, path in enumerate(paths):
+                    descriptor = os.memfd_create(
+                        f"rog5-test-{{index}}",
+                        os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING,
+                    )
+                    with open(path, "rb") as stream:
+                        payload = stream.read()
+                    os.write(descriptor, payload)
+                    os.fchmod(descriptor, 0o400)
+                    fcntl.fcntl(
+                        descriptor,
+                        fcntl.F_ADD_SEALS,
+                        required_seals,
+                    )
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    descriptors.append(descriptor)
+                if mode == "unsafe_descriptor":
+                    os.close(descriptors[1])
+                    descriptors[1] = os.open(
+                        os.path.dirname(paths[1]), os.O_RDONLY
+                    )
+                if mode == "aliased_descriptor":
+                    os.close(descriptors[1])
+                    descriptors[1] = os.dup(descriptors[0])
+                if mode == "unsealed_descriptor":
+                    os.close(descriptors[0])
+                    descriptors[0] = os.memfd_create(
+                        "rog5-test-unsealed",
+                        os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING,
+                    )
+                    with open(paths[0], "rb") as stream:
+                        os.write(descriptors[0], stream.read())
+                    os.fchmod(descriptors[0], 0o400)
+                    os.lseek(descriptors[0], 0, os.SEEK_SET)
+                if mode == "nonzero_offset":
+                    os.lseek(descriptors[0], 1, os.SEEK_SET)
+                extra_descriptors = []
+                if mode == "four_rights":
+                    extra_descriptors.append(os.dup(descriptors[0]))
+                if mode == "sixteen_rights":
+                    for _ in range(13):
+                        extra_descriptors.append(
+                            os.dup(descriptors[0])
+                        )
+                if mode == "maximum_rights":
+                    for _ in range(250):
+                        extra_descriptors.append(
+                            os.dup(descriptors[0])
+                        )
+                sent = (
+                    descriptors[:2]
+                    if mode == "wrong_fd_count"
+                    else descriptors + extra_descriptors
+                )
+                control = array.array("i", sent)
+                channel = socket.socket(fileno=3)
+                channel.sendmsg(
+                    [b"" if mode == "zero_packet_rights" else plan],
+                    [(socket.SOL_SOCKET, socket.SCM_RIGHTS, control)],
+                )
+                channel.close()
+                for descriptor in descriptors:
+                    os.close(descriptor)
+                for descriptor in extra_descriptors:
+                    os.close(descriptor)
+                if mode == "hang_after_send":
+                    time.sleep(5)
+                if mode == "fail_after_send":
+                    raise SystemExit(9)
+                """
+            ),
+            encoding="utf-8",
+        )
+        loader.write_text(
+            textwrap.dedent(
+                f"""\
+                #!/usr/bin/python3
+                import os
+                from pathlib import Path
+                import sys
+                import time
+
+                mode = {loader_mode!r}
+                paths = [
+                    Path(value) for value in {artifact_paths!r}
+                ]
+                marker = Path({str(marker)!r})
+                unload_marker = Path({str(unload_marker)!r})
+                loaded_state = Path({str(loaded_state)!r})
+                executor_pid = Path({str(executor_pid)!r})
+                executor_marker = Path({str(executor_marker)!r})
+                expected = {
+                    {
+                        "Image": content["Image"].hex(),
+                        "board.dtb": content["board.dtb"].hex(),
+                        "initramfs.cpio.gz":
+                            content["initramfs.cpio.gz"].hex(),
+                    }!r
+                }
+                if sys.argv[1:] == ["-c", "-u"]:
+                    if mode == "unload_fail":
+                        raise SystemExit(9)
+                    with unload_marker.open(
+                        "a", encoding="ascii"
+                    ) as stream:
+                        stream.write("unloaded\\n")
+                    loaded_state.unlink(missing_ok=True)
+                    raise SystemExit(0)
+                if sys.argv[1:] == ["-e"]:
+                    executor_pid.write_text(
+                        str(os.getpid()), encoding="ascii"
+                    )
+                    if not loaded_state.is_file():
+                        raise SystemExit(90)
+                    if mode == "exec_hang":
+                        time.sleep(5)
+                    if mode == "exec_fail":
+                        raise SystemExit(9)
+                    executor_marker.write_text(
+                        "returned\\n", encoding="ascii"
+                    )
+                    raise SystemExit(0)
+                Path({str(loader_pid)!r}).write_text(
+                    str(os.getpid()), encoding="ascii"
+                )
+                if mode == "hang":
+                    time.sleep(5)
+                if mode == "fail":
+                    raise SystemExit(9)
+                if (
+                    len(sys.argv) != 7
+                    or sys.argv[1] != "-c"
+                    or sys.argv[2] != "-l"
+                ):
+                    raise SystemExit(81)
+                if mode == "hang_after_load":
+                    loaded_state.write_text(
+                        "loaded\\n", encoding="ascii"
+                    )
+                    with marker.open("a", encoding="ascii") as stream:
+                        stream.write("loaded\\n")
+                    time.sleep(5)
+                if mode == "count":
+                    loaded_state.write_text(
+                        "loaded\\n", encoding="ascii"
+                    )
+                    with marker.open("a", encoding="ascii") as stream:
+                        stream.write("loaded\\n")
+                    raise SystemExit(0)
+                kernel = sys.argv[3]
+                initramfs = sys.argv[4].removeprefix("--initrd=")
+                dtb = sys.argv[5].removeprefix("--dtb=")
+                if not sys.argv[4].startswith("--initrd=/proc/self/fd/"):
+                    raise SystemExit(82)
+                if not sys.argv[5].startswith("--dtb=/proc/self/fd/"):
+                    raise SystemExit(83)
+                if not sys.argv[6].startswith("--command-line="):
+                    raise SystemExit(84)
+                replacement = {{
+                    "Image": b"R" * 64,
+                    "board.dtb": b"S" * 40,
+                    "initramfs.cpio.gz": b"T" * 2,
+                }}
+                for path in paths:
+                    temporary = path.with_name("." + path.name + ".new")
+                    temporary.write_bytes(replacement[path.name])
+                    temporary.chmod(0o600)
+                    os.replace(temporary, path)
+                observed = {{
+                    "Image": Path(kernel).read_bytes().hex(),
+                    "board.dtb": Path(dtb).read_bytes().hex(),
+                    "initramfs.cpio.gz":
+                        Path(initramfs).read_bytes().hex(),
+                }}
+                if observed != expected:
+                    raise SystemExit(85)
+                loaded_state.write_text(
+                    "loaded\\n", encoding="ascii"
+                )
+                marker.write_text(
+                    "\\n".join(sys.argv[1:]) + "\\n",
+                    encoding="ascii",
+                )
+                """
+            ),
+            encoding="utf-8",
+        )
+        verifier.chmod(0o700)
+        loader.chmod(0o700)
+        return verifier, loader, marker
+
     def wait_exit(self, process: subprocess.Popen) -> None:
         try:
             process.wait(timeout=3)
         except subprocess.TimeoutExpired:
             self.fail("responder did not reach the injected exit")
+
+    def wait_pid_file(self, path: Path) -> int:
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            try:
+                value = path.read_text(encoding="ascii").strip()
+            except FileNotFoundError:
+                value = ""
+            if value.isdecimal() and int(value) > 0:
+                return int(value)
+            time.sleep(0.01)
+        self.fail(f"child PID file did not become complete: {path}")
+        raise AssertionError("unreachable")
 
     def stop_responder(
         self,
@@ -670,6 +1003,465 @@ class NativeResponderTest(unittest.TestCase):
             (self.state / "test-executed").read_text(encoding="ascii"),
             "executed\n",
         )
+
+    def test_prepare_pipeline_loads_exact_descriptors_before_persist(self):
+        verifier, loader, marker = self.make_prepare_pipeline("exact")
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        baseline_fds = len(
+            list(Path(f"/proc/{process.pid}/fd").iterdir())
+        )
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "PREPARED")
+        self.assertTrue((self.state / "prepared").is_file())
+        self.assertEqual(
+            len(list(Path(f"/proc/{process.pid}/fd").iterdir())),
+            baseline_fds,
+        )
+        loaded = marker.read_text(encoding="ascii").splitlines()
+        self.assertEqual(loaded[:2], ["-c", "-l"])
+        self.assertRegex(loaded[2], r"^/proc/self/fd/[0-9]+$")
+        self.assertRegex(
+            loaded[3],
+            r"^--initrd=/proc/self/fd/[0-9]+$",
+        )
+        self.assertRegex(
+            loaded[4],
+            r"^--dtb=/proc/self/fd/[0-9]+$",
+        )
+        self.assertTrue(loaded[5].startswith("--command-line="))
+        self.stop_responder(process, master)
+
+    def test_prepare_pipeline_rejects_every_failed_boundary(self):
+        cases = (
+            ("malformed-plan", "malformed_plan", "ok"),
+            ("wrong-manifest", "wrong_manifest", "ok"),
+            ("wrong-command-hash", "wrong_command_hash", "ok"),
+            ("extra-plan-field", "extra_plan_field", "ok"),
+            ("embedded-nul", "embedded_nul", "ok"),
+            ("oversized-plan", "oversized_plan", "ok"),
+            ("short-rights", "wrong_fd_count", "ok"),
+            ("unsafe-rights", "unsafe_descriptor", "ok"),
+            ("aliased-rights", "aliased_descriptor", "ok"),
+            ("unsealed-rights", "unsealed_descriptor", "ok"),
+            ("nonzero-offset", "nonzero_offset", "ok"),
+            ("four-rights", "four_rights", "ok"),
+            ("sixteen-rights", "sixteen_rights", "ok"),
+            ("maximum-rights", "maximum_rights", "ok"),
+            ("zero-packet-rights", "zero_packet_rights", "ok"),
+            ("verifier-exit", "fail_after_send", "ok"),
+            ("no-packet", "no_packet", "ok"),
+            ("loader-exit", "ok", "fail"),
+        )
+        for index, (name, verifier_mode, loader_mode) in enumerate(cases):
+            with self.subTest(boundary=name):
+                verifier, loader, marker = self.make_prepare_pipeline(
+                    name,
+                    verifier_mode=verifier_mode,
+                    loader_mode=loader_mode,
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                )
+                session = self.hello(master, number=100 + index * 2)
+                response = self.prepare(
+                    master,
+                    session,
+                    number=101 + index * 2,
+                )
+                self.assertEqual(response.result, "VERIFY_FAILED")
+                self.assertFalse((self.state / "prepared").exists())
+                self.assertFalse(marker.exists())
+                self.stop_responder(process, master)
+
+    def test_malformed_rights_never_leak_descriptors(self):
+        for mode_index, mode in enumerate(
+            (
+                "four_rights",
+                "sixteen_rights",
+                "maximum_rights",
+                "zero_packet_rights",
+                "unsafe_descriptor",
+                "aliased_descriptor",
+                "unsealed_descriptor",
+                "nonzero_offset",
+                "fail_after_send",
+            )
+        ):
+            with self.subTest(mode=mode):
+                self.state = self.root / f"state-leak-{mode}"
+                self.state.mkdir(mode=0o700)
+                verifier, loader, marker = self.make_prepare_pipeline(
+                    f"leak-{mode}",
+                    verifier_mode=mode,
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                )
+                session = self.hello(
+                    master,
+                    number=400 + mode_index * 20,
+                )
+                baseline = len(list(Path(f"/proc/{process.pid}/fd").iterdir()))
+                for attempt in range(5):
+                    response = self.prepare(
+                        master,
+                        session,
+                        number=401 + mode_index * 20 + attempt,
+                    )
+                    self.assertEqual(response.result, "VERIFY_FAILED")
+                    self.assertEqual(
+                        len(list(
+                            Path(f"/proc/{process.pid}/fd").iterdir()
+                        )),
+                        baseline,
+                    )
+                self.assertFalse(marker.exists())
+                self.stop_responder(process, master)
+
+    def test_verifier_timeout_after_handoff_closes_descriptors(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "handoff-timeout",
+            verifier_mode="hang_after_send",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            verify_timeout_ms=100,
+        )
+        session = self.hello(master)
+        baseline = len(list(Path(f"/proc/{process.pid}/fd").iterdir()))
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "VERIFY_FAILED")
+        self.assertEqual(
+            len(list(Path(f"/proc/{process.pid}/fd").iterdir())),
+            baseline,
+        )
+        child_pid = self.wait_pid_file(marker.parent / "verifier-pid")
+        self.assertFalse(Path(f"/proc/{child_pid}").exists())
+        self.assertFalse(marker.exists())
+        self.stop_responder(process, master)
+
+    def test_prepare_pipeline_timeouts_are_fail_closed(self):
+        cases = (
+            ("verifier-timeout", "hang", "ok", 100, None),
+            ("loader-timeout", "ok", "hang", None, 100),
+        )
+        for index, (
+            name,
+            verifier_mode,
+            loader_mode,
+            verify_timeout,
+            load_timeout,
+        ) in enumerate(cases):
+            with self.subTest(boundary=name):
+                verifier, loader, marker = self.make_prepare_pipeline(
+                    name,
+                    verifier_mode=verifier_mode,
+                    loader_mode=loader_mode,
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                    verify_timeout_ms=verify_timeout,
+                    load_timeout_ms=load_timeout,
+                )
+                session = self.hello(master, number=200 + index * 2)
+                started = time.monotonic()
+                response = self.prepare(
+                    master,
+                    session,
+                    number=201 + index * 2,
+                )
+                self.assertLess(time.monotonic() - started, 2)
+                self.assertEqual(response.result, "VERIFY_FAILED")
+                self.assertFalse((self.state / "prepared").exists())
+                self.assertFalse(marker.exists())
+                pid_name = (
+                    "verifier-pid"
+                    if verifier_mode == "hang"
+                    else "loader-pid"
+                )
+                child_pid = self.wait_pid_file(marker.parent / pid_name)
+                self.assertFalse(Path(f"/proc/{child_pid}").exists())
+                self.stop_responder(process, master)
+
+    def test_loader_timeout_after_kernel_acceptance_unloads_image(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "loaded-timeout",
+            loader_mode="hang_after_load",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            load_timeout_ms=100,
+        )
+        session = self.hello(master)
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "VERIFY_FAILED")
+        self.assertEqual(
+            marker.read_text(encoding="ascii").splitlines(),
+            ["loaded"],
+        )
+        self.assertFalse((marker.parent / "loaded-state").exists())
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            1,
+        )
+        child_pid = self.wait_pid_file(marker.parent / "loader-pid")
+        self.assertFalse(Path(f"/proc/{child_pid}").exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.stop_responder(process, master)
+
+    def test_crash_after_load_retries_without_false_prepared_state(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "load-crash",
+            loader_mode="count",
+        )
+        process, master = self.start(
+            crash="after_prepare_load",
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        request = encode_request(
+            session=session,
+            request=request_id(10),
+            verb="PREPARE",
+            body={
+                "bundle": "arch-v1",
+                "manifest_sha256": MANIFEST,
+            },
+        )
+        os.write(master, encode_frame(request))
+        self.wait_exit(process)
+        self.assertEqual(
+            marker.read_text(encoding="ascii").splitlines(),
+            ["loaded"],
+        )
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertTrue((marker.parent / "loaded-state").is_file())
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            1,
+        )
+        self.stop_responder(process, master)
+
+        restarted, restarted_master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        replay = self.exchange(restarted_master, request)
+        self.assertEqual(replay.result, "PREPARED")
+        self.assertTrue((self.state / "prepared").is_file())
+        self.assertEqual(
+            marker.read_text(encoding="ascii").splitlines(),
+            ["loaded", "loaded"],
+        )
+        self.assertTrue((marker.parent / "loaded-state").is_file())
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            2,
+        )
+        self.stop_responder(restarted, restarted_master)
+
+    def test_fixed_executor_return_unloads_and_persists_failure(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "fixed-executor-return",
+            loader_mode="exec_return",
+        )
+        process, master = self.start(
+            execute="fixed_path",
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        self.assertTrue((marker.parent / "loaded-state").is_file())
+        claimed = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(claimed.result, "CLAIMED")
+        failure = self.state / "failure"
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not failure.exists():
+            time.sleep(0.01)
+        self.assertTrue(failure.is_file())
+        self.assertFalse((marker.parent / "loaded-state").exists())
+        self.assertEqual(
+            (marker.parent / "executor-marker").read_text(
+                encoding="ascii"
+            ),
+            "returned\n",
+        )
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            1,
+        )
+        status = self.status(master, session, 20)
+        self.assertEqual(status.state, "EXEC_FAILED")
+        self.assertEqual(status.last_error, "EXEC_RETURNED")
+        self.stop_responder(process, master)
+
+    def test_fixed_executor_failure_unloads_and_persists_failure(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "fixed-executor-failure",
+            loader_mode="exec_fail",
+        )
+        process, master = self.start(
+            execute="fixed_path",
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        claimed = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(claimed.result, "CLAIMED")
+        failure = self.state / "failure"
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not failure.exists():
+            time.sleep(0.01)
+        self.assertTrue(failure.is_file())
+        self.assertFalse((marker.parent / "loaded-state").exists())
+        status = self.status(master, session, 20)
+        self.assertEqual(status.state, "EXEC_FAILED")
+        self.assertEqual(status.last_error, "EXEC_FAILED")
+        self.stop_responder(process, master)
+
+    def test_watchdog_death_during_fixed_executor_reaps_and_reconciles(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "fixed-executor-watchdog",
+            loader_mode="exec_hang",
+        )
+        process, master = self.start(
+            execute="fixed_path",
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        claimed = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(claimed.result, "CLAIMED")
+        pid_file = marker.parent / "executor-pid"
+        child_pid = self.wait_pid_file(pid_file)
+        self.stop_watchdog()
+        self.wait_exit(process)
+        stderr = process.stderr.read().decode(errors="replace")
+        self.assertIn(
+            "rollback watchdog died while executor ran",
+            stderr,
+        )
+        self.assertFalse(Path(f"/proc/{child_pid}").exists())
+        self.assertTrue((marker.parent / "loaded-state").is_file())
+
+        self.start_watchdog()
+        restarted, restarted_master = self.start(
+            execute="fixed_path",
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        self.assertFalse((marker.parent / "loaded-state").exists())
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            2,
+        )
+        status = self.status(restarted_master, session, 20)
+        self.assertEqual(status.state, "CLAIMED")
+        self.assertEqual(status.execution_started, "YES")
+        self.stop_responder(restarted, restarted_master)
+
+    def test_watchdog_death_during_verifier_is_terminal(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "watchdog-verifier",
+            verifier_mode="hang",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            verify_timeout_ms=5000,
+        )
+        session = self.hello(master)
+        os.write(
+            master,
+            encode_frame(
+                encode_request(
+                    session=session,
+                    request=request_id(10),
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+            ),
+        )
+        pid_file = marker.parent / "verifier-pid"
+        child_pid = self.wait_pid_file(pid_file)
+        self.stop_watchdog()
+        self.wait_exit(process)
+        stderr = process.stderr.read().decode(errors="replace")
+        self.assertIn("watchdog died during verifier handoff", stderr)
+        self.assertFalse(Path(f"/proc/{child_pid}").exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertFalse(marker.exists())
+
+    def test_watchdog_death_during_loader_reaps_child(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "watchdog-loader",
+            loader_mode="hang",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            load_timeout_ms=5000,
+        )
+        session = self.hello(master)
+        os.write(
+            master,
+            encode_frame(
+                encode_request(
+                    session=session,
+                    request=request_id(10),
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+            ),
+        )
+        pid_file = marker.parent / "loader-pid"
+        child_pid = self.wait_pid_file(pid_file)
+        self.stop_watchdog()
+        self.wait_exit(process)
+        stderr = process.stderr.read().decode(errors="replace")
+        self.assertIn("watchdog died during PREPARE", stderr)
+        self.assertFalse(Path(f"/proc/{child_pid}").exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertFalse(marker.exists())
 
     def test_crash_after_claim_is_not_executed_by_restart(self):
         process, master = self.start(crash="after_claim")
@@ -1242,7 +2034,7 @@ class NativeResponderTest(unittest.TestCase):
     def test_ledger_capacity_is_fail_closed_without_eviction(self):
         _, master = self.start()
         session = self.hello(master)
-        for number in range(100, 130):
+        for number in range(100, 129):
             self.assertEqual(
                 self.exchange(
                     master,
@@ -1259,7 +2051,7 @@ class NativeResponderTest(unittest.TestCase):
         )
         full = self.exchange(
             master,
-            self.commit_payload(session, number=130),
+            self.commit_payload(session, number=129),
         )
         self.assertEqual(full.result, "LEDGER_FULL")
         self.assertEqual(
@@ -1271,6 +2063,92 @@ class NativeResponderTest(unittest.TestCase):
             "CLAIMED",
         )
 
+    def test_ledger_boundary_never_loads_without_three_reserved_slots(self):
+        process, master = self.start()
+        session = self.hello(master)
+        self.stop_responder(process, master)
+        requests = self.state / "requests"
+        for index in range(31):
+            record = requests / request_id(100 + index)
+            record.write_text(
+                f"fingerprint={index + 1:064x}\n"
+                "verb=COMMIT_EXEC\n"
+                "result=PREPARE_REQUIRED\n",
+                encoding="ascii",
+            )
+            record.chmod(0o600)
+
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "ledger-boundary"
+        )
+        restarted, restarted_master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        self.assertEqual(
+            self.prepare(restarted_master, session, number=301).result,
+            "LEDGER_FULL",
+        )
+        self.assertFalse(marker.exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.stop_responder(restarted, restarted_master)
+
+    def test_ledger_boundary_records_failed_prepare_once(self):
+        process, master = self.start()
+        session = self.hello(master)
+        self.stop_responder(process, master)
+        requests = self.state / "requests"
+        for index in range(29):
+            record = requests / request_id(100 + index)
+            record.write_text(
+                f"fingerprint={index + 1:064x}\n"
+                "verb=COMMIT_EXEC\n"
+                "result=PREPARE_REQUIRED\n",
+                encoding="ascii",
+            )
+            record.chmod(0o600)
+
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "ledger-failed-prepare",
+            verifier_mode="malformed_plan",
+        )
+        responder, responder_master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        payload = encode_request(
+            session=session,
+            request=request_id(300),
+            verb="PREPARE",
+            body={
+                "bundle": "arch-v1",
+                "manifest_sha256": MANIFEST,
+            },
+        )
+        self.assertEqual(
+            self.exchange(responder_master, payload).result,
+            "VERIFY_FAILED",
+        )
+        runs = marker.parent / "verifier-runs"
+        self.assertEqual(
+            runs.read_text(encoding="ascii").splitlines(),
+            ["run"],
+        )
+        self.assertEqual(
+            self.exchange(responder_master, payload).result,
+            "VERIFY_FAILED",
+        )
+        self.assertEqual(
+            self.prepare(responder_master, session, number=301).result,
+            "LEDGER_FULL",
+        )
+        self.assertEqual(
+            runs.read_text(encoding="ascii").splitlines(),
+            ["run"],
+        )
+        self.assertFalse(marker.exists())
+        self.stop_responder(responder, responder_master)
+
     def test_claim_reconstruction_does_not_overflow_full_ledger(self):
         process, master = self.start(crash="after_claim")
         session = self.hello(master)
@@ -1280,7 +2158,7 @@ class NativeResponderTest(unittest.TestCase):
         self.wait_exit(process)
 
         _, new_master = self.start()
-        for number in range(100, 129):
+        for number in range(100, 128):
             self.assertEqual(
                 self.exchange(
                     new_master,
@@ -1290,13 +2168,20 @@ class NativeResponderTest(unittest.TestCase):
             )
         self.assertEqual(
             len(list((self.state / "requests").iterdir())),
-            30,
+            29,
+        )
+        self.assertEqual(
+            self.exchange(
+                new_master,
+                self.commit_payload(session, number=128),
+            ).result,
+            "LEDGER_FULL",
         )
         duplicate = self.exchange(new_master, commit)
         self.assertEqual(duplicate.result, "CLAIMED")
         self.assertEqual(
             len(list((self.state / "requests").iterdir())),
-            30,
+            29,
         )
         self.assertEqual(
             self.status(new_master, session, 200).result,
@@ -1389,6 +2274,12 @@ class NativeResponderTest(unittest.TestCase):
             text=True,
         )
         self.assertIn("/usr/sbin/kexec", production_strings)
+        self.assertIn(
+            "/usr/libexec/rog5-bundle-verify",
+            production_strings,
+        )
+        self.assertIn("--handoff-fd3", production_strings)
+        self.assertIn("/proc/self/fd/%d", production_strings)
         self.assertIn("rog5-kexec", production_strings)
         self.assertNotIn("ROG5_TEST_", production_strings)
         self.assertNotIn("test-executed", production_strings)

@@ -66,6 +66,7 @@ strings "$temporary" | grep -qx '/run/rog5-bundles'
 strings "$temporary" |
 	grep -qx '/etc/rog5/recovery-bundle-ed25519.pub'
 strings "$temporary" | grep -qx 'ED25519'
+strings "$temporary" | grep -qx -- '--handoff-fd3'
 if strings "$temporary" | grep -q -- '--bundle-root'; then
 	echo 'FAIL production verifier contains bundle-root override' >&2
 	exit 1

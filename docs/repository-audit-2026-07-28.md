@@ -223,12 +223,11 @@ suite and one canonical offline runner before another image is built.
 
 ## Immediate next work
 
-1. Finish concise source-of-truth documentation and stop updating the same
-   chronology in three files.
-2. Implement the recovery protocol reference model and fault-injection tests.
-3. Implement the static responder without shell execution.
-4. Integrate fixed-host fetch, signed verification, and same-descriptor
-   `kexec -l`; ask before creating the production signing key.
-5. Rebuild and verify one stable recovery candidate.
-6. Run staging-only promotion before any new payload execution.
-7. Generate, review, and only then apply the ignored-artifact deletion plan.
+1. Implement fixed-host fetch and atomic bundle publication; signed
+   verification and same-descriptor legacy `kexec_load` are complete offline.
+2. Integrate the pinned responder, verifier, kexec-tools, and approved public
+   key into one shell-free initramfs.
+3. Ask before creating or using the production signing credential.
+4. Rebuild and verify one stable recovery candidate.
+5. Run staging-only promotion before any new payload execution.
+6. Generate, review, and only then apply the ignored-artifact deletion plan.

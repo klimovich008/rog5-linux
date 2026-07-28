@@ -638,7 +638,7 @@ class RecoveryStateModelTest(unittest.TestCase):
 
         self.model = RecoveryModel(
             self.state,
-            maximum_ledger_entries=4,
+            maximum_ledger_entries=5,
             verifier=verify,
         )
         for number in range(20, 22):
@@ -667,6 +667,40 @@ class RecoveryStateModelTest(unittest.TestCase):
             "CLAIMED",
         )
         self.assertEqual(len(self.state.ledger), 4)
+
+    def test_failed_prepare_at_reserved_boundary_is_recorded_once(self):
+        verifications = []
+
+        def verify(bundle, manifest):
+            verifications.append((bundle, manifest))
+            return False
+
+        self.model = RecoveryModel(
+            self.state,
+            maximum_ledger_entries=5,
+            verifier=verify,
+        )
+        for number in range(20, 22):
+            self.assertEqual(
+                self.model.handle(
+                    commit_request(number, prepare_number=10)
+                ).result,
+                "PREPARE_REQUIRED",
+            )
+        request = prepare_request()
+        self.assertEqual(
+            self.model.handle(request).result,
+            "VERIFY_FAILED",
+        )
+        self.assertEqual(
+            self.model.handle(request).result,
+            "VERIFY_FAILED",
+        )
+        self.assertEqual(verifications, [("arch-v1", MANIFEST)])
+        self.assertEqual(
+            self.model.handle(prepare_request(12)).result,
+            "LEDGER_FULL",
+        )
 
     def test_rejected_commit_cannot_change_meaning_after_later_prepare(self):
         state = RecoveryState(session=SESSION)
