@@ -1,8 +1,8 @@
 # Stable recovery control plane
 
-Status: **reference oracle, native responder, signed-bundle verifier, and
-same-descriptor load implemented offline; fixed-host fetch and image
-integration pending**
+Status: **reference oracle, fixed-host fetch, signed-bundle verifier, and
+same-descriptor load integrated offline; host serving and image integration
+pending**
 
 Live authority: **none**
 
@@ -19,12 +19,14 @@ The native C source is
 is `scripts/device/build-recovery-control.sh`. The reproducibility/QEMU
 aggregate is `scripts/host/test-recovery-control-aarch64.sh`. Host and
 QEMU-backed AArch64 tests exercise the same source. The production compile has
-no test backend or path override. It now invokes the fixed verifier, receives
-the exact verified file descriptors, and performs a bounded legacy
-`kexec_load`; fixed-host acquisition is still absent. The exact verifier
-contract and its separate reproducible AArch64/QEMU suite are documented in
-[recovery runtime bundle contract](recovery-bundle-contract.md). Neither
-binary is included in an initramfs, and neither grants live authority.
+no test backend or path override. It now invokes the privilege-separated
+fixed-host acquisition helper under the rollback watchdog, invokes the fixed
+verifier, receives the exact verified file descriptors, and performs a
+bounded legacy `kexec_load`. The exact verifier and acquisition contracts are
+documented in
+[recovery runtime bundle contract](recovery-bundle-contract.md) and
+[fixed recovery bundle transport](recovery-fetch-contract.md). No new binary
+is included in an initramfs, and none grants live authority.
 
 The current recovery transport is reliable enough to reach USB, but its
 control plane is not reliable enough to authorize another payload execution.
@@ -74,13 +76,17 @@ flowchart LR
     O --> H
 ```
 
-ACM is the control channel. NCM carries larger files. The responder constructs
-the only permitted fetch location itself; requests cannot provide a general
-URL. The first version should use a fixed host address and port and a strict
-bundle identifier:
+ACM is the control channel. NCM carries larger files. The responder passes
+only a strict bundle identifier and expected manifest hash to the fixed
+acquisition helper; requests cannot provide a URL, host, interface, or port.
+The helper binds `usb0` and source `169.254.77.2`, then connects only to
+`169.254.77.1:8080`. It uses the canonical length-framed binary stream in
+[fixed recovery bundle transport](recovery-fetch-contract.md), not HTTP:
 
 ```text
-http://169.254.77.1:8080/bundles/<bundle-id>/
+format=rog5-fetch-request-v1
+bundle=<bundle-id>
+manifest_sha256=<expected-hash>
 ```
 
 `<bundle-id>` is limited to 1–64 lowercase ASCII letters, digits, `.`, `_`,
@@ -152,15 +158,30 @@ The first protocol needs only four verbs:
 | `PREPARE` | Fetch and verify one signed bundle, then perform `kexec -l` with validated arguments | Safe only with the same request ID and body |
 | `COMMIT_EXEC` | Atomically claim the prepared bundle, flush a `CLAIMED` response, then call `kexec -e` | Never retransmit after an unknown outcome |
 
+`PREPARE` executes one fixed pipeline:
+
+1. `/usr/libexec/rog5-bundle-fetch <bundle> <manifest-hash>`;
+2. `/usr/libexec/rog5-bundle-verify --handoff-fd3 ...`; and
+3. `/usr/sbin/kexec -c -l` using only the three sealed descriptors.
+
+The responder gives the fetch helper a 65-second outer deadline and checks
+the rollback-watchdog pidfd throughout. Fetcher exit 42 becomes the permanent
+`BUNDLE_ID_CONFLICT` decision. Any other acquisition failure or timeout
+becomes `FETCH_FAILED`. Both are written to the replay ledger, and neither
+path can invoke the verifier, loader, unload, or executor.
+
 One session may prepare only one bundle. For mutating verbs, a repeated
 request ID with the same canonical body returns its immutable recorded
-decision combined with the current monotonic state. Retrying the same bundle
-with a new request ID returns `PREPARE_ID_CONFLICT`; the authoritative
-original prepare ID remains required by `COMMIT_EXEC`. Reusing any mutation
-ID with a different body or verb returns `REQUEST_CONFLICT`. Each decision
-records its original verb so cross-verb replay cannot reinterpret or crash on
-the result. `HELLO` and `STATUS` are read-only current-state queries and do
-not consume replay-ledger entries.
+decision combined with the current monotonic state. After successful
+preparation or a terminal `FETCH_FAILED`/`BUNDLE_ID_CONFLICT` acquisition
+decision, another PREPARE request ID returns `PREPARE_ID_CONFLICT` without
+refetching. A verifier rejection may be retried only under a new request ID;
+the old ID always replays its original `VERIFY_FAILED` decision. The
+authoritative successful prepare ID remains required by `COMMIT_EXEC`.
+Reusing any mutation ID with a different body or verb returns
+`REQUEST_CONFLICT`. Each decision records its original verb so cross-verb
+replay cannot reinterpret or crash on the result. `HELLO` and `STATUS` are
+read-only current-state queries and do not consume replay-ledger entries.
 
 The device creates `/run/rog5-control/session` before USB binds using kernel
 randomness and mode `0600`. It also keeps a bounded replay ledger in the same
@@ -425,13 +446,16 @@ retry.
    offline.**
 4. Add same-descriptor legacy `kexec_load` and integrate the verifier with
    `PREPARE`. **Complete offline; absent from the current initramfs.**
-5. Add fixed-host fetch and atomic bundle publication.
-6. Remove all three interactive shells and update image verifiers.
-7. Rebuild once, reproducibly, and create a new temporary-boot candidate.
-8. Run the staging-only promotion sequence.
-9. Integrate the tested host-ledger semantics with the native responder and
+5. Connect the offline-tested fixed-host fetch helper to `PREPARE`.
+   **Complete offline; absent from the current initramfs.**
+6. Add the fixed read-only host-serving command and controller/firewall
+   integration.
+7. Remove all three interactive shells and update image verifiers.
+8. Rebuild once, reproducibly, and create a new temporary-boot candidate.
+9. Run the staging-only promotion sequence.
+10. Integrate the tested host-ledger semantics with the native responder and
    device-minted session.
-10. Investigate recovery-side retained-marker reading and USB-C debug UART
+11. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 
 The accepted v18 image remains a legacy staging transport while this work is

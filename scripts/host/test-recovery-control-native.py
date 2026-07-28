@@ -161,8 +161,10 @@ class NativeResponderTest(unittest.TestCase):
         drain_stall: str | None = None,
         execute_delay_ms: int = 0,
         persist_crash: str | None = None,
+        fetcher_path: Path | None = None,
         verifier_path: Path | None = None,
         kexec_path: Path | None = None,
+        fetch_timeout_ms: int | None = None,
         verify_timeout_ms: int | None = None,
         load_timeout_ms: int | None = None,
     ) -> tuple[subprocess.Popen, int]:
@@ -198,12 +200,19 @@ class NativeResponderTest(unittest.TestCase):
         if persist_crash is not None:
             environment["ROG5_TEST_PERSIST_CRASH"] = persist_crash
         if verifier_path is not None:
-            if kexec_path is None:
-                self.fail("test verifier and kexec paths must be paired")
+            if fetcher_path is None:
+                fetcher_path = verifier_path.with_name("fake-fetcher")
+            if kexec_path is None or not fetcher_path.is_file():
+                self.fail("test PREPARE paths must be configured together")
+            environment["ROG5_TEST_FETCHER_PATH"] = str(fetcher_path)
             environment["ROG5_TEST_VERIFIER_PATH"] = str(verifier_path)
             environment["ROG5_TEST_KEXEC_PATH"] = str(kexec_path)
-        elif kexec_path is not None:
-            self.fail("test verifier and kexec paths must be paired")
+        elif fetcher_path is not None or kexec_path is not None:
+            self.fail("test PREPARE paths must be configured together")
+        if fetch_timeout_ms is not None:
+            environment["ROG5_TEST_FETCH_TIMEOUT_MS"] = str(
+                fetch_timeout_ms
+            )
         if verify_timeout_ms is not None:
             environment["ROG5_TEST_VERIFY_TIMEOUT_MS"] = str(
                 verify_timeout_ms
@@ -349,6 +358,7 @@ class NativeResponderTest(unittest.TestCase):
         self,
         name: str,
         *,
+        fetcher_mode: str = "ok",
         verifier_mode: str = "ok",
         loader_mode: str = "ok",
     ) -> tuple[Path, Path, Path]:
@@ -368,11 +378,16 @@ class NativeResponderTest(unittest.TestCase):
         marker = pipeline / "load-marker"
         unload_marker = pipeline / "unload-marker"
         loaded_state = pipeline / "loaded-state"
+        events = pipeline / "events"
+        fetcher_pid = pipeline / "fetcher-pid"
+        fetcher_worker_pid = pipeline / "fetcher-worker-pid"
+        fetcher_runs = pipeline / "fetcher-runs"
         verifier_pid = pipeline / "verifier-pid"
         verifier_runs = pipeline / "verifier-runs"
         loader_pid = pipeline / "loader-pid"
         executor_pid = pipeline / "executor-pid"
         executor_marker = pipeline / "executor-marker"
+        fetcher = pipeline / "fake-fetcher"
         verifier = pipeline / "fake-verifier"
         loader = pipeline / "fake-kexec"
         artifact_paths = [
@@ -380,6 +395,63 @@ class NativeResponderTest(unittest.TestCase):
             str(artifacts / "board.dtb"),
             str(artifacts / "initramfs.cpio.gz"),
         ]
+        fetcher.write_text(
+            textwrap.dedent(
+                f"""\
+                #!/usr/bin/python3
+                import ctypes
+                import os
+                from pathlib import Path
+                import signal
+                import sys
+                import time
+
+                mode = {fetcher_mode!r}
+                Path({str(fetcher_pid)!r}).write_text(
+                    str(os.getpid()), encoding="ascii"
+                )
+                with Path({str(fetcher_runs)!r}).open(
+                    "a", encoding="ascii"
+                ) as stream:
+                    stream.write("run\\n")
+                with Path({str(events)!r}).open(
+                    "a", encoding="ascii"
+                ) as stream:
+                    stream.write("fetch\\n")
+                if (
+                    len(sys.argv) != 3
+                    or sys.argv[1] != "arch-v1"
+                    or sys.argv[2] != {MANIFEST!r}
+                ):
+                    raise SystemExit(80)
+                if mode == "hang":
+                    time.sleep(5)
+                if mode == "nested_hang":
+                    parent = os.getpid()
+                    child = os.fork()
+                    if child == 0:
+                        libc = ctypes.CDLL(None, use_errno=True)
+                        if (
+                            libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0
+                            or os.getppid() != parent
+                        ):
+                            os._exit(82)
+                        Path({str(fetcher_worker_pid)!r}).write_text(
+                            str(os.getpid()), encoding="ascii"
+                        )
+                        time.sleep(5)
+                        os._exit(0)
+                    os.waitpid(child, 0)
+                if mode == "conflict":
+                    raise SystemExit(42)
+                if mode == "fail":
+                    raise SystemExit(9)
+                if mode != "ok":
+                    raise SystemExit(81)
+                """
+            ),
+            encoding="utf-8",
+        )
         verifier.write_text(
             textwrap.dedent(
                 f"""\
@@ -402,6 +474,10 @@ class NativeResponderTest(unittest.TestCase):
                     "a", encoding="ascii"
                 ) as stream:
                     stream.write("run\\n")
+                with Path({str(events)!r}).open(
+                    "a", encoding="ascii"
+                ) as stream:
+                    stream.write("verify\\n")
                 if sys.argv[1] != "--handoff-fd3" or len(sys.argv) != 4:
                     raise SystemExit(80)
                 if mode == "hang":
@@ -581,6 +657,10 @@ class NativeResponderTest(unittest.TestCase):
                 Path({str(loader_pid)!r}).write_text(
                     str(os.getpid()), encoding="ascii"
                 )
+                with Path({str(events)!r}).open(
+                    "a", encoding="ascii"
+                ) as stream:
+                    stream.write("load\\n")
                 if mode == "hang":
                     time.sleep(5)
                 if mode == "fail":
@@ -643,6 +723,7 @@ class NativeResponderTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        fetcher.chmod(0o700)
         verifier.chmod(0o700)
         loader.chmod(0o700)
         return verifier, loader, marker
@@ -665,6 +746,15 @@ class NativeResponderTest(unittest.TestCase):
             time.sleep(0.01)
         self.fail(f"child PID file did not become complete: {path}")
         raise AssertionError("unreachable")
+
+    def assert_process_gone(self, pid: int) -> None:
+        deadline = time.monotonic() + 2
+        process = Path(f"/proc/{pid}")
+        while time.monotonic() < deadline:
+            if not process.exists():
+                return
+            time.sleep(0.01)
+        self.fail(f"process {pid} remained after its lifecycle deadline")
 
     def stop_responder(
         self,
@@ -1033,7 +1123,147 @@ class NativeResponderTest(unittest.TestCase):
             r"^--dtb=/proc/self/fd/[0-9]+$",
         )
         self.assertTrue(loaded[5].startswith("--command-line="))
+        self.assertEqual(
+            (marker.parent / "events").read_text(
+                encoding="ascii"
+            ).splitlines(),
+            ["fetch", "verify", "load"],
+        )
         self.stop_responder(process, master)
+
+    def test_fetch_failure_and_conflict_never_reach_verifier(self):
+        cases = (
+            ("failure", "fail", "FETCH_FAILED"),
+            ("conflict", "conflict", "BUNDLE_ID_CONFLICT"),
+        )
+        for index, (name, mode, expected) in enumerate(cases):
+            with self.subTest(boundary=name):
+                self.state = self.root / f"state-fetch-{name}"
+                self.state.mkdir(mode=0o700)
+                verifier, loader, marker = self.make_prepare_pipeline(
+                    f"fetch-{name}",
+                    fetcher_mode=mode,
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                )
+                session = self.hello(master, number=600 + index * 2)
+                request = encode_request(
+                    session=session,
+                    request=request_id(601 + index * 2),
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+                response = self.exchange(master, request)
+                self.assertEqual(response.result, expected)
+                self.assertEqual(response.state, "IDLE")
+                self.assertEqual(response.last_error, expected)
+                self.assertFalse(
+                    (marker.parent / "verifier-runs").exists()
+                )
+                self.assertFalse(marker.exists())
+                replay = self.exchange(master, request)
+                self.assertEqual(replay, response)
+                self.assertEqual(
+                    (marker.parent / "fetcher-runs").read_text(
+                        encoding="ascii"
+                    ).splitlines(),
+                    ["run"],
+                )
+                changed_id = self.prepare(
+                    master, session, number=603 + index * 2
+                )
+                self.assertEqual(
+                    changed_id.result, "PREPARE_ID_CONFLICT"
+                )
+                self.assertEqual(changed_id.state, "IDLE")
+                self.assertEqual(changed_id.last_error, expected)
+                self.assertEqual(
+                    (marker.parent / "fetcher-runs").read_text(
+                        encoding="ascii"
+                    ).splitlines(),
+                    ["run"],
+                )
+                self.assertFalse(
+                    (marker.parent / "verifier-runs").exists()
+                )
+                self.stop_responder(process, master)
+
+    def test_fetch_outer_timeout_reaps_helper_tree_and_fails_closed(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "fetch-outer-timeout",
+            fetcher_mode="nested_hang",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            fetch_timeout_ms=100,
+        )
+        session = self.hello(master)
+        started = time.monotonic()
+        response = self.prepare(master, session)
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertEqual(response.result, "FETCH_FAILED")
+        self.assertEqual(response.state, "IDLE")
+        self.assertEqual(response.last_error, "FETCH_FAILED")
+        fetcher_pid = self.wait_pid_file(
+            marker.parent / "fetcher-pid"
+        )
+        worker_pid = self.wait_pid_file(
+            marker.parent / "fetcher-worker-pid"
+        )
+        self.assert_process_gone(fetcher_pid)
+        self.assert_process_gone(worker_pid)
+        self.assertFalse((marker.parent / "verifier-runs").exists())
+        self.assertFalse(marker.exists())
+        self.stop_responder(process, master)
+
+    def test_abrupt_responder_death_kills_fetch_helper_tree(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "fetch-responder-death",
+            fetcher_mode="nested_hang",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            fetch_timeout_ms=5000,
+        )
+        session = self.hello(master)
+        os.write(
+            master,
+            encode_frame(
+                encode_request(
+                    session=session,
+                    request=request_id(10),
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+            ),
+        )
+        fetcher_pid = self.wait_pid_file(
+            marker.parent / "fetcher-pid"
+        )
+        worker_pid = self.wait_pid_file(
+            marker.parent / "fetcher-worker-pid"
+        )
+        process.kill()
+        process.wait(timeout=2)
+        self.assert_process_gone(fetcher_pid)
+        self.assert_process_gone(worker_pid)
+        self.assertFalse((marker.parent / "verifier-runs").exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertFalse(marker.exists())
+        if process.stderr is not None:
+            process.stderr.close()
+        self.processes.remove(process)
+        os.close(master)
 
     def test_prepare_pipeline_rejects_every_failed_boundary(self):
         cases = (
@@ -1392,6 +1622,47 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(status.state, "CLAIMED")
         self.assertEqual(status.execution_started, "YES")
         self.stop_responder(restarted, restarted_master)
+
+    def test_watchdog_death_during_fetch_reaps_helper_tree(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "watchdog-fetch",
+            fetcher_mode="nested_hang",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            fetch_timeout_ms=5000,
+        )
+        session = self.hello(master)
+        os.write(
+            master,
+            encode_frame(
+                encode_request(
+                    session=session,
+                    request=request_id(10),
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+            ),
+        )
+        fetcher_pid = self.wait_pid_file(
+            marker.parent / "fetcher-pid"
+        )
+        worker_pid = self.wait_pid_file(
+            marker.parent / "fetcher-worker-pid"
+        )
+        self.stop_watchdog()
+        self.wait_exit(process)
+        stderr = process.stderr.read().decode(errors="replace")
+        self.assertIn("rollback watchdog died during PREPARE", stderr)
+        self.assert_process_gone(fetcher_pid)
+        self.assert_process_gone(worker_pid)
+        self.assertFalse((marker.parent / "verifier-runs").exists())
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertFalse(marker.exists())
 
     def test_watchdog_death_during_verifier_is_terminal(self):
         verifier, loader, marker = self.make_prepare_pipeline(
@@ -2274,6 +2545,10 @@ class NativeResponderTest(unittest.TestCase):
             text=True,
         )
         self.assertIn("/usr/sbin/kexec", production_strings)
+        self.assertIn(
+            "/usr/libexec/rog5-bundle-fetch",
+            production_strings,
+        )
         self.assertIn(
             "/usr/libexec/rog5-bundle-verify",
             production_strings,

@@ -482,6 +482,40 @@ class RecoveryStateModelTest(unittest.TestCase):
         self.assertEqual(rejected_state.phase, "IDLE")
         self.assertIsNone(rejected_state.prepared_bundle)
 
+    def test_fixed_fetch_failures_are_terminal_for_one_request(self):
+        for outcome in ("FETCH_FAILED", "BUNDLE_ID_CONFLICT"):
+            with self.subTest(outcome=outcome):
+                state = RecoveryState(session=SESSION)
+                fetches = []
+                verifications = []
+                model = RecoveryModel(
+                    state,
+                    fetcher=lambda bundle, manifest: (
+                        fetches.append((bundle, manifest)) or outcome
+                    ),
+                    verifier=lambda bundle, manifest: (
+                        verifications.append((bundle, manifest)) or True
+                    ),
+                )
+                request = prepare_request()
+                response = model.handle(request)
+                self.assertEqual(response.result, outcome)
+                self.assertEqual(response.last_error, outcome)
+                self.assertEqual(state.phase, "IDLE")
+                self.assertEqual(fetches, [("arch-v1", MANIFEST)])
+                self.assertEqual(verifications, [])
+                self.assertEqual(model.handle(request), response)
+                self.assertEqual(len(fetches), 1)
+                self.assertEqual(verifications, [])
+                changed_id = model.handle(prepare_request(number=12))
+                self.assertEqual(
+                    changed_id.result, "PREPARE_ID_CONFLICT"
+                )
+                self.assertEqual(changed_id.state, "IDLE")
+                self.assertEqual(changed_id.last_error, outcome)
+                self.assertEqual(len(fetches), 1)
+                self.assertEqual(verifications, [])
+
     def test_commit_requires_exact_prepared_transaction(self):
         self.assertEqual(
             self.model.handle(commit_request()).result,
