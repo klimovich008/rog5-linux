@@ -77,10 +77,13 @@ responder, fetcher, verifier, pinned kexec runtime, and a caller-supplied raw
 public key. With an ephemeral key, two complete image builds are
 byte-identical and pass extraction verification. This is an offline
 re-freeze test, not a boot candidate: v18 itself remains unchanged and
-interactive, no production trust root exists, and no wrapper or AVB image was
-created. See [re-freeze integration](recovery-refreeze-integration.md).
+interactive, and no production trust root exists. Two clean vendor-wrapper,
+raw boot-v3, and AVB builds now also match byte-for-byte and pass unpacking,
+command-line, and AVB-descriptor verification. Those ephemeral-key images
+remain ignored test artifacts and are not boot-authorized. See
+[re-freeze integration](recovery-refreeze-integration.md).
 
-The protocol reference model and host write-ahead ledger pass 47 offline
+The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 53 pseudo-terminal and PREPARE-boundary tests as
 both a host build and a real AArch64 static binary under QEMU. A separate
@@ -284,9 +287,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Replace interactive ACM control with a framed fixed responder and
-   at-most-once execute state.
-2. Re-freeze and promote one stable recovery image through staging-only tests.
+1. Obtain explicit approval for the production recovery signing trust root.
+2. Rebuild, pin, independently review, and promote one stable recovery image
+   through staging-only tests.
 3. Re-enter persistent Arch boot with unambiguous outcome classification.
 4. Complete A660 clock/power/GMU bring-up to a stable render node.
 5. Run separately authorized WCN6855 and VPN-hotspot hardware gates.
