@@ -259,9 +259,14 @@ early checks is no longer treated as proof of branch selection. The required
 now passes offline with a credential-free receive-only ACM marker emitted
 before userland storage access and an independently armed 120-second reset.
 The fallback also has a live-tested OpenRC screen lifecycle, but its
-post-watchdog boot persistence is not yet claimed. P3 remains blocked until
-one entry-v1 cycle proves exact target entry, unchanged `UNBOOTED` root,
-automatic Alpine fallback, and screen-off service restoration.
+post-cycle boot persistence is now accepted by the
+[sole entry-v1 live cycle](../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
+That cycle executed target kexec once but never exposed a stable oracle ACM,
+so target entry remains unproved. Exact fallback, unchanged `UNBOOTED` root,
+absent selectors, and automatic screen-off service restoration passed after
+the fixed thermal gate cooled. The target reset path remains unclassified.
+Entry-v1 is consumed. P3 remains blocked until a separate offline-reproduced
+marker channel can classify target entry even when USB enumeration fails.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

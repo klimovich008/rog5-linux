@@ -376,12 +376,24 @@ idempotent toggle skips redundant zero-brightness sysfs writes, the event
 daemon reaps `evtest` and its FIFO on stop, OpenRC supervises one daemon tree,
 and a fail-safe phone-start wrapper initializes volatile OpenRC state while
 preserving the original manual launcher. Live start/stop/start passed with the
-screen off; persistence across an automatic target rollback is still
-unproven.
+screen off.
 
-P2 remains HOLD and P3 remains prohibited until one attended, temporary-boot
-entry-v1 cycle emits the exact marker and returns to the exact fallback with
-the supervised screen service already active and the panel off.
+The sole
+[entry-v1 live cycle](../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md)
+passed exact recovery, verified all 116 staging block nodes read-only, loaded
+the target and transmitted one `kexec -e`, but no stable entry-oracle ACM
+identity appeared. Automatic rollback returned to exact fallback, but the
+target reset path remains unclassified. Its first health check stopped only on
+61.4 C post-reset temperature; after passive cooling, the same preflight and
+full fallback attestation passed at 43.5 C.
+The sealed root remained exact and `UNBOOTED`, selectors and partial state
+were absent, and the new OpenRC service returned automatically with one
+dynamic power-key reader and the panel off. This accepts fallback screen
+persistence, not target entry. Entry-v1 is consumed and must not be retried.
+
+P2 remains HOLD and P3 remains prohibited. The next candidate must be designed
+offline around an independently retained pre-storage marker that remains
+classifiable when USB enumeration itself fails.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

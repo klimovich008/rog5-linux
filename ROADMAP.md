@@ -161,11 +161,18 @@ for a working feature.
 - [x] Replace the fallback's unmanaged screen-button process with a tested
   OpenRC-supervised lifecycle, idempotent screen-off control, and fail-safe
   phone-start wrapper while preserving the original launcher.
-- [ ] Commit and push the exact offline checkpoint, enter fastboot through
-  the guarded fallback helper, and consume one attended entry-v1 temporary
-  boot. Accept only exact RAM-only marker evidence, unchanged `UNBOOTED` root,
-  automatic fallback, active screen service, and panel off. Never flash or
-  retry the package.
+- [x] Commit and push the exact offline checkpoint, enter fastboot through the
+  guarded fallback helper, and consume one attended entry-v1 temporary boot.
+  The [sole cycle](test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md)
+  executed target kexec once but exposed no stable oracle ACM. Exact fallback
+  attestation, unchanged `UNBOOTED` root, absent selectors and automatic
+  screen-off service persistence passed after passive cooling. The target
+  reset path remains unclassified. Entry-v1 is rejected/consumed; never retry
+  or flash it.
+- [ ] Design a separately versioned, fail-first pre-storage marker that remains
+  recoverable and classifiable after USB-enumeration failure. Source-audit the
+  USB2 path and evaluate a read-only retained-RAM oracle before building two
+  reproducible packages. Do not weaken the fixed watchdog or storage boundary.
 - [ ] Build a reproducible private stock-image inventory and redacted
   subsystem comparison using the
   [stock-image analysis runbook](docs/stock-image-analysis.md); do not treat
