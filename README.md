@@ -19,7 +19,7 @@ build outputs.
 | Persistent fallback | Alpine on vendor kernel 5.4.134; SSH/remote GUI and screen-off service available |
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
-| Recovery control | Reference, native protocol, signed verifier, fixed-host fetch/serving, and same-descriptor load pass offline; shell-free image integration remains |
+| Recovery control | Framed protocol, signed verifier, fixed-host fetch/serving, same-descriptor load, and reproducible shell-free initramfs integration pass offline; production trust root and wrapper remain |
 | Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
 | Mainline userspace | Arch server/Plasma roots build and verify offline; successor-v3 is not promoted |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
@@ -37,6 +37,9 @@ gate.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
+- [Recovery re-freeze integration](docs/recovery-refreeze-integration.md) —
+  exact initramfs inputs, ordering, offline evidence, and remaining signing
+  boundary.
 - [Repository audit](docs/repository-audit-2026-07-28.md) — what is active,
   evidence, archived, or a local cleanup candidate.
 - [Archive index](docs/archive-index.md) — how to inspect the pre-reduction

@@ -70,6 +70,16 @@ There is therefore no active payload-execution gate. The next recovery must
 implement the framed, device-session-bound, at-most-once protocol in
 [recovery control plane](recovery-control-plane.md).
 
+The current source has now removed that shell from recovery, network-root,
+and persistent-root. A deterministic builder replaces the accepted v18
+userspace init, scrubs SSH/getty/credentials, and integrates the static
+responder, fetcher, verifier, pinned kexec runtime, and a caller-supplied raw
+public key. With an ephemeral key, two complete image builds are
+byte-identical and pass extraction verification. This is an offline
+re-freeze test, not a boot candidate: v18 itself remains unchanged and
+interactive, no production trust root exists, and no wrapper or AVB image was
+created. See [re-freeze integration](recovery-refreeze-integration.md).
+
 The protocol reference model and host write-ahead ledger pass 47 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 53 pseudo-terminal and PREPARE-boundary tests as
@@ -101,9 +111,9 @@ parent, and publishes with `RENAME_NOREPLACE`. QEMU user mode cannot safely
 emulate a guest seccomp filter, so native and root suites own that gate. The
 responder invokes the helper first under a 65-second outer deadline and maps
 fetch failure or permanent bundle-ID conflict without invoking verifier or
-kexec. No new binary is included in an initramfs, and no production signing
-key exists. The accepted v18 recovery still contains the old
-interactive control shell. None of these offline checkpoints grants live
+kexec. The three binaries now pass offline initramfs integration, but no
+production signing key exists. The accepted v18 recovery still contains the
+old interactive control shell. None of these offline checkpoints grants live
 authority.
 See the
 [reference result](../test-results/2026-07-28-recovery-control-reference-offline.md)
