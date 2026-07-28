@@ -2,8 +2,7 @@
 
 Date: 2026-07-28
 
-Result: **PASS OFFLINE AFTER FIVE SAFE LIVE REJECTIONS; LATEST SUCCESSOR NOT
-LIVE/HOLD.**
+Result: **PASS OFFLINE; SIX SAFE LIVE REJECTIONS; HOLD.**
 The complete temporary-boot and nested-kexec package remains reproducible and
 credential-free. The first live attempt returned safely to Alpine after the
 target failed pre-USB. A follow-up package then returned safely before
@@ -13,12 +12,13 @@ after 37 seconds selected the broad runtime kernel-config branch. Its
 one-pass config-identity successor also executed the target once and returned
 to exact fallback after 37 seconds without target USB. The next one-pass
 kernel-release package also executed the target once and returned to exact
-fallback after 36 seconds without target USB. All five events now have
-fail-first regressions and corrected reproducible artifacts. The latest
-package reads the exact release directly from
-`/proc/sys/kernel/osrelease`, separates unavailable/read and mismatch
-branches, and retains offline embedded-config identity. It has not run live,
-and Gate P3 remains prohibited.
+fallback after 36 seconds without target USB. Its direct-procfs successor
+executed the target once and returned to exact fallback after 37 seconds
+without target USB. All six live events rejected safely. The repeated
+36-37 second interval across materially different early checks is not enough
+to prove that `/init` selected a particular timing branch. The next candidate
+must provide an explicit RAM-only early-init oracle. Gate P3 remains
+prohibited.
 
 ## Safety boundary
 
@@ -220,8 +220,16 @@ OverlayFS built in. Nine pre-USB branches retain unique markers:
 | UFS inventory | 95 s |
 | USB setup | 110 s |
 
-P2 remains HOLD. The next attended run is one bounded direct-procfs
-diagnostic, not target acceptance by assumption.
+Its sole attended run passed recovery, executed the target exactly once, and
+returned to exact fallback after 37 seconds without target USB. The
+[direct-procfs report](2026-07-28-persistent-root-p2-osrelease-live-rejected.md)
+records exact fallback/root preservation and the repeated fallback screen-on
+defect. The package is consumed.
+
+P2 remains HOLD. Repeated 36-37 second intervals no longer authorize another
+timing-only package. The next candidate must expose a fixed RAM-only USB ACM
+entry marker before any userland storage access and retain a distinct
+independent reset even when USB setup fails.
 
 ## Attended live sequence
 
@@ -292,8 +300,8 @@ seconds for the independent 600-second reset plus Alpine recovery.
 
 ## Decision
 
-The corrected recovery-hashed Image plus direct-procfs release and offline
-embedded-config P2 package is accepted offline for one attended temporary
-boot. It must never be flashed. P2 itself remains rejected/HOLD, and no
-writable UFS probe or P3 work is allowed until the complete
-target-and-fallback evidence passes.
+The direct-procfs package passed offline but is consumed after its rejected
+live cycle. It must never be retried or flashed. P2 remains rejected/HOLD,
+and no writable UFS probe or P3 work is allowed until an explicit early-init
+oracle replaces timing inference and the complete target-and-fallback
+evidence passes.

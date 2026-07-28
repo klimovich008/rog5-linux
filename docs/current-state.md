@@ -353,10 +353,19 @@ file/read failure from identity mismatch. Offline boot-contract inspection
 still extracts the exact Image's IKCONFIG stream, requires byte identity with
 the pinned config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS.
 Two target initramfs, nested stage, ASUS wrapper, raw, and AVB builds are
-byte-identical. P2 remains rejected/HOLD and P3 remains prohibited. Nine
-target pre-USB branches have unique bounded 5-110 second timing markers. One
-further attended temporary boot is a direct-procfs diagnostic, not a blind
-retry.
+byte-identical. Its sole
+[direct-procfs run](../test-results/2026-07-28-persistent-root-p2-osrelease-live-rejected.md)
+passed recovery, executed the target exactly once, and returned to exact
+fallback after 37 seconds without target USB. Exact root state and host
+service restoration passed; the fallback panel again returned on and needed
+one transient correction. That package is consumed.
+
+P2 remains rejected/HOLD and P3 remains prohibited. Six live packages have
+now rejected safely. Repeated 36-37 second returns across materially different
+early checks make timing insufficient to prove a specific init branch. The
+next candidate must expose a fixed RAM-only USB ACM entry marker before any
+userland storage access and retain a separately timed automatic reset even if
+USB setup fails.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

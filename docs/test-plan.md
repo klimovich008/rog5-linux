@@ -240,9 +240,15 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   dependency. The boot-contract regression extracts the recovery-hashed
   target Image's IKCONFIG stream, requires byte identity with the pinned
   config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS. Nine
-  remaining pre-USB stages have distinct bounded timing markers. The latest
-  live report also keeps automatic fallback screen-off unresolved because
-  the panel returned on before one transient corrective action.
+  pre-USB stages have distinct bounded timing markers. Its sole live cycle
+  returned to exact fallback after 37 seconds without target USB and is
+  consumed. Six different live packages have now rejected safely, while
+  repeated 36-37 second returns make timing insufficient to prove a specific
+  init branch. The next diagnostic must expose a fixed credential-free
+  RAM-only ACM marker before any userland storage access and retain an
+  independent distinguishable reset if USB setup fails. The latest live
+  report also keeps automatic fallback screen-off unresolved because the
+  panel returned on before one transient corrective action.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
