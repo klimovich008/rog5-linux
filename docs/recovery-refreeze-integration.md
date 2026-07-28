@@ -15,7 +15,7 @@ are already understood:
 
 | Input | Identity | Use |
 |---|---|---|
-| accepted v18 target initramfs | `852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc` | credential-scrubbed Alpine userspace base |
+| accepted v18 target initramfs | `852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc` | pinned Alpine userspace base; scrubbed by the stable builder |
 | accepted wrapper config | `df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f` | kexec, memfd, seccomp/filter, namespaces, tmpfs, ACM, and NCM prerequisites |
 | `kexec-tools-2.0.32-r2.apk` | `bd8b6951f862af1123972b521c355c655b7a2f40c2bf9cfe700edd590a101c94` | fixed legacy `kexec_load` loader |
 | `xz-libs-5.8.3-r0.apk` | `76dce86852903fef7adba0285d816e5ce9ffbe9fb3ca86bbb349b97afaba1f63` | pinned kexec dependency |
@@ -43,9 +43,10 @@ bundle data fetched by the fixed control plane.
 5. an externally supplied raw 32-byte Ed25519 public key.
 
 It refuses symlinked, wrong-sized, or all-zero trust roots and other malformed
-inputs, removes SSH host/user credentials,
-the SSH server and client entry points, getty, machine identity, and set-ID
-files, then installs:
+inputs, removes SSH host/user credentials, the SSH server and client entry
+points, getty, login/password and DHCP entry points, and machine identity. It
+locks the root account and rejects any remaining set-ID or private-key-like
+file, then installs:
 
 ```text
 /usr/libexec/rog5-recovery-control
@@ -65,10 +66,11 @@ The stable recovery init preserves this fail-closed sequence:
 1. mount only virtual filesystems and arm the rollback timer;
 2. atomically publish the owner-private watchdog lease as canonical
    `pid`/`starttime` fields;
-3. complete UFS discovery checks when requested and lock every physical block
-   node read-only;
+3. complete UFS discovery checks when requested, lock every physical block
+   node read-only, and require the measured 116-node ASUS-wrapper topology;
 4. configure unbound NCM and ACM gadget functions and rescan device nodes;
-5. repeat storage and UFS power-containment checks;
+5. repeat storage isolation, the exact-topology contract, and UFS
+   power-containment checks;
 6. start the fixed responder;
 7. require its canonical per-boot session file while the responder is alive;
 8. monitor responder liveness and force rollback on exit;
@@ -91,15 +93,20 @@ test. It:
 - validates both pinned AArch64 builder image identities;
 - builds each static helper twice and compares the bytes;
 - generates an ephemeral Ed25519 key without writing the private key to disk;
-- builds and extracts the initramfs twice;
+- builds and extracts the initramfs under different host locales and time
+  zones;
 - checks exact binaries, modes, trust-root bytes, loader hash, ordering, fixed
-  network address, and absence of legacy access paths;
+  network address, locked root, the measured 116-node contract, and absence of
+  legacy access paths;
+- proves malicious shell, DHCP, missing-responder, missing-address,
+  authorized-key, set-ID, unlocked-root, relocated-login, and unsafe-shadow
+  fixtures are rejected;
 - rejects a 31-byte public key;
 - rejects an all-zero 32-byte public key;
 - proves both output archives are byte-identical.
 
-The first passing integration on 2026-07-28 produced these test-only
-identities:
+The first passing integration on 2026-07-28 produced these historical,
+test-only identities:
 
 ```text
 responder  479ac6c7e0269a0ebb67e6c07745216ae37e79c61da60a3a862c51194a3b67ea
@@ -111,20 +118,21 @@ initramfs  0f3f58020bf835ed280072eaabf34a839f26219c825eca56fa85c50e7fe769e4
 The initramfs identity includes an ephemeral test public key. It is therefore
 not a release identity and must never enter the temporary-boot allowlist.
 
-The subsequent full wrapper gate used another ephemeral public key and
-proved two clean initramfs, vendor-kernel, raw boot-v3, and AVB outputs
-byte-identical. The kernel Image identity was
+The historical subsequent full wrapper gate used another ephemeral public
+key and proved two clean initramfs, vendor-kernel, raw boot-v3, and AVB
+outputs byte-identical. The kernel Image identity was
 `303d3767261f1ca9e105d7fd5dbb6ab7f18110aeba0cf3daecb1d01c4cb80175`;
 the raw image identity was
 `4029ab83f2470195054213aee77201f6bc29b78d52c14196afeb3203a09804bf`;
 and the 96 MiB AVB identity was
 `64e0b8efe8af04e40fd90b2c84d050447fd618c3add919d111934d2cb3502ec8`.
-Unpacking recovered the exact kernel and initramfs, preserved the UFS and
-read-only-storage boundary, and replaced the old recovery `/16` with the
-fixed `169.254.77.2/30`. The ASUS wrapper correctly omits the target-only
-`rog5.ufs_discovery=1`; recovery `/init` still locks every discovered
-physical node read-only before USB bind. `avbtool` verified the complete hash
-descriptor.
+Unpacking recovered the exact kernel and initramfs and preserved the UFS and
+read-only-storage boundary. A later hardening follow-up removes the obsolete
+`rog5.recovery_cidr` token entirely: the fixed `169.254.77.2/30` address is
+owned by recovery `/init`, not boot input. The ASUS wrapper correctly omits
+the target-only `rog5.ufs_discovery=1`; recovery `/init` locks every
+discovered physical node read-only and requires the measured 116-node
+topology before USB bind. `avbtool` verified the complete hash descriptor.
 
 The full evidence and repeatable command are in
 [stable recovery wrapper reproducibility](../test-results/2026-07-28-stable-recovery-wrapper-offline.md).
@@ -132,6 +140,17 @@ The full evidence and repeatable command are in
 reference config, boot template, Android image tools, and kernel-builder
 identity; runs both builds without container network access; and refuses
 outputs outside the ignored `build/` tree.
+
+The current independently reviewed hardening follow-up repeated the cross-locale
+initramfs and complete wrapper gate after removing the remaining
+`etc/udhcpc/udhcpc.conf` legacy DHCP artifact. It produced byte-identical
+test-only initramfs
+`31aa52acea3dac91fd23108bd05e7681597cfd1d082a06782f1315aad3c12108`,
+kernel Image `491195f7f0e5205f3e6a4d4e52da79f03f5a4ae3ad3b92854cf41f6ed5240eea`,
+raw boot-v3 `28b4fec683fd8d7bfa7305700faa837bfa14aef1608da591fb3b42bc515f5fe0`,
+and AVB image `64537159174c8aea99d52d87a7eefc1c363b82acf61bbe664cfc69bed23eb21d`.
+See
+[stable recovery review hardening](../test-results/2026-07-28-stable-recovery-review-hardening-offline.md).
 
 ## Remaining promotion boundary
 
@@ -143,8 +162,8 @@ Before a stable candidate exists:
 4. build the release initramfs, wrapper kernel, raw boot image, and AVB
    wrapper twice with the approved public key;
 5. update all source, artifact, and temporary-boot pins atomically;
-6. complete independent review and the staged live-promotion sequence in the
-   roadmap.
+6. independently review the final production-key artifact and complete the
+   staged live-promotion sequence in the roadmap.
 
 No production signing credential, release wrapper, host installation, or
 phone action is performed by the current offline integration. The generated

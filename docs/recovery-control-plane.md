@@ -55,7 +55,8 @@ The recovery platform must preserve all of these properties:
    Nothing is flashed.
 2. The Android/fallback slot remains untouched.
 3. Root is RAM-backed. Physical block devices are made read-only before USB
-   binds, and no block-backed filesystem is mounted.
+   binds, the ASUS 5.4 wrapper must expose the measured 116-node topology,
+   and no block-backed filesystem is mounted.
 4. A rollback watchdog remains armed until an accepted target takes over.
 5. The ACM endpoint accepts no shell syntax and exposes no arbitrary command
    execution.
@@ -151,6 +152,13 @@ shell. The same interactive-shell removal applies to
 The native parser reads one bounded frame at a time, so it never accumulates a
 multi-frame input batch. Coalesced frames remain in the TTY queue and are
 handled as separate bounded dispatches.
+
+The stable initramfs build exports a fixed C locale and UTC timezone before
+archive traversal. Its integration gate compares builds made under different
+caller locales and time zones, locks the root account, removes login/password
+and DHCP entry points, and rejects credential-like or set-ID content. The
+fixed device address lives only in `/init`; the boot command line contains no
+legacy `rog5.recovery_cidr` input.
 
 ## Fixed verbs and state
 

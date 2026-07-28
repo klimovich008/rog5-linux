@@ -8,13 +8,15 @@ fetcher=${4:?missing recovery bundle fetcher}
 verifier=${5:?missing recovery bundle verifier}
 public_key=${6:?missing raw Ed25519 public key}
 export LC_ALL=C
+export TZ=UTC
 
 fail() {
 	echo "FAIL $*" >&2
 	exit 1
 }
 
-for command in cpio gzip od readelf sha256sum stat tr; do
+for command in awk basename cmp cpio cut find grep gzip mktemp od readelf rm \
+	sed sha256sum stat tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing initramfs verifier command: $command"
 done
@@ -47,6 +49,25 @@ cmp "$stage/etc/rog5/recovery-bundle-ed25519.pub" "$public_key"
 	tr -d ' \n')" != \
 	0000000000000000000000000000000000000000000000000000000000000000 ]
 [ "$(stat -c %a "$stage/usr/sbin/kexec")" = 755 ]
+[ -f "$stage/etc/shadow" ] && [ ! -L "$stage/etc/shadow" ] ||
+	fail 'unsafe or missing stable recovery shadow database'
+[ "$(stat -c %a "$stage/etc/shadow")" = 600 ] ||
+	fail 'stable recovery shadow database has an unsafe mode'
+[ "$(stat -c %h "$stage/etc/shadow")" -eq 1 ] ||
+	fail 'stable recovery shadow database has multiple links'
+root_password=$(
+	sed -n 's/^root:\([^:]*\):.*/\1/p' "$stage/etc/shadow"
+)
+[ "$root_password" = '!' ] || fail 'stable recovery root account is not locked'
+legacy_entry=$(
+	find "$stage" \( -type f -o -type l \) \
+		\( -name login -o -name passwd -o -name chpasswd -o \
+			-name udhcpc -o -name udhcpc6 -o \
+			-path '*/udhcpc/*' \) \
+		! -path "$stage/etc/passwd" -print -quit
+)
+[ -z "$legacy_entry" ] ||
+	fail 'legacy login or DHCP entry point exists in stable recovery'
 
 for binary in \
 	usr/libexec/rog5-recovery-control \
@@ -79,15 +100,31 @@ if grep -Eq \
 fi
 
 grep -Fq 'pid=%s\nstarttime=%s\n' "$stage/init"
+grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
 grep -Fq '/usr/libexec/rog5-recovery-control &' "$stage/init"
 grep -Fq "grep -Eq '^session=[0-9a-f]{64}$'" "$stage/init"
 grep -Fq 'ip address add 169.254.77.2/30 dev usb0' "$stage/init"
 
 lease_line=$(grep -n '^watchdog_lease=/run/rog5-recovery-watchdog.lease$' \
 	"$stage/init" | cut -d: -f1)
-storage_lines=$(grep -n '^if ! isolate_storage; then$' "$stage/init" |
-	cut -d: -f1)
-post_mdev_storage_line=$(printf '%s\n' "$storage_lines" | sed -n '2p')
+isolation_count=$(
+	grep -c '^if ! isolate_storage; then$' "$stage/init" || true
+)
+[ "$isolation_count" -eq 2 ] ||
+	fail 'stable recovery must invoke storage isolation exactly twice'
+isolation_lines=$(
+	grep -n '^if ! isolate_storage; then$' "$stage/init" | cut -d: -f1
+)
+pre_storage_line=$(printf '%s\n' "$isolation_lines" | sed -n '1p')
+post_storage_line=$(printf '%s\n' "$isolation_lines" | sed -n '2p')
+pre_contract_line=$(
+	grep -n 'ASUS wrapper storage topology mismatch before USB configuration' \
+		"$stage/init" | cut -d: -f1
+)
+post_contract_line=$(
+	grep -n 'ASUS wrapper storage topology mismatch after device-node rescan' \
+		"$stage/init" | cut -d: -f1
+)
 control_line=$(grep -n '^/usr/libexec/rog5-recovery-control &$' \
 	"$stage/init" | cut -d: -f1)
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
@@ -95,12 +132,16 @@ session_line=$(grep -n 'rog5-control/session' "$stage/init" |
 # shellcheck disable=SC2016
 bind_line=$(grep -n '^if ! echo "\$udc" >"\$gadget/UDC"; then$' \
 	"$stage/init" | cut -d: -f1)
-for value in "$lease_line" "$post_mdev_storage_line" "$control_line" \
+for value in "$lease_line" "$pre_storage_line" "$pre_contract_line" \
+	"$post_storage_line" "$post_contract_line" "$control_line" \
 	"$session_line" "$bind_line"; do
 	case $value in *[!0-9]*|'') fail 'cannot prove stable recovery ordering' ;; esac
 done
-[ "$lease_line" -lt "$post_mdev_storage_line" ]
-[ "$post_mdev_storage_line" -lt "$control_line" ]
+[ "$lease_line" -lt "$pre_storage_line" ]
+[ "$pre_storage_line" -lt "$pre_contract_line" ]
+[ "$pre_contract_line" -lt "$post_storage_line" ]
+[ "$post_storage_line" -lt "$post_contract_line" ]
+[ "$post_contract_line" -lt "$control_line" ]
 [ "$control_line" -le "$session_line" ]
 [ "$session_line" -lt "$bind_line" ]
 

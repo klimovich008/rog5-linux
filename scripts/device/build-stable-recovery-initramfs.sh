@@ -13,6 +13,8 @@ public_key=${9:?missing raw Ed25519 public key}
 output=${10:?missing output}
 expected_base=852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc
 epoch=1681862400
+export LC_ALL=C
+export TZ=UTC
 
 fail() {
 	echo "FAIL $*" >&2
@@ -40,7 +42,8 @@ check_static_aarch64() {
 	fi
 }
 
-for command in cpio file find gzip install od readelf sha256sum stat tar tr; do
+for command in basename cpio cut dirname find grep gzip install mkdir \
+	mktemp mv od readelf rm sed sha256sum sort stat tar touch tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing initramfs build command: $command"
 done
@@ -67,7 +70,7 @@ check_static_aarch64 "$fetcher"
 check_static_aarch64 "$verifier"
 
 if grep -Eq \
-	'sh[[:space:]]+-i|authorized_keys|ssh-keygen|/usr/sbin/sshd|rog5\.recovery_(cidr|gateway)' \
+	'sh[[:space:]]+-i|setsid[[:space:]]+sh|authorized_keys|ssh-keygen|/usr/sbin/sshd|udhcpc|rog5\.recovery_(cidr|gateway)' \
 	"$init"; then
 	fail 'recovery init contains a legacy shell, credential, SSH, or network override'
 fi
@@ -103,11 +106,27 @@ rm -rf "$stage/etc/ssh" "$stage/root/.ssh" "$stage/run/sshd" \
 	"$stage/usr/lib/ssh"
 rm -f "$stage"/etc/ssh_host_* "$stage"/etc/machine-id \
 	"$stage"/var/lib/dbus/machine-id \
+	"$stage"/usr/share/udhcpc/default.script \
 	"$stage"/sbin/getty "$stage"/usr/sbin/getty \
 	"$stage"/usr/sbin/sshd "$stage"/usr/bin/scp \
 	"$stage"/usr/bin/sftp "$stage"/usr/bin/ssh \
 	"$stage"/usr/bin/ssh-add "$stage"/usr/bin/ssh-agent \
 	"$stage"/usr/bin/ssh-keygen "$stage"/usr/bin/ssh-keyscan
+find "$stage" \( -type f -o -type l \) \
+	\( -name login -o -name passwd -o -name chpasswd -o \
+		-name udhcpc -o -name udhcpc6 \) \
+	! -path "$stage/etc/passwd" -exec rm -f -- {} +
+find "$stage" \( -type f -o -type l \) -path '*/udhcpc/*' \
+	-exec rm -f -- {} +
+[ -f "$stage/etc/shadow" ] && [ ! -L "$stage/etc/shadow" ] ||
+	fail 'unsafe or missing shadow database'
+[ "$(grep -c '^root:' "$stage/etc/shadow")" -eq 1 ] ||
+	fail 'shadow database lacks exactly one root account'
+sed -i 's/^root:[^:]*/root:!/' "$stage/etc/shadow"
+root_password=$(
+	sed -n 's/^root:\([^:]*\):.*/\1/p' "$stage/etc/shadow"
+)
+[ "$root_password" = '!' ] || fail 'root account is not locked'
 
 tar --warning=no-unknown-keyword -xf "$kexec_apk" -C "$stage" \
 	usr/sbin/kexec

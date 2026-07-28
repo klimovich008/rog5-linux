@@ -89,3 +89,12 @@ staging-only live sequence.
 The later ephemeral-key wrapper/boot-v3/AVB reproducibility proof is recorded
 separately in
 [stable recovery wrapper reproducibility](2026-07-28-stable-recovery-wrapper-offline.md).
+
+## Superseded review note
+
+The service-limit statement above records this checkpoint as it happened.
+The separately authorized Claude Opus review later completed. Its accepted
+findings and the corresponding cross-locale, credential-removal,
+watchdog-ordering, exact-topology, negative-fixture, and wrapper-command-line
+fixes are recorded in the follow-up
+[stable recovery review hardening](2026-07-28-stable-recovery-review-hardening-offline.md).

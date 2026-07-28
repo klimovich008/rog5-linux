@@ -929,6 +929,7 @@ class NativeResponderTest(unittest.TestCase):
         refusal = self.run_startup_probe(self.state)
         self.assertNotEqual(refusal.returncode, 0)
         self.assertIn("stale rollback-watchdog lease", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
 
     def test_watchdog_lease_rejects_symlink_mode_and_wrong_identity(self):
         valid = self.watchdog.read_text(encoding="ascii")
@@ -940,6 +941,7 @@ class NativeResponderTest(unittest.TestCase):
         refusal = self.run_startup_probe(self.state)
         self.assertNotEqual(refusal.returncode, 0)
         self.assertIn("rollback-watchdog lease", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
 
         self.watchdog.unlink()
         self.watchdog.write_text(valid, encoding="ascii")
@@ -947,6 +949,7 @@ class NativeResponderTest(unittest.TestCase):
         refusal = self.run_startup_probe(self.state)
         self.assertNotEqual(refusal.returncode, 0)
         self.assertIn("unsafe rollback-watchdog lease", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
 
         pid_line, start_line = valid.splitlines()
         wrong_start = int(start_line.removeprefix("starttime=")) + 1
@@ -958,6 +961,7 @@ class NativeResponderTest(unittest.TestCase):
         refusal = self.run_startup_probe(self.state)
         self.assertNotEqual(refusal.returncode, 0)
         self.assertIn("stale rollback-watchdog lease", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
 
     def test_watchdog_death_terminates_an_idle_responder(self):
         process, _ = self.start()
