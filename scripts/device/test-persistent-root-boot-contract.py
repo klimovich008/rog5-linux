@@ -15,9 +15,9 @@ BOOT_V3_MIN_HEADER_SIZE = BOOT_V3_CMDLINE_OFFSET + BOOT_V3_CMDLINE_SIZE
 REQUIRED_TOKENS = (
     "init=/init",
     "rog5linux.test=1",
-    "rog5.ufs_discovery=1",
     "rog5.recovery_timeout=180",
 )
+FORBIDDEN_KEYS = ("rog5.ufs_discovery",)
 
 
 def fail(message: str) -> None:
@@ -48,8 +48,11 @@ def read_boot_v3_cmdline(image: Path) -> str:
 
 
 def main(arguments: list[str]) -> int:
-    if len(arguments) > 1:
-        fail("usage: test-persistent-root-boot-contract.py [BOOT_IMAGE]")
+    if len(arguments) > 2:
+        fail(
+            "usage: test-persistent-root-boot-contract.py "
+            "[BOOT_IMAGE [WRAPPER_CONFIG]]"
+        )
     repo = Path(__file__).resolve().parents[2]
     image = (
         Path(arguments[0])
@@ -59,8 +62,18 @@ def main(arguments: list[str]) -> int:
         / "persistent-root-p2"
         / "boot-5.4.210-persistent-root.raw.img"
     )
+    config = (
+        Path(arguments[1])
+        if len(arguments) == 2
+        else repo
+        / "artifacts"
+        / "persistent-root-p2"
+        / "config-5.4.210-persistent-root-wrapper"
+    )
     if not image.is_file() or image.is_symlink():
         fail(f"missing regular P2 boot image: {image}")
+    if not config.is_file() or config.is_symlink():
+        fail(f"missing regular P2 wrapper config: {config}")
 
     tokens = read_boot_v3_cmdline(image).split()
     for token in REQUIRED_TOKENS:
@@ -72,7 +85,21 @@ def main(arguments: list[str]) -> int:
         ]
         if key_tokens != [token]:
             fail(f"expected only {token}, found {key_tokens}")
-    print("PASS P2 boot-v3 wrapper has the exact UFS-discovery safety contract")
+    for key in FORBIDDEN_KEYS:
+        key_tokens = [
+            candidate
+            for candidate in tokens
+            if candidate.partition("=")[0] == key
+        ]
+        if key_tokens:
+            fail(f"wrapper must not enable unsupported {key}, found {key_tokens}")
+    config_text = config.read_text(encoding="utf-8")
+    if "CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y" in config_text:
+        fail("ASUS wrapper unexpectedly claims the target-only UFS policy")
+    print(
+        "PASS P2 boot-v3 wrapper omits target-only UFS discovery and "
+        "keeps the exact staging contract"
+    )
     return 0
 
 

@@ -2,12 +2,13 @@
 
 Date: 2026-07-28
 
-Result: **PASS OFFLINE AFTER CONTROL CORRECTION; LIVE REJECTED/HOLD.** The
-complete temporary-boot and nested-kexec package remains reproducible and
-credential-free. The first live attempt returned safely to Alpine but exposed
-two fail-open control defects and did not reach the P2 target interface.
-Those defects now have fail-first regressions and corrected reproducible
-artifacts. The corrected artifact has not run live, and Gate P3 remains
+Result: **PASS OFFLINE AFTER TWO CONTROL CORRECTIONS; LIVE REJECTED/HOLD.**
+The complete temporary-boot and nested-kexec package remains reproducible and
+credential-free. The first live attempt returned safely to Alpine after the
+target failed pre-USB. A follow-up package then returned safely before
+staging because it enabled a target-only UFS mode on the ASUS wrapper. Both
+events now have fail-first regressions and corrected reproducible artifacts.
+The latest corrected artifact has not run live, and Gate P3 remains
 prohibited.
 
 ## Safety boundary
@@ -72,10 +73,12 @@ built in.
   inspection finds the exact staging archive embedded once.
 - Two header-v3 repacks and unsigned AVB images are byte-identical. Unpacking
   the final raw image reproduces the exact wrapper and external staging
-  archive. The command-line parser requires exactly one
-  `rog5.ufs_discovery=1`, and two corrected repacks are byte-identical. The
-  AVB footer uses algorithm `NONE` and the image is for an unlocked, attended
-  `fastboot boot` only.
+  archive. The command-line parser rejects target-only
+  `rog5.ufs_discovery` on the ASUS wrapper, whose config does not define the
+  custom mode. The separate kexec-loader regression still requires exactly
+  one `rog5.ufs_discovery=1` for Linux 7.1.4. Two corrected repacks are
+  byte-identical. The AVB footer uses algorithm `NONE` and the image is for
+  an unlocked, attended `fastboot boot` only.
 
 The two Linux 7.1.4 compiler processes completed successfully and printed
 their PASS records. Their parent shell invocations later returned nonzero
@@ -99,8 +102,8 @@ passes `sh -n`, ShellCheck at warning level, and its fail-first suite.
 | ASUS 5.4.210 wrapper Image | 69,372,416 | `b133ebcee9c2b0a99876da1dd20615c9f569c67e7e91a089d9de5a54e6ad8d17` |
 | ASUS wrapper config | 185,763 | `df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f` |
 | ASUS wrapper metadata | 422 | `33d4b3fdcdfea9cc20a2537949579cc2a3419263f9a137a9dc116b09e41a16a9` |
-| raw header-v3 boot image | 96,067,584 | `deaa9c047cd2251c4981f1c41ba5d144118b6ba1fceb216e58c310d6e6491bdf` |
-| unsigned AVB boot image | 100,663,296 | `439a945babb5af1af83b7f6ad07ec6a8c0bf3e74fe416925b2e1a416e3b39ae0` |
+| raw header-v3 boot image | 96,067,584 | `5c9e0391f1be68f1257c3402eea4105508066b2b6afd26c450c4725e3ae1aba9` |
+| unsigned AVB boot image | 100,663,296 | `f4f33bae1e69c8499527be159d409b53cea424e09eefc7e25c73157516d54249` |
 
 ## Offline tests
 
@@ -139,17 +142,24 @@ terminal echo had exposed the complete expected marker before the shell
 failed. Offline boot-image inspection then found that the wrapper command
 line lacked `rog5.ufs_discovery=1`, the flag that creates those counters.
 
-The complete marker is now generated only by successful `printf` output, a
-failed target peer cannot leave a volatile SSH key pinned, and the corrected
-wrapper carries exactly one UFS-discovery flag. Bounded timing markers now
-distinguish command-line, kernel-config, UFS-discovery, UFS-power,
-storage-lock, userdata, inventory, and USB failures before normal target
-enumeration. The full first-attempt event and fallback evidence is recorded in
-the
-[live rejection report](2026-07-28-persistent-root-p2-live-rejected.md).
-Because the target still failed before its USB setup, P2 remains HOLD. The
-next attended run is diagnostic rather than blind: its fallback interval must
-select one exact bounded pre-USB stage before any implementation change.
+The complete marker is now generated only by successful `printf` output and
+a failed target peer cannot leave a volatile SSH key pinned. The first
+follow-up package incorrectly enabled the target-only UFS flag on an ASUS
+wrapper that cannot attest that policy. It therefore rolled back before
+recovery USB, exactly as designed. The
+[wrapper-contract rejection](2026-07-28-persistent-root-p2-wrapper-contract-live-rejected.md)
+records the live event, unchanged fallback/root seal, root cause, and
+fail-first correction.
+
+The wrapper now omits target-only UFS discovery. Its ACM preflight freshly
+counts all 116 physical nodes, requires every sysfs read-only state, requires
+zero block-backed mounts, and cross-checks the initramfs lock count. The
+Linux 7.1.4 loader still supplies the target's exact read-only UFS flag.
+Bounded timing markers distinguish command-line, kernel-config,
+UFS-discovery, UFS-power, storage-lock, userdata, inventory, and USB failures
+before normal target enumeration. P2 remains HOLD. The next attended run is
+diagnostic rather than blind: its fallback interval must select one exact
+bounded target pre-USB stage before any implementation change.
 
 ## Attended live sequence
 
@@ -220,7 +230,7 @@ seconds for the independent 600-second reset plus Alpine recovery.
 
 ## Decision
 
-The timing-diagnostic P2 package is accepted offline for one attended
-temporary boot. It must never be flashed. P2 itself remains rejected/HOLD,
-and no writable UFS probe or P3 work is allowed until the complete
-target-and-fallback evidence passes.
+The corrected timing-diagnostic P2 package is accepted offline for one
+attended temporary boot. It must never be flashed. P2 itself remains
+rejected/HOLD, and no writable UFS probe or P3 work is allowed until the
+complete target-and-fallback evidence passes.

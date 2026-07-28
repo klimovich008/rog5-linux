@@ -111,6 +111,19 @@ class PersistentRootAcmTest(unittest.TestCase):
         self.assertIn('/sys/kernel/kexec_loaded)" = 1', MODULE.PREFLIGHT_COMMAND)
         self.assertIn("sha256sum -c SHA256SUMS", MODULE.PREFLIGHT_COMMAND)
         self.assertIn('block_mounts" = 0', MODULE.PREFLIGHT_COMMAND)
+        self.assertIn(
+            'physical_count" = 116',
+            MODULE.PREFLIGHT_COMMAND,
+        )
+        self.assertIn(
+            'writable_physical" = 0',
+            MODULE.PREFLIGHT_COMMAND,
+        )
+        self.assertNotIn("cat /run/rog5-ufs-blocked", MODULE.PREFLIGHT_COMMAND)
+        self.assertIn(
+            "[ ! -e /run/rog5-ufs-blocked-query-count ]",
+            MODULE.PREFLIGHT_COMMAND,
+        )
         self.assertNotIn(
             MODULE.PREFLIGHT_MARKER.decode(),
             MODULE.PREFLIGHT_COMMAND,
