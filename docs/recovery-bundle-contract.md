@@ -123,16 +123,18 @@ source artifacts, target identity, timeout pair, private Ed25519 key, and an
 empty bundle root. It does not generate a key, select a payload, modify an
 allowlist, serve a bundle, or contact the phone.
 
-The key must be an unencrypted Ed25519 private key owned by the caller, have
-one link, and have exact mode `0400` or `0600`. The bundle root must be a real
+The key must be an unencrypted PKCS#8 Ed25519 private key owned by the caller,
+have one link, and have exact mode `0400` or `0600`. Encrypted input is
+rejected even when its passphrase is empty. The bundle root must be a real
 caller-owned directory with exact mode `0700` and no entries. The packager
 opens source and key files without following their final symbolic link,
 copies the already-open source descriptors into a private staging directory,
 binds the copied sizes and hashes into the canonical manifest, signs through
 private file descriptors, and atomically renames the finalized `0500`
-directory. Every output file has exact mode `0400`, owner equal to the caller,
-and link count one. The private key and its pathname never enter the bundle.
-The root remains unchanged on validation or signing failure.
+directory with `RENAME_NOREPLACE`. Every output file has exact mode `0400`,
+owner equal to the caller, and link count one. The private key and its
+pathname never enter the bundle. The root remains unchanged on validation or
+signing failure, and a concurrently created final directory is never replaced.
 
 An offline invocation has this shape:
 

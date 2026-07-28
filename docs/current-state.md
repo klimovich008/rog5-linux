@@ -145,11 +145,12 @@ The host now also has one atomic runtime-bundle packager. With an explicitly
 supplied ephemeral Ed25519 key, it snapshots the kernel, DTB, and initramfs
 through already-open descriptors, creates the canonical signed manifest in a
 private staging directory, enforces exact `0700/0500/0400` ownership and mode
-policy, and publishes with one rename. Its refusal suite covers unsafe
-identity, timeout, symlink, key, and root metadata; injected signing failure
-leaves the bundle root unchanged. All three fixed profiles pass the native
-verifier and host-server opener, and two roots produce byte-identical output
-with the same inputs. The persistent Arch payload maps to
+policy, and publishes with one no-replace rename. Its refusal suite covers
+unsafe identity, timeout, symlink, key, and root metadata; injected signing
+failure leaves the bundle root unchanged, and a competing final directory is
+preserved. All three fixed profiles pass the native verifier and host-server
+opener, and two roots produce byte-identical output with the same inputs. The
+persistent Arch payload maps to
 `persistent-root-ro-v1`; accepted A660 ancestry maps to `network-root-v1`.
 No production key, live bundle, allowlist change, host-network mutation, or
 phone action was created by this checkpoint.
