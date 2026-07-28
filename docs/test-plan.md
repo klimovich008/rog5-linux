@@ -7,6 +7,12 @@
 
 Tests are ordered so a failure never hides whether the phone can be recovered. A tier is attempted only after every mandatory test in the previous tier passes.
 
+The canonical Linux `quick` tier is a provisioned security/integration tier.
+It requires GCC, `dtc`, OpenSSL development files, `pkg-config` Vulkan
+headers/loader metadata, and a writable delegated non-root cgroup v2 exposing
+`cgroup.kill`. These are mandatory because the tier compiles the real C
+helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
+
 ## Tier 0 — static build checks
 
 - Kernel source revision is pinned and recorded.
@@ -898,12 +904,41 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 
 ## Tier 5 — GPU (opt-in, run last)
 
-- Raw KGSL or DRM render-node open/close/open cycle succeeds repeatedly.
-- `vulkaninfo --summary` succeeds at least ten consecutive times.
-- A headless Vulkan submit and a rendered Wayland workload pass.
-- KWin runs with hardware acceleration and without llvmpipe.
-- Suspend/idle/wake cycles do not produce GMU HFI errors or IOMMU faults.
-- Power use with GPU idle remains acceptable.
+- The fixed
+  [A660 accelerated-desktop acceptance](a660-acceptance.md) staging mode runs
+  under the still-armed rollback watchdog and its 540-second internal
+  deadline. The signed command line must independently attest
+  `network-root-v1`, `target_timeout=600`, `rollback_timeout=900`, and the
+  exact command-manifest plus `arch-a` tree/seal/count/subtree identity. The
+  real persistent-root C verifier must match that identity both before and
+  after the workload. A separate mode-`0400` initramfs attestation must bind
+  the active OverlayFS, authenticated lower, and bounded tmpfs state by
+  stable kernel mount ID across `mount --move`. The mode-`0400` lease must
+  bind the
+  watchdog and live timer child, both start times, the 900-second boottime
+  deadline, and write-capable reset/log descriptors.
+- The sole mainline DRM render node survives 100 open/close cycles; vendor
+  KGSL is absent.
+- `vulkaninfo --summary` succeeds ten consecutive times with Turnip, and the
+  minimal helper completes ten real queue submissions.
+- `vkcube --wsi wayland --c 120` completes the fixed frame count within its
+  bounded window; a hung process cannot pass.
+- KWin, EGL, and Vulkan all report A660 hardware with no software renderer.
+- Five screen off/on cycles preserve the same KWin process and accept Vulkan
+  work with the panel off. A lightweight concurrent monitor samples the state
+  marker and zero backlight every 100 ms without spawning processes;
+  synchronous checkpoints separately require KScreen DPMS off.
+- Every fixed command runs in a fresh delegated cgroup v2; timeout and output
+  overflow tests require `cgroup.kill`, `populated 0`, no residual child
+  cgroup, and no surviving descendant even after `setsid`.
+- No boot-time or new GMU/HFI error, SMMU/IOMMU fault, GPU hang, DRM error,
+  external abort, watchdog bite, BUG, Oops, call trace, or panic appears.
+- After persistent promotion, the separate 30-minute soak mode requires exact
+  bundle/kernel/ext4-subtree/tree/seal provenance plus v2 mount-ID linkage
+  from active OverlayFS to the sealed lower and tmpfs state. It recomputes the
+  tree through an exact read-only mount and records memory, independently
+  matched Plasma process/PSS totals, thermal, battery-current, and capacity
+  evidence with the panel off.
 
 The script `scripts/device/kgsl-open-cycle.sh` requires `ALLOW_GPU_FAULT_TEST=1` because the current vendor driver is known to fail this tier.
 

@@ -172,7 +172,7 @@ class BundlePayload:
         initramfs: bytes,
     ) -> list[tuple[str, str]]:
         return [
-            ("format", "rog5-recovery-bundle-v1"),
+            ("format", "rog5-recovery-bundle-v2"),
             ("bundle", bundle),
             ("profile", "network-root-v1"),
             ("kernel_size", str(len(kernel))),
@@ -185,6 +185,12 @@ class BundlePayload:
             ("target_release", "test-1"),
             ("rollback_timeout", "180"),
             ("target_timeout", "90"),
+            ("a660_command_manifest_sha256", "a" * 64),
+            ("root_generation", "arch-a"),
+            ("root_tree_sha256", "b" * 64),
+            ("root_seal_sha256", "c" * 64),
+            ("root_tree_entries", "7"),
+            ("root_subtree", "/"),
         ]
 
     @property
@@ -886,6 +892,48 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                             name,
                             "0" * 64
                             if name == "kernel_sha256"
+                            else value,
+                        )
+                        for name, value in fields
+                    ]
+                ),
+            ),
+            (
+                "zero-root-hash",
+                render_fields(
+                    [
+                        (
+                            name,
+                            "0" * 64
+                            if name == "root_tree_sha256"
+                            else value,
+                        )
+                        for name, value in fields
+                    ]
+                ),
+            ),
+            (
+                "wrong-root-generation",
+                render_fields(
+                    [
+                        (
+                            name,
+                            "arch-b"
+                            if name == "root_generation"
+                            else value,
+                        )
+                        for name, value in fields
+                    ]
+                ),
+            ),
+            (
+                "diagnostic-carries-root-identity",
+                render_fields(
+                    [
+                        (
+                            name,
+                            "diagnostic-initramfs-v1"
+                            if name == "profile"
                             else value,
                         )
                         for name, value in fields

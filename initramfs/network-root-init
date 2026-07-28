@@ -3,6 +3,21 @@ set -u
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
+watchdog_proc=/proc
+watchdog_run=/run
+watchdog_log=/dev/kmsg
+watchdog_reset=/proc/sysrq-trigger
+kernel_cmdline=/proc/cmdline
+mount_inventory=/proc/self/mountinfo
+network_root_identity=/run/rog5-network-root-identity
+handoff_newroot=/newroot
+handoff_root_ro=/mnt/root-ro
+handoff_state=/mnt/state
+handoff_dev=/dev
+handoff_proc=/proc
+handoff_sys=/sys
+handoff_run=/run
+
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -60,15 +75,296 @@ verify_no_phone_storage() {
 	return 0
 }
 
-arm_watchdog() {
+verify_network_root_identity() {
+	seal=/mnt/root-ro/.rog5-persistent-seal
+	command_manifest=/mnt/root-ro/etc/rog5/a660-command-manifest
+	[ -x /sbin/persistent-root-verify ] || return 1
+	root_report=$(
+		/sbin/persistent-root-verify \
+			/mnt/root-ro "$seal" "$root_seal_sha256"
+	) || return 1
+	[ "$root_report" = \
+		"PASS persistent root matches anchored seal entries=$root_tree_entries tree_sha256=$root_tree_sha256" ] ||
+		return 1
+	[ -f "$command_manifest" ] && [ ! -L "$command_manifest" ] ||
+		return 1
+	manifest_record=$(sha256sum "$command_manifest") || return 1
+	manifest_hash=${manifest_record%% *}
+	manifest_path=${manifest_record#"$manifest_hash"}
+	while [ "${manifest_path# }" != "$manifest_path" ]; do
+		manifest_path=${manifest_path# }
+	done
+	[ "$manifest_hash" = "$command_manifest_sha256" ] &&
+		[ "$manifest_path" = "$command_manifest" ]
+}
+
+mount_id_for_path() {
+	mount_path=$1
+	awk -v path="$mount_path" '
+		$5 == path {
+			count++
+			mount_id=$1
+		}
+		END {
+			if (count != 1 || mount_id !~ /^[1-9][0-9]*$/)
+				exit 1
+			print mount_id
+		}
+	' "$mount_inventory"
+}
+
+publish_network_root_identity() {
+	overlay_mount_id=$(mount_id_for_path /newroot) || return 1
+	lower_mount_id=$(mount_id_for_path /mnt/root-ro) || return 1
+	state_mount_id=$(mount_id_for_path /mnt/state) || return 1
+	identity_stage=${network_root_identity}.$$
 	(
-		exec 8>/dev/kmsg
-		exec 9>/proc/sysrq-trigger
+		umask 077
+		{
+			printf 'format=rog5-network-root-identity-v1\n'
+			printf 'overlay_mount_id=%s\n' "$overlay_mount_id"
+			printf 'overlay_lower_mount_id=%s\n' "$lower_mount_id"
+			printf 'state_mount_id=%s\n' "$state_mount_id"
+			printf 'overlay_lower_path=/mnt/root-ro\n'
+			printf 'command_manifest_sha256=%s\n' \
+				"$command_manifest_sha256"
+			printf 'root_generation=%s\n' "$root_generation"
+			printf 'root_tree_sha256=%s\n' "$root_tree_sha256"
+			printf 'root_seal_sha256=%s\n' "$root_seal_sha256"
+			printf 'root_tree_entries=%s\n' "$root_tree_entries"
+			printf 'root_subtree=%s\n' "$root_subtree"
+		} >"$identity_stage"
+	) || {
+		rm -f "$identity_stage"
+		return 1
+	}
+	chmod 0400 "$identity_stage" || {
+		rm -f "$identity_stage"
+		return 1
+	}
+	mv -f "$identity_stage" "$network_root_identity" || {
+		rm -f "$identity_stage"
+		return 1
+	}
+	return 0
+}
+
+is_nonzero_sha256() {
+	value=$1
+	[ "${#value}" -eq 64 ] || return 1
+	case $value in
+		*[!0-9a-f]*|'') return 1 ;;
+		0000000000000000000000000000000000000000000000000000000000000000)
+			return 1
+			;;
+	esac
+	return 0
+}
+
+parse_network_root_command_line() {
+	recovery_timeout=
+	recovery_timeout_count=0
+	netroot_count=0
+	netroot_invalid=0
+	command_manifest_sha256=
+	command_manifest_count=0
+	root_generation=
+	root_generation_count=0
+	root_tree_sha256=
+	root_tree_count=0
+	root_seal_sha256=
+	root_seal_count=0
+	root_tree_entries=
+	root_entries_count=0
+	root_subtree=
+	root_subtree_count=0
+	root_identity_invalid=0
+
+	command_line=$(cat "$kernel_cmdline") || return 1
+	for argument in $command_line; do
+		case $argument in
+			rog5.netroot=1)
+				netroot_count=$((netroot_count + 1))
+				;;
+			rog5.netroot|rog5.netroot=*)
+				netroot_invalid=1
+				;;
+			rog5.recovery_timeout=*)
+				recovery_timeout=${argument#*=}
+				recovery_timeout_count=$((recovery_timeout_count + 1))
+				;;
+			rog5.recovery_timeout)
+				root_identity_invalid=1
+				;;
+			rog5.a660_command_manifest_sha256=*)
+				command_manifest_sha256=${argument#*=}
+				command_manifest_count=$((command_manifest_count + 1))
+				;;
+			rog5.a660_command_manifest_sha256)
+				root_identity_invalid=1
+				;;
+			rog5.root_generation=*)
+				root_generation=${argument#*=}
+				root_generation_count=$((root_generation_count + 1))
+				;;
+			rog5.root_generation)
+				root_identity_invalid=1
+				;;
+			rog5.root_tree_sha256=*)
+				root_tree_sha256=${argument#*=}
+				root_tree_count=$((root_tree_count + 1))
+				;;
+			rog5.root_tree_sha256)
+				root_identity_invalid=1
+				;;
+			rog5.root_seal_sha256=*)
+				root_seal_sha256=${argument#*=}
+				root_seal_count=$((root_seal_count + 1))
+				;;
+			rog5.root_seal_sha256)
+				root_identity_invalid=1
+				;;
+			rog5.root_tree_entries=*)
+				root_tree_entries=${argument#*=}
+				root_entries_count=$((root_entries_count + 1))
+				;;
+			rog5.root_tree_entries)
+				root_identity_invalid=1
+				;;
+			rog5.root_subtree=*)
+				root_subtree=${argument#*=}
+				root_subtree_count=$((root_subtree_count + 1))
+				;;
+			rog5.root_subtree)
+				root_identity_invalid=1
+				;;
+		esac
+	done
+
+	case $recovery_timeout in *[!0-9]*|'') return 1 ;; esac
+	[ "$recovery_timeout" -ge 60 ] &&
+		[ "$recovery_timeout" -le 900 ] ||
+		return 1
+	is_nonzero_sha256 "$command_manifest_sha256" || return 1
+	is_nonzero_sha256 "$root_tree_sha256" || return 1
+	is_nonzero_sha256 "$root_seal_sha256" || return 1
+	case $root_tree_entries in
+		''|0|0*|*[!0-9]*) return 1 ;;
+	esac
+	[ "$netroot_count" -eq 1 ] &&
+		[ "$netroot_invalid" -eq 0 ] &&
+		[ "$recovery_timeout_count" -eq 1 ] &&
+		[ "$command_manifest_count" -eq 1 ] &&
+		[ "$root_generation_count" -eq 1 ] &&
+		[ "$root_tree_count" -eq 1 ] &&
+		[ "$root_seal_count" -eq 1 ] &&
+		[ "$root_entries_count" -eq 1 ] &&
+		[ "$root_subtree_count" -eq 1 ] &&
+		[ "$root_generation" = arch-a ] &&
+		[ "$root_subtree" = / ] &&
+		[ "$root_identity_invalid" -eq 0 ]
+}
+
+process_start_time_ticks() (
+	process_pid=$1
+	process_stat=$(cat "$watchdog_proc/$process_pid/stat" 2>/dev/null) ||
+		exit 1
+	process_fields=${process_stat#*) }
+	[ "$process_fields" != "$process_stat" ] || exit 1
+	set -- $process_fields
+	[ "$#" -ge 20 ] || exit 1
+	shift 19
+	case $1 in *[!0-9]*|'') exit 1 ;; esac
+	printf '%s\n' "$1"
+)
+
+find_watchdog_timer() {
+	watchdog_pid=$1
+	attempt=0
+	while [ "$attempt" -lt 200 ]; do
+		for process_dir in "$watchdog_proc"/[0-9]*; do
+			[ -r "$process_dir/stat" ] || continue
+			timer_pid=${process_dir##*/}
+			[ "$timer_pid" != "$watchdog_pid" ] || continue
+			[ "$(cat "$process_dir/comm" 2>/dev/null || true)" = sleep ] ||
+				continue
+			process_stat=$(cat "$process_dir/stat" 2>/dev/null) || continue
+			process_fields=${process_stat#*) }
+			[ "$process_fields" != "$process_stat" ] || continue
+			set -- $process_fields
+			[ "$#" -ge 20 ] || continue
+			[ "$2" = "$watchdog_pid" ] || continue
+			printf '%s\n' "$timer_pid"
+			return 0
+		done
+		sleep 0.01
+		attempt=$((attempt + 1))
+	done
+	return 1
+}
+
+arm_watchdog() {
+	armed_boottime=$(cut -d. -f1 <"$watchdog_proc/uptime") || return 1
+	case $armed_boottime in *[!0-9]*|'') return 1 ;; esac
+	deadline_boottime=$((armed_boottime + recovery_timeout))
+	(
+		exec 8>"$watchdog_log"
+		exec 9>"$watchdog_reset"
 		sleep "$recovery_timeout"
 		echo 'rog5-network-root: watchdog expired; using emergency reset' >&8
 		echo b >&9
 	) &
-	echo $! >/run/rog5-network-root-watchdog.pid
+	watchdog_pid=$!
+	watchdog_start=$(process_start_time_ticks "$watchdog_pid") || {
+		kill "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	timer_pid=$(find_watchdog_timer "$watchdog_pid") || {
+		kill "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	timer_start=$(process_start_time_ticks "$timer_pid") || {
+		kill "$timer_pid" "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	lease_stage=$watchdog_run/.rog5-network-root-watchdog.lease.$$
+	pid_stage=$watchdog_run/.rog5-network-root-watchdog.pid.$$
+	(
+		umask 077
+		{
+			printf 'format=rog5-network-root-watchdog-v1\n'
+			printf 'pid=%s\n' "$watchdog_pid"
+			printf 'start_time_ticks=%s\n' "$watchdog_start"
+			printf 'timer_pid=%s\n' "$timer_pid"
+			printf 'timer_start_time_ticks=%s\n' "$timer_start"
+			printf 'armed_boottime_seconds=%s\n' "$armed_boottime"
+			printf 'deadline_boottime_seconds=%s\n' "$deadline_boottime"
+			printf 'timeout_seconds=%s\n' "$recovery_timeout"
+		} >"$lease_stage" &&
+			printf '%s\n' "$watchdog_pid" >"$pid_stage"
+	) || {
+		rm -f "$lease_stage" "$pid_stage"
+		kill "$timer_pid" "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	chmod 0400 "$lease_stage" "$pid_stage" || {
+		rm -f "$lease_stage" "$pid_stage"
+		kill "$timer_pid" "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	mv -f "$pid_stage" \
+		"$watchdog_run/rog5-network-root-watchdog.pid" || {
+		rm -f "$lease_stage" "$pid_stage"
+		kill "$timer_pid" "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
+	mv -f "$lease_stage" \
+		"$watchdog_run/rog5-network-root-watchdog.lease" || {
+		rm -f "$lease_stage" \
+			"$watchdog_run/rog5-network-root-watchdog.pid"
+		kill "$timer_pid" "$watchdog_pid" 2>/dev/null || true
+		return 1
+	}
 	log "network-root watchdog armed for $recovery_timeout seconds"
 }
 
@@ -142,6 +438,7 @@ mount_network_root() {
 	mountpoint -q /mnt/root-ro || return 1
 	awk '$2 == "/mnt/root-ro" && $4 ~ /(^|,)ro(,|$)/ { found=1 }
 		END { exit !found }' /proc/mounts || return 1
+	verify_network_root_identity || return 1
 
 	mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
 		tmpfs /mnt/state || return 1
@@ -167,25 +464,97 @@ prepare_shutdown_root() {
 	ln -s busybox "$exitrd/bin/sh" || return 1
 	cp -p /shutdown "$exitrd/shutdown" || return 1
 	chroot "$exitrd" /bin/sh -n /shutdown || return 1
-	touch /run/rog5-network-root-exitrd-ready
+	touch /run/rog5-network-root-exitrd-ready || return 1
 	return 0
 }
 
-recovery_timeout=600
-netroot_count=0
-netroot_invalid=0
-for argument in $(cat /proc/cmdline); do
-	case $argument in
-		rog5.netroot=1) netroot_count=$((netroot_count + 1)) ;;
-		rog5.netroot=*) netroot_invalid=1 ;;
-		rog5.recovery_timeout=*) recovery_timeout=${argument#*=} ;;
-	esac
-done
-case $recovery_timeout in *[!0-9]*|'') recovery_timeout=600 ;; esac
-if [ "$recovery_timeout" -lt 60 ] || [ "$recovery_timeout" -gt 900 ]; then
-	recovery_timeout=600
-fi
-if [ "$netroot_count" -ne 1 ] || [ "$netroot_invalid" -ne 0 ]; then
+move_handoff_mount() {
+	mount --move "$1" "$2"
+}
+
+rollback_handoff_mounts() {
+	rollback_status=0
+
+	[ "$handoff_moved_run" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/run" "$handoff_run" ||
+		rollback_status=1
+	[ "$handoff_moved_proc" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/proc" "$handoff_proc" ||
+		rollback_status=1
+	[ "$handoff_moved_sys" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/sys" "$handoff_sys" ||
+		rollback_status=1
+	[ "$handoff_moved_dev" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/dev" "$handoff_dev" ||
+		rollback_status=1
+	[ "$handoff_moved_state" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/state" \
+			"$handoff_state" || rollback_status=1
+	[ "$handoff_moved_root_ro" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/root-ro" \
+			"$handoff_root_ro" || rollback_status=1
+	return "$rollback_status"
+}
+
+handoff_network_root() {
+	handoff_moved_root_ro=0
+	handoff_moved_state=0
+	handoff_moved_dev=0
+	handoff_moved_sys=0
+	handoff_moved_proc=0
+	handoff_moved_run=0
+
+	mkdir -p "$handoff_newroot/.rog5/root-ro" \
+		"$handoff_newroot/.rog5/state" "$handoff_newroot/dev" \
+		"$handoff_newroot/proc" "$handoff_newroot/sys" \
+		"$handoff_newroot/run" || return 1
+	printf '%s\n' 0 >"$handoff_run/rog5-physical-block-count" ||
+		return 1
+	printf '%s\n' '169.254.77.1:/' \
+		>"$handoff_run/rog5-network-root-source" || return 1
+	touch "$handoff_run/rog5-network-root-mounted" || return 1
+
+	if ! move_handoff_mount "$handoff_root_ro" \
+		"$handoff_newroot/.rog5/root-ro"; then
+		return 1
+	fi
+	handoff_moved_root_ro=1
+	if ! move_handoff_mount "$handoff_state" \
+		"$handoff_newroot/.rog5/state"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_state=1
+	if ! move_handoff_mount "$handoff_dev" "$handoff_newroot/dev"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_dev=1
+	if ! move_handoff_mount "$handoff_sys" "$handoff_newroot/sys"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_sys=1
+	if ! move_handoff_mount "$handoff_proc" "$handoff_newroot/proc"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_proc=1
+	if ! move_handoff_mount "$handoff_run" "$handoff_newroot/run"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_run=1
+	return 0
+}
+
+switch_root_failure() {
+	trap - EXIT
+	rollback_handoff_mounts || true
+	force_rollback
+}
+
+if ! parse_network_root_command_line; then
 	log 'invalid network-root command line; rebooting'
 	force_rollback
 fi
@@ -200,7 +569,10 @@ physical_count=$(physical_topology_count)
 	force_rollback
 }
 
-arm_watchdog
+if ! arm_watchdog; then
+	log 'network-root watchdog attestation failed; rebooting'
+	force_rollback
+fi
 
 configure_usb
 usb_status=$?
@@ -215,6 +587,10 @@ if [ "$root_status" -ne 0 ]; then
 	log 'read-only NFS root or tmpfs overlay failed; rebooting'
 	force_rollback
 fi
+if ! publish_network_root_identity; then
+	log 'network-root mount identity publication failed; rebooting'
+	force_rollback
+fi
 
 if ! verify_no_phone_storage; then
 	log 'phone-storage exclusion failed before switch_root; rebooting'
@@ -226,17 +602,10 @@ if ! prepare_shutdown_root; then
 	force_rollback
 fi
 
-mkdir -p /newroot/.rog5/root-ro /newroot/.rog5/state \
-	/newroot/dev /newroot/proc /newroot/sys /newroot/run
-printf '%s\n' 0 >/run/rog5-physical-block-count
-printf '%s\n' '169.254.77.1:/' >/run/rog5-network-root-source
-touch /run/rog5-network-root-mounted
+if ! handoff_network_root; then
+	log 'network-root mount handoff failed; rebooting'
+	force_rollback
+fi
 
-mount --move /mnt/root-ro /newroot/.rog5/root-ro
-mount --move /mnt/state /newroot/.rog5/state
-mount --move /dev /newroot/dev
-mount --move /proc /newroot/proc
-mount --move /sys /newroot/sys
-mount --move /run /newroot/run
-
-exec switch_root /newroot /sbin/init
+trap switch_root_failure EXIT
+exec switch_root "$handoff_newroot" /sbin/init

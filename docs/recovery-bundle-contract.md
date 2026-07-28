@@ -72,7 +72,7 @@ bytes. It has exactly these fields in this order, with no blanks, duplicates,
 comments, unknown fields, carriage returns, or leading-zero numbers:
 
 ```text
-format=rog5-recovery-bundle-v1
+format=rog5-recovery-bundle-v2
 bundle=<bundle-id>
 profile=<fixed-profile>
 kernel_size=<decimal>
@@ -85,7 +85,17 @@ target_id=<fixed-safe-identity>
 target_release=<fixed-safe-identity>
 rollback_timeout=<decimal-seconds>
 target_timeout=<decimal-seconds>
+a660_command_manifest_sha256=<64 lowercase hex or 64 zeroes>
+root_generation=<arch-a or none>
+root_tree_sha256=<64 lowercase hex or 64 zeroes>
+root_seal_sha256=<64 lowercase hex or 64 zeroes>
+root_tree_entries=<decimal>
+root_subtree=</ or none>
 ```
+
+Version 2 is intentionally incompatible with version 1: v1 did not sign the
+A660 command surface or complete runtime-root identity. A v2 fetcher, host
+server, and verifier reject v1 rather than silently supplying defaults.
 
 Permitted profiles are:
 
@@ -110,6 +120,12 @@ Size policy is:
 Rollback timeout is 60–900 seconds, target timeout is 30–600 seconds, and the
 target timeout must leave at least 30 seconds of rollback margin.
 `persistent-root-ro-v1` requires at least 300 seconds of rollback time.
+`network-root-v1` additionally requires a nonzero A660 command-manifest hash,
+generation `arch-a`, nonzero tree and seal hashes, a positive tree-entry
+count, and subtree `/`. These values describe the complete read-only NFS
+lower tree and are covered by the Ed25519 signature. The other two profiles
+must carry only the canonical unset tuple: zero hashes, generation `none`,
+entry count `0`, and subtree `none`.
 
 `manifest.sig` is exactly 64 raw Ed25519 signature bytes over the exact
 manifest bytes. The caller also supplies the expected manifest SHA-256. The
@@ -149,6 +165,12 @@ scripts/host/prepare-recovery-runtime-bundle.py \
   --target-release "$TARGET_RELEASE" \
   --rollback-timeout "$ROLLBACK_TIMEOUT" \
   --target-timeout "$TARGET_TIMEOUT" \
+  --a660-command-manifest-sha256 "$A660_COMMAND_MANIFEST_SHA256" \
+  --root-generation "$ROOT_GENERATION" \
+  --root-tree-sha256 "$ROOT_TREE_SHA256" \
+  --root-seal-sha256 "$ROOT_SEAL_SHA256" \
+  --root-tree-entries "$ROOT_TREE_ENTRIES" \
+  --root-subtree "$ROOT_SUBTREE" \
   --private-key "$EPHEMERAL_ED25519_KEY" \
   --bundle-root "$EMPTY_BUNDLE_ROOT"
 ```
@@ -157,7 +179,9 @@ Use only a disposable test key until the production-key approval gate is
 complete. Success prints a canonical non-secret record containing the bundle
 and profile, manifest hash, and raw public-key hash. Signing is not acceptance:
 the resulting bundle must still pass the native verifier and all release
-gates. The fixed profile mapping is:
+gates. For non-network profiles, pass the canonical unset trust tuple described
+above; the packager rejects both omitted values and cross-profile trust data.
+The fixed profile mapping is:
 
 | Payload class | Profile |
 |---|---|
@@ -188,7 +212,10 @@ buffer and rejects expansion beyond 128 MiB. The streaming newc parser checks
 every header and hexadecimal field, pathname and alignment, optional CRC,
 strictly sorted unique entries, bounded entry count, zero padding, one
 executable regular `init`, one final `TRAILER!!!`, and only zero archive
-padding after the trailer. It does not allocate the expanded archive.
+padding after the trailer. A `network-root-v1` archive must also contain an
+executable regular `sbin/persistent-root-verify`; the extracted release gate
+proves that binary is static AArch64. It does not allocate the expanded
+archive.
 
 `board.dtb` must be one bounded FDT v17 structure compatible with v16 and
 must satisfy all of these:
@@ -238,13 +265,30 @@ All profiles then receive:
 ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000
 ramoops.record_size=0x100000 ramoops.console_size=0x300000
 ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1
-rog5.bundle=<bundle-id> rog5.recovery_timeout=<rollback-timeout>
+rog5.bundle=<bundle-id> rog5.target_timeout=<target-timeout>
+rog5.recovery_timeout=<rollback-timeout>
 ```
+
+`network-root-v1` then receives the signed runtime trust tuple:
+
+```text
+rog5.a660_command_manifest_sha256=<sha256>
+rog5.root_generation=arch-a
+rog5.root_tree_sha256=<sha256>
+rog5.root_seal_sha256=<sha256>
+rog5.root_tree_entries=<positive-decimal>
+rog5.root_subtree=/
+```
+
+No caller supplies free-form command-line text. Diagnostic and
+`persistent-root-ro-v1` plans omit this tuple.
 
 Successful verification normally prints one canonical
 `rog5-verified-plan-v1` record containing only fixed artifact basenames,
 target identity, target timeout, generated command line, and its SHA-256. It
-never prints a caller-supplied pathname.
+never prints a caller-supplied pathname. The target timeout is also bound into
+the verified kernel command line so acceptance logic can attest the same
+execution deadline independently of host-side state.
 
 With `--handoff-fd3`, the verifier first requires descriptor 3 to be a
 same-UID/GID Unix `SOCK_SEQPACKET` peer. It copies each exact-size source
