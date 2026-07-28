@@ -14,6 +14,7 @@ hostname rog5-persistent-root
 mdev -s
 
 expected_physical_count=116
+expected_config_sha256=8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3
 expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff
 expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c
 userdata=/dev/sda23
@@ -35,8 +36,9 @@ fail_stage() {
 	stage=$2
 	delay=$3
 	case "$stage:$delay" in
-		cmdline:5|kernel-config:10|ufs-discovery:20|ufs-power:35|\
-storage-lock:50|userdata:65|inventory:80|usb:95) ;;
+		cmdline:5|config-file:10|config-decode:15|config-identity:20|\
+ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
+usb:110) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -474,36 +476,39 @@ if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
 	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
 	fail_stage 'invalid persistent-root command line' cmdline 5
 fi
-if [ ! -r /proc/config.gz ] ||
-	! gzip -dc /proc/config.gz |
-		grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' ||
-	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_EXT4_FS=y' ||
-	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_OVERLAY_FS=y'; then
-	fail_stage \
-		'dedicated read-only persistent-root kernel attestation failed' \
-		kernel-config 10
+kernel_config=/run/rog5-kernel.config
+if [ ! -r /proc/config.gz ]; then
+	fail_stage 'running kernel config is unavailable' config-file 10
+fi
+if ! gzip -dc /proc/config.gz >"$kernel_config"; then
+	fail_stage 'running kernel config decode failed' config-decode 15
+fi
+chmod 0400 "$kernel_config"
+if [ "$(sha256sum "$kernel_config" | cut -d ' ' -f 1)" != \
+	"$expected_config_sha256" ]; then
+	fail_stage 'running kernel config identity changed' config-identity 20
 fi
 
 arm_watchdog
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then
-	fail_stage 'UFS discovery failed' ufs-discovery 20
+	fail_stage 'UFS discovery failed' ufs-discovery 35
 fi
 if ! verify_ufs_power_containment; then
 	fail_stage 'UFS power containment failed before storage lock' \
-		ufs-power 35
+		ufs-power 50
 fi
 if ! lock_physical_storage; then
-	fail_stage 'physical storage lock failed' storage-lock 50
+	fail_stage 'physical storage lock failed' storage-lock 65
 fi
 if ! find_exact_userdata; then
-	fail_stage 'exact userdata identity failed' userdata 65
+	fail_stage 'exact userdata identity failed' userdata 80
 fi
 if ! write_ufs_inventory; then
-	fail_stage 'UFS inventory failed' inventory 80
+	fail_stage 'UFS inventory failed' inventory 95
 fi
 if ! configure_usb; then
-	fail_stage 'USB recovery transport failed' usb 95
+	fail_stage 'USB recovery transport failed' usb 110
 fi
 if ! verify_physical_storage_read_only ||
 	! verify_ufs_power_containment; then

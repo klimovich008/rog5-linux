@@ -114,5 +114,8 @@ in the
 The original live attempt and its first wrapper correction are rejected. The
 safe fallback results prove rollback, not target acceptance. Do not flash
 either image, do not promote or select the staged root, and do not begin P3.
-Only the latest manifest-pinned wrapper-contract correction may receive one
-attended timing-diagnostic temporary boot.
+The wrapper-contract correction later received its sole attended
+timing-diagnostic boot and
+[safely selected the runtime kernel-config branch](2026-07-28-persistent-root-p2-config-timing-live-rejected.md).
+Only the latest manifest-pinned one-pass config-identity package may receive
+one further attended diagnostic temporary boot.
