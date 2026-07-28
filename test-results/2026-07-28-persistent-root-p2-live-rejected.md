@@ -70,11 +70,12 @@ The helper now produces the complete marker only through successful `printf`
 output. The runner truncates candidate known-hosts state after every failed
 exact-kernel probe and recognizes exact pinned Alpine during target polling,
 recording elapsed time and restoring host state without waiting for the full
-target timeout. A standard-library Android boot-v3 parser requires exactly one
-UFS-discovery token. The target now adds unique bounded timing delays to its
-eight pre-USB failure branches, following the timing diagnostic already used
-successfully during recovery bring-up. Target initramfs, nested stage, ASUS
-wrapper, and final repacks each reproduce twice:
+target timeout. The first correction made a standard-library Android boot-v3
+parser require one wrapper UFS-discovery token. A later live attempt proved
+that requirement crossed the ASUS-wrapper and Linux-target contracts, so the
+package below is historical and rejected. The target timing changes
+themselves remain valid. Target initramfs, nested stage, ASUS wrapper, and
+that rejected repack each reproduced twice:
 
 | Stage | Added delay |
 |---|---:|
@@ -100,15 +101,18 @@ for the branch, not target acceptance.
 | raw header-v3 image | 96,067,584 | `deaa9c047cd2251c4981f1c41ba5d144118b6ba1fceb216e58c310d6e6491bdf` |
 | unsigned AVB image | 100,663,296 | `439a945babb5af1af83b7f6ad07ec6a8c0bf3e74fe416925b2e1a416e3b39ae0` |
 
-The diagnostic image preserves the exact target kernel, DTB, verifier, root
-seal, read-only UFS policy, watchdog, and successful-path behavior. Only the
-pre-USB failure timing and corrected wrapper command line changed. It has not
-been booted live.
+The diagnostic image preserved the exact target kernel, DTB, verifier, root
+seal, read-only UFS policy, watchdog, and target successful-path behavior.
+Its first follow-up boot was rejected before staging because the attempted
+wrapper correction enabled a target-only UFS mode that the ASUS wrapper does
+not implement. That separate event and its fail-first correction are recorded
+in the
+[wrapper-contract rejection](2026-07-28-persistent-root-p2-wrapper-contract-live-rejected.md).
 
 ## Decision
 
-The original live attempt is rejected. The safe fallback result proves
-rollback, not target acceptance. Do not flash either image, do not promote or
-select the staged root, and do not begin P3. One attended timing-diagnostic
-temporary boot may identify the pre-USB failure while leaving the independent
-watchdog armed.
+The original live attempt and its first wrapper correction are rejected. The
+safe fallback results prove rollback, not target acceptance. Do not flash
+either image, do not promote or select the staged root, and do not begin P3.
+Only the latest manifest-pinned wrapper-contract correction may receive one
+attended timing-diagnostic temporary boot.

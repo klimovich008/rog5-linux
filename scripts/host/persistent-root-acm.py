@@ -28,9 +28,26 @@ LOAD_MARKER = b"PASS mainline read-only persistent-root payload loaded"
 PREFLIGHT_COMMAND = (
     "set -eu; "
     '[ -e /run/rog5-recovery-armed ]; '
-    '[ "$(cat /run/rog5-physical-block-count)" = 116 ]; '
-    '[ "$(cat /run/rog5-ufs-blocked-query-count)" = 0 ]; '
-    '[ "$(cat /run/rog5-ufs-blocked-scsi-count)" = 0 ]; '
+    "physical_count=0; "
+    "writable_physical=0; "
+    "for sys_disk in /sys/class/block/*; do "
+    '[ -e "$sys_disk/device" ] || continue; '
+    '[ ! -e "$sys_disk/partition" ] || continue; '
+    'disk=${sys_disk##*/}; '
+    'for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do '
+    '[ -e "$sys_block/dev" ] || continue; '
+    '[ "$sys_block" = "$sys_disk" ] || '
+    '[ -e "$sys_block/partition" ] || continue; '
+    "physical_count=$((physical_count + 1)); "
+    '[ "$(cat "$sys_block/ro")" = 1 ] || '
+    "writable_physical=$((writable_physical + 1)); "
+    "done; "
+    "done; "
+    '[ "$physical_count" = 116 ]; '
+    '[ "$writable_physical" = 0 ]; '
+    '[ "$(cat /run/rog5-physical-block-count)" = "$physical_count" ]; '
+    "[ ! -e /run/rog5-ufs-blocked-query-count ]; "
+    "[ ! -e /run/rog5-ufs-blocked-scsi-count ]; "
     '[ "$(cat /sys/kernel/kexec_loaded)" = 1 ]; '
     "(cd /opt/rog5-recovery && sha256sum -c SHA256SUMS); "
     "block_mounts=0; "

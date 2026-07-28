@@ -314,15 +314,22 @@ temporary boot image. The
 temporarily booted the wrapper and loaded the target, but the target did not
 reach its USB or SSH identity and the watchdog returned to exact Alpine.
 The run also proved that terminal echo could satisfy the old preflight marker
-and that the wrapper omitted `rog5.ufs_discovery=1`, so its expected UFS
-counters did not exist. The success marker is now output-only, rejected
-volatile SSH keys are cleared between probes, and two corrected wrapper
-repacks with the required command-line contract are byte-identical. The
-corrected image has not run live; P2 remains rejected/HOLD and P3 remains
-prohibited. Eight pre-USB failure branches now have unique bounded 5-95 second
-timing markers, and every target, stage, wrapper, and final image layer
-reproduces twice. The next attended temporary boot is therefore a diagnostic
-interval measurement, not a blind retry.
+and that a rejected peer could contaminate the volatile target key.
+
+The first correction incorrectly enabled target-only
+`rog5.ufs_discovery=1` on the ASUS wrapper. Its
+[wrapper-contract live attempt](../test-results/2026-07-28-persistent-root-p2-wrapper-contract-live-rejected.md)
+returned safely before recovery USB because the wrapper config does not
+implement that custom mode. No staging or kexec occurred; exact fallback,
+unchanged `UNBOOTED` seal, absent selectors, and screen off all passed. The
+success marker is now output-only, rejected volatile SSH keys are cleared
+between probes, the wrapper expressly omits target-only UFS discovery, and
+its ACM preflight independently requires all 116 physical nodes read-only.
+The Linux 7.1.4 loader still supplies exactly one target UFS flag. Two latest
+repacks are byte-identical and have not run live; P2 remains rejected/HOLD
+and P3 remains prohibited. Eight target pre-USB branches have unique bounded
+5-95 second timing markers. The next attended temporary boot is therefore a
+diagnostic interval measurement, not a blind retry.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built
