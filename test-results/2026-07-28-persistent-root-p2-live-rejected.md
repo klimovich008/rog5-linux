@@ -117,5 +117,9 @@ either image, do not promote or select the staged root, and do not begin P3.
 The wrapper-contract correction later received its sole attended
 timing-diagnostic boot and
 [safely selected the runtime kernel-config branch](2026-07-28-persistent-root-p2-config-timing-live-rejected.md).
-Only the latest manifest-pinned one-pass config-identity package may receive
-one further attended diagnostic temporary boot.
+Its one-pass successor also received its sole attended diagnostic and
+[returned safely to exact fallback without target USB](2026-07-28-persistent-root-p2-config-identity-live-rejected.md).
+Both are consumed. Only the latest manifest-pinned package that combines
+recovery-hashed Image identity, exact running-kernel release, and offline
+embedded-config identity may receive one further attended diagnostic
+temporary boot after its complete offline gate passes.

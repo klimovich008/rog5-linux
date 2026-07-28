@@ -330,12 +330,23 @@ The Linux 7.1.4 loader still supplies exactly one target UFS flag. The next
 passed recovery preflight, executed the target exactly once, and returned to
 exact Alpine after 37 seconds, selecting the previous broad kernel-config
 branch. The target Image's embedded config equals the pinned config exactly.
-A fail-first correction now decodes it once into RAM, requires its complete
-SHA-256 identity, and gives file, decode, and identity failures separate
-bounded timings. Two latest config-identity repacks are byte-identical and
-have not run live; P2 remains rejected/HOLD and P3 remains prohibited. Ten
-target pre-USB branches have unique bounded 5-110 second timing markers. One
-further attended temporary boot is a diagnostic, not a blind retry.
+A fail-first correction decoded it once into RAM, required its complete
+SHA-256 identity, and gave file, decode, and identity failures separate
+bounded timings. Its sole
+[config-identity run](../test-results/2026-07-28-persistent-root-p2-config-identity-live-rejected.md)
+again executed the target exactly once and returned to exact Alpine after
+37 seconds without target USB. That package is consumed.
+
+The latest fail-first successor keeps the recovery-stage exact Image hash,
+requires running release `7.1.4-gcfd385a1c754` before storage inspection, and
+removes the live `/proc/config.gz` dependency. Offline boot-contract
+inspection extracts the exact Image's IKCONFIG stream, requires byte identity
+with the pinned config, and checks IKCONFIG, read-only UFS, ext4, and
+OverlayFS. Two target initramfs, nested stage, ASUS wrapper, raw, and AVB
+builds are byte-identical. P2 remains rejected/HOLD and P3 remains
+prohibited. Eight target pre-USB branches have unique bounded 5-110 second
+timing markers. One further attended temporary boot is a diagnostic, not a
+blind retry.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

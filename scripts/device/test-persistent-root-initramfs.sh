@@ -26,26 +26,19 @@ done
 	fail 'missing P2 initramfs binary input'
 [ "$(sha256sum "$config" | cut -d ' ' -f 1)" = \
 	8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ] ||
-	fail 'P2 runtime-config identity does not match the pinned target config'
+	fail 'P2 input does not match the pinned target config'
 
 for script in "$init" "$attest" "$shutdown" "$builder"; do
 	sh -n "$script"
 done
 
 grep -Fq 'rog5.persistent_ro=1' "$init"
-grep -Fq 'expected_config_sha256=8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3' \
+grep -Fq 'expected_kernel_release=7.1.4-gcfd385a1c754' \
 	"$init"
-grep -Fq 'kernel_config=/run/rog5-kernel.config' "$init"
-grep -Fq 'gzip -dc /proc/config.gz >"$kernel_config"' "$init"
-grep -Fq 'chmod 0400 "$kernel_config"' "$init"
-grep -Fq 'sha256sum "$kernel_config"' "$init"
-config_decode_count=$(grep -Fc \
-	'gzip -dc /proc/config.gz >"$kernel_config"' "$init" || true)
-[ "$config_decode_count" -eq 1 ] ||
-	fail "expected one runtime-config decode, found $config_decode_count"
-config_hash_count=$(grep -Fc 'sha256sum "$kernel_config"' "$init" || true)
-[ "$config_hash_count" -eq 1 ] ||
-	fail "expected one runtime-config identity check, found $config_hash_count"
+release_check='if [ "$(uname -r)" != "$expected_kernel_release" ]; then'
+grep -Fqx "$release_check" "$init"
+! grep -Fq '/proc/config.gz' "$init" ||
+	fail 'P2 target must not depend on procfs IKCONFIG during live boot'
 grep -Fq 'expected_physical_count=116' "$init"
 grep -Fq 'expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff' \
 	"$init"
@@ -62,9 +55,7 @@ grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
 grep -Fq 'WantedBy=multi-user.target' "$init"
 for timing_marker in \
 	'cmdline:5' \
-	'config-file:10' \
-	'config-decode:15' \
-	'config-identity:20' \
+	'kernel-release:20' \
 	'ufs-discovery:35' \
 	'ufs-power:50' \
 	'storage-lock:65' \
@@ -76,6 +67,7 @@ done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
 grep -Fq 'sleep "$delay"' "$init"
 
+release_line=$(grep -Fn "$release_check" "$init" | cut -d: -f1)
 watchdog_line=$(grep -n '^arm_watchdog$' "$init" | cut -d: -f1)
 wait_line=$(grep -n "log 'waiting for stable UFS discovery'" "$init" |
 	cut -d: -f1)
@@ -88,6 +80,7 @@ verify_line=$(grep -n '^if ! verify_persistent_root; then$' "$init" |
 	cut -d: -f1)
 switch_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" |
 	cut -d: -f1)
+[ "$release_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$wait_line" ]
 [ "$wait_line" -lt "$lock_line" ]
 [ "$lock_line" -lt "$usb_line" ]
@@ -143,4 +136,4 @@ cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
 ! find "$work/root" -type f -exec grep -Il 'BEGIN .*PRIVATE KEY' {} + |
 	grep -q .
 
-echo 'PASS deterministic credential-free P2 initramfs pins one-pass runtime config identity, read-only UFS, exact userdata/root seal, tmpfs OverlayFS, and SysRq rollback'
+echo 'PASS deterministic credential-free P2 initramfs pins exact running-kernel release, read-only UFS, exact userdata/root seal, tmpfs OverlayFS, and SysRq rollback'

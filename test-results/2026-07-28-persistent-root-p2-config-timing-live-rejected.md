@@ -120,7 +120,12 @@ reproduces the raw and AVB products exactly.
 ## Decision
 
 The rejected timing package is consumed and must not be retried or flashed.
-P2 remains HOLD and P3 remains prohibited. After the one-pass package passes
-the complete offline suite and its source, manifest, and report are committed
-and pushed, it may receive one attended non-flashing diagnostic boot. Only
-complete target acceptance plus exact automatic fallback can pass P2.
+Its one-pass successor subsequently received its sole attended diagnostic,
+executed the target exactly once, and
+[returned safely to exact fallback after 37 seconds](2026-07-28-persistent-root-p2-config-identity-live-rejected.md).
+That proc-config package is also consumed. P2 remains HOLD and P3 remains
+prohibited. Only the successor that combines recovery-hashed Image identity,
+exact running-kernel release, and offline embedded-config identity may receive
+one further attended non-flashing diagnostic after its complete offline suite,
+source, manifest, and report are committed and pushed. Only complete target
+acceptance plus exact automatic fallback can pass P2.

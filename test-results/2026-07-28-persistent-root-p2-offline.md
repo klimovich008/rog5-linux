@@ -2,16 +2,19 @@
 
 Date: 2026-07-28
 
-Result: **PASS OFFLINE AFTER THREE CONTROL CORRECTIONS; LIVE REJECTED/HOLD.**
+Result: **PASS OFFLINE AFTER FOUR CONTROL CORRECTIONS; LIVE REJECTED/HOLD.**
 The complete temporary-boot and nested-kexec package remains reproducible and
 credential-free. The first live attempt returned safely to Alpine after the
 target failed pre-USB. A follow-up package then returned safely before
 staging because it enabled a target-only UFS mode on the ASUS wrapper. The
 next corrected run reached and executed the target once, then exact fallback
-after 37 seconds selected the broad runtime kernel-config branch. All three
-events now have fail-first regressions and corrected reproducible artifacts.
-The latest one-pass config-identity artifact has not run live, and Gate P3
-remains prohibited.
+after 37 seconds selected the broad runtime kernel-config branch. Its
+one-pass config-identity successor also executed the target once and returned
+to exact fallback after 37 seconds without target USB. All four events now
+have fail-first regressions and corrected reproducible artifacts. The latest
+package replaces the live proc-config dependency with exact running-kernel
+release plus offline embedded-config identity; it has not run live, and Gate
+P3 remains prohibited.
 
 ## Safety boundary
 
@@ -22,7 +25,8 @@ journal, select a root generation, or write a boot partition.
 
 The target:
 
-1. requires the exact dedicated read-only UFS kernel configuration;
+1. requires the recovery-hashed target Image, exact running-kernel release,
+   and offline-attested dedicated read-only UFS configuration;
 2. requires the accepted 116-node UFS topology, previously observed as 7
    physical disks plus 109 partitions;
 3. applies and verifies read-only state to all 116 physical nodes;
@@ -63,12 +67,16 @@ built in.
   Python whole-tree seal.
 - Two target initramfs builds are byte-identical and contain no private key,
   SSH host identity, authorization file, account token, or machine identity.
-  The full embedded runtime config is decoded once in RAM and must match the
-  exact pinned config SHA-256. Each pre-USB failure has a unique 5-110 second
-  bounded timing marker, allowing the automatic fallback interval to identify
-  the branch without exposing a shell or mounting storage.
+  The target requires exact release `7.1.4-gcfd385a1c754` and contains no
+  `/proc/config.gz` dependency. The boot-contract test extracts the exact
+  Image's IKCONFIG stream, requires byte identity with the pinned config, and
+  checks every safety-critical setting. Each pre-USB failure has a unique
+  5-110 second bounded timing marker, allowing the automatic fallback
+  interval to identify the branch without exposing a shell or mounting
+  storage.
 - Two clean Linux 7.1.4 builds have identical config, `Image`, `Image.gz`,
-  and metadata.
+  and metadata. The recovery stage pins that exact Image hash; the target's
+  first identity check pins its running release.
 - Two staging initramfs builds are byte-identical. Every inherited file from
   the accepted UFS staging archive is unchanged except the exact target
   Image, unchanged accepted DTB, target initramfs, fixed loader, and their
@@ -88,6 +96,12 @@ built in.
   deliberately different release-string byte and is not an accepted
   reproducibility producer.
 
+The final duplicate ASUS wrapper builds use separate immutable source
+volumes and match in Image, config, metadata, and their one embedded staging
+archive. A concurrent duplicate attempt and its first retry exhausted host
+resources and produced no accepted artifact. A fresh complete duplicate on
+the spacious home filesystem passed and matched the first build exactly.
+
 The two Linux 7.1.4 compiler processes completed successfully and printed
 their PASS records. Their parent shell invocations later returned nonzero
 because the build script was edited while those already-running shells were
@@ -105,13 +119,13 @@ passes `sh -n`, ShellCheck at warning level, and its fail-first suite.
 | Linux 7.1.4 config | 242,248 | `8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3` |
 | Linux 7.1.4 metadata | 896 | `77c5049acdbecb529d9c3ba05e72e413964a9733f12354bda1c81e31e5babff9` |
 | UFS/USB2 target DTB | 102,766 | `36802458928e2970a0043f6a27d106e6aa4911fd89b2f548e7c08275d164aaf0` |
-| target initramfs | 5,854,487 | `bb3a57d5bb5a2fd62a52832efe624ef4a7bb23ee66de0fc89f9995028394fab6` |
-| nested staging initramfs | 26,688,238 | `1dc79b683f4040543ed59c94e2cea9dbb1ada38dffbd936d146b39fc13021fdc` |
-| ASUS 5.4.210 wrapper Image | 69,372,416 | `0fa8a9d7aaa27f43467ad31048ad6efaca95369d3334ff600feeca1ace673029` |
+| target initramfs | 5,853,822 | `e2b58d50fae31509b8cd87ed01afbf25c90d49500e3d9d9691ecd77643fd434e` |
+| nested staging initramfs | 26,688,093 | `438aaf1c99455e23ff27f758738e779b0fd318e68c58467eeae7b77c55a87520` |
+| ASUS 5.4.210 wrapper Image | 69,372,416 | `cfd65186afd75435d34cb33a36c76c4a80a861d0360bec13495c0b445836b7c2` |
 | ASUS wrapper config | 185,763 | `df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f` |
-| ASUS wrapper metadata | 410 | `05ec9d0a80af2d2ef10f09a3a035e8d9166b9c2e2c6665ab742b9890acfdf010` |
-| raw header-v3 boot image | 96,067,584 | `3a77f1cb50def26ac6ab6e8e8a7b7e75e5d5be150ae73eead0d9c9c538045859` |
-| unsigned AVB boot image | 100,663,296 | `033f4c15fdfc1ffeb015028cce0eb4ca621f5909df4b6d3cf113c38f249839e8` |
+| ASUS wrapper metadata | 410 | `9ff24786682d447b185fd69f1d88334585efa6f84cc3fd4333f7a87c95fe576c` |
+| raw header-v3 boot image | 96,067,584 | `7a0293daaf14939bd2dc6b6264fcdef955d8fb6c654deaf4ffe394e9b2c8bc31` |
+| unsigned AVB boot image | 100,663,296 | `3c0355be52ebb005371b26e73a97a9899efaf9569c79442cc9f063779faf475b` |
 
 ## Offline tests
 
@@ -166,12 +180,33 @@ Linux 7.1.4 loader still supplies the target's exact read-only UFS flag.
 That corrected package reached recovery, passed staging preflight, executed
 the target exactly once, and returned to exact fallback after 37 seconds. The
 [timing report](2026-07-28-persistent-root-p2-config-timing-live-rejected.md)
-selects the previous broad kernel-config branch. The embedded config is
-byte-identical to the pinned config, so the target now decodes it once into
-RAM, checks its complete SHA-256 identity, and distinguishes config-file,
-decode, and identity failures. Later stages retain unique markers through
-110 seconds. P2 remains HOLD. The next attended run is one bounded
-config-identity diagnostic, not target acceptance by assumption.
+selects the previous broad kernel-config branch. A one-pass successor then
+required the live proc-config file, decoded it once, and checked its complete
+SHA-256 identity. Its sole attended run again executed the target exactly
+once and returned to exact fallback after 37 seconds without target USB. The
+[config-identity report](2026-07-28-persistent-root-p2-config-identity-live-rejected.md)
+records the exact unchanged fallback/root state and consumes that package.
+
+The latest fail-first successor removes the live procfs dependency. Recovery
+still verifies the exact target Image before kexec; the target first requires
+exact running release `7.1.4-gcfd385a1c754`; and offline boot-contract
+inspection proves that Image's embedded config is byte-identical to the
+pinned config with IKCONFIG, read-only UFS, ext4, and OverlayFS built in.
+Eight pre-USB branches retain unique markers:
+
+| Stage | Added delay |
+|---|---:|
+| invalid command line | 5 s |
+| running kernel release | 20 s |
+| UFS discovery | 35 s |
+| UFS power containment | 50 s |
+| physical storage lock | 65 s |
+| exact userdata identity | 80 s |
+| UFS inventory | 95 s |
+| USB setup | 110 s |
+
+P2 remains HOLD. The next attended run is one bounded kernel-release
+diagnostic, not target acceptance by assumption.
 
 ## Attended live sequence
 
@@ -242,7 +277,8 @@ seconds for the independent 600-second reset plus Alpine recovery.
 
 ## Decision
 
-The corrected one-pass config-identity P2 package is accepted offline for
-one attended temporary boot. It must never be flashed. P2 itself remains
-rejected/HOLD, and no writable UFS probe or P3 work is allowed until the
-complete target-and-fallback evidence passes.
+The corrected recovery-hashed Image plus exact running-release and offline
+embedded-config P2 package is accepted offline for one attended temporary
+boot. It must never be flashed. P2 itself remains rejected/HOLD, and no
+writable UFS probe or P3 work is allowed until the complete
+target-and-fallback evidence passes.
