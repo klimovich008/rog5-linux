@@ -451,20 +451,23 @@ retry.
 3. Add signed-manifest and fixed-command-line verification. **Complete
    offline.**
 4. Add same-descriptor legacy `kexec_load` and integrate the verifier with
-   `PREPARE`. **Complete offline; absent from the current initramfs.**
+   `PREPARE`. **Complete offline and integrated into the shell-free
+   initramfs.**
 5. Connect the offline-tested fixed-host fetch helper to `PREPARE`.
-   **Complete offline; absent from the current initramfs.**
+   **Complete offline and integrated into the shell-free initramfs.**
 6. Add the fixed read-only host-serving command and controller/firewall
    integration. **Complete offline; not installed on the host.**
 7. Remove all three interactive shells and update image verifiers.
    **Complete offline.**
-8. Rebuild once, reproducibly, and create a new temporary-boot candidate.
-   **Initramfs integration passes with an ephemeral test key; production
-   trust root and wrapper remain.**
-9. Run the staging-only promotion sequence.
-10. Integrate the tested host-ledger semantics with the native responder and
+8. Build the initramfs, wrapper, raw boot-v3 image, and AVB wrapper twice.
+   **Complete offline with an ephemeral test key; production trust root and
+   release pins remain.**
+9. Create the production-key candidate and update all release pins
+   atomically.
+10. Run the staging-only promotion sequence.
+11. Integrate the tested host-ledger semantics with the native responder and
    device-minted session.
-11. Investigate recovery-side retained-marker reading and USB-C debug UART
+12. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 
 The accepted v18 image remains a legacy staging transport while this work is
