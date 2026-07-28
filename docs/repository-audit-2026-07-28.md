@@ -227,8 +227,8 @@ suite and one canonical offline runner before another image is built.
    chronology in three files.
 2. Implement the recovery protocol reference model and fault-injection tests.
 3. Implement the static responder without shell execution.
-4. Add signed-manifest and command-line policy tests; ask before creating the
-   production signing key.
+4. Integrate fixed-host fetch, signed verification, and same-descriptor
+   `kexec -l`; ask before creating the production signing key.
 5. Rebuild and verify one stable recovery candidate.
 6. Run staging-only promotion before any new payload execution.
 7. Generate, review, and only then apply the ignored-artifact deletion plan.

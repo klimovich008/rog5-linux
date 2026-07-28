@@ -73,13 +73,20 @@ implement the framed, device-session-bound, at-most-once protocol in
 The protocol reference model and host write-ahead ledger pass 46 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native protocol core also passes 35 pseudo-terminal tests as both a host build
-and a real AArch64 static binary under QEMU. Its production build deliberately
-rejects every `PREPARE` until signed-bundle verification is implemented, and
-it is not included in an initramfs. Neither checkpoint grants live authority.
+and a real AArch64 static binary under QEMU. A separate static native
+signed-bundle verifier now enforces the canonical manifest, raw Ed25519 trust
+root, artifact identity, arm64 Image/FDT policy, bounded gzip/newc initramfs,
+and generated command line. Its host and AArch64/QEMU mutation suites pass,
+but it is not yet connected to `PREPARE` or included in an initramfs. The
+responder therefore still rejects every production `PREPARE`. None of these
+offline checkpoints grants live authority.
 See the
 [reference result](../test-results/2026-07-28-recovery-control-reference-offline.md)
 and
-[native result](../test-results/2026-07-28-recovery-control-native-offline.md).
+[native result](../test-results/2026-07-28-recovery-control-native-offline.md),
+plus the
+[runtime bundle contract](recovery-bundle-contract.md) and
+[verifier result](../test-results/2026-07-28-recovery-bundle-verifier-offline.md).
 
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a
