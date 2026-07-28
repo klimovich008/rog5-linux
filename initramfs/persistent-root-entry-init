@@ -1,0 +1,232 @@
+#!/bin/sh
+set -u
+set -f
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null ||
+	mount -t tmpfs tmpfs /dev
+mkdir -p /dev/pts /run /sys/kernel/config
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+hostname rog5-p2-entry
+mdev -s
+
+entry_timeout=120
+watchdog_seconds=120
+expected_kernel=7.1.4-gcfd385a1c754
+release_file=/proc/sys/kernel/osrelease
+entry_marker=/run/rog5-p2-entry
+expected_persistent_token=rog5.persistent_ro=1
+expected_discovery_token=rog5.ufs_discovery=1
+expected_entry_token=rog5.p2_entry_diag=1
+expected_persistent_tokens=1
+expected_discovery_tokens=1
+expected_entry_tokens=1
+
+log() {
+	echo "rog5-p2-entry: $*" >/dev/kmsg
+}
+
+arm_entry_watchdog() {
+	printf 1 >/proc/sys/kernel/sysrq 2>/dev/null || true
+	(
+		exec 8>/dev/kmsg
+		exec 9>/proc/sysrq-trigger
+		sleep "$entry_timeout"
+		echo 'rog5-p2-entry: watchdog expired; forcing reset' >&8
+		while :; do
+			printf b >&9 2>/dev/null || true
+			sleep 5
+		done
+	) &
+	echo $! >/run/rog5-p2-entry-watchdog.pid
+	log "reset watchdog armed for $entry_timeout seconds"
+}
+
+count_exact_token() {
+	expected=$1
+	count=0
+	for token in $(cat /proc/cmdline); do
+		[ "$token" = "$expected" ] && count=$((count + 1))
+	done
+	printf '%s\n' "$count"
+}
+
+count_token_family() {
+	prefix=$1
+	count=0
+	for token in $(cat /proc/cmdline); do
+		case $token in
+			"$prefix"*) count=$((count + 1)) ;;
+		esac
+	done
+	printf '%s\n' "$count"
+}
+
+count_block_backed_mounts() {
+	count=0
+	while read -r _ _ major_minor _ _ _ rest; do
+		[ -e "/sys/dev/block/$major_minor" ] ||
+			continue
+		count=$((count + 1))
+	done </proc/self/mountinfo
+	printf '%s\n' "$count"
+}
+
+write_entry_marker() {
+	{
+		printf 'status=%s\n' "$status"
+		printf 'mode=early-entry\n'
+		printf 'init=entered\n'
+		printf 'kernel_release_read_status=%s\n' \
+			"$kernel_release_read_status"
+		printf 'kernel_release=%s\n' "$running_kernel_release"
+		printf 'kernel_expected=%s\n' "$expected_kernel"
+		printf 'persistent_tokens=%s\n' "$persistent_tokens"
+		printf 'persistent_invalid_tokens=%s\n' \
+			"$persistent_invalid_tokens"
+		printf 'discovery_tokens=%s\n' "$discovery_tokens"
+		printf 'discovery_invalid_tokens=%s\n' \
+			"$discovery_invalid_tokens"
+		printf 'entry_tokens=%s\n' "$entry_tokens"
+		printf 'entry_invalid_tokens=%s\n' "$entry_invalid_tokens"
+		printf 'block_backed_mounts=%s\n' "$block_backed_mounts"
+		printf 'watchdog_seconds=120\n'
+		if [ "$status" = PASS ]; then
+			printf '%s\n' \
+				'PASS P2 early-entry oracle init=entered storage=untouched watchdog=armed'
+		else
+			printf '%s\n' \
+				'FAIL P2 early-entry oracle contract mismatch'
+		fi
+	} >"$entry_marker.tmp"
+	chmod 0444 "$entry_marker.tmp"
+	mv -f "$entry_marker.tmp" "$entry_marker"
+}
+
+serve_entry_acm() {
+	while :; do
+		while [ ! -c /dev/ttyGS0 ]; do
+			sleep 0.1
+		done
+		cat "$entry_marker" >/dev/ttyGS0 2>/dev/null || true
+		sleep 1
+	done
+}
+
+configure_entry_usb() {
+	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+	[ ! -e "$usb_mode" ] ||
+		echo peripheral >"$usb_mode" ||
+		return 1
+	mount -t configfs configfs /sys/kernel/config 2>/dev/null ||
+		return 1
+
+	gadget=/sys/kernel/config/usb_gadget/rog5-p2-entry
+	mkdir -p "$gadget/strings/0x409" \
+		"$gadget/configs/c.1/strings/0x409"
+	echo 0x1d6b >"$gadget/idVendor"
+	echo 0x0104 >"$gadget/idProduct"
+	echo 0xef >"$gadget/bDeviceClass"
+	echo 0x02 >"$gadget/bDeviceSubClass"
+	echo 0x01 >"$gadget/bDeviceProtocol"
+	echo Linux >"$gadget/strings/0x409/manufacturer"
+	echo 'ROG5 P2 entry oracle' >"$gadget/strings/0x409/product"
+	echo 'RAM-only P2 entry marker over NCM and ACM' \
+		>"$gadget/configs/c.1/strings/0x409/configuration"
+	mkdir -p "$gadget/functions/ncm.usb0" \
+		"$gadget/functions/acm.usb0"
+	ln -s "$gadget/functions/ncm.usb0" \
+		"$gadget/configs/c.1/ncm.usb0"
+	ln -s "$gadget/functions/acm.usb0" \
+		"$gadget/configs/c.1/acm.usb0"
+
+	udc=
+	attempt=0
+	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
+		for candidate in /sys/class/udc/*; do
+			[ -e "$candidate" ] || continue
+			case $(basename "$candidate") in
+				*a600000*)
+					udc=$(basename "$candidate")
+					break
+					;;
+			esac
+			[ -n "$udc" ] ||
+				udc=$(basename "$candidate")
+		done
+		[ -n "$udc" ] || sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -n "$udc" ] || return 1
+	echo "$udc" >"$gadget/UDC" || return 1
+
+	mdev -s || return 1
+	attempt=0
+	while [ "$attempt" -lt 100 ] &&
+		[ ! -c /dev/ttyGS0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -c /dev/ttyGS0 ] || return 1
+
+	attempt=0
+	while [ "$attempt" -lt 100 ] &&
+		[ ! -e /sys/class/net/usb0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -e /sys/class/net/usb0 ] || return 1
+	ip link set usb0 up || return 1
+	ip address add 169.254.77.2/30 dev usb0 || return 1
+	serve_entry_acm &
+	echo $! >/run/rog5-p2-entry-acm.pid
+	return 0
+}
+
+arm_entry_watchdog
+
+running_kernel_release=
+kernel_release_read_status=1
+if IFS= read -r running_kernel_release <"$release_file"; then
+	kernel_release_read_status=0
+fi
+
+persistent_tokens=$(count_exact_token "$expected_persistent_token")
+persistent_family=$(count_token_family 'rog5.persistent_ro=')
+persistent_invalid_tokens=$((persistent_family - persistent_tokens))
+discovery_tokens=$(count_exact_token "$expected_discovery_token")
+discovery_family=$(count_token_family 'rog5.ufs_discovery=')
+discovery_invalid_tokens=$((discovery_family - discovery_tokens))
+entry_tokens=$(count_exact_token "$expected_entry_token")
+entry_family=$(count_token_family 'rog5.p2_entry_diag=')
+entry_invalid_tokens=$((entry_family - entry_tokens))
+block_backed_mounts=$(count_block_backed_mounts)
+
+status=FAIL
+if [ "$kernel_release_read_status" -eq 0 ] &&
+	[ "$running_kernel_release" = "$expected_kernel" ] &&
+	[ "$persistent_tokens" -eq "$expected_persistent_tokens" ] &&
+	[ "$persistent_invalid_tokens" -eq 0 ] &&
+	[ "$discovery_tokens" -eq "$expected_discovery_tokens" ] &&
+	[ "$discovery_invalid_tokens" -eq 0 ] &&
+	[ "$entry_tokens" -eq "$expected_entry_tokens" ] &&
+	[ "$entry_invalid_tokens" -eq 0 ] &&
+	[ "$block_backed_mounts" -eq 0 ]; then
+	status=PASS
+fi
+
+write_entry_marker
+if configure_entry_usb; then
+	log "entry marker exposed over ACM with status=$status"
+else
+	log 'entry USB setup failed; watchdog remains armed'
+fi
+
+while :; do
+	sleep 3600
+done

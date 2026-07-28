@@ -23,7 +23,8 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 
 Unpacking the original ASUS images materially helps this port. Treat it as
 artifact extraction and selective decompilation, not as a way to recreate
-maintainable source:
+maintainable source. The complete private-input workflow and acceptance gate
+are in [stock-image analysis](stock-image-analysis.md):
 
 - unpack `boot`, `vendor_boot`, `dtbo`, and `vbmeta` to recover header
   metadata, command-line contracts, ramdisk init/uevent rules, DTB/DTBO
