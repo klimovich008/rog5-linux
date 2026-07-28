@@ -1,6 +1,7 @@
 # Fixed recovery bundle transport
 
-Status: **device helper and responder integration pass offline**
+Status: **device helper, responder integration, and fixed host serving pass
+offline**
 
 Live authority: **none**
 
@@ -18,13 +19,15 @@ scripts/host/test-recovery-fetch-aarch64.sh
 
 The accepted helper and responder-integration evidence is
 [fixed fetch offline result](../test-results/2026-07-28-recovery-fixed-fetch-offline.md).
+The host-side evidence is
+[fixed host server result](../test-results/2026-07-28-recovery-host-server-offline.md).
 
 The production build has no endpoint, path, identity, timeout, crash, write,
 or seccomp override. The responder invokes it under the rollback watchdog,
-but no initramfs contains either binary yet, and the fixed production
-host-serving command still has to be integrated with the host controller.
-The test server is a protocol oracle, not a deployment service. QEMU user
-mode cannot safely install a
+but no initramfs contains either binary yet. The fixed one-shot host server,
+root-owned controller, PolicyKit launcher, and runtime-only firewall
+lifecycle now pass offline. They have not been installed or used against a
+live interface. QEMU user mode cannot safely install a
 guest-architecture seccomp filter over the emulator's host syscall stream;
 the native and
 network-disabled root-container suites own the real seccomp, credential-drop,
@@ -51,6 +54,94 @@ port:      8080
 It binds both `SO_BINDTODEVICE=usb0` and the fixed source address before
 connecting. The host server listens only on the dedicated USB address and a
 drop-by-default firewall admits only `169.254.77.2`.
+
+## Fixed host server
+
+The host implementation is
+`tools/recovery_control/host_bundle_server.py`. Its protocol/descriptor test
+is `scripts/host/test-recovery-bundle-server.py`. Production installation
+copies that module and the controller to fixed root-owned, non-writable paths:
+
+```text
+/usr/libexec/rog5-recovery-host/host_bundle_server.py
+/usr/libexec/rog5-recovery-bundle-controller
+```
+
+The unprivileged server accepts exactly:
+
+```text
+host_bundle_server.py BUNDLE MANIFEST_SHA256
+```
+
+It has no path, address, port, URL, protocol, timeout, signing-key, or
+environment override. It refuses UID 0 and opens only
+`/var/lib/rog5-recovery-bundles`. The root must be owned by the PolicyKit
+caller with mode `0700` and contain exactly the requested bundle directory.
+That directory must be mode `0500`; its exact five regular, single-link files
+must be caller-owned mode `0400`. Symlinks, hard-link aliases, extras, unsafe
+ownership/modes, and size/hash/manifest mismatches fail before `bind(2)`.
+
+The server holds a shared root lock, opens all five files with
+`O_NOFOLLOW|O_CLOEXEC`, verifies the canonical manifest against their exact
+sizes and SHA-256 values, and serves only those already-open descriptors.
+Path replacement after preparation cannot change the transmitted objects.
+The host account remains inside the trust boundary for availability: another
+process under the same UID could deliberately modify an already-open inode
+in place. Such bytes still cannot become authorized because the recovery-side
+verifier independently checks the requested manifest hash, Ed25519 signature,
+and all artifact hashes before load.
+
+The listener accepts only source `169.254.77.2`, rejects at most eight wrong
+peers, serves one valid request, and requires both one canonical request frame
+and TCP EOF in the request direction before sending any response byte. A
+delayed trailing byte is therefore rejected rather than racing a one-time
+peek. The server's 70-second monotonic deadline bounds all socket operations;
+the controller independently terminates the complete server process 75
+seconds after listener readiness, so a blocked host artifact read cannot
+outlive the attended window. It does not support HTTP or a second request.
+
+## Root controller and firewall lifecycle
+
+`scripts/host/install-recovery-host-controller.sh` is a one-time PolicyKit
+installer. It atomically installs the fixed root-owned code and creates the
+caller-owned mode-`0700` bundle root. Normal operation uses
+`scripts/host/run-recovery-bundle-server.sh`, which verifies that installed
+code is root-owned, non-writable, and byte-identical to the reviewed
+repository sources before invoking the fixed controller through `pkexec`.
+This prevents a privileged invocation from importing code directly from an
+editable Git checkout.
+
+The controller:
+
+1. requires a non-root `PKEXEC_UID`, exact bundle/hash arguments, safe
+   installed metadata, active firewalld, and an unused TCP port 8080;
+2. identifies exactly one NCM interface with USB IDs `1d6b:0104`, normalized
+   product `ROG5_recovery`, and driver `cdc_ncm`;
+3. adds a priority `-300` destination drop for `169.254.77.1:8080` to every
+   firewall zone except an otherwise-empty, drop-by-default `drop` zone;
+4. temporarily assigns only the exact gadget interface to that zone and
+   permits only source `169.254.77.2/32` to destination
+   `169.254.77.1/32` TCP port 8080;
+5. refuses a conflicting host address or unexpected interface IPv4 state,
+   then adds only `169.254.77.1/30`;
+6. starts the server as the PolicyKit caller with cleared supplementary
+   groups, empty bounding/inheritable/ambient capability sets,
+   `no_new_privs`, a parent-death signal, and a reset environment;
+7. proves exactly one listener at the fixed address and PID;
+8. arms a 75-second hard server watchdog that verifies its actual parent
+   immediately after exec and again before signaling; and
+9. after one transfer or any partial failure, stops the child and removes
+   only the address, rules, zone assignment, and NetworkManager override
+   created by that invocation.
+
+No permanent firewall rule, new zone, forwarding, masquerade, route, DNS
+setting, physical-storage write, or phone action is present. The offline
+controller test mocks every host mutation and proves both the success cleanup
+and failures before/after partial setup. Firewall exceptions and the added
+IPv4 address also carry fixed 180-second kernel/firewalld lifetimes, limiting
+residual exposure if an uncatchable controller death bypasses its traps.
+Installation and live network setup remain separately visible host actions;
+neither occurred at this checkpoint.
 
 ## Privilege separation
 
@@ -92,6 +183,10 @@ manifest_sha256=<64-lowercase-hex>
 
 The record is newline-terminated and has no blank, duplicate, reordered, or
 unknown field. The frame is at most 256 bytes.
+After sending it, the device calls `shutdown(SHUT_WR)`. The host requires EOF
+in that direction before responding. The half-close leaves the response
+direction available and gives trailing-request rejection an unambiguous
+protocol boundary.
 
 ## Response stream
 
@@ -201,5 +296,17 @@ quota, returns a permanent conflict and is never overwritten.
 - a new request ID cannot refetch after a recorded acquisition failure or
   bundle-ID conflict.
 
-Host serving, image integration, production-key creation, live load, and live
-execution remain separate later gates.
+Image integration, production-key creation, live host installation, live
+load, and live execution remain separate later gates.
+
+The host-only gates are:
+
+- nine server protocol, metadata, descriptor-pinning, peer, half-close, and
+  malformed
+  request tests;
+- nine controller identity, pre-mutation refusal, partial-mutation,
+  privilege policy,
+  partial-failure rollback, hard-watchdog, abrupt-parent-death, success
+  cleanup, and fixed-surface tests;
+- Bash syntax, ShellCheck, Python compilation, and repository quick-suite
+  integration.

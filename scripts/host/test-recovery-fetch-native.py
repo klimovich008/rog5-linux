@@ -320,6 +320,11 @@ class RawFetchServer:
                 return
             self.request_payload = payload
             self.request_frame = prefix + payload
+            request_end = connection.recv(1)
+            if request_end:
+                raise AssertionError(
+                    "helper emitted bytes after its canonical request"
+                )
             self.request_ready.set()
             if self.handler is not None:
                 self.handler(connection, self)

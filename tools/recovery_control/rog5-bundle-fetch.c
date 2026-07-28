@@ -810,6 +810,7 @@ static void install_worker_filter(void)
 		ALLOW_SYSCALL(__NR_fsync),
 		ALLOW_SYSCALL(__NR_recvfrom),
 		ALLOW_SYSCALL(__NR_sendto),
+		ALLOW_SYSCALL(__NR_shutdown),
 		ALLOW_SYSCALL(__NR_ppoll),
 		ALLOW_SYSCALL(__NR_clock_gettime),
 #ifdef __NR_restart_syscall
@@ -1003,6 +1004,7 @@ static void run_worker(int socket_descriptor, int directory,
 	encode_u32((uint32_t)request_length, prefix);
 	if (!send_exact(3, prefix, sizeof(prefix), deadline) ||
 	    !send_exact(3, request, (size_t)request_length, deadline) ||
+	    shutdown(3, SHUT_WR) < 0 ||
 	    !receive_exact(3, prefix, sizeof(prefix), deadline))
 		_exit(121);
 	response_length = decode_u32(prefix);

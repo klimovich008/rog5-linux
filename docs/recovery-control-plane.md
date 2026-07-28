@@ -1,8 +1,7 @@
 # Stable recovery control plane
 
-Status: **reference oracle, fixed-host fetch, signed-bundle verifier, and
-same-descriptor load integrated offline; host serving and image integration
-pending**
+Status: **reference oracle, fixed-host fetch/serving, signed-bundle verifier,
+and same-descriptor load integrated offline; image integration pending**
 
 Live authority: **none**
 
@@ -27,6 +26,13 @@ documented in
 [recovery runtime bundle contract](recovery-bundle-contract.md) and
 [fixed recovery bundle transport](recovery-fetch-contract.md). No new binary
 is included in an initramfs, and none grants live authority.
+
+The host side now has a fixed one-shot stdlib server plus a root-owned
+PolicyKit controller. It recognizes exactly one recovery NCM gadget, binds
+only `169.254.77.1:8080`, applies runtime-only source/destination firewall
+rules, drops to the caller with no capabilities, verifies the exact listener,
+and removes every state item it created. Its tests use mocked host commands;
+the helpers are not installed and have not changed a live interface.
 
 The current recovery transport is reliable enough to reach USB, but its
 control plane is not reliable enough to authorize another payload execution.
@@ -449,7 +455,7 @@ retry.
 5. Connect the offline-tested fixed-host fetch helper to `PREPARE`.
    **Complete offline; absent from the current initramfs.**
 6. Add the fixed read-only host-serving command and controller/firewall
-   integration.
+   integration. **Complete offline; not installed on the host.**
 7. Remove all three interactive shells and update image verifiers.
 8. Rebuild once, reproducibly, and create a new temporary-boot candidate.
 9. Run the staging-only promotion sequence.

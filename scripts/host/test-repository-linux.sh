@@ -117,6 +117,8 @@ tests=(
 	scripts/host/test-recovery-control-native.py
 	scripts/host/test-recovery-bundle-native.py
 	scripts/host/test-recovery-fetch-native.py
+	scripts/host/test-recovery-bundle-server.py
+	scripts/host/test-recovery-host-controller.py
 	scripts/host/test-reboot-fallback-to-fastboot.sh
 	scripts/host/test-network-root-acm.py
 	scripts/host/test-persistent-root-acm.py
