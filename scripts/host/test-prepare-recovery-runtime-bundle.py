@@ -20,6 +20,11 @@ from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 PACKAGER_PATH = REPO / "scripts/host/prepare-recovery-runtime-bundle.py"
+COMMAND_MANIFEST_SHA256 = "a" * 64
+ROOT_TREE_SHA256 = "b" * 64
+ROOT_SEAL_SHA256 = "c" * 64
+ROOT_TREE_ENTRIES = "7"
+ZERO_HASH = "0" * 64
 VERIFIER_SOURCE = REPO / "tools/recovery_control/rog5-bundle-verify.c"
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 FILES = (
@@ -97,7 +102,8 @@ def newc_entry(
 
 
 def minimal_initramfs() -> bytes:
-    archive = bytearray(
+    archive = bytearray()
+    archive.extend(
         newc_entry(
             "init",
             b"#!/bin/sh\nexec /bin/sh\n",
@@ -105,7 +111,15 @@ def minimal_initramfs() -> bytes:
             inode=1,
         )
     )
-    archive.extend(newc_header("TRAILER!!!", 0, mode=0, inode=2))
+    archive.extend(
+        newc_entry(
+            "sbin/persistent-root-verify",
+            b"\x7fELFfixture",
+            mode=0o100755,
+            inode=2,
+        )
+    )
+    archive.extend(newc_header("TRAILER!!!", 0, mode=0, inode=3))
     archive.extend(bytes((-len(archive)) % 512))
     return gzip.compress(bytes(archive), mtime=0)
 
@@ -270,6 +284,12 @@ class BundlePackagerTest(unittest.TestCase):
             target_release="accepted-v9",
             rollback_timeout="180",
             target_timeout="90",
+            a660_command_manifest_sha256=COMMAND_MANIFEST_SHA256,
+            root_generation="arch-a",
+            root_tree_sha256=ROOT_TREE_SHA256,
+            root_seal_sha256=ROOT_SEAL_SHA256,
+            root_tree_entries=ROOT_TREE_ENTRIES,
+            root_subtree="/",
             private_key=self.private_key,
             bundle_root=bundle_root,
         )
@@ -308,6 +328,18 @@ class BundlePackagerTest(unittest.TestCase):
             config.rollback_timeout,
             "--target-timeout",
             config.target_timeout,
+            "--a660-command-manifest-sha256",
+            config.a660_command_manifest_sha256,
+            "--root-generation",
+            config.root_generation,
+            "--root-tree-sha256",
+            config.root_tree_sha256,
+            "--root-seal-sha256",
+            config.root_seal_sha256,
+            "--root-tree-entries",
+            config.root_tree_entries,
+            "--root-subtree",
+            config.root_subtree,
             "--private-key",
             str(config.private_key),
             "--bundle-root",
@@ -376,6 +408,18 @@ class BundlePackagerTest(unittest.TestCase):
                     bundle=f"profile-{profile_index}",
                     profile=profile,
                     rollback_timeout=rollback,
+                    **(
+                        {}
+                        if profile == "network-root-v1"
+                        else {
+                            "a660_command_manifest_sha256": ZERO_HASH,
+                            "root_generation": "none",
+                            "root_tree_sha256": ZERO_HASH,
+                            "root_seal_sha256": ZERO_HASH,
+                            "root_tree_entries": "0",
+                            "root_subtree": "none",
+                        }
+                    ),
                 )
                 _bundle, manifest_hash = self.assert_packaged(config)
                 public_key = self.public_key_file(workspace)
@@ -413,8 +457,19 @@ class BundlePackagerTest(unittest.TestCase):
                     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
                     "ramoops.dump_oops=1 "
                     f"rog5.bundle={config.bundle} "
+                    f"rog5.target_timeout={config.target_timeout} "
                     f"rog5.recovery_timeout={rollback}"
                 )
+                if profile == "network-root-v1":
+                    command_line += (
+                        " rog5.a660_command_manifest_sha256="
+                        f"{COMMAND_MANIFEST_SHA256}"
+                        " rog5.root_generation=arch-a"
+                        f" rog5.root_tree_sha256={ROOT_TREE_SHA256}"
+                        f" rog5.root_seal_sha256={ROOT_SEAL_SHA256}"
+                        f" rog5.root_tree_entries={ROOT_TREE_ENTRIES}"
+                        " rog5.root_subtree=/"
+                    )
                 expected_plan = (
                     "format=rog5-verified-plan-v1\n"
                     f"bundle={config.bundle}\n"
@@ -499,6 +554,14 @@ class BundlePackagerTest(unittest.TestCase):
             (
                 "timeout-margin",
                 {"rollback_timeout": "180", "target_timeout": "151"},
+            ),
+            (
+                "zero-network-root-hash",
+                {"root_tree_sha256": ZERO_HASH},
+            ),
+            (
+                "diagnostic-carries-root-identity",
+                {"profile": "diagnostic-initramfs-v1"},
             ),
             (
                 "short-persistent",

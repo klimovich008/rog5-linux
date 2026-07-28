@@ -475,7 +475,15 @@ static bool parse_manifest(char *manifest, const char *bundle,
 	char target_release[RELEASE_MAX + 1];
 	char rollback_timeout[32];
 	char target_timeout[32];
+	char command_manifest_sha256[HASH_LENGTH + 1];
+	char root_generation[32];
+	char root_tree_sha256[HASH_LENGTH + 1];
+	char root_seal_sha256[HASH_LENGTH + 1];
+	char root_tree_entries[32];
+	char root_subtree[32];
 	char *cursor = manifest;
+	uint64_t rollback;
+	uint64_t target;
 
 	if (take_field(&cursor, "format", format, sizeof(format)) < 0 ||
 	    take_field(&cursor, "bundle", parsed_bundle,
@@ -502,8 +510,21 @@ static bool parse_manifest(char *manifest, const char *bundle,
 		       sizeof(rollback_timeout)) < 0 ||
 	    take_field(&cursor, "target_timeout", target_timeout,
 		       sizeof(target_timeout)) < 0 ||
+	    take_field(&cursor, "a660_command_manifest_sha256",
+		       command_manifest_sha256,
+		       sizeof(command_manifest_sha256)) < 0 ||
+	    take_field(&cursor, "root_generation", root_generation,
+		       sizeof(root_generation)) < 0 ||
+	    take_field(&cursor, "root_tree_sha256", root_tree_sha256,
+		       sizeof(root_tree_sha256)) < 0 ||
+	    take_field(&cursor, "root_seal_sha256", root_seal_sha256,
+		       sizeof(root_seal_sha256)) < 0 ||
+	    take_field(&cursor, "root_tree_entries", root_tree_entries,
+		       sizeof(root_tree_entries)) < 0 ||
+	    take_field(&cursor, "root_subtree", root_subtree,
+		       sizeof(root_subtree)) < 0 ||
 	    *cursor != '\0' ||
-	    strcmp(format, "rog5-recovery-bundle-v1") != 0 ||
+	    strcmp(format, "rog5-recovery-bundle-v2") != 0 ||
 	    strcmp(parsed_bundle, bundle) != 0 ||
 	    !valid_bundle(parsed_bundle) ||
 	    !valid_identity(profile, PROFILE_MAX) ||
@@ -511,10 +532,36 @@ static bool parse_manifest(char *manifest, const char *bundle,
 	    !valid_identity(target_release, RELEASE_MAX) ||
 	    !valid_hash(policy->kernel_sha256) ||
 	    !valid_hash(policy->dtb_sha256) ||
-	    !valid_hash(policy->initramfs_sha256) ||
-	    parse_number(rollback_timeout, 60, 900) == UINT64_MAX ||
-	    parse_number(target_timeout, 30, 600) == UINT64_MAX)
+	    !valid_hash(policy->initramfs_sha256))
 		return false;
+	rollback = parse_number(rollback_timeout, 60, 900);
+	target = parse_number(target_timeout, 30, 600);
+	if (rollback == UINT64_MAX || target == UINT64_MAX ||
+	    target > rollback - 30)
+		return false;
+	if (strcmp(profile, "network-root-v1") == 0) {
+		if (!valid_hash(command_manifest_sha256) ||
+		    strcmp(root_generation, "arch-a") != 0 ||
+		    !valid_hash(root_tree_sha256) ||
+		    !valid_hash(root_seal_sha256) ||
+		    parse_number(root_tree_entries, 1, INT64_MAX) ==
+			    UINT64_MAX ||
+		    strcmp(root_subtree, "/") != 0)
+			return false;
+	} else if (strcmp(profile, "diagnostic-initramfs-v1") == 0 ||
+		   strcmp(profile, "persistent-root-ro-v1") == 0) {
+		if (strcmp(command_manifest_sha256, ZERO_HASH) != 0 ||
+		    strcmp(root_generation, "none") != 0 ||
+		    strcmp(root_tree_sha256, ZERO_HASH) != 0 ||
+		    strcmp(root_seal_sha256, ZERO_HASH) != 0 ||
+		    strcmp(root_tree_entries, "0") != 0 ||
+		    strcmp(root_subtree, "none") != 0 ||
+		    (strcmp(profile, "persistent-root-ro-v1") == 0 &&
+		     rollback < 300))
+			return false;
+	} else {
+		return false;
+	}
 	policy->kernel_size =
 		parse_number(kernel_size, 64, KERNEL_MAX);
 	policy->dtb_size = parse_number(dtb_size, 40, DTB_MAX);

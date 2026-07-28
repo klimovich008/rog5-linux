@@ -32,6 +32,7 @@ from tools.recovery_control.host_bundle_server import (  # noqa: E402
     prepare_bundle,
     serve_connection,
     serve_listener,
+    validate_manifest,
 )
 
 
@@ -58,7 +59,7 @@ class BundleFixture:
             "initramfs.cpio.gz": b"\x1f\x8b",
         }
         manifest = (
-            "format=rog5-recovery-bundle-v1\n"
+            "format=rog5-recovery-bundle-v2\n"
             f"bundle={BUNDLE}\n"
             "profile=network-root-v1\n"
             f"kernel_size={len(self.payloads['Image'])}\n"
@@ -71,6 +72,12 @@ class BundleFixture:
             "target_release=test-1\n"
             "rollback_timeout=120\n"
             "target_timeout=90\n"
+            f"a660_command_manifest_sha256={'a' * 64}\n"
+            "root_generation=arch-a\n"
+            f"root_tree_sha256={'b' * 64}\n"
+            f"root_seal_sha256={'c' * 64}\n"
+            "root_tree_entries=7\n"
+            "root_subtree=/\n"
         ).encode("ascii")
         self.payloads = {
             "manifest": manifest,
@@ -508,6 +515,39 @@ class HostBundleServerTest(unittest.TestCase):
         ):
             with self.assertRaises(ServerRefusal):
                 parse_record(payload, REQUEST_FIELDS)
+
+    def test_manifest_root_trust_identity_is_fail_closed(self):
+        payload = self.fixture.payloads["manifest"]
+        observed = {
+            name: (
+                len(self.fixture.payloads[name]),
+                hashlib.sha256(
+                    self.fixture.payloads[name]
+                ).hexdigest(),
+            )
+            for name in ("Image", "board.dtb", "initramfs.cpio.gz")
+        }
+        mutations = (
+            payload.replace(b"root_generation=arch-a", b"root_generation=arch-b"),
+            payload.replace(
+                b"root_tree_sha256=" + b"b" * 64,
+                b"root_tree_sha256=" + b"0" * 64,
+            ),
+            payload.replace(b"root_tree_entries=7", b"root_tree_entries=0"),
+            payload.replace(
+                b"profile=network-root-v1",
+                b"profile=diagnostic-initramfs-v1",
+            ),
+        )
+        for mutation in mutations:
+            with self.subTest(mutation=hashlib.sha256(mutation).hexdigest()):
+                with self.assertRaises(ServerRefusal):
+                    validate_manifest(
+                        mutation,
+                        BUNDLE,
+                        hashlib.sha256(mutation).hexdigest(),
+                        observed,
+                    )
 
 
 if __name__ == "__main__":

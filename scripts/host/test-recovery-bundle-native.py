@@ -28,6 +28,11 @@ FILES = (
     "board.dtb",
     "initramfs.cpio.gz",
 )
+COMMAND_MANIFEST_SHA256 = "a" * 64
+ROOT_TREE_SHA256 = "b" * 64
+ROOT_SEAL_SHA256 = "c" * 64
+ROOT_TREE_ENTRIES = "7"
+ZERO_HASH = "0" * 64
 
 
 def sha256(data: bytes) -> str:
@@ -119,7 +124,14 @@ def newc_archive(
 
 def minimal_initramfs() -> bytes:
     return newc_archive(
-        [("init", b"#!/bin/sh\nexec /bin/sh\n", 0o100755)]
+        [
+            ("init", b"#!/bin/sh\nexec /bin/sh\n", 0o100755),
+            (
+                "sbin/persistent-root-verify",
+                b"\x7fELFfixture",
+                0o100755,
+            ),
+        ]
     )
 
 
@@ -243,7 +255,7 @@ class BundleFixture:
         dtb = (self.bundle / "board.dtb").read_bytes()
         initramfs = (self.bundle / "initramfs.cpio.gz").read_bytes()
         values = {
-            "format": "rog5-recovery-bundle-v1",
+            "format": "rog5-recovery-bundle-v2",
             "bundle": self.name,
             "profile": self.profile,
             "kernel_size": str(len(kernel)),
@@ -258,6 +270,34 @@ class BundleFixture:
                 "300" if self.profile == "persistent-root-ro-v1" else "180"
             ),
             "target_timeout": "90",
+            "a660_command_manifest_sha256": (
+                COMMAND_MANIFEST_SHA256
+                if self.profile == "network-root-v1"
+                else ZERO_HASH
+            ),
+            "root_generation": (
+                "arch-a"
+                if self.profile == "network-root-v1"
+                else "none"
+            ),
+            "root_tree_sha256": (
+                ROOT_TREE_SHA256
+                if self.profile == "network-root-v1"
+                else ZERO_HASH
+            ),
+            "root_seal_sha256": (
+                ROOT_SEAL_SHA256
+                if self.profile == "network-root-v1"
+                else ZERO_HASH
+            ),
+            "root_tree_entries": (
+                ROOT_TREE_ENTRIES
+                if self.profile == "network-root-v1"
+                else "0"
+            ),
+            "root_subtree": (
+                "/" if self.profile == "network-root-v1" else "none"
+            ),
         }
         values.update(overrides)
         order = (
@@ -274,6 +314,12 @@ class BundleFixture:
             "target_release",
             "rollback_timeout",
             "target_timeout",
+            "a660_command_manifest_sha256",
+            "root_generation",
+            "root_tree_sha256",
+            "root_seal_sha256",
+            "root_tree_entries",
+            "root_subtree",
         )
         return [(name, values[name]) for name in order]
 
@@ -627,9 +673,20 @@ class NativeBundleVerifierTest(unittest.TestCase):
                     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
                     "ramoops.dump_oops=1 "
                     f"rog5.bundle=accepted-{index} "
+                    "rog5.target_timeout=90 "
                     f"rog5.recovery_timeout="
                     f"{300 if profile == 'persistent-root-ro-v1' else 180}"
                 )
+                if profile == "network-root-v1":
+                    command_line += (
+                        " rog5.a660_command_manifest_sha256="
+                        f"{COMMAND_MANIFEST_SHA256}"
+                        " rog5.root_generation=arch-a"
+                        f" rog5.root_tree_sha256={ROOT_TREE_SHA256}"
+                        f" rog5.root_seal_sha256={ROOT_SEAL_SHA256}"
+                        f" rog5.root_tree_entries={ROOT_TREE_ENTRIES}"
+                        " rog5.root_subtree=/"
+                    )
                 expected = (
                     "format=rog5-verified-plan-v1\n"
                     f"bundle=accepted-{index}\n"
@@ -877,19 +934,19 @@ class NativeBundleVerifierTest(unittest.TestCase):
         fields = fixture.fields()
         fields[3], fields[4] = fields[4], fields[3]
         fixture.write_manifest(fields)
-        fixture.assert_rejected("manifest is not the canonical v1 record")
+        fixture.assert_rejected("manifest is not the canonical v2 record")
 
         fixture = self.fixture("manifest-extra")
         fields = fixture.fields()
         fields.append(("unexpected", "value"))
         fixture.write_manifest(fields)
-        fixture.assert_rejected("manifest is not the canonical v1 record")
+        fixture.assert_rejected("manifest is not the canonical v2 record")
 
         fixture = self.fixture("manifest-duplicate")
         fields = fixture.fields()
         fields.insert(2, fields[1])
         fixture.write_manifest(fields)
-        fixture.assert_rejected("manifest is not the canonical v1 record")
+        fixture.assert_rejected("manifest is not the canonical v2 record")
 
     def test_manifest_identity_size_and_timeout_policy(self) -> None:
         cases = (
@@ -900,12 +957,30 @@ class NativeBundleVerifierTest(unittest.TestCase):
             ("no-margin", {"rollback_timeout": "60", "target_timeout": "60"}),
             ("bad-target", {"target_id": "../root"}),
             ("zero-hash", {"kernel_sha256": "0" * 64}),
+            ("zero-root-hash", {"root_tree_sha256": ZERO_HASH}),
+            ("wrong-root-generation", {"root_generation": "arch-b"}),
+            ("zero-root-entries", {"root_tree_entries": "0"}),
         )
         for name, overrides in cases:
             with self.subTest(case=name):
                 fixture = self.fixture(name)
                 fixture.refresh_manifest(**overrides)
                 fixture.assert_rejected()
+        fixture = self.fixture(
+            "diagnostic-carries-root-identity",
+            profile="diagnostic-initramfs-v1",
+        )
+        fixture.refresh_manifest(
+            a660_command_manifest_sha256=COMMAND_MANIFEST_SHA256,
+            root_generation="arch-a",
+            root_tree_sha256=ROOT_TREE_SHA256,
+            root_seal_sha256=ROOT_SEAL_SHA256,
+            root_tree_entries=ROOT_TREE_ENTRIES,
+            root_subtree="/",
+        )
+        fixture.assert_rejected(
+            "non-network profile carries root trust identity"
+        )
         fixture = self.fixture(
             "persistent-short",
             profile="persistent-root-ro-v1",
@@ -1060,6 +1135,40 @@ class NativeBundleVerifierTest(unittest.TestCase):
         fixture.refresh_manifest()
         fixture.assert_rejected("invalid initramfs newc trailer")
 
+        fixture = self.fixture("missing-root-verifier")
+        (fixture.bundle / "initramfs.cpio.gz").write_bytes(
+            gzip.compress(
+                newc_archive(
+                    [("init", b"#!/bin/sh\n", 0o100755)]
+                ),
+                mtime=0,
+            )
+        )
+        fixture.refresh_manifest()
+        fixture.assert_rejected(
+            "network-root initramfs lacks persistent-root verifier"
+        )
+
+        fixture = self.fixture(
+            "diagnostic-without-root-verifier",
+            profile="diagnostic-initramfs-v1",
+        )
+        (fixture.bundle / "initramfs.cpio.gz").write_bytes(
+            gzip.compress(
+                newc_archive(
+                    [("init", b"#!/bin/sh\n", 0o100755)]
+                ),
+                mtime=0,
+            )
+        )
+        fixture.refresh_manifest()
+        accepted = fixture.invoke()
+        self.assertEqual(
+            accepted.returncode,
+            0,
+            accepted.stderr.decode(errors="replace"),
+        )
+
         fixture = self.fixture("duplicate-entry")
         (fixture.bundle / "initramfs.cpio.gz").write_bytes(
             gzip.compress(
@@ -1141,6 +1250,11 @@ class NativeBundleVerifierTest(unittest.TestCase):
             [
                 ("a" * 4096, b"", 0o100644),
                 ("init", b"#!/bin/sh\n", 0o100755),
+                (
+                    "sbin/persistent-root-verify",
+                    b"\x7fELFfixture",
+                    0o100755,
+                ),
             ]
         )
         (fixture.bundle / "initramfs.cpio.gz").write_bytes(
@@ -1157,7 +1271,14 @@ class NativeBundleVerifierTest(unittest.TestCase):
     def test_initramfs_crc_archive_is_checked(self) -> None:
         fixture = self.fixture("crc-cpio")
         archive = newc_archive(
-            [("init", b"#!/bin/sh\n", 0o100755)],
+            [
+                ("init", b"#!/bin/sh\n", 0o100755),
+                (
+                    "sbin/persistent-root-verify",
+                    b"\x7fELFfixture",
+                    0o100755,
+                ),
+            ],
             crc=True,
         )
         path = fixture.bundle / "initramfs.cpio.gz"

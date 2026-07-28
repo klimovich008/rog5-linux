@@ -182,16 +182,32 @@ The last live-accepted ancestry is v9 GMU resume entry. V10 GMU/linked-CX
 runtime-PM is offline-accepted and remains on HOLD; it has not run on the
 phone. The v11 clock-preparation candidate is offline/source-only.
 
+- [x] Create the unified guarded A660 acceptance harness and minimal real
+  Vulkan queue-submit helper before widening kernel bring-up. Its offline
+  suite now covers signed/sealed commands, finite frames, continuous
+  physical-darkness sampling plus DPMS checkpoints, watchdog leases,
+  independent PSS, root-tree recomputation, bounded process trees, hardened
+  publication, and a fake-Vulkan fault matrix.
+- [ ] Rebuild and re-pin stable recovery with target-visible target-timeout
+  binding; do not replace the installed trust root.
+- [x] Extend the signed network-root profile with the command-manifest hash
+  and full `arch-a` tree/seal/count/subtree identity.
+- [x] Move first lower-tree verification into the signed initramfs before
+  OverlayFS and distribution userspace, require a static AArch64 verifier,
+  and bind the active overlay to the authenticated lower by stable mount IDs.
+- [ ] Install the canonical manifest, cgroup launcher, verifier, and Vulkan
+  helper in a versioned root, then bind promoted-root device/tree/seal
+  identities before either live acceptance mode can run.
 - [ ] Port the current GPU boundary into a signed runtime bundle.
 - [ ] Prove GPUCC and linked-CX clock/power preparation with balanced rollback.
 - [ ] Bring up GMU resources/HFI without widening storage or remote-processor
   scope.
 - [ ] Create `/dev/dri/renderD*` with no SMMU fault.
-- [ ] Repeat raw render-node open/close 100 times.
-- [ ] Run Mesa Turnip information and a minimal command submission.
-- [ ] Run KWin Wayland and Chromium with hardware acceleration.
-- [ ] Test suspend/resume and repeated screen off/on.
-- [ ] Measure memory, idle CPU, thermals, and battery impact.
+- [ ] Pass 100 render-node open/close cycles in the unified staging gate.
+- [ ] Pass ten Turnip summaries, real Vulkan submits, and the Wayland workload.
+- [ ] Pass KWin/EGL hardware rendering; then validate Chromium acceleration.
+- [ ] Pass repeated screen off/on in staging, then suspend/resume separately.
+- [ ] Pass the promoted 30-minute soak and longer power/battery gates.
 
 Exit: accelerated KWin/Chromium survive reboot, repeated open/close, screen
 cycles, and a sustained thermal test without fallback corruption.

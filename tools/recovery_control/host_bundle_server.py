@@ -52,6 +52,12 @@ MANIFEST_FIELDS = (
     "target_release",
     "rollback_timeout",
     "target_timeout",
+    "a660_command_manifest_sha256",
+    "root_generation",
+    "root_tree_sha256",
+    "root_seal_sha256",
+    "root_tree_entries",
+    "root_subtree",
 )
 REQUEST_FIELDS = (
     "format",
@@ -197,7 +203,7 @@ def validate_manifest(
 ) -> None:
     fields = parse_record(payload, MANIFEST_FIELDS)
     if (
-        fields["format"] != "rog5-recovery-bundle-v1"
+        fields["format"] != "rog5-recovery-bundle-v2"
         or fields["bundle"] != bundle
         or fields["profile"] not in PROFILES
         or hashlib.sha256(payload).hexdigest() != manifest_hash
@@ -211,6 +217,27 @@ def validate_manifest(
         raise ServerRefusal("manifest timeout margin is unsafe")
     if fields["profile"] == "persistent-root-ro-v1" and rollback < 300:
         raise ServerRefusal("persistent profile rollback is too short")
+    if fields["profile"] == "network-root-v1":
+        if (
+            not valid_hash(fields["a660_command_manifest_sha256"])
+            or fields["root_generation"] != "arch-a"
+            or not valid_hash(fields["root_tree_sha256"])
+            or not valid_hash(fields["root_seal_sha256"])
+            or fields["root_subtree"] != "/"
+        ):
+            raise ServerRefusal("network-root trust identity is invalid")
+        parse_decimal(fields["root_tree_entries"], 1, (1 << 63) - 1)
+    elif (
+        fields["a660_command_manifest_sha256"] != "0" * HASH_LENGTH
+        or fields["root_generation"] != "none"
+        or fields["root_tree_sha256"] != "0" * HASH_LENGTH
+        or fields["root_seal_sha256"] != "0" * HASH_LENGTH
+        or fields["root_tree_entries"] != "0"
+        or fields["root_subtree"] != "none"
+    ):
+        raise ServerRefusal(
+            "non-network profile carries root trust identity"
+        )
     bindings = (
         ("Image", "kernel_size", "kernel_sha256"),
         ("board.dtb", "dtb_size", "dtb_sha256"),

@@ -54,6 +54,10 @@ block device. The only new mount is the exact read-only network export.
 - The tmpfs upper is capped at 2 GiB and mounted `nodev,nosuid`.
 - A 60-900 second watchdog opens `/proc/sysrq-trigger` before `switch_root`,
   so it can reset the phone even if the network root or new userspace stalls.
+  Before USB setup, init publishes mode-`0400` PID and lease files that bind
+  the watchdog and its live timer child by PID and `/proc` start time, plus
+  arm/deadline boottime and timeout. Publication failure kills the partial
+  process tree and enters forced rollback.
 - No private key, SSH host key, machine identity, VPN secret, email data, CV,
   API token, or browser profile enters the kernel/initramfs bundle.
 
@@ -67,22 +71,51 @@ disabled in the final configuration, not merely left unused by the DTB.
 `initramfs/network-root-init`:
 
 1. mounts only proc, sysfs, devtmpfs, devpts, and tmpfs;
-2. requires exactly one `rog5.netroot=1`;
+2. requires exactly one `rog5.netroot=1`, one rollback timeout, and the full
+   canonical signed `arch-a` tree/seal/count/subtree plus command-manifest
+   tuple;
 3. proves zero physical storage and zero block-backed mounts;
 4. arms the independent reset watchdog;
 5. creates credential-free ACM diagnostics plus USB NCM;
 6. configures the fixed point-to-point address;
 7. mounts the exact NFS export read-only;
-8. creates the tmpfs/OverlayFS merged root;
-9. repeats the no-phone-storage check;
-10. prepares `/run/initramfs` with the reviewed shutdown script, BusyBox, and
+8. uses the initramfs-resident static AArch64 verifier to recompute the
+   complete lower tree and compare its seal, tree hash, entry count, and
+   command-manifest hash with the signed kernel command line;
+9. creates the tmpfs/OverlayFS merged root only after that verification;
+10. atomically publishes a private mount-identity record binding the
+    OverlayFS, authenticated lower, and tmpfs state by stable kernel mount ID
+    before any mount is moved;
+11. repeats the no-phone-storage check;
+12. prepares `/run/initramfs` with the reviewed shutdown script, BusyBox, and
     its AArch64 musl loader;
-11. moves `/dev`, `/proc`, `/sys`, and `/run`; and
-12. executes the distribution's `/sbin/init`.
+13. transactionally moves the authenticated lower, volatile state, `/dev`,
+    `/proc`, `/sys`, and `/run`, reversing completed moves on any failure; and
+14. executes the distribution's `/sbin/init`.
 
-The target watchdog PID remains in `/run/rog5-network-root-watchdog.pid`.
-During the first attended test it is disarmed only after the host verifies the
-kernel, mounts, zero-storage state, network path, systemd target, and SSH.
+The trusted verifier runs before any distribution loader, library, Python
+runtime, or command. `build-network-root-initramfs.sh` does not accept a
+verifier artifact: it invokes `build-persistent-root-verifier-static.sh`
+itself, which performs two deterministic static AArch64-musl builds, and
+installs that reviewed result into the versioned archive. The extracted
+artifact gate independently rebuilds it and requires an exact byte match in
+addition to rejecting an interpreter or shared-library dependency. A
+valid static AArch64 substitution is covered by a refusal test. Existing v3
+artifacts predate this incompatible contract and cannot be reused as a v2
+signed network-root payload without rebuilding.
+
+The target watchdog PID remains in `/run/rog5-network-root-watchdog.pid`; its
+canonical companion lease is
+`/run/rog5-network-root-watchdog.lease`. Offline tests execute the exact
+producer function against live `/proc` and verify its two process identities,
+deadline arithmetic, field order, and private metadata. During an attended
+test it is disarmed only after the host verifies the kernel, mounts,
+zero-storage state, network path, systemd target, and SSH.
+
+`/run/rog5-network-root-identity` is mode `0400` and records the OverlayFS,
+lower, and state mount IDs plus the signed root tuple. Mount IDs survive
+`mount --move`; the A660 gate therefore rejects replacing the visible lower
+with a decoy mount even when its pathname and source text look correct.
 
 ## Live result
 

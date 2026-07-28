@@ -13,10 +13,23 @@ case $tier in
 	*) fail 'usage: test-repository-linux.sh [quick|rootfs]' ;;
 esac
 
-for command in bash dtc gcc git head nm openssl python3 sh strings; do
+for command in bash dtc gcc git head nm openssl pkg-config python3 sh \
+	strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
 done
+pkg-config --exists vulkan ||
+	fail 'quick tier requires Vulkan headers and loader metadata'
+cgroup_relative=$(sed -n 's/^0:://p' /proc/self/cgroup)
+[[ -n $cgroup_relative && $cgroup_relative != / ]] ||
+	fail 'quick tier requires a non-root delegated cgroup v2'
+cgroup_parent=/sys/fs/cgroup$cgroup_relative
+for control in cgroup.procs cgroup.events cgroup.kill; do
+	[[ -f $cgroup_parent/$control ]] ||
+		fail "quick tier delegated cgroup lacks $control"
+done
+[[ -w $cgroup_parent ]] ||
+	fail 'quick tier cgroup is not delegated writable'
 
 test_tmp=$(mktemp -d)
 trap 'rm -rf -- "$test_tmp"' EXIT HUP INT TERM
@@ -117,6 +130,9 @@ tests=(
 	scripts/host/test-recovery-control-native.py
 	scripts/host/test-recovery-bundle-native.py
 	scripts/host/test-prepare-recovery-runtime-bundle.py
+	scripts/device/test-a660-acceptance.py
+	scripts/device/test-network-root-init.sh
+	scripts/device/test-persistent-root-verifier.sh
 	scripts/host/test-recovery-fetch-native.py
 	scripts/host/test-recovery-bundle-server.py
 	scripts/host/test-recovery-host-controller.py

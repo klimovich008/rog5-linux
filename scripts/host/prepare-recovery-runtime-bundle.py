@@ -20,6 +20,8 @@ import sys
 
 BUNDLE_ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}\Z")
 IDENTITY = re.compile(r"[A-Za-z0-9_+.-]+\Z")
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+ZERO_HASH = "0" * 64
 PROFILES = {
     "diagnostic-initramfs-v1",
     "network-root-v1",
@@ -54,6 +56,12 @@ class Configuration:
     target_release: str
     rollback_timeout: str
     target_timeout: str
+    a660_command_manifest_sha256: str
+    root_generation: str
+    root_tree_sha256: str
+    root_seal_sha256: str
+    root_tree_entries: str
+    root_subtree: str
     private_key: Path
     bundle_root: Path
 
@@ -76,17 +84,26 @@ def valid_identity(value: str, maximum: int) -> bool:
     )
 
 
-def parse_decimal(value: str, minimum: int, maximum: int) -> int:
+def valid_hash(value: str) -> bool:
+    return bool(SHA256.fullmatch(value)) and value != ZERO_HASH
+
+
+def parse_decimal(
+    value: str,
+    minimum: int,
+    maximum: int,
+    label: str = "timeout",
+) -> int:
     if (
         not value
         or not value.isascii()
         or not value.isdecimal()
         or (value.startswith("0") and value != "0")
     ):
-        raise BundleError("timeout is not a canonical decimal")
+        raise BundleError(f"{label} is not a canonical decimal")
     parsed = int(value)
     if parsed < minimum or parsed > maximum:
-        raise BundleError("timeout is outside policy")
+        raise BundleError(f"{label} is outside policy")
     return parsed
 
 
@@ -429,7 +446,7 @@ def manifest_bytes(
     observed: dict[str, tuple[int, str]],
 ) -> bytes:
     fields = (
-        ("format", "rog5-recovery-bundle-v1"),
+        ("format", "rog5-recovery-bundle-v2"),
         ("bundle", config.bundle),
         ("profile", config.profile),
         ("kernel_size", str(observed["Image"][0])),
@@ -445,6 +462,15 @@ def manifest_bytes(
         ("target_release", config.target_release),
         ("rollback_timeout", config.rollback_timeout),
         ("target_timeout", config.target_timeout),
+        (
+            "a660_command_manifest_sha256",
+            config.a660_command_manifest_sha256,
+        ),
+        ("root_generation", config.root_generation),
+        ("root_tree_sha256", config.root_tree_sha256),
+        ("root_seal_sha256", config.root_seal_sha256),
+        ("root_tree_entries", config.root_tree_entries),
+        ("root_subtree", config.root_subtree),
     )
     payload = "".join(f"{name}={value}\n" for name, value in fields).encode(
         "ascii"
@@ -469,6 +495,32 @@ def validate_configuration(config: Configuration) -> None:
         raise BundleError("timeout rollback margin is unsafe")
     if config.profile == "persistent-root-ro-v1" and rollback < 300:
         raise BundleError("persistent profile rollback is too short")
+    if config.profile == "network-root-v1":
+        if (
+            not valid_hash(config.a660_command_manifest_sha256)
+            or config.root_generation != "arch-a"
+            or not valid_hash(config.root_tree_sha256)
+            or not valid_hash(config.root_seal_sha256)
+            or config.root_subtree != "/"
+        ):
+            raise BundleError("network-root trust identity is invalid")
+        parse_decimal(
+            config.root_tree_entries,
+            1,
+            (1 << 63) - 1,
+            "root tree entry count",
+        )
+    elif (
+        config.a660_command_manifest_sha256 != ZERO_HASH
+        or config.root_generation != "none"
+        or config.root_tree_sha256 != ZERO_HASH
+        or config.root_seal_sha256 != ZERO_HASH
+        or config.root_tree_entries != "0"
+        or config.root_subtree != "none"
+    ):
+        raise BundleError(
+            "non-network profile carries root trust identity"
+        )
 
 
 def prepare_bundle(
@@ -571,6 +623,15 @@ def parse_arguments(arguments: list[str]) -> Configuration:
     parser.add_argument("--target-release", required=True)
     parser.add_argument("--rollback-timeout", required=True)
     parser.add_argument("--target-timeout", required=True)
+    parser.add_argument(
+        "--a660-command-manifest-sha256",
+        required=True,
+    )
+    parser.add_argument("--root-generation", required=True)
+    parser.add_argument("--root-tree-sha256", required=True)
+    parser.add_argument("--root-seal-sha256", required=True)
+    parser.add_argument("--root-tree-entries", required=True)
+    parser.add_argument("--root-subtree", required=True)
     parser.add_argument("--private-key", required=True, type=Path)
     parser.add_argument("--bundle-root", required=True, type=Path)
     values = parser.parse_args(arguments)

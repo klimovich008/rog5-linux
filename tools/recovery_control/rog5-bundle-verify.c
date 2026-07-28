@@ -55,6 +55,7 @@ struct profile_policy {
 	const char *name;
 	const char *command_line;
 	uint64_t minimum_rollback;
+	bool binds_a660_root;
 };
 
 struct bundle_manifest {
@@ -71,6 +72,12 @@ struct bundle_manifest {
 	char target_release[RELEASE_MAX + 1];
 	uint64_t rollback_timeout;
 	uint64_t target_timeout;
+	char a660_command_manifest_sha256[HASH_LENGTH + 1];
+	char root_generation[32];
+	char root_tree_sha256[HASH_LENGTH + 1];
+	char root_seal_sha256[HASH_LENGTH + 1];
+	uint64_t root_tree_entries;
+	char root_subtree[32];
 };
 
 struct fdt_range {
@@ -105,6 +112,7 @@ struct cpio_parser {
 	bool crc;
 	bool current_trailer;
 	bool seen_init;
+	bool seen_persistent_root_verifier;
 	bool seen_trailer;
 };
 
@@ -116,17 +124,20 @@ static const struct profile_policy profile_policies[] = {
 		.name = "diagnostic-initramfs-v1",
 		.command_line = "rog5.diagnostic=1",
 		.minimum_rollback = 60,
+		.binds_a660_root = false,
 	},
 	{
 		.name = "network-root-v1",
 		.command_line = "rog5.netroot=1",
 		.minimum_rollback = 60,
+		.binds_a660_root = true,
 	},
 	{
 		.name = "persistent-root-ro-v1",
 		.command_line =
 			"rog5.ufs_discovery=1 rog5.persistent_ro=1",
 		.minimum_rollback = 300,
+		.binds_a660_root = false,
 	},
 };
 
@@ -313,6 +324,7 @@ static void parse_manifest(char *record, const char *expected_bundle,
 	char initramfs_size[32];
 	char rollback_timeout[32];
 	char target_timeout[32];
+	char root_tree_entries[32];
 	char *cursor = record;
 
 	memset(manifest, 0, sizeof(*manifest));
@@ -342,10 +354,26 @@ static void parse_manifest(char *record, const char *expected_bundle,
 		       sizeof(rollback_timeout)) < 0 ||
 	    take_field(&cursor, "target_timeout", target_timeout,
 		       sizeof(target_timeout)) < 0 ||
+	    take_field(&cursor, "a660_command_manifest_sha256",
+		       manifest->a660_command_manifest_sha256,
+		       sizeof(manifest->a660_command_manifest_sha256)) < 0 ||
+	    take_field(&cursor, "root_generation",
+		       manifest->root_generation,
+		       sizeof(manifest->root_generation)) < 0 ||
+	    take_field(&cursor, "root_tree_sha256",
+		       manifest->root_tree_sha256,
+		       sizeof(manifest->root_tree_sha256)) < 0 ||
+	    take_field(&cursor, "root_seal_sha256",
+		       manifest->root_seal_sha256,
+		       sizeof(manifest->root_seal_sha256)) < 0 ||
+	    take_field(&cursor, "root_tree_entries", root_tree_entries,
+		       sizeof(root_tree_entries)) < 0 ||
+	    take_field(&cursor, "root_subtree", manifest->root_subtree,
+		       sizeof(manifest->root_subtree)) < 0 ||
 	    *cursor != '\0')
-		fail("manifest is not the canonical v1 record");
+		fail("manifest is not the canonical v2 record");
 	manifest->policy = find_profile_policy(manifest->profile);
-	if (strcmp(format, "rog5-recovery-bundle-v1") != 0 ||
+	if (strcmp(format, "rog5-recovery-bundle-v2") != 0 ||
 	    strcmp(manifest->bundle, expected_bundle) != 0 ||
 	    !valid_bundle(manifest->bundle) ||
 	    manifest->policy == NULL ||
@@ -366,6 +394,26 @@ static void parse_manifest(char *record, const char *expected_bundle,
 		fail("profile rollback timeout is too short");
 	if (manifest->target_timeout > manifest->rollback_timeout - 30)
 		fail("target timeout does not leave rollback margin");
+	if (manifest->policy->binds_a660_root) {
+		if (!valid_hash(manifest->a660_command_manifest_sha256) ||
+		    strcmp(manifest->root_generation, "arch-a") != 0 ||
+		    !valid_hash(manifest->root_tree_sha256) ||
+		    !valid_hash(manifest->root_seal_sha256) ||
+		    strcmp(manifest->root_subtree, "/") != 0)
+			fail("network-root trust identity is invalid");
+		manifest->root_tree_entries =
+			parse_number(root_tree_entries, 1, INT64_MAX);
+	} else {
+		if (strcmp(manifest->a660_command_manifest_sha256,
+			   ZERO_HASH) != 0 ||
+		    strcmp(manifest->root_generation, "none") != 0 ||
+		    strcmp(manifest->root_tree_sha256, ZERO_HASH) != 0 ||
+		    strcmp(manifest->root_seal_sha256, ZERO_HASH) != 0 ||
+		    strcmp(root_tree_entries, "0") != 0 ||
+		    strcmp(manifest->root_subtree, "none") != 0)
+			fail("non-network profile carries root trust identity");
+		manifest->root_tree_entries = 0;
+	}
 }
 
 static int open_directory_checked(const char *path)
@@ -750,6 +798,14 @@ static void cpio_complete_name(struct cpio_parser *parser)
 			    parser->file_size == 0)
 				fail("initramfs has no executable regular /init");
 			parser->seen_init = true;
+		} else if (strcmp(parser->name,
+				  "sbin/persistent-root-verify") == 0) {
+			if (parser->seen_persistent_root_verifier ||
+			    !S_ISREG(parser->mode) ||
+			    (parser->mode & 0111) == 0 ||
+			    parser->file_size == 0)
+				fail("initramfs has no executable persistent-root verifier");
+			parser->seen_persistent_root_verifier = true;
 		}
 	}
 	parser->padding_remaining =
@@ -828,14 +884,19 @@ static void cpio_feed(struct cpio_parser *parser,
 	}
 }
 
-static void cpio_finish(const struct cpio_parser *parser)
+static void cpio_finish(const struct cpio_parser *parser,
+			bool require_persistent_root_verifier)
 {
 	if (parser->phase != CPIO_DONE || !parser->seen_init ||
 	    !parser->seen_trailer || parser->entry_count == 0)
 		fail("truncated or incomplete initramfs newc archive");
+	if (require_persistent_root_verifier &&
+	    !parser->seen_persistent_root_verifier)
+		fail("network-root initramfs lacks persistent-root verifier");
 }
 
-static void verify_initramfs_gzip(int descriptor)
+static void verify_initramfs_gzip(int descriptor,
+				  bool require_persistent_root_verifier)
 {
 	unsigned char input[64 * 1024];
 	unsigned char output[64 * 1024];
@@ -898,7 +959,7 @@ static void verify_initramfs_gzip(int descriptor)
 	}
 	if (inflateEnd(&stream) != Z_OK)
 		fail("cannot finish gzip verifier");
-	cpio_finish(&cpio);
+	cpio_finish(&cpio, require_persistent_root_verifier);
 }
 
 static const char *fdt_string(const unsigned char *strings,
@@ -1212,13 +1273,34 @@ static void build_cmdline(const struct bundle_manifest *manifest,
 		"ramoops.console_size=0x300000 "
 		"ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
 		"ramoops.dump_oops=1";
+	char root_trust[512] = "";
 	int length;
 
+	if (manifest->policy->binds_a660_root) {
+		length = snprintf(
+			root_trust, sizeof(root_trust),
+			" rog5.a660_command_manifest_sha256=%s"
+			" rog5.root_generation=%s"
+			" rog5.root_tree_sha256=%s"
+			" rog5.root_seal_sha256=%s"
+			" rog5.root_tree_entries=%" PRIu64
+			" rog5.root_subtree=%s",
+			manifest->a660_command_manifest_sha256,
+			manifest->root_generation,
+			manifest->root_tree_sha256,
+			manifest->root_seal_sha256,
+			manifest->root_tree_entries,
+			manifest->root_subtree);
+		if (length < 0 || (size_t)length >= sizeof(root_trust))
+			fail("generated root trust command line is too long");
+	}
 	length = snprintf(
 		output, CMDLINE_MAX,
-		"%s %s %s rog5.bundle=%s rog5.recovery_timeout=%" PRIu64,
+		"%s %s %s rog5.bundle=%s rog5.target_timeout=%" PRIu64
+		" rog5.recovery_timeout=%" PRIu64 "%s",
 		base, manifest->policy->command_line, ramoops, manifest->bundle,
-		manifest->rollback_timeout);
+		manifest->target_timeout, manifest->rollback_timeout,
+		root_trust);
 	if (length < 0 || length >= CMDLINE_MAX)
 		fail("generated command line is too long");
 }
@@ -1504,7 +1586,8 @@ int main(int argc, char **argv)
 	verify_hash(dtb_fd, parsed.dtb_sha256, "DTB");
 	verify_hash(initramfs_fd, parsed.initramfs_sha256, "initramfs");
 	verify_kernel_image(kernel_fd, parsed.kernel_size);
-	verify_initramfs_gzip(initramfs_fd);
+	verify_initramfs_gzip(
+		initramfs_fd, strcmp(parsed.profile, "network-root-v1") == 0);
 	if (lseek(dtb_fd, 0, SEEK_SET) < 0)
 		fail("cannot rewind DTB");
 	dtb = read_exact(dtb_fd, (size_t)parsed.dtb_size);

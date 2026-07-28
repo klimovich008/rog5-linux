@@ -10,7 +10,7 @@ fail() {
 
 bundle=${1:-}
 manifest_hash=${2:-}
-server_sha256=35c5d023d685353559e7c131fae081e1a917d054953213f6aa376ea9567f78f5
+server_sha256=9d1cee930581eb12531d225e5f319ebb4ecc4ef0789fab260ead668a6783d051
 [[ $# == 2 ]] ||
 	fail 'usage: rog5-recovery-bundle-controller BUNDLE MANIFEST_SHA256'
 [[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&

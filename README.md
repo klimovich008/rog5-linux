@@ -52,6 +52,8 @@ gate.
 - [Hardware contract](docs/hardware-contract.md),
   [persistent storage](docs/persistent-storage.md), and
   [kernel port](docs/kernel-port.md) — detailed subsystem evidence.
+- [A660 acceptance](docs/a660-acceptance.md) — bounded staging and promoted
+  soak gates for Turnip, KWin, screen cycling, thermal, memory, and battery.
 - [Automation security](docs/security-automation.md) — credential and agent
   isolation boundaries.
 
@@ -79,6 +81,13 @@ Run the hardware-free host/control suite first:
 ```sh
 scripts/host/test-repository-linux.sh quick
 ```
+
+The quick tier is intentionally provisioned, not a minimal POSIX smoke test.
+It requires GCC, `dtc`, OpenSSL development files, `pkg-config` with Vulkan
+headers/loader metadata, and a writable delegated non-root cgroup v2 with
+`cgroup.kill`. This lets it compile and fault-test the real descriptor-only
+launcher and Vulkan helper. Run it from a systemd scope with cgroup delegation
+when a container does not expose those controls.
 
 Use `rootfs` instead of `quick` to include the larger userspace packaging
 suite.

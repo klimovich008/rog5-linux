@@ -216,6 +216,44 @@ not a runnable candidate. Stable DRM render-node operation, repeated
 open/close, KWin/Wayland, Chromium, suspend/resume, and thermal acceptance
 remain pending.
 
+Before any wider GPU candidate runs, the repository now has one unified A660
+acceptance harness and a minimal Vulkan queue-submit helper. Offline fault
+tests cover exact mainline-render identity, KGSL rejection, rollback-versus-
+soak separation, software-renderer rejection, boot-time and new
+fatal-kernel-signature detection, finite Wayland frame completion, lightweight
+continuous physical-darkness sampling plus bounded DPMS checks, private
+evidence metadata, independent full Plasma PSS inventory, malformed telemetry,
+watchdog/KWin PID reuse, signed and
+sealed command execution, delegated-cgroup cleanup of `setsid` descendants,
+before/after full-root verification, and atomic helper publication. A
+test-only Vulkan implementation covers success, missing or
+duplicate A660, missing queue, submit failure, and fence timeout.
+
+The bounded staging mode requires target-visible signed 600/900-second timing,
+enforces its own 540-second deadline, and rechecks storage isolation. The
+network-root init now atomically attests the watchdog, its live timer child,
+deadline, and timeout; the harness pins those identities, executable and
+write-capable reset/log descriptors. It also records stable mount IDs before
+moving the OverlayFS, authenticated lower, and tmpfs state; the harness
+rejects a pathname-correct decoy mount. The 30-minute soak requires an
+independently promoted persistent root with an exact OverlayFS-to-sealed-ext4
+mapping, bounded tmpfs state, exact bundle/kernel/subtree/tree/seal identities,
+an exact read-only verification mount, and a successful tree recomputation
+before workload.
+
+The incompatible signed bundle v2 format now emits target timeout,
+command-manifest identity, and the complete `arch-a` lower-tree identity;
+v2 components reject the older unsigned-root v1 schema. A static AArch64
+verifier is now required inside the signed network-root initramfs and
+authenticates the lower before OverlayFS or distribution userspace starts.
+Command installation, promoted-root command-line fields, and versioned rootfs
+integration are still future packaging work. The verifier, fetcher, host
+server, and watchdog-lease changes are source-only and need a versioned
+recovery rebuild. No installed
+recovery, trust root, or phone state changed. Neither acceptance mode has run
+on the phone.
+See [A660 accelerated-desktop acceptance](a660-acceptance.md).
+
 Machine acceptance records remain under `manifests/acceptance/`.
 
 ## Wi-Fi and VPN hotspot
