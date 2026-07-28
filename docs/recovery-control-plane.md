@@ -1,7 +1,7 @@
 # Stable recovery control plane
 
-Status: **reference oracle, fixed-host fetch/serving, signed-bundle verifier,
-and same-descriptor load integrated offline; image integration pending**
+Status: **shell-free initramfs, wrapper, and AVB reproducible offline with an
+ephemeral trust root; production key, release pins, and live promotion pending**
 
 Live authority: **none**
 
@@ -21,11 +21,14 @@ QEMU-backed AArch64 tests exercise the same source. The production compile has
 no test backend or path override. It now invokes the privilege-separated
 fixed-host acquisition helper under the rollback watchdog, invokes the fixed
 verifier, receives the exact verified file descriptors, and performs a
-bounded legacy `kexec_load`. The exact verifier and acquisition contracts are
-documented in
+bounded legacy `kexec_load`. Those binaries are now integrated into the
+shell-free stable-recovery initramfs and reproducible ASUS 5.4 wrapper using
+only an ephemeral test trust root. The exact verifier and acquisition
+contracts are documented in
 [recovery runtime bundle contract](recovery-bundle-contract.md) and
-[fixed recovery bundle transport](recovery-fetch-contract.md). No new binary
-is included in an initramfs, and none grants live authority.
+[fixed recovery bundle transport](recovery-fetch-contract.md). The resulting
+offline image is not in the temporary-boot allowlist and grants no live
+authority.
 
 The host side now has a fixed one-shot stdlib server plus a root-owned
 PolicyKit controller. It recognizes exactly one recovery NCM gadget, binds
@@ -34,19 +37,15 @@ rules, drops to the caller with no capabilities, verifies the exact listener,
 and removes every state item it created. Its tests use mocked host commands;
 the helpers are not installed and have not changed a live interface.
 
-The current recovery transport is reliable enough to reach USB, but its
-control plane is not reliable enough to authorize another payload execution.
-`initramfs/recovery-init` starts an interactive shell on `/dev/ttyGS0`, and
-the host sends shell text and searches terminal output for marker strings.
-Echo, cursor queries, serial-open races, stale output, and loss of the USB
-connection during `kexec -e` make that protocol ambiguous.
-
-The next recovery revision is a single deliberate re-freeze. It must replace
-the shell with a small fixed-function responder, make retries safe for
-read-only operations, make execution at-most-once per recovery boot, and
-separate the stable recovery image from runtime kernel/DTB/initramfs bundles.
-No new live payload gate should run before the offline suite in this document
-passes.
+The former recovery control plane used an interactive shell on
+`/dev/ttyGS0`; echo, cursor queries, serial-open races, stale output, and loss
+of the USB connection during `kexec -e` made outcomes ambiguous. The offline
+stable-recovery candidate now replaces that shell with a fixed-function
+responder, makes read-only retries safe, makes execution at-most-once per
+recovery boot, and separates the stable recovery image from signed runtime
+kernel/DTB/initramfs bundles. It remains deliberately non-runnable until a
+separately approved production trust root, complete release-pin update,
+independent review, and staged live-promotion sequence are complete.
 
 ## Invariants
 
