@@ -39,8 +39,10 @@ mkdir -p "$(dirname "$state_file")" "$(dirname "$brightness_file")"
 
 case $action in
     off)
-        [ "$current" -eq 0 ] || printf '%s\n' "$current" > "$brightness_file"
-        printf '0\n' > "$backlight"
+        if [ "$current" -ne 0 ]; then
+            printf '%s\n' "$current" > "$brightness_file"
+            printf '0\n' > "$backlight"
+        fi
         [ ! -x "$display_profile" ] ||
             "$display_profile" dpms-off >/dev/null 2>&1 || true
         printf 'off\n' > "$state_file"

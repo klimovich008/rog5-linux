@@ -254,11 +254,14 @@ exact; the fallback display again required a transient screen-off correction.
 That package is consumed.
 
 P2 remains HOLD. The common 36-37 second interval across several different
-early checks is no longer treated as proof of branch selection. The next
-candidate must provide a credential-free RAM-only USB entry marker before any
-userland storage access, plus an independent reset that remains
-distinguishable when USB setup fails. P3 remains blocked until complete P2
-target evidence and automatic Alpine fallback both pass.
+early checks is no longer treated as proof of branch selection. The required
+[early-entry v1 package](../test-results/2026-07-28-persistent-root-entry-v1-offline.md)
+now passes offline with a credential-free receive-only ACM marker emitted
+before userland storage access and an independently armed 120-second reset.
+The fallback also has a live-tested OpenRC screen lifecycle, but its
+post-watchdog boot persistence is not yet claimed. P3 remains blocked until
+one entry-v1 cycle proves exact target entry, unchanged `UNBOOTED` root,
+automatic Alpine fallback, and screen-off service restoration.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

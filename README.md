@@ -125,6 +125,15 @@ mutation are rejected. A complete seal covers 181,242 source entries, and
 generation was selected or booted, and Alpine stayed online with the screen
 off and remote desktop available.
 
+The seventh P2 diagnostic now
+[passes offline](test-results/2026-07-28-persistent-root-entry-v1-offline.md).
+It emits a fixed receive-only ACM marker from RAM-only early init before any
+userland storage access, retains a fixed 120-second reset, and has a
+one-execute host runner that verifies rollback after either marker success or
+failure. The fallback's screen-button path is now OpenRC-supervised and passes
+live start/stop/start with the panel off. One attended temporary boot remains;
+the image will be consumed after that cycle and must never be flashed.
+
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
 aggregate memory/PSS, CPU ticks, thermals, battery telemetry, display state,
@@ -668,7 +677,8 @@ See the [project roadmap](ROADMAP.md), [current state](docs/current-state.md),
 [persistent storage and rollback](docs/persistent-storage.md),
 [native network root](docs/network-root.md),
 [remote GUI](docs/remote-gui.md), [Arch userspace](docs/arch-linux.md),
-[test plan](docs/test-plan.md), and [kernel port plan](docs/kernel-port.md).
+[test plan](docs/test-plan.md), [kernel port plan](docs/kernel-port.md), and
+[stock-image analysis](docs/stock-image-analysis.md).
 
 ## Safety model
 

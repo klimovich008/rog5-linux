@@ -154,6 +154,22 @@ for a working feature.
   extracted tree; and publish `arch-a` atomically while leaving it unbooted.
   The [offline result](test-results/2026-07-27-persistent-arch-staging-offline.md)
   leaves `/rog5` absent on the phone pending a separate write instruction.
+- [x] Build and duplicate-verify the RAM-only P2 early-entry v1 oracle, its
+  receive-only ACM reader, and a one-execute host runner that verifies exact
+  rollback after both accepted and rejected markers. See the
+  [offline acceptance](test-results/2026-07-28-persistent-root-entry-v1-offline.md).
+- [x] Replace the fallback's unmanaged screen-button process with a tested
+  OpenRC-supervised lifecycle, idempotent screen-off control, and fail-safe
+  phone-start wrapper while preserving the original launcher.
+- [ ] Commit and push the exact offline checkpoint, enter fastboot through
+  the guarded fallback helper, and consume one attended entry-v1 temporary
+  boot. Accept only exact RAM-only marker evidence, unchanged `UNBOOTED` root,
+  automatic fallback, active screen service, and panel off. Never flash or
+  retry the package.
+- [ ] Build a reproducible private stock-image inventory and redacted
+  subsystem comparison using the
+  [stock-image analysis runbook](docs/stock-image-analysis.md); do not treat
+  decompiled output as recovered source.
 - [ ] Bring up the phone hardware and accelerated desktop.
 - [ ] Produce a recoverable persistent release.
 

@@ -360,12 +360,28 @@ fallback after 37 seconds without target USB. Exact root state and host
 service restoration passed; the fallback panel again returned on and needed
 one transient correction. That package is consumed.
 
-P2 remains rejected/HOLD and P3 remains prohibited. Six live packages have
-now rejected safely. Repeated 36-37 second returns across materially different
-early checks make timing insufficient to prove a specific init branch. The
-next candidate must expose a fixed RAM-only USB ACM entry marker before any
-userland storage access and retain a separately timed automatic reset even if
-USB setup fails.
+Six live packages have now rejected safely. Repeated 36-37 second returns
+across materially different early checks make timing insufficient to prove a
+specific init branch. The required
+[early-entry v1 package](../test-results/2026-07-28-persistent-root-entry-v1-offline.md)
+now passes offline: duplicate target/stage/wrapper/raw/AVB outputs match, the
+RAM-only init arms a fixed 120-second reset before reading its kernel release,
+and the host reads an exact 15-line entry marker from ACM without transmitting
+data. A guard-first live runner proves one execute, fallback verification
+after either marker acceptance or rejection, private evidence, and
+ModemManager restoration.
+
+The fallback screen defect also has a tested live userspace correction. An
+idempotent toggle skips redundant zero-brightness sysfs writes, the event
+daemon reaps `evtest` and its FIFO on stop, OpenRC supervises one daemon tree,
+and a fail-safe phone-start wrapper initializes volatile OpenRC state while
+preserving the original manual launcher. Live start/stop/start passed with the
+screen off; persistence across an automatic target rollback is still
+unproven.
+
+P2 remains HOLD and P3 remains prohibited until one attended, temporary-boot
+entry-v1 cycle emits the exact marker and returns to the exact fallback with
+the supervised screen service already active and the panel off.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

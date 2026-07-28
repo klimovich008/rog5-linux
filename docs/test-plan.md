@@ -249,6 +249,30 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   independent distinguishable reset if USB setup fails. The latest live
   report also keeps automatic fallback screen-off unresolved because the
   panel returned on before one transient corrective action.
+- `persistent-root-entry-init` replaces timing inference with a fixed
+  RAM-only pre-storage marker. It arms a 120-second reset first, mounts only
+  virtual filesystems, reads the exact kernel release with a shell builtin,
+  validates one each of the three P2 command-line tokens, requires zero
+  block-backed mounts, and exposes a fixed 15-line marker over receive-only
+  ACM. `persistent-root-entry-acm.py` opens only the exact
+  `ROG5_P2_entry_oracle` character device with `O_RDONLY`; its pseudoterminal
+  suite proves it transmits zero bytes and rejects complete mismatched
+  markers.
+- `run-persistent-root-entry-live-gate.sh` requires a clean synchronized
+  branch, exactly one fastboot device, three explicit guards, private
+  caller-owned credentials/evidence, and the manifest-pinned entry-v1 image.
+  Its positive and rejected-marker mocks both execute target kexec exactly
+  once, wait for fixed rollback, reverify the exact `UNBOOTED` root and absent
+  selectors, attest the exact OpenRC screen-service files/processes plus
+  screen-off state, and restore ModemManager. A failed marker is reported only
+  after fallback acceptance; there is no flash, retry, promotion, mount, or
+  target shell path.
+- The Alpine fallback screen lifecycle has a separate fixture and live
+  start/stop/start acceptance. The idempotent toggle avoids a redundant zero
+  write rejected by the real panel, the daemon traps termination and reaps its
+  `evtest` child/FIFO, and the phone-start wrapper initializes volatile OpenRC
+  state before executing the preserved original launcher. Automatic
+  post-watchdog persistence remains part of the entry-v1 live gate.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
