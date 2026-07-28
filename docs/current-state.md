@@ -70,15 +70,30 @@ There is therefore no active payload-execution gate. The next recovery must
 implement the framed, device-session-bound, at-most-once protocol in
 [recovery control plane](recovery-control-plane.md).
 
-The protocol reference model and host write-ahead ledger pass 46 offline
+The protocol reference model and host write-ahead ledger pass 47 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
-native protocol core also passes 35 pseudo-terminal tests as both a host build
-and a real AArch64 static binary under QEMU. A separate static native
-signed-bundle verifier now enforces the canonical manifest, raw Ed25519 trust
-root, artifact identity, arm64 Image/FDT policy, bounded gzip/newc initramfs,
-and generated command line. Its host and AArch64/QEMU mutation suites pass,
-but it is not yet connected to `PREPARE` or included in an initramfs. The
-responder therefore still rejects every production `PREPARE`. None of these
+native responder now passes 49 pseudo-terminal and PREPARE-boundary tests as
+both a host build and a real AArch64 static binary under QEMU. A separate
+static native signed-bundle verifier enforces the canonical manifest, raw
+Ed25519 trust root, artifact identity, arm64 Image/FDT policy, bounded
+gzip/newc initramfs, and generated command line. The verifier now transfers
+immutable write-sealed snapshots of the exact three verified files to the
+responder over `SCM_RIGHTS`; the responder parses the canonical plan, performs
+bounded watchdog-supervised `kexec -c -l` through `/proc/self/fd`, and
+persists `PREPARED` only after load success. Host and AArch64/QEMU tests
+replace and overwrite every bundle pathname and cover malformed handoff
+without descriptor leaks, bounded child failure/timeout cleanup, watchdog
+death, ledger-boundary replay, and crash-after-load retry.
+An uncommitted image is now removed with fixed `kexec -c -u` after a rejected
+or timed-out load, after a returned executor, and during every non-prepared
+startup. The fixed execution child also uses bounded kill/reap under watchdog
+death. These unload and executor paths pass through the same fake-kexec seam
+on host and AArch64/QEMU; real kernel-side unload remains a staging-only live
+gate.
+
+Fixed-host bundle acquisition is not implemented, neither binary is included
+in an initramfs, and no production signing key exists. The accepted v18
+recovery still contains the old interactive control shell. None of these
 offline checkpoints grants live authority.
 See the
 [reference result](../test-results/2026-07-28-recovery-control-reference-offline.md)
@@ -87,6 +102,8 @@ and
 plus the
 [runtime bundle contract](recovery-bundle-contract.md) and
 [verifier result](../test-results/2026-07-28-recovery-bundle-verifier-offline.md).
+The combined descriptor/load checkpoint is recorded in the
+[sealed PREPARE result](../test-results/2026-07-28-recovery-sealed-prepare-offline.md).
 
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a

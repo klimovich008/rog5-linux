@@ -47,7 +47,10 @@ cc -std=c11 -O2 -static -fPIE -pie -fstack-protector-strong \
 file "$temporary" |
 	grep -q 'ELF 64-bit LSB pie executable, ARM aarch64.*static-pie linked'
 readelf -h "$temporary" | grep -q 'Machine:.*AArch64'
-! readelf -l "$temporary" | grep -q 'INTERP'
+if readelf -l "$temporary" | grep -q 'INTERP'; then
+	echo 'FAIL recovery responder has a dynamic interpreter' >&2
+	exit 1
+fi
 readelf -l "$temporary" | grep -q 'GNU_RELRO'
 if readelf -W -l "$temporary" |
 	awk '$1 == "GNU_STACK" && $0 ~ /RWE/ { found=1 } END { exit !found }'
@@ -56,9 +59,22 @@ then
 	exit 1
 fi
 strings "$temporary" | grep -qx '/usr/sbin/kexec'
-! strings "$temporary" | grep -q 'ROG5_TEST_'
-! strings "$temporary" | grep -q '/bin/sh'
-! strings "$temporary" | grep -q 'kexec -e'
+strings "$temporary" |
+	grep -qx '/usr/libexec/rog5-bundle-verify'
+strings "$temporary" | grep -qx -- '--handoff-fd3'
+strings "$temporary" | grep -qx '/proc/self/fd/%d'
+if strings "$temporary" | grep -q 'ROG5_TEST_'; then
+	echo 'FAIL production responder contains a test interface' >&2
+	exit 1
+fi
+if strings "$temporary" | grep -q '/bin/sh'; then
+	echo 'FAIL production responder contains a shell path' >&2
+	exit 1
+fi
+if strings "$temporary" | grep -q 'kexec -e'; then
+	echo 'FAIL production responder contains shell-style kexec text' >&2
+	exit 1
+fi
 
 chmod 0755 "$temporary"
 mv -T -- "$temporary" "$output"

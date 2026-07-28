@@ -95,8 +95,8 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **protocol core and standalone trust verifier implemented; blocked on
-fetch, same-descriptor load, and initramfs integration**
+Status: **protocol core, trust verifier, and same-descriptor load implemented;
+blocked on fixed-host fetch and initramfs integration**
 
 - [x] Implement an offline-tested static responder whose production default
   owns `/dev/ttyGS0`.
@@ -105,13 +105,22 @@ fetch, same-descriptor load, and initramfs integration**
 - [x] Implement only `HELLO`, `STATUS`, `PREPARE`, and `COMMIT_EXEC`.
 - [x] Invoke the fixed production `kexec -e` path with `execve`; never invoke
   a shell.
-- [ ] Integrate the production responder into the initramfs before USB bind;
-  until then its production build rejects every `PREPARE`.
+- [ ] Integrate the production responder, verifier, fixed kexec-tools, and
+  public key into the initramfs before USB bind.
 - [ ] Remove `sh -i` from recovery, network-root, and persistent-root
   initramfs variants.
 - [ ] Fetch bundles only over the fixed NCM host/path.
 - [x] Implement and test canonical signed manifests against the fixed
   production key path using ephemeral test keys only.
+- [x] Copy the exact kernel, DTB, and initramfs into write-sealed snapshots,
+  verify those immutable bytes, transfer their descriptors over a private
+  `SOCK_SEQPACKET` channel, and load only those descriptors with bounded,
+  watchdog-supervised legacy `kexec_load`.
+- [x] Persist `PREPARED` only after load success; cover malformed handoff,
+  verifier/loader failure, timeout, watchdog death, path replacement, and
+  crash-after-load retry on host and AArch64/QEMU.
+- [x] Unload any uncommitted image after loader failure/timeout, returned
+  execution, or non-prepared responder restart; bound executor kill/reap.
 - [ ] Embed a separately approved production public key in the frozen image.
 - [ ] Ask the user before creating or using the production signing key.
 - [x] Generate a fixed profiled command line; reject arbitrary `init=`,

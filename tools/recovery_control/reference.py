@@ -822,16 +822,18 @@ class RecoveryModel:
                 return self._response(request, "REQUEST_CONFLICT")
             return self._response(request, "PREPARED")
 
-        reserved = self.maximum_ledger_entries - 2
-        prepare_verified = None
-        can_use_reserved = False
+        reserved = self.maximum_ledger_entries - 3
+        if len(self.state.ledger) >= self.maximum_ledger_entries:
+            self.state.last_error = "LEDGER_FULL"
+            return self._response(request, "LEDGER_FULL")
         if len(self.state.ledger) >= reserved:
-            if request.verb == "PREPARE" and self.state.phase == "IDLE":
-                prepare_verified = self.verifier(
-                    request.value("bundle"),
-                    request.value("manifest_sha256"),
-                )
-                can_use_reserved = prepare_verified
+            can_use_reserved = False
+            if (
+                request.verb == "PREPARE"
+                and self.state.phase == "IDLE"
+                and len(self.state.ledger) == reserved
+            ):
+                can_use_reserved = True
             elif (
                 request.verb == "COMMIT_EXEC"
                 and self.state.phase == "PREPARED"
@@ -841,17 +843,15 @@ class RecoveryModel:
                 == self.state.manifest_sha256
             ):
                 can_use_reserved = True
-        if len(self.state.ledger) >= self.maximum_ledger_entries or (
-            len(self.state.ledger) >= reserved and not can_use_reserved
-        ):
-            self.state.last_error = "LEDGER_FULL"
-            return self._response(request, "LEDGER_FULL")
+            if not can_use_reserved:
+                self.state.last_error = "LEDGER_FULL"
+                return self._response(request, "LEDGER_FULL")
 
         if request.verb == "PREPARE":
             response = self._prepare(
                 request,
                 inject=inject,
-                verified=prepare_verified,
+                verified=None,
             )
         elif request.verb == "COMMIT_EXEC":
             response = self._commit(request, inject=inject)

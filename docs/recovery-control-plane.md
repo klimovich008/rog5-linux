@@ -1,7 +1,8 @@
 # Stable recovery control plane
 
-Status: **reference oracle, native protocol core, and standalone signed-bundle
-verifier implemented offline; responder and image integration pending**
+Status: **reference oracle, native responder, signed-bundle verifier, and
+same-descriptor load implemented offline; fixed-host fetch and image
+integration pending**
 
 Live authority: **none**
 
@@ -18,8 +19,9 @@ The native C source is
 is `scripts/device/build-recovery-control.sh`. The reproducibility/QEMU
 aggregate is `scripts/host/test-recovery-control-aarch64.sh`. Host and
 QEMU-backed AArch64 tests exercise the same source. The production compile has
-no test backend, accepts no path override, and rejects every `PREPARE` until
-the standalone signed-bundle verifier is integrated. The exact verifier
+no test backend or path override. It now invokes the fixed verifier, receives
+the exact verified file descriptors, and performs a bounded legacy
+`kexec_load`; fixed-host acquisition is still absent. The exact verifier
 contract and its separate reproducible AArch64/QEMU suite are documented in
 [recovery runtime bundle contract](recovery-bundle-contract.md). Neither
 binary is included in an initramfs, and neither grants live authority.
@@ -162,13 +164,15 @@ not consume replay-ledger entries.
 
 The device creates `/run/rog5-control/session` before USB binds using kernel
 randomness and mode `0600`. It also keeps a bounded replay ledger in the same
-RAM filesystem. Entries are not evicted during a recovery session. Two slots
-are reserved for the first verified `PREPARE` and its exact `COMMIT_EXEC`, so
-rejected mutations cannot exhaust the ability to complete the active
-transaction. Other new mutations return `LEDGER_FULL` at the reserved
-boundary. `STATUS` remains available even at full capacity. Responder
-restarts reuse the session and ledger; a full recovery reboot creates a new
-session and rejects stale requests.
+RAM filesystem. Entries are not evicted during a recovery session. Three idle
+slots are protected at the boundary: one lets a failed `PREPARE` decision be
+recorded exactly once, while a successful `PREPARE` and its exact
+`COMMIT_EXEC` need at most two entries. No verifier runs once fewer than three
+idle slots remain, and only the matching commit may use the final transaction
+capacity after preparation. Other new mutations return `LEDGER_FULL`.
+`STATUS` remains available even at full capacity. Responder restarts reuse the
+session and ledger; a full recovery reboot creates a new session and rejects
+stale requests.
 
 The responder does not trust a pathname-only watchdog marker. At startup it
 opens an owner-private lease containing the watchdog PID and Linux process
@@ -177,6 +181,55 @@ and polls the pidfd while ACM is absent, at idle, during framing, response,
 drain, and both sides of the execution marker. The production executor checks
 again before fork and child exec; its parent monitors and reaps the child
 while waiting. PID reuse and a dead or replaced lease fail closed.
+
+## Exact-object PREPARE boundary
+
+After fixed-host acquisition publishes a finalized bundle, `PREPARE` forks
+only `/usr/libexec/rog5-bundle-verify` with the requested bundle and manifest
+hash. A private nonblocking Unix `SOCK_SEQPACKET` socket is the only
+authorization channel. The verifier first copies each source into a
+write-sealed `memfd`, then verifies and sends one bounded canonical plan plus
+exactly three `SCM_RIGHTS` descriptors for those immutable kernel, DTB, and
+initramfs snapshots. The responder rejects a wrong peer identity, truncation,
+additional ancillary data, wrong descriptor count or type, missing seals,
+aliases, unsafe metadata, nonzero offsets, verifier failure, timeout, and any
+plan/request mismatch. Every descriptor installed by a malformed rights
+packet is closed before rejection.
+
+Received descriptors are close-on-exec in the responder. Only the loader child
+clears that flag, immediately rechecks the watchdog, and directly executes:
+
+```text
+/usr/sbin/kexec -c -l /proc/self/fd/<kernel-fd>
+    --initrd=/proc/self/fd/<initramfs-fd>
+    --dtb=/proc/self/fd/<dtb-fd>
+    --command-line=<verified-generated-command-line>
+```
+
+The fixed `-c` is required: the accepted ASUS staging kernel and custom DTB
+use the legacy `kexec_load` path, matching the previously accepted device
+loaders. The parent monitors and reaps both children under fixed deadlines,
+closes all descriptors, and persists `PREPARED` only after the loader exits
+zero. It never reopens an artifact through the bundle directory.
+
+A crash after successful load but before durable `PREPARED` leaves the
+transaction idle. On restart, the responder first runs fixed
+`kexec -c -u`; only then may the same request safely load again. A rejected or
+timed-out loader and a returned fixed executor also unload before the
+responder continues. A crash after `PREPARED` is published is reconstructed
+from durable RAM state and does not rerun the verifier or loader.
+`COMMIT_EXEC` remains the sole non-retryable execution boundary.
+
+Before image integration, a separately authorized load-only gate must use the
+real pinned AArch64 kexec-tools and these procfd arguments to prove
+`/sys/kernel/kexec_loaded` changes from 0 to 1, that an exact repeat load is
+safe, and that `kexec -c -u` returns it from 1 to 0 without target execution.
+The image must mount `/proc`, expose `/proc/self/fd`, expose
+`/sys/kernel/kexec_loaded`, include every kexec runtime library, and establish
+the watchdog before starting the responder. The offline fake-kexec suite
+proves that a loaded-then-timed-out image is unloaded and that restart
+reconciles a crash after load; the staging-only live gate must prove those
+same transitions against the real kernel.
 
 Before `COMMIT_EXEC` calls `kexec -e`, it must:
 
@@ -315,7 +368,21 @@ Run the real responder against `openpty(3)` with fault injection:
 - `STATUS` correlates the exact prepare ID, commit ID/fingerprint, manifest,
   execution marker, watchdog, and last error;
 - terminal echo and cursor queries are absent;
-- arbitrary shell text is rejected and never reaches `execve`.
+- arbitrary shell text is rejected and never reaches `execve`;
+- sealed verified snapshots survive replacement and in-place overwrite of
+  every bundle pathname;
+- malformed plans, short or unsafe rights, nonzero verifier exit, and loader
+  failure never create `PREPARED`;
+- zero-byte and over-count rights packets never leak descriptors;
+- rights packets up to Linux's 253-descriptor maximum are fully drained and
+  rejected without leaks, while successful PREPARE also preserves the parent
+  descriptor count;
+- verifier and loader timeout or watchdog death kill and boundedly reap their
+  child;
+- watchdog death during verification is terminal;
+- loaded-then-timeout, crash-after-load restart, and returned execution unload
+  before another action; and
+- the fixed execution child is boundedly killed and reaped on watchdog death.
 
 ### Bundle and security tests
 
@@ -355,15 +422,16 @@ retry.
 1. Implement the parser/state reference model and fault-injection tests.
 2. Implement the static responder and pseudo-terminal integration tests.
 3. Add signed-manifest and fixed-command-line verification. **Complete
-   offline; production integration remains disabled.**
-4. Add fixed-host fetch and same-descriptor `kexec -l`, then integrate the
-   verifier with `PREPARE`.
-5. Remove all three interactive shells and update image verifiers.
-6. Rebuild once, reproducibly, and create a new temporary-boot candidate.
-7. Run the staging-only promotion sequence.
-8. Integrate the tested host-ledger semantics with the native responder and
+   offline.**
+4. Add same-descriptor legacy `kexec_load` and integrate the verifier with
+   `PREPARE`. **Complete offline; absent from the current initramfs.**
+5. Add fixed-host fetch and atomic bundle publication.
+6. Remove all three interactive shells and update image verifiers.
+7. Rebuild once, reproducibly, and create a new temporary-boot candidate.
+8. Run the staging-only promotion sequence.
+9. Integrate the tested host-ledger semantics with the native responder and
    device-minted session.
-9. Investigate recovery-side retained-marker reading and USB-C debug UART
+10. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 
 The accepted v18 image remains a legacy staging transport while this work is

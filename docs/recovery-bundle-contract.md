@@ -1,7 +1,8 @@
 # Recovery runtime bundle contract
 
-Status: **standalone native verifier implemented and tested offline;
-responder and initramfs integration pending**
+Status: **native verifier handoff and responder same-descriptor load
+implemented and tested offline; fixed-host fetch and initramfs integration
+pending**
 
 Live authority: **none**
 
@@ -16,10 +17,12 @@ and QEMU aggregate are `scripts/device/build-recovery-bundle-verifier.sh` and
 builder bootstrap is
 `scripts/host/build-recovery-bundle-verifier-image.sh`.
 
-The verifier is not yet called by the recovery responder, is not present in an
-initramfs, and cannot authorize a phone action. A production signing key does
-not exist. Tests generate an ephemeral Ed25519 key under a temporary directory
-and delete it when the test exits.
+The production responder source now calls the verifier through a private
+descriptor handoff and loads the exact verified files. Neither binary is
+present in an initramfs, fixed-host acquisition is not implemented, and this
+checkpoint cannot authorize a phone action. A production signing key does not
+exist. Tests generate an ephemeral Ed25519 key under a temporary directory and
+delete it when the test exits.
 
 ## Fixed paths and inventory
 
@@ -40,7 +43,8 @@ Its raw 32-byte Ed25519 public key is fixed at:
 /etc/rog5/recovery-bundle-ed25519.pub
 ```
 
-The production binary has no path-override option. Test builds expose
+The production binary has no path-override option. Its only mode switch is the
+exact token `--handoff-fd3`; it always uses descriptor 3. Test builds expose
 `--bundle-root` and `--trust-key`, and the production build proves those
 strings are absent.
 
@@ -176,10 +180,48 @@ ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1
 rog5.bundle=<bundle-id> rog5.recovery_timeout=<rollback-timeout>
 ```
 
-Successful verification prints one canonical
+Successful verification normally prints one canonical
 `rog5-verified-plan-v1` record containing only fixed artifact basenames,
 target identity, target timeout, generated command line, and its SHA-256. It
 never prints a caller-supplied pathname.
+
+With `--handoff-fd3`, the verifier first requires descriptor 3 to be a
+same-UID/GID Unix `SOCK_SEQPACKET` peer. It copies each exact-size source
+artifact into a private `memfd`, closes the source descriptors, removes all
+write mode bits, and applies `F_SEAL_SEAL`, `F_SEAL_SHRINK`, `F_SEAL_GROW`,
+and `F_SEAL_WRITE`. Hash, Image, gzip/newc, and FDT verification then run
+against those immutable snapshots, not against the source bundle. This makes
+both pathname replacement and in-place source overwrite irrelevant after the
+copy; mutation during the copy changes the snapshot hash and fails
+verification.
+
+After all verification succeeds, the verifier rewinds the three sealed
+snapshots. One atomic packet carries the canonical plan and exactly three
+`SCM_RIGHTS` descriptors in kernel/DTB/initramfs order. It emits nothing on
+stdout in this mode. Any verifier failure occurs before the packet, and the
+receiver also requires verifier exit status zero.
+
+The responder receives with `MSG_CMSG_CLOEXEC`, rejects truncated data,
+unknown or multiple ancillary records, any descriptor count other than three,
+non-regular/unsealed/writable/linked/aliased snapshots, a nonzero offset, and
+every malformed or mismatched plan. Malformed packets are drained into a
+larger bounded ancillary buffer and every installed descriptor is closed,
+including zero-byte and over-count rights packets. Only the forked loader
+child clears close-on-exec. It runs the fixed equivalent of:
+
+```text
+/usr/sbin/kexec -c -l /proc/self/fd/<kernel-fd>
+    --initrd=/proc/self/fd/<initramfs-fd>
+    --dtb=/proc/self/fd/<dtb-fd>
+    --command-line=<verified-generated-command-line>
+```
+
+`-c` selects the legacy `kexec_load` path used by the accepted ASUS staging
+kernel and preserves support for the separately supplied DTB. The parent
+persists `PREPARED` only after the bounded loader child exits zero, then closes
+all three descriptors. It never reopens a bundle pathname. A failed or timed
+out load runs fixed `kexec -c -u`; every non-prepared responder startup and
+every returned executor performs the same reconciliation before continuing.
 
 ## Reproducible AArch64 build
 
@@ -204,8 +246,8 @@ hosts, and APK-log content are normalized in the Dockerfile.
 The current offline checkpoint produced:
 
 ```text
-source_sha256=2ceb59beb8807543f29ee1f3cd4348f3a356ad989cd808c94d39f33f87813612
-binary_sha256=aabef30cf7800a70942036d7f19515272272c3d6f8a0d21cf7b9fb64ced36ef1
+source_sha256=6fc8afd4d67204b28923916041a33133fa88d2b9eef65fab872bf748ede5c6ae
+binary_sha256=ce0f2d997c0243b43e417a41fb5daadd89dfde7b2738ce3bb2e33783ba403b4c
 builder_id=e2e90f8ad3cfc4f9b7660ee8828fcae008792f05567fb9b4efd3ab0102063d8e
 builder_digest=sha256:b4946b74324785d005aa3067dd18788f90cc65215a519c8735dce03aa01d1268
 ```
@@ -215,22 +257,37 @@ change requires a fresh two-build/QEMU result and updated pins.
 
 ## Remaining integration gates
 
-Before the responder may return `PREPARED`:
+The verifier/responder boundary now completes these offline gates:
+
+- fixed same-peer `SOCK_SEQPACKET` plan and descriptor transfer;
+- exact canonical plan parsing and request identity matching;
+- write-sealed snapshots verified after copying, so source path replacement
+  and in-place overwrite cannot change authorized bytes;
+- bounded, watchdog-supervised verifier and loader children;
+- exact-descriptor legacy `kexec_load` with no shell or bundle-path reopen;
+- bounded `kexec -c -u` reconciliation for every uncommitted-image path;
+- `PREPARED` persistence only after load success;
+- host and real AArch64/QEMU tests for path replacement, in-place overwrite,
+  malformed plans and rights without descriptor leaks, verifier/loader
+  failure, bounded child reap, watchdog death, ledger-boundary replay, and
+  crash-after-load retry.
+
+Before this path may enter a recovery image:
 
 1. fetch all five files from the fixed NCM host into a private temporary
    directory;
-2. publish one finalized owner-private bundle directory;
-3. run this verifier with the requested bundle and manifest hash;
-4. parse only the exact canonical verified-plan record;
-5. perform one bounded `kexec -l` without a shell and without reopening an
-   attacker-controlled path;
-6. persist `PREPARED` only after the load succeeds;
-7. retain the watchdog throughout fetch, verification, and load;
-8. add crash, timeout, malformed-plan, verifier-failure, and load-failure
-   tests;
-9. independently review the combined responder/verifier boundary;
-10. create or use a production signing key only after separate user
-    confirmation.
+2. publish one finalized owner-private bundle directory atomically and leave
+   no mutator running;
+3. integrate both pinned binaries and the already pinned Alpine arm64
+   `kexec-tools 2.0.32-r2` build into the initramfs;
+4. prove `/proc` and the watchdog are ready before the responder and that
+   storage isolation precedes USB bind;
+5. run the separately authorized load-only `kexec_loaded` 0→1, repeat-load,
+   and `kexec -c -u` 1→0 procfd gate without executing a payload, including
+   the loaded-then-timeout reconciliation path;
+6. independently review the combined fetch/verifier/responder image boundary;
+7. create or use a production signing key only after separate user
+   confirmation.
 
 Initramfs integration, shell removal, wrapper rebuild, image verification,
 staging-only live promotion, and any payload execution remain later,

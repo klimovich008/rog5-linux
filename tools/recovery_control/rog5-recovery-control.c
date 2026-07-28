@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -29,6 +30,23 @@
 #define ID_LENGTH 32
 #define HASH_LENGTH 64
 #define BUNDLE_MAX 64
+#define PLAN_MAX 2048
+#define CMDLINE_MAX 1024
+#define PROFILE_MAX 31
+#define TARGET_MAX 64
+#define RELEASE_MAX 96
+#define HANDOFF_FD 3
+#define HANDOFF_DESCRIPTOR_COUNT 3
+/* Linux limits one SCM_RIGHTS packet to SCM_MAX_FD (253) descriptors. */
+#define HANDOFF_CONTROL_FD_MAX 253
+#define VERIFY_TIMEOUT_MS 30000
+#define KEXEC_LOAD_TIMEOUT_MS 15000
+#define CHILD_REAP_TIMEOUT_MS 1000
+#define KERNEL_MAX (128ULL * 1024 * 1024)
+#define DTB_MAX (2ULL * 1024 * 1024)
+#define INITRAMFS_MAX (256ULL * 1024 * 1024)
+#define REQUIRED_SEALS \
+	(F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE)
 
 #define ZERO_ID "00000000000000000000000000000000"
 #define ZERO_HASH \
@@ -78,13 +96,31 @@ struct response_action {
 	bool execute;
 };
 
+struct verified_plan {
+	char bundle[BUNDLE_MAX + 1];
+	char manifest_sha256[HASH_LENGTH + 1];
+	char profile[PROFILE_MAX + 1];
+	char target_id[TARGET_MAX + 1];
+	char target_release[RELEASE_MAX + 1];
+	uint64_t target_timeout;
+	char command_line[CMDLINE_MAX];
+};
+
 static int state_fd = -1;
 static int ledger_fd = -1;
 static int watchdog_pidfd = -1;
 static const char *device_path = "/dev/ttyGS0";
+/* Production state must remain session-scoped tmpfs, never persistent media. */
 static const char *state_path = "/run/rog5-control";
 static const char *watchdog_path = "/run/rog5-recovery-watchdog.lease";
+static const char *verifier_path = "/usr/libexec/rog5-bundle-verify";
+static const char *kexec_path = "/usr/sbin/kexec";
 static unsigned int io_timeout_ms = 2000;
+static unsigned int verify_timeout_ms = VERIFY_TIMEOUT_MS;
+static unsigned int kexec_load_timeout_ms = KEXEC_LOAD_TIMEOUT_MS;
+#ifdef ROG5_CONTROL_TESTING
+static bool test_kexec_configured;
+#endif
 
 static void fail(const char *format, ...)
 {
@@ -1269,17 +1305,616 @@ static void remember_decision(const struct request *request,
 		fail("request-ledger publication raced");
 }
 
-static bool verify_prepare(const struct request *request)
+static bool valid_plan_identity(const char *value, size_t maximum)
+{
+	size_t length = strlen(value);
+	size_t index;
+
+	if (length < 1 || length > maximum || value[0] == '.' ||
+	    strstr(value, "..") != NULL)
+		return false;
+	for (index = 0; index < length; index++) {
+		char byte = value[index];
+
+		if (!((byte >= 'a' && byte <= 'z') ||
+		      (byte >= 'A' && byte <= 'Z') ||
+		      (byte >= '0' && byte <= '9') ||
+		      byte == '.' || byte == '_' || byte == '+' ||
+		      byte == '-'))
+			return false;
+	}
+	return true;
+}
+
+static bool valid_plan_profile(const char *profile)
+{
+	return strcmp(profile, "diagnostic-initramfs-v1") == 0 ||
+		strcmp(profile, "network-root-v1") == 0 ||
+		strcmp(profile, "persistent-root-ro-v1") == 0;
+}
+
+static bool parse_plan_number(const char *value, uint64_t minimum,
+			      uint64_t maximum, uint64_t *output)
+{
+	char canonical[32];
+	char *end = NULL;
+	unsigned long long parsed;
+	int length;
+
+	if (value[0] == '\0' ||
+	    (value[0] == '0' && value[1] != '\0'))
+		return false;
+	errno = 0;
+	parsed = strtoull(value, &end, 10);
+	if (errno != 0 || end == value || *end != '\0' ||
+	    parsed < minimum || parsed > maximum)
+		return false;
+	length = snprintf(canonical, sizeof(canonical), "%llu", parsed);
+	if (length < 0 || length >= (int)sizeof(canonical) ||
+	    strcmp(canonical, value) != 0)
+		return false;
+	*output = (uint64_t)parsed;
+	return true;
+}
+
+static bool parse_verified_plan(char *record, size_t record_length,
+				const struct request *request,
+				struct verified_plan *plan)
+{
+	char format[32];
+	char kernel_file[32];
+	char dtb_file[32];
+	char initramfs_file[32];
+	char target_timeout[32];
+	char command_hash[HASH_LENGTH + 1];
+	char actual_command_hash[HASH_LENGTH + 1];
+	char *cursor = record;
+	char *newline;
+	size_t command_length;
+	size_t index;
+
+	if (record_length < 1 || record_length > PLAN_MAX ||
+	    memchr(record, '\0', record_length) != NULL)
+		return false;
+	record[record_length] = '\0';
+	memset(plan, 0, sizeof(*plan));
+	if (take_field(&cursor, "format", format, sizeof(format)) < 0 ||
+	    take_field(&cursor, "bundle", plan->bundle,
+		       sizeof(plan->bundle)) < 0 ||
+	    take_field(&cursor, "manifest_sha256", plan->manifest_sha256,
+		       sizeof(plan->manifest_sha256)) < 0 ||
+	    take_field(&cursor, "profile", plan->profile,
+		       sizeof(plan->profile)) < 0 ||
+	    take_field(&cursor, "kernel_file", kernel_file,
+		       sizeof(kernel_file)) < 0 ||
+	    take_field(&cursor, "dtb_file", dtb_file,
+		       sizeof(dtb_file)) < 0 ||
+	    take_field(&cursor, "initramfs_file", initramfs_file,
+		       sizeof(initramfs_file)) < 0 ||
+	    take_field(&cursor, "target_id", plan->target_id,
+		       sizeof(plan->target_id)) < 0 ||
+	    take_field(&cursor, "target_release", plan->target_release,
+		       sizeof(plan->target_release)) < 0 ||
+	    take_field(&cursor, "target_timeout", target_timeout,
+		       sizeof(target_timeout)) < 0 ||
+	    take_field(&cursor, "cmdline_sha256", command_hash,
+		       sizeof(command_hash)) < 0 ||
+	    strncmp(cursor, "cmdline=", 8) != 0)
+		return false;
+	cursor += 8;
+	newline = strchr(cursor, '\n');
+	if (newline == NULL || newline[1] != '\0')
+		return false;
+	command_length = (size_t)(newline - cursor);
+	if (command_length < 1 ||
+	    command_length >= sizeof(plan->command_line))
+		return false;
+	for (index = 0; index < command_length; index++) {
+		unsigned char byte = (unsigned char)cursor[index];
+
+		if (byte < 0x20 || byte > 0x7e)
+			return false;
+	}
+	if (cursor[0] == ' ' || cursor[command_length - 1] == ' ')
+		return false;
+	memcpy(plan->command_line, cursor, command_length);
+	plan->command_line[command_length] = '\0';
+	hash_bytes(plan->command_line, command_length, actual_command_hash);
+	if (strcmp(format, "rog5-verified-plan-v1") != 0 ||
+	    strcmp(plan->bundle, request->bundle) != 0 ||
+	    strcmp(plan->manifest_sha256,
+		   request->manifest_sha256) != 0 ||
+	    !valid_bundle(plan->bundle) ||
+	    !valid_hash(plan->manifest_sha256, false) ||
+	    !valid_plan_profile(plan->profile) ||
+	    strcmp(kernel_file, "Image") != 0 ||
+	    strcmp(dtb_file, "board.dtb") != 0 ||
+	    strcmp(initramfs_file, "initramfs.cpio.gz") != 0 ||
+	    !valid_plan_identity(plan->target_id, TARGET_MAX) ||
+	    !valid_plan_identity(plan->target_release, RELEASE_MAX) ||
+	    !parse_plan_number(target_timeout, 30, 600,
+			       &plan->target_timeout) ||
+	    !valid_hash(command_hash, false) ||
+	    strcmp(command_hash, actual_command_hash) != 0)
+		return false;
+	return true;
+}
+
+static void close_artifact_descriptors(
+	int descriptors[HANDOFF_DESCRIPTOR_COUNT])
+{
+	size_t index;
+
+	for (index = 0; index < HANDOFF_DESCRIPTOR_COUNT; index++) {
+		if (descriptors[index] >= 0) {
+			close(descriptors[index]);
+			descriptors[index] = -1;
+		}
+	}
+}
+
+static bool stop_child(pid_t child)
+{
+	int64_t deadline = monotonic_milliseconds() +
+		CHILD_REAP_TIMEOUT_MS;
+
+	if (kill(child, SIGKILL) < 0 && errno != ESRCH)
+		return false;
+	while (true) {
+		int status;
+		pid_t waited = waitpid(child, &status, WNOHANG);
+
+		if (waited == child)
+			return true;
+		if (waited < 0) {
+			if (errno == EINTR)
+				continue;
+			if (errno == ECHILD)
+				return true;
+			return false;
+		}
+		if (monotonic_milliseconds() >= deadline)
+			return false;
+		sleep_milliseconds(10);
+	}
+}
+
+static void stop_child_or_fail(pid_t child)
+{
+	if (!stop_child(child))
+		fail("cannot stop and reap PREPARE child");
+}
+
+static bool wait_child_bounded(pid_t child, int64_t deadline, int *status)
+{
+	while (true) {
+		pid_t waited = waitpid(child, status, WNOHANG);
+		int64_t remaining;
+		unsigned int interval;
+
+		if (waited == child)
+			return true;
+		if (waited < 0 && errno == EINTR)
+			continue;
+		if (waited < 0)
+			return false;
+		if (!watchdog_armed()) {
+			stop_child_or_fail(child);
+			fail("rollback watchdog died during PREPARE");
+		}
+		remaining = deadline - monotonic_milliseconds();
+		if (remaining <= 0)
+			return false;
+		interval = remaining > 10 ? 10 : (unsigned int)remaining;
+		sleep_milliseconds(interval);
+	}
+}
+
+static bool unload_kexec_image(void)
+{
+	char *const environment[] = {
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+		NULL,
+	};
+	int status;
+	int64_t deadline;
+	pid_t child = fork();
+
+	if (child < 0)
+		return false;
+	if (child == 0) {
+		char *const arguments[] = {
+			"rog5-kexec",
+			"-c",
+			"-u",
+			NULL,
+		};
+
+		if (!watchdog_armed())
+			_exit(126);
+		execve(kexec_path, arguments, environment);
+		_exit(127);
+	}
+	deadline = monotonic_milliseconds() + kexec_load_timeout_ms;
+	if (!wait_child_bounded(child, deadline, &status)) {
+		stop_child_or_fail(child);
+		return false;
+	}
+	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
+static void reconcile_uncommitted_image(const char *context)
 {
 #ifdef ROG5_CONTROL_TESTING
-	const char *allowed = getenv("ROG5_TEST_ALLOW_MANIFEST");
-
-	return allowed != NULL &&
-		strcmp(allowed, request->manifest_sha256) == 0;
-#else
-	(void)request;
-	return false;
+	if (!test_kexec_configured)
+		return;
 #endif
+	if (!unload_kexec_image())
+		fail("cannot unload uncommitted kexec image during %s", context);
+}
+
+static int wait_handoff_packet(int descriptor, int64_t deadline)
+{
+	while (true) {
+		struct pollfd items[2] = {
+			{
+				.fd = descriptor,
+				.events = POLLIN,
+			},
+			{
+				.fd = watchdog_pidfd,
+				.events = POLLIN | POLLHUP,
+			},
+		};
+		int64_t remaining = deadline - monotonic_milliseconds();
+		int timeout;
+		int result;
+
+		if (remaining <= 0)
+			return false;
+		timeout = remaining > 100 ? 100 : (int)remaining;
+		do {
+			result = poll(items, 2, timeout);
+		} while (result < 0 && errno == EINTR);
+		if (result < 0)
+			return false;
+		if (result == 0)
+			continue;
+		if (items[1].revents != 0)
+			return -1;
+		if ((items[0].revents & POLLIN) != 0)
+			return true;
+		if ((items[0].revents &
+		     (POLLERR | POLLHUP | POLLNVAL)) != 0)
+			return false;
+	}
+}
+
+static bool validate_handoff_peer(int descriptor)
+{
+	struct ucred peer;
+	socklen_t length = sizeof(peer);
+	int type;
+	socklen_t type_length = sizeof(type);
+
+	return getsockopt(descriptor, SOL_SOCKET, SO_TYPE,
+			  &type, &type_length) == 0 &&
+		type_length == sizeof(type) && type == SOCK_SEQPACKET &&
+		getsockopt(descriptor, SOL_SOCKET, SO_PEERCRED,
+			   &peer, &length) == 0 &&
+		length == sizeof(peer) && peer.pid > 0 &&
+		peer.uid == geteuid() && peer.gid == getegid();
+}
+
+static int receive_verified_handoff(
+	int descriptor, int64_t deadline,
+	char plan[PLAN_MAX + 1], size_t *plan_length,
+	int artifacts[HANDOFF_DESCRIPTOR_COUNT])
+{
+	union {
+		struct cmsghdr alignment;
+		unsigned char bytes[
+			CMSG_SPACE(HANDOFF_CONTROL_FD_MAX * sizeof(int))];
+	} control = { 0 };
+	struct iovec vector = {
+		.iov_base = plan,
+		.iov_len = PLAN_MAX,
+	};
+	struct msghdr message = {
+		.msg_iov = &vector,
+		.msg_iovlen = 1,
+		.msg_control = control.bytes,
+		.msg_controllen = sizeof(control.bytes),
+	};
+	struct cmsghdr *header;
+	int received_descriptors[HANDOFF_CONTROL_FD_MAX];
+	size_t ancillary_count = 0;
+	size_t received_count = 0;
+	bool valid = true;
+	ssize_t count;
+	int ready;
+
+	if (!validate_handoff_peer(descriptor))
+		return false;
+	ready = wait_handoff_packet(descriptor, deadline);
+	if (ready <= 0)
+		return ready;
+	do {
+		count = recvmsg(
+			descriptor, &message, MSG_CMSG_CLOEXEC | MSG_DONTWAIT);
+	} while (count < 0 && errno == EINTR);
+	if (count <= 0)
+		valid = false;
+	if ((message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)) != 0)
+		valid = false;
+	for (header = CMSG_FIRSTHDR(&message); header != NULL;
+	     header = CMSG_NXTHDR(&message, header)) {
+		size_t payload_length;
+		size_t received;
+
+		ancillary_count++;
+		if (header->cmsg_level != SOL_SOCKET ||
+		    header->cmsg_type != SCM_RIGHTS ||
+		    header->cmsg_len < CMSG_LEN(0)) {
+			valid = false;
+			continue;
+		}
+		payload_length = header->cmsg_len - CMSG_LEN(0);
+		if (payload_length % sizeof(int) != 0) {
+			valid = false;
+			continue;
+		}
+		received = payload_length / sizeof(int);
+		if (received > HANDOFF_CONTROL_FD_MAX - received_count) {
+			valid = false;
+			received = HANDOFF_CONTROL_FD_MAX - received_count;
+		}
+		memcpy(received_descriptors + received_count, CMSG_DATA(header),
+		       received * sizeof(int));
+		received_count += received;
+	}
+	if (ancillary_count != 1 ||
+	    received_count != HANDOFF_DESCRIPTOR_COUNT)
+		valid = false;
+	if (!valid) {
+		size_t index;
+
+		for (index = 0; index < received_count; index++)
+			close(received_descriptors[index]);
+		return false;
+	}
+	memcpy(artifacts, received_descriptors, sizeof(int) *
+	       HANDOFF_DESCRIPTOR_COUNT);
+	*plan_length = (size_t)count;
+	return true;
+}
+
+static bool validate_artifact_descriptors(
+	int descriptors[HANDOFF_DESCRIPTOR_COUNT])
+{
+	static const uint64_t minimum[] = { 64, 40, 2 };
+	static const uint64_t maximum[] = {
+		KERNEL_MAX,
+		DTB_MAX,
+		INITRAMFS_MAX,
+	};
+	struct stat metadata[HANDOFF_DESCRIPTOR_COUNT];
+	size_t index;
+	size_t other;
+
+	for (index = 0; index < HANDOFF_DESCRIPTOR_COUNT; index++) {
+		int descriptor_flags;
+		int seals;
+		int status_flags;
+
+		if (descriptors[index] < 0 ||
+		    fstat(descriptors[index], &metadata[index]) < 0 ||
+		    !S_ISREG(metadata[index].st_mode) ||
+		    metadata[index].st_uid != geteuid() ||
+		    metadata[index].st_nlink != 0 ||
+		    (metadata[index].st_mode & 0222) != 0 ||
+		    metadata[index].st_size < (off_t)minimum[index] ||
+		    (uint64_t)metadata[index].st_size > maximum[index])
+			return false;
+		descriptor_flags =
+			fcntl(descriptors[index], F_GETFD);
+		seals = fcntl(descriptors[index], F_GET_SEALS);
+		status_flags = fcntl(descriptors[index], F_GETFL);
+		if (descriptor_flags < 0 || seals != REQUIRED_SEALS ||
+		    status_flags < 0 ||
+		    (descriptor_flags & FD_CLOEXEC) == 0 ||
+		    (status_flags & O_ACCMODE) == O_WRONLY ||
+		    lseek(descriptors[index], 0, SEEK_CUR) != 0)
+			return false;
+	}
+	for (index = 0; index < HANDOFF_DESCRIPTOR_COUNT; index++) {
+		for (other = index + 1;
+		     other < HANDOFF_DESCRIPTOR_COUNT; other++) {
+			if (metadata[index].st_dev == metadata[other].st_dev &&
+			    metadata[index].st_ino == metadata[other].st_ino)
+				return false;
+		}
+	}
+	return true;
+}
+
+static bool run_bundle_verifier(
+	const struct request *request, struct verified_plan *plan,
+	int artifacts[HANDOFF_DESCRIPTOR_COUNT])
+{
+	char record[PLAN_MAX + 1];
+	char *const environment[] = {
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+		NULL,
+	};
+	int sockets[2];
+	int status;
+	int64_t deadline;
+	size_t record_length = 0;
+	pid_t child;
+	int received;
+
+	if (socketpair(AF_UNIX,
+		       SOCK_SEQPACKET | SOCK_CLOEXEC | SOCK_NONBLOCK,
+		       0, sockets) < 0)
+		return false;
+	child = fork();
+	if (child < 0) {
+		close(sockets[0]);
+		close(sockets[1]);
+		return false;
+	}
+	if (child == 0) {
+		char *const arguments[] = {
+			"rog5-bundle-verify",
+			"--handoff-fd3",
+			(char *)request->bundle,
+			(char *)request->manifest_sha256,
+			NULL,
+		};
+		int flags;
+
+		close(sockets[0]);
+		if (sockets[1] != HANDOFF_FD) {
+			if (dup3(sockets[1], HANDOFF_FD, 0) < 0)
+				_exit(126);
+			close(sockets[1]);
+		} else {
+			flags = fcntl(HANDOFF_FD, F_GETFD);
+			if (flags < 0 ||
+			    fcntl(HANDOFF_FD, F_SETFD,
+				  flags & ~FD_CLOEXEC) < 0)
+				_exit(126);
+		}
+		execve(verifier_path, arguments, environment);
+		_exit(127);
+	}
+	close(sockets[1]);
+	deadline = monotonic_milliseconds() + verify_timeout_ms;
+	received = receive_verified_handoff(
+		sockets[0], deadline, record, &record_length, artifacts);
+	close(sockets[0]);
+	if (!received) {
+		stop_child_or_fail(child);
+		return false;
+	}
+	if (received < 0) {
+		stop_child_or_fail(child);
+		fail("rollback watchdog died during verifier handoff");
+	}
+	if (!wait_child_bounded(child, deadline, &status)) {
+		stop_child_or_fail(child);
+		close_artifact_descriptors(artifacts);
+		return false;
+	}
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0 ||
+	    !parse_verified_plan(
+		    record, record_length, request, plan) ||
+	    !validate_artifact_descriptors(artifacts)) {
+		close_artifact_descriptors(artifacts);
+		return false;
+	}
+	return true;
+}
+
+static bool load_verified_plan(
+	const struct verified_plan *plan,
+	int artifacts[HANDOFF_DESCRIPTOR_COUNT])
+{
+	char kernel_path[64];
+	char dtb_option[96];
+	char initramfs_option[96];
+	char command_option[CMDLINE_MAX + 32];
+	char *const environment[] = {
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+		NULL,
+	};
+	int status;
+	int64_t deadline;
+	pid_t child;
+	int length;
+
+	length = snprintf(
+		kernel_path, sizeof(kernel_path),
+		"/proc/self/fd/%d", artifacts[0]);
+	if (length < 0 || length >= (int)sizeof(kernel_path))
+		return false;
+	length = snprintf(
+		dtb_option, sizeof(dtb_option),
+		"--dtb=/proc/self/fd/%d", artifacts[1]);
+	if (length < 0 || length >= (int)sizeof(dtb_option))
+		return false;
+	length = snprintf(
+		initramfs_option, sizeof(initramfs_option),
+		"--initrd=/proc/self/fd/%d", artifacts[2]);
+	if (length < 0 || length >= (int)sizeof(initramfs_option))
+		return false;
+	length = snprintf(
+		command_option, sizeof(command_option),
+		"--command-line=%s", plan->command_line);
+	if (length < 0 || length >= (int)sizeof(command_option))
+		return false;
+
+	child = fork();
+	if (child < 0)
+		return false;
+	if (child == 0) {
+		char *const arguments[] = {
+			"rog5-kexec",
+			"-c",
+			"-l",
+			kernel_path,
+			initramfs_option,
+			dtb_option,
+			command_option,
+			NULL,
+		};
+		size_t index;
+
+		for (index = 0; index < HANDOFF_DESCRIPTOR_COUNT; index++) {
+			int flags = fcntl(artifacts[index], F_GETFD);
+
+			if (flags < 0 ||
+			    fcntl(artifacts[index], F_SETFD,
+				  flags & ~FD_CLOEXEC) < 0)
+				_exit(126);
+		}
+		if (!watchdog_armed())
+			_exit(126);
+		execve(kexec_path, arguments, environment);
+		_exit(127);
+	}
+	deadline = monotonic_milliseconds() + kexec_load_timeout_ms;
+	if (!wait_child_bounded(child, deadline, &status)) {
+		stop_child_or_fail(child);
+		reconcile_uncommitted_image("failed PREPARE load");
+		return false;
+	}
+	if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+		return true;
+	reconcile_uncommitted_image("rejected PREPARE load");
+	return false;
+}
+
+static bool verify_prepare(const struct request *request)
+{
+	struct verified_plan plan;
+	int artifacts[HANDOFF_DESCRIPTOR_COUNT] = { -1, -1, -1 };
+	bool loaded;
+
+#ifdef ROG5_CONTROL_TESTING
+	if (getenv("ROG5_TEST_VERIFIER_PATH") == NULL) {
+		const char *allowed = getenv("ROG5_TEST_ALLOW_MANIFEST");
+
+		return allowed != NULL &&
+			strcmp(allowed, request->manifest_sha256) == 0;
+	}
+#endif
+	if (!run_bundle_verifier(request, &plan, artifacts))
+		return false;
+	loaded = load_verified_plan(&plan, artifacts);
+	close_artifact_descriptors(artifacts);
+	return loaded;
 }
 
 static void persist_prepared(struct control_state *state,
@@ -1356,8 +1991,6 @@ static void handle_request(struct control_state *state,
 	char cached_result[24];
 	const char *result;
 	int decisions;
-	bool reserved = false;
-	bool verifier_ran = false;
 	bool prepare_verified = false;
 
 	memset(action, 0, sizeof(*action));
@@ -1417,39 +2050,45 @@ static void handle_request(struct control_state *state,
 	}
 
 	decisions = ledger_count();
-	if (decisions >= LEDGER_MAX - 2) {
+	if (decisions >= LEDGER_MAX) {
+		set_last_error(state, "LEDGER_FULL");
+		build_response(state, request, "LEDGER_FULL",
+			       action->payload, &action->payload_length);
+		return;
+	}
+	if (decisions >= LEDGER_MAX - 3) {
+		bool capacity_reserved = false;
+
 		if (strcmp(request->verb, "PREPARE") == 0 &&
-		    state->phase == PHASE_IDLE) {
-			verifier_ran = true;
-			prepare_verified = verify_prepare(request);
-			reserved = prepare_verified;
+		    state->phase == PHASE_IDLE &&
+		    decisions == LEDGER_MAX - 3) {
+			capacity_reserved = true;
 		} else if (strcmp(request->verb, "COMMIT_EXEC") == 0 &&
 			   state->phase == PHASE_PREPARED &&
 			   strcmp(request->prepare_request,
 				  state->prepare_request) == 0 &&
 			   strcmp(request->manifest_sha256,
 				  state->manifest_sha256) == 0) {
-			reserved = true;
+			capacity_reserved = true;
 		}
-	}
-	if (decisions >= LEDGER_MAX ||
-	    (decisions >= LEDGER_MAX - 2 && !reserved)) {
-		set_last_error(state, "LEDGER_FULL");
-		build_response(state, request, "LEDGER_FULL",
-			       action->payload, &action->payload_length);
-		return;
+		if (!capacity_reserved) {
+			set_last_error(state, "LEDGER_FULL");
+			build_response(state, request, "LEDGER_FULL",
+				       action->payload,
+				       &action->payload_length);
+			return;
+		}
 	}
 
 	if (strcmp(request->verb, "PREPARE") == 0) {
 		if (state->phase == PHASE_IDLE) {
-			if (!verifier_ran) {
-				prepare_verified = verify_prepare(request);
-				verifier_ran = true;
-			}
+			prepare_verified = verify_prepare(request);
 			if (!prepare_verified) {
 				set_last_error(state, "VERIFY_FAILED");
 				result = "VERIFY_FAILED";
 			} else {
+				if (crash_point("after_prepare_load"))
+					_exit(88);
 				persist_prepared(state, request);
 				if (crash_point("after_prepare"))
 					_exit(88);
@@ -1623,7 +2262,6 @@ static void persist_failure(struct control_state *state, const char *error)
 				 (size_t)length))
 		fail("execution failure already exists");
 	state->phase = PHASE_EXEC_FAILED;
-	memcpy(state->last_error, error, strlen(error) + 1);
 	set_last_error(state, error);
 }
 
@@ -1668,22 +2306,25 @@ static void execute_claim(struct control_state *state)
 
 		if (mode == NULL)
 			mode = "depart";
-		if (!create_immutable_at(state_fd, "test-executed", marker,
-					 sizeof(marker) - 1))
-			fail("test executor ran more than once");
-		if (strcmp(mode, "depart") == 0)
-			_exit(0);
-		if (strcmp(mode, "return") == 0) {
-			persist_failure(state, "EXEC_RETURNED");
-			return;
+		if (strcmp(mode, "fixed_path") != 0) {
+			if (!create_immutable_at(
+				    state_fd, "test-executed", marker,
+				    sizeof(marker) - 1))
+				fail("test executor ran more than once");
+			if (strcmp(mode, "depart") == 0)
+				_exit(0);
+			if (strcmp(mode, "return") == 0) {
+				persist_failure(state, "EXEC_RETURNED");
+				return;
+			}
+			if (strcmp(mode, "fail") == 0) {
+				persist_failure(state, "EXEC_FAILED");
+				return;
+			}
+			fail("invalid test execute mode");
 		}
-		if (strcmp(mode, "fail") == 0) {
-			persist_failure(state, "EXEC_FAILED");
-			return;
-		}
-		fail("invalid test execute mode");
 	}
-#else
+#endif
 	{
 		pid_t child;
 		int status;
@@ -1692,57 +2333,50 @@ static void execute_claim(struct control_state *state)
 			fail("rollback watchdog died before executor fork");
 		child = fork();
 		if (child < 0) {
+			reconcile_uncommitted_image("executor fork failure");
 			persist_failure(state, "EXEC_FAILED");
 			return;
 		}
-			if (child == 0) {
-				char *const arguments[] = {
-					"rog5-kexec", "-e", NULL,
-				};
-				char *const environment[] = {
-					"PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL,
-				};
+		if (child == 0) {
+			char *const arguments[] = {
+				"rog5-kexec", "-e", NULL,
+			};
+			char *const environment[] = {
+				"PATH=/sbin:/bin:/usr/sbin:/usr/bin", NULL,
+			};
 
-				if (!watchdog_armed())
-					_exit(126);
-				execve("/usr/sbin/kexec", arguments, environment);
-				_exit(127);
-			}
-			while (true) {
-				pid_t waited = waitpid(child, &status, WNOHANG);
-
-				if (waited == child)
-					break;
-				if (waited < 0 && errno == EINTR)
-					continue;
-				if (waited < 0) {
-					persist_failure(state, "EXEC_FAILED");
-					return;
-				}
-				if (!watchdog_armed()) {
-					if (kill(child, SIGKILL) < 0 &&
-					    errno != ESRCH)
-						fail("cannot stop executor after watchdog death");
-					while (waitpid(child, &status, 0) < 0) {
-						if (errno != EINTR &&
-						    errno != ECHILD)
-							fail("cannot reap stopped executor");
-						if (errno == ECHILD)
-							break;
-					}
-					fail("rollback watchdog died while executor ran");
-				}
-				sleep_milliseconds(10);
-			}
 			if (!watchdog_armed())
-				fail("rollback watchdog died as executor exited");
-			persist_failure(
-				state,
-				WIFEXITED(status) && WEXITSTATUS(status) != 126 &&
-				WEXITSTATUS(status) != 127 ?
-					"EXEC_RETURNED" : "EXEC_FAILED");
+				_exit(126);
+			execve(kexec_path, arguments, environment);
+			_exit(127);
 		}
-#endif
+		while (true) {
+			pid_t waited = waitpid(child, &status, WNOHANG);
+
+			if (waited == child)
+				break;
+			if (waited < 0 && errno == EINTR)
+				continue;
+			if (waited < 0) {
+				reconcile_uncommitted_image(
+					"executor wait failure");
+				persist_failure(state, "EXEC_FAILED");
+				return;
+			}
+			if (!watchdog_armed()) {
+				stop_child_or_fail(child);
+				fail("rollback watchdog died while executor ran");
+			}
+			sleep_milliseconds(10);
+		}
+		if (!watchdog_armed())
+			fail("rollback watchdog died as executor exited");
+		reconcile_uncommitted_image("returned executor");
+		persist_failure(
+			state,
+			WIFEXITED(status) && WEXITSTATUS(status) == 0 ?
+				"EXEC_RETURNED" : "EXEC_FAILED");
+	}
 }
 
 static void configure_tty(int descriptor)
@@ -1833,8 +2467,23 @@ static void parse_arguments(int argc, char **argv)
 static void configure_test_runtime(void)
 {
 #ifdef ROG5_CONTROL_TESTING
+	const char *test_verifier = getenv("ROG5_TEST_VERIFIER_PATH");
+	const char *test_kexec = getenv("ROG5_TEST_KEXEC_PATH");
 	const char *timeout = getenv("ROG5_TEST_IO_TIMEOUT_MS");
 
+	if ((test_verifier == NULL) != (test_kexec == NULL))
+		fail("test PREPARE paths must be configured together");
+	if (test_verifier != NULL) {
+		if (test_verifier[0] != '/' || test_kexec[0] != '/' ||
+		    strnlen(test_verifier, PATH_MAX) >= PATH_MAX ||
+		    strnlen(test_kexec, PATH_MAX) >= PATH_MAX ||
+		    access(test_verifier, X_OK) < 0 ||
+		    access(test_kexec, X_OK) < 0)
+			fail("invalid test PREPARE executable path");
+		verifier_path = test_verifier;
+		kexec_path = test_kexec;
+		test_kexec_configured = true;
+	}
 	if (timeout != NULL) {
 		char *end = NULL;
 		unsigned long value;
@@ -1845,6 +2494,30 @@ static void configure_test_runtime(void)
 		    value < 50 || value > 10000)
 			fail("invalid test I/O timeout");
 		io_timeout_ms = (unsigned int)value;
+	}
+	timeout = getenv("ROG5_TEST_VERIFY_TIMEOUT_MS");
+	if (timeout != NULL) {
+		char *end = NULL;
+		unsigned long value;
+
+		errno = 0;
+		value = strtoul(timeout, &end, 10);
+		if (errno != 0 || end == timeout || *end != '\0' ||
+		    value < 50 || value > VERIFY_TIMEOUT_MS)
+			fail("invalid test verifier timeout");
+		verify_timeout_ms = (unsigned int)value;
+	}
+	timeout = getenv("ROG5_TEST_LOAD_TIMEOUT_MS");
+	if (timeout != NULL) {
+		char *end = NULL;
+		unsigned long value;
+
+		errno = 0;
+		value = strtoul(timeout, &end, 10);
+		if (errno != 0 || end == timeout || *end != '\0' ||
+		    value < 50 || value > KEXEC_LOAD_TIMEOUT_MS)
+			fail("invalid test load timeout");
+		kexec_load_timeout_ms = (unsigned int)value;
 	}
 #endif
 }
@@ -1861,6 +2534,8 @@ int main(int argc, char **argv)
 	open_watchdog_lease();
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed at startup");
+	if (state.phase != PHASE_PREPARED)
+		reconcile_uncommitted_image("startup reconciliation");
 
 	while (true) {
 		int descriptor = open(device_path,
