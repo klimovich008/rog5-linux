@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 from dataclasses import dataclass
 import fcntl
 import hashlib
@@ -35,6 +36,7 @@ FINAL_INVENTORY = {
     "manifest.sig",
     *(name for name, _minimum, _maximum in ARTIFACTS),
 }
+RENAME_NOREPLACE = 1
 
 
 class BundleError(RuntimeError):
@@ -114,14 +116,33 @@ def validate_private_key(descriptor: int, openssl: str) -> bytes:
     ):
         raise BundleError("private key metadata is unsafe")
     os.lseek(descriptor, 0, os.SEEK_SET)
+    unencrypted = subprocess.run(
+        [
+            openssl,
+            "pkcs8",
+            "-in",
+            f"/proc/self/fd/{descriptor}",
+            "-nocrypt",
+            "-outform",
+            "DER",
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        pass_fds=(descriptor,),
+        check=False,
+    )
+    if unencrypted.returncode != 0:
+        raise BundleError(
+            "private key is not unencrypted PKCS#8"
+        )
+    os.lseek(descriptor, 0, os.SEEK_SET)
     result = subprocess.run(
         [
             openssl,
             "pkey",
             "-in",
             f"/proc/self/fd/{descriptor}",
-            "-passin",
-            "pass:",
             "-pubout",
             "-outform",
             "DER",
@@ -137,7 +158,7 @@ def validate_private_key(descriptor: int, openssl: str) -> bytes:
         or len(result.stdout) != len(SPKI_PREFIX) + 32
         or not result.stdout.startswith(SPKI_PREFIX)
     ):
-        raise BundleError("private key is not an unencrypted Ed25519 key")
+        raise BundleError("private key is not Ed25519")
     return result.stdout[len(SPKI_PREFIX) :]
 
 
@@ -211,12 +232,11 @@ def copy_artifact(
     before = os.fstat(source)
     if before.st_size < minimum or before.st_size > maximum:
         raise BundleError(f"{name} size is outside policy")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
+    flags = os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
     destination = os.open(name, flags, 0o400, dir_fd=directory)
     created.append(name)
-    digest = hashlib.sha256()
     observed = 0
     try:
         while True:
@@ -226,26 +246,36 @@ def copy_artifact(
             observed += len(block)
             if observed > maximum:
                 raise BundleError(f"{name} changed beyond size policy")
-            digest.update(block)
             write_all(destination, block)
         os.fchmod(destination, 0o400)
         os.fsync(destination)
         output = os.fstat(destination)
+        after = os.fstat(source)
+        if (
+            source_snapshot(before) != source_snapshot(after)
+            or observed != before.st_size
+        ):
+            raise BundleError(f"{name} changed while being copied")
+        if (
+            output.st_uid != os.geteuid()
+            or stat.S_IMODE(output.st_mode) != 0o400
+            or output.st_nlink != 1
+            or output.st_size != observed
+        ):
+            raise BundleError(f"{name} output metadata is unsafe")
+        os.lseek(destination, 0, os.SEEK_SET)
+        digest = hashlib.sha256()
+        hashed = 0
+        while True:
+            block = os.read(destination, 1024 * 1024)
+            if not block:
+                break
+            hashed += len(block)
+            digest.update(block)
+        if hashed != observed:
+            raise BundleError(f"{name} staged snapshot changed")
     finally:
         os.close(destination)
-    after = os.fstat(source)
-    if (
-        source_snapshot(before) != source_snapshot(after)
-        or observed != before.st_size
-    ):
-        raise BundleError(f"{name} changed while being copied")
-    if (
-        output.st_uid != os.geteuid()
-        or stat.S_IMODE(output.st_mode) != 0o400
-        or output.st_nlink != 1
-        or output.st_size != observed
-    ):
-        raise BundleError(f"{name} output metadata is unsafe")
     return observed, digest.hexdigest()
 
 
@@ -298,8 +328,6 @@ def sign_manifest(
                 "-rawin",
                 "-inkey",
                 f"/proc/self/fd/{private_key}",
-                "-passin",
-                "pass:",
                 "-in",
                 f"/proc/self/fd/{message}",
             ],
@@ -326,9 +354,53 @@ def create_staging_directory(root: int, bundle: str) -> tuple[str, int]:
         flags = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC
         if hasattr(os, "O_NOFOLLOW"):
             flags |= os.O_NOFOLLOW
-        descriptor = os.open(name, flags, dir_fd=root)
+        try:
+            descriptor = os.open(name, flags, dir_fd=root)
+        except OSError as error:
+            try:
+                os.rmdir(name, dir_fd=root)
+            except OSError as cleanup_error:
+                raise BundleError(
+                    "cannot clean failed staging directory"
+                ) from cleanup_error
+            raise BundleError(
+                "cannot open private staging directory"
+            ) from error
         return name, descriptor
     raise BundleError("cannot allocate a private staging directory")
+
+
+def rename_noreplace(
+    root: int,
+    source: str,
+    destination: str,
+) -> None:
+    library = ctypes.CDLL(None, use_errno=True)
+    try:
+        renameat2 = library.renameat2
+    except AttributeError as error:
+        raise BundleError("atomic no-replace rename is unavailable") from error
+    renameat2.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    )
+    renameat2.restype = ctypes.c_int
+    result = renameat2(
+        root,
+        os.fsencode(source),
+        root,
+        os.fsencode(destination),
+        RENAME_NOREPLACE,
+    )
+    if result != 0:
+        error_number = ctypes.get_errno()
+        raise BundleError("atomic no-replace publication failed") from OSError(
+            error_number,
+            os.strerror(error_number),
+        )
 
 
 def cleanup_staging(
@@ -416,12 +488,28 @@ def prepare_bundle(
     staging_name: str | None = None
     created: list[str] = []
     try:
+        key_snapshot = source_snapshot(os.fstat(private_key))
         public_key = validate_private_key(private_key, openssl)
+        private_key_metadata = os.fstat(private_key)
+        private_key_identity = (
+            private_key_metadata.st_dev,
+            private_key_metadata.st_ino,
+        )
         paths = (config.image, config.dtb, config.initramfs)
         for (name, _minimum, _maximum), path in zip(
             ARTIFACTS, paths, strict=True
         ):
-            sources.append(open_regular(path, name))
+            source = open_regular(path, name)
+            metadata = os.fstat(source)
+            if (
+                metadata.st_dev,
+                metadata.st_ino,
+            ) == private_key_identity:
+                os.close(source)
+                raise BundleError(
+                    "bundle artifact aliases the private key"
+                )
+            sources.append(source)
         root = open_bundle_root(config.bundle_root)
         staging_name, staging = create_staging_directory(
             root, config.bundle
@@ -441,6 +529,8 @@ def prepare_bundle(
         manifest = manifest_bytes(config, observed)
         create_file(staging, "manifest", manifest, created)
         signature = signer(manifest, private_key, openssl)
+        if source_snapshot(os.fstat(private_key)) != key_snapshot:
+            raise BundleError("private key changed while signing")
         if len(signature) != 64:
             raise BundleError("Ed25519 manifest signature has wrong size")
         create_file(staging, "manifest.sig", signature, created)
@@ -448,12 +538,7 @@ def prepare_bundle(
             raise BundleError("staging inventory is incomplete")
         os.fsync(staging)
         os.fchmod(staging, 0o500)
-        os.rename(
-            staging_name,
-            config.bundle,
-            src_dir_fd=root,
-            dst_dir_fd=root,
-        )
+        rename_noreplace(root, staging_name, config.bundle)
         staging_name = None
         os.fsync(root)
         return (

@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -523,6 +524,17 @@ class BundlePackagerTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(list(config.bundle_root.iterdir()), [])
 
+        config, _workspace = self.workspace("key-artifact-alias")
+        result = self.invoke(
+            self.replace(config, image=self.private_key)
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            b"bundle artifact aliases the private key",
+            result.stderr,
+        )
+        self.assertEqual(list(config.bundle_root.iterdir()), [])
+
         config, workspace = self.workspace("key-symlink")
         key_link = workspace / "key.link"
         key_link.symlink_to(self.private_key)
@@ -535,6 +547,41 @@ class BundlePackagerTest(unittest.TestCase):
         weak_key.write_bytes(self.private_key.read_bytes())
         weak_key.chmod(0o644)
         result = self.invoke(self.replace(config, private_key=weak_key))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(list(config.bundle_root.iterdir()), [])
+
+        config, workspace = self.workspace("hard-linked-key")
+        key_copy = workspace / "key-copy.pem"
+        hard_key = workspace / "hard-key.pem"
+        key_copy.write_bytes(self.private_key.read_bytes())
+        key_copy.chmod(0o600)
+        os.link(key_copy, hard_key)
+        result = self.invoke(self.replace(config, private_key=hard_key))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(list(config.bundle_root.iterdir()), [])
+
+        config, workspace = self.workspace("encrypted-empty-passphrase")
+        encrypted_key = workspace / "encrypted.pem"
+        subprocess.run(
+            [
+                "openssl",
+                "pkcs8",
+                "-topk8",
+                "-in",
+                str(self.private_key),
+                "-out",
+                str(encrypted_key),
+                "-passout",
+                "pass:",
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        encrypted_key.chmod(0o600)
+        result = self.invoke(
+            self.replace(config, private_key=encrypted_key)
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(list(config.bundle_root.iterdir()), [])
 
@@ -609,6 +656,121 @@ class BundlePackagerTest(unittest.TestCase):
             "injected signing failure",
         ):
             PACKAGER.prepare_bundle(config, signer=fail_signing)
+        self.assertEqual(list(config.bundle_root.iterdir()), [])
+
+    def test_concurrent_final_directory_is_never_replaced(self) -> None:
+        config, _workspace = self.workspace("no-replace-race")
+        competing_identity: list[tuple[int, int]] = []
+
+        def create_competing_final(
+            manifest: bytes,
+            private_key: int,
+            openssl: str,
+        ) -> bytes:
+            competing = config.bundle_root / config.bundle
+            competing.mkdir(mode=0o700)
+            metadata = competing.stat()
+            competing_identity.append(
+                (metadata.st_dev, metadata.st_ino)
+            )
+            return PACKAGER.sign_manifest(
+                manifest,
+                private_key,
+                openssl,
+            )
+
+        with self.assertRaisesRegex(
+            PACKAGER.BundleError,
+            "atomic no-replace publication failed",
+        ):
+            PACKAGER.prepare_bundle(config, signer=create_competing_final)
+        self.assertEqual(
+            {path.name for path in config.bundle_root.iterdir()},
+            {config.bundle},
+        )
+        competing = config.bundle_root / config.bundle
+        metadata = competing.stat()
+        self.assertEqual(
+            (metadata.st_dev, metadata.st_ino),
+            competing_identity[0],
+        )
+        self.assertEqual(list(competing.iterdir()), [])
+
+    def test_private_key_change_during_signing_is_rejected(self) -> None:
+        config, _workspace = self.workspace("changing-key")
+
+        def change_key_metadata(
+            manifest: bytes,
+            private_key: int,
+            openssl: str,
+        ) -> bytes:
+            signature = PACKAGER.sign_manifest(
+                manifest,
+                private_key,
+                openssl,
+            )
+            os.utime(config.private_key, None)
+            return signature
+
+        with self.assertRaisesRegex(
+            PACKAGER.BundleError,
+            "private key changed while signing",
+        ):
+            PACKAGER.prepare_bundle(config, signer=change_key_metadata)
+        self.assertEqual(list(config.bundle_root.iterdir()), [])
+
+    def test_wrong_private_key_owner_is_rejected(self) -> None:
+        descriptor = os.open(self.private_key, os.O_RDONLY)
+        try:
+            with mock.patch.object(
+                PACKAGER.os,
+                "geteuid",
+                return_value=os.geteuid() + 1,
+            ):
+                with self.assertRaisesRegex(
+                    PACKAGER.BundleError,
+                    "private key metadata is unsafe",
+                ):
+                    PACKAGER.validate_private_key(
+                        descriptor,
+                        shutil.which("openssl"),
+                    )
+        finally:
+            os.close(descriptor)
+
+    def test_failed_staging_open_removes_created_directory(self) -> None:
+        config, _workspace = self.workspace("staging-open-failure")
+        root = os.open(
+            config.bundle_root,
+            os.O_RDONLY | os.O_DIRECTORY,
+        )
+        real_open = os.open
+
+        def fail_staging_open(path, flags, mode=0o777, *, dir_fd=None):
+            if (
+                isinstance(path, str)
+                and path.startswith(f".{config.bundle}.staging-")
+                and dir_fd == root
+            ):
+                raise PermissionError("injected staging open failure")
+            return real_open(path, flags, mode, dir_fd=dir_fd)
+
+        try:
+            with mock.patch.object(
+                PACKAGER.os,
+                "open",
+                side_effect=fail_staging_open,
+            ):
+                with self.assertRaisesRegex(
+                    PACKAGER.BundleError,
+                    "cannot open private staging directory",
+                ):
+                    PACKAGER.create_staging_directory(
+                        root,
+                        config.bundle,
+                    )
+        finally:
+            os.close(root)
         self.assertEqual(list(config.bundle_root.iterdir()), [])
 
 
