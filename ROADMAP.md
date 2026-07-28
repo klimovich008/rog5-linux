@@ -95,8 +95,9 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **protocol core, fixed fetch, trust verifier, and same-descriptor load
-are integrated offline; blocked on host serving and initramfs integration**
+Status: **protocol core, fixed fetch/serving, trust verifier, and
+same-descriptor load are integrated offline; blocked on initramfs
+integration**
 
 - [x] Implement an offline-tested static responder whose production default
   owns `/dev/ttyGS0`.
@@ -114,7 +115,7 @@ are integrated offline; blocked on host serving and initramfs integration**
   and atomic no-replace publication.
 - [x] Invoke the fixed acquisition helper from `PREPARE` under the watchdog
   before the verifier, with permanent bundle-conflict semantics.
-- [ ] Add the fixed read-only host-serving command and firewall/controller
+- [x] Add the fixed read-only host-serving command and firewall/controller
   integration for the canonical binary stream.
 - [x] Implement and test canonical signed manifests against the fixed
   production key path using ephemeral test keys only.

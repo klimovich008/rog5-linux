@@ -223,11 +223,9 @@ suite and one canonical offline runner before another image is built.
 
 ## Immediate next work
 
-1. Add the fixed read-only host-serving command and controller/firewall
-   integration for the canonical bundle stream.
-2. Integrate the pinned fetcher, responder, verifier, kexec-tools, and
+1. Integrate the pinned fetcher, responder, verifier, kexec-tools, and
    approved public key into one shell-free initramfs.
-3. Ask before creating or using the production signing credential.
-4. Rebuild and verify one stable recovery candidate.
-5. Run staging-only promotion before any new payload execution.
-6. Generate, review, and only then apply the ignored-artifact deletion plan.
+2. Ask before creating or using the production signing credential.
+3. Rebuild and verify one stable recovery candidate.
+4. Run staging-only promotion before any new payload execution.
+5. Generate, review, and only then apply the ignored-artifact deletion plan.

@@ -117,6 +117,14 @@ The combined descriptor/load checkpoint is recorded in the
 The fixed transport is specified in
 [recovery fetch contract](recovery-fetch-contract.md), with evidence in the
 [fixed fetch offline result](../test-results/2026-07-28-recovery-fixed-fetch-offline.md).
+The matching one-shot host server and root-owned runtime firewall controller
+now pass nine protocol/descriptor tests and nine mocked controller-lifecycle
+tests. The server opens only the fixed caller-owned bundle root, serves
+already-verified descriptors as an unprivileged capability-free process, and
+the controller restores every address, rule, zone assignment, and
+NetworkManager override it creates. The reviewed helpers have not been
+installed and no live host network state was changed. See the
+[host server result](../test-results/2026-07-28-recovery-host-server-offline.md).
 
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a

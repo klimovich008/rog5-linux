@@ -46,6 +46,10 @@ canonical ASCII request/response records. The response then contains
 streamed to an `O_EXCL|O_NOFOLLOW|O_CLOEXEC` file under one absolute
 deadline. The compressed allocation is bounded to approximately 386 MiB; the
 later fetched-plus-sealed boundary remains approximately 772 MiB.
+After transmitting the canonical request, the worker now performs
+`shutdown(SHUT_WR)` through its seccomp allowlist. The host requires request
+EOF before responding, which makes delayed trailing-request rejection
+unambiguous while preserving the response direction.
 
 The responder directly executes the fixed fetcher path with only the bundle
 ID and manifest hash. Its 65-second outer deadline exceeds the helper's
@@ -79,6 +83,7 @@ Coverage includes:
 
 - exact fragmented request/response framing and every canonical-header
   mutation;
+- mandatory request half-close before the server response;
 - overflow and all artifact size/hash mismatches;
 - truncation in the frame prefix, header, and every body;
 - body reordering, trailing bytes, second frames, reset, timeout, and
@@ -148,8 +153,8 @@ issue in this scope, and returned `COMMIT`.
 |---|---|
 | AArch64 builder ID | `d5fb16636fadea937b74dc3e062617d74a12577fd3fcc3f61fec24d0f7364495` |
 | AArch64 builder digest | `sha256:750150c51c8b5085d322ecaa5363356bb31ee243d6efab1035bd15f5ffe52355` |
-| fetcher source SHA-256 | `4e4f5eef9c9587bf2d2957f62677a0f883c24fbc1a3d14141935dd7b34b71c58` |
-| fetcher AArch64 binary SHA-256 | `ca8c9fcef9153de850d3476383c13fe5e3441e2fb95e7acd07041e42f7cc052f` |
+| fetcher source SHA-256 | `be892d0130831674f0ce380dbfc4c719a6090eb8d87994bb87cc6486dcb926f1` |
+| fetcher AArch64 binary SHA-256 | `920c9bb3ccb4ab4b3fc3ad783532c5620ed31b3bd52377c8fe3e340fd865702f` |
 | responder source SHA-256 | `fa28285ffda05915f9f73f418f26a6ec557270767011fce77aef1fdd43fd37a4` |
 | responder AArch64 binary SHA-256 | `479ac6c7e0269a0ebb67e6c07745216ae37e79c61da60a3a862c51194a3b67ea` |
 | root-test image ID | `34ecc17078b364df195ad61253520b1cac487dca05773dc4b2fc2bacb0941941` |
@@ -159,10 +164,9 @@ These are offline checkpoint identities, not a live allowlist.
 
 ## Remaining gates
 
-1. Add a fixed read-only host-serving command for the canonical stream.
-2. Include the fetcher, verifier, responder, pinned kexec-tools, runtime
+1. Include the fetcher, verifier, responder, pinned kexec-tools, runtime
    libraries, and separately approved public key in one shell-free initramfs.
-3. Re-run the complete offline image suite, then perform the separately
+2. Re-run the complete offline image suite, then perform the separately
    authorized staging-only promotion sequence.
 
 ## Commands
