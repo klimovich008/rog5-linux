@@ -61,24 +61,26 @@ unsafe artifact can pass the generic recovery preflight.
 
 ## P1 — Recovery protocol test suite
 
-Status: **next**
+Status: **in progress; reference oracle passes offline**
 
 Specification:
 [docs/recovery-control-plane.md](docs/recovery-control-plane.md)
 
 Build the tests before the responder:
 
-- [ ] Canonical frame parser reference model.
-- [ ] Split/coalesced frame tests at every boundary.
-- [ ] Malformed length, oversize, duplicate/unknown field, NUL, and non-ASCII
+- [x] Canonical frame parser reference model.
+- [x] Split/coalesced frame tests at every boundary.
+- [x] Malformed length, oversize, duplicate/unknown field, NUL, and non-ASCII
   rejection.
-- [ ] Device-session and request-ID replay model.
-- [ ] Same-ID/same-body cached response and same-ID/different-body conflict.
-- [ ] `PREPARE` idempotency and one-bundle-per-session model.
-- [ ] Atomic `COMMIT_EXEC` claim model.
-- [ ] Fault injection before claim, after claim, after response, and after
+- [x] Device-session and request-ID replay model.
+- [x] Same-ID/same-body cached response and same-ID/different-body conflict.
+- [x] Same-ID `PREPARE` retry, new-ID rejection, and one-bundle-per-session
+  model.
+- [x] Atomic `COMMIT_EXEC` claim and persisted fingerprint model.
+- [x] Fault injection before claim, after claim, after response, and after
   simulated execute.
-- [ ] Host write-ahead ledger crash-consistency tests.
+- [x] Session-keyed host write-ahead ledger, crash consistency, immutable
+  outcome, symlink/path replacement, and concurrent-controller tests.
 - [ ] Pseudo-terminal delayed-open, partial-I/O, dropped-reply, disconnect,
   and responder-restart tests.
 - [ ] Proof that arbitrary shell input never reaches an execution primitive.

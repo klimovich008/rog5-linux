@@ -70,6 +70,11 @@ There is therefore no active payload-execution gate. The next recovery must
 implement the framed, device-session-bound, at-most-once protocol in
 [recovery control plane](recovery-control-plane.md).
 
+The protocol reference model and host write-ahead ledger now pass 45 offline
+fault, replay, parser, crash-consistency, and concurrency tests. This is an
+oracle for the native implementation, not a responder or live authority. See
+the [offline result](../test-results/2026-07-28-recovery-control-reference-offline.md).
+
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a
 matching module environment is unavailable. The fallback pstore-empty gate
