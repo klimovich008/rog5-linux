@@ -230,10 +230,14 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   nodes, requires every node read-only, and permits zero block-backed mounts.
   If strict SSH sees the exact pinned Alpine fallback before target
   acceptance, the runner records elapsed time privately, restores host state,
-  and exits rejected immediately. The target decodes `/proc/config.gz` once
-  into mode-0400 RAM, requires its full SHA-256 to equal the pinned build
-  config, and assigns separate bounded timings to missing config, decode
-  failure, identity mismatch, and each later pre-USB stage.
+  and exits rejected immediately. The rejected one-pass package decoded
+  `/proc/config.gz` once but returned to exact fallback after 37 seconds and
+  is consumed. The latest target instead requires exact running release
+  `7.1.4-gcfd385a1c754` before storage inspection and has no proc-config
+  dependency. The boot-contract regression extracts the recovery-hashed
+  target Image's IKCONFIG stream, requires byte identity with the pinned
+  config, and checks IKCONFIG, read-only UFS, ext4, and OverlayFS. Eight
+  remaining pre-USB stages have distinct bounded timing markers.
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery

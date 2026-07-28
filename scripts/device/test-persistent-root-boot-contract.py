@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
 import struct
 import sys
@@ -12,6 +13,7 @@ BOOT_MAGIC = b"ANDROID!"
 BOOT_V3_CMDLINE_OFFSET = 44
 BOOT_V3_CMDLINE_SIZE = 1536
 BOOT_V3_MIN_HEADER_SIZE = BOOT_V3_CMDLINE_OFFSET + BOOT_V3_CMDLINE_SIZE
+EXPECTED_TARGET_RELEASE = b"Linux version 7.1.4-gcfd385a1c754 "
 REQUIRED_TOKENS = (
     "init=/init",
     "rog5linux.test=1",
@@ -47,35 +49,59 @@ def read_boot_v3_cmdline(image: Path) -> str:
         fail(f"boot command line is not ASCII: {error}")
 
 
+def read_embedded_config(image: Path) -> bytes:
+    image_data = image.read_bytes()
+    if EXPECTED_TARGET_RELEASE not in image_data:
+        fail("target Image does not contain the exact running-kernel release")
+    start_marker = b"IKCFG_ST"
+    end_marker = b"IKCFG_ED"
+    if image_data.count(start_marker) != 1:
+        fail("target Image does not contain exactly one IKCONFIG start marker")
+    if image_data.count(end_marker) != 1:
+        fail("target Image does not contain exactly one IKCONFIG end marker")
+    start = image_data.index(start_marker) + len(start_marker)
+    end = image_data.index(end_marker, start)
+    return gzip.decompress(image_data[start:end])
+
+
 def main(arguments: list[str]) -> int:
-    if len(arguments) > 2:
+    if len(arguments) > 4:
         fail(
             "usage: test-persistent-root-boot-contract.py "
-            "[BOOT_IMAGE [WRAPPER_CONFIG]]"
+            "[BOOT_IMAGE [WRAPPER_CONFIG [TARGET_IMAGE [TARGET_CONFIG]]]]"
         )
     repo = Path(__file__).resolve().parents[2]
-    image = (
+    artifact_dir = repo / "artifacts" / "persistent-root-p2"
+    boot_image = (
         Path(arguments[0])
         if arguments
-        else repo
-        / "artifacts"
-        / "persistent-root-p2"
-        / "boot-5.4.210-persistent-root.raw.img"
+        else artifact_dir / "boot-5.4.210-persistent-root.raw.img"
     )
-    config = (
+    wrapper_config = (
         Path(arguments[1])
-        if len(arguments) == 2
-        else repo
-        / "artifacts"
-        / "persistent-root-p2"
-        / "config-5.4.210-persistent-root-wrapper"
+        if len(arguments) >= 2
+        else artifact_dir / "config-5.4.210-persistent-root-wrapper"
     )
-    if not image.is_file() or image.is_symlink():
-        fail(f"missing regular P2 boot image: {image}")
-    if not config.is_file() or config.is_symlink():
-        fail(f"missing regular P2 wrapper config: {config}")
+    target_image = (
+        Path(arguments[2])
+        if len(arguments) >= 3
+        else artifact_dir / "Image-7.1.4-persistent-root"
+    )
+    target_config = (
+        Path(arguments[3])
+        if len(arguments) == 4
+        else artifact_dir / "config-7.1.4-persistent-root"
+    )
+    for label, path in (
+        ("boot image", boot_image),
+        ("wrapper config", wrapper_config),
+        ("target Image", target_image),
+        ("target config", target_config),
+    ):
+        if not path.is_file() or path.is_symlink():
+            fail(f"missing regular P2 {label}: {path}")
 
-    tokens = read_boot_v3_cmdline(image).split()
+    tokens = read_boot_v3_cmdline(boot_image).split()
     for token in REQUIRED_TOKENS:
         key = token.partition("=")[0]
         key_tokens = [
@@ -93,12 +119,27 @@ def main(arguments: list[str]) -> int:
         ]
         if key_tokens:
             fail(f"wrapper must not enable unsupported {key}, found {key_tokens}")
-    config_text = config.read_text(encoding="utf-8")
-    if "CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y" in config_text:
+    wrapper_config_text = wrapper_config.read_text(encoding="utf-8")
+    if "CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y" in wrapper_config_text:
         fail("ASUS wrapper unexpectedly claims the target-only UFS policy")
+    embedded_config = read_embedded_config(target_image)
+    if embedded_config != target_config.read_bytes():
+        fail("target Image IKCONFIG differs from the pinned target config")
+    target_config_lines = set(
+        target_config.read_text(encoding="utf-8").splitlines()
+    )
+    for setting in (
+        "CONFIG_IKCONFIG=y",
+        "CONFIG_IKCONFIG_PROC=y",
+        "CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y",
+        "CONFIG_EXT4_FS=y",
+        "CONFIG_OVERLAY_FS=y",
+    ):
+        if setting not in target_config_lines:
+            fail(f"target config omits {setting}")
     print(
         "PASS P2 boot-v3 wrapper omits target-only UFS discovery and "
-        "keeps the exact staging contract"
+        "the exact-release target Image embeds the pinned read-only config"
     )
     return 0
 

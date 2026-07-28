@@ -9,7 +9,7 @@ jobs=${JOBS:-1}
 source_sha=3bfe58a00bfdd3839f9b626c2d34f0cc6778945458f1eef93cbfdea90bf2e5a8
 marker_sha=54ea162415b31227ae50d98806d59179ac2b1acca53d71be1a3f036f9eb92069
 config_sha=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
-initramfs_sha=1dc79b683f4040543ed59c94e2cea9dbb1ada38dffbd936d146b39fc13021fdc
+initramfs_sha=438aaf1c99455e23ff27f758738e779b0fd318e68c58467eeae7b77c55a87520
 
 [ "$initramfs_source" = /root/build/rog5-kexec-stage-initramfs.cpio.gz ]
 [ -r "$source_dir/.rog5-kexec-source" ]

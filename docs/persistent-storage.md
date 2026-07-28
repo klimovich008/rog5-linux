@@ -224,13 +224,22 @@ executed the target exactly once, and returned to exact Alpine after
 [timing result](../test-results/2026-07-28-persistent-root-p2-config-timing-live-rejected.md)
 selected the old broad kernel-config branch. Offline extraction proves the
 embedded target config equals the pinned config exactly. The next fail-first
-correction decodes it once to RAM, verifies its full SHA-256 identity, and
-separates config-file, decode, and identity failures. Two corrected raw/AVB
-repacks are byte-identical. Ten unique bounded timing markers identify any
-target pre-USB failure from the automatic-fallback interval without opening
-an early shell or mounting storage. P2 remains HOLD while allowing one
-corrected attended config-identity diagnostic boot. P3 remains blocked until
-complete P2 target evidence and automatic Alpine fallback both pass.
+correction decoded it once to RAM, verified its full SHA-256 identity, and
+separated config-file, decode, and identity failures. Its sole
+[config-identity run](../test-results/2026-07-28-persistent-root-p2-config-identity-live-rejected.md)
+also executed the target exactly once and returned to exact Alpine after
+37 seconds without target USB. That package is consumed.
+
+The latest successor removes the live proc-config dependency. Recovery pins
+the exact target Image hash, the target requires exact running release
+`7.1.4-gcfd385a1c754` before storage inspection, and the offline boot contract
+extracts that Image's IKCONFIG stream and requires byte identity with the
+pinned config and all critical settings. Two corrected raw/AVB repacks are
+byte-identical. Eight unique bounded timing markers identify any target
+pre-USB failure from the automatic-fallback interval without opening an early
+shell or mounting storage. P2 remains HOLD while allowing one corrected
+attended kernel-release diagnostic boot. P3 remains blocked until complete
+P2 target evidence and automatic Alpine fallback both pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 
