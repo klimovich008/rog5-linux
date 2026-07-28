@@ -21,6 +21,7 @@
 #include <termios.h>
 #include <time.h>
 #include <sys/ioctl.h>
+#include <sys/prctl.h>
 #include <unistd.h>
 
 #define FRAME_MAX 4096
@@ -39,9 +40,11 @@
 #define HANDOFF_DESCRIPTOR_COUNT 3
 /* Linux limits one SCM_RIGHTS packet to SCM_MAX_FD (253) descriptors. */
 #define HANDOFF_CONTROL_FD_MAX 253
+#define FETCH_TIMEOUT_MS 65000
 #define VERIFY_TIMEOUT_MS 30000
 #define KEXEC_LOAD_TIMEOUT_MS 15000
 #define CHILD_REAP_TIMEOUT_MS 1000
+#define FETCH_BUNDLE_CONFLICT_EXIT 42
 #define KERNEL_MAX (128ULL * 1024 * 1024)
 #define DTB_MAX (2ULL * 1024 * 1024)
 #define INITRAMFS_MAX (256ULL * 1024 * 1024)
@@ -75,6 +78,13 @@ enum phase {
 	PHASE_PREPARED,
 	PHASE_CLAIMED,
 	PHASE_EXEC_FAILED,
+};
+
+enum prepare_outcome {
+	PREPARE_OUTCOME_OK,
+	PREPARE_OUTCOME_FETCH_FAILED,
+	PREPARE_OUTCOME_BUNDLE_ID_CONFLICT,
+	PREPARE_OUTCOME_VERIFY_FAILED,
 };
 
 struct control_state {
@@ -113,9 +123,11 @@ static const char *device_path = "/dev/ttyGS0";
 /* Production state must remain session-scoped tmpfs, never persistent media. */
 static const char *state_path = "/run/rog5-control";
 static const char *watchdog_path = "/run/rog5-recovery-watchdog.lease";
+static const char *fetcher_path = "/usr/libexec/rog5-bundle-fetch";
 static const char *verifier_path = "/usr/libexec/rog5-bundle-verify";
 static const char *kexec_path = "/usr/sbin/kexec";
 static unsigned int io_timeout_ms = 2000;
+static unsigned int fetch_timeout_ms = FETCH_TIMEOUT_MS;
 static unsigned int verify_timeout_ms = VERIFY_TIMEOUT_MS;
 static unsigned int kexec_load_timeout_ms = KEXEC_LOAD_TIMEOUT_MS;
 #ifdef ROG5_CONTROL_TESTING
@@ -373,6 +385,8 @@ static bool valid_result_for_verb(const char *verb, const char *result)
 		return true;
 	if (strcmp(verb, "PREPARE") == 0) {
 		return strcmp(result, "PREPARED") == 0 ||
+			strcmp(result, "FETCH_FAILED") == 0 ||
+			strcmp(result, "BUNDLE_ID_CONFLICT") == 0 ||
 			strcmp(result, "VERIFY_FAILED") == 0 ||
 			strcmp(result, "PREPARE_ID_CONFLICT") == 0 ||
 			strcmp(result, "BUNDLE_CONFLICT") == 0 ||
@@ -760,6 +774,8 @@ static void load_state(struct control_state *state)
 		    *cursor != '\0')
 			fail("invalid last-error state");
 		if (strcmp(state->last_error, "NONE") != 0 &&
+		    strcmp(state->last_error, "FETCH_FAILED") != 0 &&
+		    strcmp(state->last_error, "BUNDLE_ID_CONFLICT") != 0 &&
 		    strcmp(state->last_error, "VERIFY_FAILED") != 0 &&
 		    strcmp(state->last_error, "LEDGER_FULL") != 0 &&
 		    strcmp(state->last_error, "EXEC_FAILED") != 0 &&
@@ -1225,7 +1241,31 @@ static void build_response(const struct control_state *state,
 	*output_length = (size_t)length;
 }
 
-static int ledger_count(void)
+static void read_ledger_record(
+	const char *request_id, char fingerprint[HASH_LENGTH + 1],
+	char verb[16], char result[24])
+{
+	char record[256];
+	char *cursor;
+	size_t length;
+
+	if (!read_file_at(ledger_fd, request_id, record,
+			  sizeof(record), &length))
+		fail("request-ledger record disappeared");
+	cursor = record;
+	if (take_field(&cursor, "fingerprint", fingerprint,
+		       HASH_LENGTH + 1) < 0 ||
+	    take_field(&cursor, "verb", verb, 16) < 0 ||
+	    take_field(&cursor, "result", result, 24) < 0 ||
+	    *cursor != '\0' ||
+	    !valid_hash(fingerprint, false) ||
+	    (strcmp(verb, "PREPARE") != 0 &&
+	     strcmp(verb, "COMMIT_EXEC") != 0) ||
+	    !valid_result_for_verb(verb, result))
+		fail("invalid request-ledger decision");
+}
+
+static int ledger_count(bool *fetch_decided)
 {
 	DIR *directory;
 	struct dirent *entry;
@@ -1238,7 +1278,11 @@ static int ledger_count(void)
 	directory = fdopendir(duplicate);
 	if (directory == NULL)
 		fail("cannot inspect request ledger: %s", strerror(errno));
+	*fetch_decided = false;
 	while ((entry = readdir(directory)) != NULL) {
+		char fingerprint[HASH_LENGTH + 1];
+		char result[24];
+		char verb[16];
 		struct stat metadata;
 
 		if (entry->d_name[0] == '.')
@@ -1251,6 +1295,13 @@ static int ledger_count(void)
 		    metadata.st_uid != geteuid() ||
 		    (metadata.st_mode & 0077) != 0)
 			fail("unsafe request-ledger record");
+		read_ledger_record(
+			entry->d_name, fingerprint, verb, result);
+		if (strcmp(verb, "PREPARE") == 0 &&
+		    (strcmp(result, "FETCH_FAILED") == 0 ||
+		     strcmp(result, "BUNDLE_ID_CONFLICT") == 0 ||
+		     strcmp(result, "PREPARE_ID_CONFLICT") == 0))
+			*fetch_decided = true;
 		count++;
 	}
 	if (closedir(directory) < 0)
@@ -1264,26 +1315,21 @@ static int read_ledger(const struct request *request,
 		       char fingerprint[HASH_LENGTH + 1],
 		       char result[24])
 {
-	char record[256];
 	char recorded_verb[16];
-	char *cursor;
-	size_t length;
+	struct stat metadata;
 
-	if (!read_file_at(ledger_fd, request->request, record,
-			  sizeof(record), &length))
-		return 0;
-	cursor = record;
-	if (take_field(&cursor, "fingerprint", fingerprint,
-		       HASH_LENGTH + 1) < 0 ||
-	    take_field(&cursor, "verb", recorded_verb,
-		       sizeof(recorded_verb)) < 0 ||
-	    take_field(&cursor, "result", result, 24) < 0 ||
-	    *cursor != '\0' ||
-	    !valid_hash(fingerprint, false) ||
-	    (strcmp(recorded_verb, "PREPARE") != 0 &&
-	     strcmp(recorded_verb, "COMMIT_EXEC") != 0) ||
-	    !valid_result_for_verb(recorded_verb, result))
-		fail("invalid request-ledger decision");
+	if (fstatat(ledger_fd, request->request, &metadata,
+		    AT_SYMLINK_NOFOLLOW) < 0) {
+		if (errno == ENOENT)
+			return 0;
+		fail("cannot stat request-ledger decision");
+	}
+	if (!S_ISREG(metadata.st_mode) ||
+	    metadata.st_uid != geteuid() ||
+	    (metadata.st_mode & 0077) != 0)
+		fail("unsafe request-ledger record");
+	read_ledger_record(
+		request->request, fingerprint, recorded_verb, result);
 	return 1;
 }
 
@@ -1738,6 +1784,48 @@ static bool validate_artifact_descriptors(
 	return true;
 }
 
+static enum prepare_outcome run_bundle_fetcher(
+	const struct request *request)
+{
+	char *const environment[] = {
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+		NULL,
+	};
+	int status;
+	int64_t deadline;
+	pid_t parent = getpid();
+	pid_t child = fork();
+
+	if (child < 0)
+		return PREPARE_OUTCOME_FETCH_FAILED;
+	if (child == 0) {
+		char *const arguments[] = {
+			"rog5-bundle-fetch",
+			(char *)request->bundle,
+			(char *)request->manifest_sha256,
+			NULL,
+		};
+
+		if (prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0) < 0 ||
+		    getppid() != parent || !watchdog_armed())
+			_exit(126);
+		execve(fetcher_path, arguments, environment);
+		_exit(127);
+	}
+	deadline = monotonic_milliseconds() + fetch_timeout_ms;
+	if (!wait_child_bounded(child, deadline, &status)) {
+		stop_child_or_fail(child);
+		return PREPARE_OUTCOME_FETCH_FAILED;
+	}
+	if (!WIFEXITED(status))
+		return PREPARE_OUTCOME_FETCH_FAILED;
+	if (WEXITSTATUS(status) == 0)
+		return PREPARE_OUTCOME_OK;
+	if (WEXITSTATUS(status) == FETCH_BUNDLE_CONFLICT_EXIT)
+		return PREPARE_OUTCOME_BUNDLE_ID_CONFLICT;
+	return PREPARE_OUTCOME_FETCH_FAILED;
+}
+
 static bool run_bundle_verifier(
 	const struct request *request, struct verified_plan *plan,
 	int artifacts[HANDOFF_DESCRIPTOR_COUNT])
@@ -1896,10 +1984,11 @@ static bool load_verified_plan(
 	return false;
 }
 
-static bool verify_prepare(const struct request *request)
+static enum prepare_outcome verify_prepare(const struct request *request)
 {
 	struct verified_plan plan;
 	int artifacts[HANDOFF_DESCRIPTOR_COUNT] = { -1, -1, -1 };
+	enum prepare_outcome outcome;
 	bool loaded;
 
 #ifdef ROG5_CONTROL_TESTING
@@ -1907,14 +1996,18 @@ static bool verify_prepare(const struct request *request)
 		const char *allowed = getenv("ROG5_TEST_ALLOW_MANIFEST");
 
 		return allowed != NULL &&
-			strcmp(allowed, request->manifest_sha256) == 0;
+			strcmp(allowed, request->manifest_sha256) == 0 ?
+			PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
 	}
 #endif
+	outcome = run_bundle_fetcher(request);
+	if (outcome != PREPARE_OUTCOME_OK)
+		return outcome;
 	if (!run_bundle_verifier(request, &plan, artifacts))
-		return false;
+		return PREPARE_OUTCOME_VERIFY_FAILED;
 	loaded = load_verified_plan(&plan, artifacts);
 	close_artifact_descriptors(artifacts);
-	return loaded;
+	return loaded ? PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
 }
 
 static void persist_prepared(struct control_state *state,
@@ -1990,8 +2083,9 @@ static void handle_request(struct control_state *state,
 	char cached_fingerprint[HASH_LENGTH + 1];
 	char cached_result[24];
 	const char *result;
+	enum prepare_outcome prepare_outcome = PREPARE_OUTCOME_VERIFY_FAILED;
 	int decisions;
-	bool prepare_verified = false;
+	bool fetch_decided;
 
 	memset(action, 0, sizeof(*action));
 	if (strcmp(request->verb, "HELLO") != 0 &&
@@ -2049,7 +2143,7 @@ static void handle_request(struct control_state *state,
 		return;
 	}
 
-	decisions = ledger_count();
+	decisions = ledger_count(&fetch_decided);
 	if (decisions >= LEDGER_MAX) {
 		set_last_error(state, "LEDGER_FULL");
 		build_response(state, request, "LEDGER_FULL",
@@ -2081,9 +2175,20 @@ static void handle_request(struct control_state *state,
 	}
 
 	if (strcmp(request->verb, "PREPARE") == 0) {
-		if (state->phase == PHASE_IDLE) {
-			prepare_verified = verify_prepare(request);
-			if (!prepare_verified) {
+		if (state->phase == PHASE_IDLE && fetch_decided) {
+			result = "PREPARE_ID_CONFLICT";
+		} else if (state->phase == PHASE_IDLE) {
+			prepare_outcome = verify_prepare(request);
+			if (prepare_outcome ==
+			    PREPARE_OUTCOME_BUNDLE_ID_CONFLICT) {
+				set_last_error(state, "BUNDLE_ID_CONFLICT");
+				result = "BUNDLE_ID_CONFLICT";
+			} else if (prepare_outcome ==
+				   PREPARE_OUTCOME_FETCH_FAILED) {
+				set_last_error(state, "FETCH_FAILED");
+				result = "FETCH_FAILED";
+			} else if (prepare_outcome ==
+				   PREPARE_OUTCOME_VERIFY_FAILED) {
 				set_last_error(state, "VERIFY_FAILED");
 				result = "VERIFY_FAILED";
 			} else {
@@ -2467,19 +2572,25 @@ static void parse_arguments(int argc, char **argv)
 static void configure_test_runtime(void)
 {
 #ifdef ROG5_CONTROL_TESTING
+	const char *test_fetcher = getenv("ROG5_TEST_FETCHER_PATH");
 	const char *test_verifier = getenv("ROG5_TEST_VERIFIER_PATH");
 	const char *test_kexec = getenv("ROG5_TEST_KEXEC_PATH");
 	const char *timeout = getenv("ROG5_TEST_IO_TIMEOUT_MS");
 
-	if ((test_verifier == NULL) != (test_kexec == NULL))
+	if ((test_fetcher == NULL) != (test_verifier == NULL) ||
+	    (test_verifier == NULL) != (test_kexec == NULL))
 		fail("test PREPARE paths must be configured together");
-	if (test_verifier != NULL) {
-		if (test_verifier[0] != '/' || test_kexec[0] != '/' ||
+	if (test_fetcher != NULL) {
+		if (test_fetcher[0] != '/' ||
+		    test_verifier[0] != '/' || test_kexec[0] != '/' ||
+		    strnlen(test_fetcher, PATH_MAX) >= PATH_MAX ||
 		    strnlen(test_verifier, PATH_MAX) >= PATH_MAX ||
 		    strnlen(test_kexec, PATH_MAX) >= PATH_MAX ||
+		    access(test_fetcher, X_OK) < 0 ||
 		    access(test_verifier, X_OK) < 0 ||
 		    access(test_kexec, X_OK) < 0)
 			fail("invalid test PREPARE executable path");
+		fetcher_path = test_fetcher;
 		verifier_path = test_verifier;
 		kexec_path = test_kexec;
 		test_kexec_configured = true;
@@ -2494,6 +2605,18 @@ static void configure_test_runtime(void)
 		    value < 50 || value > 10000)
 			fail("invalid test I/O timeout");
 		io_timeout_ms = (unsigned int)value;
+	}
+	timeout = getenv("ROG5_TEST_FETCH_TIMEOUT_MS");
+	if (timeout != NULL) {
+		char *end = NULL;
+		unsigned long value;
+
+		errno = 0;
+		value = strtoul(timeout, &end, 10);
+		if (errno != 0 || end == timeout || *end != '\0' ||
+		    value < 50 || value > FETCH_TIMEOUT_MS)
+			fail("invalid test fetch timeout");
+		fetch_timeout_ms = (unsigned int)value;
 	}
 	timeout = getenv("ROG5_TEST_VERIFY_TIMEOUT_MS");
 	if (timeout != NULL) {

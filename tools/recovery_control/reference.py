@@ -52,6 +52,8 @@ VERB_FIELDS = {
 RESULTS = {
     "OK",
     "PREPARED",
+    "FETCH_FAILED",
+    "BUNDLE_ID_CONFLICT",
     "VERIFY_FAILED",
     "PREPARE_ID_CONFLICT",
     "BUNDLE_CONFLICT",
@@ -78,6 +80,8 @@ VERB_RESULTS = {
     },
     "PREPARE": {
         "PREPARED",
+        "FETCH_FAILED",
+        "BUNDLE_ID_CONFLICT",
         "VERIFY_FAILED",
         "PREPARE_ID_CONFLICT",
         "BUNDLE_CONFLICT",
@@ -98,8 +102,10 @@ VERB_RESULTS = {
 }
 RESULT_STATES = {
     "PREPARED": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "FETCH_FAILED": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "BUNDLE_ID_CONFLICT": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
     "VERIFY_FAILED": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
-    "PREPARE_ID_CONFLICT": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "PREPARE_ID_CONFLICT": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
     "BUNDLE_CONFLICT": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
     "SESSION_CONSUMED": {"CLAIMED", "EXEC_FAILED"},
     "PREPARE_REQUIRED": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
@@ -110,6 +116,8 @@ RESULT_STATES = {
 STATES = {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"}
 LAST_ERRORS = {
     "NONE",
+    "FETCH_FAILED",
+    "BUNDLE_ID_CONFLICT",
     "VERIFY_FAILED",
     "EXEC_FAILED",
     "EXEC_RETURNED",
@@ -744,12 +752,14 @@ class RecoveryModel:
         state: RecoveryState | None = None,
         *,
         maximum_ledger_entries: int = 32,
+        fetcher: Callable[[str, str], str] | None = None,
         verifier: Callable[[str, str], bool] | None = None,
     ):
         if maximum_ledger_entries < 4:
             raise ValueError("ledger bound must retain active transactions")
         self.state = RecoveryState() if state is None else state
         self.maximum_ledger_entries = maximum_ledger_entries
+        self.fetcher = fetcher or (lambda _bundle, _manifest: "FETCHED")
         self.verifier = verifier or (lambda _bundle, _manifest: True)
         self.owner = secrets.token_hex(16)
 
@@ -847,7 +857,22 @@ class RecoveryModel:
                 self.state.last_error = "LEDGER_FULL"
                 return self._response(request, "LEDGER_FULL")
 
-        if request.verb == "PREPARE":
+        fetch_decided = any(
+            entry.response.verb == "PREPARE"
+            and entry.response.result in {
+                "FETCH_FAILED",
+                "BUNDLE_ID_CONFLICT",
+                "PREPARE_ID_CONFLICT",
+            }
+            for entry in self.state.ledger.values()
+        )
+        if (
+            request.verb == "PREPARE"
+            and self.state.phase == "IDLE"
+            and fetch_decided
+        ):
+            response = self._response(request, "PREPARE_ID_CONFLICT")
+        elif request.verb == "PREPARE":
             response = self._prepare(
                 request,
                 inject=inject,
@@ -873,6 +898,15 @@ class RecoveryModel:
         bundle = request.value("bundle")
         manifest = request.value("manifest_sha256")
         if self.state.phase == "IDLE":
+            fetched = self.fetcher(bundle, manifest)
+            if fetched == "BUNDLE_ID_CONFLICT":
+                self.state.last_error = "BUNDLE_ID_CONFLICT"
+                return self._response(request, "BUNDLE_ID_CONFLICT")
+            if fetched == "FETCH_FAILED":
+                self.state.last_error = "FETCH_FAILED"
+                return self._response(request, "FETCH_FAILED")
+            if fetched != "FETCHED":
+                raise ValueError("invalid fixed-fetch outcome")
             self.state.prepare_calls += 1
             if verified is None:
                 verified = self.verifier(bundle, manifest)

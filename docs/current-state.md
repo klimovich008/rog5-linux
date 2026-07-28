@@ -72,7 +72,7 @@ implement the framed, device-session-bound, at-most-once protocol in
 
 The protocol reference model and host write-ahead ledger pass 47 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
-native responder now passes 49 pseudo-terminal and PREPARE-boundary tests as
+native responder now passes 53 pseudo-terminal and PREPARE-boundary tests as
 both a host build and a real AArch64 static binary under QEMU. A separate
 static native signed-bundle verifier enforces the canonical manifest, raw
 Ed25519 trust root, artifact identity, arm64 Image/FDT policy, bounded
@@ -91,10 +91,20 @@ death. These unload and executor paths pass through the same fake-kexec seam
 on host and AArch64/QEMU; real kernel-side unload remains a staging-only live
 gate.
 
-Fixed-host bundle acquisition is not implemented, neither binary is included
-in an initramfs, and no production signing key exists. The accepted v18
-recovery still contains the old interactive control shell. None of these
-offline checkpoints grants live authority.
+The fixed-host acquisition helper now passes 28 native tests,
+28 tests as root through a network-disabled container, and 23 executable
+AArch64/QEMU cases, with five expected QEMU-only skips. It binds a fixed NCM
+source/interface/peer, isolates
+network parsing in a UID/GID-65534 chroot/seccomp worker, independently
+revalidates the root-owned, non-writable staged files in the privileged
+parent, and publishes with `RENAME_NOREPLACE`. QEMU user mode cannot safely
+emulate a guest seccomp filter, so native and root suites own that gate. The
+responder invokes the helper first under a 65-second outer deadline and maps
+fetch failure or permanent bundle-ID conflict without invoking verifier or
+kexec. No new binary is included in an initramfs, and no production signing
+key exists. The accepted v18 recovery still contains the old
+interactive control shell. None of these offline checkpoints grants live
+authority.
 See the
 [reference result](../test-results/2026-07-28-recovery-control-reference-offline.md)
 and
@@ -104,6 +114,9 @@ plus the
 [verifier result](../test-results/2026-07-28-recovery-bundle-verifier-offline.md).
 The combined descriptor/load checkpoint is recorded in the
 [sealed PREPARE result](../test-results/2026-07-28-recovery-sealed-prepare-offline.md).
+The fixed transport is specified in
+[recovery fetch contract](recovery-fetch-contract.md), with evidence in the
+[fixed fetch offline result](../test-results/2026-07-28-recovery-fixed-fetch-offline.md).
 
 The fallback reserves ramoops memory but cannot currently read it: no driver
 is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a

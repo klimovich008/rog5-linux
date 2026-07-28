@@ -177,9 +177,10 @@ additional cleanup-test suggestions are included here.
 This is not ready for recovery-image integration or live execution. The next
 required work is:
 
-1. implement fixed-NCM-host acquisition into a private temporary directory
-   and atomic finalized-bundle publication;
-2. integrate the pinned verifier, responder, Alpine arm64
+1. add the production host-serving command; fixed acquisition and atomic
+   publication are integrated with `PREPARE` in the later
+   [fixed-fetch result](2026-07-28-recovery-fixed-fetch-offline.md);
+2. integrate the pinned fetcher, verifier, responder, Alpine arm64
    `kexec-tools 2.0.32-r2`, its runtime libraries, and a separately approved
    public key into one initramfs;
 3. prove `/proc`, `/proc/self/fd`, `/sys/kernel/kexec_loaded`, the watchdog,

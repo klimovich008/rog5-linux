@@ -1,8 +1,8 @@
 # Recovery runtime bundle contract
 
-Status: **native verifier handoff and responder same-descriptor load
-implemented and tested offline; fixed-host fetch and initramfs integration
-pending**
+Status: **fixed-host fetch, native verifier handoff, and responder
+same-descriptor load integrated and tested offline; host serving and
+initramfs integration pending**
 
 Live authority: **none**
 
@@ -17,12 +17,14 @@ and QEMU aggregate are `scripts/device/build-recovery-bundle-verifier.sh` and
 builder bootstrap is
 `scripts/host/build-recovery-bundle-verifier-image.sh`.
 
-The production responder source now calls the verifier through a private
-descriptor handoff and loads the exact verified files. Neither binary is
-present in an initramfs, fixed-host acquisition is not implemented, and this
-checkpoint cannot authorize a phone action. A production signing key does not
-exist. Tests generate an ephemeral Ed25519 key under a temporary directory and
-delete it when the test exits.
+The production responder source now invokes the fixed-host helper under the
+rollback watchdog, calls the verifier through a private descriptor handoff,
+and loads the exact verified files. None of those binaries is present in an
+initramfs. The helper and its protocol are documented in
+[fixed recovery bundle transport](recovery-fetch-contract.md). This
+checkpoint cannot authorize a phone action. A production signing key does
+not exist. Tests generate an ephemeral Ed25519 key under a temporary
+directory and delete it when the test exits.
 
 ## Fixed paths and inventory
 

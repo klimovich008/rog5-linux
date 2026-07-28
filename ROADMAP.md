@@ -95,8 +95,8 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **protocol core, trust verifier, and same-descriptor load implemented;
-blocked on fixed-host fetch and initramfs integration**
+Status: **protocol core, fixed fetch, trust verifier, and same-descriptor load
+are integrated offline; blocked on host serving and initramfs integration**
 
 - [x] Implement an offline-tested static responder whose production default
   owns `/dev/ttyGS0`.
@@ -109,7 +109,13 @@ blocked on fixed-host fetch and initramfs integration**
   public key into the initramfs before USB bind.
 - [ ] Remove `sh -i` from recovery, network-root, and persistent-root
   initramfs variants.
-- [ ] Fetch bundles only over the fixed NCM host/path.
+- [x] Implement and independently test fixed-NCM-host binary bundle
+  acquisition, an unprivileged chroot/seccomp worker, bounded RAM inventory,
+  and atomic no-replace publication.
+- [x] Invoke the fixed acquisition helper from `PREPARE` under the watchdog
+  before the verifier, with permanent bundle-conflict semantics.
+- [ ] Add the fixed read-only host-serving command and firewall/controller
+  integration for the canonical binary stream.
 - [x] Implement and test canonical signed manifests against the fixed
   production key path using ephemeral test keys only.
 - [x] Copy the exact kernel, DTB, and initramfs into write-sealed snapshots,

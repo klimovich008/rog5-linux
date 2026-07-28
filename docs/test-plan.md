@@ -210,6 +210,21 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
   detection requires exact normalized product `ROG5_recovery`; the fallback
   gadget sharing `1d6b:0104` is a hard failure.
+- `test-recovery-fetch-native.py`, `test-recovery-fetch-root.sh`, and
+  `test-recovery-fetch-aarch64.sh` exercise the fixed binary NCM acquisition
+  helper as an ordinary host process, as root in a network-disabled
+  container, and as a reproducible static AArch64 binary. They require the
+  UID/GID-65534 chroot/seccomp worker, exact descriptor set, fixed peer
+  contract, bounded canonical stream, independent parent revalidation,
+  no-replace publication, conflict/quota policy, crash/ENOSPC containment,
+  and parent-death cleanup. The responder reference/native/AArch64 suites
+  additionally require exact fetch-before-verifier-before-loader ordering,
+  immutable `FETCH_FAILED` and `BUNDLE_ID_CONFLICT` decisions, no verifier or
+  kexec call after acquisition failure, nested helper-tree timeout cleanup,
+  abrupt responder-death propagation, new-request-ID refetch refusal, and
+  rollback-watchdog death during fetch. The
+  [offline result](../test-results/2026-07-28-recovery-fixed-fetch-offline.md)
+  grants no image or live authority.
 - `reboot-fallback-to-fastboot.sh` requires the separately pinned fallback
   host identity, exact stock kernel/init/compatible/ext4 state, empty pstore,
   zero project modules, safe thermals, and a separate reboot guard. Its only
