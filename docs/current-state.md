@@ -296,7 +296,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 6. Measure screen-off wall power, charging, thermal behavior, and refresh-rate
    cost on the promoted kernel/userspace.
 
-No new phone action is needed while blocker 1 is being implemented offline.
+No new phone action is authorized or needed before blocker 1 receives explicit
+approval.
 
 ## Operational constraints
 
