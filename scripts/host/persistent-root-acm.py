@@ -39,7 +39,7 @@ PREFLIGHT_COMMAND = (
     "block_mounts=$((block_mounts + 1)); "
     "done </proc/self/mountinfo; "
     '[ "$block_mounts" = 0 ]; '
-    "echo 'PASS P2 staging preflight storage=ro kexec_loaded=1'"
+    "printf 'PASS P2 staging preflight storage=ro kexec_loaded=%s\\n' 1"
 )
 PREFLIGHT_MARKER = b"PASS P2 staging preflight storage=ro kexec_loaded=1"
 

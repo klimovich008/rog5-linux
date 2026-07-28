@@ -117,6 +117,7 @@ systemctl is-active --quiet ModemManager.service &&
 BOOT_IMAGE=$boot_image ALLOW_TEMPORARY_BOOT=1 "$recovery" boot
 ALLOW_PERSISTENT_ROOT_ACM=1 "$acm" load
 ALLOW_PERSISTENT_ROOT_ACM=1 "$acm" preflight
+execute_epoch=$(date +%s)
 ALLOW_PERSISTENT_ROOT_ACM=1 ALLOW_ATTENDED_KEXEC=1 "$acm" execute
 
 target=root@169.254.77.2
@@ -158,6 +159,8 @@ fallback_options=(
 
 target_deadline=$(( $(date +%s) + target_timeout ))
 target_boot_id=
+early_fallback_boot_id=
+early_fallback_elapsed=
 while (( $(date +%s) < target_deadline )); do
 	set +e
 	candidate=$(ssh -n "${target_accept_options[@]}" "$target" \
@@ -170,8 +173,28 @@ while (( $(date +%s) < target_deadline )); do
 		target_boot_id=$candidate
 		break
 	fi
+	: >"$target_known_hosts"
+	set +e
+	fallback_candidate=$(ssh -n "${fallback_options[@]}" "$target" \
+		'[ "$(uname -r)" = 5.4.134-qgki-perf-00001-g6c308144c23e ] &&
+			cat /proc/sys/kernel/random/boot_id' 2>/dev/null)
+	fallback_status=$?
+	set -e
+	if [[ $fallback_status == 0 &&
+		$fallback_candidate =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+		early_fallback_boot_id=$fallback_candidate
+		early_fallback_elapsed=$(( $(date +%s) - execute_epoch ))
+		printf \
+			'REJECTED P2 target returned to exact fallback before acceptance elapsed_seconds=%s\n' \
+			"$early_fallback_elapsed" |
+			tee -a "$fallback_log" >/dev/null
+		chmod 0600 "$fallback_log"
+		break
+	fi
 	sleep 2
 done
+[[ -z $early_fallback_boot_id ]] ||
+	fail "P2 target returned to exact fallback before acceptance after ${early_fallback_elapsed}s"
 [[ -n $target_boot_id ]] || fail 'exact P2 target SSH did not appear'
 [[ -s $target_known_hosts && ! -L $target_known_hosts &&
 	$(stat -c '%u:%a' "$target_known_hosts") == "$EUID:600" ]] ||

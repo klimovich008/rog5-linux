@@ -30,6 +30,24 @@ force_rollback() {
 	done
 }
 
+fail_stage() {
+	reason=$1
+	stage=$2
+	delay=$3
+	case "$stage:$delay" in
+		cmdline:5|kernel-config:10|ufs-discovery:20|ufs-power:35|\
+storage-lock:50|userdata:65|inventory:80|usb:95) ;;
+		*)
+			log 'invalid failure timing marker'
+			force_rollback
+			;;
+	esac
+	log "$reason"
+	log "failure timing marker stage=$stage delay=${delay}s"
+	sleep "$delay"
+	force_rollback
+}
+
 arm_watchdog() {
 	(
 		exec 8>/dev/kmsg
@@ -454,42 +472,38 @@ if [ "$recovery_timeout" -lt 300 ] || [ "$recovery_timeout" -gt 900 ]; then
 fi
 if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
 	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
-	log 'invalid persistent-root command line'
-	force_rollback
+	fail_stage 'invalid persistent-root command line' cmdline 5
 fi
 if [ ! -r /proc/config.gz ] ||
 	! gzip -dc /proc/config.gz |
 		grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' ||
 	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_EXT4_FS=y' ||
 	! gzip -dc /proc/config.gz | grep -qx 'CONFIG_OVERLAY_FS=y'; then
-	log 'dedicated read-only persistent-root kernel attestation failed'
-	force_rollback
+	fail_stage \
+		'dedicated read-only persistent-root kernel attestation failed' \
+		kernel-config 10
 fi
 
 arm_watchdog
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then
-	force_rollback
+	fail_stage 'UFS discovery failed' ufs-discovery 20
 fi
 if ! verify_ufs_power_containment; then
-	log 'UFS power containment failed before storage lock'
-	force_rollback
+	fail_stage 'UFS power containment failed before storage lock' \
+		ufs-power 35
 fi
 if ! lock_physical_storage; then
-	log 'physical storage lock failed'
-	force_rollback
+	fail_stage 'physical storage lock failed' storage-lock 50
 fi
 if ! find_exact_userdata; then
-	log 'exact userdata identity failed'
-	force_rollback
+	fail_stage 'exact userdata identity failed' userdata 65
 fi
 if ! write_ufs_inventory; then
-	log 'UFS inventory failed'
-	force_rollback
+	fail_stage 'UFS inventory failed' inventory 80
 fi
 if ! configure_usb; then
-	log 'USB recovery transport failed'
-	force_rollback
+	fail_stage 'USB recovery transport failed' usb 95
 fi
 if ! verify_physical_storage_read_only ||
 	! verify_ufs_power_containment; then

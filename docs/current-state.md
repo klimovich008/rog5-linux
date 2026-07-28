@@ -309,11 +309,20 @@ The
 now provides a duplicate-built Linux 7.1.4 read-only UFS target, complete
 seal verifier, `ro,noload` ext4 plus volatile OverlayFS boot, strict SSH,
 screen-off attestation, nested ASUS recovery wrapper, and a reproducible
-temporary boot image. Direct kexec from the fallback refused safely because
-its exact kernel has kexec disabled. A guarded reboot then disconnected the
-phone without exposing fastboot or any replacement USB identity, so P2 has
-not run live. The next storage action is one attended, non-flashing P2 boot
-after the phone becomes visible in fastboot; P3 remains prohibited.
+temporary boot image. The
+[first P2 live attempt](../test-results/2026-07-28-persistent-root-p2-live-rejected.md)
+temporarily booted the wrapper and loaded the target, but the target did not
+reach its USB or SSH identity and the watchdog returned to exact Alpine.
+The run also proved that terminal echo could satisfy the old preflight marker
+and that the wrapper omitted `rog5.ufs_discovery=1`, so its expected UFS
+counters did not exist. The success marker is now output-only, rejected
+volatile SSH keys are cleared between probes, and two corrected wrapper
+repacks with the required command-line contract are byte-identical. The
+corrected image has not run live; P2 remains rejected/HOLD and P3 remains
+prohibited. Eight pre-USB failure branches now have unique bounded 5-95 second
+timing markers, and every target, stage, wrapper, and final image layer
+reproduces twice. The next attended temporary boot is therefore a diagnostic
+interval measurement, not a blind retry.
 
 The network-root gate now passes its offline and live headless boundaries.
 Two clean Linux 7.1.4 builds are byte-identical with NFSv4.2/OverlayFS built

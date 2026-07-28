@@ -174,7 +174,7 @@ publication, and an independent post-publication whole-tree verification.
 archive was removed after verification. Alpine remained online and no root
 was selected or booted.
 
-### Gate P2 — UFS read-only Arch boot (offline-ready; live pending)
+### Gate P2 — UFS read-only Arch boot (offline-ready; live rejected/HOLD)
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
@@ -202,15 +202,22 @@ retains an independent 600-second reset. Target initramfs, Linux 7.1.4,
 nested stage, ASUS wrapper, and header-v3/AVB products all reproduce across
 two builds.
 
-The live gate has not run. Direct loading from Alpine failed safely because
-its exact 5.4.134 kernel has kexec disabled, and the subsequent guarded reboot
-disconnected without exposing fastboot or another phone USB identity. The
-manifest-pinned image is ready for one attended, non-flashing `fastboot boot`
-when the phone is physically visible. The same report documents the
-guard-first one-shot host runner that verifies target and fallback, never
-disarms the 600-second watchdog, stores evidence privately, and restores
-ModemManager. P3 remains blocked until the complete P2 target evidence and
-automatic Alpine fallback pass.
+The first attended live gate temporarily booted the wrapper, loaded the exact
+target once, and then returned automatically to exact Alpine. The target
+never exposed its USB or SSH identity, so it was rejected. The run also
+revealed two host/wrapper defects before target execution: an echoed command
+could contain the complete success marker, and the wrapper command line
+omitted `rog5.ufs_discovery=1`, making the required discovery counters absent.
+Fail-first regressions now require an output-only marker, removal of rejected
+volatile SSH keys between probes, and the exact boot-v3 command-line token.
+Two corrected raw/AVB repacks are byte-identical. Eight unique bounded timing
+markers now identify any pre-USB failure from the automatic-fallback interval
+without opening an early shell or mounting storage. That diagnostic image has
+not run live. The
+[live rejection report](../test-results/2026-07-28-persistent-root-p2-live-rejected.md)
+keeps P2 on HOLD while allowing one attended timing-diagnostic temporary boot.
+P3 remains blocked until complete P2 target evidence and automatic Alpine
+fallback both pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

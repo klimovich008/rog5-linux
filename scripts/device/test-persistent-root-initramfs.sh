@@ -46,6 +46,19 @@ grep -Fq 'mount --move /mnt/state /newroot/.rog5/state' "$init"
 grep -Fq 'exec switch_root /newroot /sbin/init' "$init"
 grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
 grep -Fq 'WantedBy=multi-user.target' "$init"
+for timing_marker in \
+	'cmdline:5' \
+	'kernel-config:10' \
+	'ufs-discovery:20' \
+	'ufs-power:35' \
+	'storage-lock:50' \
+	'userdata:65' \
+	'inventory:80' \
+	'usb:95'; do
+	grep -Fq "$timing_marker" "$init"
+done
+grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
+grep -Fq 'sleep "$delay"' "$init"
 
 watchdog_line=$(grep -n '^arm_watchdog$' "$init" | cut -d: -f1)
 wait_line=$(grep -n "log 'waiting for stable UFS discovery'" "$init" |

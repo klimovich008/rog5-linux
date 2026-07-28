@@ -19,6 +19,29 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 - Upstream SM8350 HDK, MTP, Surface Duo 2, and Sony Sagami DTS files.
 - Locally extracted firmware, never committed.
 
+### Stock-image extraction
+
+Unpacking the original ASUS images materially helps this port. Treat it as
+artifact extraction and selective decompilation, not as a way to recreate
+maintainable source:
+
+- unpack `boot`, `vendor_boot`, `dtbo`, and `vbmeta` to recover header
+  metadata, command-line contracts, ramdisk init/uevent rules, DTB/DTBO
+  topology, and verified-boot relationships;
+- decompile only the DT nodes needed to compare reserved memory, regulators,
+  clocks, GPIO/pinctrl, panel/touch, USB, UFS, radios, and firmware names;
+- inventory vendor modules, firmware paths, partition metadata, and HAL
+  behavior as compatibility evidence; and
+- diff those facts against the ASUS GPL source and upstream Linux board files.
+
+This cannot reconstruct the proprietary display bridge, firmware, complete
+kernel history, or a clean compilable source tree. The implementation remains
+ASUS GPL source plus upstream Linux and small reviewed board-specific changes.
+Full stock images, proprietary blobs, raw vendor DTS, serials, partition
+GUIDs, Wi-Fi calibration, and panel command payloads stay outside Git. Record
+local hashes and commit only reproducible extraction scripts plus redacted
+hardware facts.
+
 ## Bring-up phases
 
 ### Phase A — reproducible compile
