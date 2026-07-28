@@ -246,9 +246,19 @@ Image's IKCONFIG stream and requires byte identity with the pinned config and
 all critical settings. Two corrected raw/AVB repacks are byte-identical. Nine
 unique bounded timing markers identify any target pre-USB failure from the
 automatic-fallback interval without opening an early shell or mounting
-storage. P2 remains HOLD while allowing one corrected attended direct-procfs
-diagnostic boot. P3 remains blocked until complete P2 target evidence and
-automatic Alpine fallback both pass.
+storage. Its sole
+[direct-procfs run](../test-results/2026-07-28-persistent-root-p2-osrelease-live-rejected.md)
+passed recovery, executed the target exactly once, and returned to exact
+fallback after 37 seconds without target USB. Root and host state remained
+exact; the fallback display again required a transient screen-off correction.
+That package is consumed.
+
+P2 remains HOLD. The common 36-37 second interval across several different
+early checks is no longer treated as proof of branch selection. The next
+candidate must provide a credential-free RAM-only USB entry marker before any
+userland storage access, plus an independent reset that remains
+distinguishable when USB setup fails. P3 remains blocked until complete P2
+target evidence and automatic Alpine fallback both pass.
 
 ### Gate P3 — bounded UFS write probe (pending)
 

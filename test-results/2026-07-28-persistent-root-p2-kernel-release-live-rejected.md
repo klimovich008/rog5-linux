@@ -140,8 +140,10 @@ header-v3 repacks also match. Pinned `avbtool 1.4.0` verifies the algorithm
 ## Decision
 
 The one-pass `uname -r` package is consumed and must not be retried or
-flashed. P2 remains HOLD and P3 remains prohibited. The direct-procfs
-successor may receive one attended non-flashing diagnostic boot only after
-the complete offline suite passes and its tracked source, manifest, and
-reports are committed and pushed. Only complete target acceptance plus exact
-automatic fallback can pass P2.
+flashed. Its direct-procfs successor subsequently received its sole attended
+boot and [returned safely to exact fallback after 37 seconds without target
+USB](2026-07-28-persistent-root-p2-osrelease-live-rejected.md). That package
+is also consumed. P2 remains HOLD and P3 remains prohibited. Repeated
+36-37 second returns no longer justify another timing-only diagnostic; the
+next candidate must provide an explicit RAM-only early-init oracle. Only
+complete target acceptance plus exact automatic fallback can pass P2.
