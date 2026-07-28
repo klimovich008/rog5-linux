@@ -1,0 +1,2 @@
+name	status	basis
+artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	allow	twice-live-accepted RAM-only staging and rollback; never flash

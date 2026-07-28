@@ -1,5 +1,10 @@
 # Test plan
 
+> Historical detailed plan. It preserves accepted and rejected tier
+> contracts, but it grants no current live authority. Do not run its legacy
+> ACM/kexec steps. Current work is the offline
+> [framed recovery control plane](recovery-control-plane.md).
+
 Tests are ordered so a failure never hides whether the phone can be recovered. A tier is attempted only after every mandatory test in the previous tier passes.
 
 ## Tier 0 — static build checks

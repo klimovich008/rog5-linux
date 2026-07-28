@@ -330,11 +330,14 @@ class SerialTransportTest(unittest.TestCase):
         self.assertIn("run_fixed_sequence", source)
         self.assertIn('"confirm-gpucc"', source)
         recovery = SOURCE.with_name("recovery-linux.sh").read_text()
-        self.assertIn("network-root-acm.py load-normal", recovery)
-        self.assertIn("load-gpucc-confirmation", recovery)
-        self.assertIn("ALLOW_ATTENDED_KEXEC=1", recovery)
-        self.assertIn("network-root-acm.py confirm-gpucc", recovery)
-        self.assertNotIn("socat -,rawer", recovery)
+        self.assertNotIn("network-root-acm.py", recovery)
+        self.assertNotIn("ALLOW_ATTENDED_KEXEC=1", recovery)
+        self.assertIn(
+            "no payload execution is currently authorized",
+            recovery,
+        )
+        self.assertIn("docs/recovery-control-plane.md", recovery)
+        self.assertNotIn("socat", recovery)
 
 
 if __name__ == "__main__":

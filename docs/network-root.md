@@ -1,5 +1,10 @@
 # Native Arch/Debian network-root gate
 
+> Historical accepted-path documentation. It grants no current live
+> authority, and its legacy ACM/kexec controls must not be run. The next
+> permitted implementation is the offline
+> [framed recovery control plane](recovery-control-plane.md).
+
 This is the first full-distribution boot after accepted read-only UFS
 discovery. It runs a normal ARM64 distribution as PID 1 directly on Linux,
 not inside Android, while keeping phone storage absent from the kernel.
