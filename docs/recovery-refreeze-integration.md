@@ -1,7 +1,7 @@
 # Stable recovery re-freeze integration
 
-Status: **offline integration passes; production key and boot image are not
-created**
+Status: **offline initramfs, wrapper, boot-v3, and AVB reproducibility pass;
+production key and release candidate are not created**
 
 This is the closure plan for replacing the accepted v18 interactive recovery
 with one frozen, framed control platform. It records the exact reusable
@@ -111,6 +111,28 @@ initramfs  0f3f58020bf835ed280072eaabf34a839f26219c825eca56fa85c50e7fe769e4
 The initramfs identity includes an ephemeral test public key. It is therefore
 not a release identity and must never enter the temporary-boot allowlist.
 
+The subsequent full wrapper gate used another ephemeral public key and
+proved two clean initramfs, vendor-kernel, raw boot-v3, and AVB outputs
+byte-identical. The kernel Image identity was
+`303d3767261f1ca9e105d7fd5dbb6ab7f18110aeba0cf3daecb1d01c4cb80175`;
+the raw image identity was
+`4029ab83f2470195054213aee77201f6bc29b78d52c14196afeb3203a09804bf`;
+and the 96 MiB AVB identity was
+`64e0b8efe8af04e40fd90b2c84d050447fd618c3add919d111934d2cb3502ec8`.
+Unpacking recovered the exact kernel and initramfs, preserved the UFS and
+read-only-storage boundary, and replaced the old recovery `/16` with the
+fixed `169.254.77.2/30`. The ASUS wrapper correctly omits the target-only
+`rog5.ufs_discovery=1`; recovery `/init` still locks every discovered
+physical node read-only before USB bind. `avbtool` verified the complete hash
+descriptor.
+
+The full evidence and repeatable command are in
+[stable recovery wrapper reproducibility](../test-results/2026-07-28-stable-recovery-wrapper-offline.md).
+`scripts/host/test-stable-recovery-wrapper-offline.sh` pins the source marker,
+reference config, boot template, Android image tools, and kernel-builder
+identity; runs both builds without container network access; and refuses
+outputs outside the ignored `build/` tree.
+
 ## Remaining promotion boundary
 
 Before a stable candidate exists:
@@ -118,10 +140,12 @@ Before a stable candidate exists:
 1. obtain explicit confirmation to create or use a production signing key;
 2. keep the private key outside the repository and build tree;
 3. embed only its reviewed raw public key;
-4. build the initramfs, wrapper kernel, raw boot image, and AVB wrapper twice;
+4. build the release initramfs, wrapper kernel, raw boot image, and AVB
+   wrapper twice with the approved public key;
 5. update all source, artifact, and temporary-boot pins atomically;
 6. complete independent review and the staged live-promotion sequence in the
    roadmap.
 
-No production signing credential, boot wrapper, AVB image, host installation,
-or phone action is performed by the current offline integration.
+No production signing credential, release wrapper, host installation, or
+phone action is performed by the current offline integration. The generated
+ephemeral-key wrapper and AVB images are test-only ignored artifacts.

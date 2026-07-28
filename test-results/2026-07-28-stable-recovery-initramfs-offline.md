@@ -85,3 +85,7 @@ recorded in `manifests/temporary-boot-images.tsv`. A production candidate
 requires separate approval for the signing trust root, two complete
 initramfs/wrapper/AVB builds, independent review, atomic pin updates, and the
 staging-only live sequence.
+
+The later ephemeral-key wrapper/boot-v3/AVB reproducibility proof is recorded
+separately in
+[stable recovery wrapper reproducibility](2026-07-28-stable-recovery-wrapper-offline.md).
