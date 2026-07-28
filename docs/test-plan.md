@@ -272,7 +272,17 @@ Tests are ordered so a failure never hides whether the phone can be recovered. A
   write rejected by the real panel, the daemon traps termination and reaps its
   `evtest` child/FIFO, and the phone-start wrapper initializes volatile OpenRC
   state before executing the preserved original launcher. Automatic
-  post-watchdog persistence remains part of the entry-v1 live gate.
+  post-cycle persistence was part of the entry-v1 live gate.
+- The sole entry-v1 live cycle passed exact recovery/staging and transmitted
+  one target execute, but the exact oracle ACM identity never remained stable.
+  Automatic rollback restored Alpine without proving which reset path fired.
+  Immediate fallback acceptance stopped on the unchanged 60 C thermal
+  ceiling; after passive cooling, the exact preflight and full root/screen
+  attestation passed. The root remained `UNBOOTED`, and OpenRC returned
+  automatically with one dynamic `qpnp_pon` reader and all backlights off.
+  This accepts the fallback screen correction but rejects target entry.
+  Entry-v1 is consumed and must not be retried; see the
+  [live rejection](../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery

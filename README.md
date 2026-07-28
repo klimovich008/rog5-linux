@@ -130,9 +130,14 @@ The seventh P2 diagnostic now
 It emits a fixed receive-only ACM marker from RAM-only early init before any
 userland storage access, retains a fixed 120-second reset, and has a
 one-execute host runner that verifies rollback after either marker success or
-failure. The fallback's screen-button path is now OpenRC-supervised and passes
-live start/stop/start with the panel off. One attended temporary boot remains;
-the image will be consumed after that cycle and must never be flashed.
+failure. The fallback's screen-button path is now OpenRC-supervised. Its
+[sole live cycle](test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md)
+executed the target once but exposed no stable oracle ACM, then returned
+automatically to exact fallback with the sealed root unchanged/`UNBOOTED` and
+the panel automatically off. The target reset path remains unclassified.
+Entry-v1 is rejected and consumed; never retry or flash it. The screen-service
+persistence fix is accepted, while P2/P3 remain HOLD pending a marker channel
+that survives USB-enumeration failure.
 
 The same image stages a one-shot redacted runtime collector for later
 headless, Plasma, KRDP, browser, and screen-off comparisons. It records
