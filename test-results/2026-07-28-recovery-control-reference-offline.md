@@ -11,7 +11,7 @@ an initramfs, and this checkpoint does not create a bootable image.
 
 ## Covered behavior
 
-The 45 focused tests cover:
+The 46 focused tests cover:
 
 - bounded netstring framing, every split point, coalesced frames, terminal
   parse failures, truncated input, and per-read/per-feed limits;
@@ -21,8 +21,9 @@ The 45 focused tests cover:
   bundle per session, and a non-evicting bounded replay ledger;
 - atomic commit identity, persisted commit fingerprints and execution-started
   markers, and at-most-once execution across simulated responder crashes;
-- failures before claim, after claim, after response, after execution starts,
-  on executor exception, and when execution returns unexpectedly;
+- failures after durable prepare, before claim, after claim, after response,
+  after execution starts, on executor exception, and when execution returns
+  unexpectedly;
 - session-keyed host write-ahead intent, immutable outcomes, private
   owner-only records, atomic publication, directory durability, and fail-safe
   recovery at each injected write boundary; and

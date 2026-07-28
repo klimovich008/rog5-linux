@@ -19,7 +19,7 @@ build outputs.
 | Persistent fallback | Alpine on vendor kernel 5.4.134; SSH/remote GUI and screen-off service available |
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
-| Recovery control | Reference protocol/fault oracle passes offline; native responder is still required before new live work |
+| Recovery control | Reference oracle and static native protocol core pass offline; signed bundle verification and image integration remain required |
 | Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
 | Mainline userspace | Arch server/Plasma roots build and verify offline; successor-v3 is not promoted |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |

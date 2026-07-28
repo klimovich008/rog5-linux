@@ -61,7 +61,7 @@ unsafe artifact can pass the generic recovery preflight.
 
 ## P1 — Recovery protocol test suite
 
-Status: **in progress; reference oracle passes offline**
+Status: **in progress; reference and native PTY suites pass offline**
 
 Specification:
 [docs/recovery-control-plane.md](docs/recovery-control-plane.md)
@@ -73,7 +73,8 @@ Build the tests before the responder:
 - [x] Malformed length, oversize, duplicate/unknown field, NUL, and non-ASCII
   rejection.
 - [x] Device-session and request-ID replay model.
-- [x] Same-ID/same-body cached response and same-ID/different-body conflict.
+- [x] Same-ID/same-body immutable decision rendered with current state, and
+  same-ID/different-body conflict.
 - [x] Same-ID `PREPARE` retry, new-ID rejection, and one-bundle-per-session
   model.
 - [x] Atomic `COMMIT_EXEC` claim and persisted fingerprint model.
@@ -81,9 +82,9 @@ Build the tests before the responder:
   simulated execute.
 - [x] Session-keyed host write-ahead ledger, crash consistency, immutable
   outcome, symlink/path replacement, and concurrent-controller tests.
-- [ ] Pseudo-terminal delayed-open, partial-I/O, dropped-reply, disconnect,
+- [x] Pseudo-terminal delayed-open, partial-I/O, dropped-reply, disconnect,
   and responder-restart tests.
-- [ ] Proof that arbitrary shell input never reaches an execution primitive.
+- [x] Proof that arbitrary shell input never reaches an execution primitive.
 - [ ] Signed-manifest, file-size/hash, DTB, path, and command-line policy
   mutation tests.
 
@@ -93,13 +94,17 @@ in this phase.
 
 ## P2 — Fixed recovery responder and one re-freeze
 
-Status: **blocked on P1**
+Status: **protocol core implemented; blocked on remaining P1 trust tests**
 
-- [ ] Implement a small static responder that owns `/dev/ttyGS0`.
+- [x] Implement an offline-tested static responder whose production default
+  owns `/dev/ttyGS0`.
 - [ ] Mint the per-boot device session before USB bind and retain it across
   responder restart under `/run`.
-- [ ] Implement only `HELLO`, `STATUS`, `PREPARE`, and `COMMIT_EXEC`.
-- [ ] Invoke fixed binaries with `execve`; never invoke a shell.
+- [x] Implement only `HELLO`, `STATUS`, `PREPARE`, and `COMMIT_EXEC`.
+- [x] Invoke the fixed production `kexec -e` path with `execve`; never invoke
+  a shell.
+- [ ] Integrate the production responder into the initramfs before USB bind;
+  until then its production build rejects every `PREPARE`.
 - [ ] Remove `sh -i` from recovery, network-root, and persistent-root
   initramfs variants.
 - [ ] Fetch bundles only over the fixed NCM host/path.

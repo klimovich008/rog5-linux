@@ -97,17 +97,17 @@ VERB_RESULTS = {
     },
 }
 RESULT_STATES = {
-    "PREPARED": {"PREPARED"},
-    "VERIFY_FAILED": {"IDLE"},
-    "PREPARE_ID_CONFLICT": {"PREPARED"},
-    "BUNDLE_CONFLICT": {"PREPARED"},
-    "SESSION_CONSUMED": {"CLAIMED", "DEPARTED", "EXEC_FAILED"},
-    "PREPARE_REQUIRED": {"IDLE"},
-    "PREPARE_MISMATCH": {"PREPARED"},
-    "CLAIMED": {"CLAIMED"},
-    "ALREADY_CLAIMED": {"CLAIMED", "DEPARTED", "EXEC_FAILED"},
+    "PREPARED": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "VERIFY_FAILED": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "PREPARE_ID_CONFLICT": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "BUNDLE_CONFLICT": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "SESSION_CONSUMED": {"CLAIMED", "EXEC_FAILED"},
+    "PREPARE_REQUIRED": {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "PREPARE_MISMATCH": {"PREPARED", "CLAIMED", "EXEC_FAILED"},
+    "CLAIMED": {"CLAIMED", "EXEC_FAILED"},
+    "ALREADY_CLAIMED": {"CLAIMED", "EXEC_FAILED"},
 }
-STATES = {"IDLE", "PREPARED", "CLAIMED", "DEPARTED", "EXEC_FAILED"}
+STATES = {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"}
 LAST_ERRORS = {
     "NONE",
     "VERIFY_FAILED",
@@ -317,15 +317,15 @@ def encode_response(response: Response) -> bytes:
         or (response.state == "IDLE" and (prepared or claimed))
         or (response.state == "PREPARED" and (not prepared or claimed))
         or (
-            response.state in {"CLAIMED", "DEPARTED", "EXEC_FAILED"}
+            response.state in {"CLAIMED", "EXEC_FAILED"}
             and (not prepared or not claimed)
         )
         or (
             response.execution_started == "YES"
-            and response.state not in {"CLAIMED", "DEPARTED", "EXEC_FAILED"}
+            and response.state not in {"CLAIMED", "EXEC_FAILED"}
         )
         or (
-            response.state in {"DEPARTED", "EXEC_FAILED"}
+            response.state == "EXEC_FAILED"
             and response.execution_started != "YES"
         )
     ):
@@ -518,6 +518,7 @@ class RecoveryState:
     prepared_bundle: str | None = None
     manifest_sha256: str | None = None
     prepare_request: str | None = None
+    prepare_fingerprint: str | None = None
     commit_request: str | None = None
     commit_fingerprint: str | None = None
     claim_owner: str | None = None
@@ -561,6 +562,14 @@ class RecoveryState:
             ):
                 raise ValueError(f"invalid {label}")
         if (
+            self.prepare_fingerprint is not None
+            and (
+                not HEX_SHA256.fullmatch(self.prepare_fingerprint)
+                or self.prepare_fingerprint == ZERO_SHA256
+            )
+        ):
+            raise ValueError("invalid prepare fingerprint")
+        if (
             self.commit_fingerprint is not None
             and (
                 not HEX_SHA256.fullmatch(self.commit_fingerprint)
@@ -581,6 +590,7 @@ class RecoveryState:
             self.prepared_bundle is not None,
             self.manifest_sha256 is not None,
             self.prepare_request is not None,
+            self.prepare_fingerprint is not None,
         )
         claimed_values = (
             self.commit_request is not None,
@@ -594,18 +604,17 @@ class RecoveryState:
             raise ValueError("idle state contains a transaction")
         if self.phase == "PREPARED" and (not prepared or claimed):
             raise ValueError("prepared state is inconsistent")
-        if self.phase in {"CLAIMED", "DEPARTED", "EXEC_FAILED"} and (
+        if self.phase in {"CLAIMED", "EXEC_FAILED"} and (
             not prepared or not claimed
         ):
             raise ValueError("claimed state is inconsistent")
         if self.execution_started and self.phase not in {
             "CLAIMED",
-            "DEPARTED",
             "EXEC_FAILED",
         }:
             raise ValueError("execution marker is inconsistent")
         if (
-            self.phase in {"DEPARTED", "EXEC_FAILED"}
+            self.phase == "EXEC_FAILED"
             and not self.execution_started
         ):
             raise ValueError("terminal state lacks execution marker")
@@ -634,6 +643,7 @@ class RecoveryState:
             "prepared_bundle": self.prepared_bundle,
             "manifest_sha256": self.manifest_sha256,
             "prepare_request": self.prepare_request,
+            "prepare_fingerprint": self.prepare_fingerprint,
             "commit_request": self.commit_request,
             "commit_fingerprint": self.commit_fingerprint,
             "execution_started": self.execution_started,
@@ -711,6 +721,7 @@ class RecoveryState:
             "prepared_bundle",
             "manifest_sha256",
             "prepare_request",
+            "prepare_fingerprint",
             "commit_request",
             "commit_fingerprint",
             "execution_started",
@@ -762,6 +773,8 @@ class RecoveryModel:
         return response
 
     def _remember(self, request: Request, response: Response) -> None:
+        if request.verb in {"HELLO", "STATUS"}:
+            raise ValueError("read-only requests are not transaction decisions")
         self.state.ledger[request.request] = LedgerEntry(
             fingerprint=request.fingerprint,
             response=response,
@@ -781,10 +794,16 @@ class RecoveryModel:
         if request.verb != "HELLO" and request.session != self.state.session:
             return self._response(request, "STALE_SESSION")
 
+        if request.verb in {"HELLO", "STATUS"}:
+            response = self._response(request, "OK")
+            if inject == "after_response":
+                raise InjectedCrash("after_response")
+            return response
+
         previous = self.state.ledger.get(request.request)
         if previous is not None:
             if previous.fingerprint == request.fingerprint:
-                return previous.response
+                return self._response(request, previous.response.result)
             return self._response(request, "REQUEST_CONFLICT")
 
         if (
@@ -793,18 +812,47 @@ class RecoveryModel:
         ):
             if request.fingerprint != self.state.commit_fingerprint:
                 return self._response(request, "REQUEST_CONFLICT")
-            return self._response(request, "ALREADY_CLAIMED")
+            return self._response(request, "CLAIMED")
 
-        if len(self.state.ledger) >= self.maximum_ledger_entries:
+        if (
+            request.request == self.state.prepare_request
+            and self.state.prepare_fingerprint is not None
+        ):
+            if request.fingerprint != self.state.prepare_fingerprint:
+                return self._response(request, "REQUEST_CONFLICT")
+            return self._response(request, "PREPARED")
+
+        reserved = self.maximum_ledger_entries - 2
+        prepare_verified = None
+        can_use_reserved = False
+        if len(self.state.ledger) >= reserved:
+            if request.verb == "PREPARE" and self.state.phase == "IDLE":
+                prepare_verified = self.verifier(
+                    request.value("bundle"),
+                    request.value("manifest_sha256"),
+                )
+                can_use_reserved = prepare_verified
+            elif (
+                request.verb == "COMMIT_EXEC"
+                and self.state.phase == "PREPARED"
+                and request.value("prepare_request")
+                == self.state.prepare_request
+                and request.value("manifest_sha256")
+                == self.state.manifest_sha256
+            ):
+                can_use_reserved = True
+        if len(self.state.ledger) >= self.maximum_ledger_entries or (
+            len(self.state.ledger) >= reserved and not can_use_reserved
+        ):
             self.state.last_error = "LEDGER_FULL"
             return self._response(request, "LEDGER_FULL")
 
-        if request.verb == "HELLO":
-            response = self._response(request, "OK")
-        elif request.verb == "STATUS":
-            response = self._response(request, "OK")
-        elif request.verb == "PREPARE":
-            response = self._prepare(request)
+        if request.verb == "PREPARE":
+            response = self._prepare(
+                request,
+                inject=inject,
+                verified=prepare_verified,
+            )
         elif request.verb == "COMMIT_EXEC":
             response = self._commit(request, inject=inject)
         else:
@@ -815,18 +863,29 @@ class RecoveryModel:
             raise InjectedCrash("after_response")
         return response
 
-    def _prepare(self, request: Request) -> Response:
+    def _prepare(
+        self,
+        request: Request,
+        *,
+        inject: str | None,
+        verified: bool | None,
+    ) -> Response:
         bundle = request.value("bundle")
         manifest = request.value("manifest_sha256")
         if self.state.phase == "IDLE":
             self.state.prepare_calls += 1
-            if not self.verifier(bundle, manifest):
+            if verified is None:
+                verified = self.verifier(bundle, manifest)
+            if not verified:
                 self.state.last_error = "VERIFY_FAILED"
                 return self._response(request, "VERIFY_FAILED")
             self.state.prepared_bundle = bundle
             self.state.manifest_sha256 = manifest
             self.state.prepare_request = request.request
+            self.state.prepare_fingerprint = request.fingerprint
             self.state.phase = "PREPARED"
+            if inject == "after_prepare":
+                raise InjectedCrash("after_prepare")
             return self._response(request, "PREPARED")
         if (
             self.state.phase == "PREPARED"
@@ -880,7 +939,6 @@ class RecoveryModel:
         try:
             executor()
         except TargetDeparted:
-            self.state.phase = "DEPARTED"
             return self.state.phase
         except InjectedCrash:
             raise

@@ -370,7 +370,7 @@ class RecordCodecTest(unittest.TestCase):
                     request=request_id(1),
                     verb="STATUS",
                     result="OK",
-                    state="DEPARTED",
+                    state="EXEC_FAILED",
                     prepared_bundle="arch-v1",
                     manifest_sha256=MANIFEST,
                     prepare_request=request_id(10),
@@ -393,7 +393,7 @@ class RecordCodecTest(unittest.TestCase):
 class RecoveryStateModelTest(unittest.TestCase):
     def setUp(self):
         self.state = RecoveryState(session=SESSION)
-        self.model = RecoveryModel(self.state, maximum_ledger_entries=4)
+        self.model = RecoveryModel(self.state, maximum_ledger_entries=32)
 
     def prepare(self):
         response = self.model.handle(prepare_request())
@@ -406,10 +406,12 @@ class RecoveryStateModelTest(unittest.TestCase):
         self.assertEqual(hello.request, request_id(1))
         self.assertEqual(hello.result, "OK")
         self.assertEqual(hello.state, "IDLE")
+        self.assertEqual(len(self.state.ledger), 0)
 
         self.prepare()
         status_response = self.model.handle(make_request("STATUS", 2))
         self.assertEqual(status_response.state, "PREPARED")
+        self.assertEqual(len(self.state.ledger), 1)
 
     def test_stale_session_is_rejected_without_entering_ledger(self):
         stale = make_request("STATUS", 1, session=NEW_SESSION)
@@ -420,7 +422,7 @@ class RecoveryStateModelTest(unittest.TestCase):
     def test_same_request_replays_and_changed_body_conflicts(self):
         first = prepare_request()
         response = self.model.handle(first)
-        self.assertIs(self.model.handle(first), response)
+        self.assertEqual(self.model.handle(first), response)
         changed = make_request(
             "PREPARE",
             10,
@@ -518,7 +520,7 @@ class RecoveryStateModelTest(unittest.TestCase):
         commit = commit_request()
         claimed = self.model.handle(commit)
         self.assertEqual(claimed.result, "CLAIMED")
-        self.assertIs(self.model.handle(commit), claimed)
+        self.assertEqual(self.model.handle(commit), claimed)
         self.assertEqual(self.state.execute_claims, 1)
 
         calls = []
@@ -527,8 +529,8 @@ class RecoveryStateModelTest(unittest.TestCase):
             calls.append("execute")
             raise TargetDeparted()
 
-        self.assertEqual(self.model.execute_claimed(departed), "DEPARTED")
-        self.assertEqual(self.model.execute_claimed(departed), "DEPARTED")
+        self.assertEqual(self.model.execute_claimed(departed), "CLAIMED")
+        self.assertEqual(self.model.execute_claimed(departed), "CLAIMED")
         self.assertEqual(calls, ["execute"])
         self.assertEqual(self.state.execute_calls, 1)
 
@@ -561,6 +563,30 @@ class RecoveryStateModelTest(unittest.TestCase):
         self.assertEqual(self.state.execute_claims, 0)
         self.assertNotIn(request_id(11), self.state.ledger)
 
+    def test_crash_after_prepare_reconstructs_authoritative_request(self):
+        prepare = prepare_request()
+        with self.assertRaisesRegex(InjectedCrash, "after_prepare"):
+            self.model.handle(prepare, inject="after_prepare")
+        self.assertEqual(self.state.phase, "PREPARED")
+        self.assertEqual(
+            self.state.prepare_fingerprint,
+            prepare.fingerprint,
+        )
+        self.assertNotIn(request_id(10), self.state.ledger)
+
+        persisted = RecoveryState.from_snapshot(self.state.snapshot())
+        restarted = RecoveryModel(persisted)
+        replay = restarted.handle(prepare)
+        self.assertEqual(replay.result, "PREPARED")
+        self.assertNotIn(request_id(10), persisted.ledger)
+
+        commit = restarted.handle(commit_request())
+        self.assertEqual(commit.result, "CLAIMED")
+        self.assertEqual(
+            restarted.handle(prepare).result,
+            "PREPARED",
+        )
+
     def test_crash_after_claim_cannot_execute_after_responder_restart(self):
         self.prepare()
         commit = commit_request()
@@ -571,7 +597,7 @@ class RecoveryStateModelTest(unittest.TestCase):
 
         persisted = RecoveryState.from_snapshot(self.state.snapshot())
         restarted = RecoveryModel(persisted)
-        self.assertEqual(restarted.handle(commit).result, "ALREADY_CLAIMED")
+        self.assertEqual(restarted.handle(commit).result, "CLAIMED")
         calls = []
         self.assertEqual(
             restarted.execute_claimed(lambda: calls.append("execute")),
@@ -604,15 +630,43 @@ class RecoveryStateModelTest(unittest.TestCase):
         self.assertEqual(calls, [])
 
     def test_full_ledger_fails_closed_without_eviction(self):
-        self.prepare()
-        for number in range(20, 23):
-            self.model.handle(make_request("STATUS", number))
-        self.assertEqual(len(self.state.ledger), 4)
-        self.assertIn(request_id(10), self.state.ledger)
-        response = self.model.handle(make_request("STATUS", 23))
+        verifications = []
+
+        def verify(bundle, manifest):
+            verifications.append((bundle, manifest))
+            return True
+
+        self.model = RecoveryModel(
+            self.state,
+            maximum_ledger_entries=4,
+            verifier=verify,
+        )
+        for number in range(20, 22):
+            response = self.model.handle(
+                commit_request(number, prepare_number=10)
+            )
+            self.assertEqual(response.result, "PREPARE_REQUIRED")
+        self.assertEqual(len(self.state.ledger), 2)
+        self.assertEqual(
+            self.model.handle(make_request("STATUS", 23)).result,
+            "OK",
+        )
+        response = self.model.handle(
+            commit_request(22, prepare_number=10)
+        )
         self.assertEqual(response.result, "LEDGER_FULL")
+        self.assertEqual(len(self.state.ledger), 2)
+        self.assertEqual(self.state.phase, "IDLE")
+        self.assertEqual(
+            self.model.handle(prepare_request()).result,
+            "PREPARED",
+        )
+        self.assertEqual(verifications, [("arch-v1", MANIFEST)])
+        self.assertEqual(
+            self.model.handle(commit_request()).result,
+            "CLAIMED",
+        )
         self.assertEqual(len(self.state.ledger), 4)
-        self.assertEqual(self.state.phase, "PREPARED")
 
     def test_rejected_commit_cannot_change_meaning_after_later_prepare(self):
         state = RecoveryState(session=SESSION)
@@ -620,11 +674,10 @@ class RecoveryStateModelTest(unittest.TestCase):
         commit = commit_request()
         rejected = model.handle(commit)
         self.assertEqual(rejected.result, "PREPARE_REQUIRED")
-        model.handle(make_request("STATUS", 20))
-        model.handle(make_request("STATUS", 21))
+        model.handle(commit_request(20))
+        model.handle(commit_request(21))
         self.assertEqual(model.handle(prepare_request()).result, "PREPARED")
         replay = model.handle(commit)
-        self.assertIs(replay, rejected)
         self.assertEqual(replay.result, "PREPARE_REQUIRED")
         self.assertEqual(state.phase, "PREPARED")
         self.assertEqual(state.execute_claims, 0)
@@ -680,7 +733,7 @@ class RecoveryStateModelTest(unittest.TestCase):
 
         terminal_without_marker = snapshot.replace(
             b'"phase":"CLAIMED"',
-            b'"phase":"DEPARTED"',
+            b'"phase":"EXEC_FAILED"',
         )
         with self.assertRaisesRegex(ValueError, "execution marker"):
             RecoveryState.from_snapshot(terminal_without_marker)

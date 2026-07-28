@@ -13,7 +13,7 @@ case $tier in
 	*) fail 'usage: test-repository-linux.sh [quick|rootfs]' ;;
 esac
 
-for command in bash git head python3 sh; do
+for command in bash gcc git head nm python3 sh strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
 done
@@ -114,6 +114,7 @@ fi
 tests=(
 	scripts/host/test-recovery-linux.sh
 	scripts/host/test-recovery-control-reference.py
+	scripts/host/test-recovery-control-native.py
 	scripts/host/test-reboot-fallback-to-fastboot.sh
 	scripts/host/test-network-root-acm.py
 	scripts/host/test-persistent-root-acm.py
