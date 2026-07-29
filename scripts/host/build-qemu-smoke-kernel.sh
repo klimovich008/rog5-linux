@@ -13,15 +13,30 @@ source_root=$(realpath -e -- "$1") ||
 output_root=$(realpath -m -- "$2") ||
 	fail 'cannot resolve output directory'
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+kernel_contract=$repo/scripts/device/kernel-build-contract.sh
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 
 [[ -d $source_root && ! -L $source_root ]] ||
 	fail 'Linux source is not a regular directory'
+[[ -f $kernel_contract && ! -L $kernel_contract &&
+	$(stat -c '%u' "$kernel_contract") == "$(id -u)" &&
+	$(stat -c '%a' "$kernel_contract") == 755 ]] ||
+	fail 'kernel build contract is unavailable or unsafe'
+kernel_contract_sha256=$(sha256sum "$kernel_contract" | cut -d ' ' -f 1)
+# shellcheck disable=SC1090,SC1091
+. "$kernel_contract"
 [[ $(git -C "$source_root" rev-parse HEAD) == "$expected_commit" ]] ||
 	fail 'Linux source is not the pinned v7.1.4 commit'
+[[ -z $(git -C "$source_root" status --porcelain) ]] ||
+	fail 'Linux source has uncommitted changes'
 case $output_root in
 	"$repo"/build/*) ;;
 	*) fail 'output must be below the ignored repository build directory' ;;
+esac
+case $output_root in
+	"$source_root"|"$source_root"/*)
+		fail 'QEMU kernel output must be outside the source tree'
+		;;
 esac
 git -C "$repo" check-ignore -q "$output_root" ||
 	fail 'QEMU kernel output is not ignored by Git'
@@ -35,7 +50,30 @@ export ARCH=arm64
 export KBUILD_BUILD_TIMESTAMP='2026-07-18 00:00:00 UTC'
 export KBUILD_BUILD_USER=rog5
 export KBUILD_BUILD_HOST=qemu-smoke
-make -s -C "$source_root" O="$output_root" LLVM=1 tinyconfig
+cache_identity=$(rog5_kernel_cache_identity)
+toolchain_identity=$(rog5_kernel_toolchain_identity \
+	make clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-strip)
+build_state=$(
+	printf 'format=rog5-kbuild-inputs-v1\n'
+	printf 'profile=qemu-system-arm64-tiny-v1\n'
+	printf 'source_path=%s\n' "$source_root"
+	printf 'output_path=%s\n' "$output_root"
+	printf 'source_commit=%s\n' "$expected_commit"
+	printf 'source_tree=%s\n' \
+		"$(git -C "$source_root" rev-parse 'HEAD^{tree}')"
+	printf 'builder_sha256=%s\n' \
+		"$(sha256sum "${BASH_SOURCE[0]}" | cut -d ' ' -f 1)"
+	printf 'contract_sha256=%s\n' "$kernel_contract_sha256"
+	printf 'arch=arm64\nllvm=1\n'
+	printf 'kbuild_timestamp=%s\n' "$KBUILD_BUILD_TIMESTAMP"
+	printf 'kbuild_user=%s\n' "$KBUILD_BUILD_USER"
+	printf 'kbuild_host=%s\n' "$KBUILD_BUILD_HOST"
+	printf '%s\n' "$cache_identity" "$toolchain_identity"
+)
+rog5_kernel_prepare_output "$output_root" "$build_state"
+rog5_kernel_cache_stats
+
+rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 tinyconfig
 config=$source_root/scripts/config
 [[ -x $config ]] || fail 'Linux scripts/config is unavailable'
 "$config" --file "$output_root/.config" \
@@ -49,9 +87,10 @@ config=$source_root/scripts/config
 	--enable SERIAL_AMBA_PL011_CONSOLE \
 	--enable TTY \
 	--disable DEBUG_INFO
-make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
-make -s -C "$source_root" O="$output_root" LLVM=1 \
+rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
+rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \
 	-j"${JOBS:-$(nproc)}" Image
+rog5_kernel_cache_stats
 
 image=$output_root/arch/arm64/boot/Image
 [[ -f $image && ! -L $image && $(stat -c %s "$image") -gt 1048576 ]] ||

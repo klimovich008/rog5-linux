@@ -251,10 +251,9 @@ suite and one canonical offline runner before another image is built.
 
 1. Review the eight prune candidates for unique diagnostic material; do not
    delete or deduplicate anything without separate exact-path approval.
-2. Add and validate optional compiler caching plus reusable incremental kernel
-   output trees without changing reproducible release outputs.
-3. Pin the complete source and toolchain bootstrap for a fresh Linux host.
-4. Rebuild the corrected-DTB candidate twice under a disposable trust root and
+2. Pin the complete source, package closure, and toolchain/bootstrap identity
+   for a fresh Linux host.
+3. Rebuild the corrected-DTB candidate twice under a disposable trust root and
    repeat the hardware-free gate.
-5. Ask separately before creating or using a production signing credential or
+4. Ask separately before creating or using a production signing credential or
    temporarily booting the corrected candidate.

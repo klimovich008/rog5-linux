@@ -42,7 +42,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: build/qemu-smoke-kernel/arch/arm64/boot/Image
-          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh') }}
+          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
       - name: Install full-system smoke dependencies
         run: |
           sudo apt-get update

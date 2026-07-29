@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016
 set -euo pipefail
 
 fail() {
@@ -9,8 +10,10 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 source_file=$repo/tools/qemu-smoke/init.c
 builder=$repo/scripts/host/build-qemu-smoke-kernel.sh
+cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
-for path in "$source_file" "$builder" "$runner"; do
+workflow=$repo/.github/workflows/offline-smoke.yml
+for path in "$source_file" "$builder" "$cache_integration" "$runner" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -32,6 +35,14 @@ strings "$test_root/init" |
 	grep -qx 'PASS qemu-system arm64 initramfs boot'
 grep -Fq '7a5cef0db4795d9d453a12e0f61b5b7634fc4d40' "$builder"
 grep -Fq 'LLVM=1 tinyconfig' "$builder"
+grep -Fq 'rog5_kernel_prepare_output "$output_root" "$build_state"' "$builder"
+grep -Fq 'rog5_kernel_make -s -C "$source_root"' "$builder"
+grep -Fq 'KBUILD_BUILD_TIMESTAMP=' "$builder"
+grep -Fq 'fresh cached and uncached Images differ' "$cache_integration"
+grep -Fq 'INCREMENTAL_BUILD=1' "$cache_integration"
+grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh')" \
+	"$workflow" ||
+	fail 'QEMU cache key does not bind the shared kernel build contract'
 for option in BLK_DEV_INITRD BINFMT_ELF PRINTK RD_GZIP \
 	SERIAL_AMBA_PL011_CONSOLE; do
 	grep -Fq -- "--enable $option" "$builder" ||
