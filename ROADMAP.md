@@ -110,7 +110,7 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Add a GitHub Actions workflow for the recovery protocol, native
   responder, bundle verifier/fetcher, host controller, boot policy, and
   repository policy.
-- [ ] Observe the first green GitHub run.
+- [x] Observe the first green GitHub run.
 - [x] Add a full-system `qemu-system-aarch64 -M virt` boot harness for generic
   initramfs/root handoff, pinned to an exact upstream Linux commit.
 - [x] Replace the hosted `defconfig` build with a reproducible, QEMU-only
@@ -289,11 +289,11 @@ time.
 
 ## Current next action
 
-Finish A0 in this order:
+The A0 feedback-loop work is green. Continue in this order:
 
-1. close and rebuild the postmortem-enabled stable recovery offline;
-2. get the hardware-free CI tier green;
-3. add the board-neutral full-system QEMU boot gate;
-4. produce the minimal SSH-only root profile;
-5. consolidate one candidate into the manifest-driven runner;
-6. generate, but do not execute, the artifact prune plan.
+1. produce the minimal SSH-only root profile;
+2. consolidate one candidate into the manifest-driven runner;
+3. generate, but do not execute, the artifact prune plan;
+4. obtain explicit approval for a production recovery trust root;
+5. promote the stable recovery through staging-only tests and measure pstore
+   retention.
