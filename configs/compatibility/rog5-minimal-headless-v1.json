@@ -182,6 +182,7 @@
       "ci_gates": [
         "scripts/host/test-qemu-system-smoke-contract.sh",
         "scripts/device/test-recovery-candidate-dtb-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py"
       ]
@@ -219,6 +220,7 @@
       "ci_gates": [
         "scripts/device/test-network-root-init.sh",
         "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py"
       ]
@@ -251,6 +253,7 @@
       "ci_gates": [
         "scripts/device/test-recovery-candidate-dtb-contract.sh",
         "scripts/device/test-network-root-init.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py",
         "scripts/host/test-pin-minimal-headless-host-key.py"
@@ -275,6 +278,7 @@
       "ci_gates": [
         "scripts/host/test-arch-headless-rootfs-contract.sh",
         "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py",
         "scripts/host/test-pin-minimal-headless-host-key.py",
@@ -298,6 +302,7 @@
       "ci_gates": [
         "scripts/host/test-run-stable-recovery-live-gate.sh",
         "scripts/device/test-network-root-init.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py",
         "scripts/host/test-run-minimal-headless-runtime-acceptance.sh"
@@ -318,6 +323,7 @@
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py"
       ]

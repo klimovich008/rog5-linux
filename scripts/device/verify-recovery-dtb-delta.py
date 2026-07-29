@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
+import stat
 import struct
 import sys
 from typing import NoReturn
@@ -70,12 +72,45 @@ def c_string(data: bytes, offset: int, label: str) -> tuple[str, int]:
     return value, end + 1
 
 
-def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
-    if path.is_symlink() or not path.is_file():
+def read_dtb_bytes(path: Path) -> bytes:
+    lexical = Path(os.path.abspath(path.expanduser()))
+    if lexical.is_symlink():
         fail(f"DTB is not an ordinary file: {path}")
-    data = path.read_bytes()
+    resolved = lexical.resolve(strict=True)
+    if lexical != resolved:
+        fail(f"DTB contains a linked path component: {path}")
+    descriptor = os.open(
+        resolved,
+        os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_size < HEADER_SIZE
+            or before.st_size > MAX_DTB_SIZE
+        ):
+            fail(f"DTB has an invalid size: {path}")
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            data = stream.read(MAX_DTB_SIZE + 1)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if (
+        len(data) != before.st_size
+        or before.st_dev != after.st_dev
+        or before.st_ino != after.st_ino
+        or before.st_size != after.st_size
+        or before.st_mtime_ns != after.st_mtime_ns
+        or before.st_ctime_ns != after.st_ctime_ns
+    ):
+        fail(f"DTB changed while it was read: {path}")
+    return data
+
+
+def parse_dtb(data: bytes, label: str) -> dict[str, dict[str, bytes]]:
     if len(data) < HEADER_SIZE or len(data) > MAX_DTB_SIZE:
-        fail(f"DTB has an invalid size: {path}")
+        fail(f"DTB has an invalid size: {label}")
     (
         magic,
         total_size,
@@ -89,18 +124,18 @@ def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
         structure_size,
     ) = struct.unpack(">10I", data[:HEADER_SIZE])
     if magic != FDT_MAGIC:
-        fail(f"DTB has an invalid magic: {path}")
+        fail(f"DTB has an invalid magic: {label}")
     if total_size != len(data):
-        fail(f"DTB total size does not equal its file size: {path}")
+        fail(f"DTB total size does not equal its file size: {label}")
     if version != 17 or compatible_version != 16:
-        fail(f"DTB has an unsupported format version: {path}")
+        fail(f"DTB has an unsupported format version: {label}")
     if (
         reservation_offset < HEADER_SIZE
         or reservation_offset % 8
         or reservation_offset > total_size - 16
         or structure_offset % 4
     ):
-        fail(f"DTB reservation map offset is invalid: {path}")
+        fail(f"DTB reservation map offset is invalid: {label}")
     reservation_end = reservation_offset
     while reservation_end <= total_size - 16:
         address, size = struct.unpack_from(">QQ", data, reservation_end)
@@ -108,7 +143,7 @@ def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
         if address == 0 and size == 0:
             break
     else:
-        fail(f"DTB reservation map is unterminated: {path}")
+        fail(f"DTB reservation map is unterminated: {label}")
     blocks = sorted(
         (
             (reservation_offset, reservation_end, "reservation map"),
@@ -120,9 +155,9 @@ def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
             (strings_offset, strings_offset + strings_size, "strings block"),
         )
     )
-    for start, end, label in blocks:
+    for start, end, block_label in blocks:
         if start < HEADER_SIZE or end < start or end > total_size:
-            fail(f"DTB {label} range is invalid: {path}")
+            fail(f"DTB {block_label} range is invalid: {label}")
     for first, second in zip(blocks, blocks[1:]):
         if first[1] > second[0]:
             fail(f"DTB blocks overlap: {first[2]} and {second[2]}")
@@ -194,6 +229,10 @@ def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
     if not ended or "/" not in nodes:
         fail("DTB structure has no complete root")
     return nodes
+
+
+def read_dtb(path: Path) -> dict[str, dict[str, bytes]]:
+    return parse_dtb(read_dtb_bytes(path), str(path))
 
 
 def require_board_identity(nodes: dict[str, dict[str, bytes]], label: str) -> None:

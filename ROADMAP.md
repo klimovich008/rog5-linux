@@ -127,6 +127,9 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
   gate, and 33-case mutation/CLI suite.
+- [x] Bind all six active capabilities to 37 source-integration checks and 21
+  corrected-DTB topology checks, with separate exact-baseline and
+  compatible-but-unaccepted candidate modes.
 - [x] Add one canonical 48-field runtime observation, candidate-bound host
   verifier, nine target mutations, 19 host test groups, and a strict-SSH
   one-collection runner test for all six active capabilities.
@@ -308,6 +311,8 @@ time.
 - [x] Reproduce Linux 7.1.4 ARM64 builds on the PC.
 - [x] Maintain reviewed config, DTS, patch, module, and evidence identities.
 - [x] Pin the complete Linux source/toolchain bootstrap for a fresh clone.
+- [x] Add a fail-closed source/DT integration oracle for the accepted
+  baseline and future candidate comparisons.
 - [ ] Add KUnit/selftests where hardware-independent logic exists.
 - [ ] Track upstream SM8350, UFS, USB, charger, input, sensor, audio, WCN6855,
   display, and Adreno changes.

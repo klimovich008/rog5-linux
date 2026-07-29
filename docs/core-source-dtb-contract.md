@@ -1,0 +1,131 @@
+# Core kernel-source and DTB contract
+
+The core source/DTB contract detects missing kernel integration before a
+future ROG Phone 5 kernel candidate is built or booted. It complements the
+[core compatibility oracle](core-compatibility-oracle.md): the existing
+oracle checks evidence, payload ancestry, Kconfig, and CI wiring, while this
+contract checks that the selected source tree still contains the driver,
+binding, and object-build paths needed by the corrected headless DTB.
+
+The accepted Linux 7.1.4 source and corrected DTB pass the contract. This is
+hardware-free compatibility evidence, not permission to boot and not evidence
+that a changed kernel works on the phone.
+
+## Covered boundary
+
+The machine-readable profile is
+`configs/compatibility/rog5-core-source-dtb-v1.json`. It is bound to the six
+active minimal-headless capabilities:
+
+- CPU/RAM and Qualcomm EPSS CPU frequency control;
+- read-only NFS/OverlayFS network root with UFS isolated;
+- Qualcomm USB2 DWC3, FEMTO PHY, ConfigFS, and NCM;
+- devtmpfs and embedded Kconfig visibility used by the key-only SSH root;
+- kexec, reboot, SysRq, and PM rollback primitives; and
+- generic thermal support plus Qualcomm TSENS.
+
+Thirty-seven source checks cover:
+
+- canonical Kconfig declarations;
+- Makefile object wiring;
+- comment-aware OF match-table compatibles, module aliases, attachment to the
+  registered platform driver, and driver registration;
+- primary SM8350 compatibles in DT binding YAML; and
+- source entry points that implement NFS root, OverlayFS, NCM, devtmpfs,
+  embedded config, kexec/reboot/SysRq, and thermal behavior.
+
+Twenty-one DT checks cover:
+
+- exact ASUS/SM8350 board identity and eight CPU nodes;
+- the EPSS cpufreq node;
+- disabled UFS controller and UFS PHY;
+- enabled USB2 PHY and primary high-speed peripheral DWC3 path, including
+  enabled ancestors, mandatory zero PHY cells, and the exact
+  DWC3-to-USB2-PHY phandle;
+- disabled USB3/QMP and secondary USB paths;
+- PSCI reset; and
+- both accepted TSENS nodes and their exact sensor counts.
+
+The source check reads every required file through a bounded, no-follow
+descriptor. It rejects path escapes, linked inputs, dirty or non-root Git
+worktrees, untracked files, duplicate JSON, missing build rules, missing
+driver registration or match-table attachment, commented-out source tokens,
+and narrowed capability coverage. The shared DTB parser likewise reads one
+bounded descriptor and rejects linked, changing, malformed, truncated,
+overlapping, or non-v17 DTBs. A global inventory also rejects any effectively
+enabled SM8350 UFS or QMP USB3 controller/PHY compatible, including duplicate
+nodes outside the 21 accepted paths.
+
+## Baseline mode
+
+Baseline mode requires both accepted identities:
+
+```sh
+scripts/host/verify-core-source-dtb-contract.py \
+  --kernel-source /path/to/clean/linux-7.1.4 \
+  --source-role baseline \
+  --dtb artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb \
+  --dtb-role baseline
+```
+
+The source must be an exact clean Git worktree at
+`7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`. The DTB must be exactly
+102,870 bytes with SHA-256
+`86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
+A pass reports `status=baseline-verified`.
+
+The retained source tree and ignored DTB are optional local artifacts. A
+fresh GitHub checkout runs the complete synthetic mutation suite without
+requiring either large retained input.
+
+## Candidate mode
+
+Candidate mode evaluates a clean new kernel tree or a newly built DTB against
+the same active contract:
+
+```sh
+scripts/host/verify-core-source-dtb-contract.py \
+  --kernel-source /path/to/clean/candidate-linux \
+  --source-role candidate \
+  --dtb /path/to/candidate-board.dtb \
+  --dtb-role candidate
+```
+
+Source and DTB roles are independent, so a rebase can compare one changed
+side at a time. Candidate mode requires semantic compatibility but does not
+require the accepted commit or byte-identical DTB. Its result is deliberately
+`status=compatible-not-accepted`, `hardware_acceptance=unproven`, and
+`authority=none`.
+
+If an upstream reorganization moves a source path or replaces a compatible,
+the contract fails. Review the new driver, binding, Kconfig dependency,
+Makefile wiring, and generated DTB before updating the profile. Do not weaken
+the profile merely to make a rebase pass.
+
+## Tests
+
+Run the focused suite:
+
+```sh
+scripts/host/test-core-source-dtb-contract.py
+```
+
+To include the retained accepted source and DTB positive case:
+
+```sh
+ROG5_ACCEPTED_KERNEL_SOURCE=/path/to/clean/linux-7.1.4 \
+  scripts/host/test-core-source-dtb-contract.py
+```
+
+Run all hardware-free repository checks:
+
+```sh
+scripts/host/test-repository-linux.sh ci
+```
+
+The 37-case focused suite creates disposable synthetic Git trees and DTBs. It does
+not build a kernel, contact the phone, use a credential, change host network
+state, delete storage, or grant live authority.
+
+See the
+[offline result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).

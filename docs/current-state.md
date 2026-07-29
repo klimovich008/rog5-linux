@@ -125,6 +125,16 @@ was used and no phone was contacted. See the
 [runtime contract](minimal-headless-runtime-acceptance.md) and
 [offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
 
+The compatibility gate now also checks the kernel source and generated board
+DTB rather than stopping at Kconfig and artifact ancestry. The retained exact
+Linux 7.1.4 tree passes 37 Kconfig, Makefile, OF-table, binding, and source
+entry-point checks; the accepted corrected DTB passes 21 CPU, UFS-isolation,
+USB2/NCM, PSCI, and TSENS topology checks. A future source or DTB can run in
+candidate mode, but a pass reports `compatible-not-accepted` and cannot
+promote hardware state. See the
+[source/DT contract](core-source-dtb-contract.md) and
+[offline result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).
+
 The sealed lower deliberately has no reusable SSH host key, so the corrected
 temporary target cannot have a static known-hosts entry before boot. The new
 host-key bootstrap closes that development-only gap without `accept-new`: it
