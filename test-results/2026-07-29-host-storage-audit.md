@@ -10,13 +10,13 @@ modified during this audit.
 ## Normalized host plan
 
 The new read-only planner was run against repository commit
-`83775bfd10b19722572c614bab7a0c539f6b8eac` at
-`2026-07-29T15:49:49+00:00`.
+`cc9aab504ba34fe1b3f76716d040aacb15e0b441` at
+`2026-07-29T16:07:52+00:00`.
 
 | Property | Value |
 |---|---:|
 | Plan format | `rog5-host-storage-cleanup-plan-v1` |
-| Plan SHA-256 | `7148a8e2c0c8e52db5160d35f5c1a16afe8a3cbc1aa25404b4587117ab55061e` |
+| Plan SHA-256 | `2b0b6b7146adec138b2791f78b123dc6b258a967a9d4f0a2fccf1fae30fc8339` |
 | Podman containers | 0 |
 | Inventoried units | 194 |
 | Logical allocated size | 684,361,760,768 bytes / 637.36 GiB |
