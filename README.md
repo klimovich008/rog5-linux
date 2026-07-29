@@ -21,7 +21,7 @@ build outputs.
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Framed shell-free protocol and read-only pstore outcome oracle are reproducible through complete wrapper/AVB packaging; production trust root and live promotion remain |
 | Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
-| Mainline userspace | 535,093,875-byte SSH-only Arch root passes build and clean re-extraction verification; not yet a signed or booted bundle |
+| Mainline userspace | SSH-only Arch root is a byte-reproducible 535,110,731-byte sealed network lower; dedicated verifier initramfs and ephemeral-signed v2 bundle pass offline; not booted and no production key |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -150,11 +150,15 @@ The first concrete userspace profile now packages only the signed Arch base,
 the exact Linux 7.1.4 modules, `attr`, `diffutils`, and OpenSSH additions. It
 removes the generic kernel, all `linux-firmware*` bundles, published accounts,
 desktop/browser/GPU/Wi-Fi/VPN/agent packages, reusable machine identity, and
-reusable SSH host keys. The 535,093,875-byte result passes verification both
-before archival and after clean extraction. It is an offline root artifact,
-not a signed recovery bundle or phone boot authority. See
+reusable SSH host keys. Its 535,093,875-byte source becomes a
+byte-reproducible 535,110,731-byte sealed read-only network lower with an
+explicit hash-bound no-workload manifest and 37,669-entry whole-tree seal. A
+dedicated initramfs embeds the exact static AArch64 verifier; an
+ephemeral-key signed v2 bundle and the actual consumed-P2
+prepare/serve/verify/execute composition pass offline. It remains unbooted,
+`authority=none`, and is not phone boot authority. See
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
-[offline result](test-results/2026-07-29-headless-root-candidate-offline.md).
+[runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md).
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

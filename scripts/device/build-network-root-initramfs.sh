@@ -14,6 +14,8 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/network-root-init
 shutdown=$repo/initramfs/network-root-shutdown
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
+reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
+reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
 epoch=1681862400
 export LC_ALL=C
@@ -27,9 +29,22 @@ for path in "$init" "$shutdown"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing initramfs source: $path"
 done
-[ -x "$verifier_builder" ] && [ -f "$verifier_builder" ] &&
-	[ ! -L "$verifier_builder" ] ||
-	fail 'reviewed static verifier builder is absent or linked'
+if [ -z "$reviewed_verifier" ]; then
+	[ -x "$verifier_builder" ] && [ -f "$verifier_builder" ] &&
+		[ ! -L "$verifier_builder" ] ||
+		fail 'reviewed static verifier builder is absent or linked'
+else
+	case $reviewed_verifier in
+		/*) ;;
+		*) fail 'NETWORK_ROOT_VERIFIER must be an absolute path' ;;
+	esac
+	[ -x "$reviewed_verifier" ] && [ -f "$reviewed_verifier" ] &&
+		[ ! -L "$reviewed_verifier" ] ||
+		fail 'reviewed static verifier artifact is absent or linked'
+	[ "$(sha256sum "$reviewed_verifier" | cut -d ' ' -f 1)" = \
+		"$reviewed_verifier_hash" ] ||
+		fail 'reviewed static verifier artifact hash changed'
+fi
 [ -f "$base" ] && [ ! -L "$base" ] ||
 	fail 'accepted network-root base is absent or linked'
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$accepted_base" ] ||
@@ -53,8 +68,19 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 verifier=$stage/.reviewed-persistent-root-verify
-"$verifier_builder" "$verifier" >"$stage/.verifier-build-record" ||
-	fail 'reviewed static verifier build failed'
+if [ -z "$reviewed_verifier" ]; then
+	"$verifier_builder" "$verifier" >"$stage/.verifier-build-record" ||
+		fail 'reviewed static verifier build failed'
+else
+	install -m 0755 "$reviewed_verifier" "$verifier"
+	{
+		printf 'format=rog5-reviewed-verifier-artifact-v1\n'
+		printf 'sha256=%s\n' "$reviewed_verifier_hash"
+	} >"$stage/.verifier-build-record"
+fi
+[ "$(sha256sum "$verifier" | cut -d ' ' -f 1)" = \
+	"$reviewed_verifier_hash" ] ||
+	fail 'selected static verifier hash changed'
 readelf -h "$verifier" | grep -q 'Machine:.*AArch64' ||
 	fail 'persistent-root verifier is not AArch64'
 if readelf -l "$verifier" | grep -q 'Requesting program interpreter'; then

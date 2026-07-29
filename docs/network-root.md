@@ -94,15 +94,18 @@ disabled in the final configuration, not merely left unused by the DTB.
 14. executes the distribution's `/sbin/init`.
 
 The trusted verifier runs before any distribution loader, library, Python
-runtime, or command. `build-network-root-initramfs.sh` does not accept a
-verifier artifact: it invokes `build-persistent-root-verifier-static.sh`
-itself, which performs two deterministic static AArch64-musl builds, and
-installs that reviewed result into the versioned archive. The extracted
-artifact gate independently rebuilds it and requires an exact byte match in
-addition to rejecting an interpreter or shared-library dependency. A
-valid static AArch64 substitution is covered by a refusal test. Existing v3
-artifacts predate this incompatible contract and cannot be reused as a v2
-signed network-root payload without rebuilding.
+runtime, or command. By default `build-network-root-initramfs.sh` invokes
+`build-persistent-root-verifier-static.sh`, which performs two deterministic
+static AArch64-musl builds. Both the default build and the extracted-artifact
+gate require the exact reviewed SHA-256
+`bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58`.
+For an offline host without the cross-compiler, `NETWORK_ROOT_VERIFIER` may
+name only an absolute, executable, non-symlink artifact with that exact hash;
+the selected bytes are copied, hashed again, and subjected to the same ELF
+and static-link checks. Arbitrary verifier artifacts and valid static AArch64
+substitutions are covered by refusal tests. Existing v3 artifacts predate
+this incompatible contract and cannot be reused as a v2 signed network-root
+payload without rebuilding.
 
 The target watchdog PID remains in `/run/rog5-network-root-watchdog.pid`; its
 canonical companion lease is

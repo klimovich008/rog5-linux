@@ -219,8 +219,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   archival and after clean extraction.
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
-  fields, and mutated artifacts, checks the tracked consumed-P2 identities,
-  and statically excludes transport/server/phone actions.
+  status, fields, and mutated artifacts, checks the tracked consumed-P2 and
+  headless network-root identities, and statically excludes
+  transport/server/phone actions.
+- `test-headless-network-root.py` binds the explicit no-workload manifest,
+  complete persistent seal, tree count/hash, source archive, and final sealed
+  archive, then rejects tree, archive, and command-manifest mutations.
+- `test-recovery-candidate-integration.py` composes the real packager,
+  descriptor-oriented server, sandboxed fetcher, native verifier, and framed
+  responder. Local artifact stores exercise the exact consumed P2 payload;
+  clean clones use a tiny policy-valid fixture. Only kexec is replaced, and
+  the fake verifies exact descriptor hashes plus load/execute/unload order.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

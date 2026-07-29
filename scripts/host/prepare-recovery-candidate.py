@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare one pinned, offline-only stable-recovery candidate bundle."""
+"""Prepare one pinned, authority-free stable-recovery candidate bundle."""
 
 from __future__ import annotations
 
@@ -141,8 +141,12 @@ def load_candidate(candidate: str) -> dict[str, Any]:
         raise CandidateError("candidate format is unsupported")
     if require_string(record, "candidate") != candidate:
         raise CandidateError("candidate identity does not match its filename")
-    if require_string(record, "status") != "consumed":
-        raise CandidateError("candidate is not a consumed parity fixture")
+    status = require_string(record, "status")
+    profile = require_string(record, "profile")
+    if status not in {"consumed", "offline"}:
+        raise CandidateError("candidate status is not authority-free")
+    if status == "offline" and profile != "network-root-v1":
+        raise CandidateError("offline candidate is not a network root")
     if require_string(record, "authority") != "none":
         raise CandidateError("candidate unexpectedly carries live authority")
 
