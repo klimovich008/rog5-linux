@@ -139,9 +139,13 @@ the same roughly 16-second boundary documented below. Decompilation proved
 that object omitted the v2/v3 `disabled` states for RMTFS, GPUCC, GMU, and
 the Adreno SMMU. The tracked headless candidate now pins the accepted v3 DTB
 hash `86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
-The correction passes offline signed-bundle composition but has not been
-booted and grants no repeat authority. See the
-[stable-recovery live result](../test-results/2026-07-29-headless-stable-recovery-live.md).
+The corrected target, signed bundle, shell-free recovery initramfs, vendor
+wrapper, raw boot image, and unsigned AVB test wrapper now reproduce twice
+under one destroyed disposable key. They remain `authority=none`, have not
+been booted, and grant no repeat authority. See the
+[stable-recovery live result](../test-results/2026-07-29-headless-stable-recovery-live.md)
+and
+[corrected offline twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
 `/run/rog5-network-root-identity` is mode `0400` and records the OverlayFS,
 lower, and state mount IDs plus the signed root tuple. Mount IDs survive

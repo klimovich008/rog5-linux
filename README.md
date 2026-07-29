@@ -21,7 +21,7 @@ build outputs.
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
-| Mainline userspace | SSH-only Arch lower started far enough to expose target NCM but reset before SSH because the signed candidate selected historical DTB v1; corrected v3-isolated candidate passes offline |
+| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper now reproduce in a complete offline twin build |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -37,6 +37,9 @@ gate.
 - [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
   — exact signed transaction, rejection, rollback, root cause, and corrected
   offline candidate.
+- [Corrected headless candidate twin build](test-results/2026-07-29-corrected-headless-candidate-offline.md)
+  — exact corrected DTB, bundle, recovery, wrapper, trust boundary, and
+  byte-identical offline products.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
@@ -161,8 +164,10 @@ ephemeral-key signed v2 bundle and the actual consumed-P2
 prepare/serve/verify/execute composition pass offline. Its first signed live
 transaction exposed target NCM but returned before SSH because the candidate
 selected historical DTB v1. The tracked candidate now pins the accepted
-GPU/RMTFS-isolated v3 DTB, remains `authority=none`, and is not phone boot
-authority. See
+GPU/RMTFS-isolated v3 DTB. The complete target, bundle, shell-free recovery,
+and wrapper now reproduce twice under one destroyed disposable key, remain
+`authority=none`, and are not phone boot authority. See the
+[corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the
