@@ -21,7 +21,7 @@ build outputs.
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
-| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; 37 source and 23 corrected-DTB checks plus a 55-field runtime probe cover all six active capabilities, including exact RAM banks, CPU MPIDRs, and three EPSS CPUfreq policies, while the corrected candidate remains live-pending |
+| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; 37 source and 23 corrected-DTB checks plus a 68-field runtime probe cover all six active capabilities, including exact RAM/CPUfreq topology and mount-bound NFSv4.2 storage isolation, while the corrected candidate remains live-pending |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper now reproduce in a complete offline twin build |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -53,6 +53,8 @@ gate.
   [offline result](test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
   — canonical target evidence, candidate/runtime thresholds, strict-SSH
   capture, and the still-armed rollback boundary.
+- [Storage-isolation result](test-results/2026-07-29-storage-isolation-offline.md)
+  — mount-attested NFSv4.2 plus zero block/SCSI/RPMB/UFS exposure.
 - [Volatile target host-key bootstrap](docs/minimal-headless-host-key-bootstrap.md)
   and
   [offline result](test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md)
@@ -202,10 +204,12 @@ plus the
 [live rejection](test-results/2026-07-29-headless-stable-recovery-live.md).
 
 The next target observation is no longer an ad-hoc terminal transcript. One
-read-only probe and fail-closed verifier now bind a 55-field private record to
+read-only probe and fail-closed verifier now bind a 68-field private record to
 the exact corrected candidate, boot ID, all six active core capabilities,
 exact eight-CPU topology, three Qualcomm EPSS CPUfreq policies,
-device-specific RAM/thermal thresholds, and the still-armed rollback watchdog.
+device-specific RAM/thermal thresholds, attested OverlayFS/NFSv4.2/tmpfs mount
+IDs and backing paths, zero block/SCSI/RPMB/UFS exposure, and the still-armed
+rollback watchdog.
 The strict-SSH capture runner cannot boot, sign, reboot, disarm, or retry
 execution. Because this credential-free root creates a volatile server host
 key in RAM, a separate bootstrap now pins only the public Ed25519 key after

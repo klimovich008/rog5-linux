@@ -20,7 +20,7 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/host/pin-minimal-headless-host-key.py` creates the private
   known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
-  proc/sys/run/root fixture and rejects thirteen cross-capability mutations.
+  proc/sys/run/root fixture and rejects 27 cross-capability mutations.
 - `scripts/host/test-verify-minimal-headless-runtime.py` exercises the
   canonical parser, candidate binding, thresholds, private-file policy, and
   CLI.
@@ -33,7 +33,7 @@ compatibility profile names them as gates for the capabilities they cover.
 
 ## Record contract
 
-The probe emits exactly 55 ordered ASCII `key=value` lines ending in LF. The
+The probe emits exactly 68 ordered ASCII `key=value` lines ending in LF. The
 record identifies:
 
 - format, profile, live/test execution mode, exact probe SHA-256, active
@@ -41,8 +41,11 @@ record identifies:
 - kernel release, AArch64 machine, systemd PID 1, running system state,
   multi-user default, exact online/present CPU sets, three EPSS CPUfreq
   policies with exact CPU membership, driver and governor, and memory totals;
-- OverlayFS root, exact read-only NFS lower, tmpfs state with `nodev,nosuid`,
-  zero physical block devices, zero block-backed mounts, and initramfs
+- three distinct live mount IDs equal to the initramfs attestation, OverlayFS
+  with exact `/mnt/root-ro`, `/mnt/state/upper`, and `/mnt/state/work`
+  backing paths, an exact read-only NFSv4.2/TCP lower, tmpfs state with
+  `nodev,nosuid`, zero block devices, physical devices, SCSI hosts, RPMB
+  devices, UFS platform devices, block-backed mounts, and exact initramfs
   handoff markers;
 - exact `usb0` carrier and `169.254.77.2/30` address;
 - active SSH, locked root password, one valid authorized key, effective
@@ -69,7 +72,7 @@ compatibility oracle and authority-free corrected candidate. It then requires:
 | CPU | exactly CPUs `0-7` online and present; exactly `policy0`, `policy4`, and `policy7` for CPU sets `0-3`, `4-6`, and `7`; `qcom-cpufreq-hw` plus `schedutil` on all three |
 | Total RAM | at least 10 GiB reported in KiB |
 | Available RAM | at least 8 GiB and no more than total RAM |
-| Storage | OverlayFS, exact read-only NFS lower, tmpfs state, zero physical devices and block-backed mounts |
+| Storage | three distinct mount IDs equal to the initramfs attestation; exact OverlayFS lower/upper/work paths over read-only NFSv4.2/TCP plus tmpfs state; zero block, physical, SCSI, RPMB, UFS-platform, and block-backed-mount exposure |
 | USB/SSH | exact NCM address/carrier and strict key-only SSH |
 | Thermals | 30–128 readable zones; values between -20 C and 120 C |
 | Rollback | exact candidate timeout of 600 seconds with 60–600 seconds remaining |
@@ -80,6 +83,11 @@ behavior. The 10/8 GiB memory and 30-zone thermal floors inherit the accepted
 phone's roughly 11 GiB usable-RAM and 33-zone Linux 7.1 result. They are
 runtime regression bounds for this device, not generic ROG Phone 5 SKU
 requirements.
+
+The strengthened storage checks are documented in the
+[offline storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md).
+They preserve the current zero-storage profile and do not authorize the
+separate persistent-root design.
 
 The record must be a caller-owned, mode-`0600`, unlinked ordinary file with
 one link and a maximum size of 16 KiB. Its boot ID must match a separate

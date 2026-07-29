@@ -114,17 +114,20 @@ root is still `live-pending` with `authority=none`. See the
 [offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
 
 The corrected target's next live observation is now specified independently
-of the boot controller. One read-only target probe emits exactly 55 canonical
+of the boot controller. One read-only target probe emits exactly 68 canonical
 fields for the six active capabilities. A host verifier binds the record to
 the current probe hash, a separately observed boot ID, the full compatibility
 oracle, the corrected candidate's root identities, exact CPUs `0-7`, the
 three EPSS CPUfreq policy groups and schedutil governor, accepted RAM/thermal
-envelopes, strict key-only SSH, and the live 600-second rollback lease. Target,
-host, and mocked strict-SSH runner tests pass offline. The runner executes the
-probe once and cannot boot, sign, retry kexec, disarm, or reboot. No credential
-was used and no phone was contacted. See the
+envelopes, exact OverlayFS/NFSv4.2/tmpfs mount IDs and backing paths, zero
+block/SCSI/RPMB/UFS exposure, strict key-only SSH, and the live 600-second
+rollback lease. Target, host, and mocked strict-SSH runner tests pass offline.
+The runner executes the probe once and cannot boot, sign, retry kexec, disarm,
+or reboot. No credential was used and no phone was contacted. See the
 [runtime contract](minimal-headless-runtime-acceptance.md) and
-[CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md).
+[CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md), plus
+the
+[storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md).
 
 The compatibility gate now also checks the kernel source and generated board
 DTB rather than stopping at Kconfig and artifact ancestry. The retained exact

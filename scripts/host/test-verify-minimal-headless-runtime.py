@@ -38,6 +38,9 @@ def golden_values() -> dict[str, str]:
             "cpu_online_count": "8",
             "memory_total_kib": "11900000",
             "memory_available_kib": "10949632",
+            "overlay_mount_id": "101",
+            "overlay_lower_mount_id": "102",
+            "state_mount_id": "103",
             "thermal_zone_count": "33",
             "thermal_min_millidegree_c": "32000",
             "thermal_max_millidegree_c": "37000",
@@ -235,6 +238,28 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
                     if field == "memory_total_kib"
                     else "available memory is outside"
                 )
+                self.assert_mutation_fails(field, value, message)
+
+    def test_storage_mount_identity_is_canonical_and_distinct(self) -> None:
+        mutations = (
+            (
+                "overlay_mount_id",
+                "0101",
+                "overlay_mount_id storage mount ID is not a canonical decimal",
+            ),
+            (
+                "overlay_mount_id",
+                "0",
+                "storage mount identities are zero or duplicated",
+            ),
+            (
+                "overlay_lower_mount_id",
+                "101",
+                "storage mount identities are zero or duplicated",
+            ),
+        )
+        for field, value, message in mutations:
+            with self.subTest(field=field, value=value):
                 self.assert_mutation_fails(field, value, message)
 
     def test_decimal_encoding_is_canonical(self) -> None:
