@@ -1,4 +1,4 @@
-# Current state — 2026-07-28
+# Current state — 2026-07-29
 
 This file records facts, not planned work or live authority. The ordered plan
 is in [ROADMAP.md](../ROADMAP.md), and the detailed recovery redesign is in
@@ -74,7 +74,7 @@ The current source has now removed that shell from recovery, network-root,
 and persistent-root. A deterministic builder replaces the accepted v18
 userspace init, removes SSH/getty/login/DHCP entry points and credentials,
 locks root, and integrates the static responder, fetcher, verifier, pinned
-kexec runtime, and a caller-supplied raw public key. Five init-policy tests
+kexec runtime, and a caller-supplied raw public key. Six init-policy tests
 and malicious-archive/init fixtures enforce that boundary. Builds under
 different locales and time zones are byte-identical. The ASUS wrapper path
 also requires the repeatedly measured 116 physical nodes before USB bind.
@@ -87,8 +87,9 @@ boot-authorized. See [re-freeze integration](recovery-refreeze-integration.md).
 
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
-native responder now passes 53 pseudo-terminal and PREPARE-boundary tests as
-both a host build and a real AArch64 static binary under QEMU. A separate
+native responder now passes 55 pseudo-terminal, postmortem, and
+PREPARE-boundary tests as both a host build and a real AArch64 static binary
+under QEMU. A separate
 static native signed-bundle verifier enforces the canonical manifest, raw
 Ed25519 trust root, artifact identity, arm64 Image/FDT policy, bounded
 gzip/newc initramfs, and generated command line. The verifier now transfers
@@ -155,10 +156,19 @@ persistent Arch payload maps to
 No production key, live bundle, allowlist change, host-network mutation, or
 phone action was created by this checkpoint.
 
-The fallback reserves ramoops memory but cannot currently read it: no driver
-is bound, `/dev/mem` and `devmem` are absent, `CONFIG_DEVMEM` is unset, and a
-matching module environment is unavailable. The fallback pstore-empty gate
-remains unchanged.
+The installed fallback still cannot read the ramoops reservation: no driver
+is bound, `/dev/mem` and `devmem` are absent, and `CONFIG_DEVMEM` is unset.
+The stable recovery wrapper already has built-in `PSTORE_RAM` and the exact
+4 MiB ramoops command line. Recovery source now arms rollback first, mounts
+pstore read-only, takes an immutable RAM snapshot without deleting records,
+and exports state, record count, byte count, SHA-256, and a 512-byte tail
+through framed status. Its empty/present/unavailable and malformed-state
+tests pass offline. Two clean final builds produced identical initramfs,
+wrapper kernel, raw boot-v3, and test-only AVB images. The hashes and commands
+are recorded in the
+[headless speed-amplifier result](../test-results/2026-07-29-headless-speed-amplifiers-offline.md).
+Whether the reserved DRAM survives target → bootloader → recovery remains a
+live experiment; no retained log has yet been claimed.
 
 ## Persistent Arch root
 
@@ -353,18 +363,18 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Obtain explicit approval for the production recovery signing trust root.
-2. Rebuild and atomically pin one production-key stable recovery image, then
-   promote it through staging-only tests. The offline implementation has
-   independent review; production artifacts and live behavior do not.
-3. Re-enter persistent Arch boot with unambiguous outcome classification.
-4. Complete A660 clock/power/GMU bring-up to a stable render node.
-5. Run separately authorized WCN6855 and VPN-hotspot hardware gates.
-6. Measure screen-off wall power, charging, thermal behavior, and refresh-rate
-   cost on the promoted kernel/userspace.
+1. Get the hardware-free GitHub CI tier and its new board-neutral
+   full-system QEMU boot gate green.
+2. Produce the minimal SSH-only root and manifest-driven candidate runner.
+3. Obtain explicit approval before creating or using a production recovery
+   signing trust root.
+4. Promote the stable recovery through staging-only tests and determine
+   whether ramoops survives the target/fallback path.
+5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+   thermal/suspend, input/sensors, then audio and wireless.
 
-No new phone action is authorized or needed before blocker 1 receives explicit
-approval.
+GPU, display, desktop, hotspot, and automation work is frozen until the
+headless reliability gate. No new phone action is authorized by this document.
 
 ## Operational constraints
 

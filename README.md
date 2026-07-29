@@ -1,10 +1,10 @@
 # ROG Phone 5 native Linux
 
 This project is bringing native Linux to the ASUS ROG Phone 5 (`anakin`,
-Snapdragon 888 / SM8350) as a low-power ARM server and usable desktop. The
-target is modern Arch Linux ARM with Plasma, remote administration while the
-OLED is off, reliable charging and suspend policy, Wi-Fi, a fail-closed
-VPN-backed hotspot, and upstream-style Adreno 660 acceleration.
+Snapdragon 888 / SM8350) as a low-power ARM server. Development is
+headless-first: recovery, logging, boot, storage, USB/SSH, power, charging,
+thermal behavior, input, sensors, audio, and wireless must be stable before
+display, GPU, desktop, remote GUI, hotspot, or automation work resumes.
 
 The project is experimental. It contains source, tests, configuration,
 artifact identities, and redacted evidence. It deliberately excludes private
@@ -19,11 +19,11 @@ build outputs.
 | Persistent fallback | Alpine on vendor kernel 5.4.134; SSH/remote GUI and screen-off service available |
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
-| Recovery control | Framed protocol through shell-free initramfs, vendor wrapper, boot-v3, and AVB is reproducible offline with an ephemeral key; production trust root and release candidate remain |
+| Recovery control | Framed shell-free protocol and read-only pstore outcome oracle are reproducible through complete wrapper/AVB packaging; production trust root and live promotion remain |
 | Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
-| Mainline userspace | Arch server/Plasma roots build and verify offline; successor-v3 is not promoted |
+| Mainline userspace | Historical Arch server/Plasma roots build offline; a smaller SSH-only active profile is next |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
-| GPU | A660 registration/firmware/allocation boundaries progressed; stable accelerated desktop is not yet achieved |
+| GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
 | VPN hotspot | IPv4/IPv6 and real WireGuard fail-closed tests pass offline; radio/provider live gate remains |
 | New phone action | None authorized by repository state; production trust-root approval and staging promotion remain |
@@ -79,6 +79,18 @@ Only the twice-live-accepted v18 staging image is currently admitted.
 Run the hardware-free host/control suite first:
 
 ```sh
+scripts/host/test-repository-linux.sh ci
+```
+
+The `ci` tier needs no phone, Vulkan stack, desktop, or delegated cgroup. It is
+the default pull-request gate for the recovery protocol and host safety path.
+The workflow also has a separate full-system ARM64 job. It builds the exact
+pinned upstream Linux v7.1.4 commit and boots a syscall-only initramfs under
+QEMU. This proves the generic kernel-to-PID-1 handoff without pretending to
+emulate ROG Phone hardware.
+For the wider provisioned local suite, run:
+
+```sh
 scripts/host/test-repository-linux.sh quick
 ```
 
@@ -125,22 +137,20 @@ KNOWN_HOSTS=/secure/path/rog5-known-hosts \
 The mutating `reboot` action still requires its own explicit environment
 guard. See the script before use.
 
-## Desktop/server direction
+## Active server direction
 
-The persistent fallback already demonstrates the desired operating model:
+The current active image is intentionally smaller than the proven fallback:
 
-- the OLED can remain off while SSH, ttyd, noVNC, and Chromium automation
-  continue;
-- host forwards are loopback-only and reconnect through a user service;
-- the phone-side remote GUI supervisor is singleton and restartable;
-- the development Arch root has a locked, resource-limited automation account
-  separate from the desktop user.
+- kernel, initramfs, minimal init, USB networking, and key-only SSH;
+- logging, watchdog, rollback, power, thermal, and hardware telemetry;
+- only the tools required by the current hardware gate.
 
-The target desktop is minimal Plasma/KWin rather than a full default GNOME or
-KDE installation. On this 12 GB device, reliability, idle CPU, GPU stability,
-and battery drain matter more than saving the last few hundred MiB of RAM.
-See [remote GUI](docs/remote-gui.md) and
-[current state](docs/current-state.md).
+The Alpine fallback already proves that the OLED can remain off while server
+and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is
+preserved as an operator lifeline, not copied into the active mainline root.
+Historical desktop and A660 work remains frozen until the headless 24-hour
+reliability gate passes. See [roadmap](ROADMAP.md),
+[remote GUI](docs/remote-gui.md), and [current state](docs/current-state.md).
 
 Email, CVs, browser profiles, API credentials, and job-application data do
 not belong in the image or repository. They should later be exposed to a
@@ -172,11 +182,12 @@ artifact-retention plan exists.
 The project no longer advances by adding another shell-driven diagnostic
 tier. Work proceeds in this order:
 
-1. protocol/state/fault tests;
-2. fixed recovery responder and signed runtime manifest;
-3. one reproducible recovery re-freeze and staging-only promotion;
-4. persistent Arch boot closure;
-5. GPU, Wi-Fi, VPN hotspot, desktop, and power acceptance;
-6. upstream-oriented Linux 7.x maintenance.
+1. postmortem oracle, fixed recovery, CI, QEMU, and build-loop reduction;
+2. minimal read-only Linux root with USB networking and SSH;
+3. charging, battery, thermal, reboot, suspend, wake, and screen-off;
+4. buttons, touch, sensors, audio, Wi-Fi, Bluetooth, GPS/modem where feasible;
+5. persistent 24-hour headless reliability;
+6. display, then headless GPU, then optional desktop/remote GUI;
+7. hotspot, automation, and upstream-oriented kernel maintenance.
 
 The full plan and completion criteria are in [ROADMAP.md](ROADMAP.md).

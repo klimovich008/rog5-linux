@@ -101,6 +101,16 @@ class NativeResponderTest(unittest.TestCase):
         self.state = self.root / "state"
         self.state.mkdir(mode=0o700)
         self.watchdog = self.root / "watchdog"
+        self.postmortem = self.root / "postmortem.status"
+        self.postmortem.write_text(
+            "state=UNAVAILABLE\n"
+            "records=0\n"
+            "bytes=0\n"
+            f"sha256={'0' * 64}\n"
+            "tail_hex=none\n",
+            encoding="ascii",
+        )
+        self.postmortem.chmod(0o600)
         self.processes: list[subprocess.Popen] = []
         self.descriptors: list[int] = []
         self.start_watchdog()
@@ -229,6 +239,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.state),
                 "--watchdog",
                 str(self.watchdog),
+                "--postmortem",
+                str(self.postmortem),
             ],
             cwd=REPO,
             env=environment,
@@ -789,6 +801,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(state),
                 "--watchdog",
                 str(self.watchdog),
+                "--postmortem",
+                str(self.postmortem),
             ],
             cwd=REPO,
             env=environment,
@@ -825,6 +839,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.state),
                 "--watchdog",
                 str(self.watchdog),
+                "--postmortem",
+                str(self.postmortem),
             ],
             cwd=REPO,
             env=environment,
@@ -899,6 +915,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.state),
                 "--watchdog",
                 str(self.watchdog),
+                "--postmortem",
+                str(self.postmortem),
             ],
             cwd=REPO,
             env=environment,
@@ -995,6 +1013,38 @@ class NativeResponderTest(unittest.TestCase):
         response = self.status(master, session, 2)
         self.assertEqual(response.result, "OK")
         self.assertEqual(response.state, "IDLE")
+
+    def test_status_exports_bounded_postmortem_evidence(self):
+        self.postmortem.write_text(
+            "state=PRESENT\n"
+            "records=1\n"
+            "bytes=5\n"
+            f"sha256={MANIFEST}\n"
+            "tail_hex=70616e6963\n",
+            encoding="ascii",
+        )
+        _, master = self.start()
+        session = self.hello(master)
+        response = self.status(master, session, 2)
+        self.assertEqual(response.postmortem_state, "PRESENT")
+        self.assertEqual(response.postmortem_records, "1")
+        self.assertEqual(response.postmortem_bytes, "5")
+        self.assertEqual(response.postmortem_sha256, MANIFEST)
+        self.assertEqual(bytes.fromhex(response.postmortem_tail_hex), b"panic")
+
+    def test_inconsistent_postmortem_status_is_rejected_at_startup(self):
+        self.postmortem.write_text(
+            "state=PRESENT\n"
+            "records=0\n"
+            "bytes=0\n"
+            f"sha256={'0' * 64}\n"
+            "tail_hex=none\n",
+            encoding="ascii",
+        )
+        refusal = self.run_startup_probe(self.state)
+        self.assertNotEqual(refusal.returncode, 0)
+        self.assertIn("inconsistent present postmortem status", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
 
     def test_complete_malformed_frames_close_without_state_change(self):
         malformed = (

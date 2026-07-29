@@ -1,0 +1,70 @@
+name: Offline smoke
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            clang \
+            device-tree-compiler \
+            libssl-dev \
+            lld \
+            openssl \
+            pkg-config
+      - name: Run hardware-free recovery core
+        run: scripts/host/test-repository-linux.sh ci
+
+  qemu-system:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install full-system smoke dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            bc \
+            bison \
+            build-essential \
+            clang \
+            cpio \
+            flex \
+            git \
+            libelf-dev \
+            libssl-dev \
+            lld \
+            llvm \
+            qemu-system-arm
+      - name: Fetch pinned upstream Linux source
+        run: |
+          mkdir -p build/qemu-linux-source
+          git -C build/qemu-linux-source init
+          git -C build/qemu-linux-source fetch --depth=1 \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            refs/tags/v7.1.4
+          git -C build/qemu-linux-source checkout --detach FETCH_HEAD
+          test "$(git -C build/qemu-linux-source rev-parse HEAD)" = \
+            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+      - name: Build ARM64 virt kernel
+        run: |
+          scripts/host/build-qemu-smoke-kernel.sh \
+            build/qemu-linux-source \
+            build/qemu-smoke-kernel
+      - name: Boot kernel and initramfs under QEMU
+        run: |
+          scripts/host/test-qemu-system-smoke.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image

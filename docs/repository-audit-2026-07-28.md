@@ -49,6 +49,11 @@ The prose also had a clear duplication signal: `README.md`,
 `docs/test-plan.md` together exceeded 4,900 lines, with the first three
 repeating much of the same chronology.
 
+A 2026-07-29 recheck found approximately 113 GB under `artifacts/` and
+53 GB under `build/`, or 166 GB total. The increase is ignored build state,
+not tracked source, and reinforces the requirement for a referenced prune
+plan before deletion.
+
 ## Archive checkpoint
 
 Every tracked file before reduction is preserved by the pushed annotated tag:
@@ -189,12 +194,18 @@ device-minted session, framed requests, a replay ledger, atomic execute claim,
 host write-ahead intent, signed runtime manifests, and out-of-band outcome
 classification.
 
-### Retained ramoops has no reader
+### Retained ramoops needed a recovery reader
 
 The fallback reserves ramoops memory but has no bound pstore/ramoops driver,
 no `/dev/mem`, no `devmem`, `CONFIG_DEVMEM` unset, and no matching module
 build environment. Relaxing its pstore-empty safety gate would not recover
-evidence. Recovery-side reading is a future test, not a current capability.
+evidence.
+
+The stable recovery wrapper already has built-in `PSTORE_RAM` and the exact
+reservation. Recovery source now snapshots pstore into RAM and exports
+bounded outcome metadata through framed status; its offline tests pass.
+Retention across target → bootloader → recovery remains unproven until a
+controlled live cycle.
 
 ### Tests were fragmented
 

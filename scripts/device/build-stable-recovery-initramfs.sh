@@ -78,6 +78,10 @@ grep -Fq '/usr/libexec/rog5-recovery-control &' "$init" ||
 	fail 'recovery init does not start the fixed responder'
 grep -Fq '169.254.77.2/30' "$init" ||
 	fail 'recovery init lacks the fixed device address'
+grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$init" ||
+	fail 'recovery init does not mount the postmortem store'
+grep -Fq '/run/rog5-postmortem.status' "$init" ||
+	fail 'recovery init does not publish bounded postmortem status'
 
 stage=$(mktemp -d)
 output_directory=$(dirname "$output")

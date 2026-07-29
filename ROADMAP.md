@@ -2,321 +2,294 @@
 
 ## Goal
 
-Make the ASUS ROG Phone 5 a dependable native Linux ARM device with:
+Build a stable, observable, maintainable native Linux system for the ASUS ROG
+Phone 5 (`anakin`), headless-first.
 
-- a maintainable Linux 7.x board port;
-- accelerated Adreno 660 graphics;
-- modern Arch Linux ARM, with Debian support possible from the same kernel;
-- minimal Plasma/KWin on the panel and secure remote GUI while the OLED is
-  off;
-- stable charging, thermal, refresh-rate, suspend, and idle-power behavior;
-- Wi-Fi client/AP and a fail-closed VPN-backed hotspot;
-- a confined automation service that can use explicitly delegated tools
-  without receiving unrestricted personal credentials.
+The active target is a minimal server that boots repeatably, preserves
+postmortem evidence, exposes key-only SSH, keeps physical storage safe during
+development, and has correct power, charging, thermal, input, sensor, audio,
+and wireless behavior. Basic display, GPU acceleration, Plasma/GNOME, remote
+GUI, refresh-rate tuning, VPN hotspot, and AI workloads resume only after the
+headless core passes its reliability gate.
 
-The goal is complete only when normal operation no longer depends on Android,
-an interactive recovery shell, or an attended temporary boot. Until a
-persistent boot path is separately designed and approved, development remains
-temporary-boot-only.
+Normal operation must eventually stop depending on Android, an interactive
+recovery shell, or an attended temporary boot. Development remains
+temporary-boot-only until a persistent path is separately designed, tested,
+and approved.
 
-## Project rules
+## What “incremental” means
+
+Incremental bring-up does **not** restart or redo accepted work. Existing
+hashes, sealed roots, live evidence, recovery design, WCN6855 analysis, GPU
+ancestry, and fallback services remain immutable baselines.
+
+Incremental means changing one unproven hardware boundary at a time and
+requiring an observable pass/fail result before widening the next boundary.
+Only integration glue is replaced when the stable framed recovery supersedes
+legacy ACM transport.
+
+## Active and frozen profiles
+
+The active build profile contains only:
+
+- kernel, initramfs, and a minimal root filesystem;
+- systemd or an equivalently small init;
+- USB networking and key-only SSH;
+- logging, watchdog, rollback, and health telemetry;
+- tools required by the current hardware acceptance gate.
+
+The following are frozen, not deleted:
+
+- Plasma, KWin, GNOME, KRDP, noVNC, ttyd, Chromium, and browser automation;
+- Vulkan userspace, Turnip helpers, and A660 v9/v10/v11 candidate work;
+- fail-closed hotspot and automation-agent packaging;
+- superseded live-gate scripts still required to prove accepted ancestry.
+
+The Alpine fallback GUI remains an operator lifeline. It is not part of the
+active mainline target.
+
+## Safety rules
 
 1. Tests and rollback contracts precede hardware execution.
-2. No experimental partition flash.
-3. One live diagnostic payload gets at most one execute attempt.
-4. Transport loss is `UNKNOWN`; it is never permission to retry.
-5. Accepted evidence is immutable and inherited by hash.
-6. Storage stays read-only until the persistent-root phase explicitly proves
-   a bounded write contract.
-7. Credentials, personal data, and private evidence remain outside Git.
-8. A kernel version bump does not replace subsystem bring-up. Linux 7.1.4 is
-   the current upstream base; work advances driver by driver.
+2. No experimental partition flash; use only an explicitly allowed attended
+   `fastboot boot`.
+3. Keep the installed fallback slot untouched.
+4. One live diagnostic payload gets at most one execute attempt.
+5. Transport loss is `UNKNOWN`; it never authorizes a retry.
+6. Accepted evidence is immutable and inherited by hash.
+7. Physical storage stays read-only until a bounded persistent-root write
+   contract is separately approved.
+8. Credentials, personal data, and private evidence remain outside Git.
+9. A kernel version bump does not replace subsystem bring-up.
+10. No desktop, GPU, or automation dependency may enter the active headless
+    profile before its gate.
 
-## P0 — Repository and safety stabilization
+## A0 — Shorten the development loop
 
 Status: **in progress**
 
-- [x] Push the complete repository to GitHub.
-- [x] Create archive tag
+### A0.1 Postmortem outcome oracle
+
+- [x] Confirm the accepted 5.4 recovery wrapper has built-in `PSTORE_RAM` and
+  the exact 4 MiB ramoops command-line reservation.
+- [x] Snapshot pstore into RAM without deleting records.
+- [x] Export state, record count, byte count, SHA-256, and a bounded log tail
+  through framed `HELLO`/`STATUS` responses.
+- [x] Cover empty, present, unavailable, malformed, crash/restart, partial-I/O,
+  and watchdog cases offline.
+- [x] Rebuild the postmortem-enabled initramfs, wrapper kernel, raw boot
+  image, and test-only AVB image twice and prove byte identity.
+- [ ] Prove experimentally whether ramoops survives target → bootloader →
+  recovery on this phone.
+- [ ] If DRAM does not survive, test the Qualcomm USB-C debug UART before
+  designing another oracle.
+
+Exit: every attended target execution yields `PASS`, `FAIL`, or bounded
+`UNKNOWN` evidence without relying on timing guesses.
+
+### A0.2 Stable recovery platform
+
+- [x] Replace the interactive ACM shell with the fixed framed responder.
+- [x] Keep signed runtime payloads separate from the recovery image.
+- [x] Implement at-most-once prepare/commit state and a host write-ahead
+  ledger.
+- [x] Build the shell-free initramfs and wrapper reproducibly with ephemeral
+  keys.
+- [ ] Embed a separately approved production public key.
+- [ ] Update all source, hash, verifier, and wrapper pins in one release
+  change.
+- [ ] Pass staging-only promotion cycles before replacing v18 authority.
+
+Exit: one frozen recovery handles future kernel, DTB, initramfs, and
+postmortem operations without per-candidate recovery rebuilds.
+
+### A0.3 Hardware-free automation
+
+- [x] Add one `ci` repository-test tier with no phone, Vulkan, desktop, or
+  delegated-cgroup dependency.
+- [x] Add a GitHub Actions workflow for the recovery protocol, native
+  responder, bundle verifier/fetcher, host controller, boot policy, and
+  repository policy.
+- [ ] Observe the first green GitHub run.
+- [x] Add a full-system `qemu-system-aarch64 -M virt` boot harness for generic
+  initramfs/root handoff, pinned to an exact upstream Linux commit.
+- [x] Keep QEMU tests board-neutral; never claim that QEMU proves ROG Phone
+  hardware.
+
+Exit: parser, initramfs, recovery, root handoff, and policy regressions fail
+before a phone cycle.
+
+### A0.4 Reduce candidate overhead
+
+- [ ] Replace version-per-candidate prepare/serve/verify/run glue with one
+  manifest-driven runner.
+- [ ] Extract only the already-proven generic safety checks needed by that
+  runner; do not create a new framework.
+- [ ] Port one current candidate and prove parity before archiving duplicate
+  runners.
+- [ ] Add compiler caching and preserve incremental kernel output trees.
+- [ ] Create a minimal SSH-only root profile with no display, desktop,
+  browser, Vulkan, hotspot, or agent packages.
+
+Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
+specific assertion—not five copied scripts and a full userspace image.
+
+### A0.5 Artifact retention
+
+The current ignored footprint is approximately 166 GiB: 113 GiB under
+`artifacts/` and 53 GiB under `build/`. No data is deleted merely because it
+looks reproducible.
+
+- [x] Preserve the tracked pre-reduction checkpoint at
   `archive/pre-stable-recovery-2026-07-28`.
-- [x] Inventory tracked source and ignored local artifacts.
-- [x] Obtain an independent Claude Opus audit and correct it against live
-  evidence.
-- [x] Separate artifact inventory from temporary-boot authority.
-- [x] Admit only the twice-live-accepted v18 staging AVB image.
-- [x] Pin fastboot product `lahaina` in the recovery wrapper.
-- [x] Remove the unused `socat` host prerequisite and stale execute guidance.
-- [x] Add an offline mock test for boot policy and product rejection.
-- [x] Split README orientation, current facts, roadmap, recovery design, and
-  archive index into distinct sources of truth.
-- [x] Add one canonical Linux quick/rootfs offline-test runner.
-- [ ] Add GitHub CI for hardware-free tests.
-- [ ] Generate a non-destructive ignored-artifact prune plan.
-- [ ] Review that plan before deleting or deduplicating local data.
-- [ ] Pin/bootstrap external `mkbootimg` and `avbtool.py` dependencies for a
-  fresh clone.
+- [x] Recompute the current top-level footprint.
+- [ ] Generate a machine-readable prune plan with size, identity, references,
+  role, and reproduction command for every candidate.
+- [ ] Review the plan before deleting or deduplicating anything.
 
-Exit: a fresh clone can run the offline policy suite, and no consumed or
-unsafe artifact can pass the generic recovery preflight.
+Exit: active inputs and irreplaceable evidence are obvious; failed and
+duplicate builds can be removed safely.
 
-## P1 — Recovery protocol test suite
+## H1 — Recovery, logging, and rollback
 
-Status: **complete offline; reference, native PTY, and signed-bundle suites
-pass**
+- [ ] Promote the framed recovery candidate through the approved live gate.
+- [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
+- [ ] Prove postmortem retention or select the tested UART fallback.
+- [ ] Retire legacy ACM execution helpers from active operation.
 
-Specification:
-[docs/recovery-control-plane.md](docs/recovery-control-plane.md)
+Exit: failed boots are diagnosable and recover automatically.
 
-Build the tests before the responder:
+## H2 — Minimal headless boot
 
-- [x] Canonical frame parser reference model.
-- [x] Split/coalesced frame tests at every boundary.
-- [x] Malformed length, oversize, duplicate/unknown field, NUL, and non-ASCII
-  rejection.
-- [x] Device-session and request-ID replay model.
-- [x] Same-ID/same-body immutable decision rendered with current state, and
-  same-ID/different-body conflict.
-- [x] Same-ID `PREPARE` retry, new-ID rejection, and one-bundle-per-session
-  model.
-- [x] Atomic `COMMIT_EXEC` claim and persisted fingerprint model.
-- [x] Fault injection before claim, after claim, after response, and after
-  simulated execute.
-- [x] Session-keyed host write-ahead ledger, crash consistency, immutable
-  outcome, symlink/path replacement, and concurrent-controller tests.
-- [x] Pseudo-terminal delayed-open, partial-I/O, dropped-reply, disconnect,
-  and responder-restart tests.
-- [x] Proof that arbitrary shell input never reaches an execution primitive.
-- [x] Signed-manifest, file-size/hash, DTB, path, and command-line policy
-  mutation tests.
+- [ ] Package one signed minimal root bundle.
+- [ ] Boot kernel → initramfs → read-only root.
+- [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
+  clean reboot.
+- [ ] Remove desktop/browser/GPU packages from the active image.
+- [ ] Prove the fallback root remains unchanged after failure.
 
-Exit: the model demonstrates at-most-once execute semantics under every
-injected host/device crash and transport loss. There is still no phone action
-in this phase.
+Exit: a repeatable native Linux shell is reachable without Android or a GUI.
 
-## P2 — Fixed recovery responder and one re-freeze
+## H3 — Power and lifecycle
 
-Status: **protocol core through interactive-shell-free wrapper and AVB is
-reproducible offline with an ephemeral key; production trust root, release
-pins, and live promotion remain**
+- [ ] Verify charger detection and safe charging states.
+- [ ] Verify battery capacity, voltage, current, and temperature telemetry.
+- [ ] Bound thermal zones and emergency shutdown behavior.
+- [ ] Verify power-off, reboot, watchdog reboot, and bootloader reboot.
+- [ ] Verify suspend, wake, true panel-off behavior, and SSH continuity.
+- [ ] Measure idle, screen-off, charging, and sustained-load power.
 
-- [x] Implement an offline-tested static responder whose production default
-  owns `/dev/ttyGS0`.
-- [x] Mint the per-boot device session before USB bind and retain it across
-  responder restart under `/run`.
-- [x] Implement only `HELLO`, `STATUS`, `PREPARE`, and `COMMIT_EXEC`.
-- [x] Invoke the fixed production `kexec -e` path with `execve`; never invoke
-  a shell.
-- [x] Integrate the production responder, verifier, fixed kexec-tools, and
-  caller-supplied public-key path into the initramfs before USB bind.
-- [x] Remove `sh -i` from recovery, network-root, and persistent-root
-  initramfs variants.
-- [x] Implement and independently test fixed-NCM-host binary bundle
-  acquisition, an unprivileged chroot/seccomp worker, bounded RAM inventory,
-  and atomic no-replace publication.
-- [x] Invoke the fixed acquisition helper from `PREPARE` under the watchdog
-  before the verifier, with permanent bundle-conflict semantics.
-- [x] Add the fixed read-only host-serving command and firewall/controller
-  integration for the canonical binary stream.
-- [x] Implement and test canonical signed manifests against the fixed
-  production key path using ephemeral test keys only.
-- [x] Add an atomic no-replace host packager with deterministic output, exact
-  private metadata, no key copying, native-verifier coverage, host-server
-  coverage, and fail-closed staging cleanup.
-- [x] Copy the exact kernel, DTB, and initramfs into write-sealed snapshots,
-  verify those immutable bytes, transfer their descriptors over a private
-  `SOCK_SEQPACKET` channel, and load only those descriptors with bounded,
-  watchdog-supervised legacy `kexec_load`.
-- [x] Persist `PREPARED` only after load success; cover malformed handoff,
-  verifier/loader failure, timeout, watchdog death, path replacement, and
-  crash-after-load retry on host and AArch64/QEMU.
-- [x] Unload any uncommitted image after loader failure/timeout, returned
-  execution, or non-prepared responder restart; bound executor kill/reap.
-- [ ] Embed a separately approved production public key in the frozen image.
-- [ ] Ask the user before creating or using the production signing key.
-- [x] Generate a fixed profiled command line; reject arbitrary `init=`,
-  `root=`, and unsafe reserved-memory input.
-- [x] Preserve storage isolation and rollback ordering before UDC bind.
-- [x] Build twice and prove byte-identical responder, initramfs, wrapper, and
-  AVB outputs.
-- [x] Complete an independent read-only review of the offline implementation,
-  address its actionable findings, and repeat the full two-build gate.
-- [ ] Update all source, hash, and verifier pins in one change.
+Exit: the phone can run unattended without overheating, silently discharging,
+or losing remote reachability.
 
-Live promotion, separately authorized:
+## H4 — Input and sensors
 
-- [ ] Two staging-only RAM-root/storage/USB/rollback cycles.
-- [ ] Two protocol-only malformed/replay cycles with no payload load.
-- [ ] One signed inert load-only cycle.
-- [ ] One execute cycle with host write-ahead intent and out-of-band outcome
-  classification.
+- [ ] Verify power and volume keys with IRQ/wakeup behavior.
+- [ ] Verify touchscreen input independently of the desktop.
+- [ ] Bring up IMU, compass, ambient-light, and proximity sensors one at a
+  time.
+- [ ] Add calibration controls only where physical measurements require them.
+- [ ] Treat fingerprint, NFC, and cameras as separate later scopes.
 
-Exit: one stable recovery image replaces v18 in the temporary-boot allowlist.
-The legacy ACM helpers become archive-only.
+Exit: each required input/sensor has a stable kernel interface, bounded test,
+and suspend/resume result.
 
-## P3 — Persistent Arch boot
+## H5 — Audio and connectivity
 
-Status: **offline foundation present; live path blocked on P2**
+- [ ] Bring up playback, capture, routing, and headset detection.
+- [ ] Enumerate WCN6855/PCIe/MHI without radio activation.
+- [ ] Bring up Wi-Fi client mode, then Bluetooth.
+- [ ] Bring up GPS and modem only where firmware, legality, and upstream
+  support make them feasible.
+- [ ] Keep hotspot/VPN policy frozen until Wi-Fi client reliability passes.
 
-- [x] Build and verify successor-v3 Arch server/Plasma root.
-- [x] Preserve metadata and recursively seal the protected root.
-- [x] Use key-only SSH and a distinct target host identity.
-- [x] Package screen-off-first and power-button policy.
-- [x] Build P2 and early-entry diagnostics.
-- [x] Record rejected/consumed P2 and entry-v1 attempts.
-- [ ] Re-express the persistent-root payload as a signed runtime bundle.
-- [ ] Add exact target/fallback/recovery outcome classification.
-- [ ] Prove one temporary read-only persistent-root boot.
-- [ ] Prove clean automatic fallback with root state unchanged on failure.
-- [ ] Prove a bounded A/B root selector and promotion transaction offline.
+Exit: selected server peripherals survive repeated init, shutdown, and
+suspend cycles.
+
+## H6 — Persistent headless reliability
+
+- [ ] Design and test a bounded A/B read-only root selector offline.
 - [ ] Ask separately before any persistent selector or boot-partition change.
+- [ ] Promote only after rollback and root integrity are proven.
+- [ ] Pass reboot stress, suspend stress, network recovery, and 24-hour
+  screen-off SSH reachability.
 
-Exit: Arch reaches systemd, SSH, screen-off service, and clean reboot/fallback
-without an ambiguous execute result. Persistence changes remain a separate
-approval boundary.
+Exit: the phone is a dependable native Linux server.
 
-## P4 — Adreno 660 acceleration
+## H7 — Basic local display
 
-Status: **incremental bring-up**
+The Samsung AMS678 panel sits behind the Pixelworks Iris/i6 bridge. Linux
+7.1.4 has no matching upstream bridge/panel path, so this is a driver-porting
+project rather than a configuration switch.
 
-The last live-accepted ancestry is v9 GMU resume entry. V10 GMU/linked-CX
-runtime-PM is offline-accepted and remains on HOLD; it has not run on the
-phone. A v10-derived, bundle-ready runtime root is now reproducibly built,
-sealed, and independently verified offline; it is not yet a signed runtime
-bundle. The v11 clock-preparation candidate is offline/source-only.
+- [ ] Document the smallest bridge/panel command and power sequence from
+  stock evidence.
+- [ ] Implement and test bridge, panel, backlight, DPMS, and mode setting.
+- [ ] Start at 60 Hz; measure before enabling 90/120/144 Hz.
+- [ ] Keep display failure independent from headless boot and SSH.
 
-- [x] Create the unified guarded A660 acceptance harness and minimal real
-  Vulkan queue-submit helper before widening kernel bring-up. Its offline
-  suite now covers signed/sealed commands, finite frames, continuous
-  physical-darkness sampling plus DPMS checkpoints, watchdog leases,
-  independent PSS, root-tree recomputation, bounded process trees, hardened
-  publication, and a fake-Vulkan fault matrix.
-- [ ] Rebuild and re-pin stable recovery with target-visible target-timeout
-  binding; do not replace the installed trust root.
-- [x] Extend the signed network-root profile with the command-manifest hash
-  and full `arch-a` tree/seal/count/subtree identity.
-- [x] Move first lower-tree verification into the signed initramfs before
-  OverlayFS and distribution userspace, require a static AArch64 verifier,
-  and bind the active overlay to the authenticated lower by stable mount IDs.
-- [x] Install the canonical manifest, static AArch64 cgroup launcher,
-  independent root verifier, and Vulkan helper in versioned read-only roots;
-  bind their base-verifier, tree, seal, tool, and command identities.
-- [ ] Bind promoted-root device identity before promoted acceptance can run.
-- [ ] Port the current GPU boundary into a signed runtime bundle.
-- [ ] Prove GPUCC and linked-CX clock/power preparation with balanced rollback.
-- [ ] Bring up GMU resources/HFI without widening storage or remote-processor
-  scope.
-- [ ] Create `/dev/dri/renderD*` with no SMMU fault.
-- [ ] Pass 100 render-node open/close cycles in the unified staging gate.
-- [ ] Pass ten Turnip summaries, real Vulkan submits, and the Wayland workload.
-- [ ] Pass KWin/EGL hardware rendering; then validate Chromium acceleration.
-- [ ] Pass repeated screen off/on in staging, then suspend/resume separately.
-- [ ] Pass the promoted 30-minute soak and longer power/battery gates.
+Exit: a basic unaccelerated console/Wayland scanout survives screen cycles.
 
-Exit: accelerated KWin/Chromium survive reboot, repeated open/close, screen
-cycles, and a sustained thermal test without fallback corruption.
+## H8 — Headless GPU acceleration
 
-## P5 — Wi-Fi and fail-closed VPN hotspot
+Accepted A660 ancestry remains frozen through v9; v10 is offline/HOLD and v11
+is source-only.
 
-Status: **offline acceptance; hardware HOLD**
+- [ ] Remove the current KWin requirement from preflight-only GPU acceptance.
+- [ ] Port the accepted GPU boundary into a signed runtime bundle.
+- [ ] Bring up GPUCC, GMU/HFI, SMMU, firmware, and `/dev/dri/renderD*`.
+- [ ] Pass render-node open/close, real Vulkan submission, fault, thermal, and
+  suspend/resume gates without requiring a display server.
 
-- [x] Identify WCN6855 PCIe endpoint/subsystem and ASUS power graph.
-- [x] Validate DTB overlays against pinned schemas.
-- [x] Produce reproducible kernel/module and root-overlay packages.
-- [x] Keep radio auto-probe disabled for the first gate.
-- [x] Pass IPv4/IPv6 and real WireGuard fail-closed tests.
-- [x] Pass UDP/TCP DNS and interface/endpoint loss tests.
-- [ ] Enumerate PCIe/MHI once with no radio activation.
-- [ ] Bring up ath11k client mode.
-- [ ] Test AP mode and client/AP coexistence.
-- [ ] Use a real provider WireGuard tunnel.
-- [ ] Prove DHCP and DNS cannot leave by a non-VPN interface.
-- [ ] Test VPN loss/recovery, throughput, thermal behavior, and battery drain.
+Exit: compute/render-node acceleration is stable on the headless system.
 
-Exit: no IPv4, IPv6, or DNS client traffic can escape when the VPN is absent,
-degraded, or restarting, and the hotspot recovers without stale firewall
-state.
+## H9 — Desktop and remote GUI
 
-## P6 — Desktop, screen, refresh rate, and power
+- [ ] Select Plasma or GNOME only after measuring the stable headless baseline.
+- [ ] Add accelerated local Wayland.
+- [ ] Prefer KRDP/Wayland for normal remote GUI; retain noVNC only as fallback.
+- [ ] Validate power-button indication, panel off/on, refresh rates, Chromium,
+  memory pressure, thermal behavior, and battery drain.
 
-Status: **fallback model proven; mainline pending**
+Exit: the optional desktop does not reduce server reliability.
 
-- [x] Keep server services alive with DPMS off and backlight zero.
-- [x] Run loopback-only ttyd, noVNC, nested KWin/Plasma, and Chromium CDP over
-  a reconnecting SSH tunnel.
-- [x] Enforce a singleton phone-side remote GUI supervisor.
-- [x] Record screen-off memory and short CPU baselines.
-- [ ] Install a minimal Plasma/KWin profile on promoted Arch.
-- [ ] Use KRDP/Wayland for the normal remote desktop; keep noVNC as fallback.
-- [ ] Map the power button to a confined screen toggle with visible state
-  indication.
-- [ ] Default to 60 Hz, offer 90 Hz balanced, and keep 120/144 Hz opt-in.
-- [ ] Measure wall power and battery drain at each refresh rate, screen-off,
-  idle desktop, Chromium automation, and sustained server load.
-- [ ] Validate charging, thermal throttling, suspend, wake, and 24-hour
-  screen-off reachability.
+## H10 — Network appliance and automation
 
-Exit: the phone remains remotely reachable for 24 hours with the panel off,
-does not overheat or unexpectedly drain while powered, and provides a stable
-local accelerated desktop on demand.
+- [ ] Restore the already-tested fail-closed WireGuard hotspot policy after
+  Wi-Fi/AP reliability passes.
+- [ ] Keep automation under a separate locked, resource-limited account.
+- [ ] Use narrow, revocable connectors instead of copying email, CV, browser
+  profiles, or credentials into the image.
+- [ ] Require explicit confirmation before sending messages, applying to a
+  job, modifying cloud data, or making a purchase.
+- [ ] Compare local and remote AI models only after thermal and power budgets
+  are measured.
 
-## P7 — Confined automation server
+Exit: optional services are confined, auditable, revocable, and do not weaken
+the core system.
 
-Status: **packaging foundation only**
+## Kernel maintenance
 
-- [x] Create a separate locked agent account.
-- [x] Apply CPU, memory, swap, task, and scheduling limits.
-- [x] Give it private writable state and no broad device access.
-- [ ] Choose narrow email/document connectors rather than copying an entire
-  personal profile into the image.
-- [ ] Store credentials in an encrypted, revocable secret service outside
-  Git and rootfs artifacts.
-- [ ] Add per-tool allowlists and append-only audit logs.
-- [ ] Require explicit user confirmation before sending email, submitting a
-  job application, modifying cloud data, or purchasing anything.
-- [ ] Add a kill switch and resource/network quotas.
-- [ ] Compare local models with remote OpenAI/Anthropic/OpenRouter routing
-  based on RAM, thermal, privacy, and cost.
-
-Exit: the agent can read only delegated material, cannot silently submit or
-send external actions, and can be revoked without rebuilding the phone.
-
-## P8 — Maintainable kernel and upstream path
-
-Status: **Linux 7.1.4 development base exists**
-
-The project will not create a kernel “from scratch.” It will maintain a small,
-reviewable SM8350/ASUS board delta on an upstream kernel and reduce that delta
-over time.
+The project will not create a kernel “from scratch.” It maintains a small,
+reviewable SM8350/ASUS delta on an upstream kernel and reduces that delta over
+time.
 
 - [x] Reproduce Linux 7.1.4 ARM64 builds on the PC.
-- [x] Maintain reviewed config, DTS, patch, and module artifacts by hash.
-- [ ] Pin the complete container/toolchain/source bootstrap.
-- [ ] Consolidate diagnostic patch generations into subsystem-sized commits.
-- [ ] Add kernel selftests/KUnit where hardware-independent logic permits.
-- [ ] Track upstream SM8350, Adreno, WCN6855, UFS, USB, charger, audio, and
-  panel changes.
-- [ ] Rebase only after the current recovery and subsystem acceptance suites
-  pass on both old and new bases.
-- [ ] Prepare upstreamable DTS and driver patches without ASUS private
-  firmware or Android-only contracts.
+- [x] Maintain reviewed config, DTS, patch, module, and evidence identities.
+- [ ] Pin the complete source/toolchain bootstrap for a fresh clone.
+- [ ] Add KUnit/selftests where hardware-independent logic exists.
+- [ ] Track upstream SM8350, UFS, USB, charger, input, sensor, audio, WCN6855,
+  display, and Adreno changes.
+- [ ] Rebase only when old and new bases pass the same recovery and subsystem
+  gates.
 
-Exit: a fresh PC can reproduce the kernel, modules, DTBs, recovery, and rootfs
-from pinned public inputs; the remaining device delta is documented and small
-enough to review subsystem by subsystem.
+## Current next action
 
-## Definition of done
+Finish A0 in this order:
 
-The project goal is achieved when all of these are true:
-
-- native Linux boots through an approved persistent path with rollback;
-- Arch or Debian can be reproduced from pinned inputs;
-- display, touch, USB, charging, battery, thermal, Wi-Fi, and audio required
-  for the chosen server/desktop role are stable;
-- Adreno 660 provides a stable render node and accelerated Plasma/Chromium;
-- remote GUI remains available with the physical display off;
-- the VPN hotspot is fail-closed for IPv4, IPv6, and DNS;
-- refresh-rate and screen-off power profiles are measured and selectable;
-- the automation service is confined, auditable, and revocable;
-- no normal operation depends on the legacy ACM shell or Android userspace.
-
-The immediate task is P1: build the recovery protocol/state/fault test suite.
+1. close and rebuild the postmortem-enabled stable recovery offline;
+2. get the hardware-free CI tier green;
+3. add the board-neutral full-system QEMU boot gate;
+4. produce the minimal SSH-only root profile;
+5. consolidate one candidate into the manifest-driven runner;
+6. generate, but do not execute, the artifact prune plan.

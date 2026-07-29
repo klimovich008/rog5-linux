@@ -71,11 +71,13 @@ The stable recovery init preserves this fail-closed sequence:
 4. configure unbound NCM and ACM gadget functions and rescan device nodes;
 5. repeat storage isolation, the exact-topology contract, and UFS
    power-containment checks;
-6. start the fixed responder;
-7. require its canonical per-boot session file while the responder is alive;
-8. monitor responder liveness and force rollback on exit;
-9. bind the USB device controller;
-10. configure only `169.254.77.2/30` on `usb0`.
+6. mount pstore and publish a bounded owner-only postmortem snapshot/status
+   without deleting records;
+7. start the fixed responder, which validates and pins that status;
+8. require its canonical per-boot session file while the responder is alive;
+9. monitor responder liveness and force rollback on exit;
+10. bind the USB device controller;
+11. configure only `169.254.77.2/30` on `usb0`.
 
 There is no DHCP, host-provided gateway, default route, SSH server,
 interactive shell, getty, or arbitrary command interpreter on the control
@@ -95,9 +97,9 @@ test. It:
 - generates an ephemeral Ed25519 key without writing the private key to disk;
 - builds and extracts the initramfs under different host locales and time
   zones;
-- checks exact binaries, modes, trust-root bytes, loader hash, ordering, fixed
-  network address, locked root, the measured 116-node contract, and absence of
-  legacy access paths;
+- checks exact binaries, modes, trust-root bytes, loader hash, pstore snapshot
+  ordering, fixed network address, locked root, the measured 116-node
+  contract, and absence of legacy access paths;
 - proves malicious shell, DHCP, missing-responder, missing-address,
   authorized-key, set-ID, unlocked-root, relocated-login, and unsafe-shadow
   fixtures are rejected;
