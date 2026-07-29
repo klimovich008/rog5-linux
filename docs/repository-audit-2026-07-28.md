@@ -181,6 +181,12 @@ is not an acceptable deduplication method; filesystem-native reflinks or
 read-only content-addressed storage are safer future options. No ignored
 artifact was deleted or deduplicated while generating the plan.
 
+The later [host storage cleanup runbook](host-storage-cleanup.md) extends this
+read-only process to external ROG5 development trees, the ROG5 cache, and
+rootless Podman volumes. Its planner retains referenced or dirty state,
+retains all volumes whenever any Podman container exists, omits absolute home
+paths, and has no deletion mode.
+
 ## Concrete problems found
 
 ### Artifact inventory was also boot authority
