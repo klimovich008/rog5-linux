@@ -21,6 +21,9 @@ done </etc/rog5/packages.requested.txt
 if pacman -Q linux-aarch64 >/dev/null 2>&1; then
 	fail 'headless root retained the distribution kernel'
 fi
+if pacman -Qq | grep -Eq '^linux-firmware($|-)'; then
+	fail 'headless root retained the distribution firmware bundle'
+fi
 for package in chromium dnsmasq greetd krdp kwin mesa networkmanager nodejs \
 	npm pipewire plasma-desktop ttyd vulkan-freedreno vulkan-tools \
 	wireguard-tools wpa_supplicant; do
@@ -64,10 +67,15 @@ fi
 
 cmp /etc/ssh/sshd_config.d/10-rog5-server.conf \
 	"$repo/packaging/arch/10-rog5-sshd.conf"
-sshd -T | grep -Fqx 'passwordauthentication no'
-sshd -T | grep -Fqx 'kbdinteractiveauthentication no'
-sshd -T | grep -Eq '^permitrootlogin (without-password|prohibit-password)$'
-sshd -T | grep -Fqx 'pubkeyauthentication yes'
+ssh-keygen -q -t ed25519 -N '' -f /run/rog5-sshd-verify-key
+sshd -T -h /run/rog5-sshd-verify-key >/run/rog5-sshd-effective.conf
+grep -Fqx 'passwordauthentication no' /run/rog5-sshd-effective.conf
+grep -Fqx 'kbdinteractiveauthentication no' /run/rog5-sshd-effective.conf
+grep -Eq '^permitrootlogin (without-password|prohibit-password)$' \
+	/run/rog5-sshd-effective.conf
+grep -Fqx 'pubkeyauthentication yes' /run/rog5-sshd-effective.conf
+rm -f /run/rog5-sshd-verify-key /run/rog5-sshd-verify-key.pub \
+	/run/rog5-sshd-effective.conf
 grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
 	/etc/ssh/sshd_config.d/10-rog5-server.conf
 [[ -z $(find /etc/ssh -maxdepth 1 -type f -name 'ssh_host_*' \

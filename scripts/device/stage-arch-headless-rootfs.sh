@@ -32,8 +32,11 @@ pacman-key --populate archlinuxarm
 pacman-key --list-keys 68B3537F39A313B3E574D06777193F152BDBE6A6 \
 	>/dev/null
 pacman -Sy --noconfirm --disable-sandbox
-if pacman -Q linux-aarch64 >/dev/null 2>&1; then
-	pacman -Rns --noconfirm linux-aarch64
+mapfile -t removed_packages < <(
+	pacman -Qq | grep -E '^(linux-aarch64|linux-firmware($|-))' || true
+)
+if ((${#removed_packages[@]} > 0)); then
+	pacman -Rns --noconfirm "${removed_packages[@]}"
 fi
 pacman -Syu --needed --noconfirm --disable-sandbox "${packages[@]}"
 ssh-keygen -l -f "$authorized_key" >/dev/null
