@@ -1,6 +1,7 @@
 # A660 accelerated-desktop acceptance
 
-Status: **offline harness and submit helper complete; no A660 hardware run**
+Status: **offline harness, submit helper, and versioned runtime roots complete;
+no A660 hardware run**
 
 Live authority: **none**
 
@@ -116,9 +117,16 @@ run in sanitized environments; pathname replacement after startup cannot
 change the executed bytes. Output is streamed through a 4 MiB cap and every
 action has a deadline.
 
-The command manifest and executable installation are versioned-rootfs inputs,
-not files installed by this checkpoint. They must be generated from the final
-AArch64 root and carried by the future signed A660 runtime profile.
+The command manifest and executable installation are now generated from the
+final AArch64 userspace and carried by two versioned, read-only runtime roots.
+The generic root derives from protected successor-v3; the GPU root derives
+from the accepted v10 boundary and preserves its exact `msm.ko`. Both bind the
+base verifier, base seal, pre-integration base tree, runtime provenance,
+tools, commands, complete tree, and persistent seal. Their packagers reject
+any runtime-tools manifest except the fixed approved hash, reject any
+non-runtime delta from the private base snapshot, and atomically publish the
+root plus identity as one directory. They remain offline inputs to a future
+signed A660 runtime bundle and do not authorize a phone boot.
 
 ## Fixed acceptance sequence
 
@@ -203,9 +211,9 @@ no-replace hard link, then derives size and SHA-256 from the opened published
 inode. A concurrently created output wins and is never overwritten. The
 offline suite also links the helper against a test-only Vulkan implementation
 and proves success, no-A660, duplicate-A660, no-queue, submit-failure, and
-fence-timeout behavior. The resulting AArch64 binary must be installed as
-`/usr/local/libexec/rog5-vulkan-submit` in a future versioned rootfs. It is not
-present in the immutable successor-v3 root.
+fence-timeout behavior. The resulting AArch64 binary is installed as
+`/usr/local/libexec/rog5-vulkan-submit` in the two derived runtime roots. It is
+not added to or allowed to mutate the immutable successor-v3 base.
 
 ## Running a future authorized gate
 

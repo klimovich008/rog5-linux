@@ -180,7 +180,9 @@ Status: **incremental bring-up**
 
 The last live-accepted ancestry is v9 GMU resume entry. V10 GMU/linked-CX
 runtime-PM is offline-accepted and remains on HOLD; it has not run on the
-phone. The v11 clock-preparation candidate is offline/source-only.
+phone. A v10-derived, bundle-ready runtime root is now reproducibly built,
+sealed, and independently verified offline; it is not yet a signed runtime
+bundle. The v11 clock-preparation candidate is offline/source-only.
 
 - [x] Create the unified guarded A660 acceptance harness and minimal real
   Vulkan queue-submit helper before widening kernel bring-up. Its offline
@@ -195,9 +197,10 @@ phone. The v11 clock-preparation candidate is offline/source-only.
 - [x] Move first lower-tree verification into the signed initramfs before
   OverlayFS and distribution userspace, require a static AArch64 verifier,
   and bind the active overlay to the authenticated lower by stable mount IDs.
-- [ ] Install the canonical manifest, cgroup launcher, verifier, and Vulkan
-  helper in a versioned root, then bind promoted-root device/tree/seal
-  identities before either live acceptance mode can run.
+- [x] Install the canonical manifest, static AArch64 cgroup launcher,
+  independent root verifier, and Vulkan helper in versioned read-only roots;
+  bind their base-verifier, tree, seal, tool, and command identities.
+- [ ] Bind promoted-root device identity before promoted acceptance can run.
 - [ ] Port the current GPU boundary into a signed runtime bundle.
 - [ ] Prove GPUCC and linked-CX clock/power preparation with balanced rollback.
 - [ ] Bring up GMU resources/HFI without widening storage or remote-processor

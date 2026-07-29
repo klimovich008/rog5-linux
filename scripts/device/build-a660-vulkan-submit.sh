@@ -10,6 +10,9 @@ output=${1:?usage: build-a660-vulkan-submit.sh OUTPUT}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 source_file=$repo/tools/a660/rog5-vulkan-submit.c
 compiler=${CC:-cc}
+expected_machine=${EXPECTED_ELF_MACHINE:-}
+expected_interpreter=${EXPECTED_INTERPRETER:-}
+expected_needed=${EXPECTED_NEEDED:-}
 
 case $output in
 	/*) ;;
@@ -27,6 +30,14 @@ command -v mktemp >/dev/null || fail 'mktemp is unavailable'
 command -v pkg-config >/dev/null || fail 'pkg-config is unavailable'
 command -v sha256sum >/dev/null || fail 'sha256sum is unavailable'
 command -v stat >/dev/null || fail 'stat is unavailable'
+if [ -n "$expected_machine$expected_interpreter$expected_needed" ]; then
+	command -v readelf >/dev/null || fail 'readelf is unavailable'
+fi
+for value in "$expected_machine" "$expected_interpreter" "$expected_needed"; do
+	case $value in
+		*[!A-Za-z0-9_+./-]*) fail 'ELF expectation is not canonical' ;;
+	esac
+done
 output_parent=$(dirname -- "$output")
 output_name=$(basename -- "$output")
 case $output_name in ''|.|..) fail 'output name is invalid' ;; esac
@@ -90,6 +101,26 @@ build_one "$build_root/first"
 build_one "$build_root/second"
 cmp "$build_root/first" "$build_root/second" ||
 	fail 'two clean helper builds differ'
+if [ -n "$expected_machine" ]; then
+	observed_machine=$(readelf -h "$build_root/first" |
+		awk -F: '$1 ~ /^[[:space:]]*Machine$/ {
+			sub(/^[[:space:]]+/, "", $2)
+			print $2
+		}')
+	[ "$observed_machine" = "$expected_machine" ] ||
+		fail 'Vulkan submit helper ELF machine changed'
+fi
+if [ -n "$expected_interpreter" ]; then
+	observed_interpreter=$(readelf -l "$build_root/first" |
+		sed -n 's/.*Requesting program interpreter: \([^]]*\).*/\1/p')
+	[ "$observed_interpreter" = "$expected_interpreter" ] ||
+		fail 'Vulkan submit helper interpreter changed'
+fi
+if [ -n "$expected_needed" ]; then
+	readelf -d "$build_root/first" |
+		grep -Fq "Shared library: [$expected_needed]" ||
+		fail 'Vulkan submit helper loader dependency changed'
+fi
 output_stage=$(mktemp "/proc/self/fd/7/.rog5-vulkan-submit.XXXXXX")
 install -m 0755 "$build_root/first" "$output_stage"
 ln "$output_stage" "$output_anchor" 2>/dev/null ||
