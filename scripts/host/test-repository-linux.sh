@@ -132,6 +132,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/device/test-recovery-candidate-dtb-contract.sh
+		scripts/host/test-core-compatibility-oracle.py
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
@@ -162,6 +163,7 @@ else
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/device/test-recovery-candidate-dtb-contract.sh
+		scripts/host/test-core-compatibility-oracle.py
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py

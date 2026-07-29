@@ -9,10 +9,20 @@ config=$output_dir/.config
 image=$output_dir/arch/arm64/boot/Image
 image_gz=$output_dir/arch/arm64/boot/Image.gz
 modules=$output_dir/modules.tar.gz
+compatibility_oracle=$repo/scripts/host/verify-core-compatibility-oracle.py
+compatibility_profile=$repo/configs/compatibility/rog5-minimal-headless-v1.json
 
 for file in "$meta" "$config" "$image" "$image_gz" "$modules"; do
 	[ -s "$file" ] || { echo "FAIL missing $file" >&2; exit 1; }
 done
+[ -x "$compatibility_oracle" ] && [ -r "$compatibility_profile" ] || {
+	echo 'FAIL missing core compatibility oracle' >&2
+	exit 1
+}
+"$compatibility_oracle" \
+	--repo "$repo" \
+	--profile "$compatibility_profile" \
+	--kernel-config "$config"
 grep -qx "kernel_commit=$expected_commit" "$meta"
 grep -qx 'python_hash_seed=0' "$meta"
 grep -qx 'pahole_jobs=1' "$meta"

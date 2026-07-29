@@ -237,6 +237,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   point rebuilds both target bundles, shell-free initramfs files, vendor
   wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
   the disposable private key.
+- `test-core-compatibility-oracle.py` runs 33 positive, mutation, parser, and
+  CLI cases over the ASUS 5.4/accepted 7.1 ancestry profile. It requires the
+  committed golden Kconfig, checks the retained accepted config when locally
+  available, and rejects evidence, manifest, candidate, capability, config,
+  integration, JSON, path, and process-exit weakening. The kernel build
+  verifier runs the same oracle against each completed `.config`.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
