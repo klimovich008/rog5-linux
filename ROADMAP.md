@@ -126,13 +126,15 @@ before a phone cycle.
 ### A0.4 Reduce candidate overhead
 
 - [ ] Replace version-per-candidate prepare/serve/verify/run glue with one
-  manifest-driven runner.
+  manifest-driven runner. The strict offline manifest-to-bundle preparation
+  adapter is complete; fixed serve/verify/execute integration remains.
 - [ ] Extract only the already-proven generic safety checks needed by that
   runner; do not create a new framework.
-- [ ] Port one current candidate and prove parity before archiving duplicate
-  runners.
+- [x] Port the consumed persistent-root P2 payload into the manifest adapter
+  and prove exact artifact/profile parity offline without restoring live
+  authority.
 - [ ] Add compiler caching and preserve incremental kernel output trees.
-- [ ] Create a minimal SSH-only root profile with no display, desktop,
+- [x] Create a minimal SSH-only root profile with no display, desktop,
   browser, Vulkan, hotspot, or agent packages.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
@@ -291,8 +293,8 @@ time.
 
 The A0 feedback-loop work is green. Continue in this order:
 
-1. produce the minimal SSH-only root profile;
-2. consolidate one candidate into the manifest-driven runner;
+1. package the verified SSH-only root into a signed runtime bundle;
+2. complete fixed serve/verify/execute integration for the manifest runner;
 3. generate, but do not execute, the artifact prune plan;
 4. obtain explicit approval for a production recovery trust root;
 5. promote the stable recovery through staging-only tests and measure pstore

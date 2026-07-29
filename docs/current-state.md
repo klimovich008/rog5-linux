@@ -170,6 +170,45 @@ are recorded in the
 Whether the reserved DRAM survives target → bootloader → recovery remains a
 live experiment; no retained log has yet been claimed.
 
+## Active headless Arch root
+
+The first minimal mainline userspace profile now builds and verifies offline.
+It is an official signed Arch Linux ARM base plus the exact
+`7.1.4-g7a5cef0db479` modules and only three requested additions: `attr`,
+`diffutils`, and `openssh`.
+
+The stage removes the generic Arch kernel, twelve `linux-firmware*` packages
+(1,281.37 MiB installed), the published `alarm` account, all reusable SSH
+host keys, and the reusable machine ID. It enables key-only root SSH and the
+existing sleep inhibitor, sets `multi-user.target`, and leaves USB networking
+to the initramfs rather than enabling NetworkManager or systemd-networkd.
+Desktop, browser, Vulkan, GPU firmware, Wi-Fi, VPN/hotspot, Node, and agent
+packages are absent.
+
+The final archive was built from commit
+`eb61a45938c851b1b02a2f3151db5265ab9213e7` and passed the complete verifier
+inside the staged root and again after clean extraction:
+
+```text
+path: artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz
+size: 535093875
+sha256: 4e472f2fa3f21fd3a5cf6de9eaf96810104083758039e8cdeefc4e03ec4e6427
+packages: 150
+```
+
+This is 73.3% smaller than the 2,007,033,670-byte successor-v3 Plasma
+archive. The number is disk/archive evidence, not a RAM or battery
+measurement. Package versions are recorded in the root, but byte-for-byte
+reproducibility is not yet claimed because Arch package repositories are
+rolling and the local pacman trust database is generated during staging.
+
+The recovery side also has a strict offline manifest adapter for the consumed
+persistent-root P2 artifacts. It verifies their tracked sizes and hashes,
+delegates canonical signing/publication to the stable runtime-bundle
+packager, and permanently requires `status=consumed` plus `authority=none`.
+It has no transport, server, phone, or execute path. See the
+[offline result](../test-results/2026-07-29-headless-root-candidate-offline.md).
+
 ## Persistent Arch root
 
 The successor-v3 Arch root is built, verified, and recursively sealed offline.
@@ -363,7 +402,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Produce the minimal SSH-only root and manifest-driven candidate runner.
+1. Package the verified minimal root as a signed runtime bundle and complete
+   the fixed serve/verify/execute portion of the manifest-driven runner.
 2. Obtain explicit approval before creating or using a production recovery
    signing trust root.
 3. Promote the stable recovery through staging-only tests and determine
@@ -383,5 +423,8 @@ headless reliability gate. No new phone action is authorized by this document.
   `archive/pre-stable-recovery-2026-07-28`.
 - External build dependencies such as `mkbootimg` and `avbtool.py` still need
   an explicit pinned bootstrap path for fresh-clone reproducibility.
+- The headless root records its exact package inventory, but its rolling Arch
+  package snapshot and generated pacman trust database are not yet
+  byte-reproducible inputs.
 - Fastboot remains boot-only. The fallback slot and guarded
   `RESTART2("bootloader")` helper remain unchanged.

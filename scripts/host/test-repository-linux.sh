@@ -14,7 +14,7 @@ case $tier in
 esac
 
 for command in bash dtc gcc git head nm openssl pkg-config python3 sh \
-	strings; do
+	ssh-keygen strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
 done

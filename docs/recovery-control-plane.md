@@ -37,6 +37,15 @@ rules, drops to the caller with no capabilities, verifies the exact listener,
 and removes every state item it created. Its tests use mocked host commands;
 the helpers are not installed and have not changed a live interface.
 
+`scripts/host/prepare-recovery-candidate.py` is the first manifest-driven
+offline adapter into the runtime-bundle packager. Its initial record maps the
+consumed persistent-root P2 kernel, DTB, and initramfs to
+`persistent-root-ro-v1`, verifies their tracked identities before packaging,
+and refuses any record other than `status=consumed` and `authority=none`.
+The adapter contains no server, transport, phone, or execution action. It
+proves preparation parity only; integrating the fixed server/verifier/
+executor remains an A0.4 task.
+
 The former recovery control plane used an interactive shell on
 `/dev/ttyGS0`; echo, cursor queries, serial-open races, stale output, and loss
 of the USB connection during `kexec -e` made outcomes ambiguous. The offline
