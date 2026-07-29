@@ -23,6 +23,7 @@ jobs:
             build-essential \
             clang \
             device-tree-compiler \
+            libarchive-tools \
             libssl-dev \
             lld \
             openssl \
