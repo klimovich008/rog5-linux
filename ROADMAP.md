@@ -130,9 +130,10 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Bind all six active capabilities to 37 source-integration checks and 23
   corrected-DTB topology checks, with separate exact-baseline and
   compatible-but-unaccepted candidate modes.
-- [x] Add one canonical 55-field runtime observation, candidate-bound host
-  verifier, thirteen target mutations, 20 host test groups, and a strict-SSH
-  one-collection runner test for all six active capabilities.
+- [x] Add one canonical 68-field runtime observation, candidate-bound host
+  verifier, 27 target mutations, 21 host test groups, and a strict-SSH
+  one-collection runner test for all six active capabilities, including
+  mount/path-attested NFSv4.2 and zero block/SCSI/RPMB/UFS exposure.
 - [x] Add a credential-free volatile host-key bootstrap that binds the signed
   recovery and target NCM gadgets to one physical USB port, requires an exact
   direct `/30` route, pins one nonzero Ed25519 key, and rechecks continuity

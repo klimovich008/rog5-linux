@@ -91,6 +91,36 @@ regular_metadata() {
 		fail "$label metadata is unsafe"
 }
 
+optional_class_count() {
+	class_root=$1
+	[ ! -L "$class_root" ] || return 1
+	if [ ! -e "$class_root" ]; then
+		printf '0\n'
+		return
+	fi
+	[ -d "$class_root" ] || return 1
+	find "$class_root" -mindepth 1 -maxdepth 1 -print |
+		awk 'NF { count++ } END { print count + 0 }'
+}
+
+mount_option_value() {
+	options=$1
+	expected_name=$2
+	printf '%s\n' "$options" | tr ',' '\n' |
+		awk -F= -v expected_name="$expected_name" '
+			$1 == expected_name {
+				count++
+				if (NF != 2 || $2 == "")
+					invalid = 1
+				value=$2
+			}
+			END {
+				if (count != 1 || invalid)
+					exit 1
+				print value
+			}'
+}
+
 process_start_time_ticks() (
 	process_pid=$1
 	process_stat=$(cat "$(runtime_path "/proc/$process_pid/stat")" 2>/dev/null) ||
@@ -229,14 +259,55 @@ unsigned_integer "$memory_total_kib" &&
 	[ "$memory_available_kib" -le "$memory_total_kib" ] ||
 	fail 'runtime memory accounting is invalid'
 
+overlay_mount_id=$(findmnt -n -o ID /)
+overlay_lower_mount_id=$(findmnt -n -o ID /.rog5/root-ro)
+state_mount_id=$(findmnt -n -o ID /.rog5/state)
+for mount_id in \
+	"$overlay_mount_id" "$overlay_lower_mount_id" "$state_mount_id"; do
+	unsigned_integer "$mount_id" && [ "$mount_id" -gt 0 ] ||
+		fail 'storage mount identity is invalid'
+done
+[ "$overlay_mount_id" != "$overlay_lower_mount_id" ] &&
+	[ "$overlay_mount_id" != "$state_mount_id" ] &&
+	[ "$overlay_lower_mount_id" != "$state_mount_id" ] ||
+	fail 'storage mount identities are not distinct'
+
 root_fstype=$(findmnt -n -o FSTYPE /)
 [ "$root_fstype" = overlay ] || fail 'root is not OverlayFS'
+root_options=$(findmnt -n -o OPTIONS /)
+overlay_lowerdir=$(
+	mount_option_value "$root_options" lowerdir
+) || fail 'OverlayFS lower directory is absent or ambiguous'
+[ "$overlay_lowerdir" = /mnt/root-ro ] ||
+	fail 'OverlayFS lower directory is not exact'
+overlay_upperdir=$(
+	mount_option_value "$root_options" upperdir
+) || fail 'OverlayFS upper directory is absent or ambiguous'
+[ "$overlay_upperdir" = /mnt/state/upper ] ||
+	fail 'OverlayFS upper directory is not exact'
+overlay_workdir=$(
+	mount_option_value "$root_options" workdir
+) || fail 'OverlayFS work directory is absent or ambiguous'
+[ "$overlay_workdir" = /mnt/state/work ] ||
+	fail 'OverlayFS work directory is not exact'
+lower_fstype=$(findmnt -n -o FSTYPE /.rog5/root-ro)
+[ "$lower_fstype" = nfs4 ] || fail 'NFS lower filesystem type changed'
 lower_source=$(findmnt -n -o SOURCE /.rog5/root-ro)
 [ "$lower_source" = 169.254.77.1:/ ] ||
 	fail 'NFS lower source is not exact'
 lower_options=$(findmnt -n -o OPTIONS /.rog5/root-ro)
 printf '%s\n' "$lower_options" | tr ',' '\n' | grep -qx ro ||
 	fail 'NFS lower is not read-only'
+lower_nfs_version=$(
+	mount_option_value "$lower_options" vers
+) || fail 'NFS lower version is absent or ambiguous'
+[ "$lower_nfs_version" = 4.2 ] ||
+	fail 'NFS lower is not version 4.2'
+lower_transport=$(
+	mount_option_value "$lower_options" proto
+) || fail 'NFS lower transport is absent or ambiguous'
+[ "$lower_transport" = tcp ] ||
+	fail 'NFS lower transport is not TCP'
 state_fstype=$(findmnt -n -o FSTYPE /.rog5/state)
 [ "$state_fstype" = tmpfs ] || fail 'writable state is not tmpfs'
 state_options=$(findmnt -n -o OPTIONS /.rog5/state)
@@ -248,6 +319,12 @@ printf '%s\n' "$state_options" | tr ',' '\n' | grep -qx nosuid ||
 block_class=$(runtime_path /sys/class/block)
 [ -d "$block_class" ] && [ ! -L "$block_class" ] ||
 	fail 'block device class is absent or linked'
+block_device_count=$(
+	find "$block_class" -mindepth 1 -maxdepth 1 -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$block_device_count" -eq 0 ] ||
+	fail 'block device is present'
 block_listing=$(
 	find "$block_class" -mindepth 1 -maxdepth 1 \
 		-type l -exec test -e {}/device \; -print
@@ -258,6 +335,24 @@ physical_block_devices=$(
 )
 [ "$physical_block_devices" -eq 0 ] ||
 	fail 'physical block device is present'
+scsi_host_count=$(
+	optional_class_count "$(runtime_path /sys/class/scsi_host)"
+) || fail 'SCSI host topology is unsafe'
+[ "$scsi_host_count" -eq 0 ] || fail 'SCSI host is present'
+rpmb_device_count=$(
+	optional_class_count "$(runtime_path /sys/class/rpmb)"
+) || fail 'RPMB topology is unsafe'
+[ "$rpmb_device_count" -eq 0 ] || fail 'RPMB device is present'
+platform_devices=$(runtime_path /sys/bus/platform/devices)
+[ -d "$platform_devices" ] && [ ! -L "$platform_devices" ] ||
+	fail 'platform device topology is absent or linked'
+ufs_platform_device_count=$(
+	find "$platform_devices" -mindepth 1 -maxdepth 1 \
+		-name '1d84000.ufshc' -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$ufs_platform_device_count" -eq 0 ] ||
+	fail 'UFS platform device is present'
 block_backed_mounts=0
 while read -r _ _ device _ _ _ rest; do
 	[ -e "$(runtime_path "/sys/dev/block/$device")" ] || continue
@@ -318,9 +413,15 @@ regular_metadata "$identity" 400 'network-root identity'
 network_root_identity_format=$(record_value "$identity" 1 format)
 [ "$network_root_identity_format" = rog5-network-root-identity-v1 ] ||
 	fail 'network-root identity format changed'
-record_value "$identity" 2 overlay_mount_id >/dev/null
-record_value "$identity" 3 overlay_lower_mount_id >/dev/null
-record_value "$identity" 4 state_mount_id >/dev/null
+identity_overlay_mount_id=$(record_value "$identity" 2 overlay_mount_id)
+identity_overlay_lower_mount_id=$(
+	record_value "$identity" 3 overlay_lower_mount_id
+)
+identity_state_mount_id=$(record_value "$identity" 4 state_mount_id)
+[ "$identity_overlay_mount_id" = "$overlay_mount_id" ] &&
+	[ "$identity_overlay_lower_mount_id" = "$overlay_lower_mount_id" ] &&
+	[ "$identity_state_mount_id" = "$state_mount_id" ] ||
+	fail 'network-root mount identity does not match runtime'
 [ "$(record_value "$identity" 5 overlay_lower_path)" = /mnt/root-ro ] ||
 	fail 'network-root lower identity changed'
 command_manifest_sha256=$(
@@ -468,13 +569,26 @@ printf 'cpufreq_policy_drivers=%s\n' "$cpufreq_policy_drivers"
 printf 'cpufreq_policy_governors=%s\n' "$cpufreq_policy_governors"
 printf 'memory_total_kib=%s\n' "$memory_total_kib"
 printf 'memory_available_kib=%s\n' "$memory_available_kib"
+printf 'overlay_mount_id=%s\n' "$overlay_mount_id"
+printf 'overlay_lower_mount_id=%s\n' "$overlay_lower_mount_id"
+printf 'state_mount_id=%s\n' "$state_mount_id"
+printf 'overlay_lowerdir=%s\n' "$overlay_lowerdir"
+printf 'overlay_upperdir=%s\n' "$overlay_upperdir"
+printf 'overlay_workdir=%s\n' "$overlay_workdir"
 printf 'root_fstype=%s\n' "$root_fstype"
+printf 'lower_fstype=%s\n' "$lower_fstype"
 printf 'lower_source=%s\n' "$lower_source"
+printf 'lower_nfs_version=%s\n' "$lower_nfs_version"
+printf 'lower_transport=%s\n' "$lower_transport"
 printf 'lower_read_only=1\n'
 printf 'state_fstype=%s\n' "$state_fstype"
 printf 'state_nodev=1\n'
 printf 'state_nosuid=1\n'
+printf 'block_device_count=%s\n' "$block_device_count"
 printf 'physical_block_devices=%s\n' "$physical_block_devices"
+printf 'scsi_host_count=%s\n' "$scsi_host_count"
+printf 'rpmb_device_count=%s\n' "$rpmb_device_count"
+printf 'ufs_platform_device_count=%s\n' "$ufs_platform_device_count"
 printf 'block_backed_mounts=%s\n' "$block_backed_mounts"
 printf 'usb_interface=usb0\n'
 printf 'usb_carrier=%s\n' "$usb_carrier"

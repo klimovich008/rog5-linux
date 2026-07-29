@@ -22,8 +22,11 @@ mkdir -p "$mock_bin" \
 	"$root/proc/sys/kernel/random" \
 	"$root/root/.ssh" \
 	"$root/run" \
+	"$root/sys/bus/platform/devices" \
 	"$root/sys/class/block" \
 	"$root/sys/class/net/usb0" \
+	"$root/sys/class/rpmb" \
+	"$root/sys/class/scsi_host" \
 	"$root/sys/class/thermal" \
 	"$root/sys/devices/system/cpu/cpufreq/policy0" \
 	"$root/sys/devices/system/cpu/cpufreq/policy4" \
@@ -49,7 +52,11 @@ cat >"$root/proc/meminfo" <<'EOF'
 MemTotal:       11900000 kB
 MemAvailable:   10949632 kB
 EOF
-: >"$root/proc/self/mountinfo"
+cat >"$root/proc/self/mountinfo" <<'EOF'
+101 1 0:101 / / rw - overlay overlay rw,lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work
+102 1 0:102 / /.rog5/root-ro ro - nfs4 169.254.77.1:/ ro,vers=4.2,proto=tcp
+103 1 0:103 / /.rog5/state rw,nodev,nosuid - tmpfs tmpfs rw,size=2097152k
+EOF
 printf '%s\n' 200.50 >"$root/proc/uptime"
 
 printf '%s\n' \
@@ -132,7 +139,12 @@ EOF
 chmod 0400 "$root/run/rog5-network-root-watchdog.pid" \
 	"$root/run/rog5-network-root-watchdog.lease"
 
-printf '%s\n' ro,nosuid,nodev >"$root/run/mock-lower-options"
+printf '%s\n' nfs4 >"$root/run/mock-lower-fstype"
+printf '%s\n' ro,nosuid,nodev,vers=4.2,proto=tcp \
+	>"$root/run/mock-lower-options"
+printf '%s\n' \
+	'rw,lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work' \
+	>"$root/run/mock-root-options"
 printf '%s\n' no >"$root/run/mock-password-authentication"
 printf '%s\n' '2: usb0    inet 169.254.77.2/30 scope global usb0' \
 	>"$root/run/mock-ip-addresses"
@@ -164,7 +176,14 @@ EOF
 cat >"$mock_bin/findmnt" <<'EOF'
 #!/bin/sh
 case $* in
+	"-n -o ID /") echo 101 ;;
+	"-n -o ID /.rog5/root-ro") echo 102 ;;
+	"-n -o ID /.rog5/state") echo 103 ;;
 	"-n -o FSTYPE /") echo overlay ;;
+	"-n -o OPTIONS /") cat "$MOCK_ROOT/run/mock-root-options" ;;
+	"-n -o FSTYPE /.rog5/root-ro")
+		cat "$MOCK_ROOT/run/mock-lower-fstype"
+		;;
 	"-n -o SOURCE /.rog5/root-ro") echo 169.254.77.1:/ ;;
 	"-n -o OPTIONS /.rog5/root-ro")
 		cat "$MOCK_ROOT/run/mock-lower-options"
@@ -217,7 +236,7 @@ expect_failure() {
 
 record=$stage/runtime.record
 run_probe >"$record"
-[ "$(wc -l <"$record")" -eq 55 ]
+[ "$(wc -l <"$record")" -eq 68 ]
 grep -Fxq 'format=rog5-minimal-headless-runtime-v1' "$record"
 grep -Fxq 'profile=minimal-headless-v1' "$record"
 grep -Fxq 'execution_mode=test' "$record"
@@ -233,7 +252,20 @@ grep -Fxq \
 grep -Fxq \
 	'cpufreq_policy_governors=schedutil;schedutil;schedutil' "$record"
 grep -Fxq 'memory_available_kib=10949632' "$record"
+grep -Fxq 'overlay_mount_id=101' "$record"
+grep -Fxq 'overlay_lower_mount_id=102' "$record"
+grep -Fxq 'state_mount_id=103' "$record"
+grep -Fxq 'overlay_lowerdir=/mnt/root-ro' "$record"
+grep -Fxq 'overlay_upperdir=/mnt/state/upper' "$record"
+grep -Fxq 'overlay_workdir=/mnt/state/work' "$record"
+grep -Fxq 'lower_fstype=nfs4' "$record"
+grep -Fxq 'lower_nfs_version=4.2' "$record"
+grep -Fxq 'lower_transport=tcp' "$record"
+grep -Fxq 'block_device_count=0' "$record"
 grep -Fxq 'physical_block_devices=0' "$record"
+grep -Fxq 'scsi_host_count=0' "$record"
+grep -Fxq 'rpmb_device_count=0' "$record"
+grep -Fxq 'ufs_platform_device_count=0' "$record"
 grep -Fxq 'block_backed_mounts=0' "$record"
 grep -Fxq 'thermal_zone_count=33' "$record"
 grep -Fxq 'watchdog_state=armed' "$record"
@@ -243,7 +275,47 @@ grep -Fxq 'workload=none' "$record"
 
 printf '%s\n' rw,nodev,nosuid >"$root/run/mock-lower-options"
 expect_failure 'writable NFS lower'
-printf '%s\n' ro,nodev,nosuid >"$root/run/mock-lower-options"
+printf '%s\n' ro,nodev,nosuid,vers=4.2,proto=tcp \
+	>"$root/run/mock-lower-options"
+
+printf '%s\n' nfs >"$root/run/mock-lower-fstype"
+expect_failure 'changed NFS filesystem type'
+printf '%s\n' nfs4 >"$root/run/mock-lower-fstype"
+
+printf '%s\n' ro,nodev,nosuid,vers=4.1,proto=tcp \
+	>"$root/run/mock-lower-options"
+expect_failure 'changed NFS version'
+printf '%s\n' ro,nodev,nosuid,vers=4.2,proto=udp \
+	>"$root/run/mock-lower-options"
+expect_failure 'changed NFS transport'
+printf '%s\n' ro,nodev,nosuid,vers=4.2,proto=tcp \
+	>"$root/run/mock-lower-options"
+
+sed -i 's/^overlay_mount_id=101$/overlay_mount_id=104/' \
+	"$root/run/rog5-network-root-identity"
+expect_failure 'changed storage mount identity'
+sed -i 's/^overlay_mount_id=104$/overlay_mount_id=101/' \
+	"$root/run/rog5-network-root-identity"
+
+printf '%s\n' \
+	'rw,lowerdir=/mnt/untrusted-root,upperdir=/mnt/state/upper,workdir=/mnt/state/work' \
+	>"$root/run/mock-root-options"
+expect_failure 'changed OverlayFS lower directory'
+printf '%s\n' \
+	'rw,lowerdir=/mnt/root-ro=untrusted,upperdir=/mnt/state/upper,workdir=/mnt/state/work' \
+	>"$root/run/mock-root-options"
+expect_failure 'suffixed OverlayFS lower directory'
+printf '%s\n' \
+	'rw,lowerdir=/mnt/root-ro,upperdir=/mnt/untrusted-state,workdir=/mnt/state/work' \
+	>"$root/run/mock-root-options"
+expect_failure 'changed OverlayFS upper directory'
+printf '%s\n' \
+	'rw,lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/untrusted-work' \
+	>"$root/run/mock-root-options"
+expect_failure 'changed OverlayFS work directory'
+printf '%s\n' \
+	'rw,lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work' \
+	>"$root/run/mock-root-options"
 
 mkdir -p "$root/sys/devices/fake-block/device"
 ln -s ../../devices/fake-block "$root/sys/class/block/sda"
@@ -253,6 +325,38 @@ rm -f "$root/sys/class/block/sda"
 mv "$root/sys/class/block" "$root/sys/class/block.absent"
 expect_failure 'absent block topology source'
 mv "$root/sys/class/block.absent" "$root/sys/class/block"
+
+mv "$root/sys/class/block" "$root/sys/class/block.real"
+ln -s block.real "$root/sys/class/block"
+expect_failure 'linked block topology source'
+rm -f "$root/sys/class/block"
+mv "$root/sys/class/block.real" "$root/sys/class/block"
+
+touch "$root/sys/dev/block/8:0"
+printf '%s\n' \
+	'104 1 8:0 / /mnt/unexpected rw - ext4 /dev/sda rw' \
+	>>"$root/proc/self/mountinfo"
+expect_failure 'block-backed mount'
+sed -i '$d' "$root/proc/self/mountinfo"
+rm -f "$root/sys/dev/block/8:0"
+
+touch "$root/sys/class/scsi_host/host0"
+expect_failure 'SCSI host topology'
+rm -f "$root/sys/class/scsi_host/host0"
+
+mv "$root/sys/class/scsi_host" "$root/sys/class/scsi_host.real"
+ln -s missing-scsi-host-class "$root/sys/class/scsi_host"
+expect_failure 'linked SCSI host topology'
+rm -f "$root/sys/class/scsi_host"
+mv "$root/sys/class/scsi_host.real" "$root/sys/class/scsi_host"
+
+touch "$root/sys/class/rpmb/rpmb0"
+expect_failure 'RPMB topology'
+rm -f "$root/sys/class/rpmb/rpmb0"
+
+touch "$root/sys/bus/platform/devices/1d84000.ufshc"
+expect_failure 'UFS platform device'
+rm -f "$root/sys/bus/platform/devices/1d84000.ufshc"
 
 printf '%s\n' \
 	'2: usb0    inet 169.254.77.2/30 scope global usb0' \
@@ -306,4 +410,4 @@ printf '%s\n' 'format=rog5-headless-command-manifest-v1' 'workload=none' \
 expect_failure 'disarmed watchdog'
 rm -f "$root/run/rog5-network-root-watchdog.disarmed.pid"
 
-echo 'PASS minimal-headless runtime probe emits one canonical read-only observation and rejects thirteen core mutations'
+echo 'PASS minimal-headless runtime probe emits one canonical read-only observation and rejects twenty-seven core mutations'

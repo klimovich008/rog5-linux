@@ -48,13 +48,26 @@ FIELDS = (
     "cpufreq_policy_governors",
     "memory_total_kib",
     "memory_available_kib",
+    "overlay_mount_id",
+    "overlay_lower_mount_id",
+    "state_mount_id",
+    "overlay_lowerdir",
+    "overlay_upperdir",
+    "overlay_workdir",
     "root_fstype",
+    "lower_fstype",
     "lower_source",
+    "lower_nfs_version",
+    "lower_transport",
     "lower_read_only",
     "state_fstype",
     "state_nodev",
     "state_nosuid",
+    "block_device_count",
     "physical_block_devices",
+    "scsi_host_count",
+    "rpmb_device_count",
+    "ufs_platform_device_count",
     "block_backed_mounts",
     "usb_interface",
     "usb_carrier",
@@ -109,13 +122,23 @@ EXACT_VALUES = {
         "qcom-cpufreq-hw;qcom-cpufreq-hw;qcom-cpufreq-hw"
     ),
     "cpufreq_policy_governors": "schedutil;schedutil;schedutil",
+    "overlay_lowerdir": "/mnt/root-ro",
+    "overlay_upperdir": "/mnt/state/upper",
+    "overlay_workdir": "/mnt/state/work",
     "root_fstype": "overlay",
+    "lower_fstype": "nfs4",
     "lower_source": "169.254.77.1:/",
+    "lower_nfs_version": "4.2",
+    "lower_transport": "tcp",
     "lower_read_only": "1",
     "state_fstype": "tmpfs",
     "state_nodev": "1",
     "state_nosuid": "1",
+    "block_device_count": "0",
     "physical_block_devices": "0",
+    "scsi_host_count": "0",
+    "rpmb_device_count": "0",
+    "ufs_platform_device_count": "0",
     "block_backed_mounts": "0",
     "usb_interface": "usb0",
     "usb_carrier": "1",
@@ -366,6 +389,17 @@ def verify_record(
         or memory_available > memory_total
     ):
         fail("runtime available memory is outside the headless envelope")
+
+    mount_ids = tuple(
+        canonical_decimal(values[key], f"{key} storage mount ID")
+        for key in (
+            "overlay_mount_id",
+            "overlay_lower_mount_id",
+            "state_mount_id",
+        )
+    )
+    if 0 in mount_ids or len(set(mount_ids)) != len(mount_ids):
+        fail("runtime storage mount identities are zero or duplicated")
 
     thermal_count = canonical_decimal(
         values["thermal_zone_count"], "thermal zone count"
