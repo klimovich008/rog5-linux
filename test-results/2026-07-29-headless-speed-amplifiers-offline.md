@@ -14,6 +14,8 @@ bring-up:
   response;
 - added a hardware-free repository test tier and GitHub Actions workflow;
 - added a board-neutral full-system ARM64 QEMU kernel-to-PID-1 smoke test;
+- reduced that hosted smoke kernel to a tested QEMU-only configuration and
+  added content-keyed Image caching;
 - rewrote the active plan around a minimal headless server and froze
   desktop, browser, Vulkan, and GPU work.
 
@@ -30,6 +32,7 @@ native responder and fault injection:             55 tests
 recovery init policy:                              6 tests
 aggregate unprivileged repository Linux ci tier:  PASS
 QEMU ARM64 kernel-to-initramfs handoff:            PASS
+minimal QEMU kernel, two clean builds:             byte-identical
 stable recovery initramfs, two clean builds:       byte-identical
 ASUS 5.4 wrapper, two clean builds:                byte-identical
 raw boot-v3 and test-only AVB packaging:           byte-identical
@@ -46,6 +49,15 @@ PASS qemu-system arm64 initramfs boot
 
 QEMU proves only the generic ARM64 kernel/initramfs handoff. It does not
 emulate or attest ASUS/Qualcomm hardware.
+
+The first hosted run proved that ARM64 `defconfig` was the wrong CI unit: its
+recovery job passed in 1 minute 1 second, while the generic kernel compile hit
+the intentional 35-minute job bound before QEMU. The replacement
+`tinyconfig` recipe built locally in 50 seconds, produced a 3,354,632-byte
+Image, reproduced byte-for-byte in a clean output directory, and passed the
+same full-system QEMU oracle. Feature-branch pushes no longer duplicate PR
+runs, and the 3.2 MiB Image—not the multi-gigabyte object tree—is
+content-keyed for reuse.
 
 ## Final reproducible identities
 
@@ -65,8 +77,11 @@ raw Android boot-v3 image:
 test-only unsigned-AVB image:
 cfd6e7ea2321a9ad625aa0971426f738bc55e75f9236389c884083a3783cc940
 
-generic QEMU ARM64 Image:
-9c6cc7db9aa24a6a6f8a87cbd479694615c9d7000a47d4d80eeaa2d55a9447a4
+minimal QEMU ARM64 config:
+24e70400094f99d4a56d9cc5f629681a3d9552c7a79c630d23c6bcc27aec95d9
+
+minimal QEMU ARM64 Image:
+346b620bbe40e2d82097e2234d4ccaeedc88b8902cb4c346211fca420bf4dd9c
 ```
 
 The recovery integration generated an ephemeral Ed25519 test key inside its
@@ -87,8 +102,9 @@ counted as approval.
 
 ## Remaining boundary
 
-GitHub Actions must turn green after this source is pushed. A separately
-approved production public trust root and staging-only live promotion are
-still required before the new recovery can become boot authority. The first
-live objective is to determine whether ramoops survives the target →
-bootloader → recovery path; it is not to resume desktop or GPU work.
+The optimized GitHub Actions source must turn green after it is pushed. A
+separately approved production public trust root and staging-only live
+promotion are still required before the new recovery can become boot
+authority. The first live objective is to determine whether ramoops survives
+the target → bootloader → recovery path; it is not to resume desktop or GPU
+work.

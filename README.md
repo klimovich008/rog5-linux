@@ -84,10 +84,11 @@ scripts/host/test-repository-linux.sh ci
 
 The `ci` tier needs no phone, Vulkan stack, desktop, or delegated cgroup. It is
 the default pull-request gate for the recovery protocol and host safety path.
-The workflow also has a separate full-system ARM64 job. It builds the exact
-pinned upstream Linux v7.1.4 commit and boots a syscall-only initramfs under
-QEMU. This proves the generic kernel-to-PID-1 handoff without pretending to
-emulate ROG Phone hardware.
+The workflow also has a separate full-system ARM64 job. It builds a minimal
+`tinyconfig` kernel from the exact pinned upstream Linux v7.1.4 commit and
+boots a syscall-only initramfs under QEMU. Its content-keyed kernel cache is
+invalidated when the build recipe changes. This proves the generic
+kernel-to-PID-1 handoff without pretending to emulate ROG Phone hardware.
 For the wider provisioned local suite, run:
 
 ```sh

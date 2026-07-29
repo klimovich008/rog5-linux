@@ -31,6 +31,12 @@ fi
 strings "$test_root/init" |
 	grep -qx 'PASS qemu-system arm64 initramfs boot'
 grep -Fq '7a5cef0db4795d9d453a12e0f61b5b7634fc4d40' "$builder"
+grep -Fq 'LLVM=1 tinyconfig' "$builder"
+for option in BLK_DEV_INITRD BINFMT_ELF PRINTK RD_GZIP \
+	SERIAL_AMBA_PL011_CONSOLE; do
+	grep -Fq -- "--enable $option" "$builder" ||
+		fail "minimal QEMU kernel is missing $option"
+done
 grep -Fq -- '-M virt' "$runner"
 grep -Fq -- '-nic none' "$runner"
 grep -Fq "rdinit=/init" "$runner"

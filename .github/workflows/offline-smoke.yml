@@ -3,6 +3,8 @@ name: Offline smoke
 on:
   pull_request:
   push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -13,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install native test dependencies
         run: |
           sudo apt-get update
@@ -30,9 +32,15 @@ jobs:
 
   qemu-system:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: Restore pinned ARM64 kernel
+        id: qemu-kernel-cache
+        uses: actions/cache@v6
+        with:
+          path: build/qemu-smoke-kernel/arch/arm64/boot/Image
+          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh') }}
       - name: Install full-system smoke dependencies
         run: |
           sudo apt-get update
@@ -50,6 +58,7 @@ jobs:
             llvm \
             qemu-system-arm
       - name: Fetch pinned upstream Linux source
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p build/qemu-linux-source
           git -C build/qemu-linux-source init
@@ -60,6 +69,7 @@ jobs:
           test "$(git -C build/qemu-linux-source rev-parse HEAD)" = \
             7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
       - name: Build ARM64 virt kernel
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
         run: |
           scripts/host/build-qemu-smoke-kernel.sh \
             build/qemu-linux-source \
