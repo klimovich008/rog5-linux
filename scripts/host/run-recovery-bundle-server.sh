@@ -6,10 +6,15 @@ fail() {
 	exit 1
 }
 
+action=serve
+if [[ ${1:-} == preflight ]]; then
+	action=preflight
+	shift
+fi
 bundle=${1:-}
 manifest_hash=${2:-}
 [[ $# == 2 ]] ||
-	fail 'usage: run-recovery-bundle-server.sh BUNDLE MANIFEST_SHA256'
+	fail 'usage: run-recovery-bundle-server.sh [preflight] BUNDLE MANIFEST_SHA256'
 [[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
 	$bundle != *..* && $bundle != none ]] ||
 	fail 'invalid bundle identity'
@@ -40,4 +45,8 @@ done
 	$(sha256sum "$server_source" | awk '{ print $1 }') ]] ||
 	fail 'installed bundle server is stale; reinstall it first'
 
+if [[ $action == preflight ]]; then
+	echo 'PASS fixed recovery bundle server is installed and current'
+	exit 0
+fi
 exec pkexec "$controller" "$bundle" "$manifest_hash"

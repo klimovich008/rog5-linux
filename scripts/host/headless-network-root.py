@@ -16,8 +16,24 @@ import sys
 from typing import NoReturn
 
 
-REPO = Path(__file__).resolve().parents[2]
-ROOT_TOOL_PATH = REPO / "scripts/device/persistent-root-tool.py"
+SOURCE_PATH = Path(__file__).resolve()
+INSTALLED_ROOT = Path("/usr/libexec/rog5-recovery-host")
+if SOURCE_PATH.parent == INSTALLED_ROOT:
+    ROOT_TOOL_PATH = INSTALLED_ROOT / "persistent-root-tool.py"
+    for installed_path in (SOURCE_PATH, ROOT_TOOL_PATH):
+        installed_metadata = installed_path.lstat()
+        if (
+            not stat.S_ISREG(installed_metadata.st_mode)
+            or installed_metadata.st_uid != 0
+            or installed_metadata.st_gid != 0
+            or stat.S_IMODE(installed_metadata.st_mode) != 0o555
+        ):
+            raise SystemExit(
+                "FAIL installed headless verifier metadata is unsafe"
+            )
+else:
+    REPO = SOURCE_PATH.parents[2]
+    ROOT_TOOL_PATH = REPO / "scripts/device/persistent-root-tool.py"
 SEAL_NAME = ".rog5-persistent-seal"
 COMMAND_PATH = Path("etc/rog5/a660-command-manifest")
 EPOCH = 1681862400

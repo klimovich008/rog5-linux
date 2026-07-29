@@ -238,6 +238,19 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   outputs, and an enumerated set of client-credential and TOFU command
   surfaces. See the
   [bootstrap result](../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
+- `test-run-minimal-headless-live-cycle.py` composes the corrected boot-only
+  recovery, fixed one-transfer bundle server, fixed read-only NFS exporter,
+  durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
+  observation, watchdog rollback, exact fallback preflight, and host cleanup.
+  Its process fixtures prove bundle cleanup precedes NFS startup, COMMIT is
+  never retried, transport loss is recovered only through the durable ledger,
+  runtime rejection resolves as `FALLBACK_RETURNED`, accepted runtime resolves
+  only after exact fallback and cleanup, and missing fallback proof leaves the
+  intent `UNKNOWN`. Injected protected-zone, temporary-address,
+  NetworkManager-ownership, final-cleanup, and silent-post-ledger-arm failures
+  cover the cleanup/oracle boundaries. It performs no phone, credential,
+  PolicyKit, firewall, or NFS action. See the
+  [one-shot runbook](minimal-headless-live-cycle.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and

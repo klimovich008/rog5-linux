@@ -140,6 +140,19 @@ identity or grant a live cycle. See the
 [bootstrap contract](minimal-headless-host-key-bootstrap.md) and
 [offline result](../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
 
+Those independent gates now have one hardware-free-tested lifecycle
+controller. It performs complete preflight before mutation, waits for the
+one-transfer recovery bundle server to exit and clean its firewall state
+before starting NFS, commits exactly once, pins the volatile target key,
+captures one strict-SSH runtime record, keeps rollback armed, verifies exact
+fallback and host cleanup, and only then resolves the durable intent. An
+ambiguous COMMIT is looked up in the ledger and is never replayed. The NFS
+exporter is also staged for a fixed root-owned installation rather than
+privileged execution of a mutable repository script. This checkpoint has not
+installed the changed host components, booted the phone, or used a
+credential. See the
+[one-shot lifecycle runbook](minimal-headless-live-cycle.md).
+
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 55 pseudo-terminal, postmortem, and

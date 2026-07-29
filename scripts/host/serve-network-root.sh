@@ -1,14 +1,63 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2329
 set -euo pipefail
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
 
 fail() {
 	echo "FAIL $*" >&2
 	exit 1
 }
 
-repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-root=${1:-/var/lib/rog5-network-root-v1}
+installed_directory=/usr/libexec/rog5-recovery-host
+installed_server=$installed_directory/serve-network-root.sh
+script_path=$(/usr/bin/realpath -e -- "${BASH_SOURCE[0]}")
+installed_mode=0
+installed_action=
+if [[ $script_path == "$installed_server" ]]; then
+	installed_mode=1
+	installed_action=${1:-}
+	case $installed_action in
+		preflight)
+			[[ $# == 2 ]] ||
+				fail 'usage: serve-network-root.sh preflight ROOT'
+			root=$2
+			handoff_token=
+			serve_timeout=720
+			;;
+		serve)
+			[[ $# == 4 ]] ||
+				fail 'usage: serve-network-root.sh serve ROOT HANDOFF_TOKEN TIMEOUT'
+			root=$2
+			handoff_token=$3
+			serve_timeout=$4
+			;;
+		*)
+			fail 'usage: serve-network-root.sh preflight ROOT | serve ROOT HANDOFF_TOKEN TIMEOUT'
+			;;
+	esac
+	[[ ${PKEXEC_UID:-} =~ ^[1-9][0-9]*$ ]] ||
+		fail 'missing non-root PolicyKit caller identity'
+	[[ ! -L $installed_server &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$installed_server") == \
+		'0:0:555:regular file' ]] ||
+		fail 'unsafe installed network-root server metadata'
+	headless_verifier=$installed_directory/headless-network-root.py
+	persistent_root_tool=$installed_directory/persistent-root-tool.py
+	for installed_input in "$headless_verifier" "$persistent_root_tool"; do
+		[[ -f $installed_input && ! -L $installed_input &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$installed_input") == \
+			'0:0:555:regular file' ]] ||
+			fail 'unsafe installed network-root verifier metadata'
+	done
+else
+	[[ $# -le 1 ]] ||
+		fail 'usage: serve-network-root.sh [ROOT]'
+	repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+	root=${1:-/var/lib/rog5-network-root-v1}
+	serve_timeout=${ROG5_NFS_TIMEOUT:-900}
+	handoff_token=${ROG5_NFS_HANDOFF_TOKEN:-}
+fi
 host_ip=169.254.77.1
 phone_ip=169.254.77.2
 host_cidr=$host_ip/30
@@ -17,8 +66,6 @@ export_mount=/run/rog5-network-root-export
 mountd_port=32767
 grace_time=10
 lease_time=10
-serve_timeout=${ROG5_NFS_TIMEOUT:-900}
-handoff_token=${ROG5_NFS_HANDOFF_TOKEN:-}
 handoff_marker=/run/rog5-network-root-nfs-ready
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
@@ -34,7 +81,7 @@ if [[ -n $handoff_token ]]; then
 		fail 'refusing an existing NFS handoff marker'
 fi
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
-	chmod ln mkdir mktemp mountpoint nmcli pgrep realpath rm rpc.mountd \
+	chmod ln mkdir mktemp mountpoint nmcli pgrep python3 realpath rm rpc.mountd \
 	rpc.nfsd ss sysctl udevadm stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
@@ -42,18 +89,29 @@ done
 root=$(realpath -e "$root")
 case $root in
 	/var/lib/rog5-network-root-v1)
+		[[ $installed_mode == 0 ]] ||
+			fail 'installed server accepts only the minimal headless root'
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
 		;;
 	/var/lib/rog5-headless-network-root-v1/root)
-		"$repo/scripts/host/verify-headless-network-root-export.sh" "$root"
+		if [[ $installed_mode == 1 ]]; then
+			python3 -B "$headless_verifier" verify-root "$root" \
+				/var/lib/rog5-headless-network-root-v1/manifest
+		else
+			"$repo/scripts/host/verify-headless-network-root-export.sh" "$root"
+		fi
 		;;
 	/var/lib/rog5-network-root-a660-gmu-cx-runtime-pm-v10)
+		[[ $installed_mode == 0 ]] ||
+			fail 'installed server accepts only the minimal headless root'
 		[[ ${ALLOW_MAINLINE_A660_GMU_CX_RUNTIME_PM_V10_NFS:-} == 1 ]] ||
 			fail 'set ALLOW_MAINLINE_A660_GMU_CX_RUNTIME_PM_V10_NFS=1 for the attended v10 window'
 		"$repo/scripts/host/verify-a660-gmu-cx-runtime-pm-v10-export.sh" \
 			"$root" /var/lib/rog5-network-root-a660-gmu-resume-entry-v9
 		;;
 	/var/lib/rog5-network-root-arch-successor-v1)
+		[[ $installed_mode == 0 ]] ||
+			fail 'installed server accepts only the minimal headless root'
 		[[ ${ALLOW_ARCH_SUCCESSOR_V1_NFS:-} == 1 ]] ||
 			fail 'set ALLOW_ARCH_SUCCESSOR_V1_NFS=1 for the attended Arch successor v1 window'
 		"$repo/scripts/host/verify-arch-successor-export.sh" "$root"
@@ -64,7 +122,11 @@ case $root in
 esac
 
 etab=/var/lib/nfs/etab
-[[ -e $etab ]] || install -m 0644 /dev/null "$etab"
+if [[ ! -e $etab ]]; then
+	[[ $installed_mode == 1 && $installed_action == preflight ]] &&
+		fail 'NFS export state file is absent'
+	install -m 0644 /dev/null "$etab"
+fi
 [[ -f $etab && ! -L $etab ]] ||
 	fail 'unexpected NFS export state file type'
 case $(stat -c %u:%g:%a "$etab") in
@@ -102,6 +164,11 @@ mapfile -t protected_zones < <(
 		awk '/^[^[:space:]]/ { print $1 }'
 )
 (( ${#protected_zones[@]} > 0 )) || fail 'no active firewall zone'
+
+if [[ $installed_mode == 1 && $installed_action == preflight ]]; then
+	echo 'PASS fixed headless network-root root and host state verified'
+	exit 0
+fi
 
 nfs_drop_rule="rule family=\"ipv4\" priority=\"-300\" destination address=\"$host_ip/32\" port port=\"2049\" protocol=\"tcp\" drop"
 mountd_tcp_drop_rule="rule family=\"ipv4\" priority=\"-300\" port port=\"$mountd_port\" protocol=\"tcp\" drop"

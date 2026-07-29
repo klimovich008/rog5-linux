@@ -58,6 +58,12 @@ gate.
   [offline result](test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md)
   — recovery-to-target physical USB continuity, credential-free Ed25519
   discovery, and the strict-SSH handoff for temporary development boots.
+- [Minimal-headless one-shot lifecycle](docs/minimal-headless-live-cycle.md)
+  — fail-closed recovery, bundle/NFS sequencing, strict-SSH observation,
+  watchdog rollback, fallback proof, cleanup, and durable outcome rules.
+  The
+  [offline result](test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
+  records the fourteen failure-path scenarios and independent reviews.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
