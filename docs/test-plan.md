@@ -211,6 +211,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   [v3 offline result](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
   and
   [protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md).
+- `test-arch-headless-rootfs-contract.sh` pins the three-package SSH-only
+  profile, public-key validation, firmware-free host path, strict SSH,
+  volatile identities, multi-user/sleep-inhibitor services, disabled network
+  managers, and the absence of desktop/browser/GPU/radio/agent and phone-write
+  surfaces. The real ARM64 stage runs the same complete verifier before
+  archival and after clean extraction.
+- `test-prepare-recovery-candidate.py` exercises the offline candidate
+  adapter with a disposable Ed25519 key, rejects live authority, unknown
+  fields, and mutated artifacts, checks the tracked consumed-P2 identities,
+  and statically excludes transport/server/phone actions.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM

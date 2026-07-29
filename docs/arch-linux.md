@@ -1,6 +1,13 @@
 # Arch Linux ARM userspace
 
-The target userspace is the official generic AArch64 Arch Linux ARM root filesystem with this project's kernel, ASUS DTB, modules, firmware, and initramfs. Its UI is a minimal Plasma Desktop Wayland session; GNOME, Plasma Mobile, Discover, and a second display manager are deliberately outside the target. The generic rootfs explicitly expects developers to provide board-specific boot support, so its bundled generic kernel and DTBs are not used for this phone.
+The active userspace is the official generic AArch64 Arch Linux ARM root
+filesystem with this project's kernel modules and a minimal SSH-only server
+policy. It has no desktop, display manager, browser, Vulkan stack, GPU
+firmware, Wi-Fi, hotspot, VPN, or automation account. The historical
+Plasma/KRDP roots remain evidence and fallback development artifacts; they are
+not copied into the active profile. The generic rootfs expects developers to
+provide board-specific boot support, so its bundled generic kernel and DTBs
+are not used for this phone.
 
 ## Image contract
 
@@ -27,6 +34,58 @@ powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 The script pins the official Arch Linux ARM keyring repository commit and expected full signing-key fingerprint. It accepts the mutable `latest` download only after its detached signature, archive paths, and required base files pass. The resulting size and SHA-256 become the immutable project input recorded in `manifests/artifacts.tsv`; the rootfs itself remains outside Git.
 
 The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`. Do not disable pacman signature checking to work around keyring errors; a signed package-update smoke test is a mandatory staging gate.
+
+## Minimal headless profile
+
+Build the active profile on Linux with an external public SSH key:
+
+```sh
+ARCH_ROOTFS_GENERATION=headless-v1 \
+  scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+The builder requires a clean source commit, enabled `qemu-aarch64` binfmt,
+rootless Podman, the manifest-pinned signed base rootfs, and the exact module
+archive. Unlike the historical desktop generations, this path does not
+require or mount the A660 firmware directory.
+
+The stage requests only `attr`, `diffutils`, and `openssh` beyond the Arch
+base. It removes `linux-aarch64` and every installed `linux-firmware*`
+package, deletes the published `alarm` account, locks root to public-key SSH,
+enables the sleep inhibitor, disables systemd-networkd, and uses
+`multi-user.target`. SSH host keys and `/etc/machine-id` remain empty in the
+archive so the deployed root creates unique identities.
+
+The verifier rejects regular login accounts, reusable host identity,
+physical-device `fstab` entries, extra module releases, generic firmware,
+NetworkManager, Plasma/KWin/GNOME components, Chromium, Vulkan/Mesa, Node/npm,
+Wi-Fi, WireGuard, ttyd, and the automation-agent surface. It evaluates the
+effective OpenSSH policy with a temporary key and configuration under
+`/run`, then the host extracts the final archive into a second clean volume
+and runs the verifier again.
+
+Current offline result:
+
+```text
+source commit: eb61a45938c851b1b02a2f3151db5265ab9213e7
+kernel:        7.1.4-g7a5cef0db479
+packages:      150
+size:          535093875
+sha256:        4e472f2fa3f21fd3a5cf6de9eaf96810104083758039e8cdeefc4e03ec4e6427
+```
+
+The checked-in `configs/ssh/rog5-headless-build-fixture.pub` is a public-only
+offline test fixture; its private half was destroyed and it must not be used
+as deployment access. A real deployment supplies its own public key outside
+Git.
+
+This archive is rebuildable from pinned base-rootfs and module identities and
+records all resulting package versions. It is not yet bit-reproducible:
+Arch's rolling repository snapshot is not pinned and `pacman-key --init`
+generates a local trust database. It is also not signed as a stable-recovery
+runtime bundle and has not run on the phone.
+
+## Historical desktop profiles
 
 Stage a server rootfs with an external public SSH key:
 
