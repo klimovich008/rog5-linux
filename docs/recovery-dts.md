@@ -83,7 +83,18 @@ pipe clock. The FEMTO USB2 PHY driver is built into the recovery kernel.
 Static checks require exactly two `status = "okay"` changes and five explicit
 `status = "disabled"` changes. They keep UFS, the QMP/SuperSpeed PHY, the
 secondary `usb_2` controller, RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU
-disabled. GPUCC isolation is required because an attended live
+disabled.
+
+The builder now also parses the base and candidate FDTs and permits only the
+reviewed property-level delta. Node addition/removal and every unrelated
+property change are rejected byte-for-byte. The retained rejected v1 and
+accepted v3 artifacts differ in exactly four approved isolation properties;
+the compiled current base passes the same oracle with ten approved changes.
+The implementation, malicious fixtures, signal-abort test, and hashes are in
+the
+[corrected DTB semantic oracle](../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
+
+GPUCC isolation is required because an attended live
 `gpucc_sm8350` probe stalled until the rollback watchdog reset the phone. A
 later GPUCC-only v9 trace kept every consumer disabled, completed mapping and
 both PLL configuration calls, then stalled at the common-clock registration

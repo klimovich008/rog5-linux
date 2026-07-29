@@ -40,6 +40,9 @@ gate.
 - [Corrected headless candidate twin build](test-results/2026-07-29-corrected-headless-candidate-offline.md)
   — exact corrected DTB, bundle, recovery, wrapper, trust boundary, and
   byte-identical offline products.
+- [Corrected DTB semantic oracle](test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md)
+  — exact rejected-to-accepted property delta, malicious fixtures, and
+  fail-closed builder integration.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.

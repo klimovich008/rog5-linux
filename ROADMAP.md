@@ -309,7 +309,10 @@ The signed SSH-only bundle, fixed serve/verify/execute integration, first
 shell-free live recovery transaction, automatic fallback, and corrected DTB
 selection are complete. The corrected target and stable-recovery wrapper now
 also pass a complete twin-build hardware-free gate under one disposable test
-trust root. They remain offline and have no live authority.
+trust root. An exact semantic DTB oracle now proves that the accepted v3
+object differs from rejected v1 only at four intended isolation properties
+and rejects unrelated node/property changes in core CI. They remain offline
+and have no live authority.
 Continue in this order:
 
 1. preserve the reviewed artifact plan; do not delete or deduplicate anything
@@ -317,7 +320,9 @@ Continue in this order:
 2. use the pinned Linux source/toolchain bootstrap for all new kernel builds;
 3. [x] build the corrected-DTB candidate twice with a disposable trust root
    and repeat the complete hardware-free gate;
-4. request fresh, separate authorization before creating or using a live
+4. [x] enforce and test the exact board-preserving corrected-DTB semantic
+   delta against rejected and accepted evidence;
+5. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-5. if the minimal root reaches key-only SSH and clean rollback, start the H3
+6. if the minimal root reaches key-only SSH and clean rollback, start the H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.
