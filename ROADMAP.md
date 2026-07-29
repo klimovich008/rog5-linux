@@ -150,15 +150,18 @@ specific assertion—not five copied scripts and a full userspace image.
 
 ### A0.5 Artifact retention
 
-The current ignored footprint is approximately 166 GiB: 113 GiB under
-`artifacts/` and 53 GiB under `build/`. No data is deleted merely because it
-looks reproducible.
+The current read-only snapshot records 234,216,853,504 allocated bytes and
+234,452,626,574 apparent bytes across 99 top-level units, with six nested
+recovery temporary units classified separately. No data is deleted merely
+because it looks reproducible.
 
 - [x] Preserve the tracked pre-reduction checkpoint at
   `archive/pre-stable-recovery-2026-07-28`.
 - [x] Recompute the current top-level footprint.
-- [ ] Generate a machine-readable prune plan with size, identity, references,
-  role, and reproduction command for every candidate.
+- [x] Generate a
+  [machine-readable prune plan](test-results/2026-07-29-artifact-prune-plan.json)
+  with size, identity, references, role, and reproduction status for every
+  candidate.
 - [ ] Review the plan before deleting or deduplicating anything.
 
 Exit: active inputs and irreplaceable evidence are obvious; failed and
@@ -305,7 +308,8 @@ shell-free live recovery transaction, automatic fallback, and corrected DTB
 selection are complete. The corrected target itself remains offline.
 Continue in this order:
 
-1. generate, but do not execute, the machine-readable artifact prune plan;
+1. review the generated artifact plan, but do not delete or deduplicate
+   anything without separate approval;
 2. add an optional compiler-cache path and a validated incremental-output
    contract for active kernel builds without changing reproducible outputs;
 3. pin the complete source and toolchain bootstrap for a fresh Linux host;

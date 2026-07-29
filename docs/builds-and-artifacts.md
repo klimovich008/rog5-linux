@@ -64,6 +64,12 @@ Private inputs live outside the repository and are referenced only by path or ha
 
 Large products go under ignored `build/`, `dist/`, or `artifacts/` directories. Every candidate receives a source commit, config hash, compiler version, file sizes, and SHA-256 manifest.
 
+Ignored local state is tracked conservatively by the
+[artifact retention report](../test-results/2026-07-29-artifact-retention-plan.md)
+and its linked machine-readable snapshot. A planner classification never
+authorizes deletion; exact candidates require human review and separate
+approval.
+
 ## Build order
 
 1. Validate scripts, known artifacts, and kernel config symbols.

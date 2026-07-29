@@ -1,6 +1,6 @@
 # Repository audit — 2026-07-28
 
-Status: **completed inventory; conservative reduction in progress**
+Status: **inventory and machine-readable plan complete; human review pending**
 
 This audit was started because the project had begun to encode each hardware
 experiment as another full script/report generation. That preserved evidence,
@@ -53,6 +53,12 @@ A 2026-07-29 recheck found approximately 113 GB under `artifacts/` and
 53 GB under `build/`, or 166 GB total. The increase is ignored build state,
 not tracked source, and reinforces the requirement for a referenced prune
 plan before deletion.
+
+The final read-only planner snapshot later that day measured 234,216,853,504
+allocated bytes and 234,452,626,574 apparent bytes across 99 top-level units;
+six nested recovery temporary units were classified separately. The difference
+from the earlier estimate reflects a complete allocated/apparent measurement,
+not tracked growth or cleanup.
 
 ## Archive checkpoint
 
@@ -162,9 +168,18 @@ produce a machine-readable plan with, for every proposed path:
    cache, or failed build;
 5. a reproducibility command or an explicit reason it is irreplaceable.
 
+The [retention report](../test-results/2026-07-29-artifact-retention-plan.md)
+and
+[machine-readable plan](../test-results/2026-07-29-artifact-prune-plan.json)
+now satisfy the inventory step. They conservatively classify 51 units for
+retention, 46 for review, and eight as prune candidates. All eight candidates
+have zero tracked references and zero canonical-manifest rows, but still
+require inspection for unique logs before any exact-path approval.
+
 The plan must be reviewed before deletion. Hard-linking mutable artifact trees
 is not an acceptable deduplication method; filesystem-native reflinks or
-read-only content-addressed storage are safer future options.
+read-only content-addressed storage are safer future options. No ignored
+artifact was deleted or deduplicated while generating the plan.
 
 ## Concrete problems found
 
@@ -234,9 +249,12 @@ suite and one canonical offline runner before another image is built.
 
 ## Immediate next work
 
-1. Integrate the pinned fetcher, responder, verifier, kexec-tools, and
-   approved public key into one shell-free initramfs.
-2. Ask before creating or using the production signing credential.
-3. Rebuild and verify one stable recovery candidate.
-4. Run staging-only promotion before any new payload execution.
-5. Generate, review, and only then apply the ignored-artifact deletion plan.
+1. Review the eight prune candidates for unique diagnostic material; do not
+   delete or deduplicate anything without separate exact-path approval.
+2. Add and validate optional compiler caching plus reusable incremental kernel
+   output trees without changing reproducible release outputs.
+3. Pin the complete source and toolchain bootstrap for a fresh Linux host.
+4. Rebuild the corrected-DTB candidate twice under a disposable trust root and
+   repeat the hardware-free gate.
+5. Ask separately before creating or using a production signing credential or
+   temporarily booting the corrected candidate.
