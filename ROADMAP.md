@@ -124,6 +124,9 @@ postmortem operations without per-candidate recovery rebuilds.
   feature-branch push/PR runs.
 - [x] Keep QEMU tests board-neutral; never claim that QEMU proves ROG Phone
   hardware.
+- [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
+  fail-closed core compatibility profile, committed golden Kconfig, build
+  gate, and 33-case mutation/CLI suite.
 
 Exit: parser, initramfs, recovery, root handoff, and policy regressions fail
 before a phone cycle.

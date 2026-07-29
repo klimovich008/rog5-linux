@@ -97,6 +97,22 @@ and
 [corrected offline twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md),
 plus [re-freeze integration](recovery-refreeze-integration.md).
 
+The ASUS 5.4 and accepted Linux 7.1 behavioral ancestry is now also encoded in
+a strict [core compatibility oracle](core-compatibility-oracle.md). It binds
+the historical evidence hashes and markers, artifact-manifest hash, accepted
+Image/config identities, corrected candidate Image/DTB/initramfs ancestry,
+six active headless capability contracts, six future capability states,
+exact CI entries, and the kernel-build verifier invocation. A committed
+golden config, the retained accepted 7.1 config, and 33 mutation/CLI tests
+pass. The complete hardware-free repository CI tier passes.
+
+This is an ancestry and regression result, not a new hardware result.
+`phase=active` means current roadmap scope; only `candidate_status` describes
+acceptance. Buttons and battery remain baseline diagnostics, display-off is
+evidence-only, and suspend, sensors, and audio remain pending. The corrected
+root is still `live-pending` with `authority=none`. See the
+[offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
+
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 55 pseudo-terminal, postmortem, and
