@@ -229,16 +229,21 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `test-verify-minimal-headless-runtime.py`, and
   `test-run-minimal-headless-runtime-acceptance.sh` define the next corrected
   target result without granting live authority. They require one canonical
-  68-field observation covering the six active compatibility capabilities,
+  88-field observation covering the six active compatibility capabilities,
   bind it to the exact probe/boot/candidate/root/watchdog identities and
   device-specific CPU/RAM/thermal envelopes, exact attested storage mount
   identities and OverlayFS backing paths, NFSv4.2/TCP, and zero
-  block/SCSI/RPMB/UFS exposure, reject target and record mutations, and prove
-  one strict-SSH private capture with no boot, signing, retry, disarm, or
-  reboot action. See the
+  block/SCSI/RPMB/UFS exposure. They also require the exact ConfigFS
+  descriptor/function/UDC, high-speed `usb0`, isolated connected route with no
+  default, one current USB-peer SSH session, and matching Ed25519 key
+  identities; reject target and record mutations; and prove one strict-SSH
+  private capture with no boot, signing, retry, disarm, or reboot action. See
+  the
   [runtime result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
   and
-  [storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md).
+  [storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md),
+  plus the
+  [USB/NCM/SSH result](../test-results/2026-07-30-usb-ncm-ssh-offline.md).
 - `test-pin-minimal-headless-host-key.py` covers the credential-free bridge
   between signed recovery and strict target SSH. It fixture-tests canonical
   private anchors, host-boot and 600-second freshness binding, exact

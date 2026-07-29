@@ -20,7 +20,8 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/host/pin-minimal-headless-host-key.py` creates the private
   known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
-  proc/sys/run/root fixture and rejects 27 cross-capability mutations.
+  proc/sys/configfs/run/root fixture and rejects 46 cross-capability
+  mutations.
 - `scripts/host/test-verify-minimal-headless-runtime.py` exercises the
   canonical parser, candidate binding, thresholds, private-file policy, and
   CLI.
@@ -33,7 +34,7 @@ compatibility profile names them as gates for the capabilities they cover.
 
 ## Record contract
 
-The probe emits exactly 68 ordered ASCII `key=value` lines ending in LF. The
+The probe emits exactly 88 ordered ASCII `key=value` lines ending in LF. The
 record identifies:
 
 - format, profile, live/test execution mode, exact probe SHA-256, active
@@ -47,9 +48,16 @@ record identifies:
   `nodev,nosuid`, zero block devices, physical devices, SCSI hosts, RPMB
   devices, UFS platform devices, block-backed mounts, and exact initramfs
   handoff markers;
-- exact `usb0` carrier and `169.254.77.2/30` address;
-- active SSH, locked root password, one valid authorized key, effective
-  key-only policy, host-key metadata, and active sleep inhibitor;
+- exact `rog5-network-root` ConfigFS descriptor, strings, sole `ncm.usb0`
+  function/configuration link, primary `a600000` UDC binding, and high-speed
+  negotiation;
+- exact `usb0` carrier, operational state, MTU, `169.254.77.2/30` address,
+  connected `/30` route, only the three kernel-default IPv4 policy rules, and
+  absence of an IPv4 default route in every routing table;
+- active SSH on port 22, one current server session from the exact USB host
+  peer, locked root password, one 256-bit Ed25519 authorized key, effective
+  key-only policy evaluated with the real remote/local address and local-port
+  tuple, a matching 256-bit Ed25519 host-key pair, and active sleep inhibitor;
 - zero failed units and zero fatal kernel signatures;
 - bounded read-only thermal-zone count and min/max telemetry;
 - a live rollback process, timer, start identities, parentage, emergency
@@ -73,7 +81,9 @@ compatibility oracle and authority-free corrected candidate. It then requires:
 | Total RAM | at least 10 GiB reported in KiB |
 | Available RAM | at least 8 GiB and no more than total RAM |
 | Storage | three distinct mount IDs equal to the initramfs attestation; exact OverlayFS lower/upper/work paths over read-only NFSv4.2/TCP plus tmpfs state; zero block, physical, SCSI, RPMB, UFS-platform, and block-backed-mount exposure |
-| USB/SSH | exact NCM address/carrier and strict key-only SSH |
+| USB gadget | exact `1d6b:0104` product/configuration, sole `ncm.usb0`, primary `a600000` UDC, and high-speed operation |
+| USB network | exact carrier/up/1500-MTU `usb0`, target `/30` address and connected route, only default kernel policy rules, with no IPv4 default in any table |
+| SSH | active port 22 reached by exactly one current `169.254.77.1` USB-peer session; one 256-bit Ed25519 authorized key, matching Ed25519 host-key pair, and strict key-only policy evaluated for that exact remote/local connection tuple |
 | Thermals | 30–128 readable zones; values between -20 C and 120 C |
 | Rollback | exact candidate timeout of 600 seconds with 60–600 seconds remaining |
 | Root identity | exact generation, tree, seal, entry count, subtree, and command-manifest values from the corrected candidate |
@@ -88,6 +98,12 @@ The strengthened storage checks are documented in the
 [offline storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md).
 They preserve the current zero-storage profile and do not authorize the
 separate persistent-root design.
+
+The strengthened USB/NCM/SSH checks are documented in the
+[offline USB/NCM/SSH result](../test-results/2026-07-30-usb-ncm-ssh-offline.md).
+They bind the target-side gadget and current SSH transport to the independent
+host-side USB continuity/bootstrap checks; neither side alone is used as proof
+of the complete link.
 
 The record must be a caller-owned, mode-`0600`, unlinked ordinary file with
 one link and a maximum size of 16 KiB. Its boot ID must match a separate

@@ -1,5 +1,7 @@
 #!/bin/sh
 set -eu
+LC_ALL=C
+export LC_ALL
 
 fail() {
 	echo "FAIL $*" >&2
@@ -25,7 +27,7 @@ runtime_path() {
 }
 
 for command in awk cat dmesg find findmnt grep id ip nproc readlink sed \
-	sha256sum ssh-keygen sshd stat systemctl tr uname wc; do
+	sha256sum ss ssh-keygen sshd stat systemctl tr uname wc; do
 	command -v "$command" >/dev/null ||
 		fail "missing runtime probe command: $command"
 done
@@ -101,6 +103,42 @@ optional_class_count() {
 	[ -d "$class_root" ] || return 1
 	find "$class_root" -mindepth 1 -maxdepth 1 -print |
 		awk 'NF { count++ } END { print count + 0 }'
+}
+
+ssh_ed25519_identity() {
+	key_file=$1
+	ssh-keygen -l -E sha256 -f "$key_file" 2>/dev/null |
+		awk '
+			{
+				total++
+				if ($1 == "256" &&
+					index($2, "SHA256:") == 1 &&
+					length($2) > 7 &&
+					$NF == "(ED25519)") {
+					valid++
+					fingerprint=$2
+				}
+			}
+			END {
+				if (total != 1 || valid != 1)
+					exit 1
+				print "ssh-ed25519:256:" fingerprint
+			}'
+}
+
+ssh_ed25519_public_material() {
+	awk '
+		NF {
+			total++
+			if (NF < 2 || $1 != "ssh-ed25519")
+				invalid=1
+			material=$1 " " $2
+		}
+		END {
+			if (total != 1 || invalid)
+				exit 1
+			print material
+		}'
 }
 
 mount_option_value() {
@@ -368,8 +406,89 @@ done <"$(runtime_path /proc/self/mountinfo)"
 [ -f "$(runtime_path /run/rog5-network-root-mounted)" ] ||
 	fail 'network-root handoff marker is absent'
 
+gadget_root=$(runtime_path /sys/kernel/config/usb_gadget)
+[ -d "$gadget_root" ] && [ ! -L "$gadget_root" ] ||
+	fail 'USB gadget inventory root is absent or linked'
+usb_gadget_count=$(
+	find "$gadget_root" -mindepth 1 -maxdepth 1 -type d -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_gadget_count" -eq 1 ] ||
+	fail 'USB gadget inventory is not exact'
+gadget=$gadget_root/rog5-network-root
+[ -d "$gadget" ] && [ ! -L "$gadget" ] ||
+	fail 'USB gadget root is absent or linked'
+for attribute in idVendor idProduct bDeviceClass bDeviceSubClass \
+	bDeviceProtocol UDC; do
+	[ -r "$gadget/$attribute" ] && [ ! -L "$gadget/$attribute" ] ||
+		fail "USB gadget attribute is absent or linked: $attribute"
+done
+[ "$(cat "$gadget/idVendor")" = 0x1d6b ] &&
+	[ "$(cat "$gadget/idProduct")" = 0x0104 ] &&
+	[ "$(cat "$gadget/bDeviceClass")" = 0xef ] &&
+	[ "$(cat "$gadget/bDeviceSubClass")" = 0x02 ] &&
+	[ "$(cat "$gadget/bDeviceProtocol")" = 0x01 ] ||
+	fail 'USB gadget descriptor identity changed'
+usb_strings=$gadget/strings/0x409
+usb_config=$gadget/configs/c.1
+[ -d "$usb_strings" ] && [ ! -L "$usb_strings" ] &&
+	[ -d "$usb_config" ] && [ ! -L "$usb_config" ] ||
+	fail 'USB gadget strings or configuration are absent or linked'
+usb_string_language_count=$(
+	find "$gadget/strings" -mindepth 1 -maxdepth 1 -type d -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+usb_config_count=$(
+	find "$gadget/configs" -mindepth 1 -maxdepth 1 -type d -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+usb_config_string_language_count=$(
+	find "$usb_config/strings" -mindepth 1 -maxdepth 1 -type d -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_string_language_count" -eq 1 ] &&
+	[ "$usb_config_count" -eq 1 ] &&
+	[ "$usb_config_string_language_count" -eq 1 ] ||
+	fail 'USB gadget configuration or language inventory is not exact'
+[ "$(cat "$usb_strings/manufacturer")" = Linux ] &&
+	[ "$(cat "$usb_strings/product")" = 'ROG5 network root' ] &&
+	[ "$(cat "$usb_config/strings/0x409/configuration")" = \
+	'NFS root over NCM' ] ||
+	fail 'USB gadget string identity changed'
+usb_function_count=$(
+	find "$gadget/functions" -mindepth 1 -maxdepth 1 -type d -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_function_count" -eq 1 ] &&
+	[ -d "$gadget/functions/ncm.usb0" ] &&
+	[ ! -L "$gadget/functions/ncm.usb0" ] ||
+	fail 'USB gadget function inventory is not exact'
+usb_config_link_count=$(
+	find "$usb_config" -mindepth 1 -maxdepth 1 -type l -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_config_link_count" -eq 1 ] &&
+	[ "$(readlink "$usb_config/ncm.usb0")" = \
+	/sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 ] ||
+	fail 'USB gadget NCM configuration link is not exact'
+usb_udc=$(cat "$gadget/UDC")
+case $usb_udc in
+	''|*[!A-Za-z0-9._:-]*) fail 'USB UDC name is noncanonical' ;;
+	a600000.*) ;;
+	*) fail 'USB gadget is not bound to the primary controller' ;;
+esac
+usb_current_speed=$(
+	cat "$(runtime_path "/sys/class/udc/$usb_udc/current_speed")"
+) || fail 'USB current speed is unreadable'
+[ "$usb_current_speed" = high-speed ] ||
+	fail 'USB gadget current speed is not high-speed'
+
 usb_carrier=$(cat "$(runtime_path /sys/class/net/usb0/carrier)")
 [ "$usb_carrier" = 1 ] || fail 'USB network carrier is down'
+usb_operstate=$(cat "$(runtime_path /sys/class/net/usb0/operstate)")
+[ "$usb_operstate" = up ] || fail 'USB network interface is not operational'
+usb_mtu=$(cat "$(runtime_path /sys/class/net/usb0/mtu)")
+[ "$usb_mtu" = 1500 ] || fail 'USB network MTU changed'
 usb_ipv4_counts=$(
 	ip -4 -o address show dev usb0 |
 		awk '{ total++ }
@@ -378,13 +497,51 @@ usb_ipv4_counts=$(
 )
 [ "$usb_ipv4_counts" = '1 1' ] ||
 	fail 'USB network address is not exact'
+usb_ipv4_routes=$(ip -4 -o route show table main)
+usb_ipv4_route_count=$(
+	printf '%s\n' "$usb_ipv4_routes" |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_ipv4_route_count" -eq 1 ] ||
+	fail 'USB network route count is not exact'
+printf '%s\n' "$usb_ipv4_routes" |
+	grep -Fxq \
+	'169.254.77.0/30 dev usb0 proto kernel scope link src 169.254.77.2' ||
+	fail 'USB network route is not exact'
+usb_default_route_count=$(
+	ip -4 -o route show table all default |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$usb_default_route_count" -eq 0 ] ||
+	fail 'an IPv4 default route is present'
+usb_ipv4_rules=$(ip -4 -o rule show)
+[ "$usb_ipv4_rules" = '0:	from all lookup local
+32766:	from all lookup main
+32767:	from all lookup default' ] ||
+	fail 'IPv4 policy-routing rules are not the kernel defaults'
+
+ssh_session_counts=$(
+	ss -H -n -t state established |
+		awk '
+			$3 ~ /:22$/ {
+				total++
+				if ($3 == "169.254.77.2:22" &&
+					$4 ~ /^169[.]254[.]77[.]1:[1-9][0-9]*$/)
+					exact++
+			}
+			END { print total + 0, exact + 0 }'
+)
+[ "$ssh_session_counts" = '1 1' ] ||
+	fail 'SSH observation is not on one exact USB peer session'
 
 authorized_keys=$(runtime_path /root/.ssh/authorized_keys)
 regular_metadata "$authorized_keys" 600 'authorized keys'
 [ "$(awk 'NF { count++ } END { print count + 0 }' "$authorized_keys")" -eq 1 ] ||
 	fail 'authorized-key count changed'
-ssh-keygen -l -f "$authorized_keys" >/dev/null ||
-	fail 'authorized key is invalid'
+[ "$(awk 'NF { print $1 }' "$authorized_keys")" = ssh-ed25519 ] ||
+	fail 'authorized key is not Ed25519'
+ssh_ed25519_identity "$authorized_keys" >/dev/null ||
+	fail 'authorized Ed25519 key identity is invalid'
 shadow=$(runtime_path /etc/shadow)
 awk -F: '$1 == "root" { found=1; exit substr($2, 1, 1) != "!" }
 	END { if (!found) exit 1 }' "$shadow" ||
@@ -392,7 +549,23 @@ awk -F: '$1 == "root" { found=1; exit substr($2, 1, 1) != "!" }
 host_key=$(runtime_path /etc/ssh/ssh_host_ed25519_key)
 regular_metadata "$host_key" 600 'SSH host key'
 regular_metadata "$host_key.pub" 644 'SSH public host key'
-effective_sshd=$(sshd -T -C user=root,host=localhost,addr=169.254.77.1)
+ssh_ed25519_identity "$host_key.pub" >/dev/null ||
+	fail 'SSH public host-key identity is invalid'
+host_private_public=$(
+	ssh-keygen -y -f "$host_key" 2>/dev/null |
+		ssh_ed25519_public_material
+) || fail 'SSH private host-key public material is invalid'
+host_public_material=$(
+	ssh_ed25519_public_material <"$host_key.pub"
+) || fail 'SSH public host-key material is noncanonical'
+[ "$host_private_public" = "$host_public_material" ] ||
+	fail 'SSH host private and public keys do not match'
+[ "$(awk 'NF { print $1; exit }' "$host_key.pub")" = ssh-ed25519 ] ||
+	fail 'SSH public host key is not Ed25519'
+effective_sshd=$(
+	sshd -T -C \
+		user=root,host=169.254.77.1,addr=169.254.77.1,laddr=169.254.77.2,lport=22
+)
 printf '%s\n' "$effective_sshd" |
 	grep -Fixq 'passwordauthentication no' ||
 	fail 'SSH password authentication is enabled'
@@ -405,6 +578,12 @@ printf '%s\n' "$effective_sshd" |
 printf '%s\n' "$effective_sshd" |
 	grep -Eiq '^permitrootlogin (without-password|prohibit-password)$' ||
 	fail 'SSH root login policy is not key-only'
+printf '%s\n' "$effective_sshd" |
+	grep -Fixq 'port 22' ||
+	fail 'SSH port changed'
+printf '%s\n' "$effective_sshd" |
+	grep -Fixq 'hostkey /etc/ssh/ssh_host_ed25519_key' ||
+	fail 'SSH effective host-key path changed'
 
 identity=$(runtime_path /run/rog5-network-root-identity)
 regular_metadata "$identity" 400 'network-root identity'
@@ -590,10 +769,30 @@ printf 'scsi_host_count=%s\n' "$scsi_host_count"
 printf 'rpmb_device_count=%s\n' "$rpmb_device_count"
 printf 'ufs_platform_device_count=%s\n' "$ufs_platform_device_count"
 printf 'block_backed_mounts=%s\n' "$block_backed_mounts"
+printf 'usb_gadget=rog5-network-root\n'
+printf 'usb_vid_pid=1d6b:0104\n'
+printf 'usb_product=ROG5 network root\n'
+printf 'usb_configuration=NFS root over NCM\n'
+printf 'usb_function=ncm.usb0\n'
+printf 'usb_udc_controller=a600000\n'
+printf 'usb_current_speed=%s\n' "$usb_current_speed"
 printf 'usb_interface=usb0\n'
 printf 'usb_carrier=%s\n' "$usb_carrier"
+printf 'usb_operstate=%s\n' "$usb_operstate"
+printf 'usb_mtu=%s\n' "$usb_mtu"
 printf 'usb_ipv4_cidr=169.254.77.2/30\n'
+printf 'usb_route_cidr=169.254.77.0/30\n'
+printf 'usb_default_route_count=%s\n' "$usb_default_route_count"
 printf 'sshd_state=%s\n' "$sshd_state"
+printf 'ssh_port=22\n'
+printf 'ssh_session_count=1\n'
+printf 'ssh_session_local=169.254.77.2:22\n'
+printf 'ssh_session_peer=169.254.77.1\n'
+printf 'ssh_authorized_key_type=ssh-ed25519\n'
+printf 'ssh_authorized_key_bits=256\n'
+printf 'ssh_host_key_type=ssh-ed25519\n'
+printf 'ssh_host_key_bits=256\n'
+printf 'ssh_host_key_pair_match=1\n'
 printf 'ssh_auth=key-only\n'
 printf 'server_inhibitor_state=%s\n' "$server_inhibitor_state"
 printf 'failed_units=%s\n' "$failed_units"

@@ -35,7 +35,7 @@ done
 [[ -d "/lib/modules/$TARGET_KERNEL_RELEASE" ]]
 [[ -s "/lib/modules/$TARGET_KERNEL_RELEASE/modules.dep" ]]
 [[ $(find /lib/modules -mindepth 1 -maxdepth 1 -type d | wc -l) == 1 ]]
-for command in depmod ip sshd systemd-analyze systemd-inhibit; do
+for command in depmod ip ss sshd systemd-analyze systemd-inhibit; do
 	command -v "$command" >/dev/null
 done
 for command in chromium greetd krdpserver kwin_wayland nmcli node npm \
