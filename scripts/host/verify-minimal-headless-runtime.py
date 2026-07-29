@@ -39,6 +39,13 @@ FIELDS = (
     "system_state",
     "default_target",
     "cpu_online_count",
+    "cpu_online_set",
+    "cpu_present_set",
+    "cpufreq_policy_count",
+    "cpufreq_policy_names",
+    "cpufreq_policy_cpu_sets",
+    "cpufreq_policy_drivers",
+    "cpufreq_policy_governors",
     "memory_total_kib",
     "memory_available_kib",
     "root_fstype",
@@ -93,6 +100,15 @@ EXACT_VALUES = {
     "pid1": "systemd",
     "system_state": "running",
     "default_target": "multi-user.target",
+    "cpu_online_set": "0-7",
+    "cpu_present_set": "0-7",
+    "cpufreq_policy_count": "3",
+    "cpufreq_policy_names": "policy0;policy4;policy7",
+    "cpufreq_policy_cpu_sets": "0 1 2 3;4 5 6;7",
+    "cpufreq_policy_drivers": (
+        "qcom-cpufreq-hw;qcom-cpufreq-hw;qcom-cpufreq-hw"
+    ),
+    "cpufreq_policy_governors": "schedutil;schedutil;schedutil",
     "root_fstype": "overlay",
     "lower_source": "169.254.77.1:/",
     "lower_read_only": "1",
@@ -341,8 +357,8 @@ def verify_record(
     memory_available = canonical_decimal(
         values["memory_available_kib"], "available memory"
     )
-    if cpu_online < 8:
-        fail("runtime has fewer than eight online CPUs")
+    if cpu_online != 8:
+        fail("runtime does not have exactly eight online CPUs")
     if memory_total < 10 * 1024 * 1024:
         fail("runtime total memory is below the accepted baseline")
     if (

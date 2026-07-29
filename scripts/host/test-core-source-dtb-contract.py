@@ -122,24 +122,44 @@ def render_source_tree(root: Path, contract: dict[str, object]) -> None:
 
 def dts_text() -> str:
     cpus = "\n".join(
-        f'\t\tcpu@{address} {{ compatible = "{compatible}"; }};'
-        for address, compatible in (
-            ("0", "arm,cortex-a55"),
-            ("100", "arm,cortex-a55"),
-            ("200", "arm,cortex-a55"),
-            ("300", "arm,cortex-a55"),
-            ("400", "arm,cortex-a78"),
-            ("500", "arm,cortex-a78"),
-            ("600", "arm,cortex-a78"),
-            ("700", "arm,cortex-x1"),
+        f"""\t\tcpu@{address} {{
+\t\t\tcompatible = "{compatible}";
+\t\t\tdevice_type = "cpu";
+\t\t\tenable-method = "psci";
+\t\t\t#cooling-cells = <2>;
+\t\t\treg = <0 0x{address}>;
+\t\t\tclocks = <2 {domain}>;
+\t\t\tqcom,freq-domain = <2 {domain}>;
+\t\t}};"""
+        for address, compatible, domain in (
+            ("0", "arm,cortex-a55", 0),
+            ("100", "arm,cortex-a55", 0),
+            ("200", "arm,cortex-a55", 0),
+            ("300", "arm,cortex-a55", 0),
+            ("400", "arm,cortex-a78", 1),
+            ("500", "arm,cortex-a78", 1),
+            ("600", "arm,cortex-a78", 1),
+            ("700", "arm,cortex-x1", 2),
         )
     )
     return f"""/dts-v1/;
 
 / {{
+\t#address-cells = <2>;
+\t#size-cells = <2>;
 \tcompatible = "asus,rog-phone5", "qcom,sm8350";
 
+\tmemory@80000000 {{
+\t\tdevice_type = "memory";
+\t\treg = <0 0x80000000 0 0x37100000>,
+\t\t      <2 0 1 0x80000000>,
+\t\t      <0 0xc0000000 1 0x40000000>,
+\t\t      <0 0xb9500000 0 0>;
+\t}};
+
 \tcpus {{
+\t\t#address-cells = <2>;
+\t\t#size-cells = <0>;
 {cpus}
 \t}};
 
@@ -152,6 +172,9 @@ def dts_text() -> str:
 \t\tcpufreq@18591000 {{
 \t\t\tcompatible = "qcom,sm8350-cpufreq-epss",
 \t\t\t\t     "qcom,cpufreq-epss";
+\t\t\t#clock-cells = <1>;
+\t\t\t#freq-domain-cells = <1>;
+\t\t\tphandle = <2>;
 \t\t}};
 
 \t\tufshc@1d84000 {{
@@ -254,7 +277,7 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("active_capabilities=6", result.stdout)
         self.assertIn("source_checks=37", result.stdout)
-        self.assertIn("dt_checks=21", result.stdout)
+        self.assertIn("dt_checks=23", result.stdout)
         self.assertIn("status=metadata-only", result.stdout)
         self.assertIn("authority=none", result.stdout)
 
@@ -548,6 +571,219 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("DT check board-identity compatible changed", result.stderr)
 
+    def test_changed_memory_bank_geometry_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace("0x37100000", "0x37000000", 1),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check memory-banks u32 property changed: reg",
+            result.stderr,
+        )
+
+    def test_changed_root_cell_widths_fail(self) -> None:
+        mutations = (
+            (
+                "\t#address-cells = <2>;",
+                "\t#address-cells = <1>;",
+                "#address-cells",
+            ),
+            (
+                "\t#size-cells = <2>;",
+                "\t#size-cells = <1>;",
+                "#size-cells",
+            ),
+        )
+        for original, replacement, prop in mutations:
+            with self.subTest(property=prop):
+                build_dtb(
+                    self.dtb,
+                    dts_text().replace(original, replacement, 1),
+                )
+                result = run(self.candidate_arguments())
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(
+                    f"DT check board-identity u32 property changed: {prop}",
+                    result.stderr,
+                )
+
+    def test_changed_cpu_container_cell_widths_fail(self) -> None:
+        mutations = (
+            (
+                "\t\t#address-cells = <2>;",
+                "\t\t#address-cells = <1>;",
+                "#address-cells",
+            ),
+            (
+                "\t\t#size-cells = <0>;",
+                "\t\t#size-cells = <1>;",
+                "#size-cells",
+            ),
+        )
+        for original, replacement, prop in mutations:
+            with self.subTest(property=prop):
+                build_dtb(
+                    self.dtb,
+                    dts_text().replace(original, replacement, 1),
+                )
+                result = run(self.candidate_arguments())
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(
+                    f"DT check cpu-container u32 property changed: {prop}",
+                    result.stderr,
+                )
+
+    def test_changed_cpu_reg_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\treg = <0 0x100>;",
+                "\t\t\treg = <0 0x101>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu100 u32 property changed: reg",
+            result.stderr,
+        )
+
+    def test_additional_cpu_node_fails(self) -> None:
+        extra_cpu = """
+\t\tcpu@800 {
+\t\t\tcompatible = "arm,cortex-a55";
+\t\t\tdevice_type = "cpu";
+\t\t\tenable-method = "psci";
+\t\t\treg = <0 0x800>;
+\t\t};"""
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\n\t};\n\n\tpsci {",
+                f"{extra_cpu}\n\t}};\n\n\tpsci {{",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("DT CPU node inventory changed", result.stderr)
+
+    def test_additional_system_memory_node_fails(self) -> None:
+        extra_memory = """
+\tmemory@400000000 {
+\t\tdevice_type = "memory";
+\t\treg = <4 0 0 0x1000>;
+\t};
+"""
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\n\tcpus {",
+                f"{extra_memory}\n\tcpus {{",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("DT system-memory node inventory changed", result.stderr)
+
+    def test_memory_node_must_not_gain_compatible(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                '\tmemory@80000000 {\n\t\tdevice_type = "memory";',
+                '\tmemory@80000000 {\n'
+                '\t\tcompatible = "example,memory";\n'
+                '\t\tdevice_type = "memory";',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check memory-banks has an unexpected compatible",
+            result.stderr,
+        )
+
+    def test_changed_cpu_frequency_domain_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\tqcom,freq-domain = <2 0>;",
+                "\t\t\tqcom,freq-domain = <2 1>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu0 phandle-array property changed: qcom,freq-domain",
+            result.stderr,
+        )
+
+    def test_changed_cpu_clock_domain_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\tclocks = <2 0>;",
+                "\t\t\tclocks = <2 1>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu0 phandle-array property changed: clocks",
+            result.stderr,
+        )
+
+    def test_missing_cpu_cooling_cells_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace("\t\t\t#cooling-cells = <2>;\n", "", 1),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu0 u32 property is absent: #cooling-cells",
+            result.stderr,
+        )
+
+    def test_cpufreq_clock_cell_count_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\t#clock-cells = <1>;",
+                "\t\t\t#clock-cells = <2>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu0 phandle-array target cell count changed",
+            result.stderr,
+        )
+
+    def test_cpufreq_provider_cell_count_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\t#freq-domain-cells = <1>;",
+                "\t\t\t#freq-domain-cells = <2>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check cpu0 phandle-array target cell count changed",
+            result.stderr,
+        )
+
     def test_enabled_ufs_fails(self) -> None:
         text = dts_text().replace(
             'compatible = "qcom,sm8350-ufshc", "qcom,ufshc",\n'
@@ -770,6 +1006,62 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             "active capability lacks DT coverage: watchdog-rollback-reboot",
+        ):
+            module.validate_contract(REPO, contract)
+
+    def test_compatible_absence_policy_cannot_be_narrowed(self) -> None:
+        module = load_module()
+        contract = deepcopy(self.contract)
+        memory = next(
+            row
+            for row in contract["dt_checks"]
+            if row["id"] == "memory-banks"
+        )
+        memory["compatible"] = ["example,memory"]
+        with self.assertRaisesRegex(
+            ValueError,
+            "DT compatible-absence inventory changed",
+        ):
+            module.validate_contract(REPO, contract)
+
+    def test_compatible_absence_policy_cannot_be_expanded(self) -> None:
+        module = load_module()
+        contract = deepcopy(self.contract)
+        cpu = next(
+            row for row in contract["dt_checks"] if row["id"] == "cpu0"
+        )
+        cpu["compatible"] = []
+        with self.assertRaisesRegex(
+            ValueError,
+            "DT compatible-absence inventory changed",
+        ):
+            module.validate_contract(REPO, contract)
+
+    def test_phandle_array_requires_arguments(self) -> None:
+        module = load_module()
+        contract = deepcopy(self.contract)
+        cpu = next(
+            row for row in contract["dt_checks"] if row["id"] == "cpu0"
+        )
+        cpu["phandle_args_properties"]["clocks"][0]["args"] = []
+        with self.assertRaisesRegex(
+            ValueError,
+            "has no phandle arguments",
+        ):
+            module.validate_contract(REPO, contract)
+
+    def test_phandle_array_target_must_be_checked(self) -> None:
+        module = load_module()
+        contract = deepcopy(self.contract)
+        cpu = next(
+            row for row in contract["dt_checks"] if row["id"] == "cpu0"
+        )
+        cpu["phandle_args_properties"]["clocks"][0][
+            "target"
+        ] = "/unchecked@0"
+        with self.assertRaisesRegex(
+            ValueError,
+            "has unchecked phandle-array targets",
         ):
             module.validate_contract(REPO, contract)
 

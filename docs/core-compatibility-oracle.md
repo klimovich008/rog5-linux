@@ -38,7 +38,7 @@ gates are preserved:
 
 | Capability | Contract |
 |---|---|
-| `cpu-ram` | ARM64/SMP/PSCI, initrd, cgroups, memory control, CPU idle, and at least eight CPUs |
+| `cpu-ram` | ARM64/SMP/PSCI, initrd, cgroups, memory control, CPU idle, Qualcomm hardware CPUfreq with schedutil, exact eight-CPU topology, accepted RAM banks, and three EPSS policy domains |
 | `read-only-network-root` | NFSv4/OverlayFS/tmpfs root plus explicit SCSI/UFS/RPMB exclusion; this is the active storage-isolation gate |
 | `usb-ncm-network` | IPv4/IPv6 plus Qualcomm DWC3 USB2 and NCM gadget support |
 | `init-key-only-ssh` | devtmpfs and embedded-config requirements, paired with the minimal root and strict-SSH CI gates |

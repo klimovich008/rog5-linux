@@ -166,9 +166,13 @@
       ],
       "required_config": {
         "CONFIG_ARM64": "y",
+        "CONFIG_ARM_QCOM_CPUFREQ_HW": "y",
         "CONFIG_ARM_PSCI_FW": "y",
         "CONFIG_BLK_DEV_INITRD": "y",
         "CONFIG_CGROUPS": "y",
+        "CONFIG_CPU_FREQ": "y",
+        "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL": "y",
+        "CONFIG_CPU_FREQ_GOV_SCHEDUTIL": "y",
         "CONFIG_CPU_IDLE": "y",
         "CONFIG_MEMCG": "y",
         "CONFIG_SMP": "y"

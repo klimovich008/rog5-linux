@@ -195,12 +195,32 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
             "runtime kernel does not match the candidate",
         )
 
-    def test_cpu_floor_is_enforced(self) -> None:
-        self.assert_mutation_fails(
-            "cpu_online_count",
-            "7",
-            "fewer than eight online CPUs",
+    def test_exact_cpu_count_is_enforced(self) -> None:
+        for count in ("7", "9"):
+            with self.subTest(count=count):
+                self.assert_mutation_fails(
+                    "cpu_online_count",
+                    count,
+                    "does not have exactly eight online CPUs",
+                )
+
+    def test_cpu_policy_topology_is_fail_closed(self) -> None:
+        mutations = (
+            ("cpu_online_set", "0-6"),
+            ("cpu_present_set", "0-8"),
+            ("cpufreq_policy_count", "2"),
+            ("cpufreq_policy_names", "policy0;policy4"),
+            ("cpufreq_policy_cpu_sets", "0 1 2 3;4 5 6 7"),
+            ("cpufreq_policy_drivers", "qcom-cpufreq-hw"),
+            ("cpufreq_policy_governors", "performance;performance;performance"),
         )
+        for field, value in mutations:
+            with self.subTest(field=field):
+                self.assert_mutation_fails(
+                    field,
+                    value,
+                    f"runtime acceptance value changed: {field}",
+                )
 
     def test_memory_envelope_is_enforced(self) -> None:
         mutations = (

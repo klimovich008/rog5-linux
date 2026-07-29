@@ -103,7 +103,7 @@ the historical evidence hashes and markers, artifact-manifest hash, accepted
 Image/config identities, corrected candidate Image/DTB/initramfs ancestry,
 six active headless capability contracts, six future capability states,
 exact CI entries, and the kernel-build verifier invocation. A committed
-golden config, the retained accepted 7.1 config, and 33 mutation/CLI tests
+golden config, the retained accepted 7.1 config, and 34 mutation/CLI tests
 pass. The complete hardware-free repository CI tier passes.
 
 This is an ancestry and regression result, not a new hardware result.
@@ -114,26 +114,27 @@ root is still `live-pending` with `authority=none`. See the
 [offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
 
 The corrected target's next live observation is now specified independently
-of the boot controller. One read-only target probe emits exactly 48 canonical
+of the boot controller. One read-only target probe emits exactly 55 canonical
 fields for the six active capabilities. A host verifier binds the record to
 the current probe hash, a separately observed boot ID, the full compatibility
-oracle, the corrected candidate's root identities, accepted CPU/RAM/thermal
+oracle, the corrected candidate's root identities, exact CPUs `0-7`, the
+three EPSS CPUfreq policy groups and schedutil governor, accepted RAM/thermal
 envelopes, strict key-only SSH, and the live 600-second rollback lease. Target,
 host, and mocked strict-SSH runner tests pass offline. The runner executes the
 probe once and cannot boot, sign, retry kexec, disarm, or reboot. No credential
 was used and no phone was contacted. See the
 [runtime contract](minimal-headless-runtime-acceptance.md) and
-[offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
+[CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md).
 
 The compatibility gate now also checks the kernel source and generated board
 DTB rather than stopping at Kconfig and artifact ancestry. The retained exact
 Linux 7.1.4 tree passes 37 Kconfig, Makefile, OF-table, binding, and source
-entry-point checks; the accepted corrected DTB passes 21 CPU, UFS-isolation,
-USB2/NCM, PSCI, and TSENS topology checks. A future source or DTB can run in
-candidate mode, but a pass reports `compatible-not-accepted` and cannot
-promote hardware state. See the
+entry-point checks; the accepted corrected DTB passes 23 RAM-bank, CPU/EPSS,
+UFS-isolation, USB2/NCM, PSCI, and TSENS topology checks. A future source or
+DTB can run in candidate mode, but a pass reports
+`compatible-not-accepted` and cannot promote hardware state. See the
 [source/DT contract](core-source-dtb-contract.md) and
-[offline result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).
+[CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md).
 
 The sealed lower deliberately has no reusable SSH host key, so the corrected
 temporary target cannot have a static known-hosts entry before boot. The new

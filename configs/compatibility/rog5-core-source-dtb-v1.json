@@ -3,7 +3,7 @@
   "profile": "minimal-headless-v1",
   "compatibility_profile": {
     "path": "configs/compatibility/rog5-minimal-headless-v1.json",
-    "sha256": "ad35ae1fd9dfc0f7b2a5e8fc6a8d46b3e819719ce15bd1f7c9bf694f45b9e858"
+    "sha256": "223436c93ff22f38efdf54dbb4829f48163de35da067a5306ac2b7132e82b11f"
   },
   "baseline_source": {
     "commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
@@ -481,7 +481,68 @@
         "qcom,sm8350"
       ],
       "string_properties": {},
-      "u32_properties": {},
+      "u32_properties": {
+        "#address-cells": [
+          2
+        ],
+        "#size-cells": [
+          2
+        ]
+      },
+      "present_properties": []
+    },
+    {
+      "id": "memory-banks",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/memory@80000000",
+      "status": "okay",
+      "compatible": [],
+      "string_properties": {
+        "device_type": [
+          "memory"
+        ]
+      },
+      "u32_properties": {
+        "reg": [
+          0,
+          2147483648,
+          0,
+          923795456,
+          2,
+          0,
+          1,
+          2147483648,
+          0,
+          3221225472,
+          1,
+          1073741824,
+          0,
+          3109027840,
+          0,
+          0
+        ]
+      },
+      "present_properties": []
+    },
+    {
+      "id": "cpu-container",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus",
+      "status": "okay",
+      "compatible": [],
+      "string_properties": {},
+      "u32_properties": {
+        "#address-cells": [
+          2
+        ],
+        "#size-cells": [
+          0
+        ]
+      },
       "present_properties": []
     },
     {
@@ -494,8 +555,41 @@
       "compatible": [
         "arm,cortex-a55"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          0
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -508,8 +602,41 @@
       "compatible": [
         "arm,cortex-a55"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          256
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -522,8 +649,41 @@
       "compatible": [
         "arm,cortex-a55"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          512
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -536,8 +696,41 @@
       "compatible": [
         "arm,cortex-a55"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          768
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              0
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -550,8 +743,41 @@
       "compatible": [
         "arm,cortex-a78"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          1024
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -564,8 +790,41 @@
       "compatible": [
         "arm,cortex-a78"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          1280
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -578,8 +837,41 @@
       "compatible": [
         "arm,cortex-a78"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          1536
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              1
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -592,8 +884,41 @@
       "compatible": [
         "arm,cortex-x1"
       ],
-      "string_properties": {},
-      "u32_properties": {},
+      "string_properties": {
+        "device_type": [
+          "cpu"
+        ],
+        "enable-method": [
+          "psci"
+        ]
+      },
+      "u32_properties": {
+        "#cooling-cells": [
+          2
+        ],
+        "reg": [
+          0,
+          1792
+        ]
+      },
+      "phandle_args_properties": {
+        "clocks": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              2
+            ]
+          }
+        ],
+        "qcom,freq-domain": [
+          {
+            "target": "/soc@0/cpufreq@18591000",
+            "args": [
+              2
+            ]
+          }
+        ]
+      },
       "present_properties": []
     },
     {
@@ -608,7 +933,14 @@
         "qcom,cpufreq-epss"
       ],
       "string_properties": {},
-      "u32_properties": {},
+      "u32_properties": {
+        "#clock-cells": [
+          1
+        ],
+        "#freq-domain-cells": [
+          1
+        ]
+      },
       "present_properties": []
     },
     {
