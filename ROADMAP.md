@@ -296,7 +296,7 @@ time.
 
 - [x] Reproduce Linux 7.1.4 ARM64 builds on the PC.
 - [x] Maintain reviewed config, DTS, patch, module, and evidence identities.
-- [ ] Pin the complete source/toolchain bootstrap for a fresh clone.
+- [x] Pin the complete Linux source/toolchain bootstrap for a fresh clone.
 - [ ] Add KUnit/selftests where hardware-independent logic exists.
 - [ ] Track upstream SM8350, UFS, USB, charger, input, sensor, audio, WCN6855,
   display, and Adreno changes.
@@ -310,9 +310,9 @@ shell-free live recovery transaction, automatic fallback, and corrected DTB
 selection are complete. The corrected target itself remains offline.
 Continue in this order:
 
-1. review the generated artifact plan, but do not delete or deduplicate
-   anything without separate approval;
-2. pin the complete source and toolchain bootstrap for a fresh Linux host;
+1. preserve the reviewed artifact plan; do not delete or deduplicate anything
+   without separate approval;
+2. use the pinned Linux source/toolchain bootstrap for all new kernel builds;
 3. build the corrected-DTB candidate twice with a disposable trust root and
    repeat the complete hardware-free gate;
 4. request fresh, separate authorization before creating or using a live
