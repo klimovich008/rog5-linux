@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections import OrderedDict
+import errno
 import hashlib
 import importlib.util
 import os
@@ -279,6 +280,30 @@ def validate_build(root: Path, owner: int) -> None:
     validate_hash(fields["modules_sha256"], "module archive hash")
 
 
+def remove_posix_acls(root: Path) -> None:
+    acl_names = (
+        "system.posix_acl_access",
+        "system.posix_acl_default",
+    )
+    for _, path, _ in ROOT_TOOL.walk_tree(os.fsencode(root)):
+        for name in acl_names:
+            try:
+                os.removexattr(path, name, follow_symlinks=False)
+            except OSError as error:
+                if error.errno not in (errno.ENODATA, errno.ENOTSUP):
+                    raise
+
+
+def normalize_mtimes(root: Path) -> None:
+    for _, path, metadata in ROOT_TOOL.walk_tree(os.fsencode(root)):
+        mtime_ns = metadata.st_mtime_ns // 1_000_000_000 * 1_000_000_000
+        os.utime(
+            path,
+            ns=(metadata.st_atime_ns, mtime_ns),
+            follow_symlinks=False,
+        )
+
+
 def create_exclusive(path: Path, payload: bytes, mode: int) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
@@ -336,6 +361,7 @@ def prepare(
         maximum=4096,
     )
     parse_command(command_payload)
+    remove_posix_acls(root)
     installed_command = root / COMMAND_PATH
     seal = root / SEAL_NAME
     if installed_command.exists() or installed_command.is_symlink():
@@ -365,6 +391,7 @@ def prepare(
         ns=(fixed_time, fixed_time),
         follow_symlinks=False,
     )
+    normalize_mtimes(root)
     tree = OrderedDict(ROOT_TOOL.seal_tree(root))
     seal_values: OrderedDict[str, str] = OrderedDict(
         (
@@ -513,12 +540,27 @@ def verify(
     command_path: Path,
 ) -> OrderedDict[str, str]:
     root, owner = safe_root(root_path)
-    validate_build(root, owner)
     archive_owner, sealed_size, sealed_sha256 = regular_identity(
         sealed_archive
     )
     if archive_owner != owner:
         fail("root and sealed archive owners differ")
+    values = verify_root(root_path, package_path, command_path)
+    if (
+        values["sealed_archive_size"] != str(sealed_size)
+        or values["sealed_archive_sha256"] != sealed_sha256
+    ):
+        fail("sealed archive identity changed")
+    return values
+
+
+def verify_root(
+    root_path: Path,
+    package_path: Path,
+    command_path: Path | None = None,
+) -> OrderedDict[str, str]:
+    root, owner = safe_root(root_path)
+    validate_build(root, owner)
     values = parse_canonical(
         package_path,
         PACKAGE_KEYS,
@@ -526,26 +568,24 @@ def verify(
         mode=0o444,
     )
     validate_package(values)
-    if (
-        values["sealed_archive_size"] != str(sealed_size)
-        or values["sealed_archive_sha256"] != sealed_sha256
-    ):
-        fail("sealed archive identity changed")
-    expected_command = read_regular(
-        command_path,
-        owner=owner,
-        maximum=4096,
-    )
-    parse_command(expected_command)
     installed_command = read_regular(
         root / COMMAND_PATH,
         owner=owner,
         mode=0o400,
         maximum=4096,
     )
+    parse_command(installed_command)
+    if command_path is not None:
+        expected_command = read_regular(
+            command_path,
+            owner=owner,
+            maximum=4096,
+        )
+        parse_command(expected_command)
+        if installed_command != expected_command:
+            fail("installed no-workload command manifest changed")
     if (
-        installed_command != expected_command
-        or hashlib.sha256(installed_command).hexdigest()
+        hashlib.sha256(installed_command).hexdigest()
         != values["a660_command_manifest_sha256"]
     ):
         fail("installed no-workload command manifest changed")
@@ -585,6 +625,9 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     verify_parser.add_argument("sealed_archive", type=Path)
     verify_parser.add_argument("package_manifest", type=Path)
     verify_parser.add_argument("command_manifest", type=Path)
+    verify_root_parser = subparsers.add_parser("verify-root")
+    verify_root_parser.add_argument("root", type=Path)
+    verify_root_parser.add_argument("package_manifest", type=Path)
     return parser.parse_args(arguments)
 
 
@@ -615,7 +658,7 @@ def main(arguments: list[str] | None = None) -> int:
                 "sealed_archive_sha256="
                 f"{package_values['sealed_archive_sha256']}"
             )
-        else:
+        elif values.command == "verify":
             package_values = verify(
                 values.root,
                 values.sealed_archive,
@@ -624,6 +667,16 @@ def main(arguments: list[str] | None = None) -> int:
             )
             print(
                 "PASS verified sealed headless network root "
+                f"entries={package_values['root_tree_entries']} "
+                f"tree_sha256={package_values['root_tree_sha256']}"
+            )
+        else:
+            package_values = verify_root(
+                values.root,
+                values.package_manifest,
+            )
+            print(
+                "PASS verified installed headless network root "
                 f"entries={package_values['root_tree_entries']} "
                 f"tree_sha256={package_values['root_tree_sha256']}"
             )

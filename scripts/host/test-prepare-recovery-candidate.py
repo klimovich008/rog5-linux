@@ -213,6 +213,19 @@ class RecoveryCandidateTest(unittest.TestCase):
         self.assertEqual(record["status"], "offline")
         self.assertEqual(record["authority"], "none")
         self.assertEqual(record["profile"], package["profile"])
+        self.assertEqual(
+            record["artifacts"]["board.dtb"],
+            {
+                "path": (
+                    "artifacts/network-root-v3/"
+                    "sm8350-asus-rog-phone5-recovery.dtb"
+                ),
+                "size": 102870,
+                "sha256": (
+                    "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
+                ),
+            },
+        )
         for name in (
             "a660_command_manifest_sha256",
             "root_generation",

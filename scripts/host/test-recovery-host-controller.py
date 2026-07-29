@@ -38,6 +38,7 @@ class ControllerFixture:
         self.bundle_root.chmod(0o700)
         self.lock = self.root / "controller.lock"
         self.calls = self.root / "calls"
+        self.connection_state = self.root / "connection-down"
         self.pid = self.root / "server.pid"
         self.watchdog_pid = self.root / "watchdog.pid"
         self.server = self.root / "host_bundle_server.py"
@@ -98,7 +99,10 @@ case " $* " in
     ;;
   *" --get-zones "*) printf '%s\n' 'drop public trusted' ;;
   *" --get-zone-of-interface=usbtest0 "*) printf '%s\n' 'public' ;;
-  *" --query-masquerade "*|*" --query-forward "*|*" --query-rich-rule="*)
+  *" --query-forward "*)
+    [ "${MOCK_FORWARD_ENABLED:-1}" = 1 ]
+    ;;
+  *" --query-masquerade "*|*" --query-rich-rule="*)
     exit 1
     ;;
   *" --list-"*) ;;
@@ -113,8 +117,18 @@ printf 'nmcli %s\n' "$*" >>"$MOCK_CALLS"
 case $* in
   *"${MOCK_FAIL_CONTAINS:-__never_match__}"*) exit 1 ;;
 esac
-if [ "$1 $2 $3" = "-g GENERAL.MANAGED device" ]; then
+if [ "$1 $2 $3" = "-g GENERAL.NM-MANAGED device" ]; then
+  [ "${MOCK_LEGACY_MANAGED_FIELD:-0}" = 0 ] || exit 2
   printf '%s\n' yes
+elif [ "$1 $2 $3" = "-g GENERAL.MANAGED device" ]; then
+  printf '%s\n' yes
+elif [ "$1 $2 $3" = "-g GENERAL.CON-UUID device" ]; then
+  [ "${MOCK_FALLBACK_ADDRESS:-0}" = 1 ] &&
+    printf '%s\n' '244dd128-e3b1-458e-9639-5e4ab4d8854f'
+elif [ "$1 $2 $3" = "connection down uuid" ]; then
+  : >"$MOCK_CONNECTION_STATE"
+elif [ "$1 $2 $3" = "connection up uuid" ]; then
+  rm -f "$MOCK_CONNECTION_STATE"
 fi
 """,
         )
@@ -126,7 +140,13 @@ case $* in
   *"${MOCK_FAIL_CONTAINS:-__never_match__}"*) exit 1 ;;
 esac
 case " $* " in
-  *" -4 -o address show "*) ;;
+  *" -4 -o address show "*)
+    if [ "${MOCK_FALLBACK_ADDRESS:-0}" = 1 ] &&
+       [ ! -e "$MOCK_CONNECTION_STATE" ]; then
+      printf '%s\n' \
+        '15: usbtest0 inet 169.254.77.1/16 scope link usbtest0'
+    fi
+    ;;
   *) ;;
 esac
 """,
@@ -175,6 +195,7 @@ exec "$@"
                 "ROG5_TEST_LOCK_PATH": str(self.lock),
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_SERVER_PID": str(self.pid),
+                "MOCK_CONNECTION_STATE": str(self.connection_state),
                 "ROG5_TEST_WATCHDOG_PID_FILE": str(self.watchdog_pid),
             }
         )
@@ -228,6 +249,14 @@ class RecoveryHostControllerTest(unittest.TestCase):
         )
         self.assertIn(
             "firewall-cmd --zone=drop --change-interface=usbtest0",
+            calls,
+        )
+        self.assertIn(
+            "firewall-cmd --zone=drop --remove-forward",
+            calls,
+        )
+        self.assertIn(
+            "firewall-cmd --zone=drop --add-forward",
             calls,
         )
         self.assertIn(
@@ -363,6 +392,10 @@ class RecoveryHostControllerTest(unittest.TestCase):
     def test_every_partial_setup_failure_enters_scoped_cleanup(self):
         cases = (
             (
+                "--zone=drop --remove-forward",
+                "--zone=drop --add-forward",
+            ),
+            (
                 "--zone=trusted --add-rich-rule=",
                 "--zone=public --remove-rich-rule=",
             ),
@@ -397,6 +430,52 @@ class RecoveryHostControllerTest(unittest.TestCase):
                 self.assertIn(rollback, calls)
                 self.assertNotIn("setpriv ", calls)
                 self.assertIn("host network state removed", result.stdout)
+
+    def test_pre_disabled_forwarding_is_left_unchanged(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_FORWARD_ENABLED="0",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_log()
+        self.assertNotIn("--zone=drop --remove-forward", calls)
+        self.assertNotIn("--zone=drop --add-forward", calls)
+
+    def test_legacy_networkmanager_managed_field_is_supported(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_LEGACY_MANAGED_FIELD="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_log()
+        self.assertIn("-g GENERAL.NM-MANAGED device show usbtest0", calls)
+        self.assertIn("-g GENERAL.MANAGED device show usbtest0", calls)
+
+    def test_fallback_profile_is_scoped_to_recovery_and_restored(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_FALLBACK_ADDRESS="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_log()
+        uuid = "244dd128-e3b1-458e-9639-5e4ab4d8854f"
+        self.assertIn(f"nmcli connection down uuid {uuid}", calls)
+        self.assertIn(
+            f"nmcli connection up uuid {uuid} ifname usbtest0",
+            calls,
+        )
+        self.assertIn(
+            "ip address add 169.254.77.1/30 dev usbtest0",
+            calls,
+        )
+        self.assertIn(
+            "ip address del 169.254.77.1/30 dev usbtest0",
+            calls,
+        )
+        self.assertFalse(self.fixture.connection_state.exists())
 
     def test_invalid_identity_is_rejected_before_host_inspection(self):
         for bundle, digest in (
@@ -464,7 +543,6 @@ class RecoveryHostControllerTest(unittest.TestCase):
         for forbidden in (
             "--permanent",
             "--add-masquerade",
-            "--add-forward",
             "sudo ",
             "fastboot flash",
             "dd if=",

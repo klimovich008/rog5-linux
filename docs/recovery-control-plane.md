@@ -1,7 +1,8 @@
 # Stable recovery control plane
 
-Status: **shell-free initramfs, wrapper, and AVB reproducible offline with an
-ephemeral trust root; production key, release pins, and live promotion pending**
+Status: **shell-free framed path passed one signed live transaction and exact
+rollback; target rejected before SSH because its candidate selected historical
+DTB v1; corrected isolated candidate is offline**
 
 Live authority: **none**
 
@@ -23,19 +24,24 @@ fixed-host acquisition helper under the rollback watchdog, invokes the fixed
 verifier, receives the exact verified file descriptors, and performs a
 bounded legacy `kexec_load`. Those binaries are now integrated into the
 shell-free stable-recovery initramfs and reproducible ASUS 5.4 wrapper using
-only an ephemeral test trust root. The exact verifier and acquisition
+only a disposable trust root. The exact verifier and acquisition
 contracts are documented in
 [recovery runtime bundle contract](recovery-bundle-contract.md) and
 [fixed recovery bundle transport](recovery-fetch-contract.md). The resulting
-offline image is not in the temporary-boot allowlist and grants no live
-authority.
+image was used once through an exact guarded runner and remains outside the
+durable temporary-boot allowlist. That action grants no repeat authority.
 
 The host side now has a fixed one-shot stdlib server plus a root-owned
 PolicyKit controller. It recognizes exactly one recovery NCM gadget, binds
 only `169.254.77.1:8080`, applies runtime-only source/destination firewall
 rules, drops to the caller with no capabilities, verifies the exact listener,
-and removes every state item it created. Its tests use mocked host commands;
-the helpers are not installed and have not changed a live interface.
+and removes every state item it created. The fixed controller was installed
+root-owned through PolicyKit and used for the attended transaction. It
+temporarily handed the intentional fallback `/16` profile to recovery `/30`,
+then restored the exact profile, firewall forwarding flag, interface, and
+rules. A nonce-bound root-owned marker now attests the already-verified
+NFSv4.2 listener to the unprivileged control client without requiring access
+to root-only `/proc/fs/nfsd` files.
 
 `scripts/host/prepare-recovery-candidate.py` is the first manifest-driven
 offline adapter into the runtime-bundle packager. Its initial record maps the
@@ -48,13 +54,16 @@ executor remains an A0.4 task.
 
 The former recovery control plane used an interactive shell on
 `/dev/ttyGS0`; echo, cursor queries, serial-open races, stale output, and loss
-of the USB connection during `kexec -e` made outcomes ambiguous. The offline
-stable-recovery candidate now replaces that shell with a fixed-function
+of the USB connection during `kexec -e` made outcomes ambiguous. The
+stable-recovery candidate replaces that shell with a fixed-function
 responder, makes read-only retries safe, makes execution at-most-once per
 recovery boot, and separates the stable recovery image from signed runtime
-kernel/DTB/initramfs bundles. It remains deliberately non-runnable until a
-separately approved production trust root, complete release-pin update,
-independent review, and staged live-promotion sequence are complete.
+kernel/DTB/initramfs bundles. The first signed live execution returned to
+fallback before SSH because the candidate selected historical DTB v1. The
+corrected target remains non-runnable until a new trust root, complete
+release-pin update, independent review, and newly authorized live sequence
+are complete. See the
+[live result](../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Invariants
 
@@ -299,6 +308,23 @@ If USB disappears before the host receives a response, the result is
 The host cannot implement at-most-once semantics by itself. Its ledger becomes
 meaningful only after `HELLO` supplies a device-minted session.
 
+The live host client is `scripts/host/stable-recovery-control.py`. It discovers
+only the exact recovery ACM identity, performs `HELLO`, permits one same-ID
+`PREPARE` replay after a transport loss, writes the existing durable intent
+before `COMMIT_EXEC`, and never retransmits that commit. A lost commit response
+therefore remains `UNKNOWN` until an out-of-band target, fallback, or recovery
+observation resolves it.
+Ledger resolution is separately guarded by
+`ALLOW_RECOVERY_INTENT_RESOLVE=1`; it is set only after the recorded target
+identity or exact fallback observation has been captured.
+
+`scripts/host/run-stable-recovery-live-gate.sh` is the separate boot boundary.
+It requires two byte-identical ignored-directory wrapper builds, re-verifies
+the embedded public key and fixed binaries, verifies the signed runtime bundle
+and AVB footer, accepts only fastboot product `lahaina`, and contains only
+`fastboot boot`. It does not add an ephemeral image to the durable boot
+allowlist.
+
 Before transmitting `COMMIT_EXEC`, the host writes a record containing the
 device session, request ID, prepared-manifest hash, target identity, and
 timestamp. It uses temporary-file + `fsync` + atomic rename + directory
@@ -344,10 +370,11 @@ bundle ID, and bounded rollback timeout. That narrower rule rejects arbitrary
 `init=`, `root=`, unknown keys, duplicates, writable-root flags, and unbounded
 timeouts by construction.
 
-No signing key has been created. Creating or using that credential requires a
-separate user confirmation. Until then, the implementation and tests can use
-an ephemeral test key that is generated inside a temporary test directory
-and never accepted by a production recovery image.
+No production signing key has been created. Disposable keys have been used
+for offline tests and the consumed attended bundle; their private material was
+not retained. A corrected target requires a newly generated disposable or
+separately approved production trust root and a rebuilt wrapper. The consumed
+live trust root cannot authorize another bundle.
 
 ## Postmortem outcome oracle
 
@@ -478,17 +505,20 @@ retry.
 5. Connect the offline-tested fixed-host fetch helper to `PREPARE`.
    **Complete offline and integrated into the shell-free initramfs.**
 6. Add the fixed read-only host-serving command and controller/firewall
-   integration. **Complete offline; not installed on the host.**
+   integration. **Complete and live-proven with exact cleanup.**
 7. Remove all three interactive shells and update image verifiers.
    **Complete offline.**
 8. Build the initramfs, wrapper, raw boot-v3 image, and AVB wrapper twice.
-   **Complete offline with an ephemeral test key; production trust root and
-   release pins remain.**
+   **Complete reproducibly and used for one attended signed transaction;
+   production trust root and release pins remain absent.**
 9. Create the production-key candidate and update all release pins
    atomically.
-10. Run the staging-only promotion sequence.
+10. Run the staging-only promotion sequence. **The shell-free wrapper,
+    transport, signed PREPARE/COMMIT, target NCM, rollback, and host cleanup
+    passed once; corrected-target SSH remains pending.**
 11. Integrate the tested host-ledger semantics with the native responder and
-   device-minted session.
+    device-minted session. **Complete and live-proven for one commit resolved
+    as `FALLBACK_RETURNED`.**
 12. Investigate recovery-side retained-marker reading and USB-C debug UART
    independently.
 

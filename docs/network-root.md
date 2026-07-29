@@ -115,6 +115,34 @@ deadline arithmetic, field order, and private metadata. During an attended
 test it is disarmed only after the host verifies the kernel, mounts,
 zero-storage state, network path, systemd target, and SSH.
 
+The minimal no-workload export is installed alongside, never over, the
+historical Plasma export:
+
+```text
+pkexec scripts/host/install-headless-network-root-export.sh
+/var/lib/rog5-headless-network-root-v1/root
+```
+
+The installer accepts only the tracked sealed archive and package identity,
+extracts into a private staging directory, verifies the complete tree and
+seal, and publishes the directory atomically. `serve-network-root.sh` accepts
+that one additional fixed path and re-verifies the installed tree before
+opening the bounded NFS window. Packaging removes name-based POSIX ACLs from
+the SSH-only root before sealing because their numeric qualifiers are
+user-namespace dependent and normalizes modification times to whole seconds
+because restricted pax cannot represent nanoseconds on every entry. Ordinary
+mode bits and non-ACL xattrs remain part of the complete seal.
+
+The first shell-free signed transaction selected the historical v1 DTB by
+mistake. It exposed exact target NCM, then returned to fallback before SSH at
+the same roughly 16-second boundary documented below. Decompilation proved
+that object omitted the v2/v3 `disabled` states for RMTFS, GPUCC, GMU, and
+the Adreno SMMU. The tracked headless candidate now pins the accepted v3 DTB
+hash `86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
+The correction passes offline signed-bundle composition but has not been
+booted and grants no repeat authority. See the
+[stable-recovery live result](../test-results/2026-07-29-headless-stable-recovery-live.md).
+
 `/run/rog5-network-root-identity` is mode `0400` and records the OverlayFS,
 lower, and state mount IDs plus the signed root tuple. Mount IDs survive
 `mount --move`; the A660 gate therefore rejects replacing the visible lower

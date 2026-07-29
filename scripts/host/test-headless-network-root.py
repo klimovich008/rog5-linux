@@ -15,6 +15,11 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 TOOL_PATH = REPO / "scripts/host/headless-network-root.py"
 COMMAND = REPO / "packaging/arch/rog5-headless-command-manifest"
+INSTALLER = REPO / "scripts/host/install-headless-network-root-export.sh"
+EXPORT_VERIFIER = (
+    REPO / "scripts/host/verify-headless-network-root-export.sh"
+)
+SERVER = REPO / "scripts/host/serve-network-root.sh"
 
 
 def load_module():
@@ -107,6 +112,8 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             ),
             COMMAND.read_text(encoding="ascii"),
         )
+        runtime_values = TOOL.verify_root(self.root, self.package)
+        self.assertEqual(runtime_values, values)
 
     def test_tree_archive_and_command_mutations_refuse(self) -> None:
         cases = ("tree", "archive", "command")
@@ -141,6 +148,25 @@ class HeadlessNetworkRootTest(unittest.TestCase):
                         self.package,
                         COMMAND,
                     )
+
+    def test_host_export_surface_is_fixed_and_non_destructive(self) -> None:
+        for script in (INSTALLER, EXPORT_VERIFIER, SERVER):
+            source = script.read_text(encoding="utf-8")
+            self.assertNotRegex(
+                source,
+                r"\b(fastboot|adb|flash|mkfs|wipefs|blkdiscard)\b",
+            )
+        installer = INSTALLER.read_text(encoding="utf-8")
+        self.assertIn(
+            "destination=/var/lib/rog5-headless-network-root-v1",
+            installer,
+        )
+        self.assertIn("refusing existing headless export", installer)
+        self.assertIn('verify-root "$stage/root" "$stage/manifest"', installer)
+        self.assertIn(
+            "/var/lib/rog5-headless-network-root-v1/root)",
+            SERVER.read_text(encoding="utf-8"),
+        )
 
 
 if __name__ == "__main__":

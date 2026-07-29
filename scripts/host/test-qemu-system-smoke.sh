@@ -11,7 +11,7 @@ fail() {
 kernel=$(realpath -e -- "$1") || fail 'cannot resolve ARM64 kernel Image'
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 source_file=$repo/tools/qemu-smoke/init.c
-for command in clang cpio find gzip qemu-system-aarch64 readelf \
+for command in clang cpio find gzip ld.lld qemu-system-aarch64 readelf \
 	realpath sort timeout; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU smoke command: $command"
@@ -25,7 +25,7 @@ test_root=$(mktemp -d)
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
 stage=$test_root/stage
 mkdir -p "$stage/dev"
-clang --target=aarch64-none-elf -nostdlib -static -fno-pic \
+clang --target=aarch64-none-elf -fuse-ld=lld -nostdlib -static -fno-pic \
 	-fno-stack-protector -Werror -Wall -Wextra \
 	-Wl,--build-id=none,--entry=_start \
 	"$source_file" -o "$stage/init"

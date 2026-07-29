@@ -194,6 +194,12 @@ chmod 0755 "$test_tmp/no-address-init"
 expect_init_rejection no-address "$test_tmp/no-address-init" \
 	'FAIL recovery init lacks the fixed device address'
 
+sed '\|^bundle_root=/run/rog5-bundles$|d' \
+	"$repo/initramfs/recovery-init" >"$test_tmp/no-bundle-root-init"
+chmod 0755 "$test_tmp/no-bundle-root-init"
+expect_init_rejection no-bundle-root "$test_tmp/no-bundle-root-init" \
+	'FAIL recovery init lacks the exact volatile bundle root'
+
 head -c 31 "$test_tmp/ephemeral-public.raw" >"$test_tmp/short-public.raw"
 if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
 	"$base" "$repo/initramfs/recovery-init" \

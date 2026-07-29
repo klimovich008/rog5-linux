@@ -52,6 +52,10 @@ for contract in \
 	'--lease-time "$lease_time"' \
 	'ROG5_NFS_TIMEOUT:-900' \
 	'serve_timeout > 86400' \
+	'ROG5_NFS_HANDOFF_TOKEN' \
+	'/run/rog5-network-root-nfs-ready' \
+	'format=rog5-nfs-handoff-v1' \
+	'versions=4.2-only' \
 	'/var/lib/rog5-network-root-v1)' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
