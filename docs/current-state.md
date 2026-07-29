@@ -447,8 +447,11 @@ headless reliability gate. No new phone action is authorized by this document.
   Git archive tag.
 - The accepted pre-reduction tracked state is recoverable at
   `archive/pre-stable-recovery-2026-07-28`.
-- External build dependencies such as `mkbootimg` and `avbtool.py` still need
-  an explicit pinned bootstrap path for fresh-clone reproducibility.
+- Linux v7.1.4 now has an exact tag-object/commit/tree source contract and a
+  twice-reproduced rootless x86_64 builder with pinned base images, Ubuntu
+  snapshot, complete package closure, and offline verification.
+- Android packaging dependencies such as `mkbootimg` and `avbtool.py` still
+  need an explicit pinned bootstrap path for fresh-clone reproducibility.
 - The headless root records its exact package inventory, but its rolling Arch
   package snapshot and generated pacman trust database are not yet
   byte-reproducible inputs.

@@ -70,6 +70,66 @@ and its linked machine-readable snapshot. A planner classification never
 authorizes deletion; exact candidates require human review and separate
 approval.
 
+### Pinned x86_64 Linux bootstrap
+
+The supported fresh-host kernel path needs only Git and rootless Podman on an
+x86_64 Linux PC. It does not use `sudo`, contact the phone, load credentials,
+or write outside ignored build directories and Podman's user storage.
+
+Build and verify the toolchain from the pinned container inputs:
+
+```sh
+scripts/host/bootstrap-kernel-builder.sh build
+```
+
+For an independent two-build proof, use:
+
+```sh
+scripts/host/bootstrap-kernel-builder.sh reproduce
+```
+
+The builder pins the amd64 Ubuntu 24.04 and CA-bootstrap image manifests, the
+Ubuntu archive at `20260728T000000Z`, the CA bundle hash, and the complete
+247-package installed closure in
+[`manifests/kernel-builder-packages.tsv`](../manifests/kernel-builder-packages.tsv).
+It removes volatile package logs and generated APT binary caches, normalizes
+the OCI timestamp, and verifies each finished image with networking disabled.
+Signed snapshot indexes and packages use local build-cache mounts only to
+avoid repeated downloads; the snapshot and installed-closure checks remain
+mandatory on cached builds.
+
+Fetch Linux only after checking the source identity contract:
+
+```sh
+sh scripts/device/prepare-mainline.sh build/linux-7.1.4
+```
+
+That script verifies the exact annotated tag object, peeled commit, and Git
+tree before checkout. A moved tag, changed tree, different remote, dirty
+source directory, or lightweight tag fails before a branch is selected.
+
+Run a network-disabled kernel build with the verified image:
+
+```sh
+mkdir -p build/mainline-output
+podman run --rm --pull=never --network none --userns=keep-id \
+  --mount type=bind,source="$PWD",target=/workspace/repo,readonly \
+  --mount type=bind,source="$PWD/build/linux-7.1.4",target=/workspace/linux,readonly \
+  --mount type=bind,source="$PWD/build/mainline-output",target=/workspace/output \
+  --env SOURCE_DIR=/workspace/linux \
+  --env OUTPUT_DIR=/workspace/output \
+  --env FRAGMENT=/workspace/repo/configs/kernel/rog5-mainline.fragment \
+  --env JOBS="$(nproc)" \
+  localhost/rog5-kernel-builder:ubuntu-24.04 \
+  sh /workspace/repo/scripts/device/build-mainline.sh
+```
+
+The [bootstrap acceptance report](../test-results/2026-07-29-kernel-builder-bootstrap.md)
+records the independent image identities, normalized rootfs identity, pinned
+tool versions, cold-download cost, and hardware-free scope. Reproducing the
+builder proves the PC environment; it does not accept a phone DTB or authorize
+a temporary boot.
+
 ### Development output reuse
 
 The active `build-mainline.sh` remains clean-build-only by default. Its
@@ -133,7 +193,9 @@ tools, rejects hidden permission prompts, stores no session, and terminates
 after a bounded interval. Do not pipe credentials, private evidence, or
 untracked personal data into it. A broader repository-reading or editing
 Claude session is outside this review boundary and requires an explicit
-decision.
+decision. A timeout is not an authentication or security verdict. Split a
+large review by subsystem or file group and keep each prompt self-contained;
+the wrapper reports an explicit timeout without retaining a partial session.
 
 ## Build order
 

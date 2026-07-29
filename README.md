@@ -20,7 +20,7 @@ build outputs.
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
-| Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
+| Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
 | Mainline userspace | SSH-only Arch lower started far enough to expose target NCM but reset before SSH because the signed candidate selected historical DTB v1; corrected v3-isolated candidate passes offline |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |

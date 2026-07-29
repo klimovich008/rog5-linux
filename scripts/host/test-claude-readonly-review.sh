@@ -76,6 +76,27 @@ if grep -Fq -- 'dangerously-skip-permissions' "$CLAUDE_ARGS_LOG"; then
 	fail 'review wrapper bypasses Claude permissions'
 fi
 
+cat >"$fake_bin/timeout" <<'SH'
+#!/bin/sh
+exit 124
+SH
+chmod 755 "$fake_bin/timeout"
+set +e
+timeout_output=$(
+	printf '%s\n' prompt |
+		PATH="$fake_bin:/usr/bin:/bin" \
+		CLAUDE_REVIEW_TIMEOUT_SECONDS=30 \
+		"$wrapper" 2>&1
+)
+timeout_status=$?
+set -e
+[[ $timeout_status -eq 124 ]] ||
+	fail 'review wrapper did not preserve the timeout status'
+grep -Fq 'Claude review timed out after 30 seconds' <<<"$timeout_output" ||
+	fail 'review wrapper did not explain a silent timeout'
+grep -Fq 'not an authentication or security verdict' <<<"$timeout_output" ||
+	fail 'review wrapper mislabeled a timeout as a security failure'
+
 if printf '%s\n' prompt |
 	PATH="$fake_bin:/usr/bin:/bin" \
 	CLAUDE_REVIEW_TIMEOUT_SECONDS=0 \
@@ -83,4 +104,4 @@ if printf '%s\n' prompt |
 	fail 'review wrapper accepted an unbounded/invalid timeout'
 fi
 
-echo 'PASS Claude advisory reviews are safe-mode, tool-free, nonpersistent, stdin-only, and time-bounded'
+echo 'PASS Claude advisory reviews are safe-mode, tool-free, nonpersistent, stdin-only, time-bounded, and timeout-explicit'
