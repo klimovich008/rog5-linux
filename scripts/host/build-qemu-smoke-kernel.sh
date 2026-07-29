@@ -35,13 +35,16 @@ export ARCH=arm64
 export KBUILD_BUILD_TIMESTAMP='2026-07-18 00:00:00 UTC'
 export KBUILD_BUILD_USER=rog5
 export KBUILD_BUILD_HOST=qemu-smoke
-make -s -C "$source_root" O="$output_root" LLVM=1 defconfig
+make -s -C "$source_root" O="$output_root" LLVM=1 tinyconfig
 config=$source_root/scripts/config
 [[ -x $config ]] || fail 'Linux scripts/config is unavailable'
 "$config" --file "$output_root/.config" \
 	--enable BLK_DEV_INITRD \
+	--enable BINFMT_ELF \
 	--enable DEVTMPFS \
 	--enable DEVTMPFS_MOUNT \
+	--enable PRINTK \
+	--enable RD_GZIP \
 	--enable SERIAL_AMBA_PL011 \
 	--enable SERIAL_AMBA_PL011_CONSOLE \
 	--enable TTY \
@@ -54,4 +57,4 @@ image=$output_root/arch/arm64/boot/Image
 [[ -f $image && ! -L $image && $(stat -c %s "$image") -gt 1048576 ]] ||
 	fail 'QEMU kernel Image is missing or implausibly small'
 sha256sum "$output_root/.config" "$image"
-echo 'PASS built incremental ARM64 QEMU virt kernel'
+echo 'PASS built minimal ARM64 QEMU virt kernel'

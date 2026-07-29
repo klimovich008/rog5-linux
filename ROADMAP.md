@@ -113,6 +113,10 @@ postmortem operations without per-candidate recovery rebuilds.
 - [ ] Observe the first green GitHub run.
 - [x] Add a full-system `qemu-system-aarch64 -M virt` boot harness for generic
   initramfs/root handoff, pinned to an exact upstream Linux commit.
+- [x] Replace the hosted `defconfig` build with a reproducible, QEMU-only
+  `tinyconfig` kernel after the first run exceeded its 35-minute bound.
+- [x] Cache only the content-keyed kernel Image and avoid duplicate
+  feature-branch push/PR runs.
 - [x] Keep QEMU tests board-neutral; never claim that QEMU proves ROG Phone
   hardware.
 
