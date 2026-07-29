@@ -363,14 +363,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Get the hardware-free GitHub CI tier and its new board-neutral
-   full-system QEMU boot gate green.
-2. Produce the minimal SSH-only root and manifest-driven candidate runner.
-3. Obtain explicit approval before creating or using a production recovery
+1. Produce the minimal SSH-only root and manifest-driven candidate runner.
+2. Obtain explicit approval before creating or using a production recovery
    signing trust root.
-4. Promote the stable recovery through staging-only tests and determine
+3. Promote the stable recovery through staging-only tests and determine
    whether ramoops survives the target/fallback path.
-5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

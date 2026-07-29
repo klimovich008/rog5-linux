@@ -2,7 +2,7 @@
 
 Date: 2026-07-29
 
-Result: **PASS offline; no phone authority granted**
+Result: **PASS offline and hosted CI; no phone authority granted**
 
 ## Scope
 
@@ -59,6 +59,13 @@ same full-system QEMU oracle. Feature-branch pushes no longer duplicate PR
 runs, and the 3.2 MiB Image—not the multi-gigabyte object tree—is
 content-keyed for reuse.
 
+The optimized pull-request run
+[`30423174405`](https://github.com/klimovich008/rog5-linux/actions/runs/30423174405)
+then passed: the recovery job completed in 54 seconds and the cold minimal
+kernel build, QEMU boot, and cache publication completed in 5 minutes 6
+seconds. Updated checkout/cache actions produced no Node-runtime deprecation
+annotation.
+
 ## Final reproducible identities
 
 ```text
@@ -102,8 +109,7 @@ counted as approval.
 
 ## Remaining boundary
 
-The optimized GitHub Actions source must turn green after it is pushed. A
-separately approved production public trust root and staging-only live
+A separately approved production public trust root and staging-only live
 promotion are still required before the new recovery can become boot
 authority. The first live objective is to determine whether ramoops survives
 the target → bootloader → recovery path; it is not to resume desktop or GPU
