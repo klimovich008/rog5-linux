@@ -241,25 +241,12 @@ substitution_archive=$work/substitution.cpio.gz
 	find . -mindepth 1 -print0 | LC_ALL=C sort -z |
 	cpio --null -o --quiet --format=newc --owner=0:0) |
 	gzip -n >"$substitution_archive"
-fake_compiler=$work/fake-aarch64-linux-musl-gcc
-cat >"$fake_compiler" <<'EOF'
-#!/bin/sh
-set -eu
-target=
-for argument in "$@"; do
-	target=$argument
-done
-cp "$ROG5_TEST_CANONICAL_VERIFIER" "$target"
-EOF
-chmod 0755 "$fake_compiler"
-if CC="$fake_compiler" \
-	ROG5_TEST_CANONICAL_VERIFIER="$canonical_elf" \
-	"$repo/scripts/device/verify-network-root-initramfs.sh" \
+if "$repo/scripts/device/verify-network-root-initramfs.sh" \
 	"$substitution_archive" >"$work/substitution.log" 2>&1; then
 	echo 'FAIL valid static verifier substitution was accepted' >&2
 	exit 1
 fi
-grep -Fq 'persistent-root verifier differs from reviewed build' \
+grep -Fq 'embedded persistent-root verifier hash changed' \
 	"$work/substitution.log"
 
 handoff_functions=$work/handoff-functions.sh

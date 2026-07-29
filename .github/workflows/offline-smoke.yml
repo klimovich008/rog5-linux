@@ -22,6 +22,7 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             build-essential \
             clang \
+            cpio \
             device-tree-compiler \
             libarchive-tools \
             libssl-dev \
