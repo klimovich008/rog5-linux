@@ -3,7 +3,20 @@
 The ROG5 project currently has enough reproducible host state to reclaim
 hundreds of GiB without touching the phone, the Git history, proprietary input
 archives, or the accepted corrected headless candidate. Cleanup remains
-disabled until the exact generated plan is reviewed and explicitly approved.
+guarded by an exact generated plan and explicit approval for each tier.
+
+## Completed tier-1 execution
+
+The first guarded Podman-only cleanup completed on 2026-07-30. It removed the
+exact approved set of 87 detached ROG5 volumes, retained all 11 referenced
+volumes, and increased filesystem availability from about 324 GiB to 474 GiB.
+The exact plan identity, candidate-set identity, retained closure, and
+before/after measurements are recorded in the
+[cleanup result](../test-results/2026-07-30-podman-volume-cleanup.md).
+
+External development/cache units and the separate in-repository artifact
+candidates were not part of that execution and remain subject to a fresh plan
+and approval.
 
 ## Current finding
 
