@@ -70,6 +70,71 @@ and its linked machine-readable snapshot. A planner classification never
 authorizes deletion; exact candidates require human review and separate
 approval.
 
+### Development output reuse
+
+The active `build-mainline.sh` remains clean-build-only by default. Its
+optional development modes are:
+
+```sh
+INCREMENTAL_BUILD=1 OUTPUT_DIR=/absolute/ignored/build-tree \
+  scripts/device/build-mainline.sh
+
+INCREMENTAL_BUILD=1 KBUILD_CCACHE=1 \
+  CCACHE_DIR=/absolute/private/cache \
+  OUTPUT_DIR=/absolute/ignored/build-tree \
+  scripts/device/build-mainline.sh
+```
+
+Incremental reuse requires an exact private input record covering canonical
+source/output paths, source commit and tree, fragment, builder and contract,
+selected toolchain binaries, fixed build identity, and cache mode. The record
+does not claim that a prior build completed: with identical inputs, Kbuild may
+resume an interrupted tree. A missing, incorrectly owned, writable, linked,
+stale, or mismatched record fails closed; the script never cleans a mismatch.
+A kernel-released `flock` permits only one builder per output tree without a
+stale-lock cleanup path. Build children inherit the lock deliberately: a new
+builder remains excluded while any orphaned compiler can still write, and the
+kernel releases the lock after the last inheriting process exits.
+
+`KBUILD_CCACHE=1` is also fail-closed: `ccache` must already be installed, its
+binary identity enters the state record, and unsafe sloppiness is disabled.
+The pinned kernel-builder container includes it; bare-host installation is
+optional. Cache contents and build-state files remain ignored local data and
+are never release inputs. Reproducibility and release acceptance still
+require two distinct, initially empty output directories with both opt-ins
+disabled.
+
+The optional real-output proof compares fresh uncached, fresh cached, and
+repeated incremental ARM64 QEMU Images:
+
+```sh
+scripts/host/test-kernel-build-cache-integration.sh \
+  build/qemu-linux-source \
+  build/qemu-cache-proof
+```
+
+It requires an empty ignored proof directory and retains its build trees for
+inspection. This QEMU proof validates build mechanics only; it says nothing
+about ROG Phone hardware. The
+[accepted integration result](../test-results/2026-07-29-kernel-build-cache-integration.md)
+records the exact image identity and cache statistics.
+
+### External review boundary
+
+Claude advisory reviews use a constrained wrapper:
+
+```sh
+git diff --no-ext-diff |
+  scripts/host/claude-readonly-review.sh
+```
+
+The wrapper sends only stdin context, enables Claude safe mode, exposes no
+tools, rejects hidden permission prompts, stores no session, and terminates
+after a bounded interval. Do not pipe credentials, private evidence, or
+untracked personal data into it. A broader repository-reading or editing
+Claude session is outside this review boundary and requires an explicit
+decision.
+
 ## Build order
 
 1. Validate scripts, known artifacts, and kernel config symbols.

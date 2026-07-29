@@ -138,7 +138,9 @@ before a phone cycle.
 - [x] Port the consumed persistent-root P2 payload into the manifest adapter
   and prove exact artifact/profile parity offline without restoring live
   authority.
-- [ ] Add compiler caching and preserve incremental kernel output trees.
+- [x] Add an explicit, fail-closed compiler-cache option and preserve
+  exact-identity incremental kernel output trees for the active baseline
+  builder; clean release twins remain mandatory.
 - [x] Create a minimal SSH-only root profile with no display, desktop,
   browser, Vulkan, hotspot, or agent packages.
 - [x] Seal that root as a byte-reproducible read-only network lower, bind its
@@ -310,12 +312,10 @@ Continue in this order:
 
 1. review the generated artifact plan, but do not delete or deduplicate
    anything without separate approval;
-2. add an optional compiler-cache path and a validated incremental-output
-   contract for active kernel builds without changing reproducible outputs;
-3. pin the complete source and toolchain bootstrap for a fresh Linux host;
-4. build the corrected-DTB candidate twice with a disposable trust root and
+2. pin the complete source and toolchain bootstrap for a fresh Linux host;
+3. build the corrected-DTB candidate twice with a disposable trust root and
    repeat the complete hardware-free gate;
-5. request fresh, separate authorization before creating or using a live
+4. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-6. if the minimal root reaches key-only SSH and clean rollback, start the H3
+5. if the minimal root reaches key-only SSH and clean rollback, start the H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.
