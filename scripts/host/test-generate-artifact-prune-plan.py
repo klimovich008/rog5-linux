@@ -100,6 +100,8 @@ class ArtifactPrunePlanTest(unittest.TestCase):
         self.assertTrue(plan["policy"]["read_only"])
         self.assertFalse(plan["policy"]["deletion_supported"])
         entries = {entry["path"]: entry for entry in plan["entries"]}
+        self.assertGreater(plan["summary"]["top_level_apparent_size_bytes"], 0)
+        self.assertGreater(plan["summary"]["top_level_allocated_size_bytes"], 0)
 
         referenced = entries["artifacts/referenced"]
         self.assertEqual(referenced["decision"], "retain")

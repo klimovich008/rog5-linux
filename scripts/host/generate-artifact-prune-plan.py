@@ -50,9 +50,13 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def apparent_size(path: Path) -> int:
+def disk_size(path: Path, *, apparent: bool) -> int:
+    arguments = ["du"]
+    if apparent:
+        arguments.append("--apparent-size")
+    arguments.extend(["--block-size=1", "--summarize", "--", str(path)])
     result = subprocess.run(
-        ["du", "--apparent-size", "--bytes", "--summarize", "--", str(path)],
+        arguments,
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -289,7 +293,8 @@ def build_plan(repo: Path) -> dict[str, object]:
                     if stat.S_ISLNK(metadata.st_mode)
                     else "file"
                 ),
-                "size_bytes": apparent_size(path),
+                "apparent_size_bytes": disk_size(path, apparent=True),
+                "allocated_size_bytes": disk_size(path, apparent=False),
                 "sha256": (
                     sha256_file(path)
                     if stat.S_ISREG(metadata.st_mode)
@@ -338,8 +343,11 @@ def build_plan(repo: Path) -> dict[str, object]:
         "summary": {
             "top_level_units": len(top_level),
             "nested_units": len(entries) - len(top_level),
-            "top_level_size_bytes": sum(
-                int(entry["size_bytes"]) for entry in top_level
+            "top_level_apparent_size_bytes": sum(
+                int(entry["apparent_size_bytes"]) for entry in top_level
+            ),
+            "top_level_allocated_size_bytes": sum(
+                int(entry["allocated_size_bytes"]) for entry in top_level
             ),
             "decisions": decisions,
         },
