@@ -65,6 +65,8 @@ class InitPolicyTest(unittest.TestCase):
         post_contract = source.index(
             "ASUS wrapper storage topology mismatch after device-node rescan"
         )
+        watchdog = source.index("log 'rollback timer armed'")
+        postmortem = source.index("if ! snapshot_postmortem; then")
         control = source.index("/usr/libexec/rog5-recovery-control &")
         session = source.index("/run/rog5-control/session")
         bind = source.index('echo "$udc" >"$gadget/UDC"')
@@ -72,6 +74,8 @@ class InitPolicyTest(unittest.TestCase):
         self.assertLess(first_isolation, pre_contract)
         self.assertLess(pre_contract, second_isolation)
         self.assertLess(second_isolation, post_contract)
+        self.assertLess(watchdog, postmortem)
+        self.assertLess(postmortem, control)
         self.assertLess(post_contract, control)
         self.assertLessEqual(control, session)
         self.assertLess(session, bind)
@@ -84,6 +88,19 @@ class InitPolicyTest(unittest.TestCase):
             '"$expected_wrapper_physical_count"',
             source,
         )
+
+    def test_recovery_snapshots_pstore_without_clearing_it(self) -> None:
+        source = self.source(RECOVERY)
+        self.assertIn("mount -t pstore -o ro pstore /sys/fs/pstore", source)
+        self.assertIn("tail -c 512", source)
+        self.assertIn('sha256sum "$snapshot"', source)
+        self.assertIn("/run/rog5-postmortem.status", source)
+        for forbidden in (
+            "rm /sys/fs/pstore",
+            "rm -f /sys/fs/pstore",
+            "unlink /sys/fs/pstore",
+        ):
+            self.assertNotIn(forbidden, source)
 
     def test_recovery_network_is_fixed_and_has_no_route_override(self) -> None:
         source = self.source(RECOVERY)

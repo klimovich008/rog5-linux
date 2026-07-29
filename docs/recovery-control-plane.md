@@ -5,7 +5,7 @@ ephemeral trust root; production key, release pins, and live promotion pending**
 
 Live authority: **none**
 
-Last reviewed: 2026-07-28
+Last reviewed: 2026-07-29
 
 The executable stdlib-only reference model is in
 `tools/recovery_control/reference.py`; its host test is
@@ -128,11 +128,14 @@ body_sha256=<64 lowercase hex characters>
 A response repeats `session`, `request`, and `verb`, adds a fixed result code,
 and returns a body containing the exact state, prepared bundle, manifest hash,
 prepare request, commit request, commit fingerprint, execution-started marker,
-watchdog state, and last fixed error. Its `body_sha256` covers those canonical
-fields. `HELLO` is the only request allowed with an all-zero session. Its
-response returns the device-minted session ID. USB already provides link
-integrity; body hashes protect canonical request/response identity and replay
-matching rather than replacing manifest signatures.
+watchdog state, last fixed error, and immutable boot-time postmortem metadata.
+The postmortem fields are state (`UNAVAILABLE`, `EMPTY`, or `PRESENT`), record
+count, total record bytes, snapshot SHA-256, and up to 512 bytes of
+hex-encoded snapshot tail. Its `body_sha256` covers all canonical fields.
+`HELLO` is the only request allowed with an all-zero session. Its response
+returns the device-minted session ID. USB already provides link integrity;
+body hashes protect canonical request/response identity and replay matching
+rather than replacing manifest signatures.
 
 All-zero request IDs and manifest hashes are reserved unset values and are
 rejected. Fixed result codes are bound to their valid verb and transaction
@@ -337,10 +340,9 @@ separate user confirmation. Until then, the implementation and tests can use
 an ephemeral test key that is generated inside a temporary test directory
 and never accepted by a production recovery image.
 
-## Retained-marker limitation
+## Postmortem outcome oracle
 
-The fallback command line reserves 4 MiB for ramoops, including a 3 MiB
-console area, but the current fallback cannot read it:
+The installed fallback reserves 4 MiB for ramoops but cannot read it:
 
 - the reservation has zero users and no bound driver;
 - `ramoops_bound=0`;
@@ -348,15 +350,19 @@ console area, but the current fallback cannot read it:
 - `CONFIG_DEVMEM` is unset;
 - no matching module build environment is available.
 
-Therefore changing the fallback pstore-empty gate would remove a safety check
-without creating an evidence channel. Keep that gate unchanged.
+The stable recovery wrapper does not share that limitation: its pinned config
+already has built-in `PSTORE`, `PSTORE_CONSOLE`, and `PSTORE_RAM`, and its
+boot-v3 command line carries the exact reservation. Before starting the
+framed responder, recovery now mounts pstore read-only in practice, copies
+bounded regular records into a private RAM snapshot without unlinking them,
+and publishes canonical metadata. The responder validates and pins that
+owner-only status file at startup and includes it in every response.
 
-The preferred future experiment is to build pstore/ramoops support into the
-new staging recovery and test whether the reserved region survives a
-target-to-recovery transition. Alternatives are a separate temporary reader
-boot or an offline investigation of the possible Qualcomm USB-C debug UART.
-None is a prerequisite for implementing the framed protocol, and none may be
-claimed working before a controlled test.
+Offline tests prove empty, present, unavailable, malformed, partial-I/O, and
+restart behavior. They do **not** prove the Snapdragon DRAM region survives a
+target → bootloader → recovery transition. That requires a controlled live
+cycle. If it does not survive, the next oracle experiment is the possible
+Qualcomm USB-C debug UART; no UART capability is currently claimed.
 
 ## Test suite before re-freeze
 

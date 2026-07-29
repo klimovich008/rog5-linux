@@ -101,6 +101,8 @@ fi
 
 grep -Fq 'pid=%s\nstarttime=%s\n' "$stage/init"
 grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
+grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$stage/init"
+grep -Fq '/run/rog5-postmortem.status' "$stage/init"
 grep -Fq '/usr/libexec/rog5-recovery-control &' "$stage/init"
 grep -Fq "grep -Eq '^session=[0-9a-f]{64}$'" "$stage/init"
 grep -Fq 'ip address add 169.254.77.2/30 dev usb0' "$stage/init"
@@ -127,6 +129,8 @@ post_contract_line=$(
 )
 control_line=$(grep -n '^/usr/libexec/rog5-recovery-control &$' \
 	"$stage/init" | cut -d: -f1)
+postmortem_line=$(grep -n '^if ! snapshot_postmortem; then$' \
+	"$stage/init" | cut -d: -f1)
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
 	sed -n '1s/:.*//p')
 # shellcheck disable=SC2016
@@ -134,13 +138,15 @@ bind_line=$(grep -n '^if ! echo "\$udc" >"\$gadget/UDC"; then$' \
 	"$stage/init" | cut -d: -f1)
 for value in "$lease_line" "$pre_storage_line" "$pre_contract_line" \
 	"$post_storage_line" "$post_contract_line" "$control_line" \
-	"$session_line" "$bind_line"; do
+	"$postmortem_line" "$session_line" "$bind_line"; do
 	case $value in *[!0-9]*|'') fail 'cannot prove stable recovery ordering' ;; esac
 done
 [ "$lease_line" -lt "$pre_storage_line" ]
 [ "$pre_storage_line" -lt "$pre_contract_line" ]
 [ "$pre_contract_line" -lt "$post_storage_line" ]
 [ "$post_storage_line" -lt "$post_contract_line" ]
+[ "$lease_line" -lt "$postmortem_line" ]
+[ "$postmortem_line" -lt "$control_line" ]
 [ "$post_contract_line" -lt "$control_line" ]
 [ "$control_line" -le "$session_line" ]
 [ "$session_line" -lt "$bind_line" ]

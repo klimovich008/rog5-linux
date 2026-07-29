@@ -133,7 +133,15 @@ RESPONSE_BODY_FIELDS = (
     "execution_started",
     "watchdog",
     "last_error",
+    "postmortem_state",
+    "postmortem_records",
+    "postmortem_bytes",
+    "postmortem_sha256",
+    "postmortem_tail_hex",
 )
+POSTMORTEM_STATES = {"UNAVAILABLE", "EMPTY", "PRESENT"}
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
+TAIL_HEX = re.compile(r"(?:[0-9a-f]{2}){1,512}\Z")
 
 
 class ProtocolViolation(ValueError):
@@ -261,6 +269,11 @@ class Response:
     execution_started: str = "NO"
     watchdog: str = "ARMED"
     last_error: str = "NONE"
+    postmortem_state: str = "UNAVAILABLE"
+    postmortem_records: str = "0"
+    postmortem_bytes: str = "0"
+    postmortem_sha256: str = ZERO_SHA256
+    postmortem_tail_hex: str = "none"
 
 
 def encode_response(response: Response) -> bytes:
@@ -292,6 +305,11 @@ def encode_response(response: Response) -> bytes:
                 response.execution_started,
                 response.watchdog,
                 response.last_error,
+                response.postmortem_state,
+                response.postmortem_records,
+                response.postmortem_bytes,
+                response.postmortem_sha256,
+                response.postmortem_tail_hex,
             )
         )
         or not HEX_ID.fullmatch(response.session)
@@ -320,6 +338,53 @@ def encode_response(response: Response) -> bytes:
         or response.execution_started not in {"NO", "YES"}
         or response.watchdog != "ARMED"
         or response.last_error not in LAST_ERRORS
+        or response.postmortem_state not in POSTMORTEM_STATES
+        or not response.postmortem_records.isdecimal()
+        or (
+            len(response.postmortem_records) > 1
+            and response.postmortem_records.startswith("0")
+        )
+        or len(response.postmortem_records) > 2
+        or int(response.postmortem_records) > 64
+        or not response.postmortem_bytes.isdecimal()
+        or (
+            len(response.postmortem_bytes) > 1
+            and response.postmortem_bytes.startswith("0")
+        )
+        or len(response.postmortem_bytes) > 7
+        or int(response.postmortem_bytes) > 4194304
+        or not HEX_SHA256.fullmatch(response.postmortem_sha256)
+        or (
+            response.postmortem_tail_hex != "none"
+            and not TAIL_HEX.fullmatch(response.postmortem_tail_hex)
+        )
+        or (
+            response.postmortem_state == "PRESENT"
+            and (
+                response.postmortem_records == "0"
+                or response.postmortem_bytes == "0"
+                or response.postmortem_sha256 == ZERO_SHA256
+                or response.postmortem_tail_hex == "none"
+            )
+        )
+        or (
+            response.postmortem_state == "EMPTY"
+            and (
+                response.postmortem_records != "0"
+                or response.postmortem_bytes != "0"
+                or response.postmortem_sha256 != EMPTY_SHA256
+                or response.postmortem_tail_hex != "none"
+            )
+        )
+        or (
+            response.postmortem_state == "UNAVAILABLE"
+            and (
+                response.postmortem_records != "0"
+                or response.postmortem_bytes != "0"
+                or response.postmortem_sha256 != ZERO_SHA256
+                or response.postmortem_tail_hex != "none"
+            )
+        )
         or any(prepared_values) != prepared
         or any(claimed_values) != claimed
         or (response.state == "IDLE" and (prepared or claimed))
@@ -383,6 +448,11 @@ def decode_response(payload: bytes) -> Response:
         execution_started=fields["execution_started"],
         watchdog=fields["watchdog"],
         last_error=fields["last_error"],
+        postmortem_state=fields["postmortem_state"],
+        postmortem_records=fields["postmortem_records"],
+        postmortem_bytes=fields["postmortem_bytes"],
+        postmortem_sha256=fields["postmortem_sha256"],
+        postmortem_tail_hex=fields["postmortem_tail_hex"],
     )
     if fields["version"] != "1" or fields["kind"] != "response":
         raise ProtocolViolation("BAD_VERSION")

@@ -2,7 +2,11 @@
 set -u
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export LC_ALL=C
+export TZ=UTC
 expected_wrapper_physical_count=116
+empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -15,6 +19,63 @@ hostname rog5-recovery
 
 log() {
 	echo "rog5-recovery: $*" >/dev/kmsg
+}
+
+snapshot_postmortem() {
+	status=/run/rog5-postmortem.status
+	status_tmp=/run/.rog5-postmortem.status.$$
+	snapshot=/run/rog5-postmortem.snapshot
+	state=UNAVAILABLE
+	records=0
+	bytes=0
+	hash=$zero_sha256
+	tail_hex=none
+	umask 077
+	: >"$snapshot" || return 1
+	mkdir -p /sys/fs/pstore || return 1
+
+	if grep -q ' /sys/fs/pstore pstore ro[, ]' /proc/mounts ||
+		mount -t pstore -o ro pstore /sys/fs/pstore 2>/dev/null; then
+		state=EMPTY
+		for record in /sys/fs/pstore/*; do
+			[ -e "$record" ] || continue
+			[ -f "$record" ] && [ ! -L "$record" ] || return 1
+			name=${record##*/}
+			case $name in
+				''|*[!A-Za-z0-9._-]*) return 1 ;;
+			esac
+			size=$(wc -c <"$record") || return 1
+			case $size in
+				''|*[!0-9]*) return 1 ;;
+			esac
+			[ "$size" -gt 0 ] && [ "$size" -le 4194304 ] || return 1
+			printf 'record=%s\nsize=%s\n' "$name" "$size" \
+				>>"$snapshot" || return 1
+			cat "$record" >>"$snapshot" || return 1
+			printf '\n' >>"$snapshot" || return 1
+			records=$((records + 1))
+			bytes=$((bytes + size))
+			[ "$records" -le 64 ] && [ "$bytes" -le 4194304 ] ||
+				return 1
+		done
+		hash=$(sha256sum "$snapshot" | awk '{ print $1 }') || return 1
+		if [ "$records" -gt 0 ]; then
+			state=PRESENT
+			tail_hex=$(tail -c 512 "$snapshot" |
+				od -An -tx1 -v | tr -d ' \n') || return 1
+			[ -n "$tail_hex" ] || return 1
+		else
+			[ "$hash" = "$empty_sha256" ] || return 1
+		fi
+	fi
+
+	printf 'state=%s\nrecords=%s\nbytes=%s\nsha256=%s\ntail_hex=%s\n' \
+		"$state" "$records" "$bytes" "$hash" "$tail_hex" \
+		>"$status_tmp" || return 1
+	chmod 0600 "$status_tmp" || return 1
+	mv -f "$status_tmp" "$status" || return 1
+	chmod 0600 "$snapshot" || return 1
+	log "postmortem snapshot ready; state=$state records=$records bytes=$bytes sha256=$hash"
 }
 
 force_rollback() {
@@ -257,6 +318,11 @@ if ! printf 'pid=%s\nstarttime=%s\n' \
 	force_rollback
 fi
 log 'rollback timer armed'
+
+if ! snapshot_postmortem; then
+	log 'postmortem snapshot failed; rebooting'
+	force_rollback
+fi
 
 if [ "$ufs_discovery_count" -gt 1 ] || [ "$ufs_discovery_invalid" = 1 ]; then
 	log 'invalid UFS discovery command line; rebooting'

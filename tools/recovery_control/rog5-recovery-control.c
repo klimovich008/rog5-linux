@@ -25,8 +25,10 @@
 #include <unistd.h>
 
 #define FRAME_MAX 4096
-#define RESPONSE_MAX 2048
+#define RESPONSE_MAX 3072
 #define STATE_FILE_MAX 8192
+#define POSTMORTEM_FILE_MAX 1400
+#define POSTMORTEM_TAIL_MAX 1024
 #define LEDGER_MAX 32
 #define ID_LENGTH 32
 #define HASH_LENGTH 64
@@ -106,6 +108,14 @@ struct response_action {
 	bool execute;
 };
 
+struct postmortem_status {
+	char state[12];
+	char records[3];
+	char bytes[8];
+	char sha256[HASH_LENGTH + 1];
+	char tail_hex[POSTMORTEM_TAIL_MAX + 1];
+};
+
 struct verified_plan {
 	char bundle[BUNDLE_MAX + 1];
 	char manifest_sha256[HASH_LENGTH + 1];
@@ -123,6 +133,7 @@ static const char *device_path = "/dev/ttyGS0";
 /* Production state must remain session-scoped tmpfs, never persistent media. */
 static const char *state_path = "/run/rog5-control";
 static const char *watchdog_path = "/run/rog5-recovery-watchdog.lease";
+static const char *postmortem_path = "/run/rog5-postmortem.status";
 static const char *fetcher_path = "/usr/libexec/rog5-bundle-fetch";
 static const char *verifier_path = "/usr/libexec/rog5-bundle-verify";
 static const char *kexec_path = "/usr/sbin/kexec";
@@ -130,6 +141,7 @@ static unsigned int io_timeout_ms = 2000;
 static unsigned int fetch_timeout_ms = FETCH_TIMEOUT_MS;
 static unsigned int verify_timeout_ms = VERIFY_TIMEOUT_MS;
 static unsigned int kexec_load_timeout_ms = KEXEC_LOAD_TIMEOUT_MS;
+static struct postmortem_status postmortem;
 #ifdef ROG5_CONTROL_TESTING
 static bool test_kexec_configured;
 #endif
@@ -353,6 +365,28 @@ static bool valid_hash(const char *value, bool allow_zero)
 {
 	return valid_hex(value, HASH_LENGTH) &&
 		(allow_zero || strcmp(value, ZERO_HASH) != 0);
+}
+
+static bool valid_decimal(const char *value, uint64_t maximum)
+{
+	char *end = NULL;
+	unsigned long long parsed;
+
+	if (*value == '\0' || (value[0] == '0' && value[1] != '\0'))
+		return false;
+	errno = 0;
+	parsed = strtoull(value, &end, 10);
+	return errno == 0 && end != value && *end == '\0' &&
+		parsed <= maximum;
+}
+
+static bool valid_tail_hex(const char *value)
+{
+	size_t length = strlen(value);
+
+	return strcmp(value, "none") == 0 ||
+		(length >= 2 && length <= POSTMORTEM_TAIL_MAX &&
+		 length % 2 == 0 && valid_hex(value, length));
 }
 
 static bool valid_bundle(const char *value)
@@ -628,6 +662,81 @@ static int take_field(char **cursor, const char *name, char *output,
 	output[value_length] = '\0';
 	*cursor = newline + 1;
 	return 0;
+}
+
+static void load_postmortem_status(void)
+{
+	static const char empty_hash[] =
+		"e3b0c44298fc1c149afbf4c8996fb924"
+		"27ae41e4649b934ca495991b7852b855";
+	char payload[POSTMORTEM_FILE_MAX];
+	char *cursor;
+	struct stat metadata;
+	size_t used = 0;
+	int descriptor;
+
+	descriptor = open(postmortem_path,
+			  O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+	if (descriptor < 0)
+		fail("cannot open postmortem status: %s", strerror(errno));
+	if (fstat(descriptor, &metadata) < 0)
+		fail("cannot stat postmortem status: %s", strerror(errno));
+	if (!S_ISREG(metadata.st_mode) || metadata.st_uid != geteuid() ||
+	    (metadata.st_mode & 0077) != 0 || metadata.st_nlink != 1 ||
+	    metadata.st_size < 1 ||
+	    (uintmax_t)metadata.st_size >= sizeof(payload))
+		fail("unsafe postmortem status");
+	while (used < (size_t)metadata.st_size) {
+		ssize_t count = read(descriptor, payload + used,
+				     (size_t)metadata.st_size - used);
+
+		if (count < 0 && errno == EINTR)
+			continue;
+		if (count <= 0)
+			fail("short postmortem status read");
+		used += (size_t)count;
+	}
+	if (close(descriptor) < 0)
+		fail("cannot close postmortem status: %s", strerror(errno));
+	payload[used] = '\0';
+	cursor = payload;
+	if (take_field(&cursor, "state", postmortem.state,
+		       sizeof(postmortem.state)) < 0 ||
+	    take_field(&cursor, "records", postmortem.records,
+		       sizeof(postmortem.records)) < 0 ||
+	    take_field(&cursor, "bytes", postmortem.bytes,
+		       sizeof(postmortem.bytes)) < 0 ||
+	    take_field(&cursor, "sha256", postmortem.sha256,
+		       sizeof(postmortem.sha256)) < 0 ||
+	    take_field(&cursor, "tail_hex", postmortem.tail_hex,
+		       sizeof(postmortem.tail_hex)) < 0 ||
+	    *cursor != '\0' || !valid_decimal(postmortem.records, 64) ||
+	    !valid_decimal(postmortem.bytes, 4194304) ||
+	    !valid_hash(postmortem.sha256, true) ||
+	    !valid_tail_hex(postmortem.tail_hex))
+		fail("invalid postmortem status");
+
+	if (strcmp(postmortem.state, "PRESENT") == 0) {
+		if (strcmp(postmortem.records, "0") == 0 ||
+		    strcmp(postmortem.bytes, "0") == 0 ||
+		    strcmp(postmortem.sha256, ZERO_HASH) == 0 ||
+		    strcmp(postmortem.tail_hex, "none") == 0)
+			fail("inconsistent present postmortem status");
+	} else if (strcmp(postmortem.state, "EMPTY") == 0) {
+		if (strcmp(postmortem.records, "0") != 0 ||
+		    strcmp(postmortem.bytes, "0") != 0 ||
+		    strcmp(postmortem.sha256, empty_hash) != 0 ||
+		    strcmp(postmortem.tail_hex, "none") != 0)
+			fail("inconsistent empty postmortem status");
+	} else if (strcmp(postmortem.state, "UNAVAILABLE") == 0) {
+		if (strcmp(postmortem.records, "0") != 0 ||
+		    strcmp(postmortem.bytes, "0") != 0 ||
+		    strcmp(postmortem.sha256, ZERO_HASH) != 0 ||
+		    strcmp(postmortem.tail_hex, "none") != 0)
+			fail("inconsistent unavailable postmortem status");
+	} else {
+		fail("unknown postmortem state");
+	}
 }
 
 static const char *phase_name(enum phase phase)
@@ -1200,7 +1309,7 @@ static void build_response(const struct control_state *state,
 	const char *fingerprint = state->phase == PHASE_IDLE ||
 		state->phase == PHASE_PREPARED ?
 		ZERO_HASH : state->commit_fingerprint;
-	char body[768];
+	char body[1800];
 	char body_hash[HASH_LENGTH + 1];
 	int body_length;
 	int length;
@@ -1217,10 +1326,16 @@ static void build_response(const struct control_state *state,
 		"commit_fingerprint=%s\n"
 		"execution_started=%s\n"
 		"watchdog=ARMED\n"
-		"last_error=%s\n",
+		"last_error=%s\n"
+		"postmortem_state=%s\n"
+		"postmortem_records=%s\n"
+		"postmortem_bytes=%s\n"
+		"postmortem_sha256=%s\n"
+		"postmortem_tail_hex=%s\n",
 		phase_name(state->phase), bundle, manifest, prepare, commit,
 		fingerprint, state->execution_started ? "YES" : "NO",
-		state->last_error);
+		state->last_error, postmortem.state, postmortem.records,
+		postmortem.bytes, postmortem.sha256, postmortem.tail_hex);
 	if (body_length < 0 || body_length >= (int)sizeof(body))
 		fail("response body is too large");
 	hash_bytes(body, (size_t)body_length, body_hash);
@@ -2559,6 +2674,8 @@ static void parse_arguments(int argc, char **argv)
 			state_path = argv[index + 1];
 		else if (strcmp(argv[index], "--watchdog") == 0)
 			watchdog_path = argv[index + 1];
+		else if (strcmp(argv[index], "--postmortem") == 0)
+			postmortem_path = argv[index + 1];
 		else
 			fail("unknown test option");
 	}
@@ -2653,6 +2770,7 @@ int main(int argc, char **argv)
 	parse_arguments(argc, argv);
 	configure_test_runtime();
 	open_state_directories();
+	load_postmortem_status();
 	open_watchdog_lease();
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed at startup");

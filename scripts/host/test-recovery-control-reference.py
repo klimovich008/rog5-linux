@@ -235,6 +235,11 @@ class RecordCodecTest(unittest.TestCase):
             execution_started="NO",
             watchdog="ARMED",
             last_error="NONE",
+            postmortem_state="PRESENT",
+            postmortem_records="1",
+            postmortem_bytes="5",
+            postmortem_sha256=MANIFEST,
+            postmortem_tail_hex="70616e6963",
         )
         self.assertEqual(decode_response(encode_response(detailed)), detailed)
 
