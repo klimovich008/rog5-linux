@@ -84,7 +84,13 @@ The correction now passes a complete twin build of the target bundle,
 shell-free recovery initramfs, vendor-compatible wrapper kernel, raw boot
 image, and unsigned AVB test wrapper. One disposable test private key was
 destroyed before success; retained products say `authority=none`. The
-correction has not been signed by a live trust root or booted. There is no
+DTB builder now also enforces an exact property-level delta against its base.
+The retained rejected v1 and accepted v3 objects differ in only the four
+expected RMTFS/GPUCC/GMU/Adreno-SMMU isolation states; malicious node,
+property, phandle, truncation, and signal-interruption fixtures fail in core
+CI. See the
+[semantic oracle](../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
+The correction has not been signed by a live trust root or booted. There is no
 repeat live authority. See the
 [live result](../test-results/2026-07-29-headless-stable-recovery-live.md)
 and
