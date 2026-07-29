@@ -52,6 +52,12 @@ credential-free host-key bootstrap suite. This links compile-time ancestry to
 the exact runtime evidence that must pass before the corrected root can move
 from `live-pending`.
 
+All six active capabilities additionally name the
+[core source/DTB contract](core-source-dtb-contract.md). That gate verifies
+the Kconfig declarations, Makefile object paths, OF tables, SM8350 bindings,
+source entry points, and corrected DT topology that a config-only check
+cannot see.
+
 Future capabilities remain unaccepted:
 
 - display-off operation is baseline evidence only; `CONFIG_PM` is necessary

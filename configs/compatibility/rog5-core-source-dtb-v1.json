@@ -1,0 +1,809 @@
+{
+  "format": "rog5-core-source-dtb-contract-v1",
+  "profile": "minimal-headless-v1",
+  "compatibility_profile": {
+    "path": "configs/compatibility/rog5-minimal-headless-v1.json",
+    "sha256": "ad35ae1fd9dfc0f7b2a5e8fc6a8d46b3e819719ce15bd1f7c9bf694f45b9e858"
+  },
+  "baseline_source": {
+    "commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "release": "7.1.4"
+  },
+  "accepted_dtb": {
+    "artifact_id": "accepted-isolated-dtb",
+    "path": "artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb",
+    "size": 102870,
+    "sha256": "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
+  },
+  "active_capabilities": [
+    "cpu-ram",
+    "read-only-network-root",
+    "usb-ncm-network",
+    "init-key-only-ssh",
+    "watchdog-rollback-reboot",
+    "thermal-readonly"
+  ],
+  "dt_required_capabilities": [
+    "cpu-ram",
+    "read-only-network-root",
+    "usb-ncm-network",
+    "watchdog-rollback-reboot",
+    "thermal-readonly"
+  ],
+  "forbidden_enabled_compatibles": [
+    "qcom,sm8350-ufshc",
+    "qcom,ufshc",
+    "jedec,ufs-2.0",
+    "qcom,sm8350-qmp-ufs-phy",
+    "qcom,sm8350-qmp-usb3-dp-phy",
+    "qcom,sm8350-qmp-usb3-uni-phy",
+    "qcom,sm8350-qmp-usb3-phy"
+  ],
+  "source_checks": [
+    {
+      "id": "cpu-kconfig",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/cpufreq/Kconfig.arm",
+      "required": [
+        "ARM_QCOM_CPUFREQ_HW"
+      ]
+    },
+    {
+      "id": "cpu-makefile",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "kind": "makefile",
+      "path": "drivers/cpufreq/Makefile",
+      "required": [
+        "CONFIG_ARM_QCOM_CPUFREQ_HW:qcom-cpufreq-hw.o"
+      ]
+    },
+    {
+      "id": "cpu-of-match",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "kind": "of-match",
+      "path": "drivers/cpufreq/qcom-cpufreq-hw.c",
+      "required": [
+        "qcom,cpufreq-epss"
+      ]
+    },
+    {
+      "id": "cpu-binding",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "kind": "binding",
+      "path": "Documentation/devicetree/bindings/cpufreq/cpufreq-qcom-hw.yaml",
+      "required": [
+        "qcom,sm8350-cpufreq-epss"
+      ]
+    },
+    {
+      "id": "network-root-kconfig",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "kconfig",
+      "path": "fs/nfs/Kconfig",
+      "required": [
+        "NFS_FS",
+        "NFS_V4",
+        "NFS_V4_2"
+      ]
+    },
+    {
+      "id": "network-root-makefile",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "makefile",
+      "path": "fs/nfs/Makefile",
+      "required": [
+        "CONFIG_NFS_FS:nfs.o",
+        "CONFIG_NFS_V4_2:nfs42proc.o"
+      ]
+    },
+    {
+      "id": "network-root-source",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "source",
+      "path": "fs/nfs/nfsroot.c",
+      "required": [
+        "__setup(\"nfsroot=\", nfs_root_setup);",
+        "static int __init root_nfs_parse_options(",
+        "int __init nfs_root_data("
+      ]
+    },
+    {
+      "id": "overlay-kconfig",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "kconfig",
+      "path": "fs/overlayfs/Kconfig",
+      "required": [
+        "OVERLAY_FS"
+      ]
+    },
+    {
+      "id": "overlay-makefile",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "makefile",
+      "path": "fs/overlayfs/Makefile",
+      "required": [
+        "CONFIG_OVERLAY_FS:overlay.o"
+      ]
+    },
+    {
+      "id": "overlay-source",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "kind": "source",
+      "path": "fs/overlayfs/super.c",
+      "required": [
+        "int ovl_fill_super(",
+        "struct file_system_type ovl_fs_type = {",
+        "MODULE_ALIAS_FS(\"overlay\");"
+      ]
+    },
+    {
+      "id": "dwc3-kconfig",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/usb/dwc3/Kconfig",
+      "required": [
+        "USB_DWC3",
+        "USB_DWC3_GADGET",
+        "USB_DWC3_QCOM"
+      ]
+    },
+    {
+      "id": "dwc3-makefile",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "makefile",
+      "path": "drivers/usb/dwc3/Makefile",
+      "required": [
+        "CONFIG_USB_DWC3_QCOM:dwc3-qcom.o",
+        "CONFIG_USB_DWC3_QCOM:dwc3-qcom-legacy.o"
+      ]
+    },
+    {
+      "id": "dwc3-of-match",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "of-match",
+      "path": "drivers/usb/dwc3/dwc3-qcom-legacy.c",
+      "required": [
+        "qcom,dwc3"
+      ]
+    },
+    {
+      "id": "dwc3-binding",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "binding",
+      "path": "Documentation/devicetree/bindings/usb/qcom,dwc3.yaml",
+      "required": [
+        "qcom,sm8350-dwc3"
+      ]
+    },
+    {
+      "id": "usb-phy-kconfig",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/phy/qualcomm/Kconfig",
+      "required": [
+        "PHY_QCOM_USB_SNPS_FEMTO_V2"
+      ]
+    },
+    {
+      "id": "usb-phy-makefile",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "makefile",
+      "path": "drivers/phy/qualcomm/Makefile",
+      "required": [
+        "CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2:phy-qcom-snps-femto-v2.o"
+      ]
+    },
+    {
+      "id": "usb-phy-of-match",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "of-match",
+      "path": "drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c",
+      "required": [
+        "qcom,usb-snps-hs-7nm-phy"
+      ]
+    },
+    {
+      "id": "usb-phy-binding",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "binding",
+      "path": "Documentation/devicetree/bindings/phy/qcom,usb-snps-femto-v2.yaml",
+      "required": [
+        "qcom,sm8350-usb-hs-phy"
+      ]
+    },
+    {
+      "id": "ncm-kconfig",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/usb/gadget/Kconfig",
+      "required": [
+        "USB_F_NCM",
+        "USB_CONFIGFS",
+        "USB_CONFIGFS_NCM"
+      ]
+    },
+    {
+      "id": "ncm-makefile",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "makefile",
+      "path": "drivers/usb/gadget/function/Makefile",
+      "required": [
+        "CONFIG_USB_F_NCM:usb_f_ncm.o"
+      ]
+    },
+    {
+      "id": "ncm-source",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "kind": "source",
+      "path": "drivers/usb/gadget/function/f_ncm.c",
+      "required": [
+        "static struct usb_function_instance *ncm_alloc_inst(",
+        "static struct usb_function *ncm_alloc(",
+        "DECLARE_USB_FUNCTION_INIT(ncm, ncm_alloc_inst, ncm_alloc);"
+      ]
+    },
+    {
+      "id": "init-devtmpfs-kconfig",
+      "capabilities": [
+        "init-key-only-ssh"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/base/Kconfig",
+      "required": [
+        "DEVTMPFS",
+        "DEVTMPFS_MOUNT"
+      ]
+    },
+    {
+      "id": "init-devtmpfs-source",
+      "capabilities": [
+        "init-key-only-ssh"
+      ],
+      "kind": "source",
+      "path": "drivers/base/devtmpfs.c",
+      "required": [
+        "int __init devtmpfs_mount(void)",
+        "int __init devtmpfs_init(void)"
+      ]
+    },
+    {
+      "id": "init-ikconfig-kconfig",
+      "capabilities": [
+        "init-key-only-ssh"
+      ],
+      "kind": "kconfig",
+      "path": "init/Kconfig",
+      "required": [
+        "IKCONFIG",
+        "IKCONFIG_PROC"
+      ]
+    },
+    {
+      "id": "init-ikconfig-source",
+      "capabilities": [
+        "init-key-only-ssh"
+      ],
+      "kind": "source",
+      "path": "kernel/configs.c",
+      "required": [
+        "proc_create(\"config.gz\","
+      ]
+    },
+    {
+      "id": "rollback-kconfig",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "kconfig",
+      "path": "kernel/Kconfig.kexec",
+      "required": [
+        "KEXEC"
+      ]
+    },
+    {
+      "id": "rollback-pm-kconfig",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "kconfig",
+      "path": "kernel/power/Kconfig",
+      "required": [
+        "PM"
+      ]
+    },
+    {
+      "id": "rollback-sysrq-kconfig",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "kconfig",
+      "path": "lib/Kconfig.debug",
+      "required": [
+        "MAGIC_SYSRQ"
+      ]
+    },
+    {
+      "id": "rollback-kexec-source",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "source",
+      "path": "kernel/kexec_core.c",
+      "required": [
+        "int kernel_kexec(void)",
+        "kernel_restart_prepare(\"kexec reboot\");"
+      ]
+    },
+    {
+      "id": "rollback-reboot-source",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "source",
+      "path": "kernel/reboot.c",
+      "required": [
+        "void emergency_restart(void)",
+        "void kernel_restart(char *cmd)"
+      ]
+    },
+    {
+      "id": "rollback-sysrq-source",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "kind": "source",
+      "path": "drivers/tty/sysrq.c",
+      "required": [
+        "void __handle_sysrq(",
+        "void handle_sysrq("
+      ]
+    },
+    {
+      "id": "thermal-core-kconfig",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/thermal/Kconfig",
+      "required": [
+        "THERMAL"
+      ]
+    },
+    {
+      "id": "thermal-core-makefile",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "makefile",
+      "path": "drivers/thermal/Makefile",
+      "required": [
+        "CONFIG_THERMAL:thermal_sys.o"
+      ]
+    },
+    {
+      "id": "thermal-qcom-kconfig",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "kconfig",
+      "path": "drivers/thermal/qcom/Kconfig",
+      "required": [
+        "QCOM_TSENS"
+      ]
+    },
+    {
+      "id": "thermal-qcom-makefile",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "makefile",
+      "path": "drivers/thermal/qcom/Makefile",
+      "required": [
+        "CONFIG_QCOM_TSENS:qcom_tsens.o"
+      ]
+    },
+    {
+      "id": "thermal-of-match",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "of-match",
+      "path": "drivers/thermal/qcom/tsens.c",
+      "required": [
+        "qcom,tsens-v2"
+      ]
+    },
+    {
+      "id": "thermal-binding",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "kind": "binding",
+      "path": "Documentation/devicetree/bindings/thermal/qcom-tsens.yaml",
+      "required": [
+        "qcom,sm8350-tsens"
+      ]
+    }
+  ],
+  "dt_checks": [
+    {
+      "id": "board-identity",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/",
+      "status": "okay",
+      "compatible": [
+        "asus,rog-phone5",
+        "qcom,sm8350"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu0",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@0",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a55"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu100",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@100",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a55"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu200",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@200",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a55"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu300",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@300",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a55"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu400",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@400",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a78"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu500",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@500",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a78"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu600",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@600",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-a78"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpu700",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/cpus/cpu@700",
+      "status": "okay",
+      "compatible": [
+        "arm,cortex-x1"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "cpufreq",
+      "capabilities": [
+        "cpu-ram"
+      ],
+      "path": "/soc@0/cpufreq@18591000",
+      "status": "okay",
+      "compatible": [
+        "qcom,sm8350-cpufreq-epss",
+        "qcom,cpufreq-epss"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "ufs-controller-isolated",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "path": "/soc@0/ufshc@1d84000",
+      "status": "disabled",
+      "compatible": [
+        "qcom,sm8350-ufshc",
+        "qcom,ufshc",
+        "jedec,ufs-2.0"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "ufs-phy-isolated",
+      "capabilities": [
+        "read-only-network-root"
+      ],
+      "path": "/soc@0/phy@1d87000",
+      "status": "disabled",
+      "compatible": [
+        "qcom,sm8350-qmp-ufs-phy"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "usb2-phy",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/phy@88e3000",
+      "status": "okay",
+      "compatible": [
+        "qcom,sm8350-usb-hs-phy",
+        "qcom,usb-snps-hs-7nm-phy"
+      ],
+      "string_properties": {},
+      "u32_properties": {
+        "#phy-cells": [
+          0
+        ]
+      },
+      "present_properties": []
+    },
+    {
+      "id": "usb3-dp-phy-isolated",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/phy@88e8000",
+      "status": "disabled",
+      "compatible": [
+        "qcom,sm8350-qmp-usb3-dp-phy"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "usb3-uni-phy-isolated",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/phy@88eb000",
+      "status": "disabled",
+      "compatible": [
+        "qcom,sm8350-qmp-usb3-uni-phy"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "usb-primary",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/usb@a6f8800",
+      "status": "okay",
+      "compatible": [
+        "qcom,sm8350-dwc3",
+        "qcom,dwc3"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": [
+        "qcom,select-utmi-as-pipe-clk"
+      ]
+    },
+    {
+      "id": "usb-primary-dwc3",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/usb@a6f8800/usb@a600000",
+      "status": "okay",
+      "compatible": [
+        "snps,dwc3"
+      ],
+      "string_properties": {
+        "dr_mode": [
+          "peripheral"
+        ],
+        "maximum-speed": [
+          "high-speed"
+        ],
+        "phy-names": [
+          "usb2-phy"
+        ]
+      },
+      "u32_properties": {},
+      "phandle_properties": {
+        "phys": [
+          "/soc@0/phy@88e3000"
+        ]
+      },
+      "present_properties": []
+    },
+    {
+      "id": "usb-secondary-isolated",
+      "capabilities": [
+        "usb-ncm-network"
+      ],
+      "path": "/soc@0/usb@a8f8800",
+      "status": "disabled",
+      "compatible": [
+        "qcom,sm8350-dwc3",
+        "qcom,dwc3"
+      ],
+      "string_properties": {},
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "psci-reset",
+      "capabilities": [
+        "watchdog-rollback-reboot"
+      ],
+      "path": "/psci",
+      "status": "okay",
+      "compatible": [
+        "arm,psci-1.0"
+      ],
+      "string_properties": {
+        "method": [
+          "smc"
+        ]
+      },
+      "u32_properties": {},
+      "present_properties": []
+    },
+    {
+      "id": "tsens0",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "path": "/soc@0/thermal-sensor@c263000",
+      "status": "okay",
+      "compatible": [
+        "qcom,sm8350-tsens",
+        "qcom,tsens-v2"
+      ],
+      "string_properties": {},
+      "u32_properties": {
+        "#qcom,sensors": [
+          15
+        ]
+      },
+      "present_properties": []
+    },
+    {
+      "id": "tsens1",
+      "capabilities": [
+        "thermal-readonly"
+      ],
+      "path": "/soc@0/thermal-sensor@c265000",
+      "status": "okay",
+      "compatible": [
+        "qcom,sm8350-tsens",
+        "qcom,tsens-v2"
+      ],
+      "string_properties": {},
+      "u32_properties": {
+        "#qcom,sensors": [
+          14
+        ]
+      },
+      "present_properties": []
+    }
+  ]
+}
