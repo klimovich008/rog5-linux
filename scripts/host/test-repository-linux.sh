@@ -134,6 +134,8 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-recovery-control-native.py
 		scripts/host/test-recovery-bundle-native.py
 		scripts/host/test-prepare-recovery-runtime-bundle.py
+		scripts/host/test-prepare-recovery-candidate.py
+		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/host/test-recovery-fetch-native.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
@@ -148,6 +150,8 @@ else
 		scripts/host/test-recovery-control-native.py
 		scripts/host/test-recovery-bundle-native.py
 		scripts/host/test-prepare-recovery-runtime-bundle.py
+		scripts/host/test-prepare-recovery-candidate.py
+		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/device/test-a660-acceptance.py
 		scripts/host/test-a660-runtime-root.py
 		scripts/device/test-network-root-init.sh

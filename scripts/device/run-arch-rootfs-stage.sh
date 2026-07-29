@@ -9,7 +9,8 @@ target=
 
 case $device_stage in
 	scripts/device/stage-arch-rootfs.sh|\
-	scripts/device/stage-arch-rootfs-v3.sh) ;;
+	scripts/device/stage-arch-rootfs-v3.sh|\
+	scripts/device/stage-arch-headless-rootfs.sh) ;;
 	*) echo "FAIL unsupported Arch device stage: $device_stage" >&2; exit 1 ;;
 esac
 backup=$(mktemp)

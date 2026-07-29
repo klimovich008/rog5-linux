@@ -115,6 +115,9 @@ grep -Fq '68B3537F39A313B3E574D06777193F152BDBE6A6' \
 	"$repo/scripts/device/verify-arch-rootfs.sh"
 
 grep -Fq 'verify-staged-arch-rootfs-v2.sh' "$stage"
+grep -Fq 'headless-v1)' "$stage"
+grep -Fq 'stage-arch-headless-rootfs.sh' "$stage"
+grep -Fq 'verify-staged-arch-headless-rootfs.sh' "$stage"
 grep -Fq 'modules-7.1.4-network-root.tar.gz' "$stage"
 grep -Fq 'bsdtar --acls --xattrs --fflags' "$stage"
 grep -Fq 'libarchive-tools-3.8.7-r0.apk' \
@@ -127,6 +130,12 @@ grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
 	"$repo/packaging/arch/10-rog5-sshd.conf"
 grep -Fq 'unmanaged-devices=interface-name:usb0' \
 	"$repo/packaging/arch/10-rog5-usb-unmanaged.conf"
+grep -Fqx 'openssh' "$repo/packaging/arch/headless-packages.txt"
+if grep -Eq 'plasma|chromium|vulkan|mesa|pipewire|nodejs|npm|wifi|wireguard' \
+	"$repo/packaging/arch/headless-packages.txt"; then
+	echo 'FAIL headless package profile contains deferred userspace' >&2
+	exit 1
+fi
 
 if grep -Eq -- '--privileged|--network[= ]host' "$fetch" "$stage"; then
 	echo 'FAIL Linux rootfs tools request broad container privileges' >&2
