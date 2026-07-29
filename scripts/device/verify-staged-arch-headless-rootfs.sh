@@ -68,14 +68,19 @@ fi
 cmp /etc/ssh/sshd_config.d/10-rog5-server.conf \
 	"$repo/packaging/arch/10-rog5-sshd.conf"
 ssh-keygen -q -t ed25519 -N '' -f /run/rog5-sshd-verify-key
-sshd -T -h /run/rog5-sshd-verify-key >/run/rog5-sshd-effective.conf
-grep -Fqx 'passwordauthentication no' /run/rog5-sshd-effective.conf
-grep -Fqx 'kbdinteractiveauthentication no' /run/rog5-sshd-effective.conf
-grep -Eq '^permitrootlogin (without-password|prohibit-password)$' \
+sed 's|^HostKey .*|HostKey /run/rog5-sshd-verify-key|' \
+	/etc/ssh/sshd_config.d/10-rog5-server.conf \
+	>/run/rog5-sshd-verify.conf
+sshd -T -C user=root,host=localhost,addr=127.0.0.1 \
+	-f /run/rog5-sshd-verify.conf >/run/rog5-sshd-effective.conf
+grep -Fixq 'passwordauthentication no' /run/rog5-sshd-effective.conf
+grep -Fixq 'kbdinteractiveauthentication no' \
 	/run/rog5-sshd-effective.conf
-grep -Fqx 'pubkeyauthentication yes' /run/rog5-sshd-effective.conf
+grep -Eqi '^permitrootlogin (without-password|prohibit-password)$' \
+	/run/rog5-sshd-effective.conf
+grep -Fixq 'pubkeyauthentication yes' /run/rog5-sshd-effective.conf
 rm -f /run/rog5-sshd-verify-key /run/rog5-sshd-verify-key.pub \
-	/run/rog5-sshd-effective.conf
+	/run/rog5-sshd-verify.conf /run/rog5-sshd-effective.conf
 grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
 	/etc/ssh/sshd_config.d/10-rog5-server.conf
 [[ -z $(find /etc/ssh -maxdepth 1 -type f -name 'ssh_host_*' \

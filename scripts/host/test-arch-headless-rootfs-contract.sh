@@ -52,7 +52,7 @@ grep -Fq 'rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id' "$stage"
 grep -Fq 'profile=headless-ssh-v1' "$stage"
 grep -Fq "ssh-keygen -l -f \"\$authorized_key\"" "$stage" "$host"
 grep -Fq "linux-firmware(\$|-)" "$stage" "$verify"
-grep -Fq 'sshd -T -h /run/rog5-sshd-verify-key' "$verify"
+grep -Fq 'sshd -T -C user=root,host=localhost,addr=127.0.0.1' "$verify"
 grep -Fq 'PasswordAuthentication no' \
 	"$repo/packaging/arch/10-rog5-sshd.conf"
 
