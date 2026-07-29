@@ -17,6 +17,8 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/host/run-minimal-headless-runtime-acceptance.sh` stages the exact
   probe below target `/run`, captures one record over strict SSH, and invokes
   the verifier.
+- `scripts/host/pin-minimal-headless-host-key.py` creates the private
+  known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
   proc/sys/run/root fixture and rejects nine cross-capability mutations.
 - `scripts/host/test-verify-minimal-headless-runtime.py` exercises the
@@ -88,9 +90,15 @@ mode-`0600` SSH key and target known-hosts files and a mode-`0700` evidence
 directory, all outside the repository. It also requires a clean local branch
 at the exact tracked origin commit.
 
-It assumes the current target host key has already been pinned by the
-authorized live-cycle controller. It never uses `accept-new`, disables host
-checking, or writes a reusable host identity. It:
+It assumes the current target host key has already been pinned by
+`pin-minimal-headless-host-key.py` within the authorized live-cycle
+controller. The sealed lower intentionally contains no reusable server host
+key; systemd creates a volatile key in the RAM-backed upper layer. The
+bootstrap first records the signed recovery gadget's physical USB location,
+then accepts only the exact target NCM gadget on that same port and direct
+`169.254.77.1/30` route. It scans only one public Ed25519 host key and offers
+no client credential. The acceptance runner itself never uses `accept-new`,
+disables host checking, or writes a reusable host identity. It:
 
 1. creates one absent `/run` staging directory;
 2. copies the current probe and verifies its root ownership, mode, and hash;
@@ -104,6 +112,11 @@ retry an ambiguous action, disarm the rollback watchdog, reboot the target,
 resolve the recovery intent, or inspect fallback. Those actions belong to the
 separate attended live-cycle controller and authorization.
 
+The USB-continuity bootstrap is a temporary-development trust bridge, not the
+long-term server identity. Persistent operation will require a separately
+designed host-key state boundary that survives reboot without placing a
+private key in Git, a boot image, or an unsealed writable root.
+
 ## Hardware-free verification
 
 Run the focused suite:
@@ -111,6 +124,7 @@ Run the focused suite:
 ```sh
 scripts/device/test-collect-minimal-headless-runtime.sh
 scripts/host/test-verify-minimal-headless-runtime.py
+scripts/host/test-pin-minimal-headless-host-key.py
 scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 ```
 

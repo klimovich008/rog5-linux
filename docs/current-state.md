@@ -125,6 +125,21 @@ was used and no phone was contacted. See the
 [runtime contract](minimal-headless-runtime-acceptance.md) and
 [offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
 
+The sealed lower deliberately has no reusable SSH host key, so the corrected
+temporary target cannot have a static known-hosts entry before boot. The new
+host-key bootstrap closes that development-only gap without `accept-new`: it
+records the exact recovery USB device location, requires the
+`ROG5_network_root` NCM gadget and `cdc_ncm` driver on the same port, verifies
+the direct `169.254.77.1/30` route, scans exactly one nonzero Ed25519 public
+key without offering a client credential, rechecks USB and route continuity,
+and publishes a caller-owned mode-`0600` alias pin. Fifteen hardware-free test
+groups reject stale/cross-boot anchors, duplicate or wrong gadgets, another
+port, wrong driver, routed peers, malformed/multiple/RSA/zero keys, unsafe
+paths, and missing authorization. This does not create a persistent server
+identity or grant a live cycle. See the
+[bootstrap contract](minimal-headless-host-key-bootstrap.md) and
+[offline result](../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
+
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 55 pseudo-terminal, postmortem, and

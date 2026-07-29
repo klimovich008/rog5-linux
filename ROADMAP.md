@@ -130,6 +130,10 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Add one canonical 48-field runtime observation, candidate-bound host
   verifier, nine target mutations, 19 host test groups, and a strict-SSH
   one-collection runner test for all six active capabilities.
+- [x] Add a credential-free volatile host-key bootstrap that binds the signed
+  recovery and target NCM gadgets to one physical USB port, requires an exact
+  direct `/30` route, pins one nonzero Ed25519 key, and rechecks continuity
+  before strict SSH can use a client credential.
 
 Exit: parser, initramfs, recovery, root handoff, and policy regressions fail
 before a phone cycle.
@@ -331,7 +335,9 @@ Continue in this order:
    delta against rejected and accepted evidence;
 5. [x] define and mutation-test the exact private runtime record for all six
    active capabilities while leaving rollback armed;
-6. request fresh, separate authorization before creating or using a live
+6. [x] close the temporary root's volatile SSH host-key gap without
+   `accept-new`, client-key use, or a reusable identity;
+7. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-7. if the minimal root reaches key-only SSH and clean rollback, start the H3
+8. if the minimal root reaches key-only SSH and clean rollback, start the H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

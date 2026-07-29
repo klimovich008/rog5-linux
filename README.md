@@ -53,6 +53,11 @@ gate.
   [offline result](test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
   — canonical target evidence, candidate/runtime thresholds, strict-SSH
   capture, and the still-armed rollback boundary.
+- [Volatile target host-key bootstrap](docs/minimal-headless-host-key-bootstrap.md)
+  and
+  [offline result](test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md)
+  — recovery-to-target physical USB continuity, credential-free Ed25519
+  discovery, and the strict-SSH handoff for temporary development boots.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
@@ -195,7 +200,11 @@ read-only probe and fail-closed verifier now bind a 48-field private record to
 the exact corrected candidate, boot ID, all six active core capabilities,
 device-specific CPU/RAM/thermal thresholds, and the still-armed rollback
 watchdog. The strict-SSH capture runner cannot boot, sign, reboot, disarm, or
-retry execution. It remains offline-only pending fresh live authorization.
+retry execution. Because this credential-free root creates a volatile server
+host key in RAM, a separate bootstrap now pins only the public Ed25519 key
+after proving that the exact target NCM gadget replaced signed recovery on the
+same physical USB port. No client key is offered during that discovery. Both
+paths remain offline-only pending fresh live authorization.
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

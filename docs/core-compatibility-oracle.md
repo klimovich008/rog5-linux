@@ -21,6 +21,9 @@ contact the phone.
 - `scripts/device/collect-minimal-headless-runtime.sh` and
   `scripts/host/verify-minimal-headless-runtime.py` turn one future live
   observation into a candidate-bound record without changing the phone.
+- `scripts/host/pin-minimal-headless-host-key.py` binds volatile target
+  host-key discovery to exact recovery/target USB continuity before the
+  strict-SSH runtime runner can use a client key.
 - `scripts/device/verify-mainline-network-root-build.sh` invokes the oracle
   against every completed network-root kernel build.
 
@@ -44,9 +47,10 @@ gates are preserved:
 
 Each active capability now also names the focused target-probe and
 host-verifier regression tests. SSH and rollback additionally name the
-one-collection strict-SSH runner test. This links compile-time ancestry to the
-exact runtime evidence that must pass before the corrected root can move from
-`live-pending`.
+one-collection strict-SSH runner test. USB and SSH additionally name the
+credential-free host-key bootstrap suite. This links compile-time ancestry to
+the exact runtime evidence that must pass before the corrected root can move
+from `live-pending`.
 
 Future capabilities remain unaccepted:
 
