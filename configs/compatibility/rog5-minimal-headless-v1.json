@@ -252,7 +252,8 @@
         "scripts/device/test-recovery-candidate-dtb-contract.sh",
         "scripts/device/test-network-root-init.sh",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
-        "scripts/host/test-verify-minimal-headless-runtime.py"
+        "scripts/host/test-verify-minimal-headless-runtime.py",
+        "scripts/host/test-pin-minimal-headless-host-key.py"
       ]
     },
     {
@@ -276,6 +277,7 @@
         "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py",
+        "scripts/host/test-pin-minimal-headless-host-key.py",
         "scripts/host/test-run-minimal-headless-runtime-acceptance.sh"
       ]
     },

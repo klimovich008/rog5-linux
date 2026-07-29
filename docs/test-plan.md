@@ -227,6 +227,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   mutations, and prove one strict-SSH private capture with no boot, signing,
   retry, disarm, or reboot action. See the
   [offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
+- `test-pin-minimal-headless-host-key.py` covers the credential-free bridge
+  between signed recovery and strict target SSH. It fixture-tests canonical
+  private anchors, host-boot and 600-second freshness binding, exact
+  recovery/target products, same-port USB continuity, `cdc_ncm`, one direct
+  `/30` route, one nonzero Ed25519 wire key, atomic mode-`0600` publication,
+  and pre-inspection authorization. It rejects duplicate gadgets, another
+  port, wrong driver, stale or malformed anchors, routed peers, absent,
+  multiple, RSA, zero, or extended keys, repository/symlink/loose-parent
+  outputs, and an enumerated set of client-credential and TOFU command
+  surfaces. See the
+  [bootstrap result](../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and

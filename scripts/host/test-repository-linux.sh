@@ -135,6 +135,7 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-core-compatibility-oracle.py
 			scripts/device/test-collect-minimal-headless-runtime.sh
 			scripts/host/test-verify-minimal-headless-runtime.py
+			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
@@ -169,6 +170,7 @@ else
 			scripts/host/test-core-compatibility-oracle.py
 			scripts/device/test-collect-minimal-headless-runtime.sh
 			scripts/host/test-verify-minimal-headless-runtime.py
+			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
