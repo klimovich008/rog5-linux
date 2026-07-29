@@ -65,6 +65,14 @@ def resolve_inventory_root(path: Path, label: str) -> Path:
     return resolved
 
 
+def podman_store_identity(graph_root: Path, volume_root: Path) -> str:
+    encoded = (
+        f"graph-root\0{graph_root.as_posix()}\0"
+        f"volume-root\0{volume_root.as_posix()}\0"
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def tracked_lines(repo: Path) -> list[tuple[str, int, str]]:
     lines: list[tuple[str, int, str]] = []
     for raw_name in git(repo, "ls-files", "-z").split(b"\0"):
@@ -298,7 +306,7 @@ def data_entries(
 
 def load_podman_state(
     options: argparse.Namespace,
-) -> tuple[list[dict[str, object]], int, Path, tuple[str, ...]]:
+) -> tuple[list[dict[str, object]], int, Path, tuple[str, ...], str]:
     if options.podman_volumes_json is not None:
         volumes = json.loads(
             options.podman_volumes_json.read_text(encoding="utf-8")
@@ -309,6 +317,11 @@ def load_podman_state(
             fail("--podman-volume-root is required with fixture state")
         container_count = options.podman_container_count
         volume_root = options.podman_volume_root
+        graph_root = (
+            options.podman_graph_root
+            if options.podman_graph_root is not None
+            else volume_root.parent
+        )
         size_command_prefix: tuple[str, ...] = ()
     else:
         command = options.podman_command
@@ -322,17 +335,25 @@ def load_podman_state(
             run(command, "info", "--format", "json").decode("utf-8")
         )
         container_count = len(containers)
+        graph_root = Path(str(info["store"]["graphRoot"]))
         volume_root = Path(str(info["store"]["volumePath"]))
         size_command_prefix = (command, "unshare")
     if not isinstance(volumes, list):
         fail("Podman volume inventory is not a JSON list")
     if container_count < 0:
         fail("Podman container count cannot be negative")
+    resolved_graph_root = resolve_inventory_root(
+        Path(graph_root), "Podman graph"
+    )
+    resolved_volume_root = resolve_inventory_root(
+        Path(volume_root), "Podman volume"
+    )
     return (
         volumes,
         container_count,
-        resolve_inventory_root(Path(volume_root), "Podman volume"),
+        resolved_volume_root,
         size_command_prefix,
+        podman_store_identity(resolved_graph_root, resolved_volume_root),
     )
 
 
@@ -345,7 +366,19 @@ def podman_entries(
     size_command_prefix: tuple[str, ...],
 ) -> list[dict[str, object]]:
     paths: list[Path] = []
-    normalized: list[tuple[dict[str, object], str, Path, list[str], int]] = []
+    normalized: list[
+        tuple[
+            dict[str, object],
+            str,
+            Path,
+            list[str],
+            int,
+            str,
+            str,
+            str,
+            object,
+        ]
+    ] = []
     for volume in volumes:
         name = str(volume.get("Name", ""))
         if not name or "/" in name or name in {".", ".."}:
@@ -370,8 +403,24 @@ def podman_entries(
         if mountpoint != expected_mountpoint:
             fail(f"Podman mountpoint does not match volume root: {name}")
         mount_count = int(volume.get("MountCount", 0))
+        driver = str(volume.get("Driver", ""))
+        volume_scope = str(volume.get("Scope", ""))
+        created_at = str(volume.get("CreatedAt", ""))
+        volume_options = volume.get("Options")
         references = references_for(name, source_lines)
-        normalized.append((volume, name, path, references, mount_count))
+        normalized.append(
+            (
+                volume,
+                name,
+                path,
+                references,
+                mount_count,
+                driver,
+                volume_scope,
+                created_at,
+                volume_options,
+            )
+        )
         paths.append(path)
     allocated = disk_sizes(
         paths, apparent=False, command_prefix=size_command_prefix
@@ -380,8 +429,27 @@ def podman_entries(
         paths, apparent=True, command_prefix=size_command_prefix
     )
     entries: list[dict[str, object]] = []
-    for _volume, name, path, references, mount_count in normalized:
-        if container_count:
+    for (
+        _volume,
+        name,
+        path,
+        references,
+        mount_count,
+        driver,
+        volume_scope,
+        created_at,
+        volume_options,
+    ) in normalized:
+        if not name.startswith("rog5-"):
+            decision = "retain"
+            reason = "volume is outside the reserved ROG5 project prefix"
+        elif driver != "local" or volume_scope != "local":
+            decision = "retain"
+            reason = "volume does not use the local project storage contract"
+        elif not created_at or volume_options != {}:
+            decision = "retain"
+            reason = "volume creation/options identity is not plain project storage"
+        elif container_count:
             decision = "retain"
             reason = "Podman has containers; attachment closure is not empty"
         elif mount_count:
@@ -407,6 +475,10 @@ def podman_entries(
                 runtime={
                     "container_count": container_count,
                     "mount_count": mount_count,
+                    "driver": driver,
+                    "scope": volume_scope,
+                    "created_at": created_at,
+                    "options": volume_options,
                 },
             )
         )
@@ -480,6 +552,7 @@ def build_plan(options: argparse.Namespace) -> dict[str, object]:
         container_count,
         volume_root,
         size_command_prefix,
+        store_identity,
     ) = load_podman_state(options)
 
     entries = data_entries(
@@ -528,6 +601,7 @@ def build_plan(options: argparse.Namespace) -> dict[str, object]:
         },
         "runtime": {
             "podman_container_count": container_count,
+            "podman_store_identity_sha256": store_identity,
         },
         "summary": summarize(entries),
         "entries": entries,
@@ -596,6 +670,7 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--podman-volumes-json", type=Path)
     parser.add_argument("--podman-container-count", type=int)
     parser.add_argument("--podman-volume-root", type=Path)
+    parser.add_argument("--podman-graph-root", type=Path)
     parser.add_argument("--output", type=Path)
     return parser.parse_args(arguments)
 
