@@ -217,6 +217,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   managers, and the absence of desktop/browser/GPU/radio/agent and phone-write
   surfaces. The real ARM64 stage runs the same complete verifier before
   archival and after clean extraction.
+- `test-collect-minimal-headless-runtime.sh`,
+  `test-verify-minimal-headless-runtime.py`, and
+  `test-run-minimal-headless-runtime-acceptance.sh` define the next corrected
+  target result without granting live authority. They require one canonical
+  48-field observation covering the six active compatibility capabilities,
+  bind it to the exact probe/boot/candidate/root/watchdog identities and
+  device-specific CPU/RAM/thermal envelopes, reject target and record
+  mutations, and prove one strict-SSH private capture with no boot, signing,
+  retry, disarm, or reboot action. See the
+  [offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and

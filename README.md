@@ -21,7 +21,7 @@ build outputs.
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
-| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle with 33 mutation tests; corrected candidate remains live-pending |
+| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; a 48-field runtime probe/verifier covers all six active capabilities, while the corrected candidate remains live-pending |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper now reproduce in a complete offline twin build |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -48,6 +48,11 @@ gate.
   [offline result](test-results/2026-07-29-core-compatibility-oracle-offline.md)
   — exact ASUS 5.4/accepted 7.1 ancestry, active Kconfig contract, mutation
   coverage, and the boundary before evaluating another kernel.
+- [Minimal-headless runtime acceptance](docs/minimal-headless-runtime-acceptance.md)
+  and
+  [offline result](test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
+  — canonical target evidence, candidate/runtime thresholds, strict-SSH
+  capture, and the still-armed rollback boundary.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
@@ -184,6 +189,13 @@ and wrapper now reproduce twice under one destroyed disposable key, remain
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the
 [live rejection](test-results/2026-07-29-headless-stable-recovery-live.md).
+
+The next target observation is no longer an ad-hoc terminal transcript. One
+read-only probe and fail-closed verifier now bind a 48-field private record to
+the exact corrected candidate, boot ID, all six active core capabilities,
+device-specific CPU/RAM/thermal thresholds, and the still-armed rollback
+watchdog. The strict-SSH capture runner cannot boot, sign, reboot, disarm, or
+retry execution. It remains offline-only pending fresh live authorization.
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

@@ -18,6 +18,9 @@ contact the phone.
   verifier.
 - `scripts/host/test-core-compatibility-oracle.py` is the mutation and CLI
   regression suite.
+- `scripts/device/collect-minimal-headless-runtime.sh` and
+  `scripts/host/verify-minimal-headless-runtime.py` turn one future live
+  observation into a candidate-bound record without changing the phone.
 - `scripts/device/verify-mainline-network-root-build.sh` invokes the oracle
   against every completed network-root kernel build.
 
@@ -38,6 +41,12 @@ gates are preserved:
 | `init-key-only-ssh` | devtmpfs and embedded-config requirements, paired with the minimal root and strict-SSH CI gates |
 | `watchdog-rollback-reboot` | kexec, SysRq, PM, target-init, and guarded recovery-runner gates |
 | `thermal-readonly` | thermal framework and Qualcomm TSENS with retained live read-only evidence |
+
+Each active capability now also names the focused target-probe and
+host-verifier regression tests. SSH and rollback additionally name the
+one-collection strict-SSH runner test. This links compile-time ancestry to the
+exact runtime evidence that must pass before the corrected root can move from
+`live-pending`.
 
 Future capabilities remain unaccepted:
 
@@ -130,3 +139,7 @@ pass prints `status=metadata-only`; only a verified Kconfig prints
 A compile or oracle pass is necessary ancestry evidence. It is never a
 substitute for phone-side CPU/RAM, storage, USB, SSH, lifecycle, thermal, or
 hardware acceptance.
+
+The
+[minimal-headless runtime acceptance contract](minimal-headless-runtime-acceptance.md)
+defines that next phone-side record and its offline mutation coverage.

@@ -113,6 +113,18 @@ evidence-only, and suspend, sensors, and audio remain pending. The corrected
 root is still `live-pending` with `authority=none`. See the
 [offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
 
+The corrected target's next live observation is now specified independently
+of the boot controller. One read-only target probe emits exactly 48 canonical
+fields for the six active capabilities. A host verifier binds the record to
+the current probe hash, a separately observed boot ID, the full compatibility
+oracle, the corrected candidate's root identities, accepted CPU/RAM/thermal
+envelopes, strict key-only SSH, and the live 600-second rollback lease. Target,
+host, and mocked strict-SSH runner tests pass offline. The runner executes the
+probe once and cannot boot, sign, retry kexec, disarm, or reboot. No credential
+was used and no phone was contacted. See the
+[runtime contract](minimal-headless-runtime-acceptance.md) and
+[offline result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md).
+
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
 native responder now passes 55 pseudo-terminal, postmortem, and

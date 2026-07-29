@@ -1,0 +1,452 @@
+#!/bin/sh
+set -eu
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+runtime_root=${ROG5_RUNTIME_ROOT:-}
+test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
+case $test_mode:$runtime_root in
+	0:) execution_mode=live ;;
+	1:/*)
+	[ "$runtime_root" != / ] ||
+			fail 'test runtime root must not be the host root'
+		[ -d "$runtime_root" ] && [ ! -L "$runtime_root" ] ||
+			fail 'test runtime root is unsafe'
+		execution_mode='test'
+		;;
+	*) fail 'runtime fixture mode is invalid' ;;
+esac
+
+runtime_path() {
+	printf '%s%s' "$runtime_root" "$1"
+}
+
+for command in awk cat dmesg find findmnt grep id ip nproc readlink sed \
+	sha256sum ssh-keygen sshd stat systemctl tr uname wc; do
+	command -v "$command" >/dev/null ||
+		fail "missing runtime probe command: $command"
+done
+
+owner_uid=$(id -u)
+owner_gid=$(id -g)
+if [ "$execution_mode" = live ]; then
+	[ "$owner_uid:$owner_gid" = 0:0 ] ||
+		fail 'live runtime probe requires root'
+fi
+
+unsigned_integer() {
+	case $1 in
+		''|*[!0-9]*) return 1 ;;
+	esac
+	[ "$1" = 0 ] || [ "${1#0}" = "$1" ]
+}
+
+signed_integer() {
+	value=$1
+	case $value in
+		-*) value=${value#-} ;;
+	esac
+	unsigned_integer "$value" || return 1
+	[ "$1" != -0 ]
+}
+
+sha256_value() {
+	case $1 in
+		''|*[!0-9a-f]*) return 1 ;;
+	esac
+	[ "${#1}" -eq 64 ] &&
+		[ "$1" != \
+		0000000000000000000000000000000000000000000000000000000000000000 ]
+}
+
+record_value() {
+	file=$1
+	line_number=$2
+	expected_key=$3
+	awk -F= -v line_number="$line_number" -v expected_key="$expected_key" '
+		NR == line_number {
+			if (NF != 2 || $1 != expected_key || $2 == "")
+				exit 1
+			print $2
+			found = 1
+		}
+		END {
+			if (!found)
+				exit 1
+		}
+	' "$file"
+}
+
+regular_metadata() {
+	file=$1
+	mode=$2
+	label=$3
+	[ -f "$file" ] && [ ! -L "$file" ] ||
+		fail "$label is absent or linked"
+	[ "$(stat -c '%u:%g:%a:%F' "$file")" = \
+		"$owner_uid:$owner_gid:$mode:regular file" ] ||
+		fail "$label metadata is unsafe"
+}
+
+process_start_time_ticks() (
+	process_pid=$1
+	process_stat=$(cat "$(runtime_path "/proc/$process_pid/stat")" 2>/dev/null) ||
+		exit 1
+	process_fields=${process_stat#*) }
+	[ "$process_fields" != "$process_stat" ] || exit 1
+	set -f
+	# The proc stat fields are intentionally split after globbing is disabled.
+	# shellcheck disable=SC2086
+	set -- $process_fields
+	[ "$#" -ge 20 ] || exit 1
+	shift 19
+	unsigned_integer "$1" || exit 1
+	printf '%s\n' "$1"
+)
+
+process_parent_pid() (
+	process_pid=$1
+	process_stat=$(cat "$(runtime_path "/proc/$process_pid/stat")" 2>/dev/null) ||
+		exit 1
+	process_fields=${process_stat#*) }
+	[ "$process_fields" != "$process_stat" ] || exit 1
+	set -f
+	# The proc stat fields are intentionally split after globbing is disabled.
+	# shellcheck disable=SC2086
+	set -- $process_fields
+	[ "$#" -ge 2 ] || exit 1
+	unsigned_integer "$2" || exit 1
+	printf '%s\n' "$2"
+)
+
+process_alive() {
+	process_pid=$1
+	[ -d "$(runtime_path "/proc/$process_pid")" ] || return 1
+	if [ "$execution_mode" = live ]; then
+		kill -0 "$process_pid" 2>/dev/null
+	fi
+}
+
+probe_path=$0
+[ -f "$probe_path" ] && [ ! -L "$probe_path" ] ||
+	fail 'runtime probe source is absent or linked'
+probe_sha256=$(sha256sum "$probe_path" | awk '{ print $1 }')
+sha256_value "$probe_sha256" || fail 'runtime probe hash is invalid'
+
+kernel_release=$(uname -r)
+machine=$(uname -m)
+[ "$kernel_release" = 7.1.4-g7a5cef0db479 ] ||
+	fail 'unexpected target kernel'
+[ "$machine" = aarch64 ] || fail 'target machine is not AArch64'
+
+pid1=$(cat "$(runtime_path /proc/1/comm)")
+[ "$pid1" = systemd ] || fail 'PID 1 is not systemd'
+system_state=$(systemctl is-system-running 2>/dev/null || true)
+[ "$system_state" = running ] || fail 'systemd is not running'
+default_target=$(systemctl get-default 2>/dev/null || true)
+[ "$default_target" = multi-user.target ] ||
+	fail 'default target is not headless'
+sshd_state=$(systemctl is-active sshd.service 2>/dev/null || true)
+[ "$sshd_state" = active ] || fail 'SSH service is not active'
+server_inhibitor_state=$(
+	systemctl is-active rog5-server-inhibit.service 2>/dev/null || true
+)
+[ "$server_inhibitor_state" = active ] ||
+	fail 'server sleep inhibitor is not active'
+failed_units=$(
+	systemctl --failed --no-legend --plain 2>/dev/null |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$failed_units" -eq 0 ] || fail 'systemd has failed units'
+
+boot_id=$(cat "$(runtime_path /proc/sys/kernel/random/boot_id)")
+printf '%s\n' "$boot_id" |
+	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+	fail 'boot identity is invalid'
+
+cpu_online_count=$(nproc)
+unsigned_integer "$cpu_online_count" && [ "$cpu_online_count" -gt 0 ] ||
+	fail 'online CPU count is invalid'
+memory_total_kib=$(
+	awk '$1 == "MemTotal:" { print $2; found=1; exit }
+		END { if (!found) exit 1 }' "$(runtime_path /proc/meminfo)"
+)
+memory_available_kib=$(
+	awk '$1 == "MemAvailable:" { print $2; found=1; exit }
+		END { if (!found) exit 1 }' "$(runtime_path /proc/meminfo)"
+)
+unsigned_integer "$memory_total_kib" &&
+	unsigned_integer "$memory_available_kib" &&
+	[ "$memory_total_kib" -gt 0 ] &&
+	[ "$memory_available_kib" -le "$memory_total_kib" ] ||
+	fail 'runtime memory accounting is invalid'
+
+root_fstype=$(findmnt -n -o FSTYPE /)
+[ "$root_fstype" = overlay ] || fail 'root is not OverlayFS'
+lower_source=$(findmnt -n -o SOURCE /.rog5/root-ro)
+[ "$lower_source" = 169.254.77.1:/ ] ||
+	fail 'NFS lower source is not exact'
+lower_options=$(findmnt -n -o OPTIONS /.rog5/root-ro)
+printf '%s\n' "$lower_options" | tr ',' '\n' | grep -qx ro ||
+	fail 'NFS lower is not read-only'
+state_fstype=$(findmnt -n -o FSTYPE /.rog5/state)
+[ "$state_fstype" = tmpfs ] || fail 'writable state is not tmpfs'
+state_options=$(findmnt -n -o OPTIONS /.rog5/state)
+printf '%s\n' "$state_options" | tr ',' '\n' | grep -qx nodev ||
+	fail 'tmpfs state lacks nodev'
+printf '%s\n' "$state_options" | tr ',' '\n' | grep -qx nosuid ||
+	fail 'tmpfs state lacks nosuid'
+
+block_class=$(runtime_path /sys/class/block)
+[ -d "$block_class" ] && [ ! -L "$block_class" ] ||
+	fail 'block device class is absent or linked'
+block_listing=$(
+	find "$block_class" -mindepth 1 -maxdepth 1 \
+		-type l -exec test -e {}/device \; -print
+) || fail 'physical block topology is unreadable'
+physical_block_devices=$(
+	printf '%s' "$block_listing" |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$physical_block_devices" -eq 0 ] ||
+	fail 'physical block device is present'
+block_backed_mounts=0
+while read -r _ _ device _ _ _ rest; do
+	[ -e "$(runtime_path "/sys/dev/block/$device")" ] || continue
+	block_backed_mounts=$((block_backed_mounts + 1))
+done <"$(runtime_path /proc/self/mountinfo)"
+[ "$block_backed_mounts" -eq 0 ] ||
+	fail 'block-backed mount is present'
+[ "$(cat "$(runtime_path /run/rog5-physical-block-count)")" = 0 ] ||
+	fail 'initramfs physical-block handoff changed'
+[ "$(cat "$(runtime_path /run/rog5-network-root-source)")" = \
+	169.254.77.1:/ ] ||
+	fail 'initramfs network-root source changed'
+[ -f "$(runtime_path /run/rog5-network-root-mounted)" ] ||
+	fail 'network-root handoff marker is absent'
+
+usb_carrier=$(cat "$(runtime_path /sys/class/net/usb0/carrier)")
+[ "$usb_carrier" = 1 ] || fail 'USB network carrier is down'
+usb_ipv4_counts=$(
+	ip -4 -o address show dev usb0 |
+		awk '{ total++ }
+			$4 == "169.254.77.2/30" { exact++ }
+			END { print total + 0, exact + 0 }'
+)
+[ "$usb_ipv4_counts" = '1 1' ] ||
+	fail 'USB network address is not exact'
+
+authorized_keys=$(runtime_path /root/.ssh/authorized_keys)
+regular_metadata "$authorized_keys" 600 'authorized keys'
+[ "$(awk 'NF { count++ } END { print count + 0 }' "$authorized_keys")" -eq 1 ] ||
+	fail 'authorized-key count changed'
+ssh-keygen -l -f "$authorized_keys" >/dev/null ||
+	fail 'authorized key is invalid'
+shadow=$(runtime_path /etc/shadow)
+awk -F: '$1 == "root" { found=1; exit substr($2, 1, 1) != "!" }
+	END { if (!found) exit 1 }' "$shadow" ||
+	fail 'root password is not locked'
+host_key=$(runtime_path /etc/ssh/ssh_host_ed25519_key)
+regular_metadata "$host_key" 600 'SSH host key'
+regular_metadata "$host_key.pub" 644 'SSH public host key'
+effective_sshd=$(sshd -T -C user=root,host=localhost,addr=169.254.77.1)
+printf '%s\n' "$effective_sshd" |
+	grep -Fixq 'passwordauthentication no' ||
+	fail 'SSH password authentication is enabled'
+printf '%s\n' "$effective_sshd" |
+	grep -Fixq 'kbdinteractiveauthentication no' ||
+	fail 'SSH keyboard-interactive authentication is enabled'
+printf '%s\n' "$effective_sshd" |
+	grep -Fixq 'pubkeyauthentication yes' ||
+	fail 'SSH public-key authentication is disabled'
+printf '%s\n' "$effective_sshd" |
+	grep -Eiq '^permitrootlogin (without-password|prohibit-password)$' ||
+	fail 'SSH root login policy is not key-only'
+
+identity=$(runtime_path /run/rog5-network-root-identity)
+regular_metadata "$identity" 400 'network-root identity'
+[ "$(wc -l <"$identity")" -eq 11 ] ||
+	fail 'network-root identity field count changed'
+network_root_identity_format=$(record_value "$identity" 1 format)
+[ "$network_root_identity_format" = rog5-network-root-identity-v1 ] ||
+	fail 'network-root identity format changed'
+record_value "$identity" 2 overlay_mount_id >/dev/null
+record_value "$identity" 3 overlay_lower_mount_id >/dev/null
+record_value "$identity" 4 state_mount_id >/dev/null
+[ "$(record_value "$identity" 5 overlay_lower_path)" = /mnt/root-ro ] ||
+	fail 'network-root lower identity changed'
+command_manifest_sha256=$(
+	record_value "$identity" 6 command_manifest_sha256
+)
+root_generation=$(record_value "$identity" 7 root_generation)
+root_tree_sha256=$(record_value "$identity" 8 root_tree_sha256)
+root_seal_sha256=$(record_value "$identity" 9 root_seal_sha256)
+root_tree_entries=$(record_value "$identity" 10 root_tree_entries)
+root_subtree=$(record_value "$identity" 11 root_subtree)
+if ! sha256_value "$command_manifest_sha256" ||
+	! sha256_value "$root_tree_sha256" ||
+	! sha256_value "$root_seal_sha256"; then
+	fail 'network-root identity hash is invalid'
+fi
+unsigned_integer "$root_tree_entries" && [ "$root_tree_entries" -gt 0 ] ||
+	fail 'network-root tree entry count is invalid'
+
+root_seal=$(runtime_path /.rog5/root-ro/.rog5-persistent-seal)
+[ -f "$root_seal" ] && [ ! -L "$root_seal" ] ||
+	fail 'network-root seal is absent or linked'
+root_seal_file_sha256=$(sha256sum "$root_seal" | awk '{ print $1 }')
+[ "$root_seal_file_sha256" = "$root_seal_sha256" ] ||
+	fail 'network-root seal hash changed after handoff'
+command_manifest=$(
+	runtime_path /.rog5/root-ro/etc/rog5/a660-command-manifest
+)
+[ -f "$command_manifest" ] && [ ! -L "$command_manifest" ] ||
+	fail 'headless command manifest is absent or linked'
+[ "$(sha256sum "$command_manifest" | awk '{ print $1 }')" = \
+	"$command_manifest_sha256" ] ||
+	fail 'headless command manifest hash changed after handoff'
+[ "$(wc -l <"$command_manifest")" -eq 2 ] &&
+	[ "$(record_value "$command_manifest" 1 format)" = \
+	rog5-headless-command-manifest-v1 ] &&
+	[ "$(record_value "$command_manifest" 2 workload)" = none ] ||
+	fail 'headless command manifest changed'
+
+thermal_zone_count=0
+thermal_min_millidegree_c=
+thermal_max_millidegree_c=
+for thermal_path in "$(runtime_path /sys/class/thermal)"/thermal_zone*/temp; do
+	[ -r "$thermal_path" ] || continue
+	thermal_value=$(cat "$thermal_path")
+	signed_integer "$thermal_value" ||
+		fail 'thermal zone returned a noncanonical value'
+	[ "$thermal_value" -ge -40000 ] && [ "$thermal_value" -le 150000 ] ||
+		fail 'thermal zone returned an implausible value'
+	thermal_zone_count=$((thermal_zone_count + 1))
+	if [ -z "$thermal_min_millidegree_c" ] ||
+		[ "$thermal_value" -lt "$thermal_min_millidegree_c" ]; then
+		thermal_min_millidegree_c=$thermal_value
+	fi
+	if [ -z "$thermal_max_millidegree_c" ] ||
+		[ "$thermal_value" -gt "$thermal_max_millidegree_c" ]; then
+		thermal_max_millidegree_c=$thermal_value
+	fi
+done
+[ "$thermal_zone_count" -gt 0 ] ||
+	fail 'no readable thermal zones are present'
+
+fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+fatal_kernel_signatures=$(
+	dmesg | grep -Eic "$fatal_pattern" || true
+)
+[ "$fatal_kernel_signatures" -eq 0 ] ||
+	fail 'fatal kernel signature is present'
+
+watchdog_pid_file=$(runtime_path /run/rog5-network-root-watchdog.pid)
+watchdog_lease=$(runtime_path /run/rog5-network-root-watchdog.lease)
+watchdog_marker=$(runtime_path /run/rog5-network-root-watchdog.disarmed.pid)
+regular_metadata "$watchdog_pid_file" 400 'watchdog PID file'
+regular_metadata "$watchdog_lease" 400 'watchdog lease'
+[ ! -e "$watchdog_marker" ] || fail 'rollback watchdog is disarmed'
+[ "$(wc -l <"$watchdog_lease")" -eq 8 ] ||
+	fail 'watchdog lease field count changed'
+[ "$(record_value "$watchdog_lease" 1 format)" = \
+	rog5-network-root-watchdog-v1 ] ||
+	fail 'watchdog lease format changed'
+watchdog_pid=$(record_value "$watchdog_lease" 2 pid)
+watchdog_start=$(record_value "$watchdog_lease" 3 start_time_ticks)
+timer_pid=$(record_value "$watchdog_lease" 4 timer_pid)
+timer_start=$(record_value "$watchdog_lease" 5 timer_start_time_ticks)
+armed_boottime=$(record_value "$watchdog_lease" 6 armed_boottime_seconds)
+deadline_boottime=$(record_value "$watchdog_lease" 7 deadline_boottime_seconds)
+watchdog_timeout_seconds=$(record_value "$watchdog_lease" 8 timeout_seconds)
+for value in "$watchdog_pid" "$watchdog_start" "$timer_pid" "$timer_start" \
+	"$armed_boottime" "$deadline_boottime" "$watchdog_timeout_seconds"; do
+	unsigned_integer "$value" || fail 'watchdog lease integer is invalid'
+done
+[ "$(cat "$watchdog_pid_file")" = "$watchdog_pid" ] ||
+	fail 'watchdog PID and lease disagree'
+[ "$watchdog_pid" -ne 1 ] && [ "$timer_pid" -ne 1 ] &&
+	[ "$watchdog_pid" -ne "$timer_pid" ] ||
+	fail 'watchdog process identity is invalid'
+if ! process_alive "$watchdog_pid" || ! process_alive "$timer_pid"; then
+	fail 'watchdog process is absent'
+fi
+[ "$(cat "$(runtime_path "/proc/$watchdog_pid/comm")")" = init ] &&
+	[ "$(cat "$(runtime_path "/proc/$timer_pid/comm")")" = sleep ] ||
+	fail 'watchdog process name changed'
+[ "$(process_parent_pid "$watchdog_pid")" = 1 ] &&
+	[ "$(process_parent_pid "$timer_pid")" = "$watchdog_pid" ] ||
+	fail 'watchdog process ancestry changed'
+[ "$(process_start_time_ticks "$watchdog_pid")" = "$watchdog_start" ] &&
+	[ "$(process_start_time_ticks "$timer_pid")" = "$timer_start" ] ||
+	fail 'watchdog process start identity changed'
+[ "$(readlink "$(runtime_path "/proc/$watchdog_pid/fd/8")")" = \
+	/dev/kmsg ] &&
+	[ "$(readlink "$(runtime_path "/proc/$watchdog_pid/fd/9")")" = \
+	/proc/sysrq-trigger ] ||
+	fail 'watchdog emergency descriptors changed'
+[ "$deadline_boottime" -eq \
+	"$((armed_boottime + watchdog_timeout_seconds))" ] ||
+	fail 'watchdog lease deadline is inconsistent'
+current_boottime=$(
+	awk 'NR == 1 { split($1, fields, "."); print fields[1] }' \
+		"$(runtime_path /proc/uptime)"
+)
+unsigned_integer "$current_boottime" ||
+	fail 'current boot time is invalid'
+watchdog_remaining_seconds=$((deadline_boottime - current_boottime))
+[ "$watchdog_remaining_seconds" -gt 0 ] ||
+	fail 'rollback watchdog deadline has expired'
+
+printf 'format=rog5-minimal-headless-runtime-v1\n'
+printf 'profile=minimal-headless-v1\n'
+printf 'execution_mode=%s\n' "$execution_mode"
+printf 'probe_sha256=%s\n' "$probe_sha256"
+printf 'active_capabilities=cpu-ram,init-key-only-ssh,read-only-network-root,thermal-readonly,usb-ncm-network,watchdog-rollback-reboot\n'
+printf 'candidate=headless-network-root-v1\n'
+printf 'boot_id=%s\n' "$boot_id"
+printf 'kernel_release=%s\n' "$kernel_release"
+printf 'machine=%s\n' "$machine"
+printf 'pid1=%s\n' "$pid1"
+printf 'system_state=%s\n' "$system_state"
+printf 'default_target=%s\n' "$default_target"
+printf 'cpu_online_count=%s\n' "$cpu_online_count"
+printf 'memory_total_kib=%s\n' "$memory_total_kib"
+printf 'memory_available_kib=%s\n' "$memory_available_kib"
+printf 'root_fstype=%s\n' "$root_fstype"
+printf 'lower_source=%s\n' "$lower_source"
+printf 'lower_read_only=1\n'
+printf 'state_fstype=%s\n' "$state_fstype"
+printf 'state_nodev=1\n'
+printf 'state_nosuid=1\n'
+printf 'physical_block_devices=%s\n' "$physical_block_devices"
+printf 'block_backed_mounts=%s\n' "$block_backed_mounts"
+printf 'usb_interface=usb0\n'
+printf 'usb_carrier=%s\n' "$usb_carrier"
+printf 'usb_ipv4_cidr=169.254.77.2/30\n'
+printf 'sshd_state=%s\n' "$sshd_state"
+printf 'ssh_auth=key-only\n'
+printf 'server_inhibitor_state=%s\n' "$server_inhibitor_state"
+printf 'failed_units=%s\n' "$failed_units"
+printf 'fatal_kernel_signatures=%s\n' "$fatal_kernel_signatures"
+printf 'thermal_zone_count=%s\n' "$thermal_zone_count"
+printf 'thermal_min_millidegree_c=%s\n' "$thermal_min_millidegree_c"
+printf 'thermal_max_millidegree_c=%s\n' "$thermal_max_millidegree_c"
+printf 'watchdog_state=armed\n'
+printf 'watchdog_timeout_seconds=%s\n' "$watchdog_timeout_seconds"
+printf 'watchdog_remaining_seconds=%s\n' "$watchdog_remaining_seconds"
+printf 'network_root_identity_format=%s\n' \
+	"$network_root_identity_format"
+printf 'root_generation=%s\n' "$root_generation"
+printf 'root_tree_sha256=%s\n' "$root_tree_sha256"
+printf 'root_seal_sha256=%s\n' "$root_seal_sha256"
+printf 'root_seal_file_sha256=%s\n' "$root_seal_file_sha256"
+printf 'root_tree_entries=%s\n' "$root_tree_entries"
+printf 'root_subtree=%s\n' "$root_subtree"
+printf 'command_manifest_sha256=%s\n' "$command_manifest_sha256"
+printf 'command_manifest_format=rog5-headless-command-manifest-v1\n'
+printf 'workload=none\n'
+printf 'result=PASS\n'
