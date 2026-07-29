@@ -130,6 +130,7 @@ if [[ $tier == ci ]]; then
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
+		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
@@ -156,6 +157,7 @@ else
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
+		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py

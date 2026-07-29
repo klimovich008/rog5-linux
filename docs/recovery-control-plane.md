@@ -372,9 +372,13 @@ timeouts by construction.
 
 No production signing key has been created. Disposable keys have been used
 for offline tests and the consumed attended bundle; their private material was
-not retained. A corrected target requires a newly generated disposable or
-separately approved production trust root and a rebuilt wrapper. The consumed
-live trust root cannot authorize another bundle.
+not retained. The corrected target, bundle, shell-free initramfs, and wrapper
+now pass a complete twin-build offline gate under one destroyed disposable
+key. A live target still requires a newly generated single-use or separately
+approved production trust root, a rebuilt/allowlisted wrapper, and fresh user
+authorization. The consumed live trust root cannot authorize another bundle.
+See the
+[corrected offline result](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
 ## Postmortem outcome oracle
 

@@ -307,14 +307,16 @@ time.
 
 The signed SSH-only bundle, fixed serve/verify/execute integration, first
 shell-free live recovery transaction, automatic fallback, and corrected DTB
-selection are complete. The corrected target itself remains offline.
+selection are complete. The corrected target and stable-recovery wrapper now
+also pass a complete twin-build hardware-free gate under one disposable test
+trust root. They remain offline and have no live authority.
 Continue in this order:
 
 1. preserve the reviewed artifact plan; do not delete or deduplicate anything
    without separate approval;
 2. use the pinned Linux source/toolchain bootstrap for all new kernel builds;
-3. build the corrected-DTB candidate twice with a disposable trust root and
-   repeat the complete hardware-free gate;
+3. [x] build the corrected-DTB candidate twice with a disposable trust root
+   and repeat the complete hardware-free gate;
 4. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
 5. if the minimal root reaches key-only SSH and clean rollback, start the H3

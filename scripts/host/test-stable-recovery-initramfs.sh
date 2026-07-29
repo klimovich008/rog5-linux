@@ -15,6 +15,8 @@ xz_apk=$repo/artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk
 zstd_apk=$repo/artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk
 base_image=localhost/rog5-persistent-root-verifier:alpine-3.24
 verifier_image=localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7
+supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
+public_key_source=generated
 
 for command in chmod cmp cp cpio cut find git grep gzip head locale mkdir \
 	mktemp openssl podman realpath rm sed sha256sum sort stat tail touch; do
@@ -120,10 +122,23 @@ for binary in rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
 	cmp "$test_tmp/$binary-a" "$test_tmp/$binary-b"
 done
 
-# The ephemeral private key exists only in the pipeline and is never written.
-openssl genpkey -algorithm ED25519 2>/dev/null |
-	openssl pkey -pubout -outform DER 2>/dev/null |
-	tail -c 32 >"$test_tmp/ephemeral-public.raw"
+if [[ -n $supplied_public_key ]]; then
+	public_key_source=supplied
+	[[ -f $supplied_public_key && ! -L $supplied_public_key ]] ||
+		fail 'supplied ephemeral public key is not a regular file'
+	supplied_public_key=$(realpath -e "$supplied_public_key")
+	[[ $(stat -c %u "$supplied_public_key") == "$(id -u)" &&
+		$(stat -c %s "$supplied_public_key") == 32 &&
+		$((8#$(stat -c %a "$supplied_public_key") & 8#077)) == 0 ]] ||
+		fail 'supplied ephemeral public key metadata is unsafe'
+	cp --reflink=never -- "$supplied_public_key" \
+		"$test_tmp/ephemeral-public.raw"
+else
+	# The ephemeral private key exists only in the pipeline and is never written.
+	openssl genpkey -algorithm ED25519 2>/dev/null |
+		openssl pkey -pubout -outform DER 2>/dev/null |
+		tail -c 32 >"$test_tmp/ephemeral-public.raw"
+fi
 chmod 0600 "$test_tmp/ephemeral-public.raw"
 [[ $(stat -c %s "$test_tmp/ephemeral-public.raw") == 32 ]]
 
@@ -319,7 +334,13 @@ sha256sum \
 	"$test_tmp/stable-recovery-a.cpio.gz" \
 	"$test_tmp/stable-recovery-b.cpio.gz"
 if [[ -n $output_root ]]; then
-	mkdir -p "$output_root/initramfs-a" "$output_root/initramfs-b"
+	mkdir -p "$output_root/components" \
+		"$output_root/initramfs-a" "$output_root/initramfs-b"
+	for binary in \
+		rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
+		cp "$test_tmp/$binary-a" "$output_root/components/$binary"
+		chmod 0755 "$output_root/components/$binary"
+	done
 	cp "$test_tmp/stable-recovery-a.cpio.gz" \
 		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz"
 	cp "$test_tmp/stable-recovery-b.cpio.gz" \
@@ -328,8 +349,12 @@ if [[ -n $output_root ]]; then
 		"$output_root/ephemeral-public.raw"
 	chmod 0600 "$output_root/ephemeral-public.raw"
 	sha256sum \
+		"$output_root/components/rog5-recovery-control" \
+		"$output_root/components/rog5-bundle-fetch" \
+		"$output_root/components/rog5-bundle-verify" \
 		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz" \
 		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz" \
 		"$output_root/ephemeral-public.raw"
 fi
-echo 'PASS reproducible stable-recovery integration with ephemeral public-key test boundary'
+printf 'PASS reproducible stable-recovery integration with ephemeral public-key test boundary; trust_root=%s\n' \
+	"$public_key_source"

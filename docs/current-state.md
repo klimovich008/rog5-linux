@@ -80,11 +80,16 @@ network-root v1 DTB hash `255c5ac1...`, which leaves RMTFS, GPUCC, GMU, and
 the Adreno SMMU enabled and reproduces the documented roughly 16-second
 coldplug reset. The tracked candidate now pins the accepted v3-isolated DTB
 hash `86e5cb81...` and a regression test requires that complete identity.
-The correction passes the candidate and signed-bundle integration suites but
-has not been signed by a live trust root or booted. There is no repeat live
-authority. See the
+The correction now passes a complete twin build of the target bundle,
+shell-free recovery initramfs, vendor-compatible wrapper kernel, raw boot
+image, and unsigned AVB test wrapper. One disposable test private key was
+destroyed before success; retained products say `authority=none`. The
+correction has not been signed by a live trust root or booted. There is no
+repeat live authority. See the
 [live result](../test-results/2026-07-29-headless-stable-recovery-live.md)
-and [re-freeze integration](recovery-refreeze-integration.md).
+and
+[corrected offline twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md),
+plus [re-freeze integration](recovery-refreeze-integration.md).
 
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
@@ -222,7 +227,10 @@ The first signed live target exposed exact network-root NCM, then returned to
 fallback before SSH because the candidate carried historical DTB v1. The
 candidate now pins the accepted v3 GPU/RMTFS-isolated DTB
 `86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
-This correction is offline and grants no repeat authority.
+The corrected target, signed bundle, shell-free recovery, vendor wrapper, raw
+boot image, and unsigned AVB test wrapper now reproduce in two clean offline
+builds. The disposable test private key was destroyed. This correction
+remains `authority=none` and grants no repeat authority.
 
 An ephemeral-key signed v2 bundle passes the real native verifier with
 manifest SHA-256
@@ -235,7 +243,9 @@ offline checkpoint added no production key or live authority. See the
 and
 [runtime integration result](../test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the
-[live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md).
+[live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md)
+and
+[corrected twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
 ## Persistent Arch root
 
@@ -430,8 +440,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Obtain explicit approval before creating or using a production recovery
-   signing trust root.
+1. Obtain explicit approval before creating or using a live recovery signing
+   trust root or temporarily booting the corrected candidate.
 2. Promote the stable recovery through staging-only tests and determine
    whether ramoops survives the target/fallback path.
 3. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/

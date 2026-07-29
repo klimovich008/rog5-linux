@@ -154,11 +154,21 @@ and AVB image `64537159174c8aea99d52d87a7eefc1c363b82acf61bbe664cfc69bed23eb21d`
 See
 [stable recovery review hardening](../test-results/2026-07-28-stable-recovery-review-hardening-offline.md).
 
+The corrected headless gate now supplies one caller-owned disposable public
+key to both initramfs builds, retains the already-verified production AArch64
+responder/fetcher/verifier for artifact inspection, packages the accepted
+v3-isolated DTB twice, verifies both execution plans, and repeats the complete
+wrapper/raw/AVB build. The twins match byte-for-byte; the private key is
+destroyed before success, and every candidate remains `authority=none`. See
+the
+[corrected headless twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
+
 ## Remaining promotion boundary
 
-Before a stable candidate exists:
+Before a live candidate exists:
 
-1. obtain explicit confirmation to create or use a production signing key;
+1. obtain explicit confirmation to create or use a single-use live or
+   production signing key and to temporarily boot the resulting candidate;
 2. keep the private key outside the repository and build tree;
 3. embed only its reviewed raw public key;
 4. build the release initramfs, wrapper kernel, raw boot image, and AVB

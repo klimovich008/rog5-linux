@@ -230,6 +230,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   responder. Local artifact stores exercise the exact consumed P2 payload;
   clean clones use a tiny policy-valid fixture. Only kexec is replaced, and
   the fake verifies exact descriptor hashes plus load/execute/unload order.
+- `test-corrected-headless-candidate-offline-contract.sh` pins the PC-only
+  twin-build entry point, accepted v3-isolated DTB, snapshot builder, shared
+  disposable public key, native verifier, and `authority=none`; it rejects
+  phone, privilege, storage, and live-promotion transports. The full entry
+  point rebuilds both target bundles, shell-free initramfs files, vendor
+  wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
+  the disposable private key.
 - `recovery-linux.sh preflight` requires an explicit manifest-pinned image and
   exactly one fastboot target; no candidate is selected by default and `boot`
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
