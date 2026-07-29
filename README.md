@@ -48,6 +48,10 @@ gate.
   signing boundary.
 - [Repository audit](docs/repository-audit-2026-07-28.md) — what is active,
   evidence, archived, or a local cleanup candidate.
+- [Host storage cleanup](docs/host-storage-cleanup.md) — read-only inventory,
+  preservation rules, reclaim order, and the explicit approval boundary.
+- [Host storage audit](test-results/2026-07-29-host-storage-audit.md) — current
+  candidate sizes, dirty-worktree closure, and zero-delete evidence.
 - [Archive index](docs/archive-index.md) — how to inspect the pre-reduction
   checkpoint.
 - [Test plan](docs/test-plan.md) and

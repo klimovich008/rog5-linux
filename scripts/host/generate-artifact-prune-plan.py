@@ -24,7 +24,8 @@ TEMPORARY_RECOVERY = re.compile(
     r"v6-template-args|v6-template-rog5)\.[A-Za-z0-9]+"
 )
 SENSITIVE_UNIT = re.compile(
-    r"(?:^|[-_.])(?:credential|key|private|secret|token)(?:[-_.]|$)",
+    r"(?:^|[-_.])(?:auth|credentials?|id[-_.]?(?:ed25519|rsa)|keys?|"
+    r"password|passwd|private|secrets?|tokens?)(?:[-_.]|$)",
     re.IGNORECASE,
 )
 
@@ -362,11 +363,16 @@ def write_plan(plan: dict[str, object], output: Path | None) -> None:
     if output is None:
         sys.stdout.buffer.write(encoded)
         return
-    output = output.resolve(strict=False)
-    parent = output.parent
-    if not parent.is_dir() or parent.is_symlink():
+    requested = Path(os.path.abspath(output.expanduser()))
+    parent = requested.parent
+    if (
+        not parent.is_dir()
+        or parent.is_symlink()
+        or parent.resolve(strict=True) != parent
+    ):
         fail("output parent is absent or linked")
-    if output.exists() or output.is_symlink():
+    output = parent / requested.name
+    if os.path.lexists(output):
         fail("refusing to replace an existing plan")
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output.name}.", dir=parent

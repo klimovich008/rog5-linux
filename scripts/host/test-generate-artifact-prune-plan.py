@@ -140,6 +140,14 @@ class ArtifactPrunePlanTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.output.read_text(encoding="ascii"), "sentinel\n")
 
+    def test_dangling_output_link_is_never_followed(self) -> None:
+        target = self.output.with_name("link-target.json")
+        self.output.symlink_to(target)
+        result = self.run_planner(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.output.is_symlink())
+        self.assertFalse(target.exists())
+
     def test_sensitive_ignored_unit_is_not_published(self) -> None:
         sensitive = self.repo / "artifacts/private-ssh-key"
         sensitive.mkdir()
