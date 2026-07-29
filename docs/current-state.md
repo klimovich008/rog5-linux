@@ -246,12 +246,24 @@ command-manifest identity, and the complete `arch-a` lower-tree identity;
 v2 components reject the older unsigned-root v1 schema. A static AArch64
 verifier is now required inside the signed network-root initramfs and
 authenticates the lower before OverlayFS or distribution userspace starts.
-Command installation, promoted-root command-line fields, and versioned rootfs
-integration are still future packaging work. The verifier, fetcher, host
-server, and watchdog-lease changes are source-only and need a versioned
-recovery rebuild. No installed
-recovery, trust root, or phone state changed. Neither acceptance mode has run
-on the phone.
+The canonical command manifest, static cgroup executor, static root verifier,
+Vulkan submit helper, and unified acceptance harness are now installed in two
+offline, versioned, read-only roots. One derives from successor-v3 and one
+preserves the accepted v10 GPU ancestry before adding the runtime surface.
+Both identities bind the exact base verifier, base seal, pre-integration base
+tree, runtime provenance, commands, tools, complete tree, and persistent seal.
+Their builders require the external approved runtime-tools manifest hash,
+compare every pre-existing entry against a private read-only base snapshot,
+permit only the fixed runtime additions, independently verify the final tree
+with a static AArch64 binary, and publish the root plus identity together
+through one atomic no-replace directory rename.
+
+This is a sealed-root milestone, not a signed-bundle or live-acceptance
+milestone. Promoted-root device identity, signed bundle packaging, the host
+server profile, and the versioned recovery rebuild remain pending. No
+installed recovery, trust root, or phone state changed. Neither acceptance
+mode has run on the phone. See the
+[offline runtime-root evidence](../test-results/2026-07-28-a660-runtime-root-offline.md).
 See [A660 accelerated-desktop acceptance](a660-acceptance.md).
 
 Machine acceptance records remain under `manifests/acceptance/`.
