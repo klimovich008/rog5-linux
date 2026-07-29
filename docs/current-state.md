@@ -144,6 +144,15 @@ DTB can run in candidate mode, but a pass reports
 [source/DT contract](core-source-dtb-contract.md) and
 [CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md).
 
+The first H4 input/indicator delta is now packaged without widening any other
+hardware boundary. It pins the accepted source, config, LPG module archive,
+and corrected DTB; adds power, volume-down, PM8350 GPIO6 volume-up, and only
+PM8350C green LPG channel 2; and keeps the LED default-off. Exact semantic and
+source/config/module hostile suites pass in both repository tiers. This is
+offline readiness only: no physical key or LED behavior has been accepted.
+See the [buttons/indicator contract](buttons-indicator.md) and
+[offline result](../test-results/2026-07-30-buttons-indicator-offline.md).
+
 The sealed lower deliberately has no reusable SSH host key, so the corrected
 temporary target cannot have a static known-hosts entry before boot. The new
 host-key bootstrap closes that development-only gap without `accept-new`: it

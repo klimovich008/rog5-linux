@@ -4,7 +4,7 @@
   "status": "offline",
   "authority": "none",
   "artifact_manifest": "manifests/artifacts.tsv",
-  "artifact_manifest_sha256": "416304172fef9041b70bfc8ebdee5618ce58f010e707c691870600701351cced",
+  "artifact_manifest_sha256": "f7da2ebe70ecad71ed150c88662e5feff09854b820ddf0ec4616b1a67e8e7a2e",
   "baseline": {
     "vendor_release": "5.4.210-qgki-perf",
     "accepted_target_release": "7.1.4-g7a5cef0db479",
@@ -356,14 +356,29 @@
         "mainline-7.1-pwrkey"
       ],
       "required_config": {
+        "CONFIG_OF": "y",
         "CONFIG_INPUT": "y",
         "CONFIG_INPUT_EVDEV": "y",
+        "CONFIG_KEYBOARD_GPIO": "y",
         "CONFIG_INPUT_PM8941_PWRKEY": "y",
+        "CONFIG_GPIOLIB": "y",
+        "CONFIG_REGMAP_SPMI": "y",
+        "CONFIG_SPMI": "y",
+        "CONFIG_SPMI_MSM_PMIC_ARB": "y",
+        "CONFIG_PINCTRL_QCOM_SPMI_PMIC": "y",
+        "CONFIG_MFD_SPMI_PMIC": "y",
+        "CONFIG_NEW_LEDS": "y",
+        "CONFIG_LEDS_CLASS": "y",
+        "CONFIG_LEDS_QCOM_LPG": "m",
+        "CONFIG_PWM": "y",
         "CONFIG_POWER_RESET_QCOM_PON": "m"
       },
       "minimum_integer_config": {},
       "forbidden_config": [],
-      "ci_gates": []
+      "ci_gates": [
+        "scripts/device/test-buttons-indicator-candidate-dtb.sh",
+        "scripts/host/test-buttons-indicator-source-contract.py"
+      ]
     },
     {
       "id": "battery-charging",
