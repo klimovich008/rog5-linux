@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016
+set -euo pipefail
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+runner=$repo/scripts/host/run-minimal-headless-runtime-acceptance.sh
+probe=$repo/scripts/device/collect-minimal-headless-runtime.sh
+verifier=$repo/scripts/host/verify-minimal-headless-runtime.py
+
+for input in "$runner" "$probe" "$verifier"; do
+	[[ -f $input && ! -L $input && -x $input ]] || {
+		echo "FAIL missing runtime-acceptance input: $input" >&2
+		exit 1
+	}
+done
+bash -n "$runner"
+sh -n "$probe"
+
+for token in \
+	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE \
+	SSH_KEY \
+	TARGET_KNOWN_HOSTS \
+	EVIDENCE_DIR \
+	'git -C "$repo" status --porcelain --untracked-files=all' \
+	'origin/$branch' \
+	'StrictHostKeyChecking=yes' \
+	'HostKeyAlias=rog5-minimal-headless-v1' \
+	'ConnectionAttempts=1' \
+	'root@169.254.77.2' \
+	'/run/rog5-minimal-headless-runtime-control' \
+	'collect-minimal-headless-runtime.sh' \
+	'verify-minimal-headless-runtime.py' \
+	'exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin' \
+	'PIPESTATUS[0]' \
+	'rollback watchdog remains armed' \
+	'no reboot was requested'; do
+	grep -Fq "$token" "$runner" || {
+		echo "FAIL runtime-acceptance runner omits: $token" >&2
+		exit 1
+	}
+done
+
+if grep -Eq \
+	'fastboot|adb|StrictHostKeyChecking=(no|accept-new)|UserKnownHostsFile=/dev/null|systemctl[[:space:]]+reboot|disarm-network-root-watchdog|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/|ssh-keygen|openssl' \
+	"$runner"; then
+	echo 'FAIL runtime-acceptance runner expands transport, trust, or mutation authority' >&2
+	exit 1
+fi
+[[ $(grep -Fc 'ssh -n "${ssh_options[@]}" "$target" "$remote_collect"' \
+	"$runner") == 1 ]]
+
+set +e
+"$runner" >/dev/null 2>&1
+missing_guard=$?
+ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=unsafe \
+	"$runner" >/dev/null 2>&1
+invalid_guard=$?
+set -e
+[[ $missing_guard -ne 0 && $invalid_guard -ne 0 ]]
+
+stage=$(mktemp -d)
+trap 'rm -rf -- "$stage"' EXIT
+install -d -m 0700 "$stage/evidence"
+install -d -m 0755 "$stage/bin"
+install -m 0600 /dev/null "$stage/ssh-key"
+install -m 0600 /dev/null "$stage/known-hosts"
+calls=$stage/calls
+probe_hash=$(sha256sum "$probe" | cut -d ' ' -f 1)
+record=$stage/golden.record
+cat >"$record" <<EOF
+format=rog5-minimal-headless-runtime-v1
+profile=minimal-headless-v1
+execution_mode=live
+probe_sha256=$probe_hash
+active_capabilities=cpu-ram,init-key-only-ssh,read-only-network-root,thermal-readonly,usb-ncm-network,watchdog-rollback-reboot
+candidate=headless-network-root-v1
+boot_id=7d9a6f34-0e4a-4d4e-9d24-0b1f6c7215a8
+kernel_release=7.1.4-g7a5cef0db479
+machine=aarch64
+pid1=systemd
+system_state=running
+default_target=multi-user.target
+cpu_online_count=8
+memory_total_kib=11900000
+memory_available_kib=10949632
+root_fstype=overlay
+lower_source=169.254.77.1:/
+lower_read_only=1
+state_fstype=tmpfs
+state_nodev=1
+state_nosuid=1
+physical_block_devices=0
+block_backed_mounts=0
+usb_interface=usb0
+usb_carrier=1
+usb_ipv4_cidr=169.254.77.2/30
+sshd_state=active
+ssh_auth=key-only
+server_inhibitor_state=active
+failed_units=0
+fatal_kernel_signatures=0
+thermal_zone_count=33
+thermal_min_millidegree_c=32000
+thermal_max_millidegree_c=37000
+watchdog_state=armed
+watchdog_timeout_seconds=600
+watchdog_remaining_seconds=300
+network_root_identity_format=rog5-network-root-identity-v1
+root_generation=arch-a
+root_tree_sha256=7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb
+root_seal_sha256=6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896
+root_seal_file_sha256=6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896
+root_tree_entries=37669
+root_subtree=/
+command_manifest_sha256=99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2
+command_manifest_format=rog5-headless-command-manifest-v1
+workload=none
+result=PASS
+EOF
+
+cat >"$stage/bin/git" <<'EOF'
+#!/bin/sh
+case $* in
+	*"status --porcelain"*) exit 0 ;;
+	*"branch --show-current"*) echo agent/linux-recovery-host ;;
+	*"rev-parse --abbrev-ref --symbolic-full-name @{u}"*)
+		echo origin/agent/linux-recovery-host
+		;;
+	*"rev-parse HEAD"*|*"rev-parse origin/agent/linux-recovery-host"*)
+		echo synchronized-checkpoint
+		;;
+	*) exit 1 ;;
+esac
+EOF
+cat >"$stage/bin/scp" <<'EOF'
+#!/bin/sh
+printf '%s\n' scp >>"$MOCK_CALLS"
+EOF
+cat >"$stage/bin/ssh" <<'EOF'
+#!/bin/sh
+case $* in
+	*"exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin"*)
+		printf '%s\n' collect >>"$MOCK_CALLS"
+		cat "$MOCK_RECORD"
+		;;
+	*"cat /proc/sys/kernel/random/boot_id"*)
+		printf '%s\n' boot-id >>"$MOCK_CALLS"
+		echo 7d9a6f34-0e4a-4d4e-9d24-0b1f6c7215a8
+		;;
+	*"stat -c"*)
+		printf '%s\n' verify >>"$MOCK_CALLS"
+		;;
+	*) printf '%s\n' prepare >>"$MOCK_CALLS" ;;
+esac
+EOF
+chmod 0755 "$stage/bin/git" "$stage/bin/scp" "$stage/bin/ssh"
+
+output=$(
+	PATH="$stage/bin:$PATH" \
+	MOCK_CALLS="$calls" \
+	MOCK_RECORD="$record" \
+	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+	SSH_KEY="$stage/ssh-key" \
+	TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+	EVIDENCE_DIR="$stage/evidence" \
+		"$runner"
+)
+grep -Fq 'PASS minimal headless runtime acceptance' <<<"$output"
+grep -Fq 'rollback watchdog remains armed' <<<"$output"
+[[ $(grep -Fxc prepare "$calls") == 1 ]]
+[[ $(grep -Fxc scp "$calls") == 1 ]]
+[[ $(grep -Fxc verify "$calls") == 1 ]]
+[[ $(grep -Fxc boot-id "$calls") == 1 ]]
+[[ $(grep -Fxc collect "$calls") == 1 ]]
+[[ $(stat -c %a "$stage/evidence/minimal-headless-runtime.record") == 600 ]]
+cmp "$record" "$stage/evidence/minimal-headless-runtime.record"
+
+echo 'PASS runtime-acceptance runner stages one hash-bound probe, uses strict SSH once, verifies privately, and leaves rollback armed'

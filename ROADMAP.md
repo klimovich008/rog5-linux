@@ -127,6 +127,9 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
   gate, and 33-case mutation/CLI suite.
+- [x] Add one canonical 48-field runtime observation, candidate-bound host
+  verifier, nine target mutations, 19 host test groups, and a strict-SSH
+  one-collection runner test for all six active capabilities.
 
 Exit: parser, initramfs, recovery, root handoff, and policy regressions fail
 before a phone cycle.
@@ -136,8 +139,9 @@ before a phone cycle.
 - [x] Replace version-per-candidate prepare/serve/verify/run glue with one
   manifest-driven runner and prove real packager/server/fetcher/verifier/
   responder composition with the consumed P2 fixture.
-- [ ] Extract only the already-proven generic safety checks needed by that
-  runner; do not create a new framework.
+- [x] Extract only the already-proven CPU/RAM, network-root/storage, USB/SSH,
+  thermal, fatal-signature, and watchdog checks into one read-only probe and
+  fail-closed verifier; keep boot/sign/reboot/fallback orchestration separate.
 - [x] Port the consumed persistent-root P2 payload into the manifest adapter
   and prove exact artifact/profile parity offline without restoring live
   authority.
@@ -325,7 +329,9 @@ Continue in this order:
    and repeat the complete hardware-free gate;
 4. [x] enforce and test the exact board-preserving corrected-DTB semantic
    delta against rejected and accepted evidence;
-5. request fresh, separate authorization before creating or using a live
+5. [x] define and mutation-test the exact private runtime record for all six
+   active capabilities while leaving rollback armed;
+6. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-6. if the minimal root reaches key-only SSH and clean rollback, start the H3
+7. if the minimal root reaches key-only SSH and clean rollback, start the H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.
