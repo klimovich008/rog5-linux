@@ -126,12 +126,12 @@ postmortem operations without per-candidate recovery rebuilds.
   hardware.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
-  gate, and 33-case mutation/CLI suite.
-- [x] Bind all six active capabilities to 37 source-integration checks and 21
+  gate, and 34-case mutation/CLI suite.
+- [x] Bind all six active capabilities to 37 source-integration checks and 23
   corrected-DTB topology checks, with separate exact-baseline and
   compatible-but-unaccepted candidate modes.
-- [x] Add one canonical 48-field runtime observation, candidate-bound host
-  verifier, nine target mutations, 19 host test groups, and a strict-SSH
+- [x] Add one canonical 55-field runtime observation, candidate-bound host
+  verifier, thirteen target mutations, 20 host test groups, and a strict-SSH
   one-collection runner test for all six active capabilities.
 - [x] Add a credential-free volatile host-key bootstrap that binds the signed
   recovery and target NCM gadgets to one physical USB port, requires an exact

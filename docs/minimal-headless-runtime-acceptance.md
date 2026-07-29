@@ -20,7 +20,7 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/host/pin-minimal-headless-host-key.py` creates the private
   known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
-  proc/sys/run/root fixture and rejects nine cross-capability mutations.
+  proc/sys/run/root fixture and rejects thirteen cross-capability mutations.
 - `scripts/host/test-verify-minimal-headless-runtime.py` exercises the
   canonical parser, candidate binding, thresholds, private-file policy, and
   CLI.
@@ -33,13 +33,14 @@ compatibility profile names them as gates for the capabilities they cover.
 
 ## Record contract
 
-The probe emits exactly 48 ordered ASCII `key=value` lines ending in LF. The
+The probe emits exactly 55 ordered ASCII `key=value` lines ending in LF. The
 record identifies:
 
 - format, profile, live/test execution mode, exact probe SHA-256, active
   capability set, corrected candidate, and current boot ID;
 - kernel release, AArch64 machine, systemd PID 1, running system state,
-  multi-user default, online CPU count, and memory totals;
+  multi-user default, exact online/present CPU sets, three EPSS CPUfreq
+  policies with exact CPU membership, driver and governor, and memory totals;
 - OverlayFS root, exact read-only NFS lower, tmpfs state with `nodev,nosuid`,
   zero physical block devices, zero block-backed mounts, and initramfs
   handoff markers;
@@ -65,7 +66,7 @@ compatibility oracle and authority-free corrected candidate. It then requires:
 
 | Boundary | Required result |
 |---|---|
-| CPU | at least 8 online CPUs |
+| CPU | exactly CPUs `0-7` online and present; exactly `policy0`, `policy4`, and `policy7` for CPU sets `0-3`, `4-6`, and `7`; `qcom-cpufreq-hw` plus `schedutil` on all three |
 | Total RAM | at least 10 GiB reported in KiB |
 | Available RAM | at least 8 GiB and no more than total RAM |
 | Storage | OverlayFS, exact read-only NFS lower, tmpfs state, zero physical devices and block-backed mounts |
@@ -74,9 +75,11 @@ compatibility oracle and authority-free corrected candidate. It then requires:
 | Rollback | exact candidate timeout of 600 seconds with 60–600 seconds remaining |
 | Root identity | exact generation, tree, seal, entry count, subtree, and command-manifest values from the corrected candidate |
 
-The 10/8 GiB memory and 30-zone thermal floors inherit the accepted phone's
-roughly 11 GiB usable-RAM and 33-zone Linux 7.1 result. They are runtime
-regression bounds for this device, not generic ROG Phone 5 SKU requirements.
+The exact CPU policy topology follows the accepted DT and Qualcomm driver
+behavior. The 10/8 GiB memory and 30-zone thermal floors inherit the accepted
+phone's roughly 11 GiB usable-RAM and 33-zone Linux 7.1 result. They are
+runtime regression bounds for this device, not generic ROG Phone 5 SKU
+requirements.
 
 The record must be a caller-owned, mode-`0600`, unlinked ordinary file with
 one link and a maximum size of 16 KiB. Its boot ID must match a separate
@@ -135,7 +138,9 @@ scripts/host/test-repository-linux.sh ci
 ```
 
 See the
-[offline evidence](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
+[CPU/RAM topology evidence](../test-results/2026-07-29-cpu-ram-topology-offline.md),
+the earlier
+[runtime evidence](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md),
 and [core compatibility oracle](core-compatibility-oracle.md).
 
 ## Remaining live work

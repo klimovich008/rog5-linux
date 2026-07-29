@@ -85,7 +85,27 @@ DT_CHECK_KEYS = {
     "u32_properties",
     "present_properties",
 }
-DT_CHECK_OPTIONAL_KEYS = {"phandle_properties"}
+DT_CHECK_OPTIONAL_KEYS = {
+    "phandle_properties",
+    "phandle_args_properties",
+}
+PHANDLE_ARGS_CELL_PROPERTIES = {
+    "clocks": "#clock-cells",
+    "qcom,freq-domain": "#freq-domain-cells",
+}
+PHANDLE_ARGS_KEYS = {"target", "args"}
+EXPECTED_COMPATIBLE_ABSENT = {"cpu-container", "memory-banks"}
+EXPECTED_CPU_NODE_PATHS = {
+    "/cpus/cpu@0",
+    "/cpus/cpu@100",
+    "/cpus/cpu@200",
+    "/cpus/cpu@300",
+    "/cpus/cpu@400",
+    "/cpus/cpu@500",
+    "/cpus/cpu@600",
+    "/cpus/cpu@700",
+}
+EXPECTED_MEMORY_NODE_PATHS = {"/memory@80000000"}
 SOURCE_KINDS = {"kconfig", "makefile", "of-match", "binding", "source"}
 
 
@@ -434,6 +454,17 @@ def validate_property_name(value: Any, label: str) -> str:
     return text
 
 
+def validate_dt_node_path(value: Any, label: str) -> str:
+    path = require_string(value, label)
+    if (
+        not path.startswith("/")
+        or "//" in path
+        or path != "/" and path.endswith("/")
+    ):
+        fail(f"{label} is not a canonical absolute DT node path")
+    return path
+
+
 def validate_string_properties(
     value: Any,
     label: str,
@@ -489,13 +520,50 @@ def validate_phandle_properties(
             f"{label} {name}",
         )
         for target in targets:
-            if (
-                not target.startswith("/")
-                or "//" in target
-                or target != "/" and target.endswith("/")
-            ):
-                fail(f"{label} {name} has an invalid target path")
+            validate_dt_node_path(target, f"{label} {name} target")
         result[name] = targets
+    return result
+
+
+def validate_phandle_args_properties(
+    value: Any,
+    label: str,
+) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(value, dict):
+        fail(f"{label} is not an object")
+    result: dict[str, list[dict[str, Any]]] = {}
+    for raw_name, raw_entries in value.items():
+        name = validate_property_name(raw_name, f"{label} name")
+        if name not in PHANDLE_ARGS_CELL_PROPERTIES:
+            fail(f"{label} {name} is not a supported phandle-array property")
+        if not isinstance(raw_entries, list) or not raw_entries:
+            fail(f"{label} {name} is not a nonempty phandle-array list")
+        entries: list[dict[str, Any]] = []
+        for index, raw_entry in enumerate(raw_entries):
+            entry = require_object(
+                raw_entry,
+                PHANDLE_ARGS_KEYS,
+                f"{label} {name}[{index}]",
+            )
+            target = validate_dt_node_path(
+                entry["target"],
+                f"{label} {name}[{index}] target",
+            )
+            raw_args = entry["args"]
+            if not isinstance(raw_args, list) or not raw_args:
+                fail(f"{label} {name}[{index}] has no phandle arguments")
+            args: list[int] = []
+            for raw_arg in raw_args:
+                if (
+                    not isinstance(raw_arg, int)
+                    or isinstance(raw_arg, bool)
+                    or raw_arg < 0
+                    or raw_arg > 0xFFFFFFFF
+                ):
+                    fail(f"{label} {name}[{index}] has an invalid u32 argument")
+                args.append(raw_arg)
+            entries.append({"target": target, "args": args})
+        result[name] = entries
     return result
 
 
@@ -509,6 +577,7 @@ def validate_dt_checks(
     result: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     seen_paths: set[str] = set()
+    compatible_absent: set[str] = set()
     coverage: set[str] = set()
     for index, raw in enumerate(value):
         if (
@@ -533,14 +602,12 @@ def validate_dt_checks(
                 f"{sorted(unknown)}"
             )
         coverage.update(capabilities)
-        path = require_string(row["path"], f"DT check {identity} path")
-        if (
-            not path.startswith("/")
-            or "//" in path
-            or path != "/" and path.endswith("/")
-            or path in seen_paths
-        ):
-            fail(f"DT check path is invalid or duplicate: {path}")
+        path = validate_dt_node_path(
+            row["path"],
+            f"DT check {identity} path",
+        )
+        if path in seen_paths:
+            fail(f"DT check path is duplicate: {path}")
         seen_paths.add(path)
         status = require_string(row["status"], f"DT check {identity} status")
         if status not in {"okay", "disabled"}:
@@ -548,7 +615,10 @@ def validate_dt_checks(
         compatible = require_string_list(
             row["compatible"],
             f"DT check {identity} compatible",
+            allow_empty=True,
         )
+        if not compatible:
+            compatible_absent.add(identity)
         for item in compatible:
             if not COMPATIBLE.fullmatch(item):
                 fail(f"DT check {identity} has an invalid compatible")
@@ -564,6 +634,10 @@ def validate_dt_checks(
             row.get("phandle_properties", {}),
             f"DT check {identity} phandle properties",
         )
+        phandle_args_properties = validate_phandle_args_properties(
+            row.get("phandle_args_properties", {}),
+            f"DT check {identity} phandle-argument properties",
+        )
         present_properties = require_string_list(
             row["present_properties"],
             f"DT check {identity} present properties",
@@ -577,10 +651,14 @@ def validate_dt_checks(
         overlap = (
             set(string_properties) & set(u32_properties)
             | set(string_properties) & set(phandle_properties)
+            | set(string_properties) & set(phandle_args_properties)
             | set(string_properties) & set(present_properties)
             | set(u32_properties) & set(phandle_properties)
+            | set(u32_properties) & set(phandle_args_properties)
             | set(u32_properties) & set(present_properties)
+            | set(phandle_properties) & set(phandle_args_properties)
             | set(phandle_properties) & set(present_properties)
+            | set(phandle_args_properties) & set(present_properties)
         )
         if overlap:
             fail(f"DT check {identity} repeats property contracts: {sorted(overlap)}")
@@ -594,8 +672,14 @@ def validate_dt_checks(
                 "string_properties": string_properties,
                 "u32_properties": u32_properties,
                 "phandle_properties": phandle_properties,
+                "phandle_args_properties": phandle_args_properties,
                 "present_properties": present_properties,
             }
+        )
+    if compatible_absent != EXPECTED_COMPATIBLE_ABSENT:
+        fail(
+            "DT compatible-absence inventory changed: "
+            f"{sorted(compatible_absent)}"
         )
     for capability in EXPECTED_DTB_REQUIRED:
         if capability not in coverage:
@@ -606,6 +690,19 @@ def validate_dt_checks(
             if missing:
                 fail(
                     f"DT check {check['id']} has unchecked phandle targets: "
+                    f"{missing}"
+                )
+        for entries in check["phandle_args_properties"].values():
+            missing = sorted(
+                {
+                    entry["target"]
+                    for entry in entries
+                    if entry["target"] not in seen_paths
+                }
+            )
+            if missing:
+                fail(
+                    f"DT check {check['id']} has unchecked phandle-array targets: "
                     f"{missing}"
                 )
     if coverage - required_capabilities:
@@ -1150,6 +1247,45 @@ def validate_forbidden_enabled_compatibles(
             )
 
 
+def validate_cpu_memory_node_inventories(
+    nodes: dict[str, dict[str, bytes]],
+) -> None:
+    cpu_paths: set[str] = set()
+    memory_paths: set[str] = set()
+    for path, properties in nodes.items():
+        raw_device_type = properties.get("device_type")
+        device_types = (
+            decode_string_list(raw_device_type, f"DT node {path} device_type")
+            if raw_device_type is not None
+            else []
+        )
+        direct_cpu_child = (
+            path.startswith("/cpus/")
+            and path.count("/") == 2
+            and path.rsplit("/", 1)[1].startswith("cpu@")
+        )
+        root_memory_node = (
+            path.count("/") == 1
+            and path.rsplit("/", 1)[1].startswith("memory@")
+        )
+        if direct_cpu_child or "cpu" in device_types:
+            cpu_paths.add(path)
+        if root_memory_node or "memory" in device_types:
+            memory_paths.add(path)
+    if cpu_paths != EXPECTED_CPU_NODE_PATHS:
+        fail(
+            "DT CPU node inventory changed: "
+            f"expected={sorted(EXPECTED_CPU_NODE_PATHS)} "
+            f"actual={sorted(cpu_paths)}"
+        )
+    if memory_paths != EXPECTED_MEMORY_NODE_PATHS:
+        fail(
+            "DT system-memory node inventory changed: "
+            f"expected={sorted(EXPECTED_MEMORY_NODE_PATHS)} "
+            f"actual={sorted(memory_paths)}"
+        )
+
+
 def validate_dt_check(
     nodes: dict[str, dict[str, bytes]],
     check: dict[str, Any],
@@ -1167,17 +1303,20 @@ def validate_dt_check(
     if status == "okay":
         validate_enabled_ancestors(nodes, check["path"], identity)
     compatible_raw = properties.get("compatible")
-    if compatible_raw is None:
-        fail(f"DT check {identity} compatible is absent")
-    compatible = decode_string_list(
-        compatible_raw,
-        f"DT check {identity} compatible",
-    )
-    if compatible != check["compatible"]:
-        fail(
-            f"DT check {identity} compatible changed: "
-            f"expected={check['compatible']} actual={compatible}"
+    if check["compatible"]:
+        if compatible_raw is None:
+            fail(f"DT check {identity} compatible is absent")
+        compatible = decode_string_list(
+            compatible_raw,
+            f"DT check {identity} compatible",
         )
+        if compatible != check["compatible"]:
+            fail(
+                f"DT check {identity} compatible changed: "
+                f"expected={check['compatible']} actual={compatible}"
+            )
+    elif compatible_raw is not None:
+        fail(f"DT check {identity} has an unexpected compatible")
     for name, expected in check["string_properties"].items():
         raw = properties.get(name)
         if raw is None:
@@ -1225,6 +1364,54 @@ def validate_dt_check(
                 f"DT check {identity} phandle property changed: {name} "
                 f"expected_targets={target_paths} actual={actual}"
             )
+    for name, entries in check["phandle_args_properties"].items():
+        raw = properties.get(name)
+        if raw is None:
+            fail(
+                f"DT check {identity} phandle-array property is absent: {name}"
+            )
+        actual = decode_u32_list(
+            raw,
+            f"DT check {identity} property {name}",
+        )
+        expected: list[int] = []
+        cell_property = PHANDLE_ARGS_CELL_PROPERTIES[name]
+        for entry in entries:
+            target = entry["target"]
+            target_properties = nodes.get(target)
+            if target_properties is None:
+                fail(
+                    f"DT check {identity} phandle-array target is absent: "
+                    f"{target}"
+                )
+            cell_raw = target_properties.get(cell_property)
+            if cell_raw is None:
+                fail(
+                    f"DT check {identity} phandle-array target lacks "
+                    f"{cell_property}: {target}"
+                )
+            cell_count = decode_u32_list(
+                cell_raw,
+                f"DT check {identity} target {target} {cell_property}",
+            )
+            if cell_count != [len(entry["args"])]:
+                fail(
+                    f"DT check {identity} phandle-array target cell count "
+                    f"changed: {target} {cell_property}"
+                )
+            expected.append(
+                node_phandle(
+                    nodes,
+                    target,
+                    f"DT check {identity} property {name}",
+                )
+            )
+            expected.extend(entry["args"])
+        if actual != expected:
+            fail(
+                f"DT check {identity} phandle-array property changed: {name} "
+                f"actual={actual}"
+            )
     for name in check["present_properties"]:
         if name not in properties:
             fail(f"DT check {identity} property is absent: {name}")
@@ -1249,6 +1436,7 @@ def validate_dtb(
         nodes,
         contract["forbidden_enabled_compatibles"],
     )
+    validate_cpu_memory_node_inventories(nodes)
     for check in contract["dt_checks"]:
         validate_dt_check(nodes, check)
     return digest

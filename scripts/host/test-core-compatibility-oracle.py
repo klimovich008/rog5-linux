@@ -238,6 +238,26 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
                 False,
             )
 
+    def test_cpu_frequency_stack_cannot_be_disabled(self) -> None:
+        for symbol in (
+            "CONFIG_ARM_QCOM_CPUFREQ_HW",
+            "CONFIG_CPU_FREQ",
+            "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL",
+            "CONFIG_CPU_FREQ_GOV_SCHEDUTIL",
+        ):
+            with self.subTest(symbol=symbol):
+                config = dict(self.config)
+                config[symbol] = "n"
+                with self.assertRaisesRegex(
+                    ValueError,
+                    f"kernel config violates oracle: {symbol}=y",
+                ):
+                    ORACLE.validate_kernel_config(
+                        config,
+                        deepcopy(self.profile["capabilities"]),
+                        False,
+                    )
+
     def test_forbidden_symbol_enabled_fails(self) -> None:
         config = dict(self.config)
         config["CONFIG_SCSI"] = "y"

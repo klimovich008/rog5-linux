@@ -25,6 +25,9 @@ mkdir -p "$mock_bin" \
 	"$root/sys/class/block" \
 	"$root/sys/class/net/usb0" \
 	"$root/sys/class/thermal" \
+	"$root/sys/devices/system/cpu/cpufreq/policy0" \
+	"$root/sys/devices/system/cpu/cpufreq/policy4" \
+	"$root/sys/devices/system/cpu/cpufreq/policy7" \
 	"$root/sys/dev/block" \
 	"$root/.rog5/root-ro/etc/rog5" \
 	"$root/.rog5/state"
@@ -61,6 +64,20 @@ printf '%s\n' \
 printf '%s\n' sleep >"$root/proc/43/comm"
 
 printf '%s\n' 1 >"$root/sys/class/net/usb0/carrier"
+printf '%s\n' 0-7 >"$root/sys/devices/system/cpu/online"
+printf '%s\n' 0-7 >"$root/sys/devices/system/cpu/present"
+printf '%s\n' '0 1 2 3' \
+	>"$root/sys/devices/system/cpu/cpufreq/policy0/related_cpus"
+printf '%s\n' '4 5 6' \
+	>"$root/sys/devices/system/cpu/cpufreq/policy4/related_cpus"
+printf '%s\n' 7 \
+	>"$root/sys/devices/system/cpu/cpufreq/policy7/related_cpus"
+for policy in policy0 policy4 policy7; do
+	printf '%s\n' qcom-cpufreq-hw \
+		>"$root/sys/devices/system/cpu/cpufreq/$policy/scaling_driver"
+	printf '%s\n' schedutil \
+		>"$root/sys/devices/system/cpu/cpufreq/$policy/scaling_governor"
+done
 zone=0
 while [ "$zone" -lt 33 ]; do
 	mkdir -p "$root/sys/class/thermal/thermal_zone$zone"
@@ -200,11 +217,21 @@ expect_failure() {
 
 record=$stage/runtime.record
 run_probe >"$record"
-[ "$(wc -l <"$record")" -eq 48 ]
+[ "$(wc -l <"$record")" -eq 55 ]
 grep -Fxq 'format=rog5-minimal-headless-runtime-v1' "$record"
 grep -Fxq 'profile=minimal-headless-v1' "$record"
 grep -Fxq 'execution_mode=test' "$record"
 grep -Fxq 'cpu_online_count=8' "$record"
+grep -Fxq 'cpu_online_set=0-7' "$record"
+grep -Fxq 'cpu_present_set=0-7' "$record"
+grep -Fxq 'cpufreq_policy_count=3' "$record"
+grep -Fxq 'cpufreq_policy_names=policy0;policy4;policy7' "$record"
+grep -Fxq 'cpufreq_policy_cpu_sets=0 1 2 3;4 5 6;7' "$record"
+grep -Fxq \
+	'cpufreq_policy_drivers=qcom-cpufreq-hw;qcom-cpufreq-hw;qcom-cpufreq-hw' \
+	"$record"
+grep -Fxq \
+	'cpufreq_policy_governors=schedutil;schedutil;schedutil' "$record"
 grep -Fxq 'memory_available_kib=10949632' "$record"
 grep -Fxq 'physical_block_devices=0' "$record"
 grep -Fxq 'block_backed_mounts=0' "$record"
@@ -239,6 +266,26 @@ printf '%s\n' 800.00 >"$root/proc/uptime"
 expect_failure 'expired watchdog'
 printf '%s\n' 200.50 >"$root/proc/uptime"
 
+printf '%s\n' 0-6 >"$root/sys/devices/system/cpu/online"
+expect_failure 'offline CPU'
+printf '%s\n' 0-7 >"$root/sys/devices/system/cpu/online"
+
+mkdir "$root/sys/devices/system/cpu/cpufreq/policy1"
+expect_failure 'additional CPU frequency policy'
+rmdir "$root/sys/devices/system/cpu/cpufreq/policy1"
+
+printf '%s\n' '4 5 6 7' \
+	>"$root/sys/devices/system/cpu/cpufreq/policy4/related_cpus"
+expect_failure 'changed CPU frequency domain'
+printf '%s\n' '4 5 6' \
+	>"$root/sys/devices/system/cpu/cpufreq/policy4/related_cpus"
+
+printf '%s\n' performance \
+	>"$root/sys/devices/system/cpu/cpufreq/policy7/scaling_governor"
+expect_failure 'changed CPU frequency governor'
+printf '%s\n' schedutil \
+	>"$root/sys/devices/system/cpu/cpufreq/policy7/scaling_governor"
+
 mv "$root/sys/class/thermal" "$root/sys/class/thermal.absent"
 mkdir "$root/sys/class/thermal"
 expect_failure 'absent thermal telemetry'
@@ -259,4 +306,4 @@ printf '%s\n' 'format=rog5-headless-command-manifest-v1' 'workload=none' \
 expect_failure 'disarmed watchdog'
 rm -f "$root/run/rog5-network-root-watchdog.disarmed.pid"
 
-echo 'PASS minimal-headless runtime probe emits one canonical read-only observation and rejects nine core mutations'
+echo 'PASS minimal-headless runtime probe emits one canonical read-only observation and rejects thirteen core mutations'

@@ -34,17 +34,28 @@ Thirty-seven source checks cover:
 - source entry points that implement NFS root, OverlayFS, NCM, devtmpfs,
   embedded config, kexec/reboot/SysRq, and thermal behavior.
 
-Twenty-one DT checks cover:
+Twenty-three DT checks cover:
 
-- exact ASUS/SM8350 board identity and eight CPU nodes;
-- the EPSS cpufreq node;
+- exact ASUS/SM8350 board identity, root address/size cell widths, and the
+  accepted four-bank memory geometry, including the retained zero-sized
+  terminal range;
+- the `/cpus` address/size cell widths and all eight CPU nodes, including
+  exact two-cell `reg`/MPIDR, `device_type`, PSCI enable method, cooling-cell
+  width, and exact `clocks` and `qcom,freq-domain` mappings;
+- the EPSS cpufreq node and exact provider cell widths, yielding domains
+  `0-3`, `4-6`, and `7`;
 - disabled UFS controller and UFS PHY;
 - enabled USB2 PHY and primary high-speed peripheral DWC3 path, including
   enabled ancestors, mandatory zero PHY cells, and the exact
-  DWC3-to-USB2-PHY phandle;
+DWC3-to-USB2-PHY phandle;
 - disabled USB3/QMP and secondary USB paths;
 - PSCI reset; and
 - both accepted TSENS nodes and their exact sensor counts.
+
+Global CPU and system-memory inventories reject an additional `cpu@` child,
+any node with `device_type = "cpu"`, an additional root `memory@` node, or any
+node with `device_type = "memory"`, even when it lies outside the listed
+paths.
 
 The source check reads every required file through a bounded, no-follow
 descriptor. It rejects path escapes, linked inputs, dirty or non-root Git
@@ -54,7 +65,7 @@ and narrowed capability coverage. The shared DTB parser likewise reads one
 bounded descriptor and rejects linked, changing, malformed, truncated,
 overlapping, or non-v17 DTBs. A global inventory also rejects any effectively
 enabled SM8350 UFS or QMP USB3 controller/PHY compatible, including duplicate
-nodes outside the 21 accepted paths.
+nodes outside the 23 accepted paths.
 
 ## Baseline mode
 
@@ -74,9 +85,12 @@ The source must be an exact clean Git worktree at
 `86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
 A pass reports `status=baseline-verified`.
 
-The retained source tree and ignored DTB are optional local artifacts. A
-fresh GitHub checkout runs the complete synthetic mutation suite without
-requiring either large retained input.
+The retained source tree and ignored DTB are optional local artifacts. The
+current host copy is the rootless Podman volume
+`rog5-mainline-v19-source`; it is a retained compatibility-oracle input and
+must not be included in a host cleanup plan. A fresh GitHub checkout runs the
+complete synthetic mutation suite without requiring either large retained
+input.
 
 ## Candidate mode
 
@@ -123,9 +137,11 @@ Run all hardware-free repository checks:
 scripts/host/test-repository-linux.sh ci
 ```
 
-The 37-case focused suite creates disposable synthetic Git trees and DTBs. It does
-not build a kernel, contact the phone, use a credential, change host network
-state, delete storage, or grant live authority.
+The 53-case focused suite creates disposable synthetic Git trees and DTBs. It
+does not build a kernel, contact the phone, use a credential, change host
+network state, delete storage, or grant live authority.
 
 See the
-[offline result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).
+[CPU/RAM topology result](../test-results/2026-07-29-cpu-ram-topology-offline.md)
+and the earlier
+[source/DTB result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).

@@ -21,7 +21,7 @@ build outputs.
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
-| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; 37 source and 21 corrected-DTB checks plus a 48-field runtime probe cover all six active capabilities, while the corrected candidate remains live-pending |
+| Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; 37 source and 23 corrected-DTB checks plus a 55-field runtime probe cover all six active capabilities, including exact RAM banks, CPU MPIDRs, and three EPSS CPUfreq policies, while the corrected candidate remains live-pending |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper now reproduce in a complete offline twin build |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -202,15 +202,16 @@ plus the
 [live rejection](test-results/2026-07-29-headless-stable-recovery-live.md).
 
 The next target observation is no longer an ad-hoc terminal transcript. One
-read-only probe and fail-closed verifier now bind a 48-field private record to
+read-only probe and fail-closed verifier now bind a 55-field private record to
 the exact corrected candidate, boot ID, all six active core capabilities,
-device-specific CPU/RAM/thermal thresholds, and the still-armed rollback
-watchdog. The strict-SSH capture runner cannot boot, sign, reboot, disarm, or
-retry execution. Because this credential-free root creates a volatile server
-host key in RAM, a separate bootstrap now pins only the public Ed25519 key
-after proving that the exact target NCM gadget replaced signed recovery on the
-same physical USB port. No client key is offered during that discovery. Both
-paths remain offline-only pending fresh live authorization.
+exact eight-CPU topology, three Qualcomm EPSS CPUfreq policies,
+device-specific RAM/thermal thresholds, and the still-armed rollback watchdog.
+The strict-SSH capture runner cannot boot, sign, reboot, disarm, or retry
+execution. Because this credential-free root creates a volatile server host
+key in RAM, a separate bootstrap now pins only the public Ed25519 key after
+proving that the exact target NCM gadget replaced signed recovery on the same
+physical USB port. No client key is offered during that discovery. Both paths
+remain offline-only pending fresh live authorization.
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

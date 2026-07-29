@@ -35,7 +35,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
 - The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
 - The core source/DTB contract requires a clean Git source root, 37
-  Kconfig/Makefile/OF/binding/source checks, and 21 corrected-DTB topology
+  Kconfig/Makefile/OF/binding/source checks, and 23 corrected-DTB topology
   checks across all six active minimal-headless capabilities. OF tables must
   be attached to registered drivers; enabled DT paths must have enabled
   ancestors, mandatory PHY cells, and exact phandle relationships. A global
@@ -229,7 +229,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `test-verify-minimal-headless-runtime.py`, and
   `test-run-minimal-headless-runtime-acceptance.sh` define the next corrected
   target result without granting live authority. They require one canonical
-  48-field observation covering the six active compatibility capabilities,
+  55-field observation covering the six active compatibility capabilities,
   bind it to the exact probe/boot/candidate/root/watchdog identities and
   device-specific CPU/RAM/thermal envelopes, reject target and record
   mutations, and prove one strict-SSH private capture with no boot, signing,

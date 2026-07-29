@@ -57,7 +57,7 @@ plan_sha256=$(sha256sum "$plan" | cut -d ' ' -f 1)
 scripts/host/cleanup-podman-volumes.py preflight \
   --plan "$plan" \
   --plan-sha256 "$plan_sha256" \
-  --expected-candidate-count 88
+  --expected-candidate-count 87
 ```
 
 The preflight requires an owned, bounded ordinary plan file that is not
@@ -93,6 +93,8 @@ Retain these categories regardless of apparent size:
   accepted artifact identity;
 - the corrected headless target, signed-bundle inputs, stable recovery inputs,
   and the pinned container images used to verify them;
+- the current accepted Linux 7.1.4 source oracle in rootless volume
+  `rog5-mainline-v19-source`, until a replacement retained source is recorded;
 - any external unit or volume named by tracked project source or evidence;
 - any unit containing an uncommitted Git worktree unless a separate closure
   proof reconstructs it byte-for-byte;

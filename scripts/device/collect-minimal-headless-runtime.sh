@@ -170,6 +170,51 @@ printf '%s\n' "$boot_id" |
 cpu_online_count=$(nproc)
 unsigned_integer "$cpu_online_count" && [ "$cpu_online_count" -gt 0 ] ||
 	fail 'online CPU count is invalid'
+cpu_online_set=$(cat "$(runtime_path /sys/devices/system/cpu/online)")
+cpu_present_set=$(cat "$(runtime_path /sys/devices/system/cpu/present)")
+[ "$cpu_online_count" = 8 ] && [ "$cpu_online_set" = 0-7 ] ||
+	fail 'online CPU topology is not exact'
+[ "$cpu_present_set" = 0-7 ] ||
+	fail 'present CPU topology is not exact'
+
+cpufreq_root=$(runtime_path /sys/devices/system/cpu/cpufreq)
+[ -d "$cpufreq_root" ] && [ ! -L "$cpufreq_root" ] ||
+	fail 'CPU frequency policy root is absent or linked'
+cpufreq_policy_count=$(
+	find "$cpufreq_root" -mindepth 1 -maxdepth 1 -name 'policy*' -print |
+		awk 'NF { count++ } END { print count + 0 }'
+)
+[ "$cpufreq_policy_count" = 3 ] ||
+	fail 'CPU frequency policy count is not exact'
+cpufreq_policy_names=
+cpufreq_policy_cpu_sets=
+cpufreq_policy_drivers=
+cpufreq_policy_governors=
+separator=
+for policy_name in policy0 policy4 policy7; do
+	policy_path=$cpufreq_root/$policy_name
+	[ -d "$policy_path" ] && [ ! -L "$policy_path" ] ||
+		fail "CPU frequency policy is absent or linked: $policy_name"
+	case $policy_name in
+		policy0) expected_related_cpus='0 1 2 3' ;;
+		policy4) expected_related_cpus='4 5 6' ;;
+		policy7) expected_related_cpus=7 ;;
+	esac
+	related_cpus=$(cat "$policy_path/related_cpus")
+	scaling_driver=$(cat "$policy_path/scaling_driver")
+	scaling_governor=$(cat "$policy_path/scaling_governor")
+	[ "$related_cpus" = "$expected_related_cpus" ] ||
+		fail "CPU frequency policy topology changed: $policy_name"
+	[ "$scaling_driver" = qcom-cpufreq-hw ] ||
+		fail "CPU frequency policy driver changed: $policy_name"
+	[ "$scaling_governor" = schedutil ] ||
+		fail "CPU frequency policy governor changed: $policy_name"
+	cpufreq_policy_names=$cpufreq_policy_names$separator$policy_name
+	cpufreq_policy_cpu_sets=$cpufreq_policy_cpu_sets$separator$related_cpus
+	cpufreq_policy_drivers=$cpufreq_policy_drivers$separator$scaling_driver
+	cpufreq_policy_governors=$cpufreq_policy_governors$separator$scaling_governor
+	separator=';'
+done
 memory_total_kib=$(
 	awk '$1 == "MemTotal:" { print $2; found=1; exit }
 		END { if (!found) exit 1 }' "$(runtime_path /proc/meminfo)"
@@ -414,6 +459,13 @@ printf 'pid1=%s\n' "$pid1"
 printf 'system_state=%s\n' "$system_state"
 printf 'default_target=%s\n' "$default_target"
 printf 'cpu_online_count=%s\n' "$cpu_online_count"
+printf 'cpu_online_set=%s\n' "$cpu_online_set"
+printf 'cpu_present_set=%s\n' "$cpu_present_set"
+printf 'cpufreq_policy_count=%s\n' "$cpufreq_policy_count"
+printf 'cpufreq_policy_names=%s\n' "$cpufreq_policy_names"
+printf 'cpufreq_policy_cpu_sets=%s\n' "$cpufreq_policy_cpu_sets"
+printf 'cpufreq_policy_drivers=%s\n' "$cpufreq_policy_drivers"
+printf 'cpufreq_policy_governors=%s\n' "$cpufreq_policy_governors"
 printf 'memory_total_kib=%s\n' "$memory_total_kib"
 printf 'memory_available_kib=%s\n' "$memory_available_kib"
 printf 'root_fstype=%s\n' "$root_fstype"
