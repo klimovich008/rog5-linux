@@ -5,6 +5,11 @@
 Build a stable, observable, maintainable native Linux system for the ASUS ROG
 Phone 5 (`anakin`), headless-first.
 
+Long-term success means the phone can run unattended as a minimal native-Linux
+ARM server with repeatable builds, bounded recovery, key-only remote access,
+screen-off operation, and measured power and thermal behavior. A newer kernel,
+GPU, desktop, or persistent install is not a substitute for that foundation.
+
 The active target is a minimal server that boots repeatably, preserves
 postmortem evidence, exposes key-only SSH, keeps physical storage safe during
 development, and has correct power, charging, thermal, input, sensor, audio,
@@ -295,11 +300,18 @@ time.
 
 ## Current next action
 
-The A0 feedback-loop work is green. Continue in this order:
+The signed SSH-only bundle, fixed serve/verify/execute integration, first
+shell-free live recovery transaction, automatic fallback, and corrected DTB
+selection are complete. The corrected target itself remains offline.
+Continue in this order:
 
-1. package the verified SSH-only root into a signed runtime bundle;
-2. complete fixed serve/verify/execute integration for the manifest runner;
-3. generate, but do not execute, the artifact prune plan;
-4. obtain explicit approval for a production recovery trust root;
-5. promote the stable recovery through staging-only tests and measure pstore
-   retention.
+1. generate, but do not execute, the machine-readable artifact prune plan;
+2. add an optional compiler-cache path and a validated incremental-output
+   contract for active kernel builds without changing reproducible outputs;
+3. pin the complete source and toolchain bootstrap for a fresh Linux host;
+4. build the corrected-DTB candidate twice with a disposable trust root and
+   repeat the complete hardware-free gate;
+5. request fresh, separate authorization before creating or using a live
+   signing credential or temporarily booting the corrected candidate;
+6. if the minimal root reaches key-only SSH and clean rollback, start the H3
+   power/lifecycle and H4 input/sensor gates before GPU or desktop work.

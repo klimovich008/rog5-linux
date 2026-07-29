@@ -141,6 +141,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-recovery-candidate-integration.py
 		scripts/host/test-headless-network-root.py
 		scripts/host/test-arch-headless-rootfs-contract.sh
+		scripts/device/test-network-root-init.sh
 		scripts/host/test-recovery-fetch-native.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
