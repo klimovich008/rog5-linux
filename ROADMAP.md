@@ -179,7 +179,12 @@ because it looks reproducible.
   [machine-readable prune plan](test-results/2026-07-29-artifact-prune-plan.json)
   with size, identity, references, role, and reproduction status for every
   candidate.
-- [ ] Review the plan before deleting or deduplicating anything.
+- [x] Review and execute the exact 87-volume detached Podman delete set with
+  candidate-set, plan, repository-state, mount, and reference guards.
+- [x] Preserve the 11 accepted source/build/cache volumes and verify zero
+  remaining Podman prune candidates.
+- [ ] Review the separate external development/cache candidates before any
+  additional deletion.
 
 Exit: active inputs and irreplaceable evidence are obvious; failed and
 duplicate builds can be removed safely.
@@ -219,7 +224,12 @@ or losing remote reachability.
 
 ## H4 — Input and sensors
 
-- [ ] Verify power and volume keys with IRQ/wakeup behavior.
+- [x] Encode and hostile-test the stock-evidenced power, volume-down,
+  volume-up, and default-off green indicator DT/kernel contract.
+- [ ] Verify all three physical keys with IRQ behavior and a bounded
+  userspace health indication.
+- [ ] Verify wake behavior and idle-power impact separately under the H3
+  suspend gate.
 - [ ] Verify touchscreen input independently of the desktop.
 - [ ] Bring up IMU, compass, ambient-light, and proximity sensors one at a
   time.
@@ -332,8 +342,8 @@ and rejects unrelated node/property changes in core CI. They remain offline
 and have no live authority.
 Continue in this order:
 
-1. preserve the reviewed artifact plan; do not delete or deduplicate anything
-   without separate approval;
+1. preserve the 11 retained Podman volumes and review the remaining external
+   development/cache candidates separately before additional cleanup;
 2. use the pinned Linux source/toolchain bootstrap for all new kernel builds;
 3. [x] build the corrected-DTB candidate twice with a disposable trust root
    and repeat the complete hardware-free gate;
@@ -343,7 +353,10 @@ Continue in this order:
    active capabilities while leaving rollback armed;
 6. [x] close the temporary root's volatile SSH host-key gap without
    `accept-new`, client-key use, or a reusable identity;
-7. request fresh, separate authorization before creating or using a live
+7. [x] define and hostile-test the exact three-button/default-off-green-LED
+   source, config, module, and DTB contract without contacting the phone;
+8. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-8. if the minimal root reaches key-only SSH and clean rollback, start the H3
+9. if the minimal root reaches key-only SSH and clean rollback, run the
+   physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.
