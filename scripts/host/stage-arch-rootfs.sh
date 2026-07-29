@@ -3,41 +3,64 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 authorized_key=${1:?usage: stage-arch-rootfs.sh AUTHORIZED_KEY [OUTPUT]}
-output=${2:-$repo/artifacts/arch/rog5-arch-plasma-network-root-7.1.4.tar.gz}
+output=${2:-}
 rootfs=${ROOTFS:-$repo/artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz}
 modules=${MODULES_ARCHIVE:-$repo/artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz}
 firmware=${FIRMWARE_DIRECTORY:-$repo/artifacts/firmware/linux-firmware-20260622}
 builder_image=${BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 manifest=$repo/manifests/artifacts.tsv
 generation=${ARCH_ROOTFS_GENERATION:-v2}
+firmware_required=1
 
 case $generation in
 	v2)
 		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		device_stage=scripts/device/stage-arch-rootfs.sh
 		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-rootfs-v2.sh
+		default_output=$repo/artifacts/arch/rog5-arch-plasma-network-root-7.1.4.tar.gz
 		;;
 	v3)
 		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-v3-stage.sh
+		device_stage=scripts/device/stage-arch-rootfs-v3.sh
 		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-rootfs-v3.sh
+		default_output=$repo/artifacts/arch/rog5-arch-plasma-network-root-v3-7.1.4.tar.gz
+		;;
+	headless-v1)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		device_stage=scripts/device/stage-arch-headless-rootfs.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-headless-rootfs.sh
+		default_output=$repo/artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz
+		firmware_required=0
 		;;
 	*)
 		echo "FAIL unsupported Arch rootfs generation: $generation" >&2
 		exit 1
 		;;
 esac
+output=${output:-$default_output}
 
-for command in bash bsdtar git podman realpath sha256sum stat tar; do
+for command in bash bsdtar git podman realpath sha256sum ssh-keygen stat tar; do
 	command -v "$command" >/dev/null
 done
 for path in "$authorized_key" "$rootfs" "$modules"; do
 	[[ -f $path ]]
 done
-[[ -d $firmware && -r $manifest ]]
+[[ -r $manifest ]]
+if [[ $firmware_required == 1 ]]; then
+	[[ -d $firmware ]]
+fi
 
 authorized_key=$(realpath "$authorized_key")
 rootfs=$(realpath "$rootfs")
 modules=$(realpath "$modules")
-firmware=$(realpath "$firmware")
+firmware_mount=()
+if [[ $firmware_required == 1 ]]; then
+	firmware=$(realpath "$firmware")
+	firmware_mount=(
+		--mount
+		"type=bind,source=$firmware,target=/stage/input/firmware,readonly"
+	)
+fi
 mkdir -p "$(dirname "$output")"
 output=$(realpath -m "$output")
 [[ ! -e $output ]] || {
@@ -70,15 +93,19 @@ rootfs_hash=$(verify_manifest_artifact \
 	artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz "$rootfs")
 modules_hash=$(verify_manifest_artifact \
 	artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz "$modules")
-for relative in qcom/a660_sqe.fw qcom/a660_gmu.bin qcom/sm8350/a660_zap.mbn; do
-	verify_manifest_artifact \
-		"artifacts/firmware/linux-firmware-20260622/$relative" \
-		"$firmware/$relative" >/dev/null
-done
+if [[ $firmware_required == 1 ]]; then
+	for relative in qcom/a660_sqe.fw qcom/a660_gmu.bin \
+		qcom/sm8350/a660_zap.mbn; do
+		verify_manifest_artifact \
+			"artifacts/firmware/linux-firmware-20260622/$relative" \
+			"$firmware/$relative" >/dev/null
+	done
+fi
 
 [[ $(awk 'NF { count++ } END { print count + 0 }' "$authorized_key") == 1 ]]
 grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' \
 	"$authorized_key"
+ssh-keygen -l -f "$authorized_key" >/dev/null
 if grep -q 'BEGIN .*PRIVATE KEY' "$authorized_key"; then
 	echo 'FAIL authorized-key input contains private-key material' >&2
 	exit 1
@@ -89,11 +116,11 @@ project_commit=$(git -C "$repo" rev-parse HEAD)
 	echo 'FAIL commit or remove repository changes before rootfs staging' >&2
 	exit 1
 }
-[[ -r /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] &&
-	grep -qx enabled /proc/sys/fs/binfmt_misc/qemu-aarch64 || {
+if [[ ! -r /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
+	! grep -qx enabled /proc/sys/fs/binfmt_misc/qemu-aarch64; then
 	echo 'FAIL enabled qemu-aarch64 binfmt registration is required' >&2
 	exit 1
-}
+fi
 
 mapfile -t releases < <(
 	tar -tzf "$modules" |
@@ -148,7 +175,7 @@ podman run --rm \
 	--mount "type=volume,source=$stage_volume,target=/stage" \
 	--mount "type=bind,source=$repo,target=/stage/workspace/repo,readonly" \
 	--mount "type=bind,source=$modules,target=/stage/input/modules.tar.gz,readonly" \
-	--mount "type=bind,source=$firmware,target=/stage/input/firmware,readonly" \
+	"${firmware_mount[@]}" \
 	--mount "type=bind,source=$authorized_key,target=/stage/input/authorized_key,readonly" \
 	--mount "type=volume,source=$cache_volume,target=/stage/var/cache/pacman/pkg" \
 	--mount type=bind,source=/dev,target=/stage/dev \
@@ -159,6 +186,7 @@ podman run --rm \
 	--env "MODULES_SHA256=$modules_hash" \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	--env "PROJECT_COMMIT=$project_commit" \
+	--env "ARCH_DEVICE_STAGE=$device_stage" \
 	"$builder_image" \
 	/bin/bash "/stage$stage_runner"
 

@@ -1,0 +1,35 @@
+{
+  "format": "rog5-recovery-candidate-v1",
+  "candidate": "persistent-root-p2-parity",
+  "status": "consumed",
+  "authority": "none",
+  "bundle": "persistent-root-p2-parity",
+  "profile": "persistent-root-ro-v1",
+  "target_id": "persistent-root-p2",
+  "target_release": "7.1.4-gcfd385a1c754",
+  "rollback_timeout": "600",
+  "target_timeout": "480",
+  "a660_command_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_generation": "none",
+  "root_tree_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_seal_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_tree_entries": "0",
+  "root_subtree": "none",
+  "artifacts": {
+    "Image": {
+      "path": "artifacts/persistent-root-p2/Image-7.1.4-persistent-root",
+      "size": 38607360,
+      "sha256": "832757fc6b97554813a14049123667bc6f5b225e6204ca048d73c3a36c76469f"
+    },
+    "board.dtb": {
+      "path": "artifacts/persistent-root-p2/sm8350-asus-rog-phone5-persistent-root.dtb",
+      "size": 102766,
+      "sha256": "36802458928e2970a0043f6a27d106e6aa4911fd89b2f548e7c08275d164aaf0"
+    },
+    "initramfs.cpio.gz": {
+      "path": "artifacts/persistent-root-p2/rog5-persistent-root-initramfs.cpio.gz",
+      "size": 5853881,
+      "sha256": "a2dae8b5c95863c09666355f4777f16c7c2f78a2763ea064907a557945a92992"
+    }
+  }
+}

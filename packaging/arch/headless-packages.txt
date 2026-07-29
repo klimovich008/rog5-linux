@@ -1,0 +1,4 @@
+# Minimal SSH server additions to the signed Arch Linux ARM base.
+attr
+diffutils
+openssh
