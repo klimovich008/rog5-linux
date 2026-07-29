@@ -155,16 +155,25 @@ class RecoveryCandidateTest(unittest.TestCase):
         self.assertIn("target_id=fixture\n", manifest)
         self.assertEqual((bundle / "manifest.sig").stat().st_size, 64)
 
-    def test_live_authority_and_unknown_fields_refuse(self) -> None:
-        for mutation in ("authority", "unknown"):
+    def test_live_authority_status_and_unknown_fields_refuse(self) -> None:
+        for mutation in ("authority", "status", "unknown"):
             record = copy.deepcopy(self.record)
             if mutation == "authority":
                 record["authority"] = "live"
+            elif mutation == "status":
+                record["status"] = "ready"
             else:
                 record["extra"] = "no"
             self.write_record(record)
             with self.assertRaises(RUNNER.CandidateError):
                 RUNNER.load_candidate("fixture")
+
+    def test_offline_non_network_root_profile_refuses(self) -> None:
+        record = copy.deepcopy(self.record)
+        record["status"] = "offline"
+        self.write_record(record)
+        with self.assertRaises(RUNNER.CandidateError):
+            RUNNER.load_candidate("fixture")
 
     def test_artifact_identity_change_refuses(self) -> None:
         (self.repo / self.paths["Image"]).chmod(0o644)
@@ -187,6 +196,32 @@ class RecoveryCandidateTest(unittest.TestCase):
                 (artifact["size"], artifact["sha256"]),
                 inventory[artifact["path"]],
             )
+
+    def test_headless_network_candidate_matches_root_package(self) -> None:
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        record = RUNNER.load_candidate("headless-network-root-v1")
+        package = {}
+        for line in (
+            REPO
+            / "configs/network-roots/headless-network-root-v1.package"
+        ).read_text(encoding="ascii").splitlines():
+            name, separator, value = line.partition("=")
+            self.assertEqual(separator, "=")
+            self.assertNotIn(name, package)
+            package[name] = value
+        self.assertEqual(record["status"], "offline")
+        self.assertEqual(record["authority"], "none")
+        self.assertEqual(record["profile"], package["profile"])
+        for name in (
+            "a660_command_manifest_sha256",
+            "root_generation",
+            "root_tree_sha256",
+            "root_seal_sha256",
+            "root_tree_entries",
+            "root_subtree",
+        ):
+            self.assertEqual(str(record[name]), package[name])
 
     def test_adapter_has_no_live_transport(self) -> None:
         source = RUNNER_PATH.read_text(encoding="utf-8")

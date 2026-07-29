@@ -4,17 +4,40 @@ set -eu
 archive=${1:?usage: verify-network-root-initramfs.sh INITRAMFS}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
-for command in cmp cpio find grep gzip mkdir mktemp readelf rm sh; do
+reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
+reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+for command in cmp cpio cut find grep gzip install mkdir mktemp readelf rm \
+	sha256sum sh; do
 	command -v "$command" >/dev/null || {
 		echo "FAIL missing initramfs verifier command: $command" >&2
 		exit 1
 	}
 done
-[ -x "$verifier_builder" ] && [ -f "$verifier_builder" ] &&
-	[ ! -L "$verifier_builder" ] || {
-	echo 'FAIL reviewed static verifier builder is absent or linked' >&2
-	exit 1
-}
+if [ -z "$reviewed_verifier" ]; then
+	[ -x "$verifier_builder" ] && [ -f "$verifier_builder" ] &&
+		[ ! -L "$verifier_builder" ] || {
+		echo 'FAIL reviewed static verifier builder is absent or linked' >&2
+		exit 1
+	}
+else
+	case $reviewed_verifier in
+		/*) ;;
+		*)
+			echo 'FAIL NETWORK_ROOT_VERIFIER must be absolute' >&2
+			exit 1
+			;;
+	esac
+	[ -x "$reviewed_verifier" ] && [ -f "$reviewed_verifier" ] &&
+		[ ! -L "$reviewed_verifier" ] || {
+		echo 'FAIL reviewed static verifier artifact is absent or linked' >&2
+		exit 1
+	}
+	[ "$(sha256sum "$reviewed_verifier" | cut -d ' ' -f 1)" = \
+		"$reviewed_verifier_hash" ] || {
+		echo 'FAIL reviewed static verifier artifact hash changed' >&2
+		exit 1
+	}
+fi
 [ -s "$archive" ] || { echo 'FAIL missing network-root initramfs' >&2; exit 1; }
 gzip -t "$archive"
 
@@ -73,11 +96,21 @@ if readelf -d "$root_verifier" 2>/dev/null |
 	echo 'FAIL persistent-root verifier has a shared-library dependency' >&2
 	exit 1
 fi
-"$verifier_builder" "$trusted/persistent-root-verify" \
-	>"$trusted/build-record" || {
-	echo 'FAIL reviewed static verifier rebuild failed' >&2
+[ "$(sha256sum "$root_verifier" | cut -d ' ' -f 1)" = \
+	"$reviewed_verifier_hash" ] || {
+	echo 'FAIL embedded persistent-root verifier hash changed' >&2
 	exit 1
 }
+if [ -z "$reviewed_verifier" ]; then
+	"$verifier_builder" "$trusted/persistent-root-verify" \
+		>"$trusted/build-record" || {
+		echo 'FAIL reviewed static verifier rebuild failed' >&2
+		exit 1
+	}
+else
+	install -m 0755 "$reviewed_verifier" \
+		"$trusted/persistent-root-verify"
+fi
 cmp "$root_verifier" "$trusted/persistent-root-verify" || {
 	echo 'FAIL persistent-root verifier differs from reviewed build' >&2
 	exit 1

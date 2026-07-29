@@ -79,11 +79,40 @@ offline test fixture; its private half was destroyed and it must not be used
 as deployment access. A real deployment supplies its own public key outside
 Git.
 
-This archive is rebuildable from pinned base-rootfs and module identities and
-records all resulting package versions. It is not yet bit-reproducible:
-Arch's rolling repository snapshot is not pinned and `pacman-key --init`
-generates a local trust database. It is also not signed as a stable-recovery
-runtime bundle and has not run on the phone.
+This source archive is rebuildable from pinned base-rootfs and module
+identities and records all resulting package versions. Rebuilding the source
+is not yet bit-reproducible: Arch's rolling repository snapshot is not pinned
+and `pacman-key --init` generates a local trust database.
+
+The accepted source archive can now be transformed without package-network
+access:
+
+```sh
+scripts/host/prepare-headless-network-root.sh
+```
+
+The rootless Podman packager installs a canonical `workload=none` command
+manifest, seals all 37,669 entries, writes a pax-restricted transport archive,
+extracts it into a second clean volume, and recomputes the complete seal. Its
+tracked package identity is
+`configs/network-roots/headless-network-root-v1.package`; changed bytes,
+metadata, xattrs, command policy, or seal are rejected. Two complete builds
+produced:
+
+```text
+path:   artifacts/arch/rog5-arch-headless-network-root-7.1.4/root.tar.gz
+size:   535110731
+sha256: 5438c993aa394395d534c75fb1620f778c701eb241cb24f5ecb8deda52f2b015
+```
+
+The corresponding authority-free candidate uses the UFS-disabled network
+kernel, USB2 recovery DTB, and a dedicated credential-free initramfs carrying
+the exact static AArch64 whole-tree verifier. Packaging with a disposable key
+passes the native signed-bundle verifier. This proves offline representation,
+not a phone boot: the candidate remains `status=offline`,
+`authority=none`, has no production trust key, and has not run on the phone.
+See the
+[runtime result](../test-results/2026-07-29-headless-runtime-integration-offline.md).
 
 ## Historical desktop profiles
 

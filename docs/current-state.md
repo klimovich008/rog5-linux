@@ -205,9 +205,28 @@ rolling and the local pacman trust database is generated during staging.
 The recovery side also has a strict offline manifest adapter for the consumed
 persistent-root P2 artifacts. It verifies their tracked sizes and hashes,
 delegates canonical signing/publication to the stable runtime-bundle
-packager, and permanently requires `status=consumed` plus `authority=none`.
-It has no transport, server, phone, or execute path. See the
-[offline result](../test-results/2026-07-29-headless-root-candidate-offline.md).
+packager, and requires either a consumed parity fixture or an offline
+network-root candidate plus `authority=none`.
+
+The active root is now packaged as a separately transported, sealed
+`network-root-v1` lower. Two complete rootless builds produced the same
+535,110,731-byte pax-restricted archive with SHA-256
+`5438c993aa394395d534c75fb1620f778c701eb241cb24f5ecb8deda52f2b015`.
+Its 37,669-entry tree, persistent seal, and explicit `workload=none` command
+manifest are bound into the tracked `headless-network-root-v1` candidate.
+The new 5,978,369-byte target initramfs includes the exact static AArch64
+whole-tree verifier and also reproduces byte-for-byte.
+
+An ephemeral-key signed v2 bundle passes the real native verifier with
+manifest SHA-256
+`70136ad498fad21bce5279f60cbad36359c7d6df6eb42280591071c5e1389bf6`.
+The real consumed P2 fixture also passes one complete offline
+prepare/serve/fetch/verify/descriptor-load/execute composition through the
+framed responder; a changed signature never reaches load. No production key,
+phone action, or live authority was added. See the
+[root checkpoint](../test-results/2026-07-29-headless-root-candidate-offline.md)
+and
+[runtime integration result](../test-results/2026-07-29-headless-runtime-integration-offline.md).
 
 ## Persistent Arch root
 
@@ -402,13 +421,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Package the verified minimal root as a signed runtime bundle and complete
-   the fixed serve/verify/execute portion of the manifest-driven runner.
-2. Obtain explicit approval before creating or using a production recovery
+1. Obtain explicit approval before creating or using a production recovery
    signing trust root.
-3. Promote the stable recovery through staging-only tests and determine
+2. Promote the stable recovery through staging-only tests and determine
    whether ramoops survives the target/fallback path.
-4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+3. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

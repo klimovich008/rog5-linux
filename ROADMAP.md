@@ -66,7 +66,7 @@ active mainline target.
 
 ## A0 — Shorten the development loop
 
-Status: **in progress**
+Status: **offline speed-amplifier boundary complete; live promotion pending**
 
 ### A0.1 Postmortem outcome oracle
 
@@ -125,9 +125,9 @@ before a phone cycle.
 
 ### A0.4 Reduce candidate overhead
 
-- [ ] Replace version-per-candidate prepare/serve/verify/run glue with one
-  manifest-driven runner. The strict offline manifest-to-bundle preparation
-  adapter is complete; fixed serve/verify/execute integration remains.
+- [x] Replace version-per-candidate prepare/serve/verify/run glue with one
+  manifest-driven runner and prove real packager/server/fetcher/verifier/
+  responder composition with the consumed P2 fixture.
 - [ ] Extract only the already-proven generic safety checks needed by that
   runner; do not create a new framework.
 - [x] Port the consumed persistent-root P2 payload into the manifest adapter
@@ -136,6 +136,9 @@ before a phone cycle.
 - [ ] Add compiler caching and preserve incremental kernel output trees.
 - [x] Create a minimal SSH-only root profile with no display, desktop,
   browser, Vulkan, hotspot, or agent packages.
+- [x] Seal that root as a byte-reproducible read-only network lower, bind its
+  explicit no-workload manifest and complete tree into an authority-free v2
+  candidate, and verify an ephemeral-signed bundle natively.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -167,7 +170,8 @@ Exit: failed boots are diagnosable and recover automatically.
 
 ## H2 — Minimal headless boot
 
-- [ ] Package one signed minimal root bundle.
+- [x] Package and verify one ephemeral-signed minimal root bundle offline;
+  production signing remains a separate approval boundary.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
   clean reboot.

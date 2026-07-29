@@ -18,6 +18,8 @@ done
 for text in \
 	'usage: build-network-root-initramfs.sh BASE OUTPUT' \
 	'build-persistent-root-verifier-static.sh' \
+	'NETWORK_ROOT_VERIFIER' \
+	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'verify-network-root-initramfs.sh' \
 	'accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac'; do
@@ -193,6 +195,14 @@ printf '\177ELF\002\001\001\000\000\000\000\000\000\000\000\000\002\000\267\000\
 cp "$canonical_elf" "$substitute_elf"
 printf '\001' >>"$substitute_elf"
 chmod 0755 "$canonical_elf" "$substitute_elf"
+if NETWORK_ROOT_VERIFIER="$canonical_elf" \
+	"$initramfs_builder" "$work/absent-base" "$work/refused-output" \
+	>"$work/reviewed-verifier-refusal.log" 2>&1; then
+	echo 'FAIL unreviewed verifier artifact was accepted' >&2
+	exit 1
+fi
+grep -Fq 'reviewed static verifier artifact hash changed' \
+	"$work/reviewed-verifier-refusal.log"
 for candidate in "$canonical_elf" "$substitute_elf"; do
 	readelf -h "$candidate" | grep -q 'Machine:.*AArch64'
 	if readelf -l "$candidate" | grep -q 'Requesting program interpreter'; then

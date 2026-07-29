@@ -194,6 +194,20 @@ identity and artifact hashes distinguish candidates. In particular, the
 consumed v9 live payload remains evidence and cannot be executed again merely
 because the packaging path can represent its ancestry.
 
+Tracked candidate adapters accept only two authority-free states:
+
+- `consumed` for exact historical parity fixtures that cannot be retried;
+- `offline` for an unbooted `network-root-v1` package.
+
+Both require `authority=none`. The headless offline package uses the
+historical fixed command-manifest pathname but binds an explicit canonical
+`format=rog5-headless-command-manifest-v1` and `workload=none` payload. This
+is data under the existing profile, not a new verifier or command-line path.
+The target recomputes the complete sealed tree after the read-only NFS mount
+and before OverlayFS handoff, then independently checks that command-manifest
+hash. A package manifest or signed tuple alone is not a substitute for that
+post-mount verification.
+
 ## Artifact policy
 
 The three manifest sizes must equal the opened file sizes and all three
