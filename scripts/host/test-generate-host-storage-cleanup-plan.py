@@ -39,7 +39,7 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
         )
         (self.repo / "docs").mkdir()
         (self.repo / "docs/refs.md").write_text(
-            "Keep active-source and active-volume and retained-cache.\n",
+            "Keep active-source and rog5-active-volume and retained-cache.\n",
             encoding="utf-8",
         )
         (self.repo / "test-results").mkdir()
@@ -91,7 +91,12 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
         (self.cache / "retained-cache/value").write_bytes(b"retained")
 
         self.volumes: list[dict[str, object]] = []
-        for name in ("active-volume", "old-volume"):
+        for name, driver, scope in (
+            ("rog5-active-volume", "local", "local"),
+            ("rog5-old-volume", "local", "local"),
+            ("foreign-volume", "local", "local"),
+            ("rog5-remote-volume", "remote", "global"),
+        ):
             path = self.volume_root / name
             (path / "_data").mkdir(parents=True)
             (path / "_data/value").write_bytes(name.encode("ascii"))
@@ -100,6 +105,10 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
                     "Name": name,
                     "Mountpoint": str(path / "_data"),
                     "MountCount": 0,
+                    "Driver": driver,
+                    "Scope": scope,
+                    "CreatedAt": "2026-07-29T00:00:00+00:00",
+                    "Options": {},
                 }
             )
         self.volumes_json = root / "volumes.json"
@@ -179,11 +188,17 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
             entries["rog5-cache:retained-cache"]["decision"], "retain"
         )
         self.assertEqual(
-            entries["podman-volume:active-volume"]["decision"], "retain"
+            entries["podman-volume:rog5-active-volume"]["decision"], "retain"
         )
         self.assertEqual(
-            entries["podman-volume:old-volume"]["decision"],
+            entries["podman-volume:rog5-old-volume"]["decision"],
             "prune_candidate",
+        )
+        self.assertEqual(
+            entries["podman-volume:foreign-volume"]["decision"], "retain"
+        )
+        self.assertEqual(
+            entries["podman-volume:rog5-remote-volume"]["decision"], "retain"
         )
         self.assertEqual(plan["runtime"]["podman_container_count"], 0)
         self.assertGreater(
@@ -196,7 +211,7 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
         for path in (
             self.data / "dev/old-build.ABC123/object.o",
             self.cache / "rebuild-cache/value",
-            self.volume_root / "old-volume/_data/value",
+            self.volume_root / "rog5-old-volume/_data/value",
         ):
             self.assertTrue(path.exists())
 
@@ -205,7 +220,7 @@ class HostStorageCleanupPlanTest(unittest.TestCase):
         plan = json.loads(self.output.read_text(encoding="ascii"))
         entries = {entry["id"]: entry for entry in plan["entries"]}
         self.assertEqual(
-            entries["podman-volume:old-volume"]["decision"], "retain"
+            entries["podman-volume:rog5-old-volume"]["decision"], "retain"
         )
 
     def test_existing_output_is_never_replaced(self) -> None:

@@ -45,6 +45,46 @@ Both planners are read-only, have no deletion mode, refuse to overwrite an
 existing output, reject sensitive-looking unit names, and state that a prune
 candidate is not deletion authority.
 
+## Tier-1 Podman preflight
+
+Generate a fresh private plan file, record its exact hash, and run the
+non-destructive preflight:
+
+```sh
+plan=test-results/private/host-storage-plan.json
+scripts/host/generate-host-storage-cleanup-plan.py --output "$plan"
+plan_sha256=$(sha256sum "$plan" | cut -d ' ' -f 1)
+scripts/host/cleanup-podman-volumes.py preflight \
+  --plan "$plan" \
+  --plan-sha256 "$plan_sha256" \
+  --expected-candidate-count 88
+```
+
+The preflight requires an owned, bounded ordinary plan file that is not
+group/other-writable, the exact clean repository commit, zero containers,
+zero candidate mount counts, an exact current volume-name closure, a second
+`podman volume inspect` of every candidate, the `rog5-*` project prefix, the
+local volume driver/scope, empty volume options, mountpoints contained below
+the exact hash-bound local store, unchanged volume creation timestamps,
+unchanged allocated/apparent sizes, a plan age below 15 minutes, and the
+expected candidate count. Inherited remote Podman connection selectors are
+rejected. Non-ROG5 and non-local volumes are always retained. The preflight
+prints the SHA-256 of the sorted candidate-name set and does not remove
+anything.
+
+The separate `delete` action is intentionally not shown as a copy-paste
+command. It uses only `podman volume rm` without `--force`; it never deletes a
+filesystem path. It requires the same complete preflight, the exact plan hash
+and count, an independently supplied expected candidate-set SHA-256, and
+`ALLOW_ROG5_PODMAN_VOLUME_DELETE` equal to the exact current plan SHA-256.
+The environment guard is not approval: obtain explicit approval naming the
+candidate-set identity, then regenerate and re-preflight immediately before
+setting it.
+
+If deletion ever stops after removing only part of the approved set, do not
+reuse the stale plan. Preserve its output, regenerate inventory for the new
+state, review the remaining exact candidate set, and obtain fresh approval.
+
 ## Preservation rules
 
 Retain these categories regardless of apparent size:
@@ -75,7 +115,7 @@ later; it does not itself delete them.
 1. Preserve a fresh plan, its SHA-256, the filesystem measurements, all compact
    logs, and the two external worktree closure records.
 2. Remove only detached, unreferenced Podman volumes named in the approved
-   plan. Never use `podman system prune`.
+   plan through the guarded tier-1 executor. Never use `podman system prune`.
 3. Remove only approved unreferenced generated units in the external ROG5
    development and cache scopes.
 4. Remove the eight exact failed/temporary units admitted by the separate

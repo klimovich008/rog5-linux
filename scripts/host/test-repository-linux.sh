@@ -148,6 +148,7 @@ if [[ $tier == ci ]]; then
 		scripts/device/test-kernel-build-contract.sh
 		scripts/host/test-generate-artifact-prune-plan.py
 		scripts/host/test-generate-host-storage-cleanup-plan.py
+		scripts/host/test-cleanup-podman-volumes.py
 		scripts/host/test-recovery-fetch-native.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
@@ -174,6 +175,7 @@ else
 		scripts/host/test-claude-readonly-review.sh
 		scripts/host/test-generate-artifact-prune-plan.py
 		scripts/host/test-generate-host-storage-cleanup-plan.py
+		scripts/host/test-cleanup-podman-volumes.py
 		scripts/device/test-kernel-build-contract.sh
 		scripts/device/test-a660-acceptance.py
 		scripts/host/test-a660-runtime-root.py
