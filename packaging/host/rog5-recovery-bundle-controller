@@ -102,6 +102,7 @@ flock -n 9 || fail 'another recovery bundle controller is active'
 host_ip=169.254.77.1
 phone_ip=169.254.77.2
 host_cidr=$host_ip/30
+fallback_cidr=$host_ip/16
 host_port=8080
 firewall_zone=drop
 state_lifetime=180s
@@ -126,8 +127,9 @@ done
 if firewall-cmd --zone="$firewall_zone" --query-masquerade >/dev/null; then
 	fail 'drop firewall zone has masquerading enabled'
 fi
+forward_was_enabled=0
 if firewall-cmd --zone="$firewall_zone" --query-forward >/dev/null; then
-	fail 'drop firewall zone has forwarding enabled'
+	forward_was_enabled=1
 fi
 
 mapfile -t all_zones < <(
@@ -180,8 +182,12 @@ if [[ -n $original_zone ]]; then
 		" ${all_zones[*]} " == *" $original_zone "* ]] ||
 		fail 'target interface has an unknown firewall zone'
 fi
-managed=$(nmcli -g GENERAL.MANAGED device show "$interface" 2>/dev/null ||
-	true)
+managed=$(nmcli -g GENERAL.NM-MANAGED device show "$interface" \
+	2>/dev/null || true)
+if [[ $managed != yes && $managed != no ]]; then
+	managed=$(nmcli -g GENERAL.MANAGED device show "$interface" \
+		2>/dev/null || true)
+fi
 [[ $managed == yes || $managed == no ]] ||
 	fail 'cannot determine NetworkManager ownership of target interface'
 
@@ -191,8 +197,26 @@ host_bindings=$(ip -4 -o address show |
 		if (part[1] == ip) print $2 ":" $4
 	}') || fail 'cannot inspect host IPv4 ownership'
 if [[ -n $host_bindings &&
-	$host_bindings != "$interface:$host_cidr" ]]; then
+	$host_bindings != "$interface:$host_cidr" &&
+	$host_bindings != "$interface:$fallback_cidr" ]]; then
 	fail 'fixed recovery host address is already bound elsewhere'
+fi
+initial_interface_addresses=$(ip -4 -o address show dev "$interface" |
+	awk '{ print $4 }') || fail 'cannot inspect initial target IPv4 state'
+[[ -z $initial_interface_addresses ||
+	$initial_interface_addresses == "$host_cidr" ||
+	$initial_interface_addresses == "$fallback_cidr" ]] ||
+	fail 'target interface has unexpected initial IPv4 state'
+original_connection_uuid=
+if [[ $initial_interface_addresses == "$fallback_cidr" ]]; then
+	[[ $managed == yes ]] ||
+		fail 'fallback host address is not owned by NetworkManager'
+	original_connection_uuid=$(
+		nmcli -g GENERAL.CON-UUID device show "$interface" 2>/dev/null ||
+			true
+	)
+	[[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+		fail 'fallback NetworkManager connection identity is invalid'
 fi
 
 server_pid=
@@ -201,6 +225,8 @@ address_added=0
 allow_added=0
 interface_moved=0
 managed_changed=0
+connection_deactivated=0
+forward_disabled=0
 declare -a drop_added_zones=()
 
 cleanup() {
@@ -235,13 +261,27 @@ cleanup() {
 		firewall-cmd --zone="$zone" \
 			--remove-rich-rule="$drop_rule" >/dev/null 2>&1
 	done
+	if [[ $forward_disabled == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--add-forward >/dev/null 2>&1
+	fi
 	if [[ $managed_changed == 1 && -e $sys_class_net/$interface ]]; then
 		nmcli device set "$interface" managed yes >/dev/null 2>&1
+	fi
+	if [[ $connection_deactivated == 1 &&
+		-e $sys_class_net/$interface ]]; then
+		nmcli connection up uuid "$original_connection_uuid" \
+			ifname "$interface" >/dev/null 2>&1
 	fi
 	echo 'INFO recovery bundle host network state removed'
 }
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
+
+if [[ $forward_was_enabled == 1 ]]; then
+	forward_disabled=1
+	firewall-cmd --zone="$firewall_zone" --remove-forward >/dev/null
+fi
 
 for zone in "${protected_zones[@]}"; do
 	drop_added_zones+=("$zone")
@@ -249,6 +289,10 @@ for zone in "${protected_zones[@]}"; do
 		--add-rich-rule="$drop_rule" --timeout="$state_lifetime" >/dev/null
 done
 
+if [[ -n $original_connection_uuid ]]; then
+	connection_deactivated=1
+	nmcli connection down uuid "$original_connection_uuid" >/dev/null
+fi
 if [[ $managed == yes ]]; then
 	managed_changed=1
 	nmcli device set "$interface" managed no >/dev/null

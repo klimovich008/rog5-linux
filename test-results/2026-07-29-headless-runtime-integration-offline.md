@@ -45,20 +45,20 @@ The canonical sealed package is:
 
 ```text
 path:   artifacts/arch/rog5-arch-headless-network-root-7.1.4/root.tar.gz
-size:   535110731
-sha256: 5438c993aa394395d534c75fb1620f778c701eb241cb24f5ecb8deda52f2b015
+size:   535094061
+sha256: ee310c82ef925c9a801c310ab36f56f94b124ceb089d8db745c0959493c52b24
 
 package manifest sha256:
-d2ea1a1c94bb2652339b498691f2fd9354f829f7c40e51e73a2da1a13f0a0678
+ec96cb1dd86c3bfb328f4f1a62e91815b3d1677446445f24710708657a4bafcc
 
 a660_command_manifest_sha256:
 99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2
 
 root_tree_entries: 37669
 root_tree_sha256:
-1351a7edcc15ecba825fe5df70f8028beae7378ed84f06c28e9d34bba45d19f7
+7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb
 root_seal_sha256:
-fdc17a0fa6e1f62f711bb4ce2b82be11f80a20f2b445a138f5fc4d950402ce1e
+6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896
 ```
 
 Two complete rootless-Podman builds produced byte-identical pax-restricted
@@ -92,9 +92,19 @@ embedded persistent-root verifier sha256:
 bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 ```
 
-Two clean initramfs assemblies were byte-identical. The tracked
-`headless-network-root-v1` candidate combines that initramfs with the pinned
-UFS-disabled Linux 7.1.4 Image and USB2-only DTB. It remains:
+Two clean initramfs assemblies were byte-identical. The original tracked
+`headless-network-root-v1` candidate combined that initramfs with the pinned
+UFS-disabled Linux 7.1.4 Image and historical network-root v1 DTB. The later
+live transaction proved that DTB was not the accepted GPU/RMTFS-isolated
+USB2 object: target NCM appeared, then the phone reset before SSH. The
+candidate now pins the accepted, byte-identical network-root v3 DTB:
+
+```text
+size: 102870
+sha256: 86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46
+```
+
+It remains:
 
 ```text
 status=offline
@@ -171,7 +181,8 @@ NETWORK_ROOT_VERIFIER=... \
 
 The root tests reject tree, archive, and command-manifest mutation. The
 candidate tests reject live authority, unsupported status, unknown fields,
-an offline non-network-root profile, and artifact identity changes. The
+an offline non-network-root profile, artifact identity changes, and any
+headless DTB other than the accepted GPU/RMTFS-isolated v3 identity. The
 integration test proves actual P2 prepare/serve/verify/load/execute
 composition and signature refusal.
 
@@ -187,5 +198,6 @@ of the exact-hash `NETWORK_ROOT_VERIFIER` fallback. A second review received
 the complete 2,242-line patch but reached the fixed 180-second limit without
 a verdict; it made no repository change and was not treated as a gate.
 
-No fastboot, ADB, SSH, USB device, phone command, reboot, boot, flash, block
-write, production credential, or external service was used.
+During this offline checkpoint, no fastboot, ADB, SSH, USB device, phone
+command, reboot, boot, flash, block write, production credential, or external
+service was used. The later live result is documented separately.

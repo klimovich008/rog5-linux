@@ -13,14 +13,14 @@ runner=$repo/scripts/host/test-qemu-system-smoke.sh
 for path in "$source_file" "$builder" "$runner"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
-for command in clang readelf strings; do
+for command in clang ld.lld readelf strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU smoke contract command: $command"
 done
 
 test_root=$(mktemp -d)
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
-clang --target=aarch64-none-elf -nostdlib -static -fno-pic \
+clang --target=aarch64-none-elf -fuse-ld=lld -nostdlib -static -fno-pic \
 	-fno-stack-protector -Werror -Wall -Wextra \
 	-Wl,--build-id=none,--entry=_start \
 	"$source_file" -o "$test_root/init"
@@ -39,6 +39,7 @@ for option in BLK_DEV_INITRD BINFMT_ELF PRINTK RD_GZIP \
 done
 grep -Fq -- '-M virt' "$runner"
 grep -Fq -- '-nic none' "$runner"
+grep -Fq -- '-fuse-ld=lld' "$runner"
 grep -Fq "rdinit=/init" "$runner"
 if grep -Eq 'fastboot|/dev/(sd|nvme|ufs)|mount[[:space:]].*root=' \
 	"$runner"; then

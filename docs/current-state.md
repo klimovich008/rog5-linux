@@ -60,30 +60,31 @@ Evidence:
 - [v18 staging live](../test-results/2026-07-24-recovery-v18-live.md)
 - [v18 mainline live](../test-results/2026-07-24-recovery-v18-mainline-live.md)
 
-The transport is accepted; the control protocol is not. Recovery still starts
-an interactive BusyBox shell on `/dev/ttyGS0`. Host tools send shell text and
-search output for markers. Echo, stale text, serial-open races, and the
-expected disconnect during `kexec -e` prevent reliable request correlation
-and safe retry.
+The legacy v18 artifact remains unchanged and interactive, but its successor
+source removes the shell from recovery, network-root, and persistent-root.
+A deterministic builder removes SSH/getty/login/DHCP entry points and
+credentials, locks root, and integrates the static responder, fetcher,
+verifier, pinned kexec runtime, and a caller-supplied raw public key. Eight
+init-policy tests and malicious-archive/init fixtures enforce that boundary.
+Builds under different locales and time zones are byte-identical.
 
-There is therefore no active payload-execution gate. The next recovery must
-implement the framed, device-session-bound, at-most-once protocol in
-[recovery control plane](recovery-control-plane.md).
+That shell-free path has now completed one attended signed live transaction.
+The exact guarded runner used only `fastboot boot`; recovery fetched and
+verified one signed bundle, returned correlated `PREPARED` and `CLAIMED`
+responses, started the target NCM gadget, and automatically returned to the
+exact persistent fallback. The durable host intent was resolved as
+`FALLBACK_RETURNED`; no commit was retried.
 
-The current source has now removed that shell from recovery, network-root,
-and persistent-root. A deterministic builder replaces the accepted v18
-userspace init, removes SSH/getty/login/DHCP entry points and credentials,
-locks root, and integrates the static responder, fetcher, verifier, pinned
-kexec runtime, and a caller-supplied raw public key. Six init-policy tests
-and malicious-archive/init fixtures enforce that boundary. Builds under
-different locales and time zones are byte-identical. The ASUS wrapper path
-also requires the repeatedly measured 116 physical nodes before USB bind.
-This is an offline re-freeze test, not a boot candidate: v18 itself remains
-unchanged and interactive, and no production trust root exists. Two clean
-vendor-wrapper, raw boot-v3, and AVB builds also match byte-for-byte and pass
-unpacking, command-line, and AVB-descriptor verification. Those
-ephemeral-key images remain ignored test artifacts and are not
-boot-authorized. See [re-freeze integration](recovery-refreeze-integration.md).
+The target did not reach SSH. Its signed candidate selected historical
+network-root v1 DTB hash `255c5ac1...`, which leaves RMTFS, GPUCC, GMU, and
+the Adreno SMMU enabled and reproduces the documented roughly 16-second
+coldplug reset. The tracked candidate now pins the accepted v3-isolated DTB
+hash `86e5cb81...` and a regression test requires that complete identity.
+The correction passes the candidate and signed-bundle integration suites but
+has not been signed by a live trust root or booted. There is no repeat live
+authority. See the
+[live result](../test-results/2026-07-29-headless-stable-recovery-live.md)
+and [re-freeze integration](recovery-refreeze-integration.md).
 
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
@@ -210,23 +211,31 @@ network-root candidate plus `authority=none`.
 
 The active root is now packaged as a separately transported, sealed
 `network-root-v1` lower. Two complete rootless builds produced the same
-535,110,731-byte pax-restricted archive with SHA-256
-`5438c993aa394395d534c75fb1620f778c701eb241cb24f5ecb8deda52f2b015`.
+535,094,061-byte pax-restricted archive with SHA-256
+`ee310c82ef925c9a801c310ab36f56f94b124ceb089d8db745c0959493c52b24`.
 Its 37,669-entry tree, persistent seal, and explicit `workload=none` command
 manifest are bound into the tracked `headless-network-root-v1` candidate.
 The new 5,978,369-byte target initramfs includes the exact static AArch64
 whole-tree verifier and also reproduces byte-for-byte.
+
+The first signed live target exposed exact network-root NCM, then returned to
+fallback before SSH because the candidate carried historical DTB v1. The
+candidate now pins the accepted v3 GPU/RMTFS-isolated DTB
+`86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
+This correction is offline and grants no repeat authority.
 
 An ephemeral-key signed v2 bundle passes the real native verifier with
 manifest SHA-256
 `70136ad498fad21bce5279f60cbad36359c7d6df6eb42280591071c5e1389bf6`.
 The real consumed P2 fixture also passes one complete offline
 prepare/serve/fetch/verify/descriptor-load/execute composition through the
-framed responder; a changed signature never reaches load. No production key,
-phone action, or live authority was added. See the
+framed responder; a changed signature never reaches load. That earlier
+offline checkpoint added no production key or live authority. See the
 [root checkpoint](../test-results/2026-07-29-headless-root-candidate-offline.md)
 and
-[runtime integration result](../test-results/2026-07-29-headless-runtime-integration-offline.md).
+[runtime integration result](../test-results/2026-07-29-headless-runtime-integration-offline.md),
+plus the
+[live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Persistent Arch root
 

@@ -104,8 +104,12 @@ grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
 grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$stage/init"
 grep -Fq '/run/rog5-postmortem.status' "$stage/init"
 grep -Fq '/usr/libexec/rog5-recovery-control &' "$stage/init"
-grep -Fq "grep -Eq '^session=[0-9a-f]{64}$'" "$stage/init"
+grep -Fq "grep -Eq '^session=[0-9a-f]{32}$'" "$stage/init"
 grep -Fq 'ip address add 169.254.77.2/30 dev usb0' "$stage/init"
+grep -Fq 'bundle_root=/run/rog5-bundles' "$stage/init"
+grep -Fq "mkdir -p \"\$bundle_root\"" "$stage/init"
+grep -Fq "chown 0:0 \"\$bundle_root\"" "$stage/init"
+grep -Fq "chmod 0700 \"\$bundle_root\"" "$stage/init"
 
 lease_line=$(grep -n '^watchdog_lease=/run/rog5-recovery-watchdog.lease$' \
 	"$stage/init" | cut -d: -f1)
@@ -129,6 +133,10 @@ post_contract_line=$(
 )
 control_line=$(grep -n '^/usr/libexec/rog5-recovery-control &$' \
 	"$stage/init" | cut -d: -f1)
+bundle_root_line=$(grep -n '^bundle_root=/run/rog5-bundles$' \
+	"$stage/init" | cut -d: -f1)
+bundle_mode_line=$(grep -Fn "chmod 0700 \"\$bundle_root\"" \
+	"$stage/init" | cut -d: -f1)
 postmortem_line=$(grep -n '^if ! snapshot_postmortem; then$' \
 	"$stage/init" | cut -d: -f1)
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
@@ -138,7 +146,8 @@ bind_line=$(grep -n '^if ! echo "\$udc" >"\$gadget/UDC"; then$' \
 	"$stage/init" | cut -d: -f1)
 for value in "$lease_line" "$pre_storage_line" "$pre_contract_line" \
 	"$post_storage_line" "$post_contract_line" "$control_line" \
-	"$postmortem_line" "$session_line" "$bind_line"; do
+	"$bundle_root_line" "$bundle_mode_line" "$postmortem_line" \
+	"$session_line" "$bind_line"; do
 	case $value in *[!0-9]*|'') fail 'cannot prove stable recovery ordering' ;; esac
 done
 [ "$lease_line" -lt "$pre_storage_line" ]
@@ -148,6 +157,8 @@ done
 [ "$lease_line" -lt "$postmortem_line" ]
 [ "$postmortem_line" -lt "$control_line" ]
 [ "$post_contract_line" -lt "$control_line" ]
+[ "$bundle_root_line" -lt "$bundle_mode_line" ]
+[ "$bundle_mode_line" -lt "$control_line" ]
 [ "$control_line" -le "$session_line" ]
 [ "$session_line" -lt "$bind_line" ]
 

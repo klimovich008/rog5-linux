@@ -18,15 +18,24 @@ mountd_port=32767
 grace_time=10
 lease_time=10
 serve_timeout=${ROG5_NFS_TIMEOUT:-900}
+handoff_token=${ROG5_NFS_HANDOFF_TOKEN:-}
+handoff_marker=/run/rog5-network-root-nfs-ready
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
 if [[ ! $serve_timeout =~ ^[0-9]+$ ]] ||
 	((serve_timeout < 60 || serve_timeout > 86400)); then
 	fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
 fi
+if [[ -n $handoff_token ]]; then
+	[[ $handoff_token =~ ^[0-9a-f]{64}$ &&
+		$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+		fail 'ROG5_NFS_HANDOFF_TOKEN must be one nonzero 256-bit hex token'
+	[[ ! -e $handoff_marker && ! -L $handoff_marker ]] ||
+		fail 'refusing an existing NFS handoff marker'
+fi
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
-	mkdir mountpoint nmcli pgrep realpath rpc.mountd rpc.nfsd ss sysctl udevadm \
-	stat systemctl tr umount; do
+	chmod ln mkdir mktemp mountpoint nmcli pgrep realpath rm rpc.mountd \
+	rpc.nfsd ss sysctl udevadm stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
 [[ -d $root && ! -L $root ]] || fail 'missing prepared export root'
@@ -34,6 +43,9 @@ root=$(realpath -e "$root")
 case $root in
 	/var/lib/rog5-network-root-v1)
 		"$repo/scripts/host/verify-network-root-export.sh" "$root"
+		;;
+	/var/lib/rog5-headless-network-root-v1/root)
+		"$repo/scripts/host/verify-headless-network-root-export.sh" "$root"
 		;;
 	/var/lib/rog5-network-root-a660-gmu-cx-runtime-pm-v10)
 		[[ ${ALLOW_MAINLINE_A660_GMU_CX_RUNTIME_PM_V10_NFS:-} == 1 ]] ||
@@ -104,6 +116,8 @@ export_active=0
 mountd_pid=
 nfsd_started=0
 nonlocal_original=
+handoff_marker_created=0
+handoff_marker_temp=
 declare -a touched_interfaces=()
 
 cleanup() {
@@ -115,6 +129,12 @@ cleanup() {
 	fi
 	if [[ $nfsd_started == 1 ]]; then
 		rpc.nfsd 0
+	fi
+	if [[ $handoff_marker_created == 1 ]]; then
+		rm -f -- "$handoff_marker"
+	fi
+	if [[ -n $handoff_marker_temp ]]; then
+		rm -f -- "$handoff_marker_temp"
 	fi
 	if [[ -n $mountd_pid ]]; then
 		kill "$mountd_pid" 2>/dev/null
@@ -232,6 +252,21 @@ export_listing=$(exportfs -v)
 grep -Fq 'fsid=0' <<<"$export_listing"
 grep -Eq '(^|[,(])ro([,)]|$)' <<<"$export_listing"
 grep -Fq 'no_root_squash' <<<"$export_listing"
+if [[ -n $handoff_token ]]; then
+	handoff_marker_temp=$(mktemp \
+		/run/.rog5-network-root-nfs-ready.XXXXXX)
+	printf '%s\n' \
+		'format=rog5-nfs-handoff-v1' \
+		"token=$handoff_token" \
+		"listener=$host_ip:2049" \
+		'versions=4.2-only' \
+		"export_root=$root" >"$handoff_marker_temp"
+	chmod 0444 "$handoff_marker_temp"
+	ln "$handoff_marker_temp" "$handoff_marker"
+	handoff_marker_created=1
+	rm -f -- "$handoff_marker_temp"
+	handoff_marker_temp=
+fi
 
 find_target_interface() {
 	local interface properties

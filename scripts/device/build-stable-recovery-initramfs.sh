@@ -78,6 +78,15 @@ grep -Fq '/usr/libexec/rog5-recovery-control &' "$init" ||
 	fail 'recovery init does not start the fixed responder'
 grep -Fq '169.254.77.2/30' "$init" ||
 	fail 'recovery init lacks the fixed device address'
+for contract in \
+	'bundle_root=/run/rog5-bundles' \
+	"mkdir -p \"\$bundle_root\"" \
+	"chown 0:0 \"\$bundle_root\"" \
+	"chmod 0700 \"\$bundle_root\""
+do
+	grep -Fq "$contract" "$init" ||
+		fail 'recovery init lacks the exact volatile bundle root'
+done
 grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$init" ||
 	fail 'recovery init does not mount the postmortem store'
 grep -Fq '/run/rog5-postmortem.status' "$init" ||

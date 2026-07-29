@@ -132,6 +132,9 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
+		scripts/host/test-stable-recovery-control.py
+		scripts/host/test-verified-fastboot-boot.py
+		scripts/host/test-run-stable-recovery-live-gate.sh
 		scripts/host/test-recovery-bundle-native.py
 		scripts/host/test-prepare-recovery-runtime-bundle.py
 		scripts/host/test-prepare-recovery-candidate.py
@@ -150,6 +153,9 @@ else
 		scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
+		scripts/host/test-stable-recovery-control.py
+		scripts/host/test-verified-fastboot-boot.py
+		scripts/host/test-run-stable-recovery-live-gate.sh
 		scripts/host/test-recovery-bundle-native.py
 		scripts/host/test-prepare-recovery-runtime-bundle.py
 		scripts/host/test-prepare-recovery-candidate.py

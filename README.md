@@ -19,9 +19,9 @@ build outputs.
 | Persistent fallback | Alpine on vendor kernel 5.4.134; SSH/remote GUI and screen-off service available |
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
-| Recovery control | Framed shell-free protocol and read-only pstore outcome oracle are reproducible through complete wrapper/AVB packaging; production trust root and live promotion remain |
+| Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port; subsystem bring-up remains incremental |
-| Mainline userspace | SSH-only Arch root is a byte-reproducible 535,110,731-byte sealed network lower; dedicated verifier initramfs and ephemeral-signed v2 bundle pass offline; not booted and no production key |
+| Mainline userspace | SSH-only Arch lower started far enough to expose target NCM but reset before SSH because the signed candidate selected historical DTB v1; corrected v3-isolated candidate passes offline |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -34,6 +34,9 @@ gate.
 ## Start here
 
 - [Current state](docs/current-state.md) — concise facts and blockers.
+- [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
+  — exact signed transaction, rejection, rollback, root cause, and corrected
+  offline candidate.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
@@ -151,14 +154,19 @@ the exact Linux 7.1.4 modules, `attr`, `diffutils`, and OpenSSH additions. It
 removes the generic kernel, all `linux-firmware*` bundles, published accounts,
 desktop/browser/GPU/Wi-Fi/VPN/agent packages, reusable machine identity, and
 reusable SSH host keys. Its 535,093,875-byte source becomes a
-byte-reproducible 535,110,731-byte sealed read-only network lower with an
+byte-reproducible 535,094,061-byte sealed read-only network lower with an
 explicit hash-bound no-workload manifest and 37,669-entry whole-tree seal. A
 dedicated initramfs embeds the exact static AArch64 verifier; an
 ephemeral-key signed v2 bundle and the actual consumed-P2
-prepare/serve/verify/execute composition pass offline. It remains unbooted,
-`authority=none`, and is not phone boot authority. See
+prepare/serve/verify/execute composition pass offline. Its first signed live
+transaction exposed target NCM but returned before SSH because the candidate
+selected historical DTB v1. The tracked candidate now pins the accepted
+GPU/RMTFS-isolated v3 DTB, remains `authority=none`, and is not phone boot
+authority. See
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
-[runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md).
+[runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
+plus the
+[live rejection](test-results/2026-07-29-headless-stable-recovery-live.md).
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

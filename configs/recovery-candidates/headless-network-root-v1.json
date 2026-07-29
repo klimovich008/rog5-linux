@@ -11,8 +11,8 @@
   "target_timeout": "480",
   "a660_command_manifest_sha256": "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2",
   "root_generation": "arch-a",
-  "root_tree_sha256": "1351a7edcc15ecba825fe5df70f8028beae7378ed84f06c28e9d34bba45d19f7",
-  "root_seal_sha256": "fdc17a0fa6e1f62f711bb4ce2b82be11f80a20f2b445a138f5fc4d950402ce1e",
+  "root_tree_sha256": "7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb",
+  "root_seal_sha256": "6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896",
   "root_tree_entries": "37669",
   "root_subtree": "/",
   "artifacts": {
@@ -22,9 +22,9 @@
       "sha256": "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
     },
     "board.dtb": {
-      "path": "artifacts/network-root-v1/sm8350-asus-rog-phone5-recovery.dtb",
-      "size": 102774,
-      "sha256": "255c5ac199b0412c499aae39bb596507b934e71c003396040d4952f0c5ffabe6"
+      "path": "artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb",
+      "size": 102870,
+      "sha256": "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
     },
     "initramfs.cpio.gz": {
       "path": "artifacts/headless-network-root-v1/rog5-headless-network-root-initramfs.cpio.gz",

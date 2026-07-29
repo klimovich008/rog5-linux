@@ -101,18 +101,24 @@ produced:
 
 ```text
 path:   artifacts/arch/rog5-arch-headless-network-root-7.1.4/root.tar.gz
-size:   535110731
-sha256: 5438c993aa394395d534c75fb1620f778c701eb241cb24f5ecb8deda52f2b015
+size:   535094061
+sha256: ee310c82ef925c9a801c310ab36f56f94b124ceb089d8db745c0959493c52b24
 ```
 
 The corresponding authority-free candidate uses the UFS-disabled network
-kernel, USB2 recovery DTB, and a dedicated credential-free initramfs carrying
-the exact static AArch64 whole-tree verifier. Packaging with a disposable key
-passes the native signed-bundle verifier. This proves offline representation,
-not a phone boot: the candidate remains `status=offline`,
-`authority=none`, has no production trust key, and has not run on the phone.
-See the
-[runtime result](../test-results/2026-07-29-headless-runtime-integration-offline.md).
+kernel, accepted GPU/RMTFS-isolated v3 recovery DTB, and a dedicated
+credential-free initramfs carrying the exact static AArch64 whole-tree
+verifier. Packaging with a disposable key passes the native signed-bundle
+verifier.
+
+The first signed live bundle used the historical v1 DTB by mistake. It reached
+target NCM, then returned to fallback before SSH at the same roughly
+16-second boundary documented for v1. The candidate now pins the accepted v3
+DTB and a regression test requires its exact hash. This correction remains
+`status=offline`, `authority=none`, has no live trust key, and has not been
+booted. See the
+[runtime result](../test-results/2026-07-29-headless-runtime-integration-offline.md)
+and [live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Historical desktop profiles
 

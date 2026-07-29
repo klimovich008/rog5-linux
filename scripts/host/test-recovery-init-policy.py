@@ -12,6 +12,8 @@ REPO = Path(__file__).resolve().parents[2]
 RECOVERY = REPO / "initramfs" / "recovery-init"
 NETWORK_ROOT = REPO / "initramfs" / "network-root-init"
 PERSISTENT_ROOT = REPO / "initramfs" / "persistent-root-init"
+RECOVERY_CONTROL = REPO / "tools/recovery_control/rog5-recovery-control.c"
+RECOVERY_FETCH = REPO / "tools/recovery_control/rog5-bundle-fetch.c"
 
 
 class InitPolicyTest(unittest.TestCase):
@@ -80,13 +82,58 @@ class InitPolicyTest(unittest.TestCase):
         self.assertLessEqual(control, session)
         self.assertLess(session, bind)
         self.assertIn(
-            "grep -Eq '^session=[0-9a-f]{64}$'",
+            "grep -Eq '^session=[0-9a-f]{32}$'",
             source,
         )
         self.assertIn("expected_wrapper_physical_count=116", source)
         self.assertIn(
             '"$expected_wrapper_physical_count"',
             source,
+        )
+
+    def test_recovery_session_width_matches_native_responder(self) -> None:
+        init_source = self.source(RECOVERY)
+        control_source = self.source(RECOVERY_CONTROL)
+        native = re.search(
+            r'^#define ZERO_ID "([0]+)"$',
+            control_source,
+            flags=re.MULTILINE,
+        )
+        init_gate = re.search(
+            r"grep -Eq '\^session=\[0-9a-f\]\{([0-9]+)\}\$'",
+            init_source,
+        )
+        self.assertIsNotNone(native)
+        self.assertIsNotNone(init_gate)
+        self.assertEqual(int(init_gate.group(1)), len(native.group(1)))
+        self.assertEqual(len(native.group(1)), 32)
+
+    def test_recovery_creates_fetchers_exact_volatile_root(self) -> None:
+        init_source = self.source(RECOVERY)
+        fetch_source = self.source(RECOVERY_FETCH)
+        native = re.search(
+            r'^static const char \*bundle_root = "([^"]+)";$',
+            fetch_source,
+            flags=re.MULTILINE,
+        )
+        init_root = re.search(
+            r"^bundle_root=(/[A-Za-z0-9/_-]+)$",
+            init_source,
+            flags=re.MULTILINE,
+        )
+        self.assertIsNotNone(native)
+        self.assertIsNotNone(init_root)
+        self.assertEqual(init_root.group(1), native.group(1))
+        self.assertEqual(native.group(1), "/run/rog5-bundles")
+        for operation in (
+            'mkdir -p "$bundle_root"',
+            'chown 0:0 "$bundle_root"',
+            'chmod 0700 "$bundle_root"',
+        ):
+            self.assertIn(operation, init_source)
+        self.assertLess(
+            init_source.index('chmod 0700 "$bundle_root"'),
+            init_source.index("/usr/libexec/rog5-recovery-control &"),
         )
 
     def test_recovery_snapshots_pstore_without_clearing_it(self) -> None:
