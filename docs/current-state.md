@@ -290,8 +290,11 @@ present, but its expected NFS root archive was pruned. Rebuilding the old
 `headless-core-v2` recipe produced different bytes and exposed a generated
 Pacman signing private key and revocation state inside the archive. That
 output was rejected. The staging boundary is now offline and credential-clean,
-but a new successor identity cannot be admitted until two clean builds are
-byte-identical. See the
+and two fresh builds from commit `ffe8dda` are byte-identical at 536,755,705
+bytes with SHA-256
+`d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`.
+This is reproducible source evidence, not a deployable root: a new successor
+package/profile identity and authorized-key binding are still required. See the
 [hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
 
 The first minimal mainline userspace profile was built and verified offline.
@@ -642,8 +645,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Produce two byte-identical, credential-clean minimal-root builds and admit
-   them under a new package/profile identity.
+1. Admit the byte-identical credential-clean minimal root under a new
+   package/profile identity.
 2. Bind the deployment authorized-key fingerprint to that successor without
    storing or using a private key during authority-free builds.
 3. Rebuild the complete corrected candidate and pass host-only artifact
@@ -677,6 +680,8 @@ headless reliability gate. No new phone action is authorized by this document.
 - The corrected headless stage is network-disabled, consumes only the exact
   manifest-pinned Arch base and modules, rejects embedded Pacman secret or
   revocation state, normalizes timestamps, and emits a sorted archive.
-  Byte reproducibility remains unclaimed until a clean A/B build passes.
+  Two fresh builds from `ffe8dda` are byte-identical at SHA-256
+  `d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`;
+  package and live-candidate identity remain pending.
 - Fastboot remains boot-only. The fallback slot and guarded
   `RESTART2("bootloader")` helper remain unchanged.

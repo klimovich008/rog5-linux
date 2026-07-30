@@ -91,7 +91,12 @@ rebuild produced different bytes and embedded a generated Pacman private key
 and revocation state. The output was rejected. The corrected recipe uses
 only pinned local inputs, removes all Pacman trust state, fixes output
 timestamps, and sorts archive members. It still requires two clean
-byte-identical builds before a new successor package can be admitted. See the
+byte-identical builds before a new successor package can be admitted. That
+gate now passes from commit `ffe8dda`: both outputs are 536,755,705 bytes
+with SHA-256
+`d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`.
+This result uses the public-only fixture key and is not a deployment package
+or live authority. See the
 [hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
 
 The historical source archive, when present, can be transformed without
