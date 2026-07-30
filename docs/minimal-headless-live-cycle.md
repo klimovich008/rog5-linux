@@ -5,13 +5,12 @@ minimal-headless target, one private strict-SSH observation, and automatic
 return to the untouched Alpine fallback.
 
 Status: **controller implemented and hardware-free tested; execution HOLD**.
-The corrected recovery successor is retained and artifact-admitted, but its
-expected NFS root is absent. A replacement root must pass credential-clean
-byte-identical A/B builds and receive a new package identity before this
+The credential-clean replacement root now passes byte-identical A/B builds
+and has a verified key-bound v3 package identity. The retained corrected
+recovery profile still names the historical root, so a new complete candidate
+profile and live private-to-public key derivation gate remain before this
 runbook can pass complete preflight. It is not authorized or runnable on the
-phone in the current state. The A/B source-build gate now passes; package
-identity, deployment-key binding, and complete candidate admission remain.
-This
+phone in the current state. This
 document grants no live authority. `artifact-preflight` verifies the retained
 candidate without querying a phone or inspecting credentials. `preflight` is
 read-only with respect to the phone and credentials, but it does query the

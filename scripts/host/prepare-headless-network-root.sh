@@ -19,6 +19,11 @@ case $build_profile in
 		default_output=$repo/artifacts/arch/rog5-arch-headless-core-network-root-7.1.4
 		package_contract=$repo/configs/network-roots/headless-core-network-root-v2.package
 		;;
+	headless-ssh-v2)
+		archive_name=artifacts/arch/rog5-arch-headless-ssh-v2-7.1.4.tar.gz
+		default_output=$repo/artifacts/arch/rog5-arch-headless-ssh-v2-network-root-7.1.4
+		package_contract=$repo/configs/network-roots/headless-ssh-network-root-v3.package
+		;;
 	*) fail 'unsupported headless network-root build profile' ;;
 esac
 archive=${1:-$repo/$archive_name}
@@ -108,12 +113,27 @@ podman run --rm --network none \
 	/workspace/repo/packaging/arch/rog5-headless-command-manifest \
 	/output/root.identity --build-profile "$build_profile"
 
-podman run --rm --network none \
-	--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
-	--mount "type=bind,source=$work,target=/output" \
-	"$builder_image" \
-	sh -c \
-	'cd /stage && bsdtar --format paxr --acls --xattrs --fflags -cpf /output/root.tar root && gzip -n -6 /output/root.tar'
+if [[ $build_profile == headless-ssh-v2 ]]; then
+	podman run --rm --network none \
+		--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
+		--mount "type=bind,source=$work,target=/output" \
+		"$builder_image" sh -ceu '
+			cd /stage
+			find root -xdev -print0 |
+				LC_ALL=C sort -z >/tmp/root-files
+			bsdtar --null --no-recursion --format paxr \
+				--acls --xattrs --fflags \
+				-cpf /output/root.tar -T /tmp/root-files
+			gzip -n -6 /output/root.tar
+		'
+else
+	podman run --rm --network none \
+		--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
+		--mount "type=bind,source=$work,target=/output" \
+		"$builder_image" \
+		sh -c \
+		'cd /stage && bsdtar --format paxr --acls --xattrs --fflags -cpf /output/root.tar root && gzip -n -6 /output/root.tar'
+fi
 
 python3 "$tool" package \
 	"$work/root.identity" "$work/root.tar.gz" "$work/manifest"

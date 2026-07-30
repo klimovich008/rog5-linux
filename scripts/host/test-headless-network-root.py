@@ -22,6 +22,10 @@ EXPORT_VERIFIER = (
 )
 SERVER = REPO / "scripts/host/serve-network-root.sh"
 FIXTURE = REPO / "configs/ssh/rog5-headless-build-fixture.pub"
+PREPARER = REPO / "scripts/host/prepare-headless-network-root.sh"
+V3_PACKAGE = (
+    REPO / "configs/network-roots/headless-ssh-network-root-v3.package"
+)
 
 
 def load_module():
@@ -469,6 +473,22 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             "/var/lib/rog5-headless-network-root-v1/root)",
             SERVER.read_text(encoding="utf-8"),
         )
+
+    def test_v3_package_contract_and_sorted_archive_are_fixed(self) -> None:
+        values = TOOL.parse_canonical_payload(
+            V3_PACKAGE.read_bytes(),
+            TOOL.PACKAGE_KEYS_V3,
+        )
+        TOOL.validate_package(values)
+        self.assertEqual(values["build_profile"], "headless-ssh-v2")
+        self.assertEqual(
+            values["authorized_key_fingerprint"],
+            FIXTURE_FINGERPRINT,
+        )
+        source = PREPARER.read_text(encoding="utf-8")
+        self.assertIn("headless-ssh-v2)", source)
+        self.assertIn("LC_ALL=C sort -z", source)
+        self.assertIn("--null --no-recursion --format paxr", source)
 
 
 if __name__ == "__main__":

@@ -41,16 +41,19 @@ is a source-input change, not an implicit network update.
 
 ## Minimal headless profile
 
-Build the active profile on Linux with an external public SSH key:
+Build the key-bound profile on Linux with an external Ed25519 public key:
 
 ```sh
-ARCH_ROOTFS_GENERATION=headless-v1 \
+ARCH_ROOTFS_GENERATION=headless-ssh-v2 \
   scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
 ```
 
-The builder requires a clean source commit, enabled `qemu-aarch64` binfmt,
-rootless Podman, the manifest-pinned signed base rootfs, and the exact module
-archive. Unlike the historical desktop generations, this path does not
+The builder requires a clean source commit, AArch64 binfmt, rootless Podman,
+the manifest-pinned signed base rootfs, and the exact module archive. On a
+host without a global registration, wrap the same command with
+`scripts/host/run-private-arm64-binfmt.sh`; it uses the hash-pinned static
+emulator in a private rootless mount namespace and leaves the host table
+unchanged. Unlike the historical desktop generations, this path does not
 require or mount the A660 firmware directory.
 
 The stage requires `attr`, `diffutils`, and `openssh` in the manifest-pinned
@@ -68,8 +71,11 @@ NetworkManager, Plasma/KWin/GNOME components, Chromium, Vulkan/Mesa, Node/npm,
 Wi-Fi, WireGuard, ttyd, the automation-agent surface, and any retained entry
 under `/etc/pacman.d/gnupg`. It evaluates the
 effective OpenSSH policy with a temporary key and configuration under
-`/run`, then the host extracts the final archive into a second clean volume
-and runs the verifier again.
+`/run`. `headless-ssh-v2` accepts only one Ed25519 key, installs a canonical
+two-field line without options or comments, records its SHA-256 fingerprint,
+and fixes `AuthorizedKeysFile` to `/root/.ssh/authorized_keys`. The host then
+extracts the final archive into a second clean volume and runs the verifier
+again.
 
 Historical offline result (not currently deployable):
 
@@ -86,39 +92,48 @@ offline test fixture; its private half was destroyed and it must not be used
 as deployment access. A real deployment supplies its own public key outside
 Git.
 
-The historical recipe is not an accepted reproduction path. A 2026-07-30
+The original recipe is not an accepted reproduction path. A 2026-07-30
 rebuild produced different bytes and embedded a generated Pacman private key
 and revocation state. The output was rejected. The corrected recipe uses
 only pinned local inputs, removes all Pacman trust state, fixes output
-timestamps, and sorts archive members. It still requires two clean
-byte-identical builds before a new successor package can be admitted. That
-gate now passes from commit `ffe8dda`: both outputs are 536,755,705 bytes
-with SHA-256
-`d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`.
-This result uses the public-only fixture key and is not a deployment package
-or live authority. See the
+timestamps, and sorts archive members. The final v2 gate passes from commit
+`9739abe`: two fresh outputs are byte-identical at 536,750,378 bytes with
+SHA-256
+`2abe8c533179da598c37939ff8ebb4667a243bd8140c2d497237e41fbea72e6a`.
+Both in-root and clean-extraction verification pass. This result uses the
+public-only fixture key and is not live authority. See the
 [hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
 
-The historical source archive, when present, can be transformed without
-package-network access:
+Seal the v2 source archive without package-network access:
 
 ```sh
-scripts/host/prepare-headless-network-root.sh
+HEADLESS_NETWORK_ROOT_PROFILE=headless-ssh-v2 \
+  scripts/host/prepare-headless-network-root.sh
 ```
 
 The rootless Podman packager installs a canonical `workload=none` command
-manifest, seals all 37,669 entries, writes a pax-restricted transport archive,
-extracts it into a second clean volume, and recomputes the complete seal. Its
-historical tracked package identity is
-`configs/network-roots/headless-network-root-v1.package`; changed bytes,
-metadata, xattrs, command policy, or seal are rejected. Two complete builds
-produced:
+manifest, seals all 37,735 entries, writes a sorted pax-restricted transport
+archive, extracts it into a second clean volume, and recomputes the complete
+seal. Sorted, non-recursive member enumeration is required because the v1
+tree seal includes directory allocation size. The tracked v3 identity is
+`configs/network-roots/headless-ssh-network-root-v3.package`; changed key,
+fingerprint, bytes, metadata, xattrs, command policy, or seal are rejected.
+The fixed-contract run produced:
 
 ```text
-path:   artifacts/arch/rog5-arch-headless-network-root-7.1.4/root.tar.gz
-size:   535094061
-sha256: ee310c82ef925c9a801c310ab36f56f94b124ceb089d8db745c0959493c52b24
+path:   artifacts/arch/rog5-arch-headless-ssh-v2-network-root-7.1.4/root.tar.gz
+size:   536747283
+sha256: 60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b
+manifest size:   731
+manifest sha256: 1173f96851e8e2df01fdc02e68fcc805ab3a2e7a8141ca0a76eda9954619cd98
 ```
+
+Format v3 retains the verified `network-root-v1` wire profile while adding
+`build_profile=headless-ssh-v2` and `authorized_key_fingerprint`. Historical
+v1/v2 parsers remain exact. The future live-credential gate must reject the
+fixture fingerprint; no private key was read or stored during these builds.
+See the
+[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
 
 The corresponding authority-free candidate uses the UFS-disabled network
 kernel, accepted GPU/RMTFS-isolated v3 recovery DTB, and a dedicated
