@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd -P)
+image=localhost/rog5-kernel-builder:ubuntu-24.04
+verifier=$repo/scripts/host/verify-steam-deck-builder.sh
+workdir=$(pwd -P)
+
+for command_name in podman; do
+	command -v "$command_name" >/dev/null ||
+		fail "missing qualified cpio command: $command_name"
+done
+[[ -x $verifier && -f $verifier && ! -L $verifier ]] ||
+	fail 'missing qualified Steam Deck builder verifier'
+[[ -d $workdir && ! -L $workdir && $workdir != *:* &&
+	$workdir != *$'\n'* ]] ||
+	fail 'unsafe qualified cpio working directory'
+"$verifier" "$image" >/dev/null
+
+exec podman run --rm --network=none --security-opt label=disable -i \
+	-v "$workdir:$workdir" --workdir "$workdir" \
+	"$image" cpio "$@"

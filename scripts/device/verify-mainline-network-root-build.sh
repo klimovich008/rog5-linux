@@ -4,17 +4,24 @@ set -eu
 output_dir=${1:?usage: verify-mainline-network-root-build.sh BUILD_DIR}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+expected_release=7.1.4-g7a5cef0db479
 meta=$output_dir/build-meta.txt
 config=$output_dir/.config
 image=$output_dir/arch/arm64/boot/Image
 image_gz=$output_dir/arch/arm64/boot/Image.gz
 modules=$output_dir/modules.tar.gz
+kernel_release=$output_dir/include/config/kernel.release
 compatibility_oracle=$repo/scripts/host/verify-core-compatibility-oracle.py
 compatibility_profile=$repo/configs/compatibility/rog5-minimal-headless-v1.json
 
-for file in "$meta" "$config" "$image" "$image_gz" "$modules"; do
+for file in \
+	"$meta" "$config" "$image" "$image_gz" "$modules" "$kernel_release"; do
 	[ -s "$file" ] || { echo "FAIL missing $file" >&2; exit 1; }
 done
+[ "$(cat "$kernel_release")" = "$expected_release" ] || {
+	echo 'FAIL network-root kernel release changed' >&2
+	exit 1
+}
 [ -x "$compatibility_oracle" ] && [ -r "$compatibility_profile" ] || {
 	echo 'FAIL missing core compatibility oracle' >&2
 	exit 1
@@ -44,7 +51,18 @@ check_hash modules_sha256 "$modules"
 
 gzip -t "$image_gz"
 gzip -dc "$image_gz" | cmp - "$image"
-tar -tzf "$modules" | grep -q '/modules.dep$'
+strings "$image" | grep -Fq "Linux version $expected_release"
+module_releases=$(
+	tar -tzf "$modules" |
+		sed -n 's#^lib/modules/\([^/]*\)/.*#\1#p' |
+		sort -u
+)
+[ "$module_releases" = "$expected_release" ] || {
+	echo "FAIL module archive release changed: $module_releases" >&2
+	exit 1
+}
+tar -tzf "$modules" |
+	grep -qx "lib/modules/$expected_release/modules.dep"
 
 for symbol in \
 	CONFIG_NFS_FS=y \

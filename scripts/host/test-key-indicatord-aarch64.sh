@@ -2,9 +2,9 @@
 set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-image=${ROG5_AARCH64_BUILD_IMAGE:-localhost/rog5-persistent-root-verifier:alpine-3.24}
-expected_image_id=d5fb16636fadea937b74dc3e062617d74a12577fd3fcc3f61fec24d0f7364495
-expected_image_digest=sha256:750150c51c8b5085d322ecaa5363356bb31ee243d6efab1035bd15f5ffe52355
+image=${ROG5_AARCH64_BUILD_IMAGE:-localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1}
+expected_image_id=a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e
+expected_image_digest=sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa
 expected_source_size=20530
 expected_source_sha256=3d597f919d71a76f2aef0ae2aa269e219ffe7c0bdca0e9b73481d52dff686939
 expected_binary_size=67520

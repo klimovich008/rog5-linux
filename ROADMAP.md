@@ -330,6 +330,13 @@ time.
 - [x] Reproduce Linux 7.1.4 ARM64 builds on the PC.
 - [x] Maintain reviewed config, DTS, patch, module, and evidence identities.
 - [x] Pin the complete Linux source/toolchain bootstrap for a fresh clone.
+- [x] Reconstruct the historical no-local-tag Git state and builder closure;
+  recover all five frozen `network-root-v1` kernel artifacts in two
+  byte-identical, network-disabled builds.
+- [x] Reconstruct the pruned v18r/network-root/headless recovery chain,
+  qualify reboot-safe rootless ARM64 builders, bootstrap Android image tools
+  from immutable AOSP blobs, and replace the missing broad boot template with
+  a compact reproducible metadata template.
 - [x] Add a fail-closed source/DT integration oracle for the accepted
   baseline and future candidate comparisons.
 - [ ] Add KUnit/selftests where hardware-independent logic exists.
@@ -352,7 +359,8 @@ Continue in this order:
 
 1. preserve the 11 retained Podman volumes and review the remaining external
    development/cache candidates separately before additional cleanup;
-2. use the pinned Linux source/toolchain bootstrap for all new kernel builds;
+2. use the pinned Linux source/ref-state/toolchain bootstrap for all new
+   kernel builds;
 3. [x] build the corrected-DTB candidate twice with a disposable trust root
    and repeat the complete hardware-free gate;
 4. [x] enforce and test the exact board-preserving corrected-DTB semantic

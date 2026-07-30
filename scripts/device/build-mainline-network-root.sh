@@ -6,6 +6,7 @@ output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4-network-root}
 base_fragment=${BASE_FRAGMENT:-/workspace/repo/configs/kernel/rog5-mainline.fragment}
 network_fragment=${NETWORK_FRAGMENT:-/workspace/repo/configs/kernel/rog5-network-root.fragment}
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+expected_release=7.1.4-g7a5cef0db479
 jobs=${JOBS:-1}
 btf_jobs=1
 
@@ -13,6 +14,14 @@ btf_jobs=1
 [ -r "$base_fragment" ] && [ -r "$network_fragment" ]
 [ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_commit" ]
 [ -z "$(git -C "$source_dir" status --porcelain)" ]
+actual_release=$(
+	cd "$source_dir"
+	KERNELVERSION=7.1.4 ./scripts/setlocalversion --no-local .
+)
+[ "$actual_release" = "$expected_release" ] || {
+	echo "FAIL source Git state yields kernel release $actual_release" >&2
+	exit 1
+}
 [ ! -d "$output_dir" ] ||
 	[ -z "$(find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit)" ] || {
 		echo 'FAIL output directory is not empty' >&2
@@ -35,6 +44,11 @@ make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 modules_stage=$output_dir/modules-staging
 make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 \
 	INSTALL_MOD_PATH="$modules_stage" modules_install
+[ "$(cat "$output_dir/include/config/kernel.release")" = \
+	"$expected_release" ] || {
+	echo 'FAIL built kernel release changed' >&2
+	exit 1
+}
 source_date_epoch=$(git -C "$source_dir" show -s --format=%ct HEAD)
 tar --sort=name --mtime="@$source_date_epoch" --owner=0 --group=0 \
 	--numeric-owner -C "$modules_stage" -cf - lib/modules |

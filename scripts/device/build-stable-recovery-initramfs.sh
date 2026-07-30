@@ -11,7 +11,19 @@ xz_apk=${7:?missing xz-libs package}
 zstd_apk=${8:?missing zstd-libs package}
 public_key=${9:?missing raw Ed25519 public key}
 output=${10:?missing output}
-expected_base=852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc
+base_profile=${ROG5_RECOVERY_BASE_PROFILE:-historical-v18}
+case $base_profile in
+	historical-v18)
+		expected_base=852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc
+		;;
+	reconstructed-v18r-v1)
+		expected_base=da573d089cd617e088624b6d6bf711e193a4df5367843293e2e5ba543556e51d
+		;;
+	*)
+		echo "FAIL unsupported recovery base profile: $base_profile" >&2
+		exit 1
+		;;
+esac
 epoch=1681862400
 export LC_ALL=C
 export TZ=UTC
@@ -188,4 +200,5 @@ trap - EXIT HUP INT TERM
 rm -rf -- "$stage"
 
 sha256sum "$init" "$control" "$fetcher" "$verifier" "$public_key" "$output"
-echo 'PASS deterministic fixed-control recovery initramfs; public key only; no SSH or interactive ACM shell'
+printf '%s\n' \
+	"PASS deterministic fixed-control recovery initramfs; base_profile=$base_profile; public key only; no SSH or interactive ACM shell"

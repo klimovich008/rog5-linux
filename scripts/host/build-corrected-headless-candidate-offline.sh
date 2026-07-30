@@ -11,13 +11,18 @@ output_root=${1:?usage: build-corrected-headless-candidate-offline.sh OUTPUT_ROO
 candidate=${ROG5_OFFLINE_CANDIDATE:-headless-network-root-v1}
 expected_dtb=${ROG5_OFFLINE_EXPECTED_DTB:-86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46}
 expected_target=${ROG5_OFFLINE_EXPECTED_TARGET:-headless-network-root}
+wrapper_jobs=${ROG5_OFFLINE_WRAPPER_JOBS:-8}
 builder_image=localhost/rog5-kernel-builder:ubuntu-24.04
-expected_builder_id=c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c9cec
-expected_builder_digest=sha256:8513960144bb1ca77878a1364c03fb100c8b87fffb8440fd37a6cc4fc0043b41
+builder_verifier=$repo/scripts/host/verify-steam-deck-builder.sh
+qualified_shims=$repo/scripts/host/qualified-tool-shims
+qualified_cpio_path=$repo/scripts/host/qualified-cpio-path
+arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 secret_root=
 
 [[ $expected_dtb =~ ^[0-9a-f]{64}$ ]] ||
 	fail 'offline candidate DTB identity is malformed'
+[[ $wrapper_jobs =~ ^[1-9][0-9]*$ ]] ||
+	fail 'offline wrapper jobs must be a positive integer'
 case "$candidate:$expected_dtb:$expected_target" in
 	headless-network-root-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-network-root) ;;
 	headless-core-network-root-v2:57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d:headless-core-network-root) ;;
@@ -32,7 +37,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-for command in cmp cut find gcc git grep mkdir mktemp openssl podman \
+for command in cmp cut find git grep mkdir mktemp openssl podman \
 	python3 realpath rm sed sha256sum stat tail; do
 	command -v "$command" >/dev/null ||
 		fail "missing corrected-candidate command: $command"
@@ -49,14 +54,17 @@ git -C "$repo" check-ignore -q "$output_root" ||
 	-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
 	fail 'refusing nonempty corrected-candidate output root'
 
-podman image exists "$builder_image" ||
-	fail 'accepted snapshot kernel builder is unavailable'
-[[ $(podman image inspect "$builder_image" --format '{{.Id}}') == \
-	"$expected_builder_id" ]] ||
-	fail 'accepted snapshot kernel builder ID changed'
-[[ $(podman image inspect "$builder_image" --format '{{.Digest}}') == \
-	"$expected_builder_digest" ]] ||
-	fail 'accepted snapshot kernel builder digest changed'
+[[ -f $builder_verifier && ! -L $builder_verifier &&
+	-x $builder_verifier ]] ||
+	fail 'missing qualified Steam Deck builder verifier'
+[[ -x $qualified_shims/cpio && -f $qualified_shims/cpio &&
+	! -L $qualified_shims/cpio ]] ||
+	fail 'missing qualified Steam Deck cpio shim'
+[[ -x $qualified_cpio_path/cpio && -f $qualified_cpio_path/cpio &&
+	! -L $qualified_cpio_path/cpio ]] ||
+	fail 'missing isolated qualified cpio command path'
+[[ -x $arm64_runner && -f $arm64_runner && ! -L $arm64_runner ]] ||
+	fail 'missing private rootless ARM64 runner'
 
 secret_root=$(mktemp -d)
 private_key=$secret_root/disposable-ed25519.pem
@@ -73,7 +81,15 @@ chmod 0400 "$public_key"
 	fail 'disposable public key metadata is unsafe'
 
 mkdir -p "$output_root"
-RECOVERY_TEST_PUBLIC_KEY=$public_key \
+"$builder_verifier" "$builder_image" \
+	>"$output_root/builder-qualification.txt"
+grep -Fxq 'PASS qualified Steam Deck ASUS 5.4 kernel builder' \
+	"$output_root/builder-qualification.txt" ||
+	fail 'Steam Deck builder verifier did not return its success marker'
+"$arm64_runner" env \
+	PATH="$qualified_cpio_path:/usr/bin:/bin:/usr/sbin:/sbin" \
+	RECOVERY_TEST_PUBLIC_KEY="$public_key" \
+	ROG5_RECOVERY_BASE_PROFILE=reconstructed-v18r-v1 \
 	"$repo/scripts/host/test-stable-recovery-initramfs.sh" \
 	"$output_root/recovery"
 cmp "$public_key" "$output_root/recovery/ephemeral-public.raw"
@@ -120,12 +136,18 @@ done
 	fail 'corrected candidate does not contain the accepted isolated DTB'
 
 host_verifier=$output_root/recovery/components/rog5-bundle-verify-host-test
-gcc -std=c11 -O2 -fPIE -pie -fstack-protector-strong \
+host_verifier_relative=${host_verifier#"$output_root"/}
+podman run --rm --network=none --security-opt label=disable \
+	-v "$repo:/workspace:ro" \
+	-v "$output_root:/out" \
+	--workdir /workspace \
+	"$builder_image" \
+	gcc -std=c11 -O2 -fPIE -pie -fstack-protector-strong \
 	-Wall -Wextra -Werror \
 	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none \
 	-DROG5_BUNDLE_TESTING=1 \
-	"$repo/tools/recovery_control/rog5-bundle-verify.c" \
-	-o "$host_verifier" -lcrypto -lz
+	tools/recovery_control/rog5-bundle-verify.c \
+	-o "/out/$host_verifier_relative" -lcrypto -lz
 chmod 0755 "$host_verifier"
 
 plan_a=$(
@@ -145,13 +167,21 @@ grep -Fxq "target_id=$expected_target" <<<"$plan_a"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$plan_a"
 
 KERNEL_BUILDER_IMAGE=$builder_image \
+ROG5_WRAPPER_BUILDER_PROFILE=steam-deck-asus-5.4-v1 \
+JOBS=$wrapper_jobs \
 	"$repo/scripts/host/test-stable-recovery-wrapper-offline.sh" \
 	"$output_root/recovery/initramfs-a/rog5-stable-recovery.cpio.gz" \
 	"$output_root/recovery/initramfs-b/rog5-stable-recovery.cpio.gz" \
 	"$output_root/wrapper"
 
-python3 "$repo/scripts/host/test-prepare-recovery-candidate.py"
-python3 "$repo/scripts/host/test-recovery-candidate-integration.py"
+for test_script in \
+	scripts/host/test-prepare-recovery-candidate.py \
+	scripts/host/test-recovery-candidate-integration.py; do
+	podman run --rm --network=none --security-opt label=disable \
+		-v "$repo:/workspace:ro" \
+		--workdir /workspace \
+		"$builder_image" python3 "$test_script"
+done
 
 sha256sum \
 	"$output_root/recovery/ephemeral-public.raw" \

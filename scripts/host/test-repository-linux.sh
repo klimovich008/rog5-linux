@@ -132,6 +132,16 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-import-asus-source-volume-contract.sh
 		scripts/host/test-steam-deck-builder-contract.sh
+		scripts/host/test-network-root-kernel-rebuild-contract.sh
+		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
+		scripts/host/test-reconstruct-network-root-v3-contract.sh
+		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
+		scripts/host/test-restore-stable-recovery-inputs-contract.sh
+		scripts/host/test-fetch-android-boot-tools-contract.sh
+		scripts/host/test-canonical-boot-v3-template-contract.sh
+		scripts/host/test-asus-kexec-stage-successor-contract.sh
+		scripts/host/test-private-arm64-binfmt-contract.sh
+		scripts/host/test-steam-deck-recovery-builders-contract.sh
 		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
@@ -185,6 +195,16 @@ else
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-import-asus-source-volume-contract.sh
 		scripts/host/test-steam-deck-builder-contract.sh
+		scripts/host/test-network-root-kernel-rebuild-contract.sh
+		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
+		scripts/host/test-reconstruct-network-root-v3-contract.sh
+		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
+		scripts/host/test-restore-stable-recovery-inputs-contract.sh
+		scripts/host/test-fetch-android-boot-tools-contract.sh
+		scripts/host/test-canonical-boot-v3-template-contract.sh
+		scripts/host/test-asus-kexec-stage-successor-contract.sh
+		scripts/host/test-private-arm64-binfmt-contract.sh
+		scripts/host/test-steam-deck-recovery-builders-contract.sh
 		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh

@@ -329,6 +329,27 @@ manifest are bound into the tracked `headless-network-root-v1` candidate.
 The new 5,978,369-byte target initramfs includes the exact static AArch64
 whole-tree verifier and also reproduces byte-for-byte.
 
+The five frozen Linux 7.1.4 `network-root-v1` kernel artifacts are now
+recoverable from a fresh exact source checkout and the reconstructed
+historical builder. The missing input was Git ref state: retaining a local
+`refs/tags/v7.1.4` changes `scripts/setlocalversion` from
+`7.1.4-g7a5cef0db479` to `7.1.4`, despite an identical commit, tree, and
+config. Two independently fetched, network-disabled builds from the
+deliberate no-local-tag checkout are byte-identical and match every frozen
+size and SHA-256 identity. This is host-only reproducibility evidence, not a
+hardware or boot result.
+
+The pruned recovery dependency chain is also closed. Two retained P2
+lineages reconstruct the successor-only v18r base; exact historical source
+transitions then recover the accepted network-root v3 archive and the
+5,978,369-byte headless target initramfs byte-for-byte. Recovery component
+builders run through pinned private rootless ARM64 emulation, and immutable
+AOSP Git blobs recover the accepted Android boot tools. A reproducible 12 KiB
+boot-v3 metadata template replaces the missing 96 MiB historical template
+for successor builds. The historical wrapper builder remains frozen, while a
+separate successor starts from the accepted v18 output config. See the
+[dependency-closure proof](../test-results/2026-07-30-headless-recovery-dependency-closure.md).
+
 The first signed live target exposed exact network-root NCM, then returned to
 fallback before SSH because the candidate carried historical DTB v1. The
 candidate now pins the accepted v3 GPU/RMTFS-isolated DTB
@@ -337,6 +358,13 @@ The corrected target, signed bundle, shell-free recovery, vendor wrapper, raw
 boot image, and unsigned AVB test wrapper now reproduce in two clean offline
 builds. The disposable test private key was destroyed. This correction
 remains `authority=none` and grants no repeat authority.
+
+The reconstructed successor path independently repeats that complete gate
+with the qualified post-migration builders, compact canonical template, and
+accepted v18 output config. Its two ASUS wrapper Images, raw boot-v3 images,
+and AVB images are byte-identical; the exact source seal is unchanged, AVB
+verification passes, and no private key remains. See the
+[successor offline report](../test-results/2026-07-30-corrected-headless-successor-offline.md).
 
 The accepted stable-recovery wrapper now also has a fail-closed,
 content-addressed cache path. A portable seal binds all 79,030 ASUS source
@@ -606,11 +634,16 @@ headless reliability gate. No new phone action is authorized by this document.
   Git archive tag.
 - The accepted pre-reduction tracked state is recoverable at
   `archive/pre-stable-recovery-2026-07-28`.
-- Linux v7.1.4 now has an exact tag-object/commit/tree source contract and a
-  twice-reproduced rootless x86_64 builder with pinned base images, Ubuntu
-  snapshot, complete package closure, and offline verification.
-- Android packaging dependencies such as `mkbootimg` and `avbtool.py` still
-  need an explicit pinned bootstrap path for fresh-clone reproducibility.
+- Linux v7.1.4 now has an exact tag-object/commit/tree/source-ref contract and
+  a twice-reproduced rootless x86_64 builder with pinned base images, Ubuntu
+  snapshot, complete package closure, and offline verification. The frozen
+  network-root build specifically requires the shallow `rog5-build`
+  `FETCH_HEAD` state with no local `refs/tags/v7.1.4`.
+- Android packaging dependencies now have an immutable AOSP Git-blob
+  bootstrap with exact accepted byte identities, including the historical
+  CRLF normalization. The compact canonical boot-v3 metadata template is
+  independently reproducible and replaces the missing 96 MiB historical
+  template for successor builds.
 - The headless root records its exact package inventory, but its rolling Arch
   package snapshot and generated pacman trust database are not yet
   byte-reproducible inputs.

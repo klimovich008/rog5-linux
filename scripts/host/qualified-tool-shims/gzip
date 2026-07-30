@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd -P)
+image=localhost/rog5-kernel-builder:ubuntu-24.04
+verifier=$repo/scripts/host/verify-steam-deck-builder.sh
+
+command -v podman >/dev/null ||
+	fail 'missing qualified gzip command: podman'
+[[ -x $verifier && -f $verifier && ! -L $verifier ]] ||
+	fail 'missing qualified Steam Deck builder verifier'
+"$verifier" "$image" >/dev/null
+
+# This shim is intentionally a stdin/stdout filter. No host directory, device,
+# network, credential, or privilege surface is exposed to the container.
+exec podman run --rm --network=none -i \
+	"$image" gzip "$@"

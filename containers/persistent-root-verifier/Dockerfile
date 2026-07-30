@@ -9,6 +9,9 @@ RUN apk add --no-cache \
       g++=15.2.0-r5 \
       make=4.4.1-r4 \
       musl-dev=1.2.6-r2 \
-      patch=2.8-r0
+      patch=2.8-r0 \
+ && printf 'localhost\n' >/etc/hostname \
+ && printf '127.0.0.1 localhost\n::1 localhost\n' >/etc/hosts \
+ && : >/var/log/apk.log
 
 WORKDIR /workspace
