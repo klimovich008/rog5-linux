@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 from collections import OrderedDict
 import errno
 import hashlib
@@ -36,9 +38,11 @@ else:
     ROOT_TOOL_PATH = REPO / "scripts/device/persistent-root-tool.py"
 SEAL_NAME = ".rog5-persistent-seal"
 COMMAND_PATH = Path("etc/rog5/a660-command-manifest")
+AUTHORIZED_KEYS_PATH = Path("root/.ssh/authorized_keys")
 EPOCH = 1681862400
 ZERO_HASH = "0" * 64
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+SSH_SHA256 = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
 IDENTITY_KEYS_V1 = (
     "format",
     "profile",
@@ -55,6 +59,13 @@ IDENTITY_KEYS_V2 = (
     "format",
     "profile",
     "build_profile",
+    *IDENTITY_KEYS_V1[2:],
+)
+IDENTITY_KEYS_V3 = (
+    "format",
+    "profile",
+    "build_profile",
+    "authorized_key_fingerprint",
     *IDENTITY_KEYS_V1[2:],
 )
 PACKAGE_KEYS_V1 = (
@@ -77,13 +88,22 @@ PACKAGE_KEYS_V2 = (
     "build_profile",
     *PACKAGE_KEYS_V1[2:],
 )
+PACKAGE_KEYS_V3 = (
+    "format",
+    "profile",
+    "build_profile",
+    "authorized_key_fingerprint",
+    *PACKAGE_KEYS_V1[2:],
+)
 IDENTITY_FORMATS = {
     "rog5-headless-network-root-identity-v1": IDENTITY_KEYS_V1,
     "rog5-headless-network-root-identity-v2": IDENTITY_KEYS_V2,
+    "rog5-headless-network-root-identity-v3": IDENTITY_KEYS_V3,
 }
 PACKAGE_FORMATS = {
     "rog5-headless-network-root-package-v1": PACKAGE_KEYS_V1,
     "rog5-headless-network-root-package-v2": PACKAGE_KEYS_V2,
+    "rog5-headless-network-root-package-v3": PACKAGE_KEYS_V3,
 }
 BUILD_FIELDS = {
     "headless-ssh-v1": (
@@ -101,6 +121,14 @@ BUILD_FIELDS = {
         "kernel_release",
         "indicator_sha256",
         "indicator_policy",
+    ),
+    "headless-ssh-v2": (
+        "profile",
+        "project_commit",
+        "rootfs_sha256",
+        "modules_sha256",
+        "kernel_release",
+        "authorized_key_fingerprint",
     ),
 }
 COMMAND_FIELDS = OrderedDict(
@@ -194,6 +222,7 @@ def read_regular(
     path: Path,
     *,
     owner: int,
+    group: int | None = None,
     mode: int | None = None,
     maximum: int = 64 * 1024,
 ) -> bytes:
@@ -209,6 +238,7 @@ def read_regular(
         if (
             not stat.S_ISREG(before.st_mode)
             or before.st_uid != owner
+            or (group is not None and before.st_gid != group)
             or before.st_nlink != 1
             or before.st_size < 1
             or before.st_size > maximum
@@ -241,6 +271,118 @@ def read_regular(
         return bytes(payload)
     finally:
         os.close(descriptor)
+
+
+def validate_directory(
+    path: Path,
+    *,
+    owner: int,
+    group: int,
+    mode: int | None,
+) -> None:
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise HeadlessRootError("fixed directory is unavailable") from error
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != owner
+        or metadata.st_gid != group
+        or (
+            mode is not None
+            and stat.S_IMODE(metadata.st_mode) != mode
+        )
+        or (
+            mode is None
+            and stat.S_IMODE(metadata.st_mode) & 0o022
+        )
+    ):
+        fail("fixed directory metadata is unsafe")
+
+
+def parse_ssh_string(
+    blob: bytes,
+    offset: int,
+    label: str,
+) -> tuple[bytes, int]:
+    if len(blob) - offset < 4:
+        fail(f"{label} is truncated")
+    length = int.from_bytes(blob[offset : offset + 4], "big")
+    offset += 4
+    end = offset + length
+    if end > len(blob):
+        fail(f"{label} is truncated")
+    return blob[offset:end], end
+
+
+def authorized_key_fingerprint(payload: bytes) -> str:
+    if (
+        not payload.endswith(b"\n")
+        or payload.count(b"\n") != 1
+        or b"\r" in payload
+    ):
+        fail("authorized key is not one canonical line")
+    line = payload[:-1]
+    fields = line.split(b" ")
+    if len(fields) != 2 or any(not field for field in fields):
+        fail("authorized key is not a canonical two-field record")
+    key_type, encoded = fields
+    if key_type != b"ssh-ed25519":
+        fail("authorized key algorithm is unsupported")
+    try:
+        blob = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise HeadlessRootError(
+            "authorized key Base64 is invalid"
+        ) from error
+    if base64.b64encode(blob) != encoded:
+        fail("authorized key Base64 is not canonical")
+    algorithm, offset = parse_ssh_string(blob, 0, "authorized key algorithm")
+    public_key, offset = parse_ssh_string(
+        blob,
+        offset,
+        "authorized key payload",
+    )
+    if (
+        algorithm != key_type
+        or len(public_key) != 32
+        or offset != len(blob)
+    ):
+        fail("authorized key blob changed")
+    fingerprint = (
+        "SHA256:"
+        + base64.b64encode(hashlib.sha256(blob).digest())
+        .decode("ascii")
+        .rstrip("=")
+    )
+    if not SSH_SHA256.fullmatch(fingerprint):
+        fail("authorized key fingerprint is not canonical")
+    return fingerprint
+
+
+def validate_authorized_key(root: Path, owner: int) -> str:
+    root_metadata = root.lstat()
+    validate_directory(
+        root / AUTHORIZED_KEYS_PATH.parents[1],
+        owner=owner,
+        group=root_metadata.st_gid,
+        mode=None,
+    )
+    ssh_directory = root / AUTHORIZED_KEYS_PATH.parent
+    validate_directory(
+        ssh_directory,
+        owner=owner,
+        group=root_metadata.st_gid,
+        mode=0o700,
+    )
+    payload = read_regular(
+        root / AUTHORIZED_KEYS_PATH,
+        owner=owner,
+        group=root_metadata.st_gid,
+        mode=0o600,
+        maximum=16 * 1024,
+    )
+    return authorized_key_fingerprint(payload)
 
 
 def parse_canonical_payload(
@@ -336,7 +478,7 @@ def validate_build(
     root: Path,
     owner: int,
     expected_profile: str,
-) -> None:
+) -> dict[str, str]:
     payload = read_regular(
         root / "etc/rog5/build",
         owner=owner,
@@ -345,7 +487,9 @@ def validate_build(
     try:
         lines = payload.decode("ascii").splitlines()
     except UnicodeDecodeError as error:
-        raise HeadlessRootError("headless build record is not ASCII") from error
+        raise HeadlessRootError(
+            "headless build record is not ASCII"
+        ) from error
     fields: dict[str, str] = {}
     expected = BUILD_FIELDS.get(expected_profile)
     if expected is None:
@@ -357,6 +501,11 @@ def validate_build(
         if separator != "=" or observed != name or not value:
             fail("headless build record changed")
         fields[name] = value
+    canonical = "".join(
+        f"{name}={fields[name]}\n" for name in expected
+    ).encode("ascii")
+    if payload != canonical:
+        fail("headless build record encoding changed")
     if (
         fields["profile"] != expected_profile
         or fields["kernel_release"] != "7.1.4-g7a5cef0db479"
@@ -369,6 +518,14 @@ def validate_build(
         validate_hash(fields["indicator_sha256"], "indicator hash")
         if fields["indicator_policy"] != "power-key-green-status-pulse-v1":
             fail("headless indicator policy changed")
+    elif expected_profile == "headless-ssh-v2":
+        fingerprint = fields["authorized_key_fingerprint"]
+        if (
+            not SSH_SHA256.fullmatch(fingerprint)
+            or validate_authorized_key(root, owner) != fingerprint
+        ):
+            fail("authorized key identity changed")
+    return fields
 
 
 def remove_posix_acls(root: Path) -> None:
@@ -424,6 +581,9 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
     elif format_name == "rog5-headless-network-root-identity-v2":
         expected_keys = IDENTITY_KEYS_V2
         expected_build_profile = "headless-core-v2"
+    elif format_name == "rog5-headless-network-root-identity-v3":
+        expected_keys = IDENTITY_KEYS_V3
+        expected_build_profile = "headless-ssh-v2"
     else:
         fail("headless network-root identity format changed")
     if (
@@ -432,7 +592,11 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
         or values["root_generation"] != "arch-a"
         or values["root_subtree"] != "/"
         or (
-            format_name == "rog5-headless-network-root-identity-v2"
+            format_name
+            in (
+                "rog5-headless-network-root-identity-v2",
+                "rog5-headless-network-root-identity-v3",
+            )
             and values["build_profile"] != expected_build_profile
         )
     ):
@@ -446,6 +610,9 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
         "root_seal_sha256",
     ):
         validate_hash(values[name], name)
+    if format_name == "rog5-headless-network-root-identity-v3":
+        if not SSH_SHA256.fullmatch(values["authorized_key_fingerprint"]):
+            fail("authorized key fingerprint changed")
 
 
 def prepare(
@@ -459,7 +626,7 @@ def prepare(
     root, owner = safe_root(root_path)
     if build_profile not in BUILD_FIELDS:
         fail("headless build profile is unsupported")
-    validate_build(root, owner, build_profile)
+    build = validate_build(root, owner, build_profile)
     parse_decimal(source_size, "source archive size")
     validate_hash(source_sha256, "source archive hash")
     command_payload = read_regular(
@@ -529,14 +696,19 @@ def prepare(
     os.utime(seal, ns=(fixed_time, fixed_time), follow_symlinks=False)
     ROOT_TOOL.verify_tree(root, seal)
     values: OrderedDict[str, str] = OrderedDict()
-    values["format"] = (
-        "rog5-headless-network-root-identity-v1"
-        if build_profile == "headless-ssh-v1"
-        else "rog5-headless-network-root-identity-v2"
-    )
+    formats = {
+        "headless-ssh-v1": "rog5-headless-network-root-identity-v1",
+        "headless-core-v2": "rog5-headless-network-root-identity-v2",
+        "headless-ssh-v2": "rog5-headless-network-root-identity-v3",
+    }
+    values["format"] = formats[build_profile]
     values["profile"] = "network-root-v1"
-    if build_profile == "headless-core-v2":
+    if build_profile in ("headless-core-v2", "headless-ssh-v2"):
         values["build_profile"] = build_profile
+    if build_profile == "headless-ssh-v2":
+        values["authorized_key_fingerprint"] = build[
+            "authorized_key_fingerprint"
+        ]
     values.update(
         (
             ("root_generation", "arch-a"),
@@ -633,6 +805,9 @@ def validate_package(values: OrderedDict[str, str]) -> None:
     elif format_name == "rog5-headless-network-root-package-v2":
         expected_keys = PACKAGE_KEYS_V2
         expected_build_profile = "headless-core-v2"
+    elif format_name == "rog5-headless-network-root-package-v3":
+        expected_keys = PACKAGE_KEYS_V3
+        expected_build_profile = "headless-ssh-v2"
     else:
         fail("headless network-root package format changed")
     if (
@@ -641,7 +816,11 @@ def validate_package(values: OrderedDict[str, str]) -> None:
         or values["root_generation"] != "arch-a"
         or values["root_subtree"] != "/"
         or (
-            format_name == "rog5-headless-network-root-package-v2"
+            format_name
+            in (
+                "rog5-headless-network-root-package-v2",
+                "rog5-headless-network-root-package-v3",
+            )
             and values["build_profile"] != expected_build_profile
         )
     ):
@@ -660,6 +839,9 @@ def validate_package(values: OrderedDict[str, str]) -> None:
         "root_seal_sha256",
     ):
         validate_hash(values[name], name)
+    if format_name == "rog5-headless-network-root-package-v3":
+        if not SSH_SHA256.fullmatch(values["authorized_key_fingerprint"]):
+            fail("authorized key fingerprint changed")
 
 
 def verify(
@@ -697,7 +879,13 @@ def verify_root(
     )
     validate_package(values)
     build_profile = values.get("build_profile", "headless-ssh-v1")
-    validate_build(root, owner, build_profile)
+    build = validate_build(root, owner, build_profile)
+    if (
+        build_profile == "headless-ssh-v2"
+        and values["authorized_key_fingerprint"]
+        != build["authorized_key_fingerprint"]
+    ):
+        fail("authorized key package binding changed")
     installed_command = read_regular(
         root / COMMAND_PATH,
         owner=owner,

@@ -12,6 +12,22 @@ fail() {
 	exit 1
 }
 
+case $expected_profile in
+	headless-ssh-v1)
+		expected_build_lines=5
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd.conf
+		;;
+	headless-core-v2)
+		expected_build_lines=7
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd.conf
+		;;
+	headless-ssh-v2)
+		expected_build_lines=6
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd-v2.conf
+		;;
+	*) fail "unsupported expected headless profile: $expected_profile" ;;
+esac
+
 [[ $(uname -m) == aarch64 ]]
 cmp /etc/rog5/packages.requested.txt "$packages_file"
 while read -r package; do
@@ -46,11 +62,28 @@ for command in chromium greetd krdpserver kwin_wayland nmcli node npm \
 	fi
 done
 
-[[ $(stat -c %U:%G:%a /root/.ssh/authorized_keys) == root:root:600 ]]
-grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) ' \
-	/root/.ssh/authorized_keys
-[[ $(awk 'NF { count++ } END { print count+0 }' \
-	/root/.ssh/authorized_keys) == 1 ]]
+[[ -d /root/.ssh && ! -L /root/.ssh ]]
+[[ $(stat -c %U:%G:%a /root/.ssh) == root:root:700 ]]
+[[ $(stat -c %U:%G:%a:%h /root/.ssh/authorized_keys) == \
+	root:root:600:1 ]]
+if [[ $expected_profile == headless-ssh-v2 ]]; then
+	[[ $(awk 'END { print NR+0 }' /root/.ssh/authorized_keys) == 1 ]]
+	grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}$' \
+		/root/.ssh/authorized_keys
+	authorized_key_fingerprint=$(
+		ssh-keygen -E sha256 -lf /root/.ssh/authorized_keys |
+			awk 'NR == 1 { print $2 }'
+	)
+	[[ $authorized_key_fingerprint =~ ^SHA256:[A-Za-z0-9+/]{43}$ ]]
+	grep -Fqx \
+		"authorized_key_fingerprint=$authorized_key_fingerprint" \
+		/etc/rog5/build
+else
+	grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) ' \
+		/root/.ssh/authorized_keys
+	[[ $(awk 'NF { count++ } END { print count+0 }' \
+		/root/.ssh/authorized_keys) == 1 ]]
+fi
 ssh-keygen -l -f /root/.ssh/authorized_keys >/dev/null
 if grep -q 'BEGIN .*PRIVATE KEY' /root/.ssh/authorized_keys; then
 	fail 'authorized key contains private-key material'
@@ -66,11 +99,10 @@ if awk -F: '$3 >= 1000 && $3 < 65534 { found=1 }
 	fail 'headless root retained a regular user account'
 fi
 
-cmp /etc/ssh/sshd_config.d/10-rog5-server.conf \
-	"$repo/packaging/arch/10-rog5-sshd.conf"
+cmp /etc/ssh/sshd_config.d/10-rog5-server.conf "$sshd_policy"
 ssh-keygen -q -t ed25519 -N '' -f /run/rog5-sshd-verify-key
 sed 's|^HostKey .*|HostKey /run/rog5-sshd-verify-key|' \
-	/etc/ssh/sshd_config.d/10-rog5-server.conf \
+	"$sshd_policy" \
 	>/run/rog5-sshd-verify.conf
 sshd -T -C user=root,host=localhost,addr=127.0.0.1 \
 	-f /run/rog5-sshd-verify.conf >/run/rog5-sshd-effective.conf
@@ -80,6 +112,10 @@ grep -Fixq 'kbdinteractiveauthentication no' \
 grep -Eqi '^permitrootlogin (without-password|prohibit-password)$' \
 	/run/rog5-sshd-effective.conf
 grep -Fixq 'pubkeyauthentication yes' /run/rog5-sshd-effective.conf
+if [[ $expected_profile == headless-ssh-v2 ]]; then
+	grep -Fixq 'authorizedkeysfile /root/.ssh/authorized_keys' \
+		/run/rog5-sshd-effective.conf
+fi
 rm -f /run/rog5-sshd-verify-key /run/rog5-sshd-verify-key.pub \
 	/run/rog5-sshd-verify.conf /run/rog5-sshd-effective.conf
 grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
@@ -111,6 +147,8 @@ for firmware in /usr/lib/firmware/qcom/a660_sqe.fw \
 	[[ ! -e $firmware ]]
 done
 grep -Fqx "profile=$expected_profile" /etc/rog5/build
+[[ $(awk 'END { print NR+0 }' /etc/rog5/build) == \
+	"$expected_build_lines" ]]
 [[ $(getfattr --only-values -n user.rog5 /etc/rog5/xattr-probe \
 	2>/dev/null) == preserved ]]
 [[ -d /etc/pacman.d/gnupg && ! -L /etc/pacman.d/gnupg ]]
