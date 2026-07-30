@@ -292,10 +292,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   transport/server/phone actions.
 - `test-headless-network-root.py` binds the explicit no-workload manifest,
   complete persistent seal, tree count/hash, source archive, and final sealed
-  archive for both the accepted SSH-only package and the explicit
-  `headless-core-v2` successor, then rejects tree, archive, command-manifest,
-  successor-profile, malformed format, unsupported format, and cross-version
-  key-order mutations.
+  archive for the historical SSH-only package, `headless-core-v2`, and
+  key-bound `headless-ssh-v2`/package-v3. It rejects tree, archive,
+  command-manifest, profile, malformed or cross-version records, package/
+  build/key fingerprint mismatches, options/comments, noncanonical Base64,
+  SSH blob algorithm confusion, unsafe parent/`.ssh`/file metadata, hard
+  links, and v3-to-v2 downgrade attempts. The shell contract also requires the
+  public fixture to satisfy its Ed25519 gate and pins the v2-only
+  `AuthorizedKeysFile`.
 - `test-compare-root-archives.py` rejects added paths, unsafe paths, hard-link
   topology changes, and inode-flag loss across a dense source re-encoding.
 - `test-normalize-headless-core-archive-contract.sh` pins a hardware-free,

@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 37 source and 23 corrected-DTB checks, while an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected recovery successor remains admitted, but its old NFS root is absent. The credential-clean replacement recipe now produces byte-identical 536,755,705-byte A/B roots; a new package identity, deployment-key binding, and complete candidate admission remain pending |
+| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` replacement now twin-builds to one 536,750,378-byte source identity and seals as a verified 536,747,283-byte v3 package whose canonical Ed25519 fingerprint is bound across root record, tree seal, and package; fixture-only candidate integration and real deployment-key preflight remain pending |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -49,6 +49,9 @@ gate.
 - [Headless recovery dependency closure](test-results/2026-07-30-headless-recovery-dependency-closure.md)
   — exact v18r/network-root/headless reconstruction, immutable AOSP boot
   tools, compact boot-v3 template, and accepted-config wrapper successor.
+- [Key-bound headless SSH v2 package](test-results/2026-07-30-headless-ssh-v2-key-bound-package.md)
+  — hostile key/parser tests, byte-identical source roots, v3 fingerprint
+  binding, deterministic sealed packaging, and zero phone/credential use.
 - [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
   — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
   bundle integration, and destroyed disposable key.
@@ -215,26 +218,22 @@ The current active image is intentionally smaller than the proven fallback:
 - logging, watchdog, rollback, power, thermal, and hardware telemetry;
 - only the tools required by the current hardware gate.
 
-The historical userspace profile packaged only the signed Arch base,
+The active replacement recipe packages only the signed Arch base,
 the exact Linux 7.1.4 modules, `attr`, `diffutils`, and OpenSSH additions. It
 removes the generic kernel, all `linux-firmware*` bundles, published accounts,
 desktop/browser/GPU/Wi-Fi/VPN/agent packages, reusable machine identity, and
-reusable SSH host keys. Its 535,093,875-byte source became a
-byte-reproducible 535,094,061-byte sealed read-only network lower with an
-explicit hash-bound no-workload manifest and 37,669-entry whole-tree seal. A
-dedicated initramfs embeds the exact static AArch64 verifier; an
-ephemeral-key signed v2 bundle and the actual consumed-P2
-prepare/serve/verify/execute composition pass offline. Its first signed live
-transaction exposed target NCM but returned before SSH because the candidate
-selected historical DTB v1. The tracked candidate now pins the accepted
-GPU/RMTFS-isolated v3 DTB. The recovery-side target, bundle, shell-free
-recovery, and wrapper reproduced twice under one destroyed disposable key,
-remain `authority=none`, and are not phone boot authority. The root archive
-is now absent, and a reconstruction found generated Pacman private signing
-state; the replacement is blocked on credential-clean byte-identical A/B
-builds. See the
+reusable SSH host keys. The new `headless-ssh-v2` source twin-builds to
+536,750,378 bytes and seals as a 536,747,283-byte, 37,735-entry read-only
+network lower. Package format v3 binds one canonical Ed25519 public-key
+fingerprint across `/etc/rog5/build`, `/root/.ssh/authorized_keys`, the full
+tree seal, and the package manifest; effective `sshd` policy consults only
+that bound path. The tracked result uses the public-only fixture whose private
+half was destroyed, remains unbooted, and grants no credential or phone
+authority. Complete corrected-candidate integration and a live preflight that
+derives the public half from the caller's private key are next. See the
 [corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [root hardening result](test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md),
+[key-bound package result](test-results/2026-07-30-headless-ssh-v2-key-bound-package.md),
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the

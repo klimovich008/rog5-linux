@@ -174,8 +174,13 @@ before a phone cycle.
   network-disabled and credential-clean.
 - [x] Build the corrected minimal root twice from fresh volumes and require
   byte-identical output before assigning a new successor identity.
-- [ ] Bind the deployment authorized-key fingerprint to that identity before
-  any credential-bearing or connected preflight.
+- [x] Add `headless-ssh-v2` plus v3 identity/package records that bind one
+  canonical Ed25519 fingerprint across the root, complete seal, and package;
+  hostile key, metadata, mismatch, and downgrade tests pass with a public-only
+  fixture.
+- [ ] At the live gate, derive the public half from the caller's private key,
+  reject the fixture fingerprint, and require exact v3/profile pairing before
+  any connected preflight.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -209,7 +214,7 @@ duplicate builds can be removed safely.
 - [x] Admit the exact corrected successor through the phone-free production
   recovery-artifact gate and reject the consumed historical profile before
   credentials.
-- [ ] Restore the missing NFS-root dependency with a credential-clean,
+- [x] Restore the missing NFS-root dependency with a credential-clean,
   byte-reproducible successor identity; recovery admission alone is not a
   complete runnable candidate.
 - [ ] Promote the framed recovery candidate through the approved live gate.
@@ -223,7 +228,7 @@ Exit: failed boots are diagnosable and recover automatically.
 
 - [x] Preserve the historical ephemeral-signed minimal-root bundle evidence;
   the pruned root identity is not reusable.
-- [ ] Package and verify the credential-clean reproducible root successor;
+- [x] Package and verify the credential-clean reproducible root successor;
   production signing remains a separate approval boundary.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
@@ -391,10 +396,12 @@ Continue in this order:
    modifying the accepted SSH-only root;
 9. [x] build and seal the successor root archive with a non-production public
    key fixture, then rerun its extracted-root verifier;
-10. [x] bind the finalized successor to an exact phone-free production-gate
-    profile and reject the consumed historical recovery before credentials;
-11. request fresh, separate authorization before creating or using a live
-   signing credential or temporarily booting the corrected candidate;
-12. if the minimal root reaches key-only SSH and clean rollback, run the
+10. [x] bind the fixture-key fingerprint across the new root build record,
+    whole-tree seal, and v3 package while keeping historical v1/v2 exact;
+11. integrate that v3 package into a new phone-free corrected-candidate
+    profile and add private-to-public key derivation at the live preflight;
+12. request fresh, separate authorization before creating or using a live
+    signing credential or temporarily booting the corrected candidate;
+13. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

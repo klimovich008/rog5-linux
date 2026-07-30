@@ -284,18 +284,18 @@ live experiment; no retained log has yet been claimed.
 
 ## Active headless Arch root
 
-Status correction, 2026-07-30: the identities below are historical evidence,
-not a currently deployable root. The retained corrected recovery successor is
-present, but its expected NFS root archive was pruned. Rebuilding the old
-`headless-core-v2` recipe produced different bytes and exposed a generated
-Pacman signing private key and revocation state inside the archive. That
-output was rejected. The staging boundary is now offline and credential-clean,
-and two fresh builds from commit `ffe8dda` are byte-identical at 536,755,705
-bytes with SHA-256
-`d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`.
-This is reproducible source evidence, not a deployable root: a new successor
-package/profile identity and authorized-key binding are still required. See the
-[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
+Status correction, 2026-07-30: the old identities below remain historical
+evidence. The replacement `headless-ssh-v2` recipe is now offline,
+credential-clean, and key-bound. Two fresh roots from commit `9739abe` are
+byte-identical at 536,750,378 bytes with SHA-256
+`2abe8c533179da598c37939ff8ebb4667a243bd8140c2d497237e41fbea72e6a`.
+The fixed v3 package is 536,747,283 bytes, seals 37,735 entries, and binds the
+canonical Ed25519 fingerprint across the build record, authorized key, whole
+tree, and package. It uses only the public fixture, is unbooted, and is not
+deployment authority. See the
+[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md)
+and
+[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
 
 The first minimal mainline userspace profile was built and verified offline.
 It used an official signed Arch Linux ARM base plus the exact
@@ -645,10 +645,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Admit the byte-identical credential-clean minimal root under a new
-   package/profile identity.
-2. Bind the deployment authorized-key fingerprint to that successor without
-   storing or using a private key during authority-free builds.
+1. Integrate the verified `headless-ssh-v2`/v3 root package into a new
+   corrected recovery candidate without relabeling historical profiles.
+2. Add a live gate that derives the public half from the caller's private key,
+   requires exact v3/profile pairing, and rejects the public fixture.
 3. Rebuild the complete corrected candidate and pass host-only artifact
    preflight before requesting credential or phone authorization.
 4. After fresh authorization, run the connected read-only preflight and one
