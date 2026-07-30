@@ -2,8 +2,8 @@
 
 Date: 2026-07-30
 
-Status: **HOLD — staging boundary corrected; byte-identical A/B rebuild still
-required**
+Status: **PASS — credential-clean source archive is byte-reproducible;
+successor package/profile identity remains pending**
 
 ## Outcome
 
@@ -116,22 +116,48 @@ The first contains Pacman transaction timestamps; the second is a disposable
 ldconfig optimization cache. No path, type, ownership, mode, mtime, link,
 xattr, or other file-content difference was present. Neither output is
 accepted. The stage now canonicalizes those two members, and a second fresh
-A/B attempt remains mandatory.
+A/B attempt was run from the resulting clean commit.
+
+## Successful corrected A/B result
+
+Two new builds from commit
+`ffe8dda35e8c97e7d0474a6f945b23b1d97aba05`, separate fresh stage and verify
+volumes, and the same public-only fixture key produced identical archives:
+
+```text
+A size:   536755705
+A sha256: d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9
+B size:   536755705
+B sha256: d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9
+cmp:      identical
+entries:  37734
+```
+
+Independent archive admission and member inspection confirmed:
+
+- exact base SHA-256
+  `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`;
+- exact module SHA-256
+  `5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9`;
+- kernel release `7.1.4-g7a5cef0db479`;
+- only the empty `/etc/pacman.d/gnupg` directory;
+- an empty root-owned mode-`0644` `/var/log/pacman.log`;
+- no `/var/cache/ldconfig/aux-cache`; and
+- the public fixture fingerprint
+  `SHA256:ylv66wbMSxVEAMiOFvMQOztcvtSB5wSbVe9FXePMLN0`.
+
+This proves the corrected source archive is reproducible. The public fixture
+has no retained private half and grants no deployment access. The archive is
+not yet assigned a successor package identity and is not a live candidate.
 
 ## Remaining release gates
 
-1. Commit the generated-state canonicalization so the clean-tree build guard
-   can bind the exact source commit.
-2. Rebuild the minimal root twice from separate fresh volumes with the same
-   public-only fixture key and require identical size and SHA-256.
-3. Inspect both archives and extracted trees for credentials and mutable
-   Pacman trust state.
-4. Introduce a new package/build-profile identity; do not overwrite or
+1. Introduce a new package/build-profile identity; do not overwrite or
    relabel the historical `headless-core-v2` identity.
-5. Bind the deployment public-key fingerprint into the successor package and
+2. Bind the deployment public-key fingerprint into the successor package and
    require a matching client key only at a separately authorized credential
    preflight.
-6. Rebuild and re-admit the recovery candidate before requesting any phone
+3. Rebuild and re-admit the recovery candidate before requesting any phone
    boot authorization.
 
 No phone action, privileged host action, signing credential, SSH private key,

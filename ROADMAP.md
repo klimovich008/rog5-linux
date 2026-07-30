@@ -172,7 +172,7 @@ before a phone cycle.
 - [x] Audit the pruned root reconstruction, reject the generated Pacman
   private signing key/revocation state, and make minimal-root staging
   network-disabled and credential-clean.
-- [ ] Build the corrected minimal root twice from fresh volumes and require
+- [x] Build the corrected minimal root twice from fresh volumes and require
   byte-identical output before assigning a new successor identity.
 - [ ] Bind the deployment authorized-key fingerprint to that identity before
   any credential-bearing or connected preflight.

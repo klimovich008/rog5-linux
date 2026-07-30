@@ -9,7 +9,9 @@ The corrected recovery successor is retained and artifact-admitted, but its
 expected NFS root is absent. A replacement root must pass credential-clean
 byte-identical A/B builds and receive a new package identity before this
 runbook can pass complete preflight. It is not authorized or runnable on the
-phone in the current state. This
+phone in the current state. The A/B source-build gate now passes; package
+identity, deployment-key binding, and complete candidate admission remain.
+This
 document grants no live authority. `artifact-preflight` verifies the retained
 candidate without querying a phone or inspecting credentials. `preflight` is
 read-only with respect to the phone and credentials, but it does query the
