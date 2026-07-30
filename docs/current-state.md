@@ -292,10 +292,17 @@ byte-identical at 536,750,378 bytes with SHA-256
 The fixed v3 package is 536,747,283 bytes, seals 37,735 entries, and binds the
 canonical Ed25519 fingerprint across the build record, authorized key, whole
 tree, and package. It uses only the public fixture, is unbooted, and is not
-deployment authority. See the
+deployment authority. The distinct `headless-ssh-network-root-v3` fixture
+candidate now binds that exact tree and seal to the accepted corrected DTB.
+Its twin signed bundles, shell-free recovery initramfses, clean ASUS wrapper
+kernels, boot-v3 images, and test-only AVB images reproduce and pass the
+native verifier; the disposable signing key was destroyed and authority
+remains `none`. See the
 [hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md)
 and
-[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
+[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md),
+plus the
+[candidate report](../test-results/2026-07-30-headless-ssh-v2-candidate-offline.md).
 
 The first minimal mainline userspace profile was built and verified offline.
 It used an official signed Arch Linux ARM base plus the exact
@@ -645,16 +652,14 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Integrate the verified `headless-ssh-v2`/v3 root package into a new
-   corrected recovery candidate without relabeling historical profiles.
-2. Add a live gate that derives the public half from the caller's private key,
+1. Add a live gate that derives the public half from the caller's private key,
    requires exact v3/profile pairing, and rejects the public fixture.
-3. Rebuild the complete corrected candidate and pass host-only artifact
-   preflight before requesting credential or phone authorization.
-4. After fresh authorization, run the connected read-only preflight and one
+2. Rebuild a deployment-key-bound root/package/candidate and pass host-only
+   artifact preflight before requesting connected phone authorization.
+3. After fresh authorization, run the connected read-only preflight and one
    attended temporary boot, then determine whether ramoops survives the
    target/fallback path.
-5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

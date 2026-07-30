@@ -26,6 +26,7 @@ secret_root=
 case "$candidate:$expected_dtb:$expected_target" in
 	headless-network-root-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-network-root) ;;
 	headless-core-network-root-v2:57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d:headless-core-network-root) ;;
+	headless-ssh-network-root-v3:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-ssh-network-root) ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 

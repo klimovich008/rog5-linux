@@ -178,6 +178,9 @@ before a phone cycle.
   canonical Ed25519 fingerprint across the root, complete seal, and package;
   hostile key, metadata, mismatch, and downgrade tests pass with a public-only
   fixture.
+- [x] Bind the v3 package to a distinct corrected-DTB recovery candidate and
+  pass twin signed-bundle, native-verifier, shell-free recovery, clean ASUS
+  wrapper, boot-v3, and test-only AVB gates with a destroyed disposable key.
 - [ ] At the live gate, derive the public half from the caller's private key,
   reject the fixture fingerprint, and require exact v3/profile pairing before
   any connected preflight.
