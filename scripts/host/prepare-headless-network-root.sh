@@ -7,12 +7,24 @@ fail() {
 }
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-archive=${1:-$repo/artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz}
-output=${2:-$repo/artifacts/arch/rog5-arch-headless-network-root-7.1.4}
-archive_name=artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz
+build_profile=${HEADLESS_NETWORK_ROOT_PROFILE:-headless-ssh-v1}
+case $build_profile in
+	headless-ssh-v1)
+		archive_name=artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz
+		default_output=$repo/artifacts/arch/rog5-arch-headless-network-root-7.1.4
+		package_contract=$repo/configs/network-roots/headless-network-root-v1.package
+		;;
+	headless-core-v2)
+		archive_name=artifacts/arch/rog5-arch-headless-core-network-source-7.1.4.tar.gz
+		default_output=$repo/artifacts/arch/rog5-arch-headless-core-network-root-7.1.4
+		package_contract=$repo/configs/network-roots/headless-core-network-root-v2.package
+		;;
+	*) fail 'unsupported headless network-root build profile' ;;
+esac
+archive=${1:-$repo/$archive_name}
+output=${2:-$default_output}
 manifest=$repo/manifests/artifacts.tsv
 command_manifest=$repo/packaging/arch/rog5-headless-command-manifest
-package_contract=$repo/configs/network-roots/headless-network-root-v1.package
 tool=$repo/scripts/host/headless-network-root.py
 builder_image=${BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 
@@ -94,7 +106,7 @@ podman run --rm --network none \
 	python3 /workspace/repo/scripts/host/headless-network-root.py prepare \
 	/stage/root "$expected_size" "$expected_hash" \
 	/workspace/repo/packaging/arch/rog5-headless-command-manifest \
-	/output/root.identity
+	/output/root.identity --build-profile "$build_profile"
 
 podman run --rm --network none \
 	--mount "type=volume,source=$stage_volume,target=/stage,readonly" \

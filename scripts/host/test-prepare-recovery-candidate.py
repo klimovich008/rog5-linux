@@ -200,41 +200,58 @@ class RecoveryCandidateTest(unittest.TestCase):
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo
         RUNNER.CANDIDATE_ROOT = self.original_candidate_root
-        record = RUNNER.load_candidate("headless-network-root-v1")
-        package = {}
-        for line in (
-            REPO
-            / "configs/network-roots/headless-network-root-v1.package"
-        ).read_text(encoding="ascii").splitlines():
-            name, separator, value = line.partition("=")
-            self.assertEqual(separator, "=")
-            self.assertNotIn(name, package)
-            package[name] = value
-        self.assertEqual(record["status"], "offline")
-        self.assertEqual(record["authority"], "none")
-        self.assertEqual(record["profile"], package["profile"])
-        self.assertEqual(
-            record["artifacts"]["board.dtb"],
-            {
-                "path": (
-                    "artifacts/network-root-v3/"
-                    "sm8350-asus-rog-phone5-recovery.dtb"
-                ),
-                "size": 102870,
-                "sha256": (
-                    "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
-                ),
-            },
+        cases = (
+            (
+                "headless-network-root-v1",
+                "headless-network-root-v1.package",
+                "artifacts/network-root-v3/"
+                "sm8350-asus-rog-phone5-recovery.dtb",
+                102870,
+                "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46",
+            ),
+            (
+                "headless-core-network-root-v2",
+                "headless-core-network-root-v2.package",
+                "artifacts/buttons-indicator-v1/"
+                "sm8350-asus-rog-phone5-buttons-indicator.dtb",
+                103554,
+                "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d",
+            ),
         )
-        for name in (
-            "a660_command_manifest_sha256",
-            "root_generation",
-            "root_tree_sha256",
-            "root_seal_sha256",
-            "root_tree_entries",
-            "root_subtree",
-        ):
-            self.assertEqual(str(record[name]), package[name])
+        for candidate, package_name, dtb_path, dtb_size, dtb_hash in cases:
+            with self.subTest(candidate=candidate):
+                record = RUNNER.load_candidate(candidate)
+                package = {}
+                package_path = (
+                    REPO / "configs/network-roots" / package_name
+                )
+                for line in package_path.read_text(
+                    encoding="ascii"
+                ).splitlines():
+                    name, separator, value = line.partition("=")
+                    self.assertEqual(separator, "=")
+                    self.assertNotIn(name, package)
+                    package[name] = value
+                self.assertEqual(record["status"], "offline")
+                self.assertEqual(record["authority"], "none")
+                self.assertEqual(record["profile"], package["profile"])
+                self.assertEqual(
+                    record["artifacts"]["board.dtb"],
+                    {
+                        "path": dtb_path,
+                        "size": dtb_size,
+                        "sha256": dtb_hash,
+                    },
+                )
+                for name in (
+                    "a660_command_manifest_sha256",
+                    "root_generation",
+                    "root_tree_sha256",
+                    "root_seal_sha256",
+                    "root_tree_entries",
+                    "root_subtree",
+                ):
+                    self.assertEqual(str(record[name]), package[name])
 
     def test_adapter_has_no_live_transport(self) -> None:
         source = RUNNER_PATH.read_text(encoding="utf-8")

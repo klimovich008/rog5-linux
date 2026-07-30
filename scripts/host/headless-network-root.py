@@ -39,7 +39,7 @@ COMMAND_PATH = Path("etc/rog5/a660-command-manifest")
 EPOCH = 1681862400
 ZERO_HASH = "0" * 64
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
-IDENTITY_KEYS = (
+IDENTITY_KEYS_V1 = (
     "format",
     "profile",
     "root_generation",
@@ -51,7 +51,13 @@ IDENTITY_KEYS = (
     "root_tree_sha256",
     "root_seal_sha256",
 )
-PACKAGE_KEYS = (
+IDENTITY_KEYS_V2 = (
+    "format",
+    "profile",
+    "build_profile",
+    *IDENTITY_KEYS_V1[2:],
+)
+PACKAGE_KEYS_V1 = (
     "format",
     "profile",
     "root_generation",
@@ -65,6 +71,38 @@ PACKAGE_KEYS = (
     "root_tree_sha256",
     "root_seal_sha256",
 )
+PACKAGE_KEYS_V2 = (
+    "format",
+    "profile",
+    "build_profile",
+    *PACKAGE_KEYS_V1[2:],
+)
+IDENTITY_FORMATS = {
+    "rog5-headless-network-root-identity-v1": IDENTITY_KEYS_V1,
+    "rog5-headless-network-root-identity-v2": IDENTITY_KEYS_V2,
+}
+PACKAGE_FORMATS = {
+    "rog5-headless-network-root-package-v1": PACKAGE_KEYS_V1,
+    "rog5-headless-network-root-package-v2": PACKAGE_KEYS_V2,
+}
+BUILD_FIELDS = {
+    "headless-ssh-v1": (
+        "profile",
+        "project_commit",
+        "rootfs_sha256",
+        "modules_sha256",
+        "kernel_release",
+    ),
+    "headless-core-v2": (
+        "profile",
+        "project_commit",
+        "rootfs_sha256",
+        "modules_sha256",
+        "kernel_release",
+        "indicator_sha256",
+        "indicator_policy",
+    ),
+}
 COMMAND_FIELDS = OrderedDict(
     (
         ("format", "rog5-headless-command-manifest-v1"),
@@ -205,14 +243,10 @@ def read_regular(
         os.close(descriptor)
 
 
-def parse_canonical(
-    path: Path,
+def parse_canonical_payload(
+    payload: bytes,
     keys: tuple[str, ...],
-    *,
-    owner: int,
-    mode: int,
 ) -> OrderedDict[str, str]:
-    payload = read_regular(path, owner=owner, mode=mode)
     try:
         text = payload.decode("ascii")
     except UnicodeDecodeError as error:
@@ -234,6 +268,43 @@ def parse_canonical(
     if canonical_bytes(values) != payload:
         fail("canonical record encoding changed")
     return values
+
+
+def parse_canonical(
+    path: Path,
+    keys: tuple[str, ...],
+    *,
+    owner: int,
+    mode: int,
+) -> OrderedDict[str, str]:
+    return parse_canonical_payload(
+        read_regular(path, owner=owner, mode=mode),
+        keys,
+    )
+
+
+def parse_canonical_variant(
+    path: Path,
+    formats: dict[str, tuple[str, ...]],
+    *,
+    owner: int,
+    mode: int,
+) -> OrderedDict[str, str]:
+    payload = read_regular(path, owner=owner, mode=mode)
+    first = payload.split(b"\n", 1)[0]
+    prefix = b"format="
+    if not first.startswith(prefix):
+        fail("canonical record format is missing")
+    try:
+        format_name = first[len(prefix) :].decode("ascii")
+    except UnicodeDecodeError as error:
+        raise HeadlessRootError(
+            "canonical record format is not ASCII"
+        ) from error
+    keys = formats.get(format_name)
+    if keys is None:
+        fail("canonical record format is unsupported")
+    return parse_canonical_payload(payload, keys)
 
 
 def parse_command(payload: bytes) -> OrderedDict[str, str]:
@@ -261,7 +332,11 @@ def parse_command(payload: bytes) -> OrderedDict[str, str]:
     return values
 
 
-def validate_build(root: Path, owner: int) -> None:
+def validate_build(
+    root: Path,
+    owner: int,
+    expected_profile: str,
+) -> None:
     payload = read_regular(
         root / "etc/rog5/build",
         owner=owner,
@@ -272,13 +347,9 @@ def validate_build(root: Path, owner: int) -> None:
     except UnicodeDecodeError as error:
         raise HeadlessRootError("headless build record is not ASCII") from error
     fields: dict[str, str] = {}
-    expected = (
-        "profile",
-        "project_commit",
-        "rootfs_sha256",
-        "modules_sha256",
-        "kernel_release",
-    )
+    expected = BUILD_FIELDS.get(expected_profile)
+    if expected is None:
+        fail("headless build profile is unsupported")
     if len(lines) != len(expected) or not payload.endswith(b"\n"):
         fail("headless build record field count changed")
     for name, line in zip(expected, lines, strict=True):
@@ -287,13 +358,17 @@ def validate_build(root: Path, owner: int) -> None:
             fail("headless build record changed")
         fields[name] = value
     if (
-        fields["profile"] != "headless-ssh-v1"
+        fields["profile"] != expected_profile
         or fields["kernel_release"] != "7.1.4-g7a5cef0db479"
         or not re.fullmatch(r"[0-9a-f]{40}", fields["project_commit"])
     ):
         fail("headless build identity changed")
     validate_hash(fields["rootfs_sha256"], "base rootfs hash")
     validate_hash(fields["modules_sha256"], "module archive hash")
+    if expected_profile == "headless-core-v2":
+        validate_hash(fields["indicator_sha256"], "indicator hash")
+        if fields["indicator_policy"] != "power-key-green-status-pulse-v1":
+            fail("headless indicator policy changed")
 
 
 def remove_posix_acls(root: Path) -> None:
@@ -342,11 +417,24 @@ def create_exclusive(path: Path, payload: bytes, mode: int) -> None:
 
 
 def validate_identity(values: OrderedDict[str, str]) -> None:
+    format_name = values.get("format")
+    if format_name == "rog5-headless-network-root-identity-v1":
+        expected_keys = IDENTITY_KEYS_V1
+        expected_build_profile = "headless-ssh-v1"
+    elif format_name == "rog5-headless-network-root-identity-v2":
+        expected_keys = IDENTITY_KEYS_V2
+        expected_build_profile = "headless-core-v2"
+    else:
+        fail("headless network-root identity format changed")
     if (
-        values["format"] != "rog5-headless-network-root-identity-v1"
+        tuple(values) != expected_keys
         or values["profile"] != "network-root-v1"
         or values["root_generation"] != "arch-a"
         or values["root_subtree"] != "/"
+        or (
+            format_name == "rog5-headless-network-root-identity-v2"
+            and values["build_profile"] != expected_build_profile
+        )
     ):
         fail("headless network-root identity changed")
     parse_decimal(values["source_archive_size"], "source archive size")
@@ -366,9 +454,12 @@ def prepare(
     source_sha256: str,
     command_path: Path,
     identity_path: Path,
+    build_profile: str = "headless-ssh-v1",
 ) -> OrderedDict[str, str]:
     root, owner = safe_root(root_path)
-    validate_build(root, owner)
+    if build_profile not in BUILD_FIELDS:
+        fail("headless build profile is unsupported")
+    validate_build(root, owner, build_profile)
     parse_decimal(source_size, "source archive size")
     validate_hash(source_sha256, "source archive hash")
     command_payload = read_regular(
@@ -437,10 +528,17 @@ def prepare(
         os.close(descriptor)
     os.utime(seal, ns=(fixed_time, fixed_time), follow_symlinks=False)
     ROOT_TOOL.verify_tree(root, seal)
-    values: OrderedDict[str, str] = OrderedDict(
+    values: OrderedDict[str, str] = OrderedDict()
+    values["format"] = (
+        "rog5-headless-network-root-identity-v1"
+        if build_profile == "headless-ssh-v1"
+        else "rog5-headless-network-root-identity-v2"
+    )
+    values["profile"] = "network-root-v1"
+    if build_profile == "headless-core-v2":
+        values["build_profile"] = build_profile
+    values.update(
         (
-            ("format", "rog5-headless-network-root-identity-v1"),
-            ("profile", "network-root-v1"),
             ("root_generation", "arch-a"),
             ("root_subtree", "/"),
             ("source_archive_size", source_size),
@@ -504,33 +602,48 @@ def package(
     package_path: Path,
 ) -> OrderedDict[str, str]:
     owner, sealed_size, sealed_sha256 = regular_identity(sealed_archive)
-    identity = parse_canonical(
+    identity = parse_canonical_variant(
         identity_path,
-        IDENTITY_KEYS,
+        IDENTITY_FORMATS,
         owner=owner,
         mode=0o444,
     )
     validate_identity(identity)
-    values: OrderedDict[str, str] = OrderedDict(
-        (
-            ("format", "rog5-headless-network-root-package-v1"),
-            *((name, identity[name]) for name in IDENTITY_KEYS[1:6]),
-            ("sealed_archive_size", str(sealed_size)),
-            ("sealed_archive_sha256", sealed_sha256),
-            *((name, identity[name]) for name in IDENTITY_KEYS[6:]),
-        )
-    )
+    version = identity["format"].rsplit("-", 1)[1]
+    identity_keys = IDENTITY_FORMATS[identity["format"]]
+    split_at = identity_keys.index("a660_command_manifest_sha256")
+    values: OrderedDict[str, str] = OrderedDict()
+    values["format"] = f"rog5-headless-network-root-package-{version}"
+    for name in identity_keys[1:split_at]:
+        values[name] = identity[name]
+    values["sealed_archive_size"] = str(sealed_size)
+    values["sealed_archive_sha256"] = sealed_sha256
+    for name in identity_keys[split_at:]:
+        values[name] = identity[name]
     validate_package(values)
     create_exclusive(package_path, canonical_bytes(values), 0o444)
     return values
 
 
 def validate_package(values: OrderedDict[str, str]) -> None:
+    format_name = values.get("format")
+    if format_name == "rog5-headless-network-root-package-v1":
+        expected_keys = PACKAGE_KEYS_V1
+        expected_build_profile = "headless-ssh-v1"
+    elif format_name == "rog5-headless-network-root-package-v2":
+        expected_keys = PACKAGE_KEYS_V2
+        expected_build_profile = "headless-core-v2"
+    else:
+        fail("headless network-root package format changed")
     if (
-        values["format"] != "rog5-headless-network-root-package-v1"
+        tuple(values) != expected_keys
         or values["profile"] != "network-root-v1"
         or values["root_generation"] != "arch-a"
         or values["root_subtree"] != "/"
+        or (
+            format_name == "rog5-headless-network-root-package-v2"
+            and values["build_profile"] != expected_build_profile
+        )
     ):
         fail("headless network-root package identity changed")
     for name in (
@@ -576,14 +689,15 @@ def verify_root(
     command_path: Path | None = None,
 ) -> OrderedDict[str, str]:
     root, owner = safe_root(root_path)
-    validate_build(root, owner)
-    values = parse_canonical(
+    values = parse_canonical_variant(
         package_path,
-        PACKAGE_KEYS,
+        PACKAGE_FORMATS,
         owner=owner,
         mode=0o444,
     )
     validate_package(values)
+    build_profile = values.get("build_profile", "headless-ssh-v1")
+    validate_build(root, owner, build_profile)
     installed_command = read_regular(
         root / COMMAND_PATH,
         owner=owner,
@@ -632,6 +746,11 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     prepare_parser.add_argument("source_sha256")
     prepare_parser.add_argument("command_manifest", type=Path)
     prepare_parser.add_argument("identity", type=Path)
+    prepare_parser.add_argument(
+        "--build-profile",
+        choices=tuple(BUILD_FIELDS),
+        default="headless-ssh-v1",
+    )
     package_parser = subparsers.add_parser("package")
     package_parser.add_argument("identity", type=Path)
     package_parser.add_argument("sealed_archive", type=Path)
@@ -658,6 +777,7 @@ def main(arguments: list[str] | None = None) -> int:
                 values.source_sha256,
                 values.command_manifest,
                 values.identity,
+                values.build_profile,
             )
             print("PASS prepared sealed headless network root")
             print(f"root_tree_entries={identity['root_tree_entries']}")

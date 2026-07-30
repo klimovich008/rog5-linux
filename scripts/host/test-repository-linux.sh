@@ -131,6 +131,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
+		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py
@@ -152,6 +153,8 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-prepare-recovery-candidate.py
 		scripts/host/test-recovery-candidate-integration.py
 		scripts/host/test-headless-network-root.py
+		scripts/host/test-compare-root-archives.py
+		scripts/host/test-normalize-headless-core-archive-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/host/test-key-indicatord.sh
 		scripts/host/test-arch-headless-core-rootfs-contract.sh
@@ -172,6 +175,7 @@ else
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
+		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py
@@ -193,6 +197,8 @@ else
 		scripts/host/test-prepare-recovery-candidate.py
 		scripts/host/test-recovery-candidate-integration.py
 		scripts/host/test-headless-network-root.py
+		scripts/host/test-compare-root-archives.py
+		scripts/host/test-normalize-headless-core-archive-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/host/test-key-indicatord.sh
 		scripts/host/test-arch-headless-core-rootfs-contract.sh

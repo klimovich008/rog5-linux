@@ -235,7 +235,8 @@ podman run --rm --network none \
 	--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
 	--mount "type=bind,source=$output_dir,target=/output" \
 	"$builder_image" \
-	bsdtar --acls --xattrs --fflags -cpf "/output/$(basename "$tar_part")" \
+	bsdtar --acls --xattrs --fflags \
+	-cpf "/output/$(basename "$tar_part")" \
 	-C /stage --exclude ./workspace --exclude ./input \
 	--exclude './dev/*' --exclude './proc/*' --exclude './sys/*' \
 	--exclude './run/*' .
