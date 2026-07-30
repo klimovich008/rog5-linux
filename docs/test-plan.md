@@ -89,13 +89,20 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   authorizes design work only and no phone write.
 - `test-stage-persistent-arch-root.sh` fail-first tests the P1 root stager and
   canonical tree sealer. It rejects an absent arm, wrong archive identity,
-  parent traversal, device nodes, embedded deployment credentials, a forged
-  reserved seal, existing final roots, and stale partial roots; preserves
+  parent traversal, device nodes, embedded deployment credentials, Pacman
+  private-key directories and revocation state, a forged reserved seal,
+  existing final roots, and stale partial roots; preserves
   mode and xattrs; detects a changed seal mode or published file; and proves
   interrupted extraction exposes no final root before atomic rename. The
   separate real-archive check accepts 181,242 path-safe entries. The
   [offline result](../test-results/2026-07-27-persistent-arch-staging-offline.md)
   changes no persistent phone state.
+- `test-arch-headless-rootfs-contract.sh` requires the minimal root stage to
+  use only the manifest-pinned base packages, disable networking, avoid
+  Pacman sync/update/key initialization and mutable caches, empty Pacman
+  signing state, normalize output mtimes, sort archive members, and disable
+  sparse-file reads. Release admission additionally requires two fresh
+  byte-identical full builds; source-contract tests alone are insufficient.
 - `test-collect-vendor-wifi-contract.py` fixture-tests the read-only vendor
   CNSS/PCIe collector. It requires one unambiguous QCA6490 node and matching
   root complex, exact supplies/GPIOs/pinctrl and PCI endpoint identity,

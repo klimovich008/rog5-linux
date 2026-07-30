@@ -51,6 +51,15 @@ grep -Fq 'systemd-networkd.service systemd-networkd.socket' "$stage"
 grep -Fq 'rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id' "$stage"
 grep -Fq 'profile=headless-ssh-v1' "$stage"
 grep -Fq "ssh-keygen -l -f \"\$authorized_key\"" "$stage" "$host"
+grep -Fq 'pacman -Rn --noconfirm' "$stage"
+grep -Fq 'find /etc/pacman.d/gnupg -depth -mindepth 1 -delete' "$stage"
+grep -Fq 'generated Pacman trust or signing state' "$verify"
+grep -Fq 'source_date_epoch=1681862400' "$host"
+grep -Fq 'touch -h -d "@$epoch"' "$host"
+grep -Fq 'LC_ALL=C sort -z >/tmp/root-files' "$host"
+grep -Fq -- '--format paxr' "$host"
+grep -Fq -- '--no-read-sparse' "$host"
+grep -Fq 'podman run --rm --network none' "$host"
 grep -Fq "linux-firmware(\$|-)" "$stage" "$verify"
 grep -Fq 'for command in depmod ip ss sshd systemd-analyze' "$verify"
 grep -Fq 'sshd -T -C user=root,host=localhost,addr=127.0.0.1' "$verify"
@@ -61,6 +70,13 @@ if grep -Eqi \
 	'chromium|greetd|krdp|kwin|mesa|nodejs|npm|pipewire|plasma|ttyd|vulkan|wireguard|wpa_supplicant|a660_(gmu|sqe)|a660_zap' \
 	"$packages" "$stage"; then
 	fail 'headless root enables a deferred package or GPU firmware'
+fi
+if grep -Eq 'pacman-key|pacman[[:space:]]+-S(y|yu|u)' "$stage"; then
+	fail 'headless root staging initializes mutable package trust or network state'
+fi
+if grep -Eq 'rog5-arch-pacman-cache|target=/stage/var/cache/pacman/pkg' \
+	"$host"; then
+	fail 'headless root staging retains a mutable package cache'
 fi
 if grep -Eq \
 	'fastboot|adb|/dev/(sd|mmcblk|nvme)|mkfs|fsck' \

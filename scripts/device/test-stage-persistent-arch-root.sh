@@ -77,7 +77,8 @@ expect_fail() {
 }
 
 source=$work/source
-mkdir -p "$source/etc/rog5" "$source/usr/lib/rog5" "$source/var/empty"
+mkdir -p "$source/etc/pacman.d/gnupg" "$source/etc/rog5" \
+	"$source/usr/lib/rog5" "$source/var/empty"
 printf '%s\n' fixture >"$source/etc/rog5/build"
 printf '%s\n' payload >"$source/usr/lib/rog5/payload"
 chmod 0640 "$source/usr/lib/rog5/payload"
@@ -123,6 +124,33 @@ with tarfile.open(root / "credential.tar.gz", "w:gz") as archive:
     member.size = len(payload)
     archive.addfile(member, io.BytesIO(payload))
 
+with tarfile.open(root / "pacman-key.tar.gz", "w:gz") as archive:
+    payload = b"not-a-real-key\n"
+    member = tarfile.TarInfo(
+        "./etc/pacman.d/gnupg/private-keys-v1.d/fixture.key"
+    )
+    member.size = len(payload)
+    archive.addfile(member, io.BytesIO(payload))
+
+with tarfile.open(root / "pacman-key-dir.tar.gz", "w:gz") as archive:
+    member = tarfile.TarInfo("./etc/pacman.d/gnupg/private-keys-v1.d")
+    member.type = tarfile.DIRTYPE
+    archive.addfile(member)
+
+with tarfile.open(root / "pacman-revocation.tar.gz", "w:gz") as archive:
+    payload = b"not-a-real-revocation\n"
+    member = tarfile.TarInfo(
+        "./etc/pacman.d/gnupg/openpgp-revocs.d/fixture.rev"
+    )
+    member.size = len(payload)
+    archive.addfile(member, io.BytesIO(payload))
+
+with tarfile.open(root / "pacman-trustdb.tar.gz", "w:gz") as archive:
+    payload = b"not-a-real-trustdb\n"
+    member = tarfile.TarInfo("./etc/pacman.d/gnupg/trustdb.gpg")
+    member.size = len(payload)
+    archive.addfile(member, io.BytesIO(payload))
+
 with tarfile.open(root / "reserved-seal.tar.gz", "w:gz") as archive:
     payload = b"forged\n"
     member = tarfile.TarInfo("./.rog5-persistent-seal")
@@ -133,6 +161,14 @@ PY
 expect_fail unsafe-path "$root_tool" archive "$work/unsafe.tar.gz"
 expect_fail device-node "$root_tool" archive "$work/device.tar.gz"
 expect_fail embedded-credential "$root_tool" archive "$work/credential.tar.gz"
+expect_fail embedded-pacman-key \
+	"$root_tool" archive "$work/pacman-key.tar.gz"
+expect_fail embedded-pacman-key-directory \
+	"$root_tool" archive "$work/pacman-key-dir.tar.gz"
+expect_fail embedded-pacman-revocation \
+	"$root_tool" archive "$work/pacman-revocation.tar.gz"
+expect_fail embedded-pacman-trustdb \
+	"$root_tool" archive "$work/pacman-trustdb.tar.gz"
 expect_fail reserved-seal "$root_tool" archive "$work/reserved-seal.tar.gz"
 
 layout=$work/layout

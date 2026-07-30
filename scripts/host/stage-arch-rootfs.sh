@@ -10,6 +10,7 @@ firmware=${FIRMWARE_DIRECTORY:-$repo/artifacts/firmware/linux-firmware-20260622}
 builder_image=${BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 manifest=$repo/manifests/artifacts.tsv
 generation=${ARCH_ROOTFS_GENERATION:-v2}
+source_date_epoch=1681862400
 firmware_required=1
 indicator_required=0
 indicator=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
@@ -165,7 +166,6 @@ kernel_release=${releases[0]}
 
 stage_volume=rog5-arch-stage-$$
 verify_volume=rog5-arch-verify-$$
-cache_volume=rog5-arch-pacman-cache
 for volume in "$stage_volume" "$verify_volume"; do
 	! podman volume exists "$volume" || {
 		echo "FAIL refusing existing volume $volume" >&2
@@ -175,8 +175,6 @@ done
 for volume in "$stage_volume" "$verify_volume"; do
 	podman volume create "$volume" >/dev/null
 done
-podman volume exists "$cache_volume" ||
-	podman volume create "$cache_volume" >/dev/null
 
 succeeded=0
 cleanup() {
@@ -204,14 +202,13 @@ podman run --rm --network none \
 	"$builder_image" chroot /stage /bin/uname -m |
 	grep -qx aarch64
 
-podman run --rm \
+podman run --rm --network none \
 	--mount "type=volume,source=$stage_volume,target=/stage" \
 	--mount "type=bind,source=$repo,target=/stage/workspace/repo,readonly" \
 	--mount "type=bind,source=$modules,target=/stage/input/modules.tar.gz,readonly" \
 	"${firmware_mount[@]}" \
 	"${indicator_mount[@]}" \
 	--mount "type=bind,source=$authorized_key,target=/stage/input/authorized_key,readonly" \
-	--mount "type=volume,source=$cache_volume,target=/stage/var/cache/pacman/pkg" \
 	--mount type=bind,source=/dev,target=/stage/dev \
 	--mount type=bind,source=/proc,target=/stage/proc \
 	--mount type=bind,source=/sys,target=/stage/sys \
@@ -225,6 +222,14 @@ podman run --rm \
 	"$builder_image" \
 	/bin/bash "/stage$stage_runner"
 
+podman run --rm --network none \
+	--mount "type=volume,source=$stage_volume,target=/stage" \
+	"$builder_image" sh -ceu '
+		epoch=$1
+		find /stage -xdev -depth -exec \
+			touch -h -d "@$epoch" -- {} +
+	' sh "$source_date_epoch"
+
 output_dir=$(dirname "$output")
 output_name=$(basename "$output")
 tar_part=$output_dir/$output_name.tar.part
@@ -234,12 +239,19 @@ gzip_part=$output.part
 podman run --rm --network none \
 	--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
 	--mount "type=bind,source=$output_dir,target=/output" \
-	"$builder_image" \
-	bsdtar --acls --xattrs --fflags \
-	-cpf "/output/$(basename "$tar_part")" \
-	-C /stage --exclude ./workspace --exclude ./input \
-	--exclude './dev/*' --exclude './proc/*' --exclude './sys/*' \
-	--exclude './run/*' .
+	"$builder_image" sh -ceu '
+		output=$1
+		cd /stage
+		find . -xdev \
+			\( -path ./workspace -o -path ./input \) -prune -o \
+			\( -path "./dev/*" -o -path "./proc/*" -o \
+				-path "./sys/*" -o -path "./run/*" \) -prune -o \
+			-print0 |
+			LC_ALL=C sort -z >/tmp/root-files
+		bsdtar --null --no-recursion --format paxr \
+			--acls --xattrs --fflags --no-read-sparse \
+			-cpf "$output" -T /tmp/root-files
+	' sh "/output/$(basename "$tar_part")"
 podman run --rm --network none \
 	--mount "type=bind,source=$output_dir,target=/output" \
 	"$builder_image" sh -c \

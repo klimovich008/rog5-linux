@@ -2,6 +2,11 @@
 set -euo pipefail
 trap 'echo "FAIL headless stage line=$LINENO command=$BASH_COMMAND" >&2' ERR
 
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
 repo=${REPO:-/workspace/repo}
 modules=${MODULES_ARCHIVE:-/input/modules.tar.gz}
 authorized_key=${AUTHORIZED_KEY:-/input/authorized_key}
@@ -25,20 +30,20 @@ mapfile -t packages < <(
 )
 ((${#packages[@]} > 0))
 
-pacman-conf SigLevel | grep -qx PackageRequired
-pacman-conf SigLevel | grep -qx PackageTrustedOnly
-pacman-key --init
-pacman-key --populate archlinuxarm
-pacman-key --list-keys 68B3537F39A313B3E574D06777193F152BDBE6A6 \
-	>/dev/null
-pacman -Sy --noconfirm --disable-sandbox
+for package in "${packages[@]}"; do
+	pacman -Q "$package" >/dev/null ||
+		fail "manifest-pinned base root lacks requested package: $package"
+done
 mapfile -t removed_packages < <(
 	pacman -Qq | grep -E '^(linux-aarch64|linux-firmware($|-))' || true
 )
 if ((${#removed_packages[@]} > 0)); then
-	pacman -Rns --noconfirm "${removed_packages[@]}"
+	pacman -Rn --noconfirm "${removed_packages[@]}"
 fi
-pacman -Syu --needed --noconfirm --disable-sandbox "${packages[@]}"
+for package in "${packages[@]}"; do
+	pacman -Q "$package" >/dev/null ||
+		fail "kernel removal changed requested package: $package"
+done
 ssh-keygen -l -f "$authorized_key" >/dev/null
 
 tar --keep-directory-symlink -xzf "$modules" -C /
@@ -95,8 +100,14 @@ if [[ -r /etc/fstab ]]; then
 		exit 1
 	fi
 fi
-gpgconf --homedir /etc/pacman.d/gnupg --kill all || true
-find /etc/pacman.d/gnupg -type s -delete
+gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true
+if [[ -e /etc/pacman.d/gnupg ]]; then
+	[[ -d /etc/pacman.d/gnupg && ! -L /etc/pacman.d/gnupg ]]
+	find /etc/pacman.d/gnupg -depth -mindepth 1 -delete
+else
+	install -d -m0755 /etc/pacman.d/gnupg
+fi
+chmod 0755 /etc/pacman.d/gnupg
 
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-headless-rootfs.sh"

@@ -4,8 +4,12 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the untouched Alpine fallback.
 
-Status: **implemented, hardware-free tested, and admitted for the exact
-corrected successor artifact; not yet authorized or run on the phone**. This
+Status: **controller implemented and hardware-free tested; execution HOLD**.
+The corrected recovery successor is retained and artifact-admitted, but its
+expected NFS root is absent. A replacement root must pass credential-clean
+byte-identical A/B builds and receive a new package identity before this
+runbook can pass complete preflight. It is not authorized or runnable on the
+phone in the current state. This
 document grants no live authority. `artifact-preflight` verifies the retained
 candidate without querying a phone or inspecting credentials. `preflight` is
 read-only with respect to the phone and credentials, but it does query the

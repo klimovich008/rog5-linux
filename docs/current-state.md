@@ -284,12 +284,23 @@ live experiment; no retained log has yet been claimed.
 
 ## Active headless Arch root
 
-The first minimal mainline userspace profile now builds and verifies offline.
-It is an official signed Arch Linux ARM base plus the exact
+Status correction, 2026-07-30: the identities below are historical evidence,
+not a currently deployable root. The retained corrected recovery successor is
+present, but its expected NFS root archive was pruned. Rebuilding the old
+`headless-core-v2` recipe produced different bytes and exposed a generated
+Pacman signing private key and revocation state inside the archive. That
+output was rejected. The staging boundary is now offline and credential-clean,
+but a new successor identity cannot be admitted until two clean builds are
+byte-identical. See the
+[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
+
+The first minimal mainline userspace profile was built and verified offline.
+It used an official signed Arch Linux ARM base plus the exact
 `7.1.4-g7a5cef0db479` modules and only three requested additions: `attr`,
 `diffutils`, and `openssh`.
 
-The stage removes the generic Arch kernel, twelve `linux-firmware*` packages
+The historical stage removed the generic Arch kernel, twelve
+`linux-firmware*` packages
 (1,281.37 MiB installed), the published `alarm` account, all reusable SSH
 host keys, and the reusable machine ID. It enables key-only root SSH and the
 existing sleep inhibitor, sets `multi-user.target`, and leaves USB networking
@@ -310,9 +321,11 @@ packages: 150
 
 This is 73.3% smaller than the 2,007,033,670-byte successor-v3 Plasma
 archive. The number is disk/archive evidence, not a RAM or battery
-measurement. Package versions are recorded in the root, but byte-for-byte
-reproducibility is not yet claimed because Arch package repositories are
-rolling and the local pacman trust database is generated during staging.
+measurement. Package versions are recorded in the historical root. The
+corrected stage does not contact an Arch repository or generate a Pacman
+trust database; it requires every requested package to be present in the
+exact manifest-pinned base archive and empties Pacman signing state before
+verification.
 
 The recovery side also has a strict offline manifest adapter for the consumed
 persistent-root P2 artifacts. It verifies their tracked sizes and hashes,
@@ -320,7 +333,7 @@ delegates canonical signing/publication to the stable runtime-bundle
 packager, and requires either a consumed parity fixture or an offline
 network-root candidate plus `authority=none`.
 
-The active root is now packaged as a separately transported, sealed
+The historical root was packaged as a separately transported, sealed
 `network-root-v1` lower. Two complete rootless builds produced the same
 535,094,061-byte pax-restricted archive with SHA-256
 `ee310c82ef925c9a801c310ab36f56f94b124ceb089d8db745c0959493c52b24`.
@@ -366,8 +379,10 @@ and AVB images are byte-identical; the exact source seal is unchanged, AVB
 verification passes, and no private key remains. See the
 [successor offline report](../test-results/2026-07-30-corrected-headless-successor-offline.md).
 
-That retained successor now also passes the exact production stable-recovery
-artifact boundary without a connected phone. The
+That retained recovery successor passes the exact production stable-recovery
+artifact boundary without a connected phone, but its associated NFS root is
+currently absent and therefore the complete lifecycle cannot pass preflight.
+The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
 fetcher, wrapper configuration, AVB tool, unpacker, and qualified `cpio`.
@@ -405,7 +420,7 @@ authority. See the
 [slimming contract](stable-wrapper-config-slimming.md) and
 [offline proof](../test-results/2026-07-30-stable-wrapper-config-slimming-offline.md).
 
-The native indicator successor now has a separate, non-sparse source
+The historical native-indicator successor has a separate, non-sparse source
 encoding and a v2 host package contract. Its 534,347,412-byte sealed archive
 binds `build_profile=headless-core-v2`, 37,675 entries, the exact no-workload
 command manifest, and the persistent seal while continuing to use the
@@ -627,12 +642,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Obtain explicit approval before creating or using a live recovery signing
-   trust root or temporarily booting the corrected candidate.
-2. Run the connected read-only preflight and attended temporary boot after
-   fresh authorization, then determine whether ramoops survives the
+1. Produce two byte-identical, credential-clean minimal-root builds and admit
+   them under a new package/profile identity.
+2. Bind the deployment authorized-key fingerprint to that successor without
+   storing or using a private key during authority-free builds.
+3. Rebuild the complete corrected candidate and pass host-only artifact
+   preflight before requesting credential or phone authorization.
+4. After fresh authorization, run the connected read-only preflight and one
+   attended temporary boot, then determine whether ramoops survives the
    target/fallback path.
-3. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the
@@ -655,8 +674,9 @@ headless reliability gate. No new phone action is authorized by this document.
   CRLF normalization. The compact canonical boot-v3 metadata template is
   independently reproducible and replaces the missing 96 MiB historical
   template for successor builds.
-- The headless root records its exact package inventory, but its rolling Arch
-  package snapshot and generated pacman trust database are not yet
-  byte-reproducible inputs.
+- The corrected headless stage is network-disabled, consumes only the exact
+  manifest-pinned Arch base and modules, rejects embedded Pacman secret or
+  revocation state, normalizes timestamps, and emits a sorted archive.
+  Byte reproducibility remains unclaimed until a clean A/B build passes.
 - Fastboot remains boot-only. The fallback slot and guarded
   `RESTART2("bootloader")` helper remain unchanged.
