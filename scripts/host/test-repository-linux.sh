@@ -158,12 +158,15 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-kernel-source-seal.py
 		scripts/host/test-stable-recovery-wrapper-cache.py
 		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
+		scripts/host/test-stable-wrapper-slim-config.py
+		scripts/host/test-stable-wrapper-slim-config-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/host/test-key-indicatord.sh
 		scripts/host/test-arch-headless-core-rootfs-contract.sh
 		scripts/host/test-claude-readonly-review.sh
 		scripts/device/test-network-root-init.sh
 		scripts/device/test-kernel-build-contract.sh
+		scripts/device/test-asus-kexec-stage-slim-build-contract.sh
 		scripts/host/test-generate-artifact-prune-plan.py
 		scripts/host/test-generate-host-storage-cleanup-plan.py
 		scripts/host/test-cleanup-podman-volumes.py
@@ -205,6 +208,8 @@ else
 		scripts/host/test-kernel-source-seal.py
 		scripts/host/test-stable-recovery-wrapper-cache.py
 		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
+		scripts/host/test-stable-wrapper-slim-config.py
+		scripts/host/test-stable-wrapper-slim-config-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
 		scripts/host/test-key-indicatord.sh
 		scripts/host/test-arch-headless-core-rootfs-contract.sh
@@ -213,6 +218,7 @@ else
 		scripts/host/test-generate-host-storage-cleanup-plan.py
 		scripts/host/test-cleanup-podman-volumes.py
 		scripts/device/test-kernel-build-contract.sh
+		scripts/device/test-asus-kexec-stage-slim-build-contract.sh
 		scripts/device/test-a660-acceptance.py
 		scripts/host/test-a660-runtime-root.py
 		scripts/device/test-network-root-init.sh

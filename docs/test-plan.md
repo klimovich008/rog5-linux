@@ -19,6 +19,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
 - Board DTS compiles with `dtbs_check` warnings reviewed.
 - Configuration fragment contains only real symbols.
 - `Image`, DTB, modules, initramfs, and boot image hashes are recorded.
+- The stable-wrapper slim-config path binds the accepted config, reviewed
+  fragment/profile, complete portable ASUS source seal, builder image, and
+  stable-recovery initramfs. Seven hostile mutations plus one positive
+  auditor test and separate host and device contracts reject identity,
+  authority, requirement, reduction, module-promotion, canonical-input,
+  symlink, transport, and reproducibility regressions. Each negative test
+  asserts the exact policy error. A
+  release proof requires two clean byte-identical configs/Images/metadata and
+  independent Android boot-v3/unsigned-AVB repacks whose unpacked kernel and
+  ramdisk match exactly. This compile-only gate grants no phone authority.
 - The first recovery candidate is `acm-only` and contains no
   `authorized_keys`, credentials, or host-specific SSH private keys.
 - Build logs contain no errors and are retained outside Git if large.
