@@ -11,7 +11,8 @@ indicator=${INDICATOR_BINARY:-/input/rog5-key-indicatord}
 [[ $(stat -c %s "$indicator") == 67520 ]]
 [[ $(sha256sum "$indicator" | cut -d' ' -f1) == "$INDICATOR_SHA256" ]]
 
-/bin/bash "$repo/scripts/device/stage-arch-headless-rootfs.sh"
+HEADLESS_BUILD_PROFILE=headless-ssh-v1 \
+	/bin/bash "$repo/scripts/device/stage-arch-headless-rootfs.sh"
 
 install -Dm0755 "$indicator" \
 	/usr/local/libexec/rog5-key-indicatord

@@ -8,6 +8,7 @@ verify=$repo/scripts/device/verify-staged-arch-headless-rootfs.sh
 runner=$repo/scripts/device/run-arch-rootfs-stage.sh
 host=$repo/scripts/host/stage-arch-rootfs.sh
 fixture=$repo/configs/ssh/rog5-headless-build-fixture.pub
+sshd_v2=$repo/packaging/arch/10-rog5-sshd-v2.conf
 
 fail() {
 	echo "FAIL $*" >&2
@@ -30,7 +31,13 @@ fi
 if [ ! -f "$fixture" ] || [ -L "$fixture" ]; then
 	fail 'missing public-only headless build fixture'
 fi
+if [ ! -f "$sshd_v2" ] || [ -L "$sshd_v2" ]; then
+	fail 'missing fixed headless SSH v2 policy'
+fi
 ssh-keygen -l -f "$fixture" >/dev/null
+grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}([[:space:]].*)?$' \
+	"$fixture" ||
+	fail 'public-only fixture does not satisfy the SSH v2 key gate'
 
 requested=$(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' \
 	"$packages")
@@ -39,6 +46,7 @@ diffutils
 openssh" ] || fail 'headless package inventory changed'
 
 grep -Fq 'headless-v1)' "$host"
+grep -Fq 'headless-ssh-v2)' "$host"
 grep -Fq 'stage-arch-headless-rootfs.sh' "$host"
 grep -Fq 'verify-staged-arch-headless-rootfs.sh' "$host"
 grep -Fq "ARCH_DEVICE_STAGE=\$device_stage" "$host"
@@ -49,7 +57,13 @@ grep -Fq 'systemctl enable sshd.service rog5-server-inhibit.service' "$stage"
 grep -Fq 'systemctl set-default multi-user.target' "$stage"
 grep -Fq 'systemd-networkd.service systemd-networkd.socket' "$stage"
 grep -Fq 'rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id' "$stage"
-grep -Fq 'profile=headless-ssh-v1' "$stage"
+grep -Fq 'HEADLESS_BUILD_PROFILE:-headless-ssh-v1' "$stage"
+grep -Fq 'profile=$headless_build_profile' "$stage"
+grep -Fq 'authorized_key_fingerprint=' "$stage"
+grep -Fq 'authorized_key_fingerprint=' "$verify"
+grep -Fq 'EXPECTED_HEADLESS_PROFILE=$headless_build_profile' "$stage"
+grep -Fq 'AuthorizedKeysFile /root/.ssh/authorized_keys' "$sshd_v2"
+grep -Fq 'authorizedkeysfile /root/.ssh/authorized_keys' "$verify"
 grep -Fq "ssh-keygen -l -f \"\$authorized_key\"" "$stage" "$host"
 grep -Fq 'pacman -Rn --noconfirm' "$stage"
 grep -Fq 'find /etc/pacman.d/gnupg -depth -mindepth 1 -delete' "$stage"

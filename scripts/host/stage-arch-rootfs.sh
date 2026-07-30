@@ -14,6 +14,8 @@ source_date_epoch=1681862400
 firmware_required=1
 indicator_required=0
 indicator=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
+headless_build_profile=headless-ssh-v1
+expected_headless_profile=headless-ssh-v1
 
 case $generation in
 	v2)
@@ -42,6 +44,16 @@ case $generation in
 		default_output=$repo/artifacts/arch/rog5-arch-headless-core-7.1.4.tar.gz
 		firmware_required=0
 		indicator_required=1
+		expected_headless_profile=headless-core-v2
+		;;
+	headless-ssh-v2)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		device_stage=scripts/device/stage-arch-headless-rootfs.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-headless-rootfs.sh
+		default_output=$repo/artifacts/arch/rog5-arch-headless-ssh-v2-7.1.4.tar.gz
+		firmware_required=0
+		headless_build_profile=headless-ssh-v2
+		expected_headless_profile=headless-ssh-v2
 		;;
 	*)
 		echo "FAIL unsupported Arch rootfs generation: $generation" >&2
@@ -136,9 +148,15 @@ if [[ $firmware_required == 1 ]]; then
 	done
 fi
 
-[[ $(awk 'NF { count++ } END { print count + 0 }' "$authorized_key") == 1 ]]
-grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' \
-	"$authorized_key"
+[[ $(awk 'END { print NR + 0 }' "$authorized_key") == 1 ]]
+if [[ $headless_build_profile == headless-ssh-v2 ]]; then
+	grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}([[:space:]].*)?$' \
+		"$authorized_key"
+else
+	grep -Eq \
+		'^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' \
+		"$authorized_key"
+fi
 ssh-keygen -l -f "$authorized_key" >/dev/null
 if grep -q 'BEGIN .*PRIVATE KEY' "$authorized_key"; then
 	echo 'FAIL authorized-key input contains private-key material' >&2
@@ -219,6 +237,7 @@ podman run --rm --network none \
 	--env "PROJECT_COMMIT=$project_commit" \
 	--env "INDICATOR_SHA256=$indicator_hash" \
 	--env "ARCH_DEVICE_STAGE=$device_stage" \
+	--env "HEADLESS_BUILD_PROFILE=$headless_build_profile" \
 	"$builder_image" \
 	/bin/bash "/stage$stage_runner"
 
@@ -272,6 +291,7 @@ podman run --rm --network none \
 	--tmpfs /stage/run \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	--env "INDICATOR_SHA256=$indicator_hash" \
+	--env "EXPECTED_HEADLESS_PROFILE=$expected_headless_profile" \
 	"$builder_image" chroot /stage /bin/bash \
 	"$rootfs_verifier"
 

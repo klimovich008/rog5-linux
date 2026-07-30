@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import importlib.util
 from pathlib import Path
 import shutil
@@ -20,6 +21,7 @@ EXPORT_VERIFIER = (
     REPO / "scripts/host/verify-headless-network-root-export.sh"
 )
 SERVER = REPO / "scripts/host/serve-network-root.sh"
+FIXTURE = REPO / "configs/ssh/rog5-headless-build-fixture.pub"
 
 
 def load_module():
@@ -36,6 +38,19 @@ def load_module():
 
 
 TOOL = load_module()
+FIXTURE_KEY = b" ".join(FIXTURE.read_bytes().strip().split()[:2]) + b"\n"
+FIXTURE_FINGERPRINT = TOOL.authorized_key_fingerprint(FIXTURE_KEY)
+
+
+def ed25519_key(byte: int) -> bytes:
+    algorithm = b"ssh-ed25519"
+    blob = (
+        len(algorithm).to_bytes(4, "big")
+        + algorithm
+        + (32).to_bytes(4, "big")
+        + bytes((byte,)) * 32
+    )
+    return algorithm + b" " + base64.b64encode(blob) + b"\n"
 
 
 class HeadlessNetworkRootTest(unittest.TestCase):
@@ -77,6 +92,27 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             "kernel_release=7.1.4-g7a5cef0db479\n"
             f"indicator_sha256={'d' * 64}\n"
             "indicator_policy=power-key-green-status-pulse-v1\n",
+            encoding="ascii",
+        )
+
+    def write_ssh_v2_build(
+        self,
+        key: bytes = FIXTURE_KEY,
+        fingerprint: str = FIXTURE_FINGERPRINT,
+    ) -> None:
+        ssh_directory = self.root / "root/.ssh"
+        ssh_directory.mkdir(parents=True, exist_ok=True)
+        ssh_directory.chmod(0o700)
+        authorized_keys = ssh_directory / "authorized_keys"
+        authorized_keys.write_bytes(key)
+        authorized_keys.chmod(0o600)
+        (self.root / "etc/rog5/build").write_text(
+            "profile=headless-ssh-v2\n"
+            "project_commit=000acc638ec851b1b02a2f3151db5265ab9213e7\n"
+            f"rootfs_sha256={'a' * 64}\n"
+            f"modules_sha256={'b' * 64}\n"
+            "kernel_release=7.1.4-g7a5cef0db479\n"
+            f"authorized_key_fingerprint={fingerprint}\n",
             encoding="ascii",
         )
 
@@ -168,6 +204,171 @@ class HeadlessNetworkRootTest(unittest.TestCase):
         with self.assertRaises(TOOL.HeadlessRootError):
             TOOL.verify_root(self.root, self.package)
 
+    def test_ssh_v2_key_is_canonically_bound(self) -> None:
+        self.write_ssh_v2_build()
+        self.prepare_package("headless-ssh-v2")
+        values = TOOL.verify(
+            self.root,
+            self.archive,
+            self.package,
+            COMMAND,
+        )
+        self.assertEqual(
+            values["format"],
+            "rog5-headless-network-root-package-v3",
+        )
+        self.assertEqual(values["build_profile"], "headless-ssh-v2")
+        self.assertEqual(
+            values["authorized_key_fingerprint"],
+            FIXTURE_FINGERPRINT,
+        )
+        self.assertEqual(
+            (self.root / TOOL.AUTHORIZED_KEYS_PATH).read_bytes(),
+            FIXTURE_KEY,
+        )
+
+    def test_ssh_v2_rejects_key_build_and_package_mismatches(self) -> None:
+        other_key = ed25519_key(0x5A)
+        other_fingerprint = TOOL.authorized_key_fingerprint(other_key)
+        cases = ("key", "build", "package")
+        for case in cases:
+            with self.subTest(case=case):
+                self.tearDown()
+                self.setUp()
+                if case == "key":
+                    self.write_ssh_v2_build(key=other_key)
+                    with self.assertRaises(TOOL.HeadlessRootError):
+                        TOOL.validate_build(
+                            self.root,
+                            self.root.stat().st_uid,
+                            "headless-ssh-v2",
+                        )
+                    continue
+                self.write_ssh_v2_build(
+                    fingerprint=(
+                        other_fingerprint
+                        if case == "build"
+                        else FIXTURE_FINGERPRINT
+                    )
+                )
+                if case == "build":
+                    with self.assertRaises(TOOL.HeadlessRootError):
+                        TOOL.validate_build(
+                            self.root,
+                            self.root.stat().st_uid,
+                            "headless-ssh-v2",
+                        )
+                    continue
+                self.prepare_package("headless-ssh-v2")
+                payload = self.package.read_text(encoding="ascii")
+                self.write_fixed(
+                    self.package,
+                    payload.replace(
+                        FIXTURE_FINGERPRINT,
+                        other_fingerprint,
+                    ).encode("ascii"),
+                )
+                with self.assertRaises(TOOL.HeadlessRootError):
+                    TOOL.verify_root(self.root, self.package)
+
+    def test_ssh_v2_rejects_noncanonical_or_malformed_keys(self) -> None:
+        key_type, encoded = FIXTURE_KEY.rstrip(b"\n").split(b" ")
+        rsa_algorithm = b"ssh-rsa"
+        mismatched_blob = (
+            len(rsa_algorithm).to_bytes(4, "big")
+            + rsa_algorithm
+            + (32).to_bytes(4, "big")
+            + b"\x11" * 32
+        )
+        cases = (
+            FIXTURE_KEY.rstrip(b"\n"),
+            FIXTURE_KEY.replace(b"\n", b"\r\n"),
+            b"restrict " + FIXTURE_KEY,
+            FIXTURE_KEY.rstrip(b"\n") + b" comment\n",
+            key_type + b" " + encoded + b"=\n",
+            key_type + b" " + base64.b64encode(mismatched_blob) + b"\n",
+            b"ssh-rsa " + encoded + b"\n",
+        )
+        for payload in cases:
+            with self.subTest(payload=payload[:80]):
+                with self.assertRaises(TOOL.HeadlessRootError):
+                    TOOL.authorized_key_fingerprint(payload)
+
+    def test_ssh_v2_rejects_unsafe_key_metadata(self) -> None:
+        cases = (
+            "parent-mode",
+            "parent-symlink",
+            "directory-mode",
+            "file-mode",
+            "hard-link",
+        )
+        for case in cases:
+            with self.subTest(case=case):
+                self.tearDown()
+                self.setUp()
+                self.write_ssh_v2_build()
+                authorized_keys = self.root / TOOL.AUTHORIZED_KEYS_PATH
+                ssh_parent = authorized_keys.parent.parent
+                if case == "parent-mode":
+                    ssh_parent.chmod(0o777)
+                elif case == "parent-symlink":
+                    real_parent = ssh_parent.with_name("root.real")
+                    ssh_parent.rename(real_parent)
+                    ssh_parent.symlink_to(real_parent.name)
+                elif case == "directory-mode":
+                    authorized_keys.parent.chmod(0o755)
+                elif case == "file-mode":
+                    authorized_keys.chmod(0o644)
+                else:
+                    authorized_keys.with_name(
+                        "authorized_keys.copy"
+                    ).hardlink_to(authorized_keys)
+                with self.assertRaises(TOOL.HeadlessRootError):
+                    TOOL.validate_build(
+                        self.root,
+                        self.root.stat().st_uid,
+                        "headless-ssh-v2",
+                    )
+
+    def test_ssh_v2_identity_cannot_be_downgraded_to_v2(self) -> None:
+        self.write_ssh_v2_build()
+        self.prepare_package("headless-ssh-v2")
+        payload = self.package.read_bytes()
+        malformed_downgrade = payload.replace(
+            b"format=rog5-headless-network-root-package-v3\n",
+            b"format=rog5-headless-network-root-package-v2\n",
+        )
+        self.write_fixed(self.package, malformed_downgrade)
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.parse_canonical_variant(
+                self.package,
+                TOOL.PACKAGE_FORMATS,
+                owner=self.package.stat().st_uid,
+                mode=0o444,
+            )
+
+        structural_downgrade = (
+            payload.replace(
+                b"format=rog5-headless-network-root-package-v3\n",
+                b"format=rog5-headless-network-root-package-v2\n",
+            )
+            .replace(
+                b"build_profile=headless-ssh-v2\n",
+                b"build_profile=headless-core-v2\n",
+            )
+            .replace(
+                (
+                    b"authorized_key_fingerprint="
+                    + FIXTURE_FINGERPRINT.encode("ascii")
+                    + b"\n"
+                ),
+                b"",
+            )
+        )
+        self.write_fixed(self.package, structural_downgrade)
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.verify_root(self.root, self.package)
+
     def test_variant_dispatch_rejects_malformed_and_cross_version_records(
         self,
     ) -> None:
@@ -207,6 +408,12 @@ class HeadlessNetworkRootTest(unittest.TestCase):
     def test_v1_package_cannot_verify_a_headless_core_root(self) -> None:
         self.prepare_package()
         self.write_core_build()
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.verify_root(self.root, self.package)
+
+    def test_v1_package_cannot_verify_an_ssh_v2_root(self) -> None:
+        self.prepare_package()
+        self.write_ssh_v2_build()
         with self.assertRaises(TOOL.HeadlessRootError):
             TOOL.verify_root(self.root, self.package)
 

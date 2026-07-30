@@ -10,6 +10,7 @@ fail() {
 repo=${REPO:-/workspace/repo}
 modules=${MODULES_ARCHIVE:-/input/modules.tar.gz}
 authorized_key=${AUTHORIZED_KEY:-/input/authorized_key}
+headless_build_profile=${HEADLESS_BUILD_PROFILE:-headless-ssh-v1}
 packages_file=$repo/packaging/arch/headless-packages.txt
 : "${ROOTFS_SHA256:?missing ROOTFS_SHA256}"
 : "${MODULES_SHA256:?missing MODULES_SHA256}"
@@ -18,9 +19,22 @@ packages_file=$repo/packaging/arch/headless-packages.txt
 
 [[ $(sha256sum "$modules" | cut -d' ' -f1) == "$MODULES_SHA256" ]]
 [[ -r $packages_file ]]
-[[ $(awk 'NF { count++ } END { print count+0 }' "$authorized_key") == 1 ]]
-grep -Eq '^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' \
-	"$authorized_key"
+[[ $(awk 'END { print NR+0 }' "$authorized_key") == 1 ]]
+case $headless_build_profile in
+	headless-ssh-v1)
+		grep -Eq \
+			'^ssh-(ed25519|rsa|ecdsa-[^ ]+) [A-Za-z0-9+/=]+([[:space:]].*)?$' \
+			"$authorized_key"
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd.conf
+		;;
+	headless-ssh-v2)
+		grep -Eq \
+			'^ssh-ed25519 [A-Za-z0-9+/]{68}([[:space:]].*)?$' \
+			"$authorized_key"
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd-v2.conf
+		;;
+	*) fail "unsupported headless build profile: $headless_build_profile" ;;
+esac
 if grep -q 'BEGIN .*PRIVATE KEY' "$authorized_key"; then
 	echo 'FAIL authorized-key input contains private-key material' >&2
 	exit 1
@@ -56,8 +70,17 @@ fi
 getent group alarm >/dev/null && groupdel alarm
 
 install -d -m0700 /root/.ssh
-install -m0600 "$authorized_key" /root/.ssh/authorized_keys
-install -Dm0644 "$repo/packaging/arch/10-rog5-sshd.conf" \
+if [[ $headless_build_profile == headless-ssh-v2 ]]; then
+	read -r key_type key_blob _ <"$authorized_key" || true
+	[[ $key_type == ssh-ed25519 && -n $key_blob ]] ||
+		fail 'authorized key is unreadable'
+	install -m0600 /dev/null /root/.ssh/authorized_keys
+	printf '%s %s\n' "$key_type" "$key_blob" \
+		>/root/.ssh/authorized_keys
+else
+	install -m0600 "$authorized_key" /root/.ssh/authorized_keys
+fi
+install -Dm0644 "$sshd_policy" \
 	/etc/ssh/sshd_config.d/10-rog5-server.conf
 install -Dm0644 "$repo/packaging/arch/rog5-server-inhibit.service" \
 	/etc/systemd/system/rog5-server-inhibit.service
@@ -85,12 +108,21 @@ install -m0644 "$packages_file" /etc/rog5/packages.requested.txt
 : >/etc/rog5/xattr-probe
 setfattr -n user.rog5 -v preserved /etc/rog5/xattr-probe
 cat >/etc/rog5/build <<EOF
-profile=headless-ssh-v1
+profile=$headless_build_profile
 project_commit=$PROJECT_COMMIT
 rootfs_sha256=$ROOTFS_SHA256
 modules_sha256=$MODULES_SHA256
 kernel_release=$TARGET_KERNEL_RELEASE
 EOF
+if [[ $headless_build_profile == headless-ssh-v2 ]]; then
+	authorized_key_fingerprint=$(
+		ssh-keygen -E sha256 -lf /root/.ssh/authorized_keys |
+			awk 'NR == 1 { print $2 }'
+	)
+	[[ $authorized_key_fingerprint =~ ^SHA256:[A-Za-z0-9+/]{43}$ ]]
+	printf 'authorized_key_fingerprint=%s\n' \
+		"$authorized_key_fingerprint" >>/etc/rog5/build
+fi
 pacman -Q | LC_ALL=C sort >/etc/rog5/packages.txt
 if [[ -r /etc/fstab ]]; then
 	if awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// ||
@@ -118,5 +150,6 @@ if [[ -e /var/cache/ldconfig || -L /var/cache/ldconfig ]]; then
 	rm -f -- /var/cache/ldconfig/aux-cache
 fi
 
+EXPECTED_HEADLESS_PROFILE=$headless_build_profile \
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-headless-rootfs.sh"
