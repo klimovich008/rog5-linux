@@ -338,6 +338,20 @@ boot image, and unsigned AVB test wrapper now reproduce in two clean offline
 builds. The disposable test private key was destroyed. This correction
 remains `authority=none` and grants no repeat authority.
 
+The native indicator successor now has a separate, non-sparse source
+encoding and a v2 host package contract. Its 534,347,412-byte sealed archive
+binds `build_profile=headless-core-v2`, 37,675 entries, the exact no-workload
+command manifest, and the persistent seal while continuing to use the
+accepted `network-root-v1` boot protocol. Normalization preserves the exact
+source member set, hard-link topology, and inode flags before any verifier
+mountpoints are created. The tracked
+`headless-core-network-root-v2` candidate selects the 103,554-byte
+buttons/default-off status-LED DTB. A full hardware-free gate reproduced two
+signed bundles, stable-recovery initramfses, ASUS wrapper kernels, raw images,
+and test-only AVB images under one disposable trust root; the private key was
+destroyed and authority remains `none`. See the
+[headless-core candidate result](../test-results/2026-07-30-headless-core-candidate-offline.md).
+
 An ephemeral-key signed v2 bundle passes the real native verifier with
 manifest SHA-256
 `70136ad498fad21bce5279f60cbad36359c7d6df6eb42280591071c5e1389bf6`.

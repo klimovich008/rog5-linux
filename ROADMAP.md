@@ -118,6 +118,14 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Observe the first green GitHub run.
 - [x] Add a full-system `qemu-system-aarch64 -M virt` boot harness for generic
   initramfs/root handoff, pinned to an exact upstream Linux commit.
+- [x] Package `headless-core-v2` as a separately identified, whole-tree-sealed
+  network root and assemble its buttons DTB into a twin-built,
+  ephemeral-signed recovery candidate without phone or production-key access.
+- [ ] Cache the verified stable-recovery wrapper by exact source, config,
+  initramfs, builder, and output hashes so ordinary candidate iterations do
+  not repeat two broad vendor-kernel builds.
+- [ ] Add a separate wrapper-config slimming audit; do not mix that change
+  with a live headless-core candidate.
 - [x] Replace the hosted `defconfig` build with a reproducible, QEMU-only
   `tinyconfig` kernel after the first run exceeded its 35-minute bound.
 - [x] Cache only the content-keyed kernel Image and avoid duplicate

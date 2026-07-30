@@ -68,13 +68,36 @@ class HeadlessNetworkRootTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def prepare_package(self) -> None:
+    def write_core_build(self) -> None:
+        (self.root / "etc/rog5/build").write_text(
+            "profile=headless-core-v2\n"
+            "project_commit=6a8090e936bfbc2a8e93b430671a216593d11ca9\n"
+            f"rootfs_sha256={'a' * 64}\n"
+            f"modules_sha256={'b' * 64}\n"
+            "kernel_release=7.1.4-g7a5cef0db479\n"
+            f"indicator_sha256={'d' * 64}\n"
+            "indicator_policy=power-key-green-status-pulse-v1\n",
+            encoding="ascii",
+        )
+
+    @staticmethod
+    def write_fixed(path: Path, payload: bytes) -> None:
+        if path.exists():
+            path.chmod(0o600)
+        path.write_bytes(payload)
+        path.chmod(0o444)
+
+    def prepare_package(
+        self,
+        build_profile: str = "headless-ssh-v1",
+    ) -> None:
         TOOL.prepare(
             self.root,
             "123",
             "c" * 64,
             COMMAND,
             self.identity,
+            build_profile,
         )
         subprocess.run(
             [
@@ -114,6 +137,78 @@ class HeadlessNetworkRootTest(unittest.TestCase):
         )
         runtime_values = TOOL.verify_root(self.root, self.package)
         self.assertEqual(runtime_values, values)
+
+    def test_headless_core_successor_is_explicitly_bound(self) -> None:
+        self.write_core_build()
+        self.prepare_package("headless-core-v2")
+        values = TOOL.verify(
+            self.root,
+            self.archive,
+            self.package,
+            COMMAND,
+        )
+        self.assertEqual(
+            values["format"],
+            "rog5-headless-network-root-package-v2",
+        )
+        self.assertEqual(values["profile"], "network-root-v1")
+        self.assertEqual(values["build_profile"], "headless-core-v2")
+        package_payload = self.package.read_text(encoding="ascii")
+        self.assertIn("build_profile=headless-core-v2\n", package_payload)
+
+        self.package.chmod(0o600)
+        self.package.write_text(
+            package_payload.replace(
+                "build_profile=headless-core-v2",
+                "build_profile=headless-ssh-v1",
+            ),
+            encoding="ascii",
+        )
+        self.package.chmod(0o444)
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.verify_root(self.root, self.package)
+
+    def test_variant_dispatch_rejects_malformed_and_cross_version_records(
+        self,
+    ) -> None:
+        self.prepare_package()
+        v1 = self.package.read_bytes()
+        v2 = v1.replace(
+            b"format=rog5-headless-network-root-package-v1\n",
+            b"format=rog5-headless-network-root-package-v2\n",
+        ).replace(
+            b"profile=network-root-v1\n",
+            b"profile=network-root-v1\nbuild_profile=headless-core-v2\n",
+        )
+        cases = (
+            b"profile=network-root-v1\n",
+            b"format=\xff\n",
+            b"format=rog5-headless-network-root-package-v9\n",
+            v1.replace(
+                b"format=rog5-headless-network-root-package-v1\n",
+                b"format=rog5-headless-network-root-package-v2\n",
+            ),
+            v2.replace(
+                b"format=rog5-headless-network-root-package-v2\n",
+                b"format=rog5-headless-network-root-package-v1\n",
+            ),
+        )
+        for payload in cases:
+            with self.subTest(payload=payload[:80]):
+                self.write_fixed(self.package, payload)
+                with self.assertRaises(TOOL.HeadlessRootError):
+                    TOOL.parse_canonical_variant(
+                        self.package,
+                        TOOL.PACKAGE_FORMATS,
+                        owner=self.package.stat().st_uid,
+                        mode=0o444,
+                    )
+
+    def test_v1_package_cannot_verify_a_headless_core_root(self) -> None:
+        self.prepare_package()
+        self.write_core_build()
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.verify_root(self.root, self.package)
 
     def test_tree_archive_and_command_mutations_refuse(self) -> None:
         cases = ("tree", "archive", "command")

@@ -157,9 +157,19 @@ ARCH_ROOTFS_GENERATION=headless-v2 \
 It refuses to overwrite an existing archive and requires a clean project
 commit so `/etc/rog5/build` identifies the exact source revision.
 
+## Offline candidate
+
+The successor is now sealed and assembled as
+`headless-core-network-root-v2`. The candidate retains the verified
+`network-root-v1` wire protocol but has a distinct package/build identity and
+target ID. It selects the buttons/default-off status-LED DTB and passed twin
+ephemeral-signed bundle, shell-free recovery, native verifier, wrapper-kernel,
+raw-image, and test-only AVB reproducibility gates. The disposable private key
+was destroyed; the candidate remains unbooted with `authority=none`.
+
 ## Remaining live gate
 
-A later attended RAM-only cycle must first pass the corrected minimal
+A later separately authorized RAM-only cycle must first pass the corrected minimal
 SSH/storage/rollback contract. It may then run `--probe`, record physical
 press/release events, enable the service, observe one low-power pulse, and
 prove clean SSH, kernel logs, storage isolation, normal fallback, and zero

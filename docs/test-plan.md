@@ -275,7 +275,18 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   transport/server/phone actions.
 - `test-headless-network-root.py` binds the explicit no-workload manifest,
   complete persistent seal, tree count/hash, source archive, and final sealed
-  archive, then rejects tree, archive, and command-manifest mutations.
+  archive for both the accepted SSH-only package and the explicit
+  `headless-core-v2` successor, then rejects tree, archive, command-manifest,
+  successor-profile, malformed format, unsupported format, and cross-version
+  key-order mutations.
+- `test-compare-root-archives.py` rejects added paths, unsafe paths, hard-link
+  topology changes, and inode-flag loss across a dense source re-encoding.
+- `test-normalize-headless-core-archive-contract.sh` pins a hardware-free,
+  twin-built dense re-encoding that rejects sparse archive members and proves
+  exact source paths, hard links, inode flags, and extracted whole-tree
+  identity are unchanged after canonicalizing only the extraction-volume root
+  mtime. Compression and archive validation run inside the digest-pinned
+  builder.
 - `test-recovery-candidate-integration.py` composes the real packager,
   descriptor-oriented server, sandboxed fetcher, native verifier, and framed
   responder. Local artifact stores exercise the exact consumed P2 payload;
@@ -288,6 +299,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   point rebuilds both target bundles, shell-free initramfs files, vendor
   wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
   the disposable private key.
+- `test-headless-core-candidate-offline-contract.sh` layers the successor
+  candidate ID, v2 package contract, buttons/default-off status-LED DTB, and
+  distinct target ID over the same authority-free twin-build gate while
+  excluding phone, privilege, and storage transports from both the wrapper
+  and shared builder and rejecting malformed or co-varied candidate tuples.
 - `test-core-compatibility-oracle.py` runs 33 positive, mutation, parser, and
   CLI cases over the ASUS 5.4/accepted 7.1 ancestry profile. It requires the
   committed golden Kconfig, checks the retained accepted config when locally

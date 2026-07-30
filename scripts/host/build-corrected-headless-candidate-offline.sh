@@ -8,12 +8,21 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 output_root=${1:?usage: build-corrected-headless-candidate-offline.sh OUTPUT_ROOT}
-candidate=headless-network-root-v1
-expected_dtb=86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46
+candidate=${ROG5_OFFLINE_CANDIDATE:-headless-network-root-v1}
+expected_dtb=${ROG5_OFFLINE_EXPECTED_DTB:-86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46}
+expected_target=${ROG5_OFFLINE_EXPECTED_TARGET:-headless-network-root}
 builder_image=localhost/rog5-kernel-builder:ubuntu-24.04
 expected_builder_id=c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c9cec
 expected_builder_digest=sha256:8513960144bb1ca77878a1364c03fb100c8b87fffb8440fd37a6cc4fc0043b41
 secret_root=
+
+[[ $expected_dtb =~ ^[0-9a-f]{64}$ ]] ||
+	fail 'offline candidate DTB identity is malformed'
+case "$candidate:$expected_dtb:$expected_target" in
+	headless-network-root-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-network-root) ;;
+	headless-core-network-root-v2:57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d:headless-core-network-root) ;;
+	*) fail 'unsupported offline candidate identity tuple' ;;
+esac
 
 cleanup() {
 	if [[ -n $secret_root && -d $secret_root && $secret_root != / ]]; then
@@ -132,7 +141,7 @@ plan_b=$(
 grep -Fxq "bundle=$candidate" <<<"$plan_a"
 grep -Fxq "manifest_sha256=$manifest_a" <<<"$plan_a"
 grep -Fxq 'profile=network-root-v1' <<<"$plan_a"
-grep -Fxq 'target_id=headless-network-root' <<<"$plan_a"
+grep -Fxq "target_id=$expected_target" <<<"$plan_a"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$plan_a"
 
 KERNEL_BUILDER_IMAGE=$builder_image \
