@@ -8,6 +8,7 @@ fail() {
 
 action=${1:-preflight}
 case $action in
+	artifact-preflight) ;;
 	preflight) ;;
 	boot)
 		[[ ${ALLOW_TEMPORARY_BOOT:-} == 1 ]] ||
@@ -15,10 +16,15 @@ case $action in
 		[[ ${ALLOW_HEADLESS_LIVE_GATE:-} == 1 ]] ||
 			fail 'set ALLOW_HEADLESS_LIVE_GATE=1 for this attended candidate'
 		;;
-	*) fail 'usage: run-stable-recovery-live-gate.sh [preflight|boot]' ;;
+	*)
+		fail 'usage: run-stable-recovery-live-gate.sh [artifact-preflight|preflight|boot]'
+		;;
 esac
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+profile=${ROG5_STABLE_RECOVERY_PROFILE:-}
+[[ -n $profile ]] ||
+	fail 'set ROG5_STABLE_RECOVERY_PROFILE explicitly'
 live_root=${LIVE_BUILD_ROOT:-}
 component_root=${RECOVERY_COMPONENT_ROOT:-}
 trust_key=${TRUST_KEY:-}
@@ -31,6 +37,19 @@ expected_host_verifier=${HOST_VERIFIER_SHA256:-}
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
+component_layout=
+expected_kernel=
+expected_raw=
+expected_initramfs=
+expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
+expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
+expected_verifier=374900be5769eee074820007ab2e335d4c033c500da7a480cc88f9a70137029b
+expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+avbtool=
+unpack=
+initramfs_path=$PATH
+qualified_cpio=
+qualified_cpio_shim=
 
 [[ -n $live_root && -n $component_root && -n $trust_key &&
 	-n $bundle_root && -n $bundle ]] ||
@@ -45,18 +64,65 @@ done
 	$bundle != *..* && $bundle != none ]] ||
 	fail 'invalid bundle identity'
 
-for command in awk cmp cp cut date git grep mktemp python3 realpath sha256sum \
-	sleep stat systemctl tr udevadm wc; do
+case $profile in
+	historical-2026-07-29)
+		component_layout=flat
+		expected_kernel=91732d1bdbf73c5f574d87eb0d07b5394db2889e4c0dc4b258577a0bcdb0101f
+		expected_raw=854c48adb4316bc8496579ebab78cfbbd3e0550fe0c5204ae3c5661187818fb4
+		expected_initramfs=6245147d464985df3d861d2b177ea39f6132767b45c07e39a131fecf3bf69aa2
+		avbtool=$repo/../work/linux-server/avb/avbtool.py
+		unpack=$repo/../work/linux-server/mkbootimg/unpack_bootimg.py
+		;;
+	corrected-headless-successor-2026-07-30)
+		component_layout=structured
+		expected_kernel=bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da
+		expected_raw=157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c
+		expected_initramfs=ac5fd5169be86a44b01e8e2d5d5343feddf9ffdc34ea3581a430c5cbc2962c04
+		[[ $expected_image == \
+			416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430 ]] ||
+			fail 'successor recovery image identity is not allowlisted'
+		[[ $expected_trust == \
+			ce9f89c9c1859a3239615932da36617f3436f9a0355c8db9c852a1b764f2dfeb ]] ||
+			fail 'successor recovery trust root is not allowlisted'
+		[[ $expected_manifest == \
+			d7a02a2403caf885a015060a8361019936e86efafde44f3bb7e6bdd48d2ee32d ]] ||
+			fail 'successor runtime manifest is not allowlisted'
+		[[ $expected_host_verifier == \
+			9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b ]] ||
+			fail 'successor host verifier is not allowlisted'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		;;
+	*) fail "unsupported stable-recovery live profile: $profile" ;;
+esac
+
+for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
+	stat tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing live-gate command: $command"
 done
-[[ -f $fastboot && ! -L $fastboot && -x $fastboot &&
-	$(stat -Lc '%u:%g:%a:%F' "$fastboot") == \
-	'0:0:755:regular file' ]] ||
-	fail 'fixed root-owned fastboot executable is unavailable'
 [[ $(uname -s) == Linux ]] || fail 'the live gate requires Linux'
-systemctl is-active --quiet ModemManager.service &&
-	fail 'stop ModemManager before the recovery ACM is exposed'
+if [[ $action != artifact-preflight ]]; then
+	for command in sed systemctl; do
+		command -v "$command" >/dev/null ||
+			fail "missing live-gate command: $command"
+	done
+	[[ -f $fastboot && ! -L $fastboot && -x $fastboot &&
+		$(stat -Lc '%u:%g:%a:%F' "$fastboot") == \
+		'0:0:755:regular file' ]] ||
+		fail 'fixed root-owned fastboot executable is unavailable'
+	systemctl is-active --quiet ModemManager.service &&
+		fail 'stop ModemManager before the recovery ACM is exposed'
+fi
+if [[ $action == boot ]]; then
+	for command in date sleep udevadm wc; do
+		command -v "$command" >/dev/null ||
+			fail "missing live-gate command: $command"
+	done
+fi
 
 live_root=$(realpath -e "$live_root")
 component_root=$(realpath -e "$component_root")
@@ -68,8 +134,23 @@ case $live_root in
 esac
 git -C "$repo" check-ignore -q "$live_root" ||
 	fail 'live build root is not ignored by Git'
-[[ $bundle_root == /var/lib/rog5-recovery-bundles ]] ||
-	fail 'unexpected recovery bundle root'
+case $component_root in
+	"$repo"/build/*) ;;
+	*) fail 'recovery component root must be below the ignored build directory' ;;
+esac
+git -C "$repo" check-ignore -q "$component_root" ||
+	fail 'recovery component root is not ignored by Git'
+if [[ $action == artifact-preflight ]]; then
+	case $bundle_root in
+		"$repo"/build/*) ;;
+		*) fail 'artifact-preflight bundle root must remain below build' ;;
+	esac
+	git -C "$repo" check-ignore -q "$bundle_root" ||
+		fail 'artifact-preflight bundle root is not ignored by Git'
+else
+	[[ $bundle_root == /var/lib/rog5-recovery-bundles ]] ||
+		fail 'unexpected recovery bundle root'
+fi
 
 image=$live_root/repack/stable-recovery-a.avb.img
 twin_image=$live_root/repack/stable-recovery-b.avb.img
@@ -81,21 +162,47 @@ ramdisk=$live_root/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 twin_ramdisk=$live_root/wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
 config=$live_root/wrapper-a/asus-kexec-stage/.config
 twin_config=$live_root/wrapper-b/asus-kexec-stage/.config
-control=$component_root/rog5-recovery-control
-fetcher=$component_root/rog5-bundle-fetch
-verifier=$component_root/rog5-bundle-verify
-host_verifier=$component_root/rog5-bundle-verify-host-test
-source_initramfs=$component_root/stable-recovery-a.cpio.gz
-twin_source_initramfs=$component_root/stable-recovery-b.cpio.gz
+case $component_layout in
+	flat)
+		control=$component_root/rog5-recovery-control
+		fetcher=$component_root/rog5-bundle-fetch
+		verifier=$component_root/rog5-bundle-verify
+		host_verifier=$component_root/rog5-bundle-verify-host-test
+		source_initramfs=$component_root/stable-recovery-a.cpio.gz
+		twin_source_initramfs=$component_root/stable-recovery-b.cpio.gz
+		;;
+	structured)
+		control=$component_root/components/rog5-recovery-control
+		fetcher=$component_root/components/rog5-bundle-fetch
+		verifier=$component_root/components/rog5-bundle-verify
+		host_verifier=$component_root/components/rog5-bundle-verify-host-test
+		source_initramfs=$component_root/initramfs-a/rog5-stable-recovery.cpio.gz
+		twin_source_initramfs=$component_root/initramfs-b/rog5-stable-recovery.cpio.gz
+		;;
+esac
 manifest=$bundle_root/$bundle/manifest
 
 for input in "$image" "$twin_image" "$raw" "$twin_raw" "$kernel" \
 	"$twin_kernel" "$ramdisk" "$twin_ramdisk" "$config" "$twin_config" \
 	"$control" "$fetcher" "$verifier" "$host_verifier" \
-	"$source_initramfs" "$twin_source_initramfs" "$trust_key" "$manifest"; do
+	"$source_initramfs" "$twin_source_initramfs" "$trust_key" "$manifest" \
+	"$avbtool" "$unpack"; do
 	[[ -f $input && ! -L $input && -r $input ]] ||
 		fail "unsafe or missing live input: $input"
 done
+if [[ $profile == corrected-headless-successor-2026-07-30 ]]; then
+	for input in "$qualified_cpio" "$qualified_cpio_shim"; do
+		[[ -f $input && ! -L $input && -x $input ]] ||
+			fail "unsafe or missing qualified cpio input: $input"
+	done
+	mapfile -d '' -t qualified_cpio_entries < <(
+		find "$repo/scripts/host/qualified-cpio-path" \
+			-mindepth 1 -maxdepth 1 -print0
+	)
+	[[ ${#qualified_cpio_entries[@]} -eq 1 &&
+		${qualified_cpio_entries[0]} == "$qualified_cpio" ]] ||
+		fail 'qualified cpio path must contain only the pinned cpio'
+fi
 [[ $(stat -c %s "$image") == 100663296 &&
 	$(stat -c %s "$twin_image") == 100663296 ]] ||
 	fail 'temporary AVB wrapper has the wrong partition size'
@@ -118,12 +225,22 @@ check_hash "$image" "$expected_image"
 check_hash "$trust_key" "$expected_trust"
 check_hash "$manifest" "$expected_manifest"
 check_hash "$host_verifier" "$expected_host_verifier"
-check_hash "$kernel" \
-	91732d1bdbf73c5f574d87eb0d07b5394db2889e4c0dc4b258577a0bcdb0101f
-check_hash "$config" \
-	df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+check_hash "$kernel" "$expected_kernel"
+check_hash "$raw" "$expected_raw"
+check_hash "$source_initramfs" "$expected_initramfs"
+check_hash "$control" "$expected_control"
+check_hash "$fetcher" "$expected_fetcher"
+check_hash "$verifier" "$expected_verifier"
+check_hash "$config" "$expected_config"
+if [[ $profile == corrected-headless-successor-2026-07-30 ]]; then
+	check_hash "$qualified_cpio" \
+		7520899a405e1fc698875e047d8671c9415116e944831135a8e8eb6a93a21580
+	check_hash "$qualified_cpio_shim" \
+		a0a0a1d5b134d18470cc2fc55b0220fa464057e95ba05145e3dde6338ed59b58
+fi
 
-"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+env PATH="$initramfs_path" \
+	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
 	"$source_initramfs" "$repo/initramfs/recovery-init" \
 	"$control" "$fetcher" "$verifier" "$trust_key"
 
@@ -138,8 +255,6 @@ grep -Fxq 'target_id=headless-network-root' <<<"$verified_plan"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$verified_plan"
 grep -Fxq 'target_timeout=480' <<<"$verified_plan"
 
-avbtool=$repo/../work/linux-server/avb/avbtool.py
-unpack=$repo/../work/linux-server/mkbootimg/unpack_bootimg.py
 check_hash "$avbtool" \
 	6418646bb5bf3c57c3c702bfd1e157917e59f9ce25c3c81bcce79d85655e56ff
 check_hash "$unpack" \
@@ -193,6 +308,11 @@ then
 	fail 'physical-storage or legacy network input reached the recovery wrapper'
 fi
 
+if [[ $action == artifact-preflight ]]; then
+	echo "PASS stable-recovery artifact preflight profile=$profile image_sha256=$expected_image"
+	exit 0
+fi
+
 devices=$("$fastboot" devices 2>/dev/null) ||
 	fail 'fastboot devices failed'
 if [[ -n $fastboot_serial ]]; then
@@ -216,7 +336,7 @@ product=$(sed -n \
 	fail "unexpected fastboot product: ${product:-missing}"
 
 if [[ $action == preflight ]]; then
-	echo "PASS exact boot-only live gate image_sha256=$expected_image"
+	echo "PASS exact boot-only live gate profile=$profile image_sha256=$expected_image"
 	exit 0
 fi
 
@@ -252,4 +372,4 @@ done
 [[ $(wc -w <<<"$acm") == 1 && -r $acm && -w $acm ]] ||
 	fail 'exact recovery ACM did not enumerate uniquely'
 echo "PASS temporary stable recovery ready at $acm"
-echo 'INFO no payload has been committed; rollback remains armed'
+echo "INFO profile=$profile; no payload has been committed; rollback remains armed"

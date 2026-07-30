@@ -366,6 +366,16 @@ and AVB images are byte-identical; the exact source seal is unchanged, AVB
 verification passes, and no private key remains. See the
 [successor offline report](../test-results/2026-07-30-corrected-headless-successor-offline.md).
 
+That retained successor now also passes the exact production stable-recovery
+artifact boundary without a connected phone. The
+`corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
+initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
+fetcher, wrapper configuration, AVB tool, unpacker, and qualified `cpio`.
+`artifact-preflight` exits before fastboot discovery, and the one-shot
+lifecycle rejects the consumed historical profile before credential paths.
+See the
+[live-gate admission report](../test-results/2026-07-30-corrected-successor-live-gate-admission.md).
+
 The accepted stable-recovery wrapper now also has a fail-closed,
 content-addressed cache path. A portable seal binds all 79,030 ASUS source
 entries by path, type, mode, file content, and symlink target while excluding
@@ -619,8 +629,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 1. Obtain explicit approval before creating or using a live recovery signing
    trust root or temporarily booting the corrected candidate.
-2. Promote the stable recovery through staging-only tests and determine
-   whether ramoops survives the target/fallback path.
+2. Run the connected read-only preflight and attended temporary boot after
+   fresh authorization, then determine whether ramoops survives the
+   target/fallback path.
 3. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

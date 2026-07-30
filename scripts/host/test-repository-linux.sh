@@ -144,6 +144,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-steam-deck-recovery-builders-contract.sh
 		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
+		scripts/host/test-corrected-successor-live-gate-offline.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
@@ -207,6 +208,7 @@ else
 		scripts/host/test-steam-deck-recovery-builders-contract.sh
 		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
+		scripts/host/test-corrected-successor-live-gate-offline.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh

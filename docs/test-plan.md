@@ -309,6 +309,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   point rebuilds both target bundles, shell-free initramfs files, vendor
   wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
   the disposable private key.
+- `test-corrected-successor-live-gate-offline.sh` submits the retained
+  corrected successor to the exact production stable-recovery artifact
+  profile. It pins the signed bundle, corrected DTB, trust root, initramfs
+  components, boot-v3 image, ASUS wrapper, AVB descriptors, and qualified
+  tools, then proves the artifact-only action exits before any fastboot device
+  query. The lifecycle also rejects the consumed historical profile before
+  inspecting credential paths.
 - `test-kernel-source-seal.py`,
   `test-stable-recovery-wrapper-cache.py`, and
   `test-stable-recovery-wrapper-cache-contract.sh` require a

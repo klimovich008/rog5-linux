@@ -395,6 +395,9 @@ class Fixture:
                 "MOCK_CALLS": str(self.calls),
                 "BUNDLE": "headless-network-root-v1",
                 "MANIFEST_SHA256": MANIFEST,
+                "ROG5_STABLE_RECOVERY_PROFILE": (
+                    "corrected-headless-successor-2026-07-30"
+                ),
                 "SSH_KEY": str(self.ssh_key),
                 "FALLBACK_KNOWN_HOSTS": str(self.known_hosts),
                 "EVIDENCE_DIR": str(self.evidence),
@@ -463,6 +466,22 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(any(line.startswith("ssh:") for line in calls))
         self.assertFalse(any(line.startswith("host-key:") for line in calls))
         self.assertFalse(any(self.fixture.evidence.iterdir()))
+
+    def test_historical_recovery_profile_fails_before_credential_paths(self):
+        result = self.fixture.run(
+            "preflight",
+            guards=False,
+            ROG5_STABLE_RECOVERY_PROFILE="historical-2026-07-29",
+            SSH_KEY="/absent/profile-must-win",
+            FALLBACK_KNOWN_HOSTS="/absent/profile-must-win",
+            EVIDENCE_DIR="/absent/profile-must-win",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "must select the corrected headless successor",
+            result.stderr,
+        )
+        self.assertEqual(self.fixture.call_lines(), [])
 
     def test_success_orders_cleanup_before_nfs_and_resolves_after_fallback(self):
         result = self.fixture.run("run")

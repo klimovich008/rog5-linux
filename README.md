@@ -52,6 +52,9 @@ gate.
 - [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
   — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
   bundle integration, and destroyed disposable key.
+- [Corrected successor live-gate admission](test-results/2026-07-30-corrected-successor-live-gate-admission.md)
+  — exact production artifact-profile verification with a proven exit before
+  phone discovery or credential inspection.
 - [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
   — exact signed transaction, rejection, rollback, root cause, and corrected
   offline candidate.
