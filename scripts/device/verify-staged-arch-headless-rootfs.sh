@@ -113,7 +113,10 @@ done
 grep -Fqx "profile=$expected_profile" /etc/rog5/build
 [[ $(getfattr --only-values -n user.rog5 /etc/rog5/xattr-probe \
 	2>/dev/null) == preserved ]]
-[[ -z $(find /etc/pacman.d/gnupg -type s -print -quit) ]]
+[[ -d /etc/pacman.d/gnupg && ! -L /etc/pacman.d/gnupg ]]
+[[ $(stat -c %U:%G:%a /etc/pacman.d/gnupg) == root:root:755 ]]
+[[ -z $(find /etc/pacman.d/gnupg -mindepth 1 -print -quit) ]] ||
+	fail 'headless root retained generated Pacman trust or signing state'
 if [[ -r /etc/fstab ]]; then
 	if awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// ||
 		$1 ~ /^(UUID|PARTUUID)=/) { found=1 }

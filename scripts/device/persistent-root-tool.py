@@ -64,6 +64,7 @@ def has_embedded_credential(path: str) -> bool:
         or path == "home/rog5/.config/krdpserverrc"
         or path.startswith("home/rog5/.local/share/kwalletd/")
         or path.startswith("var/lib/rog5-agent/private/")
+        or path.startswith("etc/pacman.d/gnupg/")
     )
 
 

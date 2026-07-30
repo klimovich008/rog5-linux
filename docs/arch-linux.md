@@ -33,7 +33,11 @@ powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 
 The script pins the official Arch Linux ARM keyring repository commit and expected full signing-key fingerprint. It accepts the mutable `latest` download only after its detached signature, archive paths, and required base files pass. The resulting size and SHA-256 become the immutable project input recorded in `manifests/artifacts.tsv`; the rootfs itself remains outside Git.
 
-The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`. Do not disable pacman signature checking to work around keyring errors; a signed package-update smoke test is a mandatory staging gate.
+The current verified snapshot is 818,293,654 bytes with SHA-256
+`3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`.
+Do not disable Pacman signature checking or synchronize this snapshot during
+minimal-root staging. A package not already present in this exact base input
+is a source-input change, not an implicit network update.
 
 ## Minimal headless profile
 
@@ -49,8 +53,10 @@ rootless Podman, the manifest-pinned signed base rootfs, and the exact module
 archive. Unlike the historical desktop generations, this path does not
 require or mount the A660 firmware directory.
 
-The stage requests only `attr`, `diffutils`, and `openssh` beyond the Arch
-base. It removes `linux-aarch64` and every installed `linux-firmware*`
+The stage requires `attr`, `diffutils`, and `openssh` in the manifest-pinned
+Arch base and runs with networking disabled. It initializes no Pacman keyring
+and performs no database sync or system update. It removes `linux-aarch64`
+and every installed `linux-firmware*`
 package, deletes the published `alarm` account, locks root to public-key SSH,
 enables the sleep inhibitor, disables systemd-networkd, and uses
 `multi-user.target`. SSH host keys and `/etc/machine-id` remain empty in the
@@ -59,12 +65,13 @@ archive so the deployed root creates unique identities.
 The verifier rejects regular login accounts, reusable host identity,
 physical-device `fstab` entries, extra module releases, generic firmware,
 NetworkManager, Plasma/KWin/GNOME components, Chromium, Vulkan/Mesa, Node/npm,
-Wi-Fi, WireGuard, ttyd, and the automation-agent surface. It evaluates the
+Wi-Fi, WireGuard, ttyd, the automation-agent surface, and any retained entry
+under `/etc/pacman.d/gnupg`. It evaluates the
 effective OpenSSH policy with a temporary key and configuration under
 `/run`, then the host extracts the final archive into a second clean volume
 and runs the verifier again.
 
-Current offline result:
+Historical offline result (not currently deployable):
 
 ```text
 source commit: eb61a45938c851b1b02a2f3151db5265ab9213e7
@@ -79,13 +86,16 @@ offline test fixture; its private half was destroyed and it must not be used
 as deployment access. A real deployment supplies its own public key outside
 Git.
 
-This source archive is rebuildable from pinned base-rootfs and module
-identities and records all resulting package versions. Rebuilding the source
-is not yet bit-reproducible: Arch's rolling repository snapshot is not pinned
-and `pacman-key --init` generates a local trust database.
+The historical recipe is not an accepted reproduction path. A 2026-07-30
+rebuild produced different bytes and embedded a generated Pacman private key
+and revocation state. The output was rejected. The corrected recipe uses
+only pinned local inputs, removes all Pacman trust state, fixes output
+timestamps, and sorts archive members. It still requires two clean
+byte-identical builds before a new successor package can be admitted. See the
+[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
 
-The accepted source archive can now be transformed without package-network
-access:
+The historical source archive, when present, can be transformed without
+package-network access:
 
 ```sh
 scripts/host/prepare-headless-network-root.sh
@@ -94,7 +104,7 @@ scripts/host/prepare-headless-network-root.sh
 The rootless Podman packager installs a canonical `workload=none` command
 manifest, seals all 37,669 entries, writes a pax-restricted transport archive,
 extracts it into a second clean volume, and recomputes the complete seal. Its
-tracked package identity is
+historical tracked package identity is
 `configs/network-roots/headless-network-root-v1.package`; changed bytes,
 metadata, xattrs, command policy, or seal are rejected. Two complete builds
 produced:

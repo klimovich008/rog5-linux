@@ -169,6 +169,13 @@ before a phone cycle.
 - [x] Seal that root as a byte-reproducible read-only network lower, bind its
   explicit no-workload manifest and complete tree into an authority-free v2
   candidate, and verify an ephemeral-signed bundle natively.
+- [x] Audit the pruned root reconstruction, reject the generated Pacman
+  private signing key/revocation state, and make minimal-root staging
+  network-disabled and credential-clean.
+- [ ] Build the corrected minimal root twice from fresh volumes and require
+  byte-identical output before assigning a new successor identity.
+- [ ] Bind the deployment authorized-key fingerprint to that identity before
+  any credential-bearing or connected preflight.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -200,7 +207,11 @@ duplicate builds can be removed safely.
 ## H1 — Recovery, logging, and rollback
 
 - [x] Admit the exact corrected successor through the phone-free production
-  artifact gate and reject the consumed historical profile before credentials.
+  recovery-artifact gate and reject the consumed historical profile before
+  credentials.
+- [ ] Restore the missing NFS-root dependency with a credential-clean,
+  byte-reproducible successor identity; recovery admission alone is not a
+  complete runnable candidate.
 - [ ] Promote the framed recovery candidate through the approved live gate.
 - [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
 - [ ] Prove postmortem retention or select the tested UART fallback.
@@ -210,7 +221,9 @@ Exit: failed boots are diagnosable and recover automatically.
 
 ## H2 — Minimal headless boot
 
-- [x] Package and verify one ephemeral-signed minimal root bundle offline;
+- [x] Preserve the historical ephemeral-signed minimal-root bundle evidence;
+  the pruned root identity is not reusable.
+- [ ] Package and verify the credential-clean reproducible root successor;
   production signing remains a separate approval boundary.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
