@@ -5,6 +5,7 @@ trap 'echo "FAIL headless verify line=$LINENO command=$BASH_COMMAND" >&2' ERR
 repo=/workspace/repo
 packages_file=$repo/packaging/arch/headless-packages.txt
 : "${TARGET_KERNEL_RELEASE:?missing TARGET_KERNEL_RELEASE}"
+expected_profile=${EXPECTED_HEADLESS_PROFILE:-headless-ssh-v1}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -109,7 +110,7 @@ for firmware in /usr/lib/firmware/qcom/a660_sqe.fw \
 	/usr/lib/firmware/qcom/sm8350/a660_zap.mbn; do
 	[[ ! -e $firmware ]]
 done
-grep -Fqx 'profile=headless-ssh-v1' /etc/rog5/build
+grep -Fqx "profile=$expected_profile" /etc/rog5/build
 [[ $(getfattr --only-values -n user.rog5 /etc/rog5/xattr-probe \
 	2>/dev/null) == preserved ]]
 [[ -z $(find /etc/pacman.d/gnupg -type s -print -quit) ]]

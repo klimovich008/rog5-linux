@@ -11,6 +11,8 @@ builder_image=${BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 manifest=$repo/manifests/artifacts.tsv
 generation=${ARCH_ROOTFS_GENERATION:-v2}
 firmware_required=1
+indicator_required=0
+indicator=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
 
 case $generation in
 	v2)
@@ -32,6 +34,14 @@ case $generation in
 		default_output=$repo/artifacts/arch/rog5-arch-headless-ssh-7.1.4.tar.gz
 		firmware_required=0
 		;;
+	headless-v2)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		device_stage=scripts/device/stage-arch-headless-core-rootfs.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-headless-core-rootfs.sh
+		default_output=$repo/artifacts/arch/rog5-arch-headless-core-7.1.4.tar.gz
+		firmware_required=0
+		indicator_required=1
+		;;
 	*)
 		echo "FAIL unsupported Arch rootfs generation: $generation" >&2
 		exit 1
@@ -39,7 +49,8 @@ case $generation in
 esac
 output=${output:-$default_output}
 
-for command in bash bsdtar git podman realpath sha256sum ssh-keygen stat tar; do
+for command in bash bsdtar file git podman readelf realpath sha256sum \
+	ssh-keygen stat strings tar; do
 	command -v "$command" >/dev/null
 done
 for path in "$authorized_key" "$rootfs" "$modules"; do
@@ -48,6 +59,9 @@ done
 [[ -r $manifest ]]
 if [[ $firmware_required == 1 ]]; then
 	[[ -d $firmware ]]
+fi
+if [[ $indicator_required == 1 ]]; then
+	[[ -f $indicator && ! -L $indicator && -x $indicator ]]
 fi
 
 authorized_key=$(realpath "$authorized_key")
@@ -59,6 +73,14 @@ if [[ $firmware_required == 1 ]]; then
 	firmware_mount=(
 		--mount
 		"type=bind,source=$firmware,target=/stage/input/firmware,readonly"
+	)
+fi
+indicator_mount=()
+if [[ $indicator_required == 1 ]]; then
+	indicator=$(realpath "$indicator")
+	indicator_mount=(
+		--mount
+		"type=bind,source=$indicator,target=/stage/input/rog5-key-indicatord,readonly"
 	)
 fi
 mkdir -p "$(dirname "$output")"
@@ -93,6 +115,17 @@ rootfs_hash=$(verify_manifest_artifact \
 	artifacts/arch/ArchLinuxARM-aarch64-latest.tar.gz "$rootfs")
 modules_hash=$(verify_manifest_artifact \
 	artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz "$modules")
+indicator_hash=
+if [[ $indicator_required == 1 ]]; then
+	indicator_hash=$(verify_manifest_artifact \
+		artifacts/headless-indicator-v1/rog5-key-indicatord "$indicator")
+	[[ $(stat -c %s "$indicator") == 67520 ]]
+	file "$indicator" |
+		grep -q 'ELF 64-bit LSB pie executable, ARM aarch64.*static-pie linked'
+	readelf -h "$indicator" | grep -q 'Machine:.*AArch64'
+	! readelf -l "$indicator" | grep -q 'INTERP'
+	! strings "$indicator" | grep -q -- '--fixture'
+fi
 if [[ $firmware_required == 1 ]]; then
 	for relative in qcom/a660_sqe.fw qcom/a660_gmu.bin \
 		qcom/sm8350/a660_zap.mbn; do
@@ -176,6 +209,7 @@ podman run --rm \
 	--mount "type=bind,source=$repo,target=/stage/workspace/repo,readonly" \
 	--mount "type=bind,source=$modules,target=/stage/input/modules.tar.gz,readonly" \
 	"${firmware_mount[@]}" \
+	"${indicator_mount[@]}" \
 	--mount "type=bind,source=$authorized_key,target=/stage/input/authorized_key,readonly" \
 	--mount "type=volume,source=$cache_volume,target=/stage/var/cache/pacman/pkg" \
 	--mount type=bind,source=/dev,target=/stage/dev \
@@ -186,6 +220,7 @@ podman run --rm \
 	--env "MODULES_SHA256=$modules_hash" \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
 	--env "PROJECT_COMMIT=$project_commit" \
+	--env "INDICATOR_SHA256=$indicator_hash" \
 	--env "ARCH_DEVICE_STAGE=$device_stage" \
 	"$builder_image" \
 	/bin/bash "/stage$stage_runner"
@@ -223,6 +258,7 @@ podman run --rm --network none \
 	--mount type=bind,source=/sys,target=/stage/sys \
 	--tmpfs /stage/run \
 	--env "TARGET_KERNEL_RELEASE=$kernel_release" \
+	--env "INDICATOR_SHA256=$indicator_hash" \
 	"$builder_image" chroot /stage /bin/bash \
 	"$rootfs_verifier"
 

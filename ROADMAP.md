@@ -355,8 +355,13 @@ Continue in this order:
    `accept-new`, client-key use, or a reusable identity;
 7. [x] define and hostile-test the exact three-button/default-off-green-LED
    source, config, module, and DTB contract without contacting the phone;
-8. request fresh, separate authorization before creating or using a live
+8. [x] build and hostile-test a reproducible native AArch64 press-only
+   indicator, then define a successor headless-root staging profile without
+   modifying the accepted SSH-only root;
+9. build and seal the successor root archive with a non-production public
+   key fixture, then rerun its extracted-root verifier;
+10. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-9. if the minimal root reaches key-only SSH and clean rollback, run the
+11. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

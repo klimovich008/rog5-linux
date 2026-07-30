@@ -358,7 +358,11 @@ force_rollback() {
 	exit 77
 }
 trap switch_root_failure EXIT
-exec /rog5-definitely-missing-switch-root
+if exec /rog5-definitely-missing-switch-root; then
+	exit 0
+else
+	exit $?
+fi
 EOF
 chmod 0755 "$switch_root_failure_probe"
 switch_root_shell=bash
@@ -377,7 +381,7 @@ elif command -v busybox >/dev/null 2>&1; then
 	set -- busybox sh "$switch_root_failure_probe"
 	switch_root_shell='host BusyBox ash'
 else
-	set -- bash "$switch_root_failure_probe"
+	set -- bash -O execfail "$switch_root_failure_probe"
 fi
 if SWITCH_ROOT_FAILURE_LOG="$switch_root_failure_log" \
 	"$@" 2>/dev/null; then
