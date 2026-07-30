@@ -18,6 +18,20 @@ firmware/
 *.ko
 *.key
 *.pem
+
+# Exact source-built DTB required by clean-checkout hardware-free CI.
+!artifacts/
+artifacts/*
+!artifacts/network-root-v3/
+artifacts/network-root-v3/*
+!artifacts/network-root-v3/config-7.1.4-network-root
+!artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb
+!artifacts/buttons-indicator-v1/
+artifacts/buttons-indicator-v1/*
+!artifacts/buttons-indicator-v1/SHA256SUMS
+!artifacts/buttons-indicator-v1/leds-qcom-lpg.ko
+!artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb
+
 tools/diagnostics/**/*.o
 tools/diagnostics/**/*.mod
 tools/diagnostics/**/*.mod.c

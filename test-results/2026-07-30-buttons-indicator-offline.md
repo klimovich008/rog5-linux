@@ -39,6 +39,12 @@ authority=none
 
 Two independent builds compared byte-for-byte equal.
 
+The exact 102,870-byte accepted base DTB is tracked as a source-built CI
+fixture. The DT suite now rejects a missing/untracked base and requires its
+manifest row to pin the same size, SHA-256, and `tracked=yes`. This closes the
+clean-checkout failure where local CI passed only because an ignored artifact
+was present.
+
 ## Kernel and module result
 
 The capability verifier passed against:
@@ -55,6 +61,16 @@ indicator=pm8350c-lpg-channel-2-green-default-off
 The accepted config has built-in OF, GPIOLIB, the Qualcomm SPMI PMIC arbiter,
 SPMI, GPIO keys, and PM8941/PMK8350 power-key support. Qualcomm LPG is modular
 and its exact regular `.ko` is present in the accepted module archive.
+Clean-checkout CI tracks the exact 239,677-byte config and the extracted
+368,320-byte AArch64 LPG module, whose SHA-256 is
+`5885a9db2a8821f7c0ee9b16d92092d6d44f5c5092561e8e312f6047bb1a246c`.
+It checks the module ELF identity, release metadata, license, description,
+and PM8350C OF alias. The full retained-source integration continues to
+verify the separately pinned 300,439,504-byte module archive rather than
+claiming that the compact fixture is the archive.
+The retained-archive projection check extracts its exact LPG member and
+proves that the member has the same size, SHA-256, ELF identity, and module
+metadata as the compact CI fixture.
 
 ## Hostile coverage
 
@@ -77,7 +93,8 @@ The source/config/module suite rejects:
 - missing driver, Kconfig, Makefile, binding, DTSI, wake, direct-brightness,
   or default-off source markers;
 - missing/wrong final Kconfig values and duplicate config symbols;
-- altered or linked config input; and
+- missing, untracked, altered, or linked config/module fixtures;
+- wrong module ELF/release/driver/OF identity; and
 - a module archive without the exact regular Qualcomm LPG module.
 
 Both focused suites are part of the `ci` and `quick` repository tiers.

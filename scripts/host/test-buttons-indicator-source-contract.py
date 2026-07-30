@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import importlib.util
+from hashlib import sha256
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 
@@ -20,6 +22,8 @@ SOURCE = (
 )
 CONFIG = REPO / "artifacts/network-root-v3/config-7.1.4-network-root"
 MODULES = REPO / "artifacts/network-root-v3/modules-7.1.4-network-root.tar.gz"
+MODULE_FIXTURE = REPO / "artifacts/buttons-indicator-v1/leds-qcom-lpg.ko"
+MANIFEST = REPO / "manifests/artifacts.tsv"
 
 
 def load_verifier():
@@ -43,6 +47,41 @@ def expect_failure(action, expected: str) -> None:
             ) from error
     else:
         raise AssertionError(f"unexpected pass: {expected}")
+
+
+def require_tracked_artifact(
+    path: Path, expected_size: int, expected_hash: str
+) -> None:
+    relative = path.relative_to(REPO).as_posix()
+    completed = subprocess.run(
+        ["git", "-C", str(REPO), "ls-files", "--error-unmatch", "--", relative],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if completed.returncode:
+        raise AssertionError(f"clean-checkout fixture is not tracked: {relative}")
+    if path.is_symlink() or not path.is_file():
+        raise AssertionError(f"clean-checkout fixture is not ordinary: {relative}")
+    data = path.read_bytes()
+    if len(data) != expected_size or sha256(data).hexdigest() != expected_hash:
+        raise AssertionError(f"clean-checkout fixture identity changed: {relative}")
+    rows = [
+        line.split("\t")
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+        if line.split("\t", 1)[0] == relative
+    ]
+    if (
+        len(rows) != 1
+        or len(rows[0]) != 5
+        or rows[0][1] != str(expected_size)
+        or rows[0][2] != expected_hash
+        or rows[0][4] != "yes"
+    ):
+        raise AssertionError(
+            f"clean-checkout fixture manifest row is not exact: {relative}"
+        )
 
 
 def run_integration() -> None:
@@ -69,6 +108,14 @@ def run_integration() -> None:
 def main() -> int:
     verifier = load_verifier()
     run_integration()
+    require_tracked_artifact(
+        CONFIG, verifier.ACCEPTED_CONFIG_SIZE, verifier.ACCEPTED_CONFIG_SHA256
+    )
+    require_tracked_artifact(
+        MODULE_FIXTURE,
+        verifier.ACCEPTED_MODULE_FIXTURE_SIZE,
+        verifier.ACCEPTED_MODULE_FIXTURE_SHA256,
+    )
 
     texts = (
         verifier.load_source_texts(SOURCE)
@@ -107,6 +154,13 @@ def main() -> int:
                 f"source contract marker is missing: {relative}:",
             )
 
+    verifier.verify_config(CONFIG)
+    verifier.verify_module_fixture(MODULE_FIXTURE)
+    if MODULES.is_file() and not MODULES.is_symlink():
+        verifier.verify_modules(MODULES)
+        print("PASS retained module archive projects to exact CI fixture")
+    else:
+        print("SKIP retained module archive projection")
     config_values = verifier.parse_config(CONFIG.read_bytes())
     verifier.check_required_config(config_values)
     for name in verifier.REQUIRED_CONFIG:
@@ -137,6 +191,31 @@ def main() -> int:
         expect_failure(
             lambda: verifier.verify_config(linked_config),
             "input is not an ordinary file:",
+        )
+
+        altered_module = stage / "altered-module.ko"
+        altered_module.write_bytes(MODULE_FIXTURE.read_bytes() + b"\0")
+        expect_failure(
+            lambda: verifier.verify_module_fixture(altered_module),
+            "accepted LPG module size is wrong:",
+        )
+
+        linked_module = stage / "linked-module.ko"
+        linked_module.symlink_to(MODULE_FIXTURE)
+        expect_failure(
+            lambda: verifier.verify_module_fixture(linked_module),
+            "input is not an ordinary file:",
+        )
+
+        accepted_member = tarfile.TarInfo(verifier.EXPECTED_MODULE)
+        accepted_member.type = tarfile.REGTYPE
+        verifier.check_module_members([accepted_member])
+
+        irregular_member = tarfile.TarInfo(verifier.EXPECTED_MODULE)
+        irregular_member.type = tarfile.DIRTYPE
+        expect_failure(
+            lambda: verifier.check_module_members([irregular_member]),
+            "accepted LPG module archive member is not a regular file",
         )
 
         wrong_members: list = []

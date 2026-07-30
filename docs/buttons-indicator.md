@@ -42,6 +42,11 @@ size=102870
 sha256=86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46
 ```
 
+This 102,870-byte source-built DTB is tracked because both repository test
+tiers must reproduce and hostile-test the additive candidate from a clean
+checkout. The test rejects an untracked base or a manifest row not marked
+`tracked=yes`; it no longer relies on an incidental local artifact cache.
+
 The overlay adds exactly four nodes:
 
 - `/gpio-keys`;
@@ -82,7 +87,12 @@ The source gate pins:
 - config SHA-256
   `68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f`;
 - module archive SHA-256
-`5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9`.
+  `5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9`;
+  and
+- the exact accepted LPG module extracted from that archive:
+  `artifacts/buttons-indicator-v1/leds-qcom-lpg.ko`, 368,320 bytes,
+  SHA-256
+  `5885a9db2a8821f7c0ee9b16d92092d6d44f5c5092561e8e312f6047bb1a246c`.
 
 Power, resin, GPIO keys, OF/GPIOLIB, the Qualcomm SPMI PMIC arbiter,
 SPMI/regmap/pinctrl, PWM, the new LED framework, LED class, and Qualcomm LPG
@@ -103,8 +113,15 @@ ROG5_LINUX_SOURCE=/path/to/linux-7.1.4 \
 ```
 
 Without that variable, portable CI still runs every synthetic marker
-mutation plus the exact in-repository config/module checks and reports the
-retained-source integration leg as skipped.
+mutation plus the exact tracked config and AArch64 LPG-module checks. The
+fixture gate checks the module's byte identity, ELF class/type/machine,
+accepted kernel release, license, description, and PM8350C OF alias. The
+retained-source/full-archive integration leg is reported as skipped. This
+keeps every tracked blob below GitHub's per-file size limit without replacing
+the separate 300,439,504-byte archive hash check used by full integration.
+When that archive is retained, verification extracts its exact LPG member and
+requires it to equal the compact fixture's size, SHA-256, ELF identity, and
+module metadata.
 
 Run:
 

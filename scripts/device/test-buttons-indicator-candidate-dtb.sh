@@ -7,22 +7,59 @@ fail() {
 }
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-base=$repo/artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb
+base_relative=artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb
+base=$repo/$base_relative
 overlay=$repo/dts/qcom/sm8350-asus-rog-phone5-buttons-indicator.dtso
 builder=$repo/scripts/device/build-buttons-indicator-candidate-dtb.sh
 verifier=$repo/scripts/device/verify-buttons-indicator-dtb-delta.py
 artifact=$repo/artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb
+manifest=$repo/manifests/artifacts.tsv
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT INT TERM
 
-for input in "$base" "$overlay" "$builder" "$verifier" "$artifact"; do
+for input in "$base" "$overlay" "$builder" "$verifier" "$artifact" \
+	"$manifest"; do
 	[ -f "$input" ] && [ ! -L "$input" ] && [ -r "$input" ] ||
 		fail "missing readable ordinary test input: $input"
 done
-for command in cmp dtc fdtget fdtoverlay fdtput python3; do
+for command in awk cmp cut dtc fdtget fdtoverlay fdtput git python3 \
+	sha256sum stat; do
 	command -v "$command" >/dev/null ||
 		fail "missing DTB test command: $command"
 done
+
+[ "$(stat -c %s "$base")" = 102870 ] ||
+	fail 'accepted base DTB size changed'
+[ "$(sha256sum "$base" | cut -d ' ' -f 1)" = \
+	86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46 ] ||
+	fail 'accepted base DTB hash changed'
+# Both repository tiers run from Git checkouts. Requiring a tracked base here
+# prevents an ignored local artifact cache from making local-only CI pass.
+git -C "$repo" ls-files --error-unmatch -- "$base_relative" >/dev/null ||
+	fail 'accepted base DTB is not tracked for clean-checkout CI'
+
+base_manifest_is_exact() {
+	awk -F '\t' -v name="$base_relative" '
+		$1 == name {
+			count++
+			if ($2 != 102870 ||
+			    $3 != "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46" ||
+			    $5 != "yes")
+				bad = 1
+		}
+		END { exit (bad || count != 1) }
+	' "$1"
+}
+
+base_manifest_is_exact "$manifest" ||
+	fail 'accepted base DTB manifest entry is not exact and tracked'
+awk -F '\t' -v OFS='\t' -v name="$base_relative" '
+	$1 == name { $5 = "no" }
+	{ print }
+' "$manifest" >"$stage/untracked-manifest.tsv"
+if base_manifest_is_exact "$stage/untracked-manifest.tsv"; then
+	fail 'accepted base DTB manifest verifier accepted tracked=no'
+fi
 
 "$builder" "$base" "$overlay" "$stage/one.dtb" >/dev/null
 "$builder" "$base" "$overlay" "$stage/two.dtb" >/dev/null
