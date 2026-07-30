@@ -9,11 +9,13 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 dockerfile=$repo/containers/kernel-builder/Dockerfile
 package_lock=$repo/manifests/kernel-builder-packages.tsv
+rootfs_manifest_script=$repo/scripts/host/kernel-builder-rootfs-manifest.sh
 action=${1:-verify}
 image=${2:-localhost/rog5-kernel-builder:ubuntu-24.04}
 snapshot=20260728T000000Z
 image_timestamp=1785196800
 expected_lock_sha256=9dce7979f2b55e0f56c6dd803986d127107e5a7ead15cd69e780aebaccacc101
+expected_rootfs_manifest_sha256=3a2644f7a128fac3a3c8bd44d9a58cd00304e3459f2aee81d8930a4659919c84
 
 [[ $image =~ ^[a-zA-Z0-9._:/-]+$ && $image != -* ]] ||
 	fail 'invalid local image reference'
@@ -32,6 +34,11 @@ done
 actual_lock_sha256=$(sha256sum "$package_lock" | cut -d ' ' -f 1)
 [[ $actual_lock_sha256 == "$expected_lock_sha256" ]] ||
 	fail 'tracked kernel builder package lock changed'
+[[ -f $rootfs_manifest_script && ! -L $rootfs_manifest_script ]] ||
+	fail 'missing regular kernel builder rootfs manifest implementation'
+[[ $(sha256sum "$rootfs_manifest_script" | cut -d ' ' -f 1) == \
+	"$expected_rootfs_manifest_sha256" ]] ||
+	fail 'kernel builder rootfs manifest implementation changed'
 
 build_image() {
 	local target=$1
@@ -47,29 +54,14 @@ build_image() {
 		"$repo"
 }
 
-rootfs_identity() {
+rootfs_manifest() {
 	local target=$1
-	podman run --rm --pull=never --network none "$target" sh -ec '
-		{
-			find / -xdev \
-				\( -path /dev -o -path /proc -o -path /sys -o \
-					-path /run \) -prune -o \
-				! -path /etc/hostname ! -path /etc/hosts \
-				! -path /etc/resolv.conf -type f -print0 \
-				2>/dev/null |
-				LC_ALL=C sort -z |
-				xargs -0 sha256sum
-			find / -xdev \
-				\( -path /dev -o -path /proc -o -path /sys -o \
-					-path /run \) -prune -o \
-				! -path /etc/hostname ! -path /etc/hosts \
-				! -path /etc/resolv.conf \
-				\( -type f -o -type d -o -type l \) \
-				-printf "META\t%y\t%m\t%U\t%G\t%p\t%l\n" \
-				2>/dev/null |
-				LC_ALL=C sort
-		} | sha256sum | cut -d " " -f 1
-	'
+	podman run --rm --interactive --pull=never --network none \
+		"$target" sh -s <"$rootfs_manifest_script"
+}
+
+rootfs_identity() {
+	rootfs_manifest "$1" | sha256sum | cut -d ' ' -f 1
 }
 
 verify_image() {
@@ -111,6 +103,8 @@ verify_image() {
 	printf 'rootfs_identity=%s\n' "$(rootfs_identity "$target")"
 	printf 'builder_recipe_sha256=%s\n' \
 		"$(sha256sum "$dockerfile" | cut -d ' ' -f 1)"
+	printf 'rootfs_manifest_script_sha256=%s\n' \
+		"$expected_rootfs_manifest_sha256"
 }
 
 case $action in
@@ -145,7 +139,12 @@ case $action in
 		echo 'oci_identity_note=informational; distinct cache namespaces are recorded in image history'
 		echo 'PASS independently fetched rootless kernel builder root filesystems match'
 		;;
+	manifest)
+		podman image exists "$image" ||
+			fail "missing local kernel builder image: $image"
+		rootfs_manifest "$image"
+		;;
 	*)
-		fail 'usage: bootstrap-kernel-builder.sh [build|verify|reproduce] [IMAGE]'
+		fail 'usage: bootstrap-kernel-builder.sh [build|verify|reproduce|manifest] [IMAGE]'
 		;;
 esac

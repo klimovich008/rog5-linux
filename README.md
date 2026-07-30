@@ -36,6 +36,10 @@ gate.
 ## Start here
 
 - [Current state](docs/current-state.md) — concise facts and blockers.
+- [Steam Deck host setup](docs/steam-deck-host.md) — pinned rootless builder,
+  complete ASUS source verification, and fail-closed source-volume import.
+- [Steam Deck ASUS 5.4 builder qualification](test-results/2026-07-30-steam-deck-asus-builder-qualified.md)
+  — independent rootfs reproduction and twin byte-identical kernel builds.
 - [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
   — exact signed transaction, rejection, rollback, root cause, and corrected
   offline candidate.

@@ -130,6 +130,9 @@ if [[ $tier == ci ]]; then
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
+		scripts/host/test-import-asus-source-volume-contract.sh
+		scripts/host/test-steam-deck-builder-contract.sh
+		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
@@ -180,6 +183,9 @@ else
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
+		scripts/host/test-import-asus-source-volume-contract.sh
+		scripts/host/test-steam-deck-builder-contract.sh
+		scripts/host/test-verify-asus-source-tree.py
 		scripts/host/test-corrected-headless-candidate-offline-contract.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 			scripts/device/test-recovery-candidate-dtb-contract.sh
