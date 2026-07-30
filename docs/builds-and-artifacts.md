@@ -136,6 +136,58 @@ That script verifies the exact annotated tag object, peeled commit, and Git
 tree before checkout. A moved tag, changed tree, different remote, dirty
 source directory, or lightweight tag fails before a branch is selected.
 
+The frozen `network-root-v1` artifacts have a narrower historical source-state
+contract. Linux `scripts/setlocalversion` includes reachable local tag refs in
+the release string, so the same commit, tree, config, and toolchain produce a
+different kernel ABI when `refs/tags/v7.1.4` exists locally. Reconstruct the
+original shallow `FETCH_HEAD` checkout, deliberately without a local tag ref,
+and verify the historical builder before building:
+
+```sh
+scripts/host/fetch-linux-stable-v7.1.4.sh
+scripts/host/verify-historical-network-root-builder.sh
+scripts/host/build-network-root-kernel-offline.sh
+```
+
+The final command performs two isolated, network-disabled builds, verifies
+the exact `7.1.4-g7a5cef0db479` release and compatibility profile, compares
+all five outputs byte-for-byte, checks their frozen sizes and SHA-256
+identities, and publishes only exact matches without overwriting a different
+artifact. The reconstruction and limits are recorded in the
+[ref-state report](../test-results/2026-07-30-network-root-kernel-ref-state-reconstruction.md).
+
+The recovery-side ARM64 tools no longer depend on host-wide `binfmt_misc`.
+The following reboot-safe path extracts a pinned static emulator and verifies
+both successor Alpine builders without privilege or network access:
+
+```sh
+scripts/host/extract-qualified-qemu-aarch64-static.sh
+scripts/host/verify-steam-deck-recovery-builders.sh
+```
+
+The profile binds the emulator, private rootless runner, image IDs/digests,
+recipes, complete root filesystem and package inventories, and accepted
+responder/fetcher/indicator/verifier output hashes. See the
+[recovery-builder qualification](../test-results/2026-07-30-steam-deck-recovery-builders-qualified.md).
+
+With the two retained P2 lineage archives available, a host can reconstruct
+the pruned recovery/packaging inputs without recovering old broad build
+trees:
+
+```sh
+scripts/host/reconstruct-recovery-base-v18r.sh
+scripts/host/reconstruct-network-root-v3.sh
+scripts/host/rebuild-headless-network-root-initramfs.sh
+scripts/host/fetch-android-boot-tools.sh
+scripts/host/build-canonical-boot-v3-template.sh
+```
+
+Each entry point is no-replace and pins its source identities. The AOSP boot
+tool fetcher uses immutable Git blobs and applies the historical CRLF
+normalization before accepting `mkbootimg.py`, `unpack_bootimg.py`, and
+`avbtool.py`. The boot-v3 template is only a compact metadata source; it is
+never a direct boot candidate.
+
 For the ASUS 5.4 stable wrapper, verify all 79,030 source entries and then
 materialize the accepted rootless source volume:
 

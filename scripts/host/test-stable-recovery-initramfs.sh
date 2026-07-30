@@ -8,13 +8,27 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 output_root=${1:-}
-base=$repo/artifacts/recovery-stage-v18/rog5-recovery-initramfs.cpio.gz
+base_profile=${ROG5_RECOVERY_BASE_PROFILE:-historical-v18}
+case $base_profile in
+	historical-v18)
+		base=$repo/artifacts/recovery-stage-v18/rog5-recovery-initramfs.cpio.gz
+		expected_base=852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc
+		;;
+	reconstructed-v18r-v1)
+		base=$repo/artifacts/recovery-inputs-v18r/rog5-recovery-base-v18r.cpio.gz
+		expected_base=da573d089cd617e088624b6d6bf711e193a4df5367843293e2e5ba543556e51d
+		;;
+	*)
+		fail "unsupported recovery base profile: $base_profile"
+		;;
+esac
+export ROG5_RECOVERY_BASE_PROFILE=$base_profile
 wrapper_config=$repo/artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery
 kexec_apk=$repo/artifacts/recovery-inputs/kexec-tools-2.0.32-r2.apk
 xz_apk=$repo/artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk
 zstd_apk=$repo/artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk
-base_image=localhost/rog5-persistent-root-verifier:alpine-3.24
-verifier_image=localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7
+base_image=localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1
+verifier_image=localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7-deck-v1
 supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
 public_key_source=generated
 
@@ -27,9 +41,8 @@ for input in "$base" "$wrapper_config" "$kexec_apk" "$xz_apk" "$zstd_apk"; do
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing regular ignored recovery input: $input"
 done
-[[ $(sha256sum "$base" | cut -d ' ' -f 1) == \
-	852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc ]] ||
-	fail 'unexpected accepted v18 recovery-base hash'
+[[ $(sha256sum "$base" | cut -d ' ' -f 1) == "$expected_base" ]] ||
+	fail "unexpected recovery-base hash for profile: $base_profile"
 [[ $(sha256sum "$wrapper_config" | cut -d ' ' -f 1) == \
 	df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f ]] ||
 	fail 'unexpected accepted v18 wrapper-config hash'
@@ -62,16 +75,16 @@ for image in "$base_image" "$verifier_image"; do
 		fail "build image is not arm64: $image"
 done
 [[ $(podman image inspect "$base_image" --format '{{.Id}}') == \
-	d5fb16636fadea937b74dc3e062617d74a12577fd3fcc3f61fec24d0f7364495 ]] ||
+	a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e ]] ||
 	fail 'unexpected base AArch64 builder image ID'
 [[ $(podman image inspect "$base_image" --format '{{.Digest}}') == \
-	sha256:750150c51c8b5085d322ecaa5363356bb31ee243d6efab1035bd15f5ffe52355 ]] ||
+	sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa ]] ||
 	fail 'unexpected base AArch64 builder digest'
 [[ $(podman image inspect "$verifier_image" --format '{{.Id}}') == \
-	e2e90f8ad3cfc4f9b7660ee8828fcae008792f05567fb9b4efd3ab0102063d8e ]] ||
+	13d758cd4c708ddb798dd539d1b6c4e3546ea5ef9129ed309c74bd8f4e620689 ]] ||
 	fail 'unexpected verifier AArch64 builder image ID'
 [[ $(podman image inspect "$verifier_image" --format '{{.Digest}}') == \
-	sha256:b4946b74324785d005aa3067dd18788f90cc65215a519c8735dce03aa01d1268 ]] ||
+	sha256:75f5179fe0164ffefa2f9bc5dba5a47eac47674d347311602256476aa2ee7a01 ]] ||
 	fail 'unexpected verifier AArch64 builder digest'
 locale -a | grep -qx 'en_US.utf8' ||
 	fail 'cross-locale reproducibility test requires en_US.utf8'
@@ -356,5 +369,5 @@ if [[ -n $output_root ]]; then
 		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz" \
 		"$output_root/ephemeral-public.raw"
 fi
-printf 'PASS reproducible stable-recovery integration with ephemeral public-key test boundary; trust_root=%s\n' \
-	"$public_key_source"
+printf 'PASS reproducible stable-recovery integration with ephemeral public-key test boundary; base_profile=%s; trust_root=%s\n' \
+	"$base_profile" "$public_key_source"

@@ -7,9 +7,9 @@ fail() {
 }
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-image=${ROG5_BUNDLE_BUILD_IMAGE:-localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7}
-expected_image_id=e2e90f8ad3cfc4f9b7660ee8828fcae008792f05567fb9b4efd3ab0102063d8e
-expected_image_digest=sha256:b4946b74324785d005aa3067dd18788f90cc65215a519c8735dce03aa01d1268
+image=${ROG5_BUNDLE_BUILD_IMAGE:-localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7-deck-v1}
+expected_image_id=13d758cd4c708ddb798dd539d1b6c4e3546ea5ef9129ed309c74bd8f4e620689
+expected_image_digest=sha256:75f5179fe0164ffefa2f9bc5dba5a47eac47674d347311602256476aa2ee7a01
 for command in cmp dtc file gcc openssl podman python3 strings \
 	qemu-aarch64-static sha256sum; do
 	command -v "$command" >/dev/null ||

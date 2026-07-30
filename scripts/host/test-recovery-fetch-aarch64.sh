@@ -7,9 +7,9 @@ fail() {
 }
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-image=${ROG5_FETCH_BUILD_IMAGE:-localhost/rog5-persistent-root-verifier:alpine-3.24}
-expected_image_id=d5fb16636fadea937b74dc3e062617d74a12577fd3fcc3f61fec24d0f7364495
-expected_image_digest=sha256:750150c51c8b5085d322ecaa5363356bb31ee243d6efab1035bd15f5ffe52355
+image=${ROG5_FETCH_BUILD_IMAGE:-localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1}
+expected_image_id=a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e
+expected_image_digest=sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa
 for command in cmp file podman python3 qemu-aarch64-static sha256sum; do
 	command -v "$command" >/dev/null ||
 		fail "missing fetcher AArch64-test command: $command"

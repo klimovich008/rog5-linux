@@ -20,7 +20,7 @@ build outputs.
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
-| Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
+| Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 37 source and 23 corrected-DTB checks, while an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the 535,163,814-byte headless-core-v2 root passes staged and extracted verification; hardware behavior remains live-pending |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper reproduce in a complete offline twin build, and the successor minimal root is sealed outside Git carrying only a public test key |
@@ -40,6 +40,18 @@ gate.
   complete ASUS source verification, and fail-closed source-volume import.
 - [Steam Deck ASUS 5.4 builder qualification](test-results/2026-07-30-steam-deck-asus-builder-qualified.md)
   — independent rootfs reproduction and twin byte-identical kernel builds.
+- [Steam Deck ARM64 recovery-builder qualification](test-results/2026-07-30-steam-deck-recovery-builders-qualified.md)
+  — reboot-safe rootless ARM64 emulation and exact responder/verifier
+  filesystem, package, and binary identities.
+- [Linux 7.1.4 network-root reconstruction](test-results/2026-07-30-network-root-kernel-ref-state-reconstruction.md)
+  — exact Git ref-state root cause, reconstructed historical builder, and
+  twin byte-identical recovery of all five frozen kernel artifacts.
+- [Headless recovery dependency closure](test-results/2026-07-30-headless-recovery-dependency-closure.md)
+  — exact v18r/network-root/headless reconstruction, immutable AOSP boot
+  tools, compact boot-v3 template, and accepted-config wrapper successor.
+- [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
+  — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
+  bundle integration, and destroyed disposable key.
 - [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
   — exact signed transaction, rejection, rollback, root cause, and corrected
   offline candidate.

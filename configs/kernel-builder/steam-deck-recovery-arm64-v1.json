@@ -1,0 +1,61 @@
+{
+  "format": "rog5-recovery-arm64-builder-profile-v1",
+  "profile": "steam-deck-recovery-arm64-v1",
+  "status": "offline",
+  "authority": "none",
+  "base_image": {
+    "reference": "docker.io/library/alpine:3.24@sha256:e7a1a92a5bfeee40966aea60f0796b0e7917cc35591542701834f03a68fa3d18",
+    "architecture": "arm64"
+  },
+  "emulation": {
+    "source_image": "localhost/rog5-kernel-builder:historical-20260724",
+    "qemu_path": "artifacts/host-tools/qemu-aarch64-static",
+    "qemu_size": 6245816,
+    "qemu_sha256": "bfcd46c842441912baed36158569ac29a7fb656684ca73c1b3b2f0f3971e9bec",
+    "extractor_sha256": "5b0e991cb1112b21f5c40c8e1504020d8638ac6bff611964c96059d658cd6ecd",
+    "runner_sha256": "972831d9c4bde3c440e905bdb7beac6b3e74a0a02dc04d0eeb1060c6bfaeb50d",
+    "sealed_runner_sha256": "354ea9b62a7ec9f19501858e3e0d2c4f848faa93e639dccc36bb23f5a016c301"
+  },
+  "rootfs_manifest_script": {
+    "path": "scripts/host/kernel-builder-rootfs-manifest.sh",
+    "sha256": "3a2644f7a128fac3a3c8bd44d9a58cd00304e3459f2aee81d8930a4659919c84"
+  },
+  "responder_builder": {
+    "image": "localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1",
+    "image_id": "a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e",
+    "image_digest": "sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa",
+    "recipe": "containers/persistent-root-verifier/Dockerfile",
+    "recipe_sha256": "3d074a3e8b7bc81f96086aa633b132a897ededa4349f88aa77be5fbea2e237f0",
+    "rootfs_manifest": "artifacts/recovery-builder-deck-v1/responder-rootfs.tsv.gz",
+    "rootfs_manifest_size": 103012,
+    "rootfs_manifest_sha256": "613a6c47c60411b2b1715af2f7e6ccb53141b12134063d668aa40c091f998104",
+    "rootfs_identity": "89fde8f4651efe47ce5b2e78d44307520547f7e693ec8e2b2672e1a979119fcd",
+    "package_manifest": "artifacts/recovery-builder-deck-v1/responder-packages.txt.gz",
+    "package_manifest_size": 959,
+    "package_manifest_sha256": "909b98b65e895156872b4ccb34b0d8e7f2582415bef0f1fe78556aad607847b5",
+    "package_identity": "a0b976c4df8050064f88664f97c1762a11a32321a282b34c523c9e829d75334c",
+    "outputs": {
+      "rog5-recovery-control": "c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0",
+      "rog5-bundle-fetch": "becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c",
+      "rog5-key-indicatord": "3792745382a390ebeef37a081e532884aae07bbcd73fd9f0da1c94e67bdabbc8"
+    }
+  },
+  "bundle_verifier_builder": {
+    "image": "localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7-deck-v1",
+    "image_id": "13d758cd4c708ddb798dd539d1b6c4e3546ea5ef9129ed309c74bd8f4e620689",
+    "image_digest": "sha256:75f5179fe0164ffefa2f9bc5dba5a47eac47674d347311602256476aa2ee7a01",
+    "recipe": "containers/recovery-bundle-verifier/Dockerfile",
+    "recipe_sha256": "f64ee4ef377e2e44d968237e1a6819b6c0e3a2c22f84654ec67456d4c2871080",
+    "rootfs_manifest": "artifacts/recovery-builder-deck-v1/verifier-rootfs.tsv.gz",
+    "rootfs_manifest_size": 110193,
+    "rootfs_manifest_sha256": "171adcb04ffdc4db79ed3dc494ed3e29bc1664afcc024dfaa9e22a31f194ac54",
+    "rootfs_identity": "e6ab755c445f3388ccc04717346337f65c8d24ee892e078977b6bbe99f0b26b3",
+    "package_manifest": "artifacts/recovery-builder-deck-v1/verifier-packages.txt.gz",
+    "package_manifest_size": 1063,
+    "package_manifest_sha256": "f1a195750b2b7c40b5aaba3ce1be3fa7f9aeef6959ffaee5108a7283b62f468c",
+    "package_identity": "6b52a32d2720a6e9e391601f483f7f37c625667eb65e465a58a989350590c8ae",
+    "outputs": {
+      "rog5-bundle-verify": "374900be5769eee074820007ab2e335d4c033c500da7a480cc88f9a70137029b"
+    }
+  }
+}
