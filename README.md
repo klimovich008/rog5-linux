@@ -76,6 +76,11 @@ gate.
   [offline result](test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
   records the fourteen failure-path scenarios and independent reviews.
 - [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
+- [Stable-wrapper configuration slimming](docs/stable-wrapper-config-slimming.md)
+  and
+  [offline result](test-results/2026-07-30-stable-wrapper-config-slimming-offline.md)
+  — source-sealed config reduction, hostile tests, clean twin builds, and
+  boot-v3/AVB structural evidence with no live authority.
 - [Stable recovery control plane](docs/recovery-control-plane.md) — the next
   implementation and its test-first protocol.
 - [Recovery re-freeze integration](docs/recovery-refreeze-integration.md) —

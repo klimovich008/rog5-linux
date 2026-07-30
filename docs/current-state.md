@@ -1,4 +1,4 @@
-# Current state — 2026-07-29
+# Current state — 2026-07-30
 
 This file records facts, not planned work or live authority. The ordered plan
 is in [ROADMAP.md](../ROADMAP.md), and the detailed recovery redesign is in
@@ -350,6 +350,22 @@ historical public trust root; the disposable private key was destroyed, so
 the cache is neither signing authority nor live authority. See the
 [cache contract](recovery-wrapper-cache.md) and
 [offline proof](../test-results/2026-07-30-stable-recovery-wrapper-cache.md).
+
+The cached broad wrapper now has a separate configuration-slimming
+experiment. A fail-closed policy, seven hostile mutations, and one positive
+test preserve the
+boot/CPU/RAM, UFS, gadget-only USB ACM/NCM, kexec, pstore, thermal, charging,
+reboot, and PMIC power-key boundary while removing 601 built-ins and 655
+active options. Two source-sealed clean builds produced the same
+34,787,840-byte Image, 31.11% smaller than the accepted cached Image. Two
+boot-header-v3/unsigned-AVB repacks also match and recover the exact kernel
+and stable-recovery initramfs. Vendor HID and minimal V4L2 cores remain only
+because ASUS Makefiles compile dependent accessory/video objects
+unconditionally. The result is unbooted, `status=experiment`, and
+`authority=none`; it neither changes the accepted cache nor grants live
+authority. See the
+[slimming contract](stable-wrapper-config-slimming.md) and
+[offline proof](../test-results/2026-07-30-stable-wrapper-config-slimming-offline.md).
 
 The native indicator successor now has a separate, non-sparse source
 encoding and a v2 host package contract. Its 534,347,412-byte sealed archive
