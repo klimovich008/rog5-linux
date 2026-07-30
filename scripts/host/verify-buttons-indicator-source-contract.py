@@ -19,14 +19,25 @@ ACCEPTED_SOURCE_COMMIT = "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40"
 ACCEPTED_CONFIG_SHA256 = (
     "68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f"
 )
+ACCEPTED_CONFIG_SIZE = 239677
 ACCEPTED_MODULES_SHA256 = (
     "5be71d86eafbb43086b901897d812ef3efa6c806a80101fc3194749866cb4fa9"
 )
+ACCEPTED_MODULE_FIXTURE_SHA256 = (
+    "5885a9db2a8821f7c0ee9b16d92092d6d44f5c5092561e8e312f6047bb1a246c"
+)
+ACCEPTED_MODULE_FIXTURE_SIZE = 368320
 MAX_TEXT_SIZE = 2 * 1024 * 1024
 MAX_MODULES_SIZE = 512 * 1024 * 1024
 EXPECTED_MODULE = (
     "lib/modules/7.1.4-g7a5cef0db479/kernel/"
     "drivers/leds/rgb/leds-qcom-lpg.ko"
+)
+EXPECTED_MODULE_MARKERS = (
+    b"description=Qualcomm LPG LED driver",
+    b"license=GPL v2",
+    b"alias=of:N*T*Cqcom,pm8350c-pwm",
+    b"vermagic=7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64",
 )
 
 REQUIRED_CONFIG = {
@@ -321,6 +332,29 @@ def check_module_members(members: list[tarfile.TarInfo]) -> None:
         fail(f"modules archive has {found} accepted LPG module members")
 
 
+def verify_module_bytes(data: bytes) -> str:
+    digest = sha256(data).hexdigest()
+    if len(data) != ACCEPTED_MODULE_FIXTURE_SIZE:
+        fail(f"accepted LPG module size is wrong: {len(data)}")
+    if digest != ACCEPTED_MODULE_FIXTURE_SHA256:
+        fail(f"accepted LPG module hash is wrong: {digest}")
+    if (
+        len(data) < 20
+        or data[:6] != b"\x7fELF\x02\x01"
+        or int.from_bytes(data[16:18], "little") != 1
+        or int.from_bytes(data[18:20], "little") != 183
+    ):
+        fail("accepted LPG module is not an AArch64 relocatable ELF")
+    for marker in EXPECTED_MODULE_MARKERS:
+        if marker not in data:
+            fail(f"accepted LPG module marker is missing: {marker!r}")
+    return digest
+
+
+def verify_module_fixture(path: Path) -> str:
+    return verify_module_bytes(read_ordinary(path))
+
+
 def verify_modules(path: Path) -> tuple[str, int]:
     lexical = lexical_path(path)
     if lexical.is_symlink():
@@ -351,7 +385,17 @@ def verify_modules(path: Path) -> tuple[str, int]:
                 fail(f"modules archive hash is not accepted: {digest}")
             stream.seek(0)
             with tarfile.open(fileobj=stream, mode="r:gz") as archive:
-                check_module_members(archive.getmembers())
+                members = archive.getmembers()
+                check_module_members(members)
+                member = archive.getmember(EXPECTED_MODULE)
+                projected = archive.extractfile(member)
+                if projected is None:
+                    fail("accepted LPG module archive member is not readable")
+                with projected:
+                    module_data = projected.read(
+                        ACCEPTED_MODULE_FIXTURE_SIZE + 1
+                    )
+                verify_module_bytes(module_data)
         after = os.fstat(descriptor)
     finally:
         os.close(descriptor)
