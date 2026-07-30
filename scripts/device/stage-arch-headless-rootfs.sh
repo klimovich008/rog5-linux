@@ -108,6 +108,15 @@ else
 	install -d -m0755 /etc/pacman.d/gnupg
 fi
 chmod 0755 /etc/pacman.d/gnupg
+[[ -d /var/log && ! -L /var/log ]]
+[[ ! -L /var/log/pacman.log ]]
+: >/var/log/pacman.log
+chmod 0644 /var/log/pacman.log
+chown root:root /var/log/pacman.log
+if [[ -e /var/cache/ldconfig || -L /var/cache/ldconfig ]]; then
+	[[ -d /var/cache/ldconfig && ! -L /var/cache/ldconfig ]]
+	rm -f -- /var/cache/ldconfig/aux-cache
+fi
 
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-headless-rootfs.sh"

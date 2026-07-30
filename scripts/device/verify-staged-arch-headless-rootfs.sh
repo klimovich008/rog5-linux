@@ -117,6 +117,13 @@ grep -Fqx "profile=$expected_profile" /etc/rog5/build
 [[ $(stat -c %U:%G:%a /etc/pacman.d/gnupg) == root:root:755 ]]
 [[ -z $(find /etc/pacman.d/gnupg -mindepth 1 -print -quit) ]] ||
 	fail 'headless root retained generated Pacman trust or signing state'
+[[ -f /var/log/pacman.log && ! -L /var/log/pacman.log ]]
+[[ $(stat -c %U:%G:%a:%s /var/log/pacman.log) == root:root:644:0 ]]
+if [[ -e /var/cache/ldconfig || -L /var/cache/ldconfig ]]; then
+	[[ -d /var/cache/ldconfig && ! -L /var/cache/ldconfig ]]
+fi
+[[ ! -e /var/cache/ldconfig/aux-cache &&
+	! -L /var/cache/ldconfig/aux-cache ]]
 if [[ -r /etc/fstab ]]; then
 	if awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// ||
 		$1 ~ /^(UUID|PARTUUID)=/) { found=1 }
