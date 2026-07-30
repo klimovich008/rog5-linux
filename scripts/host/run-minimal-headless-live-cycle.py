@@ -59,6 +59,7 @@ PASSTHROUGH_ENVIRONMENT = (
     "TRUST_KEY_SHA256",
     "MANIFEST_SHA256",
     "HOST_VERIFIER_SHA256",
+    "ROG5_STABLE_RECOVERY_PROFILE",
     "FASTBOOT_SERIAL",
     "ACM_TIMEOUT",
     "ROG5_NFS_TIMEOUT",
@@ -309,6 +310,14 @@ def parse_inputs() -> Inputs:
         fail("MANIFEST_SHA256 must be one nonzero lowercase SHA-256")
     if os.environ.get("BUNDLE") != BUNDLE:
         fail(f"BUNDLE must be exactly {BUNDLE}")
+    if (
+        os.environ.get("ROG5_STABLE_RECOVERY_PROFILE")
+        != "corrected-headless-successor-2026-07-30"
+    ):
+        fail(
+            "ROG5_STABLE_RECOVERY_PROFILE must select the corrected "
+            "headless successor"
+        )
     ssh_key = caller_file(os.environ.get("SSH_KEY", ""), "SSH_KEY")
     known_hosts = caller_file(
         os.environ.get("FALLBACK_KNOWN_HOSTS", ""),

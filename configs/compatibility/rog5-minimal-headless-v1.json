@@ -305,6 +305,7 @@
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-run-stable-recovery-live-gate.sh",
+        "scripts/host/test-corrected-successor-live-gate-offline.sh",
         "scripts/device/test-network-root-init.sh",
         "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",

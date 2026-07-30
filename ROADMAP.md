@@ -199,6 +199,8 @@ duplicate builds can be removed safely.
 
 ## H1 — Recovery, logging, and rollback
 
+- [x] Admit the exact corrected successor through the phone-free production
+  artifact gate and reject the consumed historical profile before credentials.
 - [ ] Promote the framed recovery candidate through the approved live gate.
 - [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
 - [ ] Prove postmortem retention or select the tested UART fallback.
@@ -376,8 +378,10 @@ Continue in this order:
    modifying the accepted SSH-only root;
 9. [x] build and seal the successor root archive with a non-production public
    key fixture, then rerun its extracted-root verifier;
-10. request fresh, separate authorization before creating or using a live
+10. [x] bind the finalized successor to an exact phone-free production-gate
+    profile and reject the consumed historical recovery before credentials;
+11. request fresh, separate authorization before creating or using a live
    signing credential or temporarily booting the corrected candidate;
-11. if the minimal root reaches key-only SSH and clean rollback, run the
+12. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

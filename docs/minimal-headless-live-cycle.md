@@ -4,12 +4,14 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the untouched Alpine fallback.
 
-Status: **implemented and hardware-free tested; not yet authorized or run on
-the phone**. This document grants no live authority. `preflight` is read-only
-with respect to the phone and credentials, but it does query the connected
-fastboot device. `run` boots the phone and uses the dedicated SSH client key;
-it therefore requires fresh explicit authorization and every exact guard
-listed below.
+Status: **implemented, hardware-free tested, and admitted for the exact
+corrected successor artifact; not yet authorized or run on the phone**. This
+document grants no live authority. `artifact-preflight` verifies the retained
+candidate without querying a phone or inspecting credentials. `preflight` is
+read-only with respect to the phone and credentials, but it does query the
+connected fastboot device. `run` boots the phone and uses the dedicated SSH
+client key; it therefore requires fresh explicit authorization and every
+exact guard listed below.
 
 ## Why one controller is needed
 
@@ -84,6 +86,7 @@ not the phone.
 
 The stable-recovery gate retains its existing exact artifact inputs:
 
+- `ROG5_STABLE_RECOVERY_PROFILE=corrected-headless-successor-2026-07-30`
 - `LIVE_BUILD_ROOT`
 - `RECOVERY_COMPONENT_ROOT`
 - `TRUST_KEY`
@@ -104,6 +107,25 @@ The lifecycle adds:
 
 Preflight inspects only credential path metadata. It does not read a private
 key through SSH or offer it to either phone environment.
+
+The profile is a fail-closed artifact identity. The lifecycle accepts only the
+corrected successor profile and rejects the consumed historical profile before
+inspecting credential paths.
+
+## Phone-free artifact preflight
+
+The retained candidate can cross the exact production artifact boundary
+without a connected device:
+
+```bash
+scripts/host/test-corrected-successor-live-gate-offline.sh
+```
+
+This verifies the signed bundle, stable initramfs, raw boot-v3 image, ASUS
+wrapper, AVB descriptors, corrected DTB, trust root, and every pinned recovery
+component, then exits before the first fastboot device query. A clean checkout
+without the ignored retained candidate reports a skip rather than weakening
+the gate.
 
 ## Read-only preflight
 
@@ -190,10 +212,11 @@ never overwritten.
 
 ## Hardware-free coverage
 
-`test-run-minimal-headless-live-cycle.py` covers fourteen lifecycle scenarios
+`test-run-minimal-headless-live-cycle.py` covers fifteen lifecycle scenarios
 and proves:
 
 - all guards fail before any dependency or credential use;
+- the consumed historical recovery profile fails before credential paths;
 - preflight stops before boot and SSH;
 - bundle-server cleanup precedes NFS startup;
 - residual protected-zone rules, `/30` addresses, or NetworkManager ownership
