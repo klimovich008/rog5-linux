@@ -121,7 +121,7 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Package `headless-core-v2` as a separately identified, whole-tree-sealed
   network root and assemble its buttons DTB into a twin-built,
   ephemeral-signed recovery candidate without phone or production-key access.
-- [ ] Cache the verified stable-recovery wrapper by exact source, config,
+- [x] Cache the verified stable-recovery wrapper by exact source, config,
   initramfs, builder, and output hashes so ordinary candidate iterations do
   not repeat two broad vendor-kernel builds.
 - [ ] Add a separate wrapper-config slimming audit; do not mix that change

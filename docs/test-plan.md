@@ -299,6 +299,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   point rebuilds both target bundles, shell-free initramfs files, vendor
   wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
   the disposable private key.
+- `test-kernel-source-seal.py`,
+  `test-stable-recovery-wrapper-cache.py`, and
+  `test-stable-recovery-wrapper-cache-contract.sh` require a
+  host-metadata-independent ASUS source identity, exact profile/tool/config/
+  initramfs/builder inputs, equal pre/post source seals, byte-identical twin
+  wrapper/raw/AVB outputs, immutable private cache entries, one output identity
+  per input key, caller-pinned materialization, and atomic no-replace
+  publication. They reject content, mode, symlink, source, profile, dependency,
+  twin, manifest, inventory, cache-permission, input-binding, and destination
+  mutations. The cache contains no phone, privilege, storage, process, or
+  network transport.
 - `test-headless-core-candidate-offline-contract.sh` layers the successor
   candidate ID, v2 package contract, buttons/default-off status-LED DTB, and
   distinct target ID over the same authority-free twin-build gate while

@@ -18,6 +18,25 @@ External development/cache units and the separate in-repository artifact
 candidates were not part of that execution and remain subject to a fresh plan
 and approval.
 
+## Completed cache-backed wrapper cleanup
+
+The stable-recovery cache checkpoint completed a second narrow repository
+cleanup on 2026-07-30. Immediately before deletion, every retained wrapper
+config, Image, build-metadata, initramfs, raw image, and AVB image was compared
+byte-for-byte with content-addressed entry
+`05865d1cdbc7de08606d064316a7bd3e64d0ba6f9ba7218e17c73932f9e48333`.
+The exact two corrected-headless A/B kernel object trees and the disposable
+cache materialization/inspection copies were then removed.
+
+The four generated directories represented 9,665,237,171 apparent bytes.
+Btrfs filesystem availability increased by 3,695,415,296 bytes because
+reflinks and compression made apparent and exclusive allocation differ. The
+208 MiB verified cache entry and 662 MiB compact corrected-headless candidate
+remain. The removed files are not directly recoverable, but the wrapper
+outputs remain in the cache and the broad object trees are reproducible from
+the pinned source, builder, config, initramfs, and scripts. See the
+[cache proof](../test-results/2026-07-30-stable-recovery-wrapper-cache.md).
+
 ## Current finding
 
 The 2026-07-29 audit measured 661 GiB used and 326 GiB free on the 991 GiB

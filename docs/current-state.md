@@ -338,6 +338,19 @@ boot image, and unsigned AVB test wrapper now reproduce in two clean offline
 builds. The disposable test private key was destroyed. This correction
 remains `authority=none` and grants no repeat authority.
 
+The accepted stable-recovery wrapper now also has a fail-closed,
+content-addressed cache path. A portable seal binds all 79,030 ASUS source
+entries by path, type, mode, file content, and symlink target while excluding
+host ownership and timestamps. Publication still requires the complete twin
+kernel/raw/AVB gate and equal pre/post source seals. Materialization requires
+the exact input key and caller-supplied entry ID, rehashes every cached file,
+and never compiles or contacts the phone. The first 208 MiB entry reconstructs
+the accepted corrected-headless wrapper in 3.10 seconds. It contains only the
+historical public trust root; the disposable private key was destroyed, so
+the cache is neither signing authority nor live authority. See the
+[cache contract](recovery-wrapper-cache.md) and
+[offline proof](../test-results/2026-07-30-stable-recovery-wrapper-cache.md).
+
 The native indicator successor now has a separate, non-sparse source
 encoding and a v2 host package contract. Its 534,347,412-byte sealed archive
 binds `build_profile=headless-core-v2`, 37,675 entries, the exact no-workload

@@ -11,12 +11,18 @@ initramfs_a=${1:?usage: test-stable-recovery-wrapper-offline.sh INITRAMFS_A INIT
 initramfs_b=${2:?missing second stable-recovery initramfs}
 output_root=${3:?missing ignored output root}
 
+cache_profile=$repo/configs/recovery-wrapper-cache/asus-5.4-stable-recovery-v1.json
+cache_tool=$repo/scripts/host/stable-recovery-wrapper-cache.py
+source_tree_tool=$repo/scripts/host/kernel-source-seal.py
+build_script=$repo/scripts/device/build-asus-kexec-stage.sh
+repack_script=$repo/scripts/device/repack-android-boot-v3.sh
 source_volume=${SOURCE_VOLUME:-rog5-asus-v12a-source}
 builder_image=${KERNEL_BUILDER_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
 reference_config=${REFERENCE_CONFIG:-$repo/../work/linux-server/kernel-33.0210.0210.200/config-5.4.210-qgki-perf}
 template=${BOOT_TEMPLATE:-$repo/artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.raw.img}
 mkbootimg_dir=${MKBOOTIMG_DIR:-$repo/../work/linux-server/mkbootimg}
 avbtool=${AVBTOOL:-$repo/../work/linux-server/avb/avbtool.py}
+cache_root=${STABLE_RECOVERY_WRAPPER_CACHE_ROOT:-$repo/build/stable-recovery-wrapper-cache}
 jobs=${JOBS:-1}
 partition_size=100663296
 
@@ -30,7 +36,7 @@ expected_builder_id=c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c
 expected_builder_digest=sha256:8513960144bb1ca77878a1364c03fb100c8b87fffb8440fd37a6cc4fc0043b41
 
 for command in awk cmp cp cut find git grep mkdir podman python3 realpath \
-	sha256sum stat touch tr; do
+	sha256sum stat tee touch tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing wrapper-test command: $command"
 done
@@ -38,11 +44,13 @@ done
 [[ $source_volume =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] ||
 	fail 'invalid source-volume name'
 [[ $builder_image != -* ]] || fail 'invalid kernel-builder image name'
-grep -Fqx 'set -f' "$repo/scripts/device/repack-android-boot-v3.sh" ||
+grep -Fqx 'set -f' "$repack_script" ||
 	fail 'boot repacker does not disable pathname expansion'
 
 for input in "$initramfs_a" "$initramfs_b" "$reference_config" "$template" \
-	"$mkbootimg_dir/mkbootimg.py" "$mkbootimg_dir/unpack_bootimg.py" "$avbtool"; do
+	"$mkbootimg_dir/mkbootimg.py" "$mkbootimg_dir/unpack_bootimg.py" "$avbtool" \
+	"$cache_profile" "$cache_tool" "$source_tree_tool" "$build_script" \
+	"$repack_script"; do
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing regular nonsymlink input: $input"
 done
@@ -53,12 +61,25 @@ template=$(realpath "$template")
 mkbootimg_dir=$(realpath "$mkbootimg_dir")
 avbtool=$(realpath "$avbtool")
 output_root=$(realpath -m "$output_root")
+cache_root=$(realpath -m "$cache_root")
 case $output_root in
 	"$repo"/build/*) ;;
 	*) fail 'output root must be below the ignored repository build directory' ;;
 esac
 git -C "$repo" check-ignore -q "$output_root" ||
 	fail 'output root is not ignored by Git'
+case $cache_root in
+	"$repo"/build/*) ;;
+	*) fail 'wrapper cache must be below the ignored repository build directory' ;;
+esac
+git -C "$repo" check-ignore -q "$cache_root" ||
+	fail 'wrapper cache is not ignored by Git'
+case $output_root in
+	"$cache_root"|"$cache_root"/*) fail 'wrapper output overlaps its cache' ;;
+esac
+case $cache_root in
+	"$output_root"|"$output_root"/*) fail 'wrapper cache overlaps its output' ;;
+esac
 [[ ! -d $output_root ||
 	-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
 	fail 'refusing nonempty output root'
@@ -103,6 +124,34 @@ mkdir -p "$output_root/wrapper-a" "$output_root/wrapper-b" \
 	"$output_root/repack" "$output_root/inspection" \
 	"$output_root/glob-cwd"
 
+seal_source() {
+	podman run --rm --network=none --security-opt label=disable \
+		-v "$source_volume:/root/src:ro" \
+		-v "$repo:/workspace:ro" \
+		"$builder_image" \
+		python3 /workspace/scripts/host/kernel-source-seal.py \
+		/root/src/msm-5.4
+}
+
+source_seal_before=$output_root/source-seal-before.txt
+source_seal_after=$output_root/source-seal-after.txt
+seal_source >"$source_seal_before"
+cache_input_args=(
+	--profile "$cache_profile"
+	--source-seal "$source_seal_before"
+	--source-tree-tool "$source_tree_tool"
+	--reference-config "$reference_config"
+	--initramfs "$initramfs_a"
+	--build-script "$build_script"
+	--repack-script "$repack_script"
+	--boot-template "$template"
+	--mkbootimg "$mkbootimg_dir/mkbootimg.py"
+	--unpack-bootimg "$mkbootimg_dir/unpack_bootimg.py"
+	--avbtool "$avbtool"
+)
+python3 "$cache_tool" input-key "${cache_input_args[@]}" \
+	>"$output_root/cache-input.txt"
+
 build_wrapper() {
 	suffix=$1
 	initramfs=$2
@@ -135,7 +184,7 @@ cmp "$output_root/wrapper-b/rog5-kexec-stage-initramfs.cpio.gz" \
 repack_wrapper() {
 	suffix=$1
 	wrapper_root=$output_root/wrapper-$suffix
-	"$repo/scripts/device/repack-android-boot-v3.sh" \
+	"$repack_script" \
 		"$template" \
 		"$wrapper_root/asus-kexec-stage/arch/arm64/boot/Image" \
 		"$wrapper_root/rog5-kexec-stage-initramfs.cpio.gz" \
@@ -210,7 +259,7 @@ touch "$output_root/glob-cwd/rog5.glob=alpha" \
 	"$output_root/glob-cwd/rog5.glob=beta"
 (
 	cd "$output_root/glob-cwd"
-	"$repo/scripts/device/repack-android-boot-v3.sh" \
+	"$repack_script" \
 		"$template" \
 		"$output_root/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image" \
 		"$output_root/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz" \
@@ -261,4 +310,18 @@ sha256sum \
 	"$output_root/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image" \
 	"$output_root/repack/stable-recovery-a.raw.img" \
 	"$output_root/repack/stable-recovery-a.avb.img"
+seal_source >"$source_seal_after"
+cmp "$source_seal_before" "$source_seal_after" ||
+	fail 'ASUS source tree changed across the clean wrapper builds'
+python3 "$cache_tool" publish \
+	"${cache_input_args[@]}" \
+	--source-seal-after "$source_seal_after" \
+	--cache-root "$cache_root" \
+	--build-a "$output_root/wrapper-a" \
+	--build-b "$output_root/wrapper-b" \
+	--raw-a "$output_root/repack/stable-recovery-a.raw.img" \
+	--raw-b "$output_root/repack/stable-recovery-b.raw.img" \
+	--avb-a "$output_root/repack/stable-recovery-a.avb.img" \
+	--avb-b "$output_root/repack/stable-recovery-b.avb.img" |
+	tee "$output_root/cache-publication.txt"
 echo 'PASS two clean stable-recovery wrapper/raw/AVB builds are byte-identical; test-only and not boot-authorized'
