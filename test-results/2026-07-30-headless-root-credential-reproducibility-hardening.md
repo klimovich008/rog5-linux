@@ -65,6 +65,8 @@ The minimal headless stage now:
 - removes only the generic kernel and firmware packages;
 - kills any inherited GPG process and leaves `/etc/pacman.d/gnupg` as an
   empty root-owned mode-`0755` directory;
+- truncates the timestamped Pacman transaction log and removes ldconfig's
+  disposable auxiliary cache;
 - normalizes all output mtimes to one fixed source epoch;
 - archives a byte-sorted, non-recursive member list in pax-restricted format
   with sparse-file reading disabled; and
@@ -89,11 +91,38 @@ PASS repository Linux ci tier
 These are source and fixture gates. They do not prove that the corrected root
 archive is reproducible yet.
 
+## First corrected A/B attempt
+
+Two fresh builds from commit `93052cf1843b37abafd09955285fbe210ae78d4f`
+both passed the in-root and clean-extraction verifiers but correctly failed
+the byte-identity gate:
+
+```text
+A size:   536762060
+A sha256: 39e628a134a7f1edbe15a1ccb9be4e1bf9038d68b7ef857696e1dc8f190fa7d7
+B size:   536762094
+B sha256: 13ea6d8b4d00490ea8082dd1fa1775ba5cf21b613377b35c180ea4ecd4a2904f
+```
+
+A complete 37,735-entry metadata and content inventory found exactly two
+differences:
+
+```text
+var/log/pacman.log
+var/cache/ldconfig/aux-cache
+```
+
+The first contains Pacman transaction timestamps; the second is a disposable
+ldconfig optimization cache. No path, type, ownership, mode, mtime, link,
+xattr, or other file-content difference was present. Neither output is
+accepted. The stage now canonicalizes those two members, and a second fresh
+A/B attempt remains mandatory.
+
 ## Remaining release gates
 
-1. Commit the corrected staging implementation so the clean-tree build guard
+1. Commit the generated-state canonicalization so the clean-tree build guard
    can bind the exact source commit.
-2. Build the minimal root twice from separate fresh volumes with the same
+2. Rebuild the minimal root twice from separate fresh volumes with the same
    public-only fixture key and require identical size and SHA-256.
 3. Inspect both archives and extracted trees for credentials and mutable
    Pacman trust state.
