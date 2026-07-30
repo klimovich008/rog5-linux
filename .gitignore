@@ -31,6 +31,11 @@ artifacts/buttons-indicator-v1/*
 !artifacts/buttons-indicator-v1/SHA256SUMS
 !artifacts/buttons-indicator-v1/leds-qcom-lpg.ko
 !artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb
+!artifacts/kernel-builder-steamdeck-v1/
+artifacts/kernel-builder-steamdeck-v1/*
+!artifacts/kernel-builder-steamdeck-v1/README.md
+!artifacts/kernel-builder-steamdeck-v1/SHA256SUMS
+!artifacts/kernel-builder-steamdeck-v1/rootfs-manifest.tsv.gz
 
 tools/diagnostics/**/*.o
 tools/diagnostics/**/*.mod

@@ -91,6 +91,31 @@ For an independent two-build proof, use:
 scripts/host/bootstrap-kernel-builder.sh reproduce
 ```
 
+For a reviewable rootfs delta rather than a hash-only failure, emit the exact
+normalized stream used by that comparison:
+
+```sh
+scripts/host/bootstrap-kernel-builder.sh manifest \
+  localhost/rog5-kernel-builder:ubuntu-24.04
+```
+
+This offline stream includes each regular-file content hash plus
+path/type/mode/owner/symlink metadata, excluding only runtime-injected
+container filesystems and host/resolver files.
+
+The current Steam Deck host has a separate, narrow qualification profile:
+
+```sh
+scripts/host/verify-steam-deck-builder.sh
+```
+
+It accepts rootfs identity
+`a82749a50365d864714594cc40ce27a28af4f132ef0e540946338b4681bf1fda`
+after two independent rootfs builds and two byte-identical, network-disabled
+ASUS 5.4 oracle builds. It deliberately leaves the historical profile and its
+rootfs identity unchanged. See the
+[Steam Deck qualification result](../test-results/2026-07-30-steam-deck-asus-builder-qualified.md).
+
 The builder pins the amd64 Ubuntu 24.04 and CA-bootstrap image manifests, the
 Ubuntu archive at `20260728T000000Z`, the CA bundle hash, and the complete
 247-package installed closure in
@@ -110,6 +135,22 @@ sh scripts/device/prepare-mainline.sh build/linux-7.1.4
 That script verifies the exact annotated tag object, peeled commit, and Git
 tree before checkout. A moved tag, changed tree, different remote, dirty
 source directory, or lightweight tag fails before a branch is selected.
+
+For the ASUS 5.4 stable wrapper, verify all 79,030 source entries and then
+materialize the accepted rootless source volume:
+
+```sh
+scripts/host/verify-asus-source-tree.py ../kernel-src/msm-5.4
+scripts/host/import-asus-source-volume.sh ../kernel-src/msm-5.4
+```
+
+The verifier rejects transfer-induced permission normalization as well as
+content, path, type, symlink, marker, profile, seal-tool, and tracked-patch
+changes. The importer refuses an existing volume and copies only inside the
+resolved rootless local-volume store before independently resealing it; it
+uses a random ownership label so failure cleanup cannot remove a same-named
+replacement, and it does not depend on a builder image. See the
+[Steam Deck host setup](steam-deck-host.md) for the fresh-host runbook.
 
 Run a network-disabled kernel build with the verified image:
 

@@ -11,13 +11,17 @@ dockerfile=$repo/containers/kernel-builder/Dockerfile
 bootstrap=$repo/scripts/host/bootstrap-kernel-builder.sh
 prepare=$repo/scripts/device/prepare-mainline.sh
 package_lock=$repo/manifests/kernel-builder-packages.tsv
+rootfs_manifest=$repo/scripts/host/kernel-builder-rootfs-manifest.sh
+rootfs_manifest_artifact=$repo/artifacts/kernel-builder-steamdeck-v1/rootfs-manifest.tsv.gz
 
-for path in "$dockerfile" "$bootstrap" "$prepare" "$package_lock"; do
+for path in \
+	"$dockerfile" "$bootstrap" "$prepare" "$package_lock" "$rootfs_manifest" \
+	"$rootfs_manifest_artifact"; do
 	[[ -f $path && ! -L $path ]] ||
 		fail "missing regular bootstrap input: ${path#"$repo"/}"
 done
-[[ -x $bootstrap ]] ||
-	fail 'Linux kernel builder bootstrap is not executable'
+[[ -x $bootstrap && -x $rootfs_manifest ]] ||
+	fail 'Linux kernel builder bootstrap inputs are not executable'
 
 grep -Fq \
 	'fedora:44@sha256:89f61a124414261868224666aa7fb8df1b78397a53623774bdfb105d1612b48b' \
@@ -72,6 +76,14 @@ grep -Fq -- '--network none' "$bootstrap" ||
 	fail 'Linux bootstrap does not verify the finished image offline'
 grep -Fq 'rootfs_identity' "$bootstrap" ||
 	fail 'Linux bootstrap does not compare normalized root filesystems'
+grep -Fq 'kernel-builder-rootfs-manifest.sh' "$bootstrap" ||
+	fail 'Linux bootstrap does not use the reviewable rootfs manifest'
+grep -Fq \
+	'3a2644f7a128fac3a3c8bd44d9a58cd00304e3459f2aee81d8930a4659919c84' \
+	"$bootstrap" ||
+	fail 'Linux bootstrap does not pin the rootfs manifest implementation'
+grep -Fq 'rootfs_manifest "$image"' "$bootstrap" ||
+	fail 'Linux bootstrap does not expose the normalized rootfs manifest'
 grep -Fq 'APT_CACHE_NAMESPACE' "$bootstrap" ||
 	fail 'reproduction builds do not isolate their APT download caches'
 grep -Fq 'distinct cache namespaces are recorded in image history' "$bootstrap" ||
@@ -79,9 +91,26 @@ grep -Fq 'distinct cache namespaces are recorded in image history' "$bootstrap" 
 if grep -Fq "first_id == \"\$second_id\"" "$bootstrap"; then
 	fail 'reproduction incorrectly equates cache-history metadata with rootfs identity'
 fi
-if grep -Eq '\bsudo\b|fastboot|adb|/dev/(sd|nvme|ufs)' "$bootstrap"; then
+if grep -Eq '\bsudo\b|fastboot|adb|/dev/(sd|nvme|ufs)' \
+	"$bootstrap" "$rootfs_manifest"; then
 	fail 'kernel builder bootstrap contains privilege or phone/storage actions'
 fi
+for token in \
+	'! -path /etc/hostname' \
+	'! -path /etc/hosts' \
+	'! -path /etc/resolv.conf' \
+	'xargs -0 sha256sum' \
+	'META\t%y\t%m\t%U\t%G\t%p\t%l'; do
+	grep -Fq -- "$token" "$rootfs_manifest" ||
+		fail "rootfs manifest lost identity field: $token"
+done
+gzip -t "$rootfs_manifest_artifact"
+[[ $(sha256sum "$rootfs_manifest_artifact" | cut -d ' ' -f 1) == \
+	7680447aa94ed11de4313347face7b7b2168d73c92b243f733eeb656cf6bd94b ]] ||
+	fail 'tracked Steam Deck rootfs manifest archive changed'
+[[ $(gzip -dc "$rootfs_manifest_artifact" | sha256sum | cut -d ' ' -f 1) == \
+	a82749a50365d864714594cc40ce27a28af4f132ef0e540946338b4681bf1fda ]] ||
+	fail 'tracked Steam Deck rootfs manifest identity changed'
 if "$bootstrap" verify localhost/untagged >/dev/null 2>&1; then
 	fail 'kernel builder accepted an image reference without an explicit tag'
 fi
