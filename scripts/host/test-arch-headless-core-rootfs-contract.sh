@@ -6,6 +6,7 @@ stage=$repo/scripts/device/stage-arch-headless-core-rootfs.sh
 verify=$repo/scripts/device/verify-staged-arch-headless-core-rootfs.sh
 base_verify=$repo/scripts/device/verify-staged-arch-headless-rootfs.sh
 host=$repo/scripts/host/stage-arch-rootfs.sh
+runner=$repo/scripts/device/run-arch-rootfs-stage.sh
 binary=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
 unit=$repo/packaging/arch/rog5-key-indicator.service
 modules_conf=$repo/packaging/arch/rog5-status-led.modules.conf
@@ -26,6 +27,9 @@ for path in "$stage" "$verify" "$base_verify" "$host"; do
 		fail "missing executable headless-core source: $path"
 	bash -n "$path"
 done
+[ -f "$runner" ] && [ ! -L "$runner" ] ||
+	fail 'missing regular headless-core chroot runner'
+bash -n "$runner"
 for path in "$binary" "$unit" "$modules_conf" "$manifest"; do
 	[ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing regular headless-core input: $path"
@@ -53,6 +57,7 @@ awk -F '\t' -v hash="$expected_hash" '
 ' "$manifest" || fail 'headless-core artifact manifest entry is not exact'
 
 grep -Fq 'headless-v2)' "$host"
+grep -Fq 'scripts/device/stage-arch-headless-core-rootfs.sh)' "$runner"
 grep -Fq 'stage-arch-headless-core-rootfs.sh' "$host"
 grep -Fq 'verify-staged-arch-headless-core-rootfs.sh' "$host"
 grep -Fq 'indicator_required=1' "$host"
