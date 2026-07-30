@@ -2,8 +2,8 @@
 
 Date: 2026-07-30
 
-Result: **PASS hardware-free; reproducible AArch64 artifact sealed;
-successor root source-complete; hardware acceptance unproven;
+Result: **PASS hardware-free; reproducible AArch64 artifact and exact
+successor root archive sealed; hardware acceptance unproven;
 live authority=none**
 
 ## Outcome
@@ -56,17 +56,37 @@ The service blocks general sysfs tuning with `ProtectKernelTunables=yes` and
 declares only the exact brightness attribute writable; the phone-side
 namespace behavior remains part of the live gate.
 
-This result records source-complete staging, not a newly built or live-tested
-root archive.
+The successor root was then staged from clean commit
+`6a8090e936bfbc2a8e93b430671a216593d11ca9` with the public-only
+`rog5-headless-build-fixture` key. The source-volume verifier and a second
+verifier over a clean extraction both passed:
+
+```text
+archive=artifacts/arch/rog5-arch-headless-core-7.1.4.tar.gz
+size=535163814
+sha256=f52bd75f023ab6209a04f842881356e5a224e1e1845f1d5732ab71da7d36e66b
+profile=headless-core-v2
+kernel_release=7.1.4-g7a5cef0db479
+tree_entries=37674
+installed_packages=150
+authorized_key=SHA256:ylv66wbMSxVEAMiOFvMQOztcvtSB5wSbVe9FXePMLN0
+```
+
+The archive is ignored by Git and recorded as `tracked=no` in the artifact
+manifest. Inspection found only the fixture public key and no SSH host
+private key. This is an exact sealed-output claim, not a clean-twin
+reproducibility claim: package installation used signed current Arch
+repositories rather than a dated snapshot.
 
 ## Validation
 
 The portable host suite, pinned AArch64 duplicate build, QEMU fixture suite,
-legacy SSH-only root contract, successor root contract, and complete
-repository `ci` tier pass. Two tool-free, nonpersistent Claude Opus reviews
-found and then confirmed closure of timer-arm cleanup, signal-race,
-post-stop-off, sealed-source binding, CI registration, sysfs sandboxing, and
-early-probe startup issues.
+legacy SSH-only root contract, successor root source contract, staged-root
+verification, extracted-root verification, and complete repository `ci` tier
+pass. Two tool-free, nonpersistent Claude Opus reviews found and then
+confirmed closure of timer-arm cleanup, signal-race, post-stop-off,
+sealed-source binding, CI registration, sysfs sandboxing, and early-probe
+startup issues.
 
 ## Authority
 

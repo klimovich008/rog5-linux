@@ -159,8 +159,13 @@ green LPG class/driver/DT identity before accepting events. Only a value-1
 `KEY_POWER` produces brightness 31 for 180 ms; signals and failures restore
 zero. Host and AArch64/QEMU hostile suites pass, and a successor headless-root
 staging profile adds only this binary, its confined service, and one module
-line. The existing SSH-only root is unchanged, and no successor archive or
-live behavior is accepted yet. See the
+line. The existing SSH-only root is unchanged, and no successor live
+behavior is accepted yet. The successor archive is now sealed at
+535,163,814 bytes with SHA-256
+`f52bd75f023ab6209a04f842881356e5a224e1e1845f1d5732ab71da7d36e66b`;
+both staged and clean-extraction verification pass with the repository's
+public test key. The archive stays outside Git, is unsigned and unbooted, and
+does not grant live authority. See the
 [native runtime contract](headless-key-indicator.md) and
 [offline result](../test-results/2026-07-30-headless-key-indicator-offline.md).
 
