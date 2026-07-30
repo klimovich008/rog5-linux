@@ -22,7 +22,7 @@ build outputs.
 | Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree and rootless x86_64 builder; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 37 source and 23 corrected-DTB checks, while an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; the corrected candidate remains live-pending |
-| Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline for power, volume-down, volume-up, and a default-off green status LED; physical input/LED behavior remains live-pending |
+| Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service now validates the exact power-key/LPG identities and emits only one bounded default-off green pulse per physical press; hardware behavior remains live-pending |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1; the corrected v3-isolated target, bundle, shell-free recovery, and wrapper now reproduce in a complete offline twin build |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -60,6 +60,10 @@ gate.
   [offline result](test-results/2026-07-30-buttons-indicator-offline.md) —
   stock-evidenced key/LED mapping, exact additive DTB delta, accepted
   source/config/module gate, hostile tests, and the remaining physical gate.
+- [Native key-indicator runtime](docs/headless-key-indicator.md) and
+  [offline result](test-results/2026-07-30-headless-key-indicator-offline.md)
+  — sealed static AArch64 helper, exact runtime identity gate, bounded
+  press-only policy, QEMU fixtures, and the successor headless-root boundary.
 - [Volatile target host-key bootstrap](docs/minimal-headless-host-key-bootstrap.md)
   and
   [offline result](test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md)

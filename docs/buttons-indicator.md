@@ -119,6 +119,17 @@ scripts/host/test-buttons-indicator-source-contract.py
 
 ## Runtime acceptance order
 
+The offline runtime half is now implemented by the
+[native key-indicator service](headless-key-indicator.md). Its production
+binary has no fixture interface, interpreter, Python, shell, network, storage,
+display, reboot, or poweroff path. It first requires the exact
+`pmic_pwrkey`/`KEY_POWER` evdev device and exact `green:status` class device
+backed by `qcom-spmi-lpg`, DT node
+`/soc@0/spmi@c440000/pmic@2/pwm/led@2`, maximum brightness 511, brightness
+zero, and selected trigger `none`. Only a value-1 `KEY_POWER` event produces
+a 180 ms brightness-31 pulse. Shutdown and every error path synchronously
+restore zero.
+
 One attended RAM-only candidate must keep the existing rollback watchdog and
 minimal-headless checks armed. It should then:
 
@@ -127,8 +138,8 @@ minimal-headless checks armed. It should then:
 2. load the exact accepted `leds-qcom-lpg.ko`, then require one default-off
    green LED class device;
 3. record press and release for each physical key without synthetic events;
-4. turn the green LED on briefly from userspace only after the minimal server
-   reaches its accepted SSH/health state;
+4. run the helper's read-only `--probe`, then enable its bounded pulse service
+   only after the minimal server reaches its accepted SSH/health state;
 5. prove key presses and LED writes do not stop SSH, alter storage isolation,
    or produce new kernel warnings;
 6. reboot normally to the exact fallback and collect the bounded result.

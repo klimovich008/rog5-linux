@@ -153,6 +153,17 @@ offline readiness only: no physical key or LED behavior has been accepted.
 See the [buttons/indicator contract](buttons-indicator.md) and
 [offline result](../test-results/2026-07-30-buttons-indicator-offline.md).
 
+The matching userspace path is now native and bounded. A reproducible
+67,520-byte static AArch64 daemon validates the exact PMIC power input and
+green LPG class/driver/DT identity before accepting events. Only a value-1
+`KEY_POWER` produces brightness 31 for 180 ms; signals and failures restore
+zero. Host and AArch64/QEMU hostile suites pass, and a successor headless-root
+staging profile adds only this binary, its confined service, and one module
+line. The existing SSH-only root is unchanged, and no successor archive or
+live behavior is accepted yet. See the
+[native runtime contract](headless-key-indicator.md) and
+[offline result](../test-results/2026-07-30-headless-key-indicator-offline.md).
+
 The sealed lower deliberately has no reusable SSH host key, so the corrected
 temporary target cannot have a static known-hosts entry before boot. The new
 host-key bootstrap closes that development-only gap without `accept-new`: it

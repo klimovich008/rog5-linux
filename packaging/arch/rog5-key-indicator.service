@@ -1,0 +1,46 @@
+[Unit]
+Description=ROG Phone 5 power-key status indication
+After=systemd-modules-load.service systemd-udevd.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/libexec/rog5-key-indicatord
+ExecStopPost=/usr/local/libexec/rog5-key-indicatord --off
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=2s
+DevicePolicy=closed
+DeviceAllow=char-input r
+ReadWritePaths=/sys/class/leds/green:status/brightness
+NoNewPrivileges=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectProc=invisible
+ProtectSystem=strict
+ProcSubset=pid
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

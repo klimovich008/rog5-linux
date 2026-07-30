@@ -153,6 +153,8 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-recovery-candidate-integration.py
 		scripts/host/test-headless-network-root.py
 		scripts/host/test-arch-headless-rootfs-contract.sh
+		scripts/host/test-key-indicatord.sh
+		scripts/host/test-arch-headless-core-rootfs-contract.sh
 		scripts/host/test-claude-readonly-review.sh
 		scripts/device/test-network-root-init.sh
 		scripts/device/test-kernel-build-contract.sh
@@ -192,6 +194,8 @@ else
 		scripts/host/test-recovery-candidate-integration.py
 		scripts/host/test-headless-network-root.py
 		scripts/host/test-arch-headless-rootfs-contract.sh
+		scripts/host/test-key-indicatord.sh
+		scripts/host/test-arch-headless-core-rootfs-contract.sh
 		scripts/host/test-claude-readonly-review.sh
 		scripts/host/test-generate-artifact-prune-plan.py
 		scripts/host/test-generate-host-storage-cleanup-plan.py
