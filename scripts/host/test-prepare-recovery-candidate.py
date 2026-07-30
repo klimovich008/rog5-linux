@@ -200,6 +200,23 @@ class RecoveryCandidateTest(unittest.TestCase):
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo
         RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        shared_image = {
+            "path": "artifacts/network-root-v1/Image-7.1.4-network-root",
+            "size": 40049152,
+            "sha256": (
+                "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
+            ),
+        }
+        shared_network_root_loader = {
+            "path": (
+                "artifacts/headless-network-root-v1/"
+                "rog5-headless-network-root-initramfs.cpio.gz"
+            ),
+            "size": 5978369,
+            "sha256": (
+                "819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5"
+            ),
+        }
         cases = (
             (
                 "headless-network-root-v1",
@@ -216,6 +233,14 @@ class RecoveryCandidateTest(unittest.TestCase):
                 "sm8350-asus-rog-phone5-buttons-indicator.dtb",
                 103554,
                 "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d",
+            ),
+            (
+                "headless-ssh-network-root-v3",
+                "headless-ssh-network-root-v3.package",
+                "artifacts/network-root-v3/"
+                "sm8350-asus-rog-phone5-recovery.dtb",
+                102870,
+                "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46",
             ),
         )
         for candidate, package_name, dtb_path, dtb_size, dtb_hash in cases:
@@ -235,6 +260,7 @@ class RecoveryCandidateTest(unittest.TestCase):
                 self.assertEqual(record["status"], "offline")
                 self.assertEqual(record["authority"], "none")
                 self.assertEqual(record["profile"], package["profile"])
+                self.assertEqual(record["artifacts"]["Image"], shared_image)
                 self.assertEqual(
                     record["artifacts"]["board.dtb"],
                     {
@@ -242,6 +268,10 @@ class RecoveryCandidateTest(unittest.TestCase):
                         "size": dtb_size,
                         "sha256": dtb_hash,
                     },
+                )
+                self.assertEqual(
+                    record["artifacts"]["initramfs.cpio.gz"],
+                    shared_network_root_loader,
                 )
                 for name in (
                     "a660_command_manifest_sha256",

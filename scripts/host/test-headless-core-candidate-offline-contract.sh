@@ -43,7 +43,7 @@ grep -Fxq 'format=rog5-headless-network-root-package-v2' "$package"
 grep -Fxq 'build_profile=headless-core-v2' "$package"
 
 if grep -Eq \
-	'\b(fastboot|adb|ssh|scp|systemctl|pkexec|sudo)\b|/dev/(sd|nvme|ufs)' \
+	'\b(fastboot|adb|scp|systemctl|pkexec|sudo)\b|(^|[[:space:]"'\''])ssh([[:space:]"'\'']|$)|/dev/(sd|nvme|ufs)' \
 	"$builder" "$base_builder"; then
 	fail 'headless-core candidate builder contains live or storage transport'
 fi

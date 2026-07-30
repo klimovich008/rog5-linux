@@ -135,12 +135,14 @@ The rejected recursive package, duplicate source build, diagnostic package,
 and three disposable expanded-root volumes were deleted. Approximately 6 GiB
 was reclaimed.
 
-This package is not a live candidate. Before any credential-bearing or
-connected preflight:
+The distinct fixture-only `headless-ssh-network-root-v3` recovery candidate
+now passes its complete hardware-free gate. It does not grant live authority;
+see the
+[candidate result](2026-07-30-headless-ssh-v2-candidate-offline.md).
+Before any credential-bearing or connected preflight:
 
-1. create a new corrected-candidate profile that names this v3 package;
-2. derive the public key from the caller's private key with `ssh-keygen -y`;
-3. reject the public fixture fingerprint;
-4. require exact v3/profile/package pairing; and
-5. obtain fresh authorization for host promotion, credential use, and any
+1. derive the public key from the caller's private key with `ssh-keygen -y`;
+2. reject the public fixture fingerprint;
+3. rebuild and require exact v3/profile/package/candidate pairing; and
+4. obtain fresh authorization for host promotion, credential use, and any
    temporary phone boot.

@@ -46,6 +46,10 @@ for token in \
 	grep -Fq -- "$token" "$runner" ||
 		fail "private ARM64 runner omits contract token: $token"
 done
+grep -Fq \
+	'for command_name in cut findmnt id mount python3 sha256sum stat; do' \
+	"$runner" ||
+	fail 'private ARM64 inside branch no longer has a podman-free dependency set'
 
 for token in \
 	'os.memfd_create' \
@@ -89,6 +93,14 @@ if "$extractor" "$test_root/escape/.qemu-contract-symlink-$$" \
 fi
 [[ ! -e $repo/scripts/.qemu-contract-symlink-$$ ]] ||
 	fail 'QEMU extractor wrote through a symlink-parent output'
+
+read -r test_inside_id test_outside_id test_map_length _ \
+	</proc/self/uid_map ||
+	fail 'could not read contract-test user-namespace mapping'
+if [[ $(id -u) == 0 && $test_inside_id == 0 &&
+	$test_outside_id != 0 && $test_map_length -gt 0 ]]; then
+	fail 'contract test must not run inside a rootless user namespace'
+fi
 
 if "$runner" --inside-private-mount true >"$test_root/runner.out" 2>&1; then
 	fail 'private ARM64 runner accepted a direct internal-branch invocation'

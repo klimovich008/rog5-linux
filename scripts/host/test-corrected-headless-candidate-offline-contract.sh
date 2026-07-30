@@ -92,7 +92,7 @@ if grep -Fq \
 fi
 
 if grep -Eq \
-	'\b(fastboot|adb|ssh|scp|systemctl|pkexec|sudo)\b|/dev/(sd|nvme|ufs)' \
+	'\b(fastboot|adb|scp|systemctl|pkexec|sudo)\b|(^|[[:space:]"'\''])ssh([[:space:]"'\'']|$)|/dev/(sd|nvme|ufs)' \
 	"$builder"; then
 	fail 'offline corrected-candidate builder contains phone, privilege, or storage transport'
 fi

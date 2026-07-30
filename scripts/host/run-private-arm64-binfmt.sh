@@ -13,16 +13,13 @@ expected_size=6245816
 expected_sha=bfcd46c842441912baed36158569ac29a7fb656684ca73c1b3b2f0f3971e9bec
 expected_sealed_runner=354ea9b62a7ec9f19501858e3e0d2c4f848faa93e639dccc36bb23f5a016c301
 
-for command_name in cut findmnt grep head id mount podman sha256sum stat \
-	unshare python3; do
-	command -v "$command_name" >/dev/null ||
-		fail "missing private ARM64 namespace command: $command_name"
-done
-[[ -f $sealed_runner && ! -L $sealed_runner && -x $sealed_runner ]] ||
-	fail 'missing sealed ARM64 binfmt runner'
-[[ $(sha256sum "$sealed_runner" | cut -d ' ' -f 1) == \
-	"$expected_sealed_runner" ]] ||
-	fail 'sealed ARM64 binfmt runner changed'
+check_sealed_runner() {
+	[[ -f $sealed_runner && ! -L $sealed_runner && -x $sealed_runner ]] ||
+		fail 'missing sealed ARM64 binfmt runner'
+	[[ $(sha256sum "$sealed_runner" | cut -d ' ' -f 1) == \
+		"$expected_sealed_runner" ]] ||
+		fail 'sealed ARM64 binfmt runner changed'
+}
 
 check_qemu() {
 	[[ -f $qemu && ! -L $qemu && -x $qemu ]] ||
@@ -41,6 +38,11 @@ if [[ ${1:-} == --inside-private-mount ]]; then
 		$namespace_guard == "$ROG5_PRIVATE_BINFMT_GUARD" ]] ||
 		fail 'private ARM64 branch lacks its outer-runner guard'
 	[[ $# -gt 0 ]] || fail 'missing command inside private ARM64 namespace'
+	for command_name in cut findmnt id mount python3 sha256sum stat; do
+		command -v "$command_name" >/dev/null ||
+			fail "missing private ARM64 namespace command: $command_name"
+	done
+	check_sealed_runner
 	[[ $(id -u) == 0 ]] ||
 		fail 'private ARM64 branch requires root inside a rootless user namespace'
 	read -r inside_id outside_id map_length _ </proc/self/uid_map ||
@@ -57,6 +59,12 @@ if [[ ${1:-} == --inside-private-mount ]]; then
 		-- "$@"
 fi
 
+for command_name in cut findmnt grep head id mount podman sha256sum stat \
+	unshare python3; do
+	command -v "$command_name" >/dev/null ||
+		fail "missing private ARM64 namespace command: $command_name"
+done
+check_sealed_runner
 [[ $# -gt 0 ]] || fail 'usage: run-private-arm64-binfmt.sh COMMAND [ARG...]'
 [[ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
 	fail 'host ARM64 binfmt handler must be absent for private-runner proof'
