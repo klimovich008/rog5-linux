@@ -4,12 +4,14 @@
 
 This is the first userspace component admitted after the SSH-only minimal
 root. It gives a person holding an otherwise screen-off phone one bounded
-sign that Linux received a real power-button press. It is **offline-ready and
-live-pending**: no phone was contacted and no LED has been energized by this
-milestone.
+sign that Linux received a real power-button press. It is **sealed
+offline and live-pending**: the successor root archive passes its extracted
+root verifier, but no phone was contacted and no LED has been energized by
+this milestone.
 
-The accepted SSH-only root remains unchanged. `headless-v2` is a successor
-staging profile which adds only:
+The accepted SSH-only root remains unchanged. `headless-v2` is the host
+builder's generation selector; it produces the in-root profile
+`headless-core-v2`, which adds only:
 
 - `/usr/local/libexec/rog5-key-indicatord`;
 - `rog5-key-indicator.service`; and
@@ -34,6 +36,34 @@ source_date_epoch=1681862400
 Two independent builds in the pinned ARM64 image produced that exact hash.
 The fixture-enabled build is separate, temporary, and rejected by production
 artifact checks.
+
+## Sealed successor root
+
+The `headless-v2` stage was built from clean project commit `6a8090e` with
+the repository's non-production Ed25519 public-key fixture. The staging
+verifier passed before packaging, and a clean extraction into a separate
+volume passed the same verifier again:
+
+```text
+path=artifacts/arch/rog5-arch-headless-core-7.1.4.tar.gz
+size=535163814
+sha256=f52bd75f023ab6209a04f842881356e5a224e1e1845f1d5732ab71da7d36e66b
+profile=headless-core-v2
+kernel_release=7.1.4-g7a5cef0db479
+entries=37674
+packages=150
+authorized_key_fingerprint=SHA256:ylv66wbMSxVEAMiOFvMQOztcvtSB5wSbVe9FXePMLN0
+```
+
+The 510 MiB archive remains outside Git and is bound by the tracked artifact
+manifest. It contains the public fixture in `root/.ssh/authorized_keys` and
+no SSH host private key. It is unsigned and unbooted, so this identity grants
+neither live nor boot authority.
+
+The archive is an exact sealed output, not yet a clean-twin reproducibility
+claim. The stage performs a signed Arch package upgrade against the current
+repository state; a future release should pin a dated package snapshot before
+requiring independent rebuilds to produce this byte identity.
 
 ## Runtime identity gate
 
@@ -115,6 +145,17 @@ five-second pulse. The
 successor root contract proves that the sealed binary and service are
 read-only build inputs and that no deferred UI or agent package entered the
 minimal package list.
+
+The root builder also performs an extracted-root verification automatically:
+
+```sh
+ARCH_ROOTFS_GENERATION=headless-v2 \
+  scripts/host/stage-arch-rootfs.sh \
+  configs/ssh/rog5-headless-build-fixture.pub
+```
+
+It refuses to overwrite an existing archive and requires a clean project
+commit so `/etc/rog5/build` identifies the exact source revision.
 
 ## Remaining live gate
 
