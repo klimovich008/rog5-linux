@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 import json
 import os
@@ -18,12 +19,14 @@ from typing import NoReturn
 
 
 REPO = Path(__file__).resolve().parents[2]
-BUNDLE = "headless-network-root-v1"
+BUNDLE = "headless-ssh-network-root-v3"
+RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 FALLBACK_ALIAS = "rog5-fallback"
 TARGET_ADDRESS = "169.254.77.2"
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 ZERO_SHA256 = "0" * 64
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+SSH_FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
 HEX_ID = re.compile(r"[0-9a-f]{32}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -31,6 +34,7 @@ BOOT_ID = re.compile(
 )
 FULL_GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE",
+    "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
     "ALLOW_TEMPORARY_BOOT",
     "ALLOW_HEADLESS_LIVE_GATE",
     "ALLOW_STABLE_RECOVERY_CONTROL",
@@ -39,6 +43,10 @@ FULL_GUARDS = (
     "ALLOW_HEADLESS_NETWORK_ROOT_SERVER",
     "ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP",
     "ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE",
+    "ALLOW_PHONE_CREDENTIAL_USE",
+)
+KEY_GUARDS = (
+    "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
     "ALLOW_PHONE_CREDENTIAL_USE",
 )
 PASSTHROUGH_ENVIRONMENT = (
@@ -81,6 +89,23 @@ OUTPUT_NAMES = (
     "fallback-preflight.log",
     "intent-resolution.log",
 )
+KEY_ADMISSION_FIELDS = (
+    "format",
+    "candidate",
+    "bundle",
+    "profile",
+    "build_profile",
+    "target_id",
+    "authorized_key_fingerprint",
+    "public_key_sha256",
+    "package_sha256",
+    "candidate_sha256",
+    "manifest_sha256",
+    "root_tree_sha256",
+    "root_seal_sha256",
+    "root_tree_entries",
+    "authority",
+)
 
 
 class CycleError(RuntimeError):
@@ -108,6 +133,7 @@ class Dependencies:
     host_key: Path
     runtime_acceptance: Path
     fallback: Path
+    key_admission: Path
     handoff_marker: Path
     export_mount: Path
     nfs_threads: Path
@@ -145,6 +171,9 @@ class Dependencies:
                     root / "run-minimal-headless-runtime-acceptance.sh"
                 ),
                 fallback=root / "reboot-fallback-to-fastboot.sh",
+                key_admission=(
+                    root / "verify-headless-ssh-v2-key-admission.py"
+                ),
                 handoff_marker=state / "nfs-ready",
                 export_mount=state / "export-mount",
                 nfs_threads=state / "nfs-threads",
@@ -181,6 +210,11 @@ class Dependencies:
             fallback=(
                 REPO / "scripts/host/reboot-fallback-to-fastboot.sh"
             ),
+            key_admission=(
+                REPO
+                / "scripts/host/"
+                "verify-headless-ssh-v2-key-admission.py"
+            ),
             handoff_marker=Path("/run/rog5-network-root-nfs-ready"),
             export_mount=Path("/run/rog5-network-root-export"),
             nfs_threads=Path("/proc/fs/nfsd/threads"),
@@ -190,6 +224,15 @@ class Dependencies:
             sys_class_net=Path("/sys/class/net"),
             offline=False,
         )
+
+
+@dataclass(frozen=True)
+class AdmissionInputs:
+    manifest_sha256: str
+    ssh_key: Path
+    root_package: Path
+    candidate_record: Path
+    bundle_manifest: Path
 
 
 @dataclass(frozen=True)
@@ -296,6 +339,51 @@ def caller_directory(path_value: str) -> Path:
     return path
 
 
+def caller_artifact(path_value: str, label: str) -> Path:
+    if not path_value:
+        fail(f"set {label}")
+    supplied = Path(path_value)
+    try:
+        metadata = supplied.lstat()
+        path = supplied.resolve(strict=True)
+        resolved = path.lstat()
+    except OSError as error:
+        raise CycleError(f"{label} is unavailable") from error
+    if (
+        not supplied.is_absolute()
+        or supplied != path
+        or stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISREG(resolved.st_mode)
+        or resolved.st_uid != os.geteuid()
+        or stat.S_IMODE(resolved.st_mode) not in {0o400, 0o444}
+        or resolved.st_nlink != 1
+    ):
+        fail(f"{label} must be a canonical caller-owned read-only file")
+    return path
+
+
+def caller_artifact_directory(path_value: str, label: str) -> Path:
+    if not path_value:
+        fail(f"set {label}")
+    supplied = Path(path_value)
+    try:
+        metadata = supplied.lstat()
+        path = supplied.resolve(strict=True)
+        resolved = path.lstat()
+    except OSError as error:
+        raise CycleError(f"{label} is unavailable") from error
+    if (
+        not supplied.is_absolute()
+        or supplied != path
+        or stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISDIR(resolved.st_mode)
+        or resolved.st_uid != os.geteuid()
+        or stat.S_IMODE(resolved.st_mode) != 0o700
+    ):
+        fail(f"{label} must be a canonical caller-owned mode-0700 directory")
+    return path
+
+
 def outside_repository(path: Path, label: str) -> None:
     try:
         path.relative_to(REPO)
@@ -304,7 +392,7 @@ def outside_repository(path: Path, label: str) -> None:
     fail(f"{label} must remain outside the repository")
 
 
-def parse_inputs() -> Inputs:
+def parse_admission_inputs() -> AdmissionInputs:
     manifest = os.environ.get("MANIFEST_SHA256", "")
     if not SHA256.fullmatch(manifest) or manifest == ZERO_SHA256:
         fail("MANIFEST_SHA256 must be one nonzero lowercase SHA-256")
@@ -312,20 +400,46 @@ def parse_inputs() -> Inputs:
         fail(f"BUNDLE must be exactly {BUNDLE}")
     if (
         os.environ.get("ROG5_STABLE_RECOVERY_PROFILE")
-        != "corrected-headless-successor-2026-07-30"
+        != RECOVERY_PROFILE
     ):
         fail(
-            "ROG5_STABLE_RECOVERY_PROFILE must select the corrected "
-            "headless successor"
+            "ROG5_STABLE_RECOVERY_PROFILE must select the headless SSH "
+            "deployment profile"
         )
     ssh_key = caller_file(os.environ.get("SSH_KEY", ""), "SSH_KEY")
+    root_package = caller_artifact(
+        os.environ.get("HEADLESS_ROOT_PACKAGE", ""),
+        "HEADLESS_ROOT_PACKAGE",
+    )
+    candidate_record = caller_artifact(
+        os.environ.get("RECOVERY_CANDIDATE_RECORD", ""),
+        "RECOVERY_CANDIDATE_RECORD",
+    )
+    bundle_root = caller_artifact_directory(
+        os.environ.get("BUNDLE_ROOT", ""),
+        "BUNDLE_ROOT",
+    )
+    bundle_manifest = caller_artifact(
+        str(bundle_root / BUNDLE / "manifest"),
+        "runtime bundle manifest",
+    )
+    outside_repository(ssh_key, "SSH_KEY")
+    return AdmissionInputs(
+        manifest_sha256=manifest,
+        ssh_key=ssh_key,
+        root_package=root_package,
+        candidate_record=candidate_record,
+        bundle_manifest=bundle_manifest,
+    )
+
+
+def parse_inputs(admission: AdmissionInputs) -> Inputs:
     known_hosts = caller_file(
         os.environ.get("FALLBACK_KNOWN_HOSTS", ""),
         "FALLBACK_KNOWN_HOSTS",
     )
     evidence = caller_directory(os.environ.get("EVIDENCE_DIR", ""))
     for path, label in (
-        (ssh_key, "SSH_KEY"),
         (known_hosts, "FALLBACK_KNOWN_HOSTS"),
         (evidence, "EVIDENCE_DIR"),
     ):
@@ -338,8 +452,8 @@ def parse_inputs() -> Inputs:
     ):
         fail("ROG5_FALLBACK_TIMEOUT must be between 600 and 900 seconds")
     return Inputs(
-        manifest_sha256=manifest,
-        ssh_key=ssh_key,
+        manifest_sha256=admission.manifest_sha256,
+        ssh_key=admission.ssh_key,
         fallback_known_hosts=known_hosts,
         evidence_dir=evidence,
         fallback_timeout=int(timeout_value),
@@ -392,6 +506,141 @@ def run_capture(
         )
         fail(f"command failed ({arguments[0]}): {final}")
     return result
+
+
+def verify_repository_checkpoint(git: Path) -> None:
+    status = run_capture(
+        [
+            str(git),
+            "-C",
+            str(REPO),
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+        ]
+    ).stdout
+    if status:
+        fail("repository must be clean before deployment-key admission")
+    branch = run_capture(
+        [
+            str(git),
+            "-C",
+            str(REPO),
+            "branch",
+            "--show-current",
+        ]
+    ).stdout.strip()
+    if not branch:
+        fail("repository is not on a branch")
+    upstream = run_capture(
+        [
+            str(git),
+            "-C",
+            str(REPO),
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{u}",
+        ]
+    ).stdout.strip()
+    if upstream != f"origin/{branch}":
+        fail("lifecycle branch does not track its exact origin peer")
+    head = run_capture(
+        [str(git), "-C", str(REPO), "rev-parse", "HEAD"]
+    ).stdout.strip()
+    remote = run_capture(
+        [str(git), "-C", str(REPO), "rev-parse", upstream]
+    ).stdout.strip()
+    if not head or head != remote:
+        fail("local and remote-tracking checkpoints differ")
+
+
+def parse_key_admission_record(
+    payload: str,
+    expected_manifest_sha256: str,
+) -> OrderedDict[str, str]:
+    if not payload.endswith("\n"):
+        fail("deployment-key admission output is not canonical")
+    lines = payload.splitlines()
+    if len(lines) != len(KEY_ADMISSION_FIELDS):
+        fail("deployment-key admission field count changed")
+    values: OrderedDict[str, str] = OrderedDict()
+    for expected, line in zip(KEY_ADMISSION_FIELDS, lines, strict=True):
+        name, separator, value = line.partition("=")
+        if (
+            separator != "="
+            or name != expected
+            or not value
+            or name in values
+        ):
+            fail("deployment-key admission field changed")
+        values[name] = value
+    if (
+        values["format"] != "rog5-headless-ssh-v2-key-admission-v1"
+        or values["candidate"] != BUNDLE
+        or values["bundle"] != BUNDLE
+        or values["profile"] != "network-root-v1"
+        or values["build_profile"] != "headless-ssh-v2"
+        or values["target_id"] != "headless-ssh-network-root"
+        or values["manifest_sha256"] != expected_manifest_sha256
+        or values["authority"] != "none"
+        or not SSH_FINGERPRINT.fullmatch(
+            values["authorized_key_fingerprint"]
+        )
+    ):
+        fail("deployment-key admission identity changed")
+    for name in (
+        "public_key_sha256",
+        "package_sha256",
+        "candidate_sha256",
+        "manifest_sha256",
+        "root_tree_sha256",
+        "root_seal_sha256",
+    ):
+        if not SHA256.fullmatch(values[name]) or values[name] == ZERO_SHA256:
+            fail("deployment-key admission hash is invalid")
+    entries = values["root_tree_entries"]
+    if (
+        not entries.isascii()
+        or not entries.isdecimal()
+        or entries.startswith("0")
+    ):
+        fail("deployment-key admission entry count is invalid")
+    return values
+
+
+def verify_key_admission(
+    dependencies: Dependencies,
+    inputs: AdmissionInputs,
+) -> OrderedDict[str, str]:
+    fixed_executable(
+        dependencies.key_admission,
+        offline=dependencies.offline,
+    )
+    result = run_capture(
+        [
+            str(dependencies.key_admission),
+            "--private-key",
+            str(inputs.ssh_key),
+            "--package",
+            str(inputs.root_package),
+            "--candidate",
+            str(inputs.candidate_record),
+            "--manifest",
+            str(inputs.bundle_manifest),
+            "--manifest-sha256",
+            inputs.manifest_sha256,
+        ],
+        environment={
+            "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
+            "LC_ALL": "C",
+        },
+        timeout=30,
+    )
+    return parse_key_admission_record(
+        result.stdout,
+        inputs.manifest_sha256,
+    )
 
 
 def open_exclusive(path: Path) -> int:
@@ -685,62 +934,7 @@ class LiveCycle:
         return self.inputs.evidence_dir / name
 
     def verify_repository(self) -> None:
-        status = run_capture(
-            [
-                str(self.dependencies.git),
-                "-C",
-                str(REPO),
-                "status",
-                "--porcelain",
-                "--untracked-files=all",
-            ]
-        ).stdout
-        if status:
-            fail("repository must be clean before the one-shot lifecycle")
-        branch = run_capture(
-            [
-                str(self.dependencies.git),
-                "-C",
-                str(REPO),
-                "branch",
-                "--show-current",
-            ]
-        ).stdout.strip()
-        if not branch:
-            fail("repository is not on a branch")
-        upstream = run_capture(
-            [
-                str(self.dependencies.git),
-                "-C",
-                str(REPO),
-                "rev-parse",
-                "--abbrev-ref",
-                "--symbolic-full-name",
-                "@{u}",
-            ]
-        ).stdout.strip()
-        if upstream != f"origin/{branch}":
-            fail("lifecycle branch does not track its exact origin peer")
-        head = run_capture(
-            [
-                str(self.dependencies.git),
-                "-C",
-                str(REPO),
-                "rev-parse",
-                "HEAD",
-            ]
-        ).stdout.strip()
-        remote = run_capture(
-            [
-                str(self.dependencies.git),
-                "-C",
-                str(REPO),
-                "rev-parse",
-                upstream,
-            ]
-        ).stdout.strip()
-        if not head or head != remote:
-            fail("local and remote-tracking checkpoints differ")
+        verify_repository_checkpoint(self.dependencies.git)
 
     def ledger_root(self) -> Path:
         state_home = os.environ.get("XDG_STATE_HOME")
@@ -1132,7 +1326,6 @@ class LiveCycle:
             self.dependencies.fallback,
         ):
             fixed_executable(path, offline=self.dependencies.offline)
-        self.verify_repository()
         for name in OUTPUT_NAMES:
             path = self.output(name)
             if path.exists() or path.is_symlink():
@@ -1596,21 +1789,49 @@ def require_guards() -> None:
         )
 
 
+def require_key_guards() -> None:
+    missing = [
+        name for name in KEY_GUARDS if os.environ.get(name) != "1"
+    ]
+    if missing:
+        fail(
+            "deployment-key admission requires exact fresh guards: "
+            + ", ".join(missing)
+        )
+
+
 def main(arguments: list[str]) -> int:
     action = arguments[0] if len(arguments) == 1 else ""
-    if action not in {"preflight", "run"}:
-        fail("usage: run-minimal-headless-live-cycle.py preflight | run")
+    if action not in {"key-preflight", "preflight", "run"}:
+        fail(
+            "usage: run-minimal-headless-live-cycle.py "
+            "key-preflight | preflight | run"
+        )
     if action == "run":
         require_guards()
+    else:
+        require_key_guards()
     dependencies = Dependencies.from_environment()
-    inputs = parse_inputs()
+    fixed_executable(dependencies.git, offline=dependencies.offline)
+    verify_repository_checkpoint(dependencies.git)
+    admission = parse_admission_inputs()
+    verify_key_admission(dependencies, admission)
+    if action == "key-preflight":
+        print(
+            "PASS deployment SSH key matches one non-fixture v3 "
+            "package/candidate/runtime-manifest chain; no phone or "
+            "privileged host action occurred"
+        )
+        return 0
+    inputs = parse_inputs(admission)
     cycle = LiveCycle(dependencies, inputs)
     cycle.preflight()
     if action == "preflight":
         print(
-            "PASS minimal-headless lifecycle preflight is clean; no phone "
-            "boot, credential use, payload transfer, or privileged server "
-            "was started"
+            "PASS minimal-headless lifecycle preflight is clean; the "
+            "deployment key was admitted locally, and no phone boot, "
+            "payload transfer, SSH connection, or privileged server was "
+            "started"
         )
         return 0
     cycle.run()

@@ -181,9 +181,12 @@ before a phone cycle.
 - [x] Bind the v3 package to a distinct corrected-DTB recovery candidate and
   pass twin signed-bundle, native-verifier, shell-free recovery, clean ASUS
   wrapper, boot-v3, and test-only AVB gates with a destroyed disposable key.
-- [ ] At the live gate, derive the public half from the caller's private key,
+- [x] At the live gate, derive the public half from the caller's private key,
   reject the fixture fingerprint, and require exact v3/profile pairing before
   any connected preflight.
+- [ ] Rebuild the root/package/candidate/runtime-manifest chain around a
+  separately authorized non-fixture key, add the corresponding stable-recovery
+  and read-only NFS export profile, and pass every host-only artifact gate.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -401,10 +404,13 @@ Continue in this order:
    key fixture, then rerun its extracted-root verifier;
 10. [x] bind the fixture-key fingerprint across the new root build record,
     whole-tree seal, and v3 package while keeping historical v1/v2 exact;
-11. integrate that v3 package into a new phone-free corrected-candidate
+11. [x] integrate that v3 package into a new phone-free corrected-candidate
     profile and add private-to-public key derivation at the live preflight;
-12. request fresh, separate authorization before creating or using a live
+12. rebuild the complete v3 chain around a separately authorized non-fixture
+    key, add its stable-recovery/read-only-NFS profile, and pass phone-free
+    artifact and key preflight;
+13. request fresh, separate authorization before creating or using a live
     signing credential or temporarily booting the corrected candidate;
-13. if the minimal root reaches key-only SSH and clean rollback, run the
+14. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

@@ -20,6 +20,8 @@ NETWORK_LAUNCHER = (
 NETWORK_SERVER = REPO / "scripts/host/serve-network-root.sh"
 INSTALLER = REPO / "scripts/host/install-recovery-host-controller.sh"
 MANIFEST = "a" * 64
+BUNDLE = "headless-ssh-network-root-v3"
+RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 SESSION = "1" * 32
 PREPARE = "2" * 32
 REQUEST = "3" * 32
@@ -27,6 +29,7 @@ TARGET_BOOT_ID = "11111111-2222-4333-8444-555555555555"
 FALLBACK_BOOT_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE",
+    "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
     "ALLOW_TEMPORARY_BOOT",
     "ALLOW_HEADLESS_LIVE_GATE",
     "ALLOW_STABLE_RECOVERY_CONTROL",
@@ -64,6 +67,18 @@ class Fixture:
         for path in (self.ssh_key, self.known_hosts):
             path.write_bytes(b"offline-test\n")
             path.chmod(0o600)
+        self.package = self.root / "headless-root.package"
+        self.candidate = self.root / "candidate.json"
+        for path in (self.package, self.candidate):
+            path.write_bytes(b"offline-admission-fixture\n")
+            path.chmod(0o400)
+        self.bundle_root = self.root / "bundle-root"
+        self.bundle_root.mkdir(mode=0o700)
+        self.bundle = self.bundle_root / BUNDLE
+        self.bundle.mkdir(mode=0o700)
+        self.bundle_manifest = self.bundle / "manifest"
+        self.bundle_manifest.write_bytes(b"offline-runtime-manifest\n")
+        self.bundle_manifest.chmod(0o400)
         self.calls = self.root / "calls"
         self._write_mocks()
 
@@ -193,6 +208,42 @@ class Fixture:
             """,
         )
         self.executable(
+            "verify-headless-ssh-v2-key-admission.py",
+            f"""\
+            #!/bin/sh
+            set -eu
+            [ -z "${{SSH_KEY+x}}" ]
+            [ -z "${{UNRELATED_CREDENTIAL+x}}" ]
+            [ "$1" = --private-key ]
+            [ "$2" = "{self.ssh_key}" ]
+            [ "$3" = --package ]
+            [ "$4" = "{self.package}" ]
+            [ "$5" = --candidate ]
+            [ "$6" = "{self.candidate}" ]
+            [ "$7" = --manifest ]
+            [ "$8" = "{self.bundle_manifest}" ]
+            [ "$9" = --manifest-sha256 ]
+            [ "${{10}}" = "{MANIFEST}" ]
+            printf 'key-admission:verify\\n' >>"{self.calls}"
+            printf '%s\\n' \
+              'format=rog5-headless-ssh-v2-key-admission-v1' \
+              'candidate={BUNDLE}' \
+              'bundle={BUNDLE}' \
+              'profile=network-root-v1' \
+              'build_profile=headless-ssh-v2' \
+              'target_id=headless-ssh-network-root' \
+              'authorized_key_fingerprint=SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' \
+              'public_key_sha256={'1' * 64}' \
+              'package_sha256={'2' * 64}' \
+              'candidate_sha256={'3' * 64}' \
+              'manifest_sha256={MANIFEST}' \
+              'root_tree_sha256={'4' * 64}' \
+              'root_seal_sha256={'5' * 64}' \
+              'root_tree_entries=37736' \
+              'authority=none'
+            """,
+        )
+        self.executable(
             "run-stable-recovery-live-gate.sh",
             """\
             #!/bin/sh
@@ -280,7 +331,7 @@ class Fixture:
                 install -d -m 0700 "$intent_root"
                 umask 077
                 printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"headless-network-root-v1","state":"TRANSMITTED","outcome":"UNKNOWN"}}' \
+                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}' \
                   >"$intent_root/{SESSION}.json"
                 if [ "${{MOCK_CONTROL_UNKNOWN:-0}}" = 1 ]; then
                   echo 'FAIL transport lost; commit intent remains UNKNOWN session={SESSION} request={REQUEST}'
@@ -295,20 +346,20 @@ class Fixture:
                   while :; do sleep 1; done
                 fi
                 printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"headless-network-root-v1","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}' \
+                  '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"{BUNDLE}","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}' \
                   '{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"headless-network-root-v1","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
+                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
                 ;;
               show)
                 printf 'control:show\n' >>"$MOCK_CALLS"
                 printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"headless-network-root-v1","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
+                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
                 ;;
               resolve)
                 printf 'control:resolve:%s\n' "$4" >>"$MOCK_CALLS"
                 printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"headless-network-root-v1","state":"RESOLVED","outcome":"'"$4"'"}}'
+                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"RESOLVED","outcome":"'"$4"'"}}'
                 ;;
               *) exit 1 ;;
             esac
@@ -393,12 +444,13 @@ class Fixture:
                 "ROG5_LIVE_CYCLE_TEST_ROOT": str(self.root),
                 "MOCK_ROOT": str(self.root),
                 "MOCK_CALLS": str(self.calls),
-                "BUNDLE": "headless-network-root-v1",
+                "BUNDLE": BUNDLE,
                 "MANIFEST_SHA256": MANIFEST,
-                "ROG5_STABLE_RECOVERY_PROFILE": (
-                    "corrected-headless-successor-2026-07-30"
-                ),
+                "ROG5_STABLE_RECOVERY_PROFILE": RECOVERY_PROFILE,
                 "SSH_KEY": str(self.ssh_key),
+                "HEADLESS_ROOT_PACKAGE": str(self.package),
+                "RECOVERY_CANDIDATE_RECORD": str(self.candidate),
+                "BUNDLE_ROOT": str(self.bundle_root),
                 "FALLBACK_KNOWN_HOSTS": str(self.known_hosts),
                 "EVIDENCE_DIR": str(self.evidence),
                 "XDG_STATE_HOME": str(self.xdg_state),
@@ -454,11 +506,38 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(self.fixture.call_lines(), [])
         self.assertFalse(any(self.fixture.evidence.iterdir()))
 
-    def test_preflight_is_read_only_and_stops_before_phone_or_credentials(self):
-        result = self.fixture.run("preflight", guards=False)
+    def test_key_preflight_guards_fail_before_credentials(self):
+        result = self.fixture.run(
+            "key-preflight",
+            guards=False,
+            SSH_KEY="/absent/guard-must-win",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "deployment-key admission requires exact fresh guards",
+            result.stderr,
+        )
+        self.assertEqual(self.fixture.call_lines(), [])
+
+    def test_key_preflight_stops_before_phone_and_privilege(self):
+        result = self.fixture.run("key-preflight")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("no phone boot, credential use", result.stdout)
+        self.assertIn(
+            "no phone or privileged host action occurred",
+            result.stdout,
+        )
         calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("key-admission:verify"), 1)
+        self.assertFalse(any(line.startswith("live:") for line in calls))
+        self.assertFalse(any(line.startswith("bundle:") for line in calls))
+        self.assertFalse(any(line.startswith("nfs:") for line in calls))
+
+    def test_preflight_admits_key_and_stops_before_phone_boot_or_ssh(self):
+        result = self.fixture.run("preflight")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("deployment key was admitted locally", result.stdout)
+        calls = self.fixture.call_lines()
+        self.assertIn("key-admission:verify", calls)
         self.assertIn("bundle:preflight", calls)
         self.assertIn("nfs:preflight", calls)
         self.assertIn("live:preflight", calls)
@@ -470,7 +549,6 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
     def test_historical_recovery_profile_fails_before_credential_paths(self):
         result = self.fixture.run(
             "preflight",
-            guards=False,
             ROG5_STABLE_RECOVERY_PROFILE="historical-2026-07-29",
             SSH_KEY="/absent/profile-must-win",
             FALLBACK_KNOWN_HOSTS="/absent/profile-must-win",
@@ -478,16 +556,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "must select the corrected headless successor",
+            "must select the headless SSH deployment profile",
             result.stderr,
         )
-        self.assertEqual(self.fixture.call_lines(), [])
+        self.assertTrue(
+            all(
+                line.startswith("git:")
+                for line in self.fixture.call_lines()
+            )
+        )
 
     def test_success_orders_cleanup_before_nfs_and_resolves_after_fallback(self):
         result = self.fixture.run("run")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("PASS one minimal-headless lifecycle", result.stdout)
         calls = self.fixture.call_lines()
+        self.assertLess(
+            calls.index("key-admission:verify"),
+            calls.index("live:preflight"),
+        )
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertLess(
             calls.index("bundle:clean"),

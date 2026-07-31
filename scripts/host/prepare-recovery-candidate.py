@@ -114,7 +114,7 @@ def require_string(record: dict[str, Any], key: str) -> str:
     return value
 
 
-def load_candidate(candidate: str) -> dict[str, Any]:
+def load_candidate_path(path: Path, candidate: str) -> dict[str, Any]:
     if (
         not CANDIDATE_ID.fullmatch(candidate)
         or ".." in candidate
@@ -122,7 +122,7 @@ def load_candidate(candidate: str) -> dict[str, Any]:
     ):
         raise CandidateError("candidate identifier is invalid")
     payload = regular_bytes(
-        CANDIDATE_ROOT / f"{candidate}.json",
+        path,
         "candidate record",
         64 * 1024,
     )
@@ -178,6 +178,13 @@ def load_candidate(candidate: str) -> dict[str, Any]:
         ):
             raise CandidateError(f"{name} path is outside artifact policy")
     return record
+
+
+def load_candidate(candidate: str) -> dict[str, Any]:
+    return load_candidate_path(
+        CANDIDATE_ROOT / f"{candidate}.json",
+        candidate,
+    )
 
 
 def source_snapshot(metadata: os.stat_result) -> tuple[int, ...]:

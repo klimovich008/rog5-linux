@@ -6,17 +6,19 @@ return to the untouched Alpine fallback.
 
 Status: **controller implemented and hardware-free tested; execution HOLD**.
 The credential-clean replacement root now passes byte-identical A/B builds
-and has a verified key-bound v3 package identity. The retained corrected
-recovery profile still names the historical root, so a new complete candidate
-profile and live private-to-public key derivation gate remain before this
-runbook can pass complete preflight. It is not authorized or runnable on the
-phone in the current state. This
-document grants no live authority. `artifact-preflight` verifies the retained
-candidate without querying a phone or inspecting credentials. `preflight` is
-read-only with respect to the phone and credentials, but it does query the
-connected fastboot device. `run` boots the phone and uses the dedicated SSH
-client key; it therefore requires fresh explicit authorization and every
-exact guard listed below.
+and has a verified fixture-key-bound v3 package identity. A separate
+deployment-key admission gate now derives the public half locally, rejects the
+tracked fixture identities, and requires one exact v3
+package/candidate/runtime-manifest chain before privilege or phone discovery.
+No non-fixture chain has been built, and the fixed stable-recovery and NFS
+controllers do not yet implement the required `headless-ssh-deployment-v3`
+profile. The runbook therefore cannot pass complete preflight and is not
+authorized or runnable on the phone. This document grants no live authority.
+The retained historical `artifact-preflight` remains regression evidence for
+its old profile. `key-preflight` performs only local key admission. `preflight`
+continues into fixed-host and connected checks only after admission. `run`
+boots the phone and later offers the dedicated SSH client key; it therefore
+requires fresh explicit authorization and every exact guard listed below.
 
 ## Why one controller is needed
 
@@ -77,6 +79,10 @@ The NFS path now follows the same model:
   link and removes its runtime export, listener, marker, firewall, and
   interface state on exit.
 
+That fixed export path belongs to the historical profile. Support for the
+key-bound v3 deployment lower must be added and independently mutation-tested
+before this lifecycle can pass its real preflight.
+
 After this change is reviewed, committed, and pushed, the installed copies
 will be stale by design. Updating them is a separate privileged host mutation:
 
@@ -89,14 +95,15 @@ not the phone.
 
 ## Inputs
 
-The stable-recovery gate retains its existing exact artifact inputs:
+The lifecycle now selects one exact deployment profile and bundle:
 
-- `ROG5_STABLE_RECOVERY_PROFILE=corrected-headless-successor-2026-07-30`
+- `ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3`
+- `BUNDLE=headless-ssh-network-root-v3`
 - `LIVE_BUILD_ROOT`
 - `RECOVERY_COMPONENT_ROOT`
 - `TRUST_KEY`
-- `BUNDLE_ROOT=/var/lib/rog5-recovery-bundles`
-- `BUNDLE=headless-network-root-v1`
+- `BUNDLE_ROOT`: canonical caller-owned mode-`0700` directory containing
+  `headless-ssh-network-root-v3/manifest`;
 - `RECOVERY_SHA256`
 - `TRUST_KEY_SHA256`
 - `MANIFEST_SHA256`
@@ -104,23 +111,53 @@ The stable-recovery gate retains its existing exact artifact inputs:
 
 The lifecycle adds:
 
-- `SSH_KEY`: caller-owned mode-`0600` dedicated phone client key;
+- `SSH_KEY`: absolute canonical caller-owned mode-`0600` dedicated Ed25519
+  phone client key outside the repository;
+- `HEADLESS_ROOT_PACKAGE`: canonical caller-owned read-only v3 package record;
+- `RECOVERY_CANDIDATE_RECORD`: canonical caller-owned read-only candidate
+  record;
 - `FALLBACK_KNOWN_HOSTS`: caller-owned mode-`0600` strict pin for
   `rog5-fallback`; and
 - `EVIDENCE_DIR`: existing caller-owned mode-`0700` directory outside the
   repository.
 
-Preflight inspects only credential path metadata. It does not read a private
-key through SSH or offer it to either phone environment.
+`key-preflight` and later actions read the private key only through fixed
+`/usr/bin/ssh-keygen -y` from the already-open file descriptor. They do not
+emit the private path, public-key body, or private material. Only `run` may
+later offer the key to SSH after all full-run guards and gates pass.
 
-The profile is a fail-closed artifact identity. The lifecycle accepts only the
-corrected successor profile and rejects the consumed historical profile before
-inspecting credential paths.
+The deployment profile is a fail-closed artifact identity. The lifecycle
+rejects every historical profile and wrong bundle before opening the private
+key.
 
-## Phone-free artifact preflight
+## Local deployment-key preflight
 
-The retained candidate can cross the exact production artifact boundary
-without a connected device:
+After a reviewed commit is pushed and the branch is clean and synchronized
+with its exact `origin` peer, local admission is:
+
+```bash
+scripts/host/run-minimal-headless-live-cycle.py key-preflight
+```
+
+The action requires exactly:
+
+```text
+ALLOW_HEADLESS_SSH_KEY_ADMISSION=1
+ALLOW_PHONE_CREDENTIAL_USE=1
+```
+
+It then derives one unencrypted Ed25519 public key, rejects the tracked fixture
+fingerprint and every tracked fixture root/package/manifest identity, and
+requires exact equality across the v3 package, offline candidate, and runtime
+manifest. The accepted tuple also pins the corrected DTB and established
+Image/generic-initramfs identities. It exits before PolicyKit, host network
+inspection, fastboot discovery, boot, payload transfer, or SSH. Passing it
+does not grant live authority.
+
+## Historical phone-free artifact preflight
+
+The retained historical candidate can still cross its exact production
+artifact boundary without a connected device:
 
 ```bash
 scripts/host/test-corrected-successor-live-gate-offline.sh
@@ -130,7 +167,8 @@ This verifies the signed bundle, stable initramfs, raw boot-v3 image, ASUS
 wrapper, AVB descriptors, corrected DTB, trust root, and every pinned recovery
 component, then exits before the first fastboot device query. A clean checkout
 without the ignored retained candidate reports a skip rather than weakening
-the gate.
+the gate. It does not admit the new deployment profile and cannot substitute
+for rebuilding the non-fixture v3 chain.
 
 ## Read-only preflight
 
@@ -143,6 +181,8 @@ scripts/host/run-minimal-headless-live-cycle.py preflight
 
 Preflight proves:
 
+- local deployment-key admission already passed for the exact non-fixture v3
+  package/candidate/runtime-manifest chain;
 - every private output name is unused;
 - the repository is clean and exactly synchronized with its remote-tracking
   branch;
@@ -156,8 +196,11 @@ Preflight proves:
   verification; and
 - exactly one `lahaina` fastboot device is present.
 
-It does not boot, transfer a payload, start a network service, contact SSH, or
-use phone credentials. The NFS artifact check does execute the fixed
+The current fixed host controllers reject
+`headless-ssh-deployment-v3`, so this action remains HOLD before a phone query
+until that profile and its read-only export are implemented. Once implemented,
+preflight must not boot, transfer a payload, start a network service, contact
+SSH, or offer the key to a phone. The NFS artifact check may execute the fixed
 root-owned verifier through PolicyKit, but creates no export, mount, listener,
 marker, firewall rule, or interface state.
 
@@ -167,6 +210,7 @@ marker, firewall rule, or interface state.
 
 ```text
 ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE
+ALLOW_HEADLESS_SSH_KEY_ADMISSION
 ALLOW_TEMPORARY_BOOT
 ALLOW_HEADLESS_LIVE_GATE
 ALLOW_STABLE_RECOVERY_CONTROL
@@ -217,12 +261,23 @@ never overwritten.
 
 ## Hardware-free coverage
 
-`test-run-minimal-headless-live-cycle.py` covers fifteen lifecycle scenarios
-and proves:
+`test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
+scenarios, and `test-run-minimal-headless-live-cycle.py` covers seventeen
+lifecycle scenarios. Together they prove:
 
+- exact non-fixture v3 key/package/candidate/manifest binding passes;
+- tracked fixture keys and each tracked fixture root identity fail;
+- wrong, encrypted, RSA, symlinked, linked, replaced, or loosely protected
+  key inputs fail;
+- package/candidate/manifest/artifact tuple mutations fail;
+- admission emits only canonical public identity hashes and no key body or
+  path;
+- `key-preflight` stops before privilege, network inspection, or phone
+  discovery;
 - all guards fail before any dependency or credential use;
 - the consumed historical recovery profile fails before credential paths;
-- preflight stops before boot and SSH;
+- preflight admits the local key before live checks and stops before boot and
+  SSH;
 - bundle-server cleanup precedes NFS startup;
 - residual protected-zone rules, `/30` addresses, or NetworkManager ownership
   changes block NFS startup before COMMIT;
@@ -238,10 +293,12 @@ and proves:
 - absent fallback proof or final firewall/address cleanup leaves the intent
   `UNKNOWN`.
 
-The tests use only temporary mock processes and private fixture files. They do
-not contact the phone, start PolicyKit, open a real firewall/NFS window, or use
-credentials.
+The tests use only temporary mock processes, private fixture files, and
+disposable test keys. They do not contact the phone, start PolicyKit, open a
+real firewall/NFS window, or use personal/deployment credentials.
 
 The exact source identities, test result, and independent review closure are
 recorded in the
-[offline result](../test-results/2026-07-29-minimal-headless-live-cycle-offline.md).
+[original lifecycle result](../test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
+and the
+[deployment-key admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
