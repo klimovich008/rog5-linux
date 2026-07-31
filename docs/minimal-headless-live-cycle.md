@@ -168,23 +168,22 @@ The no-replace publication contract also refuses the existing export.
 
 ## Inputs
 
-> **Consumed HOLD:** the exact v3 manifest listed below was consumed by the
-> resolved 2026-07-31 cycle. The lifecycle now rejects that hash before
-> inspecting the deployment key. These values document the completed attempt;
-> they are not runnable inputs. The staged successor keeps the proven target
-> candidate but uses bundle `headless-ssh-network-root-v3-r2`. Its fresh trust
-> and recovery-wrapper hashes must be built, reviewed, and pinned under fresh
-> credential authorization before this runbook can return to GO.
+> **r2 READY FOR REVIEW:** the original v3 manifest was consumed by the
+> resolved 2026-07-31 cycle and remains rejected before deployment-key access.
+> The successor keeps candidate `headless-ssh-network-root-v3`, uses signed
+> bundle `headless-ssh-network-root-v3-r2`, and is pinned to manifest
+> `9ea27452…d630`. Its twin build and artifact preflight pass; installation,
+> full host preflight, and temporary boot remain separate later steps.
 
 The lifecycle now selects one exact deployment profile and bundle:
 
 - `ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3`
-- `BUNDLE=headless-ssh-network-root-v3`
+- `BUNDLE=headless-ssh-network-root-v3-r2`
 - `LIVE_BUILD_ROOT`
 - `RECOVERY_COMPONENT_ROOT`
 - `TRUST_KEY`
 - `BUNDLE_ROOT`: canonical caller-owned mode-`0700` directory containing
-  `headless-ssh-network-root-v3/manifest`;
+  `headless-ssh-network-root-v3-r2/manifest`;
 - `RECOVERY_SHA256`
 - `TRUST_KEY_SHA256`
 - `MANIFEST_SHA256`
@@ -212,9 +211,10 @@ later offer the key to SSH after all full-run guards and gates pass.
 
 The deployment profile is a fail-closed artifact identity. The lifecycle
 rejects every historical profile, wrong bundle, and consumed live manifest
-before opening the private key. The r2 staging and remaining HOLD are recorded
-in the
-[successor result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
+before opening the private key. Candidate and bundle are checked separately:
+the target reports the stable candidate ID while recovery commits only the r2
+bundle. Exact build evidence and remaining gates are recorded in the
+[signed r2 result](../test-results/2026-07-31-headless-ssh-successor-r2-signed-build.md).
 
 ## Persistent fallback USB network profile
 
@@ -303,9 +303,10 @@ private temporary storage, hash-binds the candidate at its consumer,
 twin-signs and twin-builds from those snapshots, destroys them, and produces
 no live authority or phone action.
 
-The resulting exact wrapper, trust, manifest, and host-verifier hashes must be
-reviewed and pinned in the live-gate profile before host installation or
-connected preflight.
+The resulting exact wrapper, trust, manifest, and host-verifier hashes are
+pinned in the live-gate profile. The production artifact gate passes against
+the retained twin output; host installation and connected preflight remain
+later steps.
 
 ## Credential-free successor preflight
 

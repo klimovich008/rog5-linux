@@ -39,7 +39,7 @@ from tools.recovery_control import (  # noqa: E402
 SESSION = "1" * 32
 MANIFEST = "a" * 64
 BUNDLE = "headless-network-root-v1"
-DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3"
+DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3-r2"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64

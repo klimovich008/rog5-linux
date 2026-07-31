@@ -213,6 +213,7 @@ cmp "$record" "$stage/evidence/minimal-headless-runtime.record"
 
 candidate=$stage/headless-ssh-network-root-v3.json
 sed \
+	-e 's/"bundle": "headless-ssh-network-root-v3"/"bundle": "headless-ssh-network-root-v3-r2"/' \
 	-e 's/6f8a8f11bfb581bb52ca7d590141ce465b8d48d8f9f4577a076b7a37604a2fd5/4444444444444444444444444444444444444444444444444444444444444444/' \
 	-e 's/f443a47c456b33d670e6efd4a2e20cff2bc72061e7661472694acfbba45c8d5a/5555555555555555555555555555555555555555555555555555555555555555/' \
 	-e 's/"root_tree_entries": "37735"/"root_tree_entries": "37736"/' \
