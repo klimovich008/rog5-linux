@@ -21,6 +21,9 @@ FIXTURE_PACKAGE_PATH = (
     REPO / "configs/network-roots/headless-ssh-network-root-v3.package"
 )
 CANDIDATE_ID = "headless-ssh-network-root-v3"
+BASE_BUNDLE_ID = "headless-ssh-network-root-v3"
+SUCCESSOR_BUNDLE_ID = "headless-ssh-network-root-v3-r2"
+ALLOWED_BUNDLES = {BASE_BUNDLE_ID, SUCCESSOR_BUNDLE_ID}
 ROOT_FIELDS = (
     "a660_command_manifest_sha256",
     "root_generation",
@@ -164,9 +167,15 @@ def parse_package(path: Path) -> dict[str, str]:
     return dict(values)
 
 
-def candidate_record(package: dict[str, str]) -> dict[str, Any]:
+def candidate_record(
+    package: dict[str, str],
+    bundle: str = BASE_BUNDLE_ID,
+) -> dict[str, Any]:
+    if bundle not in ALLOWED_BUNDLES:
+        fail("deployment bundle identity is unsupported")
     template = CANDIDATE.load_candidate(CANDIDATE_ID)
     record = copy.deepcopy(template)
+    record["bundle"] = bundle
     for field in ROOT_FIELDS:
         record[field] = package[field]
     validated = CANDIDATE.validate_candidate_record(
@@ -241,9 +250,13 @@ def write_candidate(path: Path, payload: bytes) -> Path:
     return output
 
 
-def prepare(package_path: Path, output_path: Path) -> tuple[dict[str, Any], Path]:
+def prepare(
+    package_path: Path,
+    output_path: Path,
+    bundle: str = BASE_BUNDLE_ID,
+) -> tuple[dict[str, Any], Path]:
     package = parse_package(package_path)
-    record = candidate_record(package)
+    record = candidate_record(package, bundle)
     output = write_candidate(output_path, canonical_payload(record))
     return record, output
 
@@ -252,6 +265,11 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--package", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--bundle",
+        choices=sorted(ALLOWED_BUNDLES),
+        required=True,
+    )
     return parser.parse_args(arguments)
 
 
@@ -261,7 +279,11 @@ def main(arguments: list[str] | None = None) -> int:
         sys.argv[1:] if arguments is None else arguments
     )
     try:
-        record, output = prepare(options.package, options.output)
+        record, output = prepare(
+            options.package,
+            options.output,
+            options.bundle,
+        )
     except (
         DeploymentCandidateError,
         HEADLESS.HeadlessRootError,
@@ -276,6 +298,7 @@ def main(arguments: list[str] | None = None) -> int:
         return 1
     print("format=rog5-headless-ssh-deployment-candidate-v1")
     print(f"candidate={record['candidate']}")
+    print(f"bundle={record['bundle']}")
     print(f"root_tree_sha256={record['root_tree_sha256']}")
     print(f"root_seal_sha256={record['root_seal_sha256']}")
     print(f"root_tree_entries={record['root_tree_entries']}")

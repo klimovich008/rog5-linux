@@ -214,8 +214,13 @@ before a phone cycle.
 - [x] Separately authorize the bounded BusyBox-history and possible ext4-atime
   effects of one fallback ACM action and pass one live cryptographic
   preflight with a private no-replace signed proof.
-- [ ] Preserve that proof through the attended minimal-headless lifecycle
-  without any other Alpine or phone-storage write.
+- [x] Preserve fallback proof through the attended minimal-headless lifecycle
+  over strict SSH without entering the interactive Alpine ACM shell. The
+  target rejection returned to the same port and resolved its durable intent.
+- [x] Permanently reject the consumed deployment manifest before private-key
+  inspection and stage an r2 signed-bundle identity that keeps every target
+  artifact and root identity unchanged. Production trust/wrapper pinning
+  remains authorization-gated.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.

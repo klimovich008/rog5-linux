@@ -168,6 +168,14 @@ The no-replace publication contract also refuses the existing export.
 
 ## Inputs
 
+> **Consumed HOLD:** the exact v3 manifest listed below was consumed by the
+> resolved 2026-07-31 cycle. The lifecycle now rejects that hash before
+> inspecting the deployment key. These values document the completed attempt;
+> they are not runnable inputs. The staged successor keeps the proven target
+> candidate but uses bundle `headless-ssh-network-root-v3-r2`. Its fresh trust
+> and recovery-wrapper hashes must be built, reviewed, and pinned under fresh
+> credential authorization before this runbook can return to GO.
+
 The lifecycle now selects one exact deployment profile and bundle:
 
 - `ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3`
@@ -203,8 +211,10 @@ emit the private path, public-key body, or private material. Only `run` may
 later offer the key to SSH after all full-run guards and gates pass.
 
 The deployment profile is a fail-closed artifact identity. The lifecycle
-rejects every historical profile and wrong bundle before opening the private
-key.
+rejects every historical profile, wrong bundle, and consumed live manifest
+before opening the private key. The r2 staging and remaining HOLD are recorded
+in the
+[successor result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
 
 ## Persistent fallback USB network profile
 
@@ -259,6 +269,7 @@ ALLOW_PHONE_CREDENTIAL_USE=1 \
 
 scripts/host/prepare-headless-ssh-deployment-candidate.py \
   --package /private/network-root/manifest \
+  --bundle headless-ssh-network-root-v3-r2 \
   --output /private/headless-ssh-network-root-v3.json
 
 ALLOW_HEADLESS_SSH_DEPLOYMENT_BUILD=1 \

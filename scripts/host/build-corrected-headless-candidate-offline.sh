@@ -180,14 +180,19 @@ manifest_b=$(
 )
 trust_a=$(sed -n 's/^trust_key_sha256=//p' "$output_root/candidate-a.txt")
 trust_b=$(sed -n 's/^trust_key_sha256=//p' "$output_root/candidate-b.txt")
+bundle_id_a=$(sed -n 's/^bundle=//p' "$output_root/candidate-a.txt")
+bundle_id_b=$(sed -n 's/^bundle=//p' "$output_root/candidate-b.txt")
 [[ $manifest_a =~ ^[0-9a-f]{64}$ && $manifest_a == "$manifest_b" ]] ||
 	fail 'twin corrected candidate manifests differ'
 [[ $trust_a =~ ^[0-9a-f]{64}$ && $trust_a == "$trust_b" &&
 	$trust_a == "$(sha256sum "$public_key" | cut -d ' ' -f 1)" ]] ||
 	fail 'corrected candidate trust-root identity differs'
+[[ $bundle_id_a =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
+	$bundle_id_a == "$bundle_id_b" ]] ||
+	fail 'twin corrected candidate bundle identities differ'
 
-bundle_path_a=$bundle_a/$candidate
-bundle_path_b=$bundle_b/$candidate
+bundle_path_a=$bundle_a/$bundle_id_a
+bundle_path_b=$bundle_b/$bundle_id_b
 for name in Image board.dtb initramfs.cpio.gz manifest manifest.sig; do
 	cmp "$bundle_path_a/$name" "$bundle_path_b/$name"
 	[[ $(stat -c '%a:%s' "$bundle_path_a/$name") == \
@@ -215,15 +220,15 @@ chmod 0755 "$host_verifier"
 
 plan_a=$(
 	"$host_verifier" --bundle-root "$bundle_a" \
-		--trust-key "$public_key" "$candidate" "$manifest_a"
+		--trust-key "$public_key" "$bundle_id_a" "$manifest_a"
 )
 plan_b=$(
 	"$host_verifier" --bundle-root "$bundle_b" \
-		--trust-key "$public_key" "$candidate" "$manifest_b"
+		--trust-key "$public_key" "$bundle_id_b" "$manifest_b"
 )
 [[ $plan_a == "$plan_b" ]] ||
 	fail 'native verifier produced different twin execution plans'
-grep -Fxq "bundle=$candidate" <<<"$plan_a"
+grep -Fxq "bundle=$bundle_id_a" <<<"$plan_a"
 grep -Fxq "manifest_sha256=$manifest_a" <<<"$plan_a"
 grep -Fxq 'profile=network-root-v1' <<<"$plan_a"
 grep -Fxq "target_id=$expected_target" <<<"$plan_a"
@@ -262,8 +267,8 @@ secret_root=
 [[ ! -e $private_key_path ]] ||
 	fail 'private signing-key snapshot survived candidate build'
 
-printf 'candidate=%s\nmanifest_sha256=%s\ntrust_key_sha256=%s\n' \
-	"$candidate" "$manifest_a" "$trust_a"
+printf 'candidate=%s\nbundle=%s\nmanifest_sha256=%s\ntrust_key_sha256=%s\n' \
+	"$candidate" "$bundle_id_a" "$manifest_a" "$trust_a"
 echo 'authority=none'
 if [[ $deployment_build == 1 ]]; then
 	echo 'PASS twin credential-bound deployment candidate, signed bundle, recovery wrapper, and hardware-free gate; source key verified and private snapshot destroyed'

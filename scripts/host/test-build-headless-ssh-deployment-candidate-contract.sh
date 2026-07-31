@@ -10,6 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 wrapper=$repo/scripts/host/build-headless-ssh-deployment-candidate.sh
 builder=$repo/scripts/host/build-corrected-headless-candidate-offline.sh
 stager=$repo/scripts/host/stage-headless-ssh-deployment-signing-inputs.py
+runbook=$repo/docs/minimal-headless-live-cycle.md
 test_root=$(mktemp -d)
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
 
@@ -20,6 +21,8 @@ for script in "$wrapper" "$builder"; do
 done
 [[ -f $stager && ! -L $stager && -x $stager ]] ||
 	fail 'deployment signing-input stager is missing or unsafe'
+grep -Fq -- '--bundle headless-ssh-network-root-v3-r2' "$runbook" ||
+	fail 'deployment runbook does not explicitly select the fresh successor bundle'
 
 if "$wrapper" "$test_root/output" \
 	>"$test_root/wrapper.out" 2>"$test_root/wrapper.err"; then
@@ -62,6 +65,8 @@ for token in \
 	'--candidate-record' \
 	'--candidate-record-sha256' \
 	'staged deployment candidate identity changed' \
+	'bundle_id_a=' \
+	'--trust-key "$public_key" "$bundle_id_a"' \
 	'private signing-key snapshot survived candidate build' \
 	'authority=none'; do
 	grep -Fq -- "$token" "$builder" ||
