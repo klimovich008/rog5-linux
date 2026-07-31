@@ -53,7 +53,47 @@ PREPARED_FRAME_TIMEOUT_SECONDS = 45
 MAX_PREFLIGHT_THERMAL = 60000
 MAX_RETURN_THERMAL = 80000
 REBOOT_COMMIT_TIMEOUT_SECONDS = 30
-EXPECTED_THERMAL_ZONES = 70
+MIN_THERMAL_ZONES = 70
+MAX_THERMAL_ZONES = 128
+MIN_VALID_THERMAL_READINGS = 29
+REQUIRED_THERMAL_TYPES = frozenset(
+    {
+        "aoss-0-usr",
+        "cpu-0-0-usr",
+        "cpu-1-0-usr",
+        "gpuss-0-usr",
+        "mdmss-0-usr",
+        "nspss-0-usr",
+    }
+)
+INACTIVE_THERMAL_VALUES = frozenset({0, -274000})
+UNAVAILABLE_THERMAL_TYPES = frozenset(
+    {
+        "camera-therm-usr",
+        "modem-ambient-usr",
+        "modem-lte-sub6-pa1",
+        "modem-lte-sub6-pa2",
+        "modem-mmw-pa1-usr",
+        "modem-mmw-pa2-usr",
+        "modem-mmw-pa3-usr",
+        "modem-mmw0-mod-usr",
+        "modem-mmw0-usr",
+        "modem-mmw1-mod-usr",
+        "modem-mmw1-usr",
+        "modem-mmw2-mod-usr",
+        "modem-mmw2-usr",
+        "modem-mmw3-mod-usr",
+        "modem-mmw3-usr",
+        "modem-sdr-mmw-usr",
+        "modem-skin-usr",
+        "modem-streamer-usr",
+        "modem-wifi-usr",
+        "pmr735b_tz",
+        "rear-cam-therm-usr",
+        "tof-therm-usr",
+        "wlc-therm-usr",
+    }
+)
 ANCHOR_MAX_AGE_SECONDS = 7200
 ZERO_ID = "0" * 32
 NONCE = re.compile(r"[0-9a-f]{32}\Z")
@@ -198,7 +238,43 @@ NAMESPACE = "rog5-fallback-acm-v1"
 KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 MAX_PREFLIGHT_THERMAL = 60000
 MAX_RETURN_THERMAL = 80000
-EXPECTED_THERMAL_ZONES = 70
+MIN_THERMAL_ZONES = 70
+MAX_THERMAL_ZONES = 128
+MIN_VALID_THERMAL_READINGS = 29
+REQUIRED_THERMAL_TYPES = {
+    "aoss-0-usr",
+    "cpu-0-0-usr",
+    "cpu-1-0-usr",
+    "gpuss-0-usr",
+    "mdmss-0-usr",
+    "nspss-0-usr",
+}
+INACTIVE_THERMAL_VALUES = {0, -274000}
+UNAVAILABLE_THERMAL_TYPES = {
+    "camera-therm-usr",
+    "modem-ambient-usr",
+    "modem-lte-sub6-pa1",
+    "modem-lte-sub6-pa2",
+    "modem-mmw-pa1-usr",
+    "modem-mmw-pa2-usr",
+    "modem-mmw-pa3-usr",
+    "modem-mmw0-mod-usr",
+    "modem-mmw0-usr",
+    "modem-mmw1-mod-usr",
+    "modem-mmw1-usr",
+    "modem-mmw2-mod-usr",
+    "modem-mmw2-usr",
+    "modem-mmw3-mod-usr",
+    "modem-mmw3-usr",
+    "modem-sdr-mmw-usr",
+    "modem-skin-usr",
+    "modem-streamer-usr",
+    "modem-wifi-usr",
+    "pmr735b_tz",
+    "rear-cam-therm-usr",
+    "tof-therm-usr",
+    "wlc-therm-usr",
+}
 REBOOT_ACK_TIMEOUT_SECONDS = 30
 POST_ACK_DEADLINE_SECONDS = 25
 HOST_KEY = Path("/etc/ssh/ssh_host_ed25519_key")
@@ -245,10 +321,6 @@ def pstore_count():
 
 
 def temperatures():
-    expected = {
-        f"/sys/class/thermal/thermal_zone{index}/temp"
-        for index in range(EXPECTED_THERMAL_ZONES)
-    }
     try:
         observed = {
             str(path)
@@ -258,28 +330,56 @@ def temperatures():
         }
     except OSError:
         return 0, 0, 0
-    if observed != expected:
+    zone_count = len(observed)
+    expected = {
+        f"/sys/class/thermal/thermal_zone{index}/temp"
+        for index in range(zone_count)
+    }
+    if (
+        not MIN_THERMAL_ZONES <= zone_count <= MAX_THERMAL_ZONES
+        or observed != expected
+    ):
         return 0, 0, 0
     maxima = []
     counts = []
     for sample in range(3):
         values = []
-        for index in range(EXPECTED_THERMAL_ZONES):
-            name = f"/sys/class/thermal/thermal_zone{index}/temp"
+        required = set()
+        for index in range(zone_count):
+            root = f"/sys/class/thermal/thermal_zone{index}"
             try:
-                value = int(Path(name).read_text().strip())
-            except (OSError, ValueError):
+                thermal_type = Path(f"{root}/type").read_text().strip()
+            except OSError:
                 return 0, 0, 0
-            if not 0 <= value <= 200000:
+            try:
+                raw_value = Path(f"{root}/temp").read_text().strip()
+            except OSError:
+                if thermal_type in UNAVAILABLE_THERMAL_TYPES:
+                    continue
+                return 0, 0, 0
+            try:
+                value = int(raw_value)
+            except ValueError:
+                return 0, 0, 0
+            if value in INACTIVE_THERMAL_VALUES:
+                continue
+            if not 0 < value <= 200000:
                 return 0, 0, 0
             values.append(value)
+            if thermal_type in REQUIRED_THERMAL_TYPES:
+                required.add(thermal_type)
+        if (
+            len(values) < MIN_VALID_THERMAL_READINGS
+            or required != REQUIRED_THERMAL_TYPES
+        ):
+            return 0, 0, 0
         counts.append(len(values))
         maxima.append(max(values))
         if sample != 2:
             time.sleep(0.5)
     if len(set(counts)) != 1:
         return 0, 0, 0
-    return 3, counts[0], max(maxima)
+    return 3, zone_count, max(maxima)
 
 
 def collect(nonce, action):
@@ -349,7 +449,9 @@ def collect(nonce, action):
         or result["dmesg_checked"] != "1"
         or result["fatal_lines"] != "0"
         or result["thermal_samples"] != "3"
-        or int(result["thermal_zones"]) != EXPECTED_THERMAL_ZONES
+        or not MIN_THERMAL_ZONES
+        <= int(result["thermal_zones"])
+        <= MAX_THERMAL_ZONES
         or not 0 <= int(result["thermal_max"]) <= thermal_limit
         or result["python_major"] != "3"
         or not re.fullmatch(
@@ -1146,7 +1248,9 @@ def parse_record(payload: bytes, nonce: str, action: str) -> OrderedDict[str, st
         else MAX_PREFLIGHT_THERMAL
     )
     if (
-        int(values["thermal_zones"]) != EXPECTED_THERMAL_ZONES
+        not MIN_THERMAL_ZONES
+        <= int(values["thermal_zones"])
+        <= MAX_THERMAL_ZONES
         or not 0 <= int(values["thermal_max"]) <= thermal_limit
         or not BOOT_ID.fullmatch(values["boot_id"])
     ):
