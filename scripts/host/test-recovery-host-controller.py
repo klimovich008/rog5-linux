@@ -513,6 +513,10 @@ class RecoveryHostControllerTest(unittest.TestCase):
             self.assertIn(contract, controller)
         self.assertIn('exec pkexec "$controller"', launcher)
         self.assertIn("install -o root -g root -m 0555", installer)
+        self.assertIn(
+            "install-headless-ssh-deployment-export.py",
+            installer,
+        )
         server_hash = hashlib.sha256(
             (
                 REPO / "tools/recovery_control/host_bundle_server.py"

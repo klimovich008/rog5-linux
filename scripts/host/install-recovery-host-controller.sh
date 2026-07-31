@@ -19,6 +19,7 @@ server_source=$repo/tools/recovery_control/host_bundle_server.py
 network_server_source=$repo/scripts/host/serve-network-root.sh
 headless_verifier_source=$repo/scripts/host/headless-network-root.py
 persistent_root_tool_source=$repo/scripts/device/persistent-root-tool.py
+deployment_export_installer_source=$repo/scripts/host/install-headless-ssh-deployment-export.py
 destination=/usr/libexec/rog5-recovery-host
 controller_destination=/usr/libexec/rog5-recovery-bundle-controller
 bundle_root=/var/lib/rog5-recovery-bundles
@@ -28,7 +29,8 @@ for command in awk getent install mktemp mv rm sha256sum stat; do
 		fail "missing installer command: $command"
 done
 for source in "$controller_source" "$server_source" "$network_server_source" \
-	"$headless_verifier_source" "$persistent_root_tool_source"; do
+	"$headless_verifier_source" "$persistent_root_tool_source" \
+	"$deployment_export_installer_source"; do
 	[[ -f $source && ! -L $source ]] ||
 		fail "unsafe installation source: $source"
 done
@@ -72,6 +74,7 @@ server_temporary=
 network_server_temporary=
 headless_verifier_temporary=
 persistent_root_tool_temporary=
+deployment_export_installer_temporary=
 cleanup() {
 	if [[ -n $controller_temporary ]]; then
 		rm -f -- "$controller_temporary"
@@ -88,6 +91,9 @@ cleanup() {
 	if [[ -n $persistent_root_tool_temporary ]]; then
 		rm -f -- "$persistent_root_tool_temporary"
 	fi
+	if [[ -n $deployment_export_installer_temporary ]]; then
+		rm -f -- "$deployment_export_installer_temporary"
+	fi
 }
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
@@ -101,6 +107,8 @@ headless_verifier_temporary=$(mktemp --tmpdir="$destination" \
 	.headless-network-root.py.XXXXXX)
 persistent_root_tool_temporary=$(mktemp --tmpdir="$destination" \
 	.persistent-root-tool.py.XXXXXX)
+deployment_export_installer_temporary=$(mktemp --tmpdir="$destination" \
+	.install-headless-ssh-deployment-export.py.XXXXXX)
 install -o root -g root -m 0555 \
 	"$controller_source" "$controller_temporary"
 install -o root -g root -m 0555 \
@@ -111,6 +119,12 @@ install -o root -g root -m 0555 \
 	"$headless_verifier_source" "$headless_verifier_temporary"
 install -o root -g root -m 0555 \
 	"$persistent_root_tool_source" "$persistent_root_tool_temporary"
+install -o root -g root -m 0555 \
+	"$deployment_export_installer_source" \
+	"$deployment_export_installer_temporary"
+mv -fT -- "$deployment_export_installer_temporary" \
+	"$destination/install-headless-ssh-deployment-export.py"
+deployment_export_installer_temporary=
 mv -fT -- "$persistent_root_tool_temporary" \
 	"$destination/persistent-root-tool.py"
 persistent_root_tool_temporary=
@@ -136,3 +150,6 @@ echo "INFO headless_verifier_sha256=$(sha256sum \
 	"$destination/headless-network-root.py" | awk '{ print $1 }')"
 echo "INFO persistent_root_tool_sha256=$(sha256sum \
 	"$destination/persistent-root-tool.py" | awk '{ print $1 }')"
+echo "INFO deployment_export_installer_sha256=$(sha256sum \
+	"$destination/install-headless-ssh-deployment-export.py" |
+	awk '{ print $1 }')"

@@ -187,6 +187,10 @@ before a phone cycle.
 - [x] Carry the admitted package and candidate identities through the fixed
   v3 NFS handoff, recovery COMMIT rendezvous, target probe, and runtime
   verifier while preserving the historical no-argument path.
+- [x] Add a fixed root-owned v3 export installer and unprivileged launcher
+  that rerun key admission, reject fixture identities and unsafe archives,
+  privately snapshot caller-owned bytes, verify and durably sync the extracted
+  root, and publish once without replacing an existing export.
 - [ ] Rebuild the root/package/candidate/runtime-manifest chain around a
   separately authorized non-fixture key, install the corresponding fixed
   read-only NFS export, pin its stable-recovery wrapper/trust/manifest profile,
@@ -413,12 +417,15 @@ Continue in this order:
 12. [x] bind admitted v3 package/candidate identities across NFS handoff,
     recovery rendezvous, target probe, and runtime acceptance without
     enabling a phone action;
-13. rebuild the complete v3 chain around a separately authorized non-fixture
-    key, install its fixed read-only NFS export, pin its stable-recovery
-    wrapper/trust/manifest profile, and pass phone-free artifact and key
-    preflight;
-14. request fresh, separate authorization before creating or using a live
+13. [x] implement and hostile-test the fixed v3 export installer, private
+    archive snapshot, no-replace publication, and key-admission launcher
+    without invoking PolicyKit or touching the real host export;
+14. rebuild the complete v3 chain around a separately authorized non-fixture
+    key, install its fixed read-only NFS export through that launcher, pin its
+    stable-recovery wrapper/trust/manifest profile, and pass phone-free
+    artifact and key preflight;
+15. request fresh, separate authorization before creating or using a live
     signing credential or temporarily booting the corrected candidate;
-15. if the minimal root reaches key-only SSH and clean rollback, run the
+16. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

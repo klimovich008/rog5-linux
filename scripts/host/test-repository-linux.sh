@@ -157,6 +157,8 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
+			scripts/host/test-install-headless-ssh-deployment-export.py
+			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
@@ -223,6 +225,8 @@ else
 			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
+			scripts/host/test-install-headless-ssh-deployment-export.py
+			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
