@@ -36,122 +36,22 @@ gate.
 
 ## Start here
 
-- [Current state](docs/current-state.md) — concise facts and blockers.
-- [Steam Deck host setup](docs/steam-deck-host.md) — pinned rootless builder,
-  complete ASUS source verification, and fail-closed source-volume import.
-- [Steam Deck ASUS 5.4 builder qualification](test-results/2026-07-30-steam-deck-asus-builder-qualified.md)
-  — independent rootfs reproduction and twin byte-identical kernel builds.
-- [Steam Deck ARM64 recovery-builder qualification](test-results/2026-07-30-steam-deck-recovery-builders-qualified.md)
-  — reboot-safe rootless ARM64 emulation and exact responder/verifier
-  filesystem, package, and binary identities.
-- [Linux 7.1.4 network-root reconstruction](test-results/2026-07-30-network-root-kernel-ref-state-reconstruction.md)
-  — exact Git ref-state root cause, reconstructed historical builder, and
-  twin byte-identical recovery of all five frozen kernel artifacts.
-- [Headless recovery dependency closure](test-results/2026-07-30-headless-recovery-dependency-closure.md)
-  — exact v18r/network-root/headless reconstruction, immutable AOSP boot
-  tools, compact boot-v3 template, and accepted-config wrapper successor.
-- [Key-bound headless SSH v2 package](test-results/2026-07-30-headless-ssh-v2-key-bound-package.md)
-  — hostile key/parser tests, byte-identical source roots, v3 fingerprint
-  binding, deterministic sealed packaging, and zero phone/credential use.
-- [Key-bound headless SSH v2 candidate](test-results/2026-07-30-headless-ssh-v2-candidate-offline.md)
-  — exact package/candidate binding, twin signed bundles, shell-free recovery,
-  byte-identical ASUS wrappers, and destroyed disposable signing key.
-- [Deployment SSH-key admission gate](test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md)
-  — exact private-to-public derivation, non-fixture package/candidate/manifest
-  binding, hostile metadata and identity tests, and lifecycle ordering before
-  privilege or phone discovery.
-- [Headless SSH v3 profile threading](test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md)
-  — admitted package/candidate identity propagation through fixed NFS,
-  recovery rendezvous, target probe, and runtime acceptance.
-- [Headless SSH v3 export installer](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md)
-  — private archive snapshot, hostile extraction policy, crash-durable
-  verification, no-replace publication, and admission-to-PolicyKit isolation.
-- [Headless battery-series oracle](docs/battery-telemetry-series.md) and
-  [offline result](test-results/2026-07-31-headless-battery-series-offline.md)
-  — sustained read-only phase records, hostile parsing/metadata tests, and
-  current-direction comparison without assuming the driver sign convention.
-- [Static thermal-policy oracle](docs/thermal-policy-static-oracle.md) and
-  [offline result](test-results/2026-07-31-thermal-policy-static-oracle-offline.md)
-  — exact TSENS/PDC interrupt routing, CPU trips/cooling maps, PMIC alarms,
-  source call chain, and explicit future-only emergency fallback without a
-  runtime safety claim.
-- [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
-  — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
-  bundle integration, and destroyed disposable key.
-- [Corrected successor live-gate admission](test-results/2026-07-30-corrected-successor-live-gate-admission.md)
-  — exact production artifact-profile verification with a proven exit before
-  phone discovery or credential inspection.
-- [Headless stable-recovery live result](test-results/2026-07-29-headless-stable-recovery-live.md)
-  — exact signed transaction, rejection, rollback, root cause, and corrected
-  offline candidate.
-- [Corrected headless candidate twin build](test-results/2026-07-29-corrected-headless-candidate-offline.md)
-  — exact corrected DTB, bundle, recovery, wrapper, trust boundary, and
-  byte-identical offline products.
-- [Corrected DTB semantic oracle](test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md)
-  — exact rejected-to-accepted property delta, malicious fixtures, and
-  fail-closed builder integration.
-- [Core compatibility oracle](docs/core-compatibility-oracle.md) and
-  [offline result](test-results/2026-07-29-core-compatibility-oracle-offline.md)
-  — exact ASUS 5.4/accepted 7.1 ancestry, active Kconfig contract, mutation
-  coverage, and the boundary before evaluating another kernel.
-- [Minimal-headless runtime acceptance](docs/minimal-headless-runtime-acceptance.md)
-  and
-  [offline result](test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
-  — canonical target evidence, candidate/runtime thresholds, strict-SSH
-  capture, and the still-armed rollback boundary.
-- [Storage-isolation result](test-results/2026-07-29-storage-isolation-offline.md)
-  — mount-attested NFSv4.2 plus zero block/SCSI/RPMB/UFS exposure.
-- [Buttons and status indicator](docs/buttons-indicator.md) and
-  [offline result](test-results/2026-07-30-buttons-indicator-offline.md) —
-  stock-evidenced key/LED mapping, exact additive DTB delta, accepted
-  source/config/module gate, hostile tests, and the remaining physical gate.
-- [Native key-indicator runtime](docs/headless-key-indicator.md) and
-  [offline result](test-results/2026-07-30-headless-key-indicator-offline.md)
-  — sealed static AArch64 helper, exact runtime identity gate, bounded
-  press-only policy, QEMU fixtures, and the successor headless-root boundary.
-- [Volatile target host-key bootstrap](docs/minimal-headless-host-key-bootstrap.md)
-  and
-  [offline result](test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md)
-  — recovery-to-target physical USB continuity, credential-free Ed25519
-  discovery, and the strict-SSH handoff for temporary development boots.
-- [Minimal-headless one-shot lifecycle](docs/minimal-headless-live-cycle.md)
-  — fail-closed recovery, bundle/NFS sequencing, strict-SSH observation,
-  watchdog rollback, fallback proof, cleanup, and durable outcome rules.
-  The
-  [offline result](test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
-  records the original fourteen failure-path scenarios; the current controller
-  adds the separately reported deployment-key admission boundary.
-- [Roadmap](ROADMAP.md) — ordered work and acceptance gates.
-- [Stable-wrapper configuration slimming](docs/stable-wrapper-config-slimming.md)
-  and
-  [offline result](test-results/2026-07-30-stable-wrapper-config-slimming-offline.md)
-  — source-sealed config reduction, hostile tests, clean twin builds, and
-  boot-v3/AVB structural evidence with no live authority.
-- [Stable recovery control plane](docs/recovery-control-plane.md) — the next
-  implementation and its test-first protocol.
-- [Recovery re-freeze integration](docs/recovery-refreeze-integration.md) —
-  exact initramfs/wrapper inputs, ordering, offline evidence, and remaining
-  signing boundary.
-- [Repository audit](docs/repository-audit-2026-07-28.md) — what is active,
-  evidence, archived, or a local cleanup candidate.
-- [Host storage cleanup](docs/host-storage-cleanup.md) — read-only inventory,
-  preservation rules, reclaim order, and the explicit approval boundary.
-- [Host storage audit](test-results/2026-07-29-host-storage-audit.md) — current
-  candidate sizes, dirty-worktree closure, and zero-delete evidence.
-- [Archive index](docs/archive-index.md) — how to inspect the pre-reduction
-  checkpoint.
-- [Test plan](docs/test-plan.md) and
-  [network-root guide](docs/network-root.md) — detailed historical operating
-  procedures; do not interpret old live commands as current authority.
-- [Remote GUI](docs/remote-gui.md) — loopback-only SSH tunnel and screen-off
-  administration.
-- [Hardware contract](docs/hardware-contract.md),
-  [persistent storage](docs/persistent-storage.md), and
-  [kernel port](docs/kernel-port.md) — detailed subsystem evidence.
-- [A660 acceptance](docs/a660-acceptance.md) — bounded staging and promoted
-  soak gates for Turnip, KWin, screen cycling, thermal, memory, and battery.
-- [Automation security](docs/security-automation.md) — credential and agent
-  isolation boundaries.
+- [Active development context](docs/active-context.md) — the shortest
+  authoritative resume point, current deployment boundary, and next hardware
+  sequence.
+- [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
+  exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
+- [Roadmap](ROADMAP.md) — ordered subsystem gates and completion criteria.
+- [Port status](docs/port-status.md) — compact per-subsystem evidence matrix.
+- [Core compatibility](docs/core-compatibility-oracle.md),
+  [source/DTB contract](docs/core-source-dtb-contract.md), and
+  [runtime acceptance](docs/minimal-headless-runtime-acceptance.md) — active
+  hardware-free and live core gates.
+- [Current-state evidence ledger](docs/current-state.md) and
+  [build/artifact ledger](docs/builds-and-artifacts.md) — detailed chronology
+  and immutable identities; use these for investigation, not orientation.
+- [Test plan](docs/test-plan.md) — complete regression and hardware tiers.
+- [Archive index](docs/archive-index.md) — consumed and superseded material.
 
 ## Safety model
 

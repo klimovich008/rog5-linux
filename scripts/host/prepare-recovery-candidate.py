@@ -44,6 +44,14 @@ TOP_LEVEL_KEYS = {
 }
 ARTIFACT_NAMES = ("Image", "board.dtb", "initramfs.cpio.gz")
 ARTIFACT_KEYS = {"path", "size", "sha256"}
+EXTERNAL_MUTABLE_FIELDS = {
+    "a660_command_manifest_sha256",
+    "root_generation",
+    "root_tree_sha256",
+    "root_seal_sha256",
+    "root_tree_entries",
+    "root_subtree",
+}
 
 
 class CandidateError(RuntimeError):
@@ -114,27 +122,20 @@ def require_string(record: dict[str, Any], key: str) -> str:
     return value
 
 
-def load_candidate_path(path: Path, candidate: str) -> dict[str, Any]:
+def validate_candidate_identifier(candidate: str) -> None:
     if (
         not CANDIDATE_ID.fullmatch(candidate)
         or ".." in candidate
         or candidate == "none"
     ):
         raise CandidateError("candidate identifier is invalid")
-    payload = regular_bytes(
-        path,
-        "candidate record",
-        64 * 1024,
-    )
-    try:
-        record = json.loads(
-            payload.decode("ascii"),
-            object_pairs_hook=unique_object,
-        )
-    except (CandidateError, UnicodeDecodeError, json.JSONDecodeError) as error:
-        if isinstance(error, CandidateError):
-            raise
-        raise CandidateError("candidate JSON is invalid") from error
+
+
+def validate_candidate_record(
+    record: dict[str, Any],
+    candidate: str,
+) -> dict[str, Any]:
+    validate_candidate_identifier(candidate)
     if not isinstance(record, dict) or set(record) != TOP_LEVEL_KEYS:
         raise CandidateError("candidate fields are incomplete or unknown")
     if require_string(record, "format") != "rog5-recovery-candidate-v1":
@@ -180,11 +181,67 @@ def load_candidate_path(path: Path, candidate: str) -> dict[str, Any]:
     return record
 
 
+def load_candidate_path(path: Path, candidate: str) -> dict[str, Any]:
+    validate_candidate_identifier(candidate)
+    payload = regular_bytes(
+        path,
+        "candidate record",
+        64 * 1024,
+    )
+    try:
+        record = json.loads(
+            payload.decode("ascii"),
+            object_pairs_hook=unique_object,
+        )
+    except (CandidateError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        if isinstance(error, CandidateError):
+            raise
+        raise CandidateError("candidate JSON is invalid") from error
+    return validate_candidate_record(record, candidate)
+
+
 def load_candidate(candidate: str) -> dict[str, Any]:
     return load_candidate_path(
         CANDIDATE_ROOT / f"{candidate}.json",
         candidate,
     )
+
+
+def validate_external_candidate_record(
+    record: dict[str, Any],
+    candidate: str,
+) -> dict[str, Any]:
+    validated = validate_candidate_record(record, candidate)
+    template = load_candidate(candidate)
+    for field in TOP_LEVEL_KEYS - EXTERNAL_MUTABLE_FIELDS:
+        if validated[field] != template[field]:
+            raise CandidateError(
+                "external candidate changed a fixed template field"
+            )
+    return validated
+
+
+def load_external_candidate_path(
+    path: Path,
+    candidate: str,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    validate_candidate_identifier(candidate)
+    if not SHA256.fullmatch(expected_sha256):
+        raise CandidateError("external candidate hash is invalid")
+    payload = regular_bytes(path, "external candidate record", 64 * 1024)
+    if hashlib.sha256(payload).hexdigest() != expected_sha256:
+        raise CandidateError("external candidate hash changed")
+    try:
+        record = json.loads(
+            payload.decode("ascii"),
+            object_pairs_hook=unique_object,
+        )
+    except (CandidateError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        if isinstance(error, CandidateError):
+            raise
+        raise CandidateError("candidate JSON is invalid") from error
+    return validate_external_candidate_record(record, candidate)
 
 
 def source_snapshot(metadata: os.stat_result) -> tuple[int, ...]:
@@ -264,8 +321,22 @@ def prepare(
     candidate: str,
     private_key: Path,
     bundle_root: Path,
+    candidate_path: Path | None = None,
+    candidate_sha256: str | None = None,
 ) -> tuple[dict[str, Any], str, str]:
-    record = load_candidate(candidate)
+    if (candidate_path is None) != (candidate_sha256 is None):
+        raise CandidateError(
+            "external candidate path and hash must be provided together"
+        )
+    if candidate_path is None:
+        record = load_candidate(candidate)
+    else:
+        assert candidate_sha256 is not None
+        record = load_external_candidate_path(
+            candidate_path,
+            candidate,
+            candidate_sha256,
+        )
     with tempfile.TemporaryDirectory(
         prefix=f"rog5-{candidate}-",
     ) as temporary:
@@ -306,6 +377,8 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("candidate")
     parser.add_argument("--private-key", required=True, type=Path)
     parser.add_argument("--bundle-root", required=True, type=Path)
+    parser.add_argument("--candidate-record", type=Path)
+    parser.add_argument("--candidate-record-sha256")
     return parser.parse_args(arguments)
 
 
@@ -317,6 +390,8 @@ def main(arguments: list[str] | None = None) -> int:
             values.candidate,
             values.private_key,
             values.bundle_root,
+            values.candidate_record,
+            values.candidate_record_sha256,
         )
     except (CandidateError, PACKAGER.BundleError):
         print("FAIL offline candidate preparation refused", file=sys.stderr)

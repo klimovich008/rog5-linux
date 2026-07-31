@@ -395,51 +395,24 @@ time.
 
 ## Current next action
 
-The signed SSH-only bundle, fixed serve/verify/execute integration, first
-shell-free live recovery transaction, automatic fallback, and corrected DTB
-selection are complete. The corrected target and stable-recovery wrapper now
-also pass a complete twin-build hardware-free gate under one disposable test
-trust root. An exact semantic DTB oracle now proves that the accepted v3
-object differs from rejected v1 only at four intended isolation properties
-and rejects unrelated node/property changes in core CI. They remain offline
-and have no live authority.
-Continue in this order:
+The hardware-free recovery, corrected-DTB, fixture-key root, key-admission,
+NFS, runtime, rollback, thermal, and CI gates are complete. The remaining H2
+boundary is deployment rather than another subsystem oracle.
 
-1. preserve the 11 retained Podman volumes and review the remaining external
-   development/cache candidates separately before additional cleanup;
-2. use the pinned Linux source/ref-state/toolchain bootstrap for all new
-   kernel builds;
-3. [x] build the corrected-DTB candidate twice with a disposable trust root
-   and repeat the complete hardware-free gate;
-4. [x] enforce and test the exact board-preserving corrected-DTB semantic
-   delta against rejected and accepted evidence;
-5. [x] define and mutation-test the exact private runtime record for all six
-   active capabilities while leaving rollback armed;
-6. [x] close the temporary root's volatile SSH host-key gap without
-   `accept-new`, client-key use, or a reusable identity;
-7. [x] define and hostile-test the exact three-button/default-off-green-LED
-   source, config, module, and DTB contract without contacting the phone;
-8. [x] build and hostile-test a reproducible native AArch64 press-only
-   indicator, then define a successor headless-root staging profile without
-   modifying the accepted SSH-only root;
-9. [x] build and seal the successor root archive with a non-production public
-   key fixture, then rerun its extracted-root verifier;
-10. [x] bind the fixture-key fingerprint across the new root build record,
-    whole-tree seal, and v3 package while keeping historical v1/v2 exact;
-11. [x] integrate that v3 package into a new phone-free corrected-candidate
-    profile and add private-to-public key derivation at the live preflight;
-12. [x] bind admitted v3 package/candidate identities across NFS handoff,
-    recovery rendezvous, target probe, and runtime acceptance without
-    enabling a phone action;
-13. [x] implement and hostile-test the fixed v3 export installer, private
-    archive snapshot, no-replace publication, and key-admission launcher
-    without invoking PolicyKit or touching the real host export;
-14. rebuild the complete v3 chain around a separately authorized non-fixture
-    key, install its fixed read-only NFS export through that launcher, pin its
-    stable-recovery wrapper/trust/manifest profile, and pass phone-free
-    artifact and key preflight;
-15. request fresh, separate authorization before creating or using a live
-    signing credential or temporarily booting the corrected candidate;
-16. if the minimal root reaches key-only SSH and clean rollback, run the
-   physical button/indicator gate, then continue H3
-   power/lifecycle and H4 input/sensor gates before GPU or desktop work.
+Current execution order:
+
+1. rebuild the SSH-only root around one authorized non-fixture Ed25519 key;
+2. seal it and bind one v3 package, candidate, runtime manifest, and recovery
+   trust root;
+3. pin the exact recovery wrapper/trust/manifest profile and pass the complete
+   phone-free gate;
+4. install reviewed fixed host components and the no-replace read-only NFS
+   export;
+5. run key, artifact, fallback, cleanup, and connected fastboot preflights;
+6. perform at most one authorized temporary boot, collect the 88-field
+   strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
+7. if H2 passes, continue physical keys/indicator, then H3
+   power/charging/thermal/suspend and H4 sensors.
+
+Use [active-context.md](docs/active-context.md) as the resume point. Detailed
+completed chronology remains in the dated evidence and Git archive.

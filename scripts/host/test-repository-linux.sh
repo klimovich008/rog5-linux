@@ -147,7 +147,9 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-corrected-successor-live-gate-offline.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
-			scripts/device/test-recovery-candidate-dtb-contract.sh
+		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
+		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
+		scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py
 			scripts/host/test-core-compatibility-oracle.py
@@ -157,6 +159,8 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
+			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
+			scripts/host/test-prepare-headless-ssh-deployment-candidate.py
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py
@@ -216,6 +220,8 @@ else
 		scripts/host/test-corrected-successor-live-gate-offline.sh
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
+		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
+		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py
@@ -226,6 +232,8 @@ else
 			scripts/host/test-pin-minimal-headless-host-key.py
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
+			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
+			scripts/host/test-prepare-headless-ssh-deployment-candidate.py
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py
