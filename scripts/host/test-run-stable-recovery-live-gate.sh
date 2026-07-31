@@ -38,7 +38,7 @@ if env -i PATH="$PATH" HOME="$HOME" \
 	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
 	TRUST_KEY="$repo/build/unused-trust-key" \
 	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
-	BUNDLE=headless-ssh-network-root-v3 \
+	BUNDLE=headless-ssh-network-root-v3-r2 \
 	RECOVERY_SHA256=11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
 	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 	MANIFEST_SHA256=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e \
@@ -71,8 +71,9 @@ for required in \
 	'expected_target_id=headless-ssh-network-root' \
 	'f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b' \
 	'457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e' \
+	'9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630' \
 	'9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b' \
-	'expected_bundle=headless-ssh-network-root-v3' \
+	'expected_bundle=headless-ssh-network-root-v3-r2' \
 	'profile requires bundle=$expected_bundle' \
 	'target_id=$expected_target_id' \
 	'artifacts/android-boot-tools-v1/avbtool.py' \

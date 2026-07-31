@@ -28,7 +28,8 @@ CONSUMED_MANIFEST = (
 )
 PACKAGE_SHA256 = "2" * 64
 CANDIDATE_SHA256 = "3" * 64
-BUNDLE = "headless-ssh-network-root-v3"
+CANDIDATE = "headless-ssh-network-root-v3"
+BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 SESSION = "1" * 32
 PREPARE = "2" * 32
@@ -235,7 +236,7 @@ class Fixture:
             printf 'key-admission:verify\\n' >>"{self.calls}"
             printf '%s\\n' \
               'format=rog5-headless-ssh-v2-key-admission-v1' \
-              'candidate={BUNDLE}' \
+              'candidate={CANDIDATE}' \
               'bundle={BUNDLE}' \
               'profile=network-root-v1' \
               'build_profile=headless-ssh-v2' \

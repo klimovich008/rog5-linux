@@ -384,6 +384,15 @@ builds are byte-identical, AVB verification passes, and the real artifact
 preflight succeeds without phone access. See the
 [deployment-chain report](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
 
+The consumed v3 manifest is now superseded by signed bundle
+`headless-ssh-network-root-v3-r2`. Its guarded twin build from clean pushed
+checkpoint `81d2736` is byte-identical, retains only the public trust key, and
+passes the production artifact gate before fastboot discovery. The exact r2
+manifest is `9ea27452…d630` and the recovery AVB image is `11feb00b…13c`.
+Candidate and bundle identities are now distinct throughout key admission,
+recovery control, lifecycle intent, and runtime verification. See the
+[signed-r2 report](../test-results/2026-07-31-headless-ssh-successor-r2-signed-build.md).
+
 The host publication boundary was first implemented and accepted offline.
 Its unprivileged launcher requires a clean branch synchronized with its exact
 `origin` peer, verifies root-owned installed components byte-for-byte, and

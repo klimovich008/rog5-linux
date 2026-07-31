@@ -41,7 +41,7 @@ FIXTURE_MANIFEST_SHA256 = (
     "a409f0ebad410edf8fb36e31d322029bf69d4c6621ddab84a660ff471da48e11"
 )
 CANDIDATE_ID = "headless-ssh-network-root-v3"
-BUNDLE_ID = "headless-ssh-network-root-v3"
+BUNDLE_ID = "headless-ssh-network-root-v3-r2"
 PROFILE = "network-root-v1"
 BUILD_PROFILE = "headless-ssh-v2"
 TARGET_ID = "headless-ssh-network-root"

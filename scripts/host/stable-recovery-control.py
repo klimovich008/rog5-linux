@@ -38,7 +38,7 @@ from tools.recovery_control import (  # noqa: E402
 
 SS = Path("/usr/bin/ss")
 NETWORK_ROOT_BUNDLE = "headless-network-root-v1"
-DEPLOYMENT_NETWORK_ROOT_BUNDLE = "headless-ssh-network-root-v3"
+DEPLOYMENT_NETWORK_ROOT_BUNDLE = "headless-ssh-network-root-v3-r2"
 DEPLOYMENT_NFS_PROFILE = "headless-ssh-deployment-v3"
 NFS_HANDOFF_MARKER = Path("/run/rog5-network-root-nfs-ready")
 NFS_HANDOFF_ROOT = Path("/var/lib/rog5-headless-network-root-v1/root")

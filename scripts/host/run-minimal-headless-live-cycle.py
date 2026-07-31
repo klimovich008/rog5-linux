@@ -19,7 +19,8 @@ from typing import NoReturn
 
 
 REPO = Path(__file__).resolve().parents[2]
-BUNDLE = "headless-ssh-network-root-v3"
+CANDIDATE = "headless-ssh-network-root-v3"
+BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 FALLBACK_CONTROL_MARGIN_SECONDS = 120
@@ -599,7 +600,7 @@ def parse_key_admission_record(
         values[name] = value
     if (
         values["format"] != "rog5-headless-ssh-v2-key-admission-v1"
-        or values["candidate"] != BUNDLE
+        or values["candidate"] != CANDIDATE
         or values["bundle"] != BUNDLE
         or values["profile"] != "network-root-v1"
         or values["build_profile"] != "headless-ssh-v2"

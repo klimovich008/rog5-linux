@@ -53,13 +53,9 @@ No phone, fastboot, private deployment key, host privilege, installed export,
 or live signing key was used. The disposable test key was confined to the
 temporary test directory and removed with it.
 
-## Remaining HOLD
+## Superseded HOLD
 
-1. Receive fresh authorization for recovery signing-key creation/use.
-2. Generate the real r2 external candidate and twin deployment build.
-3. Review and pin the r2 trust, manifest, recovery wrapper, verifier, and
-   configuration hashes in a separate clean commit.
-4. Install the r2 signed bundle with no-replace semantics and pass all
-   phone-free gates.
-5. Receive a separate fresh temporary-boot authorization before one live r2
-   cycle.
+The real external candidate and signed twin build now exist and reproduce the
+predicted manifest. Continue from the
+[signed r2 result](2026-07-31-headless-ssh-successor-r2-signed-build.md) for
+the remaining review, installation, preflight, and temporary-boot sequence.

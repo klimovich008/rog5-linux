@@ -67,6 +67,10 @@ done
 [[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
 	$bundle != *..* && $bundle != none ]] ||
 	fail 'invalid bundle identity'
+if [[ $action == boot &&
+	$expected_manifest == "$consumed_deployment_manifest" ]]; then
+	fail 'refusing a consumed deployment manifest'
+fi
 
 case $profile in
 	historical-2026-07-29)
@@ -111,7 +115,7 @@ case $profile in
 		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
 		expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392
 		expected_target_id=headless-ssh-network-root
-		expected_bundle=headless-ssh-network-root-v3
+		expected_bundle=headless-ssh-network-root-v3-r2
 		[[ $expected_image == \
 			11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c ]] ||
 			fail 'deployment recovery image identity is not allowlisted'
@@ -119,7 +123,7 @@ case $profile in
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
 			fail 'deployment recovery trust root is not allowlisted'
 		[[ $expected_manifest == \
-			457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e ]] ||
+			9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 ]] ||
 			fail 'deployment runtime manifest is not allowlisted'
 		[[ $expected_host_verifier == \
 			9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b ]] ||
@@ -135,9 +139,6 @@ case $profile in
 esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
-if [[ $action == boot && $expected_manifest == $consumed_deployment_manifest ]]; then
-	fail 'refusing a consumed deployment manifest'
-fi
 
 for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 	stat tr; do

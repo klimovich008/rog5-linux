@@ -50,6 +50,16 @@ admission:
 See the
 [deployment-chain result](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
 
+The consumed signed bundle has now been replaced by the distinct
+`headless-ssh-network-root-v3-r2` transfer identity. One guarded production
+build from clean pushed checkpoint `81d2736` produced byte-identical twins,
+destroyed its private signing-key snapshot, and reproduced manifest
+`9ea27452…d630`. The unchanged public trust root and the exact recovery AVB,
+raw image, kernel, initramfs, control, fetcher, verifier, host verifier, and
+configuration hashes are pinned by the deployment live gate. Its real
+artifact preflight passes without fastboot discovery; see the
+[signed r2 result](../test-results/2026-07-31-headless-ssh-successor-r2-signed-build.md).
+
 The host deployment boundary now passes:
 
 - the reviewed SteamOS export-store remediation is pushed and installed;
@@ -142,10 +152,11 @@ The reusable preflight and its 22 hostile tests are pushed at
 `773a1196cbfad33ab87124c47ed9772f6251c40c`; the formal run against all three
 external inputs passed at that exact clean, origin-synchronized checkpoint
 with no credential or phone access.
-It has not been signed. Under fresh credential authorization, the signed twin
-build must reproduce the already-pinned manifest identity, produce fresh
-trust, recovery-wrapper, verifier, and configuration identities, and pin the
-resulting five-member tuple.
+That exact r2 candidate is now signed and twin-built. It reproduced the
+predicted manifest, reused the existing public recovery trust root, and its
+recovery-wrapper, verifier, and configuration identities are pinned. The
+remaining work begins with review/publish and no-replace host installation;
+no r2 phone boot has occurred.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

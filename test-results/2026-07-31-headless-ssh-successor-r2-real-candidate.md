@@ -74,14 +74,9 @@ The full local Linux CI tier passed at the same checkpoint, including the 22
 hostile preflight tests. Two final tool-free Claude reviews of the production
 and test/documentation diffs independently returned `NO FINDINGS`.
 
-## Remaining HOLD
+## Superseded HOLD
 
-1. Under fresh credential authorization, twin-sign and twin-build this exact
-   r2 candidate from checkpoint `773a1196cbfad33ab87124c47ed9772f6251c40c`.
-2. Require the signed build to reproduce the predicted manifest, review its
-   fresh trust, recovery-wrapper, verifier, and configuration hashes, and pin
-   the resulting five-member tuple in one clean commit.
-3. Install the reviewed no-replace artifacts and pass local, privileged, and
-   connected preflights.
-4. Obtain separate fresh temporary-boot authorization before one live r2
-   lifecycle.
+The exact candidate was subsequently twin-signed and twin-built from clean,
+pushed checkpoint `81d2736811146df1a74f06b5dea28e75cee5383b`. It reproduced
+the predicted manifest and passed the production artifact gate. Continue from
+the [signed r2 result](2026-07-31-headless-ssh-successor-r2-signed-build.md).

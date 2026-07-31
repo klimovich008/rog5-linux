@@ -96,6 +96,7 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
                 "headless-ssh-network-root-v3.json"
             ).read_text(encoding="ascii")
         )
+        candidate["bundle"] = VERIFIER.DEPLOYMENT_BUNDLE
         candidate["root_tree_sha256"] = "4" * 64
         candidate["root_seal_sha256"] = "5" * 64
         candidate["root_tree_entries"] = "37736"
@@ -232,7 +233,12 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
             "headless-ssh-network-root-v3.json"
         )
         fixture_copy = self.directory / "fixture-candidate.json"
-        fixture_copy.write_bytes(fixture.read_bytes())
+        fixture_candidate = json.loads(fixture.read_text(encoding="ascii"))
+        fixture_candidate["bundle"] = VERIFIER.DEPLOYMENT_BUNDLE
+        fixture_copy.write_text(
+            json.dumps(fixture_candidate, indent=2) + "\n",
+            encoding="ascii",
+        )
         fixture_copy.chmod(0o400)
         fixture_hash = hashlib.sha256(fixture_copy.read_bytes()).hexdigest()
         with self.assertRaisesRegex(
