@@ -311,6 +311,20 @@ Installing `nfs-utils`, starting `nfs-server`, or changing the runtime firewall
 is an external service setup and requires user confirmation. Offline kernel,
 initramfs, rootfs, and preflight work does not.
 
+The key-bound `headless-ssh-v2` deployment path has a separate fixed
+no-replace installer. Its unprivileged launcher reruns the private-key to
+package/candidate/runtime-manifest admission gate before PolicyKit and passes
+only the archive, package, and admitted package hash to the root-owned
+component. The installer snapshots caller-owned archive bytes into an
+anonymous root-owned file, rejects unsafe members and tracked fixture
+identities, verifies and syncs the extracted root, and publishes only to
+`/var/lib/rog5-headless-ssh-network-root-v3` with
+`renameat2(RENAME_NOREPLACE)`. Eleven hostile installer tests and eight
+launcher tests pass offline. The fixed component and export have not been
+installed on the real host; doing so is a separate credential-bearing
+PolicyKit action requiring fresh confirmation. See the
+[offline installer result](../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
+
 The offline host implementation now passes
 `scripts/host/test-network-root-host.sh`. After confirmation,
 `prepare-network-root-export.sh` authenticates the exact archive, extracts it

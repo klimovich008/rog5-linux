@@ -13,9 +13,11 @@ package/candidate/runtime-manifest chain before privilege or phone discovery.
 No non-fixture chain has been built. The NFS and runtime controllers now carry
 only the exact `headless-ssh-deployment-v3` package/candidate identities, but
 the v3 export is not installed and stable recovery has no pinned deployment
-wrapper/trust/manifest hashes. The runbook therefore cannot pass complete
-preflight and is not authorized or runnable on the phone. This document grants
-no live authority.
+wrapper/trust/manifest hashes. A fixed no-replace export installer and its
+admission launcher pass hardware-free hostile tests; their reviewed source has
+not been installed on the real host. The runbook therefore cannot pass
+complete preflight and is not authorized or runnable on the phone. This
+document grants no live authority.
 The retained historical `artifact-preflight` remains regression evidence for
 its old profile. `key-preflight` performs only local key admission. `preflight`
 continues into fixed-host and connected checks only after admission. `run`
@@ -69,21 +71,23 @@ The NFS path now follows the same model:
 
 - `install-recovery-host-controller.sh` installs root-owned mode-`0555`
   copies of `serve-network-root.sh`, `headless-network-root.py`, and
-  `persistent-root-tool.py` below
+  `persistent-root-tool.py`, plus the fixed
+  `install-headless-ssh-deployment-export.py`, below
   `/usr/libexec/rog5-recovery-host`;
 - `run-headless-network-root-server.sh preflight` requires those installed
   bytes to match the reviewed repository sources;
-- the installed server accepts only
-  `/var/lib/rog5-headless-network-root-v1/root`;
+- the reviewed server accepts the historical
+  `/var/lib/rog5-headless-network-root-v1/root` without a deployment package,
+  or the exact `/var/lib/rog5-headless-ssh-network-root-v3/root` with its
+  admitted package hash;
 - it requires a non-root `PKEXEC_UID`, a fresh 256-bit handoff token, and a
   bounded 600-900 second window; and
 - it exports only read-only NFSv4.2 to `169.254.77.2` over the isolated USB
   link and removes its runtime export, listener, marker, firewall, and
   interface state on exit.
 
-That fixed export path belongs to the historical profile. Support for the
-key-bound v3 deployment lower must be added and independently mutation-tested
-before this lifecycle can pass its real preflight.
+The historical path remains unchanged. The exact key-bound v3 path and package
+identity are independently mutation-tested, but no v3 export exists there.
 
 After this change is reviewed, committed, and pushed, the installed copies
 will be stale by design. Updating them is a separate privileged host mutation:
@@ -94,6 +98,41 @@ pkexec scripts/host/install-recovery-host-controller.sh
 
 Do not run that command without explicit approval. It changes only the host,
 not the phone.
+
+## Fixed v3 export installation
+
+`run-headless-ssh-deployment-export-install.py` is the only reviewed
+unprivileged entry point for publishing the deployment lower. It fails before
+credential inspection unless all three one-operation guards are set, requires
+a clean branch synchronized with `origin`, and proves the fixed installed
+installer/verifier bytes match the reviewed checkout. It then reruns exact
+private-key/package/candidate/runtime-manifest admission. The privileged
+command receives only:
+
+```text
+pkexec /usr/libexec/rog5-recovery-host/install-headless-ssh-deployment-export.py \
+  ARCHIVE PACKAGE ADMITTED_PACKAGE_SHA256
+```
+
+The private key, candidate, and runtime manifest never cross that boundary.
+The root-owned installer:
+
+- requires canonical caller-owned read-only archive/package inputs below a
+  caller-owned mode-`0700` parent;
+- rejects the fixture fingerprint and every tracked fixture root identity;
+- copies the archive into an anonymous root-owned `O_TMPFILE`, then inspects
+  and extracts only that immutable-to-the-caller snapshot;
+- rejects escaping, duplicate, sparse, device/FIFO, embedded-credential,
+  symlink-ancestor, and unsafe-hardlink members before extraction;
+- verifies the complete extracted v3 root against the admitted package;
+- syncs every regular file and directory before publication; and
+- uses `renameat2(RENAME_NOREPLACE)` so it never replaces an export that
+  appeared concurrently.
+
+A failed deterministic partial stage is retained for explicit privileged
+inspection; the installer never silently removes or overwrites it. Do not set
+the guards or invoke this launcher without fresh authorization to use the
+deployment key and mutate the host. No installation command has been run.
 
 ## Inputs
 
@@ -191,8 +230,9 @@ Preflight proves:
 - no NFS handoff marker, export mount, TCP 8080/2049 listener, NFS export,
   NFS worker, or `drop`-zone runtime state remains;
 - both privileged launchers are installed and byte-current; the fixed
-  root-owned NFS entry point also verifies the sealed export root and required
-  host commands through a read-only PolicyKit preflight;
+  root-owned NFS entry point and export installer are byte-current; the NFS
+  entry point also verifies the sealed export root and required host commands
+  through a read-only PolicyKit preflight;
 - the corrected recovery image, twin, target bundle, trust root, native
   verifier, wrapper configuration, and AVB layout pass the existing live-gate
   verification; and

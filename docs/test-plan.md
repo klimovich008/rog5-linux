@@ -305,6 +305,20 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   surfaces. Canonical output contains only public fingerprints and hashes.
   See the
   [admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
+- `test-install-headless-ssh-deployment-export.py` has eleven offline
+  root-installer fixtures. They cover exact package/archive binding, fixture
+  and historical-package refusal, unsafe input metadata, escaping and
+  credential paths, symlink ancestors, devices/FIFOs, caller pathname and
+  in-place replacement after admission, bottom-up durability ordering, and a
+  racing final destination. Inspection and extraction consume only one
+  anonymous private snapshot, and publication uses no-replace rename.
+- `test-run-headless-ssh-deployment-export-install.py` has eight launcher
+  fixtures. They prove guards and fixed installed bytes fail before private
+  key admission, require a clean exact `origin` checkpoint, bind admission to
+  the package and archive, and pass only the archive, package, and admitted
+  package hash to PolicyKit. The private key, candidate, and manifest never
+  enter the privileged command. See the
+  [export-installer result](../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and

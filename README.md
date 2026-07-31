@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 37 source and 23 corrected-DTB checks, while an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` replacement twin-builds to one 536,750,378-byte source identity and seals as a verified 536,747,283-byte v3 package whose canonical Ed25519 fingerprint is bound across root record, tree seal, and package; a distinct fixture-only corrected-DTB candidate passes the complete twin-bundle/recovery/wrapper gate. A hostile-tested local admission gate rejects all fixture identities before privilege or phone discovery, and those admitted package/candidate identities now remain bound through NFS rendezvous and runtime acceptance. A non-fixture rebuild, installed v3 export, and pinned stable-recovery profile remain pending |
+| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` replacement twin-builds to one 536,750,378-byte source identity and seals as a verified 536,747,283-byte v3 package whose canonical Ed25519 fingerprint is bound across root record, tree seal, and package; a distinct fixture-only corrected-DTB candidate passes the complete twin-bundle/recovery/wrapper gate. A hostile-tested local admission gate rejects all fixture identities before privilege or phone discovery, and those admitted package/candidate identities now remain bound through NFS rendezvous and runtime acceptance. A fixed root-owned installer now snapshots the admitted archive privately, rejects unsafe members, verifies the extracted tree, and publishes the v3 export once with `RENAME_NOREPLACE`; its launcher keeps key material outside the privileged command. This boundary passes 19 focused tests offline, but no non-fixture chain or real host export has been built or installed and stable-recovery hashes remain pending |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -62,6 +62,9 @@ gate.
 - [Headless SSH v3 profile threading](test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md)
   — admitted package/candidate identity propagation through fixed NFS,
   recovery rendezvous, target probe, and runtime acceptance.
+- [Headless SSH v3 export installer](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md)
+  — private archive snapshot, hostile extraction policy, crash-durable
+  verification, no-replace publication, and admission-to-PolicyKit isolation.
 - [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
   — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
   bundle integration, and destroyed disposable key.
@@ -250,9 +253,14 @@ discovery. Its tests use disposable keys only. The next boundary is rebuilding
 that chain around a separately authorized deployment key. The admitted
 package and candidate hashes already continue through the fixed v3 NFS
 marker/recovery rendezvous and strict runtime verifier without changing the
-historical path or accepting a tracked fixture. The remaining host boundary
-is installing the v3 export, pinning stable-recovery wrapper/trust hashes, and
-passing artifact preflight.
+historical path or accepting a tracked fixture. The fixed v3 export installer
+and its unprivileged launcher are now implemented and hostile-tested offline.
+They reject tracked fixtures and unsafe archive metadata, copy caller-owned
+archive bytes into an unreachable anonymous snapshot before inspection,
+verify and sync the extracted root, and publish only by no-replace rename.
+No real host installation occurred. The remaining boundary is rebuilding the
+chain with a separately authorized key, installing that exact export, pinning
+stable-recovery wrapper/trust hashes, and passing artifact preflight.
 See the
 [corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [root hardening result](test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md),
@@ -260,6 +268,7 @@ See the
 [key-bound candidate result](test-results/2026-07-30-headless-ssh-v2-candidate-offline.md),
 [deployment-key admission result](test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md),
 [v3 profile-threading result](test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md),
+[v3 export-installer result](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md),
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the
