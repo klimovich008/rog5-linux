@@ -37,6 +37,12 @@ USB_PRODUCT_NAME = "ROG Phone 5 Linux Server"
 RECOVERY_PRODUCT_NAME = "ROG5 recovery"
 USB_INTERFACE = "02"
 USB_DRIVER = "cdc_acm"
+USB_NCM_INTERFACE = "00"
+USB_NCM_DRIVER = "cdc_ncm"
+FALLBACK_ADDRESS = "169.254.77.2"
+HOST_ADDRESS = "169.254.77.1"
+HOST_CIDR = f"{HOST_ADDRESS}/16"
+FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 FASTBOOT_VENDOR = "0b05"
 FASTBOOT_PRODUCT = "4daf"
 MAX_SERIAL_OUTPUT = 128 * 1024
@@ -106,12 +112,16 @@ CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 UDEVADM = Path("/usr/bin/udevadm")
 SSH_KEYGEN = Path("/usr/bin/ssh-keygen")
+SSH = Path("/usr/bin/ssh")
+IP = Path("/usr/bin/ip")
+NMCLI = Path("/usr/bin/nmcli")
 FASTBOOT = Path("/usr/bin/fastboot")
 SYSTEMCTL = Path("/usr/bin/systemctl")
 FUSER = Path("/usr/bin/fuser")
 SYS_DEVICES = Path("/sys/devices")
 SYS_BUS_USB = Path("/sys/bus/usb/devices")
 SYS_CLASS_TTY = Path("/sys/class/tty")
+SYS_CLASS_NET = Path("/sys/class/net")
 HOST_BOOT_ID = Path("/proc/sys/kernel/random/boot_id")
 ANCHOR_FIELDS = (
     "format",
@@ -640,6 +650,14 @@ def decode_ed25519(value: str) -> None:
 
 def verify_known_hosts(path: Path) -> bytes:
     known_hosts = canonical_private_file(path, "fallback host pin")
+    if (
+        any(character.isspace() for character in str(known_hosts))
+        or "%" in str(known_hosts)
+    ):
+        fail(
+            "fallback host pin path must not contain whitespace or "
+            "OpenSSH percent tokens"
+        )
     try:
         known_hosts.relative_to(REPO)
     except ValueError:
@@ -686,6 +704,96 @@ def verify_known_hosts(path: Path) -> bytes:
         )
     decode_ed25519(fields[2])
     return payload
+
+
+def file_identity(path: Path) -> tuple[int, ...]:
+    metadata = path.lstat()
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_uid,
+        metadata.st_gid,
+        metadata.st_nlink,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def verify_ssh_key(path: Path, expected_public_sha256: str) -> Path:
+    if (
+        not SHA256.fullmatch(expected_public_sha256)
+        or expected_public_sha256 == "0" * 64
+    ):
+        fail("admitted fallback SSH public-key identity is invalid")
+    key = canonical_private_file(path, "fallback SSH client key")
+    if "%" in str(key):
+        fail(
+            "fallback SSH client key path must not contain OpenSSH "
+            "percent tokens"
+        )
+    try:
+        key.relative_to(REPO)
+    except ValueError:
+        pass
+    else:
+        fail("fallback SSH client key must remain outside the repository")
+    metadata = key.lstat()
+    if not 64 <= metadata.st_size <= 4096:
+        fail("fallback SSH client key size is outside policy")
+    before = file_identity(key)
+    descriptor = os.open(
+        key,
+        os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
+    )
+    try:
+        result = subprocess.run(
+            [
+                str(SSH_KEYGEN),
+                "-y",
+                "-f",
+                f"/proc/self/fd/{descriptor}",
+            ],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=15,
+            env={"LC_ALL": "C"},
+            pass_fds=(descriptor,),
+        )
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    fields = result.stdout.rstrip(b"\n").split(b" ")
+    if (
+        result.returncode != 0
+        or not result.stdout.endswith(b"\n")
+        or result.stdout.count(b"\n") != 1
+        or b"\r" in result.stdout
+        or len(fields) < 2
+        or fields[0] != b"ssh-ed25519"
+        or not fields[1]
+        or before != file_identity(key)
+        or before
+        != (
+            after.st_dev,
+            after.st_ino,
+            after.st_mode,
+            after.st_uid,
+            after.st_gid,
+            after.st_nlink,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        )
+    ):
+        fail("fallback SSH client key changed or is not Ed25519")
+    canonical_public = b" ".join(fields[:2]) + b"\n"
+    if hashlib.sha256(canonical_public).hexdigest() != expected_public_sha256:
+        fail("fallback SSH client key no longer matches admission")
+    return key
 
 
 def host_boot_id() -> str:
@@ -925,6 +1033,215 @@ def wait_fallback_acm(
                 return identity
         time.sleep(0.1)
     fail("exact Alpine fallback ACM did not become stable")
+
+
+def fallback_ncm_identity() -> tuple[str, str] | None:
+    matches: list[tuple[str, str]] = []
+    try:
+        entries = sorted(SYS_CLASS_NET.iterdir())
+    except OSError:
+        return None
+    for entry in entries:
+        observed = usb_ancestor(entry)
+        if observed is None:
+            continue
+        raw, vendor, product_id, product = observed
+        if (
+            vendor != USB_VENDOR
+            or product_id != USB_PRODUCT
+            or product != USB_PRODUCT_NAME
+        ):
+            continue
+        result = subprocess.run(
+            [
+                str(UDEVADM),
+                "info",
+                "--query=property",
+                f"--path={entry}",
+            ],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+            env={"LC_ALL": "C"},
+        )
+        properties: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            key, separator, value = line.partition("=")
+            if separator == "=" and key and key not in properties:
+                properties[key] = value
+        try:
+            driver = (entry / "device" / "driver").resolve(strict=True).name
+        except OSError:
+            continue
+        if (
+            result.returncode != 0
+            or properties.get("ID_VENDOR_ID") != USB_VENDOR
+            or properties.get("ID_MODEL_ID") != USB_PRODUCT
+            or properties.get("ID_MODEL") != USB_MODEL
+            or properties.get("ID_USB_DRIVER") != USB_NCM_DRIVER
+            or properties.get("ID_USB_INTERFACE_NUM")
+            != USB_NCM_INTERFACE
+            or driver != USB_NCM_DRIVER
+        ):
+            continue
+        matches.append(
+            (entry.name, raw.relative_to(SYS_DEVICES).as_posix())
+        )
+    raw_locations = fallback_raw_locations()
+    if len(raw_locations) != 1 or len(matches) != 1:
+        return None
+    if matches[0][1] not in raw_locations:
+        fail("fallback NCM escaped the exact USB product")
+    return matches[0]
+
+
+def wait_fallback_ncm(
+    expected_location: str,
+    timeout_seconds: int,
+) -> tuple[str, str]:
+    deadline = time.monotonic() + timeout_seconds
+    candidate: tuple[str, str] | None = None
+    stable_since = 0.0
+    while time.monotonic() < deadline:
+        current = fallback_ncm_identity()
+        if current is None:
+            candidate = None
+            stable_since = 0.0
+        elif current[1] != expected_location:
+            fail("fallback returned on a different physical USB port")
+        else:
+            now = time.monotonic()
+            if current != candidate:
+                candidate = current
+                stable_since = now
+            elif now - stable_since >= 0.5:
+                return current
+        time.sleep(0.1)
+    fail("exact Alpine fallback NCM did not become stable")
+
+
+def exact_fallback_route(interface: str) -> None:
+    address = subprocess.run(
+        [str(IP), "-4", "-o", "address", "show", "dev", interface],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=5,
+        env={"LC_ALL": "C"},
+    )
+    cidrs = [
+        fields[3]
+        for line in address.stdout.splitlines()
+        if (fields := line.split()) and len(fields) >= 4
+        and fields[2] == "inet"
+    ]
+    if address.returncode != 0 or cidrs != [HOST_CIDR]:
+        fail("fallback NCM lacks the exact host /16 address")
+    route = subprocess.run(
+        [str(IP), "-4", "route", "get", FALLBACK_ADDRESS],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=5,
+        env={"LC_ALL": "C"},
+    )
+    raw_lines = [line for line in route.stdout.splitlines() if line]
+    primary = [line.split() for line in raw_lines if not line[0].isspace()]
+    continuation = [
+        line.strip() for line in raw_lines if line[0].isspace()
+    ]
+    if (
+        route.returncode != 0
+        or len(primary) != 1
+        or continuation not in ([], ["cache"])
+    ):
+        fail("fallback route is unavailable")
+    fields = primary[0]
+    if (
+        not fields
+        or fields[0] != FALLBACK_ADDRESS
+        or fields.count("dev") != 1
+        or fields.count("src") != 1
+        or "via" in fields
+        or "table" in fields
+    ):
+        fail("fallback route is not exact and direct")
+    try:
+        device = fields[fields.index("dev") + 1]
+        source = fields[fields.index("src") + 1]
+    except IndexError as error:
+        raise FallbackError("fallback route is incomplete") from error
+    if device != interface or source != HOST_ADDRESS:
+        fail("fallback route escaped the exact NCM interface")
+    default_route = subprocess.run(
+        [str(IP), "-4", "route", "show", "default", "dev", interface],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=5,
+        env={"LC_ALL": "C"},
+    )
+    if default_route.returncode != 0 or default_route.stdout.splitlines():
+        fail("fallback NCM interface must not carry a default route")
+
+
+def verify_network_profile(expected_interface: str | None = None) -> str:
+    result = subprocess.run(
+        [
+            str(NMCLI),
+            "-g",
+            "connection.id,connection.type,connection.interface-name,"
+            "connection.autoconnect,connection.autoconnect-priority,"
+            "ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns,"
+            "ipv4.never-default,ipv6.method",
+            "connection",
+            "show",
+            FALLBACK_NETWORK_PROFILE,
+        ],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=8,
+        env={"LC_ALL": "C"},
+    )
+    values = result.stdout.splitlines()
+    if result.returncode != 0 or len(values) != 11:
+        fail("fallback NetworkManager profile is unavailable or malformed")
+    interface = values[2]
+    if (
+        values
+        != [
+            FALLBACK_NETWORK_PROFILE,
+            "802-3-ethernet",
+            interface,
+            "yes",
+            "100",
+            "manual",
+            HOST_CIDR,
+            "",
+            "",
+            "yes",
+            "disabled",
+        ]
+        or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,15}", interface)
+        or (
+            expected_interface is not None
+            and interface != expected_interface
+        )
+    ):
+        fail("fallback NetworkManager profile is not exact and no-gateway")
+    return interface
 
 
 def remote_transport(nonce: str, action: str) -> tuple[bytes, tuple[bytes, ...]]:
@@ -1421,6 +1738,121 @@ def probe(
         return values, location, proof
 
 
+def ssh_probe(
+    known_hosts: Path,
+    allowed_signers: bytes,
+    ssh_key: Path,
+    expected_public_sha256: str,
+    anchor_path: Path,
+    timeout_seconds: int,
+) -> tuple[OrderedDict[str, str], OrderedDict[str, str]]:
+    expected_location = read_anchor(anchor_path)
+    interface, location = wait_fallback_ncm(
+        expected_location,
+        timeout_seconds,
+    )
+    verify_network_profile(interface)
+    exact_fallback_route(interface)
+    nonce = os.urandom(16).hex()
+    if not NONCE.fullmatch(nonce) or nonce == ZERO_ID:
+        fail("cannot mint one fallback SSH challenge")
+    host_pin_identity = file_identity(known_hosts)
+    key_identity = file_identity(ssh_key)
+    command = [
+        str(SSH),
+        "-F",
+        "/dev/null",
+        "-i",
+        str(ssh_key),
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        f"UserKnownHostsFile={known_hosts}",
+        "-o",
+        "GlobalKnownHostsFile=/dev/null",
+        "-o",
+        f"HostKeyAlias={HOST_ALIAS}",
+        "-o",
+        "ConnectTimeout=8",
+        "-o",
+        "ConnectionAttempts=1",
+        "-o",
+        "ServerAliveInterval=5",
+        "-o",
+        "ServerAliveCountMax=2",
+        "-o",
+        "LogLevel=ERROR",
+        f"root@{FALLBACK_ADDRESS}",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "-B",
+        "-",
+        nonce,
+        "classify",
+    ]
+    result = subprocess.run(
+        command,
+        input=REMOTE_SOURCE.encode("utf-8"),
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    )
+    if (
+        file_identity(known_hosts) != host_pin_identity
+        or verify_known_hosts(known_hosts) != allowed_signers
+        or file_identity(ssh_key) != key_identity
+        or verify_ssh_key(ssh_key, expected_public_sha256) != ssh_key
+    ):
+        fail("fallback SSH credentials changed during the health probe")
+    if (
+        result.returncode != 0
+        or result.stderr
+        or len(result.stdout) > MAX_SERIAL_OUTPUT
+    ):
+        diagnostic = ascii(
+            result.stderr.decode("utf-8", errors="replace").strip()[:512]
+        )
+        fail(
+            "fallback strict SSH health probe failed "
+            f"status={result.returncode} stderr={diagnostic}"
+        )
+    values, payload, signature = parse_frame(
+        result.stdout,
+        nonce,
+        "classify",
+    )
+    verify_signature(allowed_signers, payload, signature)
+    if fallback_ncm_identity() != (interface, location):
+        fail("fallback NCM identity changed after strict SSH proof")
+    exact_fallback_route(interface)
+    if read_anchor(anchor_path) != location:
+        fail("recovery USB anchor changed after strict SSH proof")
+    proof = OrderedDict(
+        (
+            ("nonce", values["nonce"]),
+            ("usb_location", location),
+            ("thermal_max", values["thermal_max"]),
+            ("record_sha256", hashlib.sha256(payload).hexdigest()),
+            (
+                "signature_sha256",
+                hashlib.sha256(signature).hexdigest(),
+            ),
+            (
+                "host_pin_sha256",
+                hashlib.sha256(allowed_signers).hexdigest(),
+            ),
+        )
+    )
+    return values, proof
+
+
 def safe_new_output(path: Path) -> Path:
     if not path.is_absolute():
         fail("fallback evidence output must be absolute")
@@ -1577,20 +2009,36 @@ def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
 
 
 def require_guards(action: str) -> None:
-    if os.environ.get("ALLOW_FALLBACK_ACM_CONTROL") != "1":
-        fail("set ALLOW_FALLBACK_ACM_CONTROL=1 for one fixed ACM action")
+    ssh_action = action in {"ssh-host-preflight", "wait-ssh-preflight"}
+    guard = (
+        "ALLOW_FALLBACK_SSH_CONTROL"
+        if ssh_action
+        else "ALLOW_FALLBACK_ACM_CONTROL"
+    )
+    if os.environ.get(guard) != "1":
+        fail(f"set {guard}=1 for one fixed fallback action")
     if os.environ.get("ALLOW_PHONE_CREDENTIAL_USE") != "1":
         fail(
             "set ALLOW_PHONE_CREDENTIAL_USE=1 for one host-key-signed "
             "fallback action"
         )
     if (
-        action != "host-preflight"
+        not ssh_action
+        and action != "host-preflight"
         and os.environ.get("ALLOW_FALLBACK_ACM_STORAGE_WRITE") != "1"
     ):
         fail(
             "set ALLOW_FALLBACK_ACM_STORAGE_WRITE=1 to authorize one "
             "fallback ACM action's shell-history and possible atime writes"
+        )
+    if (
+        ssh_action
+        and action != "ssh-host-preflight"
+        and os.environ.get("ALLOW_FALLBACK_SSH_ATIME_EFFECTS") != "1"
+    ):
+        fail(
+            "set ALLOW_FALLBACK_SSH_ATIME_EFFECTS=1 for one strict-SSH "
+            "probe's possible read-induced atime effects"
         )
     if (
         action == "reboot"
@@ -1677,37 +2125,57 @@ def main(arguments: list[str]) -> int:
     action = arguments[0] if arguments else ""
     if action not in {
         "host-preflight",
+        "ssh-host-preflight",
         "preflight",
         "wait-preflight",
+        "wait-ssh-preflight",
         "reboot",
     }:
         fail(
             "usage: fallback-acm-control.py "
             "host-preflight KNOWN_HOSTS TIMEOUT CONTACT_START_BUDGET | "
+            "ssh-host-preflight KNOWN_HOSTS SSH_KEY PUBLIC_KEY_SHA256 TIMEOUT "
+            "CONTACT_START_BUDGET | "
             "preflight KNOWN_HOSTS OUTPUT | "
             "wait-preflight KNOWN_HOSTS ANCHOR TIMEOUT OUTPUT | "
+            "wait-ssh-preflight KNOWN_HOSTS SSH_KEY PUBLIC_KEY_SHA256 "
+            "ANCHOR TIMEOUT "
+            "OUTPUT | "
             "reboot KNOWN_HOSTS"
         )
     require_guards(action)
     expected_arguments = {
         "host-preflight": 4,
+        "ssh-host-preflight": 6,
         "preflight": 3,
         "wait-preflight": 5,
+        "wait-ssh-preflight": 7,
         "reboot": 2,
     }
     if len(arguments) != expected_arguments[action]:
         fail(f"invalid arguments for fallback {action}")
     fixed_binary(UDEVADM)
-    fixed_binary(SYSTEMCTL)
-    fixed_binary(FUSER)
     fixed_binary(SSH_KEYGEN)
-    require_modem_manager_inactive()
+    if action in {"ssh-host-preflight", "wait-ssh-preflight"}:
+        fixed_binary(SSH)
+        fixed_binary(IP)
+        fixed_binary(NMCLI)
+    else:
+        fixed_binary(SYSTEMCTL)
+        fixed_binary(FUSER)
+        require_modem_manager_inactive()
     output: Path | None = None
     if action == "preflight":
         output = safe_new_output(Path(arguments[2]))
     elif action == "wait-preflight":
         output = safe_new_output(Path(arguments[4]))
-    known_hosts = verify_known_hosts(Path(arguments[1]))
+    elif action == "wait-ssh-preflight":
+        output = safe_new_output(Path(arguments[6]))
+    known_hosts_path = canonical_private_file(
+        Path(arguments[1]),
+        "fallback host pin",
+    )
+    known_hosts = verify_known_hosts(known_hosts_path)
     if action == "host-preflight":
         wait_timeout = parse_wait_timeout(arguments[2])
         require_anchor_budget(arguments[3], wait_timeout)
@@ -1715,6 +2183,17 @@ def main(arguments: list[str]) -> int:
         print(
             "PASS fallback ACM host prerequisites and allowed-signers pin "
             "are exact; no phone contact occurred"
+        )
+        return 0
+    if action == "ssh-host-preflight":
+        verify_ssh_key(Path(arguments[2]), arguments[3])
+        verify_network_profile()
+        wait_timeout = parse_wait_timeout(arguments[4])
+        require_anchor_budget(arguments[5], wait_timeout)
+        compile(REMOTE_SOURCE, "fallback-ssh-remote.py", "exec")
+        print(
+            "PASS fallback strict-SSH host prerequisites, client key, "
+            "and pinned host key are exact; no phone contact occurred"
         )
         return 0
     if action == "preflight":
@@ -1731,6 +2210,27 @@ def main(arguments: list[str]) -> int:
         _, location, _ = probe(known_hosts, action="reboot")
         wait_fastboot(location)
         print("PASS pinned Alpine fallback reached exact fastboot device")
+        return 0
+    if action == "wait-ssh-preflight":
+        if output is None:
+            fail("strict-SSH preflight evidence output is unavailable")
+        expected_public_sha256 = arguments[3]
+        ssh_key = verify_ssh_key(Path(arguments[2]), expected_public_sha256)
+        anchor = Path(arguments[4])
+        timeout = parse_wait_timeout(arguments[5])
+        values, proof = ssh_probe(
+            known_hosts_path,
+            known_hosts,
+            ssh_key,
+            expected_public_sha256,
+            anchor,
+            timeout,
+        )
+        write_identity(output, values, proof)
+        print(
+            "PASS pinned exact Alpine fallback returned over strict SSH "
+            "on the recovery USB port"
+        )
         return 0
     timeout = parse_wait_timeout(arguments[3])
     anchor_path = Path(arguments[2])

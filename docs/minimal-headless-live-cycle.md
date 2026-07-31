@@ -52,24 +52,27 @@ complete preflight
   -> one strict-SSH runtime observation
   -> target watchdog rollback
   -> NFS cleanup
-  -> exact host-key-signed ACM Alpine fallback
+  -> exact host-key-signed strict-SSH Alpine fallback
   -> host cleanup proof
   -> durable intent resolution
 ```
 
 The target watchdog remains armed. The controller does not disarm it, request
 a target reboot, flash, wipe, mount phone storage, use ADB, sign a bundle, or
-create a production key. The installed fallback exposes only an interactive
-BusyBox shell. Its history feature can persist the launcher before its child
-starts, so
-fallback ACM use has separately guarded storage effects. Reads of Python,
-libraries, `ssh-keygen`, and the host key from a writable `relatime` ext4 root
-may also update inode access times. The launcher is bounded below Alpine's
-2,048-byte line-editor limit and starts isolated/no-site Python. The host waits
-for a nonce-bound loader-ready marker before sending bounded, hash-checked
-source chunks. The phone rejects missing or partial chunks under a fixed
-receive deadline. The lifecycle reserves a separate bounded post-discovery
-control margin and never contacts fallback twice if later host cleanup fails.
+create a production key. Normal fallback proof now uses the dedicated client
+key over USB-NCM with strict host-key checking. The host sends a fixed
+read-only Python probe through non-interactive SSH; the phone signs the
+nonce-bound health record with its pinned Ed25519 host key. The controller
+revalidates the exact product, physical USB location, direct route, and NCM
+interface after the signed reply. Interactive ACM remains an emergency tool,
+but it is no longer in the normal lifecycle. The lifecycle reserves a
+separate bounded post-discovery control margin and never contacts fallback
+twice if later host cleanup fails.
+
+SSH does not enter the BusyBox line editor, but reading `authorized_keys`,
+the SSH host key, Python, and libraries from Alpine's writable `relatime`
+root may update inode access times. The live action therefore retains an
+explicit `ALLOW_FALLBACK_SSH_ATIME_EFFECTS=1` guard.
 
 ## Fixed host privilege boundary
 
@@ -187,10 +190,10 @@ The lifecycle adds:
 - `RECOVERY_CANDIDATE_RECORD`: canonical caller-owned read-only candidate
   record;
 - `FALLBACK_KNOWN_HOSTS`: caller-owned mode-`0600` Ed25519 host-key pin below
-  a caller-owned mode-`0700` directory, used to verify fallback ACM health
-  signatures. Despite the inherited variable name, it must contain exactly
-  one literal `rog5-fallback ssh-ed25519 BASE64_KEY` line, not a general or
-  hashed OpenSSH `known_hosts` inventory; and
+  a caller-owned mode-`0700` directory, used both for strict fallback SSH and
+  to verify the signed health record. It must contain exactly one literal
+  `rog5-fallback ssh-ed25519 BASE64_KEY` line, not a general or hashed OpenSSH
+  `known_hosts` inventory; and
 - `EVIDENCE_DIR`: existing caller-owned mode-`0700` directory outside the
   repository.
 
@@ -202,6 +205,34 @@ later offer the key to SSH after all full-run guards and gates pass.
 The deployment profile is a fail-closed artifact identity. The lifecycle
 rejects every historical profile and wrong bundle before opening the private
 key.
+
+## Persistent fallback USB network profile
+
+Alpine uses the fixed address `169.254.77.2`, but it does not provide DHCP.
+Without a host profile, NetworkManager waits indefinitely and SSH appears
+unreliable even though USB-NCM is healthy. Create one host-only profile bound
+to the stable interface name for the anchored physical USB port:
+
+```bash
+nmcli connection add type ethernet ifname enp4s0f3u1u2 \
+  con-name rog5-fallback-usb-ssh \
+  ipv4.method manual ipv4.addresses 169.254.77.1/16 \
+  ipv4.gateway '' ipv4.dns '' ipv4.never-default yes \
+  ipv4.may-fail no ipv6.method disabled \
+  connection.autoconnect yes connection.autoconnect-priority 100 \
+  connection.mdns no connection.llmnr no
+nmcli connection up rog5-fallback-usb-ssh ifname enp4s0f3u1u2
+```
+
+Discover the local interface from the exact fallback product rather than
+copying the example name blindly. The profile has no gateway, DNS, forwarding,
+or Internet route. Recovery and target servers temporarily take ownership of
+the same interface, replace the fallback `/16` with the isolated `/30`, and
+restore NetworkManager ownership during cleanup. When Alpine re-enumerates,
+the profile reconnects automatically and makes strict SSH available without
+an attended ACM exchange. Lifecycle host preflight rejects a missing or
+altered profile, including DHCP, a gateway, DNS, IPv6, disabled autoconnect,
+the wrong `/16`, or an unexpected interface.
 
 ## Build the non-fixture chain
 
@@ -318,26 +349,20 @@ Preflight proves:
 - the corrected recovery image, twin, target bundle, trust root, native
   verifier, wrapper configuration, and AVB layout pass the existing live-gate
   verification;
-- the fallback controller validates its fixed host tools, inactive
-  ModemManager state, exact one-line allowed-signers pin, bounded loader
-  construction, 600-900 second wait, and recovery-anchor age budget without
-  opening ACM or authorizing phone-storage effects; and
+- the fallback controller validates its fixed SSH/IP tools, exact client key,
+  exact one-line host-key pin, 600-900 second wait, and recovery-anchor age
+  budget without contacting the phone; and
 - exactly one `lahaina` fastboot device is present.
 
 The stable-recovery artifact gate now admits the exact
 `headless-ssh-deployment-v3` wrapper, trust root, manifest, verifier, and
 target identity. The fixed host components, read-only v3 export, NFS
-preflight, artifact gate, and connected fastboot gate now pass. The action
-remains HOLD until one live signed-ACM fallback preflight passes. Fallback
-classification no longer requires the deployment client key: the fixed ACM
-controller verifies a nonce-bound Alpine health record with the retained
-host-key pin and exact recovery-to-fallback physical USB continuity. Its
-hardware-free tests pass. It performs no `authorized_keys`, fallback
-configuration, mount, flash, or explicit partition write. Because Alpine
-enables BusyBox per-command history, accepting the launcher can append to or
-compact the shell-selected history file; ordinary reads can also update inode
-access times under `relatime`. Those action-scoped effects require
-`ALLOW_FALLBACK_ACM_STORAGE_WRITE=1` and remain unauthorized by this document.
+preflight, artifact gate, and connected fastboot gate now pass. Fallback
+classification uses the already-admitted deployment client key and retained
+host-key pin over the exact recovery-to-fallback USB continuity path. Its
+fixed non-interactive probe never enters the BusyBox line editor, so
+shell-history writes and the ACM storage guard are no longer part of the
+lifecycle.
 The NFS controller requires the exact admitted package hash, fixed export
 root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a
@@ -367,8 +392,8 @@ ALLOW_HEADLESS_NETWORK_ROOT_SERVER
 ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP
 ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE
 ALLOW_PHONE_CREDENTIAL_USE
-ALLOW_FALLBACK_ACM_CONTROL
-ALLOW_FALLBACK_ACM_STORAGE_WRITE
+ALLOW_FALLBACK_SSH_CONTROL
+ALLOW_FALLBACK_SSH_ATIME_EFFECTS
 ```
 
 These guards are an invocation-time authorization boundary, not persistent
@@ -445,7 +470,7 @@ not permission to retry a decided PREPARE request.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
-scenarios, `test-fallback-acm-control.py` covers thirty-eight fallback
+scenarios, `test-fallback-acm-control.py` covers forty-six fallback
 protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
 eighteen lifecycle test methods. Together they prove:
 
@@ -467,9 +492,9 @@ eighteen lifecycle test methods. Together they prove:
   changes block NFS startup before COMMIT;
 - one and only one `prepare-commit` process is started;
 - success resolves only after exact fallback;
-- fallback classification uses one exact nonce-framed record, a real
-  Ed25519 signature verifier, exact USB identity/location, bounded output,
-  exclusive serial ownership, and no fallback client credential;
+- fallback classification uses strict key-only SSH, one exact nonce-framed
+  signed record, exact USB-NCM identity/location and route, bounded output,
+  and post-reply USB revalidation;
 - host writes drain and retain bounded shell echoes, fail with canonical
   stage/byte progress, and require one non-echoable nonce shell-ready marker
   after an atomic stale-line reset;

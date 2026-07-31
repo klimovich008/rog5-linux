@@ -28,10 +28,18 @@ if [[ $action == reboot ]]; then
 		command -v "$command" >/dev/null ||
 			fail "missing host command: $command"
 	done
+	fastboot_serial=${FASTBOOT_SERIAL:-}
+	[[ $fastboot_serial =~ ^[A-Za-z0-9._:-]{1,128}$ ]] ||
+		fail 'set FASTBOOT_SERIAL to the exact expected device'
 fi
 
 ssh_key=$(realpath -e "$ssh_key")
 known_hosts=$(realpath -e "$known_hosts")
+case $ssh_key:$known_hosts in
+	*%*|*[[:space:]]*)
+		fail 'credential paths must not contain whitespace or OpenSSH percent tokens'
+		;;
+esac
 [[ -f $ssh_key && ! -L $ssh_key && -r $ssh_key ]] ||
 	fail 'SSH_KEY is not a readable regular file'
 [[ -f $known_hosts && ! -L $known_hosts && -r $known_hosts ]] ||
@@ -56,6 +64,7 @@ ssh_options=(
 	-o BatchMode=yes
 	-o StrictHostKeyChecking=yes
 	-o UserKnownHostsFile="$known_hosts"
+	-o GlobalKnownHostsFile=/dev/null
 	-o HostKeyAlias=rog5-fallback
 	-o ConnectTimeout=8
 	-o ConnectionAttempts=1
@@ -129,6 +138,7 @@ if [ "$action" = preflight ]; then
 	exit 0
 fi
 
+echo 'PASS authenticated fallback reboot session'
 python3 - <<'PY'
 import ctypes
 import os
@@ -174,19 +184,55 @@ if [[ $action == preflight ]]; then
 	exit 0
 fi
 
-grep -Fxq 'PASS guarded fallback RESTART2 bootloader request sent' \
-	<<<"$output" ||
-	fail 'fallback restart2 marker is absent'
-[[ $ssh_status == 0 || $ssh_status == 255 ]] ||
-	fail "fallback restart2 SSH failed with status $ssh_status"
+restart_marker=0
+authenticated_marker=0
+if grep -Fxq 'PASS authenticated fallback reboot session' \
+	<<<"$output"; then
+	authenticated_marker=1
+fi
+[[ $authenticated_marker == 1 ]] ||
+	fail 'authenticated fallback reboot-session marker is absent'
+if grep -Fxq 'PASS guarded fallback RESTART2 bootloader request sent' \
+	<<<"$output"; then
+	restart_marker=1
+	[[ $ssh_status == 0 || $ssh_status == 255 ]] ||
+		fail "fallback restart2 SSH failed with status $ssh_status"
+fi
+if [[ $restart_marker == 0 && $ssh_status != 255 ]]; then
+	fail "fallback restart2 acknowledgement is absent and SSH exited with status $ssh_status"
+fi
 
 deadline=$(( $(date +%s) + 45 ))
 while (( $(date +%s) < deadline )); do
 	devices=$(fastboot devices 2>/dev/null || true)
-	device_count=$(awk '$2 == "fastboot" { count++ }
+	device_count=$(awk 'NF { count++ } END { print count + 0 }' \
+		<<<"$devices")
+	fastboot_count=$(awk '$2 == "fastboot" { count++ }
 		END { print count + 0 }' <<<"$devices")
-	if [[ $device_count == 1 ]]; then
-		echo 'PASS exact fastboot device reached'
+	if [[ $device_count == 1 && $fastboot_count == 1 ]]; then
+		read -r observed_serial observed_state <<<"$devices"
+		[[ $observed_serial == "$fastboot_serial" &&
+			$observed_state == fastboot ]] ||
+			fail 'fastboot device identity does not match the expected serial'
+		set +e
+		product_output=$(fastboot -s "$fastboot_serial" \
+			getvar product 2>&1)
+		product_status=$?
+		set -e
+		[[ $product_status == 0 ]] ||
+			fail 'cannot verify the expected fastboot product'
+		product_count=$(grep -Ec \
+			'^[[:space:]]*product:[[:space:]]*lahaina[[:space:]]*$' \
+			<<<"$product_output" || true)
+		product_lines=$(grep -Ec \
+			'^[[:space:]]*product:' <<<"$product_output" || true)
+		[[ $product_count == 1 && $product_lines == 1 ]] ||
+			fail 'fastboot product is not exactly lahaina'
+		if [[ $restart_marker == 1 ]]; then
+			echo 'PASS exact lahaina fastboot device reached after acknowledged restart2'
+		else
+			echo 'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement'
+		fi
 		exit 0
 	fi
 	(( device_count == 0 )) ||
@@ -194,4 +240,6 @@ while (( $(date +%s) < deadline )); do
 	sleep 1
 done
 
+[[ $restart_marker == 1 ]] ||
+	fail 'fallback restart2 marker was absent and exact fastboot did not appear'
 fail 'fastboot did not appear after the guarded fallback reboot'
