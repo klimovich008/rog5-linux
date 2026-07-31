@@ -46,14 +46,26 @@ admission:
 See the
 [deployment-chain result](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
 
-Before the one temporary boot-only lifecycle can start, the host still needs:
+The host deployment boundary now passes:
 
-1. the reviewed SteamOS export-store remediation committed, pushed,
-   reinstalled, and used to publish the no-replace read-only NFS export;
-2. a proven private-key path that can reach the installed Alpine fallback, or
-   a separately approved fallback-key installation;
-3. a clean local/remote branch and passing key, artifact, cleanup, fallback,
-   and connected-fastboot preflights.
+- the reviewed SteamOS export-store remediation is pushed and installed;
+- the no-replace v3 lower is published below the root-owned `/home` store;
+- local key admission, sealed-root, fixed NFS, artifact, and
+  connected-fastboot checks pass; and
+- the one authorized temporary boot remains unused.
+
+The sole pre-lifecycle blocker is fallback SSH authorization. The phone is in
+the exact healthy Alpine fallback, and a private host pin is retained outside
+Git, but Alpine's two older authorized keys do not include the new deployment
+key. The current tier requires keeping fallback untouched and prohibits phone
+storage writes. Therefore either supply an existing authorized private key,
+or explicitly revise that safety tier before separately approving one bounded
+public-key append. After strict fallback SSH is proven, run the complete
+lifecycle preflight, return to fastboot, and only then use the one temporary
+boot.
+
+See the
+[real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 
 The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).

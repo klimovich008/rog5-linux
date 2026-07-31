@@ -367,8 +367,8 @@ builds are byte-identical, AVB verification passes, and the real artifact
 preflight succeeds without phone access. See the
 [deployment-chain report](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
 
-The missing host publication boundary is now implemented but not deployed.
-An unprivileged launcher requires a clean branch synchronized with its exact
+The host publication boundary was first implemented and accepted offline.
+Its unprivileged launcher requires a clean branch synchronized with its exact
 `origin` peer, verifies root-owned installed components byte-for-byte, and
 reruns deployment-key admission. Only the canonical archive path, package
 path, and admitted package SHA-256 enter the fixed PolicyKit command; the
@@ -379,9 +379,10 @@ fixture identities, extracts into a private deterministic stage, verifies the
 complete root, syncs files and directories bottom-up, and publishes only with
 `renameat2(RENAME_NOREPLACE)`. Eleven hostile installer tests and eight
 launcher tests pass, including in-place rewrite, pathname replacement, unsafe
-links/devices/credentials, stale installed bytes, and publication races.
-No PolicyKit action, host installation, deployment credential, or phone was
-used. See the
+links/devices/credentials, stale installed bytes, and publication races. That
+original acceptance used no PolicyKit action, host installation, deployment
+credential, or phone. The later real-host deployment is recorded below. See
+the
 [export-installer report](../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
 
 The first minimal mainline userspace profile was built and verified offline.
@@ -474,16 +475,28 @@ stable-recovery artifact boundary without a connected phone, but the new
 lifecycle deliberately accepts only `headless-ssh-deployment-v3`. That
 deployment profile now pins the complete non-fixture wrapper, trust root,
 manifest, and verifier chain. The root-owned NFS controller understands only
-that exact profile and package identity at its fixed v3 path. A separately
-reviewed fixed installer can materialize the export without replacement. The
-fixed host components and signed runtime bundle are installed on the real
-host, but export publication stopped safely before extraction because
-SteamOS's 230 MiB `/var` cannot hold the 1.53 GiB lower. The remediated fixed
-store is `/home/rog5-linux/exports/headless-ssh-network-root-v3`; every
-ancestor below `/home` must be root-owned mode `0700`, and the installer
-rejects symlinked or non-root-writable ancestry. Connected preflight remains
-closed until the remediated components are reviewed, installed, the export is
-published, and fallback SSH, cleanup, and fastboot checks pass.
+that exact profile and package identity at its fixed v3 path. The first real
+export publication stopped safely before extraction because SteamOS's 230 MiB
+`/var` could not hold the 1.53 GiB lower. The reviewed remediation is now
+pushed and installed. The fixed
+`/home/rog5-linux/exports/headless-ssh-network-root-v3` store contains the
+atomically published 37,735-entry root; every ancestor below `/home` is
+root-owned mode `0700`. Export ancestry, complete-tree identity, fixed NFS
+host state, exact recovery artifacts, and one connected `lahaina` fastboot
+device pass.
+
+A normal reboot into installed Alpine did not consume the experimental boot.
+The new deployment key is not among its two older authorized keys. Read-only
+USB serial inspection nevertheless proved the exact fallback kernel, BusyBox
+init, `qcom,lahaina-mtp`, ext4 root, zero project modules, empty pstore and
+fatal-signature result, 70 thermal zones with a 38,800 m°C maximum, and Python
+availability. The phone remains on the healthy fallback. The sole
+pre-lifecycle blocker is strict fallback SSH. Under the current
+untouched-fallback tier, resolution requires one of the existing authorized
+private keys. Appending the deployment public key would first require an
+explicit safety-tier revision and separate bounded phone-write approval.
+See the
+[real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
@@ -744,15 +757,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Obtain fresh authorization for one deployment key, rebuild its bound
-   root/package/candidate/runtime-manifest chain, install the reviewed fixed
-   host components and no-replace v3 export, and pin the exact stable-recovery
-   wrapper/trust/manifest profile.
-2. Pass local key admission and every host-only artifact gate before requesting
-   connected phone authorization.
-3. After fresh authorization, run the connected read-only preflight and one
-   attended temporary boot, then determine whether ramoops survives the
-   target/fallback path.
+1. Supply an existing authorized Alpine private key, or explicitly revise the
+   untouched-fallback tier and separately approve one bounded
+   `authorized_keys` append; then prove strict key-only SSH.
+2. Rerun the complete lifecycle preflight, return Alpine to fastboot, and use
+   at most the one authorized temporary boot.
+3. Determine whether ramoops survives the target/fallback path and collect the
+   exact 88-field core record.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

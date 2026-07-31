@@ -140,9 +140,12 @@ The root-owned installer:
 A failed deterministic partial stage is retained for explicit privileged
 inspection; the installer never silently removes or overwrites it. The first
 real attempt failed before stage creation when the former `/var` destination
-could not hold the anonymous archive snapshot; no export was published. Do
-not set the guards or invoke this launcher without fresh authorization to use
-the deployment key and mutate the host.
+could not hold the anonymous archive snapshot; no export was published. The
+reviewed `/home` remediation was subsequently installed and the admitted
+37,735-entry export passed atomic publication, full sealed-root verification,
+and fixed NFS host preflight. Do not set the guards or invoke this launcher
+without fresh authorization to use the deployment key and mutate the host.
+The no-replace publication contract also refuses the existing export.
 
 ## Inputs
 
@@ -300,8 +303,11 @@ Preflight proves:
 
 The stable-recovery artifact gate now admits the exact
 `headless-ssh-deployment-v3` wrapper, trust root, manifest, verifier, and
-target identity. The action remains HOLD until the fixed host components and
-read-only v3 export are installed and fallback SSH is independently proven.
+target identity. The fixed host components, read-only v3 export, NFS
+preflight, artifact gate, and connected fastboot gate now pass. The action
+remains HOLD until strict fallback SSH is proven. The current tier keeps
+Alpine untouched; changing its `authorized_keys` would require an explicit
+safety-tier revision before separate phone-write approval.
 The NFS controller requires the exact admitted package hash, fixed export
 root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a

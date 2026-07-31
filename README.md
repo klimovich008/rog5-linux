@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` recipe now has a dedicated non-fixture Ed25519 deployment build: a verified 536,746,495-byte v3 root, corrected-DTB candidate, signed runtime bundle, shell-free recovery, and byte-identical vendor wrappers pass the exact `headless-ssh-deployment-v3` artifact gate. The fixed host controller and signed bundle are installed, but export publication stopped safely when SteamOS's 230 MiB `/var` could not hold the 1.53 GiB lower. The reviewed store now targets a fixed root-owned `/home/rog5-linux` hierarchy; reinstall/publication and all connected checks remain pending, and the new chain has not been booted on the phone |
+| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` deployment chain now passes exact artifact and connected-fastboot gates. Its 37,735-entry v3 lower is published under the fixed root-owned `/home/rog5-linux` store and passes the sealed-root and NFS host preflights. The new key is not authorized in installed Alpine, so strict fallback SSH blocks the one still-unused temporary boot; resolving that requires an existing authorized private key or an explicit safety-tier revision and bounded phone-write approval |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -168,13 +168,15 @@ and its unprivileged launcher are implemented and hostile-tested.
 They reject tracked fixtures and unsafe archive metadata, copy caller-owned
 archive bytes into an unreachable anonymous snapshot before inspection,
 verify and sync the extracted root, and publish only by no-replace rename.
-The fixed host controller and exact signed bundle are installed. The first
-export attempt stopped before publication because SteamOS provides only a
-230 MiB `/var` filesystem while the sealed lower expands to 1.53 GiB. The
-installer now uses a fixed root-owned, non-writable
-`/home/rog5-linux/exports` store, rejects unsafe or symlinked ancestors, and
-has a Python 3.13-safe refusal path. That remediation still needs its reviewed
-commit installed before export publication and connected preflight.
+The first export attempt stopped before publication because SteamOS provides
+only a 230 MiB `/var` filesystem while the sealed lower expands to 1.53 GiB.
+The reviewed remediation is now installed and the host deployment preflights
+pass. Read-only serial inspection proved the exact healthy Alpine fallback,
+but its two older authorized keys do not include the new deployment key.
+Under the current untouched-fallback tier, the one pre-lifecycle blocker can
+be resolved only by supplying an existing authorized private key. Appending
+the new public key would first require an explicit safety-tier revision and
+separate bounded phone-write approval.
 See the
 [corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [root hardening result](test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md),
@@ -184,6 +186,7 @@ See the
 [v3 profile-threading result](test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md),
 [v3 export-installer result](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md),
 [SteamOS export-storage remediation](test-results/2026-07-31-steamos-export-storage-remediation.md),
+[SteamOS deployment preflight](test-results/2026-07-31-steamos-deployment-preflight-live.md),
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the
