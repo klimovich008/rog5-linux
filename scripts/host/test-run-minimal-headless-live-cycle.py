@@ -57,6 +57,9 @@ class Fixture:
         self.root = Path(self.temporary.name)
         self.state = self.root / "state"
         self.state.mkdir()
+        self.nfs_exports = self.state / "nfs-exports"
+        self.nfs_exports.write_bytes(b"")
+        self.nfs_exports.chmod(0o644)
         (self.state / "nfs-threads").write_text("0\n", encoding="ascii")
         (self.state / "ip-nonlocal-bind").write_text(
             "0\n",
@@ -205,13 +208,6 @@ class Fixture:
                 fi
                 ;;
             esac
-            """,
-        )
-        self.executable(
-            "exportfs",
-            """\
-            #!/bin/sh
-            printf 'exportfs:%s\n' "$*" >>"$MOCK_CALLS"
             """,
         )
         self.executable(
@@ -609,6 +605,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotIn("fallback:preflight", calls)
         self.assertFalse(any(line.startswith("host-key:") for line in calls))
         self.assertFalse(any(self.fixture.evidence.iterdir()))
+
+        self.fixture.nfs_exports.write_text(
+            "/export 169.254.77.2(sync)\n",
+            encoding="ascii",
+        )
+        rejected = self.fixture.run("preflight")
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("host retains an NFS export", rejected.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("bundle:preflight"),
+            1,
+        )
+
+        self.fixture.nfs_exports.write_bytes(b"")
+        self.fixture.nfs_exports.chmod(0o666)
+        unsafe = self.fixture.run("preflight")
+        self.assertNotEqual(unsafe.returncode, 0)
+        self.assertIn("export table metadata is unsafe", unsafe.stderr)
+
+        self.fixture.nfs_exports.unlink()
+        self.fixture.nfs_exports.symlink_to(self.fixture.package)
+        linked = self.fixture.run("preflight")
+        self.assertNotEqual(linked.returncode, 0)
+        self.assertIn("cannot inspect host NFS exports", linked.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("bundle:preflight"),
+            1,
+        )
 
     def test_historical_recovery_profile_fails_before_credential_paths(self):
         result = self.fixture.run(
