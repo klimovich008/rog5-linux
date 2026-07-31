@@ -54,14 +54,14 @@ physical press, display toggle, or remote GUI session.
 First configure the `rog5-fallback` SSH host alias with the approved private
 key and a pinned host key. Neither credential belongs in this repository or
 in the service unit. The USB NetworkManager profile must assign the host
-`169.254.77.1/16`, install no gateway, remain never-default, and autoconnect
+`169.254.77.1/30`, install no gateway, remain never-default, and autoconnect
 when the phone appears. For the profile used during development:
 
 ```sh
-rog5_usb_profile=rog5-usb-temporary
+rog5_usb_profile=rog5-fallback-usb-ssh
 nmcli connection modify "$rog5_usb_profile" \
   connection.autoconnect yes \
-  ipv4.method manual ipv4.addresses 169.254.77.1/16 \
+  ipv4.method manual ipv4.addresses 169.254.77.1/30 \
   ipv4.never-default yes ipv6.method disabled
 ```
 

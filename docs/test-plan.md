@@ -260,7 +260,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   descriptor/function/UDC, high-speed `usb0`, isolated connected route with no
   default, one current USB-peer SSH session, and matching Ed25519 key
   identities; reject target and record mutations; and prove one strict-SSH
-  private capture with no boot, signing, retry, disarm, or reboot action. The
+  connection streams, verifies, and executes the exact probe before one
+  private capture, with no established-session replay, boot, signing, disarm,
+  or reboot action. The
   historical no-argument path remains fixed, while deployment requires an
   external canonical read-only non-fixture v3 candidate plus its exact
   admitted hash and cannot fall back to the historical candidate. See
@@ -461,7 +463,8 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
 - The active lifecycle uses `fallback-acm-control.py wait-ssh-preflight` over
   the exact fallback USB-NCM product. It requires the dedicated client key,
-  pinned Ed25519 host key, direct `169.254.77.1/16` route, recovery USB
+  pinned Ed25519 host key, direct `169.254.77.1/30` route, exact active
+  NetworkManager profile UUID and restoration, recovery USB
   continuity, one signed nonce-bound health frame, and post-reply USB
   revalidation. The interactive ACM actions remain emergency-only.
 - `prepare-headless-ssh-deployment-candidate.py` can retain the proven v3

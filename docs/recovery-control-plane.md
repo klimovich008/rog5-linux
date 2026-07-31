@@ -37,7 +37,8 @@ only `169.254.77.1:8080`, applies runtime-only source/destination firewall
 rules, drops to the caller with no capabilities, verifies the exact listener,
 and removes every state item it created. The fixed controller was installed
 root-owned through PolicyKit and used for the attended transaction. It
-temporarily handed the intentional fallback `/16` profile to recovery `/30`,
+temporarily handed the exact UUID-pinned shared fallback/recovery `/30`
+profile to recovery and restored that same profile afterward,
 then restored the exact profile, firewall forwarding flag, interface, and
 rules. A nonce-bound root-owned marker now attests the already-verified
 NFSv4.2 listener to the unprivileged control client without requiring access

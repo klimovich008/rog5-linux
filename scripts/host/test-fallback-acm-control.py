@@ -1331,7 +1331,7 @@ class SshTransportTest(unittest.TestCase):
                 [],
                 0,
                 (
-                    "2: usbtest0 inet 169.254.77.1/16 scope link "
+                    "2: usbtest0 inet 169.254.77.1/30 scope link "
                     "usbtest0\n"
                 ),
                 "",
@@ -1356,7 +1356,7 @@ class SshTransportTest(unittest.TestCase):
         rejected = subprocess.CompletedProcess(
             [],
             0,
-            "2: usbtest0 inet 169.254.77.1/30 scope link usbtest0\n",
+            "2: usbtest0 inet 169.254.77.1/16 scope link usbtest0\n",
             "",
         )
         with mock.patch.object(

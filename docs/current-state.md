@@ -221,7 +221,8 @@ Those independent gates now have one hardware-free-tested lifecycle
 controller. It performs complete preflight before mutation, waits for the
 one-transfer recovery bundle server to exit and clean its firewall state
 before starting NFS, commits exactly once, pins the volatile target key,
-captures one strict-SSH runtime record, keeps rollback armed, verifies exact
+captures one strict-SSH runtime record through a single connection (rather
+than five independent SSH/SCP handshakes), keeps rollback armed, verifies exact
 fallback and host cleanup, and only then resolves the durable intent. An
 ambiguous COMMIT is looked up in the ledger and is never replayed. The NFS
 exporter is also staged for a fixed root-owned installation rather than
@@ -552,7 +553,7 @@ unprivileged `exportfs -v` lock path while still rejecting any real entry.
 The emergency ACM protocol remains covered, while the active fallback path
 now uses strict SSH over exact USB-NCM. Forty-six transport tests and all
 eighteen lifecycle methods pass hardware-free. The host has a persistent
-no-gateway `rog5-fallback-usb-ssh` profile at `169.254.77.1/16`, and the
+no-gateway `rog5-fallback-usb-ssh` profile at `169.254.77.1/30`, and the
 dedicated client key has passed a live strict-SSH fallback health preflight.
 The first complete cycle through this path fetched, prepared, and committed
 the target, then safely rejected a stale target route-parser assumption. The

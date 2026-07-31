@@ -32,7 +32,7 @@ esac
 	fail 'set ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 for one observation'
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-for command in chmod cut git realpath scp sha256sum ssh stat tee; do
+for command in awk chmod cut git realpath sha256sum ssh stat tee; do
 	command -v "$command" >/dev/null ||
 		fail "missing runtime-acceptance host command: $command"
 done
@@ -118,7 +118,9 @@ ssh_options=(
 	-o UserKnownHostsFile="$known_hosts"
 	-o HostKeyAlias=rog5-minimal-headless-v1
 	-o ConnectTimeout=8
-	-o ConnectionAttempts=1
+	# OpenSSH retries only before the remote command starts. An established
+	# session is never replayed, and the fresh /run directory rejects residue.
+	-o ConnectionAttempts=3
 	-o ServerAliveInterval=5
 	-o ServerAliveCountMax=2
 	-o LogLevel=ERROR
@@ -126,48 +128,56 @@ ssh_options=(
 remote_directory=/run/rog5-minimal-headless-runtime-control
 remote_probe=$remote_directory/collect-minimal-headless-runtime.sh
 
-remote_prepare='
+remote_stage_verify_and_collect="
 set -eu
-directory=/run/rog5-minimal-headless-runtime-control
-[ ! -e "$directory" ] || {
-	echo "FAIL runtime probe staging directory already exists" >&2
+directory=$remote_directory
+file=$remote_probe
+[ \"\$(uname -r)\" = 7.1.4-g7a5cef0db479 ] || {
+	echo 'FAIL unexpected target kernel' >&2
 	exit 1
 }
-install -d -m 0700 "$directory"
-'
-ssh -n "${ssh_options[@]}" "$target" "$remote_prepare"
-scp -q "${ssh_options[@]}" "$probe" "$target:$remote_probe"
-
-remote_verify="
-set -eu
-file=$remote_probe
+test ! -e \"\$directory\" || {
+	echo 'FAIL runtime probe staging directory already exists' >&2
+	exit 1
+}
+install -d -m 0700 \"\$directory\"
+umask 077
+cat >\"\$file\"
 chown root:root \"\$file\"
 chmod 0500 \"\$file\"
 [ -f \"\$file\" ] && [ ! -L \"\$file\" ]
 [ \"\$(stat -c '%u:%g:%a' \"\$file\")\" = 0:0:500 ]
 [ \"\$(sha256sum \"\$file\" | cut -d ' ' -f 1)\" = $probe_hash ]
+exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+	ROG5_RUNTIME_CANDIDATE='$runtime_candidate' \"\$file\"
 "
-ssh -n "${ssh_options[@]}" "$target" "$remote_verify"
-
-boot_id=$(
-	ssh -n "${ssh_options[@]}" "$target" \
-		'[ "$(uname -r)" = 7.1.4-g7a5cef0db479 ] &&
-			cat /proc/sys/kernel/random/boot_id'
-)
-[[ $boot_id =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
-	fail 'exact minimal-headless target boot identity did not appear'
 
 umask 077
 record=$evidence_dir/minimal-headless-runtime.record
 [[ ! -e $record ]] || fail 'private runtime record already exists'
-remote_collect="exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin ROG5_RUNTIME_CANDIDATE=$runtime_candidate $remote_probe"
 set +e
-ssh -n "${ssh_options[@]}" "$target" "$remote_collect" |
+ssh -T "${ssh_options[@]}" "$target" \
+	"$remote_stage_verify_and_collect" <"$probe" |
 	tee "$record" >/dev/null
 ssh_status=${PIPESTATUS[0]}
 set -e
 chmod 0600 "$record"
 [[ $ssh_status == 0 ]] || fail 'target runtime probe failed'
+boot_id=$(
+	awk '
+		/^boot_id=/ {
+			count++
+			value = substr($0, 9)
+		}
+		END {
+			if (count != 1)
+				exit 1
+			print value
+		}
+	' "$record"
+) || fail 'target runtime record lacks one boot identity'
+[[ $boot_id =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+	fail 'exact minimal-headless target boot identity did not appear'
 
 verifier_arguments=(
 	--repo "$repo"

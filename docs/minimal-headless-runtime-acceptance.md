@@ -15,9 +15,11 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/host/verify-minimal-headless-runtime.py` binds that observation to
   the current compatibility oracle and either the frozen historical candidate
   or one exact admitted deployment-v3 candidate.
-- `scripts/host/run-minimal-headless-runtime-acceptance.sh` stages the exact
-  probe below target `/run`, captures one record over strict SSH, and invokes
-  the verifier.
+- `scripts/host/run-minimal-headless-runtime-acceptance.sh` uses one strict
+  SSH connection to stream the exact probe below target `/run`, verify it,
+  execute it, capture one record, and invoke the host verifier. Three bounded
+  initial connection attempts are allowed before any remote command starts;
+  an established transport is never replayed.
 - `scripts/host/pin-minimal-headless-host-key.py` creates the private
   known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
@@ -114,8 +116,9 @@ host-side USB continuity/bootstrap checks; neither side alone is used as proof
 of the complete link.
 
 The record must be a caller-owned, mode-`0600`, unlinked ordinary file with
-one link and a maximum size of 16 KiB. Its boot ID must match a separate
-strict-SSH read from the same target. The verifier prints only a bounded
+one link and a maximum size of 16 KiB. The runner extracts exactly one boot ID
+from that same strict-SSH record and passes it back to the verifier, avoiding
+a second connection and its race window. The verifier prints only a bounded
 summary and does not expose the boot ID.
 
 ## Runner boundary

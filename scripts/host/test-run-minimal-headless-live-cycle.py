@@ -154,20 +154,22 @@ class Fixture:
             printf 'ip:%s\n' "$*" >>"$MOCK_CALLS"
             case " $* " in
               *" -4 -o address show dev usbmock0 "*)
+                echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 if { [ "${MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/bundle-consumed" ]; } ||
                    { [ "${MOCK_ADDRESS_RESIDUE_AFTER_NFS:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/target-departed" ]; }; then
-                  echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                  echo '9: usbmock0 inet 169.254.77.9/30 scope global usbmock0'
                 fi
                 ;;
               *" -4 -o address show "*)
+                echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 if [ "${MOCK_ADDRESS_RESIDUE_AFTER_NFS:-0}" = 1 ] &&
                    [ -e "$MOCK_ROOT/target-departed" ]; then
-                  echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                  echo '9: usbmock0 inet 169.254.77.9/30 scope global usbmock0'
                 elif [ "${MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/bundle-consumed" ]; then
-                  echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                  echo '9: usbmock0 inet 169.254.77.9/30 scope global usbmock0'
                 fi
                 ;;
             esac
@@ -956,9 +958,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(runner.count('"prepare-commit",'), 1)
         for token in (
             "StrictHostKeyChecking=yes",
-            "ConnectionAttempts=1",
+            "ConnectionAttempts=3",
             "UserKnownHostsFile=",
             "HostKeyAlias=rog5-minimal-headless-v1",
+            "remote_stage_verify_and_collect",
         ):
             self.assertIn(token, runtime_acceptance)
         for token in (
