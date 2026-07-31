@@ -45,6 +45,7 @@ NFS_HANDOFF_ROOT = Path("/var/lib/rog5-headless-network-root-v1/root")
 DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
     "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 )
+PREPARE_DEADLINE_SECONDS = 260
 
 
 class TransportLost(RuntimeError):
@@ -402,6 +403,7 @@ def prepare_and_commit(
     before_commit: Callable[[], None] | None = None,
 ) -> tuple[Response, Response, object]:
     serial, session, _hello = connect()
+    prepare_deadline = time.monotonic() + PREPARE_DEADLINE_SECONDS
     prepare_identifier = request_id()
     prepare_wire = encode_request(
         session=session,
@@ -414,13 +416,21 @@ def prepare_and_commit(
     )
     try:
         try:
-            prepared = serial.exchange(prepare_wire, 75)
+            prepared = serial.exchange(
+                prepare_wire,
+                prepare_deadline - time.monotonic(),
+            )
         except TransportLost:
             serial.close()
             serial, repeated_session, _hello = connect()
             if repeated_session != session:
                 fail("recovery rebooted during PREPARE; refusing cross-session replay")
-            prepared = serial.exchange(prepare_wire, 75)
+            remaining = prepare_deadline - time.monotonic()
+            if remaining <= 0:
+                raise TransportLost(
+                    "PREPARE deadline expired before same-session replay"
+                )
+            prepared = serial.exchange(prepare_wire, remaining)
         assert_correlated(
             prepared,
             session=session,
@@ -437,7 +447,8 @@ def prepare_and_commit(
         ):
             fail(
                 "recovery refused PREPARE "
-                f"result={prepared.result} state={prepared.state}"
+                f"result={prepared.result} state={prepared.state} "
+                f"last_error={prepared.last_error}"
             )
 
         if before_commit is not None:

@@ -100,10 +100,32 @@ _Static_assert(sizeof(struct rog5_cap_header) == 8 &&
 #define PROFILE_MAX 31
 #define TARGET_MAX 64
 #define RELEASE_MAX 96
-#define FETCH_TIMEOUT_MS 60000
+#define FETCH_TIMEOUT_MS 180000
 #define WORKER_UID 65534
 #define WORKER_GID 65534
+#define WORKER_EXIT_SETUP 120
+#define WORKER_EXIT_TRANSPORT 121
+#define WORKER_EXIT_HEADER 122
+#define WORKER_EXIT_MANIFEST 123
+#define WORKER_EXIT_ARTIFACT 124
+#define WORKER_EXIT_EOF 125
 #define EXIT_BUNDLE_CONFLICT 42
+#define EXIT_FETCH_ROOT_FAILED 43
+#define EXIT_FETCH_STAGE_FAILED 44
+#define EXIT_FETCH_CONNECT_FAILED 45
+#define EXIT_FETCH_WORKER_TIMEOUT 46
+#define EXIT_FETCH_WORKER_SIGNAL 47
+#define EXIT_FETCH_TRANSPORT_FAILED 48
+#define EXIT_FETCH_HEADER_FAILED 49
+#define EXIT_FETCH_MANIFEST_FAILED 50
+#define EXIT_FETCH_ARTIFACT_FAILED 51
+#define EXIT_FETCH_EOF_FAILED 52
+#define EXIT_FETCH_PARENT_VERIFY_FAILED 53
+#define EXIT_FETCH_NORMALIZE_FAILED 54
+#define EXIT_FETCH_FINAL_VERIFY_FAILED 55
+#define EXIT_FETCH_PUBLISH_FAILED 56
+#define EXIT_FETCH_WORKER_SETUP_FAILED 57
+#define EXIT_FETCH_WORKER_FORK_FAILED 58
 #define KERNEL_MAX (128ULL * 1024 * 1024)
 #define DTB_MAX (2ULL * 1024 * 1024)
 #define INITRAMFS_MAX (256ULL * 1024 * 1024)
@@ -1623,24 +1645,55 @@ static bool wait_for_worker(pid_t worker, int64_t deadline, int *status)
 	return false;
 }
 
-static bool run_sandboxed_worker(int socket_descriptor, int directory,
-				 const char *bundle,
-				 const char *manifest_hash,
-				 int64_t deadline)
+enum worker_outcome {
+	WORKER_OK,
+	WORKER_SETUP_FAILED,
+	WORKER_FORK_FAILED,
+	WORKER_TIMEOUT,
+	WORKER_SIGNAL,
+	WORKER_TRANSPORT_FAILED,
+	WORKER_HEADER_FAILED,
+	WORKER_MANIFEST_FAILED,
+	WORKER_ARTIFACT_FAILED,
+	WORKER_EOF_FAILED,
+};
+
+static enum worker_outcome run_sandboxed_worker(
+	int socket_descriptor, int directory, const char *bundle,
+	const char *manifest_hash, int64_t deadline)
 {
 	pid_t parent = getpid();
 	pid_t worker = fork();
 	int status;
 
 	if (worker < 0)
-		return false;
+		return WORKER_FORK_FAILED;
 	if (worker == 0)
 		run_worker(
 			socket_descriptor, directory, bundle, manifest_hash,
 			deadline, parent);
 	if (!wait_for_worker(worker, deadline, &status))
-		return false;
-	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+		return WORKER_TIMEOUT;
+	if (!WIFEXITED(status))
+		return WORKER_SIGNAL;
+	switch (WEXITSTATUS(status)) {
+	case 0:
+		return WORKER_OK;
+	case WORKER_EXIT_SETUP:
+		return WORKER_SETUP_FAILED;
+	case WORKER_EXIT_TRANSPORT:
+		return WORKER_TRANSPORT_FAILED;
+	case WORKER_EXIT_HEADER:
+		return WORKER_HEADER_FAILED;
+	case WORKER_EXIT_MANIFEST:
+		return WORKER_MANIFEST_FAILED;
+	case WORKER_EXIT_ARTIFACT:
+		return WORKER_ARTIFACT_FAILED;
+	case WORKER_EXIT_EOF:
+		return WORKER_EOF_FAILED;
+	default:
+		return WORKER_SIGNAL;
+	}
 }
 
 static bool normalize_staging(int directory, int64_t deadline)
@@ -1806,6 +1859,7 @@ int main(int argc, char **argv)
 {
 	struct root_inventory inventory;
 	enum final_state final_state;
+	enum worker_outcome worker_outcome;
 	char staging[BUNDLE_MAX + sizeof(".incoming.")];
 	const char *bundle;
 	const char *manifest_hash;
@@ -1837,11 +1891,13 @@ int main(int argc, char **argv)
 	    flock(root, LOCK_EX | LOCK_NB) < 0 ||
 	    !scan_root(root, &inventory)) {
 		log_error("unsafe, busy, or over-quota bundle root");
+		result = EXIT_FETCH_ROOT_FAILED;
 		goto out;
 	}
 	if (inventory.staging_count != 0 &&
 	    !cleanup_staging(root, inventory.staging_name)) {
 		log_error("unsafe stale staging directory");
+		result = EXIT_FETCH_STAGE_FAILED;
 		goto out;
 	}
 	if (inventory.final_count != 0) {
@@ -1855,6 +1911,7 @@ int main(int argc, char **argv)
 			O_NOFOLLOW | O_CLOEXEC);
 		if (directory < 0) {
 			log_error("cannot open existing bundle");
+			result = EXIT_FETCH_PARENT_VERIFY_FAILED;
 			goto out;
 		}
 		final_state = validate_complete_bundle(
@@ -1870,11 +1927,13 @@ int main(int argc, char **argv)
 			goto out;
 		}
 		log_error("existing bundle is unsafe or corrupt");
+		result = EXIT_FETCH_PARENT_VERIFY_FAILED;
 		goto out;
 	}
 	snprintf(staging, sizeof(staging), ".incoming.%s", bundle);
 	if (mkdirat(root, staging, 0700) < 0) {
 		log_error("cannot create staging directory");
+		result = EXIT_FETCH_STAGE_FAILED;
 		goto out;
 	}
 	staging_exists = true;
@@ -1884,22 +1943,56 @@ int main(int argc, char **argv)
 	if (directory < 0 ||
 	    fchown(directory, worker_uid, worker_gid) < 0) {
 		log_error("cannot delegate staging directory");
+		result = EXIT_FETCH_STAGE_FAILED;
 		goto out;
 	}
 	socket_descriptor = connect_fixed(deadline);
 	if (socket_descriptor < 0) {
 		log_error("fixed bundle peer is unavailable");
+		result = EXIT_FETCH_CONNECT_FAILED;
 		goto out;
 	}
-	if (!run_sandboxed_worker(
-		    socket_descriptor, directory, bundle, manifest_hash,
-		    deadline)) {
+	worker_outcome = run_sandboxed_worker(
+		socket_descriptor, directory, bundle, manifest_hash, deadline);
+	if (worker_outcome != WORKER_OK) {
 		log_error("sandboxed bundle transfer failed");
+		switch (worker_outcome) {
+		case WORKER_SETUP_FAILED:
+			result = EXIT_FETCH_WORKER_SETUP_FAILED;
+			break;
+		case WORKER_FORK_FAILED:
+			result = EXIT_FETCH_WORKER_FORK_FAILED;
+			break;
+		case WORKER_TIMEOUT:
+			result = EXIT_FETCH_WORKER_TIMEOUT;
+			break;
+		case WORKER_SIGNAL:
+			result = EXIT_FETCH_WORKER_SIGNAL;
+			break;
+		case WORKER_TRANSPORT_FAILED:
+			result = EXIT_FETCH_TRANSPORT_FAILED;
+			break;
+		case WORKER_HEADER_FAILED:
+			result = EXIT_FETCH_HEADER_FAILED;
+			break;
+		case WORKER_MANIFEST_FAILED:
+			result = EXIT_FETCH_MANIFEST_FAILED;
+			break;
+		case WORKER_ARTIFACT_FAILED:
+			result = EXIT_FETCH_ARTIFACT_FAILED;
+			break;
+		case WORKER_EOF_FAILED:
+			result = EXIT_FETCH_EOF_FAILED;
+			break;
+		case WORKER_OK:
+			break;
+		}
 		goto out;
 	}
 	if (close(socket_descriptor) < 0) {
 		socket_descriptor = -1;
 		log_error("cannot close transfer socket");
+		result = EXIT_FETCH_EOF_FAILED;
 		goto out;
 	}
 	socket_descriptor = -1;
@@ -1909,11 +2002,13 @@ int main(int argc, char **argv)
 		deadline);
 	if (final_state != FINAL_MATCH) {
 		log_error("staged bundle failed parent validation");
+		result = EXIT_FETCH_PARENT_VERIFY_FAILED;
 		goto out;
 	}
 	crash_point("after-parent-validation");
 	if (!normalize_staging(directory, deadline)) {
 		log_error("cannot normalize staged bundle");
+		result = EXIT_FETCH_NORMALIZE_FAILED;
 		goto out;
 	}
 	final_state = validate_complete_bundle(
@@ -1921,12 +2016,14 @@ int main(int argc, char **argv)
 		manifest_hash, deadline);
 	if (final_state != FINAL_MATCH) {
 		log_error("normalized bundle failed final validation");
+		result = EXIT_FETCH_FINAL_VERIFY_FAILED;
 		goto out;
 	}
 	crash_point("after-final-validation");
 	if (close(directory) < 0) {
 		directory = -1;
 		log_error("cannot close staged bundle");
+		result = EXIT_FETCH_FINAL_VERIFY_FAILED;
 		goto out;
 	}
 	directory = -1;
@@ -1935,6 +2032,7 @@ int main(int argc, char **argv)
 		if (renamed)
 			staging_exists = false;
 		log_error("cannot atomically publish staged bundle");
+		result = EXIT_FETCH_PUBLISH_FAILED;
 		goto out;
 	}
 	staging_exists = false;

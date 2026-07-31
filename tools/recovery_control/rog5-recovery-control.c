@@ -42,11 +42,27 @@
 #define HANDOFF_DESCRIPTOR_COUNT 3
 /* Linux limits one SCM_RIGHTS packet to SCM_MAX_FD (253) descriptors. */
 #define HANDOFF_CONTROL_FD_MAX 253
-#define FETCH_TIMEOUT_MS 65000
+#define FETCH_TIMEOUT_MS 190000
 #define VERIFY_TIMEOUT_MS 30000
 #define KEXEC_LOAD_TIMEOUT_MS 15000
 #define CHILD_REAP_TIMEOUT_MS 1000
 #define FETCH_BUNDLE_CONFLICT_EXIT 42
+#define FETCH_ROOT_FAILED_EXIT 43
+#define FETCH_STAGE_FAILED_EXIT 44
+#define FETCH_CONNECT_FAILED_EXIT 45
+#define FETCH_WORKER_TIMEOUT_EXIT 46
+#define FETCH_WORKER_SIGNAL_EXIT 47
+#define FETCH_TRANSPORT_FAILED_EXIT 48
+#define FETCH_HEADER_FAILED_EXIT 49
+#define FETCH_MANIFEST_FAILED_EXIT 50
+#define FETCH_ARTIFACT_FAILED_EXIT 51
+#define FETCH_EOF_FAILED_EXIT 52
+#define FETCH_PARENT_VERIFY_FAILED_EXIT 53
+#define FETCH_NORMALIZE_FAILED_EXIT 54
+#define FETCH_FINAL_VERIFY_FAILED_EXIT 55
+#define FETCH_PUBLISH_FAILED_EXIT 56
+#define FETCH_WORKER_SETUP_FAILED_EXIT 57
+#define FETCH_WORKER_FORK_FAILED_EXIT 58
 #define KERNEL_MAX (128ULL * 1024 * 1024)
 #define DTB_MAX (2ULL * 1024 * 1024)
 #define INITRAMFS_MAX (256ULL * 1024 * 1024)
@@ -884,6 +900,24 @@ static void load_state(struct control_state *state)
 			fail("invalid last-error state");
 		if (strcmp(state->last_error, "NONE") != 0 &&
 		    strcmp(state->last_error, "FETCH_FAILED") != 0 &&
+		    strcmp(state->last_error, "FETCH_ROOT") != 0 &&
+		    strcmp(state->last_error, "FETCH_STAGE") != 0 &&
+		    strcmp(state->last_error, "FETCH_CONNECT") != 0 &&
+		    strcmp(state->last_error, "FETCH_WORKER_TIMEOUT") != 0 &&
+		    strcmp(state->last_error, "FETCH_WORKER_SIGNAL") != 0 &&
+		    strcmp(state->last_error, "FETCH_TRANSPORT") != 0 &&
+		    strcmp(state->last_error, "FETCH_HEADER") != 0 &&
+		    strcmp(state->last_error, "FETCH_MANIFEST") != 0 &&
+		    strcmp(state->last_error, "FETCH_ARTIFACT") != 0 &&
+		    strcmp(state->last_error, "FETCH_EOF") != 0 &&
+		    strcmp(state->last_error, "FETCH_PARENT_VERIFY") != 0 &&
+		    strcmp(state->last_error, "FETCH_NORMALIZE") != 0 &&
+		    strcmp(state->last_error, "FETCH_FINAL_VERIFY") != 0 &&
+		    strcmp(state->last_error, "FETCH_PUBLISH") != 0 &&
+		    strcmp(state->last_error, "FETCH_WORKER_SETUP") != 0 &&
+		    strcmp(state->last_error, "FETCH_WORKER_FORK") != 0 &&
+		    strcmp(state->last_error, "FETCH_CONTROL_TIMEOUT") != 0 &&
+		    strcmp(state->last_error, "FETCH_EXEC") != 0 &&
 		    strcmp(state->last_error, "BUNDLE_ID_CONFLICT") != 0 &&
 		    strcmp(state->last_error, "VERIFY_FAILED") != 0 &&
 		    strcmp(state->last_error, "LEDGER_FULL") != 0 &&
@@ -1900,7 +1934,7 @@ static bool validate_artifact_descriptors(
 }
 
 static enum prepare_outcome run_bundle_fetcher(
-	const struct request *request)
+	const struct request *request, const char **fetch_error)
 {
 	char *const environment[] = {
 		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
@@ -1911,6 +1945,7 @@ static enum prepare_outcome run_bundle_fetcher(
 	pid_t parent = getpid();
 	pid_t child = fork();
 
+	*fetch_error = "FETCH_EXEC";
 	if (child < 0)
 		return PREPARE_OUTCOME_FETCH_FAILED;
 	if (child == 0) {
@@ -1930,14 +1965,70 @@ static enum prepare_outcome run_bundle_fetcher(
 	deadline = monotonic_milliseconds() + fetch_timeout_ms;
 	if (!wait_child_bounded(child, deadline, &status)) {
 		stop_child_or_fail(child);
+		*fetch_error = "FETCH_CONTROL_TIMEOUT";
 		return PREPARE_OUTCOME_FETCH_FAILED;
 	}
-	if (!WIFEXITED(status))
+	if (!WIFEXITED(status)) {
+		*fetch_error = "FETCH_WORKER_SIGNAL";
 		return PREPARE_OUTCOME_FETCH_FAILED;
+	}
 	if (WEXITSTATUS(status) == 0)
 		return PREPARE_OUTCOME_OK;
 	if (WEXITSTATUS(status) == FETCH_BUNDLE_CONFLICT_EXIT)
 		return PREPARE_OUTCOME_BUNDLE_ID_CONFLICT;
+	switch (WEXITSTATUS(status)) {
+	case FETCH_ROOT_FAILED_EXIT:
+		*fetch_error = "FETCH_ROOT";
+		break;
+	case FETCH_STAGE_FAILED_EXIT:
+		*fetch_error = "FETCH_STAGE";
+		break;
+	case FETCH_CONNECT_FAILED_EXIT:
+		*fetch_error = "FETCH_CONNECT";
+		break;
+	case FETCH_WORKER_TIMEOUT_EXIT:
+		*fetch_error = "FETCH_WORKER_TIMEOUT";
+		break;
+	case FETCH_WORKER_SIGNAL_EXIT:
+		*fetch_error = "FETCH_WORKER_SIGNAL";
+		break;
+	case FETCH_TRANSPORT_FAILED_EXIT:
+		*fetch_error = "FETCH_TRANSPORT";
+		break;
+	case FETCH_HEADER_FAILED_EXIT:
+		*fetch_error = "FETCH_HEADER";
+		break;
+	case FETCH_MANIFEST_FAILED_EXIT:
+		*fetch_error = "FETCH_MANIFEST";
+		break;
+	case FETCH_ARTIFACT_FAILED_EXIT:
+		*fetch_error = "FETCH_ARTIFACT";
+		break;
+	case FETCH_EOF_FAILED_EXIT:
+		*fetch_error = "FETCH_EOF";
+		break;
+	case FETCH_PARENT_VERIFY_FAILED_EXIT:
+		*fetch_error = "FETCH_PARENT_VERIFY";
+		break;
+	case FETCH_NORMALIZE_FAILED_EXIT:
+		*fetch_error = "FETCH_NORMALIZE";
+		break;
+	case FETCH_FINAL_VERIFY_FAILED_EXIT:
+		*fetch_error = "FETCH_FINAL_VERIFY";
+		break;
+	case FETCH_PUBLISH_FAILED_EXIT:
+		*fetch_error = "FETCH_PUBLISH";
+		break;
+	case FETCH_WORKER_SETUP_FAILED_EXIT:
+		*fetch_error = "FETCH_WORKER_SETUP";
+		break;
+	case FETCH_WORKER_FORK_FAILED_EXIT:
+		*fetch_error = "FETCH_WORKER_FORK";
+		break;
+	default:
+		*fetch_error = "FETCH_EXEC";
+		break;
+	}
 	return PREPARE_OUTCOME_FETCH_FAILED;
 }
 
@@ -2099,7 +2190,8 @@ static bool load_verified_plan(
 	return false;
 }
 
-static enum prepare_outcome verify_prepare(const struct request *request)
+static enum prepare_outcome verify_prepare(
+	const struct request *request, const char **prepare_error)
 {
 	struct verified_plan plan;
 	int artifacts[HANDOFF_DESCRIPTOR_COUNT] = { -1, -1, -1 };
@@ -2115,7 +2207,8 @@ static enum prepare_outcome verify_prepare(const struct request *request)
 			PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
 	}
 #endif
-	outcome = run_bundle_fetcher(request);
+	*prepare_error = "VERIFY_FAILED";
+	outcome = run_bundle_fetcher(request, prepare_error);
 	if (outcome != PREPARE_OUTCOME_OK)
 		return outcome;
 	if (!run_bundle_verifier(request, &plan, artifacts))
@@ -2198,6 +2291,7 @@ static void handle_request(struct control_state *state,
 	char cached_fingerprint[HASH_LENGTH + 1];
 	char cached_result[24];
 	const char *result;
+	const char *prepare_error = "VERIFY_FAILED";
 	enum prepare_outcome prepare_outcome = PREPARE_OUTCOME_VERIFY_FAILED;
 	int decisions;
 	bool fetch_decided;
@@ -2293,14 +2387,15 @@ static void handle_request(struct control_state *state,
 		if (state->phase == PHASE_IDLE && fetch_decided) {
 			result = "PREPARE_ID_CONFLICT";
 		} else if (state->phase == PHASE_IDLE) {
-			prepare_outcome = verify_prepare(request);
+			prepare_outcome = verify_prepare(
+				request, &prepare_error);
 			if (prepare_outcome ==
 			    PREPARE_OUTCOME_BUNDLE_ID_CONFLICT) {
 				set_last_error(state, "BUNDLE_ID_CONFLICT");
 				result = "BUNDLE_ID_CONFLICT";
 			} else if (prepare_outcome ==
 				   PREPARE_OUTCOME_FETCH_FAILED) {
-				set_last_error(state, "FETCH_FAILED");
+				set_last_error(state, prepare_error);
 				result = "FETCH_FAILED";
 			} else if (prepare_outcome ==
 				   PREPARE_OUTCOME_VERIFY_FAILED) {

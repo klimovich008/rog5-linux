@@ -136,6 +136,57 @@ class InitPolicyTest(unittest.TestCase):
             init_source.index("/usr/libexec/rog5-recovery-control &"),
         )
 
+    def test_fetch_stage_exit_and_timeout_contracts_match(self) -> None:
+        fetch = self.source(RECOVERY_FETCH)
+        control = self.source(RECOVERY_CONTROL)
+        pairs = (
+            ("EXIT_FETCH_ROOT_FAILED", "FETCH_ROOT_FAILED_EXIT"),
+            ("EXIT_FETCH_STAGE_FAILED", "FETCH_STAGE_FAILED_EXIT"),
+            ("EXIT_FETCH_CONNECT_FAILED", "FETCH_CONNECT_FAILED_EXIT"),
+            ("EXIT_FETCH_WORKER_TIMEOUT", "FETCH_WORKER_TIMEOUT_EXIT"),
+            ("EXIT_FETCH_WORKER_SIGNAL", "FETCH_WORKER_SIGNAL_EXIT"),
+            ("EXIT_FETCH_TRANSPORT_FAILED", "FETCH_TRANSPORT_FAILED_EXIT"),
+            ("EXIT_FETCH_HEADER_FAILED", "FETCH_HEADER_FAILED_EXIT"),
+            ("EXIT_FETCH_MANIFEST_FAILED", "FETCH_MANIFEST_FAILED_EXIT"),
+            ("EXIT_FETCH_ARTIFACT_FAILED", "FETCH_ARTIFACT_FAILED_EXIT"),
+            ("EXIT_FETCH_EOF_FAILED", "FETCH_EOF_FAILED_EXIT"),
+            (
+                "EXIT_FETCH_PARENT_VERIFY_FAILED",
+                "FETCH_PARENT_VERIFY_FAILED_EXIT",
+            ),
+            ("EXIT_FETCH_NORMALIZE_FAILED", "FETCH_NORMALIZE_FAILED_EXIT"),
+            (
+                "EXIT_FETCH_FINAL_VERIFY_FAILED",
+                "FETCH_FINAL_VERIFY_FAILED_EXIT",
+            ),
+            ("EXIT_FETCH_PUBLISH_FAILED", "FETCH_PUBLISH_FAILED_EXIT"),
+            (
+                "EXIT_FETCH_WORKER_SETUP_FAILED",
+                "FETCH_WORKER_SETUP_FAILED_EXIT",
+            ),
+            (
+                "EXIT_FETCH_WORKER_FORK_FAILED",
+                "FETCH_WORKER_FORK_FAILED_EXIT",
+            ),
+        )
+
+        def macro(source: str, name: str) -> int:
+            match = re.search(
+                rf"^#define {re.escape(name)} ([0-9]+)$",
+                source,
+                flags=re.MULTILINE,
+            )
+            self.assertIsNotNone(match, name)
+            return int(match.group(1))
+
+        for fetch_name, control_name in pairs:
+            self.assertEqual(
+                macro(fetch, fetch_name),
+                macro(control, control_name),
+            )
+        self.assertEqual(macro(fetch, "FETCH_TIMEOUT_MS"), 180000)
+        self.assertEqual(macro(control, "FETCH_TIMEOUT_MS"), 190000)
+
     def test_recovery_snapshots_pstore_without_clearing_it(self) -> None:
         source = self.source(RECOVERY)
         self.assertIn("mount -t pstore -o ro pstore /sys/fs/pstore", source)

@@ -298,6 +298,19 @@ class Fixture:
               echo 'PASS NFS preflight'
               exit 0
             fi
+            if [ "$1" = cancel ]; then
+              [ "$#" = 2 ]
+              [ "${{ALLOW_HEADLESS_NETWORK_ROOT_CANCEL:-}}" = 1 ]
+              if [ "${{MOCK_CANCEL_FAIL:-0}}" = 1 ]; then
+                echo 'FAIL injected privileged cancellation failure'
+                exit 1
+              fi
+              read -r server_pid server_token <"$MOCK_ROOT/nfs-state"
+              [ "$server_token" = "$2" ]
+              kill -TERM "$server_pid"
+              printf 'nfs:cancel\n' >>"$MOCK_CALLS"
+              exit 0
+            fi
             [ "$1" = serve ]
             [ "$2" = "{RECOVERY_PROFILE}" ]
             [ "$3" = "{PACKAGE_SHA256}" ]
@@ -306,14 +319,16 @@ class Fixture:
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
             printf 'nfs:start\n' >>"$MOCK_CALLS"
             : >"$MOCK_ROOT/nfs-started"
+            printf '%s %s\n' "$$" "$4" >"$MOCK_ROOT/nfs-state"
             echo 'PASS restricted NFSv4.2 export ready; waiting for exact USB gadget'
-            trap 'printf "nfs:terminated\\n" >>"$MOCK_CALLS"; exit 130' TERM INT
+            trap 'rm -f "$MOCK_ROOT/nfs-state"; printf "nfs:terminated\\n" >>"$MOCK_CALLS"; exit 130' TERM INT
             while [ ! -e "$MOCK_ROOT/target-departed" ]; do
               sleep 0.01
             done
             echo 'PASS network-root gadget departed; ending attended export'
             echo 'INFO network-root NFS and runtime firewall state removed'
             printf 'nfs:clean\n' >>"$MOCK_CALLS"
+            rm -f "$MOCK_ROOT/nfs-state"
             """,
         )
         self.executable(
@@ -478,6 +493,7 @@ class Fixture:
               echo 'FAIL injected fallback ACM rejection'
               exit 1
             fi
+            : >"$MOCK_ROOT/target-departed"
             umask 077
             printf '%s\n' \
               'format=rog5-fallback-identity-v2' \
@@ -713,6 +729,9 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             any(line.startswith("control:resolve:") for line in calls)
         )
         self.assertNotIn("fallback:preflight", calls)
+        self.assertEqual(calls.count("nfs:cancel"), 1)
+        self.assertEqual(calls.count("nfs:terminated"), 1)
+        self.assertFalse((self.fixture.root / "nfs-state").exists())
 
     def test_transport_loss_uses_durable_ledger_without_commit_retry(self):
         result = self.fixture.run("run", MOCK_CONTROL_UNKNOWN="1")
@@ -721,6 +740,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertEqual(calls.count("control:show"), 0)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+
+    def test_cancel_failure_does_not_skip_fallback_or_resolution(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_CONTROL_UNKNOWN="1",
+            MOCK_CANCEL_FAIL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "privileged network-root cancellation failed",
+            result.stderr,
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:preflight"), 1)
         self.assertEqual(
             calls.count("control:resolve:FALLBACK_RETURNED"),
             1,
@@ -910,6 +948,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             'exec pkexec "$installed_server"',
             '"$installed_server" preflight',
             '"$installed_server" serve',
+            '"$installed_server" cancel',
+            "ALLOW_HEADLESS_NETWORK_ROOT_CANCEL",
         ):
             self.assertIn(token, launcher)
         self.assertIn(
@@ -917,7 +957,26 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             server,
         )
         self.assertIn("installed_action == preflight", server)
+        self.assertIn("installed_action == cancel", server)
+        self.assertIn("rog5-network-root-server.state", server)
+        self.assertIn("process_start_time", server)
+        self.assertIn("os.pidfd_open(pid, 0)", server)
+        self.assertIn("signal.pidfd_send_signal(pidfd, signal.SIGSTOP)", server)
+        self.assertIn("os.killpg(pid, signal.SIGTERM)", server)
+        self.assertIn("requires an isolated process group", server)
         self.assertIn("PKEXEC_UID", server)
+        self.assertIn("start_new_session=True", runner)
+        self.assertLess(
+            launcher.index("if [[ $action == cancel ]]"),
+            launcher.index("ROG5_NFS_TIMEOUT must be between"),
+        )
+        self.assertLess(
+            server.index(
+                "if [[ $installed_mode == 1 && "
+                "$installed_action == cancel ]]"
+            ),
+            server.index("for command in awk date exportfs"),
+        )
         for token in (
             "network_server_source",
             "headless_verifier_source",
