@@ -68,6 +68,7 @@ ROOT_KEYS = {
     "active_capabilities",
     "dt_required_capabilities",
     "forbidden_enabled_compatibles",
+    "thermal_policy",
     "source_checks",
     "dt_checks",
 }
@@ -107,6 +108,116 @@ EXPECTED_CPU_NODE_PATHS = {
 }
 EXPECTED_MEMORY_NODE_PATHS = {"/memory@80000000"}
 SOURCE_KINDS = {"kconfig", "makefile", "of-match", "binding", "source"}
+NORMALIZED_SOURCE_CHECKS = {
+    "thermal-tsens-critical-source",
+    "thermal-tsens-v2-feature-source",
+    "thermal-hw-protection-source",
+}
+THERMAL_NO_LIMIT = 0xFFFFFFFF
+EXPECTED_THERMAL_POLICY = {
+    "pdc_path": "/soc@0/interrupt-controller@b220000",
+    "pdc_parent_path": "/soc@0/interrupt-controller@17a00000",
+    "sensor_controllers": [
+        {
+            "path": "/soc@0/thermal-sensor@c263000",
+            "sensor_count": 15,
+            "interrupt_args": [[26, 4], [28, 4]],
+        },
+        {
+            "path": "/soc@0/thermal-sensor@c265000",
+            "sensor_count": 14,
+            "interrupt_args": [[27, 4], [29, 4]],
+        },
+    ],
+    "cpu_zone_groups": [
+        {
+            "zone_names": [
+                "cpu0-thermal",
+                "cpu1-thermal",
+                "cpu2-thermal",
+                "cpu3-thermal",
+            ],
+            "sensor_path": "/soc@0/thermal-sensor@c263000",
+            "sensor_indexes": [1, 2, 3, 4],
+            "cooling_cpu_paths": [
+                "/cpus/cpu@0",
+                "/cpus/cpu@100",
+                "/cpus/cpu@200",
+                "/cpus/cpu@300",
+            ],
+        },
+        {
+            "zone_names": [
+                "cpu4-top-thermal",
+                "cpu5-top-thermal",
+                "cpu6-top-thermal",
+                "cpu7-top-thermal",
+                "cpu4-bottom-thermal",
+                "cpu5-bottom-thermal",
+                "cpu6-bottom-thermal",
+                "cpu7-bottom-thermal",
+            ],
+            "sensor_path": "/soc@0/thermal-sensor@c263000",
+            "sensor_indexes": [7, 8, 9, 10, 11, 12, 13, 14],
+            "cooling_cpu_paths": [
+                "/cpus/cpu@400",
+                "/cpus/cpu@500",
+                "/cpus/cpu@600",
+                "/cpus/cpu@700",
+            ],
+        },
+    ],
+    "polling_delay_passive_ms": 250,
+    "passive_trip_millicelsius": [90000, 95000],
+    "passive_hysteresis_millicelsius": 2000,
+    "critical_trip_millicelsius": 110000,
+    "critical_hysteresis_millicelsius": 1000,
+    "pmic_polling_delay_passive_ms": 100,
+    "pmic_passive_trip_millicelsius": 95000,
+    "pmic_critical_trip_millicelsius": 115000,
+    "pmic_temp_alarms": [
+        {
+            "alarm_path": (
+                "/soc@0/spmi@c440000/pmic@1/temp-alarm@a00"
+            ),
+            "sid": 1,
+            "zone_name": "pm8350-thermal",
+            "critical_trip_name": "pm8350c-crit",
+        },
+        {
+            "alarm_path": (
+                "/soc@0/spmi@c440000/pmic@2/temp-alarm@a00"
+            ),
+            "sid": 2,
+            "zone_name": "pm8350c-thermal",
+            "critical_trip_name": "pm8350c-crit",
+        },
+        {
+            "alarm_path": (
+                "/soc@0/spmi@c440000/pmic@3/temp-alarm@a00"
+            ),
+            "sid": 3,
+            "zone_name": "pm8350b-thermal",
+            "critical_trip_name": "pm8350c-crit",
+        },
+        {
+            "alarm_path": (
+                "/soc@0/spmi@c440000/pmic@4/temp-alarm@a00"
+            ),
+            "sid": 4,
+            "zone_name": "pmr735a-thermal",
+            "critical_trip_name": "pmr735a-crit",
+        },
+        {
+            "alarm_path": (
+                "/soc@0/spmi@c440000/pmic@5/temp-alarm@a00"
+            ),
+            "sid": 5,
+            "zone_name": "pmr735b-thermal",
+            "critical_trip_name": "pmr735a-crit",
+        },
+    ],
+}
 
 
 def fail(message: str) -> NoReturn:
@@ -292,7 +403,7 @@ def validate_core_profile(
         None,
         False,
     )
-    if (active, future, config_status) != (6, 6, "metadata-only"):
+    if (active, future, config_status) != (6, 8, "metadata-only"):
         fail("compatibility profile result changed")
     return core_profile
 
@@ -713,6 +824,64 @@ def validate_dt_checks(
     return result
 
 
+def validate_thermal_policy(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        fail("thermal policy is malformed")
+    try:
+        passive = value["passive_trip_millicelsius"]
+        critical = value["critical_trip_millicelsius"]
+        hysteresis = value["passive_hysteresis_millicelsius"]
+        critical_hysteresis = value[
+            "critical_hysteresis_millicelsius"
+        ]
+        groups = value["cpu_zone_groups"]
+    except (KeyError, TypeError):
+        fail("thermal policy is malformed")
+    if (
+        not isinstance(passive, list)
+        or len(passive) != 2
+        or not all(isinstance(item, int) for item in passive)
+        or not isinstance(critical, int)
+        or not isinstance(hysteresis, int)
+        or not isinstance(critical_hysteresis, int)
+        or not isinstance(groups, list)
+    ):
+        fail("thermal policy is malformed")
+    if not (
+        passive[0] < passive[1] < critical
+        and 0 < hysteresis < passive[1] - passive[0]
+        and 0 < critical_hysteresis < critical - passive[1]
+    ):
+        fail("thermal trip ordering or hysteresis is unsafe")
+    names: list[str] = []
+    bindings: list[tuple[str, int]] = []
+    try:
+        for group in groups:
+            if len(group["zone_names"]) != len(group["sensor_indexes"]):
+                fail("thermal CPU zone and sensor inventories differ")
+            names.extend(group["zone_names"])
+            bindings.extend(
+                zip(
+                    [group["sensor_path"]] * len(group["sensor_indexes"]),
+                    group["sensor_indexes"],
+                )
+            )
+    except (KeyError, TypeError):
+        fail("thermal policy is malformed")
+    try:
+        unique_names = set(names)
+        unique_bindings = set(bindings)
+    except TypeError:
+        fail("thermal policy is malformed")
+    if len(names) != 12 or len(unique_names) != 12:
+        fail("thermal CPU zone inventory is not exact")
+    if len(unique_bindings) != len(bindings):
+        fail("thermal CPU sensor bindings are duplicated")
+    if value != EXPECTED_THERMAL_POLICY:
+        fail("thermal policy differs from the accepted static topology")
+    return value
+
+
 def validate_contract(repo: Path, contract: dict[str, Any]) -> dict[str, Any]:
     root = require_object(contract, ROOT_KEYS, "source/DTB contract")
     if root["format"] != FORMAT or root["profile"] != "minimal-headless-v1":
@@ -748,6 +917,7 @@ def validate_contract(repo: Path, contract: dict[str, Any]) -> dict[str, Any]:
     if baseline["release"] != "7.1.4":
         fail("baseline source release changed")
     validate_accepted_dtb_link(root, core_profile)
+    thermal_policy = validate_thermal_policy(root["thermal_policy"])
     source_checks = validate_source_checks(
         root["source_checks"],
         set(active),
@@ -761,6 +931,15 @@ def validate_contract(repo: Path, contract: dict[str, Any]) -> dict[str, Any]:
     validated["source_checks"] = source_checks
     validated["dt_checks"] = dt_checks
     validated["forbidden_enabled_compatibles"] = forbidden_enabled_compatibles
+    validated["thermal_policy"] = thermal_policy
+    thermal_fallback = next(
+        row
+        for row in core_profile["capabilities"]
+        if row["id"] == "thermal-emergency-fallback"
+    )
+    validated["thermal_fallback_status"] = thermal_fallback[
+        "candidate_status"
+    ]
     return validated
 
 
@@ -1098,8 +1277,13 @@ def validate_source_check(source: Path, check: dict[str, Any]) -> None:
                     f"{compatible}"
                 )
     elif kind == "source":
+        normalized = (
+            re.sub(r"[ \t\n]+", " ", text)
+            if identity in NORMALIZED_SOURCE_CHECKS
+            else ""
+        )
         for literal in check["required"]:
-            if literal not in text:
+            if literal not in text and literal not in normalized:
                 fail(
                     f"source check {identity} missing source contract literal: "
                     f"{literal}"
@@ -1208,6 +1392,19 @@ def validate_enabled_ancestors(
             fail(f"DT check {identity} ancestor is not enabled: {ancestor}")
 
 
+def validate_enabled_path(
+    nodes: dict[str, dict[str, bytes]],
+    path: str,
+    identity: str,
+) -> None:
+    validate_enabled_ancestors(nodes, path, identity)
+    properties = nodes.get(path)
+    if properties is None:
+        fail(f"DT check {identity} node is absent: {path}")
+    if effective_status(properties, f"DT check {identity}") != "okay":
+        fail(f"DT check {identity} is not enabled: {path}")
+
+
 def path_is_effectively_enabled(
     nodes: dict[str, dict[str, bytes]],
     path: str,
@@ -1284,6 +1481,594 @@ def validate_cpu_memory_node_inventories(
             f"expected={sorted(EXPECTED_MEMORY_NODE_PATHS)} "
             f"actual={sorted(memory_paths)}"
         )
+
+
+def phandle_owners(
+    nodes: dict[str, dict[str, bytes]],
+) -> dict[int, str]:
+    result: dict[int, str] = {}
+    for path, properties in nodes.items():
+        for name in ("phandle", "linux,phandle"):
+            raw = properties.get(name)
+            if raw is None:
+                continue
+            values = decode_u32_list(raw, f"DT node {path} {name}")
+            if len(values) != 1 or values[0] == 0:
+                fail(f"DT node {path} has an invalid {name}")
+            owner = result.setdefault(values[0], path)
+            if owner != path:
+                fail(
+                    f"DT phandle is owned by multiple nodes: {values[0]}"
+                )
+    return result
+
+
+def exact_u32_property(
+    properties: dict[str, bytes],
+    name: str,
+    expected: list[int],
+    label: str,
+) -> None:
+    raw = properties.get(name)
+    if raw is None:
+        fail(f"{label} property is absent: {name}")
+    actual = decode_u32_list(raw, f"{label} property {name}")
+    if actual != expected:
+        fail(
+            f"{label} property changed: {name} "
+            f"expected={expected} actual={actual}"
+        )
+
+
+def exact_string_property(
+    properties: dict[str, bytes],
+    name: str,
+    expected: list[str],
+    label: str,
+) -> None:
+    raw = properties.get(name)
+    if raw is None:
+        fail(f"{label} property is absent: {name}")
+    actual = decode_string_list(raw, f"{label} property {name}")
+    if actual != expected:
+        fail(
+            f"{label} property changed: {name} "
+            f"expected={expected} actual={actual}"
+        )
+
+
+def direct_children(
+    nodes: dict[str, dict[str, bytes]],
+    parent: str,
+) -> set[str]:
+    prefix = parent.rstrip("/") + "/"
+    depth = parent.count("/") + 1
+    return {
+        path
+        for path in nodes
+        if path.startswith(prefix) and path.count("/") == depth
+    }
+
+
+def thermal_sensor_reference(
+    nodes: dict[str, dict[str, bytes]],
+    owners: dict[int, str],
+    path: str,
+) -> tuple[str, tuple[int, ...]]:
+    properties = nodes[path]
+    raw = properties.get("thermal-sensors")
+    if raw is None:
+        fail(f"thermal zone has no sensor reference: {path}")
+    values = decode_u32_list(raw, f"thermal zone {path} thermal-sensors")
+    if not values or values[0] not in owners:
+        fail(f"thermal zone has an unresolved sensor reference: {path}")
+    target = owners[values[0]]
+    target_properties = nodes[target]
+    cells_raw = target_properties.get("#thermal-sensor-cells")
+    if cells_raw is None:
+        fail(f"thermal sensor target lacks cell count: {target}")
+    cells = decode_u32_list(
+        cells_raw,
+        f"thermal sensor target {target} #thermal-sensor-cells",
+    )
+    if len(cells) != 1 or cells[0] > 8:
+        fail(f"thermal sensor target has an invalid cell count: {target}")
+    if len(values) != cells[0] + 1:
+        fail(f"thermal zone sensor specifier width changed: {path}")
+    return target, tuple(values[1:])
+
+
+def validate_trip(
+    nodes: dict[str, dict[str, bytes]],
+    path: str,
+    *,
+    temperature: int,
+    hysteresis: int,
+    trip_type: str,
+    require_phandle: bool = False,
+) -> None:
+    properties = nodes.get(path)
+    if properties is None:
+        fail(f"thermal trip is absent: {path}")
+    required = {"temperature", "hysteresis", "type"}
+    permitted = required | {"phandle", "linux,phandle"}
+    if not required.issubset(properties) or set(properties) - permitted:
+        fail(f"thermal trip properties changed: {path}")
+    exact_u32_property(
+        properties,
+        "temperature",
+        [temperature],
+        f"thermal trip {path}",
+    )
+    exact_u32_property(
+        properties,
+        "hysteresis",
+        [hysteresis],
+        f"thermal trip {path}",
+    )
+    exact_string_property(
+        properties,
+        "type",
+        [trip_type],
+        f"thermal trip {path}",
+    )
+    if require_phandle:
+        node_phandle(nodes, path, f"thermal trip {path}")
+
+
+def validate_cpu_thermal_zones(
+    nodes: dict[str, dict[str, bytes]],
+    owners: dict[int, str],
+    policy: dict[str, Any],
+) -> set[tuple[str, tuple[int, ...]]]:
+    expected_paths = {
+        f"/thermal-zones/{name}"
+        for group in policy["cpu_zone_groups"]
+        for name in group["zone_names"]
+    }
+    cpu_paths = {
+        path
+        for group in policy["cpu_zone_groups"]
+        for path in group["cooling_cpu_paths"]
+    }
+    actual_paths = {
+        path
+        for path in direct_children(nodes, "/thermal-zones")
+        if path.rsplit("/", 1)[1].startswith("cpu")
+        and path.endswith("-thermal")
+    }
+    for zone_path in direct_children(nodes, "/thermal-zones"):
+        maps_path = f"{zone_path}/cooling-maps"
+        if maps_path not in nodes:
+            continue
+        for map_path in direct_children(nodes, maps_path):
+            properties = nodes[map_path]
+            raw = properties.get("cooling-device")
+            if raw is None:
+                continue
+            values = decode_u32_list(
+                raw,
+                f"thermal cooling map {map_path} cooling-device",
+            )
+            offset = 0
+            while offset < len(values):
+                target = owners.get(values[offset])
+                if target is None:
+                    fail(
+                        f"thermal cooling map has an unresolved device: "
+                        f"{map_path}"
+                    )
+                cells_raw = nodes[target].get("#cooling-cells")
+                if cells_raw is None:
+                    fail(
+                        f"thermal cooling target lacks cell count: {target}"
+                    )
+                cells = decode_u32_list(
+                    cells_raw,
+                    f"thermal cooling target {target} #cooling-cells",
+                )
+                if len(cells) != 1 or cells[0] > 8:
+                    fail(
+                        f"thermal cooling target has an invalid "
+                        f"cell count: {target}"
+                    )
+                offset += 1 + cells[0]
+                if offset > len(values):
+                    fail(
+                        f"thermal cooling map specifier width changed: "
+                        f"{map_path}"
+                    )
+                if target in cpu_paths:
+                    actual_paths.add(zone_path)
+    if actual_paths != expected_paths:
+        fail(
+            "thermal CPU zone inventory changed: "
+            f"expected={sorted(expected_paths)} actual={sorted(actual_paths)}"
+        )
+    bindings: set[tuple[str, tuple[int, ...]]] = set()
+    passive = policy["passive_trip_millicelsius"]
+    for group in policy["cpu_zone_groups"]:
+        sensor_path = group["sensor_path"]
+        sensor_count = next(
+            controller["sensor_count"]
+            for controller in policy["sensor_controllers"]
+            if controller["path"] == sensor_path
+        )
+        cooling_values: list[int] = []
+        for cpu_path in group["cooling_cpu_paths"]:
+            cpu = nodes.get(cpu_path)
+            if cpu is None:
+                fail(f"thermal cooling CPU is absent: {cpu_path}")
+            exact_u32_property(
+                cpu,
+                "#cooling-cells",
+                [2],
+                f"thermal cooling CPU {cpu_path}",
+            )
+            cooling_values.extend(
+                [
+                    node_phandle(
+                        nodes,
+                        cpu_path,
+                        f"thermal cooling CPU {cpu_path}",
+                    ),
+                    THERMAL_NO_LIMIT,
+                    THERMAL_NO_LIMIT,
+                ]
+            )
+        for zone_name, sensor_index in zip(
+            group["zone_names"],
+            group["sensor_indexes"],
+        ):
+            path = f"/thermal-zones/{zone_name}"
+            properties = nodes[path]
+            validate_enabled_path(nodes, path, f"thermal zone {zone_name}")
+            if "polling-delay" in properties:
+                fail(f"thermal CPU zone has an unexpected polling delay: {path}")
+            exact_u32_property(
+                properties,
+                "polling-delay-passive",
+                [policy["polling_delay_passive_ms"]],
+                f"thermal CPU zone {path}",
+            )
+            reference = thermal_sensor_reference(
+                nodes,
+                owners,
+                path,
+            )
+            if (
+                len(reference[1]) != 1
+                or not 0 <= reference[1][0] < sensor_count
+            ):
+                fail(f"thermal CPU zone sensor index is out of range: {path}")
+            expected_reference = (sensor_path, (sensor_index,))
+            if reference != expected_reference:
+                fail(
+                    f"thermal CPU zone sensor binding changed: {path} "
+                    f"expected={expected_reference} actual={reference}"
+                )
+            if reference in bindings:
+                fail(f"thermal CPU sensor binding is duplicated: {reference}")
+            bindings.add(reference)
+
+            trips_path = f"{path}/trips"
+            if nodes.get(trips_path) != {}:
+                fail(f"thermal CPU trip container changed: {trips_path}")
+            expected_trips = {
+                f"{trips_path}/trip-point0",
+                f"{trips_path}/trip-point1",
+                f"{trips_path}/cpu-crit",
+            }
+            if direct_children(nodes, trips_path) != expected_trips:
+                fail(f"thermal CPU trip inventory changed: {path}")
+            validate_trip(
+                nodes,
+                f"{trips_path}/trip-point0",
+                temperature=passive[0],
+                hysteresis=policy["passive_hysteresis_millicelsius"],
+                trip_type="passive",
+                require_phandle=True,
+            )
+            validate_trip(
+                nodes,
+                f"{trips_path}/trip-point1",
+                temperature=passive[1],
+                hysteresis=policy["passive_hysteresis_millicelsius"],
+                trip_type="passive",
+                require_phandle=True,
+            )
+            validate_trip(
+                nodes,
+                f"{trips_path}/cpu-crit",
+                temperature=policy["critical_trip_millicelsius"],
+                hysteresis=policy["critical_hysteresis_millicelsius"],
+                trip_type="critical",
+            )
+
+            maps_path = f"{path}/cooling-maps"
+            if nodes.get(maps_path) != {}:
+                fail(f"thermal CPU cooling-map container changed: {maps_path}")
+            expected_maps = {
+                f"{maps_path}/map0",
+                f"{maps_path}/map1",
+            }
+            if direct_children(nodes, maps_path) != expected_maps:
+                fail(f"thermal CPU cooling-map inventory changed: {path}")
+            for index in range(2):
+                map_path = f"{maps_path}/map{index}"
+                map_properties = nodes[map_path]
+                if set(map_properties) != {"trip", "cooling-device"}:
+                    fail(f"thermal CPU cooling-map properties changed: {map_path}")
+                exact_u32_property(
+                    map_properties,
+                    "trip",
+                    [
+                        node_phandle(
+                            nodes,
+                            f"{trips_path}/trip-point{index}",
+                            f"thermal CPU cooling map {map_path}",
+                        )
+                    ],
+                    f"thermal CPU cooling map {map_path}",
+                )
+                exact_u32_property(
+                    map_properties,
+                    "cooling-device",
+                    cooling_values,
+                    f"thermal CPU cooling map {map_path}",
+                )
+    return bindings
+
+
+def validate_pmic_thermal_zones(
+    nodes: dict[str, dict[str, bytes]],
+    owners: dict[int, str],
+    policy: dict[str, Any],
+) -> set[tuple[str, tuple[int, ...]]]:
+    expected_alarm_paths = {
+        row["alarm_path"] for row in policy["pmic_temp_alarms"]
+    }
+    actual_alarm_paths: set[str] = set()
+    for path, properties in nodes.items():
+        raw = properties.get("compatible")
+        if raw is None:
+            continue
+        compatibles = decode_string_list(
+            raw,
+            f"DT node {path} compatible",
+        )
+        if compatibles == ["qcom,spmi-temp-alarm"]:
+            actual_alarm_paths.add(path)
+    if actual_alarm_paths != expected_alarm_paths:
+        fail(
+            "thermal PMIC alarm inventory changed: "
+            f"expected={sorted(expected_alarm_paths)} "
+            f"actual={sorted(actual_alarm_paths)}"
+        )
+
+    expected_zone_paths = {
+        f"/thermal-zones/{row['zone_name']}"
+        for row in policy["pmic_temp_alarms"]
+    }
+    bindings: set[tuple[str, tuple[int, ...]]] = set()
+    for row in policy["pmic_temp_alarms"]:
+        alarm_path = row["alarm_path"]
+        alarm = nodes[alarm_path]
+        validate_enabled_path(
+            nodes,
+            alarm_path,
+            f"thermal PMIC alarm {alarm_path}",
+        )
+        exact_string_property(
+            alarm,
+            "compatible",
+            ["qcom,spmi-temp-alarm"],
+            f"thermal PMIC alarm {alarm_path}",
+        )
+        exact_u32_property(
+            alarm,
+            "reg",
+            [0xA00],
+            f"thermal PMIC alarm {alarm_path}",
+        )
+        exact_u32_property(
+            alarm,
+            "interrupts",
+            [row["sid"], 0xA, 0, 3],
+            f"thermal PMIC alarm {alarm_path}",
+        )
+        exact_u32_property(
+            alarm,
+            "#thermal-sensor-cells",
+            [0],
+            f"thermal PMIC alarm {alarm_path}",
+        )
+
+        zone_path = f"/thermal-zones/{row['zone_name']}"
+        zone = nodes.get(zone_path)
+        if zone is None:
+            fail(f"thermal PMIC zone is absent: {zone_path}")
+        validate_enabled_path(
+            nodes,
+            zone_path,
+            f"thermal PMIC zone {zone_path}",
+        )
+        if "polling-delay" in zone:
+            fail(f"thermal PMIC zone has an unexpected polling delay: {zone_path}")
+        exact_u32_property(
+            zone,
+            "polling-delay-passive",
+            [policy["pmic_polling_delay_passive_ms"]],
+            f"thermal PMIC zone {zone_path}",
+        )
+        reference = thermal_sensor_reference(
+            nodes,
+            owners,
+            zone_path,
+        )
+        expected_reference = (alarm_path, ())
+        if reference != expected_reference:
+            fail(
+                f"thermal PMIC zone sensor binding changed: {zone_path} "
+                f"expected={expected_reference} actual={reference}"
+            )
+        if reference in bindings:
+            fail(f"thermal PMIC sensor binding is duplicated: {reference}")
+        bindings.add(reference)
+
+        trips_path = f"{zone_path}/trips"
+        if nodes.get(trips_path) != {}:
+            fail(f"thermal PMIC trip container changed: {trips_path}")
+        expected_trips = {
+            f"{trips_path}/trip0",
+            f"{trips_path}/{row['critical_trip_name']}",
+        }
+        if direct_children(nodes, trips_path) != expected_trips:
+            fail(f"thermal PMIC trip inventory changed: {zone_path}")
+        validate_trip(
+            nodes,
+            f"{trips_path}/trip0",
+            temperature=policy["pmic_passive_trip_millicelsius"],
+            hysteresis=0,
+            trip_type="passive",
+        )
+        validate_trip(
+            nodes,
+            f"{trips_path}/{row['critical_trip_name']}",
+            temperature=policy["pmic_critical_trip_millicelsius"],
+            hysteresis=0,
+            trip_type="critical",
+        )
+        if f"{zone_path}/cooling-maps" in nodes:
+            fail(f"thermal PMIC zone unexpectedly has cooling maps: {zone_path}")
+
+    actual_zone_paths: set[str] = set()
+    for path in direct_children(nodes, "/thermal-zones"):
+        if "thermal-sensors" not in nodes[path]:
+            continue
+        target, _arguments = thermal_sensor_reference(nodes, owners, path)
+        if target in expected_alarm_paths:
+            actual_zone_paths.add(path)
+    if actual_zone_paths != expected_zone_paths:
+        fail(
+            "thermal PMIC zone inventory changed: "
+            f"expected={sorted(expected_zone_paths)} "
+            f"actual={sorted(actual_zone_paths)}"
+        )
+    return bindings
+
+
+def validate_thermal_policy_dtb(
+    nodes: dict[str, dict[str, bytes]],
+    policy: dict[str, Any],
+) -> None:
+    owners = phandle_owners(nodes)
+    pdc_path = policy["pdc_path"]
+    pdc_parent_path = policy["pdc_parent_path"]
+    for path in (pdc_path, pdc_parent_path):
+        if path not in nodes:
+            fail(f"thermal interrupt controller is absent: {path}")
+        validate_enabled_path(
+            nodes,
+            path,
+            f"thermal interrupt controller {path}",
+        )
+        if nodes[path].get("interrupt-controller") != b"":
+            fail(f"thermal interrupt controller marker changed: {path}")
+    exact_u32_property(
+        nodes[pdc_path],
+        "#interrupt-cells",
+        [2],
+        f"thermal PDC {pdc_path}",
+    )
+    exact_u32_property(
+        nodes[pdc_parent_path],
+        "#interrupt-cells",
+        [3],
+        f"thermal interrupt parent {pdc_parent_path}",
+    )
+    exact_u32_property(
+        nodes[pdc_path],
+        "interrupt-parent",
+        [
+            node_phandle(
+                nodes,
+                pdc_parent_path,
+                f"thermal PDC {pdc_path}",
+            )
+        ],
+        f"thermal PDC {pdc_path}",
+    )
+    pdc_phandle = node_phandle(
+        nodes,
+        pdc_path,
+        f"thermal PDC {pdc_path}",
+    )
+    for controller in policy["sensor_controllers"]:
+        path = controller["path"]
+        properties = nodes.get(path)
+        if properties is None:
+            fail(f"thermal sensor controller is absent: {path}")
+        validate_enabled_path(
+            nodes,
+            path,
+            f"thermal sensor controller {path}",
+        )
+        exact_u32_property(
+            properties,
+            "#qcom,sensors",
+            [controller["sensor_count"]],
+            f"thermal sensor controller {path}",
+        )
+        exact_u32_property(
+            properties,
+            "#thermal-sensor-cells",
+            [1],
+            f"thermal sensor controller {path}",
+        )
+        exact_string_property(
+            properties,
+            "interrupt-names",
+            ["uplow", "critical"],
+            f"thermal sensor controller {path}",
+        )
+        expected_interrupts: list[int] = []
+        for arguments in controller["interrupt_args"]:
+            expected_interrupts.append(pdc_phandle)
+            expected_interrupts.extend(arguments)
+        exact_u32_property(
+            properties,
+            "interrupts-extended",
+            expected_interrupts,
+            f"thermal sensor controller {path}",
+        )
+
+    expected_bindings = validate_cpu_thermal_zones(
+        nodes,
+        owners,
+        policy,
+    )
+    expected_bindings.update(
+        validate_pmic_thermal_zones(
+            nodes,
+            owners,
+            policy,
+        )
+    )
+    all_bindings: dict[tuple[str, tuple[int, ...]], str] = {}
+    for path in direct_children(nodes, "/thermal-zones"):
+        if "thermal-sensors" not in nodes[path]:
+            continue
+        reference = thermal_sensor_reference(nodes, owners, path)
+        previous = all_bindings.setdefault(reference, path)
+        if previous != path:
+            fail(
+                "thermal zone sensor binding is duplicated: "
+                f"{reference} paths={[previous, path]}"
+            )
+    missing = expected_bindings - set(all_bindings)
+    if missing:
+        fail(f"thermal expected sensor bindings are absent: {sorted(missing)}")
 
 
 def validate_dt_check(
@@ -1437,6 +2222,7 @@ def validate_dtb(
         contract["forbidden_enabled_compatibles"],
     )
     validate_cpu_memory_node_inventories(nodes)
+    validate_thermal_policy_dtb(nodes, contract["thermal_policy"])
     for check in contract["dt_checks"]:
         validate_dt_check(nodes, check)
     return digest
@@ -1479,6 +2265,20 @@ def main(arguments: list[str]) -> int:
     print(f"active_capabilities={len(contract['active_capabilities'])}")
     print(f"source_checks={len(contract['source_checks'])}")
     print(f"dt_checks={len(contract['dt_checks'])}")
+    thermal_policy = contract["thermal_policy"]
+    thermal_cpu_zones = sum(
+        len(group["zone_names"])
+        for group in thermal_policy["cpu_zone_groups"]
+    )
+    print(f"thermal_cpu_zones={thermal_cpu_zones}")
+    print(
+        "thermal_pmic_alarms="
+        f"{len(thermal_policy['pmic_temp_alarms'])}"
+    )
+    print(
+        "thermal_forced_fallback="
+        f"{contract['thermal_fallback_status']}"
+    )
     if options.metadata_only:
         print("source_role=metadata-only")
         print("dtb_role=metadata-only")

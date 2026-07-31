@@ -44,7 +44,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   layers, nested payload hashes, boot header, AVB footer, and access material.
 - The base board-DTB check requires the TLMM 52-59 reservation and all eight translated ASUS HS-PHY tuning properties.
 - The recovery DTB check requires USB2 high-speed operation, a built-in FEMTO PHY, exactly one USB PHY reference, and disabled UFS, QMP/SuperSpeed, and secondary USB.
-- The core source/DTB contract requires a clean Git source root, 37
+- The core source/DTB contract requires a clean Git source root, 43
   Kconfig/Makefile/OF/binding/source checks, and 23 corrected-DTB topology
   checks across all six active minimal-headless capabilities. OF tables must
   be attached to registered drivers; enabled DT paths must have enabled
@@ -52,6 +52,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   compatible scan rejects alternate enabled UFS/QMP USB3 nodes. Candidate
   mode is compatibility evidence only and must never report hardware
   acceptance.
+- Its static thermal policy separately pins both TSENS critical IRQs through
+  the PDC/GIC chain, exact source critical-shutdown calls, 12 CPU zones with
+  trips and cooling maps, and five PMIC alarm/zone pairs. All required source
+  literals and hostile DT rewires are mutation-tested. The accepted
+  `qcom-spmi-temp-alarm` module and zero emergency delay do not satisfy the
+  future built-in PMIC and bounded forced-fallback gates.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules,
   firmware, locked accounts, key-only SSH, NetworkManager ownership,

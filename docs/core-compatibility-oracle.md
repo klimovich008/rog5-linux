@@ -43,7 +43,7 @@ gates are preserved:
 | `usb-ncm-network` | IPv4/IPv6 plus Qualcomm DWC3 USB2 and NCM gadget support |
 | `init-key-only-ssh` | devtmpfs and embedded-config requirements, paired with the minimal root and strict-SSH CI gates |
 | `watchdog-rollback-reboot` | kexec, SysRq, PM, target-init, and guarded recovery-runner gates |
-| `thermal-readonly` | thermal framework and Qualcomm TSENS with retained live read-only evidence |
+| `thermal-readonly` | thermal framework, Qualcomm TSENS, CPU thermal cooling/governor prerequisites, and retained live read-only evidence |
 
 Each active capability now also names the focused target-probe and
 host-verifier regression tests. SSH and rollback additionally name the
@@ -60,6 +60,11 @@ cannot see.
 
 Future capabilities remain unaccepted:
 
+- `thermal-pmic-critical-path` requires the PMIC temperature-alarm driver
+  built in rather than relying on an unbounded module-load window;
+- `thermal-emergency-fallback` requires a nonzero, bounded 10–30 second
+  emergency-poweroff delay. The exact value still needs hardware-informed
+  profiling and does not authorize a deliberate overheat test;
 - display-off operation is baseline evidence only; `CONFIG_PM` is necessary
   but does not prove the OLED is off;
 - buttons and battery have baseline diagnostic evidence only, not
@@ -69,6 +74,13 @@ Future capabilities remain unaccepted:
   validates sustained read-only record structure and phase comparison; it
   does not promote the capability;
 - suspend/resume, sensors, and audio remain pending.
+
+The accepted Linux 7.1.4 config still has
+`CONFIG_QCOM_SPMI_TEMP_ALARM=m` and
+`CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS=0`. Active
+`thermal-readonly` therefore means readable accepted ancestry and static CPU
+cooling prerequisites, not an accepted PMIC critical path or forced shutdown
+fallback.
 
 Internal UFS access is not silently accepted by the network-root capability.
 The active profile intentionally compiles that path out. Read-only UFS
@@ -88,8 +100,8 @@ The verifier requires:
 - the exact authority-free corrected candidate JSON and its Image, DTB, and
   initramfs ancestry;
 - complete active/future capability coverage;
-- canonical Kconfig input, exact positive requirements, integer minima, and
-  absent-or-disabled forbidden symbols;
+- canonical Kconfig input, exact positive requirements, integer minima and
+  maxima, and absent-or-disabled forbidden symbols;
 - every active gate as an exact CI-array entry; and
 - the exact oracle invocation from the kernel build verifier.
 

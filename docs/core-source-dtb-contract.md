@@ -22,9 +22,10 @@ active minimal-headless capabilities:
 - Qualcomm USB2 DWC3, FEMTO PHY, ConfigFS, and NCM;
 - devtmpfs and embedded Kconfig visibility used by the key-only SSH root;
 - kexec, reboot, SysRq, and PM rollback primitives; and
-- generic thermal support plus Qualcomm TSENS.
+- generic thermal support, Qualcomm TSENS, CPU thermal cooling, and static
+  PMIC temperature-alarm integration.
 
-Thirty-seven source checks cover:
+Forty-three source checks cover:
 
 - canonical Kconfig declarations;
 - Makefile object wiring;
@@ -32,7 +33,9 @@ Thirty-seven source checks cover:
   registered platform driver, and driver registration;
 - primary SM8350 compatibles in DT binding YAML; and
 - source entry points that implement NFS root, OverlayFS, NCM, devtmpfs,
-  embedded config, kexec/reboot/SysRq, and thermal behavior.
+  embedded config, kexec/reboot/SysRq, TSENS v2 critical interrupts, PMIC
+  temperature alarms, thermal critical trips, and the default hardware
+  protection shutdown path.
 
 Twenty-three DT checks cover:
 
@@ -51,6 +54,26 @@ DWC3-to-USB2-PHY phandle;
 - disabled USB3/QMP and secondary USB paths;
 - PSCI reset; and
 - both accepted TSENS nodes and their exact sensor counts.
+
+The thermal policy adds an exact cross-node contract above the 23 generic DT
+checks. It requires both enabled TSENS controllers, their `uplow` and
+`critical` PDC routes, the PDC-to-GIC parent, all 12 CPU thermal zones, exact
+90/95 C passive and 110 C critical trips, 250 ms passive polling, two
+step-wise cooling maps per zone, the correct four-CPU cooling cluster, and
+unbounded cooling-state selectors. It also requires five enabled
+`qcom,spmi-temp-alarm` nodes and their exact PMIC zones, interrupts, 95 C
+passive trips, 115 C critical trips, and 100 ms passive polling. Sensor
+references are range-checked and globally unique.
+
+The PMIC critical trip node names are verbatim from the exact accepted DTB:
+several zones intentionally share `pm8350c-crit` or `pmr735a-crit`. They are
+not normalized to match the surrounding zone name.
+
+This is static structure only. The accepted config builds
+`qcom-spmi-temp-alarm` as a module, and its emergency poweroff delay is zero.
+The contract therefore does not claim that PMIC alarms bind early enough or
+that forced shutdown follows a failed orderly shutdown. Those are separate
+future compatibility capabilities.
 
 Global CPU and system-memory inventories reject an additional `cpu@` child,
 any node with `device_type = "cpu"`, an additional root `memory@` node, or any
@@ -137,11 +160,12 @@ Run all hardware-free repository checks:
 scripts/host/test-repository-linux.sh ci
 ```
 
-The 53-case focused suite creates disposable synthetic Git trees and DTBs. It
+The 74-case focused suite creates disposable synthetic Git trees and DTBs. It
 does not build a kernel, contact the phone, use a credential, change host
 network state, delete storage, or grant live authority.
 
 See the
+[static thermal-policy result](../test-results/2026-07-31-thermal-policy-static-oracle-offline.md),
 [CPU/RAM topology result](../test-results/2026-07-29-cpu-ram-topology-offline.md)
 and the earlier
 [source/DTB result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).

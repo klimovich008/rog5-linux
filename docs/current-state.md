@@ -101,9 +101,9 @@ The ASUS 5.4 and accepted Linux 7.1 behavioral ancestry is now also encoded in
 a strict [core compatibility oracle](core-compatibility-oracle.md). It binds
 the historical evidence hashes and markers, artifact-manifest hash, accepted
 Image/config identities, corrected candidate Image/DTB/initramfs ancestry,
-six active headless capability contracts, six future capability states,
+six active headless capability contracts, eight future capability states,
 exact CI entries, and the kernel-build verifier invocation. A committed
-golden config, the retained accepted 7.1 config, and 34 mutation/CLI tests
+golden config, the retained accepted 7.1 config, and 39 mutation/CLI tests
 pass. The complete hardware-free repository CI tier passes.
 
 This is an ancestry and regression result, not a new hardware result.
@@ -150,13 +150,27 @@ and
 
 The compatibility gate now also checks the kernel source and generated board
 DTB rather than stopping at Kconfig and artifact ancestry. The retained exact
-Linux 7.1.4 tree passes 37 Kconfig, Makefile, OF-table, binding, and source
+Linux 7.1.4 tree passes 43 Kconfig, Makefile, OF-table, binding, and source
 entry-point checks; the accepted corrected DTB passes 23 RAM-bank, CPU/EPSS,
-UFS-isolation, USB2/NCM, PSCI, and TSENS topology checks. A future source or
+UFS-isolation, USB2/NCM, PSCI, and TSENS topology checks. The expanded source
+gate and cross-node thermal policy additionally pin both
+TSENS critical IRQ routes through PDC/GIC, 12 CPU thermal zones with exact
+trips and cooling maps, five PMIC alarms/zones, and the kernel default
+critical-shutdown path. Disabled zones, rewired interrupts, duplicate or
+out-of-range sensors, changed trips, and altered cooling targets fail.
+A future source or
 DTB can run in candidate mode, but a pass reports
 `compatible-not-accepted` and cannot promote hardware state. See the
-[source/DT contract](core-source-dtb-contract.md) and
+[source/DT contract](core-source-dtb-contract.md), the
+[static thermal result](../test-results/2026-07-31-thermal-policy-static-oracle-offline.md),
+and the
 [CPU/RAM result](../test-results/2026-07-29-cpu-ram-topology-offline.md).
+
+The accepted config still builds the PMIC alarm driver as a module and sets
+the emergency-poweroff delay to zero. The oracle therefore keeps PMIC
+critical enforcement and a bounded 10–30 second forced fallback as separate
+future capabilities. No IRQ delivery, cooling response, PMIC registration,
+or shutdown behavior is accepted by this offline result.
 
 The first H4 input/indicator delta is now packaged without widening any other
 hardware boundary. It pins the accepted source, config, LPG module archive,

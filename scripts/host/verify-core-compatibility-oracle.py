@@ -31,6 +31,8 @@ REQUIRED_CAPABILITIES = {
     "read-only-network-root",
     "sensors",
     "suspend-resume",
+    "thermal-emergency-fallback",
+    "thermal-pmic-critical-path",
     "thermal-readonly",
     "usb-ncm-network",
     "watchdog-rollback-reboot",
@@ -75,6 +77,7 @@ CAPABILITY_KEYS = {
     "baseline_evidence",
     "required_config",
     "minimum_integer_config",
+    "maximum_integer_config",
     "forbidden_config",
     "ci_gates",
 }
@@ -455,9 +458,14 @@ def validate_capabilities(
                 fail(f"capability references unknown evidence: {identity}")
         required = row["required_config"]
         minimum = row["minimum_integer_config"]
+        maximum = row["maximum_integer_config"]
         forbidden = row["forbidden_config"]
         gates = row["ci_gates"]
-        if not isinstance(required, dict) or not isinstance(minimum, dict):
+        if (
+            not isinstance(required, dict)
+            or not isinstance(minimum, dict)
+            or not isinstance(maximum, dict)
+        ):
             fail(f"capability config contract is invalid: {identity}")
         if not isinstance(forbidden, list):
             fail(f"capability forbidden config is invalid: {identity}")
@@ -481,14 +489,25 @@ def validate_capabilities(
                 or value <= 0
             ):
                 fail(f"capability minimum config is invalid: {identity}")
-        if set(required) & set(minimum):
-            fail(f"capability config contract overlaps: {identity}")
-        for symbol in forbidden_symbols:
+        for symbol, value in maximum.items():
             if (
                 not SYMBOL.fullmatch(symbol)
-                or symbol in required
-                or symbol in minimum
+                or not isinstance(value, int)
+                or isinstance(value, bool)
+                or value <= 0
             ):
+                fail(f"capability maximum config is invalid: {identity}")
+        if (
+            set(required) & (set(minimum) | set(maximum))
+            or set(forbidden_symbols)
+            & (set(required) | set(minimum) | set(maximum))
+        ):
+            fail(f"capability config contract overlaps: {identity}")
+        for symbol in set(minimum) & set(maximum):
+            if minimum[symbol] > maximum[symbol]:
+                fail(f"capability config range is invalid: {identity}")
+        for symbol in forbidden_symbols:
+            if not SYMBOL.fullmatch(symbol):
                 fail(f"capability forbidden symbol is invalid: {identity}")
         if not isinstance(gates, list):
             fail(f"capability CI gate list is invalid: {identity}")
@@ -555,6 +574,7 @@ def validate_kernel_config(
 ) -> int:
     required: dict[str, str] = {}
     minimum: dict[str, int] = {}
+    maximum: dict[str, int] = {}
     forbidden: set[str] = set()
     selected = [
         row
@@ -565,17 +585,24 @@ def validate_kernel_config(
         for symbol, value in row["required_config"].items():
             if symbol in required and required[symbol] != value:
                 fail(f"capability config requirements conflict: {symbol}")
-            if symbol in forbidden or symbol in minimum:
+            if symbol in forbidden or symbol in minimum or symbol in maximum:
                 fail(f"capability config requirements conflict: {symbol}")
             required[symbol] = value
         for symbol, value in row["minimum_integer_config"].items():
             if symbol in required or symbol in forbidden:
                 fail(f"capability config requirements conflict: {symbol}")
             minimum[symbol] = max(minimum.get(symbol, 0), value)
+        for symbol, value in row["maximum_integer_config"].items():
+            if symbol in required or symbol in forbidden:
+                fail(f"capability config requirements conflict: {symbol}")
+            maximum[symbol] = min(maximum.get(symbol, value), value)
         for symbol in row["forbidden_config"]:
-            if symbol in required or symbol in minimum:
+            if symbol in required or symbol in minimum or symbol in maximum:
                 fail(f"capability config allow/forbid conflict: {symbol}")
             forbidden.add(symbol)
+    for symbol in set(minimum) & set(maximum):
+        if minimum[symbol] > maximum[symbol]:
+            fail(f"capability config ranges conflict: {symbol}")
     for symbol, expected in sorted(required.items()):
         if config.get(symbol) != expected:
             fail(f"kernel config violates oracle: {symbol}={expected}")
@@ -587,6 +614,14 @@ def validate_kernel_config(
             or int(actual, 0) < expected
         ):
             fail(f"kernel config is below oracle minimum: {symbol}>={expected}")
+    for symbol, expected in sorted(maximum.items()):
+        actual = config.get(symbol)
+        if (
+            actual is None
+            or not re.fullmatch(r"(?:0|[1-9][0-9]*|0x[0-9A-Fa-f]+)", actual)
+            or int(actual, 0) > expected
+        ):
+            fail(f"kernel config is above oracle maximum: {symbol}<={expected}")
     for symbol in sorted(forbidden):
         if config.get(symbol, "n") != "n":
             fail(f"kernel config enables forbidden oracle symbol: {symbol}")

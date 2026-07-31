@@ -134,10 +134,14 @@ postmortem operations without per-candidate recovery rebuilds.
   hardware.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
-  gate, and 34-case mutation/CLI suite.
-- [x] Bind all six active capabilities to 37 source-integration checks and 23
+  gate, and 39-case mutation/CLI suite.
+- [x] Bind all six active capabilities to 43 source-integration checks and 23
   corrected-DTB topology checks, with separate exact-baseline and
   compatible-but-unaccepted candidate modes.
+- [x] Pin the accepted static thermal topology: both TSENS critical IRQs
+  through PDC/GIC, all 12 CPU zones and cooling maps, five PMIC alarms and
+  zones, the kernel critical-shutdown call chain, and hostile mutations.
+  Keep PMIC built-in enforcement and a bounded forced fallback future-only.
 - [x] Add one canonical 68-field runtime observation, candidate-bound host
   verifier, 27 target mutations, 21 host test groups, and a strict-SSH
   one-collection runner test for all six active capabilities, including
@@ -258,9 +262,15 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
   unplugged, USB-online, and wireless-online phases plus a same-boot
   unplugged/USB comparison that derives current sign instead of guessing it;
   hardware execution remains pending.
+- [x] Freeze the accepted Linux 7.1.4 static thermal source/DTB topology and
+  reject disabled/rewired TSENS, CPU cooling, trip, PMIC, and shutdown paths.
+  This is an offline regression gate, not runtime thermal acceptance.
 - [ ] Verify charger detection and safe charging states.
 - [ ] Verify battery capacity, voltage, current, and temperature telemetry.
-- [ ] Bound thermal zones and emergency shutdown behavior.
+- [ ] Prove CPU cooling response and PMIC alarm registration on the corrected
+  target, with `qcom-spmi-temp-alarm` built in.
+- [ ] Profile and enable a 10–30 second forced thermal shutdown fallback;
+  never test critical temperature by deliberately overheating the phone.
 - [ ] Verify power-off, reboot, watchdog reboot, and bootloader reboot.
 - [ ] Verify suspend, wake, true panel-off behavior, and SSH continuity.
 - [ ] Measure idle, screen-off, charging, and sustained-load power.

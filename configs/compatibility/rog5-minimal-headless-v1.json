@@ -180,6 +180,7 @@
       "minimum_integer_config": {
         "CONFIG_NR_CPUS": 8
       },
+      "maximum_integer_config": {},
       "forbidden_config": [
         "CONFIG_ARM_PSCI_CPUIDLE_DOMAIN"
       ],
@@ -210,6 +211,7 @@
         "CONFIG_TMPFS_XATTR": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [
         "CONFIG_BLK_DEV_BSG",
         "CONFIG_BLK_DEV_SD",
@@ -253,6 +255,7 @@
         "CONFIG_USB_U_ETHER": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/device/test-recovery-candidate-dtb-contract.sh",
@@ -278,6 +281,7 @@
         "CONFIG_IKCONFIG_PROC": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-arch-headless-rootfs-contract.sh",
@@ -302,6 +306,7 @@
         "CONFIG_PM": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-run-stable-recovery-live-gate.sh",
@@ -321,16 +326,55 @@
         "mainline-7.1-v3"
       ],
       "required_config": {
+        "CONFIG_ARM_QCOM_CPUFREQ_HW": "y",
+        "CONFIG_CPU_FREQ_THERMAL": "y",
+        "CONFIG_CPU_THERMAL": "y",
         "CONFIG_QCOM_TSENS": "y",
-        "CONFIG_THERMAL": "y"
+        "CONFIG_THERMAL": "y",
+        "CONFIG_THERMAL_DEFAULT_GOV_STEP_WISE": "y",
+        "CONFIG_THERMAL_GOV_STEP_WISE": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
         "scripts/host/test-core-source-dtb-contract.py",
         "scripts/device/test-collect-minimal-headless-runtime.sh",
         "scripts/host/test-verify-minimal-headless-runtime.py"
+      ]
+    },
+    {
+      "id": "thermal-pmic-critical-path",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_QCOM_SPMI_TEMP_ALARM": "y",
+        "CONFIG_THERMAL": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": []
+    },
+    {
+      "id": "thermal-emergency-fallback",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_THERMAL": "y"
+      },
+      "minimum_integer_config": {
+        "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS": 10000
+      },
+      "maximum_integer_config": {
+        "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS": 30000
+      },
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-core-compatibility-oracle.py"
       ]
     },
     {
@@ -345,6 +389,7 @@
         "CONFIG_PM": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": []
     },
@@ -375,6 +420,7 @@
         "CONFIG_POWER_RESET_QCOM_PON": "m"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/device/test-buttons-indicator-candidate-dtb.sh",
@@ -397,6 +443,7 @@
         "CONFIG_QCOM_Q6V5_PAS": "m"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
         "scripts/host/test-headless-battery-series.py"
@@ -412,6 +459,7 @@
         "CONFIG_SUSPEND": "y"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": []
     },
@@ -422,6 +470,7 @@
       "baseline_evidence": [],
       "required_config": {},
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": []
     },
@@ -434,6 +483,7 @@
         "CONFIG_SND_SOC_QCOM": "m"
       },
       "minimum_integer_config": {},
+      "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": []
     }
