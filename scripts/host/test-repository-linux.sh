@@ -149,6 +149,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
 		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
 		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
+		scripts/host/test-preflight-headless-ssh-successor-candidate.py
 		scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py
@@ -223,6 +224,7 @@ else
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
 		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
 		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
+		scripts/host/test-preflight-headless-ssh-successor-candidate.py
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
 			scripts/host/test-buttons-indicator-source-contract.py

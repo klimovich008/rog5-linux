@@ -474,6 +474,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   manifest hashes. The lifecycle rejects the consumed live v3 manifest before
   private-key inspection. See the
   [r2 offline result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
+- `preflight-headless-ssh-successor-candidate.py` moves the real r2
+  package/candidate/artifact/manifest check before signing-key access. Twenty-two
+  offline tests require a clean pushed checkpoint first, secure external-input
+  metadata, exact package reconstruction of both caller-owned records,
+  bundle-only succession, descriptor-bound artifact snapshots, production
+  identity rederivation from the tracked contract, canonical public output,
+  and sanitized failure. Credential derivation, bundle signing, privilege,
+  external network, and phone/transport surfaces must remain unreachable;
+  only local read-only Git checkpoint commands are allowed.
 - `network-root-acm.py` replaces terminal attachment with three fixed staging
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression

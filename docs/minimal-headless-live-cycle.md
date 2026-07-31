@@ -271,12 +271,22 @@ ALLOW_PHONE_CREDENTIAL_USE=1 \
 
 scripts/host/prepare-headless-ssh-deployment-candidate.py \
   --package /private/network-root/manifest \
-  --bundle headless-ssh-network-root-v3-r2 \
+  --bundle headless-ssh-network-root-v3 \
   --output /private/headless-ssh-network-root-v3.json
+
+scripts/host/prepare-headless-ssh-deployment-candidate.py \
+  --package /private/network-root/manifest \
+  --bundle headless-ssh-network-root-v3-r2 \
+  --output /private/headless-ssh-network-root-v3-r2.json
+
+scripts/host/preflight-headless-ssh-successor-candidate.py \
+  --package /private/network-root/manifest \
+  --base-candidate-record /private/headless-ssh-network-root-v3.json \
+  --candidate-record /private/headless-ssh-network-root-v3-r2.json
 
 ALLOW_HEADLESS_SSH_DEPLOYMENT_BUILD=1 \
 ALLOW_PHONE_CREDENTIAL_USE=1 \
-ROG5_DEPLOYMENT_CANDIDATE_RECORD=/private/headless-ssh-network-root-v3.json \
+ROG5_DEPLOYMENT_CANDIDATE_RECORD=/private/headless-ssh-network-root-v3-r2.json \
 ROG5_DEPLOYMENT_SIGNING_KEY=/private/recovery-signing-key.pem \
   scripts/host/build-headless-ssh-deployment-candidate.sh \
   "$PWD/build/headless-ssh-deployment"
@@ -296,6 +306,21 @@ no live authority or phone action.
 The resulting exact wrapper, trust, manifest, and host-verifier hashes must be
 reviewed and pinned in the live-gate profile before host installation or
 connected preflight.
+
+## Credential-free successor preflight
+
+After the external r2 candidate exists, run the preflight shown in the build
+sequence before authorizing signing.
+
+This command requires a clean branch synchronized with its exact `origin`
+peer. It securely snapshots the caller-owned mode-`0444` historical and r2
+candidates, reproduces both from the non-fixture package, verifies that the
+two actual records differ only in `bundle`, snapshots and hashes the exact
+Image/DTB/initramfs, and regenerates the pinned unsigned r2 manifest identity
+through the same configuration factory and production packager used by the
+signed build. It has no signing-key argument; apart from local read-only Git
+checkpoint commands, it exits before credential, privilege, external-network,
+fastboot, or phone access. A pass grants no signing or boot authority.
 
 ## Local deployment-key preflight
 
