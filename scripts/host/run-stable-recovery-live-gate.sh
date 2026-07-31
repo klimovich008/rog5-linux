@@ -104,13 +104,15 @@ case $profile in
 		;;
 	headless-ssh-deployment-v3)
 		component_layout=structured
-		expected_kernel=00168aafe5aaf4043b5252e116f6216f6d3b6ea03dc382dd630eec6991c3ff66
-		expected_raw=7227c5b7f10f4c89293dd53c3a060bd39a6aaadc044d23f6d5228f51e56b8380
-		expected_initramfs=4cfc5dfce5babc9ec76ba4a8a10accde6c0ec5f216f65f6e3f669641123a7cc2
+		expected_kernel=1a8bac7a2b016dc7d63d22f09d0872b9c3f251952b7627c68f7c387f386b0068
+		expected_raw=a937b03b54c01c6240cff45aa243632827d0c9d328e6f285ae489c973a6213a9
+		expected_initramfs=f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0
+		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
+		expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392
 		expected_target_id=headless-ssh-network-root
 		expected_bundle=headless-ssh-network-root-v3
 		[[ $expected_image == \
-			f8488fe2e88f13b553127896fd1b1477b85bbe5c3aa36a15ab5d884ad87d1fed ]] ||
+			11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c ]] ||
 			fail 'deployment recovery image identity is not allowlisted'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
