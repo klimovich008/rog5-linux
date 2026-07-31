@@ -63,7 +63,11 @@ Future capabilities remain unaccepted:
 - display-off operation is baseline evidence only; `CONFIG_PM` is necessary
   but does not prove the OLED is off;
 - buttons and battery have baseline diagnostic evidence only, not
-  corrected-candidate evidence;
+  corrected-candidate evidence. The future `battery-charging` capability now
+  names the hardware-free
+  [battery-series oracle](battery-telemetry-series.md), but that gate only
+  validates sustained read-only record structure and phase comparison; it
+  does not promote the capability;
 - suspend/resume, sensors, and audio remain pending.
 
 Internal UFS access is not silently accepted by the network-root capability.

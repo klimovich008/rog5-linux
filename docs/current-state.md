@@ -113,6 +113,20 @@ evidence-only, and suspend, sensors, and audio remain pending. The corrected
 root is still `live-pending` with `authority=none`. See the
 [offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
 
+The future `battery-charging` capability now has a hardware-free sustained
+observation gate. A read-only target collector emits one canonical
+candidate/boot/source-bound phase record with 21 samples at 30-second
+intervals. It requires the exact three SM8350 power supplies, mode-`0444`
+telemetry and input-current-limit files, no charge-control thresholds, and no
+Type-C control device. The host verifier rejects malformed or replaced
+evidence and compares same-boot unplugged and USB records only when status and
+median current distinguish the phases; it derives either driver sign
+convention rather than assuming one. Eleven hostile test groups pass and
+Claude's complete-source review returned `NO_BLOCKERS`. This is an offline
+test contract, not a new phone result or charging-safety acceptance. See the
+[contract](battery-telemetry-series.md) and
+[offline result](../test-results/2026-07-31-headless-battery-series-offline.md).
+
 The corrected target's next live observation is now specified independently
 of the boot controller. One read-only target probe emits exactly 88 canonical
 fields for the six active capabilities. A host verifier binds the record to

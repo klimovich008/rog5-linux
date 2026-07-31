@@ -1040,6 +1040,16 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   zero charger-control thresholds, clean logs, and the unchanged
   storage/NFS/watchdog boundary. **Passed once with v8; a normal reboot and
   complete cleanup also passed.**
+- Before any new H3 hardware run, require
+  `test-headless-battery-series.py` to pass. Its eleven hardware-free groups
+  cover an executable read-only sysfs fixture, exact collector identity and
+  schedule, all canonical header fields, sample ordering/ranges/status,
+  phase-to-online-state binding, evidence metadata/replacement, both possible
+  current-sign conventions, ambiguous-current refusal, same-boot comparison,
+  and capacity-window refusal. The future `battery-charging` capability names
+  this test in the compatibility profile and the test is an exact core-CI
+  entry. See the
+  [battery-series contract](battery-telemetry-series.md).
 - Treat charging behavior/control, display, radio, physical input actuation,
   sustained battery-current direction, and GPU as untested despite accepted
   read-only battery values and the normal headless coldplug/input gates.
@@ -1048,8 +1058,9 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 
 - USB NCM remains stable during sustained traffic.
 - Battery capacity, voltage, current, temperature, and status are real.
-  **One read-only aggregate snapshot passed; charging-state comparison and
-  sustained validation remain pending.**
+  **One read-only aggregate snapshot passed. A fixed 10-minute sustained
+  record and unplugged/USB comparison now pass hostile tests offline;
+  collecting those records on the corrected candidate remains pending.**
 - Thermal zones and CPU frequency policies are present.
 - DRM connector, backlight, and touch work; a physically observed short
   power-button press traverses the switch/IRQ/input path. Driver registration

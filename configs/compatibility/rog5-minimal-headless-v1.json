@@ -398,7 +398,9 @@
       },
       "minimum_integer_config": {},
       "forbidden_config": [],
-      "ci_gates": []
+      "ci_gates": [
+        "scripts/host/test-headless-battery-series.py"
+      ]
     },
     {
       "id": "suspend-resume",
