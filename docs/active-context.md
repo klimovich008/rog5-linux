@@ -86,7 +86,9 @@ loader bounds, and the 3,600-second contact-start/7,200-second anchor-age
 contract without opening ACM. The recovery anchor is directly bound to its
 real producer and is revalidated after ACM discovery to cover host suspend.
 Nonce-bound phone errors retain their failure class through the last bounded
-serial read.
+serial read. Host cleanup validates the root-owned canonical NFS export table
+directly; it no longer mistakes unprivileged `exportfs` lock diagnostics for
+an active export.
 
 Thirty-nine hardware-free ACM tests and all seventeen lifecycle methods
 pass. A physical reboot restored the supervised ACM reader. The fresh signed

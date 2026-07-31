@@ -127,7 +127,6 @@ class Dependencies:
     nmcli: Path
     udevadm: Path
     firewall: Path
-    exportfs: Path
     live_gate: Path
     bundle_server: Path
     network_root_server: Path
@@ -138,6 +137,7 @@ class Dependencies:
     key_admission: Path
     handoff_marker: Path
     export_mount: Path
+    nfs_exports: Path
     nfs_threads: Path
     ip_nonlocal_bind: Path
     sys_class_net: Path
@@ -160,7 +160,6 @@ class Dependencies:
                 nmcli=root / "nmcli",
                 udevadm=root / "udevadm",
                 firewall=root / "firewall-cmd",
-                exportfs=root / "exportfs",
                 live_gate=root / "run-stable-recovery-live-gate.sh",
                 bundle_server=root / "run-recovery-bundle-server.sh",
                 network_root_server=(
@@ -177,6 +176,7 @@ class Dependencies:
                 ),
                 handoff_marker=state / "nfs-ready",
                 export_mount=state / "export-mount",
+                nfs_exports=state / "nfs-exports",
                 nfs_threads=state / "nfs-threads",
                 ip_nonlocal_bind=state / "ip-nonlocal-bind",
                 sys_class_net=state / "sys-class-net",
@@ -189,7 +189,6 @@ class Dependencies:
             nmcli=Path("/usr/bin/nmcli"),
             udevadm=Path("/usr/bin/udevadm"),
             firewall=Path("/usr/bin/firewall-cmd"),
-            exportfs=Path("/usr/sbin/exportfs"),
             live_gate=REPO / "scripts/host/run-stable-recovery-live-gate.sh",
             bundle_server=(
                 REPO / "scripts/host/run-recovery-bundle-server.sh"
@@ -215,6 +214,7 @@ class Dependencies:
             ),
             handoff_marker=Path("/run/rog5-network-root-nfs-ready"),
             export_mount=Path("/run/rog5-network-root-export"),
+            nfs_exports=Path("/var/lib/nfs/etab"),
             nfs_threads=Path("/proc/fs/nfsd/threads"),
             ip_nonlocal_bind=Path(
                 "/proc/sys/net/ipv4/ip_nonlocal_bind"
@@ -1273,7 +1273,33 @@ class LiveCycle:
             )
             if result.stdout.strip():
                 fail(f"host listener remains on TCP port {port}")
-        if run_capture([str(self.dependencies.exportfs), "-v"]).stdout.strip():
+        export_descriptor = -1
+        try:
+            export_descriptor = os.open(
+                self.dependencies.nfs_exports,
+                os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
+            )
+            export_metadata = os.fstat(export_descriptor)
+            export_payload = os.read(export_descriptor, 1024 * 1024 + 1)
+            current_metadata = self.dependencies.nfs_exports.lstat()
+        except OSError as error:
+            raise CycleError("cannot inspect host NFS exports") from error
+        finally:
+            if export_descriptor >= 0:
+                os.close(export_descriptor)
+        expected_owner = os.geteuid() if self.dependencies.offline else 0
+        expected_group = os.getegid() if self.dependencies.offline else 0
+        if (
+            not stat.S_ISREG(export_metadata.st_mode)
+            or export_metadata.st_uid != expected_owner
+            or export_metadata.st_gid != expected_group
+            or stat.S_IMODE(export_metadata.st_mode) not in {0o600, 0o644}
+            or current_metadata.st_dev != export_metadata.st_dev
+            or current_metadata.st_ino != export_metadata.st_ino
+            or len(export_payload) > 1024 * 1024
+        ):
+            fail("host NFS export table metadata is unsafe")
+        if export_payload.strip():
             fail("host retains an NFS export")
         address_lines = run_capture(
             [
@@ -1322,7 +1348,6 @@ class LiveCycle:
             self.dependencies.nmcli,
             self.dependencies.udevadm,
             self.dependencies.firewall,
-            self.dependencies.exportfs,
             self.dependencies.live_gate,
             self.dependencies.bundle_server,
             self.dependencies.network_root_server,

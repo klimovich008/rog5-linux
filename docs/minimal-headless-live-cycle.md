@@ -337,7 +337,13 @@ root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a
 phone. The NFS artifact check may execute the fixed root-owned verifier
 through PolicyKit, but creates no export, mount, listener, marker, firewall
-rule, or interface state.
+rule, or interface state. The unprivileged lifecycle opens the fixed server's
+canonical root-owned mode-`0600`/`0644` `/var/lib/nfs/etab` with
+`O_NOFOLLOW`, validates and reads the same bounded inode, and requires an
+empty export inventory. It does not interpret `exportfs -v` output because
+that command can return success while emitting an `.etab.lock` permission
+diagnostic when run without root. The later fixed root-owned server preflight
+performs the authoritative privileged `exportfs` check before any boot.
 
 ## Authorized run
 

@@ -534,7 +534,10 @@ allowed-signers pin, fixed tools, ModemManager state, wait and loader bounds,
 and the recovery-anchor time budget without opening ACM. The anchor consumer
 is directly bound to the real capture producer and rechecks wall-clock
 freshness after ACM discovery. Nonce-bound phone errors retain their failure
-class through the last serial read. Thirty-nine protocol tests and the
+class through the last serial read. The clean-host gate reads the root-owned
+canonical NFS export table directly, avoiding the successful-but-diagnostic
+unprivileged `exportfs -v` lock path while still rejecting any real entry.
+Thirty-nine protocol tests and the
 updated seventeen-method lifecycle suite pass hardware-free.
 
 The first authorized live ACM preflight was rejected because the existing
