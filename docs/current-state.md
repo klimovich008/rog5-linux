@@ -486,17 +486,53 @@ host state, exact recovery artifacts, and one connected `lahaina` fastboot
 device pass.
 
 A normal reboot into installed Alpine did not consume the experimental boot.
-The new deployment key is not among its two older authorized keys. Read-only
-USB serial inspection nevertheless proved the exact fallback kernel, BusyBox
+The new deployment key is not among its two older authorized keys. The USB
+serial health payload nevertheless proved the exact fallback kernel, BusyBox
 init, `qcom,lahaina-mtp`, ext4 root, zero project modules, empty pstore and
 fatal-signature result, 70 thermal zones with a 38,800 m°C maximum, and Python
-availability. The phone remains on the healthy fallback. The sole
-pre-lifecycle blocker is strict fallback SSH. Under the current
-untouched-fallback tier, resolution requires one of the existing authorized
-private keys. Appending the deployment public key would first require an
-explicit safety-tier revision and separate bounded phone-write approval.
+availability. A later Alpine/BusyBox source audit showed that invoking that
+payload through the legacy interactive shell may also have updated its
+history file; the historical inspection is therefore not retained as a
+zero-write proof. The phone remains on the healthy fallback. At that
+checkpoint, strict fallback SSH was the sole pre-lifecycle blocker: the untouched tier
+would have required one of the existing authorized private keys, while
+appending the deployment public key would have required an explicit
+safety-tier revision and separate bounded phone-write approval.
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
+
+Current implementation supersedes the client-key blocker without changing
+fallback configuration or `authorized_keys`. A fixed USB ACM controller sends
+one nonce-bound read-only Python health payload through the exact Alpine
+serial interface. The fallback signs the canonical
+kernel/init/compatible/root, module, pstore, dmesg, thermal, Python, and boot
+identity record with its existing Ed25519 SSH host key; the host verifies it
+against the private pin captured during the deployment preflight.
+The controller binds the same physical USB port, uses exclusive raw serial
+ownership and bounded output, and requires a second guard plus verified ACK
+and same-boot recheck before its only mutating action,
+`RESTART2("bootloader")`. It then requires one same-port `lahaina` fastboot
+device. Alpine 3.24 enables BusyBox per-command history, and reads from its
+writable `relatime` ext4 root may update inode access times. Every action
+therefore requires a separate action-scoped storage-write guard. It has no
+fallback client key, host-network, mount, explicit storage-write, flash,
+erase, or retry path. The isolated/no-site Python loader is bounded below
+Alpine's 2,048-byte BusyBox line-editor limit; the host sends bounded,
+hash-checked source chunks only after one nonce-bound ready marker, and
+the phone rejects missing or partial delivery under a fixed deadline.
+Non-reboot actions return to the supervised interactive shell. The
+lifecycle permits at most one fallback contact even if final host cleanup
+later fails. Before boot, its host-only preflight validates the exact
+allowed-signers pin, fixed tools, ModemManager state, wait and loader bounds,
+and the recovery-anchor time budget without opening ACM. The anchor consumer
+is directly bound to the real capture producer and rechecks wall-clock
+freshness after ACM discovery. Nonce-bound phone errors retain their failure
+class through the last serial read. Thirty-four protocol tests and the updated
+seventeen-method lifecycle suite pass hardware-free. Live cryptographic ACM
+preflight remains pending; the authorized temporary boot is still unused.
+The private lifecycle record retains the verified nonce, physical USB
+location, thermal maximum, and SHA-256 identities of the signed record,
+signature, and inspected host-key pin, without retaining any private key.
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
@@ -757,9 +793,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Supply an existing authorized Alpine private key, or explicitly revise the
-   untouched-fallback tier and separately approve one bounded
-   `authorized_keys` append; then prove strict key-only SSH.
+1. Obtain fresh host-key credential-use authority and separate authority for
+   one fallback ACM action's BusyBox-history and possible ext4-atime effects,
+   then pass the signed fallback preflight.
 2. Rerun the complete lifecycle preflight, return Alpine to fastboot, and use
    at most the one authorized temporary boot.
 3. Determine whether ramoops survives the target/fallback path and collect the

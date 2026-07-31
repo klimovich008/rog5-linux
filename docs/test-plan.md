@@ -284,8 +284,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
 - `test-run-minimal-headless-live-cycle.py` composes the corrected boot-only
   recovery, fixed one-transfer bundle server, fixed read-only NFS exporter,
   durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
-  observation, watchdog rollback, exact fallback preflight, and host cleanup.
-  Seventeen process fixtures now also prove exact key guards fail first,
+  observation, watchdog rollback, exact signed-ACM fallback preflight, and
+  host cleanup.
+  Seventeen process test methods now also prove exact key guards fail first,
   `key-preflight` stops before phone/privilege actions, and deployment-key
   admission precedes connected preflight. The same admission record now binds
   the fixed NFS profile/package marker, recovery-control rendezvous, target
@@ -300,6 +301,37 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   performs no phone, personal-credential, PolicyKit, firewall, or NFS action.
   See the
   [one-shot runbook](minimal-headless-live-cycle.md).
+- `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
+  fallback control
+  plane without a client SSH key or host networking. Thirty-four
+  hardware-free cases require one exact nonce-correlated frame, canonical
+  health fields, real disposable Ed25519 signing and verification, the exact
+  private host pin, exclusive/raw bounded ACM transport, exact USB
+  product/interface and physical location, ACK-before-reboot, disconnect, and
+  same-port `lahaina` fastboot. Echoes, truncation, duplicate
+  frames/products/interfaces, key or payload mutations, loose guard ordering,
+  missing/additional/unreadable thermal or pstore entries, unsafe 60 C
+  preflight or 80 C return temperatures, occupied/malformed fastboot
+  inventories, bounded serial read/write/ACK failures, a too-short post-ACK
+  COMMIT deadline, delayed post-ACK health collection, missing credential or
+  action-scoped storage authority, and explicit write/flash/mount surfaces
+  fail closed. Admitted fallback-storage
+  effects are limited to separately authorized BusyBox history before the
+  fixed launcher starts its child and possible read-induced ext4 atime
+  updates. Non-reboot actions return to the existing supervised shell. The
+  exact recovery-anchor fields and literal USB product are bound to the real
+  capture producer; host-only fallback prerequisites and the 3,600-second
+  contact-start/7,200-second anchor-age relationship are checked before boot.
+  Wall-clock freshness is rechecked after ACM discovery to cover host suspend.
+  Canonical nonce-bound remote error frames retain their failure class even on
+  the final bounded read. The
+  suite also executes the bounded two-phase loader, proves its
+  shell line remains below Alpine's 2,048-byte editor limit, requires
+  isolated/no-site Python startup, and prevents payload delivery before a
+  nonce-bound ready marker. Missing and partial chunks expire without payload
+  execution. The lifecycle suite also recovers a durable intent after
+  zero-exit malformed control output and reserves a bounded post-discovery
+  control margin.
 - `test-verify-headless-ssh-v2-key-admission.py` has fourteen hostile,
   deployment-credential-free host scenarios around the boundary. It derives
   public halves only from disposable Ed25519 keys, accepts one exact
@@ -419,6 +451,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   reboot primitive is the standard AArch64 `RESTART2("bootloader")` syscall;
   the host then requires exactly one fastboot target. The mocked test rejects
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
+  This remains a historical strict-SSH helper; the active lifecycle uses
+  `fallback-acm-control.py` so the new client key need not be authorized in
+  Alpine.
 - `network-root-acm.py` replaces terminal attachment with three fixed staging
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression

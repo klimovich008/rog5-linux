@@ -58,12 +58,15 @@ active mainline target.
 1. Tests and rollback contracts precede hardware execution.
 2. No experimental partition flash; use only an explicitly allowed attended
    `fastboot boot`.
-3. Keep the installed fallback slot untouched.
+3. Keep the installed fallback configuration and authorization untouched.
+   Any fallback ACM shell-history or read-induced atime effect needs a
+   separate, action-scoped storage-write authorization.
 4. One live diagnostic payload gets at most one execute attempt.
 5. Transport loss is `UNKNOWN`; it never authorizes a retry.
 6. Accepted evidence is immutable and inherited by hash.
-7. Physical storage stays read-only until a bounded persistent-root write
-   contract is separately approved.
+7. Outside separately authorized fallback history/atime effects, physical
+   storage stays read-only until a bounded persistent-root write contract is
+   separately approved.
 8. Credentials, personal data, and private evidence remain outside Git.
 9. A kernel version bump does not replace subsystem bring-up.
 10. No desktop, GPU, or automation dependency may enter the active headless
@@ -202,9 +205,16 @@ before a phone cycle.
   `/home` filesystem after the original `/var` publication stopped safely;
   pass sealed-root, fixed-NFS, artifact, and connected-fastboot
   preflights.
-- [ ] Resolve fallback SSH without silently weakening the untouched-fallback
-  tier: supply an existing authorized private key, or explicitly revise the
-  tier and separately approve one bounded public-key append.
+- [x] Remove fallback client-key authorization from the lifecycle with a
+  fixed nonce-framed USB ACM verifier. Bind its canonical health record to the
+  existing pinned Alpine Ed25519 host key, exact physical USB path, bounded
+  thermal/log checks, a sub-2,048-byte isolated loader with ready-before-data
+  framing, one-contact lifecycle semantics, and a separately guarded
+  ACK-before-`RESTART2` path.
+- [ ] Separately authorize the bounded BusyBox-history and possible ext4-atime
+  effects of one fallback ACM action, pass one live cryptographic preflight,
+  then preserve that proof through the attended minimal-headless lifecycle
+  without any other Alpine or phone-storage write.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -402,17 +412,18 @@ time.
 ## Current next action
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
-deployment candidate, NFS, runtime, rollback, thermal, and CI gates are
-complete. Host installation and connected preflight now pass. The remaining
-H2 boundary is fallback SSH authorization and one attended phone lifecycle,
-not another subsystem oracle.
+deployment candidate, NFS, runtime, rollback, thermal, ACM fallback, and CI
+gates are complete. Host installation and connected preflight pass. The
+remaining H2 boundary is one live signed-ACM fallback proof and one attended
+phone lifecycle, not another subsystem oracle.
 
 Current execution order:
 
-1. receive an existing authorized Alpine private key, or explicitly revise
-   the untouched-fallback tier and separately approve one bounded
-   `authorized_keys` append; then prove strict key-only Alpine SSH;
-2. rerun the complete lifecycle preflight and return Alpine to fastboot;
+1. obtain fresh credential-use and action-scoped fallback-storage-write
+   authority, then run the fixed ACM health preflight and verify Alpine's
+   nonce-bound record against the retained private host pin;
+2. rerun the complete lifecycle preflight and use the separately guarded ACM
+   controller to return Alpine to fastboot;
 3. perform at most one authorized temporary boot, collect the 88-field
    strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
 4. if H2 passes, continue physical keys/indicator, then H3

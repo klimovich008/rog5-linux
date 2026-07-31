@@ -21,9 +21,9 @@ from typing import NoReturn
 REPO = Path(__file__).resolve().parents[2]
 BUNDLE = "headless-ssh-network-root-v3"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
-FALLBACK_ALIAS = "rog5-fallback"
-TARGET_ADDRESS = "169.254.77.2"
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
+FALLBACK_CONTROL_MARGIN_SECONDS = 120
+FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 ZERO_SHA256 = "0" * 64
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SSH_FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
@@ -32,6 +32,7 @@ BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
 )
+USB_LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}\Z")
 FULL_GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE",
     "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
@@ -44,6 +45,8 @@ FULL_GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP",
     "ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE",
     "ALLOW_PHONE_CREDENTIAL_USE",
+    "ALLOW_FALLBACK_ACM_CONTROL",
+    "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
 )
 KEY_GUARDS = (
     "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
@@ -119,7 +122,6 @@ def fail(message: str) -> NoReturn:
 @dataclass(frozen=True)
 class Dependencies:
     git: Path
-    ssh: Path
     ss: Path
     ip: Path
     nmcli: Path
@@ -153,7 +155,6 @@ class Dependencies:
             state = root / "state"
             return cls(
                 git=root / "git",
-                ssh=root / "ssh",
                 ss=root / "ss",
                 ip=root / "ip",
                 nmcli=root / "nmcli",
@@ -170,7 +171,7 @@ class Dependencies:
                 runtime_acceptance=(
                     root / "run-minimal-headless-runtime-acceptance.sh"
                 ),
-                fallback=root / "reboot-fallback-to-fastboot.sh",
+                fallback=root / "fallback-acm-control.py",
                 key_admission=(
                     root / "verify-headless-ssh-v2-key-admission.py"
                 ),
@@ -183,7 +184,6 @@ class Dependencies:
             )
         return cls(
             git=Path("/usr/bin/git"),
-            ssh=Path("/usr/bin/ssh"),
             ss=Path("/usr/bin/ss"),
             ip=Path("/usr/bin/ip"),
             nmcli=Path("/usr/bin/nmcli"),
@@ -207,9 +207,7 @@ class Dependencies:
                 REPO
                 / "scripts/host/run-minimal-headless-runtime-acceptance.sh"
             ),
-            fallback=(
-                REPO / "scripts/host/reboot-fallback-to-fastboot.sh"
-            ),
+            fallback=REPO / "scripts/host/fallback-acm-control.py",
             key_admission=(
                 REPO
                 / "scripts/host/"
@@ -1319,7 +1317,6 @@ class LiveCycle:
     def preflight(self) -> None:
         for path in (
             self.dependencies.git,
-            self.dependencies.ssh,
             self.dependencies.ss,
             self.dependencies.ip,
             self.dependencies.nmcli,
@@ -1363,6 +1360,19 @@ class LiveCycle:
             environment=child_environment(),
             timeout=300,
         )
+        run_capture(
+            [
+                str(self.dependencies.fallback),
+                "host-preflight",
+                str(self.inputs.fallback_known_hosts),
+                str(self.inputs.fallback_timeout),
+                str(FALLBACK_CONTACT_START_BUDGET_SECONDS),
+            ],
+            environment=child_environment(
+                ALLOW_FALLBACK_ACM_CONTROL="1",
+                ALLOW_PHONE_CREDENTIAL_USE="1",
+            ),
+        )
 
     def wait_bundle(
         self,
@@ -1396,77 +1406,85 @@ class LiveCycle:
         terminate(bundle)
         fail("one-transfer bundle server exceeded its bounded window")
 
-    def wait_fallback(self, target_boot_id: str | None) -> str:
-        options = [
-            "-F",
-            "/dev/null",
-            "-i",
-            str(self.inputs.ssh_key),
-            "-o",
-            "IdentitiesOnly=yes",
-            "-o",
-            "BatchMode=yes",
-            "-o",
-            "StrictHostKeyChecking=yes",
-            "-o",
-            f"UserKnownHostsFile={self.inputs.fallback_known_hosts}",
-            "-o",
-            f"HostKeyAlias={FALLBACK_ALIAS}",
-            "-o",
-            "ConnectTimeout=5",
-            "-o",
-            "ConnectionAttempts=1",
-            "-o",
-            "ServerAliveInterval=5",
-            "-o",
-            "ServerAliveCountMax=2",
-            "-o",
-            "LogLevel=ERROR",
-        ]
-        remote = (
-            f'[ "$(uname -r)" = {FALLBACK_KERNEL} ] && '
-            "cat /proc/sys/kernel/random/boot_id"
-        )
-        deadline = time.monotonic() + self.fallback_timeout
-        fallback_boot_id = ""
-        while time.monotonic() < deadline:
-            result = run_capture(
-                [
-                    str(self.dependencies.ssh),
-                    "-n",
-                    *options,
-                    f"root@{TARGET_ADDRESS}",
-                    remote,
-                ],
-                timeout=12,
-                check=False,
+    def require_fallback_contact_budget(
+        self,
+        deadline: float | None,
+    ) -> None:
+        if deadline is None or time.monotonic() >= deadline:
+            fail(
+                "recovery anchor contact-start budget expired before "
+                "fallback ACM access"
             )
-            candidate = result.stdout.strip()
-            if result.returncode == 0 and BOOT_ID.fullmatch(candidate):
-                fallback_boot_id = candidate
-                break
-            time.sleep(self.poll if self.dependencies.offline else 2)
-        if not fallback_boot_id:
-            fail("exact persistent Alpine fallback did not return")
-        if target_boot_id is not None and fallback_boot_id == target_boot_id:
-            fail("fallback retained the minimal-headless boot identity")
-        write_record(
-            self.output("fallback-identity.record"),
-            (
-                ("format", "rog5-fallback-identity-v1"),
-                ("kernel_release", FALLBACK_KERNEL),
-                ("boot_id", fallback_boot_id),
-            ),
-        )
+
+    def wait_fallback(self, target_boot_id: str | None) -> str:
+        identity = self.output("fallback-identity.record")
         run_logged(
-            [str(self.dependencies.fallback), "preflight"],
+            [
+                str(self.dependencies.fallback),
+                "wait-preflight",
+                str(self.inputs.fallback_known_hosts),
+                str(self.output("recovery-usb.anchor")),
+                str(self.inputs.fallback_timeout),
+                str(identity),
+            ],
             self.output("fallback-preflight.log"),
             environment=child_environment(
-                SSH_KEY=str(self.inputs.ssh_key),
-                KNOWN_HOSTS=str(self.inputs.fallback_known_hosts),
+                ALLOW_FALLBACK_ACM_CONTROL="1",
+                ALLOW_PHONE_CREDENTIAL_USE="1",
+                ALLOW_FALLBACK_ACM_STORAGE_WRITE="1",
             ),
-            timeout=self.short_timeout,
+            timeout=(
+                self.fallback_timeout + FALLBACK_CONTROL_MARGIN_SECONDS
+            ),
         )
+        metadata = identity.lstat()
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_nlink != 1
+        ):
+            fail("fallback identity record metadata is unsafe")
+        values = parse_record(identity)
+        if tuple(values) != (
+            "format",
+            "kernel_release",
+            "boot_id",
+            "usb_location",
+            "nonce",
+            "thermal_max",
+            "record_sha256",
+            "signature_sha256",
+            "host_pin_sha256",
+            "result",
+        ):
+            fail("fallback identity record fields changed")
+        if (
+            values["format"] != "rog5-fallback-identity-v2"
+            or values["kernel_release"] != FALLBACK_KERNEL
+            or not BOOT_ID.fullmatch(values["boot_id"])
+            or not USB_LOCATION.fullmatch(values["usb_location"])
+            or values["usb_location"].startswith("/")
+            or ".." in Path(values["usb_location"]).parts
+            or not HEX_ID.fullmatch(values["nonce"])
+            or not values["thermal_max"].isascii()
+            or not values["thermal_max"].isdecimal()
+            or not 0 <= int(values["thermal_max"]) <= 80000
+            or any(
+                not SHA256.fullmatch(values[name])
+                or values[name] == ZERO_SHA256
+                for name in (
+                    "record_sha256",
+                    "signature_sha256",
+                    "host_pin_sha256",
+                )
+            )
+            or values["result"] != "PASS"
+        ):
+            fail("fallback identity record is not exact")
+        fallback_boot_id = values["boot_id"]
+        if target_boot_id is not None and fallback_boot_id == target_boot_id:
+            fail("fallback retained the minimal-headless boot identity")
         return fallback_boot_id
 
     def discover_unknown_intent(
@@ -1576,9 +1594,13 @@ class LiveCycle:
         control_process: ManagedProcess | None = None
         network_process: ManagedProcess | None = None
         intent: Intent | None = None
+        control_attempted = False
         target_boot_id: str | None = None
         target_accepted = False
+        fallback_attempted = False
+        fallback_proved = False
         resolved = False
+        fallback_contact_deadline: float | None = None
         ledger_before: set[str] = set()
         recovery_ncm: tuple[InterfaceSnapshot, ...] = ()
         try:
@@ -1603,6 +1625,10 @@ class LiveCycle:
                 ),
                 timeout=self.short_timeout,
             )
+            fallback_contact_deadline = (
+                time.monotonic()
+                + FALLBACK_CONTACT_START_BUDGET_SECONDS
+            )
             recovery_ncm = self.wait_recovery_ncm()
 
             bundle_process = start_logged(
@@ -1625,6 +1651,7 @@ class LiveCycle:
 
             handoff_token = secrets.token_hex(32)
             ledger_before = self.ledger_inventory()
+            control_attempted = True
             control_process = start_logged(
                 "stable recovery control",
                 [
@@ -1744,7 +1771,10 @@ class LiveCycle:
                     "INFO network-root NFS and runtime firewall state removed",
                 ),
             )
+            self.require_fallback_contact_budget(fallback_contact_deadline)
+            fallback_attempted = True
             self.wait_fallback(target_boot_id)
+            fallback_proved = True
             self.verify_host_clean(final=True)
             self.resolve_intent(intent, "TARGET_ACCEPTED")
             resolved = True
@@ -1754,7 +1784,7 @@ class LiveCycle:
                 "durable intent"
             )
         except BaseException as original:
-            control_was_started = control_process is not None
+            control_was_started = control_attempted
             if control_process is not None:
                 status = control_process.process.poll()
                 if status is not None and intent is None:
@@ -1776,7 +1806,18 @@ class LiveCycle:
             recovery_note = ""
             if intent is not None and not resolved:
                 try:
-                    self.wait_fallback(target_boot_id)
+                    if not fallback_proved:
+                        if fallback_attempted:
+                            fail(
+                                "fallback proof was already attempted and "
+                                "was not retried"
+                            )
+                        self.require_fallback_contact_budget(
+                            fallback_contact_deadline
+                        )
+                        fallback_attempted = True
+                        self.wait_fallback(target_boot_id)
+                        fallback_proved = True
                     self.verify_host_clean(final=True)
                     outcome = (
                         "TARGET_ACCEPTED"

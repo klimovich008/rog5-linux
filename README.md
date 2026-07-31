@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` deployment chain now passes exact artifact and connected-fastboot gates. Its 37,735-entry v3 lower is published under the fixed root-owned `/home/rog5-linux` store and passes the sealed-root and NFS host preflights. The new key is not authorized in installed Alpine, so strict fallback SSH blocks the one still-unused temporary boot; resolving that requires an existing authorized private key or an explicit safety-tier revision and bounded phone-write approval |
+| Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` deployment chain now passes exact artifact and connected-fastboot gates. Its 37,735-entry v3 lower is published under the fixed root-owned `/home/rog5-linux` store and passes the sealed-root and NFS host preflights. A nonce-framed USB ACM verifier now proves the configuration-unchanged Alpine fallback with its pinned host key, so the lifecycle no longer depends on authorizing the new client key in Alpine; hardware-free tests pass and live use remains pending separate credential and action-scoped storage-write authority |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -56,11 +56,14 @@ gate.
 ## Safety model
 
 - Never flash an experimental boot, vendor boot, recovery, DTB, or rootfs.
-- Keep the installed fallback slot untouched.
+- Keep the installed fallback configuration and authorization unchanged;
+  separately guarded shell-history and read-induced atime effects are the only
+  current exception.
 - Use only an attended `fastboot boot` of an explicitly allowed image.
 - Require exact artifact size and SHA-256, one fastboot device, and product
   `lahaina`.
-- Keep physical storage read-only in staging and target diagnostics.
+- Keep physical storage read-only in staging and target diagnostics; fallback
+  ACM storage effects require their own action-scoped authorization.
 - Keep an independent rollback watchdog armed.
 - Treat every live diagnostic payload as single-use.
 - Do not retry an execute action after an ambiguous disconnect.
@@ -121,18 +124,47 @@ legacy ACM helpers to load or execute another payload. The next permitted
 control path is the framed responder in
 [stable recovery control plane](docs/recovery-control-plane.md).
 
-If the exact persistent fallback is reachable, the guarded helper can request
-bootloader mode through Linux `RESTART2("bootloader")`. It verifies the pinned
-fallback before acting and never writes a partition:
+The fixed ACM controller verifies the exact persistent fallback without host
+networking or a fallback client key. It sends one nonce-bound read-only health
+payload over the exact USB serial interface and verifies the result with
+Alpine's already-pinned Ed25519 SSH host key. The installed fallback exposes
+only a legacy interactive BusyBox shell. Alpine enables per-command history
+saving, so accepting the launcher can update the shell-selected history file
+before it starts the child. Reading the interpreter, libraries, tools, and
+host key from a writable `relatime` ext4 root can also update inode access
+times. The launcher is bounded below Alpine's 2,048-byte BusyBox editing
+limit. It starts Python with isolated/no-site/bytecode-disabled flags,
+announces a nonce-bound ready marker, and only then accepts bounded,
+hash-checked source chunks under a phone-side receive deadline. Missing or
+partial delivery exits without executing the payload. The child returns to
+the existing supervised shell after non-reboot actions. Every action therefore
+requires a separate action-scoped storage-write guard:
 
 ```sh
-SSH_KEY=/secure/path/rog5-client-key \
-KNOWN_HOSTS=/secure/path/rog5-known-hosts \
-  scripts/host/reboot-fallback-to-fastboot.sh preflight
+ALLOW_FALLBACK_ACM_CONTROL=1 \
+ALLOW_PHONE_CREDENTIAL_USE=1 \
+ALLOW_FALLBACK_ACM_STORAGE_WRITE=1 \
+  scripts/host/fallback-acm-control.py \
+  preflight /secure/path/fallback-known-hosts \
+  /secure/path/fallback-preflight.record
 ```
 
-The mutating `reboot` action still requires its own explicit environment
-guard. See the script before use.
+Its separate `reboot` action rechecks the same boot after a verified ACK,
+requests bootloader mode only through Linux `RESTART2("bootloader")`, and
+requires the same physical USB port and exact `lahaina` fastboot product.
+It has a second explicit guard and must not be retried after an ambiguous
+disconnect. It does not flash, mount, change `authorized_keys`, or explicitly
+write a partition; BusyBox history and possible read-induced atime updates are
+the bounded phone-storage exception.
+
+```sh
+ALLOW_FALLBACK_ACM_CONTROL=1 \
+ALLOW_PHONE_CREDENTIAL_USE=1 \
+ALLOW_FALLBACK_ACM_STORAGE_WRITE=1 \
+ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+  scripts/host/fallback-acm-control.py \
+  reboot /secure/path/fallback-known-hosts
+```
 
 ## Active server direction
 
@@ -171,12 +203,16 @@ verify and sync the extracted root, and publish only by no-replace rename.
 The first export attempt stopped before publication because SteamOS provides
 only a 230 MiB `/var` filesystem while the sealed lower expands to 1.53 GiB.
 The reviewed remediation is now installed and the host deployment preflights
-pass. Read-only serial inspection proved the exact healthy Alpine fallback,
+pass. Serial health inspection proved the exact healthy Alpine fallback,
 but its two older authorized keys do not include the new deployment key.
-Under the current untouched-fallback tier, the one pre-lifecycle blocker can
-be resolved only by supplying an existing authorized private key. Appending
-the new public key would first require an explicit safety-tier revision and
-separate bounded phone-write approval.
+The fixed ACM verifier removes that dependency without changing fallback
+configuration or `authorized_keys`: Alpine signs one canonical nonce-bound
+health record with its existing host key, and the host verifies it against
+the private pin already retained outside Git. A source audit found that the
+legacy interactive shell can persist the launcher in BusyBox history, while
+ordinary reads may update inode access times. Live use remains HOLD pending
+separate authorization for those action-scoped storage effects. The
+hardware-free protocol and lifecycle integration pass.
 See the
 [corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [root hardening result](test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md),
@@ -187,6 +223,7 @@ See the
 [v3 export-installer result](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md),
 [SteamOS export-storage remediation](test-results/2026-07-31-steamos-export-storage-remediation.md),
 [SteamOS deployment preflight](test-results/2026-07-31-steamos-deployment-preflight-live.md),
+[authenticated fallback ACM result](test-results/2026-07-31-fallback-acm-control-offline.md),
 [Arch Linux ARM userspace](docs/arch-linux.md) and the
 [runtime integration result](test-results/2026-07-29-headless-runtime-integration-offline.md),
 plus the

@@ -19,6 +19,9 @@ NETWORK_LAUNCHER = (
 )
 NETWORK_SERVER = REPO / "scripts/host/serve-network-root.sh"
 INSTALLER = REPO / "scripts/host/install-recovery-host-controller.sh"
+RUNTIME_ACCEPTANCE = (
+    REPO / "scripts/host/run-minimal-headless-runtime-acceptance.sh"
+)
 MANIFEST = "a" * 64
 PACKAGE_SHA256 = "2" * 64
 CANDIDATE_SHA256 = "3" * 64
@@ -41,6 +44,8 @@ GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP",
     "ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE",
     "ALLOW_PHONE_CREDENTIAL_USE",
+    "ALLOW_FALLBACK_ACM_CONTROL",
+    "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
 )
 
 
@@ -351,6 +356,10 @@ class Fixture:
                   echo 'FAIL injected silent post-arm transport loss'
                   exit 1
                 fi
+                if [ "${{MOCK_CONTROL_MALFORMED_SUCCESS:-0}}" = 1 ]; then
+                  echo 'malformed successful control output'
+                  exit 0
+                fi
                 if [ "${{MOCK_CONTROL_HANG_AFTER_ARM:-0}}" = 1 ]; then
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
@@ -386,7 +395,15 @@ class Fixture:
                 [ -z "${ALLOW_TEMPORARY_BOOT+x}" ]
                 printf 'host-key:capture\n' >>"$MOCK_CALLS"
                 umask 077
-                printf 'format=offline-anchor\n' >"$2"
+                printf '%s\n' \
+                  'format=rog5-minimal-headless-usb-anchor-v1' \
+                  'host_boot_id=11111111-2222-4333-8444-555555555555' \
+                  'created_unix=2000000000' \
+                  'usb_location=pci/usb1/1-1/1-1.2' \
+                  'recovery_vendor=1d6b' \
+                  'recovery_product_id=0104' \
+                  'recovery_product=ROG5 recovery' \
+                  >"$2"
                 echo 'PASS captured anchor'
                 ;;
               pin-target)
@@ -429,24 +446,56 @@ class Fixture:
             """,
         )
         self.executable(
-            "ssh",
+            "fallback-acm-control.py",
             f"""\
             #!/bin/sh
-            printf 'ssh:fallback\n' >>"$MOCK_CALLS"
-            if [ "${{MOCK_FALLBACK_FAIL:-0}}" = 1 ]; then
-              exit 255
-            fi
-            echo {FALLBACK_BOOT_ID}
-            """,
-        )
-        self.executable(
-            "reboot-fallback-to-fastboot.sh",
-            """\
-            #!/bin/sh
             set -eu
-            [ "$1" = preflight ]
+            if [ "$1" = host-preflight ]; then
+              [ "$#" = 4 ]
+              [ "$2" = "{self.known_hosts}" ]
+              [ "$3" = 750 ]
+              [ "$4" = 3600 ]
+              [ "${{ALLOW_FALLBACK_ACM_CONTROL:-}}" = 1 ]
+              [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
+              [ -z "${{ALLOW_FALLBACK_ACM_STORAGE_WRITE+x}}" ]
+              [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
+              [ -z "${{SSH_KEY+x}}" ]
+              printf 'fallback:host-preflight\n' >>"$MOCK_CALLS"
+              echo 'PASS fallback host preflight'
+              exit 0
+            fi
+            [ "$1" = wait-preflight ]
+            [ "$2" = "{self.known_hosts}" ]
+            [ "$3" = "{self.evidence / 'recovery-usb.anchor'}" ]
+            [ -f "$3" ]
+            grep -Fxq 'format=rog5-minimal-headless-usb-anchor-v1' "$3"
+            [ "$4" = 750 ]
+            [ "$5" = "{self.evidence / 'fallback-identity.record'}" ]
+            [ "$#" = 5 ]
+            [ "${{ALLOW_FALLBACK_ACM_CONTROL:-}}" = 1 ]
+            [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
+            [ "${{ALLOW_FALLBACK_ACM_STORAGE_WRITE:-}}" = 1 ]
+            [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
+            [ -z "${{SSH_KEY+x}}" ]
             printf 'fallback:preflight\n' >>"$MOCK_CALLS"
-            echo 'PASS exact persistent fallback ready for guarded bootloader reboot'
+            if [ "${{MOCK_FALLBACK_FAIL:-0}}" = 1 ]; then
+              echo 'FAIL injected fallback ACM rejection'
+              exit 1
+            fi
+            umask 077
+            printf '%s\n' \
+              'format=rog5-fallback-identity-v2' \
+              'kernel_release=5.4.134-qgki-perf-00001-g6c308144c23e' \
+              'boot_id={FALLBACK_BOOT_ID}' \
+              'usb_location=pci/usb1/1-1/1-1.2' \
+              'nonce={'6' * 32}' \
+              'thermal_max=61400' \
+              'record_sha256={'7' * 64}' \
+              'signature_sha256={'8' * 64}' \
+              'host_pin_sha256={'9' * 64}' \
+              'result=PASS' \
+              >"$5"
+            echo 'PASS pinned exact Alpine fallback returned on the recovery USB port'
             """,
         )
 
@@ -555,8 +604,9 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("bundle:preflight", calls)
         self.assertIn("nfs:preflight", calls)
         self.assertIn("live:preflight", calls)
+        self.assertIn("fallback:host-preflight", calls)
         self.assertNotIn("live:boot", calls)
-        self.assertFalse(any(line.startswith("ssh:") for line in calls))
+        self.assertNotIn("fallback:preflight", calls)
         self.assertFalse(any(line.startswith("host-key:") for line in calls))
         self.assertFalse(any(self.fixture.evidence.iterdir()))
 
@@ -586,6 +636,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("PASS one minimal-headless lifecycle", result.stdout)
         calls = self.fixture.call_lines()
         self.assertLess(
+            calls.index("fallback:host-preflight"),
+            calls.index("live:boot"),
+        )
+        self.assertLess(
             calls.index("key-admission:verify"),
             calls.index("live:preflight"),
         )
@@ -602,6 +656,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             calls.index("fallback:preflight"),
             calls.index("control:resolve:TARGET_ACCEPTED"),
         )
+        self.assertEqual(calls.count("fallback:preflight"), 1)
         self.assertTrue(
             (self.fixture.evidence / "target-known-hosts").is_file()
         )
@@ -633,7 +688,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)
         )
-        self.assertFalse(any(line.startswith("ssh:") for line in calls))
+        self.assertNotIn("fallback:preflight", calls)
 
     def test_transport_loss_uses_durable_ledger_without_commit_retry(self):
         result = self.fixture.run("run", MOCK_CONTROL_UNKNOWN="1")
@@ -648,19 +703,29 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
 
     def test_silent_post_arm_failure_uses_new_durable_ledger(self):
-        result = self.fixture.run(
-            "run",
-            MOCK_CONTROL_SILENT_UNKNOWN="1",
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
-        calls = self.fixture.call_lines()
-        self.assertEqual(calls.count("control:prepare-commit"), 1)
-        self.assertEqual(calls.count("control:show"), 0)
-        self.assertEqual(
-            calls.count("control:resolve:FALLBACK_RETURNED"),
-            1,
-        )
+        for variable in (
+            "MOCK_CONTROL_SILENT_UNKNOWN",
+            "MOCK_CONTROL_MALFORMED_SUCCESS",
+        ):
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{variable: "1"})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "resolved as FALLBACK_RETURNED",
+                    result.stderr,
+                )
+                calls = self.fixture.call_lines()
+                self.assertEqual(
+                    calls.count("control:prepare-commit"),
+                    1,
+                )
+                self.assertEqual(calls.count("control:show"), 0)
+                self.assertEqual(
+                    calls.count("control:resolve:FALLBACK_RETURNED"),
+                    1,
+                )
 
     def test_parent_interrupt_after_ledger_arm_resolves_without_retry(self):
         process = subprocess.Popen(
@@ -732,6 +797,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("fallback:preflight"),
+            1,
+        )
         self.assertFalse(
             any(
                 line.startswith("control:resolve:")
@@ -746,6 +815,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("fallback:preflight"),
+            1,
+        )
         self.assertFalse(
             any(
                 line.startswith("control:resolve:")
@@ -761,6 +834,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("fallback:preflight"),
+            1,
+        )
         self.assertFalse(
             any(
                 line.startswith("control:resolve:")
@@ -773,20 +850,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         launcher = NETWORK_LAUNCHER.read_text(encoding="utf-8")
         server = NETWORK_SERVER.read_text(encoding="utf-8")
         installer = INSTALLER.read_text(encoding="utf-8")
+        runtime_acceptance = RUNTIME_ACCEPTANCE.read_text(encoding="utf-8")
         for token in GUARDS:
             self.assertIn(token, runner)
         for token in (
-            "StrictHostKeyChecking=yes",
-            "ConnectionAttempts=1",
-            "HostKeyAlias={FALLBACK_ALIAS}",
+            "fallback-acm-control.py",
+            "ALLOW_FALLBACK_ACM_CONTROL",
+            "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
+            "wait-preflight",
             "PASS one recovery bundle transfer completed",
             "INFO recovery bundle host network state removed",
             "TARGET_ACCEPTED",
             "FALLBACK_RETURNED",
             "outcome remains UNKNOWN",
+            "FALLBACK_CONTROL_MARGIN_SECONDS = 120",
         ):
             self.assertIn(token, runner)
+        self.assertLess(
+            runner.index("control_attempted = True"),
+            runner.index("control_process = start_logged"),
+        )
         self.assertEqual(runner.count('"prepare-commit",'), 1)
+        for token in (
+            "StrictHostKeyChecking=yes",
+            "ConnectionAttempts=1",
+            "UserKnownHostsFile=",
+            "HostKeyAlias=rog5-minimal-headless-v1",
+        ):
+            self.assertIn(token, runtime_acceptance)
         for token in (
             "installed_root=/usr/libexec/rog5-recovery-host",
             "installed_server=$installed_root/serve-network-root.sh",
