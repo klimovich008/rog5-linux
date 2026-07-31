@@ -270,6 +270,14 @@ now pass offline initramfs integration, but no
 production signing key exists. The accepted v18 recovery still contains the
 old interactive control shell. None of these offline checkpoints grants live
 authority.
+
+The fixed NFS host server also has an authenticated cancellation boundary.
+It publishes a root-owned PID/start-time/caller/token record before lengthy
+setup, validates and freezes the exact isolated process leader through a
+pidfd, signals only that process group, and accepts a terminal zombie only
+after the server removed its own state record. A real-host serve/cancel test
+passed and left no listener, export, NFS worker, mount daemon, marker, mount,
+temporary PolicyKit rule, or writable SteamOS root state.
 See the
 [reference result](../test-results/2026-07-28-recovery-control-reference-offline.md)
 and

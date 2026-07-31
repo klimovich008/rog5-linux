@@ -960,6 +960,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("installed_action == cancel", server)
         self.assertIn("rog5-network-root-server.state", server)
         self.assertIn("process_start_time", server)
+        self.assertIn("process_state", server)
+        self.assertIn("$state == Z", server)
         self.assertIn("os.pidfd_open(pid, 0)", server)
         self.assertIn("signal.pidfd_send_signal(pidfd, signal.SIGSTOP)", server)
         self.assertIn("os.killpg(pid, signal.SIGTERM)", server)

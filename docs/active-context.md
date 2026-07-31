@@ -119,6 +119,12 @@ NFS cancellation bug; the exact process was terminated once with root
 authority, full host cleanup was verified, and the temporary PolicyKit rule
 was removed. The active fix preserves exact fetch-stage errors, uses coherent
 nested budgets, and gives the fixed root server authenticated cancellation.
+The real-host
+[cancellation integration](../test-results/2026-07-31-network-root-cancel-host-integration.md)
+then found and fixed the parent/zombie wait boundary. Its final rerun passed
+through the public launcher, removed every NFS artifact, restored SteamOS
+read-only protection, and removed the temporary PolicyKit rule. Recovery must
+now be rebuilt and re-pinned before another temporary phone boot.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

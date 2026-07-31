@@ -86,7 +86,9 @@ The NFS path now follows the same model:
 - `serve` publishes one root-owned mode-`0400` PID/start-time/caller/token
   identity before lengthy verification, and `cancel` accepts only the same
   PolicyKit caller and fresh handoff token before signaling that exact root
-  process; cancellation waits for both process exit and state removal;
+  process; cancellation waits for terminal process state and state removal,
+  including the normal zombie interval before the unprivileged parent calls
+  `wait()`;
 - the reviewed server accepts the historical
   `/var/lib/rog5-headless-network-root-v1/root` without a deployment package,
   or the exact
