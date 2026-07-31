@@ -232,7 +232,7 @@ credential. See the
 
 The protocol reference model and host write-ahead ledger pass 48 offline
 fault, replay, parser, crash-consistency, and concurrency tests. A static
-native responder now passes 55 pseudo-terminal, postmortem, and
+native responder now passes 56 pseudo-terminal, postmortem, and
 PREPARE-boundary tests as both a host build and a real AArch64 static binary
 under QEMU. A separate
 static native signed-bundle verifier enforces the canonical manifest, raw
@@ -260,9 +260,13 @@ network parsing in a UID/GID-65534 chroot/seccomp worker, independently
 revalidates the root-owned, non-writable staged files in the privileged
 parent, and publishes with `RENAME_NOREPLACE`. QEMU user mode cannot safely
 emulate a guest seccomp filter, so native and root suites own that gate. The
-responder invokes the helper first under a 65-second outer deadline and maps
-fetch failure or permanent bundle-ID conflict without invoking verifier or
-kexec. The three binaries now pass offline initramfs integration, but no
+responder invokes the helper first under a 190-second outer deadline and maps
+permanent bundle-ID conflict or an exact bounded fetch-stage failure without
+invoking verifier or kexec. The helper's 180-second deadline is nested below a
+190-second responder fetch wait, one 260-second same-session host PREPARE
+deadline that also covers verification and kexec load, and a 320-second
+lifecycle wait that includes initial ACM stabilization. The three binaries
+now pass offline initramfs integration, but no
 production signing key exists. The accepted v18 recovery still contains the
 old interactive control shell. None of these offline checkpoints grants live
 authority.

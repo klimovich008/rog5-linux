@@ -178,6 +178,32 @@ class StableRecoveryControlTest(unittest.TestCase):
         self.assertEqual(self.commit_requests, [])
         self.assertFalse(self.ledger.exists())
 
+    def test_prepare_replay_shares_one_absolute_deadline(self):
+        first = mock.MagicMock()
+        second = mock.MagicMock()
+        first.exchange.side_effect = MODULE.TransportLost("lost")
+        second.exchange.side_effect = RuntimeError("stop after replay")
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    (second, SESSION, mock.sentinel.hello),
+                ),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0, 104.0),
+            ),
+            self.assertRaisesRegex(RuntimeError, "stop after replay"),
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+        self.assertEqual(first.exchange.call_args.args[1], 259.0)
+        self.assertEqual(second.exchange.call_args.args[1], 256.0)
+        first.close.assert_called_once_with()
+
     def test_guards_precede_device_discovery(self):
         with (
             mock.patch.dict(os.environ, {}, clear=True),

@@ -458,6 +458,8 @@ class NativeResponderTest(unittest.TestCase):
                     raise SystemExit(42)
                 if mode == "fail":
                     raise SystemExit(9)
+                if mode.startswith("exit-"):
+                    raise SystemExit(int(mode.removeprefix("exit-")))
                 if mode != "ok":
                     raise SystemExit(81)
                 """
@@ -1187,10 +1189,15 @@ class NativeResponderTest(unittest.TestCase):
 
     def test_fetch_failure_and_conflict_never_reach_verifier(self):
         cases = (
-            ("failure", "fail", "FETCH_FAILED"),
-            ("conflict", "conflict", "BUNDLE_ID_CONFLICT"),
+            ("failure", "fail", "FETCH_FAILED", "FETCH_EXEC"),
+            (
+                "conflict",
+                "conflict",
+                "BUNDLE_ID_CONFLICT",
+                "BUNDLE_ID_CONFLICT",
+            ),
         )
-        for index, (name, mode, expected) in enumerate(cases):
+        for index, (name, mode, expected, expected_error) in enumerate(cases):
             with self.subTest(boundary=name):
                 self.state = self.root / f"state-fetch-{name}"
                 self.state.mkdir(mode=0o700)
@@ -1215,7 +1222,7 @@ class NativeResponderTest(unittest.TestCase):
                 response = self.exchange(master, request)
                 self.assertEqual(response.result, expected)
                 self.assertEqual(response.state, "IDLE")
-                self.assertEqual(response.last_error, expected)
+                self.assertEqual(response.last_error, expected_error)
                 self.assertFalse(
                     (marker.parent / "verifier-runs").exists()
                 )
@@ -1235,7 +1242,7 @@ class NativeResponderTest(unittest.TestCase):
                     changed_id.result, "PREPARE_ID_CONFLICT"
                 )
                 self.assertEqual(changed_id.state, "IDLE")
-                self.assertEqual(changed_id.last_error, expected)
+                self.assertEqual(changed_id.last_error, expected_error)
                 self.assertEqual(
                     (marker.parent / "fetcher-runs").read_text(
                         encoding="ascii"
@@ -1263,7 +1270,7 @@ class NativeResponderTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 2)
         self.assertEqual(response.result, "FETCH_FAILED")
         self.assertEqual(response.state, "IDLE")
-        self.assertEqual(response.last_error, "FETCH_FAILED")
+        self.assertEqual(response.last_error, "FETCH_CONTROL_TIMEOUT")
         fetcher_pid = self.wait_pid_file(
             marker.parent / "fetcher-pid"
         )
@@ -1275,6 +1282,51 @@ class NativeResponderTest(unittest.TestCase):
         self.assertFalse((marker.parent / "verifier-runs").exists())
         self.assertFalse(marker.exists())
         self.stop_responder(process, master)
+
+    def test_fetch_stage_exit_is_preserved_in_last_error(self):
+        cases = (
+            (43, "FETCH_ROOT"),
+            (44, "FETCH_STAGE"),
+            (45, "FETCH_CONNECT"),
+            (46, "FETCH_WORKER_TIMEOUT"),
+            (47, "FETCH_WORKER_SIGNAL"),
+            (48, "FETCH_TRANSPORT"),
+            (49, "FETCH_HEADER"),
+            (50, "FETCH_MANIFEST"),
+            (51, "FETCH_ARTIFACT"),
+            (52, "FETCH_EOF"),
+            (53, "FETCH_PARENT_VERIFY"),
+            (54, "FETCH_NORMALIZE"),
+            (55, "FETCH_FINAL_VERIFY"),
+            (56, "FETCH_PUBLISH"),
+            (57, "FETCH_WORKER_SETUP"),
+            (58, "FETCH_WORKER_FORK"),
+        )
+        for index, (status, expected) in enumerate(cases):
+            with self.subTest(status=status):
+                self.state = self.root / f"state-fetch-stage-{status}"
+                self.state.mkdir(mode=0o700)
+                verifier, loader, marker = self.make_prepare_pipeline(
+                    f"fetch-stage-{status}",
+                    fetcher_mode=f"exit-{status}",
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                )
+                session = self.hello(master, number=700 + index * 2)
+                response = self.prepare(
+                    master,
+                    session,
+                    number=701 + index * 2,
+                )
+                self.assertEqual(response.result, "FETCH_FAILED")
+                self.assertEqual(response.state, "IDLE")
+                self.assertEqual(response.last_error, expected)
+                self.assertFalse(
+                    (marker.parent / "verifier-runs").exists()
+                )
+                self.stop_responder(process, master)
 
     def test_abrupt_responder_death_kills_fetch_helper_tree(self):
         verifier, loader, marker = self.make_prepare_pipeline(

@@ -60,8 +60,21 @@ case $action in
 			$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'HANDOFF_TOKEN must be one fresh nonzero 256-bit hex token'
 		;;
+	cancel)
+		[[ ${ALLOW_HEADLESS_NETWORK_ROOT_CANCEL:-} == 1 ]] ||
+			fail 'set ALLOW_HEADLESS_NETWORK_ROOT_CANCEL=1 for exact export cancellation'
+		[[ $# == 2 ]] ||
+			fail 'usage: run-headless-network-root-server.sh cancel HANDOFF_TOKEN'
+		profile=
+		root=
+		package_sha256=
+		handoff_token=$2
+		[[ $handoff_token =~ ^[0-9a-f]{64}$ &&
+			$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+			fail 'HANDOFF_TOKEN must be one fresh nonzero 256-bit hex token'
+		;;
 	*)
-		fail 'usage: run-headless-network-root-server.sh preflight | serve HANDOFF_TOKEN'
+		fail 'usage: run-headless-network-root-server.sh preflight | serve HANDOFF_TOKEN | cancel HANDOFF_TOKEN'
 		;;
 esac
 
@@ -75,13 +88,23 @@ source_verifier=$repo/scripts/host/headless-network-root.py
 source_root_tool=$repo/scripts/device/persistent-root-tool.py
 serve_timeout=${ROG5_NFS_TIMEOUT:-720}
 
-[[ $serve_timeout =~ ^[0-9]+$ &&
-	$serve_timeout -ge 600 && $serve_timeout -le 900 ]] ||
-	fail 'ROG5_NFS_TIMEOUT must be between 600 and 900 seconds'
 for command in awk pkexec sha256sum stat; do
 	command -v "$command" >/dev/null ||
 		fail "missing network-root launcher command: $command"
 done
+if [[ $action == cancel ]]; then
+	[[ -f $installed_server && ! -L $installed_server &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$installed_server") == \
+		'0:0:555:regular file' ]] ||
+		fail 'fixed network-root host server is not safely installed'
+	[[ $(sha256sum "$installed_server" | awk '{ print $1 }') == \
+		$(sha256sum "$source_server" | awk '{ print $1 }') ]] ||
+		fail 'installed network-root host server is stale; reinstall it first'
+	exec pkexec "$installed_server" cancel "$handoff_token"
+fi
+[[ $serve_timeout =~ ^[0-9]+$ &&
+	$serve_timeout -ge 600 && $serve_timeout -le 900 ]] ||
+	fail 'ROG5_NFS_TIMEOUT must be between 600 and 900 seconds'
 for installed_input in "$installed_server" "$installed_verifier" \
 	"$installed_root_tool"; do
 	[[ -f $installed_input && ! -L $installed_input &&

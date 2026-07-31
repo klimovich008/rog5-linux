@@ -136,6 +136,7 @@ class Dependencies:
     fallback: Path
     key_admission: Path
     handoff_marker: Path
+    network_service_state: Path
     export_mount: Path
     nfs_exports: Path
     nfs_threads: Path
@@ -175,6 +176,7 @@ class Dependencies:
                     root / "verify-headless-ssh-v2-key-admission.py"
                 ),
                 handoff_marker=state / "nfs-ready",
+                network_service_state=root / "nfs-state",
                 export_mount=state / "export-mount",
                 nfs_exports=state / "nfs-exports",
                 nfs_threads=state / "nfs-threads",
@@ -213,6 +215,9 @@ class Dependencies:
                 "verify-headless-ssh-v2-key-admission.py"
             ),
             handoff_marker=Path("/run/rog5-network-root-nfs-ready"),
+            network_service_state=Path(
+                "/run/rog5-network-root-server.state"
+            ),
             export_mount=Path("/run/rog5-network-root-export"),
             nfs_exports=Path("/var/lib/nfs/etab"),
             nfs_threads=Path("/proc/fs/nfsd/threads"),
@@ -729,6 +734,55 @@ def terminate(managed: ManagedProcess | None) -> None:
     managed.process.wait(timeout=10)
 
 
+def cancel_network_process(
+    managed: ManagedProcess | None,
+    dependencies: Dependencies,
+    handoff_token: str | None,
+) -> str:
+    if managed is None or managed.process.poll() is not None:
+        return ""
+    if (
+        handoff_token is None
+        or not SHA256.fullmatch(handoff_token)
+        or handoff_token == ZERO_SHA256
+    ):
+        return "cannot authenticate network-root service cancellation"
+    try:
+        result = run_capture(
+            [
+                str(dependencies.network_root_server),
+                "cancel",
+                handoff_token,
+            ],
+            environment=child_environment(
+                ALLOW_HEADLESS_NETWORK_ROOT_CANCEL="1"
+            ),
+            timeout=45,
+            check=False,
+        )
+    # Cancellation runs inside rollback. Defer even an interrupt until the
+    # fallback and durable-intent paths have had a chance to finish.
+    except BaseException as error:
+        return f"privileged network-root cancellation failed: {error}"
+    if result.returncode != 0:
+        if managed.process.poll() is not None:
+            return ""
+        final = next(
+            (
+                line
+                for line in reversed(result.stdout.splitlines())
+                if line.strip()
+            ),
+            "no diagnostic",
+        )
+        return f"privileged network-root cancellation failed: {final}"
+    try:
+        managed.process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        return "cancelled network-root server did not exit"
+    return ""
+
+
 def wait_process(managed: ManagedProcess, timeout: float) -> int:
     try:
         return managed.process.wait(timeout=timeout)
@@ -737,6 +791,28 @@ def wait_process(managed: ManagedProcess, timeout: float) -> int:
         raise CycleError(
             f"{managed.name} exceeded its bounded runtime; inspect "
             f"{managed.log}"
+        ) from error
+
+
+def wait_network_process(
+    managed: ManagedProcess,
+    dependencies: Dependencies,
+    handoff_token: str,
+    timeout: float,
+) -> int:
+    try:
+        return managed.process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        cancellation = cancel_network_process(
+            managed,
+            dependencies,
+            handoff_token,
+        )
+        if cancellation:
+            cancellation = f"; {cancellation}"
+        raise CycleError(
+            f"{managed.name} exceeded its bounded runtime; inspect "
+            f"{managed.log}{cancellation}"
         ) from error
 
 
@@ -930,7 +1006,7 @@ class LiveCycle:
         self.poll = 0.02 if dependencies.offline else 0.25
         self.short_timeout = 4 if dependencies.offline else 120
         self.bundle_timeout = 5 if dependencies.offline else 95
-        self.control_timeout = 5 if dependencies.offline else 75
+        self.control_timeout = 5 if dependencies.offline else 320
         self.network_timeout = 8 if dependencies.offline else 735
         self.fallback_timeout = (
             5 if dependencies.offline else inputs.fallback_timeout
@@ -1258,6 +1334,7 @@ class LiveCycle:
     def verify_host_clean(self, *, final: bool = False) -> None:
         for path in (
             self.dependencies.handoff_marker,
+            self.dependencies.network_service_state,
             self.dependencies.export_mount,
         ):
             if path.exists() or path.is_symlink():
@@ -1626,6 +1703,7 @@ class LiveCycle:
         fallback_proved = False
         resolved = False
         fallback_contact_deadline: float | None = None
+        handoff_token: str | None = None
         ledger_before: set[str] = set()
         recovery_ncm: tuple[InterfaceSnapshot, ...] = ()
         try:
@@ -1778,8 +1856,10 @@ class LiveCycle:
                 fail("minimal-headless runtime record is not accepted")
             target_accepted = True
 
-            network_status = wait_process(
+            network_status = wait_network_process(
                 network_process,
+                self.dependencies,
+                handoff_token,
                 self.network_timeout,
             )
             network_process = None
@@ -1826,8 +1906,24 @@ class LiveCycle:
                 )
             terminate(bundle_process)
             bundle_process = None
-            terminate(network_process)
-            network_process = None
+            cancellation = cancel_network_process(
+                network_process,
+                self.dependencies,
+                handoff_token,
+            )
+            cleanup_note = ""
+            if cancellation:
+                cleanup_note = f"; {cancellation}"
+            else:
+                network_process = None
+            if intent is None:
+                try:
+                    self.verify_host_clean()
+                except Exception as cleanup_error:
+                    cleanup_note += (
+                        "; host cleanup proof failed: "
+                        f"{cleanup_error}"
+                    )
             recovery_note = ""
             if intent is not None and not resolved:
                 try:
@@ -1843,6 +1939,19 @@ class LiveCycle:
                         fallback_attempted = True
                         self.wait_fallback(target_boot_id)
                         fallback_proved = True
+                    if network_process is not None:
+                        network_status = wait_network_process(
+                            network_process,
+                            self.dependencies,
+                            handoff_token,
+                            self.short_timeout,
+                        )
+                        network_process = None
+                        if network_status not in (0, 130):
+                            fail(
+                                "network-root server did not exit cleanly "
+                                f"after fallback: {network_status}"
+                            )
                     self.verify_host_clean(final=True)
                     outcome = (
                         "TARGET_ACCEPTED"
@@ -1862,11 +1971,17 @@ class LiveCycle:
                     )
             if isinstance(original, KeyboardInterrupt):
                 raise
-            raise CycleError(f"{original}{recovery_note}") from original
+            raise CycleError(
+                f"{original}{recovery_note}{cleanup_note}"
+            ) from original
         finally:
             terminate(control_process)
             terminate(bundle_process)
-            terminate(network_process)
+            cancel_network_process(
+                network_process,
+                self.dependencies,
+                handoff_token,
+            )
 
 
 def require_guards() -> None:

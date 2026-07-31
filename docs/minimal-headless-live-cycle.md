@@ -83,6 +83,10 @@ The NFS path now follows the same model:
   `/usr/libexec/rog5-recovery-host`;
 - `run-headless-network-root-server.sh preflight` requires those installed
   bytes to match the reviewed repository sources;
+- `serve` publishes one root-owned mode-`0400` PID/start-time/caller/token
+  identity before lengthy verification, and `cancel` accepts only the same
+  PolicyKit caller and fresh handoff token before signaling that exact root
+  process; cancellation waits for both process exit and state removal;
 - the reviewed server accepts the historical
   `/var/lib/rog5-headless-network-root-v1/root` without a deployment package,
   or the exact
@@ -400,7 +404,8 @@ published.
 ## Failure and outcome rules
 
 - Before COMMIT, failure stops all started host processes and creates no
-  resolved intent.
+  resolved intent. A live privileged NFS child is stopped through its fixed
+  authenticated `cancel` action, not an unprivileged signal.
 - After a normal `CLAIMED` response, or after a transport-lost COMMIT whose
   session/request is recovered from the durable ledger, the controller never
   sends COMMIT again.
@@ -422,12 +427,25 @@ host-key-signing, ACK, same-boot, and post-ACK timeout failures instead of
 collapsing them into one host timeout, including an error received on the last
 bounded serial read.
 
+The recovery fetch boundary similarly preserves root, staging, connect,
+worker setup/fork/timeout/signal, transport, header, manifest, artifact, EOF, parent
+verification, normalization, final verification, publication, outer timeout,
+and exec failure classes in `last_error`. The 46 MiB fetch uses a 180-second
+monotonic inner deadline and a 190-second responder fetch-child deadline. The
+260-second same-session host PREPARE deadline also covers the responder's
+subsequent 30-second signature verification and 15-second kexec-load bounds;
+the 320-second lifecycle wait additionally covers initial ACM stabilization.
+A transport replay shares the original host deadline and cannot double the
+budget. The larger fetch budget is an exploratory bound for the next measured
+run, not evidence that the bundle needs three minutes. These are hard bounds,
+not permission to retry a decided PREPARE request.
+
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
 scenarios, `test-fallback-acm-control.py` covers thirty-eight fallback
 protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
-seventeen lifecycle test methods. Together they prove:
+eighteen lifecycle test methods. Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;

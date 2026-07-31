@@ -40,8 +40,16 @@ if [[ $script_path == "$installed_server" ]]; then
 				serve_timeout=$4
 			fi
 			;;
+		cancel)
+			[[ $# == 2 ]] ||
+				fail 'usage: serve-network-root.sh cancel HANDOFF_TOKEN'
+			root=
+			expected_package_sha256=
+			handoff_token=$2
+			serve_timeout=0
+			;;
 		*)
-			fail 'usage: serve-network-root.sh preflight ROOT | serve ROOT HANDOFF_TOKEN TIMEOUT'
+			fail 'usage: serve-network-root.sh preflight ROOT | serve ROOT HANDOFF_TOKEN TIMEOUT | cancel HANDOFF_TOKEN'
 			;;
 	esac
 	[[ ${PKEXEC_UID:-} =~ ^[1-9][0-9]*$ ]] ||
@@ -52,12 +60,15 @@ if [[ $script_path == "$installed_server" ]]; then
 		fail 'unsafe installed network-root server metadata'
 	headless_verifier=$installed_directory/headless-network-root.py
 	persistent_root_tool=$installed_directory/persistent-root-tool.py
-	for installed_input in "$headless_verifier" "$persistent_root_tool"; do
-		[[ -f $installed_input && ! -L $installed_input &&
-			$(stat -Lc '%u:%g:%a:%F' -- "$installed_input") == \
-			'0:0:555:regular file' ]] ||
-			fail 'unsafe installed network-root verifier metadata'
-	done
+	if [[ $installed_action != cancel ]]; then
+		for installed_input in "$headless_verifier" \
+			"$persistent_root_tool"; do
+			[[ -f $installed_input && ! -L $installed_input &&
+				$(stat -Lc '%u:%g:%a:%F' -- "$installed_input") == \
+				'0:0:555:regular file' ]] ||
+				fail 'unsafe installed network-root verifier metadata'
+		done
+	fi
 else
 	[[ $# -le 1 ]] ||
 		fail 'usage: serve-network-root.sh [ROOT]'
@@ -76,27 +87,212 @@ mountd_port=32767
 grace_time=10
 lease_time=10
 handoff_marker=/run/rog5-network-root-nfs-ready
+service_state=/run/rog5-network-root-server.state
 deployment_export=/home/rog5-linux/exports/headless-ssh-network-root-v3
 deployment_root=$deployment_export/root
 deployment_manifest=$deployment_export/manifest
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
-if [[ ! $serve_timeout =~ ^[0-9]+$ ]] ||
-	((serve_timeout < 60 || serve_timeout > 86400)); then
-	fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
+if [[ $installed_action != cancel ]]; then
+	if [[ ! $serve_timeout =~ ^[0-9]+$ ]] ||
+		((serve_timeout < 60 || serve_timeout > 86400)); then
+		fail 'ROG5_NFS_TIMEOUT must be between 60 and 86400 seconds'
+	fi
 fi
 if [[ -n $handoff_token ]]; then
 	[[ $handoff_token =~ ^[0-9a-f]{64}$ &&
 		$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 		fail 'ROG5_NFS_HANDOFF_TOKEN must be one nonzero 256-bit hex token'
+fi
+if [[ $installed_action != cancel && -n $handoff_token ]]; then
 	[[ ! -e $handoff_marker && ! -L $handoff_marker ]] ||
 		fail 'refusing an existing NFS handoff marker'
 fi
+process_identity() {
+	local process=$1 record rest
+	local -a fields
+
+	IFS= read -r record <"/proc/$process/stat" || return 1
+	rest=${record##*) }
+	read -r -a fields <<<"$rest"
+	[[ ${#fields[@]} -ge 20 &&
+		${fields[2]} =~ ^[1-9][0-9]*$ &&
+		${fields[3]} =~ ^[1-9][0-9]*$ &&
+		${fields[19]} =~ ^[1-9][0-9]*$ ]] ||
+		return 1
+	printf '%s %s %s\n' \
+		"${fields[2]}" "${fields[3]}" "${fields[19]}"
+}
+
+process_start_time() {
+	local process=$1 group session start_time
+
+	read -r group session start_time < <(process_identity "$process") ||
+		return 1
+	printf '%s\n' "$start_time"
+}
+
+cancel_network_root() {
+	local -a fields
+	local pid start_time caller_uid token group session current
+	local attempt
+
+	[[ -f $service_state && ! -L $service_state &&
+		$(stat -Lc '%u:%g:%a:%F:%h' -- "$service_state") == \
+		'0:0:400:regular file:1' ]] ||
+		fail 'network-root service identity is unavailable or unsafe'
+	mapfile -t fields <"$service_state"
+	[[ ${#fields[@]} == 5 &&
+		${fields[0]} == 'format=rog5-network-root-server-v1' &&
+		${fields[1]} =~ ^pid=([1-9][0-9]*)$ ]] ||
+		fail 'network-root service identity is malformed'
+	pid=${BASH_REMATCH[1]}
+	[[ ${fields[2]} =~ ^start_time=([1-9][0-9]*)$ ]] ||
+		fail 'network-root service start time is malformed'
+	start_time=${BASH_REMATCH[1]}
+	[[ ${fields[3]} =~ ^caller_uid=([1-9][0-9]*)$ ]] ||
+		fail 'network-root service caller is malformed'
+	caller_uid=${BASH_REMATCH[1]}
+	[[ ${fields[4]} =~ ^token=([0-9a-f]{64})$ ]] ||
+		fail 'network-root service token is malformed'
+	token=${BASH_REMATCH[1]}
+	[[ $caller_uid == "$PKEXEC_UID" &&
+		$token == "$handoff_token" ]] ||
+		fail 'network-root cancellation identity does not match'
+	current=$(process_start_time "$pid" || true)
+	if [[ $current != "$start_time" ]]; then
+		if kill -0 -- "-$pid" 2>/dev/null; then
+			fail 'stale service identity retains a live process group'
+		fi
+		rm -f -- "$service_state"
+		echo 'PASS stale network-root service identity removed'
+		return
+	fi
+	python3 -B - "$pid" "$start_time" <<'PY'
+import os
+from pathlib import Path
+import signal
+import sys
+import time
+
+
+def identity(pid: int) -> tuple[int, int, int]:
+    record = Path(f"/proc/{pid}/stat").read_text(encoding="ascii")
+    fields = record.rsplit(") ", 1)[1].split()
+    if len(fields) < 20:
+        raise RuntimeError("short process identity")
+    uid = Path(f"/proc/{pid}/status").read_text(
+        encoding="ascii"
+    )
+    uid_line = next(
+        line for line in uid.splitlines() if line.startswith("Uid:")
+    )
+    if uid_line.split()[1:] != ["0", "0", "0", "0"]:
+        raise RuntimeError("service is not root-owned")
+    return int(fields[2]), int(fields[3]), int(fields[19])
+
+
+pid = int(sys.argv[1])
+expected_start = int(sys.argv[2])
+pidfd = os.pidfd_open(pid, 0)
+stopped = False
+try:
+    group, session, start = identity(pid)
+    if (group, session, start) != (pid, pid, expected_start):
+        raise RuntimeError("service process identity changed")
+    signal.pidfd_send_signal(pidfd, signal.SIGSTOP)
+    stopped = True
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        status = Path(f"/proc/{pid}/status").read_text(
+            encoding="ascii"
+        )
+        state = next(
+            line for line in status.splitlines() if line.startswith("State:")
+        ).split()[1]
+        if state in {"T", "t"}:
+            break
+        time.sleep(0.01)
+    else:
+        raise RuntimeError("service leader did not stop")
+    if identity(pid) != (pid, pid, expected_start):
+        raise RuntimeError("stopped service identity changed")
+    os.killpg(pid, signal.SIGTERM)
+finally:
+    if stopped:
+        try:
+            os.killpg(pid, signal.SIGCONT)
+        except ProcessLookupError:
+            pass
+    os.close(pidfd)
+PY
+	for attempt in {1..300}; do
+		current=$(process_start_time "$pid" || true)
+		if [[ $current != "$start_time" &&
+			! -e $service_state && ! -L $service_state ]]; then
+			echo 'PASS exact network-root service cancelled and cleaned'
+			return
+		fi
+		sleep 0.1
+	done
+	fail 'network-root service did not clean after cancellation'
+}
+
+if [[ $installed_mode == 1 && $installed_action == cancel ]]; then
+	for command in python3 rm sleep stat; do
+		command -v "$command" >/dev/null ||
+			fail "missing cancellation command: $command"
+	done
+	cancel_network_root
+	exit 0
+fi
+
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 	chmod ln mkdir mktemp mountpoint nmcli pgrep python3 realpath rm rpc.mountd \
-	rpc.nfsd sha256sum ss sysctl udevadm stat systemctl tr umount; do
+	rpc.nfsd sha256sum sleep ss sysctl udevadm stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
+
+service_state_created=0
+service_state_temp=
+early_service_cleanup() {
+	set +e
+	if [[ $service_state_created == 1 ]]; then
+		rm -f -- "$service_state"
+	fi
+	if [[ -n $service_state_temp ]]; then
+		rm -f -- "$service_state_temp"
+	fi
+}
+if [[ $installed_mode == 1 && $installed_action == serve ]]; then
+	[[ ! -e $service_state && ! -L $service_state ]] ||
+		fail 'refusing existing network-root service identity'
+	trap early_service_cleanup EXIT
+	trap 'exit 130' INT TERM HUP
+	read -r service_group service_session service_start_time < <(
+		process_identity "$$"
+	) ||
+		fail 'cannot capture network-root service identity'
+	[[ $service_group == "$$" && $service_session == "$$" ]] ||
+		fail 'network-root service requires an isolated process group'
+	service_state_temp=$(mktemp \
+		/run/.rog5-network-root-server.state.XXXXXX)
+	printf '%s\n' \
+		'format=rog5-network-root-server-v1' \
+		"pid=$$" \
+		"start_time=$service_start_time" \
+		"caller_uid=$PKEXEC_UID" \
+		"token=$handoff_token" >"$service_state_temp"
+	chmod 0400 "$service_state_temp"
+	ln "$service_state_temp" "$service_state"
+	service_state_created=1
+	rm -f -- "$service_state_temp"
+	service_state_temp=
+fi
+if [[ $installed_action != serve ]]; then
+	[[ ! -e $service_state && ! -L $service_state ]] ||
+		fail 'refusing existing network-root service identity'
+fi
 
 verify_deployment_export() {
 	[[ -n $expected_package_sha256 ]] || return
@@ -242,6 +438,12 @@ cleanup() {
 	fi
 	if [[ -n $handoff_marker_temp ]]; then
 		rm -f -- "$handoff_marker_temp"
+	fi
+	if [[ $service_state_created == 1 ]]; then
+		rm -f -- "$service_state"
+	fi
+	if [[ -n $service_state_temp ]]; then
+		rm -f -- "$service_state_temp"
 	fi
 	if [[ -n $mountd_pid ]]; then
 		kill "$mountd_pid" 2>/dev/null

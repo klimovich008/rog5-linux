@@ -56,7 +56,9 @@ The host deployment boundary now passes:
 - the no-replace v3 lower is published below the root-owned `/home` store;
 - local key admission, sealed-root, fixed NFS, artifact, and
   connected-fastboot checks pass; and
-- the one authorized temporary boot remains unused.
+- the first guarded temporary boot reached stable recovery and transferred
+  the exact signed bundle, but recovery rejected PREPARE with `FETCH_FAILED`
+  at the former 60-second fetch deadline; no commit or kexec occurred.
 
 The lifecycle no longer depends on fallback client-key authorization. A fixed
 USB ACM controller now sends one nonce-bound read-only health payload to the
@@ -90,7 +92,7 @@ serial read. Host cleanup validates the root-owned canonical NFS export table
 directly; it no longer mistakes unprivileged `exportfs` lock diagnostics for
 an active export.
 
-Thirty-nine hardware-free ACM tests and all seventeen lifecycle methods
+Thirty-nine hardware-free ACM tests and all eighteen lifecycle methods
 pass. A physical reboot restored the supervised ACM reader. The fresh signed
 exchange then exposed a stale thermal assumption: the installed fallback now
 publishes 96 contiguous zones, including unsupported auxiliary channels,
@@ -100,10 +102,23 @@ CPU/GPU/system sensors, and the unchanged hard temperature ceilings while
 ignoring unreadable temperatures only for an exact observed auxiliary-type
 allowlist, plus zero and Qualcomm-inactive values.
 One fresh nonce-bound preflight passed and its mode-`0600` signed proof is
-retained outside Git. The one authorized temporary boot remains unused. See
+retained outside Git. After the rejected recovery attempt, the watchdog
+returned the same port to Alpine and a second fresh signed fallback proof
+passed. See
 the [live acceptance](../test-results/2026-07-31-fallback-acm-preflight-live-accepted.md)
 and preceding
 [reader rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
+
+The first guarded lifecycle attempt is recorded in the
+[live fetch-failure result](../test-results/2026-07-31-minimal-headless-live-cycle-fetch-failure.md).
+The host completed the one-shot transfer six seconds after control started,
+but the old helper returned only generic `FETCH_FAILED` at its exact
+60-second end-to-end deadline. PREPARE stayed `IDLE`, so no COMMIT, durable
+intent, or kexec occurred. The attempt also exposed an unprivileged-to-root
+NFS cancellation bug; the exact process was terminated once with root
+authority, full host cleanup was verified, and the temporary PolicyKit rule
+was removed. The active fix preserves exact fetch-stage errors, uses coherent
+nested budgets, and gives the fixed root server authenticated cancellation.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

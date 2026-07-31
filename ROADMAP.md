@@ -414,20 +414,21 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
 deployment candidate, NFS, runtime, rollback, thermal, ACM fallback, and CI
-gates are complete. Host installation and connected preflight pass. The
-remaining H2 boundary is one live signed-ACM fallback proof and one attended
-phone lifecycle, not another subsystem oracle.
+gates are complete. Host installation and connected preflight pass. The first
+attended lifecycle safely stopped before PREPARE at the former 60-second fetch
+deadline; no commit or kexec occurred, and signed Alpine fallback passed. H2
+now requires the reviewed fetch telemetry/budget and privileged-cancellation
+fixes before one newly built attended lifecycle.
 
 Current execution order:
 
-1. obtain fresh credential-use and action-scoped fallback-storage-write
-   authority, then run the fixed ACM health preflight and verify Alpine's
-   nonce-bound record against the retained private host pin;
-2. rerun the complete lifecycle preflight and use the separately guarded ACM
-   controller to return Alpine to fastboot;
-3. perform at most one authorized temporary boot, collect the 88-field
+1. finish and publish exact fetch-stage diagnostics, coherent nested timeout
+   bounds, and authenticated cleanup of the privileged NFS child;
+2. rebuild/re-pin the recovery and reinstall the reviewed fixed host helper;
+3. rerun complete preflight and return verified Alpine to fastboot;
+4. perform at most one new authorized temporary boot, collect the 88-field
    strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
-4. if H2 passes, continue physical keys/indicator, then H3
+5. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
