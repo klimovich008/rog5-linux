@@ -842,11 +842,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Build and admit a fresh one-use successor after the target route-parser
-   fix; never retry the consumed COMMIT from the rejected cycle.
-2. Temporarily boot that successor and collect the first strict-SSH target
-   runtime record. The watchdog/fallback path and persistent USB profile are
-   now accepted live without ACM.
+1. Under fresh credential authorization, sign and twin-build the staged r2
+   bundle, then review and pin its new trust and recovery-wrapper identities.
+   The consumed v3 manifest is now rejected before key admission.
+2. After separate fresh boot authorization, temporarily boot r2 and collect
+   the first strict-SSH target runtime record. The watchdog/fallback path and
+   persistent USB profile are now accepted live without ACM.
 3. Determine whether ramoops survives the target/fallback path and collect the
    exact 88-field core record.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/

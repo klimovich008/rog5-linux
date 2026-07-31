@@ -464,6 +464,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   pinned Ed25519 host key, direct `169.254.77.1/16` route, recovery USB
   continuity, one signed nonce-bound health frame, and post-reply USB
   revalidation. The interactive ACM actions remain emergency-only.
+- `prepare-headless-ssh-deployment-candidate.py` can retain the proven v3
+  target while assigning only the fixed r2 signed-bundle identity. Its test
+  packages base and r2 with identical target inputs, requires every manifest
+  field except `bundle` to remain byte-equivalent, and requires distinct
+  manifest hashes. The lifecycle rejects the consumed live v3 manifest before
+  private-key inspection. See the
+  [r2 offline result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
 - `network-root-acm.py` replaces terminal attachment with three fixed staging
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression

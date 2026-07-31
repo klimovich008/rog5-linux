@@ -52,6 +52,28 @@ EXTERNAL_MUTABLE_FIELDS = {
     "root_tree_entries",
     "root_subtree",
 }
+EXTERNAL_BUNDLE_SUCCESSORS = {
+    "headless-ssh-network-root-v3": {
+        "headless-ssh-network-root-v3",
+        "headless-ssh-network-root-v3-r2",
+    },
+}
+EXTERNAL_SUCCESSOR_ROOT_FIELDS = {
+    "headless-ssh-network-root-v3-r2": {
+        "a660_command_manifest_sha256": (
+            "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2"
+        ),
+        "root_generation": "arch-a",
+        "root_tree_sha256": (
+            "f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087"
+        ),
+        "root_seal_sha256": (
+            "42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a"
+        ),
+        "root_tree_entries": "37735",
+        "root_subtree": "/",
+    },
+}
 
 
 class CandidateError(RuntimeError):
@@ -213,11 +235,25 @@ def validate_external_candidate_record(
 ) -> dict[str, Any]:
     validated = validate_candidate_record(record, candidate)
     template = load_candidate(candidate)
-    for field in TOP_LEVEL_KEYS - EXTERNAL_MUTABLE_FIELDS:
+    allowed_bundles = EXTERNAL_BUNDLE_SUCCESSORS.get(
+        candidate,
+        {require_string(template, "bundle")},
+    )
+    bundle = require_string(validated, "bundle")
+    if bundle not in allowed_bundles:
+        raise CandidateError("external candidate bundle is unsupported")
+    for field in TOP_LEVEL_KEYS - EXTERNAL_MUTABLE_FIELDS - {"bundle"}:
         if validated[field] != template[field]:
             raise CandidateError(
                 "external candidate changed a fixed template field"
             )
+    successor_root = EXTERNAL_SUCCESSOR_ROOT_FIELDS.get(bundle)
+    if successor_root is not None:
+        for field, expected in successor_root.items():
+            if validated[field] != expected:
+                raise CandidateError(
+                    "external successor changed the accepted predecessor root"
+                )
     return validated
 
 

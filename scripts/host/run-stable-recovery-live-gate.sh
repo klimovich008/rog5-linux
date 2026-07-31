@@ -43,6 +43,7 @@ expected_raw=
 expected_initramfs=
 expected_target_id=
 expected_bundle=
+consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
 requires_qualified_cpio=0
 expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
 expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
@@ -134,6 +135,9 @@ case $profile in
 esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
+if [[ $action == boot && $expected_manifest == $consumed_deployment_manifest ]]; then
+	fail 'refusing a consumed deployment manifest'
+fi
 
 for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 	stat tr; do

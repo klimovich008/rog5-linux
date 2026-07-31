@@ -25,6 +25,9 @@ FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 ZERO_SHA256 = "0" * 64
+CONSUMED_MANIFESTS = {
+    "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
+}
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SSH_FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
 HEX_ID = re.compile(r"[0-9a-f]{32}\Z")
@@ -403,6 +406,11 @@ def parse_admission_inputs() -> AdmissionInputs:
     manifest = os.environ.get("MANIFEST_SHA256", "")
     if not SHA256.fullmatch(manifest) or manifest == ZERO_SHA256:
         fail("MANIFEST_SHA256 must be one nonzero lowercase SHA-256")
+    if manifest in CONSUMED_MANIFESTS:
+        fail(
+            "MANIFEST_SHA256 identifies a consumed live payload; build "
+            "and pin a fresh successor instead of retrying it"
+        )
     if os.environ.get("BUNDLE") != BUNDLE:
         fail(f"BUNDLE must be exactly {BUNDLE}")
     if (

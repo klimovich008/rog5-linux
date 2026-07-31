@@ -262,7 +262,7 @@ class RecoveryCandidateTest(unittest.TestCase):
                 output.mkdir(mode=0o700)
                 with self.assertRaisesRegex(
                     RUNNER.CandidateError,
-                    "hash changed|fixed template field",
+                    "hash changed|fixed template field|bundle is unsupported",
                 ):
                     RUNNER.prepare(
                         "fixture",
@@ -282,6 +282,40 @@ class RecoveryCandidateTest(unittest.TestCase):
                 self.root / "missing-hash-bundles",
                 external,
             )
+
+    def test_deployment_successor_pins_every_predecessor_root_field(self) -> None:
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        record = copy.deepcopy(
+            RUNNER.load_candidate("headless-ssh-network-root-v3")
+        )
+        bundle = "headless-ssh-network-root-v3-r2"
+        record["bundle"] = bundle
+        record.update(RUNNER.EXTERNAL_SUCCESSOR_ROOT_FIELDS[bundle])
+        RUNNER.validate_external_candidate_record(
+            record,
+            "headless-ssh-network-root-v3",
+        )
+        for field in RUNNER.EXTERNAL_MUTABLE_FIELDS:
+            with self.subTest(field=field):
+                mutated = copy.deepcopy(record)
+                mutated[field] = (
+                    "arch-b"
+                    if field == "root_generation"
+                    else "/changed"
+                    if field == "root_subtree"
+                    else "37736"
+                    if field == "root_tree_entries"
+                    else "f" * 64
+                )
+                with self.assertRaisesRegex(
+                    RUNNER.CandidateError,
+                    "accepted predecessor root",
+                ):
+                    RUNNER.validate_external_candidate_record(
+                        mutated,
+                        "headless-ssh-network-root-v3",
+                    )
 
     def test_tracked_parity_record_matches_inventory(self) -> None:
         RUNNER.REPO = self.original_repo

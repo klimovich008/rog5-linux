@@ -23,6 +23,9 @@ RUNTIME_ACCEPTANCE = (
     REPO / "scripts/host/run-minimal-headless-runtime-acceptance.sh"
 )
 MANIFEST = "a" * 64
+CONSUMED_MANIFEST = (
+    "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e"
+)
 PACKAGE_SHA256 = "2" * 64
 CANDIDATE_SHA256 = "3" * 64
 BUNDLE = "headless-ssh-network-root-v3"
@@ -608,6 +611,22 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(any(line.startswith("live:") for line in calls))
         self.assertFalse(any(line.startswith("bundle:") for line in calls))
         self.assertFalse(any(line.startswith("nfs:") for line in calls))
+
+    def test_consumed_manifest_fails_before_private_key_inspection(self):
+        result = self.fixture.run(
+            "key-preflight",
+            MANIFEST_SHA256=CONSUMED_MANIFEST,
+            SSH_KEY="/absent/consumed-manifest-must-win",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("consumed live payload", result.stderr)
+        self.assertNotIn("SSH_KEY", result.stderr)
+        self.assertFalse(
+            any(
+                line.startswith("key-admission:")
+                for line in self.fixture.call_lines()
+            )
+        )
 
     def test_preflight_admits_key_and_stops_before_phone_boot_or_ssh(self):
         result = self.fixture.run("preflight")

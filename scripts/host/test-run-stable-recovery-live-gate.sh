@@ -30,6 +30,26 @@ if grep -Fq 'missing live-gate command' "$tmp/err"; then
 	exit 1
 fi
 
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-ssh-network-root-v3 \
+	RECOVERY_SHA256=11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e \
+	HOST_VERIFIER_SHA256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL consumed deployment manifest reached boot admission' >&2
+	exit 1
+fi
+grep -Fq 'refusing a consumed deployment manifest' "$tmp/err"
+
 # shellcheck disable=SC2016
 for required in \
 	'ALLOW_HEADLESS_LIVE_GATE' \

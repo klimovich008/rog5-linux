@@ -122,6 +122,13 @@ Alpine, the persistent USB profile restored the fixed `/16`, strict SSH
 verified a signed fallback record at 44.1 degrees C without ACM, and the
 intent resolved `FALLBACK_RETURNED`. The target parser now accepts only the
 same bounded cache continuation already covered by the fallback parser.
+The consumed v3 manifest is now denied before private-key inspection. A
+hardware-free r2 successor keeps the accepted target/root tuple and changes
+only the signed bundle identity; base/r2 twin packaging proves all other
+manifest fields remain equal. The predicted r2 manifest identity is pinned in
+the [offline successor result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md),
+but fresh trust and recovery-wrapper hashes remain an explicit credentialed
+build HOLD.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
@@ -151,8 +158,8 @@ The controller must:
 6. pin the volatile target host key without TOFU;
 7. collect and verify one strict-SSH runtime record while rollback stays
    armed;
-8. verify the returned Alpine fallback through its signed, nonce-bound ACM
-   health record;
+8. verify the returned Alpine fallback through its strict-SSH signed,
+   nonce-bound health record;
 9. prove all host network/export state is removed; and
 10. resolve the durable intent as accepted or fallback-returned.
 
