@@ -138,6 +138,10 @@ and the real external r2 candidate is now staged outside Git. A
 credential-free check binds it to the retained package, exact
 Image/DTB/initramfs bytes, and predicted manifest identity; see the
 [real-candidate checkpoint](../test-results/2026-07-31-headless-ssh-successor-r2-real-candidate.md).
+The reusable preflight and its 22 hostile tests are pushed at
+`773a1196cbfad33ab87124c47ed9772f6251c40c`; the formal run against all three
+external inputs passed at that exact clean, origin-synchronized checkpoint
+with no credential or phone access.
 It has not been signed. Under fresh credential authorization, the signed twin
 build must reproduce the already-pinned manifest identity, produce fresh
 trust, recovery-wrapper, verifier, and configuration identities, and pin the
