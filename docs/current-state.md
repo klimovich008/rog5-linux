@@ -843,12 +843,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Under fresh credential authorization, sign and twin-build the staged r2
-   bundle, then review and pin its new trust and recovery-wrapper identities.
-   The consumed v3 manifest is now rejected before key admission.
+1. The real external r2 candidate is staged and credential-free verification
+   binds it to the retained package, artifact bytes, and predicted manifest.
+   Under fresh credential authorization, sign and twin-build it, then review
+   the reproduced predicted manifest plus its new trust, recovery-wrapper,
+   verifier, and configuration identities, and pin that five-member tuple.
+   The consumed v3 manifest is rejected before key admission.
 2. After separate fresh boot authorization, temporarily boot r2 and collect
-   the first strict-SSH target runtime record. The watchdog/fallback path and
-   persistent USB profile are now accepted live without ACM.
+   the first strict-SSH target runtime record. The watchdog/fallback path was
+   accepted live without ACM on the former `/16`; the installed `/30` profile
+   and single-session transport pass host/offline gates and require their first
+   phone-cycle proof during this boot.
 3. Determine whether ramoops survives the target/fallback path and collect the
    exact 88-field core record.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/

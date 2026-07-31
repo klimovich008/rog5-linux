@@ -64,6 +64,10 @@ The lifecycle now uses the dedicated client key over the fallback USB-NCM
 link. A persistent, no-gateway NetworkManager profile assigns only
 `169.254.77.1/30`; Alpine remains fixed at `169.254.77.2`. Recovery, target,
 and fallback now share one host prefix, removing the route replacement race.
+This `/30` profile and the single-session SSH transition pass host and
+hardware-free gates but have not yet completed a phone cycle; see the
+[USB transition result](../test-results/2026-07-31-usb-ssh-transition-hardening.md).
+The preceding live fallback proof used the former `/16` profile.
 The controller
 requires strict host-key checking, sends one nonce-bound read-only health
 probe over non-interactive SSH, verifies Alpine's Ed25519 signature, and then
@@ -120,17 +124,24 @@ The rebuilt recovery then completed fetch, PREPARE, and one durable COMMIT in
 the [strict-SSH fallback cycle](../test-results/2026-07-31-minimal-headless-live-cycle-ssh-fallback.md).
 Target host-key bootstrap rejected Linux's legitimate indented `cache` route
 continuation before SSH acceptance. The watchdog returned the same port to
-Alpine, the persistent USB profile restored the fixed `/16`, strict SSH
-verified a signed fallback record at 44.1 degrees C without ACM, and the
-intent resolved `FALLBACK_RETURNED`. The target parser now accepts only the
-same bounded cache continuation already covered by the fallback parser.
+Alpine, the persistent USB profile restored its then-configured fixed `/16`,
+strict SSH verified a signed fallback record at 44.1 degrees C without ACM,
+and the intent resolved `FALLBACK_RETURNED`. The profile is now standardized
+on `/30`. The target parser accepts only the same bounded cache continuation
+already covered by the fallback parser.
 The consumed v3 manifest is now denied before private-key inspection. A
 hardware-free r2 successor keeps the accepted target/root tuple and changes
 only the signed bundle identity; base/r2 twin packaging proves all other
 manifest fields remain equal. The predicted r2 manifest identity is pinned in
 the [offline successor result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md),
-but fresh trust and recovery-wrapper hashes remain an explicit credentialed
-build HOLD.
+and the real external r2 candidate is now staged outside Git. A
+credential-free check binds it to the retained package, exact
+Image/DTB/initramfs bytes, and predicted manifest identity; see the
+[real-candidate checkpoint](../test-results/2026-07-31-headless-ssh-successor-r2-real-candidate.md).
+It has not been signed. Under fresh credential authorization, the signed twin
+build must reproduce the already-pinned manifest identity, produce fresh
+trust, recovery-wrapper, verifier, and configuration identities, and pin the
+resulting five-member tuple.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

@@ -427,12 +427,15 @@ complete; H2 now requires one rebuilt, re-pinned attended lifecycle.
 
 Current execution order:
 
-1. rebuild/re-pin the recovery with the published fetch diagnostics and
-   coherent timeout bounds; the privileged NFS cancellation path has passed
-   real-host integration;
-2. rerun complete preflight and return verified Alpine to fastboot;
-3. perform at most one new authorized temporary boot, collect the 88-field
-   strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
+1. under fresh credential authorization, sign and twin-build the staged real
+   r2 candidate, then review and pin its trust, reproduced manifest,
+   recovery-wrapper, verifier, and configuration identities; the
+   credential-free candidate/package/artifact gate passes;
+2. install the reviewed r2 host artifacts, rerun complete preflight, and keep
+   the verified phone in fastboot;
+3. perform at most one separately authorized temporary boot, collect the 88-field
+   strict-SSH record, prove the `/30` profile and single-session transport on
+   the phone, keep rollback armed, and prove exact fallback cleanup;
 4. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
