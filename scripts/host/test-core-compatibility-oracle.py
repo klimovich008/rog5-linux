@@ -62,8 +62,13 @@ def active_config(profile: dict[str, object]) -> dict[str, str]:
             continue
         required = row["required_config"]
         minimum = row["minimum_integer_config"]
+        maximum = row["maximum_integer_config"]
         forbidden = row["forbidden_config"]
-        if not isinstance(required, dict) or not isinstance(minimum, dict):
+        if (
+            not isinstance(required, dict)
+            or not isinstance(minimum, dict)
+            or not isinstance(maximum, dict)
+        ):
             raise AssertionError("profile config contract is malformed")
         if not isinstance(forbidden, list):
             raise AssertionError("profile forbidden config is malformed")
@@ -79,10 +84,60 @@ def active_config(profile: dict[str, object]) -> dict[str, str]:
                     f"nonnumeric minimum fixture symbol: {symbol}"
                 ) from error
             result[symbol] = str(max(old, value))
+        for symbol, value in maximum.items():
+            try:
+                old = int(result.get(symbol, str(value)))
+            except ValueError as error:
+                raise AssertionError(
+                    f"nonnumeric maximum fixture symbol: {symbol}"
+                ) from error
+            result[symbol] = str(min(old, value))
         for symbol in forbidden:
             previous = result.setdefault(symbol, "n")
             if previous != "n":
                 raise AssertionError(f"forbidden fixture symbol: {symbol}")
+    return result
+
+
+def complete_config(profile: dict[str, object]) -> dict[str, str]:
+    result = active_config(profile)
+    rows = profile["capabilities"]
+    if not isinstance(rows, list):
+        raise AssertionError("profile capabilities are not a list")
+    for row in rows:
+        if not isinstance(row, dict):
+            raise AssertionError("profile capability is not an object")
+        required = row["required_config"]
+        minimum = row["minimum_integer_config"]
+        maximum = row["maximum_integer_config"]
+        forbidden = row["forbidden_config"]
+        if (
+            not isinstance(required, dict)
+            or not isinstance(minimum, dict)
+            or not isinstance(maximum, dict)
+        ):
+            raise AssertionError("profile config contract is malformed")
+        if not isinstance(forbidden, list):
+            raise AssertionError("profile forbidden config is malformed")
+        result.update(required)
+        for symbol, value in minimum.items():
+            try:
+                old = int(result.get(symbol, "0"))
+            except ValueError as error:
+                raise AssertionError(
+                    f"nonnumeric minimum fixture symbol: {symbol}"
+                ) from error
+            result[symbol] = str(max(old, value))
+        for symbol, value in maximum.items():
+            try:
+                old = int(result.get(symbol, str(value)))
+            except ValueError as error:
+                raise AssertionError(
+                    f"nonnumeric maximum fixture symbol: {symbol}"
+                ) from error
+            result[symbol] = str(min(old, value))
+        for symbol in forbidden:
+            result.setdefault(symbol, "n")
     return result
 
 
@@ -149,7 +204,7 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("active_capabilities=6", result.stdout)
-        self.assertIn("future_capabilities=6", result.stdout)
+        self.assertIn("future_capabilities=8", result.stdout)
         self.assertIn("kernel_config=metadata-only", result.stdout)
         self.assertIn("new_root_state=live-pending", result.stdout)
         self.assertIn("authority=none", result.stdout)
@@ -199,7 +254,7 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
         )
 
     def test_synthetic_active_config_passes(self) -> None:
-        self.assertEqual(self.validate(), (6, 6, "verified"))
+        self.assertEqual(self.validate(), (6, 8, "verified"))
 
     def test_committed_golden_active_config_passes(self) -> None:
         self.assertEqual(
@@ -209,7 +264,7 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
                 GOLDEN_CONFIG,
                 False,
             ),
-            (6, 6, "verified"),
+            (6, 8, "verified"),
         )
 
     def test_retained_accepted_config_passes_when_available(self) -> None:
@@ -222,7 +277,7 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
                 ACCEPTED_CONFIG,
                 False,
             ),
-            (6, 6, "verified"),
+            (6, 8, "verified"),
         )
 
     def test_missing_required_symbol_fails(self) -> None:
@@ -417,6 +472,77 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
         ):
             self.validate(include_future=True)
 
+    def test_thermal_emergency_fallback_remains_future(self) -> None:
+        profile = deepcopy(self.profile)
+        rows = profile["capabilities"]
+        profile["capabilities"] = [
+            row
+            for row in rows
+            if row["id"] != "thermal-emergency-fallback"
+        ]
+        self.assert_profile_fails(
+            profile,
+            "capability inventory does not cover the complete core roadmap",
+        )
+
+    def test_zero_thermal_emergency_delay_is_not_claimed(self) -> None:
+        config = complete_config(self.profile)
+        config["CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS"] = "0"
+        ORACLE.validate_kernel_config(
+            config,
+            deepcopy(self.profile["capabilities"]),
+            False,
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS>=10000",
+        ):
+            ORACLE.validate_kernel_config(
+                config,
+                deepcopy(self.profile["capabilities"]),
+                True,
+            )
+
+    def test_nonzero_thermal_emergency_delay_satisfies_future_contract(
+        self,
+    ) -> None:
+        config = complete_config(self.profile)
+        self.assertEqual(
+            config["CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS"],
+            "10000",
+        )
+        ORACLE.validate_kernel_config(
+            config,
+            deepcopy(self.profile["capabilities"]),
+            True,
+        )
+
+    def test_excessive_thermal_emergency_delay_fails(self) -> None:
+        config = complete_config(self.profile)
+        config["CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS"] = "30001"
+        with self.assertRaisesRegex(
+            ValueError,
+            "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS<=30000",
+        ):
+            ORACLE.validate_kernel_config(
+                config,
+                deepcopy(self.profile["capabilities"]),
+                True,
+            )
+
+    def test_pmic_critical_path_requires_built_in_driver(self) -> None:
+        config = complete_config(self.profile)
+        config["CONFIG_QCOM_SPMI_TEMP_ALARM"] = "m"
+        with self.assertRaisesRegex(
+            ValueError,
+            "CONFIG_QCOM_SPMI_TEMP_ALARM=y",
+        ):
+            ORACLE.validate_kernel_config(
+                config,
+                deepcopy(self.profile["capabilities"]),
+                True,
+            )
+
     def test_cross_capability_config_conflict_fails_at_profile(self) -> None:
         profile = deepcopy(self.profile)
         capability(profile, "cpu-ram")[
@@ -533,7 +659,7 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
         capability(profile, "sensors")["ci_gates"] = [
             "scripts/host/verify-core-compatibility-oracle.py"
         ]
-        self.assertEqual(self.validate(profile), (6, 6, "verified"))
+        self.assertEqual(self.validate(profile), (6, 8, "verified"))
 
 
 if __name__ == "__main__":

@@ -58,11 +58,11 @@ def render_source_tree(root: Path, contract: dict[str, object]) -> None:
     checks = contract["source_checks"]
     if not isinstance(checks, list):
         raise AssertionError("source checks are not a list")
+    rendered: dict[Path, list[str]] = {}
     for raw in checks:
         if not isinstance(raw, dict):
             raise AssertionError("source check is not an object")
         path = root / str(raw["path"])
-        path.parent.mkdir(parents=True, exist_ok=True)
         required = raw["required"]
         if not isinstance(required, list):
             raise AssertionError("required source values are not a list")
@@ -98,6 +98,9 @@ def render_source_tree(root: Path, contract: dict[str, object]) -> None:
             lines.extend(str(value) for value in required)
         else:
             raise AssertionError(f"unknown fixture source kind: {kind}")
+        rendered.setdefault(path, []).extend(lines)
+    for path, lines in rendered.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     subprocess.run(["git", "init", "-q", str(root)], check=True)
@@ -121,8 +124,18 @@ def render_source_tree(root: Path, contract: dict[str, object]) -> None:
 
 
 def dts_text() -> str:
+    cpu_rows = (
+        ("cpu0", "0", "arm,cortex-a55", 0),
+        ("cpu1", "100", "arm,cortex-a55", 0),
+        ("cpu2", "200", "arm,cortex-a55", 0),
+        ("cpu3", "300", "arm,cortex-a55", 0),
+        ("cpu4", "400", "arm,cortex-a78", 1),
+        ("cpu5", "500", "arm,cortex-a78", 1),
+        ("cpu6", "600", "arm,cortex-a78", 1),
+        ("cpu7", "700", "arm,cortex-x1", 2),
+    )
     cpus = "\n".join(
-        f"""\t\tcpu@{address} {{
+        f"""\t\t{label}: cpu@{address} {{
 \t\t\tcompatible = "{compatible}";
 \t\t\tdevice_type = "cpu";
 \t\t\tenable-method = "psci";
@@ -131,16 +144,106 @@ def dts_text() -> str:
 \t\t\tclocks = <2 {domain}>;
 \t\t\tqcom,freq-domain = <2 {domain}>;
 \t\t}};"""
-        for address, compatible, domain in (
-            ("0", "arm,cortex-a55", 0),
-            ("100", "arm,cortex-a55", 0),
-            ("200", "arm,cortex-a55", 0),
-            ("300", "arm,cortex-a55", 0),
-            ("400", "arm,cortex-a78", 1),
-            ("500", "arm,cortex-a78", 1),
-            ("600", "arm,cortex-a78", 1),
-            ("700", "arm,cortex-x1", 2),
+        for label, address, compatible, domain in cpu_rows
+    )
+    cpu_zone_rows = (
+        ("cpu0-thermal", 1, ("cpu0", "cpu1", "cpu2", "cpu3")),
+        ("cpu1-thermal", 2, ("cpu0", "cpu1", "cpu2", "cpu3")),
+        ("cpu2-thermal", 3, ("cpu0", "cpu1", "cpu2", "cpu3")),
+        ("cpu3-thermal", 4, ("cpu0", "cpu1", "cpu2", "cpu3")),
+        ("cpu4-top-thermal", 7, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu5-top-thermal", 8, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu6-top-thermal", 9, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu7-top-thermal", 10, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu4-bottom-thermal", 11, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu5-bottom-thermal", 12, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu6-bottom-thermal", 13, ("cpu4", "cpu5", "cpu6", "cpu7")),
+        ("cpu7-bottom-thermal", 14, ("cpu4", "cpu5", "cpu6", "cpu7")),
+    )
+    cpu_zones: list[str] = []
+    for zone_number, (
+        zone_name,
+        sensor_index,
+        cooling_cpus,
+    ) in enumerate(cpu_zone_rows):
+        label = zone_name.replace("-", "_")
+        cooling = ", ".join(
+            f"<&{cpu} 0xffffffff 0xffffffff>"
+            for cpu in cooling_cpus
         )
+        trip0_phandle = 0x100 + zone_number * 2
+        trip1_phandle = trip0_phandle + 1
+        cpu_zones.append(
+            f"""\t\t{zone_name} {{
+\t\t\tpolling-delay-passive = <250>;
+\t\t\tthermal-sensors = <&tsens0 {sensor_index}>;
+\t\t\ttrips {{
+\t\t\t\t{label}_trip0: trip-point0 {{
+\t\t\t\t\ttemperature = <90000>;
+\t\t\t\t\thysteresis = <2000>;
+\t\t\t\t\ttype = "passive";
+\t\t\t\t\tphandle = <0x{trip0_phandle:x}>;
+\t\t\t\t}};
+\t\t\t\t{label}_trip1: trip-point1 {{
+\t\t\t\t\ttemperature = <95000>;
+\t\t\t\t\thysteresis = <2000>;
+\t\t\t\t\ttype = "passive";
+\t\t\t\t\tphandle = <0x{trip1_phandle:x}>;
+\t\t\t\t}};
+\t\t\t\t{label}_crit: cpu-crit {{
+\t\t\t\t\ttemperature = <110000>;
+\t\t\t\t\thysteresis = <1000>;
+\t\t\t\t\ttype = "critical";
+\t\t\t\t}};
+\t\t\t}};
+\t\t\tcooling-maps {{
+\t\t\t\tmap0 {{
+\t\t\t\t\ttrip = <&{label}_trip0>;
+\t\t\t\t\tcooling-device = {cooling};
+\t\t\t\t}};
+\t\t\t\tmap1 {{
+\t\t\t\t\ttrip = <&{label}_trip1>;
+\t\t\t\t\tcooling-device = {cooling};
+\t\t\t\t}};
+\t\t\t}};
+\t\t}};"""
+        )
+    pmic_rows = (
+        ("pm8350", 1, "pm8350-thermal", "pm8350c-crit"),
+        ("pm8350c", 2, "pm8350c-thermal", "pm8350c-crit"),
+        ("pm8350b", 3, "pm8350b-thermal", "pm8350c-crit"),
+        ("pmr735a", 4, "pmr735a-thermal", "pmr735a-crit"),
+        ("pmr735b", 5, "pmr735b-thermal", "pmr735a-crit"),
+    )
+    pmic_alarm_nodes = "\n".join(
+        f"""\t\t\tpmic@{sid} {{
+\t\t\t\t{label}_alarm: temp-alarm@a00 {{
+\t\t\t\t\tcompatible = "qcom,spmi-temp-alarm";
+\t\t\t\t\treg = <0xa00>;
+\t\t\t\t\tinterrupts = <{sid} 10 0 3>;
+\t\t\t\t\t#thermal-sensor-cells = <0>;
+\t\t\t\t}};
+\t\t\t}};"""
+        for label, sid, _zone_name, _critical_name in pmic_rows
+    )
+    pmic_zones = "\n".join(
+        f"""\t\t{zone_name} {{
+\t\t\tpolling-delay-passive = <100>;
+\t\t\tthermal-sensors = <&{label}_alarm>;
+\t\t\ttrips {{
+\t\t\t\t{label}_trip0: trip0 {{
+\t\t\t\t\ttemperature = <95000>;
+\t\t\t\t\thysteresis = <0>;
+\t\t\t\t\ttype = "passive";
+\t\t\t\t}};
+\t\t\t\t{label}_crit: {critical_name} {{
+\t\t\t\t\ttemperature = <115000>;
+\t\t\t\t\thysteresis = <0>;
+\t\t\t\t\ttype = "critical";
+\t\t\t\t}};
+\t\t\t}};
+\t\t}};"""
+        for label, _sid, zone_name, critical_name in pmic_rows
     )
     return f"""/dts-v1/;
 
@@ -168,7 +271,26 @@ def dts_text() -> str:
 \t\tmethod = "smc";
 \t}};
 
+\tthermal-zones {{
+{chr(10).join(cpu_zones)}
+{pmic_zones}
+\t}};
+
 \tsoc@0 {{
+\t\tgic: interrupt-controller@17a00000 {{
+\t\t\tcompatible = "arm,gic-v3";
+\t\t\t#interrupt-cells = <3>;
+\t\t\tinterrupt-controller;
+\t\t\tphandle = <3>;
+\t\t}};
+
+\t\tpdc: interrupt-controller@b220000 {{
+\t\t\tcompatible = "qcom,sm8350-pdc";
+\t\t\t#interrupt-cells = <2>;
+\t\t\tinterrupt-controller;
+\t\t\tinterrupt-parent = <&gic>;
+\t\t}};
+
 \t\tcpufreq@18591000 {{
 \t\t\tcompatible = "qcom,sm8350-cpufreq-epss",
 \t\t\t\t     "qcom,cpufreq-epss";
@@ -224,14 +346,24 @@ def dts_text() -> str:
 \t\t\tstatus = "disabled";
 \t\t}};
 
-\t\tthermal-sensor@c263000 {{
+\t\ttsens0: thermal-sensor@c263000 {{
 \t\t\tcompatible = "qcom,sm8350-tsens", "qcom,tsens-v2";
 \t\t\t#qcom,sensors = <15>;
+\t\t\t#thermal-sensor-cells = <1>;
+\t\t\tinterrupt-names = "uplow", "critical";
+\t\t\tinterrupts-extended = <&pdc 26 4>, <&pdc 28 4>;
 \t\t}};
 
-\t\tthermal-sensor@c265000 {{
+\t\ttsens1: thermal-sensor@c265000 {{
 \t\t\tcompatible = "qcom,sm8350-tsens", "qcom,tsens-v2";
 \t\t\t#qcom,sensors = <14>;
+\t\t\t#thermal-sensor-cells = <1>;
+\t\t\tinterrupt-names = "uplow", "critical";
+\t\t\tinterrupts-extended = <&pdc 27 4>, <&pdc 29 4>;
+\t\t}};
+
+\t\tspmi@c440000 {{
+{pmic_alarm_nodes}
 \t\t}};
 \t}};
 }};
@@ -276,8 +408,11 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         result = run(["--metadata-only"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("active_capabilities=6", result.stdout)
-        self.assertIn("source_checks=37", result.stdout)
+        self.assertIn("source_checks=43", result.stdout)
         self.assertIn("dt_checks=23", result.stdout)
+        self.assertIn("thermal_cpu_zones=12", result.stdout)
+        self.assertIn("thermal_pmic_alarms=5", result.stdout)
+        self.assertIn("thermal_forced_fallback=pending", result.stdout)
         self.assertIn("status=metadata-only", result.stdout)
         self.assertIn("authority=none", result.stdout)
 
@@ -397,8 +532,21 @@ class CoreSourceDtbContractTest(unittest.TestCase):
             for row in self.contract["source_checks"]
             if row["kind"] == kind
         )
+        return self.mutate_source_check_id(str(check["id"]))
+
+    def mutate_source_check_id(
+        self,
+        identity: str,
+        requirement_index: int = 0,
+    ) -> subprocess.CompletedProcess[str]:
+        check = next(
+            row
+            for row in self.contract["source_checks"]
+            if row["id"] == identity
+        )
         path = self.source / str(check["path"])
-        required = str(check["required"][0])
+        required = str(check["required"][requirement_index])
+        kind = str(check["kind"])
         if kind == "makefile":
             symbol, object_name = required.split(":", 1)
             needle = f"obj-$({symbol}) += {object_name}"
@@ -413,6 +561,14 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn(needle, text)
         path.write_text(text.replace(needle, "removed", 1), encoding="utf-8")
+        self.commit_source_change(path)
+        return run(self.candidate_arguments())
+
+    def commit_source_change(
+        self,
+        path: Path,
+        message: str = "mutate",
+    ) -> None:
         subprocess.run(
             ["git", "-C", str(self.source), "add", str(path)],
             check=True,
@@ -427,11 +583,14 @@ class CoreSourceDtbContractTest(unittest.TestCase):
             }
         )
         subprocess.run(
-            ["git", "-C", str(self.source), "commit", "-q", "-m", "mutate"],
+            ["git", "-C", str(self.source), "commit", "-q", "-m", message],
             check=True,
             env=environment,
         )
-        return run(self.candidate_arguments())
+
+    def reset_source(self) -> None:
+        shutil.rmtree(self.source)
+        render_source_tree(self.source, self.contract)
 
     def test_missing_kconfig_symbol_fails(self) -> None:
         result = self.mutate_source_check("kconfig")
@@ -457,6 +616,79 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         result = self.mutate_source_check("source")
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing source contract literal", result.stderr)
+
+    def test_each_thermal_safety_source_contract_is_enforced(self) -> None:
+        identities = (
+            "thermal-tsens-critical-source",
+            "thermal-tsens-v2-feature-source",
+            "thermal-critical-core-source",
+            "thermal-hw-protection-source",
+            "thermal-pmic-alarm-source",
+        )
+        for identity in identities:
+            check = next(
+                row
+                for row in self.contract["source_checks"]
+                if row["id"] == identity
+            )
+            for requirement_index in range(len(check["required"])):
+                with self.subTest(
+                    source_check=identity,
+                    requirement=requirement_index,
+                ):
+                    self.reset_source()
+                    result = self.mutate_source_check_id(
+                        identity,
+                        requirement_index,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(
+                        f"source check {identity} "
+                        "missing source contract literal",
+                        result.stderr,
+                    )
+
+    def test_thermal_driver_registration_contracts_are_enforced(self) -> None:
+        for identity in (
+            "thermal-tsens-of-match",
+            "thermal-pmic-of-match",
+        ):
+            with self.subTest(source_check=identity):
+                self.reset_source()
+                result = self.mutate_source_check_id(identity)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(
+                    f"source check {identity} "
+                    "missing registered OF compatible",
+                    result.stderr,
+                )
+
+    def test_source_whitespace_normalization_is_scoped(self) -> None:
+        check = next(
+            row
+            for row in self.contract["source_checks"]
+            if row["id"] == "thermal-critical-core-source"
+        )
+        path = self.source / str(check["path"])
+        text = path.read_text(encoding="utf-8")
+        needle = "static void thermal_zone_device_halt("
+        self.assertIn(needle, text)
+        path.write_text(
+            text.replace(
+                needle,
+                "static\nvoid thermal_zone_device_halt(",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        self.commit_source_change(path, "split-unapproved-literal")
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "source check thermal-critical-core-source "
+            "missing source contract literal",
+            result.stderr,
+        )
 
     def test_of_match_without_registration_fails(self) -> None:
         check = next(
@@ -748,7 +980,7 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         result = run(self.candidate_arguments())
         self.assertEqual(result.returncode, 1)
         self.assertIn(
-            "DT check cpu0 u32 property is absent: #cooling-cells",
+            "thermal cooling target lacks cell count: /cpus/cpu@0",
             result.stderr,
         )
 
@@ -886,7 +1118,380 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         )
         result = run(self.candidate_arguments())
         self.assertEqual(result.returncode, 1)
-        self.assertIn("DT check tsens0 u32 property changed", result.stderr)
+        self.assertIn(
+            "thermal sensor controller "
+            "/soc@0/thermal-sensor@c263000 property changed: #qcom,sensors",
+            result.stderr,
+        )
+
+    def test_thermal_policy_metadata_cannot_change(self) -> None:
+        module = load_module()
+        contract = deepcopy(self.contract)
+        contract["thermal_policy"]["polling_delay_passive_ms"] = 251
+        with self.assertRaisesRegex(
+            ValueError,
+            "thermal policy differs from the accepted static topology",
+        ):
+            module.validate_contract(REPO, contract)
+        contract = deepcopy(self.contract)
+        contract["thermal_policy"]["passive_trip_millicelsius"] = [
+            95000,
+            90000,
+        ]
+        with self.assertRaisesRegex(
+            ValueError,
+            "thermal trip ordering or hysteresis is unsafe",
+        ):
+            module.validate_contract(REPO, contract)
+        contract = deepcopy(self.contract)
+        contract["thermal_policy"][
+            "critical_hysteresis_millicelsius"
+        ] = 0
+        with self.assertRaisesRegex(
+            ValueError,
+            "thermal trip ordering or hysteresis is unsafe",
+        ):
+            module.validate_contract(REPO, contract)
+        contract = deepcopy(self.contract)
+        contract["thermal_policy"]["cpu_zone_groups"] = "invalid"
+        with self.assertRaisesRegex(ValueError, "thermal policy is malformed"):
+            module.validate_contract(REPO, contract)
+
+    def test_tsens_critical_interrupt_name_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                'interrupt-names = "uplow", "critical";',
+                'interrupt-names = "uplow", "fatal";',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal sensor controller "
+            "/soc@0/thermal-sensor@c263000 property changed: "
+            "interrupt-names",
+            result.stderr,
+        )
+
+    def test_tsens_critical_interrupt_route_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "interrupts-extended = <&pdc 26 4>, <&pdc 28 4>;",
+                "interrupts-extended = <&pdc 26 4>, <&pdc 30 4>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal sensor controller "
+            "/soc@0/thermal-sensor@c263000 property changed: "
+            "interrupts-extended",
+            result.stderr,
+        )
+
+    def test_tsens_pdc_parent_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "interrupt-parent = <&gic>;",
+                "interrupt-parent = <&tsens1>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal PDC /soc@0/interrupt-controller@b220000 "
+            "property changed: interrupt-parent",
+            result.stderr,
+        )
+
+    def test_disabled_cpu_thermal_zone_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\tcpu0-thermal {\n",
+                '\t\tcpu0-thermal {\n\t\t\tstatus = "disabled";\n',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check thermal zone cpu0-thermal is not enabled",
+            result.stderr,
+        )
+
+    def test_cpu_sensor_index_out_of_range_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "thermal-sensors = <&tsens0 1>;",
+                "thermal-sensors = <&tsens0 15>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal CPU zone sensor index is out of range: "
+            "/thermal-zones/cpu0-thermal",
+            result.stderr,
+        )
+
+    def test_duplicate_unrelated_thermal_sensor_binding_fails(self) -> None:
+        extra_zone = """
+\t\tboard-skin-thermal {
+\t\t\tthermal-sensors = <&tsens0 1>;
+\t\t};
+"""
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\n\t};\n\n\tsoc@0 {",
+                f"{extra_zone}\n\t}};\n\n\tsoc@0 {{",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal zone sensor binding is duplicated",
+            result.stderr,
+        )
+
+    def test_cpu_thermal_trip_mutations_fail(self) -> None:
+        mutations = (
+            (
+                "temperature = <90000>;",
+                "temperature = <91000>;",
+                "trip-point0",
+                "temperature",
+            ),
+            (
+                "hysteresis = <2000>;",
+                "hysteresis = <3000>;",
+                "trip-point0",
+                "hysteresis",
+            ),
+            (
+                'type = "passive";',
+                'type = "hot";',
+                "trip-point0",
+                "type",
+            ),
+            (
+                "temperature = <110000>;",
+                "temperature = <120000>;",
+                "cpu-crit",
+                "temperature",
+            ),
+        )
+        for original, replacement, trip_name, property_name in mutations:
+            with self.subTest(property=property_name, original=original):
+                build_dtb(
+                    self.dtb,
+                    dts_text().replace(original, replacement, 1),
+                )
+                result = run(self.candidate_arguments())
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(
+                    f"thermal trip /thermal-zones/cpu0-thermal/trips/"
+                    f"{trip_name} "
+                    f"property changed: {property_name}",
+                    result.stderr,
+                )
+
+    def test_cpu_passive_polling_delay_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "polling-delay-passive = <250>;",
+                "polling-delay-passive = <500>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal CPU zone /thermal-zones/cpu0-thermal "
+            "property changed: polling-delay-passive",
+            result.stderr,
+        )
+
+    def test_cpu_cooling_map_trip_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "trip = <&cpu0_thermal_trip0>;",
+                "trip = <&cpu0_thermal_trip1>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal CPU cooling map "
+            "/thermal-zones/cpu0-thermal/cooling-maps/map0 "
+            "property changed: trip",
+            result.stderr,
+        )
+
+    def test_cpu_cooling_device_limit_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "<&cpu0 0xffffffff 0xffffffff>",
+                "<&cpu0 0 0xffffffff>",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal CPU cooling map "
+            "/thermal-zones/cpu0-thermal/cooling-maps/map0 "
+            "property changed: cooling-device",
+            result.stderr,
+        )
+
+    def test_additional_cpu_thermal_zone_fails(self) -> None:
+        extra_zone = """
+\t\tcpu8-thermal {
+\t\t\tthermal-sensors = <&tsens0 0>;
+\t\t};
+"""
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\n\t};\n\n\tsoc@0 {",
+                f"{extra_zone}\n\t}};\n\n\tsoc@0 {{",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("thermal CPU zone inventory changed", result.stderr)
+
+    def test_renamed_zone_cannot_gain_cpu_cooling_fails(self) -> None:
+        extra_zone = """
+\t\tbig-cluster-thermal {
+\t\t\tthermal-sensors = <&tsens0 5>;
+\t\t\ttrips {
+\t\t\t\tbig_cluster_trip: trip0 {
+\t\t\t\t\ttemperature = <90000>;
+\t\t\t\t\thysteresis = <2000>;
+\t\t\t\t\ttype = "passive";
+\t\t\t\t};
+\t\t\t};
+\t\t\tcooling-maps {
+\t\t\t\tmap0 {
+\t\t\t\t\ttrip = <&big_cluster_trip>;
+\t\t\t\t\tcooling-device = <&cpu0 0xffffffff 0xffffffff>;
+\t\t\t\t};
+\t\t\t};
+\t\t};
+"""
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\n\t};\n\n\tsoc@0 {",
+                f"{extra_zone}\n\t}};\n\n\tsoc@0 {{",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("thermal CPU zone inventory changed", result.stderr)
+
+    def test_missing_pmic_alarm_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                'compatible = "qcom,spmi-temp-alarm";',
+                'compatible = "qcom,mutant-temp-alarm";',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("thermal PMIC alarm inventory changed", result.stderr)
+
+    def test_disabled_pmic_alarm_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\t\t\tpm8350_alarm: temp-alarm@a00 {\n",
+                "\t\t\t\tpm8350_alarm: temp-alarm@a00 {\n"
+                '\t\t\t\t\tstatus = "disabled";\n',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check thermal PMIC alarm "
+            "/soc@0/spmi@c440000/pmic@1/temp-alarm@a00 "
+            "is not enabled",
+            result.stderr,
+        )
+
+    def test_disabled_pmic_thermal_zone_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "\t\tpm8350-thermal {\n",
+                '\t\tpm8350-thermal {\n\t\t\tstatus = "disabled";\n',
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "DT check thermal PMIC zone "
+            "/thermal-zones/pm8350-thermal is not enabled",
+            result.stderr,
+        )
+
+    def test_pmic_alarm_interrupt_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "interrupts = <1 10 0 3>;",
+                "interrupts = <1 11 0 3>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal PMIC alarm "
+            "/soc@0/spmi@c440000/pmic@1/temp-alarm@a00 "
+            "property changed: interrupts",
+            result.stderr,
+        )
+
+    def test_pmic_critical_trip_change_fails(self) -> None:
+        build_dtb(
+            self.dtb,
+            dts_text().replace(
+                "temperature = <115000>;",
+                "temperature = <116000>;",
+                1,
+            ),
+        )
+        result = run(self.candidate_arguments())
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "thermal trip "
+            "/thermal-zones/pm8350-thermal/trips/pm8350c-crit "
+            "property changed: temperature",
+            result.stderr,
+        )
 
     def test_missing_boolean_property_fails(self) -> None:
         build_dtb(
