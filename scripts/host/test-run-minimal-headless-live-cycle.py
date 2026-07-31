@@ -20,6 +20,8 @@ NETWORK_LAUNCHER = (
 NETWORK_SERVER = REPO / "scripts/host/serve-network-root.sh"
 INSTALLER = REPO / "scripts/host/install-recovery-host-controller.sh"
 MANIFEST = "a" * 64
+PACKAGE_SHA256 = "2" * 64
+CANDIDATE_SHA256 = "3" * 64
 BUNDLE = "headless-ssh-network-root-v3"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 SESSION = "1" * 32
@@ -234,8 +236,8 @@ class Fixture:
               'target_id=headless-ssh-network-root' \
               'authorized_key_fingerprint=SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' \
               'public_key_sha256={'1' * 64}' \
-              'package_sha256={'2' * 64}' \
-              'candidate_sha256={'3' * 64}' \
+              'package_sha256={PACKAGE_SHA256}' \
+              'candidate_sha256={CANDIDATE_SHA256}' \
               'manifest_sha256={MANIFEST}' \
               'root_tree_sha256={'4' * 64}' \
               'root_seal_sha256={'5' * 64}' \
@@ -284,17 +286,23 @@ class Fixture:
         )
         self.executable(
             "run-headless-network-root-server.sh",
-            """\
+            f"""\
             #!/bin/sh
             set -eu
             if [ "$1" = preflight ]; then
+              [ "$2" = "{RECOVERY_PROFILE}" ]
+              [ "$3" = "{PACKAGE_SHA256}" ]
+              [ "$#" = 3 ]
               printf 'nfs:preflight\n' >>"$MOCK_CALLS"
               echo 'PASS NFS preflight'
               exit 0
             fi
             [ "$1" = serve ]
-            [ "${ALLOW_HEADLESS_NETWORK_ROOT_SERVER:-}" = 1 ]
-            [ -z "${ALLOW_TEMPORARY_BOOT+x}" ]
+            [ "$2" = "{RECOVERY_PROFILE}" ]
+            [ "$3" = "{PACKAGE_SHA256}" ]
+            [ "$#" = 4 ]
+            [ "${{ALLOW_HEADLESS_NETWORK_ROOT_SERVER:-}}" = 1 ]
+            [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
             printf 'nfs:start\n' >>"$MOCK_CALLS"
             : >"$MOCK_ROOT/nfs-started"
             echo 'PASS restricted NFSv4.2 export ready; waiting for exact USB gadget'
@@ -317,6 +325,8 @@ class Fixture:
                 [ "${{ALLOW_STABLE_RECOVERY_CONTROL:-}}" = 1 ]
                 [ "${{ALLOW_ATTENDED_KEXEC:-}}" = 1 ]
                 [ "${{ALLOW_NETWORK_ROOT_NFS_HANDOFF:-}}" = 1 ]
+                [ "${{ROG5_NFS_PROFILE:-}}" = "{RECOVERY_PROFILE}" ]
+                [ "${{ROG5_NFS_PACKAGE_SHA256:-}}" = "{PACKAGE_SHA256}" ]
                 [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
                 printf 'control:prepare-commit\n' >>"$MOCK_CALLS"
                 : >"$MOCK_ROOT/bundle-consumed"
@@ -396,6 +406,10 @@ class Fixture:
             f"""\
             #!/bin/sh
             set -eu
+            [ "$1" = "{RECOVERY_PROFILE}" ]
+            [ "$2" = "{self.candidate}" ]
+            [ "$3" = "{CANDIDATE_SHA256}" ]
+            [ "$#" = 3 ]
             [ "${{ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE:-}}" = 1 ]
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
             [ -z "${{ALLOW_PHONE_CREDENTIAL_USE+x}}" ]

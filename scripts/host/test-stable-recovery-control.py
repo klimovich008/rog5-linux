@@ -39,6 +39,9 @@ from tools.recovery_control import (  # noqa: E402
 SESSION = "1" * 32
 MANIFEST = "a" * 64
 BUNDLE = "headless-network-root-v1"
+DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3"
+DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
+PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64
 
 
@@ -223,6 +226,50 @@ class StableRecoveryControlTest(unittest.TestCase):
             MODULE.main(["prepare-commit", BUNDLE, MANIFEST])
         ready.assert_not_called()
 
+    def test_deployment_profile_precedes_device_discovery(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                    "ALLOW_ATTENDED_KEXEC": "1",
+                    "ALLOW_NETWORK_ROOT_NFS_HANDOFF": "1",
+                    "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                },
+                clear=True,
+            ),
+            mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            self.assertRaisesRegex(RuntimeError, "ROG5_NFS_PROFILE"),
+        ):
+            MODULE.main(
+                ["prepare-commit", DEPLOYMENT_BUNDLE, MANIFEST]
+            )
+        ready.assert_not_called()
+
+    def test_deployment_package_identity_precedes_device_discovery(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                    "ALLOW_ATTENDED_KEXEC": "1",
+                    "ALLOW_NETWORK_ROOT_NFS_HANDOFF": "1",
+                    "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                    "ROG5_NFS_PROFILE": DEPLOYMENT_PROFILE,
+                },
+                clear=True,
+            ),
+            mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            self.assertRaisesRegex(
+                RuntimeError,
+                "ROG5_NFS_PACKAGE_SHA256",
+            ),
+        ):
+            MODULE.main(
+                ["prepare-commit", DEPLOYMENT_BUNDLE, MANIFEST]
+            )
+        ready.assert_not_called()
+
     def test_network_root_readiness_uses_token_marker_and_listener(self):
         fake_ss = mock.MagicMock()
         with (
@@ -245,6 +292,36 @@ class StableRecoveryControlTest(unittest.TestCase):
         self.assertNotIn(
             "/proc/fs/nfsd",
             SOURCE.read_text(encoding="utf-8"),
+        )
+
+    def test_deployment_readiness_uses_exact_profile_and_package(self):
+        fake_ss = mock.MagicMock()
+        with (
+            mock.patch.object(
+                MODULE,
+                "nfs_handoff_marker_matches",
+                return_value=True,
+            ) as marker,
+            mock.patch.object(MODULE, "SS", fake_ss),
+            mock.patch.object(MODULE.subprocess, "run") as run,
+        ):
+            fake_ss.stat.return_value.st_mode = 0o100755
+            fake_ss.stat.return_value.st_uid = 0
+            fake_ss.stat.return_value.st_gid = 0
+            run.return_value.stdout = (
+                "LISTEN 0 4096 169.254.77.1:2049 0.0.0.0:*\n"
+            )
+            self.assertTrue(
+                MODULE.network_root_nfs_ready(
+                    HANDOFF_TOKEN,
+                    DEPLOYMENT_BUNDLE,
+                    PACKAGE_SHA256,
+                )
+            )
+        marker.assert_called_once_with(
+            HANDOFF_TOKEN,
+            DEPLOYMENT_BUNDLE,
+            PACKAGE_SHA256,
         )
 
     def test_resolution_guard_precedes_ledger_access(self):

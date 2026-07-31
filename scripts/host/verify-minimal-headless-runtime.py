@@ -18,8 +18,10 @@ from typing import NoReturn
 REPO = Path(__file__).resolve().parents[2]
 PROFILE_PATH = Path("configs/compatibility/rog5-minimal-headless-v1.json")
 PROBE_PATH = Path("scripts/device/collect-minimal-headless-runtime.sh")
+CANDIDATE_TOOL_PATH = Path("scripts/host/prepare-recovery-candidate.py")
 FORMAT = "rog5-minimal-headless-runtime-v1"
 MAX_RECORD_SIZE = 16 * 1024
+MAX_CANDIDATE_SIZE = 64 * 1024
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -123,12 +125,26 @@ CAPABILITIES = (
     "usb-ncm-network",
     "watchdog-rollback-reboot",
 )
+HISTORICAL_PROFILE = "historical-headless-network-root-v1"
+DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
+HISTORICAL_CANDIDATE = "headless-network-root-v1"
+DEPLOYMENT_CANDIDATE = "headless-ssh-network-root-v3"
+DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3"
+DEPLOYMENT_TARGET = "headless-ssh-network-root"
+DEPLOYMENT_RELEASE = "7.1.4-g7a5cef0db479"
+FIXTURE_TREE_SHA256 = (
+    "6f8a8f11bfb581bb52ca7d590141ce46"
+    "5b8d48d8f9f4577a076b7a37604a2fd5"
+)
+FIXTURE_SEAL_SHA256 = (
+    "f443a47c456b33d670e6efd4a2e20cff"
+    "2bc72061e7661472694acfbba45c8d5a"
+)
 EXACT_VALUES = {
     "format": FORMAT,
     "profile": "minimal-headless-v1",
     "execution_mode": "live",
     "active_capabilities": ",".join(CAPABILITIES),
-    "candidate": "headless-network-root-v1",
     "machine": "aarch64",
     "pid1": "systemd",
     "system_state": "running",
@@ -213,6 +229,20 @@ def load_oracle_module(repo: Path):
     if specification is None or specification.loader is None:
         fail("cannot load the compatibility oracle verifier")
     module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return module
+
+
+def load_candidate_module(repo: Path):
+    path = repo / CANDIDATE_TOOL_PATH
+    specification = importlib.util.spec_from_file_location(
+        "rog5_runtime_candidate",
+        path,
+    )
+    if specification is None or specification.loader is None:
+        fail("cannot load the recovery candidate verifier")
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[specification.name] = module
     specification.loader.exec_module(module)
     return module
 
@@ -343,10 +373,10 @@ def require_sha256(value: str, label: str) -> str:
     return value
 
 
-def load_candidate(
+def load_compatibility_profile(
     repo: Path,
     oracle_module,
-) -> tuple[dict[str, object], dict[str, object]]:
+) -> dict[str, object]:
     profile_path = repo / PROFILE_PATH
     profile = oracle_module.read_json(profile_path, "compatibility profile")
     oracle_module.validate_profile(repo, profile, None, False)
@@ -359,6 +389,14 @@ def load_candidate(
     )
     if active != CAPABILITIES:
         fail("compatibility oracle active capability set changed")
+    return profile
+
+
+def load_historical_candidate(
+    repo: Path,
+    oracle_module,
+    profile: dict[str, object],
+) -> dict[str, object]:
     candidate_path = repo / profile["candidate"]["path"]
     try:
         candidate_data = oracle_module.read_bounded(
@@ -380,13 +418,156 @@ def load_candidate(
         ) from error
     if not isinstance(candidate, dict):
         fail("recovery candidate root is invalid")
-    return profile, candidate
+    return candidate
+
+
+def safe_external_candidate(repo: Path, path: Path) -> Path:
+    if not path.is_absolute():
+        fail("deployment candidate path must be absolute")
+    lexical = Path(os.path.abspath(path.expanduser()))
+    if lexical.is_symlink():
+        fail("deployment candidate is linked")
+    resolved = lexical.resolve(strict=True)
+    if lexical != resolved or not resolved.is_file() or resolved.is_symlink():
+        fail("deployment candidate path is unsafe")
+    try:
+        resolved.relative_to(repo)
+    except ValueError:
+        pass
+    else:
+        fail("deployment candidate must remain outside the repository")
+    metadata = resolved.stat()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) not in {0o400, 0o444}
+        or metadata.st_nlink != 1
+        or metadata.st_size <= 0
+        or metadata.st_size > MAX_CANDIDATE_SIZE
+    ):
+        fail("deployment candidate metadata is unsafe")
+    return resolved
+
+
+def read_external_candidate(path: Path) -> bytes:
+    descriptor = os.open(
+        path,
+        os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0),
+    )
+    try:
+        before = os.fstat(descriptor)
+        payload = bytearray()
+        while len(payload) <= MAX_CANDIDATE_SIZE:
+            block = os.read(
+                descriptor,
+                min(65536, MAX_CANDIDATE_SIZE + 1 - len(payload)),
+            )
+            if not block:
+                break
+            payload.extend(block)
+        after = os.fstat(descriptor)
+        named = path.lstat()
+    finally:
+        os.close(descriptor)
+    identity = lambda value: (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_uid,
+        value.st_gid,
+        value.st_nlink,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+    if (
+        len(payload) != before.st_size
+        or identity(before) != identity(after)
+        or identity(before) != identity(named)
+    ):
+        fail("deployment candidate changed while it was read")
+    return bytes(payload)
+
+
+def load_deployment_candidate(
+    repo: Path,
+    path: Path | None,
+    expected_sha256: str,
+) -> dict[str, object]:
+    if path is None:
+        fail("deployment candidate record is required")
+    require_sha256(expected_sha256, "deployment candidate identity")
+    candidate_path = safe_external_candidate(repo, path)
+    before = read_external_candidate(candidate_path)
+    if hashlib.sha256(before).hexdigest() != expected_sha256:
+        fail("deployment candidate identity changed")
+    candidate_module = load_candidate_module(repo)
+    try:
+        candidate = candidate_module.load_candidate_path(
+            candidate_path,
+            DEPLOYMENT_CANDIDATE,
+        )
+    except candidate_module.CandidateError as error:
+        raise RuntimeAcceptanceError(
+            "deployment candidate record is invalid"
+        ) from error
+    after = read_external_candidate(candidate_path)
+    if before != after:
+        fail("deployment candidate changed during validation")
+    if (
+        candidate.get("candidate") != DEPLOYMENT_CANDIDATE
+        or candidate.get("bundle") != DEPLOYMENT_BUNDLE
+        or candidate.get("status") != "offline"
+        or candidate.get("authority") != "none"
+        or candidate.get("profile") != "network-root-v1"
+        or candidate.get("target_id") != DEPLOYMENT_TARGET
+        or candidate.get("target_release") != DEPLOYMENT_RELEASE
+        or candidate.get("rollback_timeout") != "600"
+        or candidate.get("target_timeout") != "480"
+    ):
+        fail("deployment candidate tuple is unsupported")
+    if (
+        candidate.get("root_tree_sha256") == FIXTURE_TREE_SHA256
+        or candidate.get("root_seal_sha256") == FIXTURE_SEAL_SHA256
+    ):
+        fail("deployment candidate still carries fixture root identity")
+    return candidate
+
+
+def select_candidate(
+    repo: Path,
+    oracle_module,
+    deployment_profile: str,
+    candidate_record: Path | None,
+    candidate_sha256: str,
+) -> tuple[str, dict[str, object]]:
+    profile = load_compatibility_profile(repo, oracle_module)
+    if deployment_profile == HISTORICAL_PROFILE:
+        if candidate_record is not None or candidate_sha256:
+            fail("historical profile does not accept a dynamic candidate")
+        return (
+            HISTORICAL_CANDIDATE,
+            load_historical_candidate(repo, oracle_module, profile),
+        )
+    if deployment_profile == DEPLOYMENT_PROFILE:
+        return (
+            DEPLOYMENT_CANDIDATE,
+            load_deployment_candidate(
+                repo,
+                candidate_record,
+                candidate_sha256,
+            ),
+        )
+    fail("runtime deployment profile is unsupported")
 
 
 def verify_record(
     repo_path: Path,
     record_path: Path,
     expected_boot_id: str,
+    deployment_profile: str = HISTORICAL_PROFILE,
+    candidate_record: Path | None = None,
+    candidate_sha256: str = "",
 ) -> tuple[str, dict[str, str]]:
     repo = safe_repo(repo_path)
     if not BOOT_ID.fullmatch(expected_boot_id):
@@ -399,7 +580,15 @@ def verify_record(
             fail(f"runtime acceptance value changed: {key}")
 
     oracle_module = load_oracle_module(repo)
-    _profile, candidate = load_candidate(repo, oracle_module)
+    expected_candidate, candidate = select_candidate(
+        repo,
+        oracle_module,
+        deployment_profile,
+        candidate_record,
+        candidate_sha256,
+    )
+    if values["candidate"] != expected_candidate:
+        fail("runtime candidate does not match the deployment profile")
     probe = repo / PROBE_PATH
     probe_hash = hashlib.sha256(
         oracle_module.read_bounded(probe, "runtime probe")
@@ -505,6 +694,13 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--repo", type=Path, default=REPO)
     parser.add_argument("--record", type=Path, required=True)
     parser.add_argument("--expected-boot-id", required=True)
+    parser.add_argument(
+        "--deployment-profile",
+        default=HISTORICAL_PROFILE,
+        choices=(HISTORICAL_PROFILE, DEPLOYMENT_PROFILE),
+    )
+    parser.add_argument("--candidate-record", type=Path)
+    parser.add_argument("--candidate-sha256", default="")
     return parser.parse_args(arguments)
 
 
@@ -515,6 +711,9 @@ def main(arguments: list[str]) -> int:
             options.repo,
             options.record,
             options.expected_boot_id,
+            options.deployment_profile,
+            options.candidate_record,
+            options.candidate_sha256,
         )
     except (OSError, RuntimeAcceptanceError, ValueError) as error:
         print(f"FAIL {error}", file=sys.stderr)

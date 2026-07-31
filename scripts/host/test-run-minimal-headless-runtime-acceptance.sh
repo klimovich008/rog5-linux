@@ -30,11 +30,18 @@ for token in \
 	'/run/rog5-minimal-headless-runtime-control' \
 	'collect-minimal-headless-runtime.sh' \
 	'verify-minimal-headless-runtime.py' \
+	'historical-headless-network-root-v1' \
+	'headless-ssh-deployment-v3' \
+	'headless-ssh-network-root-v3' \
+	'--deployment-profile' \
+	'--candidate-record' \
+	'--candidate-sha256' \
+	'ROG5_RUNTIME_CANDIDATE=$runtime_candidate' \
 	'exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin' \
 	'PIPESTATUS[0]' \
 	'rollback watchdog remains armed' \
 	'no reboot was requested'; do
-	grep -Fq "$token" "$runner" || {
+	grep -Fq -- "$token" "$runner" || {
 		echo "FAIL runtime-acceptance runner omits: $token" >&2
 		exit 1
 	}
@@ -215,4 +222,45 @@ grep -Fq 'rollback watchdog remains armed' <<<"$output"
 [[ $(stat -c %a "$stage/evidence/minimal-headless-runtime.record") == 600 ]]
 cmp "$record" "$stage/evidence/minimal-headless-runtime.record"
 
-echo 'PASS runtime-acceptance runner stages one hash-bound probe, uses strict SSH once, verifies privately, and leaves rollback armed'
+candidate=$stage/headless-ssh-network-root-v3.json
+sed \
+	-e 's/6f8a8f11bfb581bb52ca7d590141ce465b8d48d8f9f4577a076b7a37604a2fd5/4444444444444444444444444444444444444444444444444444444444444444/' \
+	-e 's/f443a47c456b33d670e6efd4a2e20cff2bc72061e7661472694acfbba45c8d5a/5555555555555555555555555555555555555555555555555555555555555555/' \
+	-e 's/"root_tree_entries": "37735"/"root_tree_entries": "37736"/' \
+	"$repo/configs/recovery-candidates/headless-ssh-network-root-v3.json" \
+	>"$candidate"
+chmod 0400 "$candidate"
+candidate_sha256=$(sha256sum "$candidate" | cut -d ' ' -f 1)
+
+deployment_record=$stage/deployment-golden.record
+sed \
+	-e 's/candidate=headless-network-root-v1/candidate=headless-ssh-network-root-v3/' \
+	-e 's/7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb/4444444444444444444444444444444444444444444444444444444444444444/' \
+	-e 's/6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896/5555555555555555555555555555555555555555555555555555555555555555/g' \
+	-e 's/root_tree_entries=37669/root_tree_entries=37736/' \
+	"$record" >"$deployment_record"
+install -d -m 0700 "$stage/evidence-v3"
+: >"$calls"
+deployment_output=$(
+	PATH="$stage/bin:$PATH" \
+	MOCK_CALLS="$calls" \
+	MOCK_RECORD="$deployment_record" \
+	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+	SSH_KEY="$stage/ssh-key" \
+	TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+	EVIDENCE_DIR="$stage/evidence-v3" \
+		"$runner" headless-ssh-deployment-v3 \
+		"$candidate" "$candidate_sha256"
+)
+grep -Fq 'PASS minimal headless runtime acceptance' \
+	<<<"$deployment_output"
+grep -Fq 'rollback watchdog remains armed' <<<"$deployment_output"
+[[ $(grep -Fxc prepare "$calls") == 1 ]]
+[[ $(grep -Fxc scp "$calls") == 1 ]]
+[[ $(grep -Fxc verify "$calls") == 1 ]]
+[[ $(grep -Fxc boot-id "$calls") == 1 ]]
+[[ $(grep -Fxc collect "$calls") == 1 ]]
+cmp "$deployment_record" \
+	"$stage/evidence-v3/minimal-headless-runtime.record"
+
+echo 'PASS runtime-acceptance runner preserves the historical path, binds one admitted v3 candidate, uses strict SSH once, verifies privately, and leaves rollback armed'

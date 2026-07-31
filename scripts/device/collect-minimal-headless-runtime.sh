@@ -10,6 +10,11 @@ fail() {
 
 runtime_root=${ROG5_RUNTIME_ROOT:-}
 test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
+runtime_candidate=${ROG5_RUNTIME_CANDIDATE:-headless-network-root-v1}
+case $runtime_candidate in
+	headless-network-root-v1|headless-ssh-network-root-v3) ;;
+	*) fail 'runtime candidate identity is unsupported' ;;
+esac
 case $test_mode:$runtime_root in
 	0:) execution_mode=live ;;
 	1:/*)
@@ -731,7 +736,7 @@ printf 'profile=minimal-headless-v1\n'
 printf 'execution_mode=%s\n' "$execution_mode"
 printf 'probe_sha256=%s\n' "$probe_sha256"
 printf 'active_capabilities=cpu-ram,init-key-only-ssh,read-only-network-root,thermal-readonly,usb-ncm-network,watchdog-rollback-reboot\n'
-printf 'candidate=headless-network-root-v1\n'
+printf 'candidate=%s\n' "$runtime_candidate"
 printf 'boot_id=%s\n' "$boot_id"
 printf 'kernel_release=%s\n' "$kernel_release"
 printf 'machine=%s\n' "$machine"

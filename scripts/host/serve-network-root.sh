@@ -19,18 +19,26 @@ if [[ $script_path == "$installed_server" ]]; then
 	installed_action=${1:-}
 	case $installed_action in
 		preflight)
-			[[ $# == 2 ]] ||
-				fail 'usage: serve-network-root.sh preflight ROOT'
+			[[ $# == 2 || $# == 3 ]] ||
+				fail 'usage: serve-network-root.sh preflight ROOT [PACKAGE_SHA256]'
 			root=$2
+			expected_package_sha256=${3:-}
 			handoff_token=
 			serve_timeout=720
 			;;
 		serve)
-			[[ $# == 4 ]] ||
-				fail 'usage: serve-network-root.sh serve ROOT HANDOFF_TOKEN TIMEOUT'
+			[[ $# == 4 || $# == 5 ]] ||
+				fail 'usage: serve-network-root.sh serve ROOT [PACKAGE_SHA256] HANDOFF_TOKEN TIMEOUT'
 			root=$2
-			handoff_token=$3
-			serve_timeout=$4
+			if [[ $# == 5 ]]; then
+				expected_package_sha256=$3
+				handoff_token=$4
+				serve_timeout=$5
+			else
+				expected_package_sha256=
+				handoff_token=$3
+				serve_timeout=$4
+			fi
 			;;
 		*)
 			fail 'usage: serve-network-root.sh preflight ROOT | serve ROOT HANDOFF_TOKEN TIMEOUT'
@@ -57,6 +65,7 @@ else
 	root=${1:-/var/lib/rog5-network-root-v1}
 	serve_timeout=${ROG5_NFS_TIMEOUT:-900}
 	handoff_token=${ROG5_NFS_HANDOFF_TOKEN:-}
+	expected_package_sha256=
 fi
 host_ip=169.254.77.1
 phone_ip=169.254.77.2
@@ -82,11 +91,16 @@ if [[ -n $handoff_token ]]; then
 fi
 for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 	chmod ln mkdir mktemp mountpoint nmcli pgrep python3 realpath rm rpc.mountd \
-	rpc.nfsd ss sysctl udevadm stat systemctl tr umount; do
+	rpc.nfsd sha256sum ss sysctl udevadm stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
 [[ -d $root && ! -L $root ]] || fail 'missing prepared export root'
 root=$(realpath -e "$root")
+deployment_manifest=
+if [[ -n $expected_package_sha256 &&
+	$root != /var/lib/rog5-headless-ssh-network-root-v3/root ]]; then
+	fail 'only the deployment headless root accepts a package identity'
+fi
 case $root in
 	/var/lib/rog5-network-root-v1)
 		[[ $installed_mode == 0 ]] ||
@@ -100,6 +114,23 @@ case $root in
 		else
 			"$repo/scripts/host/verify-headless-network-root-export.sh" "$root"
 		fi
+		;;
+	/var/lib/rog5-headless-ssh-network-root-v3/root)
+		[[ $installed_mode == 1 ]] ||
+			fail 'deployment headless root requires the fixed installed server'
+		[[ $expected_package_sha256 =~ ^[0-9a-f]{64}$ &&
+			$expected_package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+			fail 'deployment package identity must be one nonzero SHA-256'
+		deployment_manifest=/var/lib/rog5-headless-ssh-network-root-v3/manifest
+		[[ -f $deployment_manifest && ! -L $deployment_manifest &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$deployment_manifest") == \
+			'0:0:444:regular file' ]] ||
+			fail 'deployment package manifest metadata is unsafe'
+		[[ $(sha256sum "$deployment_manifest" | awk '{ print $1 }') == \
+			"$expected_package_sha256" ]] ||
+			fail 'deployment package manifest identity changed'
+		python3 -B "$headless_verifier" verify-root "$root" \
+			"$deployment_manifest"
 		;;
 	/var/lib/rog5-network-root-a660-gmu-cx-runtime-pm-v10)
 		[[ $installed_mode == 0 ]] ||
@@ -319,15 +350,35 @@ export_listing=$(exportfs -v)
 grep -Fq 'fsid=0' <<<"$export_listing"
 grep -Eq '(^|[,(])ro([,)]|$)' <<<"$export_listing"
 grep -Fq 'no_root_squash' <<<"$export_listing"
+# The target NCM gadget cannot exist until recovery commits kexec. This marker
+# attests pre-COMMIT server/export readiness only; publishing it after target
+# interface discovery would deadlock the transition. The post-COMMIT loop
+# admits and configures only the exact target gadget, while the target's
+# independent watchdog bounds an NFS-mount failure.
 if [[ -n $handoff_token ]]; then
 	handoff_marker_temp=$(mktemp \
 		/run/.rog5-network-root-nfs-ready.XXXXXX)
-	printf '%s\n' \
-		'format=rog5-nfs-handoff-v1' \
-		"token=$handoff_token" \
-		"listener=$host_ip:2049" \
-		'versions=4.2-only' \
-		"export_root=$root" >"$handoff_marker_temp"
+	if [[ -n $expected_package_sha256 ]]; then
+		[[ $(sha256sum "$deployment_manifest" | awk '{ print $1 }') == \
+			"$expected_package_sha256" ]] ||
+			fail 'deployment package changed before NFS handoff'
+		printf '%s\n' \
+			'format=rog5-nfs-handoff-v2' \
+			'profile=headless-ssh-deployment-v3' \
+			"token=$handoff_token" \
+			"listener=$host_ip:2049" \
+			'versions=4.2-only' \
+			"export_root=$root" \
+			"package_sha256=$expected_package_sha256" \
+			>"$handoff_marker_temp"
+	else
+		printf '%s\n' \
+			'format=rog5-nfs-handoff-v1' \
+			"token=$handoff_token" \
+			"listener=$host_ip:2049" \
+			'versions=4.2-only' \
+			"export_root=$root" >"$handoff_marker_temp"
+	fi
 	chmod 0444 "$handoff_marker_temp"
 	ln "$handoff_marker_temp" "$handoff_marker"
 	handoff_marker_created=1

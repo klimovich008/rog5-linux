@@ -13,7 +13,8 @@ credential-use, reboot, watchdog-disarm, or phone authority.
 - `scripts/device/collect-minimal-headless-runtime.sh` performs one read-only
   target observation.
 - `scripts/host/verify-minimal-headless-runtime.py` binds that observation to
-  the current compatibility oracle and corrected candidate.
+  the current compatibility oracle and either the frozen historical candidate
+  or one exact admitted deployment-v3 candidate.
 - `scripts/host/run-minimal-headless-runtime-acceptance.sh` stages the exact
   probe below target `/run`, captures one record over strict SSH, and invokes
   the verifier.
@@ -21,7 +22,7 @@ credential-use, reboot, watchdog-disarm, or phone authority.
   known-hosts input for a temporary boot without presenting a client key.
 - `scripts/device/test-collect-minimal-headless-runtime.sh` builds a synthetic
   proc/sys/configfs/run/root fixture and rejects 46 cross-capability
-  mutations.
+  mutations plus an unsupported candidate identity.
 - `scripts/host/test-verify-minimal-headless-runtime.py` exercises the
   canonical parser, candidate binding, thresholds, private-file policy, and
   CLI.
@@ -73,7 +74,14 @@ accepts only `execution_mode=live`.
 ## Host acceptance thresholds
 
 The host verifier first validates the complete ASUS 5.4/accepted 7.1
-compatibility oracle and authority-free corrected candidate. It then requires:
+compatibility oracle. Its no-option compatibility path loads only the frozen
+historical candidate. The deployment path instead requires the exact
+`headless-ssh-deployment-v3` profile plus an absolute canonical caller-owned
+mode-`0400` or `0444`, singly linked candidate record outside the repository
+and its admitted nonzero SHA-256. It validates the candidate with the shared
+adapter, requires the fixed deployment tuple, rejects the tracked fixture tree
+and seal, rereads the file to detect replacement, and never falls back to the
+historical candidate. It then requires:
 
 | Boundary | Required result |
 |---|---|
@@ -117,6 +125,14 @@ mode-`0600` SSH key and target known-hosts files and a mode-`0700` evidence
 directory, all outside the repository. It also requires a clean local branch
 at the exact tracked origin commit.
 
+With no positional arguments it preserves the historical candidate workflow.
+The deployment workflow accepts only the exact triplet
+`headless-ssh-deployment-v3 CANDIDATE_RECORD CANDIDATE_SHA256`, checks that
+record before SSH credential paths, passes only the fixed candidate identifier
+to the target probe, and gives the same canonical path and hash to the host
+verifier. Arbitrary target-side paths, profile names, or candidate names are
+not accepted.
+
 It assumes the current target host key has already been pinned by
 `pin-minimal-headless-host-key.py` within the authorized live-cycle
 controller. The sealed lower intentionally contains no reusable server host
@@ -130,7 +146,8 @@ disables host checking, or writes a reusable host identity. It:
 1. creates one absent `/run` staging directory;
 2. copies the current probe and verifies its root ownership, mode, and hash;
 3. reads the exact target kernel and boot ID once;
-4. executes the probe once with a fixed empty environment and fixed `PATH`;
+4. executes the probe once with a fixed empty environment, fixed `PATH`, and
+   one allowlisted candidate identity;
 5. writes one new private record; and
 6. runs the fail-closed host verifier.
 
@@ -169,9 +186,11 @@ and [core compatibility oracle](core-compatibility-oracle.md).
 
 ## Remaining live work
 
-A live result still requires fresh authorization to create/use one ephemeral
-live signing credential and perform one attended temporary-boot cycle. The
-full controller must preserve the untouched fallback, keep the target
-watchdog armed, avoid an ambiguous execute retry, verify fallback return and
-host cleanup, and resolve the durable recovery intent. Until that occurs,
-the corrected target remains `live-pending` and `authority=none`.
+A live result still requires a non-fixture key-bound root/candidate/bundle,
+the fixed stable-recovery deployment profile, and an installed v3 export
+before fresh authorization to create/use one ephemeral live signing
+credential and perform one attended temporary-boot cycle. The full controller
+must preserve the untouched fallback, keep the target watchdog armed, avoid
+an ambiguous execute retry, verify fallback return and host cleanup, and
+resolve the durable recovery intent. Until that occurs, the corrected target
+remains `live-pending` and `authority=none`.
