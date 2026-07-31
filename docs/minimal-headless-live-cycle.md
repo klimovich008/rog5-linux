@@ -4,8 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **controller and fixture path pass hardware-free tests;
-non-fixture artifact pins and host installation remain deployment inputs**.
+Tracked status: **the non-fixture r2 chain is signed, installed, and passes
+the complete connected preflight; its first temporary phone boot remains**.
 Tracked execution **HOLD**: this file never grants credential use or a phone
 boot. Those require explicit invocation-time authorization after all
 preflights pass.
@@ -168,12 +168,12 @@ The no-replace publication contract also refuses the existing export.
 
 ## Inputs
 
-> **r2 READY FOR REVIEW:** the original v3 manifest was consumed by the
+> **r2 READY FOR TEMPORARY BOOT:** the original v3 manifest was consumed by the
 > resolved 2026-07-31 cycle and remains rejected before deployment-key access.
 > The successor keeps candidate `headless-ssh-network-root-v3`, uses signed
 > bundle `headless-ssh-network-root-v3-r2`, and is pinned to manifest
-> `9ea27452…d630`. Its twin build and artifact preflight pass; installation,
-> full host preflight, and temporary boot remain separate later steps.
+> `9ea27452…d630`. Its twin build, no-replace installation, and complete
+> connected host preflight pass. Only the temporary boot remains.
 
 The lifecycle now selects one exact deployment profile and bundle:
 
@@ -305,8 +305,8 @@ no live authority or phone action.
 
 The resulting exact wrapper, trust, manifest, and host-verifier hashes are
 pinned in the live-gate profile. The production artifact gate passes against
-the retained twin output; host installation and connected preflight remain
-later steps.
+the retained twin output, and the installed r2 bundle passes the complete
+connected host preflight.
 
 ## Credential-free successor preflight
 
