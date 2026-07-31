@@ -403,6 +403,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   tools, then proves the artifact-only action exits before any fastboot device
   query. The lifecycle also rejects the consumed historical profile before
   inspecting credential paths.
+- The optional accepted-input leg uses the clean retained Linux 7.1.4 source,
+  exact accepted DTB, tracked v3 configuration, and an explicitly selected
+  byte-identical retained module archive. The host keeps the existing v1
+  archive instead of duplicating 300 MB into v3. See the
+  [accepted-baseline revalidation](../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
 - `test-kernel-source-seal.py`,
   `test-stable-recovery-wrapper-cache.py`, and
   `test-stable-recovery-wrapper-cache-contract.sh` require a

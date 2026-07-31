@@ -20,7 +20,10 @@ and newer-kernel rebases remain frozen until the headless core passes.
   controller, rollback, and fallback cleanup pass hardware-free tests.
 - The accepted Linux 7.1.4 source, corrected DTB, and minimal Kconfig pass the
   [compatibility oracle](core-compatibility-oracle.md) and
-  [source/DTB contract](core-source-dtb-contract.md).
+  [source/DTB contract](core-source-dtb-contract.md). The retained real source,
+  DTB, configuration, modules, buttons/indicator contract, and complete
+  phone-free successor gate were
+  [revalidated together](../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
 - The corrected DTB keeps UFS and USB3 isolated while preserving CPU/RAM,
   USB2/NCM, PSCI, and static thermal topology.
 - A credential-clean SSH-only Arch root and fixture-key v3 package/candidate

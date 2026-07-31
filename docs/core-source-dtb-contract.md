@@ -166,6 +166,7 @@ network state, delete storage, or grant live authority.
 
 See the
 [static thermal-policy result](../test-results/2026-07-31-thermal-policy-static-oracle-offline.md),
+[accepted real-input revalidation](../test-results/2026-07-31-accepted-core-baseline-revalidation.md),
 [CPU/RAM topology result](../test-results/2026-07-29-cpu-ram-topology-offline.md)
 and the earlier
 [source/DTB result](../test-results/2026-07-29-core-source-dtb-contract-offline.md).

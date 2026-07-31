@@ -104,24 +104,28 @@ brightness, and independently clears the tri-LED enable register during
 initialization. The candidate declares `default-state = "off"` and defines no
 automatic trigger.
 
-Set `ROG5_LINUX_SOURCE` to the clean retained 7.1.4 source root when running
-the repository test if source-level integration evidence is required:
+Set `ROG5_LINUX_SOURCE` to the clean retained 7.1.4 source root and
+`ROG5_ACCEPTED_MODULES` to the retained exact module archive when running the
+repository test if full integration evidence is required:
 
 ```sh
 ROG5_LINUX_SOURCE=/path/to/linux-7.1.4 \
+ROG5_ACCEPTED_MODULES=artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz \
   scripts/host/test-buttons-indicator-source-contract.py
 ```
 
-Without that variable, portable CI still runs every synthetic marker
+Without those variables, portable CI still runs every synthetic marker
 mutation plus the exact tracked config and AArch64 LPG-module checks. The
 fixture gate checks the module's byte identity, ELF class/type/machine,
 accepted kernel release, license, description, and PM8350C OF alias. The
 retained-source/full-archive integration leg is reported as skipped. This
 keeps every tracked blob below GitHub's per-file size limit without replacing
 the separate 300,439,504-byte archive hash check used by full integration.
-When that archive is retained, verification extracts its exact LPG member and
-requires it to equal the compact fixture's size, SHA-256, ELF identity, and
-module metadata.
+The v3 manifest reuses the byte-identical v1 archive, so the host keeps one
+canonical ignored copy rather than spending another 300 MB on a duplicate.
+When that archive is selected explicitly, verification extracts its exact LPG
+member and requires it to equal the compact fixture's size, SHA-256, ELF
+identity, and module metadata.
 
 Run:
 
@@ -129,7 +133,7 @@ Run:
 scripts/host/verify-buttons-indicator-source-contract.py \
   /path/to/linux-7.1.4 \
   artifacts/network-root-v3/config-7.1.4-network-root \
-  artifacts/network-root-v3/modules-7.1.4-network-root.tar.gz
+  artifacts/network-root-v1/modules-7.1.4-network-root.tar.gz
 
 scripts/host/test-buttons-indicator-source-contract.py
 ```

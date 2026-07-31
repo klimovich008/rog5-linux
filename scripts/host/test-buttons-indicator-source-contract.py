@@ -21,7 +21,15 @@ SOURCE = (
     else None
 )
 CONFIG = REPO / "artifacts/network-root-v3/config-7.1.4-network-root"
-MODULES = REPO / "artifacts/network-root-v3/modules-7.1.4-network-root.tar.gz"
+MODULES = (
+    Path(os.environ["ROG5_ACCEPTED_MODULES"])
+    if "ROG5_ACCEPTED_MODULES" in os.environ
+    else (
+        REPO
+        / "artifacts/network-root-v3/"
+        "modules-7.1.4-network-root.tar.gz"
+    )
+)
 MODULE_FIXTURE = REPO / "artifacts/buttons-indicator-v1/leds-qcom-lpg.ko"
 MANIFEST = REPO / "manifests/artifacts.tsv"
 
@@ -87,8 +95,8 @@ def require_tracked_artifact(
 def run_integration() -> None:
     if SOURCE is None:
         print(
-            "SKIP retained source integration; set ROG5_LINUX_SOURCE "
-            "to run it"
+            "SKIP retained source integration; set ROG5_LINUX_SOURCE and "
+            "ROG5_ACCEPTED_MODULES to run it"
         )
         return
     completed = subprocess.run(
