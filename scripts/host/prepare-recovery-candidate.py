@@ -353,6 +353,36 @@ def snapshot_artifact(
         os.close(source)
 
 
+def bundle_configuration(
+    record: dict[str, Any],
+    artifacts: dict[str, Path],
+    private_key: Path,
+    bundle_root: Path,
+) -> Any:
+    return PACKAGER.Configuration(
+        bundle=require_string(record, "bundle"),
+        profile=require_string(record, "profile"),
+        image=artifacts["Image"],
+        dtb=artifacts["board.dtb"],
+        initramfs=artifacts["initramfs.cpio.gz"],
+        target_id=require_string(record, "target_id"),
+        target_release=require_string(record, "target_release"),
+        rollback_timeout=require_string(record, "rollback_timeout"),
+        target_timeout=require_string(record, "target_timeout"),
+        a660_command_manifest_sha256=require_string(
+            record,
+            "a660_command_manifest_sha256",
+        ),
+        root_generation=require_string(record, "root_generation"),
+        root_tree_sha256=require_string(record, "root_tree_sha256"),
+        root_seal_sha256=require_string(record, "root_seal_sha256"),
+        root_tree_entries=require_string(record, "root_tree_entries"),
+        root_subtree=require_string(record, "root_subtree"),
+        private_key=private_key,
+        bundle_root=bundle_root,
+    )
+
+
 def prepare(
     candidate: str,
     private_key: Path,
@@ -382,27 +412,11 @@ def prepare(
             destination = snapshot_root / name
             snapshot_artifact(record["artifacts"][name], destination, name)
             snapshots[name] = destination
-        config = PACKAGER.Configuration(
-            bundle=require_string(record, "bundle"),
-            profile=require_string(record, "profile"),
-            image=snapshots["Image"],
-            dtb=snapshots["board.dtb"],
-            initramfs=snapshots["initramfs.cpio.gz"],
-            target_id=require_string(record, "target_id"),
-            target_release=require_string(record, "target_release"),
-            rollback_timeout=require_string(record, "rollback_timeout"),
-            target_timeout=require_string(record, "target_timeout"),
-            a660_command_manifest_sha256=require_string(
-                record,
-                "a660_command_manifest_sha256",
-            ),
-            root_generation=require_string(record, "root_generation"),
-            root_tree_sha256=require_string(record, "root_tree_sha256"),
-            root_seal_sha256=require_string(record, "root_seal_sha256"),
-            root_tree_entries=require_string(record, "root_tree_entries"),
-            root_subtree=require_string(record, "root_subtree"),
-            private_key=private_key,
-            bundle_root=bundle_root,
+        config = bundle_configuration(
+            record,
+            snapshots,
+            private_key,
+            bundle_root,
         )
         manifest_hash, trust_key_hash = PACKAGER.prepare_bundle(config)
     return record, manifest_hash, trust_key_hash
