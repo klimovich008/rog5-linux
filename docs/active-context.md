@@ -60,39 +60,28 @@ The host deployment boundary now passes:
   the exact signed bundle, but recovery rejected PREPARE with `FETCH_FAILED`
   at the former 60-second fetch deadline; no commit or kexec occurred.
 
-The lifecycle no longer depends on fallback client-key authorization. A fixed
-USB ACM controller now sends one nonce-bound read-only health payload to the
-exact Alpine serial interface. Alpine signs the canonical result with its existing
-Ed25519 SSH host key; the host verifies it against the private mode-`0600`
-pin retained outside Git. The protocol binds kernel/init/compatible/root,
+The lifecycle now uses the dedicated client key over the fallback USB-NCM
+link. A persistent, no-gateway NetworkManager profile assigns only
+`169.254.77.1/16`; Alpine remains fixed at `169.254.77.2`. The controller
+requires strict host-key checking, sends one nonce-bound read-only health
+probe over non-interactive SSH, verifies Alpine's Ed25519 signature, and then
+revalidates the exact product, NCM driver, physical recovery USB location,
+direct route, and interface. The protocol binds kernel/init/compatible/root,
 modules, pstore, dmesg, thermals, Python, boot ID, and physical USB location.
-Its separately guarded reboot path requires a verified ACK, rechecks the same
-boot, uses only `RESTART2("bootloader")`, and then requires the same port and
-exact `lahaina` fastboot product. A source audit of Alpine 3.24 and BusyBox
-1.37 found that the installed legacy interactive shell can record the
-launcher before starting its child. Reads from the writable `relatime` ext4
-root may also update inode access times. The controller therefore requires
-`ALLOW_FALLBACK_ACM_STORAGE_WRITE=1`; it has no explicit storage-write, mount,
-flash, `authorized_keys`, or fallback-configuration path. Its launcher stays
-below Alpine's 2,048-byte line-editor bound, starts Python in isolated/no-site
-mode, and waits for a nonce-bound loader-ready marker before sending bounded,
-hash-checked source chunks. The host drains bounded interactive-shell echoes
-while writing and sends one atomic Ctrl-C plus split-literal nonce marker to
-reject a stale or partial shell line before the loader. Write failures retain
-their exact stage and byte progress. A phone-side deadline rejects missing or
-partial delivery without execution. Non-reboot actions return to the same
-supervised shell rather than depending on a replacement shell to respawn.
-Before any temporary boot, lifecycle preflight now validates the
-allowed-signers pin, fixed host tooling, ModemManager state, wait range,
-loader bounds, and the 3,600-second contact-start/7,200-second anchor-age
-contract without opening ACM. The recovery anchor is directly bound to its
-real producer and is revalidated after ACM discovery to cover host suspend.
+The normal lifecycle no longer enters the legacy BusyBox shell, eliminating
+the ACM echo/framing race and shell-history side effect. Read-induced ext4
+atime changes remain separately guarded. The signed ACM path remains
+available for emergency diagnostics only. The strict-SSH host-only
+preflight validates the client key, host pin, fixed tools, wait range, and the
+3,600-second contact-start/7,200-second anchor-age contract without phone
+contact. The recovery anchor is revalidated after the SSH proof to cover host
+suspend.
 Nonce-bound phone errors retain their failure class through the last bounded
 serial read. Host cleanup validates the root-owned canonical NFS export table
 directly; it no longer mistakes unprivileged `exportfs` lock diagnostics for
 an active export.
 
-Thirty-nine hardware-free ACM tests and all eighteen lifecycle methods
+Forty-six fallback transport tests and all eighteen lifecycle methods
 pass. A physical reboot restored the supervised ACM reader. The fresh signed
 exchange then exposed a stale thermal assumption: the installed fallback now
 publishes 96 contiguous zones, including unsupported auxiliary channels,
@@ -178,9 +167,9 @@ See [ROADMAP.md](../ROADMAP.md) for completion gates and
 ## Safety invariants
 
 - Never flash an experimental partition.
-- Never mount phone storage or write it except for separately authorized
-  BusyBox-history and possible read-induced atime effects during one fixed
-  fallback ACM action.
+- Never mount phone storage or write it. The active strict-SSH lifecycle does
+  not invoke the legacy interactive shell; any emergency ACM use retains its
+  separate BusyBox-history/atime authorization boundary.
 - Never reuse a consumed live payload or retry an ambiguous execute.
 - Keep private keys, host pins, firmware, and live evidence outside Git.
 - Follow the [credential-isolation policy](security-automation.md).

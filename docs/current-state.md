@@ -549,8 +549,11 @@ freshness after ACM discovery. Nonce-bound phone errors retain their failure
 class through the last serial read. The clean-host gate reads the root-owned
 canonical NFS export table directly, avoiding the successful-but-diagnostic
 unprivileged `exportfs -v` lock path while still rejecting any real entry.
-Thirty-nine protocol tests and the
-updated seventeen-method lifecycle suite pass hardware-free.
+The emergency ACM protocol remains covered, while the active fallback path
+now uses strict SSH over exact USB-NCM. Forty-six transport tests and all
+eighteen lifecycle methods pass hardware-free. The host has a persistent
+no-gateway `rog5-fallback-usb-ssh` profile at `169.254.77.1/16`, and the
+dedicated client key has passed a live strict-SSH fallback health preflight.
 
 The first authorized live ACM preflight was rejected because the existing
 device-side reader had wedged; exact USB reset and host rebind could not
@@ -832,11 +835,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Obtain fresh host-key credential-use authority and separate authority for
-   one fallback ACM action's BusyBox-history and possible ext4-atime effects,
-   then pass the signed fallback preflight.
-2. Rerun the complete lifecycle preflight, return Alpine to fastboot, and use
-   at most the one authorized temporary boot.
+1. Rerun the complete lifecycle preflight with the strict-SSH fallback guard,
+   then use the one authorized temporary boot already staged in fastboot.
+2. Verify that the target watchdog returns to the exact fallback and that the
+   persistent USB profile automatically restores strict SSH without ACM.
 3. Determine whether ramoops survives the target/fallback path and collect the
    exact 88-field core record.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/

@@ -21,10 +21,12 @@ fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+b
 
 for contract in \
 	'ALLOW_FALLBACK_BOOTLOADER_REBOOT' \
+	'FASTBOOT_SERIAL' \
 	'SSH_KEY' \
 	'KNOWN_HOSTS' \
 	'HostKeyAlias=rog5-fallback' \
 	'StrictHostKeyChecking=yes' \
+	'GlobalKnownHostsFile=/dev/null' \
 	'ConnectionAttempts=1' \
 	'ServerAliveInterval=5' \
 	'ServerAliveCountMax=2' \
@@ -39,7 +41,9 @@ for contract in \
 	'os.sync()' \
 	"$fatal_pattern" \
 	'PASS guarded fallback RESTART2 bootloader request sent' \
-	'PASS exact fastboot device reached'
+	'PASS authenticated fallback reboot session' \
+	'^[[:space:]]*product:[[:space:]]*lahaina[[:space:]]*$' \
+	'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement'
 do
 	grep -Fq "$contract" "$helper" || {
 		echo "FAIL fallback-to-fastboot helper omits: $contract" >&2
@@ -103,8 +107,13 @@ case " $* " in
 	*" reboot "*)
 		printf '%s\n' reboot >>"$MOCK_CALLS"
 		: >"$MOCK_FASTBOOT_READY"
+	if [ "${MOCK_DROP_RESTART_MARKER:-0}" != 1 ]; then
+		echo 'PASS authenticated fallback reboot session'
 		echo 'PASS guarded fallback RESTART2 bootloader request sent'
-		exit 255
+	elif [ "${MOCK_DROP_AUTH_MARKER:-0}" != 1 ]; then
+		echo 'PASS authenticated fallback reboot session'
+	fi
+		exit "${MOCK_SSH_STATUS:-255}"
 		;;
 	*)
 		printf '%s\n' preflight >>"$MOCK_CALLS"
@@ -117,7 +126,16 @@ cat >"$stage/bin/fastboot" <<'MOCK'
 set -eu
 printf '%s\n' fastboot >>"$MOCK_CALLS"
 if [ "${1:-}" = devices ] && [ -e "$MOCK_FASTBOOT_READY" ]; then
-	printf '%s\tfastboot\n' test-device
+	printf '%s\tfastboot\n' "${MOCK_FASTBOOT_SERIAL:-test-device}"
+	exit 0
+fi
+if [ "${1:-}" = -s ] && [ "${2:-}" = test-device ] &&
+	[ "${3:-}" = getvar ] && [ "${4:-}" = product ]; then
+	printf '%s\n' 'product: lahaina' >&2
+	if [ "${MOCK_CONFLICTING_PRODUCT:-0}" = 1 ]; then
+		printf '%s\n' 'product: other' >&2
+	fi
+	exit 0
 fi
 MOCK
 chmod 0755 "$stage/bin/ssh" "$stage/bin/fastboot"
@@ -133,12 +151,84 @@ PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
 MOCK_FASTBOOT_READY=$ready \
 ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+FASTBOOT_SERIAL=test-device \
+SSH_KEY=$stage/ssh-key \
+KNOWN_HOSTS=$stage/known-hosts \
+	"$helper" reboot >/dev/null
+
+rm -f "$ready"
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS=$calls \
+MOCK_FASTBOOT_READY=$ready \
+MOCK_DROP_RESTART_MARKER=1 \
+MOCK_SSH_STATUS=1 \
+ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+FASTBOOT_SERIAL=test-device \
+SSH_KEY=$stage/ssh-key \
+KNOWN_HOSTS=$stage/known-hosts \
+	"$helper" reboot >/dev/null 2>&1
+unproved_status=$?
+set -e
+[[ $unproved_status -ne 0 ]]
+
+rm -f "$ready"
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS=$calls \
+MOCK_FASTBOOT_READY=$ready \
+MOCK_DROP_RESTART_MARKER=1 \
+MOCK_DROP_AUTH_MARKER=1 \
+ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+FASTBOOT_SERIAL=test-device \
+SSH_KEY=$stage/ssh-key \
+KNOWN_HOSTS=$stage/known-hosts \
+	"$helper" reboot >/dev/null 2>&1
+unauthenticated_status=$?
+set -e
+[[ $unauthenticated_status -ne 0 ]]
+
+for mutation in wrong-serial conflicting-product; do
+	rm -f "$ready"
+	set +e
+	case $mutation in
+		wrong-serial)
+			PATH="$stage/bin:$PATH" \
+			MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+			MOCK_FASTBOOT_SERIAL=other-device \
+			ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+			FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+			KNOWN_HOSTS=$stage/known-hosts \
+				"$helper" reboot >/dev/null 2>&1
+			;;
+		conflicting-product)
+			PATH="$stage/bin:$PATH" \
+			MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+			MOCK_CONFLICTING_PRODUCT=1 \
+			ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+			FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+			KNOWN_HOSTS=$stage/known-hosts \
+				"$helper" reboot >/dev/null 2>&1
+			;;
+	esac
+	mutation_status=$?
+	set -e
+	[[ $mutation_status -ne 0 ]]
+done
+
+rm -f "$ready"
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS=$calls \
+MOCK_FASTBOOT_READY=$ready \
+MOCK_DROP_RESTART_MARKER=1 \
+ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+FASTBOOT_SERIAL=test-device \
 SSH_KEY=$stage/ssh-key \
 KNOWN_HOSTS=$stage/known-hosts \
 	"$helper" reboot >/dev/null
 
 [[ $(grep -Fxc preflight "$calls") == 1 ]]
-[[ $(grep -Fxc reboot "$calls") == 1 ]]
-[[ $(grep -Fxc fastboot "$calls") -ge 2 ]]
+[[ $(grep -Fxc reboot "$calls") == 6 ]]
+[[ $(grep -Fxc fastboot "$calls") -ge 12 ]]
 
-echo 'PASS fallback reboot helper is identity-pinned, restart2-only, guarded, and fastboot-verifying'
+echo 'PASS fallback reboot helper is identity-pinned, restart2-only, guarded, fastboot-verifying, and tolerant only of a proven post-disconnect reboot'

@@ -45,8 +45,8 @@ FULL_GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP",
     "ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE",
     "ALLOW_PHONE_CREDENTIAL_USE",
-    "ALLOW_FALLBACK_ACM_CONTROL",
-    "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
+    "ALLOW_FALLBACK_SSH_CONTROL",
+    "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
 )
 KEY_GUARDS = (
     "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
@@ -242,6 +242,7 @@ class AdmissionInputs:
 class Inputs:
     manifest_sha256: str
     ssh_key: Path
+    ssh_public_key_sha256: str
     root_package_sha256: str
     candidate_record: Path
     candidate_sha256: str
@@ -463,6 +464,7 @@ def parse_inputs(
     return Inputs(
         manifest_sha256=admission.manifest_sha256,
         ssh_key=admission.ssh_key,
+        ssh_public_key_sha256=admitted["public_key_sha256"],
         root_package_sha256=admitted["package_sha256"],
         candidate_record=admission.candidate_record,
         candidate_sha256=admitted["candidate_sha256"],
@@ -1465,13 +1467,15 @@ class LiveCycle:
         run_capture(
             [
                 str(self.dependencies.fallback),
-                "host-preflight",
+                "ssh-host-preflight",
                 str(self.inputs.fallback_known_hosts),
+                str(self.inputs.ssh_key),
+                self.inputs.ssh_public_key_sha256,
                 str(self.inputs.fallback_timeout),
                 str(FALLBACK_CONTACT_START_BUDGET_SECONDS),
             ],
             environment=child_environment(
-                ALLOW_FALLBACK_ACM_CONTROL="1",
+                ALLOW_FALLBACK_SSH_CONTROL="1",
                 ALLOW_PHONE_CREDENTIAL_USE="1",
             ),
         )
@@ -1515,7 +1519,7 @@ class LiveCycle:
         if deadline is None or time.monotonic() >= deadline:
             fail(
                 "recovery anchor contact-start budget expired before "
-                "fallback ACM access"
+                "fallback strict-SSH access"
             )
 
     def wait_fallback(self, target_boot_id: str | None) -> str:
@@ -1523,17 +1527,19 @@ class LiveCycle:
         run_logged(
             [
                 str(self.dependencies.fallback),
-                "wait-preflight",
+                "wait-ssh-preflight",
                 str(self.inputs.fallback_known_hosts),
+                str(self.inputs.ssh_key),
+                self.inputs.ssh_public_key_sha256,
                 str(self.output("recovery-usb.anchor")),
                 str(self.inputs.fallback_timeout),
                 str(identity),
             ],
             self.output("fallback-preflight.log"),
             environment=child_environment(
-                ALLOW_FALLBACK_ACM_CONTROL="1",
+                ALLOW_FALLBACK_SSH_CONTROL="1",
+                ALLOW_FALLBACK_SSH_ATIME_EFFECTS="1",
                 ALLOW_PHONE_CREDENTIAL_USE="1",
-                ALLOW_FALLBACK_ACM_STORAGE_WRITE="1",
             ),
             timeout=(
                 self.fallback_timeout + FALLBACK_CONTROL_MARGIN_SECONDS

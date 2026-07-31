@@ -344,17 +344,29 @@ class UsbFixture:
         self.devices = self.root / "devices"
         self.bus = self.root / "bus"
         self.tty = self.root / "tty"
+        self.net = self.root / "net"
+        self.drivers = self.root / "drivers"
         self.raw = self.devices / "pci/usb1/1-1/1-1.2"
         self.interface = self.raw / "1-1.2:1.2"
+        self.ncm_interface = self.raw / "1-1.2:1.0"
         (self.interface / "tty/ttyACM7").mkdir(parents=True)
+        ncm_leaf = self.ncm_interface / "net/usbtest0"
+        ncm_leaf.mkdir(parents=True)
         self.bus.mkdir()
         self.tty.mkdir()
+        self.net.mkdir()
+        (self.drivers / MODULE.USB_NCM_DRIVER).mkdir(parents=True)
         (self.raw / "idVendor").write_text(MODULE.USB_VENDOR)
         (self.raw / "idProduct").write_text(MODULE.USB_PRODUCT)
         (self.raw / "product").write_text(MODULE.USB_PRODUCT_NAME)
         (self.bus / "1-1.2").symlink_to(self.raw)
         (self.tty / "ttyACM7").symlink_to(
             self.interface / "tty/ttyACM7"
+        )
+        (self.net / "usbtest0").symlink_to(ncm_leaf)
+        (ncm_leaf / "device").symlink_to(self.ncm_interface)
+        (self.ncm_interface / "driver").symlink_to(
+            self.drivers / MODULE.USB_NCM_DRIVER
         )
         self.location = self.raw.relative_to(self.devices).as_posix()
 
@@ -369,6 +381,16 @@ class UsbFixture:
             "ID_MODEL": MODULE.USB_MODEL,
             "ID_USB_DRIVER": MODULE.USB_DRIVER,
             "ID_USB_INTERFACE_NUM": MODULE.USB_INTERFACE,
+        }
+
+    @staticmethod
+    def ncm_properties() -> dict[str, str]:
+        return {
+            "ID_VENDOR_ID": MODULE.USB_VENDOR,
+            "ID_MODEL_ID": MODULE.USB_PRODUCT,
+            "ID_MODEL": MODULE.USB_MODEL,
+            "ID_USB_DRIVER": MODULE.USB_NCM_DRIVER,
+            "ID_USB_INTERFACE_NUM": MODULE.USB_NCM_INTERFACE,
         }
 
 
@@ -460,6 +482,91 @@ class UsbIdentityTest(unittest.TestCase):
             self.assertRaises(MODULE.FallbackError),
         ):
             MODULE.find_fallback_acm()
+
+
+class NcmIdentityTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = UsbFixture()
+        self.patches = (
+            mock.patch.object(MODULE, "SYS_DEVICES", self.fixture.devices),
+            mock.patch.object(MODULE, "SYS_BUS_USB", self.fixture.bus),
+            mock.patch.object(MODULE, "SYS_CLASS_NET", self.fixture.net),
+        )
+        for patch in self.patches:
+            patch.start()
+
+    def tearDown(self) -> None:
+        for patch in reversed(self.patches):
+            patch.stop()
+        self.fixture.close()
+
+    def udev_result(
+        self,
+        properties: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        values = properties or self.fixture.ncm_properties()
+        return subprocess.CompletedProcess(
+            [],
+            0,
+            "".join(f"{name}={value}\n" for name, value in values.items()),
+            "",
+        )
+
+    def test_exact_ncm_product_driver_and_location_pass(self) -> None:
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertEqual(
+                MODULE.fallback_ncm_identity(),
+                ("usbtest0", self.fixture.location),
+            )
+
+    def test_ncm_rejects_wrong_driver_and_physical_location(self) -> None:
+        properties = {
+            **self.fixture.ncm_properties(),
+            "ID_USB_DRIVER": "rndis_host",
+        }
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(properties),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
+        with (
+            mock.patch.object(
+                MODULE,
+                "fallback_ncm_identity",
+                return_value=("usbtest0", self.fixture.location),
+            ),
+            self.assertRaises(MODULE.FallbackError),
+        ):
+            MODULE.wait_fallback_ncm("pci/usb1/1-1/1-1.9", 600)
+
+    def test_ncm_rejects_duplicate_product_and_interface(self) -> None:
+        duplicate = self.fixture.devices / "pci/usb1/1-1/1-1.3"
+        duplicate.mkdir(parents=True)
+        (duplicate / "idVendor").write_text(MODULE.USB_VENDOR)
+        (duplicate / "idProduct").write_text(MODULE.USB_PRODUCT)
+        (duplicate / "product").write_text(MODULE.USB_PRODUCT_NAME)
+        (self.fixture.bus / "1-1.3").symlink_to(duplicate)
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
+        (self.fixture.bus / "1-1.3").unlink()
+        (self.fixture.net / "usbtest1").symlink_to(
+            self.fixture.ncm_interface / "net/usbtest0"
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
 
 
 class SerialTest(unittest.TestCase):
@@ -1036,6 +1143,267 @@ class SerialTest(unittest.TestCase):
                 serial.write(b"x", stage=stage)
 
 
+class SshTransportTest(unittest.TestCase):
+    def test_ssh_option_paths_reject_expansion_tokens(self) -> None:
+        for prefix, filename in (
+            ("rog5 fallback pin ", "known hosts"),
+            ("rog5-fallback-pin-%h-", "known-hosts"),
+        ):
+            with (
+                self.subTest(prefix=prefix),
+                tempfile.TemporaryDirectory(prefix=prefix) as temporary,
+            ):
+                root = Path(temporary)
+                root.chmod(0o700)
+                pin = root / filename
+                pin.write_bytes(b"offline\n")
+                pin.chmod(0o600)
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.verify_known_hosts(pin)
+
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-key-%d-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            key = root / "deployment-key"
+            key.write_bytes(b"x" * 64)
+            key.chmod(0o600)
+            with self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "percent tokens",
+            ):
+                MODULE.verify_ssh_key(key, "1" * 64)
+
+    def test_strict_ssh_probe_is_nonce_correlated_and_usb_revalidated(
+        self,
+    ) -> None:
+        nonce = "ab" * 16
+        location = "pci/usb1/1-1/1-1.2"
+        interface = "usbtest0"
+        temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-ssh-"
+        )
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        root.chmod(0o700)
+        ssh_key = root / "deployment-key"
+        subprocess.run(
+            [
+                str(MODULE.SSH_KEYGEN),
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(ssh_key),
+            ],
+            check=True,
+        )
+        fields = ssh_key.with_suffix(".pub").read_text().split()
+        known_hosts = root / "fallback-known-hosts"
+        allowed_signers = (
+            f"{MODULE.HOST_ALIAS} {fields[0]} {fields[1]}\n"
+        ).encode("ascii")
+        expected_public_sha256 = hashlib.sha256(
+            b" ".join(field.encode("ascii") for field in fields[:2])
+            + b"\n"
+        ).hexdigest()
+        known_hosts.write_bytes(allowed_signers)
+        known_hosts.chmod(0o600)
+        self.assertEqual(
+            MODULE.verify_ssh_key(ssh_key, expected_public_sha256),
+            ssh_key,
+        )
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.verify_ssh_key(ssh_key, "f" * 64)
+        result = subprocess.CompletedProcess(
+            [],
+            0,
+            frame(nonce, "classify"),
+            b"",
+        )
+        with (
+            mock.patch.object(MODULE, "read_anchor", return_value=location),
+            mock.patch.object(
+                MODULE,
+                "wait_fallback_ncm",
+                return_value=(interface, location),
+            ),
+            mock.patch.object(MODULE, "exact_fallback_route") as route,
+            mock.patch.object(MODULE, "verify_network_profile"),
+            mock.patch.object(MODULE.os, "urandom", return_value=b"\xab" * 16),
+            mock.patch.object(
+                MODULE.subprocess,
+                "run",
+                return_value=result,
+            ) as run,
+            mock.patch.object(MODULE, "verify_signature") as verify,
+            mock.patch.object(
+                MODULE,
+                "verify_ssh_key",
+                return_value=ssh_key,
+            ),
+            mock.patch.object(
+                MODULE,
+                "fallback_ncm_identity",
+                return_value=(interface, location),
+            ),
+        ):
+            values, proof = MODULE.ssh_probe(
+                known_hosts,
+                allowed_signers,
+                ssh_key,
+                expected_public_sha256,
+                Path("/private/recovery.anchor"),
+                750,
+            )
+        arguments = run.call_args.args[0]
+        self.assertIn("StrictHostKeyChecking=yes", arguments)
+        self.assertIn("IdentitiesOnly=yes", arguments)
+        self.assertIn("BatchMode=yes", arguments)
+        self.assertIn("HostKeyAlias=rog5-fallback", arguments)
+        self.assertIn("GlobalKnownHostsFile=/dev/null", arguments)
+        self.assertIn("ConnectionAttempts=1", arguments)
+        self.assertEqual(arguments[-2:], [nonce, "classify"])
+        self.assertEqual(
+            run.call_args.kwargs["input"],
+            MODULE.REMOTE_SOURCE.encode("utf-8"),
+        )
+        self.assertEqual(run.call_args.kwargs["stderr"], subprocess.PIPE)
+        self.assertNotIn("pass_fds", run.call_args.kwargs)
+        self.assertEqual(values["boot_id"], record(nonce)[0]["boot_id"])
+        self.assertEqual(proof["usb_location"], location)
+        self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
+        verify.assert_called_once()
+
+    def test_network_profile_is_exact_and_interface_bound(self) -> None:
+        exact = subprocess.CompletedProcess(
+            [],
+            0,
+            "\n".join(
+                (
+                    MODULE.FALLBACK_NETWORK_PROFILE,
+                    "802-3-ethernet",
+                    "usbtest0",
+                    "yes",
+                    "100",
+                    "manual",
+                    MODULE.HOST_CIDR,
+                    "",
+                    "",
+                    "yes",
+                    "disabled",
+                    "",
+                )
+            ),
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=exact,
+        ):
+            self.assertEqual(
+                MODULE.verify_network_profile("usbtest0"),
+                "usbtest0",
+            )
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.verify_network_profile("other0")
+        routed = subprocess.CompletedProcess(
+            [],
+            0,
+            exact.stdout.replace("\nyes\ndisabled\n", "\nno\ndisabled\n"),
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=routed,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.verify_network_profile()
+
+    def test_exact_fallback_route_rejects_noncanonical_address(self) -> None:
+        accepted = (
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "2: usbtest0 inet 169.254.77.1/16 scope link "
+                    "usbtest0\n"
+                ),
+                "",
+            ),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "169.254.77.2 dev usbtest0 src 169.254.77.1 "
+                    "uid 1000\n    cache\n"
+                ),
+                "",
+            ),
+            subprocess.CompletedProcess([], 0, "", ""),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=accepted,
+        ):
+            MODULE.exact_fallback_route("usbtest0")
+        rejected = subprocess.CompletedProcess(
+            [],
+            0,
+            "2: usbtest0 inet 169.254.77.1/30 scope link usbtest0\n",
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=rejected,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+        policy_route = (
+            accepted[0],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "169.254.77.2 dev usbtest0 table 100 "
+                    "src 169.254.77.1 uid 1000\n    cache\n"
+                ),
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=policy_route,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+        default_route = (
+            accepted[0],
+            accepted[1],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                "default via 169.254.77.2 dev usbtest0\n",
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=default_route,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+
+
 class PolicyTest(unittest.TestCase):
     def test_embedded_thermal_policy_matches_host_verifier(self) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
@@ -1145,6 +1513,22 @@ class PolicyTest(unittest.TestCase):
             clear=True,
         ):
             MODULE.require_guards("host-preflight")
+        with mock.patch.dict(
+            MODULE.os.environ,
+            {
+                "ALLOW_FALLBACK_SSH_CONTROL": "1",
+                "ALLOW_PHONE_CREDENTIAL_USE": "1",
+            },
+            clear=True,
+        ):
+            MODULE.require_guards("ssh-host-preflight")
+            with self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
+            ):
+                MODULE.require_guards("wait-ssh-preflight")
+            MODULE.os.environ["ALLOW_FALLBACK_SSH_ATIME_EFFECTS"] = "1"
+            MODULE.require_guards("wait-ssh-preflight")
 
     def test_remote_payload_is_fixed_read_only_except_restart2(self) -> None:
         source = MODULE.REMOTE_SOURCE
@@ -1764,6 +2148,9 @@ class PolicyTest(unittest.TestCase):
         ) as temporary:
             root = Path(temporary)
             root.chmod(0o700)
+            known_hosts = root / "known-hosts"
+            known_hosts.write_bytes(b"offline-pin\n")
+            known_hosts.chmod(0o600)
             output = root / "identity"
             MODULE.write_identity(output, values, proof)
             self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
@@ -1805,7 +2192,7 @@ class PolicyTest(unittest.TestCase):
                     MODULE.main(
                         [
                             "preflight",
-                            str(root / "known-hosts"),
+                            str(known_hosts),
                             str(preflight_output),
                         ]
                     ),
@@ -1834,7 +2221,7 @@ class PolicyTest(unittest.TestCase):
                     MODULE.main(
                         [
                             "host-preflight",
-                            str(root / "known-hosts"),
+                            str(known_hosts),
                             "750",
                             "3600",
                         ]

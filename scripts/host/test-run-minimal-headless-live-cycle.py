@@ -44,8 +44,8 @@ GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP",
     "ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE",
     "ALLOW_PHONE_CREDENTIAL_USE",
-    "ALLOW_FALLBACK_ACM_CONTROL",
-    "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
+    "ALLOW_FALLBACK_SSH_CONTROL",
+    "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
 )
 
 
@@ -461,36 +461,38 @@ class Fixture:
             f"""\
             #!/bin/sh
             set -eu
-            if [ "$1" = host-preflight ]; then
-              [ "$#" = 4 ]
+            if [ "$1" = ssh-host-preflight ]; then
+              [ "$#" = 6 ]
               [ "$2" = "{self.known_hosts}" ]
-              [ "$3" = 750 ]
-              [ "$4" = 3600 ]
-              [ "${{ALLOW_FALLBACK_ACM_CONTROL:-}}" = 1 ]
+              [ "$3" = "{self.ssh_key}" ]
+              [ "$4" = "{'1' * 64}" ]
+              [ "$5" = 750 ]
+              [ "$6" = 3600 ]
+              [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
               [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
-              [ -z "${{ALLOW_FALLBACK_ACM_STORAGE_WRITE+x}}" ]
+              [ -z "${{ALLOW_FALLBACK_SSH_ATIME_EFFECTS+x}}" ]
               [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
-              [ -z "${{SSH_KEY+x}}" ]
-              printf 'fallback:host-preflight\n' >>"$MOCK_CALLS"
-              echo 'PASS fallback host preflight'
+              printf 'fallback:ssh-host-preflight\n' >>"$MOCK_CALLS"
+              echo 'PASS fallback SSH host preflight'
               exit 0
             fi
-            [ "$1" = wait-preflight ]
+            [ "$1" = wait-ssh-preflight ]
             [ "$2" = "{self.known_hosts}" ]
-            [ "$3" = "{self.evidence / 'recovery-usb.anchor'}" ]
-            [ -f "$3" ]
-            grep -Fxq 'format=rog5-minimal-headless-usb-anchor-v1' "$3"
-            [ "$4" = 750 ]
-            [ "$5" = "{self.evidence / 'fallback-identity.record'}" ]
-            [ "$#" = 5 ]
-            [ "${{ALLOW_FALLBACK_ACM_CONTROL:-}}" = 1 ]
+            [ "$3" = "{self.ssh_key}" ]
+            [ "$4" = "{'1' * 64}" ]
+            [ "$5" = "{self.evidence / 'recovery-usb.anchor'}" ]
+            [ -f "$5" ]
+            grep -Fxq 'format=rog5-minimal-headless-usb-anchor-v1' "$5"
+            [ "$6" = 750 ]
+            [ "$7" = "{self.evidence / 'fallback-identity.record'}" ]
+            [ "$#" = 7 ]
+            [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
+            [ "${{ALLOW_FALLBACK_SSH_ATIME_EFFECTS:-}}" = 1 ]
             [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
-            [ "${{ALLOW_FALLBACK_ACM_STORAGE_WRITE:-}}" = 1 ]
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
-            [ -z "${{SSH_KEY+x}}" ]
-            printf 'fallback:preflight\n' >>"$MOCK_CALLS"
+            printf 'fallback:ssh-preflight\n' >>"$MOCK_CALLS"
             if [ "${{MOCK_FALLBACK_FAIL:-0}}" = 1 ]; then
-              echo 'FAIL injected fallback ACM rejection'
+              echo 'FAIL injected fallback SSH rejection'
               exit 1
             fi
             : >"$MOCK_ROOT/target-departed"
@@ -506,8 +508,8 @@ class Fixture:
               'signature_sha256={'8' * 64}' \
               'host_pin_sha256={'9' * 64}' \
               'result=PASS' \
-              >"$5"
-            echo 'PASS pinned exact Alpine fallback returned on the recovery USB port'
+              >"$7"
+            echo 'PASS pinned exact Alpine fallback returned over strict SSH on the recovery USB port'
             """,
         )
 
@@ -616,9 +618,9 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("bundle:preflight", calls)
         self.assertIn("nfs:preflight", calls)
         self.assertIn("live:preflight", calls)
-        self.assertIn("fallback:host-preflight", calls)
+        self.assertIn("fallback:ssh-host-preflight", calls)
         self.assertNotIn("live:boot", calls)
-        self.assertNotIn("fallback:preflight", calls)
+        self.assertNotIn("fallback:ssh-preflight", calls)
         self.assertFalse(any(line.startswith("host-key:") for line in calls))
         self.assertFalse(any(self.fixture.evidence.iterdir()))
 
@@ -676,7 +678,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("PASS one minimal-headless lifecycle", result.stdout)
         calls = self.fixture.call_lines()
         self.assertLess(
-            calls.index("fallback:host-preflight"),
+            calls.index("fallback:ssh-host-preflight"),
             calls.index("live:boot"),
         )
         self.assertLess(
@@ -693,10 +695,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             calls.index("nfs:clean"),
         )
         self.assertLess(
-            calls.index("fallback:preflight"),
+            calls.index("fallback:ssh-preflight"),
             calls.index("control:resolve:TARGET_ACCEPTED"),
         )
-        self.assertEqual(calls.count("fallback:preflight"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertTrue(
             (self.fixture.evidence / "target-known-hosts").is_file()
         )
@@ -728,7 +730,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)
         )
-        self.assertNotIn("fallback:preflight", calls)
+        self.assertNotIn("fallback:ssh-preflight", calls)
         self.assertEqual(calls.count("nfs:cancel"), 1)
         self.assertEqual(calls.count("nfs:terminated"), 1)
         self.assertFalse((self.fixture.root / "nfs-state").exists())
@@ -758,7 +760,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("control:prepare-commit"), 1)
-        self.assertEqual(calls.count("fallback:preflight"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertEqual(
             calls.count("control:resolve:FALLBACK_RETURNED"),
             1,
@@ -860,7 +862,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
         self.assertEqual(
-            self.fixture.call_lines().count("fallback:preflight"),
+            self.fixture.call_lines().count("fallback:ssh-preflight"),
             1,
         )
         self.assertFalse(
@@ -878,7 +880,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
         self.assertEqual(
-            self.fixture.call_lines().count("fallback:preflight"),
+            self.fixture.call_lines().count("fallback:ssh-preflight"),
             1,
         )
         self.assertFalse(
@@ -897,7 +899,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
         self.assertEqual(
-            self.fixture.call_lines().count("fallback:preflight"),
+            self.fixture.call_lines().count("fallback:ssh-preflight"),
             1,
         )
         self.assertFalse(
@@ -917,9 +919,9 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.assertIn(token, runner)
         for token in (
             "fallback-acm-control.py",
-            "ALLOW_FALLBACK_ACM_CONTROL",
-            "ALLOW_FALLBACK_ACM_STORAGE_WRITE",
-            "wait-preflight",
+            "ALLOW_FALLBACK_SSH_CONTROL",
+            "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
+            "wait-ssh-preflight",
             "PASS one recovery bundle transfer completed",
             "INFO recovery bundle host network state removed",
             "TARGET_ACCEPTED",

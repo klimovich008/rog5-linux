@@ -455,11 +455,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   host identity, exact stock kernel/init/compatible/ext4 state, empty pstore,
   zero project modules, safe thermals, and a separate reboot guard. Its only
   reboot primitive is the standard AArch64 `RESTART2("bootloader")` syscall;
-  the host then requires exactly one fastboot target. The mocked test rejects
+  the host then requires the exact serial and `lahaina` product. An SSH
+  disconnect before the remote marker is accepted only when that exact
+  fastboot identity independently proves the reboot. The mocked test rejects
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
-  This remains a historical strict-SSH helper; the active lifecycle uses
-  `fallback-acm-control.py` so the new client key need not be authorized in
-  Alpine.
+- The active lifecycle uses `fallback-acm-control.py wait-ssh-preflight` over
+  the exact fallback USB-NCM product. It requires the dedicated client key,
+  pinned Ed25519 host key, direct `169.254.77.1/16` route, recovery USB
+  continuity, one signed nonce-bound health frame, and post-reply USB
+  revalidation. The interactive ACM actions remain emergency-only.
 - `network-root-acm.py` replaces terminal attachment with three fixed staging
   actions, `O_NOCTTY`, exact recovery-gadget discovery, a separate attended
   kexec guard, and sanitized console output. Its pseudoterminal regression
