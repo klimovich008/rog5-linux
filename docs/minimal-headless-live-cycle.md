@@ -2,7 +2,7 @@
 
 This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
-return to the untouched Alpine fallback.
+return to the configuration-unchanged Alpine fallback.
 
 Tracked status: **controller and fixture path pass hardware-free tests;
 non-fixture artifact pins and host installation remain deployment inputs**.
@@ -52,14 +52,24 @@ complete preflight
   -> one strict-SSH runtime observation
   -> target watchdog rollback
   -> NFS cleanup
-  -> exact strict-SSH Alpine fallback
+  -> exact host-key-signed ACM Alpine fallback
   -> host cleanup proof
   -> durable intent resolution
 ```
 
 The target watchdog remains armed. The controller does not disarm it, request
 a target reboot, flash, wipe, mount phone storage, use ADB, sign a bundle, or
-create a production key.
+create a production key. The installed fallback exposes only an interactive
+BusyBox shell. Its history feature can persist the launcher before its child
+starts, so
+fallback ACM use has separately guarded storage effects. Reads of Python,
+libraries, `ssh-keygen`, and the host key from a writable `relatime` ext4 root
+may also update inode access times. The launcher is bounded below Alpine's
+2,048-byte line-editor limit and starts isolated/no-site Python. The host waits
+for a nonce-bound loader-ready marker before sending bounded, hash-checked
+source chunks. The phone rejects missing or partial chunks under a fixed
+receive deadline. The lifecycle reserves a separate bounded post-discovery
+control margin and never contacts fallback twice if later host cleanup fails.
 
 ## Fixed host privilege boundary
 
@@ -170,8 +180,11 @@ The lifecycle adds:
 - `HEADLESS_ROOT_PACKAGE`: canonical caller-owned read-only v3 package record;
 - `RECOVERY_CANDIDATE_RECORD`: canonical caller-owned read-only candidate
   record;
-- `FALLBACK_KNOWN_HOSTS`: caller-owned mode-`0600` strict pin for
-  `rog5-fallback`; and
+- `FALLBACK_KNOWN_HOSTS`: caller-owned mode-`0600` Ed25519 host-key pin below
+  a caller-owned mode-`0700` directory, used to verify fallback ACM health
+  signatures. Despite the inherited variable name, it must contain exactly
+  one literal `rog5-fallback ssh-ed25519 BASE64_KEY` line, not a general or
+  hashed OpenSSH `known_hosts` inventory; and
 - `EVIDENCE_DIR`: existing caller-owned mode-`0700` directory outside the
   repository.
 
@@ -298,16 +311,27 @@ Preflight proves:
   through a read-only PolicyKit preflight;
 - the corrected recovery image, twin, target bundle, trust root, native
   verifier, wrapper configuration, and AVB layout pass the existing live-gate
-  verification; and
+  verification;
+- the fallback controller validates its fixed host tools, inactive
+  ModemManager state, exact one-line allowed-signers pin, bounded loader
+  construction, 600-900 second wait, and recovery-anchor age budget without
+  opening ACM or authorizing phone-storage effects; and
 - exactly one `lahaina` fastboot device is present.
 
 The stable-recovery artifact gate now admits the exact
 `headless-ssh-deployment-v3` wrapper, trust root, manifest, verifier, and
 target identity. The fixed host components, read-only v3 export, NFS
 preflight, artifact gate, and connected fastboot gate now pass. The action
-remains HOLD until strict fallback SSH is proven. The current tier keeps
-Alpine untouched; changing its `authorized_keys` would require an explicit
-safety-tier revision before separate phone-write approval.
+remains HOLD until one live signed-ACM fallback preflight passes. Fallback
+classification no longer requires the deployment client key: the fixed ACM
+controller verifies a nonce-bound Alpine health record with the retained
+host-key pin and exact recovery-to-fallback physical USB continuity. Its
+hardware-free tests pass. It performs no `authorized_keys`, fallback
+configuration, mount, flash, or explicit partition write. Because Alpine
+enables BusyBox per-command history, accepting the launcher can append to or
+compact the shell-selected history file; ordinary reads can also update inode
+access times under `relatime`. Those action-scoped effects require
+`ALLOW_FALLBACK_ACM_STORAGE_WRITE=1` and remain unauthorized by this document.
 The NFS controller requires the exact admitted package hash, fixed export
 root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a
@@ -331,6 +355,8 @@ ALLOW_HEADLESS_NETWORK_ROOT_SERVER
 ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP
 ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE
 ALLOW_PHONE_CREDENTIAL_USE
+ALLOW_FALLBACK_ACM_CONTROL
+ALLOW_FALLBACK_ACM_STORAGE_WRITE
 ```
 
 These guards are an invocation-time authorization boundary, not persistent
@@ -352,6 +378,18 @@ All lifecycle outputs are created exclusively as mode-`0600` files below
 
 The directory and every output must remain outside Git. Existing files are
 never overwritten.
+The anchor's exact seven-field schema is directly bound by test to the real
+`pin-minimal-headless-host-key.py capture-recovery` producer, including its
+literal `ROG5 recovery` USB product. Fallback contact must start within 3,600
+seconds of capture; even the maximum 900-second ACM wait remains below the
+controller's 7,200-second anchor-age limit. The controller rechecks wall-clock
+anchor age and physical location after ACM discovery and before sending the
+launcher, so host suspend cannot bypass freshness.
+The fallback identity record retains only bounded non-sensitive proof
+metadata: boot ID, USB location, nonce, maximum sampled temperature, and
+SHA-256 identities of the signed record, signature, and inspected host-key
+pin. The pin itself, signature bytes, and SSH host private key are never
+published.
 
 ## Failure and outcome rules
 
@@ -370,11 +408,20 @@ never overwritten.
   the intent remains `UNKNOWN`. That is an attended investigation state, not
   permission to retry.
 
+Deterministic fallback host prerequisites are checked during lifecycle
+preflight before the temporary boot. Once the ACM controller is spawned, the
+attempt remains conservatively non-retryable because process failure can be
+ambiguous. Nonce-bound remote error frames preserve distinct health,
+host-key-signing, ACK, same-boot, and post-ACK timeout failures instead of
+collapsing them into one host timeout, including an error received on the last
+bounded serial read.
+
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
-scenarios, and `test-run-minimal-headless-live-cycle.py` covers seventeen
-lifecycle scenarios. Together they prove:
+scenarios, `test-fallback-acm-control.py` covers thirty-four fallback
+protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
+seventeen lifecycle test methods. Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;
@@ -394,10 +441,33 @@ lifecycle scenarios. Together they prove:
   changes block NFS startup before COMMIT;
 - one and only one `prepare-commit` process is started;
 - success resolves only after exact fallback;
+- fallback classification uses one exact nonce-framed record, a real
+  Ed25519 signature verifier, exact USB identity/location, bounded output,
+  exclusive serial ownership, and no fallback client credential;
+- the action-scoped fallback storage guard fails before pin or device access,
+  and the child launcher makes no false claim that changing its own
+  `HISTFILE` can disable the parent shell's already-selected history path;
+- thermal and pstore inspection fails if an expected entry is missing,
+  unreadable, or additional; reboot refuses unless the initial fastboot
+  inventory is canonically empty;
+- preflight/reboot retains the historical 60 C readiness ceiling while return
+  classification has a separate 80 C hard-safety ceiling, so a normal warm
+  rollback is not mistaken for an absent fallback;
+- the separately guarded reboot requires verified ACK, commit, disconnect,
+  same-port fastboot, and exact product without flash, mount, or any phone
+  write beyond separately authorized BusyBox-history and possible atime
+  effects;
+- its 30-second post-ACK COMMIT deadline exceeds the remote's 25-second
+  post-ACK deadline; the phone checks that deadline after repeated health
+  collection and both before and after COMMIT publication, preventing a late
+  reboot after host failure;
+- an absent reboot ACK expires on the phone without rebooting or retaining
+  the ACM session;
 - runtime rejection resolves as `FALLBACK_RETURNED`;
 - a transport-lost COMMIT uses the durable ledger without replay;
 - a silent process loss after ledger arm is recovered from the new durable
   record even when no session/request diagnostic was emitted;
+- a zero-exit process with malformed output recovers the same durable intent;
 - a real parent `SIGINT` after ledger arm terminates the live control child,
   rescans the ledger, returns to fallback, and resolves without replay;
 - a control failure with no intent is never resolved; and

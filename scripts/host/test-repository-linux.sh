@@ -164,6 +164,7 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py
+			scripts/host/test-fallback-acm-control.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
@@ -237,6 +238,7 @@ else
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py
+			scripts/host/test-fallback-acm-control.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py

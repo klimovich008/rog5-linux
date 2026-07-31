@@ -7,8 +7,9 @@ contracts and evidence instead of repeating their history.
 
 Reach a repeatable native Linux 7.1.4 minimal server on the ASUS ROG Phone 5:
 read-only network root, USB NCM, key-only SSH, bounded rollback, and private
-postmortem evidence. Keep the installed Alpine fallback untouched and use
-temporary `fastboot boot` only.
+postmortem evidence. Keep installed Alpine configuration and authorization
+unchanged; any shell-history or read-induced atime effect requires a separate
+action-scoped guard. Use temporary `fastboot boot` only.
 
 GPU, display, desktop, browser automation, hotspot, persistent installation,
 and newer-kernel rebases remain frozen until the headless core passes.
@@ -54,18 +55,44 @@ The host deployment boundary now passes:
   connected-fastboot checks pass; and
 - the one authorized temporary boot remains unused.
 
-The sole pre-lifecycle blocker is fallback SSH authorization. The phone is in
-the exact healthy Alpine fallback, and a private host pin is retained outside
-Git, but Alpine's two older authorized keys do not include the new deployment
-key. The current tier requires keeping fallback untouched and prohibits phone
-storage writes. Therefore either supply an existing authorized private key,
-or explicitly revise that safety tier before separately approving one bounded
-public-key append. After strict fallback SSH is proven, run the complete
-lifecycle preflight, return to fastboot, and only then use the one temporary
-boot.
+The lifecycle no longer depends on fallback client-key authorization. A fixed
+USB ACM controller now sends one nonce-bound read-only health payload to the
+exact Alpine serial interface. Alpine signs the canonical result with its existing
+Ed25519 SSH host key; the host verifies it against the private mode-`0600`
+pin retained outside Git. The protocol binds kernel/init/compatible/root,
+modules, pstore, dmesg, thermals, Python, boot ID, and physical USB location.
+Its separately guarded reboot path requires a verified ACK, rechecks the same
+boot, uses only `RESTART2("bootloader")`, and then requires the same port and
+exact `lahaina` fastboot product. A source audit of Alpine 3.24 and BusyBox
+1.37 found that the installed legacy interactive shell can record the
+launcher before starting its child. Reads from the writable `relatime` ext4
+root may also update inode access times. The controller therefore requires
+`ALLOW_FALLBACK_ACM_STORAGE_WRITE=1`; it has no explicit storage-write, mount,
+flash, `authorized_keys`, or fallback-configuration path. Its launcher stays
+below Alpine's 2,048-byte line-editor bound, starts Python in isolated/no-site
+mode, and waits for a nonce-bound loader-ready marker before sending bounded,
+hash-checked source chunks. A phone-side deadline rejects missing or partial
+delivery without execution. Non-reboot actions return to the same supervised
+shell rather than depending on a replacement shell to respawn.
+Before any temporary boot, lifecycle preflight now validates the
+allowed-signers pin, fixed host tooling, ModemManager state, wait range,
+loader bounds, and the 3,600-second contact-start/7,200-second anchor-age
+contract without opening ACM. The recovery anchor is directly bound to its
+real producer and is revalidated after ACM discovery to cover host suspend.
+Nonce-bound phone errors retain their failure class through the last bounded
+serial read.
+
+The hardware-free ACM and lifecycle tests pass. The next pre-lifecycle gate
+is one live cryptographic ACM preflight with a private canonical proof record,
+followed by the complete lifecycle preflight and a guarded return to fastboot.
+The one authorized temporary boot remains unused. Host-key signing and the
+action-scoped fallback storage effects require separate invocation-time
+guards. Neither is authorized by repository state.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
+The replacement fallback control boundary is recorded in the
+[authenticated ACM result](../test-results/2026-07-31-fallback-acm-control-offline.md).
 
 The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).
@@ -90,7 +117,8 @@ The controller must:
 6. pin the volatile target host key without TOFU;
 7. collect and verify one strict-SSH runtime record while rollback stays
    armed;
-8. observe return to the exact Alpine fallback;
+8. verify the returned Alpine fallback through its signed, nonce-bound ACM
+   health record;
 9. prove all host network/export state is removed; and
 10. resolve the durable intent as accepted or fallback-returned.
 
@@ -113,7 +141,9 @@ See [ROADMAP.md](../ROADMAP.md) for completion gates and
 ## Safety invariants
 
 - Never flash an experimental partition.
-- Never write or mount phone storage during this development tier.
+- Never mount phone storage or write it except for separately authorized
+  BusyBox-history and possible read-induced atime effects during one fixed
+  fallback ACM action.
 - Never reuse a consumed live payload or retry an ambiguous execute.
 - Keep private keys, host pins, firmware, and live evidence outside Git.
 - Follow the [credential-isolation policy](security-automation.md).
