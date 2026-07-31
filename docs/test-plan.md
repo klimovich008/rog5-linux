@@ -276,15 +276,29 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   recovery, fixed one-transfer bundle server, fixed read-only NFS exporter,
   durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
   observation, watchdog rollback, exact fallback preflight, and host cleanup.
-  Its process fixtures prove bundle cleanup precedes NFS startup, COMMIT is
-  never retried, transport loss is recovered only through the durable ledger,
-  runtime rejection resolves as `FALLBACK_RETURNED`, accepted runtime resolves
-  only after exact fallback and cleanup, and missing fallback proof leaves the
-  intent `UNKNOWN`. Injected protected-zone, temporary-address,
-  NetworkManager-ownership, final-cleanup, and silent-post-ledger-arm failures
-  cover the cleanup/oracle boundaries. It performs no phone, credential,
-  PolicyKit, firewall, or NFS action. See the
+  Seventeen process fixtures now also prove exact key guards fail first,
+  `key-preflight` stops before phone/privilege actions, and deployment-key
+  admission precedes connected preflight. They prove bundle cleanup precedes
+  NFS startup, COMMIT is never retried, transport loss is recovered only
+  through the durable ledger, runtime rejection resolves as
+  `FALLBACK_RETURNED`, accepted runtime resolves only after exact fallback and
+  cleanup, and missing fallback proof leaves the intent `UNKNOWN`. Injected
+  protected-zone, temporary-address, NetworkManager-ownership, final-cleanup,
+  and silent-post-ledger-arm failures cover the cleanup/oracle boundaries. It
+  performs no phone, personal-credential, PolicyKit, firewall, or NFS action.
+  See the
   [one-shot runbook](minimal-headless-live-cycle.md).
+- `test-verify-headless-ssh-v2-key-admission.py` has fourteen hostile,
+  deployment-credential-free host scenarios around the boundary. It derives
+  public halves only from disposable Ed25519 keys, accepts one exact
+  non-fixture v3 package/candidate/runtime-manifest chain, and rejects the
+  tracked fixture fingerprint, every tracked fixture root identity,
+  key/package mismatch, package/candidate/manifest/artifact mutations,
+  encrypted and RSA keys, unsafe parents, symlinks, hard links, replacement,
+  record metadata changes, and non-fixed key derivation or live-transport
+  surfaces. Canonical output contains only public fingerprints and hashes.
+  See the
+  [admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and

@@ -304,6 +304,17 @@ and
 plus the
 [candidate report](../test-results/2026-07-30-headless-ssh-v2-candidate-offline.md).
 
+The lifecycle now has a separate deployment-key admission boundary. After
+exact guards and a clean, synchronized repository checkpoint, but before
+privilege or phone discovery, it derives the public half from the caller's
+canonical private key through fixed `/usr/bin/ssh-keygen`. It requires one
+non-fixture `headless-ssh-v2` package, corrected candidate, and runtime
+manifest chain; binds their root identities and exact Image/DTB/initramfs
+tuple; and emits only hashes, the public fingerprint, and `authority=none`.
+Fourteen hostile verifier tests and seventeen lifecycle tests use disposable
+keys only. No deployment credential or phone was used. See the
+[admission report](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
+
 The first minimal mainline userspace profile was built and verified offline.
 It used an official signed Arch Linux ARM base plus the exact
 `7.1.4-g7a5cef0db479` modules and only three requested additions: `attr`,
@@ -389,9 +400,14 @@ and AVB images are byte-identical; the exact source seal is unchanged, AVB
 verification passes, and no private key remains. See the
 [successor offline report](../test-results/2026-07-30-corrected-headless-successor-offline.md).
 
-That retained recovery successor passes the exact production stable-recovery
-artifact boundary without a connected phone, but its associated NFS root is
-currently absent and therefore the complete lifecycle cannot pass preflight.
+The retained historical recovery successor passes its exact production
+stable-recovery artifact boundary without a connected phone, but it names the
+old fixture-independent profile and its associated NFS root is absent. The
+new lifecycle deliberately accepts only `headless-ssh-deployment-v3`; the
+stable-recovery gate and root-owned NFS controller do not yet implement that
+profile. Therefore neither the fixture candidate nor a future deployment-key
+candidate can reach connected preflight until the complete non-fixture chain
+is rebuilt and those fixed host profiles are added.
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
@@ -652,10 +668,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Add a live gate that derives the public half from the caller's private key,
-   requires exact v3/profile pairing, and rejects the public fixture.
-2. Rebuild a deployment-key-bound root/package/candidate and pass host-only
-   artifact preflight before requesting connected phone authorization.
+1. Rebuild a deployment-key-bound root/package/candidate/runtime-manifest
+   chain and add its exact stable-recovery plus read-only NFS export profile.
+2. Pass local key admission and every host-only artifact gate before requesting
+   connected phone authorization.
 3. After fresh authorization, run the connected read-only preflight and one
    attended temporary boot, then determine whether ramoops survives the
    target/fallback path.
@@ -685,8 +701,8 @@ headless reliability gate. No new phone action is authorized by this document.
 - The corrected headless stage is network-disabled, consumes only the exact
   manifest-pinned Arch base and modules, rejects embedded Pacman secret or
   revocation state, normalizes timestamps, and emits a sorted archive.
-  Two fresh builds from `ffe8dda` are byte-identical at SHA-256
-  `d81d91fca1968eeb889155a8bf8077d0604812dd43e4055abfa64a1adb87c6a9`;
-  package and live-candidate identity remain pending.
+  The `headless-ssh-v2` source and v3 fixture package/candidate are
+  byte-reproducible; the non-fixture deployment package and live-candidate
+  identities remain pending.
 - Fastboot remains boot-only. The fallback slot and guarded
   `RESTART2("bootloader")` helper remain unchanged.
