@@ -475,11 +475,15 @@ lifecycle deliberately accepts only `headless-ssh-deployment-v3`. That
 deployment profile now pins the complete non-fixture wrapper, trust root,
 manifest, and verifier chain. The root-owned NFS controller understands only
 that exact profile and package identity at its fixed v3 path. A separately
-reviewed fixed installer can materialize the export without replacement, but
-the reviewed host components and deployment export have not yet been
-installed on the real host. Connected preflight therefore remains closed
-until host installation, export publication, fallback SSH, cleanup, and
-fastboot checks pass.
+reviewed fixed installer can materialize the export without replacement. The
+fixed host components and signed runtime bundle are installed on the real
+host, but export publication stopped safely before extraction because
+SteamOS's 230 MiB `/var` cannot hold the 1.53 GiB lower. The remediated fixed
+store is `/home/rog5-linux/exports/headless-ssh-network-root-v3`; every
+ancestor below `/home` must be root-owned mode `0700`, and the installer
+rejects symlinked or non-root-writable ancestry. Connected preflight remains
+closed until the remediated components are reviewed, installed, the export is
+published, and fallback SSH, cleanup, and fastboot checks pass.
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,

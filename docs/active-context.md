@@ -48,7 +48,8 @@ See the
 
 Before the one temporary boot-only lifecycle can start, the host still needs:
 
-1. reviewed fixed host components and the no-replace read-only NFS export;
+1. the reviewed SteamOS export-store remediation committed, pushed,
+   reinstalled, and used to publish the no-replace read-only NFS export;
 2. a proven private-key path that can reach the installed Alpine fallback, or
    a separately approved fallback-key installation;
 3. a clean local/remote branch and passing key, artifact, cleanup, fallback,

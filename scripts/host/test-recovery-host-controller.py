@@ -517,6 +517,18 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "install-headless-ssh-deployment-export.py",
             installer,
         )
+        self.assertIn(
+            "export_storage_root=/home/rog5-linux",
+            installer,
+        )
+        self.assertIn(
+            "export_parent=$export_storage_root/exports",
+            installer,
+        )
+        self.assertIn(
+            "install -d -o root -g root -m 0700",
+            installer,
+        )
         server_hash = hashlib.sha256(
             (
                 REPO / "tools/recovery_control/host_bundle_server.py"

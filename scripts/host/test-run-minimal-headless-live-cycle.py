@@ -808,6 +808,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "headless_verifier_source",
             "persistent_root_tool_source",
             "install -o root -g root -m 0555",
+            "export_storage_root=/home/rog5-linux",
         ):
             self.assertIn(token, installer)
         for forbidden in (

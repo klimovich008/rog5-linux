@@ -311,13 +311,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   surfaces. Canonical output contains only public fingerprints and hashes.
   See the
   [admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
-- `test-install-headless-ssh-deployment-export.py` has eleven offline
+- `test-install-headless-ssh-deployment-export.py` has thirteen offline
   root-installer fixtures. They cover exact package/archive binding, fixture
   and historical-package refusal, unsafe input metadata, escaping and
   credential paths, symlink ancestors, devices/FIFOs, caller pathname and
   in-place replacement after admission, bottom-up durability ordering, and a
-  racing final destination. Inspection and extraction consume only one
-  anonymous private snapshot, and publication uses no-replace rename.
+  racing final destination. They also require fixed root-owned destination
+  ancestry and a stable Python 3.13 caller-lookup refusal. Inspection and
+  extraction consume only one anonymous private snapshot, and publication
+  uses no-replace rename.
 - `test-run-headless-ssh-deployment-export-install.py` has eight launcher
   fixtures. They prove guards and fixed installed bytes fail before private
   key admission, require a clean exact `origin` checkpoint, bind admission to
@@ -337,9 +339,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   command-manifest, profile, malformed or cross-version records, package/
   build/key fingerprint mismatches, options/comments, noncanonical Base64,
   SSH blob algorithm confusion, unsafe parent/`.ssh`/file metadata, hard
-  links, and v3-to-v2 downgrade attempts. The shell contract also requires the
-  public fixture to satisfy its Ed25519 gate and pins the v2-only
-  `AuthorizedKeysFile`.
+  links, v3-to-v2 downgrade attempts, and post-publication export-ancestry
+  permission/symlink drift. The shell contract also requires the public
+  fixture to satisfy its Ed25519 gate, pins the v2-only
+  `AuthorizedKeysFile`, and requires ancestry re-attestation before bind plus
+  package verification against the already bound tree.
 - `test-compare-root-archives.py` rejects added paths, unsafe paths, hard-link
   topology changes, and inode-flag loss across a dense source re-encoding.
 - `test-normalize-headless-core-archive-contract.sh` pins a hardware-free,

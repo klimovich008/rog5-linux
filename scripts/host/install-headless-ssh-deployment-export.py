@@ -28,7 +28,12 @@ HEADLESS_TOOL_PATH = (
     if SOURCE_PATH.parent == INSTALLED_ROOT
     else SOURCE_PATH.with_name("headless-network-root.py")
 )
-DESTINATION = Path("/var/lib/rog5-headless-ssh-network-root-v3")
+EXPORT_STORAGE_ROOT = Path("/home/rog5-linux")
+DESTINATION = (
+    EXPORT_STORAGE_ROOT
+    / "exports"
+    / "headless-ssh-network-root-v3"
+)
 LOCK_PATH = Path("/run/rog5-headless-ssh-export-install.lock")
 BSDTAR = Path("/usr/bin/bsdtar")
 ZERO_SHA256 = "0" * 64
@@ -504,8 +509,6 @@ def install_export(
     *,
     owner: int,
     group: int,
-    destination: Path,
-    lock_path: Path,
 ) -> OrderedDict[str, str]:
     require_sha256(expected_package_sha256, "admitted package identity")
     archive = canonical_input(
@@ -520,16 +523,19 @@ def install_export(
         group=group,
         label="deployment package",
     )
-    if destination == Path("/") or not destination.is_absolute():
-        fail("deployment destination is unsafe")
-    parent = destination.parent
-    parent_metadata = parent.lstat()
-    if (
-        not stat.S_ISDIR(parent_metadata.st_mode)
-        or parent_metadata.st_uid != os.geteuid()
-        or stat.S_IMODE(parent_metadata.st_mode) & 0o022
-    ):
-        fail("deployment destination parent is unsafe")
+    destination = DESTINATION
+    lock_path = LOCK_PATH
+    try:
+        parent = HEADLESS.trusted_deployment_export_parent(
+            destination,
+            storage_root=EXPORT_STORAGE_ROOT,
+            owner=os.geteuid(),
+            group=os.getegid(),
+        )
+    except HEADLESS.HeadlessRootError as error:
+        raise ExportInstallError(
+            "deployment destination ancestry is unsafe"
+        ) from error
     if destination.exists() or destination.is_symlink():
         fail("refusing an existing deployment export")
     package_descriptor = open_input(package, 64 * 1024)
@@ -634,8 +640,6 @@ def main(arguments: list[str] | None = None) -> int:
             package_sha256,
             owner=caller_uid,
             group=caller_record.pw_gid,
-            destination=DESTINATION,
-            lock_path=LOCK_PATH,
         )
     except (
         ExportInstallError,
@@ -643,7 +647,6 @@ def main(arguments: list[str] | None = None) -> int:
         HEADLESS.ROOT_TOOL.ContractError,
         KeyError,
         OSError,
-        pwd.error,
         subprocess.SubprocessError,
     ):
         print(

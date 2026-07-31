@@ -318,12 +318,21 @@ only the archive, package, and admitted package hash to the root-owned
 component. The installer snapshots caller-owned archive bytes into an
 anonymous root-owned file, rejects unsafe members and tracked fixture
 identities, verifies and syncs the extracted root, and publishes only to
-`/var/lib/rog5-headless-ssh-network-root-v3` with
-`renameat2(RENAME_NOREPLACE)`. Eleven hostile installer tests and eight
-launcher tests pass offline. The fixed component and export have not been
-installed on the real host; doing so is a separate credential-bearing
-PolicyKit action requiring fresh confirmation. See the
+`/home/rog5-linux/exports/headless-ssh-network-root-v3` with
+`renameat2(RENAME_NOREPLACE)`. The `/home/rog5-linux` and `exports`
+directories are fixed root-owned mode-`0700` trust anchors; the installer
+rejects non-canonical, writable, or symlinked ancestry. Thirteen hostile
+installer tests and eight launcher tests pass offline. The fixed controller
+and signed bundle are installed on the real host, but the export is not: the
+first attempt stopped before publication on SteamOS's undersized `/var`
+filesystem. Installing the remediated component and publishing the export
+remain separate credential-bearing host actions. See the
 [offline installer result](../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
+
+The fixed NFS server independently rechecks that ancestry at preflight and
+again immediately before binding. It verifies the read-only bind-mounted tree
+against the admitted package before starting NFS, so replacing the source
+pathname after verification cannot change the exported inode tree.
 
 The offline host implementation now passes
 `scripts/host/test-network-root-host.sh`. After confirmation,

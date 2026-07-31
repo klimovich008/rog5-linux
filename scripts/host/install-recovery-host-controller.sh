@@ -23,6 +23,8 @@ deployment_export_installer_source=$repo/scripts/host/install-headless-ssh-deplo
 destination=/usr/libexec/rog5-recovery-host
 controller_destination=/usr/libexec/rog5-recovery-bundle-controller
 bundle_root=/var/lib/rog5-recovery-bundles
+export_storage_root=/home/rog5-linux
+export_parent=$export_storage_root/exports
 
 for command in awk getent install mktemp mv rm sha256sum stat; do
 	command -v "$command" >/dev/null ||
@@ -51,6 +53,22 @@ caller_gid=$(awk -F: -v uid="$PKEXEC_UID" '
 ' <<<"$caller_record")
 [[ $caller_gid =~ ^[0-9]+$ ]] ||
 	fail 'invalid or ambiguous PolicyKit caller record'
+[[ -d /home && ! -L /home &&
+	$(stat -Lc '%u:%g:%F' -- /home) == '0:0:directory' ]] ||
+	fail 'unsafe host home filesystem root'
+home_mode=$(stat -Lc %a -- /home)
+[[ $home_mode =~ ^[0-7]{3,4}$ ]] ||
+	fail 'invalid host home filesystem mode'
+(( (8#$home_mode & 8#022) == 0 )) ||
+	fail 'host home filesystem root is writable by non-root'
+for export_directory in "$export_storage_root" "$export_parent"; do
+	if [[ -e $export_directory || -L $export_directory ]]; then
+		[[ -d $export_directory && ! -L $export_directory &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$export_directory") == \
+			'0:0:700:directory' ]] ||
+			fail 'unsafe existing deployment export storage'
+	fi
+done
 if [[ -e $bundle_root ]]; then
 	[[ -d $bundle_root && ! -L $bundle_root &&
 		$(stat -Lc '%u:%g:%a:%F' -- "$bundle_root") == "$PKEXEC_UID:$caller_gid:700:directory" ]] ||
@@ -69,6 +87,8 @@ fi
 
 install -d -o root -g root -m 0755 "$destination"
 install -d -o "$PKEXEC_UID" -g "$caller_gid" -m 0700 "$bundle_root"
+install -d -o root -g root -m 0700 \
+	"$export_storage_root" "$export_parent"
 controller_temporary=
 server_temporary=
 network_server_temporary=
@@ -153,3 +173,4 @@ echo "INFO persistent_root_tool_sha256=$(sha256sum \
 echo "INFO deployment_export_installer_sha256=$(sha256sum \
 	"$destination/install-headless-ssh-deployment-export.py" |
 	awk '{ print $1 }')"
+echo "INFO export_parent=$export_parent"
