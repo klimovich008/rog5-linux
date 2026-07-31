@@ -357,6 +357,16 @@ marker, recovery-control, target-probe, and runtime-verifier paths remain
 intact. See the
 [profile-threading report](../test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md).
 
+Status update, 2026-07-31: the authorized non-fixture deployment chain is now
+built. The sealed root archive is 536,746,495 bytes with SHA-256
+`4d120a4b3a10be098cea47ba8536969bbaa931b47b31cc37fc3474fea045b324`;
+its manifest, candidate, signed runtime manifest, raw recovery trust root,
+recovery initramfs, wrapper kernel, raw boot image, and AVB wrapper are bound
+by the new `headless-ssh-deployment-v3` live-gate profile. Two clean complete
+builds are byte-identical, AVB verification passes, and the real artifact
+preflight succeeds without phone access. See the
+[deployment-chain report](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
+
 The missing host publication boundary is now implemented but not deployed.
 An unprivileged launcher requires a clean branch synchronized with its exact
 `origin` peer, verifies root-owned installed components byte-for-byte, and
@@ -459,20 +469,17 @@ and AVB images are byte-identical; the exact source seal is unchanged, AVB
 verification passes, and no private key remains. See the
 [successor offline report](../test-results/2026-07-30-corrected-headless-successor-offline.md).
 
-The retained historical recovery successor passes its exact production
-stable-recovery artifact boundary without a connected phone, but it names the
-old fixture-independent profile and its associated NFS root is absent. The
-new lifecycle deliberately accepts only `headless-ssh-deployment-v3`. The
-root-owned NFS controller now understands only that exact profile and package
-identity at its fixed v3 path. A separately reviewed fixed installer can
-materialize that export without replacement, but neither its current source
-nor any deployment export has been installed on the real host.
-The stable-recovery artifact gate still has no v3 wrapper/trust/manifest
-hashes because no authorized non-fixture chain exists. Therefore neither the
-fixture candidate nor a future deployment-key candidate can reach connected
-preflight until that chain is rebuilt, the reviewed fixed host components are
-installed, the export is published through the admitted no-replace launcher,
-and stable-recovery hashes are pinned.
+The retained historical recovery successor still passes its exact production
+stable-recovery artifact boundary without a connected phone, but the new
+lifecycle deliberately accepts only `headless-ssh-deployment-v3`. That
+deployment profile now pins the complete non-fixture wrapper, trust root,
+manifest, and verifier chain. The root-owned NFS controller understands only
+that exact profile and package identity at its fixed v3 path. A separately
+reviewed fixed installer can materialize the export without replacement, but
+the reviewed host components and deployment export have not yet been
+installed on the real host. Connected preflight therefore remains closed
+until host installation, export publication, fallback SSH, cleanup, and
+fastboot checks pass.
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,

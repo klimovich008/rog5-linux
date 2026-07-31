@@ -41,6 +41,9 @@ component_layout=
 expected_kernel=
 expected_raw=
 expected_initramfs=
+expected_target_id=
+expected_bundle=
+requires_qualified_cpio=0
 expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
 expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
 expected_verifier=374900be5769eee074820007ab2e335d4c033c500da7a480cc88f9a70137029b
@@ -70,6 +73,7 @@ case $profile in
 		expected_kernel=91732d1bdbf73c5f574d87eb0d07b5394db2889e4c0dc4b258577a0bcdb0101f
 		expected_raw=854c48adb4316bc8496579ebab78cfbbd3e0550fe0c5204ae3c5661187818fb4
 		expected_initramfs=6245147d464985df3d861d2b177ea39f6132767b45c07e39a131fecf3bf69aa2
+		expected_target_id=headless-network-root
 		avbtool=$repo/../work/linux-server/avb/avbtool.py
 		unpack=$repo/../work/linux-server/mkbootimg/unpack_bootimg.py
 		;;
@@ -78,6 +82,7 @@ case $profile in
 		expected_kernel=bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da
 		expected_raw=157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c
 		expected_initramfs=ac5fd5169be86a44b01e8e2d5d5343feddf9ffdc34ea3581a430c5cbc2962c04
+		expected_target_id=headless-network-root
 		[[ $expected_image == \
 			416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430 ]] ||
 			fail 'successor recovery image identity is not allowlisted'
@@ -95,9 +100,38 @@ case $profile in
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
 		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	headless-ssh-deployment-v3)
+		component_layout=structured
+		expected_kernel=00168aafe5aaf4043b5252e116f6216f6d3b6ea03dc382dd630eec6991c3ff66
+		expected_raw=7227c5b7f10f4c89293dd53c3a060bd39a6aaadc044d23f6d5228f51e56b8380
+		expected_initramfs=4cfc5dfce5babc9ec76ba4a8a10accde6c0ec5f216f65f6e3f669641123a7cc2
+		expected_target_id=headless-ssh-network-root
+		expected_bundle=headless-ssh-network-root-v3
+		[[ $expected_image == \
+			f8488fe2e88f13b553127896fd1b1477b85bbe5c3aa36a15ab5d884ad87d1fed ]] ||
+			fail 'deployment recovery image identity is not allowlisted'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'deployment recovery trust root is not allowlisted'
+		[[ $expected_manifest == \
+			457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e ]] ||
+			fail 'deployment runtime manifest is not allowlisted'
+		[[ $expected_host_verifier == \
+			9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b ]] ||
+			fail 'deployment host verifier is not allowlisted'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
 		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
+[[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
+	fail "profile requires bundle=$expected_bundle"
 
 for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 	stat tr; do
@@ -190,7 +224,7 @@ for input in "$image" "$twin_image" "$raw" "$twin_raw" "$kernel" \
 	[[ -f $input && ! -L $input && -r $input ]] ||
 		fail "unsafe or missing live input: $input"
 done
-if [[ $profile == corrected-headless-successor-2026-07-30 ]]; then
+if [[ $requires_qualified_cpio == 1 ]]; then
 	for input in "$qualified_cpio" "$qualified_cpio_shim"; do
 		[[ -f $input && ! -L $input && -x $input ]] ||
 			fail "unsafe or missing qualified cpio input: $input"
@@ -232,7 +266,7 @@ check_hash "$control" "$expected_control"
 check_hash "$fetcher" "$expected_fetcher"
 check_hash "$verifier" "$expected_verifier"
 check_hash "$config" "$expected_config"
-if [[ $profile == corrected-headless-successor-2026-07-30 ]]; then
+if [[ $requires_qualified_cpio == 1 ]]; then
 	check_hash "$qualified_cpio" \
 		7520899a405e1fc698875e047d8671c9415116e944831135a8e8eb6a93a21580
 	check_hash "$qualified_cpio_shim" \
@@ -251,7 +285,7 @@ verified_plan=$(
 grep -Fxq "bundle=$bundle" <<<"$verified_plan"
 grep -Fxq "manifest_sha256=$expected_manifest" <<<"$verified_plan"
 grep -Fxq 'profile=network-root-v1' <<<"$verified_plan"
-grep -Fxq 'target_id=headless-network-root' <<<"$verified_plan"
+grep -Fxq "target_id=$expected_target_id" <<<"$verified_plan"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$verified_plan"
 grep -Fxq 'target_timeout=480' <<<"$verified_plan"
 
