@@ -112,7 +112,7 @@ process_identity() {
 	local process=$1 record rest
 	local -a fields
 
-	IFS= read -r record <"/proc/$process/stat" || return 1
+	IFS= read -r record <"/proc/$process/stat" 2>/dev/null || return 1
 	rest=${record##*) }
 	read -r -a fields <<<"$rest"
 	[[ ${#fields[@]} -ge 20 &&
@@ -122,6 +122,16 @@ process_identity() {
 		return 1
 	printf '%s %s %s\n' \
 		"${fields[2]}" "${fields[3]}" "${fields[19]}"
+}
+
+process_state() {
+	local process=$1 record rest state
+
+	IFS= read -r record <"/proc/$process/stat" 2>/dev/null || return 1
+	rest=${record##*) }
+	read -r state _ <<<"$rest"
+	[[ $state =~ ^[A-Z]$ ]] || return 1
+	printf '%s\n' "$state"
 }
 
 process_start_time() {
@@ -134,7 +144,7 @@ process_start_time() {
 
 cancel_network_root() {
 	local -a fields
-	local pid start_time caller_uid token group session current
+	local pid start_time caller_uid token group session current state
 	local attempt
 
 	[[ -f $service_state && ! -L $service_state &&
@@ -228,7 +238,8 @@ finally:
 PY
 	for attempt in {1..300}; do
 		current=$(process_start_time "$pid" || true)
-		if [[ $current != "$start_time" &&
+		state=$(process_state "$pid" || true)
+		if [[ ($current != "$start_time" || $state == Z || $state == X) &&
 			! -e $service_state && ! -L $service_state ]]; then
 			echo 'PASS exact network-root service cancelled and cleaned'
 			return
