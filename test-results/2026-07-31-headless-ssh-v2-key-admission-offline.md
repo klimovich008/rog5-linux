@@ -69,10 +69,13 @@ admission record passes. `run` additionally retains every prior full-cycle
 guard, no-retry COMMIT rule, armed watchdog, exact fallback proof, cleanup
 proof, and durable intent resolution.
 
-The real stable-recovery gate and root-owned NFS controller do not yet
-implement `headless-ssh-deployment-v3`. This is intentional fail-closed state:
-a connected preflight cannot reach fastboot until the non-fixture chain and
-its fixed host profiles exist.
+At this checkpoint the real stable-recovery gate and root-owned NFS controller
+did not yet implement `headless-ssh-deployment-v3`. The later
+[profile-threading result](2026-07-31-headless-ssh-v3-profile-threading-offline.md)
+adds exact NFS and runtime identity propagation, while stable-recovery hashes
+and the installed v3 export remain intentionally absent. A connected preflight
+still cannot reach fastboot until the non-fixture chain and those fixed
+artifacts exist.
 
 ## Hardware-free tests
 
@@ -131,8 +134,8 @@ Before connected preflight:
 1. obtain separate explicit authorization to use one deployment key;
 2. rebuild the source root, v3 package, corrected candidate, signed runtime
    bundle, recovery wrapper, and retained records around that public identity;
-3. add and mutation-test the exact `headless-ssh-deployment-v3`
-   stable-recovery and read-only NFS export profiles;
+3. install the exact `headless-ssh-deployment-v3` read-only export and pin its
+   stable-recovery wrapper/trust/manifest hashes;
 4. pass local key admission and all host-only signature/root/wrapper/AVB
    gates from a clean pushed checkpoint; and
 5. request fresh authorization for connected preflight and, separately, one

@@ -9,16 +9,53 @@ fail() {
 action=${1:-}
 case $action in
 	preflight)
-		[[ $# == 1 ]] ||
-			fail 'usage: run-headless-network-root-server.sh preflight'
+		case $# in
+			1)
+				profile=historical-headless-network-root-v1
+				root=/var/lib/rog5-headless-network-root-v1/root
+				package_sha256=
+				;;
+			3)
+				profile=$2
+				package_sha256=$3
+				[[ $profile == headless-ssh-deployment-v3 ]] ||
+					fail 'unsupported headless network-root profile'
+				[[ $package_sha256 =~ ^[0-9a-f]{64}$ &&
+					$package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+					fail 'deployment package identity must be one nonzero SHA-256'
+				root=/var/lib/rog5-headless-ssh-network-root-v3/root
+				;;
+			*)
+				fail 'usage: run-headless-network-root-server.sh preflight [PROFILE PACKAGE_SHA256]'
+				;;
+		esac
 		handoff_token=
 		;;
 	serve)
 		[[ ${ALLOW_HEADLESS_NETWORK_ROOT_SERVER:-} == 1 ]] ||
 			fail 'set ALLOW_HEADLESS_NETWORK_ROOT_SERVER=1 for one attended export'
-		[[ $# == 2 ]] ||
-			fail 'usage: run-headless-network-root-server.sh serve HANDOFF_TOKEN'
-		handoff_token=$2
+		case $# in
+			2)
+				profile=historical-headless-network-root-v1
+				root=/var/lib/rog5-headless-network-root-v1/root
+				package_sha256=
+				handoff_token=$2
+				;;
+			4)
+				profile=$2
+				package_sha256=$3
+				handoff_token=$4
+				[[ $profile == headless-ssh-deployment-v3 ]] ||
+					fail 'unsupported headless network-root profile'
+				[[ $package_sha256 =~ ^[0-9a-f]{64}$ &&
+					$package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+					fail 'deployment package identity must be one nonzero SHA-256'
+				root=/var/lib/rog5-headless-ssh-network-root-v3/root
+				;;
+			*)
+				fail 'usage: run-headless-network-root-server.sh serve [PROFILE PACKAGE_SHA256] HANDOFF_TOKEN'
+				;;
+		esac
 		[[ $handoff_token =~ ^[0-9a-f]{64}$ &&
 			$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'HANDOFF_TOKEN must be one fresh nonzero 256-bit hex token'
@@ -64,9 +101,15 @@ for pair in \
 done
 
 if [[ $action == preflight ]]; then
-	exec pkexec "$installed_server" preflight \
-		/var/lib/rog5-headless-network-root-v1/root
+	if [[ -n $package_sha256 ]]; then
+		exec pkexec "$installed_server" preflight \
+			"$root" "$package_sha256"
+	fi
+	exec pkexec "$installed_server" preflight "$root"
+fi
+if [[ -n $package_sha256 ]]; then
+	exec pkexec "$installed_server" serve \
+		"$root" "$package_sha256" "$handoff_token" "$serve_timeout"
 fi
 exec pkexec "$installed_server" serve \
-	/var/lib/rog5-headless-network-root-v1/root \
-	"$handoff_token" "$serve_timeout"
+	"$root" "$handoff_token" "$serve_timeout"

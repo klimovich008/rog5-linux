@@ -272,10 +272,12 @@ EOF
 chmod 0755 "$mock_bin"/*
 
 run_probe() {
+	runtime_candidate=${1:-headless-network-root-v1}
 	PATH="$mock_bin:$PATH" \
 	MOCK_ROOT="$root" \
 	ROG5_RUNTIME_TEST_MODE=1 \
 	ROG5_RUNTIME_ROOT="$root" \
+	ROG5_RUNTIME_CANDIDATE="$runtime_candidate" \
 		"$probe"
 }
 
@@ -301,6 +303,7 @@ run_probe >"$record"
 grep -Fxq 'format=rog5-minimal-headless-runtime-v1' "$record"
 grep -Fxq 'profile=minimal-headless-v1' "$record"
 grep -Fxq 'execution_mode=test' "$record"
+grep -Fxq 'candidate=headless-network-root-v1' "$record"
 grep -Fxq 'cpu_online_count=8' "$record"
 grep -Fxq 'cpu_online_set=0-7' "$record"
 grep -Fxq 'cpu_present_set=0-7' "$record"
@@ -593,4 +596,17 @@ printf '%s\n' 'format=rog5-headless-command-manifest-v1' 'workload=none' \
 expect_failure 'disarmed watchdog'
 rm -f "$root/run/rog5-network-root-watchdog.disarmed.pid"
 
-echo 'PASS minimal-headless runtime probe emits one canonical read-only observation and rejects forty-six core mutations'
+deployment_record=$stage/deployment-runtime.record
+run_probe headless-ssh-network-root-v3 >"$deployment_record"
+grep -Fxq 'candidate=headless-ssh-network-root-v3' "$deployment_record"
+
+set +e
+run_probe unsupported-candidate >"$stage/unsupported-record" \
+	2>"$stage/unsupported-error"
+unsupported_candidate_status=$?
+set -e
+[ "$unsupported_candidate_status" -ne 0 ]
+grep -Fxq 'FAIL runtime candidate identity is unsupported' \
+	"$stage/unsupported-error"
+
+echo 'PASS minimal-headless runtime probe emits one canonical read-only observation, selects only fixed candidate identities, and rejects forty-seven core mutations'

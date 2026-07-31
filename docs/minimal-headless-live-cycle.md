@@ -10,10 +10,12 @@ and has a verified fixture-key-bound v3 package identity. A separate
 deployment-key admission gate now derives the public half locally, rejects the
 tracked fixture identities, and requires one exact v3
 package/candidate/runtime-manifest chain before privilege or phone discovery.
-No non-fixture chain has been built, and the fixed stable-recovery and NFS
-controllers do not yet implement the required `headless-ssh-deployment-v3`
-profile. The runbook therefore cannot pass complete preflight and is not
-authorized or runnable on the phone. This document grants no live authority.
+No non-fixture chain has been built. The NFS and runtime controllers now carry
+only the exact `headless-ssh-deployment-v3` package/candidate identities, but
+the v3 export is not installed and stable recovery has no pinned deployment
+wrapper/trust/manifest hashes. The runbook therefore cannot pass complete
+preflight and is not authorized or runnable on the phone. This document grants
+no live authority.
 The retained historical `artifact-preflight` remains regression evidence for
 its old profile. `key-preflight` performs only local key admission. `preflight`
 continues into fixed-host and connected checks only after admission. `run`
@@ -196,9 +198,11 @@ Preflight proves:
   verification; and
 - exactly one `lahaina` fastboot device is present.
 
-The current fixed host controllers reject
+The stable-recovery artifact gate still rejects
 `headless-ssh-deployment-v3`, so this action remains HOLD before a phone query
-until that profile and its read-only export are implemented. Once implemented,
+until its wrapper/trust/manifest hashes are pinned and the fixed read-only v3
+export is installed. The NFS controller already requires the exact admitted
+package hash, fixed export root, and canonical handoff marker. Once complete,
 preflight must not boot, transfer a payload, start a network service, contact
 SSH, or offer the key to a phone. The NFS artifact check may execute the fixed
 root-owned verifier through PolicyKit, but creates no export, mount, listener,

@@ -55,8 +55,14 @@ for contract in \
 	'ROG5_NFS_HANDOFF_TOKEN' \
 	'/run/rog5-network-root-nfs-ready' \
 	'format=rog5-nfs-handoff-v1' \
+	'format=rog5-nfs-handoff-v2' \
+	'profile=headless-ssh-deployment-v3' \
+	'package_sha256=$expected_package_sha256' \
 	'versions=4.2-only' \
 	'/var/lib/rog5-network-root-v1)' \
+	'/var/lib/rog5-headless-ssh-network-root-v3/root)' \
+	'only the deployment headless root accepts a package identity' \
+	'deployment package changed before NFS handoff' \
 	'/proc/fs/nfsd/v4_end_grace' \
 	'ro,fsid=0,sync,no_subtree_check,no_root_squash' \
 	'mount --bind "$root" "$export_mount"' \

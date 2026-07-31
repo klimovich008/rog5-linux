@@ -239,6 +239,9 @@ class AdmissionInputs:
 class Inputs:
     manifest_sha256: str
     ssh_key: Path
+    root_package_sha256: str
+    candidate_record: Path
+    candidate_sha256: str
     fallback_known_hosts: Path
     evidence_dir: Path
     fallback_timeout: int
@@ -433,7 +436,10 @@ def parse_admission_inputs() -> AdmissionInputs:
     )
 
 
-def parse_inputs(admission: AdmissionInputs) -> Inputs:
+def parse_inputs(
+    admission: AdmissionInputs,
+    admitted: OrderedDict[str, str],
+) -> Inputs:
     known_hosts = caller_file(
         os.environ.get("FALLBACK_KNOWN_HOSTS", ""),
         "FALLBACK_KNOWN_HOSTS",
@@ -454,6 +460,9 @@ def parse_inputs(admission: AdmissionInputs) -> Inputs:
     return Inputs(
         manifest_sha256=admission.manifest_sha256,
         ssh_key=admission.ssh_key,
+        root_package_sha256=admitted["package_sha256"],
+        candidate_record=admission.candidate_record,
+        candidate_sha256=admitted["candidate_sha256"],
         fallback_known_hosts=known_hosts,
         evidence_dir=evidence,
         fallback_timeout=int(timeout_value),
@@ -1341,7 +1350,12 @@ class LiveCycle:
             environment=child_environment(),
         )
         run_capture(
-            [str(self.dependencies.network_root_server), "preflight"],
+            [
+                str(self.dependencies.network_root_server),
+                "preflight",
+                RECOVERY_PROFILE,
+                self.inputs.root_package_sha256,
+            ],
             environment=child_environment(),
         )
         run_capture(
@@ -1625,6 +1639,10 @@ class LiveCycle:
                     ALLOW_ATTENDED_KEXEC="1",
                     ALLOW_NETWORK_ROOT_NFS_HANDOFF="1",
                     ROG5_NFS_HANDOFF_TOKEN=handoff_token,
+                    ROG5_NFS_PROFILE=RECOVERY_PROFILE,
+                    ROG5_NFS_PACKAGE_SHA256=(
+                        self.inputs.root_package_sha256
+                    ),
                 ),
             )
             self.wait_bundle(bundle_process, control_process)
@@ -1638,6 +1656,8 @@ class LiveCycle:
                 [
                     str(self.dependencies.network_root_server),
                     "serve",
+                    RECOVERY_PROFILE,
+                    self.inputs.root_package_sha256,
                     handoff_token,
                 ],
                 network_log,
@@ -1681,7 +1701,12 @@ class LiveCycle:
                 timeout=self.short_timeout,
             )
             run_logged(
-                [str(self.dependencies.runtime_acceptance)],
+                [
+                    str(self.dependencies.runtime_acceptance),
+                    RECOVERY_PROFILE,
+                    str(self.inputs.candidate_record),
+                    self.inputs.candidate_sha256,
+                ],
                 self.output("runtime-acceptance.log"),
                 environment=child_environment(
                     ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
@@ -1815,7 +1840,7 @@ def main(arguments: list[str]) -> int:
     fixed_executable(dependencies.git, offline=dependencies.offline)
     verify_repository_checkpoint(dependencies.git)
     admission = parse_admission_inputs()
-    verify_key_admission(dependencies, admission)
+    admitted = verify_key_admission(dependencies, admission)
     if action == "key-preflight":
         print(
             "PASS deployment SSH key matches one non-fixture v3 "
@@ -1823,7 +1848,7 @@ def main(arguments: list[str]) -> int:
             "privileged host action occurred"
         )
         return 0
-    inputs = parse_inputs(admission)
+    inputs = parse_inputs(admission, admitted)
     cycle = LiveCycle(dependencies, inputs)
     cycle.preflight()
     if action == "preflight":

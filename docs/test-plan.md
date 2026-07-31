@@ -254,7 +254,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   descriptor/function/UDC, high-speed `usb0`, isolated connected route with no
   default, one current USB-peer SSH session, and matching Ed25519 key
   identities; reject target and record mutations; and prove one strict-SSH
-  private capture with no boot, signing, retry, disarm, or reboot action. See
+  private capture with no boot, signing, retry, disarm, or reboot action. The
+  historical no-argument path remains fixed, while deployment requires an
+  external canonical read-only non-fixture v3 candidate plus its exact
+  admitted hash and cannot fall back to the historical candidate. See
   the
   [runtime result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
   and
@@ -278,7 +281,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   observation, watchdog rollback, exact fallback preflight, and host cleanup.
   Seventeen process fixtures now also prove exact key guards fail first,
   `key-preflight` stops before phone/privilege actions, and deployment-key
-  admission precedes connected preflight. They prove bundle cleanup precedes
+  admission precedes connected preflight. The same admission record now binds
+  the fixed NFS profile/package marker, recovery-control rendezvous, target
+  candidate identity, and runtime-verifier candidate path/hash. They prove
+  bundle cleanup precedes
   NFS startup, COMMIT is never retried, transport loss is recovered only
   through the durable ledger, runtime rejection resolves as
   `FALLBACK_RETURNED`, accepted runtime resolves only after exact fallback and

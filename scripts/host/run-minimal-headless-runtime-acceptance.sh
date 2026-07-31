@@ -7,16 +7,31 @@ fail() {
 	exit 1
 }
 
+deployment_profile=historical-headless-network-root-v1
+candidate_record=
+candidate_sha256=
+runtime_candidate=headless-network-root-v1
+case $# in
+	0) ;;
+	3)
+		deployment_profile=$1
+		candidate_record=$2
+		candidate_sha256=$3
+		[[ $deployment_profile == headless-ssh-deployment-v3 ]] ||
+			fail 'unsupported runtime deployment profile'
+		[[ $candidate_sha256 =~ ^[0-9a-f]{64}$ &&
+			$candidate_sha256 != \
+			0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+			fail 'deployment candidate identity is invalid'
+		runtime_candidate=headless-ssh-network-root-v3
+		;;
+	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
+esac
+
 [[ ${ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE:-} == 1 ]] ||
 	fail 'set ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 for one observation'
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-ssh_key=${SSH_KEY:-}
-known_hosts=${TARGET_KNOWN_HOSTS:-}
-evidence_dir=${EVIDENCE_DIR:-}
-[[ -n $ssh_key && -n $known_hosts && -n $evidence_dir ]] ||
-	fail 'set SSH_KEY, TARGET_KNOWN_HOSTS, and EVIDENCE_DIR'
-
 for command in chmod cut git realpath scp sha256sum ssh stat tee; do
 	command -v "$command" >/dev/null ||
 		fail "missing runtime-acceptance host command: $command"
@@ -31,6 +46,36 @@ upstream=$(git -C "$repo" rev-parse --abbrev-ref --symbolic-full-name '@{u}')
 [[ $(git -C "$repo" rev-parse HEAD) == \
 	$(git -C "$repo" rev-parse "$upstream") ]] ||
 	fail 'local and remote-tracking checkpoints differ'
+
+if [[ $deployment_profile == headless-ssh-deployment-v3 ]]; then
+	[[ $candidate_record == /* && ! -L $candidate_record ]] ||
+		fail 'deployment candidate path must be absolute and canonical'
+	candidate_lexical=$candidate_record
+	candidate_record=$(realpath -e "$candidate_record")
+	[[ $candidate_record == "$candidate_lexical" ]] ||
+		fail 'deployment candidate path must be absolute and canonical'
+	[[ -f $candidate_record && ! -L $candidate_record &&
+		-r $candidate_record ]] ||
+		fail 'deployment candidate is not a readable regular file'
+	case $(stat -c '%u:%a:%h' "$candidate_record") in
+		"$UID":400:1|"$UID":444:1) ;;
+		*) fail 'deployment candidate must be caller-owned, singly linked, and mode 0400 or 0444' ;;
+	esac
+	case $candidate_record in
+		"$repo"|"$repo"/*)
+			fail 'deployment candidate must remain outside the repository'
+			;;
+	esac
+	[[ $(sha256sum "$candidate_record" | cut -d ' ' -f 1) == \
+		"$candidate_sha256" ]] ||
+		fail 'deployment candidate identity changed'
+fi
+
+ssh_key=${SSH_KEY:-}
+known_hosts=${TARGET_KNOWN_HOSTS:-}
+evidence_dir=${EVIDENCE_DIR:-}
+[[ -n $ssh_key && -n $known_hosts && -n $evidence_dir ]] ||
+	fail 'set SSH_KEY, TARGET_KNOWN_HOSTS, and EVIDENCE_DIR'
 
 ssh_key=$(realpath -e "$ssh_key")
 known_hosts=$(realpath -e "$known_hosts")
@@ -115,7 +160,7 @@ boot_id=$(
 umask 077
 record=$evidence_dir/minimal-headless-runtime.record
 [[ ! -e $record ]] || fail 'private runtime record already exists'
-remote_collect="exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin $remote_probe"
+remote_collect="exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin ROG5_RUNTIME_CANDIDATE=$runtime_candidate $remote_probe"
 set +e
 ssh -n "${ssh_options[@]}" "$target" "$remote_collect" |
 	tee "$record" >/dev/null
@@ -124,9 +169,18 @@ set -e
 chmod 0600 "$record"
 [[ $ssh_status == 0 ]] || fail 'target runtime probe failed'
 
-"$verifier" \
-	--repo "$repo" \
-	--record "$record" \
+verifier_arguments=(
+	--repo "$repo"
+	--record "$record"
 	--expected-boot-id "$boot_id"
+)
+if [[ $deployment_profile == headless-ssh-deployment-v3 ]]; then
+	verifier_arguments+=(
+		--deployment-profile "$deployment_profile"
+		--candidate-record "$candidate_record"
+		--candidate-sha256 "$candidate_sha256"
+	)
+fi
+"$verifier" "${verifier_arguments[@]}"
 
 echo 'PASS one exact minimal-headless runtime observation was verified privately; rollback watchdog remains armed and no reboot was requested'

@@ -38,8 +38,13 @@ from tools.recovery_control import (  # noqa: E402
 
 SS = Path("/usr/bin/ss")
 NETWORK_ROOT_BUNDLE = "headless-network-root-v1"
+DEPLOYMENT_NETWORK_ROOT_BUNDLE = "headless-ssh-network-root-v3"
+DEPLOYMENT_NFS_PROFILE = "headless-ssh-deployment-v3"
 NFS_HANDOFF_MARKER = Path("/run/rog5-network-root-nfs-ready")
 NFS_HANDOFF_ROOT = Path("/var/lib/rog5-headless-network-root-v1/root")
+DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
+    "/var/lib/rog5-headless-ssh-network-root-v3/root"
+)
 
 
 class TransportLost(RuntimeError):
@@ -269,7 +274,11 @@ def valid_handoff_token(value: str) -> bool:
     return bool(re.fullmatch(r"[0-9a-f]{64}", value)) and value != "0" * 64
 
 
-def nfs_handoff_marker_matches(token: str) -> bool:
+def nfs_handoff_marker_matches(
+    token: str,
+    bundle: str = NETWORK_ROOT_BUNDLE,
+    package_sha256: str = "",
+) -> bool:
     flags = os.O_RDONLY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -289,13 +298,30 @@ def nfs_handoff_marker_matches(token: str) -> bool:
         marker = os.read(descriptor, 513)
         if len(marker) > 512:
             return False
-        expected = (
-            "format=rog5-nfs-handoff-v1\n"
-            f"token={token}\n"
-            "listener=169.254.77.1:2049\n"
-            "versions=4.2-only\n"
-            f"export_root={NFS_HANDOFF_ROOT}\n"
-        ).encode("ascii")
+        if bundle == NETWORK_ROOT_BUNDLE and not package_sha256:
+            expected = (
+                "format=rog5-nfs-handoff-v1\n"
+                f"token={token}\n"
+                "listener=169.254.77.1:2049\n"
+                "versions=4.2-only\n"
+                f"export_root={NFS_HANDOFF_ROOT}\n"
+            ).encode("ascii")
+        elif (
+            bundle == DEPLOYMENT_NETWORK_ROOT_BUNDLE
+            and re.fullmatch(r"[0-9a-f]{64}", package_sha256)
+            and package_sha256 != "0" * 64
+        ):
+            expected = (
+                "format=rog5-nfs-handoff-v2\n"
+                f"profile={DEPLOYMENT_NFS_PROFILE}\n"
+                f"token={token}\n"
+                "listener=169.254.77.1:2049\n"
+                "versions=4.2-only\n"
+                f"export_root={DEPLOYMENT_NFS_HANDOFF_ROOT}\n"
+                f"package_sha256={package_sha256}\n"
+            ).encode("ascii")
+        else:
+            return False
         return secrets.compare_digest(marker, expected)
     except OSError:
         return False
@@ -304,9 +330,22 @@ def nfs_handoff_marker_matches(token: str) -> bool:
             os.close(descriptor)
 
 
-def network_root_nfs_ready(token: str) -> bool:
+def network_root_nfs_ready(
+    token: str,
+    bundle: str = NETWORK_ROOT_BUNDLE,
+    package_sha256: str = "",
+) -> bool:
     try:
-        if not nfs_handoff_marker_matches(token):
+        marker_matches = (
+            nfs_handoff_marker_matches(token)
+            if bundle == NETWORK_ROOT_BUNDLE and not package_sha256
+            else nfs_handoff_marker_matches(
+                token,
+                bundle,
+                package_sha256,
+            )
+        )
+        if not marker_matches:
             return False
         metadata = SS.stat(follow_symlinks=False)
         if (
@@ -342,12 +381,14 @@ def network_root_nfs_ready(token: str) -> bool:
 def wait_for_network_root_nfs(
     token: str,
     *,
+    bundle: str = NETWORK_ROOT_BUNDLE,
+    package_sha256: str = "",
     timeout_seconds: float = 45.0,
     poll_seconds: float = 0.2,
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
-        if network_root_nfs_ready(token):
+        if network_root_nfs_ready(token, bundle, package_sha256):
             return
         time.sleep(poll_seconds)
     fail("exact network-root NFSv4.2 listener was not ready before COMMIT")
@@ -548,7 +589,10 @@ def main(arguments: list[str]) -> int:
         if os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":
             fail("set ALLOW_ATTENDED_KEXEC=1 for the non-retryable commit")
         before_commit = None
-        if arguments[1] == NETWORK_ROOT_BUNDLE:
+        if arguments[1] in {
+            NETWORK_ROOT_BUNDLE,
+            DEPLOYMENT_NETWORK_ROOT_BUNDLE,
+        }:
             if os.environ.get("ALLOW_NETWORK_ROOT_NFS_HANDOFF") != "1":
                 fail(
                     "set ALLOW_NETWORK_ROOT_NFS_HANDOFF=1 to require "
@@ -560,7 +604,33 @@ def main(arguments: list[str]) -> int:
                     "set ROG5_NFS_HANDOFF_TOKEN to one fresh nonzero "
                     "256-bit hex token shared with the NFS server"
                 )
-            before_commit = lambda: wait_for_network_root_nfs(handoff_token)
+            package_sha256 = ""
+            if arguments[1] == DEPLOYMENT_NETWORK_ROOT_BUNDLE:
+                if (
+                    os.environ.get("ROG5_NFS_PROFILE")
+                    != DEPLOYMENT_NFS_PROFILE
+                ):
+                    fail(
+                        "set ROG5_NFS_PROFILE to the exact deployment "
+                        "profile"
+                    )
+                package_sha256 = os.environ.get(
+                    "ROG5_NFS_PACKAGE_SHA256",
+                    "",
+                )
+                if (
+                    not re.fullmatch(r"[0-9a-f]{64}", package_sha256)
+                    or package_sha256 == "0" * 64
+                ):
+                    fail(
+                        "set ROG5_NFS_PACKAGE_SHA256 to the exact admitted "
+                        "package identity"
+                    )
+            before_commit = lambda: wait_for_network_root_nfs(
+                handoff_token,
+                bundle=arguments[1],
+                package_sha256=package_sha256,
+            )
         ensure_host_ready()
         prepared, committed, intent = prepare_and_commit(
             arguments[1],

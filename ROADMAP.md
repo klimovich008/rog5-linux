@@ -184,9 +184,13 @@ before a phone cycle.
 - [x] At the live gate, derive the public half from the caller's private key,
   reject the fixture fingerprint, and require exact v3/profile pairing before
   any connected preflight.
+- [x] Carry the admitted package and candidate identities through the fixed
+  v3 NFS handoff, recovery COMMIT rendezvous, target probe, and runtime
+  verifier while preserving the historical no-argument path.
 - [ ] Rebuild the root/package/candidate/runtime-manifest chain around a
-  separately authorized non-fixture key, add the corresponding stable-recovery
-  and read-only NFS export profile, and pass every host-only artifact gate.
+  separately authorized non-fixture key, install the corresponding fixed
+  read-only NFS export, pin its stable-recovery wrapper/trust/manifest profile,
+  and pass every host-only artifact gate.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -406,11 +410,15 @@ Continue in this order:
     whole-tree seal, and v3 package while keeping historical v1/v2 exact;
 11. [x] integrate that v3 package into a new phone-free corrected-candidate
     profile and add private-to-public key derivation at the live preflight;
-12. rebuild the complete v3 chain around a separately authorized non-fixture
-    key, add its stable-recovery/read-only-NFS profile, and pass phone-free
-    artifact and key preflight;
-13. request fresh, separate authorization before creating or using a live
+12. [x] bind admitted v3 package/candidate identities across NFS handoff,
+    recovery rendezvous, target probe, and runtime acceptance without
+    enabling a phone action;
+13. rebuild the complete v3 chain around a separately authorized non-fixture
+    key, install its fixed read-only NFS export, pin its stable-recovery
+    wrapper/trust/manifest profile, and pass phone-free artifact and key
+    preflight;
+14. request fresh, separate authorization before creating or using a live
     signing credential or temporarily booting the corrected candidate;
-14. if the minimal root reaches key-only SSH and clean rollback, run the
+15. if the minimal root reaches key-only SSH and clean rollback, run the
    physical button/indicator gate, then continue H3
    power/lifecycle and H4 input/sensor gates before GPU or desktop work.

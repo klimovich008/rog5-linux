@@ -6,6 +6,7 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -33,6 +34,7 @@ def golden_values() -> dict[str, str]:
     values.update(
         {
             "probe_sha256": hashlib.sha256(PROBE.read_bytes()).hexdigest(),
+            "candidate": VERIFIER.HISTORICAL_CANDIDATE,
             "boot_id": BOOT_ID,
             "kernel_release": "7.1.4-g7a5cef0db479",
             "cpu_online_count": "8",
@@ -86,6 +88,26 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
         self.record = self.directory / "runtime.record"
+        self.candidate_record = self.directory / "candidate.json"
+        candidate = json.loads(
+            (
+                REPO
+                / "configs/recovery-candidates/"
+                "headless-ssh-network-root-v3.json"
+            ).read_text(encoding="ascii")
+        )
+        candidate["root_tree_sha256"] = "4" * 64
+        candidate["root_seal_sha256"] = "5" * 64
+        candidate["root_tree_entries"] = "37736"
+        self.candidate_record.write_text(
+            json.dumps(candidate, indent=2) + "\n",
+            encoding="ascii",
+        )
+        self.candidate_record.chmod(0o400)
+        self.candidate = candidate
+        self.candidate_sha256 = hashlib.sha256(
+            self.candidate_record.read_bytes()
+        ).hexdigest()
         self.values = golden_values()
         self.write(self.values)
 
@@ -98,6 +120,9 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
         values: dict[str, str] | None = None,
         *,
         expected_boot_id: str = BOOT_ID,
+        deployment: bool = False,
+        candidate_record: Path | None = None,
+        candidate_sha256: str | None = None,
     ) -> tuple[str, dict[str, str]]:
         if values is not None:
             self.write(values)
@@ -105,7 +130,46 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
             REPO,
             self.record,
             expected_boot_id,
+            (
+                VERIFIER.DEPLOYMENT_PROFILE
+                if deployment
+                else VERIFIER.HISTORICAL_PROFILE
+            ),
+            (
+                self.candidate_record
+                if deployment and candidate_record is None
+                else candidate_record
+            ),
+            (
+                self.candidate_sha256
+                if deployment and candidate_sha256 is None
+                else (candidate_sha256 or "")
+            ),
         )
+
+    def deployment_values(self) -> dict[str, str]:
+        values = deepcopy(self.values)
+        values.update(
+            {
+                "candidate": VERIFIER.DEPLOYMENT_CANDIDATE,
+                "kernel_release": self.candidate["target_release"],
+                "watchdog_timeout_seconds": self.candidate[
+                    "rollback_timeout"
+                ],
+                "root_generation": self.candidate["root_generation"],
+                "root_tree_sha256": self.candidate["root_tree_sha256"],
+                "root_seal_sha256": self.candidate["root_seal_sha256"],
+                "root_seal_file_sha256": self.candidate[
+                    "root_seal_sha256"
+                ],
+                "root_tree_entries": self.candidate["root_tree_entries"],
+                "root_subtree": self.candidate["root_subtree"],
+                "command_manifest_sha256": self.candidate[
+                    "a660_command_manifest_sha256"
+                ],
+            }
+        )
+        return values
 
     def assert_mutation_fails(
         self,
@@ -125,6 +189,95 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
         digest, values = self.verify()
         self.assertEqual(digest, hashlib.sha256(render(self.values)).hexdigest())
         self.assertEqual(values["result"], "PASS")
+
+    def test_deployment_record_is_bound_to_external_candidate(self) -> None:
+        values = self.deployment_values()
+        digest, verified = self.verify(values, deployment=True)
+        self.assertEqual(digest, hashlib.sha256(render(values)).hexdigest())
+        self.assertEqual(
+            verified["candidate"],
+            VERIFIER.DEPLOYMENT_CANDIDATE,
+        )
+
+    def test_deployment_profile_never_falls_back_to_historical(self) -> None:
+        self.write(self.deployment_values())
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "deployment candidate record is required",
+        ):
+            VERIFIER.verify_record(
+                REPO,
+                self.record,
+                BOOT_ID,
+                VERIFIER.DEPLOYMENT_PROFILE,
+                None,
+                self.candidate_sha256,
+            )
+
+    def test_deployment_candidate_hash_is_exact(self) -> None:
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "deployment candidate identity changed",
+        ):
+            self.verify(
+                self.deployment_values(),
+                deployment=True,
+                candidate_sha256="6" * 64,
+            )
+
+    def test_tracked_fixture_candidate_cannot_be_promoted(self) -> None:
+        fixture = (
+            REPO
+            / "configs/recovery-candidates/"
+            "headless-ssh-network-root-v3.json"
+        )
+        fixture_copy = self.directory / "fixture-candidate.json"
+        fixture_copy.write_bytes(fixture.read_bytes())
+        fixture_copy.chmod(0o400)
+        fixture_hash = hashlib.sha256(fixture_copy.read_bytes()).hexdigest()
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "still carries fixture root identity",
+        ):
+            self.verify(
+                self.deployment_values(),
+                deployment=True,
+                candidate_record=fixture_copy,
+                candidate_sha256=fixture_hash,
+            )
+
+    def test_candidate_inside_repository_is_rejected(self) -> None:
+        fixture = (
+            REPO
+            / "configs/recovery-candidates/"
+            "headless-ssh-network-root-v3.json"
+        )
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "must remain outside the repository",
+        ):
+            self.verify(
+                self.deployment_values(),
+                deployment=True,
+                candidate_record=fixture,
+                candidate_sha256=hashlib.sha256(
+                    fixture.read_bytes()
+                ).hexdigest(),
+            )
+
+    def test_historical_profile_rejects_dynamic_candidate(self) -> None:
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "historical profile does not accept a dynamic candidate",
+        ):
+            VERIFIER.verify_record(
+                REPO,
+                self.record,
+                BOOT_ID,
+                VERIFIER.HISTORICAL_PROFILE,
+                self.candidate_record,
+                self.candidate_sha256,
+            )
 
     def test_cli_passes_and_reports_bounded_summary(self) -> None:
         result = subprocess.run(

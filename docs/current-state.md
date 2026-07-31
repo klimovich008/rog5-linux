@@ -315,6 +315,19 @@ Fourteen hostile verifier tests and seventeen lifecycle tests use disposable
 keys only. No deployment credential or phone was used. See the
 [admission report](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
 
+The admitted identities now continue through the host-only execution path.
+The lifecycle passes the exact package hash to a fixed
+`headless-ssh-deployment-v3` NFS profile, recovery COMMIT waits for a
+root-owned canonical v2 handoff marker containing that profile, fixed export
+root, fresh token, listener, and package hash, and runtime acceptance receives
+the exact admitted candidate path and hash. The target probe accepts only the
+historical or deployment candidate identifier. The host verifier requires an
+external canonical read-only non-fixture candidate for deployment and never
+falls back to the tracked historical record. Historical no-argument NFS,
+marker, recovery-control, target-probe, and runtime-verifier paths remain
+intact. See the
+[profile-threading report](../test-results/2026-07-31-headless-ssh-v3-profile-threading-offline.md).
+
 The first minimal mainline userspace profile was built and verified offline.
 It used an official signed Arch Linux ARM base plus the exact
 `7.1.4-g7a5cef0db479` modules and only three requested additions: `attr`,
@@ -403,11 +416,14 @@ verification passes, and no private key remains. See the
 The retained historical recovery successor passes its exact production
 stable-recovery artifact boundary without a connected phone, but it names the
 old fixture-independent profile and its associated NFS root is absent. The
-new lifecycle deliberately accepts only `headless-ssh-deployment-v3`; the
-stable-recovery gate and root-owned NFS controller do not yet implement that
-profile. Therefore neither the fixture candidate nor a future deployment-key
-candidate can reach connected preflight until the complete non-fixture chain
-is rebuilt and those fixed host profiles are added.
+new lifecycle deliberately accepts only `headless-ssh-deployment-v3`. The
+root-owned NFS controller now understands only that exact profile and package
+identity at its fixed v3 path, but no deployment export has been installed.
+The stable-recovery artifact gate still has no v3 wrapper/trust/manifest
+hashes because no authorized non-fixture chain exists. Therefore neither the
+fixture candidate nor a future deployment-key candidate can reach connected
+preflight until that chain is rebuilt, the export is installed through a
+separate fixed installer profile, and stable-recovery hashes are pinned.
 The
 `corrected-headless-successor-2026-07-30` profile binds its wrapper, raw image,
 initramfs, signed bundle, accepted DTB, public trust root, verifiers, responder,
@@ -669,7 +685,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 ## Current blockers
 
 1. Rebuild a deployment-key-bound root/package/candidate/runtime-manifest
-   chain and add its exact stable-recovery plus read-only NFS export profile.
+   chain, install it at the fixed v3 read-only export path, and pin its exact
+   stable-recovery wrapper/trust/manifest profile.
 2. Pass local key admission and every host-only artifact gate before requesting
    connected phone authorization.
 3. After fresh authorization, run the connected read-only preflight and one

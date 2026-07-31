@@ -473,6 +473,25 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             "/var/lib/rog5-headless-network-root-v1/root)",
             SERVER.read_text(encoding="utf-8"),
         )
+        server = SERVER.read_text(encoding="utf-8")
+        self.assertIn(
+            "/var/lib/rog5-headless-ssh-network-root-v3/root)",
+            server,
+        )
+        self.assertIn("format=rog5-nfs-handoff-v2", server)
+        self.assertIn("profile=headless-ssh-deployment-v3", server)
+        self.assertIn(
+            "package_sha256=$expected_package_sha256",
+            server,
+        )
+        self.assertIn(
+            "deployment package changed before NFS handoff",
+            server,
+        )
+        self.assertIn(
+            "only the deployment headless root accepts a package identity",
+            server,
+        )
 
     def test_v3_package_contract_and_sorted_archive_are_fixed(self) -> None:
         values = TOOL.parse_canonical_payload(
