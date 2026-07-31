@@ -58,12 +58,12 @@ manifest because the signed bundle identity is now `…-r2`.
 - the complete host-neutral repository CI tier passes after the reviewed
   candidate/bundle split and documentation update.
 
-## Remaining HOLD
+## Deployment checkpoint
 
-1. Review this pinning change, run full local CI, push it, and require green
-   GitHub checks.
-2. Install the signed r2 bundle and byte-current host components with the
-   existing no-replace launchers.
-3. Pass key, artifact, privileged host, and connected-fastboot preflights.
-4. Only then perform one attended temporary `fastboot boot` lifecycle. Do not
-   flash or write phone storage.
+Review, full local CI, green GitHub checks, no-replace host installation, and
+the aggregate key/artifact/privileged-host/connected-fastboot preflight now
+pass. See the
+[installed host preflight](2026-07-31-headless-ssh-successor-r2-host-preflight.md).
+
+The remaining hold is one attended temporary `fastboot boot` lifecycle. Do
+not flash or write phone storage.

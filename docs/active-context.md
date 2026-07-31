@@ -155,8 +155,14 @@ with no credential or phone access.
 That exact r2 candidate is now signed and twin-built. It reproduced the
 predicted manifest, reused the existing public recovery trust root, and its
 recovery-wrapper, verifier, and configuration identities are pinned. The
-remaining work begins with review/publish and no-replace host installation;
-no r2 phone boot has occurred.
+review/publish gates are green. The signed r2 bundle is now installed through
+the no-replace path, the consumed predecessor is retained in a private
+recoverable archive, and the aggregate key, artifact, privileged-host,
+fallback-SSH, and connected-fastboot preflight passes from clean pushed
+checkpoint `e635257`. The temporary PolicyKit authorization was removed and
+the final host residue audit is clean; see the
+[r2 host preflight](../test-results/2026-07-31-headless-ssh-successor-r2-host-preflight.md).
+No r2 phone boot has occurred.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
