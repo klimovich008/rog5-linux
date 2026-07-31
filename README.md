@@ -24,6 +24,7 @@ build outputs.
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 37 source and 23 corrected-DTB checks, while an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
 | Mainline userspace | SSH-only Arch lower exposed target NCM but reset before SSH with historical DTB v1. The credential-clean `headless-ssh-v2` replacement twin-builds to one 536,750,378-byte source identity and seals as a verified 536,747,283-byte v3 package whose canonical Ed25519 fingerprint is bound across root record, tree seal, and package; a distinct fixture-only corrected-DTB candidate passes the complete twin-bundle/recovery/wrapper gate. A hostile-tested local admission gate rejects all fixture identities before privilege or phone discovery, and those admitted package/candidate identities now remain bound through NFS rendezvous and runtime acceptance. A fixed root-owned installer now snapshots the admitted archive privately, rejects unsafe members, verifies the extracted tree, and publishes the v3 export once with `RENAME_NOREPLACE`; its launcher keeps key material outside the privileged command. This boundary passes 19 focused tests offline, but no non-fixture chain or real host export has been built or installed and stable-recovery hashes remain pending |
+| Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
@@ -65,6 +66,10 @@ gate.
 - [Headless SSH v3 export installer](test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md)
   — private archive snapshot, hostile extraction policy, crash-durable
   verification, no-replace publication, and admission-to-PolicyKit isolation.
+- [Headless battery-series oracle](docs/battery-telemetry-series.md) and
+  [offline result](test-results/2026-07-31-headless-battery-series-offline.md)
+  — sustained read-only phase records, hostile parsing/metadata tests, and
+  current-direction comparison without assuming the driver sign convention.
 - [Corrected headless successor offline candidate](test-results/2026-07-30-corrected-headless-successor-offline.md)
   — twin accepted-config ASUS wrappers, boot-v3/AVB verification, signed
   bundle integration, and destroyed disposable key.

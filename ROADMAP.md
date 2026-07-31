@@ -254,6 +254,10 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
 
 ## H3 — Power and lifecycle
 
+- [x] Define and hostile-test a read-only 10-minute battery-series record for
+  unplugged, USB-online, and wireless-online phases plus a same-boot
+  unplugged/USB comparison that derives current sign instead of guessing it;
+  hardware execution remains pending.
 - [ ] Verify charger detection and safe charging states.
 - [ ] Verify battery capacity, voltage, current, and temperature telemetry.
 - [ ] Bound thermal zones and emergency shutdown behavior.
