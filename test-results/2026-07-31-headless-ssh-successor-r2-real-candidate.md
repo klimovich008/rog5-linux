@@ -51,10 +51,33 @@ The check did not open the deployment SSH key or recovery signing key. It did
 not invoke fastboot, modify host networking, contact the phone, sign a bundle,
 or create boot authority.
 
+## Formal preflight at pushed checkpoint
+
+The reusable fail-closed preflight was committed, pushed, and then run against
+the three caller-owned external inputs while the branch was clean and exactly
+synchronized with `origin/agent/linux-recovery-host`. It returned:
+
+```text
+format=rog5-headless-ssh-successor-preflight-v1
+checkpoint=773a1196cbfad33ab87124c47ed9772f6251c40c
+candidate=headless-ssh-network-root-v3
+bundle=headless-ssh-network-root-v3-r2
+base_candidate_sha256=cda35b12db73966fd231ea6889978da5fbf9ab62375177a21084c2ec822f6bcd
+candidate_sha256=b26bc73ec6cd0053900044776270ed2c3a7f7bf6424140a59bb74d513b5dd51e
+manifest_sha256=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
+authority=none
+credential_access=none
+phone_access=none
+```
+
+The full local Linux CI tier passed at the same checkpoint, including the 22
+hostile preflight tests. Two final tool-free Claude reviews of the production
+and test/documentation diffs independently returned `NO FINDINGS`.
+
 ## Remaining HOLD
 
 1. Under fresh credential authorization, twin-sign and twin-build this exact
-   r2 candidate.
+   r2 candidate from checkpoint `773a1196cbfad33ab87124c47ed9772f6251c40c`.
 2. Require the signed build to reproduce the predicted manifest, review its
    fresh trust, recovery-wrapper, verifier, and configuration hashes, and pin
    the resulting five-member tuple in one clean commit.
