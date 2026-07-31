@@ -59,8 +59,10 @@ for contract in \
 	'profile=headless-ssh-deployment-v3' \
 	'package_sha256=$expected_package_sha256' \
 	'versions=4.2-only' \
+	'verify-export-ancestry' \
+	'verify-root "$export_mount"' \
 	'/var/lib/rog5-network-root-v1)' \
-	'/var/lib/rog5-headless-ssh-network-root-v3/root)' \
+	'/home/rog5-linux/exports/headless-ssh-network-root-v3' \
 	'only the deployment headless root accepts a package identity' \
 	'deployment package changed before NFS handoff' \
 	'/proc/fs/nfsd/v4_end_grace' \
@@ -83,6 +85,16 @@ for contract in \
 		exit 1
 	}
 done
+
+verify_ancestry_line=$(grep -n '^verify_deployment_export$' "$serve" |
+	tail -n1 | cut -d: -f1)
+bind_line=$(grep -n '^mount --bind "\$root" "\$export_mount"$' "$serve" |
+	cut -d: -f1)
+mounted_verify_line=$(grep -n \
+	'verify-root "\$export_mount"' "$serve" |
+	cut -d: -f1)
+[ "$verify_ancestry_line" -lt "$bind_line" ]
+[ "$bind_line" -lt "$mounted_verify_line" ]
 
 for consumed in \
 	/var/lib/rog5-network-root-adreno-smmu-v20 \

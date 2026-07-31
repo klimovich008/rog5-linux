@@ -76,6 +76,9 @@ mountd_port=32767
 grace_time=10
 lease_time=10
 handoff_marker=/run/rog5-network-root-nfs-ready
+deployment_export=/home/rog5-linux/exports/headless-ssh-network-root-v3
+deployment_root=$deployment_export/root
+deployment_manifest=$deployment_export/manifest
 
 [[ $EUID == 0 ]] || fail 'run through PolicyKit; do not share a sudo password'
 if [[ ! $serve_timeout =~ ^[0-9]+$ ]] ||
@@ -94,11 +97,25 @@ for command in awk date exportfs firewall-cmd findmnt grep install ip mount \
 	rpc.nfsd sha256sum ss sysctl udevadm stat systemctl tr umount; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
+
+verify_deployment_export() {
+	[[ -n $expected_package_sha256 ]] || return
+	python3 -B "$headless_verifier" verify-export-ancestry \
+		"$deployment_export"
+	[[ -f $deployment_manifest && ! -L $deployment_manifest &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$deployment_manifest") == \
+		'0:0:444:regular file' ]] ||
+		fail 'deployment package manifest metadata is unsafe'
+	[[ $(sha256sum "$deployment_manifest" | awk '{ print $1 }') == \
+		"$expected_package_sha256" ]] ||
+		fail 'deployment package manifest identity changed'
+}
+
+verify_deployment_export
 [[ -d $root && ! -L $root ]] || fail 'missing prepared export root'
 root=$(realpath -e "$root")
-deployment_manifest=
 if [[ -n $expected_package_sha256 &&
-	$root != /var/lib/rog5-headless-ssh-network-root-v3/root ]]; then
+	$root != "$deployment_root" ]]; then
 	fail 'only the deployment headless root accepts a package identity'
 fi
 case $root in
@@ -115,20 +132,12 @@ case $root in
 			"$repo/scripts/host/verify-headless-network-root-export.sh" "$root"
 		fi
 		;;
-	/var/lib/rog5-headless-ssh-network-root-v3/root)
+	"$deployment_root")
 		[[ $installed_mode == 1 ]] ||
 			fail 'deployment headless root requires the fixed installed server'
 		[[ $expected_package_sha256 =~ ^[0-9a-f]{64}$ &&
 			$expected_package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'deployment package identity must be one nonzero SHA-256'
-		deployment_manifest=/var/lib/rog5-headless-ssh-network-root-v3/manifest
-		[[ -f $deployment_manifest && ! -L $deployment_manifest &&
-			$(stat -Lc '%u:%g:%a:%F' -- "$deployment_manifest") == \
-			'0:0:444:regular file' ]] ||
-			fail 'deployment package manifest metadata is unsafe'
-		[[ $(sha256sum "$deployment_manifest" | awk '{ print $1 }') == \
-			"$expected_package_sha256" ]] ||
-			fail 'deployment package manifest identity changed'
 		python3 -B "$headless_verifier" verify-root "$root" \
 			"$deployment_manifest"
 		;;
@@ -293,6 +302,7 @@ for zone in "${protected_zones[@]}"; do
 done
 
 install -d -m 0755 "$export_mount"
+verify_deployment_export
 mount --bind "$root" "$export_mount"
 bind_mounted=1
 mount -o remount,bind,ro,nodev,nosuid "$export_mount"
@@ -302,6 +312,11 @@ findmnt -n -o OPTIONS --target "$export_mount" |
 	grep -Eq '(^|,)nodev(,|$)'
 findmnt -n -o OPTIONS --target "$export_mount" |
 	grep -Eq '(^|,)nosuid(,|$)'
+if [[ -n $expected_package_sha256 ]]; then
+	verify_deployment_export
+	python3 -B "$headless_verifier" verify-root "$export_mount" \
+		"$deployment_manifest"
+fi
 
 if ! mountpoint -q /proc/fs/nfsd; then
 	mkdir -p /proc/fs/nfsd

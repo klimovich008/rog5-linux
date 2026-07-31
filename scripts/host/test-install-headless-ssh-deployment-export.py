@@ -65,13 +65,22 @@ class DeploymentExportInstallerTest(unittest.TestCase):
         self.archive = self.directory / "root.tar.gz"
         self.identity = self.directory / "root.identity"
         self.package = self.directory / "root.package"
-        self.destination = self.directory / "installed-v3"
-        self.lock = self.directory / "install.lock"
+        self.prepare_destination()
         self.key = ed25519_key(0x5A)
         self.prepare_package()
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def prepare_destination(self) -> None:
+        self.storage_root = self.directory / "rog5-linux"
+        self.export_parent = self.storage_root / "exports"
+        self.storage_root.mkdir(mode=0o700)
+        self.export_parent.mkdir(mode=0o700)
+        self.destination = (
+            self.export_parent / "headless-ssh-network-root-v3"
+        )
+        self.lock = self.directory / "install.lock"
 
     def prepare_package(
         self,
@@ -143,16 +152,36 @@ class DeploymentExportInstallerTest(unittest.TestCase):
             self.package.read_bytes()
         ).hexdigest()
 
-    def install(self):
-        return INSTALLER.install_export(
-            self.archive,
-            self.package,
-            self.package_sha256,
-            owner=os.geteuid(),
-            group=os.getegid(),
-            destination=self.destination,
-            lock_path=self.lock,
-        )
+    def install(
+        self,
+        *,
+        archive: Path | None = None,
+        package_sha256: str | None = None,
+    ):
+        with (
+            mock.patch.object(
+                INSTALLER,
+                "EXPORT_STORAGE_ROOT",
+                self.storage_root,
+            ),
+            mock.patch.object(
+                INSTALLER,
+                "DESTINATION",
+                self.destination,
+            ),
+            mock.patch.object(INSTALLER, "LOCK_PATH", self.lock),
+        ):
+            return INSTALLER.install_export(
+                self.archive if archive is None else archive,
+                self.package,
+                (
+                    self.package_sha256
+                    if package_sha256 is None
+                    else package_sha256
+                ),
+                owner=os.geteuid(),
+                group=os.getegid(),
+            )
 
     def replace_package(self, values: OrderedDict[str, str]) -> None:
         self.package.chmod(0o600)
@@ -201,8 +230,7 @@ class DeploymentExportInstallerTest(unittest.TestCase):
         self.archive = self.directory / "root.tar.gz"
         self.identity = self.directory / "root.identity"
         self.package = self.directory / "root.package"
-        self.destination = self.directory / "installed-v3"
-        self.lock = self.directory / "install.lock"
+        self.prepare_destination()
         self.key = FIXTURE_KEY
         self.prepare_package(key=FIXTURE_KEY)
         with self.assertRaisesRegex(
@@ -222,8 +250,7 @@ class DeploymentExportInstallerTest(unittest.TestCase):
         self.archive = self.directory / "root.tar.gz"
         self.identity = self.directory / "root.identity"
         self.package = self.directory / "root.package"
-        self.destination = self.directory / "installed-v3"
-        self.lock = self.directory / "install.lock"
+        self.prepare_destination()
         self.key = ed25519_key(0x5A)
         self.prepare_package(build_profile="headless-ssh-v1")
         with self.assertRaises(INSTALLER.HEADLESS.HeadlessRootError):
@@ -234,15 +261,7 @@ class DeploymentExportInstallerTest(unittest.TestCase):
             INSTALLER.ExportInstallError,
             "package identity changed",
         ):
-            INSTALLER.install_export(
-                self.archive,
-                self.package,
-                "6" * 64,
-                owner=os.geteuid(),
-                group=os.getegid(),
-                destination=self.destination,
-                lock_path=self.lock,
-            )
+            self.install(package_sha256="6" * 64)
         self.archive.chmod(0o600)
         with self.archive.open("ab") as stream:
             stream.write(b"changed")
@@ -276,15 +295,7 @@ class DeploymentExportInstallerTest(unittest.TestCase):
                     INSTALLER.ExportInstallError,
                     "deployment archive",
                 ):
-                    INSTALLER.install_export(
-                        path,
-                        self.package,
-                        self.package_sha256,
-                        owner=os.geteuid(),
-                        group=os.getegid(),
-                        destination=self.destination,
-                        lock_path=self.lock,
-                    )
+                    self.install(archive=path)
                 if linked.exists() or linked.is_symlink():
                     linked.unlink()
                 self.archive.chmod(0o400)
@@ -445,6 +456,79 @@ class DeploymentExportInstallerTest(unittest.TestCase):
             self.install()
         self.assertEqual(events, ["sync", "rename"])
 
+    def test_fixed_destination_requires_root_equivalent_safe_ancestors(
+        self,
+    ) -> None:
+        storage_root = self.directory / "rog5-linux"
+        exports = storage_root / "exports"
+        destination = exports / "headless-ssh-network-root-v3"
+        destination.mkdir(mode=0o700)
+        self.assertEqual(
+            INSTALLER.HEADLESS.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            ),
+            exports,
+        )
+        exports.chmod(0o720)
+        with self.assertRaisesRegex(
+            INSTALLER.HEADLESS.HeadlessRootError,
+            "ancestor is unsafe",
+        ):
+            INSTALLER.HEADLESS.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            )
+        exports.chmod(0o700)
+        real_storage = self.directory / "real-rog5-linux"
+        storage_root.rename(real_storage)
+        storage_root.symlink_to(real_storage.name, target_is_directory=True)
+        with self.assertRaisesRegex(
+            INSTALLER.HEADLESS.HeadlessRootError,
+            "ancestor is unsafe",
+        ):
+            INSTALLER.HEADLESS.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            )
+
+    def test_missing_policykit_caller_is_a_stable_refusal(self) -> None:
+        with (
+            mock.patch.object(INSTALLER.os, "geteuid", return_value=0),
+            mock.patch.dict(
+                INSTALLER.os.environ,
+                {"PKEXEC_UID": "424242"},
+                clear=False,
+            ),
+            mock.patch.object(
+                INSTALLER.pwd,
+                "getpwuid",
+                side_effect=KeyError,
+            ),
+            mock.patch("sys.stderr", new=io.StringIO()) as stderr,
+        ):
+            result = INSTALLER.main(
+                [
+                    str(self.archive),
+                    str(self.package),
+                    self.package_sha256,
+                ]
+            )
+        self.assertEqual(result, 1)
+        self.assertEqual(
+            stderr.getvalue(),
+            "FAIL headless SSH deployment export installation refused\n",
+        )
+
     def test_source_has_no_test_override_or_phone_mutation_surface(self) -> None:
         source = INSTALLER_PATH.read_text(encoding="utf-8")
         for forbidden in (
@@ -464,6 +548,11 @@ class DeploymentExportInstallerTest(unittest.TestCase):
         self.assertIn("O_TMPFILE", source)
         self.assertIn("fsync_tree(stage)", source)
         self.assertIn("FIXTURE_IDENTITIES", source)
+        self.assertIn('EXPORT_STORAGE_ROOT = Path("/home/rog5-linux")', source)
+        self.assertIn("trusted_deployment_export_parent(", source)
+        self.assertNotIn("destination: Path,", source)
+        self.assertNotIn("lock_path: Path,", source)
+        self.assertNotIn("pwd.error", source)
 
 
 if __name__ == "__main__":

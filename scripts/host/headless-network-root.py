@@ -36,6 +36,12 @@ if SOURCE_PATH.parent == INSTALLED_ROOT:
 else:
     REPO = SOURCE_PATH.parents[2]
     ROOT_TOOL_PATH = REPO / "scripts/device/persistent-root-tool.py"
+DEPLOYMENT_EXPORT_STORAGE_ROOT = Path("/home/rog5-linux")
+DEPLOYMENT_EXPORT = (
+    DEPLOYMENT_EXPORT_STORAGE_ROOT
+    / "exports"
+    / "headless-ssh-network-root-v3"
+)
 SEAL_NAME = ".rog5-persistent-seal"
 COMMAND_PATH = Path("etc/rog5/a660-command-manifest")
 AUTHORIZED_KEYS_PATH = Path("root/.ssh/authorized_keys")
@@ -196,6 +202,52 @@ def file_identity(metadata: os.stat_result) -> tuple[int, ...]:
         metadata.st_mtime_ns,
         metadata.st_ctime_ns,
     )
+
+
+def trusted_deployment_export_parent(
+    destination: Path,
+    *,
+    storage_root: Path = DEPLOYMENT_EXPORT_STORAGE_ROOT,
+    owner: int = 0,
+    group: int = 0,
+    require_destination: bool = False,
+) -> Path:
+    parent = storage_root / "exports"
+    expected = parent / "headless-ssh-network-root-v3"
+    if (
+        not storage_root.is_absolute()
+        or storage_root == Path("/")
+        or destination != expected
+    ):
+        fail("deployment destination is not the fixed export store")
+    paths: list[tuple[Path, int | None]] = [
+        (storage_root.parent, None),
+        (storage_root, 0o700),
+        (parent, 0o700),
+    ]
+    if require_destination:
+        paths.append((destination, 0o700))
+    for path, required_mode in paths:
+        try:
+            named = path.lstat()
+            resolved = path.resolve(strict=True)
+            resolved_metadata = resolved.lstat()
+        except OSError as error:
+            raise HeadlessRootError(
+                "deployment destination ancestor is unavailable"
+            ) from error
+        mode = stat.S_IMODE(named.st_mode)
+        if (
+            path != resolved
+            or file_identity(named) != file_identity(resolved_metadata)
+            or not stat.S_ISDIR(named.st_mode)
+            or named.st_uid != owner
+            or named.st_gid != group
+            or mode & 0o022
+            or (required_mode is not None and mode != required_mode)
+        ):
+            fail("deployment destination ancestor is unsafe")
+    return parent
 
 
 def safe_root(path: Path) -> tuple[Path, int]:
@@ -951,6 +1003,10 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     verify_root_parser = subparsers.add_parser("verify-root")
     verify_root_parser.add_argument("root", type=Path)
     verify_root_parser.add_argument("package_manifest", type=Path)
+    verify_export_parser = subparsers.add_parser(
+        "verify-export-ancestry"
+    )
+    verify_export_parser.add_argument("export", type=Path)
     return parser.parse_args(arguments)
 
 
@@ -994,7 +1050,7 @@ def main(arguments: list[str] | None = None) -> int:
                 f"entries={package_values['root_tree_entries']} "
                 f"tree_sha256={package_values['root_tree_sha256']}"
             )
-        else:
+        elif values.command == "verify-root":
             package_values = verify_root(
                 values.root,
                 values.package_manifest,
@@ -1004,6 +1060,12 @@ def main(arguments: list[str] | None = None) -> int:
                 f"entries={package_values['root_tree_entries']} "
                 f"tree_sha256={package_values['root_tree_sha256']}"
             )
+        else:
+            trusted_deployment_export_parent(
+                values.export,
+                require_destination=True,
+            )
+            print("PASS verified deployment export ancestry")
     except (HeadlessRootError, ROOT_TOOL.ContractError):
         print("FAIL headless network-root operation refused", file=sys.stderr)
         return 1

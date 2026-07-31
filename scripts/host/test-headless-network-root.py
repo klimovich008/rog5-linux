@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import base64
 import importlib.util
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -475,7 +476,7 @@ class HeadlessNetworkRootTest(unittest.TestCase):
         )
         server = SERVER.read_text(encoding="utf-8")
         self.assertIn(
-            "/var/lib/rog5-headless-ssh-network-root-v3/root)",
+            "/home/rog5-linux/exports/headless-ssh-network-root-v3",
             server,
         )
         self.assertIn("format=rog5-nfs-handoff-v2", server)
@@ -492,6 +493,61 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             "only the deployment headless root accepts a package identity",
             server,
         )
+        self.assertIn("verify-export-ancestry", server)
+        self.assertIn('verify-root "$export_mount"', server)
+        self.assertGreaterEqual(
+            server.count("verify_deployment_export"),
+            4,
+        )
+
+    def test_deployment_export_ancestry_rejects_permission_drift(
+        self,
+    ) -> None:
+        base = Path(self.temporary.name)
+        storage_root = base / "rog5-linux"
+        exports = storage_root / "exports"
+        destination = exports / "headless-ssh-network-root-v3"
+        destination.mkdir(parents=True, mode=0o700)
+        storage_root.chmod(0o700)
+        exports.chmod(0o700)
+        destination.chmod(0o700)
+        self.assertEqual(
+            TOOL.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            ),
+            exports,
+        )
+        storage_root.chmod(0o770)
+        with self.assertRaisesRegex(
+            TOOL.HeadlessRootError,
+            "ancestor is unsafe",
+        ):
+            TOOL.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            )
+        storage_root.chmod(0o700)
+        real_storage = base / "real-rog5-linux"
+        storage_root.rename(real_storage)
+        storage_root.symlink_to(real_storage.name, target_is_directory=True)
+        with self.assertRaisesRegex(
+            TOOL.HeadlessRootError,
+            "ancestor is unsafe",
+        ):
+            TOOL.trusted_deployment_export_parent(
+                destination,
+                storage_root=storage_root,
+                owner=os.geteuid(),
+                group=os.getegid(),
+                require_destination=True,
+            )
 
     def test_v3_package_contract_and_sorted_archive_are_fixed(self) -> None:
         values = TOOL.parse_canonical_payload(

@@ -43,7 +43,7 @@ DEPLOYMENT_NFS_PROFILE = "headless-ssh-deployment-v3"
 NFS_HANDOFF_MARKER = Path("/run/rog5-network-root-nfs-ready")
 NFS_HANDOFF_ROOT = Path("/var/lib/rog5-headless-network-root-v1/root")
 DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
-    "/var/lib/rog5-headless-ssh-network-root-v3/root"
+    "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 )
 
 

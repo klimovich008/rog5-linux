@@ -195,10 +195,12 @@ before a phone cycle.
   that rerun key admission, reject fixture identities and unsafe archives,
   privately snapshot caller-owned bytes, verify and durably sync the extracted
   root, and publish once without replacing an existing export.
-- [ ] Rebuild the root/package/candidate/runtime-manifest chain around a
-  separately authorized non-fixture key, install the corresponding fixed
-  read-only NFS export, pin its stable-recovery wrapper/trust/manifest profile,
-  and pass every host-only artifact gate.
+- [x] Rebuild the root/package/candidate/runtime-manifest chain around a
+  separately authorized non-fixture key, pin its stable-recovery
+  wrapper/trust/manifest profile, and pass every host-only artifact gate.
+- [ ] Install the remediated fixed read-only NFS export on SteamOS's large
+  `/home` filesystem after the original `/var` publication stopped safely,
+  then pass every connected host preflight.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -402,8 +404,8 @@ phone lifecycle rather than another subsystem oracle.
 
 Current execution order:
 
-1. install reviewed fixed host components and the no-replace read-only NFS
-   export;
+1. review, publish, and reinstall the fixed SteamOS export-store remediation,
+   then publish the no-replace read-only NFS export;
 2. prove the private-key path for the installed Alpine fallback;
 3. run key, artifact, cleanup, fallback, and connected fastboot preflights;
 4. perform at most one authorized temporary boot, collect the 88-field

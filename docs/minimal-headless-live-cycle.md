@@ -75,16 +75,24 @@ The NFS path now follows the same model:
   bytes to match the reviewed repository sources;
 - the reviewed server accepts the historical
   `/var/lib/rog5-headless-network-root-v1/root` without a deployment package,
-  or the exact `/var/lib/rog5-headless-ssh-network-root-v3/root` with its
+  or the exact
+  `/home/rog5-linux/exports/headless-ssh-network-root-v3/root` with its
   admitted package hash;
 - it requires a non-root `PKEXEC_UID`, a fresh 256-bit handoff token, and a
-  bounded 600-900 second window; and
+  bounded 600-900 second window;
+- it revalidates the fixed deployment-store ancestry immediately before the
+  bind mount, then verifies the already bound read-only tree before NFS can
+  start; and
 - it exports only read-only NFSv4.2 to `169.254.77.2` over the isolated USB
   link and removes its runtime export, listener, marker, firewall, and
   interface state on exit.
 
 The historical path remains unchanged. The exact key-bound v3 path and package
-identity are independently mutation-tested, but no v3 export exists there.
+identity are independently mutation-tested. The host installer creates
+`/home/rog5-linux` and its `exports` child as root-owned mode-`0700`
+directories. This keeps the 1.53 GiB lower on SteamOS's large `/home`
+filesystem while the 46 MiB signed recovery bundle remains in the caller-owned
+`/var/lib/rog5-recovery-bundles`.
 
 After this change is reviewed, committed, and pushed, the installed copies
 will be stale by design. Updating them is a separate privileged host mutation:
@@ -116,6 +124,9 @@ The root-owned installer:
 
 - requires canonical caller-owned read-only archive/package inputs below a
   caller-owned mode-`0700` parent;
+- accepts only the fixed
+  `/home/rog5-linux/exports/headless-ssh-network-root-v3` destination and
+  rejects non-root-owned, writable, or symlinked destination ancestry;
 - rejects the fixture fingerprint and every tracked fixture root identity;
 - copies the archive into an anonymous root-owned `O_TMPFILE`, then inspects
   and extracts only that immutable-to-the-caller snapshot;
@@ -127,9 +138,11 @@ The root-owned installer:
   appeared concurrently.
 
 A failed deterministic partial stage is retained for explicit privileged
-inspection; the installer never silently removes or overwrites it. Do not set
-the guards or invoke this launcher without fresh authorization to use the
-deployment key and mutate the host. No installation command has been run.
+inspection; the installer never silently removes or overwrites it. The first
+real attempt failed before stage creation when the former `/var` destination
+could not hold the anonymous archive snapshot; no export was published. Do
+not set the guards or invoke this launcher without fresh authorization to use
+the deployment key and mutate the host.
 
 ## Inputs
 

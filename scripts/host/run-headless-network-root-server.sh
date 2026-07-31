@@ -23,7 +23,7 @@ case $action in
 				[[ $package_sha256 =~ ^[0-9a-f]{64}$ &&
 					$package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 					fail 'deployment package identity must be one nonzero SHA-256'
-				root=/var/lib/rog5-headless-ssh-network-root-v3/root
+				root=/home/rog5-linux/exports/headless-ssh-network-root-v3/root
 				;;
 			*)
 				fail 'usage: run-headless-network-root-server.sh preflight [PROFILE PACKAGE_SHA256]'
@@ -50,7 +50,7 @@ case $action in
 				[[ $package_sha256 =~ ^[0-9a-f]{64}$ &&
 					$package_sha256 != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 					fail 'deployment package identity must be one nonzero SHA-256'
-				root=/var/lib/rog5-headless-ssh-network-root-v3/root
+				root=/home/rog5-linux/exports/headless-ssh-network-root-v3/root
 				;;
 			*)
 				fail 'usage: run-headless-network-root-server.sh serve [PROFILE PACKAGE_SHA256] HANDOFF_TOKEN'
