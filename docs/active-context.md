@@ -62,7 +62,9 @@ The host deployment boundary now passes:
 
 The lifecycle now uses the dedicated client key over the fallback USB-NCM
 link. A persistent, no-gateway NetworkManager profile assigns only
-`169.254.77.1/16`; Alpine remains fixed at `169.254.77.2`. The controller
+`169.254.77.1/30`; Alpine remains fixed at `169.254.77.2`. Recovery, target,
+and fallback now share one host prefix, removing the route replacement race.
+The controller
 requires strict host-key checking, sends one nonce-bound read-only health
 probe over non-interactive SSH, verifies Alpine's Ed25519 signature, and then
 revalidates the exact product, NCM driver, physical recovery USB location,

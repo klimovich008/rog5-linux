@@ -102,7 +102,7 @@ flock -n 9 || fail 'another recovery bundle controller is active'
 host_ip=169.254.77.1
 phone_ip=169.254.77.2
 host_cidr=$host_ip/30
-fallback_cidr=$host_ip/16
+fallback_profile=rog5-fallback-usb-ssh
 host_port=8080
 firewall_zone=drop
 state_lifetime=180s
@@ -188,36 +188,43 @@ if [[ $managed != yes && $managed != no ]]; then
 	managed=$(nmcli -g GENERAL.MANAGED device show "$interface" \
 		2>/dev/null || true)
 fi
-[[ $managed == yes || $managed == no ]] ||
-	fail 'cannot determine NetworkManager ownership of target interface'
+[[ $managed == yes ]] ||
+	fail 'recovery interface is not owned by NetworkManager'
 
 host_bindings=$(ip -4 -o address show |
 	awk -v ip="$host_ip" '{
 		split($4, part, "/")
 		if (part[1] == ip) print $2 ":" $4
 	}') || fail 'cannot inspect host IPv4 ownership'
-if [[ -n $host_bindings &&
-	$host_bindings != "$interface:$host_cidr" &&
-	$host_bindings != "$interface:$fallback_cidr" ]]; then
-	fail 'fixed recovery host address is already bound elsewhere'
-fi
+[[ $host_bindings == "$interface:$host_cidr" ]] ||
+	fail 'fixed recovery host address is not owned by the exact interface'
 initial_interface_addresses=$(ip -4 -o address show dev "$interface" |
 	awk '{ print $4 }') || fail 'cannot inspect initial target IPv4 state'
-[[ -z $initial_interface_addresses ||
-	$initial_interface_addresses == "$host_cidr" ||
-	$initial_interface_addresses == "$fallback_cidr" ]] ||
-	fail 'target interface has unexpected initial IPv4 state'
-original_connection_uuid=
-if [[ $initial_interface_addresses == "$fallback_cidr" ]]; then
-	[[ $managed == yes ]] ||
-		fail 'fallback host address is not owned by NetworkManager'
-	original_connection_uuid=$(
-		nmcli -g GENERAL.CON-UUID device show "$interface" 2>/dev/null ||
-			true
-	)
-	[[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
-		fail 'fallback NetworkManager connection identity is invalid'
-fi
+[[ $initial_interface_addresses == "$host_cidr" ]] ||
+	fail 'recovery interface lacks the exact shared /30 address'
+original_connection_uuid=$(
+	nmcli -g GENERAL.CON-UUID device show "$interface" 2>/dev/null || true
+)
+[[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+	fail 'fallback NetworkManager connection identity is invalid'
+profile_output=$(
+	nmcli -g \
+		'connection.id,connection.type,connection.interface-name,connection.autoconnect,connection.autoconnect-priority,ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns,ipv4.never-default,ipv6.method' \
+		connection show uuid "$original_connection_uuid"
+) || fail 'cannot inspect fallback NetworkManager profile'
+mapfile -t profile_values <<<"$profile_output"
+[[ ${#profile_values[@]} == 11 &&
+	${profile_values[0]} == "$fallback_profile" &&
+	${profile_values[1]} == 802-3-ethernet &&
+	${profile_values[2]} == "$interface" &&
+	${profile_values[3]} == yes &&
+	${profile_values[4]} == 100 &&
+	${profile_values[5]} == manual &&
+	${profile_values[6]} == "$host_cidr" &&
+	-z ${profile_values[7]} && -z ${profile_values[8]} &&
+	${profile_values[9]} == yes &&
+	${profile_values[10]} == disabled ]] ||
+	fail 'fallback NetworkManager profile is not exact and no-gateway'
 
 server_pid=
 server_watchdog_pid=
@@ -289,10 +296,8 @@ for zone in "${protected_zones[@]}"; do
 		--add-rich-rule="$drop_rule" --timeout="$state_lifetime" >/dev/null
 done
 
-if [[ -n $original_connection_uuid ]]; then
-	connection_deactivated=1
-	nmcli connection down uuid "$original_connection_uuid" >/dev/null
-fi
+connection_deactivated=1
+nmcli connection down uuid "$original_connection_uuid" >/dev/null
 if [[ $managed == yes ]]; then
 	managed_changed=1
 	nmcli device set "$interface" managed no >/dev/null

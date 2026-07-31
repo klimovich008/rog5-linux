@@ -25,7 +25,7 @@ for token in \
 	'origin/$branch' \
 	'StrictHostKeyChecking=yes' \
 	'HostKeyAlias=rog5-minimal-headless-v1' \
-	'ConnectionAttempts=1' \
+	'ConnectionAttempts=3' \
 	'root@169.254.77.2' \
 	'/run/rog5-minimal-headless-runtime-control' \
 	'collect-minimal-headless-runtime.sh' \
@@ -36,8 +36,12 @@ for token in \
 	'--deployment-profile' \
 	'--candidate-record' \
 	'--candidate-sha256' \
-	'ROG5_RUNTIME_CANDIDATE=$runtime_candidate' \
+	"ROG5_RUNTIME_CANDIDATE='\$runtime_candidate'" \
 	'exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin' \
+	'remote_stage_verify_and_collect=' \
+	'[ \"\$(uname -r)\" = 7.1.4-g7a5cef0db479 ]' \
+	'ssh -T "${ssh_options[@]}" "$target"' \
+	'"$remote_stage_verify_and_collect" <"$probe"' \
 	'PIPESTATUS[0]' \
 	'rollback watchdog remains armed' \
 	'no reboot was requested'; do
@@ -53,8 +57,9 @@ if grep -Eq \
 	echo 'FAIL runtime-acceptance runner expands transport, trust, or mutation authority' >&2
 	exit 1
 fi
-[[ $(grep -Fc 'ssh -n "${ssh_options[@]}" "$target" "$remote_collect"' \
+[[ $(grep -Fc 'ssh -T "${ssh_options[@]}" "$target"' \
 	"$runner") == 1 ]]
+! grep -Eq '(^|[[:space:]])scp([[:space:]]|$)' "$runner"
 
 set +e
 "$runner" >/dev/null 2>&1
@@ -179,33 +184,20 @@ case $* in
 	*) exit 1 ;;
 esac
 EOF
-cat >"$stage/bin/scp" <<'EOF'
-#!/bin/sh
-printf '%s\n' scp >>"$MOCK_CALLS"
-EOF
 cat >"$stage/bin/ssh" <<'EOF'
 #!/bin/sh
-case $* in
-	*"exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin"*)
-		printf '%s\n' collect >>"$MOCK_CALLS"
-		cat "$MOCK_RECORD"
-		;;
-	*"cat /proc/sys/kernel/random/boot_id"*)
-		printf '%s\n' boot-id >>"$MOCK_CALLS"
-		echo 7d9a6f34-0e4a-4d4e-9d24-0b1f6c7215a8
-		;;
-	*"stat -c"*)
-		printf '%s\n' verify >>"$MOCK_CALLS"
-		;;
-	*) printf '%s\n' prepare >>"$MOCK_CALLS" ;;
-esac
+received=$(sha256sum | cut -d ' ' -f 1)
+[ "$received" = "$MOCK_PROBE_HASH" ] || exit 96
+printf '%s\n' collect >>"$MOCK_CALLS"
+cat "$MOCK_RECORD"
 EOF
-chmod 0755 "$stage/bin/git" "$stage/bin/scp" "$stage/bin/ssh"
+chmod 0755 "$stage/bin/git" "$stage/bin/ssh"
 
 output=$(
 	PATH="$stage/bin:$PATH" \
 	MOCK_CALLS="$calls" \
 	MOCK_RECORD="$record" \
+	MOCK_PROBE_HASH="$probe_hash" \
 	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
 	SSH_KEY="$stage/ssh-key" \
 	TARGET_KNOWN_HOSTS="$stage/known-hosts" \
@@ -214,11 +206,8 @@ output=$(
 )
 grep -Fq 'PASS minimal headless runtime acceptance' <<<"$output"
 grep -Fq 'rollback watchdog remains armed' <<<"$output"
-[[ $(grep -Fxc prepare "$calls") == 1 ]]
-[[ $(grep -Fxc scp "$calls") == 1 ]]
-[[ $(grep -Fxc verify "$calls") == 1 ]]
-[[ $(grep -Fxc boot-id "$calls") == 1 ]]
 [[ $(grep -Fxc collect "$calls") == 1 ]]
+[[ $(wc -l <"$calls") == 1 ]]
 [[ $(stat -c %a "$stage/evidence/minimal-headless-runtime.record") == 600 ]]
 cmp "$record" "$stage/evidence/minimal-headless-runtime.record"
 
@@ -245,6 +234,7 @@ deployment_output=$(
 	PATH="$stage/bin:$PATH" \
 	MOCK_CALLS="$calls" \
 	MOCK_RECORD="$deployment_record" \
+	MOCK_PROBE_HASH="$probe_hash" \
 	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
 	SSH_KEY="$stage/ssh-key" \
 	TARGET_KNOWN_HOSTS="$stage/known-hosts" \
@@ -255,12 +245,54 @@ deployment_output=$(
 grep -Fq 'PASS minimal headless runtime acceptance' \
 	<<<"$deployment_output"
 grep -Fq 'rollback watchdog remains armed' <<<"$deployment_output"
-[[ $(grep -Fxc prepare "$calls") == 1 ]]
-[[ $(grep -Fxc scp "$calls") == 1 ]]
-[[ $(grep -Fxc verify "$calls") == 1 ]]
-[[ $(grep -Fxc boot-id "$calls") == 1 ]]
 [[ $(grep -Fxc collect "$calls") == 1 ]]
+[[ $(wc -l <"$calls") == 1 ]]
 cmp "$deployment_record" \
 	"$stage/evidence-v3/minimal-headless-runtime.record"
+
+install -d -m 0700 "$stage/evidence-transfer-failure"
+: >"$calls"
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS="$calls" \
+MOCK_RECORD="$record" \
+MOCK_PROBE_HASH=0000000000000000000000000000000000000000000000000000000000000000 \
+ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+SSH_KEY="$stage/ssh-key" \
+TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+EVIDENCE_DIR="$stage/evidence-transfer-failure" \
+	"$runner" >"$stage/transfer.out" 2>"$stage/transfer.err"
+transfer_status=$?
+set -e
+[[ $transfer_status -ne 0 ]]
+grep -Fq 'target runtime probe failed' "$stage/transfer.err"
+[[ $(stat -c %a \
+	"$stage/evidence-transfer-failure/minimal-headless-runtime.record") == \
+	600 ]]
+
+duplicate_record=$stage/duplicate-boot-id.record
+cp "$record" "$duplicate_record"
+printf '%s\n' \
+	'boot_id=11111111-2222-3333-4444-555555555555' \
+	>>"$duplicate_record"
+install -d -m 0700 "$stage/evidence-duplicate"
+: >"$calls"
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS="$calls" \
+MOCK_RECORD="$duplicate_record" \
+MOCK_PROBE_HASH="$probe_hash" \
+ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+SSH_KEY="$stage/ssh-key" \
+TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+EVIDENCE_DIR="$stage/evidence-duplicate" \
+	"$runner" >"$stage/duplicate.out" 2>"$stage/duplicate.err"
+duplicate_status=$?
+set -e
+[[ $duplicate_status -ne 0 ]]
+grep -Fq 'target runtime record lacks one boot identity' \
+	"$stage/duplicate.err"
+[[ $(grep -Fxc collect "$calls") == 1 ]]
+[[ $(wc -l <"$calls") == 1 ]]
 
 echo 'PASS runtime-acceptance runner preserves the historical path, binds one admitted v3 candidate, uses strict SSH once, verifies privately, and leaves rollback armed'

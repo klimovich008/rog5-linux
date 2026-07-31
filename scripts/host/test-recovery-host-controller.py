@@ -125,6 +125,19 @@ elif [ "$1 $2 $3" = "-g GENERAL.MANAGED device" ]; then
 elif [ "$1 $2 $3" = "-g GENERAL.CON-UUID device" ]; then
   [ "${MOCK_FALLBACK_ADDRESS:-0}" = 1 ] &&
     printf '%s\n' '244dd128-e3b1-458e-9639-5e4ab4d8854f'
+elif [ "$1" = -g ] && [ "$3 $4 $5" = "connection show uuid" ]; then
+  printf '%s\n' \
+    "${MOCK_PROFILE_ID:-rog5-fallback-usb-ssh}" \
+    '802-3-ethernet' \
+    'usbtest0' \
+    'yes' \
+    '100' \
+    'manual' \
+    '169.254.77.1/30' \
+    '' \
+    '' \
+    'yes' \
+    'disabled'
 elif [ "$1 $2 $3" = "connection down uuid" ]; then
   : >"$MOCK_CONNECTION_STATE"
 elif [ "$1 $2 $3" = "connection up uuid" ]; then
@@ -144,7 +157,7 @@ case " $* " in
     if [ "${MOCK_FALLBACK_ADDRESS:-0}" = 1 ] &&
        [ ! -e "$MOCK_CONNECTION_STATE" ]; then
       printf '%s\n' \
-        '15: usbtest0 inet 169.254.77.1/16 scope link usbtest0'
+        '15: usbtest0 inet 169.254.77.1/30 scope link usbtest0'
     fi
     ;;
   *) ;;
@@ -196,6 +209,7 @@ exec "$@"
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_SERVER_PID": str(self.pid),
                 "MOCK_CONNECTION_STATE": str(self.connection_state),
+                "MOCK_FALLBACK_ADDRESS": "1",
                 "ROG5_TEST_WATCHDOG_PID_FILE": str(self.watchdog_pid),
             }
         )
@@ -453,7 +467,7 @@ class RecoveryHostControllerTest(unittest.TestCase):
         self.assertIn("-g GENERAL.NM-MANAGED device show usbtest0", calls)
         self.assertIn("-g GENERAL.MANAGED device show usbtest0", calls)
 
-    def test_fallback_profile_is_scoped_to_recovery_and_restored(self):
+    def test_exact_shared_profile_is_deactivated_and_restored(self):
         result = self.fixture.run(
             BUNDLE,
             MANIFEST_HASH,
@@ -475,7 +489,27 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "ip address del 169.254.77.1/30 dev usbtest0",
             calls,
         )
+        self.assertIn("nmcli device set usbtest0 managed no", calls)
+        self.assertIn("nmcli device set usbtest0 managed yes", calls)
         self.assertFalse(self.fixture.connection_state.exists())
+
+    def test_missing_or_wrong_shared_profile_fails_before_mutation(self):
+        for mutation, overrides in (
+            ("missing", {"MOCK_FALLBACK_ADDRESS": "0"}),
+            ("wrong-id", {"MOCK_PROFILE_ID": "unexpected-profile"}),
+        ):
+            with self.subTest(mutation=mutation):
+                self.fixture.close()
+                self.fixture = ControllerFixture()
+                result = self.fixture.run(
+                    BUNDLE,
+                    MANIFEST_HASH,
+                    **overrides,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                calls = self.fixture.call_log()
+                self.assertNotIn("connection down uuid", calls)
+                self.assertNotIn("--add-rich-rule=", calls)
 
     def test_invalid_identity_is_rejected_before_host_inspection(self):
         for bundle, digest in (

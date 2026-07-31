@@ -226,7 +226,7 @@ to the stable interface name for the anchored physical USB port:
 ```bash
 nmcli connection add type ethernet ifname enp4s0f3u1u2 \
   con-name rog5-fallback-usb-ssh \
-  ipv4.method manual ipv4.addresses 169.254.77.1/16 \
+  ipv4.method manual ipv4.addresses 169.254.77.1/30 \
   ipv4.gateway '' ipv4.dns '' ipv4.never-default yes \
   ipv4.may-fail no ipv6.method disabled \
   connection.autoconnect yes connection.autoconnect-priority 100 \
@@ -236,13 +236,15 @@ nmcli connection up rog5-fallback-usb-ssh ifname enp4s0f3u1u2
 
 Discover the local interface from the exact fallback product rather than
 copying the example name blindly. The profile has no gateway, DNS, forwarding,
-or Internet route. Recovery and target servers temporarily take ownership of
-the same interface, replace the fallback `/16` with the isolated `/30`, and
-restore NetworkManager ownership during cleanup. When Alpine re-enumerates,
+or Internet route. Recovery and target servers use the same isolated `/30`.
+Recovery pins the exact active profile UUID, deactivates it while serving the
+attended bundle endpoint, and restores that same profile after cleanup; target
+NFS uses the same address without introducing a competing prefix. When
+Alpine re-enumerates,
 the profile reconnects automatically and makes strict SSH available without
 an attended ACM exchange. Lifecycle host preflight rejects a missing or
 altered profile, including DHCP, a gateway, DNS, IPv6, disabled autoconnect,
-the wrong `/16`, or an unexpected interface.
+the wrong `/30`, or an unexpected interface.
 
 ## Build the non-fixture chain
 

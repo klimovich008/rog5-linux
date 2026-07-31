@@ -1326,7 +1326,12 @@ class LiveCycle:
             current = tuple(
                 item
                 for item in self.rog5_ncm_interfaces()
-                if item.product == "ROG5_recovery"
+                if (
+                    item.product == "ROG5_recovery"
+                    and item.addresses == ("169.254.77.1/30",)
+                    and item.network_manager_managed == "yes"
+                    and item.firewall_zone != "drop"
+                )
             )
             if len(current) != 1:
                 previous = None
@@ -1388,6 +1393,16 @@ class LiveCycle:
             fail("host NFS export table metadata is unsafe")
         if export_payload.strip():
             fail("host retains an NFS export")
+        rog5_interfaces = self.rog5_ncm_interfaces()
+        allowed_shared_addresses = {
+            item.name
+            for item in rog5_interfaces
+            if (
+                item.addresses == ("169.254.77.1/30",)
+                and item.network_manager_managed == "yes"
+                and item.firewall_zone != "drop"
+            )
+        }
         address_lines = run_capture(
             [
                 str(self.dependencies.ip),
@@ -1401,7 +1416,13 @@ class LiveCycle:
             fields = line.split()
             if len(fields) >= 4 and fields[2] == "inet":
                 if fields[3] == "169.254.77.1/30":
-                    fail("host retains the temporary ROG5 /30 address")
+                    if len(fields) < 2 or fields[1] not in (
+                        allowed_shared_addresses
+                    ):
+                        fail(
+                            "shared ROG5 /30 escaped the exact managed "
+                            "USB profile"
+                        )
         if self.dependencies.nfs_threads.exists():
             try:
                 threads = self.dependencies.nfs_threads.read_text(
@@ -1412,7 +1433,7 @@ class LiveCycle:
             if threads != "0":
                 fail("host retains active kernel NFS threads")
         if final:
-            for interface in self.rog5_ncm_interfaces():
+            for interface in rog5_interfaces:
                 if (
                     interface.network_manager_managed != "yes"
                     or interface.firewall_zone == "drop"
