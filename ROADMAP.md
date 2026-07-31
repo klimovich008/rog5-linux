@@ -198,9 +198,13 @@ before a phone cycle.
 - [x] Rebuild the root/package/candidate/runtime-manifest chain around a
   separately authorized non-fixture key, pin its stable-recovery
   wrapper/trust/manifest profile, and pass every host-only artifact gate.
-- [ ] Install the remediated fixed read-only NFS export on SteamOS's large
-  `/home` filesystem after the original `/var` publication stopped safely,
-  then pass every connected host preflight.
+- [x] Install the remediated fixed read-only NFS export on SteamOS's large
+  `/home` filesystem after the original `/var` publication stopped safely;
+  pass sealed-root, fixed-NFS, artifact, and connected-fastboot
+  preflights.
+- [ ] Resolve fallback SSH without silently weakening the untouched-fallback
+  tier: supply an existing authorized private key, or explicitly revise the
+  tier and separately approve one bounded public-key append.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -399,18 +403,19 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
 deployment candidate, NFS, runtime, rollback, thermal, and CI gates are
-complete. The remaining H2 boundary is host installation and one attended
-phone lifecycle rather than another subsystem oracle.
+complete. Host installation and connected preflight now pass. The remaining
+H2 boundary is fallback SSH authorization and one attended phone lifecycle,
+not another subsystem oracle.
 
 Current execution order:
 
-1. review, publish, and reinstall the fixed SteamOS export-store remediation,
-   then publish the no-replace read-only NFS export;
-2. prove the private-key path for the installed Alpine fallback;
-3. run key, artifact, cleanup, fallback, and connected fastboot preflights;
-4. perform at most one authorized temporary boot, collect the 88-field
+1. receive an existing authorized Alpine private key, or explicitly revise
+   the untouched-fallback tier and separately approve one bounded
+   `authorized_keys` append; then prove strict key-only Alpine SSH;
+2. rerun the complete lifecycle preflight and return Alpine to fastboot;
+3. perform at most one authorized temporary boot, collect the 88-field
    strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
-5. if H2 passes, continue physical keys/indicator, then H3
+4. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
