@@ -303,7 +303,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   [one-shot runbook](minimal-headless-live-cycle.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
-  plane without a client SSH key or host networking. Thirty-four
+  plane without a client SSH key or host networking. Thirty-eight
   hardware-free cases require one exact nonce-correlated frame, canonical
   health fields, real disposable Ed25519 signing and verification, the exact
   private host pin, exclusive/raw bounded ACM transport, exact USB
@@ -312,10 +312,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   frames/products/interfaces, key or payload mutations, loose guard ordering,
   missing/additional/unreadable thermal or pstore entries, unsafe 60 C
   preflight or 80 C return temperatures, occupied/malformed fastboot
-  inventories, bounded serial read/write/ACK failures, a too-short post-ACK
-  COMMIT deadline, delayed post-ACK health collection, missing credential or
-  action-scoped storage authority, and explicit write/flash/mount surfaces
-  fail closed. Admitted fallback-storage
+  inventories, bounded serial read/write/ACK failures, echoed-write
+  backpressure, unbounded drained output, malformed write stages, a too-short
+  post-ACK COMMIT deadline, delayed post-ACK health collection, missing
+  credential or action-scoped storage authority, and explicit
+  write/flash/mount surfaces fail closed. Admitted fallback-storage
   effects are limited to separately authorized BusyBox history before the
   fixed launcher starts its child and possible read-induced ext4 atime
   updates. Non-reboot actions return to the existing supervised shell. The

@@ -419,7 +419,7 @@ bounded serial read.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
-scenarios, `test-fallback-acm-control.py` covers thirty-four fallback
+scenarios, `test-fallback-acm-control.py` covers thirty-eight fallback
 protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
 seventeen lifecycle test methods. Together they prove:
 
@@ -444,6 +444,9 @@ seventeen lifecycle test methods. Together they prove:
 - fallback classification uses one exact nonce-framed record, a real
   Ed25519 signature verifier, exact USB identity/location, bounded output,
   exclusive serial ownership, and no fallback client credential;
+- host writes drain and retain bounded shell echoes, fail with canonical
+  stage/byte progress, and require one non-echoable nonce shell-ready marker
+  after an atomic stale-line reset;
 - the action-scoped fallback storage guard fails before pin or device access,
   and the child launcher makes no false claim that changing its own
   `HISTFILE` can disable the parent shell's already-selected history path;

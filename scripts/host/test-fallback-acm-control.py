@@ -463,7 +463,12 @@ class UsbIdentityTest(unittest.TestCase):
 
 
 class SerialTest(unittest.TestCase):
-    def run_probe(self, action: str) -> tuple[OrderedDict[str, str], bytes]:
+    def run_probe(
+        self,
+        action: str,
+        *,
+        duplicate_shell_ready: bool = False,
+    ) -> tuple[OrderedDict[str, str] | None, bytes]:
         master, slave = pty.openpty()
         path = os.ttyname(slave)
         device_number = os.stat(path).st_rdev
@@ -473,7 +478,20 @@ class SerialTest(unittest.TestCase):
         read_until = MODULE.FallbackSerial.read_until
 
         def emulate() -> None:
-            observed.extend(read_line(master))
+            reset, sync_command, shell_ready = MODULE.shell_sync_transport(
+                nonce
+            )
+            actual_reset = read_line(master)
+            self.assertEqual(actual_reset, reset)
+            observed.extend(actual_reset)
+            actual_sync = read_line(master)
+            self.assertEqual(actual_sync, sync_command)
+            observed.extend(actual_sync)
+            os.write(master, f"{shell_ready}\r\n".encode())
+            launcher = read_line(master)
+            observed.extend(launcher)
+            if duplicate_shell_ready:
+                os.write(master, f"{shell_ready}\r\n".encode())
             os.write(
                 master,
                 f"ROG5_FALLBACK_LOADER_READY {nonce}\r\n".encode(),
@@ -541,11 +559,25 @@ class SerialTest(unittest.TestCase):
                     tracked_read,
                 ),
             ):
-                values, _, _ = MODULE.probe(
-                    b"synthetic-allowed-signers\n",
-                    action=action,
-                )
-            verify.assert_called_once()
+                if duplicate_shell_ready:
+                    with self.assertRaisesRegex(
+                        MODULE.FallbackError,
+                        "shell readiness marker is absent or ambiguous",
+                    ):
+                        MODULE.probe(
+                            b"synthetic-allowed-signers\n",
+                            action=action,
+                        )
+                    values = None
+                else:
+                    values, _, _ = MODULE.probe(
+                        b"synthetic-allowed-signers\n",
+                        action=action,
+                    )
+            if duplicate_shell_ready:
+                verify.assert_not_called()
+            else:
+                verify.assert_called_once()
         finally:
             os.close(slave)
             if action != "reboot":
@@ -556,9 +588,15 @@ class SerialTest(unittest.TestCase):
 
     def test_preflight_is_one_bounded_nonce_framed_exchange(self) -> None:
         values, wire = self.run_probe("preflight")
+        assert values is not None
         self.assertEqual(values["result"], "PASS")
+        reset, sync_command, marker = MODULE.shell_sync_transport("3" * 32)
         launcher, chunks = MODULE.remote_transport("3" * 32, "preflight")
-        self.assertEqual(wire, launcher + b"".join(chunks))
+        self.assertEqual(
+            wire,
+            reset + sync_command + launcher + b"".join(chunks),
+        )
+        self.assertNotIn(marker.encode(), reset + sync_command)
         self.assertNotIn(b"ROG5_FALLBACK_ACM_BEGIN", wire)
         self.assertNotIn(b"ROG5_FALLBACK_LOADER_READY", launcher)
         self.assertLessEqual(
@@ -656,12 +694,21 @@ class SerialTest(unittest.TestCase):
             process.stdout.close()
             process.stderr.close()
 
+    def test_delayed_duplicate_shell_ready_fails_before_signature(self) -> None:
+        values, _ = self.run_probe(
+            "preflight",
+            duplicate_shell_ready=True,
+        )
+        self.assertIsNone(values)
+
     def test_classify_is_read_only_and_returns_without_reboot_ack(self) -> None:
         values, _ = self.run_probe("classify")
+        assert values is not None
         self.assertEqual(values["action"], "classify")
 
     def test_reboot_waits_for_verified_ack_then_disconnects(self) -> None:
         values, _ = self.run_probe("reboot")
+        assert values is not None
         self.assertEqual(values["action"], "reboot")
 
     def test_exclusive_tty_refuses_a_second_controller(self) -> None:
@@ -888,7 +935,7 @@ class SerialTest(unittest.TestCase):
             ),
             self.assertRaisesRegex(
                 MODULE.FallbackError,
-                "write timed out",
+                "payload write timed out after 0/1 bytes",
             ),
         ):
             serial.write(b"x", timeout_seconds=1)
@@ -914,6 +961,79 @@ class SerialTest(unittest.TestCase):
         ):
             serial.write(b"x", timeout_seconds=1)
         self.assertEqual(write.call_count, 2)
+
+    def test_serial_write_drains_echo_backpressure(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [17], []),
+            ) as selected,
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=b"echoed launcher",
+            ) as read,
+            mock.patch.object(
+                MODULE.os,
+                "write",
+                return_value=1,
+            ) as write,
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        selected.assert_called_once_with([17], [17], [], 1.0)
+        read.assert_called_once_with(17, 4096)
+        write.assert_called_once()
+        self.assertEqual(serial.output, b"echoed launcher")
+
+    def test_serial_write_bounds_drained_echo(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        serial.output.extend(b"x" * MODULE.MAX_SERIAL_OUTPUT)
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [17], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=b"x",
+            ),
+            mock.patch.object(MODULE.os, "write") as write,
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "output exceeds its bound",
+            ),
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        write.assert_not_called()
+
+    def test_serial_write_stage_is_canonical(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        for stage in ("", "UPPER", "space value", "x" * 33):
+            with (
+                self.subTest(stage=stage),
+                self.assertRaisesRegex(
+                    MODULE.FallbackError,
+                    "write stage is invalid",
+                ),
+            ):
+                serial.write(b"x", stage=stage)
 
 
 class PolicyTest(unittest.TestCase):

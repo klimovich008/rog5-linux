@@ -74,9 +74,12 @@ root may also update inode access times. The controller therefore requires
 flash, `authorized_keys`, or fallback-configuration path. Its launcher stays
 below Alpine's 2,048-byte line-editor bound, starts Python in isolated/no-site
 mode, and waits for a nonce-bound loader-ready marker before sending bounded,
-hash-checked source chunks. A phone-side deadline rejects missing or partial
-delivery without execution. Non-reboot actions return to the same supervised
-shell rather than depending on a replacement shell to respawn.
+hash-checked source chunks. The host drains bounded interactive-shell echoes
+while writing and sends one atomic Ctrl-C plus split-literal nonce marker to
+reject a stale or partial shell line before the loader. Write failures retain
+their exact stage and byte progress. A phone-side deadline rejects missing or
+partial delivery without execution. Non-reboot actions return to the same
+supervised shell rather than depending on a replacement shell to respawn.
 Before any temporary boot, lifecycle preflight now validates the
 allowed-signers pin, fixed host tooling, ModemManager state, wait range,
 loader bounds, and the 3,600-second contact-start/7,200-second anchor-age
@@ -85,12 +88,14 @@ real producer and is revalidated after ACM discovery to cover host suspend.
 Nonce-bound phone errors retain their failure class through the last bounded
 serial read.
 
-The hardware-free ACM and lifecycle tests pass. The next pre-lifecycle gate
-is one live cryptographic ACM preflight with a private canonical proof record,
-followed by the complete lifecycle preflight and a guarded return to fastboot.
-The one authorized temporary boot remains unused. Host-key signing and the
-action-scoped fallback storage effects require separate invocation-time
-guards. Neither is authorized by repository state.
+Thirty-eight hardware-free ACM tests and all seventeen lifecycle methods
+pass. The first live cryptographic preflight was rejected before a signed
+frame: the installed fallback enumerates and its USB-NCM/SSH host identity is
+healthy, but no `/dev/ttyGS0` reader consumed the nonce preamble, including
+after exact USB reset and host USB deconfiguration/rebind. A physical fallback
+reboot is now required before one fresh signed preflight. The one authorized
+temporary boot remains unused. See the
+[live rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

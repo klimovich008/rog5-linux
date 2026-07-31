@@ -46,6 +46,7 @@ BUSYBOX_EDITING_MAX_LEN = 2048
 MAX_LAUNCHER_LINE_BYTES = 2000
 SOURCE_CHUNK_BYTES = 1800
 MAX_SOURCE_CHUNKS = 4
+SHELL_READY_TIMEOUT_SECONDS = 5
 LOADER_READY_TIMEOUT_SECONDS = 10
 LOADER_RECEIVE_TIMEOUT_SECONDS = 20
 PREPARED_FRAME_TIMEOUT_SECONDS = 45
@@ -866,6 +867,23 @@ def remote_transport(nonce: str, action: str) -> tuple[bytes, tuple[bytes, ...]]
     return command, chunks
 
 
+def shell_sync_transport(nonce: str) -> tuple[bytes, bytes, str]:
+    if not NONCE.fullmatch(nonce):
+        fail("invalid fallback shell synchronization request")
+    marker = f"ROG5_FALLBACK_SHELL_READY {nonce}"
+    reset = b"\x03\n"
+    command = (
+        " /bin/busybox printf 'ROG5_FALLBACK_SHELL_%s %s\\n' "
+        f"READY {nonce}\n"
+    ).encode("ascii")
+    if (
+        len(command) > 256
+        or marker.encode("ascii") in reset + command
+    ):
+        fail("fallback shell synchronization transport exceeds its bound")
+    return reset, command, marker
+
+
 def sanitize(data: bytes) -> list[str]:
     clean = CSI.sub(b"", data).replace(b"\x1b", b"")
     try:
@@ -951,16 +969,57 @@ class FallbackSerial:
             os.close(self.fd)
             self.fd = -1
 
-    def write(self, payload: bytes, timeout_seconds: float = 5.0) -> None:
+    def write(
+        self,
+        payload: bytes,
+        timeout_seconds: float = 5.0,
+        stage: str = "payload",
+    ) -> None:
+        if not stage.isascii() or not re.fullmatch(r"[a-z0-9-]{1,32}", stage):
+            fail("fallback ACM write stage is invalid")
+        total = len(payload)
         view = memoryview(payload)
         deadline = time.monotonic() + timeout_seconds
         while view:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                fail("fallback ACM write timed out")
-            _, writable, _ = select.select([], [self.fd], [], remaining)
+                fail(
+                    f"fallback ACM {stage} write timed out "
+                    f"after {total - len(view)}/{total} bytes"
+                )
+            readable, writable, _ = select.select(
+                [self.fd],
+                [self.fd],
+                [],
+                remaining,
+            )
+            if not readable and not writable:
+                fail(
+                    f"fallback ACM {stage} write timed out "
+                    f"after {total - len(view)}/{total} bytes"
+                )
+            if readable:
+                try:
+                    chunk = os.read(self.fd, 4096)
+                except OSError as error:
+                    if error.errno not in {
+                        errno.EAGAIN,
+                        errno.EWOULDBLOCK,
+                        errno.EINTR,
+                    }:
+                        if error.errno == errno.EIO:
+                            fail(
+                                "fallback ACM disconnected during write"
+                            )
+                        raise
+                else:
+                    if not chunk:
+                        fail("fallback ACM closed during write")
+                    self.output.extend(chunk)
+                    if len(self.output) > MAX_SERIAL_OUTPUT:
+                        fail("fallback ACM output exceeds its bound")
             if not writable:
-                fail("fallback ACM write timed out")
+                continue
             try:
                 written = os.write(self.fd, view[:256])
             except OSError as error:
@@ -1194,20 +1253,27 @@ def probe(
         if refreshed_location != location:
             fail("recovery USB anchor changed after fallback discovery")
     with FallbackSerial(path, location, device_number) as serial:
+        reset, sync_command, shell_ready = shell_sync_transport(nonce)
+        serial.write(reset + sync_command, stage="shell-sync")
+        serial.read_until(shell_ready, SHELL_READY_TIMEOUT_SECONDS)
+        if sanitize(bytes(serial.output)).count(shell_ready) != 1:
+            fail("fallback shell readiness marker is absent or ambiguous")
         launcher, source_chunks = remote_transport(nonce, action)
-        serial.write(launcher)
+        serial.write(launcher, stage="loader-launcher")
         loader_ready = f"ROG5_FALLBACK_LOADER_READY {nonce}"
         serial.read_until(loader_ready, LOADER_READY_TIMEOUT_SECONDS)
         if sanitize(bytes(serial.output)).count(loader_ready) != 1:
             fail("fallback loader readiness marker is absent or ambiguous")
-        for source_chunk in source_chunks:
-            serial.write(source_chunk)
+        for index, source_chunk in enumerate(source_chunks, start=1):
+            serial.write(source_chunk, stage=f"source-{index}")
         end = f"ROG5_FALLBACK_ACM_END {nonce} PREPARED"
         serial.read_until(
             end,
             PREPARED_FRAME_TIMEOUT_SECONDS,
             remote_nonce=nonce,
         )
+        if sanitize(bytes(serial.output)).count(shell_ready) != 1:
+            fail("fallback shell readiness marker is absent or ambiguous")
         values, payload, signature = parse_frame(
             bytes(serial.output),
             nonce,
@@ -1236,7 +1302,8 @@ def probe(
             serial.write(
                 (
                     f"ROG5_FALLBACK_REBOOT_ACK {nonce} {boot_id}\n"
-                ).encode("ascii")
+                ).encode("ascii"),
+                stage="reboot-ack",
             )
             commit = f"ROG5_FALLBACK_ACM_COMMIT {nonce} {boot_id}"
             serial.read_until(

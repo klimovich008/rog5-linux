@@ -521,9 +521,12 @@ writable `relatime` ext4 root may update inode access times. Every action
 therefore requires a separate action-scoped storage-write guard. It has no
 fallback client key, host-network, mount, explicit storage-write, flash,
 erase, or retry path. The isolated/no-site Python loader is bounded below
-Alpine's 2,048-byte BusyBox line-editor limit; the host sends bounded,
-hash-checked source chunks only after one nonce-bound ready marker, and
-the phone rejects missing or partial delivery under a fixed deadline.
+Alpine's 2,048-byte BusyBox line-editor limit. The host now drains and bounds
+echoed bytes during writes, labels every write stage and byte count, and sends
+one atomic Ctrl-C/newline plus split-literal nonce marker before the larger
+launcher. It sends bounded, hash-checked source chunks only after one
+nonce-bound ready marker, and the phone rejects missing or partial delivery
+under a fixed deadline.
 Non-reboot actions return to the supervised interactive shell. The
 lifecycle permits at most one fallback contact even if final host cleanup
 later fails. Before boot, its host-only preflight validates the exact
@@ -531,9 +534,18 @@ allowed-signers pin, fixed tools, ModemManager state, wait and loader bounds,
 and the recovery-anchor time budget without opening ACM. The anchor consumer
 is directly bound to the real capture producer and rechecks wall-clock
 freshness after ACM discovery. Nonce-bound phone errors retain their failure
-class through the last serial read. Thirty-four protocol tests and the updated
-seventeen-method lifecycle suite pass hardware-free. Live cryptographic ACM
-preflight remains pending; the authorized temporary boot is still unused.
+class through the last serial read. Thirty-eight protocol tests and the
+updated seventeen-method lifecycle suite pass hardware-free.
+
+The first authorized live ACM preflight was rejected before any signed health
+frame. The exact fallback USB product and pinned SSH host identity remain
+healthy, but no device-side `/dev/ttyGS0` reader consumed the nonce
+synchronization marker. Exact `usbreset` and host USB deconfiguration/rebind
+did not restore it. The private proof path remains absent, the temporary NCM
+profile was removed, and the authorized temporary boot is still unused. A
+physical fallback reboot is required before the next signed preflight. See
+the
+[live rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
 The private lifecycle record retains the verified nonce, physical USB
 location, thermal maximum, and SHA-256 identities of the signed record,
 signature, and inspected host-key pin, without retaining any private key.
