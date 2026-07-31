@@ -4,20 +4,17 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the untouched Alpine fallback.
 
-Status: **controller implemented and hardware-free tested; execution HOLD**.
-The credential-clean replacement root now passes byte-identical A/B builds
-and has a verified fixture-key-bound v3 package identity. A separate
-deployment-key admission gate now derives the public half locally, rejects the
-tracked fixture identities, and requires one exact v3
-package/candidate/runtime-manifest chain before privilege or phone discovery.
-No non-fixture chain has been built. The NFS and runtime controllers now carry
-only the exact `headless-ssh-deployment-v3` package/candidate identities, but
-the v3 export is not installed and stable recovery has no pinned deployment
-wrapper/trust/manifest hashes. A fixed no-replace export installer and its
-admission launcher pass hardware-free hostile tests; their reviewed source has
-not been installed on the real host. The runbook therefore cannot pass
-complete preflight and is not authorized or runnable on the phone. This
-document grants no live authority.
+Tracked status: **controller and fixture path pass hardware-free tests;
+non-fixture artifact pins and host installation remain deployment inputs**.
+Tracked execution **HOLD**: this file never grants credential use or a phone
+boot. Those require explicit invocation-time authorization after all
+preflights pass.
+The admission gate derives the public half locally, rejects every tracked
+fixture identity, and requires one exact v3 package/candidate/runtime-manifest
+chain before privilege or phone discovery. The fixed no-replace export
+installer and launcher pass hostile tests. Repository text never grants live
+authority; invocation-time guards and explicit operator authorization remain
+mandatory.
 The retained historical `artifact-preflight` remains regression evidence for
 its old profile. `key-preflight` performs only local key admission. `preflight`
 continues into fixed-host and connected checks only after admission. `run`
@@ -170,6 +167,56 @@ later offer the key to SSH after all full-run guards and gates pass.
 The deployment profile is a fail-closed artifact identity. The lifecycle
 rejects every historical profile and wrong bundle before opening the private
 key.
+
+## Build the non-fixture chain
+
+Run this only with a clean branch at its exact pushed origin commit and a
+caller-owned mode-`0700` directory outside the repository. The dedicated
+Ed25519 client key and Ed25519 PKCS#8 recovery signing key must remain there.
+
+The explicitly guarded build sequence is:
+
+```bash
+ARCH_ROOTFS_GENERATION=headless-ssh-v2 \
+  scripts/host/run-private-arm64-binfmt.sh \
+  scripts/host/stage-arch-rootfs.sh \
+  /private/deployment-ssh-key.pub \
+  /private/rog5-arch-headless-ssh-v2-7.1.4.tar.gz
+
+chmod 0444 /private/rog5-arch-headless-ssh-v2-7.1.4.tar.gz
+
+ALLOW_HEADLESS_SSH_DEPLOYMENT_BUILD=1 \
+ALLOW_PHONE_CREDENTIAL_USE=1 \
+  scripts/host/prepare-headless-ssh-deployment-root.sh \
+  /private/rog5-arch-headless-ssh-v2-7.1.4.tar.gz \
+  /private/network-root
+
+scripts/host/prepare-headless-ssh-deployment-candidate.py \
+  --package /private/network-root/manifest \
+  --output /private/headless-ssh-network-root-v3.json
+
+ALLOW_HEADLESS_SSH_DEPLOYMENT_BUILD=1 \
+ALLOW_PHONE_CREDENTIAL_USE=1 \
+ROG5_DEPLOYMENT_CANDIDATE_RECORD=/private/headless-ssh-network-root-v3.json \
+ROG5_DEPLOYMENT_SIGNING_KEY=/private/recovery-signing-key.pem \
+  scripts/host/build-headless-ssh-deployment-candidate.sh \
+  "$PWD/build/headless-ssh-deployment"
+```
+
+The root packager accepts only an external read-only source archive below a
+private parent, rejects every fixture identity, verifies a clean-extracted
+root, and atomically publishes a new output directory without replacement.
+The candidate generator derives the root identities accepted by recovery from
+the fixed corrected-DTB template and the verified package. The recovery
+builder verifies a clean pushed checkpoint, snapshots one external
+unencrypted Ed25519 signing key and one template-constrained candidate into
+private temporary storage, hash-binds the candidate at its consumer,
+twin-signs and twin-builds from those snapshots, destroys them, and produces
+no live authority or phone action.
+
+The resulting exact wrapper, trust, manifest, and host-verifier hashes must be
+reviewed and pinned in the live-gate profile before host installation or
+connected preflight.
 
 ## Local deployment-key preflight
 

@@ -1,8 +1,9 @@
-# Current state — 2026-07-31
+# Current-state evidence ledger — 2026-07-31
 
-This file records facts, not planned work or live authority. The ordered plan
-is in [ROADMAP.md](../ROADMAP.md), and the detailed recovery redesign is in
-[recovery-control-plane.md](recovery-control-plane.md).
+This long-form file preserves verified chronology and exact identities. For
+day-to-day orientation, start with [active-context.md](active-context.md).
+The ordered plan is in [ROADMAP.md](../ROADMAP.md), and the detailed recovery
+design is in [recovery-control-plane.md](recovery-control-plane.md).
 
 ## Hardware and boot
 

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -175,12 +176,112 @@ class RecoveryCandidateTest(unittest.TestCase):
         with self.assertRaises(RUNNER.CandidateError):
             RUNNER.load_candidate("fixture")
 
+    def test_invalid_identifier_refuses_before_any_file_read(self) -> None:
+        with mock.patch.object(RUNNER, "regular_bytes") as reader:
+            with self.assertRaisesRegex(
+                RUNNER.CandidateError,
+                "identifier is invalid",
+            ):
+                RUNNER.load_candidate_path(
+                    self.root / "untrusted-record",
+                    "../untrusted",
+                )
+        reader.assert_not_called()
+
     def test_artifact_identity_change_refuses(self) -> None:
         (self.repo / self.paths["Image"]).chmod(0o644)
         (self.repo / self.paths["Image"]).write_bytes(b"X" * 64)
         (self.repo / self.paths["Image"]).chmod(0o444)
         with self.assertRaises(RUNNER.CandidateError):
             RUNNER.prepare("fixture", self.private_key, self.bundle_root)
+
+    def test_explicit_authority_free_candidate_record_packages(self) -> None:
+        external = self.root / "external-candidate.json"
+        external.write_text(
+            json.dumps(self.record, indent=2) + "\n",
+            encoding="ascii",
+        )
+        external.chmod(0o444)
+        external_hash = hashlib.sha256(external.read_bytes()).hexdigest()
+        record, manifest_hash, _trust_hash = RUNNER.prepare(
+            "fixture",
+            self.private_key,
+            self.bundle_root,
+            external,
+            external_hash,
+        )
+        self.assertEqual(record, self.record)
+        self.assertEqual(
+            hashlib.sha256(
+                (self.bundle_root / "fixture/manifest").read_bytes()
+            ).hexdigest(),
+            manifest_hash,
+        )
+
+        external.chmod(0o600)
+        external.write_text(
+            json.dumps({**self.record, "authority": "live"}, indent=2)
+            + "\n",
+            encoding="ascii",
+        )
+        external.chmod(0o444)
+        other_root = self.root / "other-bundles"
+        other_root.mkdir(mode=0o700)
+        with self.assertRaises(RUNNER.CandidateError):
+            RUNNER.prepare(
+                "fixture",
+                self.private_key,
+                other_root,
+                external,
+                hashlib.sha256(external.read_bytes()).hexdigest(),
+            )
+
+    def test_external_candidate_is_hash_and_template_bound(self) -> None:
+        external = self.root / "external-candidate.json"
+        cases = ("hash", "target", "bundle", "artifact")
+        for case in cases:
+            with self.subTest(case=case):
+                record = copy.deepcopy(self.record)
+                if case == "target":
+                    record["target_id"] = "different"
+                elif case == "bundle":
+                    record["bundle"] = "different"
+                elif case == "artifact":
+                    record["artifacts"]["Image"]["sha256"] = "f" * 64
+                if external.exists():
+                    external.chmod(0o600)
+                external.write_text(
+                    json.dumps(record, indent=2) + "\n",
+                    encoding="ascii",
+                )
+                external.chmod(0o444)
+                expected = hashlib.sha256(external.read_bytes()).hexdigest()
+                if case == "hash":
+                    expected = "f" * 64
+                output = self.root / f"external-{case}-bundles"
+                output.mkdir(mode=0o700)
+                with self.assertRaisesRegex(
+                    RUNNER.CandidateError,
+                    "hash changed|fixed template field",
+                ):
+                    RUNNER.prepare(
+                        "fixture",
+                        self.private_key,
+                        output,
+                        external,
+                        expected,
+                    )
+
+        with self.assertRaisesRegex(
+            RUNNER.CandidateError,
+            "path and hash must be provided together",
+        ):
+            RUNNER.prepare(
+                "fixture",
+                self.private_key,
+                self.root / "missing-hash-bundles",
+                external,
+            )
 
     def test_tracked_parity_record_matches_inventory(self) -> None:
         RUNNER.REPO = self.original_repo
