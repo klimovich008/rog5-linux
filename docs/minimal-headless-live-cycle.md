@@ -285,15 +285,16 @@ Preflight proves:
   verification; and
 - exactly one `lahaina` fastboot device is present.
 
-The stable-recovery artifact gate still rejects
-`headless-ssh-deployment-v3`, so this action remains HOLD before a phone query
-until its wrapper/trust/manifest hashes are pinned and the fixed read-only v3
-export is installed. The NFS controller already requires the exact admitted
-package hash, fixed export root, and canonical handoff marker. Once complete,
-preflight must not boot, transfer a payload, start a network service, contact
-SSH, or offer the key to a phone. The NFS artifact check may execute the fixed
-root-owned verifier through PolicyKit, but creates no export, mount, listener,
-marker, firewall rule, or interface state.
+The stable-recovery artifact gate now admits the exact
+`headless-ssh-deployment-v3` wrapper, trust root, manifest, verifier, and
+target identity. The action remains HOLD until the fixed host components and
+read-only v3 export are installed and fallback SSH is independently proven.
+The NFS controller requires the exact admitted package hash, fixed export
+root, and canonical handoff marker. Preflight must not boot, transfer a
+payload, start a network service, contact target SSH, or offer the key to a
+phone. The NFS artifact check may execute the fixed root-owned verifier
+through PolicyKit, but creates no export, mount, listener, marker, firewall
+rule, or interface state.
 
 ## Authorized run
 

@@ -395,23 +395,20 @@ time.
 
 ## Current next action
 
-The hardware-free recovery, corrected-DTB, fixture-key root, key-admission,
-NFS, runtime, rollback, thermal, and CI gates are complete. The remaining H2
-boundary is deployment rather than another subsystem oracle.
+The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
+deployment candidate, NFS, runtime, rollback, thermal, and CI gates are
+complete. The remaining H2 boundary is host installation and one attended
+phone lifecycle rather than another subsystem oracle.
 
 Current execution order:
 
-1. rebuild the SSH-only root around one authorized non-fixture Ed25519 key;
-2. seal it and bind one v3 package, candidate, runtime manifest, and recovery
-   trust root;
-3. pin the exact recovery wrapper/trust/manifest profile and pass the complete
-   phone-free gate;
-4. install reviewed fixed host components and the no-replace read-only NFS
+1. install reviewed fixed host components and the no-replace read-only NFS
    export;
-5. run key, artifact, fallback, cleanup, and connected fastboot preflights;
-6. perform at most one authorized temporary boot, collect the 88-field
+2. prove the private-key path for the installed Alpine fallback;
+3. run key, artifact, cleanup, fallback, and connected fastboot preflights;
+4. perform at most one authorized temporary boot, collect the 88-field
    strict-SSH record, keep rollback armed, and prove exact fallback cleanup;
-7. if H2 passes, continue physical keys/indicator, then H3
+5. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

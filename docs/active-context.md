@@ -34,17 +34,25 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Active deployment checkpoint
 
-The next hardware action is one temporary boot-only lifecycle. Before it can
-start, the host must have one non-fixture identity chain:
+The complete non-fixture identity chain is built and passes hardware-free
+admission:
 
-1. dedicated Ed25519 SSH public key embedded in a freshly built minimal root;
-2. sealed v3 root package;
-3. matching authority-free candidate record and signed runtime manifest;
-4. recovery wrapper containing the matching raw Ed25519 trust root;
-5. exact hashes pinned in the live-gate profile;
-6. reviewed fixed host components and no-replace read-only NFS export;
-7. clean local/remote branch plus passing key, artifact, fallback, and
-   connected fastboot preflights.
+- a dedicated Ed25519 SSH public key is embedded in the minimal root;
+- the sealed v3 root, candidate, signed manifest, recovery trust root, and
+  reproducible wrapper are mutually bound;
+- the exact hashes are pinned by `headless-ssh-deployment-v3`; and
+- the real artifact preflight passes without contacting the phone.
+
+See the
+[deployment-chain result](../test-results/2026-07-31-headless-ssh-deployment-chain-offline.md).
+
+Before the one temporary boot-only lifecycle can start, the host still needs:
+
+1. reviewed fixed host components and the no-replace read-only NFS export;
+2. a proven private-key path that can reach the installed Alpine fallback, or
+   a separately approved fallback-key installation;
+3. a clean local/remote branch and passing key, artifact, cleanup, fallback,
+   and connected-fastboot preflights.
 
 The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).
