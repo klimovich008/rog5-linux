@@ -534,18 +534,26 @@ allowed-signers pin, fixed tools, ModemManager state, wait and loader bounds,
 and the recovery-anchor time budget without opening ACM. The anchor consumer
 is directly bound to the real capture producer and rechecks wall-clock
 freshness after ACM discovery. Nonce-bound phone errors retain their failure
-class through the last serial read. Thirty-eight protocol tests and the
+class through the last serial read. Thirty-nine protocol tests and the
 updated seventeen-method lifecycle suite pass hardware-free.
 
-The first authorized live ACM preflight was rejected before any signed health
-frame. The exact fallback USB product and pinned SSH host identity remain
-healthy, but no device-side `/dev/ttyGS0` reader consumed the nonce
-synchronization marker. Exact `usbreset` and host USB deconfiguration/rebind
-did not restore it. The private proof path remains absent, the temporary NCM
-profile was removed, and the authorized temporary boot is still unused. A
-physical fallback reboot is required before the next signed preflight. See
-the
-[live rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
+The first authorized live ACM preflight was rejected because the existing
+device-side reader had wedged; exact USB reset and host rebind could not
+restore it. A physical reboot returned the exact fallback through fastboot and
+restored its supervised ACM reader. The next signed exchange isolated a stale
+exact-70-zone thermal predicate: the fallback now exposes 96 contiguous zones
+with unavailable auxiliary modem/board channels but healthy core telemetry.
+The collector now requires 70 through 128 contiguous zones, at least 29
+stable positive readings, six named CPU/GPU/system sensor classes, and the
+unchanged temperature ceilings. It ignores unreadable values only for the
+exact observed auxiliary-type allowlist, plus zero and Qualcomm-inactive
+values. Thirty-nine protocol tests pass, and a
+fresh signed live preflight now passes with its no-replace mode-`0600` proof
+retained outside Git. No experimental boot, flash, mount, fallback
+configuration change, or client-key admission occurred. See the
+[live acceptance](../test-results/2026-07-31-fallback-acm-preflight-live-accepted.md)
+and preceding
+[reader rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
 The private lifecycle record retains the verified nonce, physical USB
 location, thermal maximum, and SHA-256 identities of the signed record,
 signature, and inspected host-key pin, without retaining any private key.

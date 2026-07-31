@@ -211,9 +211,10 @@ before a phone cycle.
   thermal/log checks, a sub-2,048-byte isolated loader with ready-before-data
   framing, one-contact lifecycle semantics, and a separately guarded
   ACK-before-`RESTART2` path.
-- [ ] Separately authorize the bounded BusyBox-history and possible ext4-atime
-  effects of one fallback ACM action, pass one live cryptographic preflight,
-  then preserve that proof through the attended minimal-headless lifecycle
+- [x] Separately authorize the bounded BusyBox-history and possible ext4-atime
+  effects of one fallback ACM action and pass one live cryptographic
+  preflight with a private no-replace signed proof.
+- [ ] Preserve that proof through the attended minimal-headless lifecycle
   without any other Alpine or phone-storage write.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its

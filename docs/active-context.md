@@ -88,14 +88,20 @@ real producer and is revalidated after ACM discovery to cover host suspend.
 Nonce-bound phone errors retain their failure class through the last bounded
 serial read.
 
-Thirty-eight hardware-free ACM tests and all seventeen lifecycle methods
-pass. The first live cryptographic preflight was rejected before a signed
-frame: the installed fallback enumerates and its USB-NCM/SSH host identity is
-healthy, but no `/dev/ttyGS0` reader consumed the nonce preamble, including
-after exact USB reset and host USB deconfiguration/rebind. A physical fallback
-reboot is now required before one fresh signed preflight. The one authorized
-temporary boot remains unused. See the
-[live rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
+Thirty-nine hardware-free ACM tests and all seventeen lifecycle methods
+pass. A physical reboot restored the supervised ACM reader. The fresh signed
+exchange then exposed a stale thermal assumption: the installed fallback now
+publishes 96 contiguous zones, including unsupported auxiliary channels,
+rather than exactly 70 universally readable temperatures. The controller now
+requires a bounded contiguous topology, a stable readable quorum, named core
+CPU/GPU/system sensors, and the unchanged hard temperature ceilings while
+ignoring unreadable temperatures only for an exact observed auxiliary-type
+allowlist, plus zero and Qualcomm-inactive values.
+One fresh nonce-bound preflight passed and its mode-`0600` signed proof is
+retained outside Git. The one authorized temporary boot remains unused. See
+the [live acceptance](../test-results/2026-07-31-fallback-acm-preflight-live-accepted.md)
+and preceding
+[reader rejection](../test-results/2026-07-31-fallback-acm-preflight-live-rejected.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

@@ -52,7 +52,7 @@ def record(
             ("dmesg_checked", "1"),
             ("fatal_lines", "0"),
             ("thermal_samples", "3"),
-            ("thermal_zones", "70"),
+            ("thermal_zones", "96"),
             ("thermal_max", "38800"),
             ("python_major", "3"),
             ("boot_id", "11111111-2222-4333-8444-555555555555"),
@@ -1037,6 +1037,49 @@ class SerialTest(unittest.TestCase):
 
 
 class PolicyTest(unittest.TestCase):
+    def test_embedded_thermal_policy_matches_host_verifier(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        names = {
+            "MIN_THERMAL_ZONES",
+            "MAX_THERMAL_ZONES",
+            "MIN_VALID_THERMAL_READINGS",
+            "REQUIRED_THERMAL_TYPES",
+            "INACTIVE_THERMAL_VALUES",
+            "UNAVAILABLE_THERMAL_TYPES",
+        }
+        assignments = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in names
+        ]
+        namespace = {}
+        exec(
+            compile(
+                ast.Module(body=assignments, type_ignores=[]),
+                "embedded-thermal-policy.py",
+                "exec",
+            ),
+            namespace,
+        )
+        self.assertEqual(
+            {name: namespace[name] for name in names},
+            {
+                name: (
+                    set(getattr(MODULE, name))
+                    if name in {
+                        "REQUIRED_THERMAL_TYPES",
+                        "INACTIVE_THERMAL_VALUES",
+                        "UNAVAILABLE_THERMAL_TYPES",
+                    }
+                    else getattr(MODULE, name)
+                )
+                for name in names
+            },
+        )
+
     def test_guards_fail_before_pin_or_device_access(self) -> None:
         environment = os.environ.copy()
         environment.pop("ALLOW_FALLBACK_ACM_CONTROL", None)
@@ -1374,7 +1417,9 @@ class PolicyTest(unittest.TestCase):
                     with self.assertRaises(MODULE.FallbackError):
                         MODULE.require_modem_manager_inactive()
 
-    def test_embedded_thermal_sampling_requires_all_exact_zones(self) -> None:
+    def test_embedded_thermal_sampling_accepts_bounded_sparse_topology(
+        self,
+    ) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
         function = next(
             node
@@ -1382,10 +1427,35 @@ class PolicyTest(unittest.TestCase):
             if isinstance(node, ast.FunctionDef)
             and node.name == "temperatures"
         )
-        readings = {
-            f"/sys/class/thermal/thermal_zone{index}/temp": "40000"
-            for index in range(MODULE.EXPECTED_THERMAL_ZONES)
-        }
+        required = sorted(MODULE.REQUIRED_THERMAL_TYPES)
+        unavailable = sorted(MODULE.UNAVAILABLE_THERMAL_TYPES)
+
+        def make_readings(zone_count: int) -> dict[str, object]:
+            result: dict[str, object] = {}
+            for index in range(zone_count):
+                root = f"/sys/class/thermal/thermal_zone{index}"
+                result[f"{root}/type"] = (
+                    required[index]
+                    if index < len(required)
+                    else f"sensor-{index}"
+                )
+                result[f"{root}/temp"] = "40000"
+            return result
+
+        readings = make_readings(96)
+        for offset, thermal_type in enumerate(unavailable, start=70):
+            readings[
+                f"/sys/class/thermal/thermal_zone{offset}/type"
+            ] = thermal_type
+        for index in range(70, 90):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "error"
+        for index in range(90, 93):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "-274000"
+        readings["/sys/class/thermal/thermal_zone93/temp"] = "0"
 
         class FakePath:
             def __init__(self, value: str):
@@ -1393,18 +1463,35 @@ class PolicyTest(unittest.TestCase):
 
             def read_text(self) -> str:
                 value = readings[self.value]
+                if callable(value):
+                    value = value()
                 if value == "error":
                     raise OSError("injected")
+                if not isinstance(value, str):
+                    raise AssertionError("invalid thermal fixture")
                 return value
 
             def glob(self, _pattern: str) -> list["FakePath"]:
-                return [FakePath(name) for name in readings]
+                return [
+                    FakePath(name)
+                    for name in readings
+                    if name.endswith("/temp")
+                ]
 
             def __str__(self) -> str:
                 return self.value
 
         namespace = {
-            "EXPECTED_THERMAL_ZONES": MODULE.EXPECTED_THERMAL_ZONES,
+            "MIN_THERMAL_ZONES": MODULE.MIN_THERMAL_ZONES,
+            "MAX_THERMAL_ZONES": MODULE.MAX_THERMAL_ZONES,
+            "MIN_VALID_THERMAL_READINGS": (
+                MODULE.MIN_VALID_THERMAL_READINGS
+            ),
+            "REQUIRED_THERMAL_TYPES": MODULE.REQUIRED_THERMAL_TYPES,
+            "INACTIVE_THERMAL_VALUES": MODULE.INACTIVE_THERMAL_VALUES,
+            "UNAVAILABLE_THERMAL_TYPES": (
+                MODULE.UNAVAILABLE_THERMAL_TYPES
+            ),
             "Path": FakePath,
             "time": mock.Mock(),
         }
@@ -1418,17 +1505,61 @@ class PolicyTest(unittest.TestCase):
         )
         self.assertEqual(
             namespace["temperatures"](),
-            (3, MODULE.EXPECTED_THERMAL_ZONES, 40000),
+            (3, 96, 40000),
         )
         readings["/sys/class/thermal/thermal_zone69/temp"] = "90000"
         self.assertEqual(
             namespace["temperatures"](),
-            (3, MODULE.EXPECTED_THERMAL_ZONES, 90000),
+            (3, 96, 90000),
         )
-        readings["/sys/class/thermal/thermal_zone70/temp"] = "190000"
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "200001"
         self.assertEqual(namespace["temperatures"](), (0, 0, 0))
-        del readings["/sys/class/thermal/thermal_zone70/temp"]
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "40000"
+
+        for index, thermal_type in enumerate(required):
+            with self.subTest(required_type=thermal_type):
+                readings[
+                    f"/sys/class/thermal/thermal_zone{index}/temp"
+                ] = "error"
+                self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+                readings[
+                    f"/sys/class/thermal/thermal_zone{index}/temp"
+                ] = "40000"
+
         readings["/sys/class/thermal/thermal_zone69/temp"] = "error"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "malformed"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "40000"
+        readings["/sys/class/thermal/thermal_zone69/type"] = "error"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        self.assertEqual(namespace["temperatures"](), (3, 70, 40000))
+        readings = make_readings(69)
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings = make_readings(128)
+        self.assertEqual(namespace["temperatures"](), (3, 128, 40000))
+        readings = make_readings(129)
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(96)
+        del readings["/sys/class/thermal/thermal_zone50/temp"]
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        for index in range(28, 70):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "0"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        changing = iter(("40000", "error", "error"))
+        readings["/sys/class/thermal/thermal_zone69/type"] = unavailable[0]
+        readings["/sys/class/thermal/thermal_zone69/temp"] = (
+            lambda: next(changing)
+        )
         self.assertEqual(namespace["temperatures"](), (0, 0, 0))
 
     def test_embedded_pstore_inspection_never_hides_entry_errors(self) -> None:
