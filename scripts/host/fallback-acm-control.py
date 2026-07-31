@@ -1153,17 +1153,16 @@ def exact_fallback_route(interface: str) -> None:
         env={"LC_ALL": "C"},
     )
     raw_lines = [line for line in route.stdout.splitlines() if line]
-    primary = [line.split() for line in raw_lines if not line[0].isspace()]
-    continuation = [
-        line.strip() for line in raw_lines if line[0].isspace()
-    ]
     if (
         route.returncode != 0
-        or len(primary) != 1
-        or continuation not in ([], ["cache"])
+        or not raw_lines
+        or raw_lines[0][0].isspace()
+        or any(not line[0].isspace() for line in raw_lines[1:])
+        or [line.strip() for line in raw_lines[1:]]
+        not in ([], ["cache"])
     ):
         fail("fallback route is unavailable")
-    fields = primary[0]
+    fields = raw_lines[0].split()
     if (
         not fields
         or fields[0] != FALLBACK_ADDRESS

@@ -112,8 +112,16 @@ The real-host
 [cancellation integration](../test-results/2026-07-31-network-root-cancel-host-integration.md)
 then found and fixed the parent/zombie wait boundary. Its final rerun passed
 through the public launcher, removed every NFS artifact, restored SteamOS
-read-only protection, and removed the temporary PolicyKit rule. Recovery must
-now be rebuilt and re-pinned before another temporary phone boot.
+read-only protection, and removed the temporary PolicyKit rule.
+
+The rebuilt recovery then completed fetch, PREPARE, and one durable COMMIT in
+the [strict-SSH fallback cycle](../test-results/2026-07-31-minimal-headless-live-cycle-ssh-fallback.md).
+Target host-key bootstrap rejected Linux's legitimate indented `cache` route
+continuation before SSH acceptance. The watchdog returned the same port to
+Alpine, the persistent USB profile restored the fixed `/16`, strict SSH
+verified a signed fallback record at 44.1 degrees C without ACM, and the
+intent resolved `FALLBACK_RETURNED`. The target parser now accepts only the
+same bounded cache continuation already covered by the fallback parser.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

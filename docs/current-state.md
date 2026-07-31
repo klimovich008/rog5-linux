@@ -554,6 +554,13 @@ now uses strict SSH over exact USB-NCM. Forty-six transport tests and all
 eighteen lifecycle methods pass hardware-free. The host has a persistent
 no-gateway `rog5-fallback-usb-ssh` profile at `169.254.77.1/16`, and the
 dedicated client key has passed a live strict-SSH fallback health preflight.
+The first complete cycle through this path fetched, prepared, and committed
+the target, then safely rejected a stale target route-parser assumption. The
+watchdog returned the same port to Alpine, NetworkManager restored the
+profile automatically, strict SSH verified the signed fallback at 44.1
+degrees C without opening ACM, and the durable intent resolved
+`FALLBACK_RETURNED`. See the
+[strict-SSH fallback result](../test-results/2026-07-31-minimal-headless-live-cycle-ssh-fallback.md).
 
 The first authorized live ACM preflight was rejected because the existing
 device-side reader had wedged; exact USB reset and host rebind could not
@@ -835,10 +842,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. Rerun the complete lifecycle preflight with the strict-SSH fallback guard,
-   then use the one authorized temporary boot already staged in fastboot.
-2. Verify that the target watchdog returns to the exact fallback and that the
-   persistent USB profile automatically restores strict SSH without ACM.
+1. Build and admit a fresh one-use successor after the target route-parser
+   fix; never retry the consumed COMMIT from the rejected cycle.
+2. Temporarily boot that successor and collect the first strict-SSH target
+   runtime record. The watchdog/fallback path and persistent USB profile are
+   now accepted live without ACM.
 3. Determine whether ramoops survives the target/fallback path and collect the
    exact 88-field core record.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
