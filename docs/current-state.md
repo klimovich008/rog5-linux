@@ -91,6 +91,10 @@ expected RMTFS/GPUCC/GMU/Adreno-SMMU isolation states; malicious node,
 property, phandle, truncation, and signal-interruption fixtures fail in core
 CI. See the
 [semantic oracle](../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
+The current Linux host also revalidated the optional positive source/DTB leg,
+matching configuration and retained module archive, buttons/indicator source
+contract, and corrected-successor artifact gate in one
+[accepted-baseline checkpoint](../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
 The correction has not been signed by a live trust root or booted. There is no
 repeat live authority. See the
 [live result](../test-results/2026-07-29-headless-stable-recovery-live.md)
