@@ -84,6 +84,32 @@ class DeploymentCandidateTest(unittest.TestCase):
         )
         self.write_package()
 
+    def synthetic_candidate_repository(self) -> tuple[Path, Path]:
+        repository = self.root / "synthetic-repository"
+        artifact_root = repository / "artifacts" / "synthetic"
+        candidate_root = repository / "configs" / "recovery-candidates"
+        artifact_root.mkdir(parents=True)
+        candidate_root.mkdir(parents=True)
+        template = TOOL.CANDIDATE.load_candidate(TOOL.CANDIDATE_ID)
+        payloads = {
+            "Image": b"I" * 64,
+            "board.dtb": b"D" * 40,
+            "initramfs.cpio.gz": b"GZ",
+        }
+        for name, payload in payloads.items():
+            artifact = artifact_root / name
+            artifact.write_bytes(payload)
+            artifact.chmod(0o400)
+            template["artifacts"][name] = {
+                "path": f"artifacts/synthetic/{name}",
+                "size": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        candidate = candidate_root / f"{TOOL.CANDIDATE_ID}.json"
+        candidate.write_bytes(TOOL.canonical_payload(template))
+        candidate.chmod(0o400)
+        return repository, candidate_root
+
     def test_non_fixture_package_binds_exact_candidate(self) -> None:
         record, output = TOOL.prepare(self.package, self.output)
         self.assertEqual(output, self.output)
@@ -134,6 +160,7 @@ class DeploymentCandidateTest(unittest.TestCase):
 
     def test_successor_produces_a_distinct_signed_manifest(self) -> None:
         self.select_accepted_predecessor_root()
+        repository, candidate_root = self.synthetic_candidate_repository()
         key = self.root / "signing-key.pem"
         subprocess.run(
             [
@@ -149,32 +176,43 @@ class DeploymentCandidateTest(unittest.TestCase):
             stderr=subprocess.DEVNULL,
         )
         key.chmod(0o600)
-        records = {
-            TOOL.BASE_BUNDLE_ID: TOOL.candidate_record(self.values),
-            TOOL.SUCCESSOR_BUNDLE_ID: TOOL.candidate_record(
-                self.values,
-                TOOL.SUCCESSOR_BUNDLE_ID,
+        with (
+            mock.patch.object(TOOL.CANDIDATE, "REPO", repository),
+            mock.patch.object(
+                TOOL.CANDIDATE,
+                "CANDIDATE_ROOT",
+                candidate_root,
             ),
-        }
-        manifests: dict[str, bytes] = {}
-        hashes: dict[str, str] = {}
-        for bundle, record in records.items():
-            candidate = self.root / f"{bundle}.json"
-            candidate.write_bytes(TOOL.canonical_payload(record))
-            candidate.chmod(0o444)
-            bundle_root = self.root / f"bundles-{bundle}"
-            bundle_root.mkdir(mode=0o700)
-            _record, manifest_hash, _trust = TOOL.CANDIDATE.prepare(
-                TOOL.CANDIDATE_ID,
-                key,
-                bundle_root,
-                candidate,
-                hashlib.sha256(candidate.read_bytes()).hexdigest(),
-            )
-            manifest = bundle_root / bundle / "manifest"
-            manifests[bundle] = manifest.read_bytes()
-            hashes[bundle] = manifest_hash
-            self.assertIn(f"bundle={bundle}\n".encode(), manifests[bundle])
+        ):
+            records = {
+                TOOL.BASE_BUNDLE_ID: TOOL.candidate_record(self.values),
+                TOOL.SUCCESSOR_BUNDLE_ID: TOOL.candidate_record(
+                    self.values,
+                    TOOL.SUCCESSOR_BUNDLE_ID,
+                ),
+            }
+            manifests: dict[str, bytes] = {}
+            hashes: dict[str, str] = {}
+            for bundle, record in records.items():
+                candidate = self.root / f"{bundle}.json"
+                candidate.write_bytes(TOOL.canonical_payload(record))
+                candidate.chmod(0o444)
+                bundle_root = self.root / f"bundles-{bundle}"
+                bundle_root.mkdir(mode=0o700)
+                _record, manifest_hash, _trust = TOOL.CANDIDATE.prepare(
+                    TOOL.CANDIDATE_ID,
+                    key,
+                    bundle_root,
+                    candidate,
+                    hashlib.sha256(candidate.read_bytes()).hexdigest(),
+                )
+                manifest = bundle_root / bundle / "manifest"
+                manifests[bundle] = manifest.read_bytes()
+                hashes[bundle] = manifest_hash
+                self.assertIn(
+                    f"bundle={bundle}\n".encode(),
+                    manifests[bundle],
+                )
         self.assertNotEqual(
             hashes[TOOL.BASE_BUNDLE_ID],
             hashes[TOOL.SUCCESSOR_BUNDLE_ID],
