@@ -548,16 +548,24 @@ def exact_route(interface: str) -> None:
         timeout=5,
         env={"LC_ALL": "C"},
     )
-    lines = [line.split() for line in route.stdout.splitlines() if line.strip()]
-    if route.returncode != 0 or len(lines) != 1:
+    raw_lines = [line for line in route.stdout.splitlines() if line]
+    if (
+        route.returncode != 0
+        or not raw_lines
+        or raw_lines[0][0].isspace()
+        or any(not line[0].isspace() for line in raw_lines[1:])
+        or [line.strip() for line in raw_lines[1:]]
+        not in ([], ["cache"])
+    ):
         fail("cannot resolve one exact target route")
-    fields = lines[0]
+    fields = raw_lines[0].split()
     if (
         not fields
         or fields[0] != TARGET_ADDRESS
         or fields.count("dev") != 1
         or fields.count("src") != 1
         or "via" in fields
+        or "table" in fields
     ):
         fail("target route is not direct")
     try:

@@ -1385,6 +1385,25 @@ class SshTransportTest(unittest.TestCase):
         ):
             with self.assertRaises(MODULE.FallbackError):
                 MODULE.exact_fallback_route("usbtest0")
+        reordered_cache = (
+            accepted[0],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "    cache\n169.254.77.2 dev usbtest0 "
+                    "src 169.254.77.1 uid 1000\n"
+                ),
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=reordered_cache,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
         default_route = (
             accepted[0],
             accepted[1],

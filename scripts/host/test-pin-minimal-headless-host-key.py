@@ -297,7 +297,10 @@ class HostKeyBootstrapTest(unittest.TestCase):
             subprocess.CompletedProcess(
                 [],
                 0,
-                "169.254.77.2 dev enxrog5 src 169.254.77.1 uid 1000\n",
+                (
+                    "169.254.77.2 dev enxrog5 src 169.254.77.1 "
+                    "uid 1000\n    cache\n"
+                ),
                 "",
             ),
         ]
@@ -308,19 +311,39 @@ class HostKeyBootstrapTest(unittest.TestCase):
             ),
         ):
             MODULE.exact_route("enxrog5")
-        outputs[1] = subprocess.CompletedProcess(
-            [],
-            0,
+        for route_output in (
             "169.254.77.2 via 10.0.0.1 dev eth0 src 10.0.0.2\n",
-            "",
-        )
-        with (
-            mock.patch.object(MODULE, "require_fixed_binary"),
-            mock.patch.object(
-                MODULE.subprocess, "run", side_effect=outputs
+            (
+                "169.254.77.2 dev enxrog5 src 169.254.77.1 "
+                "table 100\n"
             ),
+            (
+                "169.254.77.2 dev enxrog5 src 169.254.77.1\n"
+                "    cache\n    mtu 1500\n"
+            ),
+            (
+                "169.254.77.2 dev enxrog5 src 169.254.77.1\n"
+                "169.254.77.2 dev enxrog5 src 169.254.77.1\n"
+            ),
+            (
+                "    cache\n"
+                "169.254.77.2 dev enxrog5 src 169.254.77.1\n"
+            ),
+            "169.254.77.2 dev other0 src 169.254.77.1\n",
+            "169.254.77.2 dev enxrog5 src 169.254.77.9\n",
         ):
-            with self.assertRaises(MODULE.BootstrapError):
+            mutated = [
+                outputs[0],
+                subprocess.CompletedProcess([], 0, route_output, ""),
+            ]
+            with (
+                self.subTest(route_output=route_output),
+                mock.patch.object(MODULE, "require_fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess, "run", side_effect=mutated
+                ),
+                self.assertRaises(MODULE.BootstrapError),
+            ):
                 MODULE.exact_route("enxrog5")
 
     def test_keyscan_accepts_one_nonzero_ed25519_key(self) -> None:
