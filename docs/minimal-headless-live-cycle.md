@@ -458,11 +458,13 @@ no live authority or phone action.
 
 The resulting exact wrapper, trust, manifest, and host-verifier hashes are
 pinned in the live-gate profile. The consumed r2 profile retains its July 31
-tuple. The separate diagnostic profile pins the August 1 production twin:
-AVB wrapper `9c060a27…204ef`, trust root `f10ca076…c57b`, manifest
-`4eacb90f…f7e76`, and host verifier `0a570805…b621`. Its complete artifact
-preflight passes against the retained ignored output without phone discovery.
-See the [production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
+tuple. The diagnostic profile now pins the fetch-policy-corrected August 1
+production twin: AVB wrapper `f710bbcd…97b0ef`, trust root
+`f10ca076…c57b`, manifest `4eacb90f…f7e76`, and host verifier
+`0a570805…b621`. Its complete artifact preflight passes against the retained
+ignored output without phone discovery. The previous `9c060a27…204ef`
+diagnostic wrapper is consumed and explicitly refused.
+See the [corrected production build result](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md).
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight
