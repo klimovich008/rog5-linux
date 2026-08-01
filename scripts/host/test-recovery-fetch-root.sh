@@ -8,21 +8,26 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 image=${ROG5_FETCH_ROOT_TEST_IMAGE:-localhost/rog5-kernel-builder:ubuntu-24.04}
-expected_image_id=34ecc17078b364df195ad61253520b1cac487dca05773dc4b2fc2bacb0941941
-expected_image_digest=sha256:7b2e3415dc638ca4864912c9aa4905425561e21b9d08f1e60e4cfb0a3aa6ff8c
+builder_verifier=$repo/scripts/host/verify-steam-deck-builder.sh
 
 command -v podman >/dev/null ||
 	fail 'missing privileged fetch-test command: podman'
+[[ -x $builder_verifier && -f $builder_verifier && ! -L $builder_verifier ]] ||
+	fail 'missing qualified Steam Deck builder verifier'
 podman image exists "$image" ||
 	fail "missing pinned local privileged fetch-test image: $image"
+$builder_verifier "$image" >/dev/null
 [[ $(podman image inspect "$image" --format '{{.Architecture}}') == amd64 ]] ||
-	fail 'privileged fetch-test image is not amd64'
+	fail 'qualified privileged fetch-test image is not amd64'
 actual_image_id=$(podman image inspect "$image" --format '{{.Id}}')
 actual_image_digest=$(podman image inspect "$image" --format '{{.Digest}}')
-[[ $actual_image_id == "$expected_image_id" ]] ||
-	fail "unexpected privileged fetch-test image ID: $actual_image_id"
-[[ $actual_image_digest == "$expected_image_digest" ]] ||
-	fail "unexpected privileged fetch-test image digest: $actual_image_digest"
+# Local object IDs can change when the same qualified rootfs is reconstructed.
+# The verifier above pins the snapshot, package closure, recipe, tools, and
+# complete rootfs identity; these transport identities remain canonical audit
+# output rather than the trust root.
+[[ $actual_image_id =~ ^[0-9a-f]{64}$ &&
+	$actual_image_digest =~ ^sha256:[0-9a-f]{64}$ ]] ||
+	fail 'qualified privileged fetch-test image identity is invalid'
 
 podman run --rm --network=none --platform linux/amd64 \
 	-v "$repo:/workspace:ro,Z" \
