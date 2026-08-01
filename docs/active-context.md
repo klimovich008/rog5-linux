@@ -292,7 +292,20 @@ phone interface was used. The old `9c060a27…204ef` wrapper remained consumed
 and denied in the fixture. See the
 [corrected disposable build](../test-results/2026-08-01-corrected-diagnostic-recovery-disposable-build.md).
 Production twin signing and the bounded fallback-profile cleanup correction
-remain the two preconditions before any new temporary phone lifecycle.
+were the two preconditions before any new temporary phone lifecycle.
+
+The first precondition is now complete. A guarded production-key operation
+from clean synchronized checkpoint `84a9cc8` produced byte-identical corrected
+wrappers at AVB SHA-256 `f710bbcd…97b0ef`, raw SHA-256
+`2f460aa0…628a01`, ASUS `Image` SHA-256 `7fac4dda…728ed`, stable-recovery
+initramfs SHA-256 `fec72c4d…1c57a`, and the unchanged production trust root
+`f10ca076…c57b`. The complete artifact preflight passes and the new wrapper is
+exactly admitted for one RAM-only boot. The source seals match, the candidate
+and external key remain unchanged, no private snapshot survived, and no phone
+interface was contacted. The old wrapper remains consumed and refused. See
+the [corrected production build](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md).
+The separately tested bounded fallback-profile cleanup correction remains the
+only precondition before connected preflight and a new temporary lifecycle.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

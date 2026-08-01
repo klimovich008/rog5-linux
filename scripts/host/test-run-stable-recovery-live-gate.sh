@@ -9,6 +9,7 @@ tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
 diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img
+corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -18,6 +19,16 @@ diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wr
 	&& $4 ~ /^consumed production-signed temporary recovery/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$corrected_diagnostic_image" \
+	'$1 == name && $2 == "allow" && $3 ~ /one RAM-only boot/ \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL corrected diagnostic wrapper is not exactly boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$corrected_diagnostic_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef" \
+	&& $4 ~ /^fresh production-signed fetch-policy-corrected diagnostic recovery/ \
+	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL corrected diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -111,7 +122,7 @@ run_diagnostic_policy() {
 
 if run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
-	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
+	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
 	9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 manifest' >&2
@@ -121,7 +132,7 @@ grep -Fq 'diagnostic runtime manifest is not allowlisted' "$tmp/err"
 
 if run_diagnostic_policy \
 	headless-ssh-network-root-v3-r2 \
-	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
+	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 bundle' >&2
@@ -189,11 +200,12 @@ for required in \
 	'expected_raw=a937b03b54c01c6240cff45aa243632827d0c9d328e6f285ae489c973a6213a9' \
 	'expected_initramfs=f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0' \
 	'9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef' \
-	'expected_kernel=d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5' \
-	'expected_raw=0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a' \
-	'expected_initramfs=cd30a2067322edc12c3be172cd05bd5d365a1ad09815594b8fa56302cd0b813b' \
+	'f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef' \
+	'expected_kernel=7fac4dda6a7133e7d3a6589da4fb5d0bdad3802705da5edf52701a20133728ed' \
+	'expected_raw=2f460aa01ee1b97c495d0857b3207bf74920487c56f30c5e155e199967628a01' \
+	'expected_initramfs=fec72c4dba62a24ced899af4d4fc3d0af3b7b691ea6f6c1bcf90c7aaf181c57a' \
 	'expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77' \
-	'expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392' \
+	'expected_fetcher=f410ca875031dcf9c41cf2c8a67e5a9fba862cf50b53e1d8c51453f4e0b5d13d' \
 	'expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0' \
 	'expected_target_id=headless-ssh-network-root' \
 	'expected_target_id=headless-netroot-early-diag' \
