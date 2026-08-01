@@ -1,4 +1,14 @@
 GLIBC_2.17 {
-	global: abort;
+	global:
+		abort;
+		__assert_fail;
+		__stack_chk_fail;
+};
+
+SD_SHARED {
+	global:
+		log_assert_failed;
+		log_assert_failed_return;
+		log_assert_failed_unreachable;
 	local: *;
 };
