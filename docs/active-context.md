@@ -240,10 +240,14 @@ diagnostic candidate remains unexecuted. The independent 180-second recovery
 watchdog returned the same USB port to Alpine; strict SSH accepted a fresh
 signed fallback record at 42.5 C and no project process or listener remained.
 The [live result](../test-results/2026-08-01-early-target-diagnostic-host-auth-timeout.md)
-records the private evidence hashes. The current host work replaces runtime
-PolicyKit with one operator-owned mode-`0600` systemd socket whose root broker
-accepts only the fixed bundle/NFS protocol and verifies the connecting UID plus
-installed controller hashes before dispatch.
+records the private evidence hashes. Runtime PolicyKit is now replaced by one
+operator-owned mode-`0600` systemd socket whose root broker accepts only the
+fixed bundle/NFS protocol and verifies the connecting UID plus installed
+controller hashes before dispatch. Commit `aa39503` passes both GitHub jobs,
+is installed on SteamOS with read-only mode restored, and completed the real
+37,735-entry deployment-root preflight through the socket without a prompt.
+The [host-control result](../test-results/2026-08-01-steamos-prompt-free-host-control-live.md)
+records the exact installed hashes and cleanup evidence.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
