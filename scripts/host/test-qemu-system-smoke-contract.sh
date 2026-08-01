@@ -76,6 +76,8 @@ tty_alias_line=$(grep -n 'symlink("/dev/hvc0", "/dev/ttyGS0")' \
 [[ $reporter_start_line -lt $tty_alias_line ]] ||
 	fail 'QEMU reporter no longer starts before its transport exists'
 grep -Fq 'test-qemu-diagnostic-handoff.sh' "$workflow"
+grep -Fq 'libc6-dev-arm64-cross' "$workflow" ||
+	fail 'QEMU workflow lacks the ARM64 static libc development package'
 if grep -Eq 'fastboot|/dev/(sd|nvme|ufs)|mount[[:space:]].*root=' \
 	"$runner" "$handoff_runner"; then
 	fail 'board-neutral QEMU smoke contains a phone or storage action'
