@@ -46,7 +46,7 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count != 1)
+		if (allow_count != 2)
 			exit 16
 		for (name in allowed)
 			if (!(name in found))
@@ -59,6 +59,10 @@ grep -Fq \
 	'artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img' \
 	"$policy" ||
 	fail 'the accepted v18 staging image is absent from temporary-boot policy'
+grep -Fq \
+	'build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img' \
+	"$policy" ||
+	fail 'the admitted diagnostic wrapper is absent from temporary-boot policy'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
