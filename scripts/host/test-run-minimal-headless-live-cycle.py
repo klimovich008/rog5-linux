@@ -42,6 +42,7 @@ DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
+DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-deployment-v1"
 SESSION = "1" * 32
 PREPARE = "2" * 32
 REQUEST = "3" * 32
@@ -372,17 +373,26 @@ class Fixture:
         )
         self.executable(
             "run-stable-recovery-live-gate.sh",
-            """\
+            f"""\
             #!/bin/sh
             set -eu
-            [ -z "${UNRELATED_CREDENTIAL+x}" ]
-            [ -z "${SSH_KEY+x}" ]
-            [ -z "${FALLBACK_KNOWN_HOSTS+x}" ]
-            [ -z "${EVIDENCE_DIR+x}" ]
+            [ -z "${{UNRELATED_CREDENTIAL+x}}" ]
+            [ -z "${{SSH_KEY+x}}" ]
+            [ -z "${{FALLBACK_KNOWN_HOSTS+x}}" ]
+            [ -z "${{EVIDENCE_DIR+x}}" ]
+            case $BUNDLE in
+              {BUNDLE})
+                [ "$ROG5_STABLE_RECOVERY_PROFILE" = "{RECOVERY_PROFILE}" ]
+                ;;
+              {DIAGNOSTIC_BUNDLE})
+                [ "$ROG5_STABLE_RECOVERY_PROFILE" = "{DIAGNOSTIC_RECOVERY_PROFILE}" ]
+                ;;
+              *) exit 1 ;;
+            esac
             if [ "$1" = boot ]; then
-              [ "${ALLOW_TEMPORARY_BOOT:-}" = 1 ]
-              [ "${ALLOW_HEADLESS_LIVE_GATE:-}" = 1 ]
-              [ -z "${ALLOW_STABLE_RECOVERY_CONTROL+x}" ]
+              [ "${{ALLOW_TEMPORARY_BOOT:-}}" = 1 ]
+              [ "${{ALLOW_HEADLESS_LIVE_GATE:-}}" = 1 ]
+              [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
             fi
             printf 'live:%s\n' "$1" >>"$MOCK_CALLS"
             echo "PASS live $1"
@@ -730,6 +740,10 @@ class Fixture:
     ) -> subprocess.CompletedProcess[str]:
         if action.startswith("diagnostic-"):
             updates.setdefault("BUNDLE", DIAGNOSTIC_BUNDLE)
+            updates.setdefault(
+                "ROG5_STABLE_RECOVERY_PROFILE",
+                DIAGNOSTIC_RECOVERY_PROFILE,
+            )
         return subprocess.run(
             [str(RUNNER), action],
             env=self.environment(guards=guards, **updates),
@@ -880,7 +894,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "must select the headless SSH deployment profile",
+            "must select the exact lifecycle deployment profile",
             result.stderr,
         )
         self.assertTrue(

@@ -20,7 +20,7 @@ DEPLOYMENT_PATH = (
     REPO / "scripts/host/prepare-headless-ssh-deployment-candidate.py"
 )
 STAGER_PATH = (
-    REPO / "scripts/host/stage-headless-ssh-deployment-signing-inputs.py"
+    REPO / "scripts/host/stage-recovery-deployment-signing-inputs.py"
 )
 EXPECTED_MANIFEST_SHA256 = (
     "9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630"

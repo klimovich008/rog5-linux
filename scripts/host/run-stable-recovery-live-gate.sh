@@ -8,6 +8,7 @@ fail() {
 
 action=${1:-preflight}
 case $action in
+	policy-preflight) ;;
 	artifact-preflight) ;;
 	preflight) ;;
 	boot)
@@ -17,7 +18,7 @@ case $action in
 			fail 'set ALLOW_HEADLESS_LIVE_GATE=1 for this attended candidate'
 		;;
 	*)
-		fail 'usage: run-stable-recovery-live-gate.sh [artifact-preflight|preflight|boot]'
+		fail 'usage: run-stable-recovery-live-gate.sh [policy-preflight|artifact-preflight|preflight|boot]'
 		;;
 esac
 
@@ -25,6 +26,10 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 profile=${ROG5_STABLE_RECOVERY_PROFILE:-}
 [[ -n $profile ]] ||
 	fail 'set ROG5_STABLE_RECOVERY_PROFILE explicitly'
+if [[ $action == policy-preflight &&
+	$profile != headless-diagnostic-deployment-v1 ]]; then
+	fail 'policy preflight requires the fully pinned diagnostic profile'
+fi
 live_root=${LIVE_BUILD_ROOT:-}
 component_root=${RECOVERY_COMPONENT_ROOT:-}
 trust_key=${TRUST_KEY:-}
@@ -43,7 +48,9 @@ expected_raw=
 expected_initramfs=
 expected_target_id=
 expected_bundle=
+expected_bundle_profile=network-root-v1
 consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
+consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
 requires_qualified_cpio=0
 expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
 expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
@@ -55,9 +62,12 @@ initramfs_path=$PATH
 qualified_cpio=
 qualified_cpio_shim=
 
-[[ -n $live_root && -n $component_root && -n $trust_key &&
-	-n $bundle_root && -n $bundle ]] ||
-	fail 'set live-build, component, trust-key, and bundle inputs'
+[[ -n $bundle ]] || fail 'set the exact bundle input'
+if [[ $action != policy-preflight ]]; then
+	[[ -n $live_root && -n $component_root && -n $trust_key &&
+		-n $bundle_root ]] ||
+		fail 'set live-build, component, trust-key, and bundle inputs'
+fi
 for value in "$expected_image" "$expected_trust" "$expected_manifest" \
 	"$expected_host_verifier"; do
 	[[ $value =~ ^[0-9a-f]{64}$ &&
@@ -68,7 +78,8 @@ done
 	$bundle != *..* && $bundle != none ]] ||
 	fail 'invalid bundle identity'
 if [[ $action == boot &&
-	$expected_manifest == "$consumed_deployment_manifest" ]]; then
+	( $expected_manifest == "$consumed_deployment_manifest" ||
+	$expected_manifest == "$consumed_r2_manifest" ) ]]; then
 	fail 'refusing a consumed deployment manifest'
 fi
 
@@ -107,24 +118,33 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-ssh-deployment-v3)
+	headless-ssh-deployment-v3 | headless-diagnostic-deployment-v1)
 		component_layout=structured
 		expected_kernel=1a8bac7a2b016dc7d63d22f09d0872b9c3f251952b7627c68f7c387f386b0068
 		expected_raw=a937b03b54c01c6240cff45aa243632827d0c9d328e6f285ae489c973a6213a9
 		expected_initramfs=f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0
 		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
 		expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392
-		expected_target_id=headless-ssh-network-root
-		expected_bundle=headless-ssh-network-root-v3-r2
+		if [[ $profile == headless-ssh-deployment-v3 ]]; then
+			expected_target_id=headless-ssh-network-root
+			expected_bundle=headless-ssh-network-root-v3-r2
+			[[ $expected_manifest == \
+				9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 ]] ||
+				fail 'deployment runtime manifest is not allowlisted'
+		else
+			expected_target_id=headless-netroot-early-diag
+			expected_bundle=headless-netroot-early-diag-v1
+			expected_bundle_profile=diagnostic-initramfs-v1
+			[[ $expected_manifest == \
+				4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
+				fail 'diagnostic runtime manifest is not allowlisted'
+		fi
 		[[ $expected_image == \
 			11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c ]] ||
 			fail 'deployment recovery image identity is not allowlisted'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
 			fail 'deployment recovery trust root is not allowlisted'
-		[[ $expected_manifest == \
-			9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 ]] ||
-			fail 'deployment runtime manifest is not allowlisted'
 		[[ $expected_host_verifier == \
 			9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b ]] ||
 			fail 'deployment host verifier is not allowlisted'
@@ -139,6 +159,22 @@ case $profile in
 esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
+
+if [[ $action == policy-preflight ]]; then
+	printf '%s\n' \
+		'format=rog5-stable-recovery-policy-v1' \
+		"recovery_profile=$profile" \
+		"bundle=$bundle" \
+		"manifest_sha256=$expected_manifest" \
+		"bundle_profile=$expected_bundle_profile" \
+		"target_id=$expected_target_id" \
+		"recovery_sha256=$expected_image" \
+		"trust_key_sha256=$expected_trust" \
+		"host_verifier_sha256=$expected_host_verifier" \
+		'authority=none' \
+		'result=PASS'
+	exit 0
+fi
 
 for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 	stat tr; do
@@ -291,7 +327,7 @@ verified_plan=$(
 )
 grep -Fxq "bundle=$bundle" <<<"$verified_plan"
 grep -Fxq "manifest_sha256=$expected_manifest" <<<"$verified_plan"
-grep -Fxq 'profile=network-root-v1' <<<"$verified_plan"
+grep -Fxq "profile=$expected_bundle_profile" <<<"$verified_plan"
 grep -Fxq "target_id=$expected_target_id" <<<"$verified_plan"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$verified_plan"
 grep -Fxq 'target_timeout=480' <<<"$verified_plan"

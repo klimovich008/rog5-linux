@@ -208,9 +208,12 @@ No diagnostic bundle may be signed or booted until tests prove:
 8. Create a new externally held candidate and signed bundle identity.
 9. Run all connected preflights, then at most one temporary boot.
 
-Steps 1 through 5 and the receive-only host collector are implemented. Step 4
-now crosses the root handoff and executes both generated milestone units under
-real AArch64 systemd. The native
+Steps 1 through 6 and the receive-only host collector are implemented. The
+complete disposable-key promotion path now includes two clean ASUS 5.4 wrapper
+builds, byte comparison, native verification, and the temporary-identity
+artifact-preflight fixture. Independent review and local CI for step 7 are
+closed; GitHub CI remains pending. Step 4 now crosses the root handoff and
+executes both generated milestone units under real AArch64 systemd. The native
 reporter uses write-only,
 exclusive, raw ACM access; a credential-checked abstract datagram socket;
 nonblocking partial-frame writes; fixed-cadence heartbeats; immutable terminal
@@ -219,6 +222,23 @@ blocked ACM output, host-to-target bytes that remain unread, descriptor-bearing
 and oversized local updates, post-deadline watchdog heartbeats, deterministic
 clock behavior, and byte equality with the host oracle. Production binaries
 are also checked to contain no test-hook strings.
+
+The credential-free half of promotion step 8 now has an exact no-replace
+preparer that binds the admitted non-fixture Arch package to candidate record
+SHA-256 `7081a0c7…c6e8`. The guarded production builder accepts only that
+diagnostic tuple or the existing normal SSH tuple, validates the candidate
+and reserves every output before opening the recovery signing key, scrubs the
+original path environment before the first helper and the guards before later
+children, and requires the diagnostic manifest to remain `4eacb90f…e76`. The
+neutral stager retains the old SSH-named path only as a compatibility entry
+point. A disposable-key wrapper-to-stager preflight and diagnostic-only,
+exact-output recovery-policy preflight cover the complete guarded input wiring
+and exact diagnostic profile record without a production credential. A second
+full-path execution at clean checkpoint `0375e97a` proves the guarded wrapper,
+two clean builds, native verifier, and artifact gate compose through final
+`authority=none` output.
+Actual production signing, installation, and phone execution remain pending
+after green GitHub CI.
 
 Twenty-three collector tests cover canonical private anchor/output handling,
 duplicate or wrong-port USB identities, interface/driver binding, character-

@@ -10,13 +10,15 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/headless-netroot-early-diag-v1.json
 adapter=$repo/scripts/host/prepare-recovery-candidate.py
 builder=$repo/scripts/host/build-corrected-headless-candidate-offline.sh
+builder_impl=$repo/scripts/host/build-corrected-headless-candidate-offline-impl.sh
 rebuild=$repo/scripts/host/rebuild-headless-network-root-initramfs.sh
 
-for path in "$candidate" "$adapter" "$builder" "$rebuild"; do
+for path in "$candidate" "$adapter" "$builder" "$builder_impl" "$rebuild"; do
 	[[ -f $path && ! -L $path ]] ||
 		fail "missing diagnostic-candidate input: ${path#"$repo"/}"
 done
-bash -n "$builder"
+/usr/bin/python3 -m py_compile "$builder"
+bash -n "$builder_impl"
 bash -n "$rebuild"
 
 for token in \
@@ -52,7 +54,7 @@ for token in \
 	'offline candidate record identity changed' \
 	'offline candidate manifest identity changed' \
 	'grep -Fxq "profile=$expected_profile"'; do
-	grep -Fq -- "$token" "$builder" ||
+	grep -Fq -- "$token" "$builder_impl" ||
 		fail "candidate twin-builder omits diagnostic contract: $token"
 done
 
@@ -66,7 +68,7 @@ if grep -Eq '\b(fastboot|adb|sudo|pkexec|systemctl)\b|/dev/(sd|nvme|ufs)' \
 	fail 'candidate adapter contains phone, privilege, or storage transport'
 fi
 if grep -Eq '\b(fastboot|adb|sudo|pkexec|systemctl)\b|/dev/(sd|nvme|ufs)' \
-	"$builder"; then
+	"$builder" "$builder_impl"; then
 	fail 'offline bundle builder contains phone, privilege, or storage transport'
 fi
 for token in \
@@ -74,7 +76,7 @@ for token in \
 	'offline build rejects deployment credential inputs' \
 	'openssl genpkey -algorithm ED25519' \
 	'private signing-key snapshot survived candidate build'; do
-	grep -Fq -- "$token" "$builder" ||
+	grep -Fq -- "$token" "$builder_impl" ||
 		fail "offline bundle builder omits isolation contract: $token"
 done
 

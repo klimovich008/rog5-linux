@@ -1,5 +1,5 @@
 #!/usr/bin/env -S -i /usr/bin/python3 -I -S
-"""Launch one exact SSH deployment build across a clean credential boundary."""
+"""Launch one exact diagnostic deployment build across a clean boundary."""
 
 from __future__ import annotations
 
@@ -204,11 +204,11 @@ def main() -> None:
         "ROG5_DEPLOYMENT_SIGNING_INPUT_PREFLIGHT": (
             "1" if arguments.signing_input_preflight else "0"
         ),
-        "ROG5_OFFLINE_CANDIDATE": "headless-ssh-network-root-v3",
+        "ROG5_OFFLINE_CANDIDATE": "headless-netroot-early-diag-v1",
         "ROG5_OFFLINE_EXPECTED_DTB": (
             "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
         ),
-        "ROG5_OFFLINE_EXPECTED_TARGET": "headless-ssh-network-root",
+        "ROG5_OFFLINE_EXPECTED_TARGET": "headless-netroot-early-diag",
     }
     os.execve(
         "/usr/bin/bash",

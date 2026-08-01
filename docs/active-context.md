@@ -232,6 +232,41 @@ local `ci` tier passes the corrected diff. GitHub CI, production signing,
 credential use, candidate installation, and every phone action remain
 pending.
 
+The next signing gate is now being prepared without using a credential. A
+no-replace helper verifies the accepted non-fixture Arch package and emits
+only the exact diagnostic candidate record
+`7081a0c7…c6e8` outside Git. The neutral recovery signing-input stager resolves
+only the normal or diagnostic fixed candidate ID, validates the diagnostic
+record, and reserves all no-replace outputs before opening a signing key; the
+old SSH-named path is compatibility-only. A dedicated guarded wrapper selects
+the exact diagnostic candidate/target tuple and requires manifest
+`4eacb90f…e76`. Both credentialed wrappers clear the environment in their
+shebangs before isolated Python starts, take authorization and external paths
+only as arguments, then `execve` the internal Bash builder with exact inputs.
+The stager runs under isolated Python and gives OpenSSL a fixed environment.
+A disposable-key integration injects hostile Bash/Python/OpenSSL startup
+settings, exported functions, and helper shims, then runs the wrapper, shared
+builder, and real stager through snapshot destruction without signing.
+The
+stable-recovery live gate has a separate
+`headless-diagnostic-deployment-v1` profile that reuses the pinned production
+recovery wrapper/trust root but requires the diagnostic bundle profile and
+target. Its diagnostic-only executable policy preflight emits one exact
+identity record, and hostile cases reject an unpinned profile, wrong manifest,
+bundle, or recovery image.
+Direct boot and the lifecycle reject both consumed normal manifests.
+Focused credential-free tests pass, the complete local `ci` tier passes, and
+independent standards/spec review reports no remaining actionable findings.
+At clean synchronized checkpoint `0375e97a`, one disposable key completed the
+real diagnostic wrapper, two clean ASUS 5.4 builds, twin comparison, native
+verification, and an artifact-preflight fixture that substituted all ten
+observed disposable-build artifact identities in an explicitly
+Git-ignored temporary gate copy. The test-only AVB image is
+`24b9b8c4…d441`, the disposable trust key is `36026bd2…18c4b`, and the result
+retained `authority=none`. This proves the identity-parameterized gate
+composition, not the production pins. No production key, phone, privileged
+host action, or external service was used.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

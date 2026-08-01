@@ -8,17 +8,20 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 builder=$repo/scripts/host/build-corrected-headless-candidate-offline.sh
+builder_impl=$repo/scripts/host/build-corrected-headless-candidate-offline-impl.sh
 initramfs_test=$repo/scripts/host/test-stable-recovery-initramfs.sh
 wrapper_test=$repo/scripts/host/test-stable-recovery-wrapper-offline.sh
 cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
 cpio_path=$repo/scripts/host/qualified-cpio-path/cpio
 
-for path in "$builder" "$initramfs_test" "$wrapper_test" "$cpio_shim" \
+for path in "$builder" "$builder_impl" "$initramfs_test" "$wrapper_test" "$cpio_shim" \
 	"$cpio_path"; do
 	[[ -f $path && ! -L $path && -x $path ]] ||
 		fail "missing executable corrected-candidate input: ${path#"$repo"/}"
-	bash -n "$path"
 done
+/usr/bin/python3 -m py_compile "$builder"
+bash -n "$builder_impl" "$initramfs_test" "$wrapper_test" "$cpio_shim" \
+	"$cpio_path"
 
 for token in \
 	headless-network-root-v1 \
@@ -43,7 +46,7 @@ for token in \
 	'openssl genpkey -algorithm ED25519' \
 	'trap cleanup EXIT HUP INT TERM' \
 	'authority=none'; do
-	grep -Fq "$token" "$builder" ||
+	grep -Fq "$token" "$builder_impl" ||
 		fail "corrected-candidate builder omits contract token: $token"
 done
 grep -Fq '../qualified-tool-shims/cpio' "$cpio_path" ||
@@ -87,18 +90,18 @@ grep -Fq \
 	fail 'wrapper test does not preserve the frozen historical builder profile'
 if grep -Fq \
 	'c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c9cec' \
-	"$builder"; then
+		"$builder" "$builder_impl"; then
 	fail 'corrected candidate still pins a diagnostic historical OCI ID'
 fi
 
 if grep -Eq \
 	'\b(fastboot|adb|scp|systemctl|pkexec|sudo)\b|(^|[[:space:]"'\''])ssh([[:space:]"'\'']|$)|/dev/(sd|nvme|ufs)' \
-	"$builder"; then
+	"$builder" "$builder_impl"; then
 	fail 'offline corrected-candidate builder contains phone, privilege, or storage transport'
 fi
 if grep -Eq \
 	'ALLOW_(TEMPORARY_BOOT|HEADLESS_LIVE_GATE)|/var/lib/rog5-recovery-bundles' \
-	"$builder"; then
+		"$builder" "$builder_impl"; then
 	fail 'offline corrected-candidate builder contains a live-promotion surface'
 fi
 

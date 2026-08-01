@@ -1,5 +1,6 @@
 # Build products and proprietary/device-specific inputs
 build/
+/scripts/host/.diagnostic-artifact-fixture-gate.*
 dist/
 artifacts/
 out/

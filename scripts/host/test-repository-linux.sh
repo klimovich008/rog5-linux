@@ -33,34 +33,41 @@ if [[ $tier != ci ]]; then
 		fail 'quick tier cgroup is not delegated writable'
 fi
 
-test_tmp=$(mktemp -d)
-trap 'rm -rf -- "$test_tmp"' EXIT HUP INT TERM
-shell_list=$test_tmp/tracked-shells
-git -C "$repo" ls-files -z '*.sh' >"$shell_list"
-[[ -s $shell_list ]] || fail 'git returned no tracked shell scripts'
-while IFS= read -r -d '' script; do
-	case $(head -n 1 "$repo/$script") in
-		*bash*) bash -n "$repo/$script" ;;
-		*) sh -n "$repo/$script" ;;
-	esac
-done <"$shell_list"
-
 python3 - "$repo" <<'PY'
 from pathlib import Path
 import subprocess
 import sys
 
 repo = Path(sys.argv[1])
+shell_interpreters = {
+    b"#!/bin/bash": "bash",
+    b"#!/usr/bin/bash": "bash",
+    b"#!/usr/bin/env bash": "bash",
+    b"#!/bin/sh": "sh",
+}
+isolated_python_shebang = b"#!/usr/bin/env -S -i /usr/bin/python3 -I -S"
 tracked = subprocess.run(
-    ["git", "-C", str(repo), "ls-files", "-z", "*.py"],
+    ["git", "-C", str(repo), "ls-files", "-z", "*.py", "*.sh"],
     check=True,
     stdout=subprocess.PIPE,
 ).stdout
+shell_count = 0
 for raw in tracked.split(b"\0"):
     if not raw:
         continue
     path = repo / raw.decode()
-    compile(path.read_bytes(), str(path), "exec")
+    source = path.read_bytes()
+    first_line = source.partition(b"\n")[0]
+    if path.suffix == ".py" or first_line == isolated_python_shebang:
+        compile(source, str(path), "exec")
+        continue
+    shell_count += 1
+    interpreter = shell_interpreters.get(first_line)
+    if interpreter is None:
+        raise SystemExit(f"unsupported tracked shell shebang: {path}: {first_line!r}")
+    subprocess.run([interpreter, "-n", str(path)], check=True)
+if shell_count == 0:
+    raise SystemExit("git returned no tracked shell scripts")
 PY
 
 python3 - "$repo" <<'PY'
@@ -151,7 +158,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
 		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
-		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
+		scripts/host/test-stage-recovery-deployment-signing-inputs.py
 		scripts/host/test-preflight-headless-ssh-successor-candidate.py
 		scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
@@ -164,7 +171,8 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
 			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
-			scripts/host/test-prepare-headless-ssh-deployment-candidate.py
+		scripts/host/test-prepare-headless-ssh-deployment-candidate.py
+		scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py
@@ -232,7 +240,7 @@ else
 		scripts/host/test-headless-core-candidate-offline-contract.sh
 		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
 		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
-		scripts/host/test-stage-headless-ssh-deployment-signing-inputs.py
+		scripts/host/test-stage-recovery-deployment-signing-inputs.py
 		scripts/host/test-preflight-headless-ssh-successor-candidate.py
 			scripts/device/test-recovery-candidate-dtb-contract.sh
 			scripts/device/test-buttons-indicator-candidate-dtb.sh
@@ -246,6 +254,7 @@ else
 			scripts/host/test-verify-headless-ssh-v2-key-admission.py
 			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
 			scripts/host/test-prepare-headless-ssh-deployment-candidate.py
+			scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
 			scripts/host/test-install-headless-ssh-deployment-export.py
 			scripts/host/test-run-headless-ssh-deployment-export-install.py
 			scripts/host/test-headless-battery-series.py

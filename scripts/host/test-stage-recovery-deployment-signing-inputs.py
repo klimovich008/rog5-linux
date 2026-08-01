@@ -13,14 +13,19 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
 TOOL_PATH = (
-    REPO / "scripts/host/stage-headless-ssh-deployment-signing-inputs.py"
+    REPO / "scripts/host/stage-recovery-deployment-signing-inputs.py"
 )
 FIXTURE_CANDIDATE = (
     REPO / "configs/recovery-candidates/headless-ssh-network-root-v3.json"
+)
+DIAGNOSTIC_CANDIDATE = (
+    REPO
+    / "configs/recovery-candidates/headless-netroot-early-diag-v1.json"
 )
 
 
@@ -175,6 +180,116 @@ class SigningInputTest(unittest.TestCase):
             hashlib.sha256(candidate_before).hexdigest(),
         )
 
+    def test_openssl_configuration_is_not_inherited_while_key_is_open(
+        self,
+    ) -> None:
+        hostile = self.private / "hostile-openssl.cnf"
+        hostile.write_text(
+            "\n".join(
+                (
+                    "openssl_conf = init",
+                    "[init]",
+                    "providers = providers",
+                    "[providers]",
+                    "hostile = hostile",
+                    "[hostile]",
+                    "module = /definitely/missing/rog5-provider.so",
+                    "activate = 1",
+                    "",
+                )
+            ),
+            encoding="ascii",
+        )
+        with mock.patch.dict(
+            os.environ,
+            {
+                "OPENSSL_CONF": str(hostile),
+                "OPENSSL_MODULES": str(self.private / "missing-modules"),
+            },
+        ):
+            self.stage_inputs()
+        self.assertEqual(len(self.public.read_bytes()), 32)
+
+    def test_exact_diagnostic_candidate_is_admitted_by_fixed_identity(
+        self,
+    ) -> None:
+        self.candidate.chmod(0o600)
+        shutil.copyfile(DIAGNOSTIC_CANDIDATE, self.candidate)
+        self.candidate.chmod(0o444)
+        _checkpoint, candidate_sha256, _public_sha256 = TOOL.stage_inputs(
+            self.repository,
+            self.key,
+            self.candidate,
+            self.staged_key,
+            self.staged_candidate,
+            self.public,
+            TOOL.DIAGNOSTIC_CANDIDATE_ID,
+        )
+        self.assertEqual(
+            candidate_sha256,
+            TOOL.EXACT_CANDIDATE_SHA256[TOOL.DIAGNOSTIC_CANDIDATE_ID],
+        )
+        self.assertEqual(
+            self.staged_candidate.read_bytes(),
+            DIAGNOSTIC_CANDIDATE.read_bytes(),
+        )
+
+    def test_diagnostic_candidate_mutation_refuses_before_key_read(
+        self,
+    ) -> None:
+        self.candidate.chmod(0o600)
+        payload = DIAGNOSTIC_CANDIDATE.read_text(encoding="ascii").replace(
+            '"root_tree_entries": "37735"',
+            '"root_tree_entries": "37736"',
+        )
+        self.candidate.write_text(payload, encoding="ascii")
+        self.candidate.chmod(0o444)
+        self.key.unlink()
+        with self.assertRaisesRegex(
+            TOOL.SigningInputError,
+            "diagnostic candidate identity changed",
+        ):
+            TOOL.stage_inputs(
+                self.repository,
+                self.key,
+                self.candidate,
+                self.staged_key,
+                self.staged_candidate,
+                self.public,
+                TOOL.DIAGNOSTIC_CANDIDATE_ID,
+            )
+        self.assertFalse(self.staged_key.exists())
+        self.assertFalse(self.staged_candidate.exists())
+        self.assertFalse(self.public.exists())
+
+    def test_cli_candidate_policy_has_only_two_fixed_identities(self) -> None:
+        self.assertEqual(
+            set(TOOL.ALLOWED_CANDIDATE_IDS),
+            {
+                TOOL.DEFAULT_CANDIDATE_ID,
+                TOOL.DIAGNOSTIC_CANDIDATE_ID,
+            },
+        )
+        parsed = TOOL.parse_arguments(
+            [
+                "--repository",
+                str(self.repository),
+                "--signing-key",
+                str(self.key),
+                "--candidate-record",
+                str(self.candidate),
+                "--staged-key",
+                str(self.staged_key),
+                "--staged-candidate",
+                str(self.staged_candidate),
+                "--raw-public-key",
+                str(self.public),
+                "--candidate-id",
+                TOOL.DIAGNOSTIC_CANDIDATE_ID,
+            ]
+        )
+        self.assertEqual(parsed.candidate_id, TOOL.DIAGNOSTIC_CANDIDATE_ID)
+
     def test_non_ed25519_and_encrypted_keys_are_rejected(self) -> None:
         cases = (
             (
@@ -283,15 +398,48 @@ class SigningInputTest(unittest.TestCase):
                 self.public,
             )
 
-    def test_existing_output_is_never_replaced(self) -> None:
-        self.staged_key.write_text("occupied\n", encoding="ascii")
-        self.staged_key.chmod(0o600)
-        before = self.staged_key.read_bytes()
-        with self.assertRaises(FileExistsError):
-            self.stage_inputs()
-        self.assertEqual(self.staged_key.read_bytes(), before)
-        self.assertFalse(self.staged_candidate.exists())
-        self.assertFalse(self.public.exists())
+    def test_every_output_is_reserved_before_key_read_and_never_replaced(
+        self,
+    ) -> None:
+        outputs = (
+            ("key", "staged_key", 0o600),
+            ("candidate", "staged_candidate", 0o444),
+            ("public", "public", 0o400),
+        )
+        for name, attribute, mode in outputs:
+            with self.subTest(name=name):
+                self.tearDown()
+                self.setUp()
+                occupied = getattr(self, attribute)
+                occupied.write_text("occupied\n", encoding="ascii")
+                occupied.chmod(mode)
+                before = occupied.read_bytes()
+                self.key.unlink()
+                with self.assertRaises(FileExistsError):
+                    self.stage_inputs()
+                self.assertEqual(occupied.read_bytes(), before)
+                for path in (
+                    self.staged_key,
+                    self.staged_candidate,
+                    self.public,
+                ):
+                    if path != occupied:
+                        self.assertFalse(path.exists())
+
+    def test_fchmod_failure_removes_the_exact_reserved_inode(self) -> None:
+        with mock.patch.object(
+            TOOL.os,
+            "fchmod",
+            side_effect=OSError("injected fchmod failure"),
+        ):
+            with self.assertRaisesRegex(OSError, "injected fchmod failure"):
+                TOOL.reserve_output(
+                    self.staged_key,
+                    self.repository,
+                    0o600,
+                    "staged deployment signing key",
+                )
+        self.assertFalse(self.staged_key.exists())
 
 
 if __name__ == "__main__":
