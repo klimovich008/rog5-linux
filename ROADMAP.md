@@ -456,15 +456,16 @@ Current execution order:
 3. **Complete:** guarded production signing and twin build; the private-key
    snapshot was destroyed and every diagnostic wrapper/trust/manifest/
    configuration identity is pinned without changing the historical r2 pins;
-4. publish the reviewed pin update, install only the signed diagnostic
-   artifacts, and pass local, privileged-host, fallback-SSH, and
-   connected-fastboot preflights;
-5. perform at most one separately guarded temporary boot, collect the bounded
+4. **Complete:** publish the reviewed pin update and pass both GitHub Actions
+   jobs in run `30706668986` at exact production-pin head `6821aa62`;
+5. install only the signed diagnostic artifacts and pass local,
+   privileged-host, fallback-SSH, and connected-fastboot preflights;
+6. perform at most one separately guarded temporary boot, collect the bounded
    one-way stage stream, prove exact fallback/cleanup, and use that evidence to
    fix the 23-second USB-loss boundary without retrying the consumed image;
-6. repeat with a distinct normal SSH candidate only after the diagnostic
+7. repeat with a distinct normal SSH candidate only after the diagnostic
    evidence identifies and fixes the failing boundary;
-7. if H2 passes, continue physical keys/indicator, then H3
+8. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
