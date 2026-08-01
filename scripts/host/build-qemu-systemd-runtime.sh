@@ -60,6 +60,7 @@ bsdtar --no-xattrs -xpf "$source_archive" -C "$work/all" \
 	'root/usr/share/licenses/spdx/GPL-3.0-or-later.txt' \
 	'root/usr/share/licenses/spdx/LGPL-2.1-or-later.txt' \
 	'root/usr/share/licenses/systemd/*' \
+	'root/usr/share/licenses/util-linux-libs/*' \
 	'root/usr/share/licenses/zlib/*' \
 	'root/usr/share/licenses/zstd/*'
 
@@ -82,6 +83,9 @@ queue = deque(
         source / "usr/lib/systemd/libsystemd-core-260.2-2.so",
         source / "usr/lib/systemd/libsystemd-shared-260.2-2.so",
         source / "usr/lib/ld-linux-aarch64.so.1",
+        # systemd's mount-option parser loads libmount at runtime rather than
+        # declaring it in DT_NEEDED. PID 1 cannot mount /dev/shm without it.
+        source / "usr/lib/libmount.so.1",
     )
 )
 needed_pattern = re.compile(r"Shared library: \[(.+?)\]")
@@ -143,10 +147,18 @@ while queue:
         else:
             raise SystemExit(f"missing dependency {library} for {binary}")
 
-if len(seen) != 14:
+if len(seen) != 17:
     raise SystemExit(f"unexpected systemd ELF closure size: {len(seen)}")
 (destination / "lib").symlink_to("usr/lib")
-for package in ("brotli", "libgcc", "openssl", "systemd", "zlib", "zstd"):
+for package in (
+    "brotli",
+    "libgcc",
+    "openssl",
+    "systemd",
+    "util-linux-libs",
+    "zlib",
+    "zstd",
+):
     license_source = source / "usr/share/licenses" / package
     if not license_source.is_dir() or license_source.is_symlink():
         raise SystemExit(f"missing license directory: {package}")
@@ -183,11 +195,12 @@ provenance.write_text(
     "source_archive_size=536747283\n"
     "source_archive_sha256="
     "60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b\n"
-    "closure=recursive-dt-needed\n"
-    "elf_count=14\n"
+    "closure=recursive-dt-needed+required-dlopen\n"
+    "elf_count=17\n"
     "systemd=260.2-2\n"
     "glibc=2.43+r22+g8362e8ce10b2-2\n"
     "libgcc=16.1.1+r12+g301eb08fa2c5-1\n"
+    "util-linux-libs=2.42.1-1\n"
     "openssl=3.6.2-2\n"
     "brotli=1.2.0-1\n"
     "zlib=1:1.3.2-3\n"

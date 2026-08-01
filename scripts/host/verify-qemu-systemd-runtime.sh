@@ -8,10 +8,10 @@ fail() {
 
 [[ $# == 1 ]] || fail 'usage: verify-qemu-systemd-runtime.sh RUNTIME_CPIO_GZ'
 archive=$(realpath -e -- "$1") || fail 'cannot resolve systemd runtime archive'
-expected_size=8345703
-expected_sha256=97832e75302d312cdbf2c1ae8d8ba6f028fcd5f698c925b1606a836f569390e3
+expected_size=9628993
+expected_sha256=5011267029d8da251c20e66f232cce2f36530e09d18a36e0a492018255f178f7
 for command_name in cpio cut file find grep gzip mktemp python3 readelf \
-	readlink realpath sha256sum stat strings wc; do
+	readlink realpath sha256sum stat wc; do
 	command -v "$command_name" >/dev/null ||
 		fail "missing systemd runtime verification command: $command_name"
 done
@@ -31,12 +31,12 @@ gzip -dc "$archive" |
 [[ ! -e $work/etc && ! -e $work/root && ! -e $work/home &&
 	! -e $work/var && -L $work/lib && $(readlink "$work/lib") == usr/lib ]] ||
 	fail 'systemd runtime carries mutable host or user state'
-[[ $(find "$work" -type f | wc -l) == 37 ]] ||
+[[ $(find "$work" -type f | wc -l) == 45 ]] ||
 	fail 'systemd runtime regular-file count changed'
-[[ $(find "$work" -type l | wc -l) == 7 ]] ||
+[[ $(find "$work" -type l | wc -l) == 10 ]] ||
 	fail 'systemd runtime symlink count changed'
 [[ -f $work/usr/share/rog5-qemu-systemd/runtime-files.sha256 &&
-	$(wc -l <"$work/usr/share/rog5-qemu-systemd/runtime-files.sha256") == 36 ]] ||
+	$(wc -l <"$work/usr/share/rog5-qemu-systemd/runtime-files.sha256") == 44 ]] ||
 	fail 'systemd runtime manifest shape changed'
 (
 	cd "$work"
@@ -50,12 +50,21 @@ file "$systemd" |
 readelf -l "$systemd" |
 	grep -Fq 'Requesting program interpreter: /lib/ld-linux-aarch64.so.1' ||
 	fail 'systemd runtime interpreter changed'
+for runtime_library in libmount.so.1 libblkid.so.1 libsystemd.so.0; do
+	[[ -L $work/usr/lib/$runtime_library &&
+		-f $work/usr/lib/$runtime_library ]] ||
+		fail "systemd runtime lacks required dynamic library: $runtime_library"
+done
+grep -aFq 'libmount.so.1' \
+	"$work/usr/lib/systemd/libsystemd-shared-260.2-2.so" ||
+	fail 'systemd shared runtime no longer declares its libmount load name'
 for marker in \
 	'format=rog5-qemu-systemd-runtime-v1' \
-	'closure=recursive-dt-needed' \
-	'elf_count=14' \
+	'closure=recursive-dt-needed+required-dlopen' \
+	'elf_count=17' \
 	'systemd=260.2-2' \
 	'libgcc=16.1.1+r12+g301eb08fa2c5-1' \
+	'util-linux-libs=2.42.1-1' \
 	'boot_authority=none' \
 	'phone_storage=absent'; do
 	grep -Fqx "$marker" \
@@ -69,7 +78,12 @@ for license_path in \
 	usr/share/licenses/spdx/GFDL-1.3-or-later.txt \
 	usr/share/licenses/spdx/GPL-2.0-or-later.txt \
 	usr/share/licenses/spdx/GPL-3.0-or-later.txt \
-	usr/share/licenses/spdx/LGPL-2.1-or-later.txt; do
+	usr/share/licenses/spdx/LGPL-2.1-or-later.txt \
+	usr/share/licenses/util-linux-libs/COPYING.BSD-2-Clause \
+	usr/share/licenses/util-linux-libs/COPYING.BSD-3-Clause \
+	usr/share/licenses/util-linux-libs/COPYING.BSD-4-Clause-UC \
+	usr/share/licenses/util-linux-libs/COPYING.ISC \
+	usr/share/licenses/util-linux-libs/util-linux-BSD-2-Clause.txt; do
 	[[ -f $work/$license_path && ! -L $work/$license_path ]] ||
 		fail "systemd runtime lacks component license: $license_path"
 done
@@ -109,7 +123,7 @@ for path in root.rglob("*"):
     if "Machine:" not in result.stdout or "AArch64" not in result.stdout:
         raise SystemExit(f"non-AArch64 ELF in runtime: {relative}")
     elf_count += 1
-if elf_count != 14:
+if elf_count != 17:
     raise SystemExit(f"unexpected runtime ELF count: {elf_count}")
 PY
 
