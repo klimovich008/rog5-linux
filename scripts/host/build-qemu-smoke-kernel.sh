@@ -82,6 +82,7 @@ config=$source_root/scripts/config
 	--enable DEVTMPFS \
 	--enable DEVTMPFS_MOUNT \
 	--enable FILE_LOCKING \
+	--enable NET \
 	--enable PRINTK \
 	--enable PROC_FS \
 	--enable RD_GZIP \
@@ -95,6 +96,10 @@ config=$source_root/scripts/config
 	--enable VIRTIO_MMIO \
 	--disable DEBUG_INFO
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
+for required_socket_option in NET UNIX; do
+	grep -Fqx "CONFIG_${required_socket_option}=y" "$output_root/.config" ||
+		fail "QEMU kernel lost $required_socket_option after olddefconfig"
+done
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \
 	-j"${JOBS:-$(nproc)}" Image
 rog5_kernel_cache_stats

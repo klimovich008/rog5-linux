@@ -51,11 +51,13 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 	fail 'QEMU restore and immediate-save cache keys differ'
 grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
-for option in BLK_DEV_INITRD BINFMT_ELF FILE_LOCKING PRINTK PROC_FS RD_GZIP \
+for option in BLK_DEV_INITRD BINFMT_ELF FILE_LOCKING NET PRINTK PROC_FS RD_GZIP \
 	SERIAL_AMBA_PL011_CONSOLE TMPFS UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MMIO; do
 	grep -Fq -- "--enable $option" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
 done
+grep -Fq 'QEMU kernel lost $required_socket_option after olddefconfig' \
+	"$builder" || fail 'QEMU socket prerequisites are not checked after resolution'
 grep -Fq -- '-M virt' "$runner"
 grep -Fq -- '-nic none' "$runner"
 grep -Fq -- '-fuse-ld=lld' "$runner"
