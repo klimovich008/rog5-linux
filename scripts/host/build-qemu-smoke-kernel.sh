@@ -79,15 +79,22 @@ config=$source_root/scripts/config
 "$config" --file "$output_root/.config" \
 	--enable BLK_DEV_INITRD \
 	--enable BINFMT_ELF \
+	--enable CGROUPS \
 	--enable DEVTMPFS \
 	--enable DEVTMPFS_MOUNT \
+	--enable EPOLL \
 	--enable FILE_LOCKING \
+	--enable FHANDLE \
+	--enable INOTIFY_USER \
 	--enable NET \
 	--enable PRINTK \
 	--enable PROC_FS \
 	--enable RD_GZIP \
 	--enable SERIAL_AMBA_PL011 \
 	--enable SERIAL_AMBA_PL011_CONSOLE \
+	--enable SIGNALFD \
+	--enable SYSFS \
+	--enable TIMERFD \
 	--enable TMPFS \
 	--enable TTY \
 	--enable UNIX \
@@ -97,8 +104,9 @@ config=$source_root/scripts/config
 	--enable VIRTIO_MMIO \
 	--disable DEBUG_INFO
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
-for required_runtime_option in HVC_DRIVER NET UNIX VIRTIO VIRTIO_CONSOLE \
-	VIRTIO_MENU VIRTIO_MMIO; do
+for required_runtime_option in CGROUPS EPOLL FHANDLE HVC_DRIVER INOTIFY_USER \
+	NET SIGNALFD SYSFS TIMERFD UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU \
+	VIRTIO_MMIO; do
 	grep -Fqx "CONFIG_${required_runtime_option}=y" "$output_root/.config" ||
 		fail "QEMU kernel lost $required_runtime_option after olddefconfig"
 done

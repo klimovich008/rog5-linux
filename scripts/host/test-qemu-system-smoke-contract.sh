@@ -14,9 +14,13 @@ cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
+systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
+systemd_runtime_builder=$repo/scripts/host/build-qemu-systemd-runtime.sh
+systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
-	"$handoff_source" "$handoff_runner" "$workflow"; do
+	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
+	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -25,7 +29,7 @@ for command in clang ld.lld readelf strings; do
 done
 
 test_root=$(mktemp -d)
-trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
+trap 'find "$test_root" -depth -delete 2>/dev/null || true' EXIT HUP INT TERM
 clang --target=aarch64-none-elf -fuse-ld=lld -nostdlib -static -fno-pic \
 	-fno-stack-protector -Werror -Wall -Wextra \
 	-Wl,--build-id=none,--entry=_start \
@@ -51,8 +55,9 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 	fail 'QEMU restore and immediate-save cache keys differ'
 grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
-for option in BLK_DEV_INITRD BINFMT_ELF FILE_LOCKING NET PRINTK PROC_FS RD_GZIP \
-	SERIAL_AMBA_PL011_CONSOLE TMPFS UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU \
+for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
+	INOTIFY_USER NET PRINTK PROC_FS RD_GZIP SERIAL_AMBA_PL011_CONSOLE \
+	SIGNALFD SYSFS TIMERFD TMPFS UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU \
 	VIRTIO_MMIO; do
 	grep -Fq -- "--enable $option" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
@@ -65,18 +70,27 @@ grep -Fq -- '-fuse-ld=lld' "$runner"
 grep -Fq "rdinit=/init" "$runner"
 for token in \
 	'tools/early_target_diag/rog5-early-target-diag.c' \
+	'verify-qemu-systemd-runtime.sh' \
+	'install_diagnostic_units' \
 	'-device virtio-serial-device' \
 	'-device virtconsole,chardev=diagnostic' \
-	'PASS qemu diagnostic reporter survived root handoff' \
+	'PASS generated diagnostic units ran under ARM64 systemd' \
 	'DiagnosticStream("headless-netroot-early-diag-v1")' \
 	'reporter_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361' \
 	'for required in (10, 120, 130, 140)'; do
 	grep -Fq -- "$token" "$handoff_runner" ||
 		fail "QEMU diagnostic handoff contract is missing: $token"
 done
-grep -Fq 'enter_new_root("/newroot", "/sbin/init")' "$handoff_source"
-grep -Fq 'require_emit("130")' "$handoff_source"
-grep -Fq 'require_emit("140")' "$handoff_source"
+grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
+grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
+grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
+grep -Fq '#define PUBLICATION_SETTLE_MS 500' "$handoff_source"
+[[ $(grep -Fc 'sleep_milliseconds(PUBLICATION_SETTLE_MS);' \
+	"$handoff_source") == 2 ]] ||
+	fail 'QEMU harness does not preserve both reporter publication windows'
+if grep -Eq 'require_emit\("(130|140)"\)' "$handoff_source"; then
+	fail 'QEMU harness directly emits a systemd-owned diagnostic stage'
+fi
 reporter_start_line=$(grep -n 'reporter_pid = start_reporter();' \
 	"$handoff_source" | cut -d: -f1)
 tty_alias_line=$(grep -n 'symlink("/dev/hvc0", "/dev/ttyGS0")' \
