@@ -180,12 +180,12 @@ updates, two volatile post-handoff units, and a bounded five-second terminal
 dwell. Normal network-root mode remains reporter/ACM/unit/dwell-free. The
 sealed reporter and optional archive integration twin-build locally; the
 native bundle verifier requires the helper for the diagnostic profile and
-forbids it elsewhere. Full local CI passes. A board-neutral ARM64 QEMU
-root-handoff test is now part of the GitHub full-system job, but its replacement
-PID 1 emits the post-handoff stages directly; it proves process continuity,
-not execution of the generated systemd units. A true full-system systemd test
-is still required before this acceptance boundary closes. No diagnostic
-signing, candidate promotion, credential use, or phone action has occurred.
+forbids it elsewhere. Full local CI and the real GitHub ARM64 QEMU
+root-handoff job pass. The QEMU replacement PID 1 emits the post-handoff stages
+directly, so it proves process continuity, not execution of the generated
+systemd units. A true full-system systemd test is still required before this
+acceptance boundary closes. No diagnostic signing, candidate promotion,
+credential use, or phone action has occurred.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
