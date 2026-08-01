@@ -887,9 +887,15 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    its new native test reproduces live exit 50 before the fix and accepts the
    Arch-bound diagnostic while rejecting each partial zero/`none` mutation;
    persistent-root positive, trust-carrying, and rollback-floor cases also
-   pass. Complete local CI passes. The separate fallback-profile cleanup race
-   remains a bounded-design HOLD. Review, publish, twin-build and
-   production-sign a fresh recovery wrapper before another admission.
+   pass. Complete local CI passes. The corrected code also completed the full
+   disposable-key deployment composition at checkpoint `2653e61`: both ASUS
+   5.4 wrappers are byte-identical at test-AVB SHA-256 `2a44a908…62c53`, the
+   embedded fetcher is `f410ca87…b5d13d`, native artifact preflight passes,
+   and authority remains `none`. The separate fallback-profile cleanup race
+   remains a bounded-design HOLD. Twin-build and production-sign a fresh
+   recovery wrapper before another admission; never reuse the consumed
+   `9c060a27…204ef` wrapper. See the
+   [corrected disposable build](../test-results/2026-08-01-corrected-diagnostic-recovery-disposable-build.md).
 5. Use corrected diagnostic evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path
    and collect the exact 88-field core record over strict SSH.

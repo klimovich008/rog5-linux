@@ -281,6 +281,19 @@ The used recovery wrapper is removed from temporary-boot admission; the target
 candidate remains unexecuted. See the
 [manifest rejection](../test-results/2026-08-01-early-target-diagnostic-fetch-manifest-rejected.md).
 
+The corrected fetcher has now passed the complete hardware-free deployment
+composition from clean synchronized checkpoint `2653e61`: disposable-key
+bundle signing, two byte-identical stable-recovery initramfs and ASUS 5.4
+wrapper builds, header-v3/test-AVB packing, native artifact verification, and
+the real gate logic in an ignored identity-parameterized fixture. The test-only
+AVB twins are `2a44a908…62c53`, the corrected fetcher is
+`f410ca87…b5d13d`, and the run retained `authority=none`; no production key or
+phone interface was used. The old `9c060a27…204ef` wrapper remained consumed
+and denied in the fixture. See the
+[corrected disposable build](../test-results/2026-08-01-corrected-diagnostic-recovery-disposable-build.md).
+Production twin signing and the bounded fallback-profile cleanup correction
+remain the two preconditions before any new temporary phone lifecycle.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the
