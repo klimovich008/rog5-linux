@@ -32,9 +32,22 @@ case $deployment_build in
 *) fail 'deployment-build selector must be zero or one' ;;
 esac
 case "$candidate:$expected_dtb:$expected_target" in
-	headless-network-root-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-network-root) ;;
-	headless-core-network-root-v2:57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d:headless-core-network-root) ;;
-	headless-ssh-network-root-v3:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-ssh-network-root) ;;
+	headless-network-root-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-network-root)
+		expected_profile=network-root-v1
+		expected_candidate_sha=b8a1f70f394e1a13831f46377c193de5f705d1a3768bc6acb6f84cdf13c17f3c
+		expected_manifest=d7a02a2403caf885a015060a8361019936e86efafde44f3bb7e6bdd48d2ee32d ;;
+	headless-core-network-root-v2:57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d:headless-core-network-root)
+		expected_profile=network-root-v1
+		expected_candidate_sha=b5a1a25c2a79b08373fdf6222f793e80d92af2cf3c62aa278dd339ca168e008f
+		expected_manifest=f7316f6a02c041f345c4e079d93bccb8b1b566a6ecf3a9c16d16cc46a4affa32 ;;
+	headless-ssh-network-root-v3:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-ssh-network-root)
+		expected_profile=network-root-v1
+		expected_candidate_sha=09e14f26e1cd3e6b6b033a4c565148187c55c3320a0fb2640c2937ff2e00b306
+		expected_manifest=a409f0ebad410edf8fb36e31d322029bf69d4c6621ddab84a660ff471da48e11 ;;
+	headless-netroot-early-diag-v1:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-netroot-early-diag)
+		expected_profile=diagnostic-initramfs-v1
+		expected_candidate_sha=7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8
+		expected_manifest=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then
@@ -50,6 +63,7 @@ if [[ $deployment_build == 1 ]]; then
 else
 	[[ -z $deployment_candidate_record && -z $deployment_private_key ]] ||
 		fail 'offline build rejects deployment credential inputs'
+	tracked_candidate=$repo/configs/recovery-candidates/$candidate.json
 fi
 
 cleanup() {
@@ -65,6 +79,15 @@ for command in cmp cut find git grep mkdir mktemp openssl podman python3 \
 	command -v "$command" >/dev/null ||
 		fail "missing corrected-candidate command: $command"
 done
+if [[ $deployment_build == 0 ]]; then
+	[[ -f $tracked_candidate && ! -L $tracked_candidate ]] ||
+		fail 'offline candidate record identity changed'
+	observed_candidate_sha=$(
+		sha256sum "$tracked_candidate" | cut -d ' ' -f 1
+	)
+	[[ $observed_candidate_sha == "$expected_candidate_sha" ]] ||
+		fail 'offline candidate record identity changed'
+fi
 
 output_root=$(realpath -m "$output_root")
 case $output_root in
@@ -184,6 +207,8 @@ bundle_id_a=$(sed -n 's/^bundle=//p' "$output_root/candidate-a.txt")
 bundle_id_b=$(sed -n 's/^bundle=//p' "$output_root/candidate-b.txt")
 [[ $manifest_a =~ ^[0-9a-f]{64}$ && $manifest_a == "$manifest_b" ]] ||
 	fail 'twin corrected candidate manifests differ'
+[[ $deployment_build == 1 || $manifest_a == "$expected_manifest" ]] ||
+	fail 'offline candidate manifest identity changed'
 [[ $trust_a =~ ^[0-9a-f]{64}$ && $trust_a == "$trust_b" &&
 	$trust_a == "$(sha256sum "$public_key" | cut -d ' ' -f 1)" ]] ||
 	fail 'corrected candidate trust-root identity differs'
@@ -230,7 +255,7 @@ plan_b=$(
 	fail 'native verifier produced different twin execution plans'
 grep -Fxq "bundle=$bundle_id_a" <<<"$plan_a"
 grep -Fxq "manifest_sha256=$manifest_a" <<<"$plan_a"
-grep -Fxq 'profile=network-root-v1' <<<"$plan_a"
+grep -Fxq "profile=$expected_profile" <<<"$plan_a"
 grep -Fxq "target_id=$expected_target" <<<"$plan_a"
 grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$plan_a"
 

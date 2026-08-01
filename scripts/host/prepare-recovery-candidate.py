@@ -168,8 +168,11 @@ def validate_candidate_record(
     profile = require_string(record, "profile")
     if status not in {"consumed", "offline"}:
         raise CandidateError("candidate status is not authority-free")
-    if status == "offline" and profile != "network-root-v1":
-        raise CandidateError("offline candidate is not a network root")
+    if status == "offline" and profile not in {
+        "diagnostic-initramfs-v1",
+        "network-root-v1",
+    }:
+        raise CandidateError("offline candidate is not a network-root profile")
     if require_string(record, "authority") != "none":
         raise CandidateError("candidate unexpectedly carries live authority")
 

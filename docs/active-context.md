@@ -198,8 +198,20 @@ subprocess lifecycle test, and real unprivileged journal-reader smoke pass.
 The collector emits one exact flushed supervisor-ready line after journal
 startup and before enumeration, and none when journal startup fails. See the
 [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
-GitHub rerun is pending. No diagnostic signing, candidate promotion,
-credential use, or phone action has occurred.
+The authority-free candidate has now passed complete twin packaging with a
+disposable Ed25519 key: both signed bundles, stable-recovery initramfses,
+clean ASUS 5.4 wrappers, header-v3 raw images, and test-only AVB images are
+byte-identical. Its manifest is
+`4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76`;
+the disposable private key was destroyed. Normal reconstruction also recovers
+the exact historical reporter-free archive from a pinned source commit rather
+than relabeling current diagnostic-aware sources. See the
+[offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
+The complete local `ci` tier passes. Independent final review reports zero
+standards/safety and zero objective-fidelity findings after verifying the
+exact-manifest pins and atomic no-replace publication regression. GitHub rerun
+remains pending. No production signing, credential use, candidate
+installation, or phone action has occurred.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

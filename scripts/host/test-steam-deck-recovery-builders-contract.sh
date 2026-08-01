@@ -9,20 +9,30 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
 verifier=$repo/scripts/host/verify-steam-deck-recovery-builders.sh
+runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 responder_builder=$repo/scripts/host/build-persistent-root-verifier-image.sh
 responder_recipe=$repo/containers/persistent-root-verifier/Dockerfile
 bundle_recipe=$repo/containers/recovery-bundle-verifier/Dockerfile
 
-for input in "$profile" "$verifier" "$responder_builder" "$responder_recipe" \
-	"$bundle_recipe"; do
+for input in "$profile" "$verifier" "$runner" "$responder_builder" \
+	"$responder_recipe" "$bundle_recipe"; do
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing recovery-builder contract input: ${input#"$repo"/}"
 done
-for script in "$verifier" "$responder_builder"; do
+for script in "$verifier" "$runner" "$responder_builder"; do
 	[[ -x $script ]] ||
 		fail "recovery-builder helper is not executable: ${script#"$repo"/}"
 	bash -n "$script"
 done
+
+runner_sha=$(sha256sum "$runner" | cut -d ' ' -f 1)
+profile_sha=$(sha256sum "$profile" | cut -d ' ' -f 1)
+grep -Fqx "expected_runner=$runner_sha" "$verifier" ||
+	fail 'recovery-builder verifier runner pin differs from the live runner'
+grep -Fqx "expected_profile=$profile_sha" "$verifier" ||
+	fail 'recovery-builder verifier profile pin differs from the live profile'
+grep -Fq "\"runner_sha256\": \"$runner_sha\"" "$profile" ||
+	fail 'recovery-builder profile runner pin differs from the live runner'
 
 for token in \
 	steam-deck-recovery-arm64-v1 \
@@ -53,7 +63,7 @@ grep -Fq \
 	fail 'persistent verifier builder lacks its recipe identity gate'
 
 if grep -Eq '\b(sudo|pkexec|fastboot|adb|ssh|scp)\b|/dev/(sd|nvme|ufs)' \
-	"$profile" "$verifier" "$responder_builder" "$responder_recipe" \
+	"$profile" "$verifier" "$runner" "$responder_builder" "$responder_recipe" \
 	"$bundle_recipe"; then
 	fail 'recovery-builder profile contains privilege, phone, or storage transport'
 fi

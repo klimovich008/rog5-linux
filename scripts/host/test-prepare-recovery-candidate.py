@@ -332,6 +332,78 @@ class RecoveryCandidateTest(unittest.TestCase):
                 inventory[artifact["path"]],
             )
 
+    def test_tracked_early_target_diagnostic_is_fixed_and_offline(self) -> None:
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        record = RUNNER.load_candidate("headless-netroot-early-diag-v1")
+        candidate_path = (
+            self.original_candidate_root / "headless-netroot-early-diag-v1.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
+            "7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8",
+        )
+        self.assertEqual(record["status"], "offline")
+        self.assertEqual(record["authority"], "none")
+        self.assertEqual(record["bundle"], "headless-netroot-early-diag-v1")
+        self.assertEqual(record["profile"], "diagnostic-initramfs-v1")
+        self.assertEqual(record["target_id"], "headless-netroot-early-diag")
+        self.assertEqual(record["target_release"], "7.1.4-g7a5cef0db479")
+        self.assertEqual(record["rollback_timeout"], "600")
+        self.assertEqual(record["target_timeout"], "480")
+        self.assertEqual(
+            record["a660_command_manifest_sha256"],
+            "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2",
+        )
+        self.assertEqual(
+            record["artifacts"]["initramfs.cpio.gz"],
+            {
+                "path": (
+                    "artifacts/early-target-diagnostic-v1/"
+                    "rog5-early-target-diagnostic-initramfs.cpio.gz"
+                ),
+                "size": 6010870,
+                "sha256": (
+                    "10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c"
+                ),
+            },
+        )
+        artifacts = {
+            name: REPO / record["artifacts"][name]["path"]
+            for name in RUNNER.ARTIFACT_NAMES
+        }
+        observed = {
+            name: (
+                record["artifacts"][name]["size"],
+                record["artifacts"][name]["sha256"],
+            )
+            for name in RUNNER.ARTIFACT_NAMES
+        }
+
+        def manifest_hash(candidate: dict) -> str:
+            configuration = RUNNER.bundle_configuration(
+                candidate,
+                artifacts,
+                self.private_key,
+                self.bundle_root,
+            )
+            return hashlib.sha256(
+                RUNNER.PACKAGER.manifest_bytes(configuration, observed)
+            ).hexdigest()
+
+        expected_manifest = (
+            "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
+        )
+        self.assertEqual(manifest_hash(record), expected_manifest)
+        for field, changed in (
+            ("rollback_timeout", "601"),
+            ("a660_command_manifest_sha256", "f" * 64),
+        ):
+            with self.subTest(field=field):
+                mutated = copy.deepcopy(record)
+                mutated[field] = changed
+                self.assertNotEqual(manifest_hash(mutated), expected_manifest)
+
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo
         RUNNER.CANDIDATE_ROOT = self.original_candidate_root
