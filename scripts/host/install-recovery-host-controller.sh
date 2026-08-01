@@ -85,16 +85,18 @@ if [[ -e $controller_destination ]]; then
 		fail 'unsafe existing installed controller'
 fi
 
-install -d -o root -g root -m 0755 "$destination"
-install -d -o "$PKEXEC_UID" -g "$caller_gid" -m 0700 "$bundle_root"
-install -d -o root -g root -m 0700 \
-	"$export_storage_root" "$export_parent"
 controller_temporary=
 server_temporary=
 network_server_temporary=
 headless_verifier_temporary=
 persistent_root_tool_temporary=
 deployment_export_installer_temporary=
+steamos_readonly=/usr/bin/steamos-readonly
+steamos_readonly_fd=
+steamos_readonly_fd_path=
+restore_steamos_readonly=0
+readonly_restore_reported=0
+cleanup_signal_received=0
 cleanup() {
 	if [[ -n $controller_temporary ]]; then
 		rm -f -- "$controller_temporary"
@@ -115,8 +117,112 @@ cleanup() {
 		rm -f -- "$deployment_export_installer_temporary"
 	fi
 }
-trap cleanup EXIT
+run_steamos_readonly() {
+	[[ $steamos_readonly_fd =~ ^[1-9][0-9]*$ &&
+		$steamos_readonly_fd_path == "/proc/self/fd/$steamos_readonly_fd" ]] ||
+		return 127
+	LC_ALL=C "$BASH" "$steamos_readonly_fd_path" "$@"
+}
+read_steamos_readonly_state() {
+	local command_status output
+	if output=$(run_steamos_readonly status); then
+		command_status=0
+	else
+		command_status=$?
+	fi
+	case $command_status:$output in
+		0:enabled) printf '%s\n' enabled ;;
+		1:disabled) printf '%s\n' disabled ;;
+		*) return 1 ;;
+	esac
+}
+restore_original_steamos_readonly() {
+	local enable_status observed_state
+	(( restore_steamos_readonly == 1 )) || return 0
+	if run_steamos_readonly enable; then
+		enable_status=0
+	else
+		enable_status=$?
+	fi
+	if ! observed_state=$(read_steamos_readonly_state); then
+		observed_state=unknown
+	fi
+	if [[ $observed_state == enabled ]]; then
+		restore_steamos_readonly=0
+	fi
+	(( enable_status == 0 )) && [[ $observed_state == enabled ]]
+}
+close_steamos_readonly() {
+	if [[ $steamos_readonly_fd =~ ^[1-9][0-9]*$ ]]; then
+		exec {steamos_readonly_fd}<&-
+		steamos_readonly_fd=
+		steamos_readonly_fd_path=
+	fi
+}
+cleanup_and_restore_readonly() {
+	local exit_status=$?
+	trap 'cleanup_signal_received=1' HUP INT TERM
+	trap - EXIT
+	set +e
+	cleanup
+	if (( restore_steamos_readonly == 1 )); then
+		if ! restore_original_steamos_readonly; then
+			if (( readonly_restore_reported == 0 )); then
+				echo 'FAIL could not restore SteamOS read-only mode' >&2
+			fi
+			if (( exit_status == 0 )); then
+				exit_status=1
+			fi
+		fi
+	fi
+	close_steamos_readonly
+	if (( cleanup_signal_received == 1 && exit_status == 0 )); then
+		exit_status=130
+	fi
+	exit "$exit_status"
+}
+trap cleanup_and_restore_readonly EXIT
 trap 'exit 130' HUP INT TERM
+
+if [[ -e $steamos_readonly || -L $steamos_readonly ]]; then
+	for trusted_directory in / /usr /usr/bin; do
+		[[ -d $trusted_directory && ! -L $trusted_directory &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$trusted_directory") == \
+			'0:0:755:directory' ]] ||
+			fail 'unsafe SteamOS read-only controller ancestry'
+	done
+	[[ -f $steamos_readonly && ! -L $steamos_readonly &&
+		-x $steamos_readonly &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$steamos_readonly") == \
+		'0:0:755:regular file' ]] ||
+		fail 'unsafe SteamOS read-only controller'
+	readonly_path_identity=$(stat -Lc '%d:%i:%u:%g:%a:%F' -- \
+		"$steamos_readonly")
+	exec {steamos_readonly_fd}<"$steamos_readonly"
+	steamos_readonly_fd_path=/proc/self/fd/$steamos_readonly_fd
+	readonly_fd_identity=$(stat -Lc '%d:%i:%u:%g:%a:%F' -- \
+		"$steamos_readonly_fd_path")
+	[[ $readonly_fd_identity == "$readonly_path_identity" ]] ||
+		fail 'SteamOS read-only controller changed while opening it'
+	if ! readonly_state=$(read_steamos_readonly_state); then
+		fail 'cannot inspect SteamOS read-only state'
+	fi
+	case $readonly_state in
+		enabled)
+			restore_steamos_readonly=1
+			run_steamos_readonly disable
+			[[ $(read_steamos_readonly_state) == disabled ]] ||
+				fail 'SteamOS read-only mode did not disable'
+			;;
+		disabled) ;;
+		*) fail 'unexpected SteamOS read-only state' ;;
+	esac
+fi
+
+install -d -o root -g root -m 0755 "$destination"
+install -d -o "$PKEXEC_UID" -g "$caller_gid" -m 0700 "$bundle_root"
+install -d -o root -g root -m 0700 \
+	"$export_storage_root" "$export_parent"
 controller_temporary=$(mktemp --tmpdir=/usr/libexec \
 	.rog5-recovery-bundle-controller.XXXXXX)
 server_temporary=$(mktemp --tmpdir="$destination" \
@@ -158,6 +264,14 @@ mv -fT -- "$server_temporary" "$destination/host_bundle_server.py"
 server_temporary=
 mv -fT -- "$controller_temporary" "$controller_destination"
 controller_temporary=
+
+if ! restore_original_steamos_readonly; then
+	echo 'FAIL could not restore SteamOS read-only mode' >&2
+	readonly_restore_reported=1
+	exit 1
+fi
+close_steamos_readonly
+trap - EXIT HUP INT TERM
 
 echo "PASS installed fixed recovery host controller"
 echo "INFO controller_sha256=$(sha256sum "$controller_destination" |

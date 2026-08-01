@@ -1528,6 +1528,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "persistent_root_tool_source",
             "install -o root -g root -m 0555",
             "export_storage_root=/home/rog5-linux",
+            "steamos_readonly=/usr/bin/steamos-readonly",
+            "steamos_readonly_fd_path=/proc/self/fd/",
+            "trap 'cleanup_signal_received=1' HUP INT TERM",
+            "FAIL could not restore SteamOS read-only mode",
         ):
             self.assertIn(token, installer)
         for forbidden in (

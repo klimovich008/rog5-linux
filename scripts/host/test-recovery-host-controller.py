@@ -573,6 +573,43 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "controller source does not pin this bundle-server source",
             installer,
         )
+        for contract in (
+            "steamos_readonly=/usr/bin/steamos-readonly",
+            "restore_steamos_readonly=1",
+            "run_steamos_readonly disable",
+            "run_steamos_readonly enable",
+            "1:disabled) printf '%s\\n' disabled",
+            "for trusted_directory in / /usr /usr/bin",
+            "steamos_readonly_fd_path=/proc/self/fd/",
+            "readonly_fd_identity",
+            "trap 'cleanup_signal_received=1' HUP INT TERM",
+            "FAIL could not restore SteamOS read-only mode",
+        ):
+            self.assertIn(contract, installer)
+        self.assertLess(
+            installer.index("restore_steamos_readonly=1"),
+            installer.index("run_steamos_readonly disable"),
+        )
+        self.assertLess(
+            installer.index("trap cleanup_and_restore_readonly EXIT"),
+            installer.index("run_steamos_readonly disable"),
+        )
+        self.assertLess(
+            installer.index(
+                "trap 'cleanup_signal_received=1' HUP INT TERM"
+            ),
+            installer.index("trap - EXIT"),
+        )
+        self.assertLess(
+            installer.index("run_steamos_readonly disable"),
+            installer.index('install -d -o root -g root -m 0755'),
+        )
+        self.assertLess(
+            installer.rindex("restore_original_steamos_readonly"),
+            installer.index('echo "PASS installed fixed recovery host controller"'),
+        )
+        self.assertEqual(installer.count("restore_steamos_readonly=1"), 1)
+        self.assertEqual(installer.count("run_steamos_readonly enable"), 1)
         invalid_launcher = subprocess.run(
             [str(LAUNCHER), "../escape", MANIFEST_HASH],
             text=True,

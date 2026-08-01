@@ -152,7 +152,19 @@ pkexec scripts/host/install-recovery-host-controller.sh
 
 After the reviewed change is committed, pushed, synchronized with `origin`,
 and its installer preflight passes, the command may run under the central
-standing authorization. It changes only the host, not the phone.
+standing authorization. It changes only the host, not the phone. On SteamOS,
+the installer verifies the root-owned, non-writable `/`, `/usr`, and
+`/usr/bin` ancestry plus the fixed `/usr/bin/steamos-readonly` leaf, then
+executes only the opened and identity-checked controller descriptor. It opens
+the read-only `/usr` deployment window only after the pre-mutation source and
+existing-destination safety checks pass, and restores read-only mode through
+its exit trap on success, failure, or a handled signal. Further termination
+signals are deferred by the parent while that trap completes cleanup and
+restoration; they are not inherited as ignored signals by the controller
+child. Success is printed only after the original state is proved restored;
+if restoration cannot be proved, installation fails instead. A host whose
+state was already `disabled` is left disabled. Do not wrap the installer in a
+separate manual `steamos-readonly disable` operation.
 
 ## Fixed v3 export installation
 
