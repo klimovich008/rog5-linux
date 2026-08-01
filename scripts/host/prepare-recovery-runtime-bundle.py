@@ -495,7 +495,10 @@ def validate_configuration(config: Configuration) -> None:
         raise BundleError("timeout rollback margin is unsafe")
     if config.profile == "persistent-root-ro-v1" and rollback < 300:
         raise BundleError("persistent profile rollback is too short")
-    if config.profile == "network-root-v1":
+    if config.profile in {
+        "diagnostic-initramfs-v1",
+        "network-root-v1",
+    }:
         if (
             not valid_hash(config.a660_command_manifest_sha256)
             or config.root_generation != "arch-a"

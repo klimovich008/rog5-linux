@@ -268,7 +268,7 @@ ignore_loglevel printk.always_kmsg_dump=Y
 The profile contributes exactly one of:
 
 ```text
-rog5.diagnostic=1
+rog5.netroot=1 rog5.diagnostic=1
 rog5.netroot=1
 rog5.ufs_discovery=1 rog5.persistent_ro=1
 ```
@@ -283,7 +283,8 @@ rog5.bundle=<bundle-id> rog5.target_timeout=<target-timeout>
 rog5.recovery_timeout=<rollback-timeout>
 ```
 
-`network-root-v1` then receives the signed runtime trust tuple:
+`network-root-v1` and `diagnostic-initramfs-v1` then receive the signed runtime
+trust tuple:
 
 ```text
 rog5.a660_command_manifest_sha256=<sha256>

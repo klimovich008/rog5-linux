@@ -391,7 +391,9 @@ class BundlePackagerTest(unittest.TestCase):
 
     def test_each_fixed_profile_passes_native_and_host_verifiers(self) -> None:
         profile_tokens = {
-            "diagnostic-initramfs-v1": "rog5.diagnostic=1",
+            "diagnostic-initramfs-v1": (
+                "rog5.netroot=1 rog5.diagnostic=1"
+            ),
             "network-root-v1": "rog5.netroot=1",
             "persistent-root-ro-v1": (
                 "rog5.ufs_discovery=1 rog5.persistent_ro=1"
@@ -410,7 +412,10 @@ class BundlePackagerTest(unittest.TestCase):
                     rollback_timeout=rollback,
                     **(
                         {}
-                        if profile == "network-root-v1"
+                        if profile in {
+                            "diagnostic-initramfs-v1",
+                            "network-root-v1",
+                        }
                         else {
                             "a660_command_manifest_sha256": ZERO_HASH,
                             "root_generation": "none",
@@ -460,7 +465,10 @@ class BundlePackagerTest(unittest.TestCase):
                     f"rog5.target_timeout={config.target_timeout} "
                     f"rog5.recovery_timeout={rollback}"
                 )
-                if profile == "network-root-v1":
+                if profile in {
+                    "diagnostic-initramfs-v1",
+                    "network-root-v1",
+                }:
                     command_line += (
                         " rog5.a660_command_manifest_sha256="
                         f"{COMMAND_MANIFEST_SHA256}"
@@ -560,8 +568,16 @@ class BundlePackagerTest(unittest.TestCase):
                 {"root_tree_sha256": ZERO_HASH},
             ),
             (
-                "diagnostic-carries-root-identity",
-                {"profile": "diagnostic-initramfs-v1"},
+                "diagnostic-without-root-identity",
+                {
+                    "profile": "diagnostic-initramfs-v1",
+                    "a660_command_manifest_sha256": ZERO_HASH,
+                    "root_generation": "none",
+                    "root_tree_sha256": ZERO_HASH,
+                    "root_seal_sha256": ZERO_HASH,
+                    "root_tree_entries": "0",
+                    "root_subtree": "none",
+                },
             ),
             (
                 "short-persistent",

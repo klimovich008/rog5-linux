@@ -536,7 +536,7 @@ class HostBundleServerTest(unittest.TestCase):
             payload.replace(b"root_tree_entries=7", b"root_tree_entries=0"),
             payload.replace(
                 b"profile=network-root-v1",
-                b"profile=diagnostic-initramfs-v1",
+                b"profile=persistent-root-ro-v1",
             ),
         )
         for mutation in mutations:

@@ -254,6 +254,10 @@ class BundleFixture:
         kernel = (self.bundle / "Image").read_bytes()
         dtb = (self.bundle / "board.dtb").read_bytes()
         initramfs = (self.bundle / "initramfs.cpio.gz").read_bytes()
+        binds_root = self.profile in {
+            "diagnostic-initramfs-v1",
+            "network-root-v1",
+        }
         values = {
             "format": "rog5-recovery-bundle-v2",
             "bundle": self.name,
@@ -272,31 +276,31 @@ class BundleFixture:
             "target_timeout": "90",
             "a660_command_manifest_sha256": (
                 COMMAND_MANIFEST_SHA256
-                if self.profile == "network-root-v1"
+                if binds_root
                 else ZERO_HASH
             ),
             "root_generation": (
                 "arch-a"
-                if self.profile == "network-root-v1"
+                if binds_root
                 else "none"
             ),
             "root_tree_sha256": (
                 ROOT_TREE_SHA256
-                if self.profile == "network-root-v1"
+                if binds_root
                 else ZERO_HASH
             ),
             "root_seal_sha256": (
                 ROOT_SEAL_SHA256
-                if self.profile == "network-root-v1"
+                if binds_root
                 else ZERO_HASH
             ),
             "root_tree_entries": (
                 ROOT_TREE_ENTRIES
-                if self.profile == "network-root-v1"
+                if binds_root
                 else "0"
             ),
             "root_subtree": (
-                "/" if self.profile == "network-root-v1" else "none"
+                "/" if binds_root else "none"
             ),
         }
         values.update(overrides)
@@ -645,7 +649,9 @@ class NativeBundleVerifierTest(unittest.TestCase):
 
     def test_accepts_each_fixed_profile_and_emits_exact_plan(self) -> None:
         profile_tokens = {
-            "diagnostic-initramfs-v1": "rog5.diagnostic=1",
+            "diagnostic-initramfs-v1": (
+                "rog5.netroot=1 rog5.diagnostic=1"
+            ),
             "network-root-v1": "rog5.netroot=1",
             "persistent-root-ro-v1": (
                 "rog5.ufs_discovery=1 rog5.persistent_ro=1"
@@ -677,7 +683,10 @@ class NativeBundleVerifierTest(unittest.TestCase):
                     f"rog5.recovery_timeout="
                     f"{300 if profile == 'persistent-root-ro-v1' else 180}"
                 )
-                if profile == "network-root-v1":
+                if profile in {
+                    "diagnostic-initramfs-v1",
+                    "network-root-v1",
+                }:
                     command_line += (
                         " rog5.a660_command_manifest_sha256="
                         f"{COMMAND_MANIFEST_SHA256}"
@@ -967,19 +976,19 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 fixture.refresh_manifest(**overrides)
                 fixture.assert_rejected()
         fixture = self.fixture(
-            "diagnostic-carries-root-identity",
+            "diagnostic-without-root-identity",
             profile="diagnostic-initramfs-v1",
         )
         fixture.refresh_manifest(
-            a660_command_manifest_sha256=COMMAND_MANIFEST_SHA256,
-            root_generation="arch-a",
-            root_tree_sha256=ROOT_TREE_SHA256,
-            root_seal_sha256=ROOT_SEAL_SHA256,
-            root_tree_entries=ROOT_TREE_ENTRIES,
-            root_subtree="/",
+            a660_command_manifest_sha256=ZERO_HASH,
+            root_generation="none",
+            root_tree_sha256=ZERO_HASH,
+            root_seal_sha256=ZERO_HASH,
+            root_tree_entries="0",
+            root_subtree="none",
         )
         fixture.assert_rejected(
-            "non-network profile carries root trust identity"
+            "network-root trust identity is invalid"
         )
         fixture = self.fixture(
             "persistent-short",
@@ -1162,11 +1171,8 @@ class NativeBundleVerifierTest(unittest.TestCase):
             )
         )
         fixture.refresh_manifest()
-        accepted = fixture.invoke()
-        self.assertEqual(
-            accepted.returncode,
-            0,
-            accepted.stderr.decode(errors="replace"),
+        fixture.assert_rejected(
+            "network-root initramfs lacks persistent-root verifier"
         )
 
         fixture = self.fixture("duplicate-entry")
