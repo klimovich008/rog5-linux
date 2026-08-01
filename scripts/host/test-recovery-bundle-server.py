@@ -30,6 +30,7 @@ from tools.recovery_control.host_bundle_server import (  # noqa: E402
     ServerRefusal,
     parse_record,
     prepare_bundle,
+    run_preflight,
     serve_connection,
     serve_listener,
     validate_manifest,
@@ -466,6 +467,7 @@ class HostBundleServerTest(unittest.TestCase):
             "shell=True",
         ):
             self.assertNotIn(forbidden, source)
+        self.assertEqual(source.count('hasattr(os, "O_NOATIME")'), 3)
         refusal = subprocess.run(
             [
                 sys.executable,
@@ -491,6 +493,41 @@ class HostBundleServerTest(unittest.TestCase):
         self.assertNotEqual(invalid.returncode, 0)
         self.assertIn("invalid requested bundle identity", invalid.stderr)
         self.assertNotIn("bundle root", invalid.stderr)
+
+    def test_preflight_uses_exact_descriptor_validation_without_listener(self):
+        module = sys.modules[
+            "tools.recovery_control.host_bundle_server"
+        ]
+        original = module.BUNDLE_ROOT
+        module.BUNDLE_ROOT = self.fixture.root
+        extra = self.fixture.root / "consumed-bundle"
+        tracked = [
+            self.fixture.root,
+            self.fixture.bundle,
+            *(self.fixture.bundle / name for name, *_limits in ARTIFACTS),
+        ]
+        for path in tracked:
+            metadata = path.stat()
+            os.utime(
+                path,
+                ns=(1_000_000_000, metadata.st_mtime_ns),
+            )
+        atimes = {path: path.stat().st_atime_ns for path in tracked}
+        try:
+            run_preflight(BUNDLE, self.fixture.manifest_hash)
+            self.assertEqual(
+                {path: path.stat().st_atime_ns for path in tracked},
+                atimes,
+            )
+            extra.mkdir(mode=0o500)
+            with self.assertRaisesRegex(
+                ServerRefusal, "unexpected bundle-root inventory"
+            ):
+                run_preflight(BUNDLE, self.fixture.manifest_hash)
+        finally:
+            if extra.exists():
+                extra.rmdir()
+            module.BUNDLE_ROOT = original
 
     def test_record_parser_rejects_noncanonical_fields(self):
         valid = (

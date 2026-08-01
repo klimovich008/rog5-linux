@@ -69,11 +69,16 @@ copies that module and the controller to fixed root-owned, non-writable paths:
 /usr/libexec/rog5-recovery-bundle-controller
 ```
 
-The unprivileged server accepts exactly:
+The unprivileged server accepts exactly these two forms:
 
 ```text
+host_bundle_server.py --preflight BUNDLE MANIFEST_SHA256
 host_bundle_server.py BUNDLE MANIFEST_SHA256
 ```
+
+The first performs the complete descriptor/inventory/manifest preparation and
+closes every descriptor without creating a socket. The second performs the
+same preparation and then serves one fixed listener.
 
 It has no path, address, port, URL, protocol, timeout, signing-key, or
 environment override. It refuses UID 0 and opens only
@@ -84,9 +89,11 @@ That directory must be mode `0500`; its exact five regular, single-link files
 must be caller-owned mode `0400`. Symlinks, hard-link aliases, extras, unsafe
 ownership/modes, and size/hash/manifest mismatches fail before `bind(2)`.
 
-The server holds a shared root lock, opens all five files with
-`O_NOFOLLOW|O_CLOEXEC`, verifies the canonical manifest against their exact
-sizes and SHA-256 values, and serves only those already-open descriptors.
+The server holds a shared root lock and opens the root, selected directory,
+and all five files with `O_NOATIME`; file opens also use
+`O_NOFOLLOW|O_CLOEXEC`. It verifies the canonical manifest against exact sizes
+and SHA-256 values and serves only those already-open descriptors. Preflight
+therefore leaves even access timestamps unchanged.
 Path replacement after preparation cannot change the transmitted objects.
 The host account remains inside the trust boundary for availability: another
 process under the same UID could deliberately modify an already-open inode
@@ -111,8 +118,12 @@ operator-owned mode-`0700` bundle root, and enables
 `/run/rog5-recovery-host.sock` as an operator-owned mode-`0600` systemd
 socket. Normal operation uses `scripts/host/run-recovery-bundle-server.sh`,
 which verifies that installed code is root-owned, non-writable, and
-byte-identical to the reviewed repository sources before sending one bounded
-request through that socket. The root broker validates `SO_PEERCRED`, a
+byte-identical to the reviewed repository sources. Its preflight invokes the
+same descriptor-based server validator without creating a listener, requiring
+the selected bundle to be the sole root entry and verifying its exact
+inventory, metadata, hashes, and manifest bindings before any phone boot.
+Serve then sends one bounded request through the socket. The root broker
+validates `SO_PEERCRED`, a
 root-owned operator/configuration record, and exact installed-controller
 hashes before dispatch. It accepts no shell, arbitrary command, root path,
 caller environment, repository executable, or installer operation. This

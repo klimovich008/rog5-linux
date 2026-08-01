@@ -9,7 +9,10 @@ COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
 the fallback return, and r2 is consumed**. A distinct diagnostic successor is
 now production-signed, twin-built, artifact-admitted, and integrated into the
 controller. The prompt-free host boundary is installed and its real socket/NFS
-preflight passes; one new admitted temporary diagnostic lifecycle remains.
+preflight passes. A later temporary recovery boot rejected before bundle
+listener because consumed r2 remained beside the diagnostic bundle; exact
+fallback passed, consumed r2 is recoverably archived, and the preflight now
+runs the same sole-root descriptor validator before another lifecycle.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
@@ -536,10 +539,11 @@ Preflight proves:
   branch;
 - no NFS handoff marker, export mount, TCP 8080/2049 listener, NFS export,
   NFS worker, or `drop`-zone runtime state remains;
-- both privileged launchers are installed and byte-current; the fixed
-  root-owned NFS entry point and export installer are byte-current; the NFS
-  entry point also verifies the sealed export root and required host commands
-  through a read-only PolicyKit preflight;
+- both privileged launchers are installed and byte-current; the bundle
+  launcher runs the exact descriptor-based inventory/manifest validator
+  without a listener; the fixed root-owned NFS entry point and export
+  installer are byte-current; and the NFS entry point verifies the sealed
+  export root and required host commands through the prompt-free socket;
 - the corrected recovery image, twin, target bundle, trust root, native
   verifier, wrapper configuration, and AVB layout pass the existing live-gate
   verification;
@@ -560,8 +564,8 @@ lifecycle.
 The NFS controller requires the exact admitted package hash, fixed export
 root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a
-phone. The NFS artifact check may execute the fixed root-owned verifier
-through PolicyKit, but creates no export, mount, listener, marker, firewall
+phone. The NFS artifact check may execute the fixed root-owned verifier through
+the operator socket, but creates no export, mount, listener, marker, firewall
 rule, or interface state. The unprivileged lifecycle opens the fixed server's
 canonical root-owned mode-`0600`/`0644` `/var/lib/nfs/etab` with
 `O_NOFOLLOW`, validates and reads the same bounded inode, and requires an

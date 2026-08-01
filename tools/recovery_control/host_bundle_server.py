@@ -7,6 +7,7 @@ already-created sockets and temporary directory descriptors.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 import fcntl
 import hashlib
@@ -17,7 +18,7 @@ import socket
 import stat
 import struct
 import time
-from typing import Callable, Sequence
+from typing import Callable, Iterator, Sequence
 
 
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
@@ -168,6 +169,8 @@ def open_regular(
     flags = os.O_RDONLY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_NOATIME"):
+        flags |= os.O_NOATIME
     try:
         descriptor = os.open(name, flags, dir_fd=directory)
     except OSError as error:
@@ -298,6 +301,8 @@ def prepare_bundle(
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_NOATIME"):
+        flags |= os.O_NOATIME
     try:
         directory = os.open(bundle, flags, dir_fd=root)
     except OSError as error:
@@ -479,7 +484,10 @@ def production_peer(peer: object) -> bool:
     )
 
 
-def run_production(bundle: str, manifest_hash: str) -> None:
+@contextmanager
+def prepare_production(
+    bundle: str, manifest_hash: str
+) -> Iterator[PreparedBundle]:
     if os.geteuid() == 0:
         raise ServerRefusal("bundle server must run unprivileged")
     if not valid_bundle(bundle) or not valid_hash(manifest_hash):
@@ -487,6 +495,8 @@ def run_production(bundle: str, manifest_hash: str) -> None:
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_NOATIME"):
+        flags |= os.O_NOATIME
     try:
         root = os.open(BUNDLE_ROOT, flags)
     except OSError as error:
@@ -495,18 +505,33 @@ def run_production(bundle: str, manifest_hash: str) -> None:
         with prepare_bundle(
             root, bundle, manifest_hash, os.geteuid()
         ) as prepared:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-                listener.bind((HOST_ADDRESS, HOST_PORT))
-                listener.listen(1)
-                serve_listener(listener, prepared, production_peer)
+            yield prepared
     finally:
         os.close(root)
 
 
+def run_preflight(bundle: str, manifest_hash: str) -> None:
+    with prepare_production(bundle, manifest_hash):
+        pass
+
+
+def run_production(bundle: str, manifest_hash: str) -> None:
+    with prepare_production(bundle, manifest_hash) as prepared:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind((HOST_ADDRESS, HOST_PORT))
+            listener.listen(1)
+            serve_listener(listener, prepared, production_peer)
+
+
 def main(arguments: Sequence[str]) -> int:
-    if len(arguments) != 3:
+    if len(arguments) == 4 and arguments[1] == "--preflight":
+        run_preflight(arguments[2], arguments[3])
+        print("PASS fixed recovery bundle inventory and manifest verified")
+        return 0
+    if len(arguments) != 3 or arguments[1] == "--preflight":
         raise ServerRefusal(
-            "usage: serve-recovery-bundle.py BUNDLE MANIFEST_SHA256"
+            "usage: serve-recovery-bundle.py "
+            "[--preflight] BUNDLE MANIFEST_SHA256"
         )
     run_production(arguments[1], arguments[2])
     return 0
