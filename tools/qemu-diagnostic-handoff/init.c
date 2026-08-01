@@ -18,7 +18,10 @@
 #include <unistd.h>
 
 #define REPORTER "/sbin/rog5-early-target-diag"
+#define RETAINED_REPORTER "/run/initramfs/sbin/rog5-early-target-diag"
 #define CANDIDATE "headless-netroot-early-diag-v1"
+#define SYSTEMD "/usr/lib/systemd/systemd"
+#define PUBLICATION_SETTLE_MS 500
 
 static void console_write(const char *message)
 {
@@ -209,7 +212,7 @@ static void move_handoff_mount(const char *source, const char *target)
 __attribute__((noreturn)) static void enter_new_root(const char *new_root,
 						      const char *new_init)
 {
-	char *const arguments[] = {(char *)new_init, (char *)"new-init", NULL};
+	char *const arguments[] = {(char *)new_init, NULL};
 
 	if (chdir(new_root) < 0)
 		stop("cannot enter new-root mount");
@@ -221,19 +224,23 @@ __attribute__((noreturn)) static void enter_new_root(const char *new_root,
 	stop("new init returned from exec");
 }
 
-__attribute__((noreturn)) static void new_init(void)
+__attribute__((noreturn)) static void systemd_success(void)
 {
+	char pid_one[128];
 	char pid_text[32];
 	char *end = NULL;
 	long reporter_pid;
 	int descriptor;
 	ssize_t length;
 
-	require_emit("130");
-	sleep_milliseconds(400);
-	require_emit("140");
-	sleep_milliseconds(400);
-	console_write("PASS qemu diagnostic reporter survived root handoff\n");
+	length = readlink("/proc/1/exe", pid_one, sizeof(pid_one) - 1);
+	if (length < 1 || (size_t)length >= sizeof(pid_one))
+		stop("cannot inspect systemd PID 1");
+	pid_one[length] = '\0';
+	if (strcmp(pid_one, SYSTEMD) != 0)
+		stop("generated units did not run under systemd PID 1");
+	sleep_milliseconds(PUBLICATION_SETTLE_MS);
+	console_write("PASS generated diagnostic units ran under ARM64 systemd\n");
 	descriptor = open("/run/rog5-qemu-reporter.pid", O_RDONLY | O_CLOEXEC);
 	if (descriptor >= 0) {
 		length = read(descriptor, pid_text, sizeof(pid_text) - 1);
@@ -261,12 +268,19 @@ __attribute__((noreturn)) static void initial_init(void)
 	make_directory("/dev");
 	make_directory("/proc");
 	make_directory("/run");
+	make_directory("/sys");
 	make_directory("/newroot");
 	if (mount("devtmpfs", "/dev", "devtmpfs", 0, NULL) < 0 &&
 	    errno != EBUSY)
 		stop("cannot mount devtmpfs");
 	if (mount("proc", "/proc", "proc", 0, NULL) < 0)
 		stop("cannot mount proc");
+	if (mount("sysfs", "/sys", "sysfs", 0, NULL) < 0)
+		stop("cannot mount sysfs");
+	make_directory("/sys/fs");
+	make_directory("/sys/fs/cgroup");
+	if (mount("cgroup2", "/sys/fs/cgroup", "cgroup2", 0, NULL) < 0)
+		stop("cannot mount cgroup2");
 	if (mount("tmpfs", "/run", "tmpfs", 0, "mode=0755,size=8m") < 0)
 		stop("cannot mount run tmpfs");
 	reporter_pid = start_reporter();
@@ -291,28 +305,37 @@ __attribute__((noreturn)) static void initial_init(void)
 		stop("cannot create diagnostic tty alias");
 	sleep_milliseconds(400);
 
-	if (mount("tmpfs", "/newroot", "tmpfs", 0,
-		  "mode=0755,size=32m") < 0)
-		stop("cannot mount new root");
+	make_directory("/run/initramfs");
+	make_directory("/run/initramfs/sbin");
+	bind_file(REPORTER, RETAINED_REPORTER);
+	if (access("/systemd-root/usr/lib/systemd/systemd", X_OK) < 0)
+		stop("systemd runtime root is absent");
+	if (mount("/systemd-root", "/newroot", NULL, MS_BIND | MS_REC,
+		  NULL) < 0)
+		stop("cannot bind systemd runtime root");
 	make_directory("/newroot/dev");
 	make_directory("/newroot/proc");
 	make_directory("/newroot/run");
-	make_directory("/newroot/sbin");
-	bind_file("/qemu-diagnostic-handoff", "/newroot/sbin/init");
-	bind_file(REPORTER, "/newroot/sbin/rog5-early-target-diag");
+	make_directory("/newroot/sys");
 	move_handoff_mount("/dev", "/newroot/dev");
 	move_handoff_mount("/proc", "/newroot/proc");
+	move_handoff_mount("/sys", "/newroot/sys");
 	move_handoff_mount("/run", "/newroot/run");
 	require_emit("120");
 	sleep_milliseconds(400);
-	enter_new_root("/newroot", "/sbin/init");
+	enter_new_root("/newroot", SYSTEMD);
 }
 
 int main(int argc, char **argv)
 {
-	if (argc == 2 && strcmp(argv[1], "new-init") == 0)
-		new_init();
-	if (argc == 4 && strcmp(argv[1], "switch-root") == 0)
-		enter_new_root(argv[2], argv[3]);
+	if (argc == 2 && strcmp(argv[1], "systemd-success") == 0)
+		systemd_success();
+	if (argc == 2 && strcmp(argv[1], "sshd-stub") == 0) {
+		sleep_milliseconds(PUBLICATION_SETTLE_MS);
+		console_write("PASS systemd activated the sshd dependency\n");
+		return EXIT_SUCCESS;
+	}
+	if (argc != 1)
+		return EXIT_FAILURE;
 	initial_init();
 }

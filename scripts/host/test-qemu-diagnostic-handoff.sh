@@ -14,24 +14,35 @@ harness_source=$repo/tools/qemu-diagnostic-handoff/init.c
 reporter_source=$repo/tools/early_target_diag/rog5-early-target-diag.c
 reporter_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361
 parser=$repo/scripts/host/early-target-diagnostics.py
+network_init=$repo/initramfs/network-root-init
+systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
+systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 compiler=${CROSS_CC:-aarch64-linux-gnu-gcc}
-for command in cpio find gzip python3 qemu-system-aarch64 realpath \
-	readelf sha256sum sort strings timeout "$compiler"; do
+for command in awk cat chmod cp cpio find grep gzip ln mkdir mktemp python3 \
+	qemu-system-aarch64 realpath readelf sed sha256sum sort stat strings \
+	timeout "$compiler"; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU diagnostic handoff command: $command"
 done
 [[ $(sha256sum "$reporter_source" | cut -d ' ' -f 1) == \
 	"$reporter_source_sha256" ]] || fail 'QEMU reporter source seal changed'
-for source in "$harness_source" "$reporter_source" "$parser"; do
+for source in "$harness_source" "$reporter_source" "$parser" \
+	"$network_init" "$systemd_runtime" "$systemd_runtime_verifier"; do
 	[[ -f $source && ! -L $source ]] || fail "missing handoff source: $source"
 done
+[[ -x $systemd_runtime_verifier ]] ||
+	fail 'systemd runtime verifier is not executable'
+"$systemd_runtime_verifier" "$systemd_runtime" >/dev/null
 [[ -f $kernel && ! -L $kernel && $(stat -c %s "$kernel") -gt 1048576 ]] ||
 	fail 'unsafe or implausibly small kernel Image'
 
 test_root=$(mktemp -d)
-trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
+trap 'find "$test_root" -depth -delete 2>/dev/null || true' EXIT HUP INT TERM
 stage=$test_root/stage
-mkdir -p "$stage/dev" "$stage/sbin"
+systemd_root=$stage/systemd-root
+mkdir -p "$stage/dev" "$stage/sbin" "$systemd_root"
+gzip -dc "$systemd_runtime" |
+	(cd "$systemd_root" && cpio -idm --quiet --no-absolute-filenames)
 "$compiler" -std=c11 -O2 -static -fPIE -pie \
 	-fstack-protector-strong -Wall -Wextra -Werror \
 	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none -s \
@@ -41,8 +52,15 @@ mkdir -p "$stage/dev" "$stage/sbin"
 	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none -s \
 	"$harness_source" -o "$stage/qemu-diagnostic-handoff"
 cp "$stage/qemu-diagnostic-handoff" "$stage/init"
+mkdir -p "$systemd_root/usr/bin" "$systemd_root/etc/systemd/system" \
+	"$systemd_root/dev" "$systemd_root/proc" "$systemd_root/run" \
+	"$systemd_root/sys" "$systemd_root/tmp"
+cp "$stage/qemu-diagnostic-handoff" \
+	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
 chmod 0755 "$stage/init" "$stage/qemu-diagnostic-handoff" \
-	"$stage/sbin/rog5-early-target-diag"
+	"$stage/sbin/rog5-early-target-diag" \
+	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
+chmod 1777 "$systemd_root/tmp"
 for binary in "$stage/init" "$stage/sbin/rog5-early-target-diag"; do
 	readelf -h "$binary" | grep -q 'Machine:.*AArch64' ||
 		fail 'QEMU handoff binary is not AArch64'
@@ -53,6 +71,94 @@ done
 if strings "$stage/sbin/rog5-early-target-diag" |
 	grep -q 'ROG5_DIAG_TEST_'; then
 	fail 'QEMU handoff reporter contains a test-hook interface'
+fi
+
+unit_functions=$test_root/diagnostic-unit-functions.sh
+awk '
+	/^install_diagnostic_units\(\) \{/ { copy=1 }
+	copy {
+		print
+		if (/^}$/)
+			exit
+	}
+' "$network_init" >"$unit_functions"
+grep -Fqx 'install_diagnostic_units() {' "$unit_functions" ||
+	fail 'production diagnostic-unit function was not extracted'
+[[ $(grep -Fxc '}' "$unit_functions") == 1 ]] ||
+	fail 'production diagnostic-unit extraction crossed its boundary'
+# shellcheck disable=SC1090
+. "$unit_functions"
+handoff_newroot=$systemd_root
+diagnostic_mode=1
+install_diagnostic_units || fail 'cannot install production diagnostic units'
+unit_root=$systemd_root/etc/systemd/system
+
+cat >"$unit_root/sysinit.target" <<'EOF'
+[Unit]
+Description=ROG5 QEMU minimal sysinit target
+DefaultDependencies=no
+EOF
+cat >"$unit_root/basic.target" <<'EOF'
+[Unit]
+Description=ROG5 QEMU minimal basic target
+DefaultDependencies=no
+Requires=rog5-early-target-new-init.service
+After=rog5-early-target-new-init.service
+EOF
+cat >"$unit_root/sshd.service" <<'EOF'
+[Unit]
+Description=ROG5 QEMU SSH ordering stub
+DefaultDependencies=no
+After=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff sshd-stub
+RemainAfterExit=yes
+EOF
+cat >"$unit_root/multi-user.target" <<'EOF'
+[Unit]
+Description=ROG5 QEMU diagnostic acceptance target
+DefaultDependencies=no
+Requires=basic.target sshd.service rog5-early-target-sshd.service
+After=basic.target sshd.service rog5-early-target-sshd.service
+AllowIsolate=yes
+EOF
+cat >"$unit_root/rog5-qemu-systemd-success.service" <<'EOF'
+[Unit]
+Description=ROG5 QEMU systemd diagnostic acceptance
+DefaultDependencies=no
+Requires=rog5-early-target-sshd.service
+After=rog5-early-target-sshd.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff systemd-success
+EOF
+ln -s ../rog5-qemu-systemd-success.service \
+	"$unit_root/multi-user.target.wants/rog5-qemu-systemd-success.service"
+ln -s multi-user.target "$unit_root/default.target"
+printf '%s\n' 0123456789abcdef0123456789abcdef \
+	>"$systemd_root/etc/machine-id"
+cat >"$systemd_root/etc/os-release" <<'EOF'
+NAME="ROG5 QEMU systemd gate"
+ID=rog5-qemu-systemd
+EOF
+cat >"$systemd_root/etc/passwd" <<'EOF'
+root:x:0:0:root:/root:/usr/bin/nologin
+EOF
+cat >"$systemd_root/etc/group" <<'EOF'
+root:x:0:
+EOF
+
+grep -Fqx 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
+	"$unit_root/rog5-early-target-new-init.service"
+grep -Fqx 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
+	"$unit_root/rog5-early-target-sshd.service"
+if strings "$stage/qemu-diagnostic-handoff" |
+	grep -FxqE '130|140'; then
+	fail 'QEMU harness can emit a post-handoff diagnostic stage directly'
 fi
 (
 	cd "$stage"
@@ -77,17 +183,19 @@ timeout --signal=TERM --kill-after=2 60 \
 		-no-reboot \
 		-kernel "$kernel" \
 		-initrd "$test_root/initramfs.cpio.gz" \
-		-append 'console=ttyAMA0 rdinit=/init panic=-1 quiet' \
+		-append 'console=ttyAMA0 rdinit=/init panic=-1 quiet systemd.unit=multi-user.target systemd.show_status=yes systemd.log_target=console' \
 		>/dev/null 2>"$test_root/qemu.stderr"
 qemu_status=$?
 set -e
 if ((qemu_status != 0)) ||
-	! grep -Fq 'PASS qemu diagnostic reporter survived root handoff' \
+	! grep -Fq 'PASS generated diagnostic units ran under ARM64 systemd' \
 	"$test_root/console.log"; then
 	sed -n '1,240p' "$test_root/console.log" >&2
 	sed -n '1,120p' "$test_root/qemu.stderr" >&2
 	fail "QEMU did not complete diagnostic root handoff; status=$qemu_status"
 fi
+grep -Fq 'PASS systemd activated the sshd dependency' \
+	"$test_root/console.log" || fail 'systemd never activated sshd.service'
 
 python3 - "$parser" "$test_root/diagnostic.frames" <<'PY'
 import importlib.util
@@ -120,9 +228,9 @@ if any(code in (200, 210) for code in codes):
 if stream.maximum_progress != 140 or stream.terminal is not None:
     raise SystemExit("diagnostic handoff did not end at sshd-active")
 print(
-    "PASS canonical reporter stream crossed root handoff "
+    "PASS canonical reporter stream crossed real systemd units "
     f"frames={len(records)} boot_id={stream.boot_id}"
 )
 PY
 
-echo 'PASS ARM64 diagnostic reporter root-handoff continuity'
+echo 'PASS generated diagnostic units executed under ARM64 systemd'

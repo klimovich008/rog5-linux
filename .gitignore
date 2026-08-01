@@ -36,6 +36,11 @@ artifacts/kernel-builder-steamdeck-v1/*
 !artifacts/kernel-builder-steamdeck-v1/README.md
 !artifacts/kernel-builder-steamdeck-v1/SHA256SUMS
 !artifacts/kernel-builder-steamdeck-v1/rootfs-manifest.tsv.gz
+!artifacts/qemu-systemd-arm64-v1/
+artifacts/qemu-systemd-arm64-v1/*
+!artifacts/qemu-systemd-arm64-v1/README.md
+!artifacts/qemu-systemd-arm64-v1/SHA256SUMS
+!artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 
 tools/diagnostics/**/*.o
 tools/diagnostics/**/*.mod

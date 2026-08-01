@@ -129,6 +129,7 @@ fi
 if [[ $tier == ci ]]; then
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
+		scripts/host/test-qemu-systemd-runtime.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-import-asus-source-volume-contract.sh
 		scripts/host/test-steam-deck-builder-contract.sh
@@ -206,6 +207,7 @@ if [[ $tier == ci ]]; then
 else
 	tests=(
 		scripts/host/test-qemu-system-smoke-contract.sh
+		scripts/host/test-qemu-systemd-runtime.sh
 		scripts/host/test-kernel-builder-bootstrap-contract.sh
 		scripts/host/test-import-asus-source-volume-contract.sh
 		scripts/host/test-steam-deck-builder-contract.sh
