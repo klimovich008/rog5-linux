@@ -19,8 +19,11 @@ __attribute__((noreturn)) void abort(void)
 	descriptor = open("/dev/console", O_WRONLY | O_CLOEXEC | O_NOCTTY);
 	if (descriptor >= 0) {
 		static const char marker[] = "ROG5_QEMU_ABORT_BACKTRACE\n";
+		ssize_t written;
 
-		(void)write(descriptor, marker, sizeof(marker) - 1);
+		written = write(descriptor, marker, sizeof(marker) - 1);
+		if (written != (ssize_t)(sizeof(marker) - 1))
+			_exit(124);
 		count = backtrace(frames, (int)(sizeof(frames) / sizeof(frames[0])));
 		if (count > 0)
 			backtrace_symbols_fd(frames, count, descriptor);
