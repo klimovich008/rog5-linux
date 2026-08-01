@@ -312,12 +312,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   one-way reporter, host netstring parser, diagnostic-only initramfs branch,
   volatile systemd handoff units, and QEMU pivot test must pass the complete
   hostile matrix before a new signed candidate exists. r2 is consumed and is
-  not a diagnostic fixture. The first 15 tests now pin every canonical stage
-  and fault, native/Python byte equality, every frame split, coalescing,
+  not a diagnostic fixture. Twenty-three hardware-free tests now pin every canonical
+  stage and fault, native/Python byte equality, every frame split, coalescing,
   malformed and oversized netstrings, mixed boots, identity/state mutations,
-  and sequence/time/stage/terminal regressions. The current native tool is
-  only the reviewed frame-emitter core; tty/socket/clock service behavior
-  remains intentionally unimplemented until its next test layer exists.
+  and sequence/time/stage/terminal regressions. They also exercise the native
+  write-only ACM service, credential-checked local updates, malformed and
+  oversized datagrams, blocked output, fixed cadence, and automatic watchdog
+  pretimeout under a deterministic fake clock. Descriptor-bearing datagrams
+  are closed and rejected, host-to-target channel bytes remain unread,
+  post-deadline heartbeats survive a failed watchdog, and production binaries
+  contain no test-hook strings. Initramfs integration and its five-second
+  diagnostic failure dwell remain the next layer.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight
