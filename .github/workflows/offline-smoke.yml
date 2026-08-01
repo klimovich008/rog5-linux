@@ -78,6 +78,12 @@ jobs:
           scripts/host/build-qemu-smoke-kernel.sh \
             build/qemu-linux-source \
             build/qemu-smoke-kernel
+      - name: Save pinned ARM64 kernel after build
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/qemu-smoke-kernel/arch/arm64/boot/Image
+          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
       - name: Boot kernel and initramfs under QEMU
         run: |
           scripts/host/test-qemu-system-smoke.sh \
