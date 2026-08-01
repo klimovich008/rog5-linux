@@ -48,16 +48,19 @@ twin-built `headless-netroot-early-diag-v1` from clean synchronized commit
 `0a570805…b621`. Every A/B output is byte-identical and the complete native
 artifact preflight passes. The private snapshot was destroyed, the external
 source key was unchanged, and no phone interface was contacted. The
-diagnostic profile advances independently; all consumed r2 pins remain
-unchanged. See the
+diagnostic target remains unexecuted, but that recovery wrapper is now
+consumed, absent from temporary-boot admission, and explicitly refused by the
+live gate. It must never be retried or flashed. See the
 [production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
 
 Independent standards and objective-fidelity closure reviews report no
 findings, the complete local `ci` tier passes, and both jobs in GitHub Actions
 run [`30706668986`](https://github.com/klimovich008/rog5-linux/actions/runs/30706668986)
-pass at exact production-pin commit `6821aa62`. Next: install the exact
-host-side assets and pass the connected deployment preflight before the one
-admitted temporary diagnostic boot.
+pass at exact production-pin commit `6821aa62`. That production wrapper is
+historical evidence only. The next bootable artifact
+must be a fresh twin-built and production-signed wrapper containing the
+corrected diagnostic fetch policy; no temporary diagnostic boot is currently
+admitted.
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
@@ -261,6 +264,22 @@ Commit `76439d9` is published and reinstalled with exact source/installed
 hashes; the real bundle preflight preserved all atimes and left no listener or
 process, and the 37,735-entry prompt-free NFS preflight passed without residue.
 See the [inventory rejection](../test-results/2026-08-01-early-target-diagnostic-bundle-inventory-rejected.md).
+
+A separately admitted lifecycle then transferred the response header and
+manifest, but recovery rejected `PREPARE` as `FETCH_FAILED/FETCH_MANIFEST`
+before signature/artifact completion, intent creation, NFS, or `COMMIT_EXEC`.
+The signed manifest correctly binds the diagnostic profile to the same Arch
+trust tuple required by the contract, packager, host server, native verifier,
+and target cmdline; only the recovery fetcher incorrectly required the
+persistent profile's zero/`none` tuple. An exit-50 native regression reproduces
+the live failure and passes after the one-branch correction. The run also
+proved that controller cleanup reactivated the fallback NetworkManager profile
+while recovery remained connected. Review rejected an unbounded in-controller
+deferral, so that secondary cleanup race remains pending a separately tested
+bounded lifecycle design. Exact strict-SSH fallback passed at 43.5 C.
+The used recovery wrapper is removed from temporary-boot admission; the target
+candidate remains unexecuted. See the
+[manifest rejection](../test-results/2026-08-01-early-target-diagnostic-fetch-manifest-rejected.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

@@ -634,6 +634,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         label: str,
         payload: BundlePayload | None = None,
         expected_hash: str | None = None,
+        expected_returncode: int | None = None,
         handler: Callable[[socket.socket, RawFetchServer], None] | None = None,
         timeout_ms: int = 500,
     ) -> None:
@@ -662,6 +663,8 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                 timeout_ms=timeout_ms,
             )
         self.assert_rejected(result)
+        if expected_returncode is not None:
+            self.assertEqual(result.returncode, expected_returncode)
         self.assert_root_empty(root)
 
     def test_valid_fragmented_fetch_is_atomic_and_request_is_exact(
@@ -927,20 +930,6 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                 ),
             ),
             (
-                "diagnostic-carries-root-identity",
-                render_fields(
-                    [
-                        (
-                            name,
-                            "diagnostic-initramfs-v1"
-                            if name == "profile"
-                            else value,
-                        )
-                        for name, value in fields
-                    ]
-                ),
-            ),
-            (
                 "leading-dot-target",
                 render_fields(
                     [
@@ -1007,6 +996,151 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                     label=f"manifest-{index}-{name}",
                     payload=mutated,
                 )
+
+    def test_diagnostic_profile_requires_network_root_trust_tuple(self) -> None:
+        base = BundlePayload.manifest_fields(
+            self.payload.bundle,
+            kernel=self.payload.kernel,
+            dtb=self.payload.dtb,
+            initramfs=self.payload.initramfs,
+        )
+        diagnostic = BundlePayload(
+            bundle=self.payload.bundle,
+            manifest=render_fields(
+                [
+                    (
+                        name,
+                        "diagnostic-initramfs-v1"
+                        if name == "profile"
+                        else value,
+                    )
+                    for name, value in base
+                ]
+            ),
+            signature=self.payload.signature,
+            kernel=self.payload.kernel,
+            dtb=self.payload.dtb,
+            initramfs=self.payload.initramfs,
+        )
+        root = self.new_root("diagnostic-root")
+        with RawFetchServer(reply_handler(diagnostic)) as server:
+            result = self.invoke(
+                root,
+                server.port,
+                bundle=diagnostic.bundle,
+                expected_hash=diagnostic.manifest_hash,
+            )
+        self.assert_success(result)
+        self.assert_published(root, diagnostic)
+
+        invalid_values = {
+            "a660_command_manifest_sha256": "0" * 64,
+            "root_generation": "none",
+            "root_tree_sha256": "0" * 64,
+            "root_seal_sha256": "0" * 64,
+            "root_tree_entries": "0",
+            "root_subtree": "none",
+        }
+        for invalid_field, invalid_value in invalid_values.items():
+            with self.subTest(invalid_field=invalid_field):
+                invalid = BundlePayload(
+                    bundle=self.payload.bundle,
+                    manifest=render_fields(
+                        [
+                            (
+                                name,
+                                "diagnostic-initramfs-v1"
+                                if name == "profile"
+                                else invalid_value
+                                if name == invalid_field
+                                else value,
+                            )
+                            for name, value in base
+                        ]
+                    ),
+                    signature=self.payload.signature,
+                    kernel=self.payload.kernel,
+                    dtb=self.payload.dtb,
+                    initramfs=self.payload.initramfs,
+                )
+                self.assert_response_rejected(
+                    label=f"diagnostic-invalid-{invalid_field}",
+                    payload=invalid,
+                    expected_returncode=50,
+                )
+
+    def test_persistent_profile_requires_unset_root_and_rollback_floor(
+        self,
+    ) -> None:
+        base = BundlePayload.manifest_fields(
+            self.payload.bundle,
+            kernel=self.payload.kernel,
+            dtb=self.payload.dtb,
+            initramfs=self.payload.initramfs,
+        )
+        persistent_values = {
+            "profile": "persistent-root-ro-v1",
+            "rollback_timeout": "300",
+            "a660_command_manifest_sha256": "0" * 64,
+            "root_generation": "none",
+            "root_tree_sha256": "0" * 64,
+            "root_seal_sha256": "0" * 64,
+            "root_tree_entries": "0",
+            "root_subtree": "none",
+        }
+
+        def persistent_payload(
+            overrides: dict[str, str] | None = None,
+        ) -> BundlePayload:
+            values = {**persistent_values, **(overrides or {})}
+            return BundlePayload(
+                bundle=self.payload.bundle,
+                manifest=render_fields(
+                    [
+                        (name, values.get(name, value))
+                        for name, value in base
+                    ]
+                ),
+                signature=self.payload.signature,
+                kernel=self.payload.kernel,
+                dtb=self.payload.dtb,
+                initramfs=self.payload.initramfs,
+            )
+
+        persistent = persistent_payload()
+        root = self.new_root("persistent-root")
+        with RawFetchServer(reply_handler(persistent)) as server:
+            result = self.invoke(
+                root,
+                server.port,
+                bundle=persistent.bundle,
+                expected_hash=persistent.manifest_hash,
+            )
+        self.assert_success(result)
+        self.assert_published(root, persistent)
+
+        network_values = dict(base)
+        for invalid_field in (
+            "a660_command_manifest_sha256",
+            "root_generation",
+            "root_tree_sha256",
+            "root_seal_sha256",
+            "root_tree_entries",
+            "root_subtree",
+        ):
+            with self.subTest(invalid_field=invalid_field):
+                self.assert_response_rejected(
+                    label=f"persistent-carries-{invalid_field}",
+                    payload=persistent_payload(
+                        {invalid_field: network_values[invalid_field]}
+                    ),
+                    expected_returncode=50,
+                )
+        self.assert_response_rejected(
+            label="persistent-rollback-below-floor",
+            payload=persistent_payload({"rollback_timeout": "299"}),
+            expected_returncode=50,
+        )
 
     def test_manifest_timeout_boundaries_match_verifier_schema(self) -> None:
         base = BundlePayload.manifest_fields(

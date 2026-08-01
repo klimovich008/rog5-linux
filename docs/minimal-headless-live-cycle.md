@@ -15,7 +15,10 @@ fallback passed, consumed r2 is recoverably archived, and the preflight now
 runs the same sole-root descriptor validator before another lifecycle. The
 published/reinstalled remediation passed real unchanged-atime bundle and
 37,735-entry NFS preflights without a listener or process residue; one
-separate new diagnostic lifecycle is admitted.
+separate diagnostic lifecycle then reached manifest transfer but rejected as
+`FETCH_MANIFEST` before `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Exact
+fallback passed. The used recovery wrapper is no longer admitted; rebuild and
+sign a fresh wrapper with the corrected fetcher before any later lifecycle.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time

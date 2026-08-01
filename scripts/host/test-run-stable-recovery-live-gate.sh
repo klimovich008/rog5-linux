@@ -10,12 +10,12 @@ trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
 diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
-	'$1 == name && $2 == "allow" && $3 != "" { count++ } \
-	END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL diagnostic wrapper is not uniquely boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef" \
+	&& $4 ~ /^consumed production-signed temporary recovery/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 
@@ -73,6 +73,30 @@ then
 fi
 grep -Fq 'refusing a consumed deployment manifest' "$tmp/err"
 
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL consumed diagnostic recovery reached boot admission' >&2
+	exit 1
+fi
+grep -Fq 'refusing the consumed diagnostic recovery image' "$tmp/err"
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL consumed diagnostic recovery reached host inspection' >&2
+	exit 1
+fi
+
 run_diagnostic_policy() {
 	local selected_bundle=$1 selected_image=$2 selected_manifest=$3
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -115,31 +139,16 @@ if run_diagnostic_policy \
 fi
 grep -Fq 'diagnostic recovery image identity is not allowlisted' "$tmp/err"
 
-if ! run_diagnostic_policy \
+if run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
 	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-	>"$tmp/out" 2>"$tmp/err"; then
-	echo 'FAIL exact diagnostic policy preflight was rejected' >&2
+	>"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL consumed diagnostic recovery passed policy preflight' >&2
 	exit 1
 fi
-cat >"$tmp/expected-policy" <<'EOF'
-format=rog5-stable-recovery-policy-v1
-recovery_profile=headless-diagnostic-deployment-v1
-bundle=headless-netroot-early-diag-v1
-manifest_sha256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
-bundle_profile=diagnostic-initramfs-v1
-target_id=headless-netroot-early-diag
-recovery_sha256=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
-trust_key_sha256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-host_verifier_sha256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621
-authority=none
-result=PASS
-EOF
-cmp "$tmp/expected-policy" "$tmp/out" || {
-	echo 'FAIL diagnostic policy record is not exact and canonical' >&2
-	exit 1
-}
+grep -Fq 'refusing the consumed diagnostic recovery image' "$tmp/err"
 
 if env -i PATH="$PATH" HOME="$HOME" \
 	ALLOW_TEMPORARY_BOOT=1 \

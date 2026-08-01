@@ -255,8 +255,8 @@ death. These unload and executor paths pass through the same fake-kexec seam
 on host and AArch64/QEMU; real kernel-side unload remains a staging-only live
 gate.
 
-The fixed-host acquisition helper now passes 28 native tests,
-28 tests as root through a network-disabled container, and 23 executable
+The fixed-host acquisition helper now passes 30 native tests,
+30 tests as root through a network-disabled container, and 25 executable
 AArch64/QEMU cases, with five expected QEMU-only skips. It binds a fixed NCM
 source/interface/peer, isolates
 network parsing in a UID/GID-65534 chroot/seccomp worker, independently
@@ -866,11 +866,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 ## Current blockers
 
 1. The external `headless-netroot-early-diag-v1` successor is production
-   signed, twin-built, and installed. Its first stable-recovery boot rejected
-   before bundle transfer because graphical PolicyKit exceeded the host-ready
-   window. No `COMMIT_EXEC` occurred, the candidate remains unexecuted, and
-   the independent 180-second watchdog plus strict signed fallback proof
-   passed on the same USB port.
+   signed, twin-built, and installed, but remains unexecuted. After two
+   pre-transfer host rejections, the remediated lifecycle transferred its
+   response header and manifest; the recovery fetcher rejected the valid
+   diagnostic Arch trust tuple as `FETCH_MANIFEST` before completing bundle
+   transfer, `PREPARE`, intent, NFS, or `COMMIT_EXEC`. The 180-second watchdog
+   and strict signed same-port fallback proof passed at 43.5 C.
 2. The runtime PolicyKit remediation is installed and accepted. The exact
    operator-owned mode-`0600` socket and fixed root broker pass hostile tests,
    complete local/GitHub CI, exact installed-hash checks, SteamOS read-only
@@ -878,16 +879,21 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    preflight. Its first lifecycle rejected before listener/transfer because
    consumed r2 remained beside the diagnostic bundle in the sole-entry root;
    automatic fallback and strict signed proof passed again.
-3. Consumed r2 is now recoverably archived and the exact descriptor validator
+3. Consumed r2 is recoverably archived and the exact descriptor validator
    checks sole-root inventory, every artifact, and the canonical manifest
    during preflight without a listener. The published/reinstalled remediation
-   passed the real no-listener/unchanged-atime bundle preflight and the
-   37,735-entry prompt-free NFS preflight without residue. Admit a separate new
-   lifecycle for the still-unexecuted diagnostic candidate.
-4. Use that evidence to repair or promote a distinct normal minimal-headless
+   passed real unchanged-atime bundle and 37,735-entry NFS preflights.
+4. The fetcher's profile branch now matches every other contract component;
+   its new native test reproduces live exit 50 before the fix and accepts the
+   Arch-bound diagnostic while rejecting each partial zero/`none` mutation;
+   persistent-root positive, trust-carrying, and rollback-floor cases also
+   pass. Complete local CI passes. The separate fallback-profile cleanup race
+   remains a bounded-design HOLD. Review, publish, twin-build and
+   production-sign a fresh recovery wrapper before another admission.
+5. Use corrected diagnostic evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path
    and collect the exact 88-field core record over strict SSH.
-5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+6. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the
