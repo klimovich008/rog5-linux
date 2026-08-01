@@ -183,14 +183,14 @@ timeout --signal=TERM --kill-after=2 60 \
 		-no-reboot \
 		-kernel "$kernel" \
 		-initrd "$test_root/initramfs.cpio.gz" \
-		-append 'console=ttyAMA0 rdinit=/init panic=-1 quiet systemd.unit=multi-user.target systemd.show_status=yes systemd.log_target=console' \
+		-append 'console=ttyAMA0 rdinit=/init panic=-1 loglevel=7 ignore_loglevel systemd.unit=multi-user.target systemd.show_status=yes systemd.log_target=console systemd.log_level=debug systemd.log_color=0 systemd.log_location=1' \
 		>/dev/null 2>"$test_root/qemu.stderr"
 qemu_status=$?
 set -e
 if ((qemu_status != 0)) ||
 	! grep -Fq 'PASS generated diagnostic units ran under ARM64 systemd' \
 	"$test_root/console.log"; then
-	sed -n '1,240p' "$test_root/console.log" >&2
+	tail -n 300 "$test_root/console.log" >&2
 	sed -n '1,120p' "$test_root/qemu.stderr" >&2
 	fail "QEMU did not complete diagnostic root handoff; status=$qemu_status"
 fi
