@@ -53,10 +53,11 @@ unchanged. See the
 [production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
 
 Independent standards and objective-fidelity closure reviews report no
-findings, and the complete local `ci` tier passes. Next: publish the reviewed
-pin update, pass GitHub Actions, install the exact host-side assets, and pass
-the connected deployment preflight before the one admitted temporary
-diagnostic boot.
+findings, the complete local `ci` tier passes, and both jobs in GitHub Actions
+run [`30706668986`](https://github.com/klimovich008/rog5-linux/actions/runs/30706668986)
+pass at exact production-pin commit `6821aa62`. Next: install the exact
+host-side assets and pass the connected deployment preflight before the one
+admitted temporary diagnostic boot.
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:

@@ -82,6 +82,9 @@ not OEM signing and not authorization to flash it.
   no remaining findings. A constrained, tool-free Claude advisory review also
   identified policy-scope and contract-coverage hardening that is included in
   this checkpoint.
+- Both required jobs pass in
+  [GitHub Actions run `30706668986`](2026-08-01-early-target-diagnostic-production-github-ci.md)
+  at exact production-pin commit `6821aa62e5110573a5d3c0c57210af79562aae2b`.
 
 ## Boundary and next action
 
