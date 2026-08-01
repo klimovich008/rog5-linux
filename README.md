@@ -29,7 +29,7 @@ build outputs.
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
 | VPN hotspot | IPv4/IPv6 and real WireGuard fail-closed tests pass offline; radio/provider live gate remains |
-| New phone action | None authorized by repository state; production trust-root approval and staging promotion remain |
+| Operator authorization | [Standing project authorization](docs/operator-standing-authorization.md) covers in-scope credentials, host setup, connected preflights, reboots, and admitted temporary boots without repeated prompts; technical gates and the no-flash boundary remain mandatory |
 
 Nothing in this table grants permission to flash or repeat a consumed live
 gate.
@@ -41,6 +41,9 @@ gate.
   sequence.
 - [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
   exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
+- [Operator standing authorization](docs/operator-standing-authorization.md) —
+  actions that may proceed without another consent prompt and the hard
+  boundaries that remain.
 - [Roadmap](ROADMAP.md) — ordered subsystem gates and completion criteria.
 - [Port status](docs/port-status.md) — compact per-subsystem evidence matrix.
 - [Core compatibility](docs/core-compatibility-oracle.md),
@@ -62,8 +65,9 @@ gate.
 - Use only an attended `fastboot boot` of an explicitly allowed image.
 - Require exact artifact size and SHA-256, one fastboot device, and product
   `lahaina`.
-- Keep physical storage read-only in staging and target diagnostics; fallback
-  ACM storage effects require their own action-scoped authorization.
+- Keep physical storage read-only in staging and target diagnostics; only the
+  bounded fallback ACM history/atime effects covered by the standing
+  authorization are allowed.
 - Keep an independent rollback watchdog armed.
 - Treat every live diagnostic payload as single-use.
 - Do not retry an execute action after an ambiguous disconnect.
@@ -213,9 +217,10 @@ configuration or `authorized_keys`: Alpine signs one canonical nonce-bound
 health record with its existing host key, and the host verifies it against
 the private pin already retained outside Git. A source audit found that the
 legacy interactive shell can persist the launcher in BusyBox history, while
-ordinary reads may update inode access times. Live use remains HOLD pending
-separate authorization for those action-scoped storage effects. The
-hardware-free protocol and lifecycle integration pass.
+ordinary reads may update inode access times. The standing operator
+authorization now covers those bounded effects, but the same protocol,
+preflight, one-shot, and cleanup gates remain mandatory. The hardware-free
+protocol and lifecycle integration pass.
 See the
 [corrected twin-build result](test-results/2026-07-29-corrected-headless-candidate-offline.md),
 [root hardening result](test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md),
@@ -247,7 +252,8 @@ execution. Because this credential-free root creates a volatile server host
 key in RAM, a separate bootstrap now pins only the public Ed25519 key after
 proving that the exact target NCM gadget replaced signed recovery on the same
 physical USB port. No client key is offered during that discovery. Both paths
-remain offline-only pending fresh live authorization.
+may proceed under the standing authorization only after their exact artifact,
+preflight, one-shot, rollback, and cleanup gates pass.
 
 The Alpine fallback already proves that the OLED can remain off while server
 and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is

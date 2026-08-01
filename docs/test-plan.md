@@ -394,7 +394,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   post-ACK COMMIT deadline, delayed post-ACK health collection, missing
   credential or action-scoped storage authority, and explicit
   write/flash/mount surfaces fail closed. Admitted fallback-storage
-  effects are limited to separately authorized BusyBox history before the
+  effects are limited to standing-authorized BusyBox history before the
   fixed launcher starts its child and possible read-induced ext4 atime
   updates. Non-reboot actions return to the existing supervised shell. The
   exact recovery-anchor fields and literal USB product are bound to the real

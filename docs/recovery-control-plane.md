@@ -4,7 +4,8 @@ Status: **shell-free framed path passed one signed live transaction and exact
 rollback; target rejected before SSH because its candidate selected historical
 DTB v1; corrected isolated candidate is offline**
 
-Live authority: **none**
+Artifact-local authority: **none**. Live use occurs only through the central
+standing authorization and this document's exact technical gates.
 
 Last reviewed: 2026-07-29
 
@@ -62,8 +63,8 @@ recovery boot, and separates the stable recovery image from signed runtime
 kernel/DTB/initramfs bundles. The first signed live execution returned to
 fallback before SSH because the candidate selected historical DTB v1. The
 corrected target remains non-runnable until a new trust root, complete
-release-pin update, independent review, and newly authorized live sequence
-are complete. See the
+release-pin update, independent review, and one standing-authorized live
+sequence admitted by the exact lifecycle gates are complete. See the
 [live result](../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Invariants
@@ -276,8 +277,9 @@ responder continues. A crash after `PREPARED` is published is reconstructed
 from durable RAM state and does not rerun the verifier or loader.
 `COMMIT_EXEC` remains the sole non-retryable execution boundary.
 
-Before image integration, a separately authorized load-only gate must use the
-real pinned AArch64 kexec-tools and these procfd arguments to prove
+Before image integration, a separately gated load-only cycle may proceed
+under the central standing authorization and must use the real pinned AArch64
+kexec-tools and these procfd arguments to prove
 `/sys/kernel/kexec_loaded` changes from 0 to 1, that an exact repeat load is
 safe, and that `kexec -c -u` returns it from 1 to 0 without target execution.
 The image must mount `/proc`, expose `/proc/self/fd`, expose
@@ -375,9 +377,10 @@ No production signing key has been created. Disposable keys have been used
 for offline tests and the consumed attended bundle; their private material was
 not retained. The corrected target, bundle, shell-free initramfs, and wrapper
 now pass a complete twin-build offline gate under one destroyed disposable
-key. A live target still requires a newly generated single-use or separately
-approved production trust root, a rebuilt/allowlisted wrapper, and fresh user
-authorization. The consumed live trust root cannot authorize another bundle.
+key. A live target still requires a newly generated single-use or admitted
+production trust root and a rebuilt/allowlisted wrapper. The central standing
+authorization covers one technically admitted cycle; the consumed live trust
+root cannot authorize another bundle.
 See the
 [corrected offline result](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
@@ -492,8 +495,8 @@ Run the real responder against `openpty(3)` with fault injection:
    devices read-only, ACM/NCM, no payload load, automatic rollback.
 2. Two protocol-only cycles with malformed/replayed requests and no kexec.
 3. One load-only cycle with a signed inert payload and automatic rollback.
-4. One separately authorized execute cycle with host write-ahead intent and
-   out-of-band target/fallback classification.
+4. One separately gated execute cycle under the central standing authorization,
+   with host write-ahead intent and out-of-band target/fallback classification.
 
 Each live cycle gets one invocation. A transport timeout never authorizes a
 retry.

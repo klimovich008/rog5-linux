@@ -284,9 +284,11 @@ The replacement fallback control boundary is recorded in the
 The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).
 
-Tracked execution **HOLD**: repository state never records an operator's live
-authorization. Credential use and each temporary boot require explicit
-invocation-time authorization after every preflight passes.
+The [standing operator authorization](operator-standing-authorization.md)
+permits in-scope credential use, host changes, connected preflights, reboots,
+and admitted temporary boots without another consent prompt. Invocation-time
+guards, exact preflights, one-shot candidate consumption, rollback, cleanup,
+and the no-flash/no-phone-storage boundaries remain mandatory.
 
 The authoritative procedure is the
 [minimal-headless lifecycle runbook](minimal-headless-live-cycle.md).
@@ -330,7 +332,7 @@ See [ROADMAP.md](../ROADMAP.md) for completion gates and
 - Never flash an experimental partition.
 - Never mount phone storage or write it. The active strict-SSH lifecycle does
   not invoke the legacy interactive shell; any emergency ACM use retains its
-  separate BusyBox-history/atime authorization boundary.
+  bounded BusyBox-history/atime effects under the standing authorization.
 - Never reuse a consumed live payload or retry an ambiguous execute.
 - Keep private keys, host pins, firmware, and live evidence outside Git.
 - Follow the [credential-isolation policy](security-automation.md).

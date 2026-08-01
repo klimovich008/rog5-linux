@@ -3,7 +3,10 @@
 The ROG5 project currently has enough reproducible host state to reclaim
 hundreds of GiB without touching the phone, the Git history, proprietary input
 archives, or the accepted corrected headless candidate. Cleanup remains
-guarded by an exact generated plan and explicit approval for each tier.
+guarded by an exact generated plan for each tier. The central standing
+authorization covers deletion only for the reproducible project-only cache or
+disposable-artifact set admitted by that plan; no separate consent prompt is
+needed.
 
 ## Completed tier-1 execution
 
@@ -15,8 +18,8 @@ before/after measurements are recorded in the
 [cleanup result](../test-results/2026-07-30-podman-volume-cleanup.md).
 
 External development/cache units and the separate in-repository artifact
-candidates were not part of that execution and remain subject to a fresh plan
-and approval.
+candidates were not part of that execution and remain subject to a fresh
+reviewed plan under the central standing authorization.
 
 ## Completed cache-backed wrapper cleanup
 
@@ -109,13 +112,15 @@ command. It uses only `podman volume rm` without `--force`; it never deletes a
 filesystem path. It requires the same complete preflight, the exact plan hash
 and count, an independently supplied expected candidate-set SHA-256, and
 `ALLOW_ROG5_PODMAN_VOLUME_DELETE` equal to the exact current plan SHA-256.
-The environment guard is not approval: obtain explicit approval naming the
-candidate-set identity, then regenerate and re-preflight immediately before
-setting it.
+The environment guard is not authority by itself. The central standing
+authorization supplies operator authority only after the candidate-set
+identity is reviewed; regenerate and re-preflight immediately before setting
+the guard.
 
 If deletion ever stops after removing only part of the approved set, do not
 reuse the stale plan. Preserve its output, regenerate inventory for the new
-state, review the remaining exact candidate set, and obtain fresh approval.
+state, and review the remaining exact candidate set under the standing
+authorization before continuing.
 
 ## Preservation rules
 

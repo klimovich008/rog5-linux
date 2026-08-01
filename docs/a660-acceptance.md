@@ -3,7 +3,8 @@
 Status: **offline harness, submit helper, and versioned runtime roots complete;
 no A660 hardware run**
 
-Live authority: **none**
+Artifact-local authority: **none**. Any later live cycle occurs only through
+the central standing authorization and the exact gates below.
 
 Last reviewed: 2026-07-28
 
@@ -224,7 +225,8 @@ EXPECTED_KERNEL_RELEASE="$EXPECTED_KERNEL_RELEASE" \
   /usr/local/sbin/rog5-a660-acceptance preflight
 ```
 
-Only a separately authorized signed staging cycle may set:
+Only a signed staging cycle admitted under the central standing authorization
+may set:
 
 ```sh
 ALLOW_A660_STAGING_ACCEPTANCE=1 \

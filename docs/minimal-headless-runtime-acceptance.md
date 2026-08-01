@@ -191,9 +191,9 @@ and [core compatibility oracle](core-compatibility-oracle.md).
 
 A live result still requires a non-fixture key-bound root/candidate/bundle,
 the fixed stable-recovery deployment profile, and an installed v3 export
-before fresh authorization to create/use one ephemeral live signing
-credential and perform one attended temporary-boot cycle. The full controller
+before the central standing authorization can be used for one ephemeral live
+signing credential and one attended temporary-boot cycle. The full controller
 must preserve the untouched fallback, keep the target watchdog armed, avoid
 an ambiguous execute retry, verify fallback return and host cleanup, and
 resolve the durable recovery intent. Until that occurs, the corrected target
-remains `live-pending` and `authority=none`.
+remains `live-pending`; build artifacts do not grant authority by themselves.

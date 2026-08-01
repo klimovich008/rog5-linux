@@ -90,9 +90,10 @@ disposable private counterpart was destroyed after that build. The entry can
 therefore reproduce and inspect the historical wrapper but cannot sign a new
 runtime bundle.
 
-A future operational stable-recovery entry needs a separately authorized trust
-root. Creating or using that credential and booting the phone remain distinct
-live gates. The cache itself grants neither action.
+A future operational stable-recovery entry needs an admitted production trust
+root. The central standing authorization covers credential use and an admitted
+temporary boot, but they remain distinct technical gates. The cache itself
+grants neither action.
 
 Keep the compact cache entry, profile, source volume, builder image, tracked
 tools, and redacted proof. Materialized copies and broad kernel object trees

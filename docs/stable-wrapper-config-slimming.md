@@ -155,8 +155,8 @@ baseline, candidate, initramfs, and empty output paths. A release proof must
 run it twice in separate clean output trees and repeat the boot-v3/AVB
 unpack-and-verify gate.
 
-No live use follows automatically. Promotion requires a fresh explicit
-authorization, a separately reviewed temporary-boot allowlist change, and an
-attended recovery-only test that preserves the installed fallback. A compile
-or structural pass never authorizes `fastboot boot`, flashing, signing, or a
-target-kernel experiment.
+No live use follows automatically. Promotion may use the central standing
+authorization only after a separately reviewed temporary-boot allowlist
+change and an attended recovery-only test that preserves the installed
+fallback. A compile or structural pass never authorizes `fastboot boot`,
+flashing, signing, or a target-kernel experiment.

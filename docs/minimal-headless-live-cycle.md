@@ -9,20 +9,22 @@ COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
 the fallback return, and r2 is consumed**. A distinct diagnostic successor is
 now packaged and integrated into the controller hardware-free; production
 signing, host installation, and its sole temporary target boot remain pending.
-Tracked execution **HOLD**: this file never grants credential use or a phone
-boot. Those require explicit invocation-time authorization after all
-preflights pass.
+The [standing operator authorization](operator-standing-authorization.md)
+covers the in-scope credentials, host changes, connected preflights, and
+admitted temporary boot without another consent prompt. Every invocation-time
+guard, preflight, one-shot limit, rollback rule, and no-flash boundary remains
+mandatory.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
-installer and launcher pass hostile tests. Repository text never grants live
-authority; invocation-time guards and explicit operator authorization remain
-mandatory.
+installer and launcher pass hostile tests. Repository guards do not grant
+authority by themselves: the central standing-authorization record supplies
+operator authority, while every invocation-time guard remains mandatory.
 The retained historical `artifact-preflight` remains regression evidence for
 its old profile. `key-preflight` performs only local key admission. `preflight`
 continues into fixed-host and connected checks only after admission. `run`
-boots the phone and later offers the dedicated SSH client key; it therefore
-requires fresh explicit authorization and every exact guard listed below.
+boots the phone and later offers the dedicated SSH client key; standing
+authorization permits it only after every exact guard listed below passes.
 The `diagnostic-key-preflight`, `diagnostic-preflight`, and `diagnostic-run`
 actions select only `headless-netroot-early-diag-v1`; they cannot reuse r2 or
 promote diagnostic evidence as normal runtime acceptance.
@@ -143,8 +145,9 @@ will be stale by design. Updating them is a separate privileged host mutation:
 pkexec scripts/host/install-recovery-host-controller.sh
 ```
 
-Do not run that command without explicit approval. It changes only the host,
-not the phone.
+After the reviewed change is committed, pushed, synchronized with `origin`,
+and its installer preflight passes, the command may run under the central
+standing authorization. It changes only the host, not the phone.
 
 ## Fixed v3 export installation
 
@@ -185,8 +188,8 @@ real attempt failed before stage creation when the former `/var` destination
 could not hold the anonymous archive snapshot; no export was published. The
 reviewed `/home` remediation was subsequently installed and the admitted
 37,735-entry export passed atomic publication, full sealed-root verification,
-and fixed NFS host preflight. Do not set the guards or invoke this launcher
-without fresh authorization to use the deployment key and mutate the host.
+and fixed NFS host preflight. Standing authorization permits the agent to set
+the guards and invoke this launcher after its credential-free checks pass.
 The no-replace publication contract also refuses the existing export.
 
 ## Inputs
@@ -331,7 +334,7 @@ scripts/host/prepare-early-target-diagnostic-deployment-candidate.py \
 ```
 
 Only after the reviewed checkpoint is pushed and GitHub CI is green may one
-separately authorized production-signing invocation use that record:
+standing-authorized production-signing invocation use that record:
 
 ```bash
 scripts/host/build-early-target-diagnostic-deployment-candidate.sh \
@@ -397,10 +400,11 @@ pinned in the live-gate profile. The production artifact gate passes against
 the retained twin output, and the installed r2 bundle passes the complete
 connected host preflight.
 
-## Credential-free successor preflight
+## Historical r2 credential-free preflight
 
-After the external r2 candidate exists, run the preflight shown in the build
-sequence before authorizing signing.
+Before the now-consumed r2 production signing, the workflow ran the preflight
+shown in the build sequence. Retain it only as regression evidence; do not
+reuse r2.
 
 This command requires a clean branch synchronized with its exact `origin`
 peer. It securely snapshots the caller-owned mode-`0444` historical and r2
@@ -410,7 +414,8 @@ Image/DTB/initramfs, and regenerates the pinned unsigned r2 manifest identity
 through the same configuration factory and production packager used by the
 signed build. It has no signing-key argument; apart from local read-only Git
 checkpoint commands, it exits before credential, privilege, external-network,
-fastboot, or phone access. A pass grants no signing or boot authority.
+fastboot, or phone access. A pass grants no artifact admission or phone action
+by itself; operator authority comes only from the central standing record.
 
 ## Local deployment-key preflight
 
@@ -539,9 +544,10 @@ ALLOW_FALLBACK_SSH_CONTROL
 ALLOW_FALLBACK_SSH_ATIME_EFFECTS
 ```
 
-These guards are an invocation-time authorization boundary, not persistent
-permission. A later cycle requires fresh authorization and a fresh evidence
-directory.
+These guards remain an invocation-time technical boundary. The standing
+operator authorization permits the agent to set them without another prompt,
+but every cycle still requires a distinct unconsumed candidate and fresh
+private evidence directory.
 Use `run` only for the normal SSH acceptance profile and `diagnostic-run` only
 for the exact diagnostic successor. The latter still requires every guard
 above because it performs the same temporary boot, credential-bound fallback
@@ -659,10 +665,11 @@ thirty-four lifecycle test methods. Together they prove:
 - preflight/reboot retains the historical 60 C readiness ceiling while return
   classification has a separate 80 C hard-safety ceiling, so a normal warm
   rollback is not mistaken for an absent fallback;
-- the separately guarded reboot requires verified ACK, commit, disconnect,
-  same-port fastboot, and exact product without flash, mount, or any phone
-  write beyond separately authorized BusyBox-history and possible atime
-  effects;
+- the standing-authorized guarded reboot requires verified ACK, commit,
+  disconnect, same-port fastboot, and exact product without flash, mount, or
+  any phone
+  write beyond the bounded BusyBox-history and possible atime effects covered
+  by the standing authorization;
 - its 30-second post-ACK COMMIT deadline exceeds the remote's 25-second
   post-ACK deadline; the phone checks that deadline after repeated health
   collection and both before and after COMMIT publication, preventing a late

@@ -59,14 +59,14 @@ active mainline target.
 2. No experimental partition flash; use only an explicitly allowed attended
    `fastboot boot`.
 3. Keep the installed fallback configuration and authorization untouched.
-   Any fallback ACM shell-history or read-induced atime effect needs a
-   separate, action-scoped storage-write authorization.
+   The standing operator authorization covers only the already-bounded
+   fallback ACM shell-history and read-induced atime effects.
 4. One live diagnostic payload gets at most one execute attempt.
 5. Transport loss is `UNKNOWN`; it never authorizes a retry.
 6. Accepted evidence is immutable and inherited by hash.
-7. Outside separately authorized fallback history/atime effects, physical
+7. Outside the standing-authorized fallback history/atime effects, physical
    storage stays read-only until a bounded persistent-root write contract is
-   separately approved.
+   explicitly added to project scope.
 8. Credentials, personal data, and private evidence remain outside Git.
 9. A kernel version bump does not replace subsystem bring-up.
 10. No desktop, GPU, or automation dependency may enter the active headless
@@ -103,7 +103,7 @@ Exit: every attended target execution yields `PASS`, `FAIL`, or bounded
   ledger.
 - [x] Build the shell-free initramfs and wrapper reproducibly with ephemeral
   keys.
-- [ ] Embed a separately approved production public key.
+- [ ] Embed an independently reviewed production public key.
 - [ ] Update all source, hash, verifier, and wrapper pins in one release
   change.
 - [ ] Pass staging-only promotion cycles before replacing v18 authority.
@@ -286,7 +286,8 @@ Exit: failed boots are diagnosable and recover automatically.
 - [x] Preserve the historical ephemeral-signed minimal-root bundle evidence;
   the pruned root identity is not reusable.
 - [x] Package and verify the credential-clean reproducible root successor;
-  production signing remains a separate approval boundary.
+  production signing is standing-authorized but remains a separate technical
+  promotion boundary.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
   clean reboot.

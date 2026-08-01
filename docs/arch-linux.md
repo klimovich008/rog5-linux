@@ -300,8 +300,8 @@ proves the exact `17cb:1103`/`17cb:0108` PCI endpoint and matching staged
 ath11k inputs. The later
 [offline WCN6855/PCIe acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
 adds the schema-checked board graph and reproducible matching kernel/modules,
-but remains HOLD pending a packaged, separately authorized RAM-only
-client-only probe.
+but remains deferred pending a packaged RAM-only client-only probe admitted
+under the central standing authorization and core-first roadmap.
 
 ## VPN hotspot
 
