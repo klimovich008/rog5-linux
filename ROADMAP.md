@@ -219,8 +219,12 @@ before a phone cycle.
   target rejection returned to the same port and resolved its durable intent.
 - [x] Permanently reject the consumed deployment manifest before private-key
   inspection and stage an r2 signed-bundle identity that keeps every target
-  artifact and root identity unchanged. Production trust/wrapper pinning
-  remains authorization-gated.
+  artifact and root identity unchanged.
+- [x] Sign, twin-build, install, and preflight r2; execute it exactly once.
+  Recovery transfer, PREPARE, COMMIT, watchdog rollback, and signed fallback
+  proof passed. The target USB gadget disconnected after 23 seconds before
+  SSH acceptance, so r2 is consumed and a distinct diagnostic successor is
+  required.
 
 Exit: a new hardware candidate changes a manifest, DT/kernel delta, and its
 specific assertion—not five copied scripts and a full userspace image.
@@ -257,7 +261,8 @@ duplicate builds can be removed safely.
 - [x] Restore the missing NFS-root dependency with a credential-clean,
   byte-reproducible successor identity; recovery admission alone is not a
   complete runnable candidate.
-- [ ] Promote the framed recovery candidate through the approved live gate.
+- [x] Promote the framed recovery candidate through the approved live gate;
+  its transfer, PREPARE, and one COMMIT passed on hardware.
 - [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
 - [ ] Prove postmortem retention or select the tested UART fallback.
 - [ ] Retire legacy ACM execution helpers from active operation.

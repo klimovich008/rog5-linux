@@ -119,6 +119,10 @@ class CycleError(RuntimeError):
     """A fail-closed lifecycle condition."""
 
 
+class HostIdentityObservationError(CycleError):
+    """A transient disagreement between USB identity and host address views."""
+
+
 def fail(message: str) -> NoReturn:
     raise CycleError(message)
 
@@ -1019,6 +1023,12 @@ class LiveCycle:
         self.bundle_timeout = 5 if dependencies.offline else 95
         self.control_timeout = 5 if dependencies.offline else 320
         self.network_timeout = 8 if dependencies.offline else 735
+        self.cleanup_stabilize_timeout = (
+            0.5 if dependencies.offline else 10
+        )
+        self.cleanup_stabilize_dwell = (
+            0.08 if dependencies.offline else 1
+        )
         self.fallback_timeout = (
             5 if dependencies.offline else inputs.fallback_timeout
         )
@@ -1102,13 +1112,22 @@ class LiveCycle:
             fail("new durable intent path does not match its session")
         return intent
 
-    def firewall_empty(self) -> bool:
+    def remaining_timeout(self, deadline: float | None) -> float:
+        if deadline is None:
+            return 180
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            fail("host cleanup stabilization deadline expired")
+        return remaining
+
+    def firewall_empty(self, *, deadline: float | None = None) -> bool:
         target = run_capture(
             [
                 str(self.dependencies.firewall),
                 "--zone=drop",
                 "--list-all",
-            ]
+            ],
+            timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
         targets = [
             line.split(":", 1)[1].strip()
@@ -1134,7 +1153,8 @@ class LiveCycle:
                     str(self.dependencies.firewall),
                     "--zone=drop",
                     query,
-                ]
+                ],
+                timeout=self.remaining_timeout(deadline),
             )
             if result.stdout.strip():
                 fail("drop firewall zone retains lifecycle state")
@@ -1144,6 +1164,7 @@ class LiveCycle:
                 "--zone=drop",
                 "--query-masquerade",
             ],
+            timeout=self.remaining_timeout(deadline),
             check=False,
         )
         if masquerade.returncode == 0:
@@ -1156,12 +1177,14 @@ class LiveCycle:
                 "--zone=drop",
                 "--query-forward",
             ],
+            timeout=self.remaining_timeout(deadline),
             check=False,
         )
         if forward.returncode not in (0, 1):
             fail("cannot inspect drop-zone forwarding state")
         zones_result = run_capture(
-            [str(self.dependencies.firewall), "--get-zones"]
+            [str(self.dependencies.firewall), "--get-zones"],
+            timeout=self.remaining_timeout(deadline),
         )
         zones = zones_result.stdout.split()
         if "drop" not in zones or len(set(zones)) != len(zones):
@@ -1182,11 +1205,12 @@ class LiveCycle:
             rules = [
                 line.strip()
                 for line in run_capture(
-                [
-                    str(self.dependencies.firewall),
-                    f"--zone={zone}",
-                    "--list-rich-rules",
-                ]
+                    [
+                        str(self.dependencies.firewall),
+                        f"--zone={zone}",
+                        "--list-rich-rules",
+                    ],
+                    timeout=self.remaining_timeout(deadline),
                 ).stdout.splitlines()
                 if line.strip()
             ]
@@ -1194,7 +1218,9 @@ class LiveCycle:
                 fail(f"firewall zone {zone} retains a lifecycle drop rule")
         return forward.returncode == 0
 
-    def capture_host_snapshot(self) -> HostSnapshot:
+    def capture_host_snapshot(
+        self, *, deadline: float | None = None
+    ) -> HostSnapshot:
         try:
             ip_nonlocal = self.dependencies.ip_nonlocal_bind.read_text(
                 encoding="ascii"
@@ -1204,11 +1230,13 @@ class LiveCycle:
         if ip_nonlocal not in {"0", "1"}:
             fail("ip_nonlocal_bind is not canonical")
         return HostSnapshot(
-            firewall_forward=self.firewall_empty(),
+            firewall_forward=self.firewall_empty(deadline=deadline),
             ip_nonlocal_bind=ip_nonlocal,
         )
 
-    def rog5_ncm_interfaces(self) -> tuple[InterfaceSnapshot, ...]:
+    def rog5_ncm_interfaces(
+        self, *, deadline: float | None = None
+    ) -> tuple[InterfaceSnapshot, ...]:
         snapshots: list[InterfaceSnapshot] = []
         try:
             paths = sorted(self.dependencies.sys_class_net.iterdir())
@@ -1225,6 +1253,7 @@ class LiveCycle:
                     "--query=property",
                     f"--path={path}",
                 ],
+                timeout=self.remaining_timeout(deadline),
                 check=False,
             )
             if properties_result.returncode != 0:
@@ -1257,7 +1286,8 @@ class LiveCycle:
                     "show",
                     "dev",
                     name,
-                ]
+                ],
+                timeout=self.remaining_timeout(deadline),
             )
             addresses = []
             for line in address_result.stdout.splitlines():
@@ -1272,6 +1302,7 @@ class LiveCycle:
                         str(self.dependencies.firewall),
                         f"--get-zone-of-interface={name}",
                     ],
+                    timeout=self.remaining_timeout(deadline),
                     check=False,
                 ).stdout.splitlines()
                 if line.strip()
@@ -1290,6 +1321,7 @@ class LiveCycle:
                     "show",
                     name,
                 ],
+                timeout=self.remaining_timeout(deadline),
                 check=False,
             )
             managed = managed_result.stdout.strip()
@@ -1303,6 +1335,7 @@ class LiveCycle:
                         "show",
                         name,
                     ],
+                    timeout=self.remaining_timeout(deadline),
                     check=False,
                 )
                 managed = managed_result.stdout.strip()
@@ -1347,7 +1380,12 @@ class LiveCycle:
             time.sleep(self.poll)
         fail("exact recovery NCM host state did not become stable")
 
-    def verify_host_clean(self, *, final: bool = False) -> None:
+    def verify_host_clean(
+        self,
+        *,
+        final: bool = False,
+        deadline: float | None = None,
+    ) -> None:
         for path in (
             self.dependencies.handoff_marker,
             self.dependencies.network_service_state,
@@ -1362,7 +1400,8 @@ class LiveCycle:
                     "-H",
                     "-lntu4",
                     f"sport = :{port}",
-                ]
+                ],
+                timeout=self.remaining_timeout(deadline),
             )
             if result.stdout.strip():
                 fail(f"host listener remains on TCP port {port}")
@@ -1394,7 +1433,7 @@ class LiveCycle:
             fail("host NFS export table metadata is unsafe")
         if export_payload.strip():
             fail("host retains an NFS export")
-        rog5_interfaces = self.rog5_ncm_interfaces()
+        rog5_interfaces = self.rog5_ncm_interfaces(deadline=deadline)
         allowed_shared_addresses = {
             item.name
             for item in rog5_interfaces
@@ -1411,7 +1450,8 @@ class LiveCycle:
                 "-o",
                 "address",
                 "show",
-            ]
+            ],
+            timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
         for line in address_lines:
             fields = line.split()
@@ -1420,7 +1460,7 @@ class LiveCycle:
                     if len(fields) < 2 or fields[1] not in (
                         allowed_shared_addresses
                     ):
-                        fail(
+                        raise HostIdentityObservationError(
                             "shared ROG5 /30 escaped the exact managed "
                             "USB profile"
                         )
@@ -1443,11 +1483,36 @@ class LiveCycle:
                         "fallback ROG5 interface retains lifecycle "
                         "ownership"
                     )
-        current = self.capture_host_snapshot()
+        current = self.capture_host_snapshot(deadline=deadline)
         if self.host_snapshot is None:
             self.host_snapshot = current
         elif current != self.host_snapshot:
             fail("host firewall or nonlocal-bind state was not restored")
+
+    def wait_host_clean(self, *, final: bool = False) -> None:
+        deadline = time.monotonic() + self.cleanup_stabilize_timeout
+        clean_since: float | None = None
+        last_error: HostIdentityObservationError | None = None
+        while time.monotonic() < deadline:
+            try:
+                self.verify_host_clean(final=final, deadline=deadline)
+            except HostIdentityObservationError as error:
+                clean_since = None
+                last_error = error
+            else:
+                now = time.monotonic()
+                if clean_since is None:
+                    clean_since = now
+                elif now - clean_since >= self.cleanup_stabilize_dwell:
+                    return
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(self.poll, remaining))
+        if last_error is None:
+            fail("host cleanup did not remain continuously clean")
+        raise CycleError(
+            f"host cleanup did not stabilize: {last_error}"
+        ) from last_error
 
     def preflight(self) -> None:
         for path in (
@@ -1738,6 +1803,8 @@ class LiveCycle:
         fallback_attempted = False
         fallback_proved = False
         resolved = False
+        final_cleanup_attempted = False
+        final_cleanup_completed = False
         fallback_contact_deadline: float | None = None
         handoff_token: str | None = None
         ledger_before: set[str] = set()
@@ -1916,7 +1983,9 @@ class LiveCycle:
             fallback_attempted = True
             self.wait_fallback(target_boot_id)
             fallback_proved = True
-            self.verify_host_clean(final=True)
+            final_cleanup_attempted = True
+            self.wait_host_clean(final=True)
+            final_cleanup_completed = True
             self.resolve_intent(intent, "TARGET_ACCEPTED")
             resolved = True
             print(
@@ -1988,7 +2057,15 @@ class LiveCycle:
                                 "network-root server did not exit cleanly "
                                 f"after fallback: {network_status}"
                             )
-                    self.verify_host_clean(final=True)
+                    if not final_cleanup_completed:
+                        if final_cleanup_attempted:
+                            fail(
+                                "final host cleanup proof was already "
+                                "attempted and was not retried"
+                            )
+                        final_cleanup_attempted = True
+                        self.wait_host_clean(final=True)
+                        final_cleanup_completed = True
                     outcome = (
                         "TARGET_ACCEPTED"
                         if target_accepted
