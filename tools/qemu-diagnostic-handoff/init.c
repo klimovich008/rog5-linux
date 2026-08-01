@@ -337,6 +337,8 @@ __attribute__((noreturn)) static void initial_init(void)
 	move_handoff_mount("/run", "/newroot/run");
 	require_emit("120");
 	sleep_milliseconds(400);
+	if (setenv("LD_PRELOAD", "/usr/lib/rog5-abort-trace.so", 1) < 0)
+		stop("cannot enable QEMU abort tracing");
 	enter_new_root("/newroot", SYSTEMD);
 }
 
