@@ -7,20 +7,40 @@ fail() {
 }
 
 action=serve
-if [[ ${1:-} == preflight ]]; then
-	action=preflight
-	shift
+case ${1:-} in
+	preflight|serve-deferred|restore-fallback)
+		action=$1
+		shift
+		;;
+esac
+if [[ $action == restore-fallback ]]; then
+	anchor=${1:-}
+	restore_timeout=${2:-}
+	[[ $# == 2 ]] ||
+		fail 'usage: run-recovery-bundle-server.sh restore-fallback ANCHOR TIMEOUT'
+	[[ $anchor =~ ^/[A-Za-z0-9._/+-]{1,399}$ &&
+		$anchor != */ && $anchor != *//* ]] ||
+		fail 'invalid recovery anchor path'
+	IFS=/ read -r -a anchor_parts <<<"$anchor"
+	for anchor_part in "${anchor_parts[@]}"; do
+		[[ -z $anchor_part || $anchor_part != .. ]] ||
+			fail 'invalid recovery anchor path'
+	done
+	[[ $restore_timeout =~ ^[1-9][0-9]*$ &&
+		$restore_timeout -le 900 ]] ||
+		fail 'invalid fallback-profile timeout'
+else
+	bundle=${1:-}
+	manifest_hash=${2:-}
+	[[ $# == 2 ]] ||
+		fail 'usage: run-recovery-bundle-server.sh [preflight|serve-deferred] BUNDLE MANIFEST_SHA256'
+	[[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
+		$bundle != *..* && $bundle != none ]] ||
+		fail 'invalid bundle identity'
+	[[ $manifest_hash =~ ^[0-9a-f]{64}$ &&
+		$manifest_hash != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+		fail 'invalid manifest SHA-256'
 fi
-bundle=${1:-}
-manifest_hash=${2:-}
-[[ $# == 2 ]] ||
-	fail 'usage: run-recovery-bundle-server.sh [preflight] BUNDLE MANIFEST_SHA256'
-[[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
-	$bundle != *..* && $bundle != none ]] ||
-	fail 'invalid bundle identity'
-[[ $manifest_hash =~ ^[0-9a-f]{64}$ &&
-	$manifest_hash != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
-	fail 'invalid manifest SHA-256'
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 controller_source=$repo/packaging/host/rog5-recovery-bundle-controller
@@ -55,5 +75,12 @@ done
 
 if [[ $action == preflight ]]; then
 	exec python3 -B "$server" --preflight "$bundle" "$manifest_hash"
+fi
+if [[ $action == serve-deferred ]]; then
+	exec python3 -B "$client" bundle-deferred "$bundle" "$manifest_hash"
+fi
+if [[ $action == restore-fallback ]]; then
+	exec python3 -B "$client" fallback-profile-restore \
+		"$anchor" "$restore_timeout"
 fi
 exec python3 -B "$client" bundle "$bundle" "$manifest_hash"

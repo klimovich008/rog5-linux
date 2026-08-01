@@ -15,6 +15,7 @@ import tempfile
 import textwrap
 import time
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -97,6 +98,11 @@ class Fixture:
             "0\n",
             encoding="ascii",
         )
+        (self.state / "host-boot-id").write_text(
+            TARGET_BOOT_ID + "\n",
+            encoding="ascii",
+        )
+        self.anchor_created = str(int(time.time()))
         self.sys_class_net = self.state / "sys-class-net"
         (self.sys_class_net / "usbmock0").mkdir(parents=True)
         self.xdg_state = self.root / "xdg-state"
@@ -245,7 +251,10 @@ class Fixture:
             printf 'ip:%s\n' "$*" >>"$MOCK_CALLS"
             case " $* " in
               *" -4 -o address show dev usbmock0 "*)
-                echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
+                   [ -e "$MOCK_ROOT/profile-restored" ]; then
+                  echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                fi
                 if { [ "${MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/bundle-consumed" ]; } ||
                    { [ "${MOCK_ADDRESS_RESIDUE_AFTER_NFS:-0}" = 1 ] &&
@@ -254,7 +263,10 @@ class Fixture:
                 fi
                 ;;
               *" -4 -o address show "*)
-                echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
+                   [ -e "$MOCK_ROOT/profile-restored" ]; then
+                  echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                fi
                 if [ "${MOCK_ADDRESS_GAP_AFTER_FALLBACK:-0}" = 1 ] &&
                    [ -e "$MOCK_ROOT/fallback-proved" ] &&
                    [ ! -e "$MOCK_ROOT/address-gap-consumed" ]; then
@@ -277,12 +289,38 @@ class Fixture:
             """\
             #!/bin/sh
             printf 'nmcli:%s\n' "$*" >>"$MOCK_CALLS"
-            if [ "${MOCK_NM_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
-               [ -e "$MOCK_ROOT/bundle-consumed" ]; then
-              echo no
-            else
-              echo yes
-            fi
+            uuid=244dd128-e3b1-458e-9639-5e4ab4d8854f
+            case "$*" in
+              '-g GENERAL.CON-UUID device show usbmock0')
+                if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
+                   [ -e "$MOCK_ROOT/profile-restored" ] ||
+                   [ "${MOCK_DEFERRED_ACTIVE_UUID:-0}" = 1 ]; then
+                  echo "$uuid"
+                fi
+                ;;
+              '-g connection.uuid,connection.id,connection.interface-name,connection.autoconnect connection show rog5-fallback-usb-ssh')
+                printf '%s\n' "$uuid" 'rog5-fallback-usb-ssh' 'usbmock0'
+                if [ "${MOCK_DEFERRED_AUTOCONNECT:-0}" = 1 ]; then
+                  echo yes
+                elif [ -e "$MOCK_ROOT/profile-deferred" ] &&
+                     [ ! -e "$MOCK_ROOT/profile-restored" ]; then
+                  echo no
+                else
+                  echo yes
+                fi
+                ;;
+              *)
+                if [ "${MOCK_NM_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
+                   [ -e "$MOCK_ROOT/bundle-consumed" ]; then
+                  echo yes
+                elif [ -e "$MOCK_ROOT/profile-deferred" ] &&
+                     [ ! -e "$MOCK_ROOT/profile-restored" ]; then
+                  echo no
+                else
+                  echo yes
+                fi
+                ;;
+            esac
             """,
         )
         self.executable(
@@ -408,6 +446,24 @@ class Fixture:
               echo 'PASS bundle preflight'
               exit 0
             fi
+            if [ "$1" = restore-fallback ]; then
+              [ "$2" = "$MOCK_ROOT/evidence/recovery-usb.anchor" ]
+              [ "$3" -ge 1 ]
+              [ "$3" -le 750 ]
+              [ "$#" = 3 ]
+              [ -e "$MOCK_ROOT/profile-deferred" ]
+              printf 'bundle:restore-fallback\n' >>"$MOCK_CALLS"
+              if [ "${MOCK_PROFILE_RESTORE_FAIL:-0}" = 1 ]; then
+                echo 'FAIL injected fallback profile restoration failure'
+                exit 1
+              fi
+              : >"$MOCK_ROOT/target-departed"
+              : >"$MOCK_ROOT/profile-restored"
+              echo 'PASS exact Alpine fallback profile restored on usbmock0'
+              exit 0
+            fi
+            [ "$1" = serve-deferred ]
+            shift
             printf 'bundle:start\n' >>"$MOCK_CALLS"
             echo 'PASS recovery bundle server ready on 169.254.77.1:8080 via usb0'
             while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
@@ -416,6 +472,8 @@ class Fixture:
             printf 'bundle:transfer\n' >>"$MOCK_CALLS"
             echo 'PASS one recovery bundle transfer completed'
             echo 'INFO recovery bundle host network state removed'
+            echo 'INFO fallback NetworkManager profile restoration deferred'
+            : >"$MOCK_ROOT/profile-deferred"
             printf 'bundle:clean\n' >>"$MOCK_CALLS"
             """,
         )
@@ -540,7 +598,7 @@ class Fixture:
                 printf '%s\n' \
                   'format=rog5-minimal-headless-usb-anchor-v1' \
                   'host_boot_id=11111111-2222-4333-8444-555555555555' \
-                  'created_unix=2000000000' \
+                  "created_unix=$MOCK_ANCHOR_CREATED" \
                   'usb_location=pci/usb1/1-1/1-1.2' \
                   'recovery_vendor=1d6b' \
                   'recovery_product_id=0104' \
@@ -670,13 +728,15 @@ class Fixture:
             [ "$5" = "{self.evidence / 'recovery-usb.anchor'}" ]
             [ -f "$5" ]
             grep -Fxq 'format=rog5-minimal-headless-usb-anchor-v1' "$5"
-            [ "$6" = 750 ]
+            [ "$6" -ge 1 ]
+            [ "$6" -le 750 ]
             [ "$7" = "{self.evidence / 'fallback-identity.record'}" ]
             [ "$#" = 7 ]
             [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
             [ "${{ALLOW_FALLBACK_SSH_ATIME_EFFECTS:-}}" = 1 ]
             [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
+            [ -e "$MOCK_ROOT/profile-restored" ]
             printf 'fallback:ssh-preflight\n' >>"$MOCK_CALLS"
             if [ "${{MOCK_FALLBACK_FAIL:-0}}" = 1 ]; then
               echo 'FAIL injected fallback SSH rejection'
@@ -713,6 +773,7 @@ class Fixture:
                 "ROG5_LIVE_CYCLE_TEST_ROOT": str(self.root),
                 "MOCK_ROOT": str(self.root),
                 "MOCK_CALLS": str(self.calls),
+                "MOCK_ANCHOR_CREATED": self.anchor_created,
                 "BUNDLE": BUNDLE,
                 "MANIFEST_SHA256": MANIFEST,
                 "ROG5_STABLE_RECOVERY_PROFILE": RECOVERY_PROFILE,
@@ -767,6 +828,58 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.fixture.close()
+
+    def test_privileged_restore_anchor_is_private_fresh_and_host_bound(self):
+        anchor = self.fixture.evidence / "restore.anchor"
+
+        def write(
+            *,
+            created: str | None = None,
+            boot_id: str = TARGET_BOOT_ID,
+            reorder: bool = False,
+        ) -> None:
+            fields = [
+                "format=rog5-minimal-headless-usb-anchor-v1",
+                f"host_boot_id={boot_id}",
+                f"created_unix={created or self.fixture.anchor_created}",
+                "usb_location=pci/usb1/1-1/1-1.2",
+                "recovery_vendor=1d6b",
+                "recovery_product_id=0104",
+                "recovery_product=ROG5 recovery",
+            ]
+            if reorder:
+                fields[2], fields[3] = fields[3], fields[2]
+            anchor.write_text("\n".join((*fields, "")), encoding="ascii")
+            anchor.chmod(0o600)
+
+        with mock.patch.dict(
+            os.environ,
+            self.fixture.environment(),
+            clear=False,
+        ):
+            dependencies = CYCLE.Dependencies.from_environment()
+        write()
+        self.assertEqual(
+            CYCLE.read_recovery_anchor_location(anchor, dependencies),
+            "pci/usb1/1-1/1-1.2",
+        )
+        mutations = (
+            {"created": str(int(time.time()) - 3601)},
+            {"boot_id": FALLBACK_BOOT_ID},
+            {"reorder": True},
+        )
+        for values in mutations:
+            with self.subTest(values=values):
+                write(**values)
+                with self.assertRaises(CYCLE.CycleError):
+                    CYCLE.read_recovery_anchor_location(
+                        anchor,
+                        dependencies,
+                    )
+        write()
+        anchor.chmod(0o644)
+        with self.assertRaises(CYCLE.CycleError):
+            CYCLE.read_recovery_anchor_location(anchor, dependencies)
 
     def test_guards_fail_before_any_dependency_or_credential_use(self):
         result = self.fixture.run(
@@ -927,15 +1040,26 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             calls.index("nfs:clean"),
         )
         self.assertLess(
+            calls.index("bundle:restore-fallback"),
+            calls.index("fallback:ssh-preflight"),
+        )
+        self.assertLess(
             calls.index("fallback:ssh-preflight"),
             calls.index("control:resolve:TARGET_ACCEPTED"),
         )
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
         self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertTrue(
             (self.fixture.evidence / "target-known-hosts").is_file()
         )
         self.assertTrue(
             (self.fixture.evidence / "fallback-identity.record").is_file()
+        )
+        self.assertTrue(
+            (
+                self.fixture.evidence
+                / "fallback-profile-restore.log"
+            ).is_file()
         )
         resolution = (
             self.fixture.evidence / "intent-resolution.log"
@@ -1274,6 +1398,19 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     )
                 )
 
+    def test_deferred_profile_requires_inactive_uuid_and_autoconnect_off(self):
+        for variable in (
+            "MOCK_DEFERRED_ACTIVE_UUID",
+            "MOCK_DEFERRED_AUTOCONNECT",
+        ):
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{variable: "1"})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("nfs:start", self.fixture.call_lines())
+                self.assertIn("deferred", result.stderr)
+
     def test_final_address_residue_prevents_intent_resolution(self):
         result = self.fixture.run(
             "run",
@@ -1447,6 +1584,21 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 line.startswith("control:resolve:")
                 for line in self.fixture.call_lines()
             )
+        )
+
+    def test_failed_profile_restore_is_not_retried_or_exposed_to_ssh(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_PROFILE_RESTORE_FAIL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 0)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
         )
 
     def test_installed_nfs_surface_is_fixed_and_exact(self):

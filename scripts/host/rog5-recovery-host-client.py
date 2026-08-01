@@ -17,6 +17,7 @@ STATUS_PREFIX = b"__ROG5_HOST_CONTROL_STATUS__="
 RESPONSE_TIMEOUT_SECONDS = 1020
 SHA256 = re.compile(r"[0-9a-f]{64}")
 IDENTITY = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+ANCHOR_PATH = re.compile(r"/[A-Za-z0-9._/+-]{1,399}")
 TOKEN = SHA256
 
 
@@ -30,7 +31,7 @@ def fail(message: str) -> "NoReturn":
 
 def request(arguments: list[str]) -> bytes:
     action = arguments[0] if arguments else ""
-    if action == "bundle" and len(arguments) == 3:
+    if action in {"bundle", "bundle-deferred"} and len(arguments) == 3:
         bundle, digest = arguments[1:]
         if (
             not IDENTITY.fullmatch(bundle)
@@ -40,6 +41,21 @@ def request(arguments: list[str]) -> bytes:
             fail("invalid bundle identity")
         if not SHA256.fullmatch(digest) or digest == "0" * 64:
             fail("invalid manifest SHA-256")
+    elif action == "fallback-profile-restore" and len(arguments) == 3:
+        anchor, timeout = arguments[1:]
+        if (
+            not ANCHOR_PATH.fullmatch(anchor)
+            or anchor.endswith("/")
+            or "//" in anchor
+            or ".." in anchor.split("/")
+        ):
+            fail("invalid recovery anchor path")
+        if (
+            not timeout.isascii()
+            or not timeout.isdecimal()
+            or not 1 <= int(timeout) <= 900
+        ):
+            fail("invalid fallback-profile timeout")
     elif action == "network-preflight-v1" and len(arguments) == 1:
         pass
     elif action == "network-preflight-v3" and len(arguments) == 2:
@@ -67,6 +83,8 @@ def request(arguments: list[str]) -> bytes:
     else:
         fail(
             "usage: rog5-recovery-host-client.py bundle BUNDLE SHA256 | "
+            "bundle-deferred BUNDLE SHA256 | "
+            "fallback-profile-restore ANCHOR TIMEOUT | "
             "network-preflight-v1 | network-preflight-v3 PACKAGE_SHA256 | "
             "network-serve-v1 TOKEN TIMEOUT | "
             "network-serve-v3 PACKAGE_SHA256 TOKEN TIMEOUT | "

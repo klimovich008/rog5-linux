@@ -12,6 +12,7 @@ import stat
 import struct
 import subprocess
 import sys
+import time
 
 
 CONFIG = Path("/etc/rog5-recovery-host/control.conf")
@@ -24,6 +25,22 @@ V3_ROOT = "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 STATUS_PREFIX = b"__ROG5_HOST_CONTROL_STATUS__="
 SHA256 = re.compile(r"[0-9a-f]{64}")
 IDENTITY = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+USB_LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}")
+ANCHOR_PATH = re.compile(r"/[A-Za-z0-9._/+-]{1,399}")
+BOOT_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}"
+)
+CONTACT_START_MAX_AGE_SECONDS = 3600
+ANCHOR_FIELDS = (
+    "format",
+    "host_boot_id",
+    "created_unix",
+    "usb_location",
+    "recovery_vendor",
+    "recovery_product_id",
+    "recovery_product",
+)
 
 
 class BrokerError(RuntimeError):
@@ -179,9 +196,140 @@ def read_request(channel: socket.socket) -> list[str]:
     return line.split(" ")
 
 
-def command(arguments: list[str], controller: Path, network: Path) -> list[str]:
+def recovery_anchor_location(
+    value: str,
+    operator_uid: int,
+    operator_gid: int,
+    *,
+    offline: bool,
+) -> str:
+    if (
+        not ANCHOR_PATH.fullmatch(value)
+        or value.endswith("/")
+        or "//" in value
+        or ".." in value.split("/")
+    ):
+        fail("invalid recovery anchor path")
+    path = Path(value)
+    try:
+        resolved = path.resolve(strict=True)
+        parent = path.parent.lstat()
+    except OSError as error:
+        raise BrokerError("recovery anchor is unavailable") from error
+    if resolved != path:
+        fail("recovery anchor path is not canonical")
+    if (
+        not stat.S_ISDIR(parent.st_mode)
+        or parent.st_uid != operator_uid
+        or parent.st_gid != operator_gid
+        or stat.S_IMODE(parent.st_mode) != 0o700
+    ):
+        fail("recovery anchor parent is unsafe")
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise BrokerError("recovery anchor cannot be opened") from error
+    try:
+        opened = os.fstat(descriptor)
+        if not 1 <= opened.st_size <= 4096:
+            fail("recovery anchor size is unsafe")
+        payload = os.read(descriptor, opened.st_size + 1)
+        after = os.fstat(descriptor)
+        named = path.lstat()
+    except OSError as error:
+        raise BrokerError("recovery anchor cannot be inspected") from error
+    finally:
+        os.close(descriptor)
+
+    def stat_identity(value: os.stat_result) -> tuple[int, ...]:
+        return (
+            value.st_dev,
+            value.st_ino,
+            value.st_uid,
+            value.st_gid,
+            stat.S_IFMT(value.st_mode),
+            value.st_size,
+        )
+
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or opened.st_uid != operator_uid
+        or opened.st_gid != operator_gid
+        or stat.S_IMODE(opened.st_mode) != 0o600
+        or opened.st_nlink != 1
+        or len(payload) != opened.st_size
+        or stat_identity(after) != stat_identity(opened)
+        or stat_identity(named) != stat_identity(opened)
+    ):
+        fail("recovery anchor metadata or identity is unsafe")
+    if not payload.endswith(b"\n") or b"\r" in payload or b"\0" in payload:
+        fail("recovery anchor encoding is not canonical")
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise BrokerError("recovery anchor is not ASCII") from error
+    if len(lines) != len(ANCHOR_FIELDS):
+        fail("recovery anchor field count changed")
+    values: dict[str, str] = {}
+    for expected, line in zip(ANCHOR_FIELDS, lines, strict=True):
+        name, separator, field = line.partition("=")
+        if separator != "=" or name != expected or not field:
+            fail("recovery anchor is not canonical")
+        values[name] = field
+    boot_id_path = (
+        Path(os.environ["ROG5_TEST_BROKER_BOOT_ID"])
+        if offline
+        else Path("/proc/sys/kernel/random/boot_id")
+    )
+    try:
+        boot_payload = boot_id_path.read_bytes()
+    except OSError as error:
+        raise BrokerError("host boot identity is unavailable") from error
+    if boot_payload.count(b"\n") != 1 or not boot_payload.endswith(b"\n"):
+        fail("host boot identity is not canonical")
+    try:
+        host_boot_id = boot_payload[:-1].decode("ascii")
+    except UnicodeDecodeError as error:
+        raise BrokerError("host boot identity is not ASCII") from error
+    created = values["created_unix"]
+    location = values["usb_location"]
+    now = int(time.time())
+    if (
+        not BOOT_ID.fullmatch(host_boot_id)
+        or values["format"] != "rog5-minimal-headless-usb-anchor-v1"
+        or values["host_boot_id"] != host_boot_id
+        or values["recovery_vendor"] != "1d6b"
+        or values["recovery_product_id"] != "0104"
+        or values["recovery_product"] != "ROG5 recovery"
+        or not created.isascii()
+        or not created.isdecimal()
+        or created.startswith("0")
+        or int(created) > now + 5
+        or now - int(created) > CONTACT_START_MAX_AGE_SECONDS
+        or not USB_LOCATION.fullmatch(location)
+        or location.startswith("/")
+        or location.endswith("/")
+        or "//" in location
+        or ".." in location.split("/")
+    ):
+        fail("recovery anchor identity or freshness is invalid")
+    return location
+
+
+def command(
+    arguments: list[str],
+    controller: Path,
+    network: Path,
+    operator_uid: int,
+    operator_gid: int,
+    *,
+    offline: bool,
+) -> list[str]:
     action = arguments[0] if arguments else ""
-    if action == "bundle" and len(arguments) == 3:
+    if action in {"bundle", "bundle-deferred"} and len(arguments) == 3:
         bundle, digest = arguments[1:]
         if (
             not IDENTITY.fullmatch(bundle)
@@ -191,7 +339,24 @@ def command(arguments: list[str], controller: Path, network: Path) -> list[str]:
             fail("invalid bundle identity")
         if not SHA256.fullmatch(digest) or digest == "0" * 64:
             fail("invalid manifest SHA-256")
+        if action == "bundle-deferred":
+            return [str(controller), "serve-deferred", bundle, digest]
         return [str(controller), bundle, digest]
+    if action == "fallback-profile-restore" and len(arguments) == 3:
+        anchor, timeout = arguments[1:]
+        if (
+            not timeout.isascii()
+            or not timeout.isdecimal()
+            or not 1 <= int(timeout) <= 900
+        ):
+            fail("invalid fallback-profile timeout")
+        location = recovery_anchor_location(
+            anchor,
+            operator_uid,
+            operator_gid,
+            offline=offline,
+        )
+        return [str(controller), "restore-fallback", location, timeout]
     if action == "network-preflight-v1" and len(arguments) == 1:
         return [str(network), "preflight", V1_ROOT]
     if action == "network-preflight-v3" and len(arguments) == 2:
@@ -335,7 +500,7 @@ def run() -> int:
             controller_hash,
             network_hash,
         ) = configuration()
-        peer_pid, peer_uid, _peer_gid = struct.unpack(
+        peer_pid, peer_uid, peer_gid = struct.unpack(
             "3i", channel.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
         )
         if peer_pid <= 0 or peer_uid != operator_uid:
@@ -352,7 +517,14 @@ def run() -> int:
             controller_hash,
             network_hash,
         )
-        argv = command(arguments, controller, network)
+        argv = command(
+            arguments,
+            controller,
+            network,
+            operator_uid,
+            peer_gid,
+            offline=offline,
+        )
         status = execute(channel, argv, operator_uid, offline=offline)
         send(channel, STATUS_PREFIX + str(status).encode("ascii") + b"\n")
         return 0

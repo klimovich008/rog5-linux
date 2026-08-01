@@ -1424,6 +1424,25 @@ class SshTransportTest(unittest.TestCase):
 
 
 class PolicyTest(unittest.TestCase):
+    def test_wait_timeout_policy_allows_the_shared_deadline_tail(self) -> None:
+        self.assertEqual(MODULE.parse_wait_timeout("600"), 600)
+        self.assertEqual(MODULE.parse_wait_timeout("900"), 900)
+        for value in ("0", "599", "901", "+600", " 600"):
+            with self.subTest(standalone=value):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_wait_timeout(value)
+
+        for value in ("1", "599", "900"):
+            with self.subTest(shared_deadline=value):
+                self.assertEqual(
+                    MODULE.parse_wait_timeout(value, minimum=1),
+                    int(value),
+                )
+        for value in ("0", "901"):
+            with self.subTest(invalid_shared_deadline=value):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_wait_timeout(value, minimum=1)
+
     def test_embedded_thermal_policy_matches_host_verifier(self) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
         names = {

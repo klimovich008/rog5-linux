@@ -10,6 +10,7 @@ import socket
 import subprocess
 import tempfile
 import threading
+import time
 import unittest
 
 
@@ -26,6 +27,7 @@ SERVICE_UNIT = REPO / "packaging/host/rog5-recovery-host@.service"
 DIGEST = "a" * 64
 TOKEN = "b" * 64
 STATUS = b"__ROG5_HOST_CONTROL_STATUS__="
+HOST_BOOT_ID = "11111111-2222-4333-8444-555555555555"
 
 
 class BrokerFixture:
@@ -34,6 +36,7 @@ class BrokerFixture:
             prefix="rog5-host-socket-test-"
         )
         self.root = Path(self.temporary.name)
+        self.root.chmod(0o700)
         self.calls = self.root / "calls"
         self.controller = self.root / "controller"
         self.network = self.root / "network"
@@ -72,6 +75,31 @@ class BrokerFixture:
             encoding="ascii",
         )
         self.config.chmod(0o444)
+        self.host_boot_id = self.root / "host-boot-id"
+        self.host_boot_id.write_text(HOST_BOOT_ID + "\n", encoding="ascii")
+        self.anchor = self.root / "recovery-usb.anchor"
+        self.write_anchor()
+
+    def write_anchor(
+        self,
+        *,
+        boot_id: str = HOST_BOOT_ID,
+        created: int | None = None,
+        reorder: bool = False,
+    ) -> None:
+        fields = [
+            "format=rog5-minimal-headless-usb-anchor-v1",
+            f"host_boot_id={boot_id}",
+            f"created_unix={created or int(time.time())}",
+            "usb_location=pci/usb1/1-1/1-1.2",
+            "recovery_vendor=1d6b",
+            "recovery_product_id=0104",
+            "recovery_product=ROG5 recovery",
+        ]
+        if reorder:
+            fields[2], fields[3] = fields[3], fields[2]
+        self.anchor.write_text("\n".join((*fields, "")), encoding="ascii")
+        self.anchor.chmod(0o600)
 
     def close(self) -> None:
         self.temporary.cleanup()
@@ -93,6 +121,7 @@ class BrokerFixture:
                 "ROG5_TEST_BROKER_CONFIG": str(self.config),
                 "ROG5_TEST_BROKER_CONTROLLER": str(self.controller),
                 "ROG5_TEST_BROKER_NETWORK_SERVER": str(self.network),
+                "ROG5_TEST_BROKER_BOOT_ID": str(self.host_boot_id),
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_EXIT_STATUS": exit_status,
                 "MOCK_DELAY": delay,
@@ -136,6 +165,15 @@ class RecoveryHostSocketTest(unittest.TestCase):
             (
                 f"bundle arch-test-v1 {DIGEST}\n".encode(),
                 f"controller arch-test-v1 {DIGEST}\n".encode(),
+            ),
+            (
+                f"bundle-deferred arch-test-v1 {DIGEST}\n".encode(),
+                f"controller serve-deferred arch-test-v1 {DIGEST}\n".encode(),
+            ),
+            (
+                f"fallback-profile-restore {self.fixture.anchor} 750\n".encode(),
+                b"controller restore-fallback "
+                b"pci/usb1/1-1/1-1.2 750\n",
             ),
             (
                 b"network-preflight-v1\n",
@@ -221,6 +259,10 @@ class RecoveryHostSocketTest(unittest.TestCase):
             + TOKEN.encode()
             + b" 901\n",
             b"bundle  test " + DIGEST.encode() + b"\n",
+            b"fallback-profile-restore relative-anchor 750\n",
+            b"fallback-profile-restore /tmp/../escape 750\n",
+            f"fallback-profile-restore {self.fixture.anchor} 0\n".encode(),
+            f"fallback-profile-restore {self.fixture.anchor} 901\n".encode(),
             b"shell /bin/sh\n",
         ):
             with self.subTest(payload=payload[:40]):
@@ -293,7 +335,12 @@ class RecoveryHostSocketTest(unittest.TestCase):
             }
         )
         result = subprocess.run(
-            [str(CLIENT), "bundle", "arch-test-v1", DIGEST],
+            [
+                str(CLIENT),
+                "fallback-profile-restore",
+                str(self.fixture.anchor),
+                "750",
+            ],
             env=environment,
             text=True,
             capture_output=True,
@@ -304,8 +351,38 @@ class RecoveryHostSocketTest(unittest.TestCase):
         self.assertEqual(result.returncode, 23, result.stderr)
         self.assertEqual(result.stdout, "READY fixed test server\n")
         self.assertEqual(
-            observed, [f"bundle arch-test-v1 {DIGEST}\n".encode()]
+            observed,
+            [
+                b"fallback-profile-restore "
+                + str(self.fixture.anchor).encode()
+                + b" 750\n"
+            ],
         )
+
+    def test_privileged_restore_requires_exact_private_fresh_anchor(self):
+        mutations = (
+            ("stale", lambda: self.fixture.write_anchor(
+                created=int(time.time()) - 3601
+            )),
+            ("wrong-boot", lambda: self.fixture.write_anchor(
+                boot_id="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            )),
+            ("reordered", lambda: self.fixture.write_anchor(reorder=True)),
+            ("loose-mode", lambda: self.fixture.anchor.chmod(0o644)),
+        )
+        for name, mutate in mutations:
+            with self.subTest(name=name):
+                self.fixture.write_anchor()
+                mutate()
+                if self.fixture.calls.exists():
+                    self.fixture.calls.unlink()
+                _status, response = self.fixture.run(
+                    f"fallback-profile-restore "
+                    f"{self.fixture.anchor} 750\n".encode()
+                )
+                self.assertIn(b"FAIL ", response)
+                self.assertTrue(response.endswith(STATUS + b"1\n"))
+                self.assertFalse(self.fixture.calls.exists())
 
     def test_installed_surface_has_no_policykit_hot_path(self):
         installer = INSTALLER.read_text(encoding="utf-8")
