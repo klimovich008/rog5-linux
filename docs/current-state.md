@@ -896,11 +896,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `f710bbcd…97b0ef`, raw wrapper `2f460aa0…628a01`, ASUS `Image`
    `7fac4dda…728ed`, stable-recovery initramfs `fec72c4d…1c57a`, and the
    unchanged trust root `f10ca076…c57b`. The real artifact preflight passes
-   and the wrapper is admitted for one RAM-only boot. The separate
-   fallback-profile cleanup race remains a bounded-design HOLD; never reuse
-   the consumed `9c060a27…204ef` wrapper. See the
+   and the wrapper is admitted for one RAM-only boot. The fallback-profile
+   cleanup race is now closed offline: the lifecycle suppresses autoconnect,
+   leaves recovery unmanaged after transfer, and restores the exact profile
+   only after stable same-port Alpine USB identity. The bounded, serialized,
+   idempotent restore passes partial-failure, detach, duplicate, wrong-port,
+   hung-udev, socket, and lifecycle tests plus complete local CI. Host
+   installation and connected preflight remain before any phone boot; never
+   reuse the consumed `9c060a27…204ef` wrapper. See the
    [disposable](../test-results/2026-08-01-corrected-diagnostic-recovery-disposable-build.md)
-   and [production](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md)
+   [production](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md),
+   and [bounded restoration](../test-results/2026-08-01-bounded-fallback-profile-restoration-offline.md)
    results.
 5. Use corrected diagnostic evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path

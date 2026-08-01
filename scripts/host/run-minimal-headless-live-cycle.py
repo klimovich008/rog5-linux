@@ -33,6 +33,7 @@ DIAGNOSTIC_COLLECTOR_READY = (
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
+FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 ZERO_SHA256 = "0" * 64
 CONSUMED_MANIFESTS = {
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
@@ -46,6 +47,7 @@ BOOT_ID = re.compile(
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
 )
 USB_LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}\Z")
+ANCHOR_PATH = re.compile(r"/[A-Za-z0-9._/+-]{1,399}\Z")
 FULL_GUARDS = (
     "ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE",
     "ALLOW_HEADLESS_SSH_KEY_ADMISSION",
@@ -102,10 +104,20 @@ OUTPUT_NAMES = (
     "runtime-acceptance.log",
     "minimal-headless-runtime.record",
     "fallback-identity.record",
+    "fallback-profile-restore.log",
     "fallback-preflight.log",
     "intent-resolution.log",
     "early-target-diagnostics.log",
     "early-target-diagnostics.json",
+)
+ANCHOR_FIELDS = (
+    "format",
+    "host_boot_id",
+    "created_unix",
+    "usb_location",
+    "recovery_vendor",
+    "recovery_product_id",
+    "recovery_product",
 )
 KEY_ADMISSION_FIELDS = (
     "format",
@@ -161,6 +173,7 @@ class Dependencies:
     nfs_exports: Path
     nfs_threads: Path
     ip_nonlocal_bind: Path
+    host_boot_id: Path
     sys_class_net: Path
     offline: bool
 
@@ -204,6 +217,7 @@ class Dependencies:
                 nfs_exports=state / "nfs-exports",
                 nfs_threads=state / "nfs-threads",
                 ip_nonlocal_bind=state / "ip-nonlocal-bind",
+                host_boot_id=state / "host-boot-id",
                 sys_class_net=state / "sys-class-net",
                 offline=True,
             )
@@ -250,6 +264,7 @@ class Dependencies:
             ip_nonlocal_bind=Path(
                 "/proc/sys/net/ipv4/ip_nonlocal_bind"
             ),
+            host_boot_id=Path("/proc/sys/kernel/random/boot_id"),
             sys_class_net=Path("/sys/class/net"),
             offline=False,
         )
@@ -516,6 +531,14 @@ def parse_inputs(
         (evidence, "EVIDENCE_DIR"),
     ):
         outside_repository(path, label)
+    anchor_path = str(evidence / "recovery-usb.anchor")
+    if (
+        not ANCHOR_PATH.fullmatch(anchor_path)
+        or anchor_path.endswith("/")
+        or "//" in anchor_path
+        or ".." in Path(anchor_path).parts
+    ):
+        fail("EVIDENCE_DIR cannot carry the privileged recovery anchor")
     timeout_value = os.environ.get("ROG5_FALLBACK_TIMEOUT", "750")
     if (
         not timeout_value.isascii()
@@ -1074,6 +1097,104 @@ def parse_record(path: Path) -> dict[str, str]:
             fail(f"private record has a duplicate field: {path}")
         values[name] = value
     return values
+
+
+def read_recovery_anchor_location(
+    path: Path,
+    dependencies: Dependencies,
+) -> str:
+    try:
+        parent = path.parent.lstat()
+    except OSError as error:
+        raise CycleError("recovery USB anchor parent is unavailable") from error
+    if (
+        not stat.S_ISDIR(parent.st_mode)
+        or parent.st_uid != os.geteuid()
+        or stat.S_IMODE(parent.st_mode) != 0o700
+    ):
+        fail("recovery USB anchor parent is unsafe")
+    try:
+        path.resolve(strict=False).relative_to(REPO)
+    except ValueError:
+        pass
+    else:
+        fail("recovery USB anchor must remain outside the repository")
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise CycleError("recovery USB anchor is unavailable") from error
+    try:
+        opened = os.fstat(descriptor)
+        payload = os.read(descriptor, 4097)
+        after = os.fstat(descriptor)
+        named = path.lstat()
+    except OSError as error:
+        raise CycleError("cannot inspect recovery USB anchor") from error
+    finally:
+        os.close(descriptor)
+    stat_identity = lambda value: (
+        value.st_dev,
+        value.st_ino,
+        value.st_uid,
+        value.st_gid,
+        stat.S_IFMT(value.st_mode),
+    )
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or opened.st_uid != os.geteuid()
+        or stat.S_IMODE(opened.st_mode) != 0o600
+        or opened.st_nlink != 1
+        or not 1 <= len(payload) <= 4096
+        or stat_identity(after) != stat_identity(opened)
+        or stat_identity(named) != stat_identity(opened)
+    ):
+        fail("recovery USB anchor metadata or identity is unsafe")
+    if not payload.endswith(b"\n") or b"\r" in payload or b"\0" in payload:
+        fail("recovery USB anchor encoding is not canonical")
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise CycleError("recovery USB anchor is not ASCII") from error
+    if len(lines) != len(ANCHOR_FIELDS):
+        fail("recovery USB anchor field count changed")
+    values: dict[str, str] = {}
+    for expected, line in zip(ANCHOR_FIELDS, lines, strict=True):
+        name, separator, value = line.partition("=")
+        if separator != "=" or name != expected or not value:
+            fail("recovery USB anchor is not canonical")
+        values[name] = value
+    try:
+        host_boot_id = dependencies.host_boot_id.read_text(
+            encoding="ascii"
+        ).strip()
+    except (OSError, UnicodeDecodeError) as error:
+        raise CycleError("cannot read the host boot identity") from error
+    created = values["created_unix"]
+    now = int(time.time())
+    location = values["usb_location"]
+    if (
+        not BOOT_ID.fullmatch(host_boot_id)
+        or values["format"] != "rog5-minimal-headless-usb-anchor-v1"
+        or values["host_boot_id"] != host_boot_id
+        or values["recovery_vendor"] != "1d6b"
+        or values["recovery_product_id"] != "0104"
+        or values["recovery_product"] != "ROG5 recovery"
+        or not created.isascii()
+        or not created.isdecimal()
+        or created.startswith("0")
+        or int(created) > now + 5
+        or now - int(created) > FALLBACK_CONTACT_START_BUDGET_SECONDS
+        or not USB_LOCATION.fullmatch(location)
+        or location.startswith("/")
+        or location.endswith("/")
+        or "//" in location
+        or ".." in Path(location).parts
+    ):
+        fail("recovery USB anchor identity or freshness is invalid")
+    return location
 
 
 def verify_diagnostic_evidence(
@@ -1661,6 +1782,62 @@ class LiveCycle:
             time.sleep(self.poll)
         fail("exact recovery NCM host state did not become stable")
 
+    def verify_recovery_profile_deferred(
+        self,
+        original: tuple[InterfaceSnapshot, ...],
+    ) -> None:
+        if len(original) != 1:
+            fail("recovery NCM anchor snapshot is ambiguous")
+        expected = original[0]
+        current = self.rog5_ncm_interfaces()
+        if (
+            len(current) != 1
+            or current[0].name != expected.name
+            or current[0].product != expected.product
+            or current[0].firewall_zone != expected.firewall_zone
+            or current[0].addresses
+            or current[0].network_manager_managed != "no"
+        ):
+            fail(
+                "bundle cleanup did not leave the exact recovery NCM "
+                "profile deferred"
+            )
+        active = run_capture(
+            [
+                str(self.dependencies.nmcli),
+                "-g",
+                "GENERAL.CON-UUID",
+                "device",
+                "show",
+                expected.name,
+            ]
+        ).stdout.splitlines()
+        if active:
+            fail("deferred recovery interface retains an active profile")
+        profile = run_capture(
+            [
+                str(self.dependencies.nmcli),
+                "-g",
+                "connection.uuid,connection.id,"
+                "connection.interface-name,connection.autoconnect",
+                "connection",
+                "show",
+                FALLBACK_NETWORK_PROFILE,
+            ]
+        ).stdout.splitlines()
+        if (
+            len(profile) != 4
+            or not re.fullmatch(
+                r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+                r"[0-9a-f]{4}-[0-9a-f]{12}",
+                profile[0],
+            )
+            or profile[1] != FALLBACK_NETWORK_PROFILE
+            or profile[2] != expected.name
+            or profile[3] != "no"
+        ):
+            fail("fallback profile is not exactly inactive and deferred")
+
     def verify_host_clean(
         self,
         *,
@@ -1889,6 +2066,8 @@ class LiveCycle:
                     (
                         "PASS one recovery bundle transfer completed",
                         "INFO recovery bundle host network state removed",
+                        "INFO fallback NetworkManager profile restoration "
+                        "deferred",
                     ),
                 )
                 if observer is not None and observer.process.poll() is not None:
@@ -1918,6 +2097,43 @@ class LiveCycle:
             )
 
     def wait_fallback(self, target_boot_id: str | None) -> str:
+        anchor = self.output("recovery-usb.anchor")
+        read_recovery_anchor_location(
+            anchor,
+            self.dependencies,
+        )
+        fallback_deadline = time.monotonic() + self.fallback_timeout
+        restore_timeout = max(
+            1,
+            min(
+                900,
+                int(fallback_deadline - time.monotonic() + 0.999),
+            ),
+        )
+        run_logged(
+            [
+                str(self.dependencies.bundle_server),
+                "restore-fallback",
+                str(anchor),
+                str(restore_timeout),
+            ],
+            self.output("fallback-profile-restore.log"),
+            environment=child_environment(),
+            timeout=(
+                restore_timeout + FALLBACK_CONTROL_MARGIN_SECONDS
+            ),
+        )
+        require_log_markers(
+            self.output("fallback-profile-restore.log"),
+            ("PASS exact Alpine fallback profile ",),
+        )
+        remaining = fallback_deadline - time.monotonic()
+        if remaining < 1:
+            fail(
+                "fallback profile restoration consumed the bounded "
+                "fallback window"
+            )
+        ssh_timeout = max(1, min(900, int(remaining)))
         identity = self.output("fallback-identity.record")
         run_logged(
             [
@@ -1927,7 +2143,7 @@ class LiveCycle:
                 str(self.inputs.ssh_key),
                 self.inputs.ssh_public_key_sha256,
                 str(self.output("recovery-usb.anchor")),
-                str(self.inputs.fallback_timeout),
+                str(ssh_timeout),
                 str(identity),
             ],
             self.output("fallback-preflight.log"),
@@ -1937,7 +2153,7 @@ class LiveCycle:
                 ALLOW_PHONE_CREDENTIAL_USE="1",
             ),
             timeout=(
-                self.fallback_timeout + FALLBACK_CONTROL_MARGIN_SECONDS
+                ssh_timeout + FALLBACK_CONTROL_MARGIN_SECONDS
             ),
         )
         metadata = identity.lstat()
@@ -2170,6 +2386,7 @@ class LiveCycle:
                 "recovery bundle server",
                 [
                     str(self.dependencies.bundle_server),
+                    "serve-deferred",
                     self.profile.bundle,
                     self.inputs.manifest_sha256,
                 ],
@@ -2214,8 +2431,7 @@ class LiveCycle:
             )
             bundle_process = None
             self.verify_host_clean()
-            if self.rog5_ncm_interfaces() != recovery_ncm:
-                fail("bundle server did not restore exact recovery NCM state")
+            self.verify_recovery_profile_deferred(recovery_ncm)
             if (
                 collector_process is not None
                 and collector_process.process.poll() is not None

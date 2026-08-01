@@ -304,8 +304,21 @@ exactly admitted for one RAM-only boot. The source seals match, the candidate
 and external key remain unchanged, no private snapshot survived, and no phone
 interface was contacted. The old wrapper remains consumed and refused. See
 the [corrected production build](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md).
-The separately tested bounded fallback-profile cleanup correction remains the
-only precondition before connected preflight and a new temporary lifecycle.
+The second precondition is now accepted offline. The lifecycle-only bundle
+mode disables profile autoconnect before transfer, cleans the recovery link
+without reattaching the `/30`, and later asks the fixed root broker to restore
+the profile only after one exact Alpine NCM product is stable at the anchored
+physical USB location. The restore is monotonic-time-bounded, serialized,
+idempotent, revalidates USB identity around activation, and rolls every
+partial failure back to profile-down/autoconnect-off/unmanaged state.
+Twenty-two controller, eleven socket, forty-seven fallback, and thirty-seven
+lifecycle tests pass, as does complete repository Linux CI. No host install,
+credential, or phone interface was used.
+See the
+[bounded restoration result](../test-results/2026-08-01-bounded-fallback-profile-restoration-offline.md).
+The next boundary is reviewed publication, exact host-controller installation
+and hash verification, then connected preflight before any new temporary
+lifecycle.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

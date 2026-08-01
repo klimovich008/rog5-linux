@@ -17,8 +17,12 @@ published/reinstalled remediation passed real unchanged-atime bundle and
 37,735-entry NFS preflights without a listener or process residue; one
 separate diagnostic lifecycle then reached manifest transfer but rejected as
 `FETCH_MANIFEST` before `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Exact
-fallback passed. The used recovery wrapper is no longer admitted; rebuild and
-sign a fresh wrapper with the corrected fetcher before any later lifecycle.
+fallback passed. A fresh corrected production wrapper is now twin-built and
+solely admitted. The bounded host correction is also accepted offline: the
+lifecycle defers the fallback NetworkManager profile after bundle transfer
+and restores it only after stable same-port Alpine USB identity. Host
+installation, exact installed-hash checks, and connected preflight remain
+before any later lifecycle.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
@@ -57,6 +61,9 @@ already fail closed. Their ordering still matters:
    never TOFU.
 6. The durable intent must remain `UNKNOWN` until target or fallback evidence
    resolves it out of band.
+7. The Alpine fallback profile must remain inactive while recovery or the
+   target owns the anchored USB port, then be restored before strict fallback
+   SSH only after exact Alpine NCM identity is stable.
 
 `run-minimal-headless-live-cycle.py` enforces the resulting sequence:
 
@@ -66,7 +73,7 @@ complete preflight
   -> private same-boot USB anchor
   -> fixed one-transfer bundle server
   -> PREPARE
-  -> bundle server exit and complete cleanup
+  -> bundle server exit, complete cleanup, and fallback profile deferral
   -> fixed read-only NFSv4.2 server
   -> exact token-bound NFS marker
   -> one COMMIT_EXEC
@@ -74,6 +81,7 @@ complete preflight
   -> one strict-SSH runtime observation
   -> target watchdog rollback
   -> NFS cleanup
+  -> exact same-port Alpine NCM and bounded fallback-profile restoration
   -> exact host-key-signed strict-SSH Alpine fallback
   -> host cleanup proof
   -> durable intent resolution
@@ -86,6 +94,7 @@ private same-boot USB anchor
   -> start receive-only collector and require flushed READY
   -> fixed bundle transfer, NFS handoff, and one COMMIT_EXEC
   -> bounded accepted or rejected diagnostic evidence
+  -> exact same-port Alpine NCM and bounded fallback-profile restoration
   -> exact strict-SSH Alpine fallback
   -> host cleanup proof
   -> durable intent resolution as FALLBACK_RETURNED
@@ -135,10 +144,11 @@ phone path:
   mode-`0444` configuration and exact SHA-256 identities for both privileged
   controllers, accepts one canonical bounded request, and forwards only the
   fixed child output and status;
-- the protocol exposes only bundle serve, fixed historical/deployment NFS
-  preflight and serve, and token-bound NFS cancellation. It exposes no shell,
-  arbitrary command, arbitrary root path, caller environment, installer, or
-  repository executable;
+- the protocol exposes only ordinary or lifecycle-deferred bundle serve,
+  exact anchored fallback-profile restoration, fixed
+  historical/deployment NFS preflight and serve, and token-bound NFS
+  cancellation. It exposes no shell, arbitrary command, arbitrary root path,
+  caller environment, installer, or repository executable;
 - `run-headless-network-root-server.sh preflight` requires those installed
   bytes to match the reviewed repository sources, then uses the socket; the
   recovery-bundle launcher does the same;
@@ -630,9 +640,11 @@ The anchor's exact seven-field schema is directly bound by test to the real
 `pin-minimal-headless-host-key.py capture-recovery` producer, including its
 literal `ROG5 recovery` USB product. Fallback contact must start within 3,600
 seconds of capture; even the maximum 900-second ACM wait remains below the
-controller's 7,200-second anchor-age limit. The controller rechecks wall-clock
-anchor age and physical location after ACM discovery and before sending the
-launcher, so host suspend cannot bypass freshness.
+fallback controller's 7,200-second anchor-age limit. Immediately before root
+restoration, both the lifecycle and privileged broker recheck the 3,600-second
+wall-clock contact-start age, so host suspend cannot bypass that gate. The
+fallback controller then rechecks wall-clock anchor age and physical location
+after discovery and before sending the launcher.
 The fallback identity record retains only bounded non-sensitive proof
 metadata: boot ID, USB location, nonce, maximum sampled temperature, and
 SHA-256 identities of the signed record, signature, and inspected host-key
@@ -681,9 +693,11 @@ not permission to retry a decided PREPARE request.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers sixteen admission
-scenarios, `test-fallback-acm-control.py` covers forty-six fallback
-protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
-thirty-four lifecycle test methods. Together they prove:
+scenarios, `test-fallback-acm-control.py` covers forty-seven fallback
+protocol tests, `test-recovery-host-controller.py` covers twenty-two privileged
+controller tests, `test-recovery-host-socket.py` covers eleven socket tests, and
+`test-run-minimal-headless-live-cycle.py` covers thirty-seven lifecycle test
+methods. Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;
@@ -698,7 +712,19 @@ thirty-four lifecycle test methods. Together they prove:
 - the consumed historical recovery profile fails before credential paths;
 - preflight admits the local key before live checks and stops before boot and
   SSH;
-- bundle-server cleanup precedes NFS startup;
+- bundle-server cleanup and fallback-profile deferral precede NFS startup;
+- the exact fallback profile cannot autoconnect to recovery, restores only
+  after unique same-port Alpine raw-product/NCM identity, is idempotent and
+  serialized, verifies the actual sysfs `cdc_ncm` driver independently of
+  udev properties, and rolls partial activation, detach, or timeout back to
+  the fail-closed deferred state before SSH;
+- the root broker independently accepts only an ordered mode-`0600`,
+  single-link, caller-owned, same-host-boot recovery anchor within its
+  freshness bound; it derives the physical location itself rather than
+  trusting a caller-provided location;
+- the deferred postcondition proves the exact profile UUID is inactive and
+  autoconnect is disabled, while every positive restoration inspection and
+  mutation plus strict SSH consumes one shared fallback deadline;
 - residual protected-zone rules, `/30` addresses, or NetworkManager ownership
   changes block NFS startup before COMMIT;
 - one and only one `prepare-commit` process is started;

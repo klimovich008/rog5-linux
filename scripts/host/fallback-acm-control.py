@@ -2097,13 +2097,18 @@ def require_fastboot_absent() -> None:
         fail("reboot requires a canonical empty initial fastboot inventory")
 
 
-def parse_wait_timeout(value: str) -> int:
+def parse_wait_timeout(value: str, minimum: int = 600) -> int:
+    if minimum not in {1, 600}:
+        fail("internal fallback wait-timeout policy is invalid")
     if (
         not value.isascii()
         or not value.isdecimal()
-        or not 600 <= int(value) <= 900
+        or not minimum <= int(value) <= 900
     ):
-        fail("fallback wait timeout must be between 600 and 900 seconds")
+        fail(
+            "fallback wait timeout must be between "
+            f"{minimum} and 900 seconds"
+        )
     return int(value)
 
 
@@ -2216,7 +2221,10 @@ def main(arguments: list[str]) -> int:
         expected_public_sha256 = arguments[3]
         ssh_key = verify_ssh_key(Path(arguments[2]), expected_public_sha256)
         anchor = Path(arguments[4])
-        timeout = parse_wait_timeout(arguments[5])
+        # Profile restoration and this SSH wait share one lifecycle deadline.
+        # The restore step may legitimately leave less than the standalone
+        # 600-second host-preflight minimum.
+        timeout = parse_wait_timeout(arguments[5], minimum=1)
         values, proof = ssh_probe(
             known_hosts_path,
             known_hosts,

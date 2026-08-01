@@ -288,13 +288,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
   observation, watchdog rollback, exact signed strict-SSH fallback proof, and
   host cleanup.
-  Twenty-six process test methods now also prove exact key guards fail first,
+  Thirty-five process test methods now also prove exact key guards fail first,
   `key-preflight` stops before phone/privilege actions, and deployment-key
   admission precedes connected preflight. The same admission record now binds
   the fixed NFS profile/package marker, recovery-control rendezvous, target
   candidate identity, and runtime-verifier candidate path/hash. They prove
-  bundle cleanup precedes
-  NFS startup, COMMIT is never retried, transport loss is recovered only
+  bundle cleanup plus fallback-profile deferral precedes NFS startup, the
+  profile restores only after exact same-port Alpine NCM identity and before
+  strict fallback SSH, COMMIT is never retried, transport loss is recovered only
   through the durable ledger, runtime rejection resolves as
   `FALLBACK_RETURNED`, accepted runtime resolves only after exact fallback and
   cleanup, and missing fallback proof leaves the intent `UNKNOWN`. Injected
@@ -545,7 +546,18 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   fastboot identity independently proves the reboot. The mocked test rejects
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
 - The active lifecycle uses `fallback-acm-control.py wait-ssh-preflight` over
-  the exact fallback USB-NCM product. It requires the dedicated client key,
+  the exact fallback USB-NCM product only after the root controller has
+  restored the profile on unique stable same-port Alpine identity. The
+  controller bounds udev and monotonic wait time, serializes serve/restore,
+  verifies the actual sysfs `cdc_ncm` driver separately from udev labels,
+  revalidates detach races, and rolls partial activation back to
+  autoconnect-off/unmanaged state. The lifecycle accepts only a private,
+  ordered, fresh, same-host-boot recovery anchor; the root broker revalidates
+  that anchor, enforces the 3,600-second wall-clock contact-start age, and
+  derives the USB location itself. The lifecycle proves the
+  exact profile has no active UUID and autoconnect remains off, while all
+  positive restoration operations and SSH share one deadline. Strict SSH
+  requires the dedicated client key,
   pinned Ed25519 host key, direct `169.254.77.1/30` route, exact active
   NetworkManager profile UUID and restoration, recovery USB
   continuity, one signed nonce-bound health frame, and post-reply USB

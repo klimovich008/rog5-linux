@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
+import time
 import unittest
 
 
@@ -30,15 +31,36 @@ class ControllerFixture:
         self.root = Path(self.temporary.name)
         self.bin = self.root / "bin"
         self.bin.mkdir()
-        self.sys_net = self.root / "sys/class/net"
+        self.sys_devices = self.root / "sys/devices"
+        self.usb_device = (
+            self.sys_devices / "pci/usb1/1-1/1-1.2"
+        )
+        self.sys_net = self.usb_device / "net"
         self.sys_net.mkdir(parents=True)
-        (self.sys_net / "usbtest0").mkdir()
+        interface = self.sys_net / "usbtest0"
+        (interface / "device").mkdir(parents=True)
+        self.driver = self.root / "sys/drivers/cdc_ncm"
+        self.driver.mkdir(parents=True)
+        (interface / "device/driver").symlink_to(self.driver)
+        for name, value in (
+            ("idVendor", "1d6b\n"),
+            ("idProduct", "0104\n"),
+            ("product", "ROG5 recovery\n"),
+        ):
+            (self.usb_device / name).write_text(value, encoding="ascii")
+        self.sys_bus_usb = self.root / "sys/bus/usb/devices"
+        self.sys_bus_usb.mkdir(parents=True)
+        (self.sys_bus_usb / "1-1.2").symlink_to(self.usb_device)
         self.bundle_root = self.root / "bundles"
         self.bundle_root.mkdir(mode=0o700)
         self.bundle_root.chmod(0o700)
         self.lock = self.root / "controller.lock"
         self.calls = self.root / "calls"
         self.connection_state = self.root / "connection-down"
+        self.autoconnect_state = self.root / "profile-autoconnect"
+        self.autoconnect_state.write_text("yes\n", encoding="ascii")
+        self.managed_state = self.root / "device-managed"
+        self.managed_state.write_text("yes\n", encoding="ascii")
         self.pid = self.root / "server.pid"
         self.watchdog_pid = self.root / "watchdog.pid"
         self.server = self.root / "host_bundle_server.py"
@@ -61,6 +83,11 @@ class ControllerFixture:
     def close(self) -> None:
         self.temporary.cleanup()
 
+    def set_usb_product(self, product: str) -> None:
+        (self.usb_device / "product").write_text(
+            product + "\n", encoding="utf-8"
+        )
+
     def write_executable(self, name: str, payload: str) -> None:
         path = self.bin / name
         path.write_text(payload, encoding="utf-8")
@@ -77,13 +104,18 @@ printf 'systemctl %s\n' "$*" >>"$MOCK_CALLS"
         self.write_executable(
             "udevadm",
             """#!/bin/sh
-printf 'udevadm %s\n' "$*" >>"$MOCK_CALLS"
-[ "${MOCK_UDEV_MATCH:-1}" = 1 ] || exit 0
-printf '%s\n' \
-  'ID_VENDOR_ID=1d6b' \
-  'ID_MODEL_ID=0104' \
-  'ID_MODEL=ROG5_recovery' \
-  'ID_NET_DRIVER=cdc_ncm'
+	printf 'udevadm %s\n' "$*" >>"$MOCK_CALLS"
+	if [ "${MOCK_UDEV_SLEEP:-0}" != 0 ]; then
+	  sleep "$MOCK_UDEV_SLEEP"
+	fi
+	[ "${MOCK_UDEV_MATCH:-1}" = 1 ] || exit 0
+	printf '%s\n' \
+	  'ID_VENDOR_ID=1d6b' \
+	  'ID_MODEL_ID=0104' \
+	  "ID_MODEL=${MOCK_USB_MODEL:-ROG5_recovery}" \
+	  'ID_NET_DRIVER=cdc_ncm' \
+	  'ID_USB_DRIVER=cdc_ncm' \
+	  'ID_USB_INTERFACE_NUM=00'
 """,
         )
         self.write_executable(
@@ -114,23 +146,29 @@ esac
             "nmcli",
             """#!/bin/sh
 printf 'nmcli %s\n' "$*" >>"$MOCK_CALLS"
+if [ "${MOCK_NMCLI_SLEEP:-0}" != 0 ]; then
+  sleep "$MOCK_NMCLI_SLEEP"
+fi
 case $* in
   *"${MOCK_FAIL_CONTAINS:-__never_match__}"*) exit 1 ;;
 esac
-if [ "$1 $2 $3" = "-g GENERAL.NM-MANAGED device" ]; then
-  [ "${MOCK_LEGACY_MANAGED_FIELD:-0}" = 0 ] || exit 2
-  printf '%s\n' yes
-elif [ "$1 $2 $3" = "-g GENERAL.MANAGED device" ]; then
-  printf '%s\n' yes
-elif [ "$1 $2 $3" = "-g GENERAL.CON-UUID device" ]; then
-  [ "${MOCK_FALLBACK_ADDRESS:-0}" = 1 ] &&
-    printf '%s\n' '244dd128-e3b1-458e-9639-5e4ab4d8854f'
-elif [ "$1" = -g ] && [ "$3 $4 $5" = "connection show uuid" ]; then
-  printf '%s\n' \
-    "${MOCK_PROFILE_ID:-rog5-fallback-usb-ssh}" \
-    '802-3-ethernet' \
-    'usbtest0' \
-    'yes' \
+	if [ "$1 $2 $3" = "-g GENERAL.NM-MANAGED device" ]; then
+	  [ "${MOCK_LEGACY_MANAGED_FIELD:-0}" = 0 ] || exit 2
+	  cat "$MOCK_MANAGED_STATE"
+	elif [ "$1 $2 $3" = "-g GENERAL.MANAGED device" ]; then
+	  cat "$MOCK_MANAGED_STATE"
+	elif [ "$1 $2 $3" = "-g GENERAL.CON-UUID device" ]; then
+	  [ ! -e "$MOCK_CONNECTION_STATE" ] &&
+	    printf '%s\n' '244dd128-e3b1-458e-9639-5e4ab4d8854f'
+	elif [ "$1 $2" = "-g connection.uuid" ] &&
+	     [ "$3 $4" = "connection show" ]; then
+	  printf '%s\n' '244dd128-e3b1-458e-9639-5e4ab4d8854f'
+	elif [ "$1" = -g ] && [ "$3 $4 $5" = "connection show uuid" ]; then
+	  printf '%s\n' \
+	    "${MOCK_PROFILE_ID:-rog5-fallback-usb-ssh}" \
+	    '802-3-ethernet' \
+	    'usbtest0' \
+	    "$(cat "$MOCK_AUTOCONNECT_STATE")" \
     '100' \
     'manual' \
     '169.254.77.1/30' \
@@ -138,11 +176,19 @@ elif [ "$1" = -g ] && [ "$3 $4 $5" = "connection show uuid" ]; then
     '' \
     'yes' \
     'disabled'
-elif [ "$1 $2 $3" = "connection down uuid" ]; then
-  : >"$MOCK_CONNECTION_STATE"
-elif [ "$1 $2 $3" = "connection up uuid" ]; then
-  rm -f "$MOCK_CONNECTION_STATE"
-fi
+	elif [ "$1 $2 $3" = "connection down uuid" ]; then
+	  : >"$MOCK_CONNECTION_STATE"
+	elif [ "$1 $2 $3" = "connection up uuid" ]; then
+	  rm -f "$MOCK_CONNECTION_STATE"
+	  if [ "${MOCK_DETACH_AFTER_UP:-0}" = 1 ]; then
+	    rm -f "$MOCK_USB_DEVICE/product"
+	  fi
+	elif [ "$1 $2 $3" = "connection modify uuid" ] &&
+	     [ "$5" = connection.autoconnect ]; then
+	  printf '%s\n' "$6" >"$MOCK_AUTOCONNECT_STATE"
+	elif [ "$1 $2 $4" = "device set managed" ]; then
+	  printf '%s\n' "$5" >"$MOCK_MANAGED_STATE"
+	fi
 """,
         )
         self.write_executable(
@@ -203,12 +249,17 @@ exec "$@"
                     f"{self.bin}:/usr/sbin:/usr/bin:/sbin:/bin"
                 ),
                 "ROG5_TEST_SYS_CLASS_NET": str(self.sys_net),
+                "ROG5_TEST_SYS_DEVICES": str(self.sys_devices),
+                "ROG5_TEST_SYS_BUS_USB": str(self.sys_bus_usb),
                 "ROG5_TEST_SERVER_PATH": str(self.server),
                 "ROG5_TEST_BUNDLE_ROOT": str(self.bundle_root),
                 "ROG5_TEST_LOCK_PATH": str(self.lock),
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_SERVER_PID": str(self.pid),
                 "MOCK_CONNECTION_STATE": str(self.connection_state),
+                "MOCK_AUTOCONNECT_STATE": str(self.autoconnect_state),
+                "MOCK_MANAGED_STATE": str(self.managed_state),
+                "MOCK_USB_DEVICE": str(self.usb_device),
                 "MOCK_FALLBACK_ADDRESS": "1",
                 "ROG5_TEST_WATCHDOG_PID_FILE": str(self.watchdog_pid),
             }
@@ -492,6 +543,280 @@ class RecoveryHostControllerTest(unittest.TestCase):
         self.assertIn("nmcli device set usbtest0 managed no", calls)
         self.assertIn("nmcli device set usbtest0 managed yes", calls)
         self.assertFalse(self.fixture.connection_state.exists())
+
+    def test_lifecycle_deferred_mode_suppresses_profile_until_fallback(self):
+        result = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "fallback NetworkManager profile restoration deferred",
+            result.stdout,
+        )
+        calls = self.fixture.call_log()
+        uuid = "244dd128-e3b1-458e-9639-5e4ab4d8854f"
+        self.assertIn(
+            f"nmcli connection modify uuid {uuid} "
+            "connection.autoconnect no",
+            calls,
+        )
+        self.assertNotIn(f"nmcli connection up uuid {uuid}", calls)
+        self.assertNotIn("device set usbtest0 managed yes", calls)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertEqual(
+            self.fixture.managed_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertTrue(self.fixture.connection_state.exists())
+
+    def defer_then_restore(self, **overrides: str) -> subprocess.CompletedProcess[str]:
+        deferred = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(deferred.returncode, 0, deferred.stderr)
+        self.fixture.set_usb_product("ROG Phone 5 Linux Server")
+        return self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "3",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+            **overrides,
+        )
+
+    def test_deferred_profile_restores_only_on_exact_anchored_fallback(self):
+        result = self.defer_then_restore()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("exact Alpine fallback profile restored", result.stdout)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "yes\n",
+        )
+        self.assertEqual(
+            self.fixture.managed_state.read_text(encoding="ascii"),
+            "yes\n",
+        )
+        self.assertFalse(self.fixture.connection_state.exists())
+
+        calls_before = self.fixture.call_log()
+        repeated = self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "3",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+        )
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        self.assertIn("already restored", repeated.stdout)
+        calls_after = self.fixture.call_log()[len(calls_before):]
+        self.assertNotIn("connection down uuid", calls_after)
+        self.assertNotIn("connection modify uuid", calls_after)
+
+    def test_restore_rejects_wrong_location_and_duplicate_raw_product(self):
+        deferred = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(deferred.returncode, 0, deferred.stderr)
+        self.fixture.set_usb_product("ROG Phone 5 Linux Server")
+        wrong = self.fixture.run(
+            "restore-fallback",
+            "pci/usb9/9-9",
+            "1",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+        )
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn("different physical USB port", wrong.stderr)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+
+        duplicate = self.fixture.sys_devices / "pci/usb2/2-1"
+        duplicate_interface = duplicate / "net/usbtest1"
+        (duplicate_interface / "device").mkdir(parents=True)
+        (duplicate_interface / "device/driver").symlink_to(
+            self.fixture.driver
+        )
+        for name, value in (
+            ("idVendor", "1d6b\n"),
+            ("idProduct", "0104\n"),
+            ("product", "ROG Phone 5 Linux Server\n"),
+        ):
+            (duplicate / name).write_text(value, encoding="ascii")
+        (self.fixture.sys_bus_usb / "2-1").symlink_to(duplicate)
+        duplicated = self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "1",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+        )
+        self.assertNotEqual(duplicated.returncode, 0)
+        self.assertIn("exact Alpine USB product", duplicated.stderr)
+
+    def test_every_partial_restore_failure_rolls_back_to_deferred_state(self):
+        for failure in (
+            "device set usbtest0 managed yes",
+            "connection up uuid",
+            "connection.autoconnect yes",
+        ):
+            with self.subTest(failure=failure):
+                self.fixture.close()
+                self.fixture = ControllerFixture()
+                result = self.defer_then_restore(
+                    MOCK_FAIL_CONTAINS=failure,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(
+                    self.fixture.autoconnect_state.read_text(
+                        encoding="ascii"
+                    ),
+                    "no\n",
+                )
+                self.assertEqual(
+                    self.fixture.managed_state.read_text(encoding="ascii"),
+                    "no\n",
+                )
+                self.assertTrue(self.fixture.connection_state.exists())
+
+    def test_usb_detach_during_activation_rolls_profile_back(self):
+        result = self.defer_then_restore(MOCK_DETACH_AFTER_UP="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("USB identity changed", result.stderr)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertTrue(self.fixture.connection_state.exists())
+
+    def test_restore_rejects_a_claimed_cdc_ncm_interface_on_wrong_driver(self):
+        deferred = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(deferred.returncode, 0, deferred.stderr)
+        self.fixture.set_usb_product("ROG Phone 5 Linux Server")
+        driver_link = self.fixture.sys_net / "usbtest0/device/driver"
+        driver_link.unlink()
+        wrong_driver = self.fixture.root / "sys/drivers/rndis_host"
+        wrong_driver.mkdir()
+        driver_link.symlink_to(wrong_driver)
+
+        result = self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "1",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("did not become stable", result.stderr)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertEqual(
+            self.fixture.managed_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertTrue(self.fixture.connection_state.exists())
+
+    def test_bundle_and_restore_operations_share_one_nonblocking_lock(self):
+        server = subprocess.Popen(
+            [
+                str(CONTROLLER),
+                "serve-deferred",
+                BUNDLE,
+                MANIFEST_HASH,
+            ],
+            env=self.fixture.environment(MOCK_SERVER_SLEEP="2"),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            for _attempt in range(100):
+                if "setpriv " in self.fixture.call_log():
+                    break
+                if server.poll() is not None:
+                    self.fail("bundle controller exited before lock test")
+                time.sleep(0.02)
+            else:
+                self.fail("bundle controller did not enter its serve phase")
+            collision = self.fixture.run(
+                "restore-fallback",
+                "pci/usb1/1-1/1-1.2",
+                "1",
+                MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+            )
+            self.assertNotEqual(collision.returncode, 0)
+            self.assertIn(
+                "another recovery bundle controller is active",
+                collision.stderr,
+            )
+        finally:
+            server.terminate()
+            server.communicate(timeout=5)
+
+    def test_hung_udev_cannot_escape_the_restore_deadline(self):
+        deferred = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(deferred.returncode, 0, deferred.stderr)
+        self.fixture.set_usb_product("ROG Phone 5 Linux Server")
+        started = time.monotonic()
+        result = self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "1",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+            MOCK_UDEV_SLEEP="2",
+        )
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("did not become stable", result.stderr)
+        self.assertLess(elapsed, 2.0)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+
+    def test_post_enumeration_work_cannot_escape_the_restore_deadline(self):
+        deferred = self.fixture.run(
+            "serve-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+        )
+        self.assertEqual(deferred.returncode, 0, deferred.stderr)
+        self.fixture.set_usb_product("ROG Phone 5 Linux Server")
+        started = time.monotonic()
+        result = self.fixture.run(
+            "restore-fallback",
+            "pci/usb1/1-1/1-1.2",
+            "1",
+            MOCK_USB_MODEL="ROG_Phone_5_Linux_Server",
+            MOCK_NMCLI_SLEEP="2",
+        )
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertLess(elapsed, 2.0)
+        self.assertEqual(
+            self.fixture.autoconnect_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertEqual(
+            self.fixture.managed_state.read_text(encoding="ascii"),
+            "no\n",
+        )
+        self.assertTrue(self.fixture.connection_state.exists())
 
     def test_missing_or_wrong_shared_profile_fails_before_mutation(self):
         for mutation, overrides in (
