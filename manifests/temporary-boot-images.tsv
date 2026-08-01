@@ -1,2 +1,3 @@
 name	status	basis
-artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	allow	twice-live-accepted RAM-only staging and rollback; never flash
+build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img	allow	production-signed corrected diagnostic wrapper; exact twin build and artifact gate; one RAM-only boot, consume regardless, never flash
+artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash

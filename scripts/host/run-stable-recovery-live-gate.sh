@@ -83,6 +83,9 @@ if [[ $action == boot &&
 	$expected_manifest == "$consumed_r2_manifest" ) ]]; then
 	fail 'refusing a consumed deployment manifest'
 fi
+if [[ $expected_image == "$consumed_diagnostic_recovery" ]]; then
+	fail 'refusing the consumed diagnostic recovery image'
+fi
 
 case $profile in
 	historical-2026-07-29)
@@ -150,11 +153,11 @@ case $profile in
 		;;
 	headless-diagnostic-deployment-v1)
 		component_layout=structured
-		expected_kernel=d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5
-		expected_raw=0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a
-		expected_initramfs=cd30a2067322edc12c3be172cd05bd5d365a1ad09815594b8fa56302cd0b813b
+		expected_kernel=7fac4dda6a7133e7d3a6589da4fb5d0bdad3802705da5edf52701a20133728ed
+		expected_raw=2f460aa01ee1b97c495d0857b3207bf74920487c56f30c5e155e199967628a01
+		expected_initramfs=fec72c4dba62a24ced899af4d4fc3d0af3b7b691ea6f6c1bcf90c7aaf181c57a
 		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
-		expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392
+		expected_fetcher=f410ca875031dcf9c41cf2c8a67e5a9fba862cf50b53e1d8c51453f4e0b5d13d
 		expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0
 		expected_target_id=headless-netroot-early-diag
 		expected_bundle=headless-netroot-early-diag-v1
@@ -163,7 +166,7 @@ case $profile in
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'diagnostic runtime manifest is not allowlisted'
 		[[ $expected_image == \
-			9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef ]] ||
+			f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef ]] ||
 			fail 'diagnostic recovery image identity is not allowlisted'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -184,9 +187,6 @@ esac
 	fail "profile requires bundle=$expected_bundle"
 # expected_image is the caller-supplied RECOVERY_SHA256 and is never
 # reassigned by profile selection.
-if [[ $expected_image == "$consumed_diagnostic_recovery" ]]; then
-	fail 'refusing the consumed diagnostic recovery image'
-fi
 
 if [[ $action == policy-preflight ]]; then
 	printf '%s\n' \
