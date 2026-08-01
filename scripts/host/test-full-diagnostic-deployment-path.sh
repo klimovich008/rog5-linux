@@ -109,11 +109,22 @@ import sys
 
 path = Path(sys.argv[1])
 payload = path.read_text(encoding="ascii")
+consumed_image = "9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef"
+consumed_record = f"consumed_diagnostic_recovery={consumed_image}"
+if payload.count(consumed_record) != 1:
+    raise SystemExit("missing exact consumed diagnostic recovery guard")
+sentinel = "consumed_diagnostic_recovery=ROG5_FIXTURE_PRESERVE_CONSUMED"
+if sentinel in payload:
+    raise SystemExit("fixture preservation sentinel already exists")
+payload = payload.replace(consumed_record, sentinel)
 for replacement in sys.argv[2:]:
     before, after = replacement.split("=", 1)
     if before not in payload:
         raise SystemExit(f"missing fixture pin: {before}")
     payload = payload.replace(before, after)
+payload = payload.replace(sentinel, consumed_record)
+if payload.count(consumed_record) != 1 or sentinel in payload:
+    raise SystemExit("consumed diagnostic recovery guard was not preserved")
 path.write_text(payload, encoding="ascii")
 PY
 chmod 0755 "$fixture_gate"

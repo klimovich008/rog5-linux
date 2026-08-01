@@ -322,6 +322,8 @@ for token in \
 	'--authorize-recovery-deployment-build' \
 	'--authorize-phone-credential-use' \
 	'headless-diagnostic-deployment-v1' \
+	'consumed_diagnostic_recovery=' \
+	'consumed diagnostic recovery guard was not preserved' \
 	'artifact-preflight' \
 	'full disposable-key diagnostic wrapper, twin build, native verification, and artifact-preflight fixture' \
 	'authority=none'; do
