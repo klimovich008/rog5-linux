@@ -217,7 +217,10 @@ def validate_manifest(
         raise ServerRefusal("manifest timeout margin is unsafe")
     if fields["profile"] == "persistent-root-ro-v1" and rollback < 300:
         raise ServerRefusal("persistent profile rollback is too short")
-    if fields["profile"] == "network-root-v1":
+    if fields["profile"] in {
+        "diagnostic-initramfs-v1",
+        "network-root-v1",
+    }:
         if (
             not valid_hash(fields["a660_command_manifest_sha256"])
             or fields["root_generation"] != "arch-a"

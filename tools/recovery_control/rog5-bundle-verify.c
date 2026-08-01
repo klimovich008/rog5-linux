@@ -122,9 +122,9 @@ static const char *trust_key_path =
 static const struct profile_policy profile_policies[] = {
 	{
 		.name = "diagnostic-initramfs-v1",
-		.command_line = "rog5.diagnostic=1",
+		.command_line = "rog5.netroot=1 rog5.diagnostic=1",
 		.minimum_rollback = 60,
-		.binds_a660_root = false,
+		.binds_a660_root = true,
 	},
 	{
 		.name = "network-root-v1",
@@ -1587,7 +1587,7 @@ int main(int argc, char **argv)
 	verify_hash(initramfs_fd, parsed.initramfs_sha256, "initramfs");
 	verify_kernel_image(kernel_fd, parsed.kernel_size);
 	verify_initramfs_gzip(
-		initramfs_fd, strcmp(parsed.profile, "network-root-v1") == 0);
+		initramfs_fd, parsed.policy->binds_a660_root);
 	if (lseek(dtb_fd, 0, SEEK_SET) < 0)
 		fail("cannot rewind DTB");
 	dtb = read_exact(dtb_fd, (size_t)parsed.dtb_size);
