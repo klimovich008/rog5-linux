@@ -880,9 +880,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    automatic fallback and strict signed proof passed again.
 3. Consumed r2 is now recoverably archived and the exact descriptor validator
    checks sole-root inventory, every artifact, and the canonical manifest
-   during preflight without a listener. Publish and reinstall that remediation,
-   pass the real preflight, then admit a separate new lifecycle for the still-
-   unexecuted diagnostic candidate.
+   during preflight without a listener. The published/reinstalled remediation
+   passed the real no-listener/unchanged-atime bundle preflight and the
+   37,735-entry prompt-free NFS preflight without residue. Admit a separate new
+   lifecycle for the still-unexecuted diagnostic candidate.
 4. Use that evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path
    and collect the exact 88-field core record over strict SSH.
