@@ -9,6 +9,7 @@ import signal
 import subprocess
 import tempfile
 import textwrap
+import time
 import unittest
 
 
@@ -141,6 +142,25 @@ class Fixture:
             """\
             #!/bin/sh
             printf 'udevadm:%s\n' "$*" >>"$MOCK_CALLS"
+            if [ -e "$MOCK_ROOT/fallback-proved" ]; then
+              if [ "${MOCK_UDEV_HANG_AFTER_FALLBACK:-0}" = 1 ]; then
+                sleep 5
+              fi
+              if [ "${MOCK_UDEV_MISSING_AFTER_FALLBACK:-0}" = 1 ]; then
+                exit 0
+              fi
+              if [ "${MOCK_UDEV_GAP_AFTER_FALLBACK:-0}" = 1 ] &&
+                 [ ! -e "$MOCK_ROOT/udev-gap-consumed" ]; then
+                : >"$MOCK_ROOT/udev-gap-consumed"
+                exit 0
+              fi
+              if [ "${MOCK_UDEV_FLAP_AFTER_FALLBACK:-0}" = 1 ]; then
+                if [ -e "$MOCK_ROOT/udev-clean-consumed" ]; then
+                  exit 0
+                fi
+                : >"$MOCK_ROOT/udev-clean-consumed"
+              fi
+            fi
             printf '%s\n' \
               'ID_VENDOR_ID=1d6b' \
               'ID_MODEL_ID=0104' \
@@ -165,6 +185,12 @@ class Fixture:
                 ;;
               *" -4 -o address show "*)
                 echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
+                if [ "${MOCK_ADDRESS_GAP_AFTER_FALLBACK:-0}" = 1 ] &&
+                   [ -e "$MOCK_ROOT/fallback-proved" ] &&
+                   [ ! -e "$MOCK_ROOT/address-gap-consumed" ]; then
+                  : >"$MOCK_ROOT/address-gap-consumed"
+                  echo '10: pending0 inet 169.254.77.1/30 scope global pending0'
+                fi
                 if [ "${MOCK_ADDRESS_RESIDUE_AFTER_NFS:-0}" = 1 ] &&
                    [ -e "$MOCK_ROOT/target-departed" ]; then
                   echo '9: usbmock0 inet 169.254.77.9/30 scope global usbmock0'
@@ -207,6 +233,12 @@ class Fixture:
                    [ -e "$MOCK_ROOT/bundle-consumed" ] &&
                    [ "${1:-}" = "--zone=public" ]; then
                   echo 'rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="8080" protocol="tcp" drop'
+                elif [ "${MOCK_TRANSIENT_FIREWALL_AFTER_FALLBACK:-0}" = 1 ] &&
+                     [ -e "$MOCK_ROOT/fallback-proved" ] &&
+                     [ ! -e "$MOCK_ROOT/firewall-gap-consumed" ] &&
+                     [ "${1:-}" = "--zone=public" ]; then
+                  : >"$MOCK_ROOT/firewall-gap-consumed"
+                  echo 'rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="2049" protocol="tcp" drop'
                 elif [ "${MOCK_RESIDUAL_AFTER_NFS:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/target-departed" ] &&
                      [ "${1:-}" = "--zone=public" ]; then
@@ -501,6 +533,7 @@ class Fixture:
               echo 'FAIL injected fallback SSH rejection'
               exit 1
             fi
+            : >"$MOCK_ROOT/fallback-proved"
             : >"$MOCK_ROOT/target-departed"
             umask 077
             printf '%s\n' \
@@ -910,6 +943,126 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 line.startswith("control:resolve:")
                 for line in self.fixture.call_lines()
             )
+        )
+
+    def test_final_cleanup_waits_for_fallback_udev_identity(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_UDEV_GAP_AFTER_FALLBACK="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        self.assertTrue(
+            (self.fixture.root / "udev-gap-consumed").is_file()
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+
+    def test_final_cleanup_rejects_persistent_udev_identity_gap(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_UDEV_MISSING_AFTER_FALLBACK="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count("fallback:ssh-preflight"),
+            1,
+        )
+        self.assertEqual(
+            self.fixture.call_lines().count("control:prepare-commit"),
+            1,
+        )
+        self.assertFalse(
+            any(
+                line.startswith("control:resolve:")
+                for line in self.fixture.call_lines()
+            )
+        )
+
+    def test_target_acceptance_waits_for_fallback_udev_identity(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_UDEV_GAP_AFTER_FALLBACK="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertEqual(calls.count("control:resolve:TARGET_ACCEPTED"), 1)
+
+    def test_final_cleanup_requires_continuous_usb_identity(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_UDEV_FLAP_AFTER_FALLBACK="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_final_cleanup_waits_for_address_observation_race(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_ADDRESS_GAP_AFTER_FALLBACK="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+
+    def test_nonidentity_cleanup_failure_is_not_retried(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_TRANSIENT_FIREWALL_AFTER_FALLBACK="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertTrue(
+            (self.fixture.root / "firewall-gap-consumed").is_file()
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_final_cleanup_subprocesses_share_one_deadline(self):
+        started = time.monotonic()
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_UDEV_HANG_AFTER_FALLBACK="1",
+        )
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertLess(elapsed, 2.0)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
         )
 
     def test_failed_fallback_proof_leaves_intent_unknown(self):

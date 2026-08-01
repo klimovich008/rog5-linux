@@ -561,7 +561,7 @@ canonical NFS export table directly, avoiding the successful-but-diagnostic
 unprivileged `exportfs -v` lock path while still rejecting any real entry.
 The emergency ACM protocol remains covered, while the active fallback path
 now uses strict SSH over exact USB-NCM. Forty-six transport tests and all
-eighteen lifecycle methods pass hardware-free. The host has a persistent
+twenty-six lifecycle methods pass hardware-free. The host has a persistent
 no-gateway `rog5-fallback-usb-ssh` profile at `169.254.77.1/30`, and the
 dedicated client key has passed a live strict-SSH fallback health preflight.
 The first complete cycle through this path fetched, prepared, and committed
@@ -571,6 +571,17 @@ profile automatically, strict SSH verified the signed fallback at 44.1
 degrees C without opening ACM, and the durable intent resolved
 `FALLBACK_RETURNED`. See the
 [strict-SSH fallback result](../test-results/2026-07-31-minimal-headless-live-cycle-ssh-fallback.md).
+
+The distinct r2 successor subsequently completed framed recovery transfer,
+PREPARE, and one durable COMMIT. Linux 7.1 exposed the expected USB-NCM gadget
+on the exact port but physically disconnected 23 seconds later, before target
+SSH host-key acceptance. The watchdog returned Alpine on that port and one
+fresh signed strict-SSH fallback proof resolved the intent
+`FALLBACK_RETURNED`. The controller now bounds the observed final
+NetworkManager/udev identity race with a continuously clean dwell and one
+shared deadline; all other residue still fails immediately. r2 is consumed.
+See the
+[r2 target USB-loss result](../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
 
 The first authorized live ACM preflight was rejected because the existing
 device-side reader had wedged; exact USB reset and host rebind could not

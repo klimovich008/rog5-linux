@@ -97,7 +97,7 @@ serial read. Host cleanup validates the root-owned canonical NFS export table
 directly; it no longer mistakes unprivileged `exportfs` lock diagnostics for
 an active export.
 
-Forty-six fallback transport tests and all eighteen lifecycle methods
+Forty-six fallback transport tests and all twenty-six lifecycle methods
 pass. A physical reboot restored the supervised ACM reader. The fresh signed
 exchange then exposed a stale thermal assumption: the installed fallback now
 publishes 96 contiguous zones, including unsupported auxiliary channels,
@@ -162,7 +162,16 @@ fallback-SSH, and connected-fastboot preflight passes from clean pushed
 checkpoint `e635257`. The temporary PolicyKit authorization was removed and
 the final host residue audit is clean; see the
 [r2 host preflight](../test-results/2026-07-31-headless-ssh-successor-r2-host-preflight.md).
-No r2 phone boot has occurred.
+The first r2 temporary boot completed the signed recovery transfer, PREPARE,
+and one durable COMMIT. Linux 7.1 exposed the expected USB-NCM product on the
+same physical port, then physically disconnected 23 seconds later before the
+target host key could be pinned. The watchdog returned the unchanged Alpine
+fallback, strict SSH accepted one fresh signed identity record, and the
+durable intent resolved `FALLBACK_RETURNED`. A short NetworkManager/udev
+observation race in final cleanup is now covered by a bounded continuously
+clean dwell; all non-identity cleanup failures remain immediate. r2 is
+consumed and must not be retried. See the
+[r2 target USB-loss result](../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

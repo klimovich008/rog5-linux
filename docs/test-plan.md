@@ -286,9 +286,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
 - `test-run-minimal-headless-live-cycle.py` composes the corrected boot-only
   recovery, fixed one-transfer bundle server, fixed read-only NFS exporter,
   durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
-  observation, watchdog rollback, exact signed-ACM fallback preflight, and
+  observation, watchdog rollback, exact signed strict-SSH fallback proof, and
   host cleanup.
-  Seventeen process test methods now also prove exact key guards fail first,
+  Twenty-six process test methods now also prove exact key guards fail first,
   `key-preflight` stops before phone/privilege actions, and deployment-key
   admission precedes connected preflight. The same admission record now binds
   the fixed NFS profile/package marker, recovery-control rendezvous, target
@@ -299,8 +299,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `FALLBACK_RETURNED`, accepted runtime resolves only after exact fallback and
   cleanup, and missing fallback proof leaves the intent `UNKNOWN`. Injected
   protected-zone, temporary-address, NetworkManager-ownership, final-cleanup,
-  and silent-post-ledger-arm failures cover the cleanup/oracle boundaries. It
-  performs no phone, personal-credential, PolicyKit, firewall, or NFS action.
+  and silent-post-ledger-arm failures cover the cleanup/oracle boundaries.
+  They also cover transient and persistent udev gaps, an address-view race,
+  clean/dirty flapping, immediate failure for non-identity residue, one shared
+  cleanup deadline across subprocesses, and the invariant that stabilization
+  cannot add a fallback contact or COMMIT attempt. The tests perform no phone,
+  personal-credential, PolicyKit, firewall, or NFS action.
   See the
   [one-shot runbook](minimal-headless-live-cycle.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine

@@ -4,8 +4,10 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **the non-fixture r2 chain is signed, installed, and passes
-the complete connected preflight; its first temporary phone boot remains**.
+Tracked status: **the non-fixture r2 chain completed recovery transfer and one
+COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
+the fallback return, and r2 is consumed**. A distinct diagnostic successor is
+required before another temporary target boot.
 Tracked execution **HOLD**: this file never grants credential use or a phone
 boot. Those require explicit invocation-time authorization after all
 preflights pass.
@@ -168,12 +170,12 @@ The no-replace publication contract also refuses the existing export.
 
 ## Inputs
 
-> **r2 READY FOR TEMPORARY BOOT:** the original v3 manifest was consumed by the
-> resolved 2026-07-31 cycle and remains rejected before deployment-key access.
-> The successor keeps candidate `headless-ssh-network-root-v3`, uses signed
-> bundle `headless-ssh-network-root-v3-r2`, and is pinned to manifest
-> `9ea27452…d630`. Its twin build, no-replace installation, and complete
-> connected host preflight pass. Only the temporary boot remains.
+> **r2 CONSUMED BY ONE REJECTED TARGET CYCLE:** recovery fetched, prepared,
+> and committed r2 exactly once. Linux 7.1 exposed the expected USB-NCM gadget
+> and physically disconnected 23 seconds later, before target SSH acceptance.
+> The watchdog returned the exact Alpine fallback and strict SSH proved it.
+> Do not reuse r2; build a distinct diagnostic successor. See the
+> [live result](../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
 
 The lifecycle now selects one exact deployment profile and bundle:
 
@@ -511,7 +513,7 @@ not permission to retry a decided PREPARE request.
 `test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
 scenarios, `test-fallback-acm-control.py` covers forty-six fallback
 protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
-eighteen lifecycle test methods. Together they prove:
+twenty-six lifecycle test methods. Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;
@@ -565,7 +567,13 @@ eighteen lifecycle test methods. Together they prove:
   rescans the ledger, returns to fallback, and resolves without replay;
 - a control failure with no intent is never resolved; and
 - absent fallback proof or final firewall/address cleanup leaves the intent
-  `UNKNOWN`.
+  `UNKNOWN`;
+- final cleanup tolerates only a transient disagreement between the exact USB
+  identity and `/30` address views, requires one second of continuously clean
+  state, and shares one absolute deadline across subprocesses; and
+- non-identity cleanup residue fails immediately, while neither cleanup
+  stabilization nor its failure can create a second COMMIT or fallback
+  contact.
 
 The tests use only temporary mock processes, private fixture files, and
 disposable test keys. They do not contact the phone, start PolicyKit, open a
