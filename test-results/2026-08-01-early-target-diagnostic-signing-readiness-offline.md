@@ -165,6 +165,8 @@ use.
 
 The complete local repository `ci` tier passes with one expected optional
 retained-source skip. Independent standards/spec review reports no remaining
-actionable findings. GitHub CI must pass before any separately authorized
-production signing, host installation, connected preflight, or temporary
-phone boot.
+actionable findings. The subsequent
+[GitHub Actions run](2026-08-01-early-target-diagnostic-github-ci.md) passes
+both required jobs at exact head `6654c0c`. Production signing, host
+installation, connected preflight, and temporary phone boot remain separate
+guarded actions.
