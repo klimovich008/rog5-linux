@@ -23,10 +23,22 @@
 static void console_write(const char *message)
 {
 	int descriptor = open("/dev/console", O_WRONLY | O_CLOEXEC);
+	size_t remaining = strlen(message);
 
 	if (descriptor < 0)
 		descriptor = STDERR_FILENO;
-	(void)write(descriptor, message, strlen(message));
+	while (remaining > 0) {
+		ssize_t written = write(descriptor, message, remaining);
+
+		if (written > 0) {
+			message += written;
+			remaining -= (size_t)written;
+			continue;
+		}
+		if (written < 0 && errno == EINTR)
+			continue;
+		break;
+	}
 	if (descriptor != STDERR_FILENO)
 		(void)close(descriptor);
 }
