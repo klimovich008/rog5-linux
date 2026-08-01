@@ -13,16 +13,13 @@ builder=$repo/scripts/host/build-qemu-smoke-kernel.sh
 cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
-abort_trace_source=$repo/tools/qemu-diagnostic-handoff/abort-trace.c
-abort_trace_map=$repo/tools/qemu-diagnostic-handoff/abort-trace.map
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 systemd_runtime_builder=$repo/scripts/host/build-qemu-systemd-runtime.sh
 systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
-	"$handoff_source" "$abort_trace_source" "$abort_trace_map" \
-	"$handoff_runner" "$systemd_runtime" \
+	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
@@ -59,12 +56,17 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
 for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
-	INOTIFY_USER NET PRINTK PROC_FS RD_GZIP SERIAL_AMBA_PL011_CONSOLE \
-	SIGNALFD SYSFS TIMERFD TMPFS UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU \
-	VIRTIO_MMIO; do
-	grep -Fq -- "--enable $option" "$builder" ||
+	FUTEX INOTIFY_USER MEMFD_CREATE NET PRINTK PROC_FS RD_GZIP \
+	SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS UNIX \
+	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO; do
+	grep -Eq "(^|[[:space:]])$option([[:space:]]|$)" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
 done
+grep -Fq 'config_arguments+=(--enable "$required_runtime_option")' "$builder" ||
+	fail 'minimal QEMU kernel does not derive enable arguments from its required list'
+[[ $(grep -Fc 'for required_runtime_option in "${required_runtime_options[@]}"; do' \
+	"$builder") == 2 ]] ||
+	fail 'minimal QEMU kernel does not verify the same resolved option list'
 grep -Fq 'QEMU kernel lost $required_runtime_option after olddefconfig' \
 	"$builder" || fail 'QEMU runtime prerequisites are not checked after resolution'
 grep -Fq -- '-M virt' "$runner"
@@ -87,23 +89,6 @@ done
 grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
-grep -Fq 'detach_controlling_terminal();' "$handoff_source"
-grep -Fq 'ioctl(descriptor, TIOCNOTTY)' "$handoff_source"
-grep -Fq 'ROG5_QEMU_ABORT_BACKTRACE' "$abort_trace_source"
-grep -Fq 'ROG5_QEMU_ABORT_TRACE_LOADED' "$abort_trace_source"
-grep -Fq 'ROG5_QEMU_ASSERT kind=' "$abort_trace_source"
-grep -Fq 'ROG5_QEMU_TRAP_CONTEXT' "$abort_trace_source"
-grep -Fq 'backtrace_symbols_fd' "$abort_trace_source"
-grep -Fq 'GLIBC_2.17' "$abort_trace_map"
-grep -Fq 'SD_SHARED' "$abort_trace_map"
-grep -Fq -- '--version-script=$abort_trace_map' "$handoff_runner"
-grep -Fq 'rog5-abort-trace.so' "$handoff_runner"
-grep -Fq 'setenv("LD_PRELOAD", "/usr/lib/rog5-abort-trace.so", 1)' \
-	"$handoff_source"
-grep -Fq 'write_control("/proc/sys/debug/exception-trace", "1\n")' \
-	"$handoff_source"
-grep -Fq 'write_control("/proc/sys/kernel/print-fatal-signals", "1\n")' \
-	"$handoff_source"
 grep -Fq '#define PUBLICATION_SETTLE_MS 500' "$handoff_source"
 [[ $(grep -Fc 'sleep_milliseconds(PUBLICATION_SETTLE_MS);' \
 	"$handoff_source") == 2 ]] ||

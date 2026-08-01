@@ -76,37 +76,21 @@ rog5_kernel_cache_stats
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 tinyconfig
 config=$source_root/scripts/config
 [[ -x $config ]] || fail 'Linux scripts/config is unavailable'
+required_runtime_options=(
+	BLK_DEV_INITRD BINFMT_ELF CGROUPS DEVTMPFS DEVTMPFS_MOUNT EPOLL
+	FHANDLE FILE_LOCKING FUTEX INOTIFY_USER MEMFD_CREATE NET PRINTK PROC_FS
+	RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS
+	TIMERFD TMPFS TTY UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO
+)
+config_arguments=()
+for required_runtime_option in "${required_runtime_options[@]}"; do
+	config_arguments+=(--enable "$required_runtime_option")
+done
 "$config" --file "$output_root/.config" \
-	--enable BLK_DEV_INITRD \
-	--enable BINFMT_ELF \
-	--enable CGROUPS \
-	--enable DEVTMPFS \
-	--enable DEVTMPFS_MOUNT \
-	--enable EPOLL \
-	--enable FILE_LOCKING \
-	--enable FHANDLE \
-	--enable INOTIFY_USER \
-	--enable NET \
-	--enable PRINTK \
-	--enable PROC_FS \
-	--enable RD_GZIP \
-	--enable SERIAL_AMBA_PL011 \
-	--enable SERIAL_AMBA_PL011_CONSOLE \
-	--enable SIGNALFD \
-	--enable SYSFS \
-	--enable TIMERFD \
-	--enable TMPFS \
-	--enable TTY \
-	--enable UNIX \
-	--enable VIRTIO \
-	--enable VIRTIO_CONSOLE \
-	--enable VIRTIO_MENU \
-	--enable VIRTIO_MMIO \
-	--disable DEBUG_INFO
+	"${config_arguments[@]}" --disable DEBUG_INFO
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
-for required_runtime_option in CGROUPS EPOLL FHANDLE HVC_DRIVER INOTIFY_USER \
-	NET SIGNALFD SYSFS TIMERFD UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU \
-	VIRTIO_MMIO; do
+required_runtime_options+=(HVC_DRIVER)
+for required_runtime_option in "${required_runtime_options[@]}"; do
 	grep -Fqx "CONFIG_${required_runtime_option}=y" "$output_root/.config" ||
 		fail "QEMU kernel lost $required_runtime_option after olddefconfig"
 done

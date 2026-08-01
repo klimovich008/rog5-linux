@@ -325,11 +325,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   command-line, mode-isolation, exact five-second fault-dwell, systemd-unit,
   handoff-rollback, and failed-`switch_root` tests. Twenty-four native bundle
   tests require the reporter only for `diagnostic-initramfs-v1`; twin local
-  diagnostic archives are byte-identical. A board-neutral ARM64 QEMU harness
-  passes in the GitHub full-system job and proves root-handoff process
-  continuity, but its replacement PID 1 emits stages 130 and 140 directly. A
-  later full-system systemd test must execute the generated units before
-  disposable signing or any phone action.
+  diagnostic archives are byte-identical. The board-neutral ARM64 QEMU harness
+  now enters a sealed Arch runtime under real `systemd 260.2-2-arch` and
+  executes the exact generated units for stages 130 and 140. Its `sshd.service`
+  remains an ordering stub, so this is systemd execution evidence rather than
+  OpenSSH evidence. The clean local full-system gate and repository CI pass;
+  GitHub rerun remains required before disposable signing or any phone action.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

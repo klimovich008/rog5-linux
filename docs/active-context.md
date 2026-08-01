@@ -32,7 +32,10 @@ and newer-kernel rebases remain frozen until the headless core passes.
   CPU/RAM, exact NFS/OverlayFS mounts, zero phone-storage exposure, USB/NCM,
   key-only SSH, thermals, and the armed rollback process.
 - Local CI and GitHub Actions cover the generic QEMU boot, recovery protocol,
-  candidate packaging, runtime parsers, rollback, and repository policy.
+  candidate packaging, runtime parsers, rollback, and repository policy. The
+  local full-system gate additionally executes the production-generated stage
+  130/140 units under real AArch64 `systemd 260.2-2-arch`; its SSH service is an
+  ordering stub, not a real OpenSSH proof.
 
 These facts do not prove the corrected candidate on the phone.
 
@@ -180,11 +183,14 @@ updates, two volatile post-handoff units, and a bounded five-second terminal
 dwell. Normal network-root mode remains reporter/ACM/unit/dwell-free. The
 sealed reporter and optional archive integration twin-build locally; the
 native bundle verifier requires the helper for the diagnostic profile and
-forbids it elsewhere. Full local CI and the real GitHub ARM64 QEMU
-root-handoff job pass. The QEMU replacement PID 1 emits the post-handoff stages
-directly, so it proves process continuity, not execution of the generated
-systemd units. A true full-system systemd test is still required before this
-acceptance boundary closes. No diagnostic signing, candidate promotion,
+forbids it elsewhere. The corrected Linux 7.1.4 QEMU profile enables the
+demonstrated FUTEX, MEMFD_CREATE, SHMEM, and TMPFS requirements. Its clean
+local full-system run enters the sealed Arch runtime under real AArch64
+`systemd 260.2-2-arch` and executes the exact generated stage 130/140 units.
+The test SSH daemon is only an ordering stub, so real OpenSSH and all phone
+hardware remain outside this evidence. See the
+[systemd QEMU result](../test-results/2026-08-01-arm64-systemd-qemu-gate.md).
+GitHub rerun is pending. No diagnostic signing, candidate promotion,
 credential use, or phone action has occurred.
 
 See the
