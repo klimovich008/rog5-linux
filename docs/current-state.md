@@ -875,12 +875,18 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    operator-owned mode-`0600` socket and fixed root broker pass hostile tests,
    complete local/GitHub CI, exact installed-hash checks, SteamOS read-only
    restoration, and the real prompt-free 37,735-entry deployment-root
-   preflight. Admit one new lifecycle for the still-unexecuted diagnostic
-   candidate.
-3. Use that evidence to repair or promote a distinct normal minimal-headless
+   preflight. Its first lifecycle rejected before listener/transfer because
+   consumed r2 remained beside the diagnostic bundle in the sole-entry root;
+   automatic fallback and strict signed proof passed again.
+3. Consumed r2 is now recoverably archived and the exact descriptor validator
+   checks sole-root inventory, every artifact, and the canonical manifest
+   during preflight without a listener. Publish and reinstall that remediation,
+   pass the real preflight, then admit a separate new lifecycle for the still-
+   unexecuted diagnostic candidate.
+4. Use that evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path
    and collect the exact 88-field core record over strict SSH.
-4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+5. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

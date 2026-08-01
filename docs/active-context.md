@@ -249,6 +249,16 @@ is installed on SteamOS with read-only mode restored, and completed the real
 The [host-control result](../test-results/2026-08-01-steamos-prompt-free-host-control-live.md)
 records the exact installed hashes and cleanup evidence.
 
+The next admitted lifecycle proved the prompt-free socket path but rejected
+before listener or transfer: the active bundle root still contained consumed
+r2 beside the diagnostic bundle, and the authoritative server refused its
+`unexpected bundle-root inventory`. No recovery control, intent, NFS, or
+target execution occurred; automatic same-port fallback and a fresh signed
+strict-SSH record passed at 43.1 C. Consumed r2 is now in a private recoverable
+archive. The launcher remediation invokes the same descriptor-based sole-root,
+artifact, and manifest validation during preflight without opening a listener.
+See the [inventory rejection](../test-results/2026-08-01-early-target-diagnostic-bundle-inventory-rejected.md).
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

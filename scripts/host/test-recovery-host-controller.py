@@ -549,6 +549,10 @@ class RecoveryHostControllerTest(unittest.TestCase):
             'exec python3 -B "$client" bundle "$bundle" "$manifest_hash"',
             launcher,
         )
+        self.assertIn(
+            'exec python3 -B "$server" --preflight "$bundle" "$manifest_hash"',
+            launcher,
+        )
         self.assertNotIn("exec pkexec", launcher)
         self.assertIn("install -o root -g root -m 0555", installer)
         self.assertIn(

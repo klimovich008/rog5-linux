@@ -54,7 +54,6 @@ done
 	fail 'installed host-control client is stale; reinstall it first'
 
 if [[ $action == preflight ]]; then
-	echo 'PASS fixed recovery bundle server is installed and current'
-	exit 0
+	exec python3 -B "$server" --preflight "$bundle" "$manifest_hash"
 fi
 exec python3 -B "$client" bundle "$bundle" "$manifest_hash"
