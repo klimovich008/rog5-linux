@@ -274,6 +274,10 @@ duplicate builds can be removed safely.
 - [x] Integrate its receive-only collector into the one-shot lifecycle before
   recovery control, require explicit readiness before COMMIT, preserve
   rejected evidence, and keep normal target SSH acceptance unchanged.
+- [x] Add a credential-free no-replace diagnostic candidate preparer, fixed-ID
+  signing-input admission before key access, a guarded twin-build wrapper,
+  and a distinct production recovery-artifact profile. Keep both consumed
+  normal manifests denied by the lifecycle and direct boot gate.
 
 Exit: failed boots are diagnosable and recover automatically.
 
@@ -441,19 +445,20 @@ It has not been production-signed, installed, or booted.
 
 Current execution order:
 
-1. publish the reviewed local checkpoint and require green GitHub CI for the
-   diagnostic admission/lifecycle integration;
-2. under a distinct guarded credential action, create and twin-build the exact
+1. record the closed independent review and complete disposable-key
+   wrapper/twin-build/native-verification/artifact-preflight execution;
+2. publish the reviewed local checkpoint and require green GitHub CI;
+3. under a distinct guarded credential action, create and twin-build the exact
    production-signed diagnostic bundle, destroy its private-key snapshot, and
    pin every wrapper/trust/manifest/configuration identity;
-3. install only the reviewed signed diagnostic artifacts and pass local,
+4. install only the reviewed signed diagnostic artifacts and pass local,
    privileged-host, fallback-SSH, and connected-fastboot preflights;
-4. perform at most one separately guarded temporary boot, collect the bounded
+5. perform at most one separately guarded temporary boot, collect the bounded
    one-way stage stream, prove exact fallback/cleanup, and use that evidence to
    fix the 23-second USB-loss boundary without retrying the consumed image;
-5. repeat with a distinct normal SSH candidate only after the diagnostic
+6. repeat with a distinct normal SSH candidate only after the diagnostic
    evidence identifies and fixes the failing boundary;
-6. if H2 passes, continue physical keys/indicator, then H3
+7. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

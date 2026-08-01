@@ -9,14 +9,16 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 builder=$repo/scripts/host/build-headless-core-candidate-offline.sh
 base_builder=$repo/scripts/host/build-corrected-headless-candidate-offline.sh
+base_builder_impl=$repo/scripts/host/build-corrected-headless-candidate-offline-impl.sh
 candidate=$repo/configs/recovery-candidates/headless-core-network-root-v2.json
 package=$repo/configs/network-roots/headless-core-network-root-v2.package
 
-for path in "$builder" "$base_builder"; do
+for path in "$builder" "$base_builder" "$base_builder_impl"; do
 	[[ -f $path && ! -L $path && -x $path ]] ||
 		fail "missing executable headless-core candidate input: ${path#"$repo"/}"
-	bash -n "$path"
 done
+bash -n "$builder" "$base_builder_impl"
+/usr/bin/python3 -m py_compile "$base_builder"
 for path in "$candidate" "$package"; do
 	[[ -f $path && ! -L $path ]] ||
 		fail "missing headless-core candidate contract: ${path#"$repo"/}"
@@ -44,17 +46,18 @@ grep -Fxq 'build_profile=headless-core-v2' "$package"
 
 if grep -Eq \
 	'\b(fastboot|adb|scp|systemctl|pkexec|sudo)\b|(^|[[:space:]"'\''])ssh([[:space:]"'\'']|$)|/dev/(sd|nvme|ufs)' \
-	"$builder" "$base_builder"; then
+	"$builder" "$base_builder" "$base_builder_impl"; then
 	fail 'headless-core candidate builder contains live or storage transport'
 fi
-grep -Fq 'unsupported offline candidate identity tuple' "$base_builder" ||
+grep -Fq 'unsupported offline candidate identity tuple' "$base_builder_impl" ||
 	fail 'shared candidate builder does not allowlist exact identity tuples'
 
 if refusal=$(
-	ROG5_OFFLINE_CANDIDATE=headless-core-network-root-v2 \
-	ROG5_OFFLINE_EXPECTED_DTB=bad \
-	ROG5_OFFLINE_EXPECTED_TARGET=headless-core-network-root \
-		"$base_builder" "$repo/build/invalid-offline-candidate" 2>&1
+	"$base_builder" \
+		--candidate headless-core-network-root-v2 \
+		--expected-dtb bad \
+		--expected-target headless-core-network-root \
+		"$repo/build/invalid-offline-candidate" 2>&1
 ); then
 	fail 'shared candidate builder accepted a malformed DTB identity'
 fi
@@ -62,10 +65,11 @@ grep -Fq 'offline candidate DTB identity is malformed' <<<"$refusal" ||
 	fail 'shared candidate builder did not fail at the DTB identity boundary'
 
 if refusal=$(
-	ROG5_OFFLINE_CANDIDATE=headless-core-network-root-v2 \
-	ROG5_OFFLINE_EXPECTED_DTB=86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46 \
-	ROG5_OFFLINE_EXPECTED_TARGET=headless-core-network-root \
-		"$base_builder" "$repo/build/invalid-offline-candidate" 2>&1
+	"$base_builder" \
+		--candidate headless-core-network-root-v2 \
+		--expected-dtb 86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46 \
+		--expected-target headless-core-network-root \
+		"$repo/build/invalid-offline-candidate" 2>&1
 ); then
 	fail 'shared candidate builder accepted a co-varied identity tuple'
 fi

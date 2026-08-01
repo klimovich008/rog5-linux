@@ -22,6 +22,7 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
+DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-deployment-v1"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
@@ -270,6 +271,7 @@ class CycleProfile:
     bundle_profile: str
     target_id: str
     admission_profile: str
+    recovery_profile: str
     diagnostic: bool
 
 
@@ -279,6 +281,7 @@ STANDARD_CYCLE_PROFILE = CycleProfile(
     bundle_profile="network-root-v1",
     target_id="headless-ssh-network-root",
     admission_profile="headless-ssh-r2",
+    recovery_profile=RECOVERY_PROFILE,
     diagnostic=False,
 )
 DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
@@ -287,6 +290,7 @@ DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
     bundle_profile=DIAGNOSTIC_PROFILE,
     target_id="headless-netroot-early-diag",
     admission_profile=DIAGNOSTIC_ADMISSION_PROFILE,
+    recovery_profile=DIAGNOSTIC_RECOVERY_PROFILE,
     diagnostic=True,
 )
 
@@ -465,10 +469,10 @@ def parse_admission_inputs(profile: CycleProfile) -> AdmissionInputs:
         fail(f"BUNDLE must be exactly {profile.bundle}")
     if (
         os.environ.get("ROG5_STABLE_RECOVERY_PROFILE")
-        != RECOVERY_PROFILE
+        != profile.recovery_profile
     ):
         fail(
-            "ROG5_STABLE_RECOVERY_PROFILE must select the headless SSH "
+            "ROG5_STABLE_RECOVERY_PROFILE must select the exact lifecycle "
             "deployment profile"
         )
     ssh_key = caller_file(os.environ.get("SSH_KEY", ""), "SSH_KEY")

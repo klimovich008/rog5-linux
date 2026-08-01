@@ -200,13 +200,15 @@ The no-replace publication contract also refuses the existing export.
 
 The lifecycle now selects one exact deployment profile and bundle:
 
-- `ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3`
-- `BUNDLE=headless-ssh-network-root-v3-r2`
+- `ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3` and
+  `BUNDLE=headless-ssh-network-root-v3-r2` for normal acceptance; or
+  `ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1` and
+  `BUNDLE=headless-netroot-early-diag-v1` for diagnostic execution;
 - `LIVE_BUILD_ROOT`
 - `RECOVERY_COMPONENT_ROOT`
 - `TRUST_KEY`
-- `BUNDLE_ROOT`: canonical caller-owned mode-`0700` directory containing
-  `headless-ssh-network-root-v3-r2/manifest`;
+- `BUNDLE_ROOT`: canonical caller-owned mode-`0700` directory containing the
+  exact selected bundle and its manifest;
 - `RECOVERY_SHA256`
 - `TRUST_KEY_SHA256`
 - `MANIFEST_SHA256`
@@ -307,13 +309,77 @@ scripts/host/preflight-headless-ssh-successor-candidate.py \
   --base-candidate-record /private/headless-ssh-network-root-v3.json \
   --candidate-record /private/headless-ssh-network-root-v3-r2.json
 
-ALLOW_HEADLESS_SSH_DEPLOYMENT_BUILD=1 \
-ALLOW_PHONE_CREDENTIAL_USE=1 \
-ROG5_DEPLOYMENT_CANDIDATE_RECORD=/private/headless-ssh-network-root-v3-r2.json \
-ROG5_DEPLOYMENT_SIGNING_KEY=/private/recovery-signing-key.pem \
-  scripts/host/build-headless-ssh-deployment-candidate.sh \
+scripts/host/build-headless-ssh-deployment-candidate.sh \
+  --authorize-recovery-deployment-build \
+  --authorize-phone-credential-use \
+  --candidate-record /private/headless-ssh-network-root-v3-r2.json \
+  --signing-key /private/recovery-signing-key.pem \
   "$PWD/build/headless-ssh-deployment"
 ```
+
+The diagnostic successor reuses the admitted non-fixture Arch package but
+has a separate, exact candidate and guarded build wrapper. Preparing the
+external record is credential-free, verifies every root identity against the
+package, requires candidate SHA-256
+`7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8`,
+and creates a new mode-`0444` file without replacement:
+
+```bash
+scripts/host/prepare-early-target-diagnostic-deployment-candidate.py \
+  --package /private/network-root/manifest \
+  --output /private/headless-netroot-early-diag-v1.json
+```
+
+Only after the reviewed checkpoint is pushed and GitHub CI is green may one
+separately authorized production-signing invocation use that record:
+
+```bash
+scripts/host/build-early-target-diagnostic-deployment-candidate.sh \
+  --authorize-recovery-deployment-build \
+  --authorize-phone-credential-use \
+  --candidate-record /private/headless-netroot-early-diag-v1.json \
+  --signing-key /private/recovery-signing-key.pem \
+  "$PWD/build/early-target-diagnostic-deployment"
+```
+
+Each credentialed launcher starts through `env -i` and isolated Python before
+parsing its explicit one-shot authorization flags and external paths, then
+verifies a clean synchronized checkpoint, compares the internal Bash builder
+to its exact `HEAD` blob, copies it to a sealed memfd, and executes that
+descriptor with a fixed environment. Pathname replacement after verification
+cannot change the bytes Bash receives. This prevents
+caller `BASH_ENV`, exported functions, `PYTHONPATH`, and OpenSSL provider
+settings from running while the source key path or snapshot is live. The
+neutral recovery stager resolves only the fixed normal or diagnostic
+candidate ID; the former SSH-named path is compatibility-only. For the
+diagnostic profile it verifies the exact candidate and reserves all three
+no-replace outputs before opening the signing key, then snapshots both inputs
+privately. After staging, the builder removes the authorization guards. An
+executable disposable-key input preflight injects hostile Bash startup hooks,
+exported functions, Python and OpenSSL configuration, and a shim for every
+builder helper. It proves none can intercept the wrapper-to-stager path, then
+checks caller-input preservation, later child-environment scrub, and snapshot
+destruction without signing. The diagnostic build must
+reproduce manifest
+`4eacb90f…e76`; the two signatures, bundles, recovery initramfses, wrapper
+kernels, raw images, and AVB images must match before the private key snapshot
+is destroyed. Neither preparation nor building grants a phone boot or
+installation authority.
+
+The launcher threat boundary trusts the already-running local owner session,
+the root-managed dynamic loader, and the absolute `/usr/bin` runtime binaries.
+It deliberately does not claim to contain `LD_PRELOAD`/`LD_AUDIT` injected by
+an attacker controlling the parent process before `/usr/bin/env` starts; such
+an attacker already has the same-user authority needed to read the external
+0600 key. Production signing must therefore start from a trusted local shell
+with no loader injection. The empty environment and isolated runtimes contain
+all subsequent Bash, Python, PATH, and OpenSSL configuration channels.
+
+The recovery gate's credential-free `policy-preflight` action accepts only the
+fully pinned diagnostic profile and prints one exact canonical profile/bundle/
+manifest/bundle-profile/target/recovery/trust/host-verifier record before
+inspecting artifact paths. It grants `authority=none`; the later
+`artifact-preflight` must still verify every byte.
 
 The root packager accepts only an external read-only source archive below a
 private parent, rejects every fixture identity, verifies a clean-extracted

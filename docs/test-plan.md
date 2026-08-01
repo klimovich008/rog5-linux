@@ -356,6 +356,24 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   normal r2
   target SSH acceptance remains unchanged. See the
   [lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
+  Signing readiness additionally requires the exact non-fixture package to
+  materialize candidate record `7081a0c7…c6e8` outside Git without
+  replacement; a diagnostic mutation must fail before the key path is opened;
+  only the fixed normal and diagnostic candidate IDs may reach the shared
+  stager; output reservation must remove its exact inode when permission setup
+  fails; credential paths and one-shot authorization must enter only as CLI
+  arguments to an environment-clearing isolated launcher; caller Bash/Python/
+  OpenSSL startup configuration, exported functions, and `PATH` helpers must
+  not intercept any pre- or post-staging tool; and the internal Bash bytes must
+  match `HEAD`, remain immutable in a sealed memfd, and survive hostile
+  pathname replacement. The diagnostic-only recovery
+  policy preflight must require
+  manifest `4eacb90f…e76`, bundle profile `diagnostic-initramfs-v1`, and target
+  `headless-netroot-early-diag`, reject unpinned profiles, and match one exact
+  canonical output byte stream. Direct boot must reject both consumed normal
+  manifests. These tests remain credential-free and phone-free; actual twin
+  production signing, installation, and one temporary execution are separate
+  gates.
   See the
   [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
   The complete authority-free package identities are in the

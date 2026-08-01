@@ -31,6 +31,16 @@ if grep -Fq 'missing live-gate command' "$tmp/err"; then
 fi
 
 if env -i PATH="$PATH" HOME="$HOME" \
+	ROG5_STABLE_RECOVERY_PROFILE=historical-2026-07-29 \
+	bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL policy preflight accepted a profile without complete pins' >&2
+	exit 1
+fi
+grep -Fq 'policy preflight requires the fully pinned diagnostic profile' \
+	"$tmp/err"
+
+if env -i PATH="$PATH" HOME="$HOME" \
 	ALLOW_TEMPORARY_BOOT=1 \
 	ALLOW_HEADLESS_LIVE_GATE=1 \
 	ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3 \
@@ -50,14 +60,104 @@ then
 fi
 grep -Fq 'refusing a consumed deployment manifest' "$tmp/err"
 
+run_diagnostic_policy() {
+	local selected_bundle=$1 selected_image=$2 selected_manifest=$3
+	env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
+		BUNDLE="$selected_bundle" \
+		RECOVERY_SHA256="$selected_image" \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256="$selected_manifest" \
+		HOST_VERIFIER_SHA256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b \
+		bash "$gate" policy-preflight
+}
+
+if run_diagnostic_policy \
+	headless-netroot-early-diag-v1 \
+	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
+	>"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL diagnostic artifact policy accepted the normal r2 manifest' >&2
+	exit 1
+fi
+grep -Fq 'diagnostic runtime manifest is not allowlisted' "$tmp/err"
+
+if run_diagnostic_policy \
+	headless-ssh-network-root-v3-r2 \
+	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	>"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL diagnostic artifact policy accepted the normal r2 bundle' >&2
+	exit 1
+fi
+grep -Fq 'profile requires bundle=headless-netroot-early-diag-v1' "$tmp/err"
+
+if run_diagnostic_policy \
+	headless-netroot-early-diag-v1 \
+	ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff \
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	>"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL diagnostic artifact policy accepted a wrong recovery image' >&2
+	exit 1
+fi
+grep -Fq 'deployment recovery image identity is not allowlisted' "$tmp/err"
+
+if ! run_diagnostic_policy \
+	headless-netroot-early-diag-v1 \
+	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	>"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL exact diagnostic policy preflight was rejected' >&2
+	exit 1
+fi
+cat >"$tmp/expected-policy" <<'EOF'
+format=rog5-stable-recovery-policy-v1
+recovery_profile=headless-diagnostic-deployment-v1
+bundle=headless-netroot-early-diag-v1
+manifest_sha256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
+bundle_profile=diagnostic-initramfs-v1
+target_id=headless-netroot-early-diag
+recovery_sha256=11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c
+trust_key_sha256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
+host_verifier_sha256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b
+authority=none
+result=PASS
+EOF
+cmp "$tmp/expected-policy" "$tmp/out" || {
+	echo 'FAIL diagnostic policy record is not exact and canonical' >&2
+	exit 1
+}
+
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-ssh-deployment-v3 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-ssh-network-root-v3-r2 \
+	RECOVERY_SHA256=11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
+	HOST_VERIFIER_SHA256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL consumed r2 manifest reached direct boot admission' >&2
+	exit 1
+fi
+grep -Fq 'refusing a consumed deployment manifest' "$tmp/err"
+
 # shellcheck disable=SC2016
 for required in \
 	'ALLOW_HEADLESS_LIVE_GATE' \
 	'artifact-preflight' \
+	'policy-preflight' \
 	'ROG5_STABLE_RECOVERY_PROFILE' \
 	'set ROG5_STABLE_RECOVERY_PROFILE explicitly' \
 	'corrected-headless-successor-2026-07-30' \
 	'headless-ssh-deployment-v3' \
+	'headless-diagnostic-deployment-v1' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \
@@ -69,12 +169,17 @@ for required in \
 	'expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77' \
 	'expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392' \
 	'expected_target_id=headless-ssh-network-root' \
+	'expected_target_id=headless-netroot-early-diag' \
 	'f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b' \
 	'457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e' \
 	'9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630' \
+	'4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76' \
 	'9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b' \
 	'expected_bundle=headless-ssh-network-root-v3-r2' \
+	'expected_bundle=headless-netroot-early-diag-v1' \
+	'expected_bundle_profile=diagnostic-initramfs-v1' \
 	'profile requires bundle=$expected_bundle' \
+	'profile=$expected_bundle_profile' \
 	'target_id=$expected_target_id' \
 	'artifacts/android-boot-tools-v1/avbtool.py' \
 	'qualified-cpio-path/cpio' \
