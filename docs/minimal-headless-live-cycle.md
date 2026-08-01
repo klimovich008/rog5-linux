@@ -8,8 +8,8 @@ Tracked status: **the non-fixture r2 chain completed recovery transfer and one
 COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
 the fallback return, and r2 is consumed**. A distinct diagnostic successor is
 now production-signed, twin-built, artifact-admitted, and integrated into the
-controller; host installation, connected preflight, and its sole temporary
-target boot remain pending.
+controller. The prompt-free host boundary is installed and its real socket/NFS
+preflight passes; one new admitted temporary diagnostic lifecycle remains.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
@@ -161,13 +161,18 @@ directories. This keeps the 1.53 GiB lower on SteamOS's large `/home`
 filesystem while the 46 MiB signed recovery bundle remains in the caller-owned
 `/var/lib/rog5-recovery-bundles`.
 
-After this change is reviewed, committed, and pushed, the installed copies
-will be stale by design. Updating them and enabling the operator-owned socket
-is one separate privileged host mutation:
+Updating reviewed host components and enabling the operator-owned socket is
+one separate privileged host mutation:
 
 ```bash
 pkexec scripts/host/install-recovery-host-controller.sh
 ```
+
+The installation at commit `aa39503` is accepted: SteamOS read-only mode was
+restored, the socket is enabled and active with exact UID/GID `1000:1000` and
+mode `0600`, installed executable hashes match the checkout, and the real
+deployment NFS preflight crossed the root broker without PolicyKit. See the
+[live host-control result](../test-results/2026-08-01-steamos-prompt-free-host-control-live.md).
 
 After the reviewed change is committed, pushed, synchronized with `origin`,
 and its installer preflight passes, the command may run under the central
