@@ -201,9 +201,10 @@ cross stages 10, 120, 130, and 140 in order. Its small replacement PID 1 emits
 130 and 140 directly after the handoff; it does not execute systemd or the
 generated production units. The harness therefore proves reporter/process
 continuity only. Its static contract and the full local repository suite pass,
-but a full-system ARM64 systemd job remains pending; step 4 is not yet
-accepted. Independent review is complete; disposable signed-bundle twin
-packaging, green GitHub CI, and every phone action remain pending.
+and the real GitHub ARM64 QEMU job passes the same root-handoff stream. A
+separate full-system systemd job remains pending, so step 4 is not yet
+accepted. Independent review and GitHub CI are complete; disposable
+signed-bundle twin packaging and every phone action remain pending.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

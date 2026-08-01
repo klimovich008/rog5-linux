@@ -326,10 +326,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   handoff-rollback, and failed-`switch_root` tests. Twenty-four native bundle
   tests require the reporter only for `diagnostic-initramfs-v1`; twin local
   diagnostic archives are byte-identical. A board-neutral ARM64 QEMU harness
-  is wired into the full-system job and proves root-handoff process continuity,
-  but its replacement PID 1 emits stages 130 and 140 directly. A later
-  full-system systemd test must execute the generated units before disposable
-  signing or any phone action.
+  passes in the GitHub full-system job and proves root-handoff process
+  continuity, but its replacement PID 1 emits stages 130 and 140 directly. A
+  later full-system systemd test must execute the generated units before
+  disposable signing or any phone action.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight
