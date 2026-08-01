@@ -22,12 +22,20 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
+DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
+DIAGNOSTIC_ADMISSION_PROFILE = "early-target-diagnostic-v1"
+DIAGNOSTIC_COLLECTOR_READY = (
+    "READY receive-only early-target diagnostic collector"
+)
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 ZERO_SHA256 = "0" * 64
 CONSUMED_MANIFESTS = {
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
+    "9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630",
 }
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SSH_FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
@@ -95,6 +103,8 @@ OUTPUT_NAMES = (
     "fallback-identity.record",
     "fallback-preflight.log",
     "intent-resolution.log",
+    "early-target-diagnostics.log",
+    "early-target-diagnostics.json",
 )
 KEY_ADMISSION_FIELDS = (
     "format",
@@ -141,6 +151,7 @@ class Dependencies:
     recovery_control: Path
     host_key: Path
     runtime_acceptance: Path
+    diagnostic_collector: Path
     fallback: Path
     key_admission: Path
     handoff_marker: Path
@@ -179,6 +190,9 @@ class Dependencies:
                 runtime_acceptance=(
                     root / "run-minimal-headless-runtime-acceptance.sh"
                 ),
+                diagnostic_collector=(
+                    root / "collect-early-target-diagnostics.py"
+                ),
                 fallback=root / "fallback-acm-control.py",
                 key_admission=(
                     root / "verify-headless-ssh-v2-key-admission.py"
@@ -216,6 +230,9 @@ class Dependencies:
                 REPO
                 / "scripts/host/run-minimal-headless-runtime-acceptance.sh"
             ),
+            diagnostic_collector=(
+                REPO / "scripts/host/collect-early-target-diagnostics.py"
+            ),
             fallback=REPO / "scripts/host/fallback-acm-control.py",
             key_admission=(
                 REPO
@@ -244,6 +261,34 @@ class AdmissionInputs:
     root_package: Path
     candidate_record: Path
     bundle_manifest: Path
+
+
+@dataclass(frozen=True)
+class CycleProfile:
+    candidate: str
+    bundle: str
+    bundle_profile: str
+    target_id: str
+    admission_profile: str
+    diagnostic: bool
+
+
+STANDARD_CYCLE_PROFILE = CycleProfile(
+    candidate=CANDIDATE,
+    bundle=BUNDLE,
+    bundle_profile="network-root-v1",
+    target_id="headless-ssh-network-root",
+    admission_profile="headless-ssh-r2",
+    diagnostic=False,
+)
+DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
+    candidate=DIAGNOSTIC_CANDIDATE,
+    bundle=DIAGNOSTIC_BUNDLE,
+    bundle_profile=DIAGNOSTIC_PROFILE,
+    target_id="headless-netroot-early-diag",
+    admission_profile=DIAGNOSTIC_ADMISSION_PROFILE,
+    diagnostic=True,
+)
 
 
 @dataclass(frozen=True)
@@ -407,7 +452,7 @@ def outside_repository(path: Path, label: str) -> None:
     fail(f"{label} must remain outside the repository")
 
 
-def parse_admission_inputs() -> AdmissionInputs:
+def parse_admission_inputs(profile: CycleProfile) -> AdmissionInputs:
     manifest = os.environ.get("MANIFEST_SHA256", "")
     if not SHA256.fullmatch(manifest) or manifest == ZERO_SHA256:
         fail("MANIFEST_SHA256 must be one nonzero lowercase SHA-256")
@@ -416,8 +461,8 @@ def parse_admission_inputs() -> AdmissionInputs:
             "MANIFEST_SHA256 identifies a consumed live payload; build "
             "and pin a fresh successor instead of retrying it"
         )
-    if os.environ.get("BUNDLE") != BUNDLE:
-        fail(f"BUNDLE must be exactly {BUNDLE}")
+    if os.environ.get("BUNDLE") != profile.bundle:
+        fail(f"BUNDLE must be exactly {profile.bundle}")
     if (
         os.environ.get("ROG5_STABLE_RECOVERY_PROFILE")
         != RECOVERY_PROFILE
@@ -440,7 +485,7 @@ def parse_admission_inputs() -> AdmissionInputs:
         "BUNDLE_ROOT",
     )
     bundle_manifest = caller_artifact(
-        str(bundle_root / BUNDLE / "manifest"),
+        str(bundle_root / profile.bundle / "manifest"),
         "runtime bundle manifest",
     )
     outside_repository(ssh_key, "SSH_KEY")
@@ -585,6 +630,7 @@ def verify_repository_checkpoint(git: Path) -> None:
 def parse_key_admission_record(
     payload: str,
     expected_manifest_sha256: str,
+    profile: CycleProfile = STANDARD_CYCLE_PROFILE,
 ) -> OrderedDict[str, str]:
     if not payload.endswith("\n"):
         fail("deployment-key admission output is not canonical")
@@ -604,11 +650,11 @@ def parse_key_admission_record(
         values[name] = value
     if (
         values["format"] != "rog5-headless-ssh-v2-key-admission-v1"
-        or values["candidate"] != CANDIDATE
-        or values["bundle"] != BUNDLE
-        or values["profile"] != "network-root-v1"
+        or values["candidate"] != profile.candidate
+        or values["bundle"] != profile.bundle
+        or values["profile"] != profile.bundle_profile
         or values["build_profile"] != "headless-ssh-v2"
-        or values["target_id"] != "headless-ssh-network-root"
+        or values["target_id"] != profile.target_id
         or values["manifest_sha256"] != expected_manifest_sha256
         or values["authority"] != "none"
         or not SSH_FINGERPRINT.fullmatch(
@@ -639,6 +685,7 @@ def parse_key_admission_record(
 def verify_key_admission(
     dependencies: Dependencies,
     inputs: AdmissionInputs,
+    profile: CycleProfile = STANDARD_CYCLE_PROFILE,
 ) -> OrderedDict[str, str]:
     fixed_executable(
         dependencies.key_admission,
@@ -657,6 +704,8 @@ def verify_key_admission(
             str(inputs.bundle_manifest),
             "--manifest-sha256",
             inputs.manifest_sha256,
+            "--admission-profile",
+            profile.admission_profile,
         ],
         environment={
             "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
@@ -667,6 +716,7 @@ def verify_key_admission(
     return parse_key_admission_record(
         result.stdout,
         inputs.manifest_sha256,
+        profile,
     )
 
 
@@ -837,6 +887,7 @@ def wait_log_marker(
     *,
     timeout: float,
     poll: float,
+    exact_line: bool = False,
 ) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -844,7 +895,16 @@ def wait_log_marker(
             payload = managed.log.read_text(encoding="utf-8")
         except (FileNotFoundError, UnicodeDecodeError):
             payload = ""
-        if marker in payload:
+        if exact_line:
+            marker_count = payload.splitlines(keepends=True).count(
+                f"{marker}\n"
+            )
+            if marker_count > 1:
+                fail(f"{managed.name} published duplicate ready markers")
+            found = marker_count == 1
+        else:
+            found = marker in payload
+        if found:
             return
         status = managed.process.poll()
         if status is not None:
@@ -854,6 +914,15 @@ def wait_log_marker(
             )
         time.sleep(poll)
     fail(f"{managed.name} did not publish its bounded ready marker")
+
+
+def require_exact_log_line(path: Path, marker: str) -> None:
+    try:
+        payload = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as error:
+        raise CycleError(f"cannot read private process log: {path}") from error
+    if payload.splitlines(keepends=True).count(f"{marker}\n") != 1:
+        fail(f"{path.name} lacks one exact newline-terminated marker")
 
 
 def require_log_markers(path: Path, markers: tuple[str, ...]) -> None:
@@ -885,6 +954,7 @@ def validate_intent(
     value: dict[str, object],
     *,
     manifest_sha256: str,
+    target: str = BUNDLE,
 ) -> Intent:
     session = value.get("session")
     request = value.get("request")
@@ -894,7 +964,7 @@ def validate_intent(
         or not isinstance(request, str)
         or not HEX_ID.fullmatch(request)
         or value.get("manifest_sha256") != manifest_sha256
-        or value.get("target") != BUNDLE
+        or value.get("target") != target
         or value.get("state") != "TRANSMITTED"
         or value.get("outcome") != "UNKNOWN"
     ):
@@ -907,7 +977,11 @@ def validate_intent(
     )
 
 
-def parse_control_log(path: Path, manifest_sha256: str) -> Intent:
+def parse_control_log(
+    path: Path,
+    manifest_sha256: str,
+    target: str = BUNDLE,
+) -> Intent:
     try:
         lines = [
             line
@@ -924,7 +998,7 @@ def parse_control_log(path: Path, manifest_sha256: str) -> Intent:
     if (
         prepared.get("result") != "PREPARED"
         or prepared.get("state") != "PREPARED"
-        or prepared.get("prepared_bundle") != BUNDLE
+        or prepared.get("prepared_bundle") != target
         or prepared.get("manifest_sha256") != manifest_sha256
         or prepared.get("watchdog") != "ARMED"
     ):
@@ -940,6 +1014,7 @@ def parse_control_log(path: Path, manifest_sha256: str) -> Intent:
     intent = validate_intent(
         intent_value,
         manifest_sha256=manifest_sha256,
+        target=target,
     )
     if (
         prepared.get("session") != intent.session
@@ -951,7 +1026,11 @@ def parse_control_log(path: Path, manifest_sha256: str) -> Intent:
     return intent
 
 
-def parse_any_intent(path: Path, manifest_sha256: str) -> Intent | None:
+def parse_any_intent(
+    path: Path,
+    manifest_sha256: str,
+    target: str = BUNDLE,
+) -> Intent | None:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
@@ -970,6 +1049,7 @@ def parse_any_intent(path: Path, manifest_sha256: str) -> Intent | None:
                 return validate_intent(
                     value,
                     manifest_sha256=manifest_sha256,
+                    target=target,
                 )
         except (CycleError, json.JSONDecodeError):
             continue
@@ -990,6 +1070,195 @@ def parse_record(path: Path) -> dict[str, str]:
             fail(f"private record has a duplicate field: {path}")
         values[name] = value
     return values
+
+
+def verify_diagnostic_evidence(
+    path: Path,
+    anchor_path: Path,
+    expected_candidate: str,
+) -> str:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags)
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or stat.S_IMODE(before.st_mode) != 0o600
+            or before.st_nlink != 1
+            or not 1 <= before.st_size <= 2 * 1024 * 1024
+        ):
+            fail("diagnostic evidence metadata is unsafe")
+        payload = bytearray()
+        while len(payload) <= 2 * 1024 * 1024:
+            block = os.read(
+                descriptor,
+                min(65536, 2 * 1024 * 1024 + 1 - len(payload)),
+            )
+            if not block:
+                break
+            payload.extend(block)
+        after = os.fstat(descriptor)
+        named = path.lstat()
+        identity = lambda value: (
+            value.st_dev,
+            value.st_ino,
+            value.st_mode,
+            value.st_uid,
+            value.st_gid,
+            value.st_nlink,
+            value.st_size,
+            value.st_mtime_ns,
+            value.st_ctime_ns,
+        )
+        if (
+            len(payload) != before.st_size
+            or identity(before) != identity(after)
+            or identity(before) != identity(named)
+        ):
+            fail("diagnostic evidence changed while being read")
+    finally:
+        os.close(descriptor)
+    if (
+        not payload.endswith(b"\n")
+        or payload.count(b"\n") != 1
+        or b"\r" in payload
+        or b"\0" in payload
+    ):
+        fail("diagnostic evidence encoding is not canonical")
+    try:
+        line = payload[:-1].decode("ascii")
+    except UnicodeDecodeError as error:
+        raise CycleError("diagnostic evidence is not ASCII") from error
+    value = canonical_json(line)
+    canonical = (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("ascii")
+        + b"\n"
+    )
+    if canonical != payload:
+        fail("diagnostic evidence JSON is not canonical")
+    expected_keys = {
+        "candidate",
+        "capture_status",
+        "dropped_usb_events",
+        "ended_unix_ns",
+        "end_reason",
+        "format",
+        "frame_count",
+        "frames",
+        "host_boot_id",
+        "started_unix_ns",
+        "target_boot_id",
+        "target_product",
+        "usb_events",
+        "usb_location",
+    }
+    anchor = parse_record(anchor_path)
+    if set(anchor) != {
+        "format",
+        "host_boot_id",
+        "created_unix",
+        "usb_location",
+        "recovery_vendor",
+        "recovery_product_id",
+        "recovery_product",
+    }:
+        fail("recovery USB anchor schema changed")
+    target_boot_id = value.get("target_boot_id")
+    frames = value.get("frames")
+    usb_events = value.get("usb_events")
+    if (
+        set(value) != expected_keys
+        or value.get("format") != "rog5-early-target-evidence-v1"
+        or value.get("candidate") != expected_candidate
+        or value.get("capture_status") != "valid"
+        or value.get("target_product") != "ROG5 diagnostic network root"
+        or value.get("host_boot_id") != anchor["host_boot_id"]
+        or value.get("usb_location") != anchor["usb_location"]
+        or not isinstance(target_boot_id, str)
+        or not BOOT_ID.fullmatch(target_boot_id)
+        or value.get("end_reason") not in {"disconnected", "timeout"}
+        or type(value.get("started_unix_ns")) is not int
+        or type(value.get("ended_unix_ns")) is not int
+        or value["started_unix_ns"] <= 0
+        or value["ended_unix_ns"] < value["started_unix_ns"]
+        or type(value.get("dropped_usb_events")) is not int
+        or value["dropped_usb_events"] < 0
+        or not isinstance(frames, list)
+        or not isinstance(usb_events, list)
+        or len(usb_events) > 64
+        or type(value.get("frame_count")) is not int
+        or not 1 <= value["frame_count"] <= 4096
+        or value["frame_count"] != len(frames)
+    ):
+        fail("diagnostic evidence identity or status is invalid")
+    frame_keys = {"host_monotonic_ns", "host_unix_ns", "record"}
+    record_keys = {
+        "boot_id",
+        "boottime_ms",
+        "candidate",
+        "dropped_updates",
+        "fault",
+        "last_good_code",
+        "sequence",
+        "stage",
+        "stage_code",
+        "watchdog_deadline_ms",
+    }
+    for frame in frames:
+        if (
+            not isinstance(frame, dict)
+            or set(frame) != frame_keys
+            or type(frame.get("host_monotonic_ns")) is not int
+            or type(frame.get("host_unix_ns")) is not int
+            or frame["host_monotonic_ns"] < 0
+            or frame["host_unix_ns"] <= 0
+        ):
+            fail("diagnostic evidence frame is invalid")
+        record = frame.get("record")
+        if (
+            not isinstance(record, dict)
+            or set(record) != record_keys
+            or record.get("candidate") != expected_candidate
+            or record.get("boot_id") != target_boot_id
+        ):
+            fail("diagnostic evidence frame identity is invalid")
+        for name in (
+            "boottime_ms",
+            "dropped_updates",
+            "last_good_code",
+            "sequence",
+            "stage_code",
+            "watchdog_deadline_ms",
+        ):
+            if type(record.get(name)) is not int or record[name] < 0:
+                fail("diagnostic evidence record value is invalid")
+        if (
+            not isinstance(record.get("stage"), str)
+            or not record["stage"]
+            or not isinstance(record.get("fault"), str)
+            or not record["fault"]
+        ):
+            fail("diagnostic evidence record text is invalid")
+    for event in usb_events:
+        if (
+            not isinstance(event, dict)
+            or set(event) != {"host_unix_ns", "message"}
+            or type(event.get("host_unix_ns")) is not int
+            or event["host_unix_ns"] <= 0
+            or not isinstance(event.get("message"), str)
+            or not event["message"].isascii()
+            or not 1 <= len(event["message"].encode("ascii")) <= 256
+        ):
+            fail("diagnostic evidence USB event is invalid")
+    return target_boot_id
 
 
 def write_record(path: Path, values: tuple[tuple[str, str], ...]) -> None:
@@ -1015,14 +1284,21 @@ def write_record(path: Path, values: tuple[tuple[str, str], ...]) -> None:
 
 
 class LiveCycle:
-    def __init__(self, dependencies: Dependencies, inputs: Inputs):
+    def __init__(
+        self,
+        dependencies: Dependencies,
+        inputs: Inputs,
+        profile: CycleProfile = STANDARD_CYCLE_PROFILE,
+    ):
         self.dependencies = dependencies
         self.inputs = inputs
+        self.profile = profile
         self.poll = 0.02 if dependencies.offline else 0.25
         self.short_timeout = 4 if dependencies.offline else 120
         self.bundle_timeout = 5 if dependencies.offline else 95
         self.control_timeout = 5 if dependencies.offline else 320
         self.network_timeout = 8 if dependencies.offline else 735
+        self.diagnostic_timeout = 8 if dependencies.offline else 735
         self.cleanup_stabilize_timeout = (
             0.5 if dependencies.offline else 10
         )
@@ -1107,6 +1383,7 @@ class LiveCycle:
         intent = validate_intent(
             value,
             manifest_sha256=self.inputs.manifest_sha256,
+            target=self.profile.bundle,
         )
         if path.name != f"{intent.session}.json":
             fail("new durable intent path does not match its session")
@@ -1531,6 +1808,11 @@ class LiveCycle:
             self.dependencies.fallback,
         ):
             fixed_executable(path, offline=self.dependencies.offline)
+        if self.profile.diagnostic:
+            fixed_executable(
+                self.dependencies.diagnostic_collector,
+                offline=self.dependencies.offline,
+            )
         for name in OUTPUT_NAMES:
             path = self.output(name)
             if path.exists() or path.is_symlink():
@@ -1540,7 +1822,7 @@ class LiveCycle:
             [
                 str(self.dependencies.bundle_server),
                 "preflight",
-                BUNDLE,
+                self.profile.bundle,
                 self.inputs.manifest_sha256,
             ],
             environment=child_environment(),
@@ -1579,9 +1861,18 @@ class LiveCycle:
         self,
         bundle: ManagedProcess,
         control: ManagedProcess,
+        observer: ManagedProcess | None = None,
     ) -> None:
         deadline = time.monotonic() + self.bundle_timeout
         while time.monotonic() < deadline:
+            if observer is not None:
+                observer_status = observer.process.poll()
+                if observer_status is not None:
+                    fail(
+                        f"{observer.name} exited with status "
+                        f"{observer_status} before the commit handoff; "
+                        f"inspect {observer.log}"
+                    )
             status = bundle.process.poll()
             if status is not None:
                 if status != 0:
@@ -1596,6 +1887,11 @@ class LiveCycle:
                         "INFO recovery bundle host network state removed",
                     ),
                 )
+                if observer is not None and observer.process.poll() is not None:
+                    fail(
+                        f"{observer.name} exited before the commit handoff; "
+                        f"inspect {observer.log}"
+                    )
                 return
             control_status = control.process.poll()
             if control_status is not None:
@@ -1696,7 +1992,11 @@ class LiveCycle:
         ledger_before: set[str],
     ) -> Intent | None:
         ledger_intent = self.new_ledger_intent(ledger_before)
-        intent = parse_any_intent(path, self.inputs.manifest_sha256)
+        intent = parse_any_intent(
+            path,
+            self.inputs.manifest_sha256,
+            self.profile.bundle,
+        )
         if intent is not None:
             if ledger_intent is None or ledger_intent != intent:
                 fail("control output and durable intent ledger disagree")
@@ -1735,6 +2035,7 @@ class LiveCycle:
             intent = validate_intent(
                 value,
                 manifest_sha256=self.inputs.manifest_sha256,
+                target=self.profile.bundle,
             )
         except (CycleError, json.JSONDecodeError):
             return None
@@ -1778,7 +2079,7 @@ class LiveCycle:
             or record.get("outcome") != outcome
             or record.get("manifest_sha256")
             != self.inputs.manifest_sha256
-            or record.get("target") != BUNDLE
+            or record.get("target") != self.profile.bundle
         ):
             fail("resolved intent record is inconsistent")
 
@@ -1792,10 +2093,13 @@ class LiveCycle:
         network_log = self.output("network-root-server.log")
         target_key_log = self.output("target-host-key.log")
         runtime_record = self.output("minimal-headless-runtime.record")
+        diagnostic_log = self.output("early-target-diagnostics.log")
+        diagnostic_record = self.output("early-target-diagnostics.json")
 
         bundle_process: ManagedProcess | None = None
         control_process: ManagedProcess | None = None
         network_process: ManagedProcess | None = None
+        collector_process: ManagedProcess | None = None
         intent: Intent | None = None
         control_attempted = False
         target_boot_id: str | None = None
@@ -1837,11 +2141,32 @@ class LiveCycle:
             )
             recovery_ncm = self.wait_recovery_ncm()
 
+            if self.profile.diagnostic:
+                collector_process = start_logged(
+                    "early-target diagnostic collector",
+                    [
+                        str(self.dependencies.diagnostic_collector),
+                        str(anchor),
+                        str(diagnostic_record),
+                        "120",
+                        "660",
+                    ],
+                    diagnostic_log,
+                    environment=child_environment(),
+                )
+                wait_log_marker(
+                    collector_process,
+                    DIAGNOSTIC_COLLECTOR_READY,
+                    timeout=self.short_timeout,
+                    poll=self.poll,
+                    exact_line=True,
+                )
+
             bundle_process = start_logged(
                 "recovery bundle server",
                 [
                     str(self.dependencies.bundle_server),
-                    BUNDLE,
+                    self.profile.bundle,
                     self.inputs.manifest_sha256,
                 ],
                 bundle_log,
@@ -1863,7 +2188,7 @@ class LiveCycle:
                 [
                     str(self.dependencies.recovery_control),
                     "prepare-commit",
-                    BUNDLE,
+                    self.profile.bundle,
                     self.inputs.manifest_sha256,
                 ],
                 control_log,
@@ -1878,11 +2203,28 @@ class LiveCycle:
                     ),
                 ),
             )
-            self.wait_bundle(bundle_process, control_process)
+            self.wait_bundle(
+                bundle_process,
+                control_process,
+                collector_process,
+            )
             bundle_process = None
             self.verify_host_clean()
             if self.rog5_ncm_interfaces() != recovery_ncm:
                 fail("bundle server did not restore exact recovery NCM state")
+            if (
+                collector_process is not None
+                and collector_process.process.poll() is not None
+            ):
+                fail(
+                    "early-target diagnostic collector exited before the "
+                    "commit handoff"
+                )
+            if collector_process is not None:
+                require_exact_log_line(
+                    diagnostic_log,
+                    DIAGNOSTIC_COLLECTOR_READY,
+                )
 
             network_process = start_logged(
                 "headless network-root server",
@@ -1915,49 +2257,73 @@ class LiveCycle:
             intent = parse_control_log(
                 control_log,
                 self.inputs.manifest_sha256,
+                self.profile.bundle,
             )
             ledger_intent = self.new_ledger_intent(ledger_before)
             if ledger_intent != intent:
                 fail("successful control output lacks its durable intent")
 
-            run_logged(
-                [
-                    str(self.dependencies.host_key),
-                    "pin-target",
-                    str(anchor),
-                    str(target_known_hosts),
-                ],
-                target_key_log,
-                environment=child_environment(
-                    ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
-                ),
-                timeout=self.short_timeout,
-            )
-            run_logged(
-                [
-                    str(self.dependencies.runtime_acceptance),
-                    RECOVERY_PROFILE,
-                    str(self.inputs.candidate_record),
-                    self.inputs.candidate_sha256,
-                ],
-                self.output("runtime-acceptance.log"),
-                environment=child_environment(
-                    ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
-                    SSH_KEY=str(self.inputs.ssh_key),
-                    TARGET_KNOWN_HOSTS=str(target_known_hosts),
-                    EVIDENCE_DIR=str(self.inputs.evidence_dir),
-                ),
-                timeout=self.short_timeout,
-            )
-            runtime_values = parse_record(runtime_record)
-            target_boot_id = runtime_values.get("boot_id")
-            if (
-                runtime_values.get("result") != "PASS"
-                or target_boot_id is None
-                or not BOOT_ID.fullmatch(target_boot_id)
-            ):
-                fail("minimal-headless runtime record is not accepted")
-            target_accepted = True
+            if self.profile.diagnostic:
+                if collector_process is None:
+                    fail("diagnostic collector was not started")
+                collector_status = wait_process(
+                    collector_process,
+                    self.diagnostic_timeout,
+                )
+                collector_process = None
+                if collector_status != 0:
+                    fail(
+                        "early-target diagnostic collector rejected the "
+                        f"target stream; inspect {diagnostic_log}"
+                    )
+                require_log_markers(
+                    diagnostic_log,
+                    ("PASS receive-only early-target diagnostic capture ",),
+                )
+                target_boot_id = verify_diagnostic_evidence(
+                    diagnostic_record,
+                    anchor,
+                    self.profile.candidate,
+                )
+            else:
+                run_logged(
+                    [
+                        str(self.dependencies.host_key),
+                        "pin-target",
+                        str(anchor),
+                        str(target_known_hosts),
+                    ],
+                    target_key_log,
+                    environment=child_environment(
+                        ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+                    ),
+                    timeout=self.short_timeout,
+                )
+                run_logged(
+                    [
+                        str(self.dependencies.runtime_acceptance),
+                        RECOVERY_PROFILE,
+                        str(self.inputs.candidate_record),
+                        self.inputs.candidate_sha256,
+                    ],
+                    self.output("runtime-acceptance.log"),
+                    environment=child_environment(
+                        ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
+                        SSH_KEY=str(self.inputs.ssh_key),
+                        TARGET_KNOWN_HOSTS=str(target_known_hosts),
+                        EVIDENCE_DIR=str(self.inputs.evidence_dir),
+                    ),
+                    timeout=self.short_timeout,
+                )
+                runtime_values = parse_record(runtime_record)
+                target_boot_id = runtime_values.get("boot_id")
+                if (
+                    runtime_values.get("result") != "PASS"
+                    or target_boot_id is None
+                    or not BOOT_ID.fullmatch(target_boot_id)
+                ):
+                    fail("minimal-headless runtime record is not accepted")
+                target_accepted = True
 
             network_status = wait_network_process(
                 network_process,
@@ -1986,13 +2352,25 @@ class LiveCycle:
             final_cleanup_attempted = True
             self.wait_host_clean(final=True)
             final_cleanup_completed = True
-            self.resolve_intent(intent, "TARGET_ACCEPTED")
-            resolved = True
-            print(
-                "PASS one minimal-headless lifecycle was accepted, returned "
-                "to exact fallback, cleaned host state, and resolved its "
-                "durable intent"
+            outcome = (
+                "FALLBACK_RETURNED"
+                if self.profile.diagnostic
+                else "TARGET_ACCEPTED"
             )
+            self.resolve_intent(intent, outcome)
+            resolved = True
+            if self.profile.diagnostic:
+                print(
+                    "PASS one early-target diagnostic lifecycle captured "
+                    "bounded evidence, returned to exact fallback, cleaned "
+                    "host state, and resolved its durable intent"
+                )
+            else:
+                print(
+                    "PASS one minimal-headless lifecycle was accepted, "
+                    "returned to exact fallback, cleaned host state, and "
+                    "resolved its durable intent"
+                )
         except BaseException as original:
             control_was_started = control_attempted
             if control_process is not None:
@@ -2022,6 +2400,8 @@ class LiveCycle:
             else:
                 network_process = None
             if intent is None:
+                terminate(collector_process)
+                collector_process = None
                 try:
                     self.verify_host_clean()
                 except Exception as cleanup_error:
@@ -2088,6 +2468,7 @@ class LiveCycle:
                 f"{original}{recovery_note}{cleanup_note}"
             ) from original
         finally:
+            terminate(collector_process)
             terminate(control_process)
             terminate(bundle_process)
             cancel_network_process(
@@ -2120,12 +2501,25 @@ def require_key_guards() -> None:
 
 
 def main(arguments: list[str]) -> int:
-    action = arguments[0] if len(arguments) == 1 else ""
-    if action not in {"key-preflight", "preflight", "run"}:
+    requested = arguments[0] if len(arguments) == 1 else ""
+    actions = {
+        "key-preflight": ("key-preflight", STANDARD_CYCLE_PROFILE),
+        "preflight": ("preflight", STANDARD_CYCLE_PROFILE),
+        "run": ("run", STANDARD_CYCLE_PROFILE),
+        "diagnostic-key-preflight": (
+            "key-preflight",
+            DIAGNOSTIC_CYCLE_PROFILE,
+        ),
+        "diagnostic-preflight": ("preflight", DIAGNOSTIC_CYCLE_PROFILE),
+        "diagnostic-run": ("run", DIAGNOSTIC_CYCLE_PROFILE),
+    }
+    if requested not in actions:
         fail(
             "usage: run-minimal-headless-live-cycle.py "
-            "key-preflight | preflight | run"
+            "key-preflight | preflight | run | diagnostic-key-preflight | "
+            "diagnostic-preflight | diagnostic-run"
         )
+    action, profile = actions[requested]
     if action == "run":
         require_guards()
     else:
@@ -2133,21 +2527,21 @@ def main(arguments: list[str]) -> int:
     dependencies = Dependencies.from_environment()
     fixed_executable(dependencies.git, offline=dependencies.offline)
     verify_repository_checkpoint(dependencies.git)
-    admission = parse_admission_inputs()
-    admitted = verify_key_admission(dependencies, admission)
+    admission = parse_admission_inputs(profile)
+    admitted = verify_key_admission(dependencies, admission, profile)
     if action == "key-preflight":
         print(
             "PASS deployment SSH key matches one non-fixture v3 "
-            "package/candidate/runtime-manifest chain; no phone or "
+            f"package/{profile.candidate}/runtime-manifest chain; no phone or "
             "privileged host action occurred"
         )
         return 0
     inputs = parse_inputs(admission, admitted)
-    cycle = LiveCycle(dependencies, inputs)
+    cycle = LiveCycle(dependencies, inputs, profile)
     cycle.preflight()
     if action == "preflight":
         print(
-            "PASS minimal-headless lifecycle preflight is clean; the "
+            f"PASS {profile.candidate} lifecycle preflight is clean; the "
             "deployment key was admitted locally, and no phone boot, "
             "payload transfer, SSH connection, or privileged server was "
             "started"

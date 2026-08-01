@@ -346,6 +346,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   private-key destruction. Complete local CI passes, and independent final
   review reports no actionable findings. A GitHub rerun remains required
   before production signing or any phone action.
+  The exact diagnostic admission profile and one-shot supervisor add four
+  focused lifecycle cases: phone-free preflight, collector readiness before
+  recovery control, accepted/rejected capture with one commit and exact
+  fallback resolution, and refusal before commit when collector startup
+  fails, plus collector death before NFS handoff, malformed identity/status
+  evidence, fallback boot-ID reuse, and caller-defined/mutable admission
+  policy. Sixteen admission tests and thirty-four lifecycle methods pass;
+  normal r2
+  target SSH acceptance remains unchanged. See the
+  [lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
   See the
   [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
   The complete authority-free package identities are in the

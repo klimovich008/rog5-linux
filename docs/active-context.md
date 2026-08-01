@@ -213,6 +213,25 @@ exact-manifest pins and atomic no-replace publication regression. GitHub rerun
 remains pending. No production signing, credential use, candidate
 installation, or phone action has occurred.
 
+The one-shot controller now has a separate exact diagnostic admission and
+lifecycle path. It starts the receive-only collector after capturing the
+recovery USB anchor but before starting the bundle server or non-retryable
+recovery control, and refuses before COMMIT if the collector does not publish
+its flushed readiness line. Diagnostic mode never pins a target host key or
+runs the normal SSH acceptance gate; it retains accepted or rejected private
+evidence, verifies the exact Alpine fallback and clean host state, and resolves
+the durable intent only as `FALLBACK_RETURNED`. Sixteen admission tests and
+thirty-four lifecycle methods pass, including readiness/liveness failure,
+rejected capture,
+one-COMMIT, no-retry, and unchanged normal-r2 cases. See the
+[offline lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
+The first independent integration review found readiness-liveness, evidence-
+binding, and mutable-policy gaps; all are fixed with hostile regressions. The
+closure review reports no remaining actionable findings, and the complete
+local `ci` tier passes the corrected diff. GitHub CI, production signing,
+credential use, candidate installation, and every phone action remain
+pending.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

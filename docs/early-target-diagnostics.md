@@ -281,5 +281,21 @@ local `ci` tier passes. Independent final review reports no actionable
 standards/safety or objective-fidelity findings. GitHub CI, production signing,
 and every phone action remain pending.
 
+The diagnostic admission and one-shot supervisor are now implemented
+hardware-free. `diagnostic-run` captures the recovery USB anchor, starts the
+collector and requires its flushed readiness marker before starting either the
+bundle server or recovery control, then performs at most one existing
+prepare/commit transaction. It waits for canonical private diagnostic
+evidence instead of target host-key/SSH acceptance, preserves rejected
+evidence, verifies fallback and final cleanup, and resolves the intent only as
+`FALLBACK_RETURNED`. Sixteen admission tests and thirty-four lifecycle methods
+pass;
+see the
+[offline lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
+The first independent review's readiness-liveness, evidence-binding, and
+mutable-policy findings are fixed with hostile regressions. Independent
+closure review reports no remaining actionable findings, and the complete
+local `ci` tier passes. GitHub CI remains pending.
+
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

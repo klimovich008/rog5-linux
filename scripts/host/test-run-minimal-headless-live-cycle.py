@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import copy
+import importlib.util
+import json
 import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import tempfile
 import textwrap
 import time
@@ -27,10 +31,16 @@ MANIFEST = "a" * 64
 CONSUMED_MANIFEST = (
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e"
 )
+CONSUMED_R2_MANIFEST = (
+    "9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630"
+)
 PACKAGE_SHA256 = "2" * 64
 CANDIDATE_SHA256 = "3" * 64
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
+DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 SESSION = "1" * 32
 PREPARE = "2" * 32
@@ -52,6 +62,22 @@ GUARDS = (
     "ALLOW_FALLBACK_SSH_CONTROL",
     "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
 )
+
+
+def load_runner_module():
+    specification = importlib.util.spec_from_file_location(
+        "rog5_minimal_headless_live_cycle_test",
+        RUNNER,
+    )
+    if specification is None or specification.loader is None:
+        raise RuntimeError("cannot load lifecycle controller")
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[specification.name] = module
+    specification.loader.exec_module(module)
+    return module
+
+
+CYCLE = load_runner_module()
 
 
 class Fixture:
@@ -94,6 +120,49 @@ class Fixture:
         self.bundle_manifest = self.bundle / "manifest"
         self.bundle_manifest.write_bytes(b"offline-runtime-manifest\n")
         self.bundle_manifest.chmod(0o400)
+        self.diagnostic_bundle = self.bundle_root / DIAGNOSTIC_BUNDLE
+        self.diagnostic_bundle.mkdir(mode=0o700)
+        self.diagnostic_manifest = self.diagnostic_bundle / "manifest"
+        self.diagnostic_manifest.write_bytes(b"offline-runtime-manifest\n")
+        self.diagnostic_manifest.chmod(0o400)
+        self.diagnostic_evidence = {
+            "candidate": DIAGNOSTIC_CANDIDATE,
+            "capture_status": "valid",
+            "dropped_usb_events": 0,
+            "ended_unix_ns": 300,
+            "end_reason": "disconnected",
+            "format": "rog5-early-target-evidence-v1",
+            "frame_count": 1,
+            "frames": [
+                {
+                    "host_monotonic_ns": 200,
+                    "host_unix_ns": 200,
+                    "record": {
+                        "boot_id": TARGET_BOOT_ID,
+                        "boottime_ms": 100,
+                        "candidate": DIAGNOSTIC_CANDIDATE,
+                        "dropped_updates": 0,
+                        "fault": "none",
+                        "last_good_code": 10,
+                        "sequence": 1,
+                        "stage": "reporter-up",
+                        "stage_code": 10,
+                        "watchdog_deadline_ms": 600000,
+                    },
+                }
+            ],
+            "host_boot_id": TARGET_BOOT_ID,
+            "started_unix_ns": 100,
+            "target_boot_id": TARGET_BOOT_ID,
+            "target_product": "ROG5 diagnostic network root",
+            "usb_events": [],
+            "usb_location": "pci/usb1/1-1/1-1.2",
+        }
+        self.diagnostic_evidence_payload = json.dumps(
+            self.diagnostic_evidence,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         self.calls = self.root / "calls"
         self._write_mocks()
 
@@ -262,17 +331,34 @@ class Fixture:
             [ "$5" = --candidate ]
             [ "$6" = "{self.candidate}" ]
             [ "$7" = --manifest ]
-            [ "$8" = "{self.bundle_manifest}" ]
             [ "$9" = --manifest-sha256 ]
             [ "${{10}}" = "{MANIFEST}" ]
+            [ "${{11}}" = --admission-profile ]
+            case ${{12}} in
+              headless-ssh-r2)
+                [ "$8" = "{self.bundle_manifest}" ]
+                candidate={CANDIDATE}
+                bundle={BUNDLE}
+                profile=network-root-v1
+                target=headless-ssh-network-root
+                ;;
+              early-target-diagnostic-v1)
+                [ "$8" = "{self.diagnostic_manifest}" ]
+                candidate={DIAGNOSTIC_CANDIDATE}
+                bundle={DIAGNOSTIC_BUNDLE}
+                profile={DIAGNOSTIC_PROFILE}
+                target=headless-netroot-early-diag
+                ;;
+              *) exit 1 ;;
+            esac
             printf 'key-admission:verify\\n' >>"{self.calls}"
             printf '%s\\n' \
               'format=rog5-headless-ssh-v2-key-admission-v1' \
-              'candidate={CANDIDATE}' \
-              'bundle={BUNDLE}' \
-              'profile=network-root-v1' \
+              "candidate=$candidate" \
+              "bundle=$bundle" \
+              "profile=$profile" \
               'build_profile=headless-ssh-v2' \
-              'target_id=headless-ssh-network-root' \
+              "target_id=$target" \
               'authorized_key_fingerprint=SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' \
               'public_key_sha256={'1' * 64}' \
               'package_sha256={PACKAGE_SHA256}' \
@@ -394,9 +480,8 @@ class Fixture:
                 intent_root=$XDG_STATE_HOME/rog5-recovery-intents
                 install -d -m 0700 "$intent_root"
                 umask 077
-                printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}' \
-                  >"$intent_root/{SESSION}.json"
+                printf '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                  "$BUNDLE" >"$intent_root/{SESSION}.json"
                 if [ "${{MOCK_CONTROL_UNKNOWN:-0}}" = 1 ]; then
                   echo 'FAIL transport lost; commit intent remains UNKNOWN session={SESSION} request={REQUEST}'
                   exit 1
@@ -413,21 +498,19 @@ class Fixture:
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
                 fi
-                printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"{BUNDLE}","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
+                printf '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"%s","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                  "$BUNDLE" "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
                 ;;
               show)
                 printf 'control:show\n' >>"$MOCK_CALLS"
-                printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"TRANSMITTED","outcome":"UNKNOWN"}}'
+                printf '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                  "$BUNDLE"
                 ;;
               resolve)
                 printf 'control:resolve:%s\n' "$4" >>"$MOCK_CALLS"
-                printf '%s\n' \
-                  '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"{BUNDLE}","state":"RESOLVED","outcome":"'"$4"'"}}'
+                printf '{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"RESOLVED","outcome":"%s"}}\n' \
+                  "$BUNDLE" "$4"
                 ;;
               *) exit 1 ;;
             esac
@@ -495,6 +578,62 @@ class Fixture:
             """,
         )
         self.executable(
+            "collect-early-target-diagnostics.py",
+            f"""\
+            #!/bin/sh
+            set -eu
+            [ "$#" = 4 ]
+            [ "$1" = "{self.evidence / 'recovery-usb.anchor'}" ]
+            [ "$2" = "{self.evidence / 'early-target-diagnostics.json'}" ]
+            [ "$3" = 120 ]
+            [ "$4" = 660 ]
+            [ -z "${{SSH_KEY+x}}" ]
+            [ -z "${{UNRELATED_CREDENTIAL+x}}" ]
+            if [ "${{MOCK_COLLECTOR_EXIT_BEFORE_READY:-0}}" = 1 ]; then
+              echo 'FAIL injected collector startup failure' >&2
+              exit 1
+            fi
+            if [ "${{MOCK_COLLECTOR_UNTERMINATED_READY:-0}}" = 1 ]; then
+              printf 'READY receive-only early-target diagnostic collector'
+              exit 1
+            fi
+            if [ "${{MOCK_COLLECTOR_PARTIAL_READY:-0}}" = 1 ]; then
+              echo 'prefix READY receive-only early-target diagnostic collector suffix'
+              exit 1
+            fi
+            printf 'collector:ready\n' >>"$MOCK_CALLS"
+            echo 'READY receive-only early-target diagnostic collector'
+            if [ "${{MOCK_COLLECTOR_DUPLICATE_READY:-0}}" = 1 ]; then
+              echo 'READY receive-only early-target diagnostic collector'
+            fi
+            if [ "${{MOCK_COLLECTOR_EXIT_BEFORE_HANDOFF:-0}}" = 1 ]; then
+              while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
+                sleep 0.01
+              done
+              echo 'FAIL injected collector pre-handoff exit' >&2
+              exit 1
+            fi
+            if [ "${{MOCK_COLLECTOR_DELAYED_DUPLICATE_READY:-0}}" = 1 ]; then
+              while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
+                sleep 0.01
+              done
+              echo 'READY receive-only early-target diagnostic collector'
+            fi
+            while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
+              sleep 0.01
+            done
+            umask 077
+            printf '%s\n' '{self.diagnostic_evidence_payload}' >"$2"
+            printf 'collector:capture\n' >>"$MOCK_CALLS"
+            : >"$MOCK_ROOT/target-departed"
+            if [ "${{MOCK_COLLECTOR_FAIL:-0}}" = 1 ]; then
+              echo 'FAIL early-target diagnostic capture: invalid-stream' >&2
+              exit 1
+            fi
+            echo 'PASS receive-only early-target diagnostic capture frames=4 last=140:ssh-active end=disconnect'
+            """,
+        )
+        self.executable(
             "fallback-acm-control.py",
             f"""\
             #!/bin/sh
@@ -536,10 +675,14 @@ class Fixture:
             : >"$MOCK_ROOT/fallback-proved"
             : >"$MOCK_ROOT/target-departed"
             umask 077
+            fallback_boot_id={FALLBACK_BOOT_ID}
+            if [ "${{MOCK_FALLBACK_REUSE_TARGET_BOOT:-0}}" = 1 ]; then
+              fallback_boot_id={TARGET_BOOT_ID}
+            fi
             printf '%s\n' \
               'format=rog5-fallback-identity-v2' \
               'kernel_release=5.4.134-qgki-perf-00001-g6c308144c23e' \
-              'boot_id={FALLBACK_BOOT_ID}' \
+              "boot_id=$fallback_boot_id" \
               'usb_location=pci/usb1/1-1/1-1.2' \
               'nonce={'6' * 32}' \
               'thermal_max=61400' \
@@ -585,6 +728,8 @@ class Fixture:
         guards: bool = True,
         **updates: str,
     ) -> subprocess.CompletedProcess[str]:
+        if action.startswith("diagnostic-"):
+            updates.setdefault("BUNDLE", DIAGNOSTIC_BUNDLE)
         return subprocess.run(
             [str(RUNNER), action],
             env=self.environment(guards=guards, **updates),
@@ -649,20 +794,24 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(any(line.startswith("nfs:") for line in calls))
 
     def test_consumed_manifest_fails_before_private_key_inspection(self):
-        result = self.fixture.run(
-            "key-preflight",
-            MANIFEST_SHA256=CONSUMED_MANIFEST,
-            SSH_KEY="/absent/consumed-manifest-must-win",
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("consumed live payload", result.stderr)
-        self.assertNotIn("SSH_KEY", result.stderr)
-        self.assertFalse(
-            any(
-                line.startswith("key-admission:")
-                for line in self.fixture.call_lines()
-            )
-        )
+        for manifest in (CONSUMED_MANIFEST, CONSUMED_R2_MANIFEST):
+            with self.subTest(manifest=manifest):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "key-preflight",
+                    MANIFEST_SHA256=manifest,
+                    SSH_KEY="/absent/consumed-manifest-must-win",
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("consumed live payload", result.stderr)
+                self.assertNotIn("SSH_KEY", result.stderr)
+                self.assertFalse(
+                    any(
+                        line.startswith("key-admission:")
+                        for line in self.fixture.call_lines()
+                    )
+                )
 
     def test_preflight_admits_key_and_stops_before_phone_boot_or_ssh(self):
         result = self.fixture.run("preflight")
@@ -706,6 +855,20 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.fixture.call_lines().count("bundle:preflight"),
             1,
         )
+
+    def test_diagnostic_preflight_stops_before_collector_and_phone(self):
+        result = self.fixture.run("diagnostic-preflight")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(DIAGNOSTIC_CANDIDATE, result.stdout)
+        calls = self.fixture.call_lines()
+        self.assertIn("key-admission:verify", calls)
+        self.assertIn("bundle:preflight", calls)
+        self.assertIn("nfs:preflight", calls)
+        self.assertIn("live:preflight", calls)
+        self.assertNotIn("live:boot", calls)
+        self.assertNotIn("collector:ready", calls)
+        self.assertNotIn("control:prepare-commit", calls)
+        self.assertFalse(any(self.fixture.evidence.iterdir()))
 
     def test_historical_recovery_profile_fails_before_credential_paths(self):
         result = self.fixture.run(
@@ -764,6 +927,194 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.fixture.evidence / "intent-resolution.log"
         ).read_text(encoding="utf-8")
         self.assertIn('"outcome":"TARGET_ACCEPTED"', resolution)
+
+    def test_diagnostic_collector_is_ready_before_commit_and_resolves_fallback(self):
+        result = self.fixture.run("diagnostic-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "PASS one early-target diagnostic lifecycle captured bounded "
+            "evidence",
+            result.stdout,
+        )
+        calls = self.fixture.call_lines()
+        self.assertLess(
+            calls.index("collector:ready"),
+            calls.index("control:prepare-commit"),
+        )
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("collector:capture"), 1)
+        self.assertNotIn("host-key:pin", calls)
+        self.assertNotIn("runtime:start", calls)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+        evidence = self.fixture.evidence / "early-target-diagnostics.json"
+        self.assertTrue(evidence.is_file())
+        self.assertEqual(evidence.stat().st_mode & 0o777, 0o600)
+
+    def test_diagnostic_evidence_binds_every_lifecycle_identity(self):
+        anchor = self.fixture.evidence / "anchor-fixture"
+        anchor.write_text(
+            "format=rog5-minimal-headless-usb-anchor-v1\n"
+            f"host_boot_id={TARGET_BOOT_ID}\n"
+            "created_unix=2000000000\n"
+            "usb_location=pci/usb1/1-1/1-1.2\n"
+            "recovery_vendor=1d6b\n"
+            "recovery_product_id=0104\n"
+            "recovery_product=ROG5 recovery\n",
+            encoding="ascii",
+        )
+        anchor.chmod(0o600)
+
+        def write_document(name: str, document: dict[str, object]) -> Path:
+            path = self.fixture.evidence / f"evidence-{name}.json"
+            path.write_text(
+                json.dumps(document, sort_keys=True, separators=(",", ":"))
+                + "\n",
+                encoding="ascii",
+            )
+            path.chmod(0o600)
+            return path
+
+        baseline = write_document("baseline", self.fixture.diagnostic_evidence)
+        self.assertEqual(
+            CYCLE.verify_diagnostic_evidence(
+                baseline,
+                anchor,
+                DIAGNOSTIC_CANDIDATE,
+            ),
+            TARGET_BOOT_ID,
+        )
+
+        def top(name: str, value: object):
+            return lambda document: document.__setitem__(name, value)
+
+        mutations = {
+            "format": top("format", "wrong-format"),
+            "candidate": top("candidate", "wrong-candidate"),
+            "capture-status": top("capture_status", "rejected"),
+            "host-boot": top("host_boot_id", FALLBACK_BOOT_ID),
+            "usb-location": top("usb_location", "pci/usb9/9-9"),
+            "target-boot": top("target_boot_id", FALLBACK_BOOT_ID),
+            "target-product": top("target_product", "wrong product"),
+            "end-reason": top("end_reason", "rejected"),
+            "frame-count": top("frame_count", 2),
+            "frame-candidate": lambda document: document["frames"][0][
+                "record"
+            ].__setitem__("candidate", "wrong-candidate"),
+            "frame-boot": lambda document: document["frames"][0][
+                "record"
+            ].__setitem__("boot_id", FALLBACK_BOOT_ID),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                document = copy.deepcopy(self.fixture.diagnostic_evidence)
+                mutate(document)
+                path = write_document(name, document)
+                with self.assertRaises(CYCLE.CycleError):
+                    CYCLE.verify_diagnostic_evidence(
+                        path,
+                        anchor,
+                        DIAGNOSTIC_CANDIDATE,
+                    )
+
+    def test_diagnostic_collector_rejection_preserves_fallback_and_no_retry(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_COLLECTOR_FAIL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("collector:ready"), 1)
+        self.assertEqual(calls.count("collector:capture"), 1)
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+        self.assertTrue(
+            (
+                self.fixture.evidence / "early-target-diagnostics.json"
+            ).is_file()
+        )
+
+    def test_diagnostic_target_and_fallback_boot_ids_must_differ(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_FALLBACK_REUSE_TARGET_BOOT="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertIn(
+            "fallback retained the minimal-headless boot identity",
+            result.stderr,
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_diagnostic_collector_must_be_ready_before_commit(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_COLLECTOR_EXIT_BEFORE_READY="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("before its ready marker", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertNotIn("control:prepare-commit", calls)
+        self.assertNotIn("bundle:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_diagnostic_readiness_marker_is_one_exact_line(self):
+        cases = {
+            "MOCK_COLLECTOR_PARTIAL_READY": "before its ready marker",
+            "MOCK_COLLECTOR_UNTERMINATED_READY": "before its ready marker",
+            "MOCK_COLLECTOR_DUPLICATE_READY": "duplicate ready markers",
+            "MOCK_COLLECTOR_DELAYED_DUPLICATE_READY": (
+                "lacks one exact newline-terminated marker"
+            ),
+        }
+        for variable, message in cases.items():
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "diagnostic-run",
+                    **{variable: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                calls = self.fixture.call_lines()
+                if variable == "MOCK_COLLECTOR_DELAYED_DUPLICATE_READY":
+                    self.assertEqual(
+                        calls.count("control:prepare-commit"),
+                        1,
+                    )
+                    self.assertIn("bundle:start", calls)
+                    self.assertNotIn("nfs:start", calls)
+                else:
+                    self.assertNotIn("control:prepare-commit", calls)
+                    self.assertNotIn("bundle:start", calls)
+
+    def test_diagnostic_collector_must_remain_alive_before_handoff(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_COLLECTOR_EXIT_BEFORE_HANDOFF="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("before the commit handoff", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
 
     def test_runtime_rejection_returns_to_fallback_without_commit_retry(self):
         result = self.fixture.run("run", MOCK_RUNTIME_FAIL="1")
