@@ -211,9 +211,10 @@ No diagnostic bundle may be signed or booted until tests prove:
 Steps 1 through 6 and the receive-only host collector are implemented. The
 complete disposable-key promotion path now includes two clean ASUS 5.4 wrapper
 builds, byte comparison, native verification, and the temporary-identity
-artifact-preflight fixture. Independent review and local CI for step 7 are
-closed; GitHub CI remains pending. Step 4 now crosses the root handoff and
-executes both generated milestone units under real AArch64 systemd. The native
+artifact-preflight fixture. Independent review, local CI, and GitHub Actions
+run `30700630487` close step 7 at exact head `6654c0c`. Step 4 now crosses the
+root handoff and executes both generated milestone units under real AArch64
+systemd. The native
 reporter uses write-only,
 exclusive, raw ACM access; a credential-checked abstract datagram socket;
 nonblocking partial-frame writes; fixed-cadence heartbeats; immutable terminal
@@ -238,7 +239,7 @@ full-path execution at clean checkpoint `0375e97a` proves the guarded wrapper,
 two clean builds, native verifier, and artifact gate compose through final
 `authority=none` output.
 Actual production signing, installation, and phone execution remain pending
-after green GitHub CI.
+behind their separate guarded actions.
 
 Twenty-three collector tests cover canonical private anchor/output handling,
 duplicate or wrong-port USB identities, interface/driver binding, character-
@@ -298,8 +299,9 @@ the [offline candidate result](../test-results/2026-08-01-early-target-diagnosti
 records byte-identical disposable-signed bundles, stable-recovery wrappers,
 raw/AVB images, native verification, and private-key destruction. The complete
 local `ci` tier passes. Independent final review reports no actionable
-standards/safety or objective-fidelity findings. GitHub CI, production signing,
-and every phone action remain pending.
+standards/safety or objective-fidelity findings. GitHub Actions run
+`30700630487` passes both required jobs at exact head `6654c0c`; production
+signing and every phone action remain pending.
 
 The diagnostic admission and one-shot supervisor are now implemented
 hardware-free. `diagnostic-run` captures the recovery USB anchor, starts the
@@ -315,7 +317,8 @@ see the
 The first independent review's readiness-liveness, evidence-binding, and
 mutable-policy findings are fixed with hostile regressions. Independent
 closure review reports no remaining actionable findings, and the complete
-local `ci` tier passes. GitHub CI remains pending.
+local `ci` tier passes. GitHub Actions run `30700630487` passes both required
+jobs at exact head `6654c0c`.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

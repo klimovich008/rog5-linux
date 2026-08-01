@@ -210,8 +210,8 @@ than relabeling current diagnostic-aware sources. See the
 The complete local `ci` tier passes. Independent final review reports zero
 standards/safety and zero objective-fidelity findings after verifying the
 exact-manifest pins and atomic no-replace publication regression. GitHub rerun
-remains pending. No production signing, credential use, candidate
-installation, or phone action has occurred.
+`30700630487` now covers this code at exact head `6654c0c`. No production
+signing credential, candidate installation, or phone action has occurred.
 
 The one-shot controller now has a separate exact diagnostic admission and
 lifecycle path. It starts the receive-only collector after capturing the
@@ -228,9 +228,10 @@ one-COMMIT, no-retry, and unchanged normal-r2 cases. See the
 The first independent integration review found readiness-liveness, evidence-
 binding, and mutable-policy gaps; all are fixed with hostile regressions. The
 closure review reports no remaining actionable findings, and the complete
-local `ci` tier passes the corrected diff. GitHub CI, production signing,
-credential use, candidate installation, and every phone action remain
-pending.
+local `ci` tier passes the corrected diff. GitHub Actions run
+[`30700630487`](https://github.com/klimovich008/rog5-linux/actions/runs/30700630487)
+passes both required jobs at exact head `6654c0c`. Production signing,
+candidate installation, and every phone action remain pending.
 
 The next signing gate is now being prepared without using a credential. A
 no-replace helper verifies the accepted non-fixture Arch package and emits
@@ -266,6 +267,14 @@ Git-ignored temporary gate copy. The test-only AVB image is
 retained `authority=none`. This proves the identity-parameterized gate
 composition, not the production pins. No production key, phone, privileged
 host action, or external service was used.
+
+The reviewed six-commit checkpoint was then fast-forwarded without force to
+draft PR [#1](https://github.com/klimovich008/rog5-linux/pull/1). Its
+`recovery-core` job passed in 2m12s and its cache-miss `qemu-system` job fetched
+and built exact Linux 7.1.4 before both QEMU boot paths passed in 6m51s. See the
+[GitHub CI result](../test-results/2026-08-01-early-target-diagnostic-github-ci.md).
+The authorized GitHub credential was used only for publication and check
+inspection; no production key or phone interface was used.
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

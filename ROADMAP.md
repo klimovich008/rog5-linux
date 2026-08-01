@@ -445,9 +445,11 @@ It has not been production-signed, installed, or booted.
 
 Current execution order:
 
-1. record the closed independent review and complete disposable-key
-   wrapper/twin-build/native-verification/artifact-preflight execution;
-2. publish the reviewed local checkpoint and require green GitHub CI;
+1. **Complete:** record the closed independent review and complete
+   disposable-key wrapper/twin-build/native-verification/artifact-preflight
+   execution;
+2. **Complete:** fast-forward the reviewed checkpoint to draft PR #1 and pass
+   both jobs in GitHub Actions run `30700630487` at exact head `6654c0c`;
 3. under a distinct guarded credential action, create and twin-build the exact
    production-signed diagnostic bundle, destroy its private-key snapshot, and
    pin every wrapper/trust/manifest/configuration identity;
