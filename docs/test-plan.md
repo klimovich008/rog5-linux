@@ -312,7 +312,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   one-way reporter, host netstring parser, diagnostic-only initramfs branch,
   volatile systemd handoff units, and QEMU pivot test must pass the complete
   hostile matrix before a new signed candidate exists. r2 is consumed and is
-  not a diagnostic fixture. Twenty-three hardware-free tests now pin every canonical
+  not a diagnostic fixture. Twenty-four reporter tests now pin every canonical
   stage and fault, native/Python byte equality, every frame split, coalescing,
   malformed and oversized netstrings, mixed boots, identity/state mutations,
   and sequence/time/stage/terminal regressions. They also exercise the native
@@ -321,8 +321,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   pretimeout under a deterministic fake clock. Descriptor-bearing datagrams
   are closed and rejected, host-to-target channel bytes remain unread,
   post-deadline heartbeats survive a failed watchdog, and production binaries
-  contain no test-hook strings. Initramfs integration and its five-second
-  diagnostic failure dwell remain the next layer.
+  contain no test-hook strings. The shared initramfs branch now has isolated
+  command-line, mode-isolation, exact five-second fault-dwell, systemd-unit,
+  handoff-rollback, and failed-`switch_root` tests. Twenty-four native bundle
+  tests require the reporter only for `diagnostic-initramfs-v1`; twin local
+  diagnostic archives are byte-identical. A board-neutral ARM64 QEMU harness
+  is wired into the full-system job and proves root-handoff process continuity,
+  but its replacement PID 1 emits stages 130 and 140 directly. A later
+  full-system systemd test must execute the generated units before disposable
+  signing or any phone action.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

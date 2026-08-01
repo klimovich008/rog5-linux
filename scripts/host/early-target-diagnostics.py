@@ -63,6 +63,7 @@ FAULTS = frozenset(
         "nfs-mount-failed",
         "seal-verify-failed",
         "overlay-failed",
+        "diagnostic-units-failed",
         "identity-publish-failed",
         "storage-before-switch",
         "exitrd-failed",
@@ -200,11 +201,10 @@ def parse_payload(
     deadline = canonical_decimal(
         values["watchdog_deadline_ms"],
         "watchdog deadline",
-        minimum=60_000,
-        maximum=900_000,
+        minimum=1,
     )
-    if boottime > deadline and stage_code != 210:
-        fail("diagnostic boottime exceeds watchdog deadline")
+    if boottime >= deadline and stage_code != 210:
+        fail("diagnostic boottime reaches watchdog deadline")
     dropped = canonical_decimal(
         values["dropped_updates"],
         "dropped-update count",
@@ -269,9 +269,20 @@ class DiagnosticStream:
         self.dropped_updates = 0
 
     def accept(self, record: DiagnosticRecord) -> None:
+        if (
+            record.stage_code != 210
+            and record.watchdog_deadline_ms <= record.boottime_ms
+        ):
+            fail("diagnostic record is not before watchdog deadline")
         if self.boot_id is None:
             self.boot_id = record.boot_id
             self.watchdog_deadline_ms = record.watchdog_deadline_ms
+            if (
+                record.stage_code != 210
+                and record.watchdog_deadline_ms - record.boottime_ms
+                > 900_000
+            ):
+                fail("diagnostic watchdog interval is invalid")
         elif record.boot_id != self.boot_id:
             fail("diagnostic stream mixes target boots")
         if record.sequence <= self.sequence:

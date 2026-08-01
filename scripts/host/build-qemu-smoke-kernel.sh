@@ -81,11 +81,18 @@ config=$source_root/scripts/config
 	--enable BINFMT_ELF \
 	--enable DEVTMPFS \
 	--enable DEVTMPFS_MOUNT \
+	--enable FILE_LOCKING \
 	--enable PRINTK \
+	--enable PROC_FS \
 	--enable RD_GZIP \
 	--enable SERIAL_AMBA_PL011 \
 	--enable SERIAL_AMBA_PL011_CONSOLE \
+	--enable TMPFS \
 	--enable TTY \
+	--enable UNIX \
+	--enable VIRTIO \
+	--enable VIRTIO_CONSOLE \
+	--enable VIRTIO_MMIO \
 	--disable DEBUG_INFO
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \

@@ -68,7 +68,7 @@ code. The host classifies by the greatest valid code observed for one boot.
 | 90 | `seal-verify-ok` | the complete lower matches the pinned tree |
 | 100 | `overlay-ready` | tmpfs upper/work and merged root are ready |
 | 110 | `handoff-begin` | retained exitrd and mount moves are starting |
-| 120 | `switch-root-exec` | all moves passed and PID 1 is executing pivot |
+| 120 | `switch-root-exec` | all moves passed and PID 1 will next invoke `switch_root` |
 | 130 | `new-init-up` | diagnostic-only early systemd unit ran |
 | 140 | `sshd-active` | diagnostic-only post-sshd unit ran |
 | 200 | `fault` | a fixed reason code terminated progress |
@@ -146,8 +146,9 @@ No diagnostic bundle may be signed or booted until tests prove:
    execution, and automatic fallback;
 9. normal mode contains no ACM reporter, dwell, or injected units;
 10. the diagnostic initramfs and signed bundle twin-build byte-identically;
-11. QEMU proves reporter continuity across `switch_root` and both transient
-    systemd stage updates; and
+11. QEMU first proves reporter continuity across a board-neutral root handoff;
+    a later full-system job must prove both transient systemd stage updates;
+    and
 12. the normal runtime verifier rejects every diagnostic identity.
 
 ## Promotion sequence
@@ -163,15 +164,46 @@ No diagnostic bundle may be signed or booted until tests prove:
 8. Create a new externally held candidate and signed bundle identity.
 9. Run all connected preflights, then at most one temporary boot.
 
-Steps 1 and 2 are implemented. The native reporter uses write-only,
+Steps 1 through 3 are implemented, and step 4 now has a partial root-handoff
+harness. The native reporter uses write-only,
 exclusive, raw ACM access; a credential-checked abstract datagram socket;
 nonblocking partial-frame writes; fixed-cadence heartbeats; immutable terminal
 state; and automatic watchdog pretimeout. The hardware-free suite exercises
 blocked ACM output, host-to-target bytes that remain unread, descriptor-bearing
 and oversized local updates, post-deadline watchdog heartbeats, deterministic
 clock behavior, and byte equality with the host oracle. Production binaries
-are also checked to contain no test-hook strings. Initramfs integration begins
-at step 3.
+are also checked to contain no test-hook strings.
+
+The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
+the fixed `headless-netroot-early-diag-v1` bundle identity are present. That
+branch alone adds ACM, starts the reporter after the independent watchdog is
+attested, emits stages 10 through 120, retains the helper across
+`switch_root`, injects the two volatile systemd units, and dwells exactly five
+seconds after a terminal fault. Normal mode creates no ACM function, reporter,
+dwell, or units. Isolated shell tests execute the command-line gate, rollback
+dwell, unit generation, handoff rollback, and failed-`switch_root` path.
+
+The archive builder optionally accepts only the sealed 67,288-byte reporter
+with SHA-256
+`f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd`.
+Two local diagnostic archive builds were byte-identical at 6,010,870 bytes,
+SHA-256
+`10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c`;
+the corresponding reporter-free normal archive was 5,981,915 bytes, SHA-256
+`be552fb489f9be9a60a7af3dbcc9b92653cd8613c9c1a5aa862151697747a46f`.
+The native signed-bundle verifier requires an executable reporter for the
+diagnostic profile and rejects one in every normal profile.
+
+The QEMU harness compiles the same production reporter source without test
+hooks, routes its write-only stream over a separate virtio console, performs
+the root-move/chroot/exec sequence, and requires one canonical boot stream to
+cross stages 10, 120, 130, and 140 in order. Its small replacement PID 1 emits
+130 and 140 directly after the handoff; it does not execute systemd or the
+generated production units. The harness therefore proves reporter/process
+continuity only. Its static contract and the full local repository suite pass,
+but a full-system ARM64 systemd job remains pending; step 4 is not yet
+accepted. Independent review is complete; disposable signed-bundle twin
+packaging, green GitHub CI, and every phone action remain pending.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

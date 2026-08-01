@@ -122,17 +122,24 @@ def newc_archive(
     return bytes(archive)
 
 
-def minimal_initramfs() -> bytes:
-    return newc_archive(
-        [
-            ("init", b"#!/bin/sh\nexec /bin/sh\n", 0o100755),
+def minimal_initramfs(*, diagnostic: bool = False) -> bytes:
+    entries = [
+        ("init", b"#!/bin/sh\nexec /bin/sh\n", 0o100755),
+        (
+            "sbin/persistent-root-verify",
+            b"\x7fELFfixture",
+            0o100755,
+        ),
+    ]
+    if diagnostic:
+        entries.append(
             (
-                "sbin/persistent-root-verify",
-                b"\x7fELFfixture",
+                "sbin/rog5-early-target-diag",
+                b"\x7fELFdiagnostic-fixture",
                 0o100755,
-            ),
-        ]
-    )
+            )
+        )
+    return newc_archive(entries)
 
 
 def rewrite_dtb_property_name(
@@ -211,7 +218,12 @@ class BundleFixture:
         self.write_kernel()
         self.write_dtb(test.valid_dts())
         (self.bundle / "initramfs.cpio.gz").write_bytes(
-            gzip.compress(minimal_initramfs(), mtime=0)
+            gzip.compress(
+                minimal_initramfs(
+                    diagnostic=profile == "diagnostic-initramfs-v1"
+                ),
+                mtime=0,
+            )
         )
         self.refresh_manifest()
 
@@ -1143,6 +1155,57 @@ class NativeBundleVerifierTest(unittest.TestCase):
         )
         fixture.refresh_manifest()
         fixture.assert_rejected("invalid initramfs newc trailer")
+
+    def test_diagnostic_initramfs_requires_reporter(self) -> None:
+        fixture = self.fixture(
+            "diagnostic-without-reporter",
+            profile="diagnostic-initramfs-v1",
+        )
+        (fixture.bundle / "initramfs.cpio.gz").write_bytes(
+            gzip.compress(minimal_initramfs(), mtime=0)
+        )
+        fixture.refresh_manifest()
+        fixture.assert_rejected(
+            "diagnostic initramfs lacks early-target reporter"
+        )
+
+    def test_normal_initramfs_rejects_reporter(self) -> None:
+        fixture = self.fixture("normal-with-reporter")
+        (fixture.bundle / "initramfs.cpio.gz").write_bytes(
+            gzip.compress(minimal_initramfs(diagnostic=True), mtime=0)
+        )
+        fixture.refresh_manifest()
+        fixture.assert_rejected(
+            "non-diagnostic initramfs carries early-target reporter"
+        )
+
+    def test_initramfs_archive_content_policy(self) -> None:
+        fixture = self.fixture(
+            "diagnostic-non-executable-reporter",
+            profile="diagnostic-initramfs-v1",
+        )
+        archive = newc_archive(
+            [
+                ("init", b"#!/bin/sh\n", 0o100755),
+                (
+                    "sbin/persistent-root-verify",
+                    b"\x7fELFfixture",
+                    0o100755,
+                ),
+                (
+                    "sbin/rog5-early-target-diag",
+                    b"\x7fELFdiagnostic-fixture",
+                    0o100644,
+                ),
+            ]
+        )
+        (fixture.bundle / "initramfs.cpio.gz").write_bytes(
+            gzip.compress(archive, mtime=0)
+        )
+        fixture.refresh_manifest()
+        fixture.assert_rejected(
+            "initramfs has no executable early-target reporter"
+        )
 
         fixture = self.fixture("missing-root-verifier")
         (fixture.bundle / "initramfs.cpio.gz").write_bytes(

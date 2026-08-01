@@ -26,6 +26,7 @@
 #define CONTROL_FDS_MAX 16
 #define HEARTBEAT_MS 250
 #define PRETIMEOUT_MS 5000
+#define WATCHDOG_INTERVAL_MAX_MS 900000
 #define SOCKET_NAME "rog5-early-target-diag-v1"
 
 struct stage {
@@ -77,6 +78,7 @@ static const char *const faults[] = {
 	"nfs-mount-failed",
 	"seal-verify-failed",
 	"overlay-failed",
+	"diagnostic-units-failed",
 	"identity-publish-failed",
 	"storage-before-switch",
 	"exitrd-failed",
@@ -211,9 +213,8 @@ static void validate_record(const struct diagnostic_record *record)
 	name = stage_name(record->stage_code);
 	if (record->sequence < 1 || name == NULL ||
 	    !valid_progress(record->last_good) ||
-	    !valid_fault(record->fault) || record->deadline < 60000 ||
-	    record->deadline > 900000 ||
-	    (record->boottime > record->deadline &&
+	    !valid_fault(record->fault) || record->deadline < 1 ||
+	    (record->boottime >= record->deadline &&
 	     record->stage_code != 210) ||
 	    record->dropped > 1000000)
 		fail("inconsistent frame state");
@@ -293,7 +294,7 @@ static void emit_frame(int argc, char **argv)
 		.stage_code = (unsigned int)stage_code,
 		.last_good = (unsigned int)last_good,
 		.fault = argv[8],
-		.deadline = number(argv[9], 60000, 900000,
+		.deadline = number(argv[9], 1, UINT64_MAX,
 				   "invalid watchdog deadline"),
 		.dropped = number(argv[10], 0, 1000000,
 				  "invalid dropped count"),
@@ -656,13 +657,14 @@ static void serve_diagnostics(int argc, char **argv)
 		.stage_code = 10,
 		.last_good = 10,
 		.fault = "none",
-		.deadline = number(argv[4], 60000, 900000,
+		.deadline = number(argv[4], 1, UINT64_MAX,
 				   "invalid watchdog deadline"),
 		.dropped = 0,
 	};
 	validate_record(&record);
-	if (record.boottime > record.deadline)
-		fail("reporter starts after watchdog deadline");
+	if (record.boottime >= record.deadline ||
+	    record.deadline - record.boottime > WATCHDOG_INTERVAL_MAX_MS)
+		fail("invalid remaining watchdog interval");
 	update_socket = create_update_server();
 	update_poll = (struct pollfd) {
 		.fd = update_socket,

@@ -53,6 +53,7 @@ jobs:
             clang \
             cpio \
             flex \
+            gcc-aarch64-linux-gnu \
             git \
             libelf-dev \
             libssl-dev \
@@ -79,4 +80,6 @@ jobs:
       - name: Boot kernel and initramfs under QEMU
         run: |
           scripts/host/test-qemu-system-smoke.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image
+          scripts/host/test-qemu-diagnostic-handoff.sh \
             build/qemu-smoke-kernel/arch/arm64/boot/Image

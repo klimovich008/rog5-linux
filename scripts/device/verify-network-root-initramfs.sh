@@ -6,8 +6,11 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
 reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
+reviewed_reporter_size=67288
+reviewed_reporter_hash=f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd
 for command in cmp cpio cut find grep gzip install mkdir mktemp readelf rm \
-	sha256sum sh; do
+	sha256sum sh stat; do
 	command -v "$command" >/dev/null || {
 		echo "FAIL missing initramfs verifier command: $command" >&2
 		exit 1
@@ -35,6 +38,29 @@ else
 	[ "$(sha256sum "$reviewed_verifier" | cut -d ' ' -f 1)" = \
 		"$reviewed_verifier_hash" ] || {
 		echo 'FAIL reviewed static verifier artifact hash changed' >&2
+		exit 1
+	}
+fi
+if [ -n "$reviewed_reporter" ]; then
+	case $reviewed_reporter in
+		/*) ;;
+		*)
+			echo 'FAIL NETWORK_ROOT_DIAGNOSTIC_REPORTER must be absolute' >&2
+			exit 1
+			;;
+	esac
+	[ -x "$reviewed_reporter" ] && [ -f "$reviewed_reporter" ] &&
+		[ ! -L "$reviewed_reporter" ] || {
+		echo 'FAIL reviewed diagnostic reporter artifact is absent or linked' >&2
+		exit 1
+	}
+	[ "$(stat -c %s "$reviewed_reporter")" -eq "$reviewed_reporter_size" ] || {
+		echo 'FAIL reviewed diagnostic reporter artifact size changed' >&2
+		exit 1
+	}
+	[ "$(sha256sum "$reviewed_reporter" | cut -d ' ' -f 1)" = \
+		"$reviewed_reporter_hash" ] || {
+		echo 'FAIL reviewed diagnostic reporter artifact hash changed' >&2
 		exit 1
 	}
 fi
@@ -115,6 +141,46 @@ cmp "$root_verifier" "$trusted/persistent-root-verify" || {
 	echo 'FAIL persistent-root verifier differs from reviewed build' >&2
 	exit 1
 }
+
+reporter=$stage/sbin/rog5-early-target-diag
+if [ -z "$reviewed_reporter" ]; then
+	[ ! -e "$reporter" ] && [ ! -L "$reporter" ] || {
+		echo 'FAIL normal network-root initramfs carries diagnostic reporter' >&2
+		exit 1
+	}
+else
+	[ -x "$reporter" ] && [ -f "$reporter" ] && [ ! -L "$reporter" ] || {
+		echo 'FAIL diagnostic initramfs lacks early-target reporter' >&2
+		exit 1
+	}
+	[ "$(stat -c %s "$reporter")" -eq "$reviewed_reporter_size" ] || {
+		echo 'FAIL embedded diagnostic reporter size changed' >&2
+		exit 1
+	}
+	[ "$(sha256sum "$reporter" | cut -d ' ' -f 1)" = \
+		"$reviewed_reporter_hash" ] || {
+		echo 'FAIL embedded diagnostic reporter hash changed' >&2
+		exit 1
+	}
+	readelf -h "$reporter" | grep -q 'Machine:.*AArch64' || {
+		echo 'FAIL diagnostic reporter is not AArch64' >&2
+		exit 1
+	}
+	if readelf -l "$reporter" |
+		grep -q 'Requesting program interpreter'; then
+		echo 'FAIL diagnostic reporter is dynamically linked' >&2
+		exit 1
+	fi
+	if readelf -d "$reporter" 2>/dev/null |
+		grep -q 'Shared library:'; then
+		echo 'FAIL diagnostic reporter has a shared-library dependency' >&2
+		exit 1
+	fi
+	cmp "$reporter" "$reviewed_reporter" || {
+		echo 'FAIL diagnostic reporter differs from reviewed artifact' >&2
+		exit 1
+	}
+fi
 
 [ ! -e "$stage/root/.ssh/authorized_keys" ]
 [ -z "$(find "$stage/etc/ssh" -maxdepth 1 -type f -name 'ssh_host_*' \
