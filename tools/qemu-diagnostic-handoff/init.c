@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mount.h>
+#include <sys/ioctl.h>
 #include <sys/reboot.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -90,6 +91,29 @@ static void bind_file(const char *source, const char *target)
 	make_file(target);
 	if (mount(source, target, NULL, MS_BIND, NULL) < 0)
 		stop("cannot bind handoff executable");
+}
+
+static void detach_controlling_terminal(void)
+{
+	struct sigaction ignored = {
+		.sa_handler = SIG_IGN,
+	};
+	struct sigaction previous;
+	int descriptor;
+
+	descriptor = open("/dev/tty", O_RDWR | O_NOCTTY | O_CLOEXEC | O_NONBLOCK);
+	if (descriptor < 0) {
+		if (errno == ENXIO || errno == ENODEV || errno == ENOENT)
+			return;
+		stop("cannot inspect controlling terminal");
+	}
+	if (sigemptyset(&ignored.sa_mask) < 0 ||
+	    sigaction(SIGHUP, &ignored, &previous) < 0)
+		stop("cannot guard controlling-terminal release");
+	if (ioctl(descriptor, TIOCNOTTY) < 0 && errno != ENOTTY)
+		stop("cannot release controlling terminal");
+	if (sigaction(SIGHUP, &previous, NULL) < 0 || close(descriptor) < 0)
+		stop("cannot finish controlling-terminal release");
 }
 
 static void sleep_milliseconds(long milliseconds)
@@ -337,6 +361,7 @@ __attribute__((noreturn)) static void initial_init(void)
 	move_handoff_mount("/run", "/newroot/run");
 	require_emit("120");
 	sleep_milliseconds(400);
+	detach_controlling_terminal();
 	if (setenv("LD_PRELOAD", "/usr/lib/rog5-abort-trace.so", 1) < 0)
 		stop("cannot enable QEMU abort tracing");
 	enter_new_root("/newroot", SYSTEMD);
