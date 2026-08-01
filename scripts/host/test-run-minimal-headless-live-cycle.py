@@ -1488,13 +1488,15 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "installed_server=$installed_root/serve-network-root.sh",
             "installed_verifier=$installed_root/headless-network-root.py",
             "installed_root_tool=$installed_root/persistent-root-tool.py",
-            'exec pkexec "$installed_server"',
-            '"$installed_server" preflight',
-            '"$installed_server" serve',
-            '"$installed_server" cancel',
+            "installed_client=$installed_root/rog5-recovery-host-client.py",
+            'exec python3 -B "$installed_client"',
+            "network-preflight-v3",
+            "network-serve-v3",
+            "network-cancel",
             "ALLOW_HEADLESS_NETWORK_ROOT_CANCEL",
         ):
             self.assertIn(token, launcher)
+        self.assertNotIn("exec pkexec", launcher)
         self.assertIn(
             "installed server accepts only the minimal headless root",
             server,

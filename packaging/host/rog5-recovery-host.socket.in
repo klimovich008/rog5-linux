@@ -1,0 +1,15 @@
+[Unit]
+Description=ROG Phone 5 bounded recovery host-control socket
+
+[Socket]
+ListenStream=/run/rog5-recovery-host.sock
+SocketUser=@ROG5_OPERATOR_USER@
+SocketGroup=@ROG5_OPERATOR_GROUP@
+SocketMode=0600
+Accept=yes
+# One long-running serve request plus one independently authenticated cancel.
+MaxConnections=2
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

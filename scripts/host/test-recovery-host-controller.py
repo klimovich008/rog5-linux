@@ -545,7 +545,11 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "valid_lft 180",
         ):
             self.assertIn(contract, controller)
-        self.assertIn('exec pkexec "$controller"', launcher)
+        self.assertIn(
+            'exec python3 -B "$client" bundle "$bundle" "$manifest_hash"',
+            launcher,
+        )
+        self.assertNotIn("exec pkexec", launcher)
         self.assertIn("install -o root -g root -m 0555", installer)
         self.assertIn(
             "install-headless-ssh-deployment-export.py",

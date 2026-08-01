@@ -20,19 +20,31 @@ network_server_source=$repo/scripts/host/serve-network-root.sh
 headless_verifier_source=$repo/scripts/host/headless-network-root.py
 persistent_root_tool_source=$repo/scripts/device/persistent-root-tool.py
 deployment_export_installer_source=$repo/scripts/host/install-headless-ssh-deployment-export.py
+broker_source=$repo/packaging/host/rog5-recovery-host-broker.py
+client_source=$repo/scripts/host/rog5-recovery-host-client.py
+socket_unit_template=$repo/packaging/host/rog5-recovery-host.socket.in
+service_unit_source=$repo/packaging/host/rog5-recovery-host@.service
 destination=/usr/libexec/rog5-recovery-host
 controller_destination=/usr/libexec/rog5-recovery-bundle-controller
 bundle_root=/var/lib/rog5-recovery-bundles
 export_storage_root=/home/rog5-linux
 export_parent=$export_storage_root/exports
+configuration_directory=/etc/rog5-recovery-host
+configuration_destination=$configuration_directory/control.conf
+unit_directory=/etc/systemd/system
+socket_unit_destination=$unit_directory/rog5-recovery-host.socket
+service_unit_destination=$unit_directory/rog5-recovery-host@.service
+socket_path=/run/rog5-recovery-host.sock
 
-for command in awk getent install mktemp mv rm sha256sum stat; do
+for command in awk chmod chown getent grep install mktemp mv rm sha256sum \
+	stat systemctl; do
 	command -v "$command" >/dev/null ||
 		fail "missing installer command: $command"
 done
 for source in "$controller_source" "$server_source" "$network_server_source" \
 	"$headless_verifier_source" "$persistent_root_tool_source" \
-	"$deployment_export_installer_source"; do
+	"$deployment_export_installer_source" "$broker_source" "$client_source" \
+	"$socket_unit_template" "$service_unit_source"; do
 	[[ -f $source && ! -L $source ]] ||
 		fail "unsafe installation source: $source"
 done
@@ -53,6 +65,20 @@ caller_gid=$(awk -F: -v uid="$PKEXEC_UID" '
 ' <<<"$caller_record")
 [[ $caller_gid =~ ^[0-9]+$ ]] ||
 	fail 'invalid or ambiguous PolicyKit caller record'
+caller_name=$(awk -F: -v uid="$PKEXEC_UID" '
+	NF == 7 && $3 == uid { count++; name=$1 }
+	END { if (count == 1) print name }
+' <<<"$caller_record")
+[[ $caller_name =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] ||
+	fail 'unsafe PolicyKit caller name'
+caller_group_record=$(getent group "$caller_gid") ||
+	fail 'PolicyKit caller primary group is absent'
+caller_group=$(awk -F: -v gid="$caller_gid" '
+	NF == 4 && $3 == gid { count++; name=$1 }
+	END { if (count == 1) print name }
+' <<<"$caller_group_record")
+[[ $caller_group =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] ||
+	fail 'unsafe PolicyKit caller group'
 [[ -d /home && ! -L /home &&
 	$(stat -Lc '%u:%g:%F' -- /home) == '0:0:directory' ]] ||
 	fail 'unsafe host home filesystem root'
@@ -84,6 +110,33 @@ if [[ -e $controller_destination ]]; then
 		$(stat -Lc '%u:%g:%a:%F' -- "$controller_destination") == '0:0:555:regular file' ]] ||
 		fail 'unsafe existing installed controller'
 fi
+for trusted_directory in /etc /etc/systemd "$unit_directory"; do
+	[[ -d $trusted_directory && ! -L $trusted_directory &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$trusted_directory") == \
+		'0:0:755:directory' ]] ||
+		fail 'unsafe systemd unit ancestry'
+done
+if [[ -e $configuration_directory || -L $configuration_directory ]]; then
+	[[ -d $configuration_directory && ! -L $configuration_directory &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$configuration_directory") == \
+		'0:0:755:directory' ]] ||
+		fail 'unsafe host-control configuration directory'
+fi
+if [[ -e $configuration_destination || -L $configuration_destination ]]; then
+	[[ -f $configuration_destination && ! -L $configuration_destination &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$configuration_destination") == \
+		'0:0:444:regular file' ]] ||
+		fail 'unsafe existing host-control configuration'
+fi
+for installed_unit in "$socket_unit_destination" \
+	"$service_unit_destination"; do
+	if [[ -e $installed_unit || -L $installed_unit ]]; then
+		[[ -f $installed_unit && ! -L $installed_unit &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$installed_unit") == \
+			'0:0:644:regular file' ]] ||
+			fail 'unsafe existing host-control systemd unit'
+	fi
+done
 
 controller_temporary=
 server_temporary=
@@ -91,6 +144,11 @@ network_server_temporary=
 headless_verifier_temporary=
 persistent_root_tool_temporary=
 deployment_export_installer_temporary=
+broker_temporary=
+client_temporary=
+configuration_temporary=
+socket_unit_temporary=
+service_unit_temporary=
 steamos_readonly=/usr/bin/steamos-readonly
 steamos_readonly_fd=
 steamos_readonly_fd_path=
@@ -115,6 +173,21 @@ cleanup() {
 	fi
 	if [[ -n $deployment_export_installer_temporary ]]; then
 		rm -f -- "$deployment_export_installer_temporary"
+	fi
+	if [[ -n $broker_temporary ]]; then
+		rm -f -- "$broker_temporary"
+	fi
+	if [[ -n $client_temporary ]]; then
+		rm -f -- "$client_temporary"
+	fi
+	if [[ -n $configuration_temporary ]]; then
+		rm -f -- "$configuration_temporary"
+	fi
+	if [[ -n $socket_unit_temporary ]]; then
+		rm -f -- "$socket_unit_temporary"
+	fi
+	if [[ -n $service_unit_temporary ]]; then
+		rm -f -- "$service_unit_temporary"
 	fi
 }
 run_steamos_readonly() {
@@ -219,10 +292,16 @@ if [[ -e $steamos_readonly || -L $steamos_readonly ]]; then
 	esac
 fi
 
+if [[ -e $socket_unit_destination ]]; then
+	systemctl stop rog5-recovery-host.socket
+	! systemctl is-active --quiet rog5-recovery-host.socket ||
+		fail 'existing recovery host-control socket did not stop'
+fi
 install -d -o root -g root -m 0755 "$destination"
 install -d -o "$PKEXEC_UID" -g "$caller_gid" -m 0700 "$bundle_root"
 install -d -o root -g root -m 0700 \
 	"$export_storage_root" "$export_parent"
+install -d -o root -g root -m 0755 "$configuration_directory"
 controller_temporary=$(mktemp --tmpdir=/usr/libexec \
 	.rog5-recovery-bundle-controller.XXXXXX)
 server_temporary=$(mktemp --tmpdir="$destination" \
@@ -235,6 +314,16 @@ persistent_root_tool_temporary=$(mktemp --tmpdir="$destination" \
 	.persistent-root-tool.py.XXXXXX)
 deployment_export_installer_temporary=$(mktemp --tmpdir="$destination" \
 	.install-headless-ssh-deployment-export.py.XXXXXX)
+broker_temporary=$(mktemp --tmpdir="$destination" \
+	.rog5-recovery-host-broker.py.XXXXXX)
+client_temporary=$(mktemp --tmpdir="$destination" \
+	.rog5-recovery-host-client.py.XXXXXX)
+configuration_temporary=$(mktemp --tmpdir="$configuration_directory" \
+	.control.conf.XXXXXX)
+socket_unit_temporary=$(mktemp --tmpdir="$unit_directory" \
+	.rog5-recovery-host.socket.XXXXXX)
+service_unit_temporary=$(mktemp --tmpdir="$unit_directory" \
+	.rog5-recovery-host@.service.XXXXXX)
 install -o root -g root -m 0555 \
 	"$controller_source" "$controller_temporary"
 install -o root -g root -m 0555 \
@@ -248,6 +337,44 @@ install -o root -g root -m 0555 \
 install -o root -g root -m 0555 \
 	"$deployment_export_installer_source" \
 	"$deployment_export_installer_temporary"
+install -o root -g root -m 0555 \
+	"$broker_source" "$broker_temporary"
+install -o root -g root -m 0555 \
+	"$client_source" "$client_temporary"
+printf '%s\n' \
+	"operator_uid=$PKEXEC_UID" \
+	"bundle_controller_sha256=$(sha256sum "$controller_source" |
+		awk '{ print $1 }')" \
+	"network_server_sha256=$(sha256sum "$network_server_source" |
+		awk '{ print $1 }')" >"$configuration_temporary"
+chown root:root "$configuration_temporary"
+chmod 0444 "$configuration_temporary"
+[[ $(grep -Foc '@ROG5_OPERATOR_USER@' "$socket_unit_template") == 1 &&
+	$(grep -Foc '@ROG5_OPERATOR_GROUP@' "$socket_unit_template") == 1 ]] ||
+	fail 'host-control socket template substitutions changed'
+awk -v user="$caller_name" -v group="$caller_group" '
+	{
+		gsub(/@ROG5_OPERATOR_USER@/, user)
+		gsub(/@ROG5_OPERATOR_GROUP@/, group)
+		print
+	}
+' "$socket_unit_template" >"$socket_unit_temporary"
+chown root:root "$socket_unit_temporary"
+chmod 0644 "$socket_unit_temporary"
+install -o root -g root -m 0644 \
+	"$service_unit_source" "$service_unit_temporary"
+mv -fT -- "$service_unit_temporary" "$service_unit_destination"
+service_unit_temporary=
+mv -fT -- "$socket_unit_temporary" "$socket_unit_destination"
+socket_unit_temporary=
+mv -fT -- "$configuration_temporary" "$configuration_destination"
+configuration_temporary=
+mv -fT -- "$client_temporary" \
+	"$destination/rog5-recovery-host-client.py"
+client_temporary=
+mv -fT -- "$broker_temporary" \
+	"$destination/rog5-recovery-host-broker.py"
+broker_temporary=
 mv -fT -- "$deployment_export_installer_temporary" \
 	"$destination/install-headless-ssh-deployment-export.py"
 deployment_export_installer_temporary=
@@ -271,6 +398,15 @@ if ! restore_original_steamos_readonly; then
 	exit 1
 fi
 close_steamos_readonly
+
+systemctl daemon-reload
+systemctl enable --now rog5-recovery-host.socket
+systemctl is-active --quiet rog5-recovery-host.socket ||
+	fail 'fixed recovery host-control socket is not active'
+[[ -S $socket_path && ! -L $socket_path &&
+	$(stat -Lc '%u:%g:%a:%F' -- "$socket_path") == \
+	"$PKEXEC_UID:$caller_gid:600:socket" ]] ||
+	fail 'fixed recovery host-control socket metadata is unsafe'
 trap - EXIT HUP INT TERM
 
 echo "PASS installed fixed recovery host controller"
@@ -287,4 +423,9 @@ echo "INFO persistent_root_tool_sha256=$(sha256sum \
 echo "INFO deployment_export_installer_sha256=$(sha256sum \
 	"$destination/install-headless-ssh-deployment-export.py" |
 	awk '{ print $1 }')"
+echo "INFO broker_sha256=$(sha256sum \
+	"$destination/rog5-recovery-host-broker.py" | awk '{ print $1 }')"
+echo "INFO client_sha256=$(sha256sum \
+	"$destination/rog5-recovery-host-client.py" | awk '{ print $1 }')"
+echo "INFO host_control_socket=$socket_path"
 echo "INFO export_parent=$export_parent"

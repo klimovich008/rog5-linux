@@ -212,6 +212,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-recovery-fetch-native.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
+		scripts/host/test-recovery-host-socket.py
 		scripts/host/test-recovery-init-policy.py
 		scripts/host/test-reboot-fallback-to-fastboot.sh
 	)
@@ -296,6 +297,7 @@ else
 		scripts/host/test-recovery-fetch-native.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
+		scripts/host/test-recovery-host-socket.py
 		scripts/host/test-recovery-init-policy.py
 		scripts/host/test-reboot-fallback-to-fastboot.sh
 		scripts/host/test-network-root-acm.py
