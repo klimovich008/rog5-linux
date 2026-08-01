@@ -144,6 +144,19 @@ and `cdc_ncm` messages, and excludes serial-number lines. It then admits one
 literal `ROG5 diagnostic network root` product and its interface `02`
 `cdc_acm` character device on that port.
 
+After the journal subprocess starts successfully and before target
+enumeration begins, the collector emits and flushes exactly one supervisor
+handshake line:
+
+```text
+READY receive-only early-target diagnostic collector
+```
+
+A diagnostic lifecycle must observe that complete line before exposing the
+NFS handoff marker that releases the recovery controller's non-retryable
+COMMIT. Anchor, output, or journal-startup failure emits no readiness line.
+The final PASS/FAIL result is separate and cannot be mistaken for readiness.
+
 The tty is opened `O_RDONLY|O_NOCTTY|O_NONBLOCK`, locked with `flock` and
 `TIOCEXCL`, and configured raw with echo and `HUPCL` disabled. The opened
 file's device number is checked before parsing; the descriptor remains bound
@@ -207,7 +220,7 @@ and oversized local updates, post-deadline watchdog heartbeats, deterministic
 clock behavior, and byte equality with the host oracle. Production binaries
 are also checked to contain no test-hook strings.
 
-Twenty-one collector tests cover canonical private anchor/output handling,
+Twenty-three collector tests cover canonical private anchor/output handling,
 duplicate or wrong-port USB identities, interface/driver binding, character-
 device replacement, rejection of a pre-existing foreign holder, read-only
 raw/no-`HUPCL` tty behavior, timeout versus disconnect, fragmented valid
@@ -215,11 +228,13 @@ frames, malformed and truncated rejection, chunk-invariant retention of a
 valid prefix before rejection, bounded redacted kernel events, burst-safe line
 buffering, pre-enumeration and final-disconnect event retention, canonical
 mode-`0600` evidence, successful and rejected frame-prefix retention across a
-failed final drain, start-before-enumeration ordering, and absence of a
-serial write or shell surface. A deterministic test executes the real
-subprocess/nonblocking-buffer/termination path, and a local smoke starts and
-stops `/usr/bin/journalctl` as the unprivileged user. The complete repository
-`ci` tier passes with this collector test in sequence.
+failed final drain, start-before-enumeration ordering, immediate journal-child
+exit rejection, an exact flushed readiness handshake that is absent on
+journal-startup failure, and absence of a serial write or shell surface. A
+deterministic test executes the real subprocess/nonblocking-buffer/termination
+path, and a local smoke starts and stops `/usr/bin/journalctl` as the
+unprivileged user. The complete repository `ci` tier passes with this collector
+test in sequence.
 
 The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
 the fixed `headless-netroot-early-diag-v1` bundle identity are present. That

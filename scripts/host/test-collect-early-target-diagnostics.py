@@ -7,6 +7,7 @@ from collections import OrderedDict
 import errno
 import fcntl
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -364,6 +365,24 @@ class EvidenceAndCaptureTest(unittest.TestCase):
                     )
                 self.assertIsNone(journal.process)
 
+    def test_kernel_journal_immediate_exit_fails_startup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            executable = Path(temporary) / "journal-fixture"
+            executable.write_text("#!/bin/sh\nexit 7\n", encoding="ascii")
+            executable.chmod(0o755)
+            with (
+                mock.patch.object(MODULE, "JOURNALCTL", executable),
+                mock.patch.object(MODULE, "require_fixed_executable"),
+                self.assertRaisesRegex(
+                    MODULE.CollectorError,
+                    "kernel event reader exited during startup",
+                ),
+            ):
+                journal = MODULE.KernelJournal(LOCATION)
+                with journal:
+                    self.fail("an exited journal reader was admitted")
+            self.assertIsNone(journal.process)
+
     def test_evidence_is_canonical_private_and_contains_no_raw_stream(self):
         captured = MODULE.CaptureResult(
             frames=(
@@ -462,25 +481,46 @@ class EvidenceAndCaptureTest(unittest.TestCase):
             def __exit__(self, *_):
                 calls.append("serial-exit")
 
-        def wait(*_):
-            calls.append("enumerate")
-            return identity
-
         def capture(*_, **__):
             calls.append("capture")
             return captured
 
         written = []
         anchor = OrderedDict(host_boot_id=HOST_BOOT, usb_location=LOCATION)
+        class FlushWitness(io.StringIO):
+            def __init__(self):
+                super().__init__()
+                self.flush_count = 0
+
+            def flush(self):
+                self.flush_count += 1
+                return super().flush()
+
+        stdout = FlushWitness()
+
+        def enumerate_after_ready(*_):
+            calls.append("enumerate")
+            self.assertEqual(
+                stdout.getvalue().splitlines(),
+                [MODULE.COLLECTOR_READY],
+            )
+            self.assertEqual(stdout.flush_count, 1)
+            return identity
+
         with (
             mock.patch.object(MODULE, "read_anchor", return_value=anchor),
             mock.patch.object(MODULE, "safe_new_output"),
             mock.patch.object(MODULE, "KernelJournal", Journal),
-            mock.patch.object(MODULE, "wait_diagnostic_acm", side_effect=wait),
+            mock.patch.object(
+                MODULE,
+                "wait_diagnostic_acm",
+                side_effect=enumerate_after_ready,
+            ),
             mock.patch.object(MODULE, "ReceiveOnlySerial", Serial),
             mock.patch.object(MODULE, "capture_stream", side_effect=capture),
             mock.patch.object(MODULE, "write_evidence", side_effect=lambda path, payload: written.append((path, payload))),
             mock.patch.object(MODULE.time, "sleep"),
+            mock.patch.object(MODULE.sys, "stdout", stdout),
         ):
             self.assertEqual(
                 MODULE.main(["/private/anchor", "/private/evidence"]),
@@ -488,6 +528,10 @@ class EvidenceAndCaptureTest(unittest.TestCase):
             )
         self.assertLess(calls.index("journal-enter"), calls.index("enumerate"))
         self.assertLess(calls.index("enumerate"), calls.index("serial-enter"))
+        self.assertEqual(
+            stdout.getvalue().splitlines().count(MODULE.COLLECTOR_READY), 1
+        )
+        self.assertEqual(stdout.flush_count, 1)
         self.assertEqual(len(written), 1)
         document = json.loads(written[0][1])
         self.assertEqual(document["capture_status"], "valid")
@@ -495,6 +539,38 @@ class EvidenceAndCaptureTest(unittest.TestCase):
             document["usb_events"][0]["message"],
             "usb 3-2: final disconnect",
         )
+
+    def test_main_does_not_claim_ready_when_journal_startup_fails(self):
+        class Journal:
+            def __init__(self, _):
+                pass
+
+            def __enter__(self):
+                raise MODULE.CollectorError("journal startup failed")
+
+            def __exit__(self, *_):
+                return None
+
+        anchor = OrderedDict(host_boot_id=HOST_BOOT, usb_location=LOCATION)
+        written = []
+        stdout = io.StringIO()
+        with (
+            mock.patch.object(MODULE, "read_anchor", return_value=anchor),
+            mock.patch.object(MODULE, "safe_new_output"),
+            mock.patch.object(MODULE, "KernelJournal", Journal),
+            mock.patch.object(
+                MODULE,
+                "write_evidence",
+                side_effect=lambda path, payload: written.append(payload),
+            ),
+            mock.patch.object(MODULE.sys, "stdout", stdout),
+        ):
+            self.assertEqual(
+                MODULE.main(["/private/anchor", "/private/evidence"]),
+                1,
+            )
+        self.assertNotIn(MODULE.COLLECTOR_READY, stdout.getvalue())
+        self.assertEqual(len(written), 1)
 
     def test_main_preserves_kernel_events_when_enumeration_fails(self):
         event = MODULE.UsbEvent(90, "usb 3-2: device departed")
