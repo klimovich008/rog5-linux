@@ -12,7 +12,10 @@ controller. The prompt-free host boundary is installed and its real socket/NFS
 preflight passes. A later temporary recovery boot rejected before bundle
 listener because consumed r2 remained beside the diagnostic bundle; exact
 fallback passed, consumed r2 is recoverably archived, and the preflight now
-runs the same sole-root descriptor validator before another lifecycle.
+runs the same sole-root descriptor validator before another lifecycle. The
+published/reinstalled remediation passed real unchanged-atime bundle and
+37,735-entry NFS preflights without a listener or process residue; one
+separate new diagnostic lifecycle is admitted.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time

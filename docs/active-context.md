@@ -257,6 +257,9 @@ target execution occurred; automatic same-port fallback and a fresh signed
 strict-SSH record passed at 43.1 C. Consumed r2 is now in a private recoverable
 archive. The launcher remediation invokes the same descriptor-based sole-root,
 artifact, and manifest validation during preflight without opening a listener.
+Commit `76439d9` is published and reinstalled with exact source/installed
+hashes; the real bundle preflight preserved all atimes and left no listener or
+process, and the 37,735-entry prompt-free NFS preflight passed without residue.
 See the [inventory rejection](../test-results/2026-08-01-early-target-diagnostic-bundle-inventory-rejected.md).
 
 See the

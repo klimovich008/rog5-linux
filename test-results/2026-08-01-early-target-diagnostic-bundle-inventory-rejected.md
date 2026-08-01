@@ -87,5 +87,18 @@ Focused bundle/controller/socket/lifecycle tests and complete repository CI
 pass. Independent standards review found one exact-CLI documentation gap,
 which is corrected; Claude's descriptor-lifetime concern was conservatively
 addressed by retaining the root descriptor for the full prepared-bundle
-context. Publication, host reinstall, and one real no-listener preflight must
-pass before a separate new lifecycle can be admitted.
+context.
+
+The remediation was published at commit `76439d9` and installed from that
+synchronized checkout. The installed controller SHA-256 is
+`febc217d851f5c201af3623be2727d30cb75edee9dedd2b2a8e54bab5ed61dc5`;
+the installed server and repository source both have SHA-256
+`536c36c42f4542ab49b2c288699edb61f7de9a7b1897e436ab394b729cafe03d`.
+The real diagnostic preflight accepted the sole active bundle and exact
+manifest, preserved every root/bundle/artifact access timestamp, opened no
+TCP 8080 listener, and left no server/controller process. The prompt-free NFS
+preflight then reverified all 37,735 deployment-root entries and tree SHA-256
+`f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087`.
+No TCP 111, 2049, or 8080 listener or project process remained; the operator
+socket stayed active and SteamOS read-only mode stayed enabled. A separate new
+lifecycle may now be admitted for the still-unexecuted diagnostic candidate.
