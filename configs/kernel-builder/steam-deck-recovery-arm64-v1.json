@@ -13,7 +13,7 @@
     "qemu_size": 6245816,
     "qemu_sha256": "bfcd46c842441912baed36158569ac29a7fb656684ca73c1b3b2f0f3971e9bec",
     "extractor_sha256": "5b0e991cb1112b21f5c40c8e1504020d8638ac6bff611964c96059d658cd6ecd",
-    "runner_sha256": "972831d9c4bde3c440e905bdb7beac6b3e74a0a02dc04d0eeb1060c6bfaeb50d",
+    "runner_sha256": "4437422db78d196d6992fa53b006ebde68efb6d6dc8700ee91ccb46af2a3b621",
     "sealed_runner_sha256": "354ea9b62a7ec9f19501858e3e0d2c4f848faa93e639dccc36bb23f5a016c301"
   },
   "rootfs_manifest_script": {

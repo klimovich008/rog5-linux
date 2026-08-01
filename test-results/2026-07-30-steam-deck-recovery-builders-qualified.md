@@ -1,5 +1,15 @@
 # Steam Deck ARM64 recovery-builder qualification — 2026-07-30
 
+> Historical identity note (2026-08-01): the runner and profile hashes below
+> describe this original qualification. Later private-runner hardening changed
+> the runner to
+> `4437422db78d196d6992fa53b006ebde68efb6d6dc8700ee91ccb46af2a3b621`.
+> The repaired current profile is
+> `780d564013d30c278b709939db6402347243eb2866065c6cbbe1788a946b842f`
+> and now cross-checks the live runner in both the verifier and hostile
+> contract. The current qualification and reconstruction evidence is recorded
+> in the [diagnostic candidate result](2026-08-01-early-target-diagnostic-candidate-offline.md).
+
 ## Result
 
 **PASS — both Alpine ARM64 recovery builders run rootlessly on the x86_64

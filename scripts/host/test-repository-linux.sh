@@ -137,6 +137,8 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
 		scripts/host/test-reconstruct-network-root-v3-contract.sh
 		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
+		scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
+		scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
 		scripts/host/test-restore-stable-recovery-inputs-contract.sh
 		scripts/host/test-fetch-android-boot-tools-contract.sh
 		scripts/host/test-canonical-boot-v3-template-contract.sh
@@ -216,6 +218,8 @@ else
 		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
 		scripts/host/test-reconstruct-network-root-v3-contract.sh
 		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
+		scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
+		scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
 		scripts/host/test-restore-stable-recovery-inputs-contract.sh
 		scripts/host/test-fetch-android-boot-tools-contract.sh
 		scripts/host/test-canonical-boot-v3-template-contract.sh

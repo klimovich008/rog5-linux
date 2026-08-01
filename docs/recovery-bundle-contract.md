@@ -120,12 +120,12 @@ Size policy is:
 Rollback timeout is 60–900 seconds, target timeout is 30–600 seconds, and the
 target timeout must leave at least 30 seconds of rollback margin.
 `persistent-root-ro-v1` requires at least 300 seconds of rollback time.
-`network-root-v1` additionally requires a nonzero A660 command-manifest hash,
-generation `arch-a`, nonzero tree and seal hashes, a positive tree-entry
-count, and subtree `/`. These values describe the complete read-only NFS
-lower tree and are covered by the Ed25519 signature. The other two profiles
-must carry only the canonical unset tuple: zero hashes, generation `none`,
-entry count `0`, and subtree `none`.
+`network-root-v1` and `diagnostic-initramfs-v1` additionally require a nonzero
+A660 command-manifest hash, generation `arch-a`, nonzero tree and seal hashes,
+a positive tree-entry count, and subtree `/`. These values describe the
+complete read-only NFS lower tree and are covered by the Ed25519 signature.
+`persistent-root-ro-v1` must carry only the canonical unset tuple: zero hashes,
+generation `none`, entry count `0`, and subtree `none`.
 
 `manifest.sig` is exactly 64 raw Ed25519 signature bytes over the exact
 manifest bytes. The caller also supplies the expected manifest SHA-256. The
@@ -179,8 +179,10 @@ Use only a disposable test key until the production-key approval gate is
 complete. Success prints a canonical non-secret record containing the bundle
 and profile, manifest hash, and raw public-key hash. Signing is not acceptance:
 the resulting bundle must still pass the native verifier and all release
-gates. For non-network profiles, pass the canonical unset trust tuple described
-above; the packager rejects both omitted values and cross-profile trust data.
+gates. For `persistent-root-ro-v1`, pass the canonical unset trust tuple
+described above; both network-root and diagnostic profiles require the sealed
+NFS-root tuple. The packager rejects omitted values and cross-profile trust
+data.
 The fixed profile mapping is:
 
 | Payload class | Profile |
@@ -197,7 +199,8 @@ because the packaging path can represent its ancestry.
 Tracked candidate adapters accept only two authority-free states:
 
 - `consumed` for exact historical parity fixtures that cannot be retried;
-- `offline` for an unbooted `network-root-v1` package.
+- `offline` for an unbooted `network-root-v1` or
+  `diagnostic-initramfs-v1` package.
 
 Both require `authority=none`. The headless offline package uses the
 historical fixed command-manifest pathname but binds an explicit canonical

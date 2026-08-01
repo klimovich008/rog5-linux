@@ -248,11 +248,16 @@ dwell, unit generation, handoff rollback, and failed-`switch_root` path.
 The archive builder optionally accepts only the sealed 67,288-byte reporter
 with SHA-256
 `f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd`.
-Two local diagnostic archive builds were byte-identical at 6,010,870 bytes,
+Two qualified diagnostic archive builds were byte-identical at 6,010,870 bytes,
 SHA-256
 `10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c`;
-the corresponding reporter-free normal archive was 5,981,915 bytes, SHA-256
-`be552fb489f9be9a60a7af3dbcc9b92653cd8613c9c1a5aa862151697747a46f`.
+normal mode separately reconstructs its frozen 5,978,369-byte archive,
+SHA-256
+`819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5`,
+from the five required files at historical source commit
+`27a270f2955c57f61e2cb8aeae0be23b31223499`. This prevents diagnostic
+changes in the shared current init source from silently redefining the normal
+candidate's historical bytes.
 The native signed-bundle verifier requires an executable reporter for the
 diagnostic profile and rejects one in every normal profile.
 
@@ -268,8 +273,13 @@ profile explicitly verifies FUTEX, MEMFD_CREATE, SHMEM, and TMPFS; the clean
 local full-system gate and complete repository CI pass. See the
 [systemd QEMU result](../test-results/2026-08-01-arm64-systemd-qemu-gate.md).
 The [host collector result](../test-results/2026-08-01-early-target-host-collector-offline.md)
-records its hardware-free acceptance. GitHub rerun, disposable signed-bundle
-twin packaging, and every phone action remain pending.
+records its hardware-free acceptance. Promotion steps 1 through 6 now pass:
+the [offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md)
+records byte-identical disposable-signed bundles, stable-recovery wrappers,
+raw/AVB images, native verification, and private-key destruction. The complete
+local `ci` tier passes. Independent final review reports no actionable
+standards/safety or objective-fidelity findings. GitHub CI, production signing,
+and every phone action remain pending.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

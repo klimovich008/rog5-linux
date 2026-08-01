@@ -307,11 +307,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   personal-credential, PolicyKit, firewall, or NFS action.
   See the
   [one-shot runbook](minimal-headless-live-cycle.md).
-- The next hardware-free gate is the
-  [early-target diagnostic successor](early-target-diagnostics.md). Its native
-  one-way reporter, host netstring parser, diagnostic-only initramfs branch,
-  volatile systemd handoff units, and QEMU pivot test must pass the complete
-  hostile matrix before a new signed candidate exists. r2 is consumed and is
+- The active hardware-free successor is the
+  [early-target diagnostic successor](early-target-diagnostics.md). Promotion
+  steps 1–6 now pass for its native one-way reporter, host netstring parser,
+  diagnostic-only initramfs branch, volatile systemd handoff units, QEMU pivot
+  test, and disposable-signed authority-free candidate. r2 is consumed and is
   not a diagnostic fixture. Twenty-four reporter tests now pin every canonical
   stage and fault, native/Python byte equality, every frame split, coalescing,
   malformed and oversized netstrings, mixed boots, identity/state mutations,
@@ -341,9 +341,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   kernel-journal reader before enumeration, rejects an immediately exiting
   journal child, emits one exact flushed readiness line before enumeration but
   never on journal-startup failure, and has no serial write or shell execution
-  surface. GitHub rerun remains required
-  before disposable signing or any phone action. See the
+  surface. Disposable-signed twin bundle/wrapper packaging now passes with
+  `authority=none`, exact normal/diagnostic archive reconstruction, and
+  private-key destruction. Complete local CI passes, and independent final
+  review reports no actionable findings. A GitHub rerun remains required
+  before production signing or any phone action.
+  See the
   [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
+  The complete authority-free package identities are in the
+  [offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight
