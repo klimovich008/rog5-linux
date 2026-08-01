@@ -6,7 +6,8 @@ that the early-target diagnostic units execute under a real ARM64 systemd PID
 boot-authorized artifact.
 
 The archive contains only systemd 260.2 PID 1 and service executor binaries,
-their recursive `DT_NEEDED` ELF closure, package license text, and a
+their recursive `DT_NEEDED` ELF closure, the `libmount` runtime dependency
+required by systemd's mount-option parser, package license text, and a
 provenance/file-hash manifest. It contains no `/etc`, users, SSH material,
 private keys, package database, phone data, kernel, DTB, modules, or boot
 tooling. The source is the accepted local Arch root archive whose size and

@@ -23,12 +23,15 @@ bash -n "$builder" "$verifier"
 for token in \
 	'expected_source_size=536747283' \
 	'expected_source_sha256=60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b' \
-	'closure=recursive-dt-needed' \
-	'elf_count=14' \
+	'closure=recursive-dt-needed+required-dlopen' \
+	'elf_count=17' \
 	'systemd-executor' \
+	'source / "usr/lib/libmount.so.1"' \
 	'libgcc=16.1.1+r12+g301eb08fa2c5-1' \
+	'util-linux-libs=2.42.1-1' \
 	'LGPL-2.1-or-later.txt' \
 	'root/usr/share/licenses/libgcc/*' \
+	'root/usr/share/licenses/util-linux-libs/*' \
 	'boot_authority=none' \
 	'phone_storage=absent' \
 	'--reproducible'; do
@@ -36,7 +39,7 @@ for token in \
 		fail "systemd runtime builder contract changed: $token"
 done
 grep -Fqx \
-	'97832e75302d312cdbf2c1ae8d8ba6f028fcd5f698c925b1606a836f569390e3  runtime.cpio.gz' \
+	'5011267029d8da251c20e66f232cce2f36530e09d18a36e0a492018255f178f7  runtime.cpio.gz' \
 	"$checksums" || fail 'systemd runtime checksum file changed'
 "$verifier" "$artifact"
 

@@ -157,7 +157,7 @@ grep -Fqx 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
 grep -Fqx 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
 	"$unit_root/rog5-early-target-sshd.service"
 if strings "$stage/qemu-diagnostic-handoff" |
-	grep -FxqE '130|140'; then
+	grep -qxE '130|140'; then
 	fail 'QEMU harness can emit a post-handoff diagnostic stage directly'
 fi
 (
