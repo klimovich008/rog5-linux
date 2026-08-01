@@ -285,9 +285,9 @@ Exit: failed boots are diagnosable and recover automatically.
 
 - [x] Preserve the historical ephemeral-signed minimal-root bundle evidence;
   the pruned root identity is not reusable.
-- [x] Package and verify the credential-clean reproducible root successor;
-  production signing is standing-authorized but remains a separate technical
-  promotion boundary.
+- [x] Package and verify the credential-clean reproducible root successor.
+- [x] Production-sign and twin-build the exact diagnostic successor; pin its
+  diagnostic-only artifact tuple and pass the complete native artifact gate.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
   clean reboot.
@@ -439,10 +439,12 @@ The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
 deployment candidate, NFS, runtime, rollback, thermal, ACM fallback, and CI
 gates are complete. The consumed r2 target reached Linux 7.1 USB-NCM, lost the
 USB gadget after 23 seconds, and returned through exact signed Alpine fallback.
-The distinct `headless-netroot-early-diag-v1` successor now twin-builds with a
-disposable key, passes exact admission, and has a receive-only collector wired
-into the one-shot lifecycle before the non-retryable recovery-control boundary.
-It has not been production-signed, installed, or booted.
+The distinct `headless-netroot-early-diag-v1` successor now has a complete
+production-key twin build. Its A/B bundles, recovery initramfses, ASUS wrapper
+kernels, raw images, and AVB wrappers are byte-identical, and the exact
+diagnostic-only pins pass the full artifact gate. It has not been installed or
+booted. The receive-only collector remains wired into the one-shot lifecycle
+before the non-retryable recovery-control boundary.
 
 Current execution order:
 
@@ -451,11 +453,12 @@ Current execution order:
    execution;
 2. **Complete:** fast-forward the reviewed checkpoint to draft PR #1 and pass
    both jobs in GitHub Actions run `30700630487` at exact head `6654c0c`;
-3. under a distinct guarded credential action, create and twin-build the exact
-   production-signed diagnostic bundle, destroy its private-key snapshot, and
-   pin every wrapper/trust/manifest/configuration identity;
-4. install only the reviewed signed diagnostic artifacts and pass local,
-   privileged-host, fallback-SSH, and connected-fastboot preflights;
+3. **Complete:** guarded production signing and twin build; the private-key
+   snapshot was destroyed and every diagnostic wrapper/trust/manifest/
+   configuration identity is pinned without changing the historical r2 pins;
+4. publish the reviewed pin update, install only the signed diagnostic
+   artifacts, and pass local, privileged-host, fallback-SSH, and
+   connected-fastboot preflights;
 5. perform at most one separately guarded temporary boot, collect the bounded
    one-way stage stream, prove exact fallback/cleanup, and use that evidence to
    fix the 23-second USB-loss boundary without retrying the consumed image;

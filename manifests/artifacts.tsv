@@ -1,4 +1,5 @@
 name	size	sha256	role	tracked
+build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img	100663296	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef	production-signed headless-netroot-early-diag-v1 temporary recovery; remove boot admission after candidate resolution; never flash	no
 rog5-alpine-5.4.210-modular.img	43753472	3873641556416473646fc0581d20860b4358f3f6329d530d26773abd6207a589	known-good temporary boot; kernel #20	no
 Image-5.4.210-modular	37915136	26886a76c58a162418bc717d018414b394d9a03d49da6e9c1fef952cdba32a4f	kernel payload used by modular image	no
 rog5-alpine-5.4.210-wifi.img	43757568	fb87ac11176aef539faa18800e808ed151be09c4f60dad643349e2fc11ac237d	kernel #9 Wi-Fi comparison image	no

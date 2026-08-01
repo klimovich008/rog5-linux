@@ -41,6 +41,23 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Active deployment checkpoint
 
+Latest exact checkpoint (2026-08-01): the guarded production-key operation
+twin-built `headless-netroot-early-diag-v1` from clean synchronized commit
+`529f3aa`. Its signed manifest is `4eacb90f…f7e76`, recovery AVB wrapper is
+`9c060a27…204ef`, public trust root is `f10ca076…c57b`, and host verifier is
+`0a570805…b621`. Every A/B output is byte-identical and the complete native
+artifact preflight passes. The private snapshot was destroyed, the external
+source key was unchanged, and no phone interface was contacted. The
+diagnostic profile advances independently; all consumed r2 pins remain
+unchanged. See the
+[production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
+
+Independent standards and objective-fidelity closure reviews report no
+findings, and the complete local `ci` tier passes. Next: publish the reviewed
+pin update, pass GitHub Actions, install the exact host-side assets, and pass
+the connected deployment preflight before the one admitted temporary
+diagnostic boot.
+
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
 
@@ -198,83 +215,21 @@ subprocess lifecycle test, and real unprivileged journal-reader smoke pass.
 The collector emits one exact flushed supervisor-ready line after journal
 startup and before enumeration, and none when journal startup fails. See the
 [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
-The authority-free candidate has now passed complete twin packaging with a
-disposable Ed25519 key: both signed bundles, stable-recovery initramfses,
-clean ASUS 5.4 wrappers, header-v3 raw images, and test-only AVB images are
-byte-identical. Its manifest is
-`4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76`;
-the disposable private key was destroyed. Normal reconstruction also recovers
-the exact historical reporter-free archive from a pinned source commit rather
-than relabeling current diagnostic-aware sources. See the
-[offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
-The complete local `ci` tier passes. Independent final review reports zero
-standards/safety and zero objective-fidelity findings after verifying the
-exact-manifest pins and atomic no-replace publication regression. GitHub rerun
-`30700630487` now covers this code at exact head `6654c0c`. No production
-signing credential, candidate installation, or phone action has occurred.
+Before production signing, a disposable Ed25519 key completed the same full
+wrapper/twin-build/native-verification path. Independent standards and spec
+reviews closed its signing-input, lifecycle, collector-readiness, evidence-
+binding, and no-replace publication gaps. See the
+[offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md),
+[offline lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md),
+and [signing-readiness result](../test-results/2026-08-01-early-target-diagnostic-signing-readiness-offline.md).
 
-The one-shot controller now has a separate exact diagnostic admission and
-lifecycle path. It starts the receive-only collector after capturing the
-recovery USB anchor but before starting the bundle server or non-retryable
-recovery control, and refuses before COMMIT if the collector does not publish
-its flushed readiness line. Diagnostic mode never pins a target host key or
-runs the normal SSH acceptance gate; it retains accepted or rejected private
-evidence, verifies the exact Alpine fallback and clean host state, and resolves
-the durable intent only as `FALLBACK_RETURNED`. Sixteen admission tests and
-thirty-four lifecycle methods pass, including readiness/liveness failure,
-rejected capture,
-one-COMMIT, no-retry, and unchanged normal-r2 cases. See the
-[offline lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
-The first independent integration review found readiness-liveness, evidence-
-binding, and mutable-policy gaps; all are fixed with hostile regressions. The
-closure review reports no remaining actionable findings, and the complete
-local `ci` tier passes the corrected diff. GitHub Actions run
-[`30700630487`](https://github.com/klimovich008/rog5-linux/actions/runs/30700630487)
-passes both required jobs at exact head `6654c0c`. Production signing,
-candidate installation, and every phone action remain pending.
-
-The next signing gate is now being prepared without using a credential. A
-no-replace helper verifies the accepted non-fixture Arch package and emits
-only the exact diagnostic candidate record
-`7081a0c7…c6e8` outside Git. The neutral recovery signing-input stager resolves
-only the normal or diagnostic fixed candidate ID, validates the diagnostic
-record, and reserves all no-replace outputs before opening a signing key; the
-old SSH-named path is compatibility-only. A dedicated guarded wrapper selects
-the exact diagnostic candidate/target tuple and requires manifest
-`4eacb90f…e76`. Both credentialed wrappers clear the environment in their
-shebangs before isolated Python starts, take authorization and external paths
-only as arguments, then `execve` the internal Bash builder with exact inputs.
-The stager runs under isolated Python and gives OpenSSL a fixed environment.
-A disposable-key integration injects hostile Bash/Python/OpenSSL startup
-settings, exported functions, and helper shims, then runs the wrapper, shared
-builder, and real stager through snapshot destruction without signing.
-The
-stable-recovery live gate has a separate
-`headless-diagnostic-deployment-v1` profile that reuses the pinned production
-recovery wrapper/trust root but requires the diagnostic bundle profile and
-target. Its diagnostic-only executable policy preflight emits one exact
-identity record, and hostile cases reject an unpinned profile, wrong manifest,
-bundle, or recovery image.
-Direct boot and the lifecycle reject both consumed normal manifests.
-Focused credential-free tests pass, the complete local `ci` tier passes, and
-independent standards/spec review reports no remaining actionable findings.
-At clean synchronized checkpoint `0375e97a`, one disposable key completed the
-real diagnostic wrapper, two clean ASUS 5.4 builds, twin comparison, native
-verification, and an artifact-preflight fixture that substituted all ten
-observed disposable-build artifact identities in an explicitly
-Git-ignored temporary gate copy. The test-only AVB image is
-`24b9b8c4…d441`, the disposable trust key is `36026bd2…18c4b`, and the result
-retained `authority=none`. This proves the identity-parameterized gate
-composition, not the production pins. No production key, phone, privileged
-host action, or external service was used.
-
-The reviewed six-commit checkpoint was then fast-forwarded without force to
-draft PR [#1](https://github.com/klimovich008/rog5-linux/pull/1). Its
-`recovery-core` job passed in 2m12s and its cache-miss `qemu-system` job fetched
-and built exact Linux 7.1.4 before both QEMU boot paths passed in 6m51s. See the
-[GitHub CI result](../test-results/2026-08-01-early-target-diagnostic-github-ci.md).
-The authorized GitHub credential was used only for publication and check
-inspection; no production key or phone interface was used.
+The controller's diagnostic path starts the receive-only collector before the
+non-retryable recovery boundary, refuses before COMMIT unless the collector is
+ready, never substitutes normal SSH acceptance, and resolves only after exact
+fallback and cleanup. Direct boot and lifecycle admission reject both consumed
+normal manifests. The prior reviewed checkpoint is published in draft PR
+[#1](https://github.com/klimovich008/rog5-linux/pull/1), with both jobs green in
+[GitHub Actions run `30700630487`](https://github.com/klimovich008/rog5-linux/actions/runs/30700630487).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

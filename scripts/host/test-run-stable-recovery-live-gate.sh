@@ -3,8 +3,21 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
+boot_policy=$repo/manifests/temporary-boot-images.tsv
+artifact_manifest=$repo/manifests/artifacts.tsv
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
+
+diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img
+[[ $(awk -F '\t' -v name="$diagnostic_image" \
+	'$1 == name && $2 == "allow" && $3 != "" { count++ } \
+	END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL diagnostic wrapper is not uniquely boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$diagnostic_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef" \
+	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -68,13 +81,13 @@ run_diagnostic_policy() {
 		RECOVERY_SHA256="$selected_image" \
 		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 		MANIFEST_SHA256="$selected_manifest" \
-		HOST_VERIFIER_SHA256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
 		bash "$gate" policy-preflight
 }
 
 if run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
-	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
 	9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 manifest' >&2
@@ -84,7 +97,7 @@ grep -Fq 'diagnostic runtime manifest is not allowlisted' "$tmp/err"
 
 if run_diagnostic_policy \
 	headless-ssh-network-root-v3-r2 \
-	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 bundle' >&2
@@ -100,11 +113,11 @@ if run_diagnostic_policy \
 	echo 'FAIL diagnostic artifact policy accepted a wrong recovery image' >&2
 	exit 1
 fi
-grep -Fq 'deployment recovery image identity is not allowlisted' "$tmp/err"
+grep -Fq 'diagnostic recovery image identity is not allowlisted' "$tmp/err"
 
 if ! run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
-	11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c \
+	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL exact diagnostic policy preflight was rejected' >&2
@@ -117,9 +130,9 @@ bundle=headless-netroot-early-diag-v1
 manifest_sha256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
 bundle_profile=diagnostic-initramfs-v1
 target_id=headless-netroot-early-diag
-recovery_sha256=11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c
+recovery_sha256=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
 trust_key_sha256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-host_verifier_sha256=9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b
+host_verifier_sha256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621
 authority=none
 result=PASS
 EOF
@@ -166,8 +179,13 @@ for required in \
 	'expected_kernel=1a8bac7a2b016dc7d63d22f09d0872b9c3f251952b7627c68f7c387f386b0068' \
 	'expected_raw=a937b03b54c01c6240cff45aa243632827d0c9d328e6f285ae489c973a6213a9' \
 	'expected_initramfs=f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0' \
+	'9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef' \
+	'expected_kernel=d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5' \
+	'expected_raw=0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a' \
+	'expected_initramfs=cd30a2067322edc12c3be172cd05bd5d365a1ad09815594b8fa56302cd0b813b' \
 	'expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77' \
 	'expected_fetcher=677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392' \
+	'expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0' \
 	'expected_target_id=headless-ssh-network-root' \
 	'expected_target_id=headless-netroot-early-diag' \
 	'f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b' \
@@ -175,12 +193,18 @@ for required in \
 	'9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630' \
 	'4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76' \
 	'9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b' \
+	'0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621' \
 	'expected_bundle=headless-ssh-network-root-v3-r2' \
 	'expected_bundle=headless-netroot-early-diag-v1' \
 	'expected_bundle_profile=diagnostic-initramfs-v1' \
 	'profile requires bundle=$expected_bundle' \
 	'profile=$expected_bundle_profile' \
 	'target_id=$expected_target_id' \
+	'manifests/temporary-boot-images.tsv' \
+	'manifests/artifacts.tsv' \
+	'temporary boot policy does not uniquely list' \
+	'artifact manifest does not uniquely list' \
+	'temporary boot artifact manifest identity is not allowlisted' \
 	'artifacts/android-boot-tools-v1/avbtool.py' \
 	'qualified-cpio-path/cpio' \
 	'7520899a405e1fc698875e047d8671c9415116e944831135a8e8eb6a93a21580' \

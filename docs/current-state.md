@@ -1,4 +1,4 @@
-# Current-state evidence ledger — 2026-07-31
+# Current-state evidence ledger — 2026-08-01
 
 This long-form file preserves verified chronology and exact identities. For
 day-to-day orientation, start with [active-context.md](active-context.md).
@@ -44,8 +44,10 @@ entry cycle. The panel can remain off while the server is reachable.
 
 ## Recovery
 
-Recovery v18 is the only temporary boot image admitted by
-`manifests/temporary-boot-images.tsv`. It has:
+Recovery v18 remains the reusable staging image admitted by
+`manifests/temporary-boot-images.tsv`. The policy now also admits the exact
+single-use diagnostic production wrapper only after its connected preflight.
+Recovery v18 has:
 
 - exact fastboot product `lahaina`, observed by both accepted v18 preflights;
 - two completed credential-free RAM-only staging/rollback cycles;
@@ -266,10 +268,10 @@ permanent bundle-ID conflict or an exact bounded fetch-stage failure without
 invoking verifier or kexec. The helper's 180-second deadline is nested below a
 190-second responder fetch wait, one 260-second same-session host PREPARE
 deadline that also covers verification and kexec load, and a 320-second
-lifecycle wait that includes initial ACM stabilization. The three binaries
-now pass offline initramfs integration, but no
-production signing key exists. The accepted v18 recovery still contains the
-old interactive control shell. None of these offline checkpoints grants live
+lifecycle wait that includes initial ACM stabilization. At that checkpoint
+the three binaries passed offline initramfs integration, but no production
+signing key had been created. The accepted v18 recovery still contained the
+old interactive control shell. None of those offline checkpoints granted live
 authority.
 
 The fixed NFS host server also has an authenticated cancellation boundary.
@@ -311,8 +313,8 @@ preserved. All three fixed profiles pass the native verifier and host-server
 opener, and two roots produce byte-identical output with the same inputs. The
 persistent Arch payload maps to
 `persistent-root-ro-v1`; accepted A660 ancestry maps to `network-root-v1`.
-No production key, live bundle, allowlist change, host-network mutation, or
-phone action was created by this checkpoint.
+That checkpoint created no production key, live bundle, allowlist change,
+host-network mutation, or phone action.
 
 The installed fallback still cannot read the ramoops reservation: no driver
 is bound, `/dev/mem` and `devmem` are absent, and `CONFIG_DEVMEM` is unset.
@@ -863,15 +865,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. The external `headless-netroot-early-diag-v1` successor is packaged, and
-   its immutable candidate record binds it to the retained package, artifact
-   bytes, and predicted manifest. Under the central standing authorization,
-   sign and twin-build it after the exact credential-free gates pass, then
-   review the reproduced predicted manifest plus its new trust,
-   recovery-wrapper, verifier, and configuration identities, and pin that
-   five-member tuple. Every consumed r2/v3 identity is rejected before key
-   admission.
-2. After the separate artifact and connected preflight gates pass, use that
+1. The external `headless-netroot-early-diag-v1` successor is production
+   signed and twin-built. Its exact diagnostic wrapper, public trust root,
+   manifest, verifier, and configuration tuple passes the artifact gate while
+   every historical r2 pin remains unchanged. Independent review and local CI
+   pass; publication, GitHub CI, and host-side installation still precede
+   phone contact.
+2. After installation and the connected preflight gate pass, use the
    same standing authorization for the successor's sole temporary boot,
    collect its receive-only early-target diagnostic stream, and prove normal
    fallback and cleanup. Consume the successor regardless of result.

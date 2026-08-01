@@ -94,16 +94,16 @@ verifier_sha=$(sha256sum "$verifier" | cut -d ' ' -f 1)
 
 cp -- "$gate" "$fixture_gate"
 python3 - "$fixture_gate" \
-	"11feb00b6a80e701e74c8538b6f80fb4956d9b21463d666806e0b5f14b52213c=$image_sha" \
-	"a937b03b54c01c6240cff45aa243632827d0c9d328e6f285ae489c973a6213a9=$raw_sha" \
-	"1a8bac7a2b016dc7d63d22f09d0872b9c3f251952b7627c68f7c387f386b0068=$kernel_sha" \
+	"9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef=$image_sha" \
+	"0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a=$raw_sha" \
+	"d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5=$kernel_sha" \
 	"df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f=$config_sha" \
-	"f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0=$initramfs_sha" \
+	"cd30a2067322edc12c3be172cd05bd5d365a1ad09815594b8fa56302cd0b813b=$initramfs_sha" \
 	"f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b=$trust_sha" \
-	"9099f5f615144cf95655e6e169ac49b0cbe6f0a6d759441c59bc3130407ab78b=$host_verifier_sha" \
+	"0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621=$host_verifier_sha" \
 	"f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77=$control_sha" \
 	"677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392=$fetcher_sha" \
-	"374900be5769eee074820007ab2e335d4c033c500da7a480cc88f9a70137029b=$verifier_sha" <<'PY'
+	"5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0=$verifier_sha" <<'PY'
 from pathlib import Path
 import sys
 

@@ -7,8 +7,9 @@ return to the configuration-unchanged Alpine fallback.
 Tracked status: **the non-fixture r2 chain completed recovery transfer and one
 COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
 the fallback return, and r2 is consumed**. A distinct diagnostic successor is
-now packaged and integrated into the controller hardware-free; production
-signing, host installation, and its sole temporary target boot remain pending.
+now production-signed, twin-built, artifact-admitted, and integrated into the
+controller; host installation, connected preflight, and its sole temporary
+target boot remain pending.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
@@ -28,6 +29,10 @@ authorization permits it only after every exact guard listed below passes.
 The `diagnostic-key-preflight`, `diagnostic-preflight`, and `diagnostic-run`
 actions select only `headless-netroot-early-diag-v1`; they cannot reuse r2 or
 promote diagnostic evidence as normal runtime acceptance.
+After that candidate resolves as accepted, rejected, or unknown, remove its
+temporary recovery row from `manifests/temporary-boot-images.tsv` in the same
+evidence/publication update. Never retain the row as authority to retry an
+execute action.
 
 ## Why one controller is needed
 
@@ -396,9 +401,13 @@ twin-signs and twin-builds from those snapshots, destroys them, and produces
 no live authority or phone action.
 
 The resulting exact wrapper, trust, manifest, and host-verifier hashes are
-pinned in the live-gate profile. The production artifact gate passes against
-the retained twin output, and the installed r2 bundle passes the complete
-connected host preflight.
+pinned in the live-gate profile. The consumed r2 profile retains its July 31
+tuple. The separate diagnostic profile pins the August 1 production twin:
+AVB wrapper `9c060a27…204ef`, trust root `f10ca076…c57b`, manifest
+`4eacb90f…f7e76`, and host verifier `0a570805…b621`. Its complete artifact
+preflight passes against the retained ignored output without phone discovery.
+See the [production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
+The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight
 
