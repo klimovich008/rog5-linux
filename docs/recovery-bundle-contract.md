@@ -4,7 +4,8 @@ Status: **fixed-host fetch, atomic host packaging, native verifier handoff,
 and responder same-descriptor load are integrated and tested offline;
 production trust root and live promotion remain**
 
-Live authority: **none**
+Artifact-local authority: **none**. Live promotion occurs only through the
+central standing authorization and the technical sequence below.
 
 Last reviewed: 2026-07-28
 
@@ -175,8 +176,8 @@ scripts/host/prepare-recovery-runtime-bundle.py \
   --bundle-root "$EMPTY_BUNDLE_ROOT"
 ```
 
-Use only a disposable test key until the production-key approval gate is
-complete. Success prints a canonical non-secret record containing the bundle
+Use only a disposable test key until the production-key technical admission
+gate is complete. Success prints a canonical non-secret record containing the bundle
 and profile, manifest hash, and raw public-key hash. Signing is not acceptance:
 the resulting bundle must still pass the native verifier and all release
 gates. For `persistent-root-ro-v1`, pass the canonical unset trust tuple
@@ -401,15 +402,15 @@ The packager/verifier/responder boundary now completes these offline gates:
 
 Before this path may replace the accepted recovery:
 
-1. create or use a production signing key only after separate user
-   confirmation, then embed and pin its public trust root;
+1. use the central standing authorization for one admitted production-signing
+   operation, then embed and pin its public trust root;
 2. re-run the complete two-clean-build and independent-review gate with the
    production public key and final release pins;
 3. run two staging-only RAM-root/storage/USB/rollback cycles and two
    protocol-only malformed/replay cycles;
-4. run the separately authorized load-only `kexec_loaded` 0→1, repeat-load,
-   and `kexec -c -u` 1→0 procfd gate without executing a payload, including
-   the loaded-then-timeout reconciliation path;
+4. under that standing authorization, run the separately gated load-only
+   `kexec_loaded` 0→1, repeat-load, and `kexec -c -u` 1→0 procfd gate without
+   executing a payload, including the loaded-then-timeout reconciliation path;
 5. run one signed inert execute cycle with host write-ahead intent and
    out-of-band outcome classification.
 

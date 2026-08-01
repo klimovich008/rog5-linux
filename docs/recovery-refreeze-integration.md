@@ -167,12 +167,13 @@ the
 
 Before a live candidate exists:
 
-1. obtain explicit confirmation to create or use a single-use live or
-   production signing key and to temporarily boot the resulting candidate;
+1. apply the central standing authorization to one admitted production
+   signing operation and one admitted temporary boot; do not request the same
+   consent again;
 2. keep the private key outside the repository and build tree;
 3. embed only its reviewed raw public key;
 4. build the release initramfs, wrapper kernel, raw boot image, and AVB
-   wrapper twice with the approved public key;
+   wrapper twice with the admitted public key;
 5. update all source, artifact, and temporary-boot pins atomically;
 6. independently review the final production-key artifact and complete the
    staged live-promotion sequence in the roadmap.

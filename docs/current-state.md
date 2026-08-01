@@ -863,24 +863,28 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 
 ## Current blockers
 
-1. The real external r2 candidate is staged and credential-free verification
-   binds it to the retained package, artifact bytes, and predicted manifest.
-   Under fresh credential authorization, sign and twin-build it, then review
-   the reproduced predicted manifest plus its new trust, recovery-wrapper,
-   verifier, and configuration identities, and pin that five-member tuple.
-   The consumed v3 manifest is rejected before key admission.
-2. After separate fresh boot authorization, temporarily boot r2 and collect
-   the first strict-SSH target runtime record. The watchdog/fallback path was
-   accepted live without ACM on the former `/16`; the installed `/30` profile
-   and single-session transport pass host/offline gates and require their first
-   phone-cycle proof during this boot.
-3. Determine whether ramoops survives the target/fallback path and collect the
-   exact 88-field core record.
+1. The external `headless-netroot-early-diag-v1` successor is packaged, and
+   its immutable candidate record binds it to the retained package, artifact
+   bytes, and predicted manifest. Under the central standing authorization,
+   sign and twin-build it after the exact credential-free gates pass, then
+   review the reproduced predicted manifest plus its new trust,
+   recovery-wrapper, verifier, and configuration identities, and pin that
+   five-member tuple. Every consumed r2/v3 identity is rejected before key
+   admission.
+2. After the separate artifact and connected preflight gates pass, use that
+   same standing authorization for the successor's sole temporary boot,
+   collect its receive-only early-target diagnostic stream, and prove normal
+   fallback and cleanup. Consume the successor regardless of result.
+3. Use that evidence to repair or promote a distinct normal minimal-headless
+   candidate; then determine whether ramoops survives the target/fallback path
+   and collect the exact 88-field core record over strict SSH.
 4. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the
-headless reliability gate. No new phone action is authorized by this document.
+headless reliability gate. Phone actions use the central standing
+authorization and still must pass the lifecycle runbook's exact technical
+gates; this status section does not relax them.
 
 ## Operational constraints
 

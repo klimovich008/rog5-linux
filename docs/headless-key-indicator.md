@@ -169,8 +169,9 @@ was destroyed; the candidate remains unbooted with `authority=none`.
 
 ## Remaining live gate
 
-A later separately authorized RAM-only cycle must first pass the corrected minimal
-SSH/storage/rollback contract. It may then run `--probe`, record physical
+A later RAM-only cycle under the central standing authorization must first
+pass the corrected minimal SSH/storage/rollback contract. It may then run
+`--probe`, record physical
 press/release events, enable the service, observe one low-power pulse, and
 prove clean SSH, kernel logs, storage isolation, normal fallback, and zero
 brightness afterward. The offline result grants no boot, credential, phone,

@@ -6,7 +6,9 @@ creates one in the RAM-backed OverlayFS upper layer. This bootstrap turns
 that volatile public key into a strict known-hosts pin without presenting a
 client credential to an unpinned SSH server.
 
-Status: **hardware-free contract complete; no live authority**
+Status: **hardware-free contract complete; artifact-local `authority=none`**.
+Live use occurs only through the lifecycle controller under the central
+standing authorization and its exact technical gates.
 
 ## Trust boundary
 

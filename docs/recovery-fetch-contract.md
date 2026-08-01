@@ -3,7 +3,8 @@
 Status: **device helper, responder integration, and fixed host serving pass
 offline**
 
-Live authority: **none**
+Artifact-local authority: **none**. Live use occurs only through the central
+standing authorization and the recovery lifecycle's exact technical gates.
 
 The device helper is
 `tools/recovery_control/rog5-bundle-fetch.c`. Its native fault suite is
