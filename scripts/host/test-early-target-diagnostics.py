@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import array
 import importlib.util
+import os
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -160,9 +164,27 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory()
         cls.binary = Path(cls.temporary.name) / "rog5-early-target-diag"
+        cls.production_binary = (
+            Path(cls.temporary.name) / "rog5-early-target-diag-production"
+        )
         source = (
             Path(__file__).resolve().parents[2]
             / "tools/early_target_diag/rog5-early-target-diag.c"
+        )
+        subprocess.run(
+            [
+                "gcc",
+                "-DROG5_DIAG_TESTING",
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-O2",
+                str(source),
+                "-o",
+                str(cls.binary),
+            ],
+            check=True,
         )
         subprocess.run(
             [
@@ -174,7 +196,7 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
                 "-O2",
                 str(source),
                 "-o",
-                str(cls.binary),
+                str(cls.production_binary),
             ],
             check=True,
         )
@@ -279,11 +301,289 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
             "execv",
             "popen(",
             "fork(",
-            "read(",
-            "recv(",
-            "/dev/",
+            "STDIN_FILENO",
+            "O_RDWR",
         ):
             self.assertNotIn(forbidden, source)
+        for required in (
+            "O_WRONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC",
+            "SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC",
+            "MSG_DONTWAIT | MSG_NOSIGNAL",
+            "MSG_DONTWAIT | MSG_TRUNC | MSG_CMSG_CLOEXEC",
+            "header.msg_flags & MSG_CTRUNC",
+            "SO_PASSCRED",
+            "SCM_CREDENTIALS",
+            "SCM_RIGHTS",
+            "credentials.uid != 0",
+            "address->sun_path + 1",
+            "ioctl(descriptor, TIOCEXCL)",
+            "attributes.c_cflag &= ~(CSIZE | PARENB | HUPCL)",
+        ):
+            self.assertIn(required, source)
+
+    def test_production_binary_excludes_every_test_hook(self):
+        self.assertNotIn(
+            b"ROG5_DIAG_TEST_", self.production_binary.read_bytes()
+        )
+
+    def service_environment(
+        self, suffix, *, frames=5, start=1000, step=25
+    ):
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "ROG5_DIAG_TEST_OUTPUT_FD": "1",
+                "ROG5_DIAG_TEST_FRAME_LIMIT": str(frames),
+                "ROG5_DIAG_TEST_CLOCK_START_MS": str(start),
+                "ROG5_DIAG_TEST_CLOCK_STEP_MS": str(step),
+                "ROG5_DIAG_TEST_SOCKET_SUFFIX": suffix,
+            }
+        )
+        return environment
+
+    def start_service(self, suffix, **environment_options):
+        environment = self.service_environment(
+            suffix, **environment_options
+        )
+        process = subprocess.Popen(
+            [
+                str(self.binary),
+                "serve",
+                CANDIDATE,
+                BOOT,
+                "600000",
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+        )
+        return process, environment
+
+    def emit_when_ready(self, environment, stage, fault=None):
+        command = [str(self.binary), "emit", str(stage)]
+        if fault is not None:
+            command.append(fault)
+        deadline = time.monotonic() + 2
+        while True:
+            result = subprocess.run(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=environment,
+                check=False,
+            )
+            if result.returncode == 0:
+                return
+            if time.monotonic() >= deadline:
+                self.fail(result.stderr.decode(errors="replace"))
+            time.sleep(0.01)
+
+    def parse_service_output(self, payload):
+        stream = MODULE.DiagnosticStream(CANDIDATE)
+        records = stream.feed(payload)
+        stream.finalize()
+        return stream, records
+
+    def test_service_emits_bounded_cadenced_heartbeats(self):
+        process, _ = self.start_service("heartbeat", frames=3, step=25)
+        output, error = process.communicate(timeout=3)
+        self.assertEqual(process.returncode, 0, error)
+        stream, records = self.parse_service_output(output)
+        self.assertEqual(len(records), 3)
+        self.assertEqual(stream.maximum_progress, 10)
+        intervals = [
+            later.boottime_ms - earlier.boottime_ms
+            for earlier, later in zip(records, records[1:])
+        ]
+        self.assertTrue(all(interval >= 250 for interval in intervals))
+
+    def test_nonblocking_local_updates_advance_and_terminate(self):
+        process, environment = self.start_service(
+            "updates", frames=8, step=10
+        )
+        self.emit_when_ready(environment, 70)
+        self.emit_when_ready(environment, 200, "nfs-mount-failed")
+        self.emit_when_ready(environment, 80)
+        output, error = process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 0, error)
+        stream, records = self.parse_service_output(output)
+        self.assertIn(70, [item.last_good_code for item in records])
+        self.assertEqual(
+            stream.terminal, (200, 70, "nfs-mount-failed")
+        )
+        self.assertTrue(any(item.dropped_updates > 0 for item in records))
+
+    def test_malformed_local_update_is_counted_not_fatal(self):
+        suffix = "malformed"
+        process, environment = self.start_service(
+            suffix, frames=5, step=10
+        )
+        self.emit_when_ready(environment, 20)
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sender:
+            sender.sendto(
+                b"not-canonical", "\0" + MODULE.FORMAT + "-" + suffix
+            )
+            sender.sendto(
+                b"x" * 128, "\0" + MODULE.FORMAT + "-" + suffix
+            )
+        output, error = process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 0, error)
+        _, records = self.parse_service_output(output)
+        self.assertTrue(any(item.dropped_updates >= 2 for item in records))
+
+    def test_watchdog_pretimeout_is_automatic_and_terminal(self):
+        process, _ = self.start_service(
+            "pretimeout", frames=3, start=599700, step=100
+        )
+        output, error = process.communicate(timeout=3)
+        self.assertEqual(process.returncode, 0, error)
+        stream, records = self.parse_service_output(output)
+        self.assertIn(210, [item.stage_code for item in records])
+        self.assertEqual(stream.terminal, (210, 10, "none"))
+        self.assertTrue(
+            any(item.boottime_ms > 600000 for item in records)
+        )
+
+    def test_host_bytes_on_output_channel_are_never_consumed(self):
+        host, target = socket.socketpair()
+        target.setblocking(False)
+        try:
+            environment = self.service_environment(
+                "noinput", frames=3, start=1000, step=25
+            )
+            environment["ROG5_DIAG_TEST_OUTPUT_FD"] = str(
+                target.fileno()
+            )
+            process = subprocess.Popen(
+                [
+                    str(self.binary),
+                    "serve",
+                    CANDIDATE,
+                    BOOT,
+                    "600000",
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                env=environment,
+                pass_fds=(target.fileno(),),
+            )
+            probe = b"host-to-target-bytes-must-remain-unread"
+            host.sendall(probe)
+            _, error = process.communicate(timeout=3)
+            self.assertEqual(process.returncode, 0, error)
+            host.settimeout(0.1)
+            output = b""
+            while True:
+                try:
+                    output += host.recv(8192)
+                except TimeoutError:
+                    break
+            _, records = self.parse_service_output(output)
+            self.assertEqual(len(records), 3)
+            self.assertEqual(target.recv(len(probe)), probe)
+        finally:
+            host.close()
+            target.close()
+
+    def test_rights_datagrams_are_closed_rejected_and_nonfatal(self):
+        read_descriptor, write_descriptor = os.pipe()
+        os.set_blocking(write_descriptor, False)
+        try:
+            block = b"x" * 4096
+            while True:
+                try:
+                    os.write(write_descriptor, block)
+                except BlockingIOError:
+                    break
+            suffix = "rights"
+            environment = self.service_environment(suffix, frames=1)
+            environment["ROG5_DIAG_TEST_OUTPUT_FD"] = str(
+                write_descriptor
+            )
+            process = subprocess.Popen(
+                [
+                    str(self.binary),
+                    "serve",
+                    CANDIDATE,
+                    BOOT,
+                    "600000",
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                env=environment,
+                pass_fds=(write_descriptor,),
+            )
+            self.emit_when_ready(environment, 20)
+            time.sleep(0.05)
+            baseline = len(list(Path(f"/proc/{process.pid}/fd").iterdir()))
+            rights = array.array("i", [read_descriptor])
+            message = b"stage_code=70\nfault=none\n"
+            address = "\0" + MODULE.FORMAT + "-" + suffix
+            with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sender:
+                for _ in range(64):
+                    sender.sendmsg(
+                        [message],
+                        [(socket.SOL_SOCKET, socket.SCM_RIGHTS, rights)],
+                        0,
+                        address,
+                    )
+            time.sleep(0.2)
+            current = len(list(Path(f"/proc/{process.pid}/fd").iterdir()))
+            self.assertLessEqual(current, baseline)
+            self.emit_when_ready(environment, 70)
+            self.assertIsNone(process.poll())
+            process.terminate()
+            _, error = process.communicate(timeout=2)
+            self.assertEqual(process.returncode, -15, error)
+        finally:
+            os.close(write_descriptor)
+            os.close(read_descriptor)
+
+    def test_blocked_output_cannot_block_local_stage_update(self):
+        read_descriptor, write_descriptor = os.pipe()
+        os.set_blocking(write_descriptor, False)
+        try:
+            block = b"x" * 4096
+            while True:
+                try:
+                    os.write(write_descriptor, block)
+                except BlockingIOError:
+                    break
+            suffix = "blocked"
+            environment = self.service_environment(
+                suffix, frames=1, start=1000, step=10
+            )
+            environment["ROG5_DIAG_TEST_OUTPUT_FD"] = str(
+                write_descriptor
+            )
+            process = subprocess.Popen(
+                [
+                    str(self.binary),
+                    "serve",
+                    CANDIDATE,
+                    BOOT,
+                    "600000",
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                env=environment,
+                pass_fds=(write_descriptor,),
+            )
+            started = time.monotonic()
+            self.emit_when_ready(environment, 70)
+            self.assertLess(time.monotonic() - started, 0.5)
+            self.assertIsNone(process.poll())
+            process.terminate()
+            _, error = process.communicate(timeout=2)
+            self.assertEqual(process.returncode, -15, error)
+        finally:
+            os.close(write_descriptor)
+            os.close(read_descriptor)
 
 
 class EarlyTargetDiagnosticStateTest(unittest.TestCase):
@@ -381,6 +681,23 @@ class EarlyTargetDiagnosticStateTest(unittest.TestCase):
         )
         self.assertEqual(parsed.stage, "watchdog-pretimeout")
         self.assertEqual(parsed.fault, "none")
+        parsed_late = MODULE.parse_payload(
+            MODULE.payload_for(
+                record(
+                    stage_code=210,
+                    boottime_ms=600001,
+                )
+            ),
+            expected_candidate=CANDIDATE,
+        )
+        self.assertEqual(parsed_late.boottime_ms, 600001)
+        with self.assertRaises(MODULE.DiagnosticError):
+            MODULE.parse_payload(
+                MODULE.payload_for(
+                    record(stage_code=140, boottime_ms=600001)
+                ),
+                expected_candidate=CANDIDATE,
+            )
         with self.assertRaises(MODULE.DiagnosticError):
             MODULE.parse_payload(
                 MODULE.payload_for(

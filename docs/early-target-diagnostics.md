@@ -34,9 +34,15 @@ It:
 - includes a strictly increasing sequence, monotonic timestamp, current and
   last-good stages, watchdog deadline, and dropped-update counter;
 - accepts local stage updates only through a nonblocking abstract Unix
-  datagram socket;
+  datagram socket and requires kernel-supplied root peer credentials;
 - performs no storage, network, mount, reboot, or gadget mutation; and
 - remains alive through `switch_root` without loading files or libraries.
+
+The abstract socket is bound in the initramfs before untrusted userspace can
+run, and this reporter instance is never restarted after `switch_root`. A bind
+failure therefore fails before `reporter-up` and leaves watchdog rollback
+armed. Each receive pass is bounded so rejected local traffic cannot starve
+the ACM heartbeat, and any received file descriptors are closed and rejected.
 
 The reporter and initramfs must treat the last received frame as a lower bound
 on progress. ACM and NCM share the UDC, PHY, role state, and USB cable, so ACM
@@ -156,6 +162,16 @@ No diagnostic bundle may be signed or booted until tests prove:
 7. Obtain independent code review and green local/GitHub CI.
 8. Create a new externally held candidate and signed bundle identity.
 9. Run all connected preflights, then at most one temporary boot.
+
+Steps 1 and 2 are implemented. The native reporter uses write-only,
+exclusive, raw ACM access; a credential-checked abstract datagram socket;
+nonblocking partial-frame writes; fixed-cadence heartbeats; immutable terminal
+state; and automatic watchdog pretimeout. The hardware-free suite exercises
+blocked ACM output, host-to-target bytes that remain unread, descriptor-bearing
+and oversized local updates, post-deadline watchdog heartbeats, deterministic
+clock behavior, and byte equality with the host oracle. Production binaries
+are also checked to contain no test-hook strings. Initramfs integration begins
+at step 3.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.

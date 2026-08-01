@@ -203,7 +203,7 @@ def parse_payload(
         minimum=60_000,
         maximum=900_000,
     )
-    if boottime > deadline:
+    if boottime > deadline and stage_code != 210:
         fail("diagnostic boottime exceeds watchdog deadline")
     dropped = canonical_decimal(
         values["dropped_updates"],
