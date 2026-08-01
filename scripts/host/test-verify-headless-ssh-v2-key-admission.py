@@ -255,6 +255,113 @@ class KeyAdmissionTest(unittest.TestCase):
         self.assertNotIn(self.public_key.split()[1], output)
         self.assertNotIn(os.fsencode(self.private_key), output)
 
+    def test_exact_early_target_diagnostic_chain_passes(self) -> None:
+        profile = ADMISSION.DIAGNOSTIC_ADMISSION_PROFILE
+        expected_artifacts = ADMISSION.artifact_map(profile)
+        self.candidate.update(
+            {
+                "candidate": profile.candidate_id,
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "target_id": profile.target_id,
+                "target_release": profile.target_release,
+                "artifacts": copy.deepcopy(expected_artifacts),
+            }
+        )
+        self.manifest.update(
+            {
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "kernel_size": str(
+                    expected_artifacts["Image"]["size"]
+                ),
+                "kernel_sha256": expected_artifacts["Image"][
+                    "sha256"
+                ],
+                "dtb_size": str(
+                    expected_artifacts["board.dtb"]["size"]
+                ),
+                "dtb_sha256": expected_artifacts["board.dtb"][
+                    "sha256"
+                ],
+                "initramfs_size": str(
+                    expected_artifacts["initramfs.cpio.gz"]["size"]
+                ),
+                "initramfs_sha256": expected_artifacts[
+                    "initramfs.cpio.gz"
+                ]["sha256"],
+                "target_id": profile.target_id,
+                "target_release": profile.target_release,
+            }
+        )
+        manifest_sha256 = self.write_records()
+        result = ADMISSION.verify(
+            self.private_key,
+            self.package_path,
+            self.candidate_path,
+            self.manifest_path,
+            manifest_sha256,
+            profile.name,
+        )
+        self.assertEqual(result["candidate"], profile.candidate_id)
+        self.assertEqual(result["bundle"], profile.bundle_id)
+        self.assertEqual(result["profile"], profile.bundle_profile)
+        self.assertEqual(
+            result["package_sha256"],
+            hashlib.sha256(self.package_path.read_bytes()).hexdigest(),
+        )
+        self.candidate["artifacts"]["initramfs.cpio.gz"] = copy.deepcopy(
+            ADMISSION.EXPECTED_ARTIFACTS["initramfs.cpio.gz"]
+        )
+        manifest_sha256 = self.write_records()
+        with self.assertRaises(ADMISSION.AdmissionError):
+            ADMISSION.verify(
+                self.private_key,
+                self.package_path,
+                self.candidate_path,
+                self.manifest_path,
+                manifest_sha256,
+                profile.name,
+            )
+
+    def test_admission_policy_cannot_be_supplied_or_mutated(self) -> None:
+        custom = ADMISSION.AdmissionProfile(
+            name="caller-policy",
+            candidate_id="caller-candidate",
+            bundle_id="caller-bundle",
+            bundle_profile="caller-profile",
+            package_profile=ADMISSION.PROFILE,
+            build_profile=ADMISSION.BUILD_PROFILE,
+            target_id="caller-target",
+            target_release=ADMISSION.TARGET_RELEASE,
+            expected_artifacts=(),
+        )
+        manifest_sha256 = hashlib.sha256(
+            self.manifest_path.read_bytes()
+        ).hexdigest()
+        with self.assertRaises(ADMISSION.AdmissionError):
+            ADMISSION.verify(
+                self.private_key,
+                self.package_path,
+                self.candidate_path,
+                self.manifest_path,
+                manifest_sha256,
+                custom,
+            )
+        original = ADMISSION.EXPECTED_ARTIFACTS["Image"]["sha256"]
+        try:
+            ADMISSION.EXPECTED_ARTIFACTS["Image"]["sha256"] = "f" * 64
+            deployment = ADMISSION.artifact_map(
+                ADMISSION.DEPLOYMENT_ADMISSION_PROFILE
+            )
+            diagnostic = ADMISSION.artifact_map(
+                ADMISSION.DIAGNOSTIC_ADMISSION_PROFILE
+            )
+            self.assertEqual(deployment["Image"]["sha256"], original)
+            self.assertEqual(diagnostic["Image"]["sha256"], original)
+        finally:
+            ADMISSION.EXPECTED_ARTIFACTS["Image"]["sha256"] = original
+
     def test_cli_emits_only_canonical_public_identity(self) -> None:
         manifest_sha256 = hashlib.sha256(
             self.manifest_path.read_bytes()

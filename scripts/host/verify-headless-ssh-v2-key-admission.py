@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 import argparse
+from dataclasses import dataclass
 import hashlib
 import importlib.util
 import json
@@ -13,6 +14,7 @@ from pathlib import Path
 import stat
 import subprocess
 import sys
+from types import MappingProxyType
 from typing import Any, NoReturn
 
 
@@ -75,6 +77,35 @@ EXPECTED_ARTIFACTS = {
         ),
     },
 }
+DIAGNOSTIC_EXPECTED_ARTIFACTS = {
+    "Image": {
+        "path": "artifacts/network-root-v1/Image-7.1.4-network-root",
+        "size": 40049152,
+        "sha256": (
+            "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
+        ),
+    },
+    "board.dtb": {
+        "path": (
+            "artifacts/network-root-v3/"
+            "sm8350-asus-rog-phone5-recovery.dtb"
+        ),
+        "size": 102870,
+        "sha256": (
+            "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
+        ),
+    },
+    "initramfs.cpio.gz": {
+        "path": (
+            "artifacts/early-target-diagnostic-v1/"
+            "rog5-early-target-diagnostic-initramfs.cpio.gz"
+        ),
+        "size": 6010870,
+        "sha256": (
+            "10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c"
+        ),
+    },
+}
 MANIFEST_KEYS = (
     "format",
     "bundle",
@@ -106,12 +137,97 @@ ROOT_FIELDS = (
 )
 
 
+@dataclass(frozen=True)
+class ArtifactPin:
+    name: str
+    path: str
+    size: int
+    sha256: str
+
+
+@dataclass(frozen=True)
+class AdmissionProfile:
+    name: str
+    candidate_id: str
+    bundle_id: str
+    bundle_profile: str
+    package_profile: str
+    build_profile: str
+    target_id: str
+    target_release: str
+    expected_artifacts: tuple[ArtifactPin, ...]
+
+
+def immutable_artifacts(
+    values: dict[str, dict[str, str | int]],
+) -> tuple[ArtifactPin, ...]:
+    return tuple(
+        ArtifactPin(
+            name=name,
+            path=str(values[name]["path"]),
+            size=int(values[name]["size"]),
+            sha256=str(values[name]["sha256"]),
+        )
+        for name in ("Image", "board.dtb", "initramfs.cpio.gz")
+    )
+
+
+def artifact_map(profile: AdmissionProfile) -> dict[str, dict[str, str | int]]:
+    return {
+        artifact.name: {
+            "path": artifact.path,
+            "size": artifact.size,
+            "sha256": artifact.sha256,
+        }
+        for artifact in profile.expected_artifacts
+    }
+
+
+DEPLOYMENT_ADMISSION_PROFILE = AdmissionProfile(
+    name="headless-ssh-r2",
+    candidate_id=CANDIDATE_ID,
+    bundle_id=BUNDLE_ID,
+    bundle_profile=PROFILE,
+    package_profile=PROFILE,
+    build_profile=BUILD_PROFILE,
+    target_id=TARGET_ID,
+    target_release=TARGET_RELEASE,
+    expected_artifacts=immutable_artifacts(EXPECTED_ARTIFACTS),
+)
+DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
+    name="early-target-diagnostic-v1",
+    candidate_id="headless-netroot-early-diag-v1",
+    bundle_id="headless-netroot-early-diag-v1",
+    bundle_profile="diagnostic-initramfs-v1",
+    package_profile=PROFILE,
+    build_profile=BUILD_PROFILE,
+    target_id="headless-netroot-early-diag",
+    target_release=TARGET_RELEASE,
+    expected_artifacts=immutable_artifacts(DIAGNOSTIC_EXPECTED_ARTIFACTS),
+)
+ADMISSION_PROFILES = MappingProxyType(
+    {
+        profile.name: profile
+        for profile in (
+            DEPLOYMENT_ADMISSION_PROFILE,
+            DIAGNOSTIC_ADMISSION_PROFILE,
+        )
+    }
+)
+
+
 class AdmissionError(RuntimeError):
     """A stable error that never includes private key material."""
 
 
 def fail(message: str) -> NoReturn:
     raise AdmissionError(message)
+
+
+def resolve_admission_profile(name: str) -> AdmissionProfile:
+    if not isinstance(name, str) or name not in ADMISSION_PROFILES:
+        fail("admission profile is not one fixed policy")
+    return ADMISSION_PROFILES[name]
 
 
 def load_module(name: str, path: Path):
@@ -321,7 +437,11 @@ def parse_package(path: Path) -> tuple[OrderedDict[str, str], bytes]:
     return values, payload
 
 
-def parse_candidate(path: Path) -> tuple[dict[str, Any], bytes]:
+def parse_candidate(
+    path: Path,
+    admission_profile: str = DEPLOYMENT_ADMISSION_PROFILE.name,
+) -> tuple[dict[str, Any], bytes]:
+    profile = resolve_admission_profile(admission_profile)
     payload = read_record(path, "candidate record", {0o400, 0o444})
     try:
         values = json.loads(
@@ -336,7 +456,10 @@ def parse_candidate(path: Path) -> tuple[dict[str, Any], bytes]:
         raise AdmissionError("candidate record is invalid") from error
     temporary = canonical_path(path, "candidate record")
     try:
-        validated = CANDIDATE.load_candidate_path(temporary, CANDIDATE_ID)
+        validated = CANDIDATE.load_candidate_path(
+            temporary,
+            profile.candidate_id,
+        )
     except CANDIDATE.CandidateError as error:
         raise AdmissionError("candidate record is invalid") from error
     if values != validated:
@@ -366,7 +489,9 @@ def verify(
     candidate_path: Path,
     manifest_path: Path,
     expected_manifest_sha256: str,
+    admission_profile: str = DEPLOYMENT_ADMISSION_PROFILE.name,
 ) -> OrderedDict[str, str]:
+    profile = resolve_admission_profile(admission_profile)
     public_key, fingerprint = derive_public_key(private_key)
     fixture_payload = b" ".join(
         FIXTURE_KEY_PATH.read_bytes().strip().split()[:2]
@@ -380,7 +505,10 @@ def verify(
         fail("tracked fixture key is not a deployment credential")
 
     package, package_payload = parse_package(package_path)
-    candidate, candidate_payload = parse_candidate(candidate_path)
+    candidate, candidate_payload = parse_candidate(
+        candidate_path,
+        profile.name,
+    )
     manifest, manifest_payload = parse_manifest(
         manifest_path,
         expected_manifest_sha256,
@@ -389,8 +517,8 @@ def verify(
     if (
         package["format"]
         != "rog5-headless-network-root-package-v3"
-        or package["profile"] != PROFILE
-        or package["build_profile"] != BUILD_PROFILE
+        or package["profile"] != profile.package_profile
+        or package["build_profile"] != profile.build_profile
         or package["authorized_key_fingerprint"] != fingerprint
     ):
         fail("private key and v3 root package do not match")
@@ -405,16 +533,16 @@ def verify(
     if any(name not in candidate for name in ROOT_FIELDS):
         fail("candidate is missing a v3 root identity")
     if (
-        candidate["candidate"] != CANDIDATE_ID
-        or candidate["bundle"] != BUNDLE_ID
+        candidate["candidate"] != profile.candidate_id
+        or candidate["bundle"] != profile.bundle_id
         or candidate["status"] != "offline"
         or candidate["authority"] != "none"
-        or candidate["profile"] != PROFILE
-        or candidate["target_id"] != TARGET_ID
-        or candidate["target_release"] != TARGET_RELEASE
+        or candidate["profile"] != profile.bundle_profile
+        or candidate["target_id"] != profile.target_id
+        or candidate["target_release"] != profile.target_release
         or candidate["rollback_timeout"] != "600"
         or candidate["target_timeout"] != "480"
-        or candidate["artifacts"] != EXPECTED_ARTIFACTS
+        or candidate["artifacts"] != artifact_map(profile)
     ):
         fail("candidate identity is not the exact deployment tuple")
     for name in ROOT_FIELDS:
@@ -423,20 +551,28 @@ def verify(
 
     expected_manifest = {
         "format": "rog5-recovery-bundle-v2",
-        "bundle": BUNDLE_ID,
-        "profile": PROFILE,
-        "kernel_size": str(EXPECTED_ARTIFACTS["Image"]["size"]),
-        "kernel_sha256": EXPECTED_ARTIFACTS["Image"]["sha256"],
-        "dtb_size": str(EXPECTED_ARTIFACTS["board.dtb"]["size"]),
-        "dtb_sha256": EXPECTED_ARTIFACTS["board.dtb"]["sha256"],
-        "initramfs_size": str(
-            EXPECTED_ARTIFACTS["initramfs.cpio.gz"]["size"]
+        "bundle": profile.bundle_id,
+        "profile": profile.bundle_profile,
+        "kernel_size": str(
+            artifact_map(profile)["Image"]["size"]
         ),
-        "initramfs_sha256": EXPECTED_ARTIFACTS[
+        "kernel_sha256": artifact_map(profile)["Image"][
+            "sha256"
+        ],
+        "dtb_size": str(
+            artifact_map(profile)["board.dtb"]["size"]
+        ),
+        "dtb_sha256": artifact_map(profile)["board.dtb"][
+            "sha256"
+        ],
+        "initramfs_size": str(
+            artifact_map(profile)["initramfs.cpio.gz"]["size"]
+        ),
+        "initramfs_sha256": artifact_map(profile)[
             "initramfs.cpio.gz"
         ]["sha256"],
-        "target_id": TARGET_ID,
-        "target_release": TARGET_RELEASE,
+        "target_id": profile.target_id,
+        "target_release": profile.target_release,
         "rollback_timeout": "600",
         "target_timeout": "480",
         **{name: package[name] for name in ROOT_FIELDS},
@@ -450,11 +586,11 @@ def verify(
     result: OrderedDict[str, str] = OrderedDict(
         (
             ("format", "rog5-headless-ssh-v2-key-admission-v1"),
-            ("candidate", CANDIDATE_ID),
-            ("bundle", BUNDLE_ID),
-            ("profile", PROFILE),
-            ("build_profile", BUILD_PROFILE),
-            ("target_id", TARGET_ID),
+            ("candidate", profile.candidate_id),
+            ("bundle", profile.bundle_id),
+            ("profile", profile.bundle_profile),
+            ("build_profile", profile.build_profile),
+            ("target_id", profile.target_id),
             ("authorized_key_fingerprint", fingerprint),
             ("public_key_sha256", hashlib.sha256(public_key).hexdigest()),
             (
@@ -482,6 +618,11 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--candidate", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--manifest-sha256", required=True)
+    parser.add_argument(
+        "--admission-profile",
+        choices=tuple(ADMISSION_PROFILES),
+        default=DEPLOYMENT_ADMISSION_PROFILE.name,
+    )
     return parser.parse_args(arguments)
 
 
@@ -494,6 +635,7 @@ def main(arguments: list[str] | None = None) -> int:
             values.candidate,
             values.manifest,
             values.manifest_sha256,
+            values.admission_profile,
         )
     except (
         AdmissionError,

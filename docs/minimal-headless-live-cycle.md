@@ -7,7 +7,8 @@ return to the configuration-unchanged Alpine fallback.
 Tracked status: **the non-fixture r2 chain completed recovery transfer and one
 COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
 the fallback return, and r2 is consumed**. A distinct diagnostic successor is
-required before another temporary target boot.
+now packaged and integrated into the controller hardware-free; production
+signing, host installation, and its sole temporary target boot remain pending.
 Tracked execution **HOLD**: this file never grants credential use or a phone
 boot. Those require explicit invocation-time authorization after all
 preflights pass.
@@ -22,6 +23,9 @@ its old profile. `key-preflight` performs only local key admission. `preflight`
 continues into fixed-host and connected checks only after admission. `run`
 boots the phone and later offers the dedicated SSH client key; it therefore
 requires fresh explicit authorization and every exact guard listed below.
+The `diagnostic-key-preflight`, `diagnostic-preflight`, and `diagnostic-run`
+actions select only `headless-netroot-early-diag-v1`; they cannot reuse r2 or
+promote diagnostic evidence as normal runtime acceptance.
 
 ## Why one controller is needed
 
@@ -58,6 +62,23 @@ complete preflight
   -> host cleanup proof
   -> durable intent resolution
 ```
+
+The diagnostic path replaces only the target host-key/runtime portion:
+
+```text
+private same-boot USB anchor
+  -> start receive-only collector and require flushed READY
+  -> fixed bundle transfer, NFS handoff, and one COMMIT_EXEC
+  -> bounded accepted or rejected diagnostic evidence
+  -> exact strict-SSH Alpine fallback
+  -> host cleanup proof
+  -> durable intent resolution as FALLBACK_RETURNED
+```
+
+Collector readiness is established before the bundle server and recovery
+control start. A missing readiness marker therefore fails before the
+non-retryable commit boundary. Diagnostic mode never pins a target SSH host
+key and never invokes the normal runtime-acceptance runner.
 
 The target watchdog remains armed. The controller does not disarm it, request
 a target reboot, flash, wipe, mount phone storage, use ADB, sign a bundle, or
@@ -334,6 +355,12 @@ with its exact `origin` peer, local admission is:
 scripts/host/run-minimal-headless-live-cycle.py key-preflight
 ```
 
+For the distinct diagnostic candidate, use the exact parallel action:
+
+```bash
+scripts/host/run-minimal-headless-live-cycle.py diagnostic-key-preflight
+```
+
 The action requires exactly:
 
 ```text
@@ -348,6 +375,9 @@ manifest. The accepted tuple also pins the corrected DTB and established
 Image/generic-initramfs identities. It exits before PolicyKit, host network
 inspection, fastboot discovery, boot, payload transfer, or SSH. Passing it
 does not grant live authority.
+The diagnostic action additionally pins the diagnostic reporter/initramfs,
+candidate, bundle profile, and target identities while retaining the same
+key-bound v3 Arch package checks.
 
 ## Historical phone-free artifact preflight
 
@@ -372,6 +402,12 @@ reviewed commit is pushed, and the fixed host components are installed:
 
 ```bash
 scripts/host/run-minimal-headless-live-cycle.py preflight
+```
+
+For the diagnostic successor, use:
+
+```bash
+scripts/host/run-minimal-headless-live-cycle.py diagnostic-preflight
 ```
 
 Preflight proves:
@@ -440,6 +476,11 @@ ALLOW_FALLBACK_SSH_ATIME_EFFECTS
 These guards are an invocation-time authorization boundary, not persistent
 permission. A later cycle requires fresh authorization and a fresh evidence
 directory.
+Use `run` only for the normal SSH acceptance profile and `diagnostic-run` only
+for the exact diagnostic successor. The latter still requires every guard
+above because it performs the same temporary boot, credential-bound fallback
+proof, and one non-retryable commit; it does not offer the SSH key to the
+diagnostic target.
 
 ## Private outputs
 
@@ -450,6 +491,7 @@ All lifecycle outputs are created exclusively as mode-`0600` files below
 - `target-known-hosts`
 - `recovery-control.log`
 - `minimal-headless-runtime.record`
+- `early-target-diagnostics.log` and `early-target-diagnostics.json`
 - `fallback-identity.record`
 - `fallback-preflight.log`
 - `intent-resolution.log`
@@ -510,10 +552,10 @@ not permission to retry a decided PREPARE request.
 
 ## Hardware-free coverage
 
-`test-verify-headless-ssh-v2-key-admission.py` covers fourteen admission
+`test-verify-headless-ssh-v2-key-admission.py` covers sixteen admission
 scenarios, `test-fallback-acm-control.py` covers forty-six fallback
 protocol tests, and `test-run-minimal-headless-live-cycle.py` covers
-twenty-six lifecycle test methods. Together they prove:
+thirty-four lifecycle test methods. Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;
@@ -532,6 +574,9 @@ twenty-six lifecycle test methods. Together they prove:
 - residual protected-zone rules, `/30` addresses, or NetworkManager ownership
   changes block NFS startup before COMMIT;
 - one and only one `prepare-commit` process is started;
+- diagnostic collector readiness precedes recovery control, a startup failure
+  prevents COMMIT, rejected evidence is retained, diagnostic mode never enters
+  target SSH acceptance, and its intent resolves only after exact fallback;
 - success resolves only after exact fallback;
 - fallback classification uses strict key-only SSH, one exact nonce-framed
   signed record, exact USB-NCM identity/location and route, bounded output,
