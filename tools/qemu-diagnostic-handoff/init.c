@@ -131,17 +131,31 @@ static void require_emit(const char *stage)
 static void read_boot_id(char *boot_id, size_t capacity)
 {
 	int descriptor;
-	ssize_t length;
+	size_t used = 0;
 
 	descriptor = open("/proc/sys/kernel/random/boot_id",
 			  O_RDONLY | O_CLOEXEC);
 	if (descriptor < 0)
 		stop("cannot open boot ID");
-	length = read(descriptor, boot_id, capacity - 1);
+	while (used < capacity - 1) {
+		ssize_t length = read(descriptor, boot_id + used,
+				      capacity - 1 - used);
+
+		if (length > 0) {
+			used += (size_t)length;
+			continue;
+		}
+		if (length == 0)
+			break;
+		if (errno != EINTR)
+			stop("cannot read boot ID");
+	}
 	(void)close(descriptor);
-	if (length != 37 || boot_id[36] != '\n')
+	if (used == 37 && boot_id[36] == '\n')
+		used--;
+	if (used != 36)
 		stop("invalid boot ID");
-	boot_id[36] = '\0';
+	boot_id[used] = '\0';
 }
 
 static unsigned long long watchdog_deadline(void)
