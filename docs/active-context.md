@@ -190,6 +190,13 @@ local full-system run enters the sealed Arch runtime under real AArch64
 The test SSH daemon is only an ordering stub, so real OpenSSH and all phone
 hardware remain outside this evidence. See the
 [systemd QEMU result](../test-results/2026-08-01-arm64-systemd-qemu-gate.md).
+The receive-only host collector now starts kernel-event capture before target
+enumeration, binds one diagnostic ACM interface to the recovery anchor's port,
+parses only validated frames through the shared oracle, and writes one bounded
+mode-`0600` JSON record outside Git. Its twenty-one hostile tests, deterministic
+subprocess lifecycle test, and real unprivileged journal-reader smoke pass;
+see the
+[collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
 GitHub rerun is pending. No diagnostic signing, candidate promotion,
 credential use, or phone action has occurred.
 
