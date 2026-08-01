@@ -11,6 +11,7 @@ fail() {
 kernel=$(realpath -e -- "$1") || fail 'cannot resolve ARM64 kernel Image'
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 harness_source=$repo/tools/qemu-diagnostic-handoff/init.c
+abort_trace_source=$repo/tools/qemu-diagnostic-handoff/abort-trace.c
 reporter_source=$repo/tools/early_target_diag/rog5-early-target-diag.c
 reporter_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361
 parser=$repo/scripts/host/early-target-diagnostics.py
@@ -26,7 +27,7 @@ for command in awk cat chmod cp cpio find grep gzip ln mkdir mktemp python3 \
 done
 [[ $(sha256sum "$reporter_source" | cut -d ' ' -f 1) == \
 	"$reporter_source_sha256" ]] || fail 'QEMU reporter source seal changed'
-for source in "$harness_source" "$reporter_source" "$parser" \
+for source in "$harness_source" "$abort_trace_source" "$reporter_source" "$parser" \
 	"$network_init" "$systemd_runtime" "$systemd_runtime_verifier"; do
 	[[ -f $source && ! -L $source ]] || fail "missing handoff source: $source"
 done
@@ -51,6 +52,9 @@ gzip -dc "$systemd_runtime" |
 	-fstack-protector-strong -Wall -Wextra -Werror \
 	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none -s \
 	"$harness_source" -o "$stage/qemu-diagnostic-handoff"
+"$compiler" -std=c11 -O1 -shared -fPIC -fno-omit-frame-pointer \
+	-Wall -Wextra -Werror -Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none \
+	"$abort_trace_source" -o "$systemd_root/usr/lib/rog5-abort-trace.so"
 cp "$stage/qemu-diagnostic-handoff" "$stage/init"
 mkdir -p "$systemd_root/usr/bin" "$systemd_root/etc/systemd/system" \
 	"$systemd_root/dev" "$systemd_root/proc" "$systemd_root/run" \
@@ -59,7 +63,8 @@ cp "$stage/qemu-diagnostic-handoff" \
 	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
 chmod 0755 "$stage/init" "$stage/qemu-diagnostic-handoff" \
 	"$stage/sbin/rog5-early-target-diag" \
-	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
+	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff" \
+	"$systemd_root/usr/lib/rog5-abort-trace.so"
 chmod 1777 "$systemd_root/tmp"
 for binary in "$stage/init" "$stage/sbin/rog5-early-target-diag"; do
 	readelf -h "$binary" | grep -q 'Machine:.*AArch64' ||
