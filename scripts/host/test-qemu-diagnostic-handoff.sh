@@ -12,6 +12,7 @@ kernel=$(realpath -e -- "$1") || fail 'cannot resolve ARM64 kernel Image'
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 harness_source=$repo/tools/qemu-diagnostic-handoff/init.c
 abort_trace_source=$repo/tools/qemu-diagnostic-handoff/abort-trace.c
+abort_trace_map=$repo/tools/qemu-diagnostic-handoff/abort-trace.map
 reporter_source=$repo/tools/early_target_diag/rog5-early-target-diag.c
 reporter_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361
 parser=$repo/scripts/host/early-target-diagnostics.py
@@ -27,7 +28,8 @@ for command in awk cat chmod cp cpio find grep gzip ln mkdir mktemp python3 \
 done
 [[ $(sha256sum "$reporter_source" | cut -d ' ' -f 1) == \
 	"$reporter_source_sha256" ]] || fail 'QEMU reporter source seal changed'
-for source in "$harness_source" "$abort_trace_source" "$reporter_source" "$parser" \
+for source in "$harness_source" "$abort_trace_source" "$abort_trace_map" \
+	"$reporter_source" "$parser" \
 	"$network_init" "$systemd_runtime" "$systemd_runtime_verifier"; do
 	[[ -f $source && ! -L $source ]] || fail "missing handoff source: $source"
 done
@@ -54,6 +56,7 @@ gzip -dc "$systemd_runtime" |
 	"$harness_source" -o "$stage/qemu-diagnostic-handoff"
 "$compiler" -std=c11 -O1 -shared -fPIC -fno-omit-frame-pointer \
 	-Wall -Wextra -Werror -Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none \
+	-Wl,"--version-script=$abort_trace_map" \
 	"$abort_trace_source" -o "$systemd_root/usr/lib/rog5-abort-trace.so"
 cp "$stage/qemu-diagnostic-handoff" "$stage/init"
 mkdir -p "$systemd_root/usr/bin" "$systemd_root/etc/systemd/system" \

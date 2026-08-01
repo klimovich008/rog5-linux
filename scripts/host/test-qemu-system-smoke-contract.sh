@@ -14,13 +14,15 @@ cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
 abort_trace_source=$repo/tools/qemu-diagnostic-handoff/abort-trace.c
+abort_trace_map=$repo/tools/qemu-diagnostic-handoff/abort-trace.map
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 systemd_runtime_builder=$repo/scripts/host/build-qemu-systemd-runtime.sh
 systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
-	"$handoff_source" "$abort_trace_source" "$handoff_runner" "$systemd_runtime" \
+	"$handoff_source" "$abort_trace_source" "$abort_trace_map" \
+	"$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
@@ -86,7 +88,10 @@ grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
 grep -Fq 'ROG5_QEMU_ABORT_BACKTRACE' "$abort_trace_source"
+grep -Fq 'ROG5_QEMU_ABORT_TRACE_LOADED' "$abort_trace_source"
 grep -Fq 'backtrace_symbols_fd' "$abort_trace_source"
+grep -Fq 'GLIBC_2.17' "$abort_trace_map"
+grep -Fq -- '--version-script=$abort_trace_map' "$handoff_runner"
 grep -Fq 'rog5-abort-trace.so' "$handoff_runner"
 grep -Fq 'setenv("LD_PRELOAD", "/usr/lib/rog5-abort-trace.so", 1)' \
 	"$handoff_source"
