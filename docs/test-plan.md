@@ -307,6 +307,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   personal-credential, PolicyKit, firewall, or NFS action.
   See the
   [one-shot runbook](minimal-headless-live-cycle.md).
+- The next hardware-free gate is the
+  [early-target diagnostic successor](early-target-diagnostics.md). Its native
+  one-way reporter, host netstring parser, diagnostic-only initramfs branch,
+  volatile systemd handoff units, and QEMU pivot test must pass the complete
+  hostile matrix before a new signed candidate exists. r2 is consumed and is
+  not a diagnostic fixture.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

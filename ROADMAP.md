@@ -266,6 +266,11 @@ duplicate builds can be removed safely.
 - [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
 - [ ] Prove postmortem retention or select the tested UART fallback.
 - [ ] Retire legacy ACM execution helpers from active operation.
+- [ ] Build the
+  [early-target diagnostic successor](docs/early-target-diagnostics.md) with a
+  one-way framed stage stream, bounded failure dwell, switch-root continuity,
+  hostile parser/emitter tests, and a distinct consumed-once identity before
+  another phone cycle.
 
 Exit: failed boots are diagnosable and recover automatically.
 
