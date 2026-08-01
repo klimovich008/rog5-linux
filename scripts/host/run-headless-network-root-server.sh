@@ -83,30 +83,32 @@ installed_root=/usr/libexec/rog5-recovery-host
 installed_server=$installed_root/serve-network-root.sh
 installed_verifier=$installed_root/headless-network-root.py
 installed_root_tool=$installed_root/persistent-root-tool.py
+installed_client=$installed_root/rog5-recovery-host-client.py
 source_server=$repo/scripts/host/serve-network-root.sh
 source_verifier=$repo/scripts/host/headless-network-root.py
 source_root_tool=$repo/scripts/device/persistent-root-tool.py
+source_client=$repo/scripts/host/rog5-recovery-host-client.py
 serve_timeout=${ROG5_NFS_TIMEOUT:-720}
 
-for command in awk pkexec sha256sum stat; do
+for command in awk python3 sha256sum stat; do
 	command -v "$command" >/dev/null ||
 		fail "missing network-root launcher command: $command"
 done
 if [[ $action == cancel ]]; then
-	[[ -f $installed_server && ! -L $installed_server &&
-		$(stat -Lc '%u:%g:%a:%F' -- "$installed_server") == \
+	[[ -f $installed_client && ! -L $installed_client &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$installed_client") == \
 		'0:0:555:regular file' ]] ||
-		fail 'fixed network-root host server is not safely installed'
-	[[ $(sha256sum "$installed_server" | awk '{ print $1 }') == \
-		$(sha256sum "$source_server" | awk '{ print $1 }') ]] ||
-		fail 'installed network-root host server is stale; reinstall it first'
-	exec pkexec "$installed_server" cancel "$handoff_token"
+		fail 'fixed host-control client is not safely installed'
+	[[ $(sha256sum "$installed_client" | awk '{ print $1 }') == \
+		$(sha256sum "$source_client" | awk '{ print $1 }') ]] ||
+		fail 'installed host-control client is stale; reinstall it first'
+	exec python3 -B "$installed_client" network-cancel "$handoff_token"
 fi
 [[ $serve_timeout =~ ^[0-9]+$ &&
 	$serve_timeout -ge 600 && $serve_timeout -le 900 ]] ||
 	fail 'ROG5_NFS_TIMEOUT must be between 600 and 900 seconds'
 for installed_input in "$installed_server" "$installed_verifier" \
-	"$installed_root_tool"; do
+	"$installed_root_tool" "$installed_client"; do
 	[[ -f $installed_input && ! -L $installed_input &&
 		$(stat -Lc '%u:%g:%a:%F' -- "$installed_input") == \
 		'0:0:555:regular file' ]] ||
@@ -115,7 +117,8 @@ done
 for pair in \
 	"$installed_server:$source_server" \
 	"$installed_verifier:$source_verifier" \
-	"$installed_root_tool:$source_root_tool"; do
+	"$installed_root_tool:$source_root_tool" \
+	"$installed_client:$source_client"; do
 	installed_input=${pair%%:*}
 	source_input=${pair#*:}
 	[[ $(sha256sum "$installed_input" | awk '{ print $1 }') == \
@@ -125,14 +128,14 @@ done
 
 if [[ $action == preflight ]]; then
 	if [[ -n $package_sha256 ]]; then
-		exec pkexec "$installed_server" preflight \
-			"$root" "$package_sha256"
+		exec python3 -B "$installed_client" \
+			network-preflight-v3 "$package_sha256"
 	fi
-	exec pkexec "$installed_server" preflight "$root"
+	exec python3 -B "$installed_client" network-preflight-v1
 fi
 if [[ -n $package_sha256 ]]; then
-	exec pkexec "$installed_server" serve \
-		"$root" "$package_sha256" "$handoff_token" "$serve_timeout"
+	exec python3 -B "$installed_client" network-serve-v3 \
+		"$package_sha256" "$handoff_token" "$serve_timeout"
 fi
-exec pkexec "$installed_server" serve \
-	"$root" "$handoff_token" "$serve_timeout"
+exec python3 -B "$installed_client" network-serve-v1 \
+	"$handoff_token" "$serve_timeout"

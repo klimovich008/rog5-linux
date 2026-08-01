@@ -232,6 +232,19 @@ normal manifests. The prior reviewed checkpoint is published in draft PR
 [#1](https://github.com/klimovich008/rog5-linux/pull/1), with both jobs green in
 [GitHub Actions run `30700630487`](https://github.com/klimovich008/rog5-linux/actions/runs/30700630487).
 
+The first production diagnostic lifecycle temporarily booted and anchored the
+exact stable recovery, then rejected before bundle transfer because the
+graphical PolicyKit request for the fixed bundle controller exceeded the
+server-ready window. No recovery control or `COMMIT_EXEC` occurred and the
+diagnostic candidate remains unexecuted. The independent 180-second recovery
+watchdog returned the same USB port to Alpine; strict SSH accepted a fresh
+signed fallback record at 42.5 C and no project process or listener remained.
+The [live result](../test-results/2026-08-01-early-target-diagnostic-host-auth-timeout.md)
+records the private evidence hashes. The current host work replaces runtime
+PolicyKit with one operator-owned mode-`0600` systemd socket whose root broker
+accepts only the fixed bundle/NFS protocol and verifies the connecting UID plus
+installed controller hashes before dispatch.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

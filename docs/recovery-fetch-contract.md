@@ -26,9 +26,10 @@ The host-side evidence is
 The production build has no endpoint, path, identity, timeout, crash, write,
 or seccomp override. The responder invokes it under the rollback watchdog,
 but no initramfs contains either binary yet. The fixed one-shot host server,
-root-owned controller, PolicyKit launcher, and runtime-only firewall
-lifecycle now pass offline. They have not been installed or used against a
-live interface. QEMU user mode cannot safely install a
+root-owned controller, prompt-free operator-owned systemd socket, and
+runtime-only firewall lifecycle pass offline. The earlier PolicyKit runtime
+path reached a live signed recovery but timed out before bundle transfer;
+automatic rollback and exact fallback passed. QEMU user mode cannot safely install a
 guest-architecture seccomp filter over the emulator's host syscall stream;
 the native and
 network-disabled root-container suites own the real seccomp, credential-drop,
@@ -76,8 +77,9 @@ host_bundle_server.py BUNDLE MANIFEST_SHA256
 
 It has no path, address, port, URL, protocol, timeout, signing-key, or
 environment override. It refuses UID 0 and opens only
-`/var/lib/rog5-recovery-bundles`. The root must be owned by the PolicyKit
-caller with mode `0700` and contain exactly the requested bundle directory.
+`/var/lib/rog5-recovery-bundles`. The root must be owned by the configured
+socket operator with mode `0700` and contain exactly the requested bundle
+directory.
 That directory must be mode `0500`; its exact five regular, single-link files
 must be caller-owned mode `0400`. Symlinks, hard-link aliases, extras, unsafe
 ownership/modes, and size/hash/manifest mismatches fail before `bind(2)`.
@@ -104,12 +106,18 @@ outlive the attended window. It does not support HTTP or a second request.
 ## Root controller and firewall lifecycle
 
 `scripts/host/install-recovery-host-controller.sh` is a one-time PolicyKit
-installer. It atomically installs the fixed root-owned code and creates the
-caller-owned mode-`0700` bundle root. Normal operation uses
-`scripts/host/run-recovery-bundle-server.sh`, which verifies that installed
-code is root-owned, non-writable, and byte-identical to the reviewed
-repository sources before invoking the fixed controller through `pkexec`.
-This prevents a privileged invocation from importing code directly from an
+installer. It atomically installs the fixed root-owned code, creates the
+operator-owned mode-`0700` bundle root, and enables
+`/run/rog5-recovery-host.sock` as an operator-owned mode-`0600` systemd
+socket. Normal operation uses `scripts/host/run-recovery-bundle-server.sh`,
+which verifies that installed code is root-owned, non-writable, and
+byte-identical to the reviewed repository sources before sending one bounded
+request through that socket. The root broker validates `SO_PEERCRED`, a
+root-owned operator/configuration record, and exact installed-controller
+hashes before dispatch. It accepts no shell, arbitrary command, root path,
+caller environment, repository executable, or installer operation. This
+prevents a timed phone boot from depending on graphical authentication and
+prevents a privileged invocation from importing code directly from an
 editable Git checkout.
 
 The controller:
@@ -125,8 +133,8 @@ The controller:
    `169.254.77.1/32` TCP port 8080;
 5. refuses a conflicting host address or unexpected interface IPv4 state,
    then adds only `169.254.77.1/30`;
-6. starts the server as the PolicyKit caller with cleared supplementary
-   groups, empty bounding/inheritable/ambient capability sets,
+6. starts the server as the socket-authenticated operator with cleared
+   supplementary groups, empty bounding/inheritable/ambient capability sets,
    `no_new_privs`, a parent-death signal, and a reset environment;
 7. proves exactly one listener at the fixed address and PID;
 8. arms a 75-second hard server watchdog that verifies its actual parent

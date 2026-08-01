@@ -866,15 +866,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 ## Current blockers
 
 1. The external `headless-netroot-early-diag-v1` successor is production
-   signed and twin-built. Its exact diagnostic wrapper, public trust root,
-   manifest, verifier, and configuration tuple passes the artifact gate while
-   every historical r2 pin remains unchanged. Independent review and local CI
-   pass; publication, GitHub CI, and host-side installation still precede
-   phone contact.
-2. After installation and the connected preflight gate pass, use the
-   same standing authorization for the successor's sole temporary boot,
-   collect its receive-only early-target diagnostic stream, and prove normal
-   fallback and cleanup. Consume the successor regardless of result.
+   signed, twin-built, and installed. Its first stable-recovery boot rejected
+   before bundle transfer because graphical PolicyKit exceeded the host-ready
+   window. No `COMMIT_EXEC` occurred, the candidate remains unexecuted, and
+   the independent 180-second watchdog plus strict signed fallback proof
+   passed on the same USB port.
+2. The host-side remediation replaces runtime PolicyKit with an
+   operator-owned mode-`0600` systemd socket and fixed root broker. Its
+   peer-credential, controller-hash, request-framing, dispatch, cancellation,
+   and hostile-input tests pass with complete repository CI. Publish and
+   install that boundary, rerun the credential-free connected preflight, then
+   admit one new lifecycle for the still-unexecuted diagnostic candidate.
 3. Use that evidence to repair or promote a distinct normal minimal-headless
    candidate; then determine whether ramoops survives the target/fallback path
    and collect the exact 88-field core record over strict SSH.

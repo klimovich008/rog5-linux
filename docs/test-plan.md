@@ -513,6 +513,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   remains inert unless `ALLOW_TEMPORARY_BOOT=1` is explicit. Recovery ACM
   detection requires exact normalized product `ROG5_recovery`; the fallback
   gadget sharing `1d6b:0104` is a hard failure.
+- `test-recovery-host-socket.py` covers the prompt-free privileged host
+  boundary. It requires one mode-`0600` operator-owned Unix socket, exact peer
+  UID and installed-controller hash checks, a 512-byte one-record protocol,
+  fixed bundle and historical/deployment NFS dispatch, one serve plus one
+  independent cancellation connection, streamed output with an exact final
+  status, and rejection of hostile identities, hashes, tokens, timeouts,
+  commands, framing, and changed executables. The launchers must contain no
+  runtime `pkexec`; PolicyKit remains only for the explicit host installer.
 - `test-recovery-fetch-native.py`, `test-recovery-fetch-root.sh`, and
   `test-recovery-fetch-aarch64.sh` exercise the fixed binary NCM acquisition
   helper as an ordinary host process, as root in a network-disabled

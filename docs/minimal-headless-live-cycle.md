@@ -106,16 +106,33 @@ explicit `ALLOW_FALLBACK_SSH_ATIME_EFFECTS=1` guard.
 
 ## Fixed host privilege boundary
 
-The recovery bundle server already runs through a fixed root-owned controller.
-The NFS path now follows the same model:
+The recovery bundle server and NFS path use fixed root-owned controllers. A
+live rejection proved that invoking those controllers through graphical
+PolicyKit after temporary recovery boot is too late: authentication can exceed
+the recovery server-ready budget even though every target-side guard works.
+The corrected runtime boundary therefore removes PolicyKit from the timed
+phone path:
 
 - `install-recovery-host-controller.sh` installs root-owned mode-`0555`
-  copies of `serve-network-root.sh`, `headless-network-root.py`, and
-  `persistent-root-tool.py`, plus the fixed
+  copies of a socket broker and client, `serve-network-root.sh`,
+  `headless-network-root.py`, and `persistent-root-tool.py`, plus the fixed
   `install-headless-ssh-deployment-export.py`, below
   `/usr/libexec/rog5-recovery-host`;
+- the installer binds `/run/rog5-recovery-host.sock` to the exact authenticated
+  operator as mode `0600`; systemd accepts at most one long-running operation
+  plus one independent cancellation connection;
+- the root broker obtains the connecting process credentials from the Unix
+  socket, requires the configured operator UID, verifies a root-owned
+  mode-`0444` configuration and exact SHA-256 identities for both privileged
+  controllers, accepts one canonical bounded request, and forwards only the
+  fixed child output and status;
+- the protocol exposes only bundle serve, fixed historical/deployment NFS
+  preflight and serve, and token-bound NFS cancellation. It exposes no shell,
+  arbitrary command, arbitrary root path, caller environment, installer, or
+  repository executable;
 - `run-headless-network-root-server.sh preflight` requires those installed
-  bytes to match the reviewed repository sources;
+  bytes to match the reviewed repository sources, then uses the socket; the
+  recovery-bundle launcher does the same;
 - `serve` publishes one root-owned mode-`0400` PID/start-time/caller/token
   identity before lengthy verification, and `cancel` accepts only the same
   PolicyKit caller and fresh handoff token before signaling that exact root
@@ -127,8 +144,9 @@ The NFS path now follows the same model:
   or the exact
   `/home/rog5-linux/exports/headless-ssh-network-root-v3/root` with its
   admitted package hash;
-- it requires a non-root `PKEXEC_UID`, a fresh 256-bit handoff token, and a
-  bounded 600-900 second window;
+- the broker supplies the socket-authenticated non-root UID as `PKEXEC_UID` to
+  the unchanged controllers; NFS still requires a fresh 256-bit handoff token
+  and a bounded 600-900 second window;
 - it revalidates the fixed deployment-store ancestry immediately before the
   bind mount, then verifies the already bound read-only tree before NFS can
   start; and
@@ -144,7 +162,8 @@ filesystem while the 46 MiB signed recovery bundle remains in the caller-owned
 `/var/lib/rog5-recovery-bundles`.
 
 After this change is reviewed, committed, and pushed, the installed copies
-will be stale by design. Updating them is a separate privileged host mutation:
+will be stale by design. Updating them and enabling the operator-owned socket
+is one separate privileged host mutation:
 
 ```bash
 pkexec scripts/host/install-recovery-host-controller.sh
@@ -161,7 +180,8 @@ existing-destination safety checks pass, and restores read-only mode through
 its exit trap on success, failure, or a handled signal. Further termination
 signals are deferred by the parent while that trap completes cleanup and
 restoration; they are not inherited as ignored signals by the controller
-child. Success is printed only after the original state is proved restored;
+child. Success is printed only after the original state is proved restored and
+the fixed systemd socket is active with exact ownership and mode;
 if restoration cannot be proved, installation fails instead. A host whose
 state was already `disabled` is left disabled. Do not wrap the installer in a
 separate manual `steamos-readonly disable` operation.
