@@ -561,7 +561,8 @@ static bool parse_manifest(char *manifest, const char *bundle,
 	if (rollback == UINT64_MAX || target == UINT64_MAX ||
 	    target > rollback - 30)
 		return false;
-	if (strcmp(profile, "network-root-v1") == 0) {
+	if (strcmp(profile, "network-root-v1") == 0 ||
+	    strcmp(profile, "diagnostic-initramfs-v1") == 0) {
 		if (!valid_hash(command_manifest_sha256) ||
 		    strcmp(root_generation, "arch-a") != 0 ||
 		    !valid_hash(root_tree_sha256) ||
@@ -570,16 +571,13 @@ static bool parse_manifest(char *manifest, const char *bundle,
 			    UINT64_MAX ||
 		    strcmp(root_subtree, "/") != 0)
 			return false;
-	} else if (strcmp(profile, "diagnostic-initramfs-v1") == 0 ||
-		   strcmp(profile, "persistent-root-ro-v1") == 0) {
+	} else if (strcmp(profile, "persistent-root-ro-v1") == 0) {
 		if (strcmp(command_manifest_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_generation, "none") != 0 ||
 		    strcmp(root_tree_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_seal_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_tree_entries, "0") != 0 ||
-		    strcmp(root_subtree, "none") != 0 ||
-		    (strcmp(profile, "persistent-root-ro-v1") == 0 &&
-		     rollback < 300))
+		    strcmp(root_subtree, "none") != 0 || rollback < 300)
 			return false;
 	} else {
 		return false;

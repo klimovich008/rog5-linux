@@ -51,6 +51,7 @@ expected_bundle=
 expected_bundle_profile=network-root-v1
 consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
 consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
+consumed_diagnostic_recovery=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
 requires_qualified_cpio=0
 expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
 expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
@@ -181,6 +182,11 @@ case $profile in
 esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
+# expected_image is the caller-supplied RECOVERY_SHA256 and is never
+# reassigned by profile selection.
+if [[ $expected_image == "$consumed_diagnostic_recovery" ]]; then
+	fail 'refusing the consumed diagnostic recovery image'
+fi
 
 if [[ $action == policy-preflight ]]; then
 	printf '%s\n' \

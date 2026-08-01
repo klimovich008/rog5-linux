@@ -1,3 +1,2 @@
 name	status	basis
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	allow	twice-live-accepted RAM-only staging and rollback; never flash
-build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img	allow	temporarily admitted for the authorized headless-netroot-early-diag-v1 cycle after exact connected preflight; remove after candidate resolution; never flash
