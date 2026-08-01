@@ -87,6 +87,8 @@ done
 grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
+grep -Fq 'detach_controlling_terminal();' "$handoff_source"
+grep -Fq 'ioctl(descriptor, TIOCNOTTY)' "$handoff_source"
 grep -Fq 'ROG5_QEMU_ABORT_BACKTRACE' "$abort_trace_source"
 grep -Fq 'ROG5_QEMU_ABORT_TRACE_LOADED' "$abort_trace_source"
 grep -Fq 'ROG5_QEMU_ASSERT kind=' "$abort_trace_source"
