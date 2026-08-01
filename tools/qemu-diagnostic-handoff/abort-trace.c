@@ -6,6 +6,21 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+__attribute__((constructor)) static void announce_load(void)
+{
+	static const char marker[] = "ROG5_QEMU_ABORT_TRACE_LOADED\n";
+	int descriptor;
+	ssize_t written;
+
+	descriptor = open("/dev/console", O_WRONLY | O_CLOEXEC | O_NOCTTY);
+	if (descriptor < 0)
+		return;
+	written = write(descriptor, marker, sizeof(marker) - 1);
+	(void)close(descriptor);
+	if (written != (ssize_t)(sizeof(marker) - 1))
+		_exit(123);
+}
+
 __attribute__((noreturn)) void abort(void)
 {
 	static int entered;
