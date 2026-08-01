@@ -73,6 +73,18 @@ static void make_file(const char *path)
 		stop("cannot close bind target");
 }
 
+static void write_control(const char *path, const char *value)
+{
+	int descriptor = open(path, O_WRONLY | O_CLOEXEC);
+	size_t length = strlen(value);
+
+	if (descriptor < 0)
+		stop("cannot open kernel diagnostic control");
+	if (write(descriptor, value, length) != (ssize_t)length ||
+	    close(descriptor) < 0)
+		stop("cannot enable kernel diagnostic control");
+}
+
 static void bind_file(const char *source, const char *target)
 {
 	make_file(target);
@@ -275,6 +287,8 @@ __attribute__((noreturn)) static void initial_init(void)
 		stop("cannot mount devtmpfs");
 	if (mount("proc", "/proc", "proc", 0, NULL) < 0)
 		stop("cannot mount proc");
+	write_control("/proc/sys/debug/exception-trace", "1\n");
+	write_control("/proc/sys/kernel/print-fatal-signals", "1\n");
 	if (mount("sysfs", "/sys", "sysfs", 0, NULL) < 0)
 		stop("cannot mount sysfs");
 	make_directory("/sys/fs");

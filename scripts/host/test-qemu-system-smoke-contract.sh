@@ -84,6 +84,10 @@ done
 grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
+grep -Fq 'write_control("/proc/sys/debug/exception-trace", "1\\n")' \
+	"$handoff_source"
+grep -Fq 'write_control("/proc/sys/kernel/print-fatal-signals", "1\\n")' \
+	"$handoff_source"
 grep -Fq '#define PUBLICATION_SETTLE_MS 500' "$handoff_source"
 [[ $(grep -Fc 'sleep_milliseconds(PUBLICATION_SETTLE_MS);' \
 	"$handoff_source") == 2 ]] ||
