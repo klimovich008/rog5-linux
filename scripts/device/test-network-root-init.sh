@@ -19,8 +19,12 @@ for text in \
 	'usage: build-network-root-initramfs.sh BASE OUTPUT' \
 	'build-persistent-root-verifier-static.sh' \
 	'NETWORK_ROOT_VERIFIER' \
+	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
+	'reviewed_reporter_size=67288' \
+	'reviewed_reporter_hash=f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
+	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
 	'accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac'; do
 	grep -Fq "$text" "$initramfs_builder" || {
@@ -34,6 +38,13 @@ if grep -Fq 'STATIC_VERIFIER' "$initramfs_builder"; then
 fi
 grep -Fq 'cmp "$root_verifier" "$trusted/persistent-root-verify"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
+for text in \
+	'normal network-root initramfs carries diagnostic reporter' \
+	'diagnostic initramfs lacks early-target reporter' \
+	'cmp "$reporter" "$reviewed_reporter"'; do
+	grep -Fq "$text" \
+		"$repo/scripts/device/verify-network-root-initramfs.sh"
+done
 for text in \
 	'aarch64-linux-musl-gcc' \
 	'-static -std=c11' \
@@ -69,6 +80,15 @@ for text in \
 	'verify_network_root_identity || return 1' \
 	'format=rog5-network-root-identity-v1' \
 	'publish_network_root_identity' \
+	'diagnostic_candidate=headless-netroot-early-diag-v1' \
+	'ROG5 diagnostic network root' \
+	'Diagnostic NFS root over NCM and ACM' \
+	'functions/acm.usb0' \
+	'rog5-early-target-new-init.service' \
+	'rog5-early-target-sshd.service' \
+	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
+	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
+	'cp -p "$diagnostic_binary"' \
 	'mount -t nfs4' \
 	'vers=4.2,proto=tcp,port=2049,ro,nolock' \
 	'mount -t tmpfs -o nodev,nosuid' \
@@ -108,6 +128,9 @@ storage_line=$(grep -n 'physical block device appeared with UFS-disabled DTB' \
 	"$init" | tail -n1 | cut -d: -f1)
 watchdog_line=$(grep -n '^[[:space:]]*if ! arm_watchdog; then$' "$init" |
 	head -n1 | cut -d: -f1)
+diagnostic_start_line=$(grep -n \
+	'^[[:space:]]*if ! start_diagnostics; then$' "$init" |
+	head -n1 | cut -d: -f1)
 usb_line=$(grep -n '^[[:space:]]*configure_usb$' "$init" |
 	head -n1 | cut -d: -f1)
 nfs_line=$(grep -n '^[[:space:]]*mount_network_root$' "$init" |
@@ -119,7 +142,8 @@ switch_line=$(grep -n 'exec switch_root "\$handoff_newroot" /sbin/init' "$init" 
 
 [ "$mode_line" -lt "$storage_line" ]
 [ "$storage_line" -lt "$watchdog_line" ]
-[ "$watchdog_line" -lt "$usb_line" ]
+[ "$watchdog_line" -lt "$diagnostic_start_line" ]
+[ "$diagnostic_start_line" -lt "$usb_line" ]
 [ "$usb_line" -lt "$nfs_line" ]
 [ "$nfs_line" -lt "$exitrd_line" ]
 [ "$exitrd_line" -lt "$switch_line" ]
@@ -144,6 +168,36 @@ overlay_line=$(grep -n \
 	head -n1 | cut -d: -f1)
 [ "$readonly_check_line" -lt "$identity_line" ]
 [ "$identity_line" -lt "$overlay_line" ]
+
+for stage in 10 20 30 40 50 60 70 80 90 100 110 120; do
+	[ "$(grep -Ec "diagnostic_emit[[:space:]]+$stage([[:space:];]|$)" \
+		"$init")" -eq 1 ] || {
+		echo "FAIL diagnostic stage $stage is absent or duplicated" >&2
+		exit 1
+	}
+done
+for fault in \
+	gadget-config-failed \
+	udc-bind-failed \
+	ncm-interface-failed \
+	address-failed \
+	carrier-timeout \
+	nfs-mount-failed \
+	seal-verify-failed \
+	overlay-failed \
+	diagnostic-units-failed \
+	identity-publish-failed \
+	storage-before-switch \
+	exitrd-failed \
+	handoff-failed \
+	switch-root-returned; do
+	grep -Fq "$fault" "$init" || {
+		echo "FAIL diagnostic fault is absent: $fault" >&2
+		exit 1
+	}
+done
+[ "$(grep -Ec 'diagnostic_emit[[:space:]]+200([[:space:];]|$)' \
+	"$init")" -eq 1 ]
 
 [ "$(grep -Fc 'rog5.netroot=1' "$init")" -eq 1 ]
 grep -Fq '[ "$physical_count" -eq 0 ]' "$init"
@@ -187,6 +241,116 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 mkdir "$work/run"
+
+diagnostic_functions=$work/diagnostic-functions.sh
+awk '
+	/^diagnostic_emit\(\) \{/ { copy=1 }
+	/^physical_topology_count\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$diagnostic_functions"
+(
+# shellcheck disable=SC1090
+. "$diagnostic_functions"
+diagnostic_log=$work/diagnostic-rollback
+diagnostic_binary=$work/fake-diagnostic-reporter
+: >"$diagnostic_binary"
+chmod 0755 "$diagnostic_binary"
+diagnostic_mode=1
+deadline_boottime=
+if start_diagnostics; then
+	echo 'FAIL reporter started without a watchdog deadline' >&2
+	exit 1
+fi
+deadline_boottime=not-a-number
+if start_diagnostics; then
+	echo 'FAIL reporter started with a nonnumeric watchdog deadline' >&2
+	exit 1
+fi
+diagnostic_emit() {
+	printf 'emit %s %s\n' "$1" "${2:-none}" >>"$diagnostic_log"
+}
+sleep() {
+	printf 'sleep %s\n' "$1" >>"$diagnostic_log"
+}
+force_rollback() {
+	printf 'rollback\n' >>"$diagnostic_log"
+	return 77
+}
+diagnostic_mode=1
+: >"$diagnostic_log"
+if diagnostic_rollback seal-verify-failed; then
+	echo 'FAIL diagnostic rollback unexpectedly returned success' >&2
+	exit 1
+else
+	diagnostic_status=$?
+fi
+[ "$diagnostic_status" -eq 77 ]
+printf 'emit 200 seal-verify-failed\nsleep 5\nrollback\n' \
+	>"$work/expected-diagnostic-rollback"
+cmp "$diagnostic_log" "$work/expected-diagnostic-rollback"
+diagnostic_mode=0
+: >"$diagnostic_log"
+if diagnostic_rollback ignored-in-normal-mode; then
+	exit 1
+else
+	diagnostic_status=$?
+fi
+[ "$diagnostic_status" -eq 77 ]
+printf 'rollback\n' >"$work/expected-normal-rollback"
+cmp "$diagnostic_log" "$work/expected-normal-rollback"
+)
+
+unit_functions=$work/diagnostic-unit-functions.sh
+awk '
+	/^install_diagnostic_units\(\) \{/ { copy=1 }
+	/^prepare_shutdown_root\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$unit_functions"
+# shellcheck disable=SC1090
+. "$unit_functions"
+handoff_newroot=$work/unit-root
+diagnostic_mode=0
+install_diagnostic_units
+[ ! -e "$handoff_newroot/etc" ]
+diagnostic_mode=1
+install_diagnostic_units
+unit_root=$handoff_newroot/etc/systemd/system
+[ -f "$unit_root/rog5-early-target-new-init.service" ]
+[ -f "$unit_root/rog5-early-target-sshd.service" ]
+[ "$(stat -c %a "$unit_root/rog5-early-target-new-init.service")" = 644 ]
+[ "$(readlink "$unit_root/basic.target.wants/rog5-early-target-new-init.service")" = \
+	../rog5-early-target-new-init.service ]
+[ "$(readlink "$unit_root/multi-user.target.wants/rog5-early-target-sshd.service")" = \
+	../rog5-early-target-sshd.service ]
+grep -Fxq 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
+	"$unit_root/rog5-early-target-new-init.service"
+grep -Fxq 'Requires=sshd.service' \
+	"$unit_root/rog5-early-target-sshd.service"
+grep -Fxq 'After=sshd.service' \
+	"$unit_root/rog5-early-target-sshd.service"
+grep -Fxq 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
+	"$unit_root/rog5-early-target-sshd.service"
+(
+	handoff_newroot=$work/unit-write-failure
+	diagnostic_mode=1
+	cat() {
+		return 1
+	}
+	if install_diagnostic_units; then
+		echo 'FAIL partial diagnostic unit write was accepted' >&2
+		exit 1
+	fi
+	[ ! -e "$handoff_newroot/etc/systemd/system/rog5-early-target-new-init.service" ]
+	[ ! -e "$handoff_newroot/etc/systemd/system/rog5-early-target-sshd.service" ]
+)
+handoff_newroot=$work/unit-link-refusal
+mkdir -p "$handoff_newroot/etc/systemd/system"
+ln -s /dev/null \
+	"$handoff_newroot/etc/systemd/system/rog5-early-target-new-init.service"
+if install_diagnostic_units; then
+	echo 'FAIL linked diagnostic unit destination was accepted' >&2
+	exit 1
+fi
 
 canonical_elf=$work/canonical-persistent-root-verify
 substitute_elf=$work/substitute-persistent-root-verify
@@ -353,7 +517,8 @@ cat >>"$switch_root_failure_probe" <<'EOF'
 rollback_handoff_mounts() {
 	printf 'rollback\n' >>"$SWITCH_ROOT_FAILURE_LOG"
 }
-force_rollback() {
+diagnostic_rollback() {
+	[ "$1" = switch-root-returned ] || exit 76
 	printf 'forced\n' >>"$SWITCH_ROOT_FAILURE_LOG"
 	exit 77
 }
@@ -475,6 +640,7 @@ hash_b=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 hash_c=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 valid_cmdline="console=ttyMSM0,115200n8
 rog5.netroot=1
+rog5.bundle=headless-network-root-v3-r2
 rog5.recovery_timeout=900
 rog5.a660_command_manifest_sha256=$hash_a
 rog5.root_generation=arch-a
@@ -483,8 +649,10 @@ rog5.root_seal_sha256=$hash_c
 rog5.root_tree_entries=42
 rog5.root_subtree=/"
 kernel_cmdline=$work/cmdline
+diagnostic_candidate=headless-netroot-early-diag-v1
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
+[ "$diagnostic_mode" -eq 0 ]
 [ "$recovery_timeout" -eq 900 ]
 [ "$command_manifest_sha256" = "$hash_a" ]
 [ "$root_tree_sha256" = "$hash_b" ]
@@ -502,8 +670,9 @@ expect_cmdline_rejection() {
 }
 
 for family in \
-	rog5.netroot \
-	rog5.recovery_timeout \
+		rog5.netroot \
+		rog5.bundle \
+		rog5.recovery_timeout \
 	rog5.a660_command_manifest_sha256 \
 	rog5.root_generation \
 	rog5.root_tree_sha256 \
@@ -520,6 +689,42 @@ for family in \
 		"$(printf '%s\n' "$valid_cmdline" |
 			sed "/^$family=/d")"
 done
+
+diagnostic_cmdline=$(printf '%s\n' "$valid_cmdline" |
+	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-netroot-early-diag-v1/')
+diagnostic_cmdline="$diagnostic_cmdline
+rog5.diagnostic=1"
+printf '%s\n' "$diagnostic_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 1 ]
+expect_cmdline_rejection 'bare diagnostic mode' \
+	"$diagnostic_cmdline rog5.diagnostic"
+expect_cmdline_rejection 'duplicate diagnostic mode' \
+	"$diagnostic_cmdline rog5.diagnostic=1"
+expect_cmdline_rejection 'wrong diagnostic mode' \
+	"$(printf '%s\n' "$diagnostic_cmdline" |
+		sed 's/rog5.diagnostic=1/rog5.diagnostic=2/')"
+expect_cmdline_rejection 'diagnostic identity without mode' \
+	"$(printf '%s\n' "$diagnostic_cmdline" |
+		sed '/rog5.diagnostic=1/d')"
+expect_cmdline_rejection 'diagnostic mode with runtime identity' \
+	"$valid_cmdline rog5.diagnostic=1"
+expect_cmdline_rejection 'leading-dot bundle identity' \
+	"$(printf '%s\n' "$valid_cmdline" |
+		sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=.hidden/')"
+expect_cmdline_rejection 'double-dot bundle identity' \
+	"$(printf '%s\n' "$valid_cmdline" |
+		sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=a..b/')"
+expect_cmdline_rejection 'slash in bundle identity' \
+	"$(printf '%s\n' "$valid_cmdline" |
+		sed 's|rog5.bundle=headless-network-root-v3-r2|rog5.bundle=a/b|')"
+expect_cmdline_rejection 'uppercase bundle identity' \
+	"$(printf '%s\n' "$valid_cmdline" |
+		sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=Upper/')"
+long_bundle=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+expect_cmdline_rejection 'overlong bundle identity' \
+	"$(printf '%s\n' "$valid_cmdline" |
+		sed "s/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=$long_bundle/")"
 
 expect_cmdline_rejection 'wrong netroot mode' \
 	"$(printf '%s\n' "$valid_cmdline" |

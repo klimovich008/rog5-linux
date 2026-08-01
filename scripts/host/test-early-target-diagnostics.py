@@ -107,6 +107,36 @@ class EarlyTargetDiagnosticTest(unittest.TestCase):
         self.assertEqual(len(stream.feed(frames)), 8)
         self.assertEqual(stream.maximum_progress, 70)
 
+    def test_deadline_is_absolute_but_remaining_interval_is_bounded(self):
+        stream = MODULE.DiagnosticStream(CANDIDATE)
+        accepted = stream.feed(
+            MODULE.frame_for(
+                record(boottime_ms=5_000, deadline=905_000)
+            )
+        )
+        self.assertEqual(accepted[0].watchdog_deadline_ms, 905_000)
+        for deadline in (5_000, 905_001):
+            with self.subTest(deadline=deadline):
+                stream = MODULE.DiagnosticStream(CANDIDATE)
+                with self.assertRaises(MODULE.DiagnosticError):
+                    stream.feed(
+                        MODULE.frame_for(
+                            record(boottime_ms=5_000, deadline=deadline)
+                        )
+                    )
+        stream = MODULE.DiagnosticStream(CANDIDATE)
+        stream.feed(MODULE.frame_for(record(deadline=600_000)))
+        with self.assertRaises(MODULE.DiagnosticError):
+            stream.feed(
+                MODULE.frame_for(
+                    record(
+                        sequence=2,
+                        boottime_ms=600_000,
+                        deadline=600_000,
+                    )
+                )
+            )
+
     def test_payload_field_mutations_fail(self):
         canonical = MODULE.payload_for(record())
         mutations = (
@@ -273,7 +303,7 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
             6: ("11", "0", "211"),
             7: ("20", "0", "141"),
             8: ("unknown",),
-            9: ("59999", "900001"),
+            9: ("0", "18446744073709551616", "-1", "x"),
             10: ("1000001", "-1"),
         }
         for position, values in mutations.items():

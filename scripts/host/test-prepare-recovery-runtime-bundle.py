@@ -101,7 +101,7 @@ def newc_entry(
     )
 
 
-def minimal_initramfs() -> bytes:
+def minimal_initramfs(*, diagnostic: bool = False) -> bytes:
     archive = bytearray()
     archive.extend(
         newc_entry(
@@ -119,7 +119,20 @@ def minimal_initramfs() -> bytes:
             inode=2,
         )
     )
-    archive.extend(newc_header("TRAILER!!!", 0, mode=0, inode=3))
+    next_inode = 3
+    if diagnostic:
+        archive.extend(
+            newc_entry(
+                "sbin/rog5-early-target-diag",
+                b"\x7fELFdiagnostic-fixture",
+                mode=0o100755,
+                inode=next_inode,
+            )
+        )
+        next_inode += 1
+    archive.extend(
+        newc_header("TRAILER!!!", 0, mode=0, inode=next_inode)
+    )
     archive.extend(bytes((-len(archive)) % 512))
     return gzip.compress(bytes(archive), mtime=0)
 
@@ -270,7 +283,9 @@ class BundlePackagerTest(unittest.TestCase):
         )
 
         initramfs_path = sources / "initramfs.cpio.gz"
-        initramfs_path.write_bytes(minimal_initramfs())
+        initramfs_path.write_bytes(
+            minimal_initramfs(diagnostic=label == "diagnostic-initramfs-v1")
+        )
         bundle_root = workspace / "bundles"
         bundle_root.mkdir(mode=0o700)
         bundle_root.chmod(0o700)

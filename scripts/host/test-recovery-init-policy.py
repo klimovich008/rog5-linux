@@ -40,15 +40,37 @@ class InitPolicyTest(unittest.TestCase):
         ):
             self.assertIsNone(re.search(pattern, recovery))
 
-    def test_target_payloads_expose_ncm_only(self) -> None:
-        for path in (NETWORK_ROOT, PERSISTENT_ROOT):
-            source = self.source(path)
-            with self.subTest(path=path.name):
-                self.assertIn("functions/ncm.usb0", source)
-                self.assertNotIn("functions/acm.usb0", source)
-                self.assertNotIn("/dev/ttyGS0", source)
-                self.assertNotIn("acm", source.lower())
-                self.assertIn("169.254.77.2/30", source)
+    def test_target_payload_transports_are_profile_bounded(self) -> None:
+        persistent = self.source(PERSISTENT_ROOT)
+        self.assertIn("functions/ncm.usb0", persistent)
+        self.assertNotIn("functions/acm.usb0", persistent)
+        self.assertNotIn("/dev/ttyGS0", persistent)
+        self.assertNotIn("acm", persistent.lower())
+        self.assertIn("169.254.77.2/30", persistent)
+
+        network = self.source(NETWORK_ROOT)
+        self.assertIn("functions/ncm.usb0", network)
+        self.assertIn("169.254.77.2/30", network)
+        self.assertNotIn("/dev/ttyGS0", network)
+        self.assertIn(
+            "diagnostic_candidate=headless-netroot-early-diag-v1",
+            network,
+        )
+        self.assertIn(
+            '[ "$bundle" = "$diagnostic_candidate" ]', network
+        )
+        guarded_acm = re.search(
+            r'if \[ "\$diagnostic_mode" -eq 1 \]; then\n'
+            r'\s*mkdir -p "\$gadget/functions/acm\.usb0".*?\n\s*fi',
+            network,
+            flags=re.DOTALL,
+        )
+        self.assertIsNotNone(guarded_acm)
+        self.assertIn(
+            '"$gadget/configs/c.1/acm.usb0"', guarded_acm.group(0)
+        )
+        self.assertEqual(network.count("functions/acm.usb0"), 2)
+        self.assertEqual(guarded_acm.group(0).count("functions/acm.usb0"), 2)
 
     def test_recovery_mints_session_after_isolation_before_usb_bind(self) -> None:
         source = self.source(RECOVERY)

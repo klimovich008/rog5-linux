@@ -173,6 +173,20 @@ clean dwell; all non-identity cleanup failures remain immediate. r2 is
 consumed and must not be retried. See the
 [r2 target USB-loss result](../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
 
+The active hardware-free successor is now the distinct
+`headless-netroot-early-diag-v1` diagnostic profile. Its shared-init branch is
+fixed-identity gated and adds only a write-only ACM reporter, monotonic stage
+updates, two volatile post-handoff units, and a bounded five-second terminal
+dwell. Normal network-root mode remains reporter/ACM/unit/dwell-free. The
+sealed reporter and optional archive integration twin-build locally; the
+native bundle verifier requires the helper for the diagnostic profile and
+forbids it elsewhere. Full local CI passes. A board-neutral ARM64 QEMU
+root-handoff test is now part of the GitHub full-system job, but its replacement
+PID 1 emits the post-handoff stages directly; it proves process continuity,
+not execution of the generated systemd units. A true full-system systemd test
+is still required before this acceptance boundary closes. No diagnostic
+signing, candidate promotion, credential use, or phone action has occurred.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

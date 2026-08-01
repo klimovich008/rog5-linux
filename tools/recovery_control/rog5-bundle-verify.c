@@ -56,6 +56,7 @@ struct profile_policy {
 	const char *command_line;
 	uint64_t minimum_rollback;
 	bool binds_a660_root;
+	bool requires_early_target_reporter;
 };
 
 struct bundle_manifest {
@@ -113,6 +114,7 @@ struct cpio_parser {
 	bool current_trailer;
 	bool seen_init;
 	bool seen_persistent_root_verifier;
+	bool seen_early_target_reporter;
 	bool seen_trailer;
 };
 
@@ -125,12 +127,14 @@ static const struct profile_policy profile_policies[] = {
 		.command_line = "rog5.netroot=1 rog5.diagnostic=1",
 		.minimum_rollback = 60,
 		.binds_a660_root = true,
+		.requires_early_target_reporter = true,
 	},
 	{
 		.name = "network-root-v1",
 		.command_line = "rog5.netroot=1",
 		.minimum_rollback = 60,
 		.binds_a660_root = true,
+		.requires_early_target_reporter = false,
 	},
 	{
 		.name = "persistent-root-ro-v1",
@@ -138,6 +142,7 @@ static const struct profile_policy profile_policies[] = {
 			"rog5.ufs_discovery=1 rog5.persistent_ro=1",
 		.minimum_rollback = 300,
 		.binds_a660_root = false,
+		.requires_early_target_reporter = false,
 	},
 };
 
@@ -806,6 +811,13 @@ static void cpio_complete_name(struct cpio_parser *parser)
 			    parser->file_size == 0)
 				fail("initramfs has no executable persistent-root verifier");
 			parser->seen_persistent_root_verifier = true;
+		} else if (strcmp(parser->name,
+				  "sbin/rog5-early-target-diag") == 0) {
+			if (parser->seen_early_target_reporter ||
+			    !S_ISREG(parser->mode) ||
+			    (parser->mode & 0111) == 0 || parser->file_size == 0)
+				fail("initramfs has no executable early-target reporter");
+			parser->seen_early_target_reporter = true;
 		}
 	}
 	parser->padding_remaining =
@@ -885,7 +897,8 @@ static void cpio_feed(struct cpio_parser *parser,
 }
 
 static void cpio_finish(const struct cpio_parser *parser,
-			bool require_persistent_root_verifier)
+			bool require_persistent_root_verifier,
+			bool require_early_target_reporter)
 {
 	if (parser->phase != CPIO_DONE || !parser->seen_init ||
 	    !parser->seen_trailer || parser->entry_count == 0)
@@ -893,10 +906,17 @@ static void cpio_finish(const struct cpio_parser *parser,
 	if (require_persistent_root_verifier &&
 	    !parser->seen_persistent_root_verifier)
 		fail("network-root initramfs lacks persistent-root verifier");
+	if (require_early_target_reporter &&
+	    !parser->seen_early_target_reporter)
+		fail("diagnostic initramfs lacks early-target reporter");
+	if (!require_early_target_reporter &&
+	    parser->seen_early_target_reporter)
+		fail("non-diagnostic initramfs carries early-target reporter");
 }
 
 static void verify_initramfs_gzip(int descriptor,
-				  bool require_persistent_root_verifier)
+				  bool require_persistent_root_verifier,
+				  bool require_early_target_reporter)
 {
 	unsigned char input[64 * 1024];
 	unsigned char output[64 * 1024];
@@ -959,7 +979,8 @@ static void verify_initramfs_gzip(int descriptor,
 	}
 	if (inflateEnd(&stream) != Z_OK)
 		fail("cannot finish gzip verifier");
-	cpio_finish(&cpio, require_persistent_root_verifier);
+	cpio_finish(&cpio, require_persistent_root_verifier,
+		    require_early_target_reporter);
 }
 
 static const char *fdt_string(const unsigned char *strings,
@@ -1587,7 +1608,8 @@ int main(int argc, char **argv)
 	verify_hash(initramfs_fd, parsed.initramfs_sha256, "initramfs");
 	verify_kernel_image(kernel_fd, parsed.kernel_size);
 	verify_initramfs_gzip(
-		initramfs_fd, parsed.policy->binds_a660_root);
+		initramfs_fd, parsed.policy->binds_a660_root,
+		parsed.policy->requires_early_target_reporter);
 	if (lseek(dtb_fd, 0, SEEK_SET) < 0)
 		fail("cannot rewind DTB");
 	dtb = read_exact(dtb_fd, (size_t)parsed.dtb_size);
