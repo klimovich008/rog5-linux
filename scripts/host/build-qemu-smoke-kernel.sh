@@ -93,12 +93,14 @@ config=$source_root/scripts/config
 	--enable UNIX \
 	--enable VIRTIO \
 	--enable VIRTIO_CONSOLE \
+	--enable VIRTIO_MENU \
 	--enable VIRTIO_MMIO \
 	--disable DEBUG_INFO
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 olddefconfig
-for required_socket_option in NET UNIX; do
-	grep -Fqx "CONFIG_${required_socket_option}=y" "$output_root/.config" ||
-		fail "QEMU kernel lost $required_socket_option after olddefconfig"
+for required_runtime_option in HVC_DRIVER NET UNIX VIRTIO VIRTIO_CONSOLE \
+	VIRTIO_MENU VIRTIO_MMIO; do
+	grep -Fqx "CONFIG_${required_runtime_option}=y" "$output_root/.config" ||
+		fail "QEMU kernel lost $required_runtime_option after olddefconfig"
 done
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \
 	-j"${JOBS:-$(nproc)}" Image
