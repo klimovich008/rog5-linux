@@ -27,7 +27,7 @@ records and a bounded reason; raw malformed bytes are never persisted.
 
 ## Tests
 
-`scripts/host/test-collect-early-target-diagnostics.py` passes twenty-one cases:
+`scripts/host/test-collect-early-target-diagnostics.py` passes twenty-three cases:
 
 - canonical, fresh, caller-private, host-bound recovery anchor handling;
 - new caller-private evidence output outside Git;
@@ -44,7 +44,9 @@ records and a bounded reason; raw malformed bytes are never persisted.
 - preservation of successful and rejected frame prefixes if the final drain
   also fails;
 - canonical mode-`0600` evidence and no-replace publication; and
-- kernel-reader-before-enumeration ordering with exactly one output.
+- kernel-reader-before-enumeration ordering, immediate journal-child exit
+  rejection, one exact flushed readiness line, no false readiness on journal-
+  startup failure, and exactly one output.
 
 The deterministic suite executes the real subprocess, nonblocking pipe,
 buffering, poll, termination, and wait path through a fixture executable. The

@@ -54,6 +54,8 @@ READ_INTERVAL_SECONDS = 0.25
 STABLE_ENUMERATION_SECONDS = 0.5
 FINAL_EVENT_POLLS = 10
 FINAL_EVENT_INTERVAL_SECONDS = 0.05
+JOURNAL_STARTUP_SETTLE_SECONDS = 0.05
+COLLECTOR_READY = "READY receive-only early-target diagnostic collector"
 
 SYS_DEVICES = Path("/sys/devices")
 SYS_BUS_USB = Path("/sys/bus/usb/devices")
@@ -663,6 +665,15 @@ class KernelJournal:
             raise CollectorError("cannot start bounded kernel event reader") from error
         assert self.process.stdout is not None
         os.set_blocking(self.process.stdout.fileno(), False)
+        try:
+            time.sleep(JOURNAL_STARTUP_SETTLE_SECONDS)
+            running = self.process.poll() is None
+        except BaseException:
+            self.__exit__()
+            raise
+        if not running:
+            self.__exit__()
+            fail("kernel event reader exited during startup")
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -987,6 +998,7 @@ def main(arguments: list[str]) -> int:
     rejection_message: str | None = None
     try:
         with KernelJournal(anchor["usb_location"]) as journal:
+            print(COLLECTOR_READY, flush=True)
             primary_error: BaseException | None = None
             try:
                 identity = wait_diagnostic_acm(
