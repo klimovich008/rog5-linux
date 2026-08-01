@@ -169,6 +169,7 @@ if [[ $tier == ci ]]; then
 			scripts/host/test-fallback-acm-control.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
 			scripts/host/test-early-target-diagnostics.py
+			scripts/host/test-collect-early-target-diagnostics.py
 			scripts/device/test-build-early-target-diag.sh
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
@@ -246,6 +247,8 @@ else
 			scripts/host/test-headless-battery-series.py
 			scripts/host/test-fallback-acm-control.py
 			scripts/host/test-run-minimal-headless-live-cycle.py
+			scripts/host/test-early-target-diagnostics.py
+			scripts/host/test-collect-early-target-diagnostics.py
 			scripts/host/test-recovery-linux.sh
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py

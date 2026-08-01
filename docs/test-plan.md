@@ -330,7 +330,18 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   executes the exact generated units for stages 130 and 140. Its `sshd.service`
   remains an ordering stub, so this is systemd execution evidence rather than
   OpenSSH evidence. The clean local full-system gate and repository CI pass;
-  GitHub rerun remains required before disposable signing or any phone action.
+  twenty-one additional host-collector cases require a fresh private recovery
+  anchor, one exact product/interface/port, read-only exclusive raw ACM, a sole
+  open holder, fixed frame/event/time/evidence bounds, host receipt timestamps,
+  chunk-invariant valid-prefix retention, malformed and truncated fail-close
+  behavior, burst-safe kernel-event buffering, pre-enumeration and final-
+  disconnect event retention, preservation of successful and rejected frame
+  prefixes across a failed final drain, disconnect/timeout distinction, and one
+  canonical mode-`0600` output outside Git. The collector starts its bounded
+  kernel-journal reader before enumeration and has no serial write or shell
+  execution surface. GitHub rerun remains required before disposable signing
+  or any phone action. See the
+  [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

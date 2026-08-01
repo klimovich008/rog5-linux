@@ -126,6 +126,35 @@ The host collector starts before target enumeration and:
 The ordinary host-key/runtime acceptance path must reject the diagnostic USB
 product, profile, candidate, and ACM function.
 
+The implemented collector is:
+
+```sh
+scripts/host/collect-early-target-diagnostics.py \
+  /absolute/private/recovery-anchor \
+  /absolute/private/early-target-evidence.json \
+  60 900
+```
+
+Both parent directories must resolve to caller-owned mode `0700` directories;
+the anchor must be the existing canonical mode-`0600` recovery anchor and the
+output must not exist. The optional final arguments bound target enumeration
+and stream capture in seconds. The collector starts a read-only kernel-journal
+tail before target enumeration, filters only the anchor port's USB, `cdc_acm`,
+and `cdc_ncm` messages, and excludes serial-number lines. It then admits one
+literal `ROG5 diagnostic network root` product and its interface `02`
+`cdc_acm` character device on that port.
+
+The tty is opened `O_RDONLY|O_NOCTTY|O_NONBLOCK`, locked with `flock` and
+`TIOCEXCL`, and configured raw with echo and `HUPCL` disabled. The opened
+file's device number is checked before parsing; the descriptor remains bound
+to that character device even when USB sysfs entries disappear during
+disconnect. No phone-facing write method exists. At most 4,096 validated
+frames and 64 sanitized USB events are retained. A valid timeout or disconnect
+and every post-anchor capture rejection produce exactly one canonical JSON
+record via exclusive mode-`0600` creation outside Git. Rejected evidence
+contains only records accepted before the violation and a bounded reason,
+never the raw untrusted stream.
+
 ## Hardware-free gate
 
 No diagnostic bundle may be signed or booted until tests prove:
@@ -148,7 +177,10 @@ No diagnostic bundle may be signed or booted until tests prove:
 10. the diagnostic initramfs and signed bundle twin-build byte-identically;
 11. QEMU proves reporter continuity across the board-neutral root handoff and
     then executes both transient stage updates under real AArch64 systemd; and
-12. the normal runtime verifier rejects every diagnostic identity.
+12. the normal runtime verifier rejects every diagnostic identity; and
+13. the host collector starts before enumeration, binds the exact anchor port,
+    remains receive-only, distinguishes timeout from disconnect, bounds and
+    sanitizes kernel events, and publishes one private evidence record.
 
 ## Promotion sequence
 
@@ -163,8 +195,9 @@ No diagnostic bundle may be signed or booted until tests prove:
 8. Create a new externally held candidate and signed bundle identity.
 9. Run all connected preflights, then at most one temporary boot.
 
-Steps 1 through 5 are implemented. Step 4 now crosses the root handoff and
-executes both generated milestone units under real AArch64 systemd. The native
+Steps 1 through 5 and the receive-only host collector are implemented. Step 4
+now crosses the root handoff and executes both generated milestone units under
+real AArch64 systemd. The native
 reporter uses write-only,
 exclusive, raw ACM access; a credential-checked abstract datagram socket;
 nonblocking partial-frame writes; fixed-cadence heartbeats; immutable terminal
@@ -173,6 +206,20 @@ blocked ACM output, host-to-target bytes that remain unread, descriptor-bearing
 and oversized local updates, post-deadline watchdog heartbeats, deterministic
 clock behavior, and byte equality with the host oracle. Production binaries
 are also checked to contain no test-hook strings.
+
+Twenty-one collector tests cover canonical private anchor/output handling,
+duplicate or wrong-port USB identities, interface/driver binding, character-
+device replacement, rejection of a pre-existing foreign holder, read-only
+raw/no-`HUPCL` tty behavior, timeout versus disconnect, fragmented valid
+frames, malformed and truncated rejection, chunk-invariant retention of a
+valid prefix before rejection, bounded redacted kernel events, burst-safe line
+buffering, pre-enumeration and final-disconnect event retention, canonical
+mode-`0600` evidence, successful and rejected frame-prefix retention across a
+failed final drain, start-before-enumeration ordering, and absence of a
+serial write or shell surface. A deterministic test executes the real
+subprocess/nonblocking-buffer/termination path, and a local smoke starts and
+stops `/usr/bin/journalctl` as the unprivileged user. The complete repository
+`ci` tier passes with this collector test in sequence.
 
 The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
 the fixed `headless-netroot-early-diag-v1` bundle identity are present. That
@@ -205,8 +252,9 @@ execution but not a real SSH connection. The corrected Linux 7.1.4 QEMU
 profile explicitly verifies FUTEX, MEMFD_CREATE, SHMEM, and TMPFS; the clean
 local full-system gate and complete repository CI pass. See the
 [systemd QEMU result](../test-results/2026-08-01-arm64-systemd-qemu-gate.md).
-GitHub rerun, disposable signed-bundle twin packaging, and every phone action
-remain pending.
+The [host collector result](../test-results/2026-08-01-early-target-host-collector-offline.md)
+records its hardware-free acceptance. GitHub rerun, disposable signed-bundle
+twin packaging, and every phone action remain pending.
 
 No step above authorizes flashing, phone-storage writes, a second r2 execute,
 or promotion of diagnostic output as normal runtime acceptance.
