@@ -1856,8 +1856,8 @@ class LiveCycle:
             (
                 "8080",
                 "-lnt4",
-                "sport = :8080 and ( src = 0.0.0.0 or "
-                f"src = {BUNDLE_HOST_ADDRESS} )",
+                "sport = :8080 and ( src = 0.0.0.0/32 or "
+                f"src = {BUNDLE_HOST_ADDRESS}/32 )",
             ),
             (
                 "8080",

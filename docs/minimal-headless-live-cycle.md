@@ -17,12 +17,18 @@ published/reinstalled remediation passed real unchanged-atime bundle and
 37,735-entry NFS preflights without a listener or process residue; one
 separate diagnostic lifecycle then reached manifest transfer but rejected as
 `FETCH_MANIFEST` before `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Exact
-fallback passed. A fresh corrected production wrapper is now twin-built and
-solely admitted. The bounded host correction is also accepted offline: the
+fallback passed. A fresh corrected production wrapper was then twin-built and
+used once. Its recovery reached NCM/ACM, but the root-owned bundle controller
+rejected Steam's unrelated loopback-only TCP 8080 listener before transfer,
+`PREPARE`, intent, NFS, or `COMMIT_EXEC`; watchdog fallback and strict pinned
+Alpine SSH passed. That wrapper is consumed and no diagnostic boot is now
+admitted. The bounded host correction is also accepted offline: the
 lifecycle defers the fallback NetworkManager profile after bundle transfer
 and restores it only after stable same-port Alpine USB identity. Host
 installation, exact installed-hash checks, and connected preflight remain
-before any later lifecycle.
+before any later lifecycle. The next host correction must scope the privileged
+controller's listener checks to real conflicts, then reissue a distinct signed
+wrapper without reviving the consumed image.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time

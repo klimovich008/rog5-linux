@@ -908,10 +908,19 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [production](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md),
    and [bounded restoration](../test-results/2026-08-01-bounded-fallback-profile-restoration-offline.md)
    results.
-5. Use corrected diagnostic evidence to repair or promote a distinct normal minimal-headless
-   candidate; then determine whether ramoops survives the target/fallback path
-   and collect the exact 88-field core record over strict SSH.
-6. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+5. The corrected wrapper `f710bbcd…97b0ef` booted once after reviewed host
+   installation and connected preflight. Recovery reached NCM/ACM, but the
+   privileged controller rejected Steam's loopback-only TCP 8080 listener
+   before bundle response, `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Watchdog
+   fallback and strict pinned Alpine SSH passed. The wrapper is consumed and
+   denied; the target remains unexecuted. Scope and reinstall the privileged
+   listener check, then issue a distinct signed AVB successor. See the
+   [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md).
+6. Use corrected diagnostic evidence to repair or promote a distinct normal
+   minimal-headless candidate; then determine whether ramoops survives the
+   target/fallback path and collect the exact 88-field core record over strict
+   SSH.
+7. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

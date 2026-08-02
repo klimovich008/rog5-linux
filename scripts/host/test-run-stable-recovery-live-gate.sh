@@ -20,13 +20,12 @@ corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fet
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$corrected_diagnostic_image" \
-	'$1 == name && $2 == "allow" && $3 ~ /one RAM-only boot/ \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL corrected diagnostic wrapper is not exactly boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed corrected wrapper remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$corrected_diagnostic_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef" \
-	&& $4 ~ /^fresh production-signed fetch-policy-corrected diagnostic recovery/ \
+	&& $4 ~ /^consumed production-signed fetch-policy-corrected diagnostic recovery/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL corrected diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 
@@ -150,16 +149,24 @@ if run_diagnostic_policy \
 fi
 grep -Fq 'diagnostic recovery image identity is not allowlisted' "$tmp/err"
 
-if run_diagnostic_policy \
-	headless-netroot-early-diag-v1 \
+for consumed_image in \
 	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
-	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-	>"$tmp/out" 2>"$tmp/err"
-then
-	echo 'FAIL consumed diagnostic recovery passed policy preflight' >&2
-	exit 1
-fi
-grep -Fq 'refusing the consumed diagnostic recovery image' "$tmp/err"
+	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef
+do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256="$consumed_image" \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
+	then
+		echo 'FAIL consumed diagnostic recovery passed policy preflight' >&2
+		exit 1
+	fi
+	grep -Fq 'refusing the consumed diagnostic recovery image' "$tmp/err"
+done
 
 if env -i PATH="$PATH" HOME="$HOME" \
 	ALLOW_TEMPORARY_BOOT=1 \

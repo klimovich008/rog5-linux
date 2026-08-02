@@ -140,6 +140,8 @@ phone_ip=169.254.77.2
 host_cidr=$host_ip/30
 fallback_profile=rog5-fallback-usb-ssh
 host_port=8080
+bundle_ipv4_filter="sport = :$host_port and ( src = 0.0.0.0/32 or src = $host_ip/32 )"
+bundle_ipv6_filter="sport = :$host_port and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:$host_ip/128 )"
 firewall_zone=drop
 state_lifetime=180s
 allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"$host_port\" protocol=\"tcp\" accept"
@@ -427,9 +429,11 @@ fi
 
 systemctl is-active --quiet firewalld.service ||
 	fail 'firewalld must be active'
-existing_listeners=$(ss -H -lnt4 "sport = :$host_port") ||
+existing_ipv4_listeners=$(ss -H -lnt4 "$bundle_ipv4_filter") ||
 	fail 'cannot inspect host listeners'
-[[ -z $existing_listeners ]] ||
+existing_ipv6_listeners=$(ss -H -lnt6 "$bundle_ipv6_filter") ||
+	fail 'cannot inspect host listeners'
+[[ -z $existing_ipv4_listeners && -z $existing_ipv6_listeners ]] ||
 	fail 'TCP port 8080 already has a listener'
 [[ $(firewall-cmd --zone="$firewall_zone" --list-all |
 	awk '$1 == "target:" { print $2 }') == DROP ]] ||
@@ -652,11 +656,14 @@ for _attempt in {1..300}; do
 	if ! kill -0 "$server_pid" 2>/dev/null; then
 		break
 	fi
-	listeners=$(ss -H -lntp4 "sport = :$host_port") ||
+	listeners=$(ss -H -lntp4 "$bundle_ipv4_filter") ||
 		fail 'cannot verify recovery listener'
-	if [[ -n $listeners ]]; then
+	conflicting_ipv6=$(ss -H -lntp6 "$bundle_ipv6_filter") ||
+		fail 'cannot verify recovery listener'
+	if [[ -n $listeners || -n $conflicting_ipv6 ]]; then
 		mapfile -t listener_lines <<<"$listeners"
-		[[ ${#listener_lines[@]} == 1 &&
+		[[ -z $conflicting_ipv6 &&
+			${#listener_lines[@]} == 1 &&
 			${listener_lines[0]} == *"$host_ip:$host_port"* &&
 			${listener_lines[0]} =~ pid=$server_pid([,\)]) ]] ||
 			fail 'recovery server listener is not uniquely confined'

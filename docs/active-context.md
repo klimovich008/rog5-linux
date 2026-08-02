@@ -316,9 +316,16 @@ lifecycle tests pass, as does complete repository Linux CI. No host install,
 credential, or phone interface was used.
 See the
 [bounded restoration result](../test-results/2026-08-01-bounded-fallback-profile-restoration-offline.md).
-The next boundary is reviewed publication, exact host-controller installation
-and hash verification, then connected preflight before any new temporary
-lifecycle.
+That boundary was crossed on 2026-08-02. Reviewed publication, local and GitHub
+CI, installed-hash verification, and connected preflight passed. Recovery AVB
+`f710bbcd…97b0ef` then booted once, but the root-owned bundle controller
+rejected Steam's unrelated `127.0.0.1:8080` listener before transfer or
+`COMMIT_EXEC`. The independent watchdog returned to same-port Alpine and
+strict pinned SSH passed. The wrapper is consumed and absent from boot
+admission; the signed target bundle remains unexecuted. The active boundary is
+now the scoped privileged-controller correction, exact reinstall, and a
+distinct deterministic signed AVB successor. See the
+[live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
