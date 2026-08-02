@@ -29,6 +29,7 @@ xz_apk=$repo/artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk
 zstd_apk=$repo/artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk
 base_image=localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1
 verifier_image=localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7-deck-v1
+arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
 public_key_source=generated
 
@@ -37,6 +38,8 @@ for command in chmod cmp cp cpio cut find git grep gzip head locale mkdir \
 	command -v "$command" >/dev/null ||
 		fail "missing stable-recovery test command: $command"
 done
+[[ -f $arm64_runner && ! -L $arm64_runner && -x $arm64_runner ]] ||
+	fail 'missing sealed private ARM64 runner'
 for input in "$base" "$wrapper_config" "$kexec_apk" "$xz_apk" "$zstd_apk"; do
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing regular ignored recovery input: $input"
@@ -109,9 +112,10 @@ build_static() {
 	build_script=$2
 	source_file=$3
 	output=$4
-	podman run --rm --network=none --platform linux/arm64 \
-		-v "$repo:/workspace:ro,Z" \
-		-v "$test_tmp:/out:Z" \
+	"$arm64_runner" podman run --rm --pull=never --network=none \
+		--platform linux/arm64 --security-opt label=disable \
+		-v "$repo:/workspace:ro" \
+		-v "$test_tmp:/out" \
 		"$image" \
 		"/workspace/$build_script" \
 		"/workspace/$source_file" "/out/$output"
