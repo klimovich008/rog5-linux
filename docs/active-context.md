@@ -327,6 +327,22 @@ now the scoped privileged-controller correction, exact reinstall, and a
 distinct deterministic signed AVB successor. See the
 [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md).
 
+The host correction now accepts unrelated loopback-only TCP 8080 listeners
+while rejecting wildcard, fixed recovery-address, IPv6 wildcard, and mapped
+conflicts before and after server startup. Twenty-five controller tests, full
+local CI, independent review, and GitHub Actions pass at checkpoint `d35c734`.
+A dedicated atomic issuer then produced generation-1 AVB wrapper
+`332889a8…b51830` from the exact consumed generation-zero wrapper while proving
+the raw recovery, kernel, initramfs, trust root, signed diagnostic bundle, and
+all AVB structure except salt/digest are byte-identical. Its complete artifact
+preflight passes and it is the sole temporary-boot allow row. This is a new
+one-shot identity, not a new signature; the bootloader wrapper still uses AVB
+algorithm `NONE`. The corrected root-owned controller is now installed at
+exact source/install SHA-256 `9f3be8e9…90894`, its socket is active, SteamOS
+read-only mode is enabled, and complete local CI passes. Reviewed publication,
+GitHub CI, and connected preflight remain before any phone boot. See the
+[successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md).
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

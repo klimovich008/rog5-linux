@@ -82,6 +82,18 @@ awk -F '\t' -v name="$consumed_corrected" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" ||
 	fail 'the consumed corrected wrapper is not retained exactly in inventory'
+listener_successor='build/early-target-diagnostic-deployment-20260802-listener-r3-production/wrapper/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$listener_successor" '
+	$1 == name && $2 == "allow" &&
+	$3 ~ /generation-1 AVB identity/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'the listener-corrected successor is not uniquely admitted'
+awk -F '\t' -v name="$listener_successor" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830" &&
+	$4 ~ /^admitted generation-1 AVB wrapper/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'the listener-corrected successor inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

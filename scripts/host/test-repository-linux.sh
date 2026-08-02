@@ -197,6 +197,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-kernel-source-seal.py
 		scripts/host/test-stable-recovery-wrapper-cache.py
 		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
+		scripts/host/test-issue-stable-recovery-avb-generation.sh
 		scripts/host/test-stable-wrapper-slim-config.py
 		scripts/host/test-stable-wrapper-slim-config-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
@@ -279,6 +280,7 @@ else
 		scripts/host/test-kernel-source-seal.py
 		scripts/host/test-stable-recovery-wrapper-cache.py
 		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
+		scripts/host/test-issue-stable-recovery-avb-generation.sh
 		scripts/host/test-stable-wrapper-slim-config.py
 		scripts/host/test-stable-wrapper-slim-config-contract.sh
 		scripts/host/test-arch-headless-rootfs-contract.sh
