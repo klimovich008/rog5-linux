@@ -33,8 +33,8 @@ arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
 public_key_source=generated
 
-for command in chmod cmp cp cpio cut find git grep gzip head locale mkdir \
-	mktemp openssl podman realpath rm sed sha256sum sort stat tail touch; do
+for command in chmod cmp cp cpio cut find findmnt git grep gzip head id locale \
+	mkdir mktemp openssl podman realpath rm sed sha256sum sort stat tail touch; do
 	command -v "$command" >/dev/null ||
 		fail "missing stable-recovery test command: $command"
 done
@@ -112,7 +112,23 @@ build_static() {
 	build_script=$2
 	source_file=$3
 	output=$4
-	"$arm64_runner" podman run --rm --pull=never --network=none \
+	runner=("$arm64_runner")
+	if [[ -n ${ROG5_PRIVATE_BINFMT_GUARD:-} ]]; then
+		[[ $ROG5_PRIVATE_BINFMT_GUARD =~ ^[0-9a-f]{64}$ &&
+			$(id -u) == 0 &&
+			-r /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
+			fail 'inherited private ARM64 namespace identity is invalid'
+		read -r inside_id outside_id map_length _ </proc/self/uid_map ||
+			fail 'cannot inspect inherited ARM64 namespace mapping'
+		[[ $inside_id == 0 && $outside_id != 0 && $map_length -gt 0 ]] ||
+			fail 'inherited ARM64 namespace is not rootless'
+		case $(findmnt -n -o PROPAGATION /) in
+			private|private,*) ;;
+			*) fail 'inherited ARM64 namespace mount propagation is unsafe' ;;
+		esac
+		runner=()
+	fi
+	"${runner[@]}" podman run --rm --pull=never --network=none \
 		--platform linux/arm64 --security-opt label=disable \
 		-v "$repo:/workspace:ro" \
 		-v "$test_tmp:/out" \

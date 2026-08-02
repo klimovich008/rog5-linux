@@ -72,6 +72,18 @@ grep -Fq 'trust_root=%s' "$initramfs_test" ||
 grep -Fq 'components/rog5-recovery-control' "$initramfs_test" ||
 	fail 'stable-recovery integration does not retain its verified components'
 for token in \
+	'ROG5_PRIVATE_BINFMT_GUARD' \
+	'/proc/self/uid_map' \
+	'findmnt -n -o PROPAGATION /' \
+	'inherited private ARM64 namespace identity is invalid' \
+	'inherited ARM64 namespace is not rootless' \
+	'inherited ARM64 namespace mount propagation is unsafe' \
+	'runner=()' \
+	'"${runner[@]}" podman run'; do
+	grep -Fq "$token" "$initramfs_test" ||
+		fail "stable-recovery integration omits nested ARM64 proof: $token"
+done
+for token in \
 	'historical-2026-07-29' \
 	'steam-deck-asus-5.4-v1' \
 	'build-asus-kexec-stage-successor.sh' \
