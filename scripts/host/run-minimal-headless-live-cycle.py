@@ -34,6 +34,7 @@ FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
+BUNDLE_HOST_ADDRESS = "169.254.77.1"
 ZERO_SHA256 = "0" * 64
 CONSUMED_MANIFESTS = {
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
@@ -1851,13 +1852,30 @@ class LiveCycle:
         ):
             if path.exists() or path.is_symlink():
                 fail(f"host lifecycle residue remains: {path}")
-        for port in ("8080", "2049", "32767"):
+        listener_checks = (
+            (
+                "8080",
+                "-lnt4",
+                "sport = :8080 and ( src = 0.0.0.0 or "
+                f"src = {BUNDLE_HOST_ADDRESS} )",
+            ),
+            (
+                "8080",
+                "-lnt6",
+                "sport = :8080 and ( src = ::/128 or "
+                "src = ::ffff:0.0.0.0/128 or "
+                f"src = ::ffff:{BUNDLE_HOST_ADDRESS}/128 )",
+            ),
+            ("2049", "-lntu4", "sport = :2049"),
+            ("32767", "-lntu4", "sport = :32767"),
+        )
+        for port, socket_selection, listener_filter in listener_checks:
             result = run_capture(
                 [
                     str(self.dependencies.ss),
                     "-H",
-                    "-lntu4",
-                    f"sport = :{port}",
+                    socket_selection,
+                    listener_filter,
                 ],
                 timeout=self.remaining_timeout(deadline),
             )

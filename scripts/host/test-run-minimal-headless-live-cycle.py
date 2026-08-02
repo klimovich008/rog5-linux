@@ -211,6 +211,33 @@ class Fixture:
             """\
             #!/bin/sh
             printf 'ss:%s\n' "$*" >>"$MOCK_CALLS"
+            case ${MOCK_SS_LISTENER_ADDRESS:-} in
+              127.0.0.1)
+                case $* in
+                  *"sport = :8080 and ( src = 0.0.0.0 or src = 169.254.77.1 )"*)
+                    ;;
+                  *"-lnt4"*"sport = :8080"*|*"-lntu4"*"sport = :8080"*)
+                    printf 'tcp LISTEN 0 10 127.0.0.1:8080 0.0.0.0:*\n'
+                    ;;
+                esac
+                ;;
+              0.0.0.0|169.254.77.1)
+                case $* in
+                  *"-lnt4"*"sport = :8080 and ( src = 0.0.0.0 or src = 169.254.77.1 )"*)
+                    printf 'tcp LISTEN 0 10 %s:8080 0.0.0.0:*\n' \
+                      "$MOCK_SS_LISTENER_ADDRESS"
+                    ;;
+                esac
+                ;;
+              ::|::ffff:0.0.0.0|::ffff:169.254.77.1)
+                case $* in
+                  *"-lnt6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+                    printf 'tcp LISTEN 0 10 [%s]:8080 [::]:*\n' \
+                      "$MOCK_SS_LISTENER_ADDRESS"
+                    ;;
+                esac
+                ;;
+            esac
             """,
         )
         self.executable(
@@ -996,6 +1023,44 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotIn("collector:ready", calls)
         self.assertNotIn("control:prepare-commit", calls)
         self.assertFalse(any(self.fixture.evidence.iterdir()))
+
+    def test_preflight_allows_unrelated_loopback_bundle_port(self):
+        result = self.fixture.run(
+            "diagnostic-preflight",
+            MOCK_SS_LISTENER_ADDRESS="127.0.0.1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertIn(
+            "ss:-H -lnt4 sport = :8080 and ( src = 0.0.0.0 or "
+            "src = 169.254.77.1 )",
+            calls,
+        )
+        self.assertIn(
+            "ss:-H -lnt6 sport = :8080 and ( src = ::/128 or "
+            "src = ::ffff:0.0.0.0/128 or "
+            "src = ::ffff:169.254.77.1/128 )",
+            calls,
+        )
+
+    def test_preflight_rejects_conflicting_bundle_port(self):
+        for address in (
+            "0.0.0.0",
+            "169.254.77.1",
+            "::",
+            "::ffff:0.0.0.0",
+            "::ffff:169.254.77.1",
+        ):
+            with self.subTest(address=address):
+                result = self.fixture.run(
+                    "diagnostic-preflight",
+                    MOCK_SS_LISTENER_ADDRESS=address,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "host listener remains on TCP port 8080",
+                    result.stderr,
+                )
 
     def test_historical_recovery_profile_fails_before_credential_paths(self):
         result = self.fixture.run(
