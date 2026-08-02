@@ -41,24 +41,22 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Active deployment checkpoint
 
-Latest exact checkpoint (2026-08-02): generation-1 recovery AVB
-`332889a8…b51830` booted once after local/GitHub CI, installed-controller,
-credential, artifact, fallback, and connected-fastboot gates passed. Recovery
-fetched and verified signed manifest `4eacb90f…f7e76`, returned `PREPARED`, and
-claimed one `COMMIT_EXEC`. The host control client had omitted
-`headless-netroot-early-diag-v1` from its NFS-gated bundle set, so commit
-preceded NFS startup and no diagnostic frame arrived. Exact signed same-port
-Alpine fallback passed at 41.8 C; final host state is clean and the durable
-intent is resolved `FALLBACK_RETURNED`.
+Latest exact checkpoint (2026-08-02): generation 1 reached signed-bundle
+`PREPARED` and one commit claim, exposed a missing host NFS gate, returned to
+exact signed same-port Alpine fallback at 41.8 C, and is consumed. The durable
+intent is resolved `FALLBACK_RETURNED`. The fail-closed host fix passes 20
+recovery-control and 39 lifecycle tests, independent review, complete local
+CI, and GitHub Actions run `30745676057` at exact commit `77336ed`.
 
-Generation 1 and every earlier diagnostic recovery are consumed, absent from
-temporary-boot admission, and must never be retried or flashed. The host fix
-adds diagnostic to the exact v3 profile/package NFS policy and rejects unknown
-handoff requests before device discovery; 20 recovery-control and 39 lifecycle
-tests pass. The next boundary is review, complete local/GitHub CI, then a
-distinct generation-2 AVB identity over unchanged raw recovery bytes and fresh
-connected preflight. See the
-[live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
+Distinct generation-2 AVB `70fd77f7…fc72b1` was then issued offline over
+unchanged raw recovery `2f460aa0…628a01`; A/B twins, generation record
+`4a1de575…8d109`, salt/digest, complete descriptor structure, and exact
+production-trust-root artifact preflight pass. Generation 2 is the sole
+temporary-recovery allow row but remains unbooted. Publish/review these pins,
+re-pass local/GitHub CI, install the exact host source, and pass fallback plus
+connected preflight before at most one RAM-only cycle. See the
+[live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md)
+and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
@@ -345,10 +343,13 @@ set omitted the diagnostic bundle. Commit therefore preceded NFS startup; no
 diagnostic frame arrived, and exact same-port Alpine fallback passed. The
 durable intent is resolved `FALLBACK_RETURNED` and generation 1 is consumed.
 The host fix adds diagnostic to the exact v3 NFS policy and rejects unknown
-handoff requests before device discovery; 20 control and 39 lifecycle tests
-pass. Publish/review/CI and a distinct generation-2 AVB identity are the next
-boundary. See the [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md)
-and [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
+handoff requests before device discovery; 20 control and 39 lifecycle tests,
+independent review, local CI, and GitHub CI pass at `77336ed`. Generation-2 AVB
+`70fd77f7…fc72b1` is distinct over unchanged raw recovery and passes its exact
+artifact gate; it remains unbooted pending reviewed pins and connected
+preflight. See the [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
+[live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
+and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).

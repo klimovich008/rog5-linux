@@ -93,8 +93,16 @@ fetcher_sha=$(sha256sum "$fetcher" | cut -d ' ' -f 1)
 verifier_sha=$(sha256sum "$verifier" | cut -d ' ' -f 1)
 
 cp -- "$gate" "$fixture_gate"
+# This disposable builder emits the canonical generation-zero AVB wrapper and
+# no generation record. Rewrite only the private gate copy: preserve the real
+# consumed guard through the sentinel below, admit the fixture image, and clear
+# generation-2-only record/salt/digest pins.
 python3 - "$fixture_gate" \
 	"9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef=$image_sha" \
+	"70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1=$image_sha" \
+	"4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109=" \
+	"8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712=" \
+	"903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541=" \
 	"0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a=$raw_sha" \
 	"d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5=$kernel_sha" \
 	"df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f=$config_sha" \
@@ -125,6 +133,18 @@ for replacement in sys.argv[2:]:
 payload = payload.replace(sentinel, consumed_record)
 if payload.count(consumed_record) != 1 or sentinel in payload:
     raise SystemExit("consumed diagnostic recovery guard was not preserved")
+if f"consumed_diagnostic_recovery={sys.argv[2].split('=', 1)[1]}" in payload:
+    raise SystemExit("fixture image collided with the consumed recovery guard")
+fixture_image = sys.argv[3].split("=", 1)[1]
+if payload.count(fixture_image) != 1:
+    raise SystemExit("fixture image is not the unique diagnostic allowlist pin")
+for generation_identity in (
+    "4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109",
+    "8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712",
+    "903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541",
+):
+    if generation_identity in payload:
+        raise SystemExit("generation-2 identity survived in generation-zero fixture")
 path.write_text(payload, encoding="ascii")
 PY
 chmod 0755 "$fixture_gate"

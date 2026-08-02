@@ -90,13 +90,9 @@ if [[ $action == boot &&
 fi
 if [[ $expected_image == "$consumed_diagnostic_recovery" ||
 	$expected_image == "$consumed_corrected_diagnostic_recovery" ||
-	( $action != policy-preflight &&
-	$expected_image == "$consumed_listener_successor_recovery" ) ]]; then
+	$expected_image == "$consumed_listener_successor_recovery" ]]; then
 	fail 'refusing the consumed diagnostic recovery image'
 fi
-# For generation 1, policy-preflight first checks profile/bundle/image
-# associations below so negative tests retain precise diagnostics. Every action
-# still refuses the consumed image before it can reach device discovery or boot.
 case $profile in
 	historical-2026-07-29)
 		component_layout=flat
@@ -172,14 +168,14 @@ case $profile in
 		expected_target_id=headless-netroot-early-diag
 		expected_bundle=headless-netroot-early-diag-v1
 		expected_bundle_profile=diagnostic-initramfs-v1
-		expected_generation_record=68e42eec4875ba747dfe44dbcd086ba518049caeb80c7495953fc8b773f26f6c
-		expected_avb_salt=334e66adbf188df2e746f674d2bd9577d76dab746e211fa84a38fc3d2ebeab5e
-		expected_avb_digest=5a4025f5b1cbbd1aecaace6e7761643434043f2121e696a44b456dea524e1006
+		expected_generation_record=4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109
+		expected_avb_salt=8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712
+		expected_avb_digest=903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'diagnostic runtime manifest is not allowlisted'
 		[[ $expected_image == \
-			332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 ]] ||
+			70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1 ]] ||
 			fail 'diagnostic recovery image identity is not allowlisted'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -202,11 +198,6 @@ esac
 # reassigned by profile selection.
 
 if [[ $action == policy-preflight ]]; then
-	if [[ $expected_image == "$consumed_diagnostic_recovery" ||
-		$expected_image == "$consumed_corrected_diagnostic_recovery" ||
-		$expected_image == "$consumed_listener_successor_recovery" ]]; then
-		fail 'refusing the consumed diagnostic recovery image'
-	fi
 	printf '%s\n' \
 		'format=rog5-stable-recovery-policy-v1' \
 		"recovery_profile=$profile" \

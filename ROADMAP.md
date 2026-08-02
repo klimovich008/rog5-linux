@@ -465,10 +465,12 @@ Current execution order:
    connected preflight, boot generation 1 once, reach signed-bundle
    `PREPARED` plus one `COMMIT_EXEC` claim, prove exact fallback/cleanup, and
    identify that diagnostic was missing from the host's NFS-gated bundle set;
-7. **In progress:** publish/review the fail-closed diagnostic NFS policy and
-   complete CI, then issue a distinct generation-2 AVB identity over unchanged
-   recovery bytes and run fresh offline/connected preflights before at most one
-   further diagnostic cycle;
+7. **In progress:** the fail-closed diagnostic NFS policy is published/reviewed
+   with local and GitHub CI green; distinct generation-2 AVB
+   `70fd77f7…fc72b1` is issued over unchanged recovery bytes and passes the
+   complete artifact preflight. Publish/review these exact admission pins,
+   re-pass CI, install/preflight the exact host source, and run fresh fallback
+   and connected preflights before at most one further diagnostic cycle;
 8. repeat with a distinct normal SSH candidate only after the diagnostic
    evidence identifies and fixes the failing boundary;
 9. if H2 passes, continue physical keys/indicator, then H3

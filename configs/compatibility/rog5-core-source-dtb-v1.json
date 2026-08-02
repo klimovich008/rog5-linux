@@ -3,7 +3,7 @@
   "profile": "minimal-headless-v1",
   "compatibility_profile": {
     "path": "configs/compatibility/rog5-minimal-headless-v1.json",
-    "sha256": "bff4d1df62d901cd916f3c3c6287f63cb82509429f02edec5cbed190e7152064"
+    "sha256": "d3387ea3af49cc2600a241c53cd5a9c9eec453d37f70320b0cbd4f072648bdbc"
   },
   "baseline_source": {
     "commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",

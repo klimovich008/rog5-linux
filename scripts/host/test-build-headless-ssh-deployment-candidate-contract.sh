@@ -324,6 +324,9 @@ for token in \
 	'headless-diagnostic-deployment-v1' \
 	'consumed_diagnostic_recovery=' \
 	'consumed diagnostic recovery guard was not preserved' \
+	'fixture image collided with the consumed recovery guard' \
+	'fixture image is not the unique diagnostic allowlist pin' \
+	'generation-2 identity survived in generation-zero fixture' \
 	'artifact-preflight' \
 	'full disposable-key diagnostic wrapper, twin build, native verification, and artifact-preflight fixture' \
 	'authority=none'; do
