@@ -476,9 +476,14 @@ the diagnostic commit before NFS startup. It is consumed and explicitly
 refused with both previous diagnostic wrappers. The corrected control policy
 requires the diagnostic bundle to match the exact v3 profile/package NFS
 handoff before commit and rejects unknown guarded bundles before phone access.
-See the [corrected production build result](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md)
+See the [corrected production build result](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md),
 the [generation successor](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
-and the [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
+the [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
+and the [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
+Generation-2 AVB `70fd77f7…fc72b1` changes only deterministic salt/digest
+over the same raw recovery, passes the complete artifact preflight, and is the
+sole temporary-recovery allow row. It remains unbooted pending reviewed pins,
+exact host/fallback readiness, and connected preflight.
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight

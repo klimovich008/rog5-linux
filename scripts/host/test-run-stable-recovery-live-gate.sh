@@ -11,6 +11,7 @@ trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img
 corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img
 listener_successor_image=build/early-target-diagnostic-deployment-20260802-listener-r3-production/wrapper/repack/stable-recovery-a.avb.img
+nfs_gated_successor_image=build/early-target-diagnostic-deployment-20260802-nfs-gated-r4-production/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -39,6 +40,16 @@ listener_successor_image=build/early-target-diagnostic-deployment-20260802-liste
 	&& $4 ~ /^consumed generation-1 AVB wrapper/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL listener successor artifact identity is not exact' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$nfs_gated_successor_image" \
+	'$1 == name && $2 == "allow" && $3 ~ /generation-2 AVB identity/ \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL NFS-gated successor is not uniquely boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$nfs_gated_successor_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1" \
+	&& $4 ~ /^admitted generation-2 AVB wrapper/ \
+	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL NFS-gated successor artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -132,7 +143,7 @@ run_diagnostic_policy() {
 
 if run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
-	332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 \
+	70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1 \
 	9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 manifest' >&2
@@ -142,7 +153,7 @@ grep -Fq 'diagnostic runtime manifest is not allowlisted' "$tmp/err"
 
 if run_diagnostic_policy \
 	headless-ssh-network-root-v3-r2 \
-	332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 \
+	70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1 \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 bundle' >&2
@@ -160,8 +171,8 @@ if run_diagnostic_policy \
 fi
 grep -Fq 'diagnostic recovery image identity is not allowlisted' "$tmp/err"
 
-# Every consumed diagnostic identity must also fail the deliberately deferred
-# policy-preflight refusal after profile/bundle/image association checks.
+# Every consumed diagnostic identity must fail before profile association or
+# host discovery; negative association tests above use the admitted generation.
 for consumed_image in \
 	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
 	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
@@ -223,9 +234,10 @@ for required in \
 	'9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef' \
 	'f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef' \
 	'332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830' \
-	'expected_generation_record=68e42eec4875ba747dfe44dbcd086ba518049caeb80c7495953fc8b773f26f6c' \
-	'expected_avb_salt=334e66adbf188df2e746f674d2bd9577d76dab746e211fa84a38fc3d2ebeab5e' \
-	'expected_avb_digest=5a4025f5b1cbbd1aecaace6e7761643434043f2121e696a44b456dea524e1006' \
+	'70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1' \
+	'expected_generation_record=4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109' \
+	'expected_avb_salt=8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712' \
+	'expected_avb_digest=903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541' \
 	'profile does not permit an AVB-generation record' \
 	'AVB generation descriptor inventory changed' \
 	'expected_kernel=7fac4dda6a7133e7d3a6589da4fb5d0bdad3802705da5edf52701a20133728ed' \

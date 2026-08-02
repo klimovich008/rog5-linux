@@ -927,12 +927,15 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    fallback passed, and the intent was resolved `FALLBACK_RETURNED`.
    Generation 1 is consumed. The fail-closed host correction requires the
    diagnostic v3 profile/package handoff and rejects unknown guarded bundles
-   before phone discovery; 20 control and 39 lifecycle tests pass. Publish,
-   review, complete CI, and issue a distinct generation-2 identity before any
-   further phone boot. See the
+   before phone discovery; 20 control and 39 lifecycle tests, independent
+   review, local CI, and GitHub CI pass at `77336ed`. Distinct generation-2 AVB
+   `70fd77f7…fc72b1` preserves raw recovery `2f460aa0…628a01` and passes the
+   complete artifact preflight. It is unbooted; publish/review its pins and
+   pass exact host/fallback/connected preflight before any phone boot. See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md)
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
-   and [NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
+   [NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
+   and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
