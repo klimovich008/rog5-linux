@@ -12,6 +12,8 @@ diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wr
 corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img
 listener_successor_image=build/early-target-diagnostic-deployment-20260802-listener-r3-production/wrapper/repack/stable-recovery-a.avb.img
 nfs_gated_successor_image=build/early-target-diagnostic-deployment-20260802-nfs-gated-r4-production/wrapper/repack/stable-recovery-a.avb.img
+generation3_image=build/early-target-diagnostic-deployment-20260802-fresh-fetch-r5-production/wrapper/repack/stable-recovery-a.avb.img
+generation3_root=$repo/build/early-target-diagnostic-deployment-20260802-fresh-fetch-r5-production
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -50,6 +52,16 @@ nfs_gated_successor_image=build/early-target-diagnostic-deployment-20260802-nfs-
 	&& $4 ~ /^consumed generation-2 AVB wrapper/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL NFS-gated successor artifact identity is not exact' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation3_image" \
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL offline generation-3 image is boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation3_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6" \
+	&& $4 ~ /^unbooted generation-3 fresh-fetch diagnostic recovery/ \
+	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL generation-3 artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -82,7 +94,7 @@ then
 	echo 'FAIL policy preflight accepted a profile without complete pins' >&2
 	exit 1
 fi
-grep -Fq 'policy preflight requires the fully pinned diagnostic profile' \
+grep -Fq 'policy preflight requires a fully pinned diagnostic profile' \
 	"$tmp/err"
 
 if env -i PATH="$PATH" HOME="$HOME" \
@@ -149,6 +161,104 @@ then
 fi
 grep -Fq 'refusing the consumed generation-2 diagnostic recovery image' \
 	"$tmp/err"
+
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation3-offline-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6 \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL offline generation-3 profile reached boot admission' >&2
+	exit 1
+fi
+grep -Fq 'generation-3 diagnostic profile is offline-only and not boot-authorized' \
+	"$tmp/err"
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL offline generation-3 boot reached host inspection' >&2
+	exit 1
+fi
+
+run_generation3_policy() {
+	local recovery=$1 trust=$2 manifest=$3 host_verifier=$4 selected_bundle=$5
+	env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation3-offline-v1 \
+		BUNDLE="$selected_bundle" \
+		RECOVERY_SHA256="$recovery" \
+		TRUST_KEY_SHA256="$trust" \
+		MANIFEST_SHA256="$manifest" \
+		HOST_VERIFIER_SHA256="$host_verifier" \
+		bash "$gate" policy-preflight
+}
+
+generation3_exact=(
+	eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6
+	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
+	0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621
+	headless-netroot-early-diag-v1
+)
+generation3_policy=$(run_generation3_policy "${generation3_exact[@]}")
+grep -Fxq 'recovery_profile=headless-diagnostic-generation3-offline-v1' \
+	<<<"$generation3_policy"
+grep -Fxq \
+	'recovery_sha256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6' \
+	<<<"$generation3_policy"
+grep -Fxq 'authority=none' <<<"$generation3_policy"
+grep -Fxq 'result=PASS' <<<"$generation3_policy"
+
+generation3_fields=(recovery trust manifest host-verifier bundle)
+generation3_errors=(
+	'generation-3 diagnostic recovery image is not pinned'
+	'generation-3 diagnostic trust root is not pinned'
+	'generation-3 diagnostic runtime manifest is not pinned'
+	'generation-3 diagnostic host verifier is not pinned'
+	'profile requires bundle=headless-netroot-early-diag-v1'
+)
+for index in "${!generation3_fields[@]}"; do
+	mutation=("${generation3_exact[@]}")
+	if ((index == 4)); then
+		mutation[$index]=wrong-generation3-bundle
+	else
+		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	fi
+	if run_generation3_policy "${mutation[@]}" \
+		>"$tmp/out" 2>"$tmp/err"; then
+		echo "FAIL generation-3 policy accepted wrong ${generation3_fields[$index]}" >&2
+		exit 1
+	fi
+	grep -Fq "${generation3_errors[$index]}" "$tmp/err"
+done
+
+if [[ -d $generation3_root ]]; then
+	generation3_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation3-offline-v1 \
+			LIVE_BUILD_ROOT="$generation3_root/wrapper" \
+			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+			BUNDLE_ROOT="$generation3_root/bundle-a" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation3-offline-v1 image_sha256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6' \
+		<<<"$generation3_artifact"
+else
+	echo 'SKIP generation-3 retained artifact preflight: ignored build tree absent' >&2
+fi
 
 run_diagnostic_policy() {
 	local selected_bundle=$1 selected_image=$2 selected_manifest=$3
@@ -244,6 +354,8 @@ for required in \
 	'corrected-headless-successor-2026-07-30' \
 	'headless-ssh-deployment-v3' \
 	'headless-diagnostic-deployment-v1' \
+	'headless-diagnostic-generation3-offline-v1' \
+	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \
@@ -256,6 +368,17 @@ for required in \
 	'f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef' \
 	'332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830' \
 	'70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1' \
+	'eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6' \
+	'expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c' \
+	'expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce' \
+	'expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec' \
+	'expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77' \
+	'expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800' \
+	'expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0' \
+	'expected_target_id=headless-netroot-early-diag' \
+	'expected_bundle_profile=diagnostic-initramfs-v1' \
+	'expected_avb_salt=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce' \
+	'expected_avb_digest=6de238c36bd8325d2a6f431f27ee39e5d7bab81d9fe91bd6d3d0bad48ba3c60d' \
 	'expected_generation_record=4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109' \
 	'expected_avb_salt=8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712' \
 	'expected_avb_digest=903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541' \

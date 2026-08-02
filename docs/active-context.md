@@ -60,10 +60,15 @@ same-boot bundle-cache success path plus a lifecycle mock that hid the real
 PREPARE-to-transfer dependency. The offline correction now makes `/run` tmpfs
 fatal, forbids pre-existing final bundles, fixes the fixture, and stabilizes
 both host cleanup and the exact deferred-profile observation. Forty-one
-lifecycle tests and complete local CI pass; generation 3 remains blocked on
-reviewed publication and GitHub CI. See the
+lifecycle tests, complete local CI, Claude review, and GitHub Actions run
+`30750260056` pass at commit `1af3275`. A fresh production twin build now pins
+generation-3 AVB `eb514a57…d77b6`, raw wrapper `f1a7c5ad…6a4ce`, and recovery
+initramfs `144f1cfd…e4ec`. Its exact artifact preflight passes, but the new
+`headless-diagnostic-generation3-offline-v1` profile rejects connected
+preflight and boot and the image is absent from temporary-boot policy. See the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md)
-and [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
+[generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
+and [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
