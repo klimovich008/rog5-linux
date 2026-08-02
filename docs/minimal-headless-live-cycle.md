@@ -555,8 +555,11 @@ Preflight proves:
 - every private output name is unused;
 - the repository is clean and exactly synchronized with its remote-tracking
   branch;
-- no NFS handoff marker, export mount, TCP 8080/2049 listener, NFS export,
-  NFS worker, or `drop`-zone runtime state remains;
+- no NFS handoff marker or export mount remains; TCP 8080 has no IPv4 wildcard
+  or fixed `169.254.77.1` listener and no IPv6 wildcard or IPv4-mapped
+  equivalent; IPv4 TCP/UDP 2049 and 32767, NFS export, NFS worker, and
+  `drop`-zone runtime state are absent; an unrelated loopback-only TCP 8080
+  listener is allowed;
 - both privileged launchers are installed and byte-current; the bundle
   launcher runs the exact descriptor-based inventory/manifest validator
   without a listener; the fixed root-owned NFS entry point and export
