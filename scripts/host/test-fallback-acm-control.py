@@ -2382,6 +2382,117 @@ class PolicyTest(unittest.TestCase):
             ):
                 MODULE.wait_fastboot(location, timeout_seconds=1)
 
+    def test_fastboot_timeout_classifies_usb_transition(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        fastboot = (MODULE.FASTBOOT_VENDOR, MODULE.FASTBOOT_PRODUCT)
+        cases = (
+            (
+                False,
+                set(),
+                (MODULE.USB_VENDOR, MODULE.USB_PRODUCT),
+                "fallback USB never disconnected",
+            ),
+            (
+                True,
+                set(),
+                None,
+                "no anchored-port USB re-enumeration was observed",
+            ),
+            (
+                True,
+                {("18d1", "4ee0")},
+                ("18d1", "4ee0"),
+                "non-fastboot USB mode was observed",
+            ),
+            (
+                True,
+                {fastboot},
+                fastboot,
+                "fastboot userspace discovery did not succeed",
+            ),
+        )
+        for disconnected, observed, current, message in cases:
+            with (
+                self.subTest(
+                    disconnected=disconnected,
+                    observed=observed,
+                    current=current,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "anchored_usb_identity",
+                    return_value=current,
+                ),
+                self.assertRaisesRegex(MODULE.FallbackError, message),
+            ):
+                MODULE.fail_fastboot_timeout(
+                    location,
+                    disconnected,
+                    observed,
+                )
+
+    def test_fastboot_wait_accumulates_disconnect_and_reenumeration(
+        self,
+    ) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        fallback = (MODULE.USB_VENDOR, MODULE.USB_PRODUCT)
+        fastboot = (MODULE.FASTBOOT_VENDOR, MODULE.FASTBOOT_PRODUCT)
+        empty = subprocess.CompletedProcess([], 0, "", "")
+        with (
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(
+                MODULE,
+                "anchored_usb_identity",
+                side_effect=(fallback, None, fastboot),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 0.0, 2.0),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+            mock.patch.object(
+                MODULE.subprocess,
+                "run",
+                return_value=empty,
+            ),
+            mock.patch.object(
+                MODULE,
+                "fail_fastboot_timeout",
+                side_effect=MODULE.FallbackError("classified"),
+            ) as classify,
+            self.assertRaisesRegex(MODULE.FallbackError, "classified"),
+        ):
+            MODULE.wait_fastboot(location, timeout_seconds=1)
+        classify.assert_called_once_with(location, True, {fastboot})
+
+    def test_anchored_usb_identity_is_exact_and_race_tolerant(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-usb-transition-"
+        ) as temporary:
+            root = Path(temporary)
+            location = "pci/usb1/1-1/1-1.2"
+            raw = root / location
+            with mock.patch.object(MODULE, "SYS_DEVICES", root):
+                self.assertIsNone(MODULE.anchored_usb_identity(location))
+                raw.mkdir(parents=True)
+                (raw / "idVendor").write_text("0B05\n")
+                (raw / "idProduct").write_text("4DAF\n")
+                self.assertEqual(
+                    MODULE.anchored_usb_identity(location),
+                    ("0b05", "4daf"),
+                )
+                (raw / "idProduct").write_text("not-a-pid\n")
+                self.assertIsNone(MODULE.anchored_usb_identity(location))
+                with mock.patch.object(
+                    MODULE,
+                    "read_small",
+                    side_effect=("0b05", MODULE.FallbackError("disconnect")),
+                ):
+                    self.assertIsNone(
+                        MODULE.anchored_usb_identity(location)
+                    )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

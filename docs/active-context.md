@@ -351,6 +351,17 @@ preflight. See the [successor result](../test-results/2026-08-02-listener-succes
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
 
+The first generation-2 connected attempt passed the exact credential-chain
+gate and fresh signed Alpine ACM health preflight, then the guarded
+`RESTART2("bootloader")` request detached USB without any phone mode returning
+during the bounded observation. No recovery boot occurred and generation 2
+remains unconsumed. The host now classifies this terminal transition by
+observed same-port USB phase while retaining the unchanged strict fastboot
+success gate; see the
+[offline transition result](../test-results/2026-08-02-fallback-fastboot-transition-diagnostics-offline.md).
+The next action is a manual fastboot entry followed by the exact connected
+diagnostic preflight, not a boot.
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the

@@ -717,7 +717,7 @@ not permission to retry a decided PREPARE request.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers sixteen admission
-scenarios, `test-fallback-acm-control.py` covers forty-seven fallback
+scenarios, `test-fallback-acm-control.py` covers fifty fallback
 protocol tests, `test-recovery-host-controller.py` covers twenty-two privileged
 controller tests, `test-recovery-host-socket.py` covers eleven socket tests, and
 `test-run-minimal-headless-live-cycle.py` covers thirty-seven lifecycle test
@@ -776,6 +776,11 @@ methods. Together they prove:
   any phone
   write beyond the bounded BusyBox-history and possible atime effects covered
   by the standing authorization;
+- a terminal guarded-reboot timeout reports whether fallback disconnect,
+  anchored-port re-enumeration, non-fastboot USB, or fastboot-userspace
+  discovery was observed; this best-effort classifier cannot admit a device,
+  and hotplug races resolve to an unknown observation rather than aborting the
+  authoritative exact-fastboot wait;
 - its 30-second post-ACK COMMIT deadline exceeds the remote's 25-second
   post-ACK deadline; the phone checks that deadline after repeated health
   collection and both before and after COMMIT publication, preventing a late

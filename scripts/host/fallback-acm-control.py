@@ -1957,10 +1957,65 @@ def require_fastboot_usb(location: str, serial: str) -> None:
         fail("fastboot serial is not unique at the expected physical port")
 
 
+def anchored_usb_identity(location: str) -> tuple[str, str] | None:
+    """Best-effort VID:PID observation at the pinned physical port."""
+    validate_location(location)
+    raw = SYS_DEVICES / location
+    try:
+        vendor = read_small(raw / "idVendor", 16).lower()
+        product_id = read_small(raw / "idProduct", 16).lower()
+    except (FallbackError, OSError):
+        # Hotplug may remove or replace this node between either read. This
+        # observation only improves a fatal timeout diagnostic; exact
+        # fastboot admission remains in require_fastboot_usb().
+        return None
+    if not re.fullmatch(r"[0-9a-f]{4}", vendor) or not re.fullmatch(
+        r"[0-9a-f]{4}", product_id
+    ):
+        return None
+    return vendor, product_id
+
+
+def fail_fastboot_timeout(
+    location: str,
+    saw_disconnect: bool,
+    reenumerated: set[tuple[str, str]],
+) -> NoReturn:
+    current = anchored_usb_identity(location)
+    if not saw_disconnect:
+        fail(
+            "fallback USB never disconnected after the acknowledged "
+            "bootloader reboot"
+        )
+    if current is None and not reenumerated:
+        fail(
+            "fallback USB disconnected but no anchored-port USB "
+            "re-enumeration was observed"
+        )
+    fastboot_identity = (FASTBOOT_VENDOR, FASTBOOT_PRODUCT)
+    if current == fastboot_identity or fastboot_identity in reenumerated:
+        fail(
+            "exact fastboot USB re-enumerated but fastboot userspace "
+            "discovery did not succeed"
+        )
+    fail("a non-fastboot USB mode was observed at the anchored port")
+
+
 def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
     fixed_binary(FASTBOOT)
     deadline = time.monotonic() + timeout_seconds
+    initial_identity = anchored_usb_identity(location)
+    fallback_identity = (USB_VENDOR, USB_PRODUCT)
+    saw_disconnect = initial_identity != fallback_identity
+    reenumerated: set[tuple[str, str]] = set()
+    if saw_disconnect and initial_identity is not None:
+        reenumerated.add(initial_identity)
     while time.monotonic() < deadline:
+        identity = anchored_usb_identity(location)
+        if identity is None:
+            saw_disconnect = True
+        elif saw_disconnect:
+            reenumerated.add(identity)
         result = subprocess.run(
             [str(FASTBOOT), "devices"],
             check=False,
@@ -2004,7 +2059,7 @@ def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
             require_fastboot_usb(location, serial)
             return
         time.sleep(0.25)
-    fail("exact fastboot device did not appear after fallback reboot")
+    fail_fastboot_timeout(location, saw_disconnect, reenumerated)
 
 
 def require_guards(action: str) -> None:
