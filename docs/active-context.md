@@ -362,6 +362,13 @@ success gate; see the
 The next action is a manual fastboot entry followed by the exact connected
 diagnostic preflight, not a boot.
 
+Manual fastboot then exposed exact ASUS `0b05:4daf` on the pinned physical
+path and product `lahaina`. The generation-2 connected diagnostic preflight
+passed from clean pushed commit `32ce8b1` after local and GitHub CI, using the
+canonical installed no-replace bundle root. No boot or server was started and
+generation 2 remains unconsumed; see the
+[connected preflight result](../test-results/2026-08-02-nfs-gated-generation-2-connected-preflight.md).
+
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
 The replacement fallback control boundary is recorded in the
