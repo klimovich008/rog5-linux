@@ -919,11 +919,20 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    byte-identical raw recovery `2f460aa0…628a01`; only descriptor salt and
    digest differ, and the full artifact preflight passes. The corrected
    controller is installed byte-exact at `9f3be8e9…90894`, its socket is active,
-   SteamOS read-only mode is restored, and complete local CI passes. Publish,
-   pass GitHub CI and connected preflight, then run at most one RAM-only
-   lifecycle. See the
+   SteamOS read-only mode is restored, and complete local/GitHub CI plus
+   connected preflight passed. Generation 1 then booted once: recovery fetched
+   and verified the exact signed bundle, returned `PREPARED`, and claimed one
+   commit. The host control client's NFS policy omitted the diagnostic bundle,
+   so the commit preceded NFS startup, no target frame arrived, exact Alpine
+   fallback passed, and the intent was resolved `FALLBACK_RETURNED`.
+   Generation 1 is consumed. The fail-closed host correction requires the
+   diagnostic v3 profile/package handoff and rejects unknown guarded bundles
+   before phone discovery; 20 control and 39 lifecycle tests pass. Publish,
+   review, complete CI, and issue a distinct generation-2 identity before any
+   further phone boot. See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md)
-   and [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md).
+   [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
+   and [NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

@@ -461,15 +461,17 @@ Current execution order:
 5. **Complete:** classify the loopback-listener host rejection, scope and test
    the privileged check, consume the attempted wrapper, and issue exact
    generation-1 AVB successor `332889a8…b51830` over unchanged recovery bytes;
-6. **In progress:** exact corrected-controller installation and complete local
-   CI pass; publish and pass GitHub CI, then pass privileged-host, fallback-SSH,
-   and connected preflights and perform at most one guarded
-   temporary boot, collect the bounded one-way stage stream, prove exact
-   fallback/cleanup, and use that evidence to fix the 23-second USB-loss
-   boundary without retrying a consumed image;
-7. repeat with a distinct normal SSH candidate only after the diagnostic
+6. **Complete:** install the corrected controller, pass local/GitHub CI and
+   connected preflight, boot generation 1 once, reach signed-bundle
+   `PREPARED` plus one `COMMIT_EXEC` claim, prove exact fallback/cleanup, and
+   identify that diagnostic was missing from the host's NFS-gated bundle set;
+7. **In progress:** publish/review the fail-closed diagnostic NFS policy and
+   complete CI, then issue a distinct generation-2 AVB identity over unchanged
+   recovery bytes and run fresh offline/connected preflights before at most one
+   further diagnostic cycle;
+8. repeat with a distinct normal SSH candidate only after the diagnostic
    evidence identifies and fixes the failing boundary;
-8. if H2 passes, continue physical keys/indicator, then H3
+9. if H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

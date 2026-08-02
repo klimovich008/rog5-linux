@@ -39,6 +39,16 @@ from tools.recovery_control import (  # noqa: E402
 SS = Path("/usr/bin/ss")
 NETWORK_ROOT_BUNDLE = "headless-network-root-v1"
 DEPLOYMENT_NETWORK_ROOT_BUNDLE = "headless-ssh-network-root-v3-r2"
+# Both bundles intentionally use the same sealed v3 export; package_sha256
+# remains the per-payload identity carried by the handoff marker.
+DIAGNOSTIC_NETWORK_ROOT_BUNDLE = "headless-netroot-early-diag-v1"
+V3_NETWORK_ROOT_BUNDLES = frozenset(
+    {
+        DEPLOYMENT_NETWORK_ROOT_BUNDLE,
+        DIAGNOSTIC_NETWORK_ROOT_BUNDLE,
+    }
+)
+NETWORK_ROOT_BUNDLES = frozenset({NETWORK_ROOT_BUNDLE}) | V3_NETWORK_ROOT_BUNDLES
 DEPLOYMENT_NFS_PROFILE = "headless-ssh-deployment-v3"
 NFS_HANDOFF_MARKER = Path("/run/rog5-network-root-nfs-ready")
 NFS_HANDOFF_ROOT = Path("/var/lib/rog5-headless-network-root-v1/root")
@@ -308,7 +318,7 @@ def nfs_handoff_marker_matches(
                 f"export_root={NFS_HANDOFF_ROOT}\n"
             ).encode("ascii")
         elif (
-            bundle == DEPLOYMENT_NETWORK_ROOT_BUNDLE
+            bundle in V3_NETWORK_ROOT_BUNDLES
             and re.fullmatch(r"[0-9a-f]{64}", package_sha256)
             and package_sha256 != "0" * 64
         ):
@@ -600,10 +610,8 @@ def main(arguments: list[str]) -> int:
         if os.environ.get("ALLOW_ATTENDED_KEXEC") != "1":
             fail("set ALLOW_ATTENDED_KEXEC=1 for the non-retryable commit")
         before_commit = None
-        if arguments[1] in {
-            NETWORK_ROOT_BUNDLE,
-            DEPLOYMENT_NETWORK_ROOT_BUNDLE,
-        }:
+        bundle = arguments[1]
+        if bundle in NETWORK_ROOT_BUNDLES:
             if os.environ.get("ALLOW_NETWORK_ROOT_NFS_HANDOFF") != "1":
                 fail(
                     "set ALLOW_NETWORK_ROOT_NFS_HANDOFF=1 to require "
@@ -616,7 +624,7 @@ def main(arguments: list[str]) -> int:
                     "256-bit hex token shared with the NFS server"
                 )
             package_sha256 = ""
-            if arguments[1] == DEPLOYMENT_NETWORK_ROOT_BUNDLE:
+            if bundle in V3_NETWORK_ROOT_BUNDLES:
                 if (
                     os.environ.get("ROG5_NFS_PROFILE")
                     != DEPLOYMENT_NFS_PROFILE
@@ -639,12 +647,16 @@ def main(arguments: list[str]) -> int:
                     )
             before_commit = lambda: wait_for_network_root_nfs(
                 handoff_token,
-                bundle=arguments[1],
+                bundle=bundle,
                 package_sha256=package_sha256,
             )
+        # Presence is deliberate: an unsupported bundle must fail closed even
+        # when a caller mistakenly supplies an empty or false-looking guard.
+        elif "ALLOW_NETWORK_ROOT_NFS_HANDOFF" in os.environ:
+            fail("bundle does not permit network-root NFS handoff")
         ensure_host_ready()
         prepared, committed, intent = prepare_and_commit(
-            arguments[1],
+            bundle,
             arguments[2],
             before_commit=before_commit,
         )

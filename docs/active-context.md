@@ -41,26 +41,24 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Active deployment checkpoint
 
-Latest exact checkpoint (2026-08-01): the guarded production-key operation
-twin-built `headless-netroot-early-diag-v1` from clean synchronized commit
-`529f3aa`. Its signed manifest is `4eacb90f…f7e76`, recovery AVB wrapper is
-`9c060a27…204ef`, public trust root is `f10ca076…c57b`, and host verifier is
-`0a570805…b621`. Every A/B output is byte-identical and the complete native
-artifact preflight passes. The private snapshot was destroyed, the external
-source key was unchanged, and no phone interface was contacted. The
-diagnostic target remains unexecuted, but that recovery wrapper is now
-consumed, absent from temporary-boot admission, and explicitly refused by the
-live gate. It must never be retried or flashed. See the
-[production build result](../test-results/2026-08-01-early-target-diagnostic-production-build.md).
+Latest exact checkpoint (2026-08-02): generation-1 recovery AVB
+`332889a8…b51830` booted once after local/GitHub CI, installed-controller,
+credential, artifact, fallback, and connected-fastboot gates passed. Recovery
+fetched and verified signed manifest `4eacb90f…f7e76`, returned `PREPARED`, and
+claimed one `COMMIT_EXEC`. The host control client had omitted
+`headless-netroot-early-diag-v1` from its NFS-gated bundle set, so commit
+preceded NFS startup and no diagnostic frame arrived. Exact signed same-port
+Alpine fallback passed at 41.8 C; final host state is clean and the durable
+intent is resolved `FALLBACK_RETURNED`.
 
-Independent standards and objective-fidelity closure reviews report no
-findings, the complete local `ci` tier passes, and both jobs in GitHub Actions
-run [`30706668986`](https://github.com/klimovich008/rog5-linux/actions/runs/30706668986)
-pass at exact production-pin commit `6821aa62`. That production wrapper is
-historical evidence only. The next bootable artifact
-must be a fresh twin-built and production-signed wrapper containing the
-corrected diagnostic fetch policy; no temporary diagnostic boot is currently
-admitted.
+Generation 1 and every earlier diagnostic recovery are consumed, absent from
+temporary-boot admission, and must never be retried or flashed. The host fix
+adds diagnostic to the exact v3 profile/package NFS policy and rejects unknown
+handoff requests before device discovery; 20 recovery-control and 39 lifecycle
+tests pass. The next boundary is review, complete local/GitHub CI, then a
+distinct generation-2 AVB identity over unchanged raw recovery bytes and fresh
+connected preflight. See the
+[live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
@@ -340,8 +338,17 @@ one-shot identity, not a new signature; the bootloader wrapper still uses AVB
 algorithm `NONE`. The corrected root-owned controller is now installed at
 exact source/install SHA-256 `9f3be8e9…90894`, its socket is active, SteamOS
 read-only mode is enabled, and complete local CI passes. Reviewed publication,
-GitHub CI, and connected preflight remain before any phone boot. See the
-[successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md).
+GitHub CI, and connected preflight passed, then generation 1 booted once.
+Recovery fetched and verified the signed bundle, returned `PREPARED`, and
+claimed one `COMMIT_EXEC`, but the host control client's hard-coded NFS bundle
+set omitted the diagnostic bundle. Commit therefore preceded NFS startup; no
+diagnostic frame arrived, and exact same-port Alpine fallback passed. The
+durable intent is resolved `FALLBACK_RETURNED` and generation 1 is consumed.
+The host fix adds diagnostic to the exact v3 NFS policy and rejects unknown
+handoff requests before device discovery; 20 control and 39 lifecycle tests
+pass. Publish/review/CI and a distinct generation-2 AVB identity are the next
+boundary. See the [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md)
+and [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
 
 See the
 [real-host deployment result](../test-results/2026-07-31-steamos-deployment-preflight-live.md).
