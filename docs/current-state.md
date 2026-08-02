@@ -929,13 +929,20 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    diagnostic v3 profile/package handoff and rejects unknown guarded bundles
    before phone discovery; 20 control and 39 lifecycle tests, independent
    review, local CI, and GitHub CI pass at `77336ed`. Distinct generation-2 AVB
-   `70fd77f7…fc72b1` preserves raw recovery `2f460aa0…628a01` and passes the
-   complete artifact preflight. It is unbooted; publish/review its pins and
-   pass exact host/fallback/connected preflight before any phone boot. See the
+   `70fd77f7…fc72b1` preserved raw recovery `2f460aa0…628a01`, passed artifact
+   and connected preflight, and booted once. Recovery returned `PREPARED`, but
+   the host saw no completed HTTP transfer; NFS never started and control
+   failed before COMMIT. No intent or target execution occurred, exact
+   same-port Alpine fallback passed, and generation 2 is consumed. The offline
+   correction now requires fatal `/run` tmpfs validation, fresh-fetch-only
+   PREPARE, the corrected lifecycle fixture, and continuously stabilized host
+   cleanup plus deferred-profile proof. Forty-one lifecycle tests and complete
+   local CI pass; generation 3 remains blocked on reviewed publication and
+   GitHub CI. See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md)
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
    [NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
-   and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
+   and [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

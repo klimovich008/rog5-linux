@@ -323,6 +323,10 @@ class Fixture:
                    [ -e "$MOCK_ROOT/profile-restored" ] ||
                    [ "${MOCK_DEFERRED_ACTIVE_UUID:-0}" = 1 ]; then
                   echo "$uuid"
+                elif [ "${MOCK_DEFERRED_PROFILE_GAP:-0}" = 1 ] &&
+                     [ ! -e "$MOCK_ROOT/deferred-profile-gap-consumed" ]; then
+                  : >"$MOCK_ROOT/deferred-profile-gap-consumed"
+                  echo "$uuid"
                 fi
                 ;;
               '-g connection.uuid,connection.id,connection.interface-name,connection.autoconnect connection show rog5-fallback-usb-ssh')
@@ -493,9 +497,13 @@ class Fixture:
             shift
             printf 'bundle:start\n' >>"$MOCK_CALLS"
             echo 'PASS recovery bundle server ready on 169.254.77.1:8080 via usb0'
-            while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
+            while [ ! -e "$MOCK_ROOT/prepare-started" ]; do
               sleep 0.01
             done
+            if [ "${MOCK_FETCH_CACHE_HIT:-0}" = 1 ]; then
+              while :; do sleep 1; done
+            fi
+            : >"$MOCK_ROOT/bundle-consumed"
             printf 'bundle:transfer\n' >>"$MOCK_CALLS"
             echo 'PASS one recovery bundle transfer completed'
             echo 'INFO recovery bundle host network state removed'
@@ -564,7 +572,7 @@ class Fixture:
                 [ "${{ROG5_NFS_PACKAGE_SHA256:-}}" = "{PACKAGE_SHA256}" ]
                 [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
                 printf 'control:prepare-commit\n' >>"$MOCK_CALLS"
-                : >"$MOCK_ROOT/bundle-consumed"
+                : >"$MOCK_ROOT/prepare-started"
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
                 done
@@ -1445,6 +1453,24 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             any(line.startswith("control:resolve:") for line in calls)
         )
 
+    def test_cache_hit_without_transfer_never_starts_nfs_or_commit(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_FETCH_CACHE_HIT="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "one-transfer bundle server exceeded its bounded window",
+            result.stderr,
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertNotIn("bundle:transfer", calls)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
     def test_bundle_address_or_networkmanager_residue_blocks_nfs(self):
         for variable in (
             "MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE",
@@ -1475,6 +1501,20 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("nfs:start", self.fixture.call_lines())
                 self.assertIn("deferred", result.stderr)
+
+    def test_bundle_cleanup_waits_for_deferred_profile_observation_race(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_DEFERRED_PROFILE_GAP="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(
+            (
+                self.fixture.root
+                / "deferred-profile-gap-consumed"
+            ).is_file()
+        )
+        self.assertIn("nfs:start", self.fixture.call_lines())
 
     def test_final_address_residue_prevents_intent_resolution(self):
         result = self.fixture.run(
