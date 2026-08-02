@@ -39,6 +39,9 @@ expected_image=${RECOVERY_SHA256:-}
 expected_trust=${TRUST_KEY_SHA256:-}
 expected_manifest=${MANIFEST_SHA256:-}
 expected_host_verifier=${HOST_VERIFIER_SHA256:-}
+expected_generation_record=
+expected_avb_salt=
+expected_avb_digest=
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -84,7 +87,8 @@ if [[ $action == boot &&
 	$expected_manifest == "$consumed_r2_manifest" ) ]]; then
 	fail 'refusing a consumed deployment manifest'
 fi
-if [[ $expected_image == "$consumed_diagnostic_recovery" ]]; then
+if [[ $expected_image == "$consumed_diagnostic_recovery" ||
+	$expected_image == "$consumed_corrected_diagnostic_recovery" ]]; then
 	fail 'refusing the consumed diagnostic recovery image'
 fi
 case $profile in
@@ -162,11 +166,14 @@ case $profile in
 		expected_target_id=headless-netroot-early-diag
 		expected_bundle=headless-netroot-early-diag-v1
 		expected_bundle_profile=diagnostic-initramfs-v1
+		expected_generation_record=68e42eec4875ba747dfe44dbcd086ba518049caeb80c7495953fc8b773f26f6c
+		expected_avb_salt=334e66adbf188df2e746f674d2bd9577d76dab746e211fa84a38fc3d2ebeab5e
+		expected_avb_digest=5a4025f5b1cbbd1aecaace6e7761643434043f2121e696a44b456dea524e1006
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'diagnostic runtime manifest is not allowlisted'
 		[[ $expected_image == \
-			f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef ]] ||
+			332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 ]] ||
 			fail 'diagnostic recovery image identity is not allowlisted'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -185,9 +192,6 @@ case $profile in
 esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
-if [[ $expected_image == "$consumed_corrected_diagnostic_recovery" ]]; then
-	fail 'refusing the consumed diagnostic recovery image'
-fi
 # expected_image is the caller-supplied RECOVERY_SHA256 and is never
 # reassigned by profile selection.
 
@@ -289,6 +293,7 @@ case $component_layout in
 		;;
 esac
 manifest=$bundle_root/$bundle/manifest
+generation_record=$live_root/avb-generation.txt
 
 for input in "$image" "$twin_image" "$raw" "$twin_raw" "$kernel" \
 	"$twin_kernel" "$ramdisk" "$twin_ramdisk" "$config" "$twin_config" \
@@ -298,6 +303,13 @@ for input in "$image" "$twin_image" "$raw" "$twin_raw" "$kernel" \
 	[[ -f $input && ! -L $input && -r $input ]] ||
 		fail "unsafe or missing live input: $input"
 done
+if [[ -n $expected_generation_record ]]; then
+	[[ -f $generation_record && ! -L $generation_record &&
+		-r $generation_record ]] ||
+		fail 'unsafe or missing AVB-generation record'
+elif [[ -e $generation_record || -L $generation_record ]]; then
+	fail 'profile does not permit an AVB-generation record'
+fi
 if [[ $action == preflight || $action == boot ]]; then
 	boot_policy=$repo/manifests/temporary-boot-images.tsv
 	artifact_manifest=$repo/manifests/artifacts.tsv
@@ -370,6 +382,9 @@ check_hash "$control" "$expected_control"
 check_hash "$fetcher" "$expected_fetcher"
 check_hash "$verifier" "$expected_verifier"
 check_hash "$config" "$expected_config"
+if [[ -n $expected_generation_record ]]; then
+	check_hash "$generation_record" "$expected_generation_record"
+fi
 if [[ $requires_qualified_cpio == 1 ]]; then
 	check_hash "$qualified_cpio" \
 		7520899a405e1fc698875e047d8671c9415116e944831135a8e8eb6a93a21580
@@ -411,6 +426,16 @@ python3 "$avbtool" verify_image --image "$inspection/recovery.img"
 avb_info=$(python3 "$avbtool" info_image --image "$inspection/recovery.img")
 grep -q '^Algorithm:[[:space:]]*NONE$' <<<"$avb_info"
 grep -q '^      Partition Name:[[:space:]]*boot$' <<<"$avb_info"
+if [[ -n $expected_avb_salt ]]; then
+	[[ $(grep -c '^    Hash descriptor:$' <<<"$avb_info") == 1 &&
+		$(grep -c '^      Salt:' <<<"$avb_info") == 1 &&
+		$(grep -c '^      Digest:' <<<"$avb_info") == 1 ]] ||
+		fail 'AVB generation descriptor inventory changed'
+	[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$avb_info") == \
+		"$expected_avb_salt" ]] || fail 'AVB generation salt changed'
+	[[ $(awk '/^      Digest:/ { print $2; exit }' <<<"$avb_info") == \
+		"$expected_avb_digest" ]] || fail 'AVB generation digest changed'
+fi
 cmp "$inspection/recovery.img" "$image"
 cmp "$inspection/boot.img" "$raw"
 

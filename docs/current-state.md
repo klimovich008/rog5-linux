@@ -913,9 +913,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    privileged controller rejected Steam's loopback-only TCP 8080 listener
    before bundle response, `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Watchdog
    fallback and strict pinned Alpine SSH passed. The wrapper is consumed and
-   denied; the target remains unexecuted. Scope and reinstall the privileged
-   listener check, then issue a distinct signed AVB successor. See the
-   [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md).
+   denied; the target remains unexecuted. The scoped privileged listener check
+   now passes 25 tests, independent review, local CI, and GitHub CI. A
+   deterministic generation-1 AVB successor `332889a8…b51830` was issued over
+   byte-identical raw recovery `2f460aa0…628a01`; only descriptor salt and
+   digest differ, and the full artifact preflight passes. The corrected
+   controller is installed byte-exact at `9f3be8e9…90894`, its socket is active,
+   SteamOS read-only mode is restored, and complete local CI passes. Publish,
+   pass GitHub CI and connected preflight, then run at most one RAM-only
+   lifecycle. See the
+   [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md)
+   and [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

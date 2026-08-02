@@ -458,11 +458,15 @@ Current execution order:
    configuration identity is pinned without changing the historical r2 pins;
 4. **Complete:** publish the reviewed pin update and pass both GitHub Actions
    jobs in run `30706668986` at exact production-pin head `6821aa62`;
-5. install only the signed diagnostic artifacts and pass local,
-   privileged-host, fallback-SSH, and connected-fastboot preflights;
-6. perform at most one separately guarded temporary boot, collect the bounded
-   one-way stage stream, prove exact fallback/cleanup, and use that evidence to
-   fix the 23-second USB-loss boundary without retrying the consumed image;
+5. **Complete:** classify the loopback-listener host rejection, scope and test
+   the privileged check, consume the attempted wrapper, and issue exact
+   generation-1 AVB successor `332889a8…b51830` over unchanged recovery bytes;
+6. **In progress:** exact corrected-controller installation and complete local
+   CI pass; publish and pass GitHub CI, then pass privileged-host, fallback-SSH,
+   and connected preflights and perform at most one guarded
+   temporary boot, collect the bounded one-way stage stream, prove exact
+   fallback/cleanup, and use that evidence to fix the 23-second USB-loss
+   boundary without retrying a consumed image;
 7. repeat with a distinct normal SSH candidate only after the diagnostic
    evidence identifies and fixes the failing boundary;
 8. if H2 passes, continue physical keys/indicator, then H3

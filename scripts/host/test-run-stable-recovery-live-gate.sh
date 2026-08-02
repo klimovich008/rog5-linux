@@ -10,6 +10,7 @@ trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
 diagnostic_image=build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img
 corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img
+listener_successor_image=build/early-target-diagnostic-deployment-20260802-listener-r3-production/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -28,6 +29,16 @@ corrected_diagnostic_image=build/early-target-diagnostic-deployment-20260801-fet
 	&& $4 ~ /^consumed production-signed fetch-policy-corrected diagnostic recovery/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL corrected diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$listener_successor_image" \
+	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL listener successor is not uniquely boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$listener_successor_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830" \
+	&& $4 ~ /^admitted generation-1 AVB wrapper/ \
+	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL listener successor artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -121,7 +132,7 @@ run_diagnostic_policy() {
 
 if run_diagnostic_policy \
 	headless-netroot-early-diag-v1 \
-	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
+	332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 \
 	9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 manifest' >&2
@@ -131,7 +142,7 @@ grep -Fq 'diagnostic runtime manifest is not allowlisted' "$tmp/err"
 
 if run_diagnostic_policy \
 	headless-ssh-network-root-v3-r2 \
-	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
+	332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830 \
 	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	>"$tmp/out" 2>"$tmp/err"; then
 	echo 'FAIL diagnostic artifact policy accepted the normal r2 bundle' >&2
@@ -208,6 +219,12 @@ for required in \
 	'expected_initramfs=f414d0ea26ee3aa6cca5c3aa12c1601934294c0207fc2709ebbae305bb3642e0' \
 	'9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef' \
 	'f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef' \
+	'332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830' \
+	'expected_generation_record=68e42eec4875ba747dfe44dbcd086ba518049caeb80c7495953fc8b773f26f6c' \
+	'expected_avb_salt=334e66adbf188df2e746f674d2bd9577d76dab746e211fa84a38fc3d2ebeab5e' \
+	'expected_avb_digest=5a4025f5b1cbbd1aecaace6e7761643434043f2121e696a44b456dea524e1006' \
+	'profile does not permit an AVB-generation record' \
+	'AVB generation descriptor inventory changed' \
 	'expected_kernel=7fac4dda6a7133e7d3a6589da4fb5d0bdad3802705da5edf52701a20133728ed' \
 	'expected_raw=2f460aa01ee1b97c495d0857b3207bf74920487c56f30c5e155e199967628a01' \
 	'expected_initramfs=fec72c4dba62a24ced899af4d4fc3d0af3b7b691ea6f6c1bcf90c7aaf181c57a' \
