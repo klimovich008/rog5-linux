@@ -29,7 +29,8 @@ profile=${ROG5_STABLE_RECOVERY_PROFILE:-}
 if [[ $action == policy-preflight ]]; then
 	case $profile in
 		headless-diagnostic-deployment-v1 | \
-		headless-diagnostic-generation3-offline-v1) ;;
+		headless-diagnostic-generation3-offline-v1 | \
+		headless-diagnostic-generation3-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -166,6 +167,8 @@ case $profile in
 		requires_qualified_cpio=1
 		;;
 	headless-diagnostic-deployment-v1)
+		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+			fail 'historical diagnostic profile is offline-only and consumed'
 		component_layout=structured
 		expected_kernel=7fac4dda6a7133e7d3a6589da4fb5d0bdad3802705da5edf52701a20133728ed
 		expected_raw=2f460aa01ee1b97c495d0857b3207bf74920487c56f30c5e155e199967628a01
@@ -198,9 +201,17 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation3-offline-v1)
-		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+	headless-diagnostic-generation3-offline-v1 | \
+	headless-diagnostic-generation3-live-v1)
+		if [[ $profile == headless-diagnostic-generation3-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-3 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation3-live-v1 &&
+			$action == boot &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-3 boot requires the one-shot lifecycle controller'
+		fi
 		# This is a fresh twin build, not an AVB-generation issuer output;
 		# expected_generation_record intentionally remains empty.
 		component_layout=structured
