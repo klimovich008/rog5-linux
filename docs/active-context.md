@@ -48,15 +48,22 @@ intent is resolved `FALLBACK_RETURNED`. The fail-closed host fix passes 20
 recovery-control and 39 lifecycle tests, independent review, complete local
 CI, and GitHub Actions run `30745676057` at exact commit `77336ed`.
 
-Distinct generation-2 AVB `70fd77f7…fc72b1` was then issued offline over
-unchanged raw recovery `2f460aa0…628a01`; A/B twins, generation record
-`4a1de575…8d109`, salt/digest, complete descriptor structure, and exact
-production-trust-root artifact preflight pass. Generation 2 is the sole
-temporary-recovery allow row but remains unbooted. Publish/review these pins,
-re-pass local/GitHub CI, install the exact host source, and pass fallback plus
-connected preflight before at most one RAM-only cycle. See the
+Distinct generation-2 AVB `70fd77f7…fc72b1` then passed artifact and connected
+preflight and booted exactly once. Recovery returned correlated `PREPARED`,
+but the one-transfer HTTP server never completed, so the exact NFS handoff was
+absent and control failed before `COMMIT_EXEC`. No intent, target execution,
+diagnostic frame, mount, or phone-storage write occurred. Watchdog fallback,
+same-port profile restoration, and strict pinned Alpine SSH passed. Generation
+2 is consumed and absent from boot admission. Offline inspection proved the
+exact booted archive contains no bundle; the remaining gap was an unevidenced
+same-boot bundle-cache success path plus a lifecycle mock that hid the real
+PREPARE-to-transfer dependency. The offline correction now makes `/run` tmpfs
+fatal, forbids pre-existing final bundles, fixes the fixture, and stabilizes
+both host cleanup and the exact deferred-profile observation. Forty-one
+lifecycle tests and complete local CI pass; generation 3 remains blocked on
+reviewed publication and GitHub CI. See the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md)
-and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
+and [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
@@ -345,17 +352,17 @@ durable intent is resolved `FALLBACK_RETURNED` and generation 1 is consumed.
 The host fix adds diagnostic to the exact v3 NFS policy and rejects unknown
 handoff requests before device discovery; 20 control and 39 lifecycle tests,
 independent review, local CI, and GitHub CI pass at `77336ed`. Generation-2 AVB
-`70fd77f7…fc72b1` is distinct over unchanged raw recovery and passes its exact
-artifact gate; it remains unbooted pending reviewed pins and connected
-preflight. See the [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
+`70fd77f7…fc72b1` later booted once, failed before COMMIT when PREPARED lacked
+a corresponding host transfer completion, returned to exact fallback, and is
+consumed. See the [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
-and [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
+and [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
 
-The first generation-2 connected attempt passed the exact credential-chain
+An earlier generation-2 connected attempt passed the exact credential-chain
 gate and fresh signed Alpine ACM health preflight, then the guarded
 `RESTART2("bootloader")` request detached USB without any phone mode returning
-during the bounded observation. No recovery boot occurred and generation 2
-remains unconsumed. The host now classifies this terminal transition by
+during the bounded observation. No recovery boot occurred in that attempt.
+The host now classifies this terminal transition by
 observed same-port USB phase while retaining the unchanged strict fastboot
 success gate; see the
 [offline transition result](../test-results/2026-08-02-fallback-fastboot-transition-diagnostics-offline.md).
@@ -365,8 +372,8 @@ diagnostic preflight, not a boot.
 Manual fastboot then exposed exact ASUS `0b05:4daf` on the pinned physical
 path and product `lahaina`. The generation-2 connected diagnostic preflight
 passed from clean pushed commit `32ce8b1` after local and GitHub CI, using the
-canonical installed no-replace bundle root. No boot or server was started and
-generation 2 remains unconsumed; see the
+canonical installed no-replace bundle root. No boot or server was started by
+the preflight itself; the later single live cycle is recorded above. See the
 [connected preflight result](../test-results/2026-08-02-nfs-gated-generation-2-connected-preflight.md).
 
 See the

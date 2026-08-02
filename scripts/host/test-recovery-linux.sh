@@ -95,15 +95,15 @@ awk -F '\t' -v name="$listener_successor" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'the listener-corrected successor inventory is not exact'
 nfs_gated_successor='build/early-target-diagnostic-deployment-20260802-nfs-gated-r4-production/wrapper/repack/stable-recovery-a.avb.img'
-awk -F '\t' -v name="$nfs_gated_successor" '
-	$1 == name && $2 == "allow" &&
-	$3 ~ /generation-2 AVB identity/ { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'the NFS-gated successor is not uniquely admitted'
+if awk -F '\t' -v name="$nfs_gated_successor" \
+	'$1 == name { found=1 } END { exit !found }' "$policy"
+then
+	fail 'the consumed NFS-gated successor remains in temporary-boot policy'
+fi
 awk -F '\t' -v name="$nfs_gated_successor" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1" &&
-	$4 ~ /^admitted generation-2 AVB wrapper/ { count++ }
+	$4 ~ /^consumed generation-2 AVB wrapper/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'the NFS-gated successor inventory is not exact'
 

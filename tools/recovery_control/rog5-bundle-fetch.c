@@ -1904,28 +1904,8 @@ int main(int argc, char **argv)
 			result = EXIT_BUNDLE_CONFLICT;
 			goto out;
 		}
-		directory = openat(
-			root, bundle, O_RDONLY | O_DIRECTORY |
-			O_NOFOLLOW | O_CLOEXEC);
-		if (directory < 0) {
-			log_error("cannot open existing bundle");
-			result = EXIT_FETCH_PARENT_VERIFY_FAILED;
-			goto out;
-		}
-		final_state = validate_complete_bundle(
-			directory, publication_uid, 0400, 0500,
-			bundle, manifest_hash, deadline);
-		if (final_state == FINAL_MATCH) {
-			result = EXIT_SUCCESS;
-			goto out;
-		}
-		if (final_state == FINAL_HASH_CONFLICT) {
-			log_error("bundle identity conflicts with manifest hash");
-			result = EXIT_BUNDLE_CONFLICT;
-			goto out;
-		}
-		log_error("existing bundle is unsafe or corrupt");
-		result = EXIT_FETCH_PARENT_VERIFY_FAILED;
+		log_error("pre-existing final bundle is forbidden");
+		result = EXIT_BUNDLE_CONFLICT;
 		goto out;
 	}
 	snprintf(staging, sizeof(staging), ".incoming.%s", bundle);

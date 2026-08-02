@@ -41,13 +41,13 @@ nfs_gated_successor_image=build/early-target-diagnostic-deployment-20260802-nfs-
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL listener successor artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$nfs_gated_successor_image" \
-	'$1 == name && $2 == "allow" && $3 ~ /generation-2 AVB identity/ \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL NFS-gated successor is not uniquely boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed NFS-gated successor remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$nfs_gated_successor_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1" \
-	&& $4 ~ /^admitted generation-2 AVB wrapper/ \
+	&& $4 ~ /^consumed generation-2 AVB wrapper/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL NFS-gated successor artifact identity is not exact' >&2; exit 1; }
 
@@ -128,6 +128,27 @@ if grep -Fq 'missing live-gate command' "$tmp/err"; then
 	echo 'FAIL consumed diagnostic recovery reached host inspection' >&2
 	exit 1
 fi
+
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1 \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL consumed generation-2 recovery reached boot admission' >&2
+	exit 1
+fi
+grep -Fq 'refusing the consumed generation-2 diagnostic recovery image' \
+	"$tmp/err"
 
 run_diagnostic_policy() {
 	local selected_bundle=$1 selected_image=$2 selected_manifest=$3

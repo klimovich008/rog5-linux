@@ -1431,6 +1431,11 @@ class LiveCycle:
         self.cleanup_stabilize_dwell = (
             0.08 if dependencies.offline else 1
         )
+        if (
+            self.cleanup_stabilize_dwell + 2 * self.poll
+            > self.cleanup_stabilize_timeout
+        ):
+            fail("invalid host cleanup stabilization timing")
         self.fallback_timeout = (
             5 if dependencies.offline else inputs.fallback_timeout
         )
@@ -1786,11 +1791,13 @@ class LiveCycle:
     def verify_recovery_profile_deferred(
         self,
         original: tuple[InterfaceSnapshot, ...],
+        *,
+        deadline: float | None = None,
     ) -> None:
         if len(original) != 1:
             fail("recovery NCM anchor snapshot is ambiguous")
         expected = original[0]
-        current = self.rog5_ncm_interfaces()
+        current = self.rog5_ncm_interfaces(deadline=deadline)
         if (
             len(current) != 1
             or current[0].name != expected.name
@@ -1799,7 +1806,7 @@ class LiveCycle:
             or current[0].addresses
             or current[0].network_manager_managed != "no"
         ):
-            fail(
+            raise HostIdentityObservationError(
                 "bundle cleanup did not leave the exact recovery NCM "
                 "profile deferred"
             )
@@ -1811,10 +1818,13 @@ class LiveCycle:
                 "device",
                 "show",
                 expected.name,
-            ]
+            ],
+            timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
         if active:
-            fail("deferred recovery interface retains an active profile")
+            raise HostIdentityObservationError(
+                "deferred recovery interface retains an active profile"
+            )
         profile = run_capture(
             [
                 str(self.dependencies.nmcli),
@@ -1824,7 +1834,8 @@ class LiveCycle:
                 "connection",
                 "show",
                 FALLBACK_NETWORK_PROFILE,
-            ]
+            ],
+            timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
         if (
             len(profile) != 4
@@ -1837,7 +1848,9 @@ class LiveCycle:
             or profile[2] != expected.name
             or profile[3] != "no"
         ):
-            fail("fallback profile is not exactly inactive and deferred")
+            raise HostIdentityObservationError(
+                "fallback profile is not exactly inactive and deferred"
+            )
 
     def verify_host_clean(
         self,
@@ -1965,18 +1978,42 @@ class LiveCycle:
         elif current != self.host_snapshot:
             fail("host firewall or nonlocal-bind state was not restored")
 
-    def wait_host_clean(self, *, final: bool = False) -> None:
+    def wait_host_clean(
+        self,
+        *,
+        final: bool = False,
+        recovery_ncm: tuple[InterfaceSnapshot, ...] | None = None,
+    ) -> None:
         deadline = time.monotonic() + self.cleanup_stabilize_timeout
         clean_since: float | None = None
         last_error: HostIdentityObservationError | None = None
+        observed_clean = False
         while time.monotonic() < deadline:
             try:
                 self.verify_host_clean(final=final, deadline=deadline)
+                if recovery_ncm is not None:
+                    self.verify_recovery_profile_deferred(
+                        recovery_ncm,
+                        deadline=deadline,
+                    )
             except HostIdentityObservationError as error:
                 clean_since = None
                 last_error = error
+            except CycleError as error:
+                if (
+                    str(error)
+                    == "host cleanup stabilization deadline expired"
+                ):
+                    break
+                raise
+            except subprocess.TimeoutExpired:
+                if time.monotonic() >= deadline:
+                    break
+                raise
             else:
                 now = time.monotonic()
+                observed_clean = True
+                last_error = None
                 if clean_since is None:
                     clean_since = now
                 elif now - clean_since >= self.cleanup_stabilize_dwell:
@@ -1985,7 +2022,12 @@ class LiveCycle:
             if remaining > 0:
                 time.sleep(min(self.poll, remaining))
         if last_error is None:
-            fail("host cleanup did not remain continuously clean")
+            if observed_clean:
+                fail(
+                    "host cleanup deadline expired before the continuous "
+                    "clean dwell was proved"
+                )
+            fail("host cleanup was never observed clean before its deadline")
         raise CycleError(
             f"host cleanup did not stabilize: {last_error}"
         ) from last_error
@@ -2448,8 +2490,7 @@ class LiveCycle:
                 collector_process,
             )
             bundle_process = None
-            self.verify_host_clean()
-            self.verify_recovery_profile_deferred(recovery_ncm)
+            self.wait_host_clean(recovery_ncm=recovery_ncm)
             if (
                 collector_process is not None
                 and collector_process.process.poll() is not None
@@ -2641,7 +2682,7 @@ class LiveCycle:
                 terminate(collector_process)
                 collector_process = None
                 try:
-                    self.verify_host_clean()
+                    self.wait_host_clean()
                 except Exception as cleanup_error:
                     cleanup_note += (
                         "; host cleanup proof failed: "

@@ -1215,7 +1215,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         self.assert_rejected(result)
         self.assert_root_empty(root)
 
-    def test_publication_crash_points_are_recoverable(self) -> None:
+    def test_publication_crash_points_are_contained(self) -> None:
         crash_points = (
             "after-worker",
             "after-parent-validation",
@@ -1247,6 +1247,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                     with RawFetchServer(None) as retry_server:
                         retry = self.invoke(root, retry_server.port)
                         self.assertFalse(retry_server.accepted.is_set())
+                    self.assertEqual(retry.returncode, CONFLICT_EXIT)
                 else:
                     self.assertFalse(
                         (root / self.payload.bundle).exists()
@@ -1255,7 +1256,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                         reply_handler(self.payload)
                     ) as retry_server:
                         retry = self.invoke(root, retry_server.port)
-                self.assert_success(retry)
+                    self.assert_success(retry)
                 self.assert_published(root)
 
     def test_every_artifact_hash_is_checked(self) -> None:
@@ -1386,14 +1387,18 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                 )
                 self.assertLess(time.monotonic() - started, 2.0)
 
-    def test_existing_final_is_reused_without_network(self) -> None:
+    def test_existing_final_is_permanent_conflict_without_network(self) -> None:
         root = self.new_root()
         self.write_final(root, self.payload)
         with RawFetchServer(None) as server:
             result = self.invoke(root, server.port)
             time.sleep(0.05)
             self.assertFalse(server.accepted.is_set())
-        self.assert_success(result)
+        self.assertEqual(result.returncode, CONFLICT_EXIT)
+        self.assertIn(
+            b"pre-existing final bundle is forbidden",
+            result.stderr,
+        )
         self.assert_published(root)
 
     def test_existing_same_id_different_hash_is_permanent_conflict(

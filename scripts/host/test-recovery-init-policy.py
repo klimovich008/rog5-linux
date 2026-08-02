@@ -133,6 +133,16 @@ class InitPolicyTest(unittest.TestCase):
     def test_recovery_creates_fetchers_exact_volatile_root(self) -> None:
         init_source = self.source(RECOVERY)
         fetch_source = self.source(RECOVERY_FETCH)
+        self.assertIn(
+            "mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run",
+            init_source,
+        )
+        self.assertIn("run_mount_ok=0", init_source)
+        self.assertIn('$2 == "/run" && $3 == "tmpfs"', init_source)
+        self.assertIn(
+            "volatile recovery runtime mount is unavailable; rebooting",
+            init_source,
+        )
         native = re.search(
             r'^static const char \*bundle_root = "([^"]+)";$',
             fetch_source,

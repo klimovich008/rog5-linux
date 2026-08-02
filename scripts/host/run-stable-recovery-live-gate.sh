@@ -57,6 +57,7 @@ consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d1
 consumed_diagnostic_recovery=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
 consumed_corrected_diagnostic_recovery=f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef
 consumed_listener_successor_recovery=332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830
+consumed_nfs_gated_generation2_recovery=70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1
 requires_qualified_cpio=0
 expected_control=c1e1b7b58f36b9ff091bed3b5de463d6239031729a49e12c07064c410de43fd0
 expected_fetcher=becc3fc1442823118fa75e79a9b756395df9f1b5b7df37440d4e2c8c5b4ef89c
@@ -92,6 +93,10 @@ if [[ $expected_image == "$consumed_diagnostic_recovery" ||
 	$expected_image == "$consumed_corrected_diagnostic_recovery" ||
 	$expected_image == "$consumed_listener_successor_recovery" ]]; then
 	fail 'refusing the consumed diagnostic recovery image'
+fi
+if [[ $action == boot &&
+	$expected_image == "$consumed_nfs_gated_generation2_recovery" ]]; then
+	fail 'refusing the consumed generation-2 diagnostic recovery image'
 fi
 case $profile in
 	historical-2026-07-29)

@@ -482,10 +482,15 @@ See the [corrected production build result](../test-results/2026-08-01-corrected
 the [generation successor](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
 the [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 and the [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
-Generation-2 AVB `70fd77f7…fc72b1` changes only deterministic salt/digest
-over the same raw recovery, passes the complete artifact preflight, and is the
-sole temporary-recovery allow row. It remains unbooted pending reviewed pins,
-exact host/fallback readiness, and connected preflight.
+Generation-2 AVB `70fd77f7…fc72b1` changed only deterministic salt/digest
+over the same raw recovery, passed artifact and connected preflight, and
+booted once. Recovery returned `PREPARED` without a completed host transfer;
+the NFS gate stopped before COMMIT, exact fallback passed, and the wrapper is
+consumed. See the
+[generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
+No temporary-recovery image is currently admitted. Generation 3 must include
+fatal `/run` tmpfs validation, fresh-fetch-only PREPARE, the corrected
+lifecycle fixture, and all review/CI/preflight gates before admission.
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight
