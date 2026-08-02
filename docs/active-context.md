@@ -70,7 +70,9 @@ initramfs `144f1cfd…e4ec`. Its exact artifact preflight passes. The immutable
 `headless-diagnostic-generation3-offline-v1` profile still rejects connected
 actions; a distinct `headless-diagnostic-generation3-live-v1` profile now
 binds the lifecycle to the same exact chain, and the image is the sole
-one-cycle RAM-only boot admission. Connected preflight and boot have not run.
+one-cycle RAM-only boot admission. The
+[connected preflight](../test-results/2026-08-02-generation-3-connected-preflight-live.md)
+passes against one exact `lahaina` fastboot device; the boot has not run.
 See the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
@@ -397,10 +399,12 @@ The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).
 
 The [standing operator authorization](operator-standing-authorization.md)
-permits in-scope credential use, host changes, connected preflights, reboots,
-and admitted temporary boots without another consent prompt. Invocation-time
-guards, exact preflights, one-shot candidate consumption, rollback, cleanup,
-and the no-flash/no-phone-storage boundaries remain mandatory.
+records the earlier no-reprompt directive. The current active thread objective
+is narrower and requires fresh action-scoped authorization before credential
+use or phone-storage effects; that current objective controls this cycle.
+Invocation-time guards, exact preflights, one-shot candidate consumption,
+rollback, cleanup, and the no-flash/no-phone-storage boundaries remain
+mandatory.
 
 The authoritative procedure is the
 [minimal-headless lifecycle runbook](minimal-headless-live-cycle.md).
