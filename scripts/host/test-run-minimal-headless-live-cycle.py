@@ -214,7 +214,7 @@ class Fixture:
             case ${MOCK_SS_LISTENER_ADDRESS:-} in
               127.0.0.1)
                 case $* in
-                  *"sport = :8080 and ( src = 0.0.0.0 or src = 169.254.77.1 )"*)
+                  *"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
                     ;;
                   *"-lnt4"*"sport = :8080"*|*"-lntu4"*"sport = :8080"*)
                     printf 'tcp LISTEN 0 10 127.0.0.1:8080 0.0.0.0:*\n'
@@ -223,7 +223,7 @@ class Fixture:
                 ;;
               0.0.0.0|169.254.77.1)
                 case $* in
-                  *"-lnt4"*"sport = :8080 and ( src = 0.0.0.0 or src = 169.254.77.1 )"*)
+                  *"-lnt4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
                     printf 'tcp LISTEN 0 10 %s:8080 0.0.0.0:*\n' \
                       "$MOCK_SS_LISTENER_ADDRESS"
                     ;;
@@ -1032,8 +1032,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.fixture.call_lines()
         self.assertIn(
-            "ss:-H -lnt4 sport = :8080 and ( src = 0.0.0.0 or "
-            "src = 169.254.77.1 )",
+            "ss:-H -lnt4 sport = :8080 and ( src = 0.0.0.0/32 or "
+            "src = 169.254.77.1/32 )",
             calls,
         )
         self.assertIn(

@@ -215,12 +215,36 @@ esac
             """#!/bin/sh
 printf 'ss %s\n' "$*" >>"$MOCK_CALLS"
 if [ "${MOCK_LISTENER_EXISTING:-0}" = 1 ]; then
-  printf '%s\n' \
-    'LISTEN 0 1 0.0.0.0:8080 0.0.0.0:* users:(("other",pid=999,fd=3))'
-elif [ -s "$MOCK_SERVER_PID" ]; then
-  pid=$(sed -n '1p' "$MOCK_SERVER_PID")
-  printf '%s\n' \
-    "LISTEN 0 1 169.254.77.1:8080 0.0.0.0:* users:((\\"python3\\",pid=$pid,fd=3))"
+  case ${MOCK_LISTENER_ADDRESS:-0.0.0.0}:$* in
+    127.0.0.1:*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*) ;;
+    127.0.0.1:*"-lnt4"*"sport = :8080"*|127.0.0.1:*"-lntp4"*"sport = :8080"*|127.0.0.1:*"-lntu4"*"sport = :8080"*)
+      printf '%s\n' \
+        'LISTEN 0 1 127.0.0.1:8080 0.0.0.0:* users:(("other",pid=999,fd=3))'
+      ;;
+    0.0.0.0:*"-lnt4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*|169.254.77.1:*"-lnt4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
+      printf '%s\n' \
+        "LISTEN 0 1 ${MOCK_LISTENER_ADDRESS:-0.0.0.0}:8080 0.0.0.0:* users:((\"other\",pid=999,fd=3))"
+      ;;
+    :::*"-lnt6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*|::ffff:0.0.0.0:*"-lnt6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*|::ffff:169.254.77.1:*"-lnt6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+      printf '%s\n' \
+        "LISTEN 0 1 [${MOCK_LISTENER_ADDRESS}]:8080 [::]:* users:((\"other\",pid=999,fd=3))"
+      ;;
+  esac
+fi
+if [ -s "$MOCK_SERVER_PID" ]; then
+  case $* in
+    *"-lntp4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
+      pid=$(sed -n '1p' "$MOCK_SERVER_PID")
+      printf '%s\n' \
+        "LISTEN 0 1 169.254.77.1:8080 0.0.0.0:* users:((\\"python3\\",pid=$pid,fd=3))"
+      ;;
+  esac
+  case ${MOCK_LISTENER_AFTER_SERVER_ADDRESS:-}:$* in
+    :::*"-lntp6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+      printf '%s\n' \
+        'LISTEN 0 1 [::]:8080 [::]:* users:(("other",pid=999,fd=3))'
+      ;;
+  esac
 fi
 """,
         )
@@ -270,10 +294,11 @@ exec "$@"
     def run(
         self,
         *arguments: str,
+        controller: Path = CONTROLLER,
         **overrides: str,
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [str(CONTROLLER), *arguments],
+            [str(controller), *arguments],
             env=self.environment(**overrides),
             text=True,
             stdout=subprocess.PIPE,
@@ -389,6 +414,79 @@ class RecoveryHostControllerTest(unittest.TestCase):
         calls = self.fixture.call_log()
         self.assertNotIn("--add-rich-rule=", calls)
         self.assertNotIn("ip address add", calls)
+
+    def test_loopback_listener_does_not_conflict_with_fixed_bundle_bind(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_LISTENER_EXISTING="1",
+            MOCK_LISTENER_ADDRESS="127.0.0.1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_log()
+        self.assertIn(
+            "ss -H -lnt4 sport = :8080 and ( src = 0.0.0.0/32 or "
+            "src = 169.254.77.1/32 )",
+            calls,
+        )
+        self.assertIn(
+            "ss -H -lnt6 sport = :8080 and ( src = ::/128 or "
+            "src = ::ffff:0.0.0.0/128 or "
+            "src = ::ffff:169.254.77.1/128 )",
+            calls,
+        )
+
+        mutated = self.fixture.root / "broad-listener-controller"
+        source = CONTROLLER.read_text(encoding="utf-8")
+        old = (
+            'bundle_ipv4_filter="sport = :$host_port and ( '
+            'src = 0.0.0.0/32 or src = $host_ip/32 )"'
+        )
+        self.assertEqual(source.count(old), 1)
+        mutated.write_text(
+            source.replace(old, 'bundle_ipv4_filter="sport = :$host_port"'),
+            encoding="utf-8",
+        )
+        mutated.chmod(0o755)
+        rejected = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            controller=mutated,
+            MOCK_LISTENER_EXISTING="1",
+            MOCK_LISTENER_ADDRESS="127.0.0.1",
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("already has a listener", rejected.stderr)
+
+    def test_each_conflicting_bundle_listener_is_rejected(self):
+        for address in (
+            "0.0.0.0",
+            "169.254.77.1",
+            "::",
+            "::ffff:0.0.0.0",
+            "::ffff:169.254.77.1",
+        ):
+            with self.subTest(address=address):
+                result = self.fixture.run(
+                    BUNDLE,
+                    MANIFEST_HASH,
+                    MOCK_LISTENER_EXISTING="1",
+                    MOCK_LISTENER_ADDRESS=address,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("already has a listener", result.stderr)
+
+    def test_readiness_rejects_conflict_appearing_after_server_start(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_LISTENER_AFTER_SERVER_ADDRESS="::",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "recovery server listener is not uniquely confined",
+            result.stderr,
+        )
 
     def test_server_start_failure_rolls_back_every_created_state(self):
         result = self.fixture.run(

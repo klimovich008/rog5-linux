@@ -46,7 +46,7 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count != 1)
+		if (allow_count > 1)
 			exit 16
 		for (name in allowed)
 			if (!(name in found))
@@ -70,6 +70,18 @@ awk -F '\t' -v name="$consumed_diagnostic" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" ||
 	fail 'the consumed diagnostic wrapper is not retained exactly in inventory'
+consumed_corrected='build/early-target-diagnostic-deployment-20260801-fetch-policy-r2-production/wrapper/repack/stable-recovery-a.avb.img'
+if grep -Fq "$consumed_corrected" "$policy"; then
+	fail 'the consumed corrected wrapper remains in temporary-boot policy'
+fi
+awk -F '\t' -v name="$consumed_corrected" '
+	$1 == name &&
+	$4 ~ /^consumed production-signed fetch-policy-corrected diagnostic recovery/ {
+		count++
+	}
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" ||
+	fail 'the consumed corrected wrapper is not retained exactly in inventory'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
