@@ -8,9 +8,12 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 fetcher=$repo/scripts/host/fetch-android-boot-tools.sh
+workflow=$repo/.github/workflows/offline-smoke.yml
 
 [[ -f $fetcher && ! -L $fetcher && -x $fetcher ]] ||
 	fail 'missing executable Android boot-tool bootstrap'
+[[ -f $workflow && ! -L $workflow ]] ||
+	fail 'missing offline-smoke workflow'
 bash -n "$fetcher"
 
 for token in \
@@ -34,6 +37,8 @@ for token in \
 	grep -Fq -- "$token" "$fetcher" ||
 		fail "Android boot-tool bootstrap omits contract token: $token"
 done
+grep -Fq 'run: scripts/host/fetch-android-boot-tools.sh' "$workflow" ||
+	fail 'clean recovery CI does not bootstrap the exact Android boot tools'
 if grep -Eq \
 	'\b(fastboot|adb|sudo|pkexec)\b|(^|[;&|[:space:]])(ssh|scp)([[:space:]]|$)|/dev/(sd|nvme|ufs)' \
 	"$fetcher"; then
