@@ -278,7 +278,9 @@ The lifecycle now selects one exact deployment profile and bundle:
 - `RECOVERY_COMPONENT_ROOT`
 - `TRUST_KEY`
 - `BUNDLE_ROOT`: canonical caller-owned mode-`0700` directory containing the
-  exact selected bundle and its manifest;
+  exact selected bundle and its manifest. Connected preflight/run requires
+  the installed no-replace root `/var/lib/rog5-recovery-bundles`; only the
+  separate artifact-only gate accepts an ignored build-directory root;
 - `RECOVERY_SHA256`
 - `TRUST_KEY_SHA256`
 - `MANIFEST_SHA256`
