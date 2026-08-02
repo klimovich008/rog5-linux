@@ -1,2 +1,3 @@
 name	status	basis
+build/early-target-diagnostic-deployment-20260802-fresh-fetch-r5-production/wrapper/repack/stable-recovery-a.avb.img	allow	generation-3 fresh-fetch production recovery; exact live profile, bundle, NFS handoff, receive-only diagnostic collector, and fallback required; one RAM-only boot maximum after connected preflight; consume after any result; never flash
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash

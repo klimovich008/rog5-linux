@@ -43,7 +43,7 @@ DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
-DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-deployment-v1"
+DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation3-live-v1"
 SESSION = "1" * 32
 PREPARE = "2" * 32
 REQUEST = "3" * 32
@@ -461,6 +461,7 @@ class Fixture:
             if [ "$1" = boot ]; then
               [ "${{ALLOW_TEMPORARY_BOOT:-}}" = 1 ]
               [ "${{ALLOW_HEADLESS_LIVE_GATE:-}}" = 1 ]
+              [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
               [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
             fi
             printf 'live:%s\n' "$1" >>"$MOCK_CALLS"

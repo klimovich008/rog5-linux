@@ -106,6 +106,18 @@ awk -F '\t' -v name="$nfs_gated_successor" '
 	$4 ~ /^consumed generation-2 AVB wrapper/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'the NFS-gated successor inventory is not exact'
+generation3='build/early-target-diagnostic-deployment-20260802-fresh-fetch-r5-production/wrapper/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation3" '
+	$1 == name && $2 == "allow" &&
+	$3 ~ /^generation-3 fresh-fetch production recovery/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'generation-3 is not the unique active boot admission'
+awk -F '\t' -v name="$generation3" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6" &&
+	$4 ~ /^unbooted generation-3 fresh-fetch diagnostic recovery/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-3 active artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
