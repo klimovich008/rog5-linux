@@ -130,8 +130,9 @@ Retain these categories regardless of apparent size:
   accepted artifact identity;
 - the corrected headless target, signed-bundle inputs, stable recovery inputs,
   and the pinned container images used to verify them;
-- the current accepted Linux 7.1.4 source oracle in rootless volume
-  `rog5-mainline-v19-source`, until a replacement retained source is recorded;
+- the current accepted Linux 7.1.4 source oracle at
+  `build/linux-stable-v7.1.4-source`; the former rootless volume
+  `rog5-mainline-v19-source` is no longer present;
 - any external unit or volume named by tracked project source or evidence;
 - any unit containing an uncommitted Git worktree unless a separate closure
   proof reconstructs it byte-for-byte;

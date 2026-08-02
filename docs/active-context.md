@@ -24,6 +24,9 @@ and newer-kernel rebases remain frozen until the headless core passes.
   DTB, configuration, modules, buttons/indicator contract, and complete
   phone-free successor gate were
   [revalidated together](../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
+  The current host source/DTB pair was
+  [revalidated again](../test-results/2026-08-02-core-baseline-current-host-revalidation.md)
+  after storage inventory exposed a stale retained-volume reference.
 - The corrected DTB keeps UFS and USB3 isolated while preserving CPU/RAM,
   USB2/NCM, PSCI, and static thermal topology.
 - A credential-clean SSH-only Arch root and fixture-key v3 package/candidate

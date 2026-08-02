@@ -109,11 +109,10 @@ The source must be an exact clean Git worktree at
 A pass reports `status=baseline-verified`.
 
 The retained source tree and ignored DTB are optional local artifacts. The
-current host copy is the rootless Podman volume
-`rog5-mainline-v19-source`; it is a retained compatibility-oracle input and
-must not be included in a host cleanup plan. A fresh GitHub checkout runs the
-complete synthetic mutation suite without requiring either large retained
-input.
+current source location and preservation rule are maintained in the
+[host cleanup inventory](host-storage-cleanup.md#preservation-rules), rather
+than duplicated here. A fresh GitHub checkout runs the complete synthetic
+mutation suite without requiring either large retained input.
 
 ## Candidate mode
 
