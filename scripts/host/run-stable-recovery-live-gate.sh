@@ -26,9 +26,12 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 profile=${ROG5_STABLE_RECOVERY_PROFILE:-}
 [[ -n $profile ]] ||
 	fail 'set ROG5_STABLE_RECOVERY_PROFILE explicitly'
-if [[ $action == policy-preflight &&
-	$profile != headless-diagnostic-deployment-v1 ]]; then
-	fail 'policy preflight requires the fully pinned diagnostic profile'
+if [[ $action == policy-preflight ]]; then
+	case $profile in
+		headless-diagnostic-deployment-v1 | \
+		headless-diagnostic-generation3-offline-v1) ;;
+		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
+	esac
 fi
 live_root=${LIVE_BUILD_ROOT:-}
 component_root=${RECOVERY_COMPONENT_ROOT:-}
@@ -188,6 +191,44 @@ case $profile in
 		[[ $expected_host_verifier == \
 			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
 			fail 'diagnostic host verifier is not allowlisted'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	headless-diagnostic-generation3-offline-v1)
+		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+			fail 'generation-3 diagnostic profile is offline-only and not boot-authorized'
+		# This is a fresh twin build, not an AVB-generation issuer output;
+		# expected_generation_record intentionally remains empty.
+		component_layout=structured
+		expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c
+		expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce
+		expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec
+		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0
+		expected_target_id=headless-netroot-early-diag
+		expected_bundle=headless-netroot-early-diag-v1
+		expected_bundle_profile=diagnostic-initramfs-v1
+		# The production builder deterministically uses the raw wrapper digest
+		# as the AVB salt; equality here is intentional.
+		expected_avb_salt=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce
+		expected_avb_digest=6de238c36bd8325d2a6f431f27ee39e5d7bab81d9fe91bd6d3d0bad48ba3c60d
+		[[ $expected_manifest == \
+			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
+			fail 'generation-3 diagnostic runtime manifest is not pinned'
+		[[ $expected_image == \
+			eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6 ]] ||
+			fail 'generation-3 diagnostic recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'generation-3 diagnostic trust root is not pinned'
+		[[ $expected_host_verifier == \
+			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
+			fail 'generation-3 diagnostic host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio

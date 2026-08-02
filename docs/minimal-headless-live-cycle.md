@@ -489,8 +489,15 @@ the NFS gate stopped before COMMIT, exact fallback passed, and the wrapper is
 consumed. See the
 [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
 No temporary-recovery image is currently admitted. Generation 3 must include
-fatal `/run` tmpfs validation, fresh-fetch-only PREPARE, the corrected
-lifecycle fixture, and all review/CI/preflight gates before admission.
+fatal `/run` tmpfs validation, fresh-fetch-only PREPARE, and the corrected
+lifecycle fixture. Those changes now pass 41 lifecycle tests, complete local
+CI, Claude review, GitHub Actions run `30750260056`, a production-bound twin
+build, and exact phone-free artifact preflight. The resulting AVB is
+`eb514a57…d77b6`. Its dedicated
+`headless-diagnostic-generation3-offline-v1` profile rejects connected
+preflight and boot, and the image remains absent from temporary-boot policy.
+See the
+[generation-3 production result](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md).
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight
