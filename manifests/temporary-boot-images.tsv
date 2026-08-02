@@ -1,3 +1,2 @@
 name	status	basis
-build/early-target-diagnostic-deployment-20260802-listener-r3-production/wrapper/repack/stable-recovery-a.avb.img	allow	generation-1 AVB identity over the unchanged production-trust-root diagnostic recovery; corrected fixed-address host listener controller; one RAM-only boot maximum; consume after any boot result; never flash
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash

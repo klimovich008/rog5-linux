@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import pty
 import select
+import stat
 import sys
 import tempfile
 import threading
@@ -40,6 +41,7 @@ SESSION = "1" * 32
 MANIFEST = "a" * 64
 BUNDLE = "headless-network-root-v1"
 DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3-r2"
+DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64
@@ -265,6 +267,11 @@ class StableRecoveryControlTest(unittest.TestCase):
                 clear=True,
             ),
             mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            mock.patch.object(
+                MODULE,
+                "prepare_and_commit",
+                side_effect=RuntimeError("unexpected device discovery"),
+            ),
             self.assertRaisesRegex(RuntimeError, "ROG5_NFS_PROFILE"),
         ):
             MODULE.main(
@@ -286,6 +293,11 @@ class StableRecoveryControlTest(unittest.TestCase):
                 clear=True,
             ),
             mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            mock.patch.object(
+                MODULE,
+                "prepare_and_commit",
+                side_effect=RuntimeError("unexpected device discovery"),
+            ),
             self.assertRaisesRegex(
                 RuntimeError,
                 "ROG5_NFS_PACKAGE_SHA256",
@@ -295,6 +307,128 @@ class StableRecoveryControlTest(unittest.TestCase):
                 ["prepare-commit", DEPLOYMENT_BUNDLE, MANIFEST]
             )
         ready.assert_not_called()
+
+    def test_diagnostic_profile_precedes_device_discovery(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                    "ALLOW_ATTENDED_KEXEC": "1",
+                    "ALLOW_NETWORK_ROOT_NFS_HANDOFF": "1",
+                    "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                },
+                clear=True,
+            ),
+            mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            mock.patch.object(
+                MODULE,
+                "prepare_and_commit",
+                side_effect=RuntimeError("unexpected device discovery"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "ROG5_NFS_PROFILE"),
+        ):
+            MODULE.main(
+                ["prepare-commit", DIAGNOSTIC_BUNDLE, MANIFEST]
+            )
+        ready.assert_not_called()
+
+    def test_diagnostic_package_identity_precedes_device_discovery(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                    "ALLOW_ATTENDED_KEXEC": "1",
+                    "ALLOW_NETWORK_ROOT_NFS_HANDOFF": "1",
+                    "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                    "ROG5_NFS_PROFILE": DEPLOYMENT_PROFILE,
+                },
+                clear=True,
+            ),
+            mock.patch.object(MODULE, "ensure_host_ready") as ready,
+            mock.patch.object(
+                MODULE,
+                "prepare_and_commit",
+                side_effect=RuntimeError("unexpected device discovery"),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "ROG5_NFS_PACKAGE_SHA256",
+            ),
+        ):
+            MODULE.main(
+                ["prepare-commit", DIAGNOSTIC_BUNDLE, MANIFEST]
+            )
+        ready.assert_not_called()
+
+    def test_diagnostic_handoff_binds_v3_profile_package_and_bundle(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                    "ALLOW_ATTENDED_KEXEC": "1",
+                    "ALLOW_NETWORK_ROOT_NFS_HANDOFF": "1",
+                    "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                    "ROG5_NFS_PROFILE": DEPLOYMENT_PROFILE,
+                    "ROG5_NFS_PACKAGE_SHA256": PACKAGE_SHA256,
+                },
+                clear=True,
+            ),
+            mock.patch.object(MODULE, "ensure_host_ready"),
+            mock.patch.object(
+                MODULE,
+                "prepare_and_commit",
+                side_effect=RuntimeError("captured handoff"),
+            ) as transaction,
+            self.assertRaisesRegex(RuntimeError, "captured handoff"),
+        ):
+            MODULE.main(
+                ["prepare-commit", DIAGNOSTIC_BUNDLE, MANIFEST]
+            )
+        callback = transaction.call_args.kwargs["before_commit"]
+        self.assertIsNotNone(callback)
+        with mock.patch.object(
+            MODULE,
+            "wait_for_network_root_nfs",
+        ) as wait:
+            callback()
+        wait.assert_called_once_with(
+            HANDOFF_TOKEN,
+            bundle=DIAGNOSTIC_BUNDLE,
+            package_sha256=PACKAGE_SHA256,
+        )
+
+    def test_unknown_bundle_cannot_request_nfs_before_device_discovery(self):
+        for guard_value in ("1", "0", ""):
+            with self.subTest(guard_value=guard_value):
+                with (
+                    mock.patch.dict(
+                        os.environ,
+                        {
+                            "ALLOW_STABLE_RECOVERY_CONTROL": "1",
+                            "ALLOW_ATTENDED_KEXEC": "1",
+                            "ALLOW_NETWORK_ROOT_NFS_HANDOFF": guard_value,
+                            "ROG5_NFS_HANDOFF_TOKEN": HANDOFF_TOKEN,
+                        },
+                        clear=True,
+                    ),
+                    mock.patch.object(MODULE, "ensure_host_ready") as ready,
+                    mock.patch.object(
+                        MODULE,
+                        "prepare_and_commit",
+                        side_effect=RuntimeError("unexpected device discovery"),
+                    ),
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        "does not permit network-root NFS handoff",
+                    ),
+                ):
+                    MODULE.main(
+                        ["prepare-commit", "unknown-bundle", MANIFEST]
+                    )
+                ready.assert_not_called()
 
     def test_network_root_readiness_uses_token_marker_and_listener(self):
         fake_ss = mock.MagicMock()
@@ -349,6 +483,81 @@ class StableRecoveryControlTest(unittest.TestCase):
             DEPLOYMENT_BUNDLE,
             PACKAGE_SHA256,
         )
+
+    def test_diagnostic_readiness_passes_exact_bundle_and_package_to_marker(self):
+        fake_ss = mock.MagicMock()
+        with (
+            mock.patch.object(
+                MODULE,
+                "nfs_handoff_marker_matches",
+                return_value=True,
+            ) as marker,
+            mock.patch.object(MODULE, "SS", fake_ss),
+            mock.patch.object(MODULE.subprocess, "run") as run,
+        ):
+            fake_ss.stat.return_value.st_mode = 0o100755
+            fake_ss.stat.return_value.st_uid = 0
+            fake_ss.stat.return_value.st_gid = 0
+            run.return_value.stdout = (
+                "LISTEN 0 4096 169.254.77.1:2049 0.0.0.0:*\n"
+            )
+            self.assertTrue(
+                MODULE.network_root_nfs_ready(
+                    HANDOFF_TOKEN,
+                    DIAGNOSTIC_BUNDLE,
+                    PACKAGE_SHA256,
+                )
+            )
+        marker.assert_called_once_with(
+            HANDOFF_TOKEN,
+            DIAGNOSTIC_BUNDLE,
+            PACKAGE_SHA256,
+        )
+
+    def test_diagnostic_marker_matches_exact_v3_handoff_bytes(self):
+        marker_bytes = (
+            "format=rog5-nfs-handoff-v2\n"
+            f"profile={DEPLOYMENT_PROFILE}\n"
+            f"token={HANDOFF_TOKEN}\n"
+            "listener=169.254.77.1:2049\n"
+            "versions=4.2-only\n"
+            f"export_root={MODULE.DEPLOYMENT_NFS_HANDOFF_ROOT}\n"
+            f"package_sha256={PACKAGE_SHA256}\n"
+        ).encode("ascii")
+        marker_path = Path(self.temporary.name) / "nfs-ready"
+        marker_path.write_bytes(marker_bytes)
+        metadata = mock.Mock(
+            st_mode=stat.S_IFREG | 0o444,
+            st_uid=0,
+            st_gid=0,
+            st_nlink=1,
+            st_size=len(marker_bytes),
+        )
+        with (
+            mock.patch.object(MODULE, "NFS_HANDOFF_MARKER", marker_path),
+            mock.patch.object(MODULE.os, "fstat", return_value=metadata),
+        ):
+            self.assertTrue(
+                MODULE.nfs_handoff_marker_matches(
+                    HANDOFF_TOKEN,
+                    DIAGNOSTIC_BUNDLE,
+                    PACKAGE_SHA256,
+                )
+            )
+            self.assertFalse(
+                MODULE.nfs_handoff_marker_matches(
+                    HANDOFF_TOKEN,
+                    DIAGNOSTIC_BUNDLE,
+                    "0" * 64,
+                )
+            )
+            self.assertFalse(
+                MODULE.nfs_handoff_marker_matches(
+                    HANDOFF_TOKEN,
+                    DIAGNOSTIC_BUNDLE,
+                    "not-a-sha256",
+                )
+            )
 
     def test_resolution_guard_precedes_ledger_access(self):
         with (

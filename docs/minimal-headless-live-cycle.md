@@ -468,13 +468,17 @@ tuple. The diagnostic profile retains the fetch-policy-corrected August 1
 production payload: raw wrapper `2f460aa0…628a01`, trust root
 `f10ca076…c57b`, manifest `4eacb90f…f7e76`, and host verifier
 `0a570805…b621`. Generation-zero AVB wrapper `f710bbcd…97b0ef` is consumed.
-The listener-corrected successor uses generation-1 AVB identity
-`332889a8…b51830`; its raw payload and full descriptor structure are unchanged
-except for the deterministic salt/digest pair, and its complete artifact
-preflight passes without phone discovery. Both previous diagnostic wrappers
-are explicitly refused.
+The listener-corrected successor used generation-1 AVB identity
+`332889a8…b51830`; its raw payload and full descriptor structure were unchanged
+except for the deterministic salt/digest pair. It booted once, fetched and
+prepared the exact bundle, then exposed a host control omission that claimed
+the diagnostic commit before NFS startup. It is consumed and explicitly
+refused with both previous diagnostic wrappers. The corrected control policy
+requires the diagnostic bundle to match the exact v3 profile/package NFS
+handoff before commit and rejects unknown guarded bundles before phone access.
 See the [corrected production build result](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md)
-and [generation successor](../test-results/2026-08-02-listener-successor-avb-generation-offline.md).
+the [generation successor](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
+and the [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md).
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight

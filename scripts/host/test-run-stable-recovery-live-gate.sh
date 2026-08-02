@@ -30,13 +30,13 @@ listener_successor_image=build/early-target-diagnostic-deployment-20260802-liste
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL corrected diagnostic wrapper artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$listener_successor_image" \
-	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	{ echo 'FAIL listener successor is not uniquely boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed listener successor remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$listener_successor_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830" \
-	&& $4 ~ /^admitted generation-1 AVB wrapper/ \
+	&& $4 ~ /^consumed generation-1 AVB wrapper/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL listener successor artifact identity is not exact' >&2; exit 1; }
 
@@ -160,9 +160,12 @@ if run_diagnostic_policy \
 fi
 grep -Fq 'diagnostic recovery image identity is not allowlisted' "$tmp/err"
 
+# Every consumed diagnostic identity must also fail the deliberately deferred
+# policy-preflight refusal after profile/bundle/image association checks.
 for consumed_image in \
 	9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef \
-	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef
+	f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef \
+	332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830
 do
 	if env -i PATH="$PATH" HOME="$HOME" \
 		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
