@@ -90,8 +90,10 @@ is byte-identical, and the exact offline artifact preflight passes. Its sole
 `headless-diagnostic-generation4-offline-v1` profile rejects connected
 actions before host inspection, its generation record says `authority=none`,
 it is absent from temporary-boot policy, and no image is currently
-boot-authorized. Complete local/remote review is the next admission
-prerequisite. See the
+boot-authorized. Focused and complete local CI pass, the constrained Claude
+re-review reports no findings, and GitHub Actions run `30786957283` passes at
+exact implementation commit `e3a47a8`. A separately reviewed connected/live
+admission change remains the next prerequisite. See the
 [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
