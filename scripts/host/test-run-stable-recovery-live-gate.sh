@@ -36,11 +36,11 @@ generation8_image=build/stable-recovery-generation8-nmcli-empty-field-fix-202608
 generation8_root_a=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a
 generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-b
 [[ $(grep -Fxc \
-	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation7-live-v1"' \
+	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation8-live-v1"' \
 	"$lifecycle") == 1 ]] ||
-	{ echo 'FAIL lifecycle no longer selects exact consumed generation-7 profile' >&2; exit 1; }
-! grep -Fq 'headless-diagnostic-generation8' "$lifecycle" ||
-	{ echo 'FAIL offline generation-8 profile reached the lifecycle selector' >&2; exit 1; }
+	{ echo 'FAIL lifecycle does not select exact generation-8 live profile' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation8-offline-v1' "$lifecycle" ||
+	{ echo 'FAIL generation-8 offline-only profile leaked into the lifecycle' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
@@ -459,7 +459,32 @@ for generation8_action in boot preflight; do
 	fi
 done
 
-for generation8_live_action in boot preflight artifact-preflight; do
+for generation8_connected_action in boot preflight; do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ALLOW_TEMPORARY_BOOT=1 \
+		ALLOW_HEADLESS_LIVE_GATE=1 \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-live-v1 \
+		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+		TRUST_KEY="$repo/build/unused-trust-key" \
+		BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" "$generation8_connected_action" >"$tmp/out" 2>"$tmp/err"
+	then
+		echo "FAIL generation-8 live profile reached direct $generation8_connected_action" >&2
+		exit 1
+	fi
+	grep -Fq 'generation-8 connected action requires the one-shot lifecycle controller' \
+		"$tmp/err"
+	if grep -Fq 'missing live-gate command' "$tmp/err"; then
+		echo "FAIL generation-8 direct $generation8_connected_action reached host inspection" >&2
+		exit 1
+	fi
+
 	if env -i PATH="$PATH" HOME="$HOME" \
 		ALLOW_TEMPORARY_BOOT=1 \
 		ALLOW_HEADLESS_LIVE_GATE=1 \
@@ -474,32 +499,19 @@ for generation8_live_action in boot preflight artifact-preflight; do
 		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-		bash "$gate" "$generation8_live_action" >"$tmp/out" 2>"$tmp/err"
+		bash "$gate" "$generation8_connected_action" >"$tmp/out" 2>"$tmp/err"
 	then
-		echo "FAIL unissued generation-8 live profile reached $generation8_live_action" >&2
+		echo "FAIL generation-8 live profile bypassed zero-policy $generation8_connected_action" >&2
 		exit 1
 	fi
-	grep -Fq 'unsupported stable-recovery live profile: headless-diagnostic-generation8-live-v1' \
+	grep -Fq \
+		"temporary boot policy does not uniquely list $generation8_image" \
 		"$tmp/err"
 	if grep -Fq 'missing live-gate command' "$tmp/err"; then
-		echo "FAIL unissued generation-8 live $generation8_live_action reached host inspection" >&2
+		echo "FAIL generation-8 guarded $generation8_connected_action reached host inspection" >&2
 		exit 1
 	fi
 done
-
-if env -i PATH="$PATH" HOME="$HOME" \
-	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-live-v1 \
-	BUNDLE=headless-netroot-early-diag-v1 \
-	RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
-	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-	bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
-then
-	echo 'FAIL unissued generation-8 live profile passed policy preflight' >&2
-	exit 1
-fi
-grep -Fq 'policy preflight requires a fully pinned diagnostic profile' "$tmp/err"
 
 if env -i PATH="$PATH" HOME="$HOME" \
 	ALLOW_TEMPORARY_BOOT=1 \
@@ -892,28 +904,32 @@ generation8_errors=(
 [[ ${#generation8_fields[@]} -eq ${#generation8_exact[@]} &&
 	${#generation8_errors[@]} -eq ${#generation8_exact[@]} ]] ||
 	{ echo 'FAIL generation-8 policy mutation matrix is inconsistent' >&2; exit 1; }
-generation8_profile=headless-diagnostic-generation8-offline-v1
-generation8_policy=$(run_generation3_policy \
-	"$generation8_profile" "${generation8_exact[@]}")
-grep -Fxq "recovery_profile=$generation8_profile" <<<"$generation8_policy"
-grep -Fxq \
-	'recovery_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415' \
-	<<<"$generation8_policy"
-grep -Fxq 'authority=none' <<<"$generation8_policy"
-grep -Fxq 'result=PASS' <<<"$generation8_policy"
-for index in "${!generation8_fields[@]}"; do
-	mutation=("${generation8_exact[@]}")
-	if ((index == 4)); then
-		mutation[$index]=wrong-generation8-bundle
-	else
-		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-	fi
-	if run_generation3_policy "$generation8_profile" "${mutation[@]}" \
-		>"$tmp/out" 2>"$tmp/err"; then
-		echo "FAIL $generation8_profile accepted wrong ${generation8_fields[$index]}" >&2
-		exit 1
-	fi
-	grep -Fq "${generation8_errors[$index]}" "$tmp/err"
+for generation8_profile in \
+	headless-diagnostic-generation8-offline-v1 \
+	headless-diagnostic-generation8-live-v1
+do
+	generation8_policy=$(run_generation3_policy \
+		"$generation8_profile" "${generation8_exact[@]}")
+	grep -Fxq "recovery_profile=$generation8_profile" <<<"$generation8_policy"
+	grep -Fxq \
+		'recovery_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415' \
+		<<<"$generation8_policy"
+	grep -Fxq 'authority=none' <<<"$generation8_policy"
+	grep -Fxq 'result=PASS' <<<"$generation8_policy"
+	for index in "${!generation8_fields[@]}"; do
+		mutation=("${generation8_exact[@]}")
+		if ((index == 4)); then
+			mutation[$index]=wrong-generation8-bundle
+		else
+			mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		fi
+		if run_generation3_policy "$generation8_profile" "${mutation[@]}" \
+			>"$tmp/out" 2>"$tmp/err"; then
+			echo "FAIL $generation8_profile accepted wrong ${generation8_fields[$index]}" >&2
+			exit 1
+		fi
+		grep -Fq "${generation8_errors[$index]}" "$tmp/err"
+	done
 done
 
 if [[ -d $generation3_root ]]; then
@@ -1127,23 +1143,28 @@ if [[ -d $generation8_root_a || -d $generation8_root_b ]]; then
 			"$generation8_root/repack/stable-recovery-b.raw.img"
 	done
 	for generation8_root in "$generation8_root_a" "$generation8_root_b"; do
-		generation8_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-offline-v1 \
-			LIVE_BUILD_ROOT="$generation8_root" \
-			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
-			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
-			BUNDLE_ROOT="$generation3_root/bundle-a" \
-			BUNDLE=headless-netroot-early-diag-v1 \
-			RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
-			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			"PASS stable-recovery artifact preflight profile=headless-diagnostic-generation8-offline-v1 image_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" \
-			<<<"$generation8_artifact"
+		for generation8_profile in \
+			headless-diagnostic-generation8-offline-v1 \
+			headless-diagnostic-generation8-live-v1
+		do
+			generation8_artifact=$(
+				env -i PATH="$PATH" HOME="$HOME" \
+				ROG5_STABLE_RECOVERY_PROFILE="$generation8_profile" \
+				LIVE_BUILD_ROOT="$generation8_root" \
+				RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+				TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+				BUNDLE_ROOT="$generation3_root/bundle-a" \
+				BUNDLE=headless-netroot-early-diag-v1 \
+				RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
+				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+					bash "$gate" artifact-preflight
+			)
+			grep -Fxq \
+				"PASS stable-recovery artifact preflight profile=$generation8_profile image_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" \
+				<<<"$generation8_artifact"
+		done
 	done
 
 	generation8_mutation=$build_tmp/generation8-record-mutation
@@ -1278,6 +1299,7 @@ for required in \
 	'headless-diagnostic-generation7-offline-v1' \
 	'headless-diagnostic-generation7-live-v1' \
 	'headless-diagnostic-generation8-offline-v1' \
+	'headless-diagnostic-generation8-live-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -1290,6 +1312,8 @@ for required in \
 	'generation-7 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-7 boot requires the one-shot lifecycle controller' \
 	'generation-8 diagnostic profile is offline-only and not boot-authorized' \
+	'generation-8 connected action requires the one-shot lifecycle controller' \
+	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \

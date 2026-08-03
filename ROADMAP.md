@@ -465,16 +465,17 @@ Current execution order:
 4. **Complete:** publish the host-locally twin-reproduced Generation-8
    identity and immutable offline-only profile; keep central boot policy at
    zero `allow` rows.
-5. **In progress:** add a separate live lifecycle profile, then one-shot
-   central admission only
-   after artifact, credential, rollback, host-cleanup, fallback, and connected
-   preflights all pass.
-6. Run at most one Generation-8 RAM-only diagnostic lifecycle, consume it for
-   every result, preserve recovery-control/collector/postmortem evidence, and
-   never retry an ambiguous execute.
-7. Promote a distinct normal SSH candidate only after diagnostic evidence
+5. **Complete:** add a separate live lifecycle profile while keeping central
+   policy at zero `allow` rows.
+6. **In progress:** add one-shot central admission only after artifact,
+   credential, rollback, host-cleanup, and fallback host-only preflights pass.
+7. Run the exact connected preflight, then at most one Generation-8 RAM-only
+   diagnostic lifecycle; consume it for every result, preserve
+   recovery-control/collector/postmortem evidence, and never retry an
+   ambiguous execute.
+8. Promote a distinct normal SSH candidate only after diagnostic evidence
    identifies and fixes the failing boundary.
-8. If H2 passes, continue physical keys/indicator, then H3
+9. If H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

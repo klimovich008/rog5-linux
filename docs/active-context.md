@@ -252,6 +252,13 @@ tuple and both retained trees pass artifact preflight. The issuance record and
 artifact inventory retain `authority=none` and `unbooted`; the prospective
 live profile is unsupported, the lifecycle still selects consumed Generation
 7, and temporary-boot policy still has zero `allow` rows.
+The separate
+[Generation-8 live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md)
+now selects the identical tuple through the one-shot lifecycle. Both profile
+names pass exact policy and artifact preflight. Direct connected preflight or
+boot requires the lifecycle guard and then an exact central-policy row before
+host inspection. Central policy remains unchanged with zero `allow` rows, so
+neither action is yet admitted.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

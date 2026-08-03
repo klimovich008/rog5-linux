@@ -39,7 +39,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation6-live-v1 | \
 		headless-diagnostic-generation7-offline-v1 | \
 		headless-diagnostic-generation7-live-v1 | \
-		headless-diagnostic-generation8-offline-v1) ;;
+		headless-diagnostic-generation8-offline-v1 | \
+		headless-diagnostic-generation8-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -55,6 +56,7 @@ expected_host_verifier=${HOST_VERIFIER_SHA256:-}
 expected_generation_record=
 expected_avb_salt=
 expected_avb_digest=
+expected_boot_image=
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -428,9 +430,16 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation8-offline-v1)
-		if [[ $action != policy-preflight && $action != artifact-preflight ]]; then
+	headless-diagnostic-generation8-offline-v1 | \
+	headless-diagnostic-generation8-live-v1)
+		if [[ $profile == headless-diagnostic-generation8-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-8 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation8-live-v1 &&
+			( $action == preflight || $action == boot ) &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-8 connected action requires the one-shot lifecycle controller'
 		fi
 		component_layout=structured
 		expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c
@@ -445,6 +454,7 @@ case $profile in
 		expected_generation_record=9805809c27e1fe47efcbc7561fe5289e81d789beba231acbac59c32a67ae59d5
 		expected_avb_salt=a8563ded9a34767ed97ed4f9130361a1b4efadc91ee7294d9a212caf59e53899
 		expected_avb_digest=b297100d269798d4eaf46b37899c3cf9196f7c076df3a31d39fe3d2db5915dbc
+		expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'generation-8 diagnostic runtime manifest is not pinned'
@@ -470,6 +480,28 @@ esac
 	fail "profile requires bundle=$expected_bundle"
 # expected_image is the caller-supplied RECOVERY_SHA256 and is never
 # reassigned by profile selection.
+
+if [[ -n $expected_boot_image &&
+	( $action == preflight || $action == boot ) ]]; then
+	early_boot_policy=$repo/manifests/temporary-boot-images.tsv
+	[[ -f $early_boot_policy && ! -L $early_boot_policy &&
+		-r $early_boot_policy ]] ||
+		fail 'unsafe or missing early temporary-boot policy input'
+	early_policy_matches=0
+	early_policy_status=
+	early_policy_basis=
+	while IFS=$'\t' read -r early_name early_status early_basis early_extra; do
+		if [[ $early_name == "$expected_boot_image" ]]; then
+			((early_policy_matches += 1))
+			early_policy_status=$early_status
+			early_policy_basis=$early_basis
+		fi
+	done <"$early_boot_policy"
+	[[ $early_policy_matches == 1 ]] ||
+		fail "temporary boot policy does not uniquely list $expected_boot_image"
+	[[ $early_policy_status == allow && -n $early_policy_basis ]] ||
+		fail "temporary boot policy does not allow $expected_boot_image"
+fi
 
 if [[ $action == policy-preflight ]]; then
 	printf '%s\n' \
