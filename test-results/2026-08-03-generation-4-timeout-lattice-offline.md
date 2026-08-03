@@ -95,6 +95,19 @@ and require rejection.
 artifact. `manifests/temporary-boot-images.tsv` remains unchanged and contains
 no `allow` row. Artifact inventory is not boot authority.
 
+## Verification
+
+- The focused issuer, recovery-policy, and exact artifact-preflight suites
+  pass.
+- Complete local `scripts/host/test-repository-linux.sh ci` passes on the final
+  implementation tree.
+- The constrained Claude review first identified three test-strengthening
+  opportunities: connected-preflight denial, generation-4-owned mutation-field
+  metadata, and explicit predecessor-generation distinction. All three were
+  added; focused tests pass and the follow-up review reports `NO FINDINGS`.
+- GitHub Actions run `30786957283` passes both `qemu-system` and
+  `recovery-core` at exact implementation commit `e3a47a8`.
+
 ## Scope
 
 No ADB, fastboot, ACM, NCM, SSH, signing credential, administrator credential,
