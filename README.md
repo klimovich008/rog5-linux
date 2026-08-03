@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–6 are consumed and never reusable. Generation 6 passed connected preflight and booted once in RAM; a corrected timeline proves the host's deferred-profile verifier aborted before waiting for `PREPARED`. Two exact host-verifier defects are reproduced and fixed offline. Distinct Generation 7 (`d3d4cdb9…12901`) is twin-reproduced over the unchanged raw recovery and passes hostile policy, artifact, twin, generation-record, and lifecycle tests. A separate lifecycle-only live profile now selects the same tuple, but there is no boot-policy row. No live `PREPARED` or successor acceptance is claimed yet. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–6 are consumed and never reusable. Generation 6 passed connected preflight and booted once in RAM; a corrected timeline proves the host's deferred-profile verifier aborted before waiting for `PREPARED`. Two exact host-verifier defects are reproduced and fixed offline. Distinct Generation 7 (`d3d4cdb9…12901`) is twin-reproduced over the unchanged raw recovery and passes hostile policy, artifact, twin, generation-record, and lifecycle tests. The lifecycle selects its separate live profile, and central policy admits exactly one connected-preflight-gated RAM-only cycle. Generation 7 remains unbooted; no live `PREPARED` or successor acceptance is claimed yet. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -76,9 +76,9 @@ gate.
 `manifests/artifacts.tsv` is an inventory, not boot authority.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
 It retains the twice-live-accepted v18 staging image as revoked historical
-evidence. Diagnostic generations 0–6 are consumed. Generation 7 is an
-unbooted inventory entry with separate offline and lifecycle-only profiles but
-no policy row, and there is no `allow` row. No image may be booted or flashed.
+evidence. Diagnostic generations 0–6 are consumed. Exactly one Generation-7
+image is admitted for one connected-preflight-gated RAM-only lifecycle; it may
+never be flashed, and its row must be removed after any result.
 
 ## Recovery host workflow
 

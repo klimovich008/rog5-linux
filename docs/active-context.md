@@ -208,10 +208,12 @@ Both issuer trees pass exact artifact verification and are byte-identical; a
 mutated generation record and every wrong policy identity fail closed. The
 separate `headless-diagnostic-generation7-live-v1` now selects that identical
 tuple through the lifecycle and rejects direct boot without the lifecycle
-guard. Generation 7 still has no temporary-boot policy row, so this is not
-connected or boot admission. See the
+guard. Central policy now separately admits exactly one connected-preflight-
+gated RAM-only lifecycle; Generation 7 remains unbooted.
+See the
 [issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
-and [live-profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md).
+and [live-profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
+then the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
