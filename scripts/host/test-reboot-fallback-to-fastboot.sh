@@ -42,6 +42,18 @@ for contract in \
 	"$fatal_pattern" \
 	'PASS guarded fallback RESTART2 bootloader request sent' \
 	'PASS authenticated fallback reboot session' \
+	'fallback USB disconnected but no anchored-port USB re-enumeration was observed' \
+	'exact fastboot USB re-enumerated but fastboot userspace discovery did not succeed' \
+	'fastboot escaped the exact fallback USB device' \
+	'fastboot serial changed at the anchored USB device' \
+	'fallback serial changed at the anchored USB device' \
+	'a non-fastboot USB mode was observed at the anchored port' \
+	'fallback Linux USB returned at the anchored port instead of fastboot' \
+	'fallback USB never disconnected after the acknowledged bootloader reboot' \
+	'expected one exact fallback USB device, found' \
+	'one fastboot device is present in an unexpected state' \
+	'fallback dmesg is unavailable' \
+	'fallback kernel log is unreadable' \
 	'^[[:space:]]*product:[[:space:]]*lahaina[[:space:]]*$' \
 	'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement'
 do
@@ -75,7 +87,7 @@ do
 done
 
 if grep -Eq \
-	'StrictHostKeyChecking=(no|accept-new)|UserKnownHostsFile=/dev/null|fastboot[[:space:]]+(boot|flash|erase)([[:space:]]|$)|/dev/(mem|kmem)|nvmem|sysrq-trigger|dd[[:space:]].*of=' \
+	'StrictHostKeyChecking=(no|accept-new)|UserKnownHostsFile=/dev/null|fastboot[[:space:]]+(boot|flash|erase)([[:space:]]|$)|/dev/(mem|kmem)|nvmem|sysrq-trigger|dd[[:space:]].*of=|ROG5_FALLBACK_REBOOT_(OFFLINE_TEST|SYS_BUS_USB|SYS_DEVICES|TIMEOUT)' \
 	"$helper"
 then
 	echo 'FAIL fallback-to-fastboot helper bypasses identity or writes outside restart2' >&2
@@ -99,6 +111,26 @@ install -m 0600 /dev/null "$stage/ssh-key"
 install -m 0600 /dev/null "$stage/known-hosts"
 calls=$stage/calls
 ready=$stage/fastboot-ready
+usb_device=$stage/sys/devices/pci0000:00/usb1/1-1/1-1.2
+install -d -m 0755 "$stage/sys/bus/usb/devices" "$usb_device"
+ln -s "$usb_device" "$stage/sys/bus/usb/devices/1-1.2"
+
+set_usb_identity() {
+	printf '%s\n' "$1" >"$usb_device/idVendor"
+	printf '%s\n' "$2" >"$usb_device/idProduct"
+	printf '%s\n' "$3" >"$usb_device/serial"
+}
+
+set_usb_identity 1d6b 0104 ROG5LINUX
+fixture_helper=$stage/reboot-fallback-to-fastboot.sh
+cp "$helper" "$fixture_helper"
+sed -i \
+	-e "s|^sys_bus_usb=/sys/bus/usb/devices$|sys_bus_usb=$stage/sys/bus/usb/devices|" \
+	-e "s|^sys_devices=/sys/devices$|sys_devices=$stage/sys/devices|" \
+	-e 's/^fastboot_timeout=45$/fastboot_timeout=3/' \
+	"$fixture_helper"
+helper=$fixture_helper
+export MOCK_USB_DEVICE=$usb_device
 
 cat >"$stage/bin/ssh" <<'MOCK'
 #!/bin/sh
@@ -106,7 +138,51 @@ set -eu
 case " $* " in
 	*" reboot "*)
 		printf '%s\n' reboot >>"$MOCK_CALLS"
-		: >"$MOCK_FASTBOOT_READY"
+		case "${MOCK_USB_MODE:-fastboot}" in
+			absent)
+				rm -f "$MOCK_USB_DEVICE/idVendor" \
+					"$MOCK_USB_DEVICE/idProduct" \
+					"$MOCK_USB_DEVICE/serial"
+				;;
+			fallback) ;;
+			fastboot)
+				printf '%s\n' 0b05 >"$MOCK_USB_DEVICE/idVendor"
+				printf '%s\n' 4daf >"$MOCK_USB_DEVICE/idProduct"
+				printf '%s\n' "${MOCK_USB_SERIAL:-${MOCK_FASTBOOT_SERIAL:-test-device}}" \
+					>"$MOCK_USB_DEVICE/serial"
+				;;
+			fallback-return)
+				rm -f "$MOCK_USB_DEVICE/idVendor" \
+					"$MOCK_USB_DEVICE/idProduct" \
+					"$MOCK_USB_DEVICE/serial"
+				(
+					sleep 1.2
+					printf '%s\n' ROG5LINUX >"$MOCK_USB_DEVICE/serial"
+					printf '%s\n' 0104 >"$MOCK_USB_DEVICE/idProduct"
+					printf '%s\n' 1d6b >"$MOCK_USB_DEVICE/idVendor"
+				) >/dev/null 2>&1 &
+				;;
+			fallback-wrong-serial)
+				rm -f "$MOCK_USB_DEVICE/idVendor" \
+					"$MOCK_USB_DEVICE/idProduct" \
+					"$MOCK_USB_DEVICE/serial"
+				(
+					sleep 1.2
+					printf '%s\n' other >"$MOCK_USB_DEVICE/serial"
+					printf '%s\n' 0104 >"$MOCK_USB_DEVICE/idProduct"
+					printf '%s\n' 1d6b >"$MOCK_USB_DEVICE/idVendor"
+				) >/dev/null 2>&1 &
+				;;
+			other)
+				printf '%s\n' 1234 >"$MOCK_USB_DEVICE/idVendor"
+				printf '%s\n' 5678 >"$MOCK_USB_DEVICE/idProduct"
+				printf '%s\n' other >"$MOCK_USB_DEVICE/serial"
+				;;
+			*) exit 90 ;;
+		esac
+		if [ "${MOCK_NO_FASTBOOT_USERSPACE:-0}" != 1 ]; then
+			: >"$MOCK_FASTBOOT_READY"
+		fi
 	if [ "${MOCK_DROP_RESTART_MARKER:-0}" != 1 ]; then
 		echo 'PASS authenticated fallback reboot session'
 		echo 'PASS guarded fallback RESTART2 bootloader request sent'
@@ -126,7 +202,8 @@ cat >"$stage/bin/fastboot" <<'MOCK'
 set -eu
 printf '%s\n' fastboot >>"$MOCK_CALLS"
 if [ "${1:-}" = devices ] && [ -e "$MOCK_FASTBOOT_READY" ]; then
-	printf '%s\tfastboot\n' "${MOCK_FASTBOOT_SERIAL:-test-device}"
+	printf '%s\t%s\n' "${MOCK_FASTBOOT_SERIAL:-test-device}" \
+		"${MOCK_FASTBOOT_STATE:-fastboot}"
 	exit 0
 fi
 if [ "${1:-}" = -s ] && [ "${2:-}" = test-device ] &&
@@ -147,16 +224,20 @@ SSH_KEY=$stage/ssh-key \
 KNOWN_HOSTS=$stage/known-hosts \
 	"$helper" preflight >/dev/null
 
-PATH="$stage/bin:$PATH" \
+acknowledged_output=$(PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
 MOCK_FASTBOOT_READY=$ready \
 ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
 FASTBOOT_SERIAL=test-device \
 SSH_KEY=$stage/ssh-key \
 KNOWN_HOSTS=$stage/known-hosts \
-	"$helper" reboot >/dev/null
+	"$helper" reboot)
+grep -Fxq \
+	'PASS exact lahaina fastboot device reached after acknowledged restart2' \
+	<<<"$acknowledged_output"
 
 rm -f "$ready"
+set_usb_identity 1d6b 0104 ROG5LINUX
 set +e
 PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
@@ -173,6 +254,7 @@ set -e
 [[ $unproved_status -ne 0 ]]
 
 rm -f "$ready"
+set_usb_identity 1d6b 0104 ROG5LINUX
 set +e
 PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
@@ -190,6 +272,7 @@ set -e
 
 for mutation in wrong-serial conflicting-product; do
 	rm -f "$ready"
+	set_usb_identity 1d6b 0104 ROG5LINUX
 	set +e
 	case $mutation in
 		wrong-serial)
@@ -217,7 +300,8 @@ for mutation in wrong-serial conflicting-product; do
 done
 
 rm -f "$ready"
-PATH="$stage/bin:$PATH" \
+set_usb_identity 1d6b 0104 ROG5LINUX
+disconnect_output=$(PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
 MOCK_FASTBOOT_READY=$ready \
 MOCK_DROP_RESTART_MARKER=1 \
@@ -225,10 +309,136 @@ ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
 FASTBOOT_SERIAL=test-device \
 SSH_KEY=$stage/ssh-key \
 KNOWN_HOSTS=$stage/known-hosts \
-	"$helper" reboot >/dev/null
+	"$helper" reboot)
+grep -Fxq \
+	'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement' \
+	<<<"$disconnect_output"
 
 [[ $(grep -Fxc preflight "$calls") == 1 ]]
 [[ $(grep -Fxc reboot "$calls") == 6 ]]
 [[ $(grep -Fxc fastboot "$calls") -ge 12 ]]
+
+for case_name in no-disconnect no-reenumeration fastboot-userspace \
+	other-mode fallback-return fallback-wrong-serial; do
+	rm -f "$ready"
+	set_usb_identity 1d6b 0104 ROG5LINUX
+	case $case_name in
+		no-disconnect)
+			usb_mode=fallback
+			expected='fallback USB never disconnected after the acknowledged bootloader reboot'
+			;;
+		no-reenumeration)
+			usb_mode=absent
+			expected='fallback USB disconnected but no anchored-port USB re-enumeration was observed'
+			;;
+		fastboot-userspace)
+			usb_mode=fastboot
+			expected='exact fastboot USB re-enumerated but fastboot userspace discovery did not succeed'
+			;;
+		other-mode)
+			usb_mode=other
+			expected='a non-fastboot USB mode was observed at the anchored port'
+			;;
+		fallback-return)
+			usb_mode=fallback-return
+			expected='fallback Linux USB returned at the anchored port instead of fastboot'
+			;;
+		fallback-wrong-serial)
+			usb_mode=fallback-wrong-serial
+			expected='fallback serial changed at the anchored USB device'
+			;;
+	esac
+	set +e
+	output=$(PATH="$stage/bin:$PATH" \
+		MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+		MOCK_USB_MODE=$usb_mode MOCK_NO_FASTBOOT_USERSPACE=1 \
+		ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+		FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+		KNOWN_HOSTS=$stage/known-hosts \
+			"$helper" reboot 2>&1)
+	status=$?
+	set -e
+	[[ $status -ne 0 ]]
+	grep -Fq "$expected" <<<"$output"
+done
+
+for boundary in wrong-port wrong-sysfs-serial; do
+	rm -f "$ready"
+	set_usb_identity 1d6b 0104 ROG5LINUX
+	case $boundary in
+		wrong-port)
+			usb_mode=other
+			usb_serial=
+			expected='fastboot escaped the exact fallback USB device'
+			;;
+		wrong-sysfs-serial)
+			usb_mode=fastboot
+			usb_serial=other-device
+			expected='fastboot serial changed at the anchored USB device'
+			;;
+	esac
+	set +e
+	output=$(PATH="$stage/bin:$PATH" \
+		MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+		MOCK_USB_MODE=$usb_mode MOCK_USB_SERIAL=$usb_serial \
+		ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+		FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+		KNOWN_HOSTS=$stage/known-hosts \
+			"$helper" reboot 2>&1)
+	status=$?
+	set -e
+	[[ $status -ne 0 ]]
+	grep -Fq "$expected" <<<"$output"
+done
+
+for fallback_count in zero duplicate; do
+	rm -f "$ready"
+	set_usb_identity 1d6b 0104 ROG5LINUX
+	case $fallback_count in
+		zero)
+			printf '%s\n' NOMATCH >"$usb_device/serial"
+			expected='expected one exact fallback USB device, found 0'
+			;;
+		duplicate)
+			second_usb=$stage/sys/devices/pci0000:00/usb1/1-1/1-1.3
+			install -d -m 0755 "$second_usb"
+			printf '%s\n' 1d6b >"$second_usb/idVendor"
+			printf '%s\n' 0104 >"$second_usb/idProduct"
+			printf '%s\n' ROG5LINUX >"$second_usb/serial"
+			ln -s "$second_usb" "$stage/sys/bus/usb/devices/1-1.3"
+			expected='expected one exact fallback USB device, found 2'
+			;;
+	esac
+	set +e
+	output=$(PATH="$stage/bin:$PATH" \
+		MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+		ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+		FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+		KNOWN_HOSTS=$stage/known-hosts \
+			"$helper" reboot 2>&1)
+	status=$?
+	set -e
+	[[ $status -ne 0 ]]
+	grep -Fq "$expected" <<<"$output"
+	if [[ $fallback_count == duplicate ]]; then
+		rm -f "$stage/sys/bus/usb/devices/1-1.3"
+	fi
+done
+
+rm -f "$ready"
+set_usb_identity 1d6b 0104 ROG5LINUX
+set +e
+output=$(PATH="$stage/bin:$PATH" \
+	MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+	MOCK_FASTBOOT_STATE=unexpected \
+	ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
+	FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
+	KNOWN_HOSTS=$stage/known-hosts \
+		"$helper" reboot 2>&1)
+status=$?
+set -e
+[[ $status -ne 0 ]]
+grep -Fq 'one fastboot device is present in an unexpected state' \
+	<<<"$output"
 
 echo 'PASS fallback reboot helper is identity-pinned, restart2-only, guarded, fastboot-verifying, and tolerant only of a proven post-disconnect reboot'

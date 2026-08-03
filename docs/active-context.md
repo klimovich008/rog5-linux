@@ -122,6 +122,14 @@ booted, or consumed. See the
 and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
 The admission implementation passes complete local CI and GitHub Actions run
 `30796577338` at exact commit `51f3bf0`. No phone action occurred.
+The exact Alpine fallback later passed guarded health preflight and
+acknowledged one SSH-issued `RESTART2("bootloader")`, but disconnected without
+re-enumerating during the fixed 45-second and additional 60-second windows.
+It subsequently appeared as exact ASUS fastboot at the same physical port;
+the cause of that later appearance is not inferred. Generation 5 remains
+unbooted and unconsumed. The standalone reboot helper now pins that port and
+classifies every terminal transition without runtime test overrides. See the
+[anchored transition result](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

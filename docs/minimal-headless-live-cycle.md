@@ -838,10 +838,14 @@ methods. Together they prove:
   write beyond the bounded BusyBox-history and possible atime effects covered
   by the standing authorization;
 - a terminal guarded-reboot timeout reports whether fallback disconnect,
-  anchored-port re-enumeration, non-fastboot USB, or fastboot-userspace
-  discovery was observed; this best-effort classifier cannot admit a device,
-  and hotplug races resolve to an unknown observation rather than aborting the
-  authoritative exact-fastboot wait;
+  anchored-port re-enumeration, fallback Linux return, non-fastboot USB,
+  anchored serial change, or fastboot-userspace discovery was observed; the
+  SSH reboot helper and ACM controller both preserve the fixed 45-second
+  production wait, and neither exposes a runtime fixture/sysfs override;
+  this best-effort classifier cannot admit a device, and hotplug races resolve
+  to an unknown observation rather than aborting the authoritative
+  exact-fastboot wait; see the
+  [live anchored transition](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md);
 - its 30-second post-ACK COMMIT deadline exceeds the remote's 25-second
   post-ACK deadline; the phone checks that deadline after repeated health
   collection and both before and after COMMIT publication, preventing a late
