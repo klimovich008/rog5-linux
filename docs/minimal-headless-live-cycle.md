@@ -4,8 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–4 are consumed; exactly one
-Generation-5 RAM-only lifecycle is admitted but unbooted**. Generation 4
+Tracked status: **diagnostic generations 0–5 are consumed; no image is
+boot-authorized**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -43,9 +43,13 @@ guard, preflight, one-shot limit, rollback rule, and no-flash boundary remains
 mandatory.
 The exact Generation-5
 [connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
-has passed without starting a boot or server. Generation 5 remains unconsumed;
-only one subsequent `diagnostic-run` is permitted, and every result consumes
-it.
+passed, then its sole
+[live cycle](../test-results/2026-08-03-generation-5-nfs-readiness-live.md)
+reached verified recovery `PREPARED` and transferred all 46,163,787 bundle
+bytes. The independent completion-to-NFS handoff still failed before COMMIT;
+no target ran. Exact Alpine fallback, strict SSH, and final host cleanup
+passed after the controller watchdog released its lock. Generation 5 is
+consumed and absent from boot policy; it must never be retried or flashed.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
