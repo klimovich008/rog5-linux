@@ -50,4 +50,7 @@ Alpine model reaches clean intent resolution without a cleanup-proof error.
 - phone, fastboot, recovery, SSH, NFS export, and host-network mutation: none.
 
 The independent Generation-6 complete-transfer/control-silence boundary is
-not corrected here. No successor may be issued solely from this result.
+not corrected here. Its subsequent host-order reconstruction and separate
+offline correction are recorded in the
+[deferred-profile association result](2026-08-03-generation-6-deferred-profile-association-fix-offline.md).
+No successor may be issued solely from this udev-model result.

@@ -1068,9 +1068,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
    [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
    and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
-6. Explain and correct the complete-transfer/control-silence boundary offline
-   before issuing a distinct successor; the separate fallback udev-model
-   correction already passes its hardware-free hostile suite.
+6. The private timeline and NetworkManager journal now explain the
+   complete-transfer/empty-control-log boundary: the host hit its 10-second
+   deferred-profile cleanup rejection and terminated control before waiting
+   for `PREPARED`. NetworkManager had already made the interface unmanaged and
+   address-free but retained the exact fallback UUID as historical
+   association data. The
+   [offline choreography correction](../test-results/2026-08-03-generation-6-deferred-profile-association-fix-offline.md)
+   accepts only that exact UUID or an empty association after all other
+   deferred-state checks pass continuously; wrong, duplicate, mixed, managed,
+   addressed, or autoconnect-enabled cases fail. Generation 6 still has no
+   live `PREPARED` and remains consumed.
 7. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

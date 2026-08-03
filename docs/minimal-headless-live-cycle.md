@@ -83,6 +83,14 @@ lookalike coverage; this does not relabel the failed live proof. See the
 and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
 [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
 and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
+The private timeline later proved the lifecycle hit the post-transfer cleanup
+deadline and entered fallback before it ever waited for recovery control.
+NetworkManager had made the recovery interface unmanaged and address-free but
+retained the exact fallback profile UUID as historical association data. The
+[offline choreography correction](../test-results/2026-08-03-generation-6-deferred-profile-association-fix-offline.md)
+accepts only that exact retained UUID or no association after all deferred
+state checks pass continuously. Thus Generation 6 did not prove recovery-side
+silence; it also did not produce a live `PREPARED` result.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

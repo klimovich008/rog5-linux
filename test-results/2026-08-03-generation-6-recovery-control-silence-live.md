@@ -106,6 +106,13 @@ Increasing a timeout or reusing Generation 6 is not an acceptable correction.
 
 The first correction item subsequently passed offline in the
 [fallback udev-model classification result](2026-08-03-fallback-udev-model-classification-fix-offline.md).
-The complete-transfer/control-silence boundary remains unresolved; this does
-not change Generation 6's consumed status or repair the failed live cleanup
-proof retroactively.
+The complete-transfer/control-silence boundary was unresolved when this live
+result was first published; this does not change Generation 6's consumed
+status or repair the failed live cleanup proof retroactively.
+
+Subsequent timestamp and NetworkManager-journal reconstruction showed the host
+entered its fallback path after the 10-second deferred-profile cleanup failure
+and before it waited for recovery control. See the
+[offline deferred-profile correction](2026-08-03-generation-6-deferred-profile-association-fix-offline.md).
+The empty control log therefore does not prove recovery-side silence. It also
+does not supply the missing live `PREPARED` record.
