@@ -2,7 +2,7 @@
 
 Date: 2026-08-03
 
-Result: **PASS offline issuance and admission; unbooted**. A distinct
+Result: **PASS offline issuance; unbooted**. A distinct
 Generation-6 outer AVB wrapper was issued twice after installing the corrected
 recovery-host broker. The accepted recovery kernel, raw boot image, initramfs,
 control responder, fetcher, verifier, target, signed bundle, and embedded trust
@@ -27,13 +27,14 @@ identity and embedded production Ed25519 trust root, not an AVB signature.
 
 ## Fail-closed policy
 
-`headless-diagnostic-generation6-offline-v1` is the only Generation-6
-profile. It permits only `policy-preflight` and `artifact-preflight`. Supplying
+At issuance, `headless-diagnostic-generation6-offline-v1` was the only
+Generation-6 profile. It permits only `policy-preflight` and
+`artifact-preflight`. Supplying
 all temporary-boot and lifecycle authorization flags still cannot make its
 connected `preflight` or `boot` action pass; both reject before dependency,
 host-state, credential, fastboot, or phone inspection.
 
-The artifact inventory contains one exact candidate row with
+At this issuance, the artifact inventory contains one exact candidate row with
 `authority=none`, `unbooted`, and `never flash`. The temporary-boot policy has
 no Generation-6 row and no `allow` row at all. No Generation-6 live profile,
 lifecycle selection, or boot authority exists.
@@ -65,5 +66,6 @@ No credential, signing key, privileged host action, fastboot command, phone
 interface, or phone storage was used. The separate
 [live-profile transition](2026-08-03-generation-6-live-profile-offline.md)
 now wires the lifecycle to the same exact tuple without adding boot authority.
-Only a separately reviewed one-row temporary-boot admission remains before
-connected preflight; this result does not authorize or predict a phone boot.
+The subsequent [one-shot admission](2026-08-03-generation-6-live-admission-offline.md)
+adds the separately reviewed central policy row. This issuance result itself
+does not authorize or predict a phone boot.

@@ -3,8 +3,8 @@
 Date: 2026-08-03
 
 Result: **PASS reviewed offline**. The diagnostic lifecycle now selects the
-exact Generation-6 recovery through a distinct live-capable profile, while
-Generation 6 remains absent from temporary-boot policy. No connected preflight,
+exact Generation-6 recovery through a distinct live-capable profile. At this
+transition Generation 6 remained absent from temporary-boot policy. No connected preflight,
 credential use, privileged host mutation, or phone action occurred.
 
 ## Exact transition
@@ -32,7 +32,7 @@ changed.
 - `manifests/temporary-boot-images.tsv` remains unchanged and contains no
   Generation-6 row or any `allow` row.
 
-This profile wiring does not admit connected preflight or boot. A separate
-reviewed one-row temporary-boot policy change with green local and GitHub CI
-remains mandatory before one RAM-only lifecycle. No phone or credential action
-is part of this transition.
+This profile wiring itself does not admit connected preflight or boot. The
+subsequent [one-shot admission](2026-08-03-generation-6-live-admission-offline.md)
+adds the separate central policy row. No phone or credential action is part of
+this transition.

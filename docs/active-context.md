@@ -77,8 +77,8 @@ verification, and kexec load, but the host's 70-second transfer service never
 emitted its completion receipt. NFS therefore never started, the control gate
 failed before COMMIT, no target ran, and exact strict-SSH Alpine fallback plus
 clean host state passed. The device-side fetch permits 190 seconds, exposing
-the historical 70/75/95-second host timeout chain. Generation 3 is consumed,
-its allow row is removed, and no image is currently boot-authorized. Source
+the historical 70/75/95-second host timeout chain. Generation 3 is consumed
+and its allow row is removed. Source
 now uses an explicit 180/190/195/205/220/260/320-second nested deadline
 lattice. Hardware-free tests enforce every margin and prove that PREPARED plus
 forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Commit
@@ -160,16 +160,17 @@ See the
 and [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 Distinct Generation-6 AVB `6aa47517…d398` is now twin-reproduced over that
 same accepted raw recovery, with exact generation record `bff8432e…52a2`.
-Its sole profile, `headless-diagnostic-generation6-offline-v1`, passes exact
-artifact and mutation gates but rejects connected preflight and boot before
-host inspection even when every live authorization flag is present. It is
-unbooted, absent from temporary-boot policy, and has no live profile or
-lifecycle selection. See the
+Its immutable offline profile, `headless-diagnostic-generation6-offline-v1`,
+passes exact artifact and mutation gates but rejects connected preflight and
+boot before host inspection even when every live authorization flag is
+present. See the
 [offline Generation-6 result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The lifecycle now selects the same exact tuple through
 `headless-diagnostic-generation6-live-v1`; direct boot remains lifecycle-only,
-and temporary-boot policy remains empty. See the
-[offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md).
+and central policy now admits exactly one connected-preflight-gated RAM-only
+lifecycle. Generation 6 remains unbooted. See the
+[offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
+and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

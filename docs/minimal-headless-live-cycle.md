@@ -4,8 +4,9 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–5 are consumed; no image is
-boot-authorized**. Generation 4
+Tracked status: **diagnostic generations 0–5 are consumed; exactly one
+Generation-6 image is admitted for one connected-preflight-gated RAM-only
+lifecycle**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -64,14 +65,15 @@ See the
 [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 Do not raise the NFS timeout or reuse Generation 5.
 Distinct Generation-6 AVB `6aa47517…d398` is twin-reproduced over the unchanged
-accepted recovery payload and passes its exact offline artifact gate. Its sole
-profile rejects connected preflight and boot before host inspection; it is
-unbooted, absent from temporary-boot policy, and has no live profile or
-lifecycle selection. See the
+accepted recovery payload and passes its exact offline artifact gate. Its
+immutable offline profile rejects connected preflight and boot before host
+inspection. See the
 [offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
-The lifecycle now selects its exact live-capable profile, but direct boot is
-still lifecycle-only and no temporary-boot row exists; see the
-[profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md).
+The lifecycle now selects its exact live-capable profile, direct boot remains
+lifecycle-only, and central policy admits exactly one cycle after connected
+preflight; see the
+[profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
+and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
