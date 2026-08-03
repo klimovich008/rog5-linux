@@ -1079,11 +1079,20 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    deferred-state checks pass continuously; wrong, duplicate, mixed, managed,
    addressed, or autoconnect-enabled cases fail. Generation 6 still has no
    live `PREPARED` and remains consumed.
-7. Use corrected diagnostic evidence to repair or promote a distinct normal
+7. Distinct Generation-7 AVB `d3d4cdb9…12901` is independently issued twice
+   over unchanged raw recovery `f1a7c5ad…6a4ce`, with exact generation record
+   `8127197d…799e`. Its only profile is
+   `headless-diagnostic-generation7-offline-v1`; connected preflight and boot
+   reject before host inspection, an unissued live-profile name is rejected,
+   both production twin trees pass artifact preflight, and a mutated
+   generation record fails closed. It is inventoried with `authority=none`,
+   absent from temporary-boot policy, and unbooted. See the
+   [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md).
+8. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
    SSH.
-8. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+9. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

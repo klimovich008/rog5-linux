@@ -4,8 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–6 are consumed; no image is
-boot-authorized**. Generation 4
+Tracked status: **diagnostic generations 0–6 are consumed; Generation 7 is
+offline-only; no image is boot-authorized**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -91,6 +91,13 @@ retained the exact fallback profile UUID as historical association data. The
 accepts only that exact retained UUID or no association after all deferred
 state checks pass continuously. Thus Generation 6 did not prove recovery-side
 silence; it also did not produce a live `PREPARED` result.
+Distinct Generation-7 AVB `d3d4cdb9…12901` is twin-reproduced over the same
+unchanged raw recovery and passes exact offline policy and artifact gates. Its
+only profile, `headless-diagnostic-generation7-offline-v1`, rejects connected
+preflight and boot before host inspection. Both independent issuer trees are
+byte-identical, a mutated generation record fails closed, and no Generation-7
+live profile or temporary-boot policy row exists. See the
+[offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

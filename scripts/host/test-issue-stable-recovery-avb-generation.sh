@@ -191,6 +191,45 @@ gen6_info=$(python3 "$avbtool" info_image \
 gen6_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen6_info")
 grep -Fxq "digest=$gen6_digest" "$tmp/gen6-a/avb-generation.txt"
 
+# Generation seven is the first candidate issued after the host verifier began
+# accepting only the exact deferred fallback-profile association. Prove the
+# issuer remains deterministic and distinct before that artifact can acquire
+# a separate live profile or temporary-boot policy row.
+"$issuer" "$source_root" "$tmp/gen7-a" 7 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen7-a.out"
+"$issuer" "$source_root" "$tmp/gen7-b" 7 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen7-b.out"
+cmp "$tmp/gen7-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen7-b/repack/stable-recovery-a.avb.img"
+cmp "$tmp/gen7-a/repack/stable-recovery-b.avb.img" \
+	"$tmp/gen7-b/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen7-a/repack/stable-recovery-a.raw.img" \
+	"$tmp/gen7-b/repack/stable-recovery-a.raw.img"
+cmp "$tmp/gen7-a/repack/stable-recovery-b.raw.img" \
+	"$tmp/gen7-b/repack/stable-recovery-b.raw.img"
+cmp "$tmp/gen7-a/avb-generation.txt" "$tmp/gen7-b/avb-generation.txt"
+cmp "$tmp/gen7-a.out" "$tmp/gen7-b.out"
+for predecessor in gen1-a gen2 gen3 gen4-a gen5-a gen6-a; do
+	for suffix in a b; do
+		! cmp -s "$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img" \
+			"$tmp/gen7-a/repack/stable-recovery-$suffix.avb.img" ||
+			fail "generation seven reused the $predecessor twin-$suffix AVB wrapper"
+	done
+done
+expected_gen7_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=7\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=7' "$tmp/gen7-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen7_salt" "$tmp/gen7-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen7-a/avb-generation.txt"
+gen7_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen7-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen7_info") == \
+	"$expected_gen7_salt" ]] || fail 'generation-seven descriptor salt changed'
+gen7_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen7_info")
+grep -Fxq "digest=$gen7_digest" "$tmp/gen7-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
