@@ -267,9 +267,24 @@ names pass exact policy and artifact preflight. Direct connected preflight or
 boot requires the lifecycle guard and then an exact central-policy row before
 host inspection. The separate
 [Generation-8 one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md)
-now supplies exactly one matching central-policy row. Generation 8 remains
-unbooted; publication and exact-head green CI are required before connected
-preflight.
+was published at `c667718`, and exact-head GitHub Actions run `30832269180`
+passed. Strict-SSH fallback control moved the phone to same-port exact
+`lahaina` fastboot and connected preflight passed. The sole Generation-8
+RAM-only boot then reached verified recovery ACM/NCM and transferred the full
+signed bundle, but recovery control rejected because ACM identity did not
+remain stable. No PREPARED record, COMMIT intent, or target execution existed.
+Exact Alpine fallback returned; the final host proof exposed a separate
+root-owned mode-`0600` empty NFS export-table inspection defect while
+independent checks found no host residue. Generation 8 is consumed, absent
+from boot policy, never reusable, and never flashable. See the
+[live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
+The host-only successor moves the exact export-table read into the fixed root
+broker. Its argument-free `network-export-state` request opens the fixed path
+with `O_NOFOLLOW`, revalidates the opened and named inode, accepts only
+root-owned mode `0600` or `0644` with one link and a bounded size, requires
+zero bytes, emits only a canonical empty-state proof, and never changes the
+table. The lifecycle uses this proof in production while retaining its local
+fixture reader for hardware-free tests. No phone boot is part of this fix.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

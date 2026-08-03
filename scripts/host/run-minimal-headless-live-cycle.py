@@ -1950,34 +1950,48 @@ class LiveCycle:
             )
             if result.stdout.strip():
                 fail(f"host listener remains on TCP port {port}")
-        export_descriptor = -1
-        try:
-            export_descriptor = os.open(
-                self.dependencies.nfs_exports,
-                os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
+        if self.dependencies.offline:
+            export_descriptor = -1
+            try:
+                export_descriptor = os.open(
+                    self.dependencies.nfs_exports,
+                    os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
+                )
+                export_metadata = os.fstat(export_descriptor)
+                export_payload = os.read(
+                    export_descriptor,
+                    1024 * 1024 + 1,
+                )
+                current_metadata = self.dependencies.nfs_exports.lstat()
+            except OSError as error:
+                raise CycleError(
+                    "cannot inspect host NFS exports"
+                ) from error
+            finally:
+                if export_descriptor >= 0:
+                    os.close(export_descriptor)
+            if (
+                not stat.S_ISREG(export_metadata.st_mode)
+                or export_metadata.st_uid != os.geteuid()
+                or export_metadata.st_gid != os.getegid()
+                or stat.S_IMODE(export_metadata.st_mode)
+                not in {0o600, 0o644}
+                or current_metadata.st_dev != export_metadata.st_dev
+                or current_metadata.st_ino != export_metadata.st_ino
+                or len(export_payload) > 1024 * 1024
+            ):
+                fail("host NFS export table metadata is unsafe")
+            if export_payload.strip():
+                fail("host retains an NFS export")
+        else:
+            export_state = run_capture(
+                [str(self.dependencies.network_root_server), "inspect"],
+                timeout=self.remaining_timeout(deadline),
             )
-            export_metadata = os.fstat(export_descriptor)
-            export_payload = os.read(export_descriptor, 1024 * 1024 + 1)
-            current_metadata = self.dependencies.nfs_exports.lstat()
-        except OSError as error:
-            raise CycleError("cannot inspect host NFS exports") from error
-        finally:
-            if export_descriptor >= 0:
-                os.close(export_descriptor)
-        expected_owner = os.geteuid() if self.dependencies.offline else 0
-        expected_group = os.getegid() if self.dependencies.offline else 0
-        if (
-            not stat.S_ISREG(export_metadata.st_mode)
-            or export_metadata.st_uid != expected_owner
-            or export_metadata.st_gid != expected_group
-            or stat.S_IMODE(export_metadata.st_mode) not in {0o600, 0o644}
-            or current_metadata.st_dev != export_metadata.st_dev
-            or current_metadata.st_ino != export_metadata.st_ino
-            or len(export_payload) > 1024 * 1024
-        ):
-            fail("host NFS export table metadata is unsafe")
-        if export_payload.strip():
-            fail("host retains an NFS export")
+            if export_state.stdout != (
+                "PASS host NFS export table is empty\n"
+            ):
+                fail("host NFS export proof is not canonical")
         rog5_interfaces = self.rog5_ncm_interfaces(deadline=deadline)
         allowed_shared_addresses = {
             item.name

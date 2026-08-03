@@ -20,6 +20,7 @@ CONTROLLER = Path("/usr/libexec/rog5-recovery-bundle-controller")
 NETWORK_SERVER = Path(
     "/usr/libexec/rog5-recovery-host/serve-network-root.sh"
 )
+NFS_EXPORTS = Path("/var/lib/nfs/etab")
 V1_ROOT = "/var/lib/rog5-headless-network-root-v1/root"
 V3_ROOT = "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 STATUS_PREFIX = b"__ROG5_HOST_CONTROL_STATUS__="
@@ -101,6 +102,7 @@ def configuration() -> tuple[int, Path, Path, bool, str, str]:
             "ROG5_TEST_BROKER_CONFIG",
             "ROG5_TEST_BROKER_CONTROLLER",
             "ROG5_TEST_BROKER_NETWORK_SERVER",
+            "ROG5_TEST_BROKER_NFS_EXPORTS",
         ):
             if name in os.environ:
                 fail("test path override is forbidden")
@@ -172,6 +174,60 @@ def verify_executable_hashes(
     ):
         if sha256(path) != expected:
             fail(f"fixed host-control executable changed: {path}")
+
+
+def inspect_network_exports(path: Path, uid: int, gid: int) -> None:
+    """Prove that the fixed NFS export table is exact, safe, and empty."""
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise BrokerError("host NFS export table cannot be opened") from error
+    try:
+        opened = os.fstat(descriptor)
+        if opened.st_size > 1024 * 1024:
+            fail("host NFS export table size is unsafe")
+        chunks: list[bytes] = []
+        remaining = opened.st_size + 1
+        while remaining:
+            chunk = os.read(descriptor, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
+        after = os.fstat(descriptor)
+        named = path.lstat()
+    except OSError as error:
+        raise BrokerError("host NFS export table cannot be inspected") from error
+    finally:
+        os.close(descriptor)
+
+    def identity(value: os.stat_result) -> tuple[int, ...]:
+        return (
+            value.st_dev,
+            value.st_ino,
+            value.st_uid,
+            value.st_gid,
+            stat.S_IFMT(value.st_mode),
+            stat.S_IMODE(value.st_mode),
+            value.st_nlink,
+            value.st_size,
+        )
+
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or opened.st_uid != uid
+        or opened.st_gid != gid
+        or stat.S_IMODE(opened.st_mode) not in {0o600, 0o644}
+        or opened.st_nlink != 1
+        or len(payload) != opened.st_size
+        or identity(after) != identity(opened)
+        or identity(named) != identity(opened)
+    ):
+        fail("host NFS export table metadata or identity is unsafe")
+    if payload:
+        fail("host retains an NFS export")
 
 
 def read_request(channel: socket.socket) -> list[str]:
@@ -534,15 +590,33 @@ def run() -> int:
             controller_hash,
             network_hash,
         )
-        argv = command(
-            arguments,
-            controller,
-            network,
-            operator_uid,
-            peer_gid,
-            offline=offline,
-        )
-        status = execute(channel, argv, operator_uid, offline=offline)
+        if arguments == ["network-export-state"]:
+            if offline:
+                exports_value = os.environ.get(
+                    "ROG5_TEST_BROKER_NFS_EXPORTS", ""
+                )
+                if not exports_value:
+                    fail("offline host NFS export table path is absent")
+                exports = Path(exports_value)
+            else:
+                exports = NFS_EXPORTS
+            inspect_network_exports(
+                exports,
+                operator_uid if offline else 0,
+                peer_gid if offline else 0,
+            )
+            send(channel, b"PASS host NFS export table is empty\n")
+            status = 0
+        else:
+            argv = command(
+                arguments,
+                controller,
+                network,
+                operator_uid,
+                peer_gid,
+                offline=offline,
+            )
+            status = execute(channel, argv, operator_uid, offline=offline)
         send(channel, STATUS_PREFIX + str(status).encode("ascii") + b"\n")
         return 0
     except (BrokerError, KeyError, OSError, UnicodeError) as error:

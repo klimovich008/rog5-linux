@@ -80,6 +80,8 @@ def request(arguments: list[str]) -> bytes:
     elif action == "network-cancel" and len(arguments) == 2:
         if not TOKEN.fullmatch(arguments[1]) or arguments[1] == "0" * 64:
             fail("invalid handoff token")
+    elif action == "network-export-state" and len(arguments) == 1:
+        pass
     else:
         fail(
             "usage: rog5-recovery-host-client.py bundle BUNDLE SHA256 | "
@@ -88,7 +90,7 @@ def request(arguments: list[str]) -> bytes:
             "network-preflight-v1 | network-preflight-v3 PACKAGE_SHA256 | "
             "network-serve-v1 TOKEN TIMEOUT | "
             "network-serve-v3 PACKAGE_SHA256 TOKEN TIMEOUT | "
-            "network-cancel TOKEN"
+            "network-cancel TOKEN | network-export-state"
         )
     payload = " ".join(arguments).encode("ascii") + b"\n"
     if len(payload) > 512:

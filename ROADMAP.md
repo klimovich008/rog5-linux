@@ -437,7 +437,7 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
 runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
-generations 0–7 are consumed and absent from temporary-boot policy.
+generations 0–8 are consumed and absent from temporary-boot policy.
 Generation 7 transferred the complete signed bundle but the host rejected its
 post-transfer deferred-profile observation before receiving `PREPARED`; no
 intent, NFS handoff, or target execution occurred. Exact fallback and strict
@@ -447,9 +447,13 @@ Both host cleanup defects exposed by that cycle are now reproduced and fixed
 offline without extending deadlines or weakening identity checks. Firewalld
 state uses three coherent snapshots instead of roughly 23 subprocesses, and
 the NetworkManager verifier now handles the exact one-empty-field rendering
-of a NULL `GENERAL.CON-UUID`. Generation 8 is now host-locally twin-issued,
-pinned by immutable offline/live profile twins, and admitted centrally for one
-connected-preflight-gated RAM-only lifecycle. It remains unbooted.
+of a NULL `GENERAL.CON-UUID`. Generation 8 was host-locally twin-issued and
+passed connected preflight. Its sole RAM-only boot transferred the complete
+signed bundle, but recovery control rejected because recovery ACM identity did
+not remain stable; no PREPARED record, COMMIT intent, or target execution
+existed. Exact Alpine fallback returned. The final host proof separately
+exposed an empty root-owned mode-`0600` NFS export-table inspection defect;
+independent checks found no host residue.
 
 Current execution order:
 
@@ -467,16 +471,21 @@ Current execution order:
    zero `allow` rows.
 5. **Complete:** add a separate live lifecycle profile while keeping central
    policy at zero `allow` rows.
-6. **Complete offline:** add one-shot central admission after artifact,
+6. **Complete:** add one-shot central admission after artifact,
    credential, rollback, host-cleanup, and fallback host-only preflights pass;
-   publish it and require exact-head green CI before connected use.
-7. **Next:** run the exact connected preflight, then at most one Generation-8 RAM-only
-   diagnostic lifecycle; consume it for every result, preserve
-   recovery-control/collector/postmortem evidence, and never retry an
-   ambiguous execute.
-8. Promote a distinct normal SSH candidate only after diagnostic evidence
+   publish it at `c667718`, and pass exact-head GitHub run `30832269180`.
+7. **Complete:** pass connected preflight, run the sole Generation-8 RAM-only
+   diagnostic lifecycle, preserve private evidence, consume it for the safe
+   pre-COMMIT rejection, and restore exact Alpine fallback without retry.
+8. **In progress:** the mode-`0600` export table is now inspected read-only
+   through the fixed privileged broker with no permission mutation; exact
+   empty, metadata, hard-link, symlink, missing, and nonempty cases are covered
+   offline. Install and verify that host-only correction, then add bounded
+   non-sensitive recovery-ACM stability classification before issuing any
+   Generation-9 successor.
+9. Promote a distinct normal SSH candidate only after diagnostic evidence
    identifies and fixes the failing boundary.
-9. If H2 passes, continue physical keys/indicator, then H3
+10. If H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

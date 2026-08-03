@@ -140,9 +140,9 @@ awk -F '\t' -v name="$generation4" '
 generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 1 ? 0 : 1 }
+	END { exit count == 0 ? 0 : 1 }
 ' "$policy" ||
-	fail 'temporary-boot policy must contain exactly one allow row'
+	fail 'consumed policy retains a temporary-boot allow row'
 awk -F '\t' -v name="$generation5" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }
@@ -185,20 +185,15 @@ awk -F '\t' -v name="$generation7" '
 generation8='build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' -v name="$generation8" '
 	$1 == name { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'generation-8 temporary-boot policy name is not unique'
-awk -F '\t' -v name="$generation8" '
-	$1 == name && $2 == "allow" &&
-	$3 == "one generation-8 NetworkManager-empty-field-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'generation-8 temporary-boot admission is not exact and one-shot'
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'consumed generation-8 recovery remains boot-allowlisted'
 awk -F '\t' -v name="$generation8" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" &&
-	$4 == "unbooted generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" &&
+	$4 == "consumed generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer; recovery control rejected because recovery ACM identity did not remain stable and no PREPARED record existed; independently, the diagnostic collector rejected after its fixed ACM-stability deadline with zero target frames; no COMMIT intent existed and no target ran; exact Alpine fallback returned after the pre-commit failure; final host cleanup proof failed because the lifecycle could not inspect the empty root-owned mode-0600 NFS export table; independent read-only checks found no NFS listener, service, kernel threads, export mount, or lifecycle marker; retain offline only; never retry or flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-8 admitted artifact inventory is not exact'
+' "$manifest" || fail 'generation-8 consumed artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

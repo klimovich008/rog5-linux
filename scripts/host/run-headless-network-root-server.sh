@@ -73,8 +73,16 @@ case $action in
 			$handoff_token != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'HANDOFF_TOKEN must be one fresh nonzero 256-bit hex token'
 		;;
+	inspect)
+		[[ $# == 1 ]] ||
+			fail 'usage: run-headless-network-root-server.sh inspect'
+		profile=
+		root=
+		package_sha256=
+		handoff_token=
+		;;
 	*)
-		fail 'usage: run-headless-network-root-server.sh preflight | serve HANDOFF_TOKEN | cancel HANDOFF_TOKEN'
+		fail 'usage: run-headless-network-root-server.sh preflight | serve HANDOFF_TOKEN | cancel HANDOFF_TOKEN | inspect'
 		;;
 esac
 
@@ -103,6 +111,16 @@ if [[ $action == cancel ]]; then
 		$(sha256sum "$source_client" | awk '{ print $1 }') ]] ||
 		fail 'installed host-control client is stale; reinstall it first'
 	exec python3 -B "$installed_client" network-cancel "$handoff_token"
+fi
+if [[ $action == inspect ]]; then
+	[[ -f $installed_client && ! -L $installed_client &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$installed_client") == \
+		'0:0:555:regular file' ]] ||
+		fail 'fixed host-control client is not safely installed'
+	[[ $(sha256sum "$installed_client" | awk '{ print $1 }') == \
+		$(sha256sum "$source_client" | awk '{ print $1 }') ]] ||
+		fail 'installed host-control client is stale; reinstall it first'
+	exec python3 -B "$installed_client" network-export-state
 fi
 [[ $serve_timeout =~ ^[0-9]+$ &&
 	$serve_timeout -ge 600 && $serve_timeout -le 900 ]] ||

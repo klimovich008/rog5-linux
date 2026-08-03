@@ -42,8 +42,8 @@ generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix
 ! grep -Fq 'headless-diagnostic-generation8-offline-v1' "$lifecycle" ||
 	{ echo 'FAIL generation-8 offline-only profile leaked into the lifecycle' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -142,20 +142,15 @@ generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-7 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation8_image" \
-	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-8 temporary-boot policy name is not unique' >&2; exit 1; }
-[[ $(awk -F '\t' -v name="$generation8_image" \
-	'$1 == name && $2 == "allow" && \
-	$3 == "one generation-8 NetworkManager-empty-field-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-8 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-8 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation8_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" && \
-	$4 == "unbooted generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" && \
+	$4 == "consumed generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer; recovery control rejected because recovery ACM identity did not remain stable and no PREPARED record existed; independently, the diagnostic collector rejected after its fixed ACM-stability deadline with zero target frames; no COMMIT intent existed and no target ran; exact Alpine fallback returned after the pre-commit failure; final host cleanup proof failed because the lifecycle could not inspect the empty root-owned mode-0600 NFS export table; independent read-only checks found no NFS listener, service, kernel threads, export mount, or lifecycle marker; retain offline only; never retry or flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-8 admitted artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-8 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -506,8 +501,12 @@ for generation8_policy_shape in missing duplicate; do
 	else
 		cp -- "$boot_policy" \
 			"$policy_fixture/manifests/temporary-boot-images.tsv"
-		awk -F '\t' -v name="$generation8_image" '$1 == name' \
-			"$boot_policy" >>"$policy_fixture/manifests/temporary-boot-images.tsv"
+		printf '%s\tallow\t%s\n%s\tallow\t%s\n' \
+			"$generation8_image" \
+			'disposable duplicate-policy fixture; never boot' \
+			"$generation8_image" \
+			'disposable duplicate-policy fixture; never boot' \
+			>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 	fi
 	for generation8_connected_action in boot preflight; do
 		if env -i PATH="$PATH" HOME="$HOME" \

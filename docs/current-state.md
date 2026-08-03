@@ -1105,16 +1105,26 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `9805809c…59d5`. The immutable
    `headless-diagnostic-generation8-offline-v1` profile pins its full tuple,
    both retained trees pass artifact preflight, and a generation-record
-   mutation fails closed. Connected preflight and boot reject before host
-   inspection. The separate live profile now selects that exact tuple through
-   the lifecycle. Both connected actions require the lifecycle guard and exact
-   central policy. One exact central row now admits a single
-   connected-preflight-gated RAM-only lifecycle; Generation 8 remains
-   unbooted. See the
+   mutation fails closed. The separate live profile selected that exact tuple
+   through the lifecycle. Commit `c667718` and GitHub run `30832269180` passed,
+   connected preflight passed, and the sole RAM-only boot transferred the full
+   signed bundle. Recovery control then rejected because recovery ACM identity
+   did not remain stable; no PREPARED record, COMMIT intent, or target execution
+   existed. Exact Alpine fallback returned. The final host proof exposed an
+   empty root-owned mode-`0600` NFS export-table inspection defect while
+   independent checks found no service, listener, export, mount, kernel NFS
+   thread, or lifecycle marker. Generation 8 is consumed and absent from boot
+   policy. See the
    [offline successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
    and [live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md),
-   then the [one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md).
-9. Use corrected diagnostic evidence to repair or promote a distinct normal
+   [one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md),
+   and [consumed live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
+9. The mode-`0600` export-table proof now runs read-only through the fixed
+   privileged host broker, preserves the table metadata, and passes hostile
+   offline identity/content tests. Install and verify that host-only
+   correction, then add bounded recovery-ACM stability classification before
+   issuing any distinct Generation-9 successor. Use that evidence to repair
+   or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
    SSH.
