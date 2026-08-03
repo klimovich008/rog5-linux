@@ -114,6 +114,10 @@ twice over the unchanged recovery payload and passes the complete artifact gate
 under `headless-diagnostic-generation5-offline-v1`. It remains inventory-only,
 absent from boot policy, and unable to reach connected preflight or boot. See
 the [offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
+The lifecycle now selects the same exact tuple through
+`headless-diagnostic-generation5-live-v1`; direct boot remains lifecycle-only,
+and the temporary-boot policy remains empty. See the
+[offline profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

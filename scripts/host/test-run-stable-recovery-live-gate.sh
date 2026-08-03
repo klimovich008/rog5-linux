@@ -316,6 +316,31 @@ done
 if env -i PATH="$PATH" HOME="$HOME" \
 	ALLOW_TEMPORARY_BOOT=1 \
 	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation5-live-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL generation-5 live profile booted outside lifecycle' >&2
+	exit 1
+fi
+grep -Fq 'generation-5 boot requires the one-shot lifecycle controller' \
+	"$tmp/err"
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL generation-5 direct boot reached host inspection' >&2
+	exit 1
+fi
+
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
 	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation4-live-v1 \
 	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
 	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
@@ -487,30 +512,34 @@ generation5_errors=(
 [[ ${#generation5_fields[@]} -eq ${#generation5_exact[@]} &&
 	${#generation5_errors[@]} -eq ${#generation5_exact[@]} ]] ||
 	{ echo 'FAIL generation-5 policy mutation matrix is inconsistent' >&2; exit 1; }
-generation5_policy=$(run_generation3_policy \
-	headless-diagnostic-generation5-offline-v1 "${generation5_exact[@]}")
-grep -Fxq \
-	'recovery_profile=headless-diagnostic-generation5-offline-v1' \
-	<<<"$generation5_policy"
-grep -Fxq \
-	'recovery_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a' \
-	<<<"$generation5_policy"
-grep -Fxq 'authority=none' <<<"$generation5_policy"
-grep -Fxq 'result=PASS' <<<"$generation5_policy"
-for index in "${!generation5_fields[@]}"; do
-	mutation=("${generation5_exact[@]}")
-	if ((index == 4)); then
-		mutation[$index]=wrong-generation5-bundle
-	else
-		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-	fi
-	if run_generation3_policy \
-		headless-diagnostic-generation5-offline-v1 "${mutation[@]}" \
-		>"$tmp/out" 2>"$tmp/err"; then
-		echo "FAIL generation-5 offline profile accepted wrong ${generation5_fields[$index]}" >&2
-		exit 1
-	fi
-	grep -Fq "${generation5_errors[$index]}" "$tmp/err"
+for generation5_profile in \
+	headless-diagnostic-generation5-offline-v1 \
+	headless-diagnostic-generation5-live-v1
+do
+	generation5_policy=$(run_generation3_policy \
+		"$generation5_profile" "${generation5_exact[@]}")
+	grep -Fxq "recovery_profile=$generation5_profile" \
+		<<<"$generation5_policy"
+	grep -Fxq \
+		'recovery_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a' \
+		<<<"$generation5_policy"
+	grep -Fxq 'authority=none' <<<"$generation5_policy"
+	grep -Fxq 'result=PASS' <<<"$generation5_policy"
+	for index in "${!generation5_fields[@]}"; do
+		mutation=("${generation5_exact[@]}")
+		if ((index == 4)); then
+			mutation[$index]=wrong-generation5-bundle
+		else
+			mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		fi
+		if run_generation3_policy \
+			"$generation5_profile" "${mutation[@]}" \
+			>"$tmp/out" 2>"$tmp/err"; then
+			echo "FAIL $generation5_profile accepted wrong ${generation5_fields[$index]}" >&2
+			exit 1
+		fi
+		grep -Fq "${generation5_errors[$index]}" "$tmp/err"
+	done
 done
 
 if [[ -d $generation3_root ]]; then
@@ -568,9 +597,13 @@ else
 fi
 
 if [[ -d $generation5_root && -d $generation3_root ]]; then
-	generation5_artifact=$(
-		env -i PATH="$PATH" HOME="$HOME" \
-		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation5-offline-v1 \
+	for generation5_profile in \
+		headless-diagnostic-generation5-offline-v1 \
+		headless-diagnostic-generation5-live-v1
+	do
+		generation5_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE="$generation5_profile" \
 		LIVE_BUILD_ROOT="$generation5_root" \
 		RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 		TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
@@ -580,11 +613,12 @@ if [[ -d $generation5_root && -d $generation3_root ]]; then
 		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-			bash "$gate" artifact-preflight
-	)
-	grep -Fxq \
-		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation5-offline-v1 image_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a' \
-		<<<"$generation5_artifact"
+				bash "$gate" artifact-preflight
+		)
+		grep -Fxq \
+			"PASS stable-recovery artifact preflight profile=$generation5_profile image_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" \
+			<<<"$generation5_artifact"
+	done
 else
 	echo 'SKIP generation-5 artifact preflight: ignored build trees absent' >&2
 fi
@@ -688,12 +722,14 @@ for required in \
 	'headless-diagnostic-generation4-offline-v1' \
 	'headless-diagnostic-generation4-live-v1' \
 	'headless-diagnostic-generation5-offline-v1' \
+	'headless-diagnostic-generation5-live-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
 	'generation-4 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-4 boot requires the one-shot lifecycle controller' \
 	'generation-5 diagnostic profile is offline-only and not boot-authorized' \
+	'generation-5 boot requires the one-shot lifecycle controller' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \
