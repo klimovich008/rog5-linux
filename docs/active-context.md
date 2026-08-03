@@ -95,8 +95,9 @@ lifecycle tests. The generation record still says `authority=none`, the image
 is absent from temporary-boot policy, and no image is currently
 boot-authorized. The offline issuance passed focused/complete local CI, Claude
 review, and GitHub Actions run `30786957283` at exact implementation commit
-`e3a47a8`; the live-profile transition remains phone-free pending its own
-review and CI. See the
+`e3a47a8`. The live-profile transition also remains phone-free and passed
+focused/complete local CI, constrained Claude Opus review, and GitHub Actions
+run `30787774104` at exact implementation commit `f058d47`. See the
 [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
