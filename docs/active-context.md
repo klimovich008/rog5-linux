@@ -315,15 +315,19 @@ The separately issued Generation-9 successor is AVB `b458e64b…d008` over
 unchanged raw recovery `f1a7c5ad…6a4ce`. Both retained host-local trees are
 byte-identical and locally pass exact artifact preflight. The immutable offline
 profile rejects connected preflight and boot before host inspection, the
-prospective live-profile name is unsupported, the inventory says
-`authority=none`, and temporary-boot policy remains empty. Clean-checkout CI
-skips only the ignored retained-tree checks. See the
-[offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
+inventory says `authority=none`, and temporary-boot policy remains empty.
+Clean-checkout CI skips only the ignored retained-tree checks. Exact-head
+GitHub run `30841980164` passed at issuance commit `6193056`. The separate
+live-profile transition now selects the identical tuple through the lifecycle;
+unguarded connected actions fail on the lifecycle guard, while guarded actions
+fail on the absent central-policy row before host inspection. See the
+[offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
+and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
-commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
-constrained Claude Opus review, and GitHub Actions run `30787774104` at exact
-implementation commit `f058d47`. See the
+commit `e3a47a8`. The Generation-4 live-profile transition passed
+focused/complete local CI, constrained Claude Opus review, and GitHub Actions
+run `30787774104` at exact implementation commit `f058d47`. See the
 [generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
