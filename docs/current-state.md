@@ -45,9 +45,8 @@ entry cycle. The panel can remain off while the server is reachable.
 ## Recovery
 
 Recovery v18 remains historical staging evidence and is recorded as revoked in
-`manifests/temporary-boot-images.tsv`. The policy admits only the exact
-single-use Generation-7 diagnostic wrapper for one connected-preflight-gated
-RAM-only lifecycle.
+`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–7 are consumed
+and the temporary-boot policy has no active `allow` row.
 Recovery v18 has:
 
 - exact fastboot product `lahaina`, observed by both accepted v18 preflights;
@@ -1080,7 +1079,7 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    deferred-state checks pass continuously; wrong, duplicate, mixed, managed,
    addressed, or autoconnect-enabled cases fail. Generation 6 still has no
    live `PREPARED` and remains consumed.
-7. Distinct Generation-7 AVB `d3d4cdb9…12901` is independently issued twice
+7. Distinct Generation-7 AVB `d3d4cdb9…12901` was independently issued twice
    over unchanged raw recovery `f1a7c5ad…6a4ce`, with exact generation record
    `8127197d…799e`. Its immutable offline issuance profile is
    `headless-diagnostic-generation7-offline-v1`; connected preflight and boot
@@ -1088,12 +1087,19 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    preflight, and a mutated generation record fails closed. The separate
    `headless-diagnostic-generation7-live-v1` selects the identical tuple
    through the lifecycle and rejects direct boot without its lifecycle guard.
-   It is inventoried with the offline issuance record's `authority=none`, while
-   central policy separately admits exactly one connected-preflight-gated
-   RAM-only lifecycle. It remains unbooted. See the
+   It was inventoried with the offline issuance record's `authority=none`,
+   while central policy separately admitted exactly one
+   connected-preflight-gated RAM-only lifecycle. Connected preflight passed,
+   then its sole RAM-only boot transferred the complete signed bundle but
+   produced no `PREPARED` or target frame. No intent, NFS handoff, or target
+   execution occurred; exact Alpine restoration and strict SSH passed.
+   Generation 7 is consumed and absent from boot policy. See the
    [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
    and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
-   then the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md).
+   [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md),
+   [live result](../test-results/2026-08-03-generation-7-acm-stability-live.md),
+   [cleanup snapshot correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md),
+   and [NetworkManager empty-field correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md).
 8. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

@@ -49,6 +49,13 @@ autoconnect checks pass. Future failures report only a non-sensitive shape:
 `placeholder`, `duplicate-exact`, `mixed`, or `foreign`, plus line count.
 Wrong values remain rejected and are never written to public evidence.
 
+A subsequent source audit and byte-level host reproduction established that
+NetworkManager 1.52.1 renders a NULL `GENERAL.CON-UUID` under `nmcli -g` as
+one empty field plus newline. Python parses that as `[""]`, while the verifier
+at this checkpoint accepted zero bytes (`[]`) or the exact UUID. The separate
+[empty-field correction](2026-08-03-generation-7-nmcli-empty-field-fix-offline.md)
+closes that exact mismatch without changing this snapshot correction's result.
+
 ## Verification
 
 - red timing regression reproduced before the correction: pass;

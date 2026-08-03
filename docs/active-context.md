@@ -220,8 +220,15 @@ reproduces the final deadline failure without the phone: one strict host
 observation required about 5.72 seconds because it launched roughly 23
 sequential firewalld queries. Three coherent fail-closed snapshots reduce that
 to about 1.11 seconds while preserving the 10-second deadline, one-second
-dwell, and all residue checks. The unrecorded transitional UUID remains
-rejected; future evidence reports only its non-sensitive shape and count.
+dwell, and all residue checks. The installed NetworkManager source and a
+byte-level read-only host probe then reproduced the remaining association
+rejection: `nmcli -g` renders a NULL `GENERAL.CON-UUID` as one empty field plus
+newline, which Python parses as `[""]`, while the lifecycle accepted only
+zero bytes or the exact historical UUID. The narrow correction accepts that
+one empty field only after every existing identity, address, ownership,
+profile-binding, and autoconnect check; `--`, duplicate, mixed, and foreign
+values remain rejected. See the
+[empty-field correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

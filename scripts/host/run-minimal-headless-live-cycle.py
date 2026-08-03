@@ -1868,10 +1868,14 @@ class LiveCycle:
                 "fallback profile is not exactly inactive and deferred"
             )
         # NetworkManager can retain the exact last profile UUID after the
-        # device is deactivated and explicitly made unmanaged.  Treat that
-        # association as historical only after the address-free, unmanaged,
-        # exact-profile, autoconnect-off checks above.  wait_host_clean()
-        # repeats this entire observation through one continuous clean dwell.
+        # device is deactivated and explicitly made unmanaged.  With
+        # `nmcli -g`, NetworkManager 1.52.1 renders a NULL CON-UUID as one
+        # empty output field, so splitlines() returns [""]; a zero-byte
+        # compatible implementation or test double returns [].  Treat those
+        # two shapes as no association, and the exact UUID as historical only
+        # after the address-free, unmanaged, exact-profile, autoconnect-off
+        # checks above.  wait_host_clean() repeats this entire observation
+        # through one continuous clean dwell.
         associated = run_capture(
             [
                 str(self.dependencies.nmcli),
@@ -1883,13 +1887,17 @@ class LiveCycle:
             ],
             timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
-        if associated not in ([], [profile[0]]):
+        if associated not in ([], [""], [profile[0]]):
             if associated == ["--"]:
                 association_class = "placeholder"
+            elif associated and all(value == "" for value in associated):
+                association_class = "duplicate-empty"
             elif associated and all(
                 value == profile[0] for value in associated
             ):
                 association_class = "duplicate-exact"
+            elif "" in associated:
+                association_class = "mixed-empty"
             elif profile[0] in associated:
                 association_class = "mixed"
             else:
