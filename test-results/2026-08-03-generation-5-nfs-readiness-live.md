@@ -85,3 +85,11 @@ Before issuing a distinct successor, the next host-side test and correction
 must explain why a complete byte transfer did not produce the independent
 completion receipt and NFS listener while preserving the fixed deadline
 lattice. Increasing a timeout alone is not an adequate correction.
+
+## Published verification
+
+Complete local repository CI passed after the consumption transition. The
+exact consumed-state commit `be80019` then passed GitHub Actions run
+[`30800728102`](https://github.com/klimovich008/rog5-linux/actions/runs/30800728102):
+`qemu-system` completed in 1 minute 14 seconds and `recovery-core` completed in
+3 minutes 10 seconds.
