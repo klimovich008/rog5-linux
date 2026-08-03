@@ -954,7 +954,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    180/190/195/205/220/260/320-second worker-to-control lattice, and a hostile
    PREPARED/forged-receipt/nonzero-exit case still blocks NFS and COMMIT.
    Commit `4c2da4b` passed local and GitHub CI; its exact controller/server
-   sources are installed with matching hashes. Generation 4 is next.
+   sources are installed with matching hashes. Distinct generation-4 AVB
+   `220e8556…270d` was issued twice independently over unchanged raw recovery
+   `f1a7c5ad…6a4ce`; the output trees are byte-identical and exact artifact
+   preflight passes. Its only profile is offline-only, its record has
+   `authority=none`, and it is absent from boot policy. No image is admitted.
    See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
@@ -962,7 +966,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
    [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),
    [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md),
-   and [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
+   [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md),
+   and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

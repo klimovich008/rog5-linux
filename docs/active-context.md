@@ -84,13 +84,21 @@ lattice. Hardware-free tests enforce every margin and prove that PREPARED plus
 forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Commit
 `4c2da4b` passed local CI, Claude review, and GitHub Actions run `30785558945`;
 its exact controller and server are installed and hash-match their sources.
-Build and admit a distinct generation 4 next. See the
+A distinct generation-4 AVB wrapper `220e8556…270d` has now been issued
+twice independently over unchanged raw recovery `f1a7c5ad…6a4ce`; every file
+is byte-identical, and the exact offline artifact preflight passes. Its sole
+`headless-diagnostic-generation4-offline-v1` profile rejects connected
+actions before host inspection, its generation record says `authority=none`,
+it is absent from temporary-boot policy, and no image is currently
+boot-authorized. Complete local/remote review is the next admission
+prerequisite. See the
 [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
 [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),
-and [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md).
+[generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md),
+and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:

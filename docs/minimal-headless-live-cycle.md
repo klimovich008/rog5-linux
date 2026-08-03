@@ -508,7 +508,14 @@ receipt wait, 260-second PREPARE exchange, and 320-second complete control
 window. Hardware-free tests enforce those margins and reject PREPARED plus
 forged host receipt text when the host service exits nonzero. Commit `4c2da4b`
 passed local and GitHub CI; its exact controller/server sources are installed
-with matching hashes. Produce a distinct generation 4 next.
+with matching hashes. Distinct generation-4 AVB `220e8556…270d` was then
+issued twice over unchanged raw recovery `f1a7c5ad…6a4ce`; all output files
+are byte-identical and the exact artifact preflight passes. Its only profile,
+`headless-diagnostic-generation4-offline-v1`, rejects connected preflight and
+boot before host inspection. Its generation record says `authority=none`, it
+is absent from temporary-boot policy, and it must not be booted until a later
+reviewed admission change. See the
+[generation-4 offline result](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 Generation-3 `boot` additionally required the lifecycle guard;
 the controller sets that explicit policy variable on its boot child after
 completing admission and connected preflight in the same invocation, and the
