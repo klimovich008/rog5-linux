@@ -170,6 +170,18 @@ awk -F '\t' -v name="$generation6" '
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-6 consumed artifact inventory is not exact'
+generation7='build/stable-recovery-generation7-deferred-profile-fix-20260803-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation7" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'offline generation-7 recovery is boot-allowlisted'
+awk -F '\t' -v name="$generation7" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901" &&
+	$4 == "unbooted generation-7 deferred-profile-corrected host diagnostic recovery; deterministic AVB-only successor over unchanged accepted raw recovery after exact fallback udev-model and retained-profile-association host corrections; twin issuer outputs are byte-identical; authority=none; absent from temporary-boot policy; retain offline only; never flash" &&
+	$5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-7 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

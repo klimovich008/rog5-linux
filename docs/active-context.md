@@ -199,6 +199,16 @@ proving no addresses, unmanaged ownership, exact profile/interface identity,
 and autoconnect off. Wrong, duplicate, mixed, or unsafe-state associations
 remain rejected through a continuous clean dwell. This explains the empty
 host log; it does not manufacture a live `PREPARED` result.
+Distinct Generation-7 AVB `d3d4cdb9…12901` is now independently issued twice
+over unchanged raw recovery `f1a7c5ad…6a4ce`, with generation record
+`8127197d…799e`. Only
+`headless-diagnostic-generation7-offline-v1` exists: it permits policy and
+artifact preflight, rejects connected preflight and boot before host
+inspection, and has no temporary-boot policy row. Both issuer trees pass exact
+artifact verification and are byte-identical; a mutated generation record and
+every wrong policy identity fail closed. This is an offline checkpoint, not a
+live-profile selection or admission. See the
+[Generation-7 issuance result](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
