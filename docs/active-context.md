@@ -185,6 +185,20 @@ new live cleanup proof. See the
 and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
 [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
 and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
+Private evidence timestamps and NetworkManager journal records subsequently
+proved the lifecycle rejected the post-transfer host state after its exact
+10-second cleanup-stabilization window, then entered fallback roughly 102
+seconds before the collector expired. NetworkManager had already deactivated
+the profile and made the interface unmanaged, but retained the exact profile
+UUID as historical association data. Because the lifecycle checks deferred
+host state before waiting for recovery control, it terminated the still-empty
+control process on that false rejection. The
+[offline choreography correction](../test-results/2026-08-03-generation-6-deferred-profile-association-fix-offline.md)
+admits only an empty association or that one exact UUID after independently
+proving no addresses, unmanaged ownership, exact profile/interface identity,
+and autoconnect off. Wrong, duplicate, mixed, or unsafe-state associations
+remain rejected through a continuous clean dwell. This explains the empty
+host log; it does not manufacture a live `PREPARED` result.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

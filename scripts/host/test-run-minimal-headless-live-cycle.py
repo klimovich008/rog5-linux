@@ -331,16 +331,24 @@ class Fixture:
             #!/bin/sh
             printf 'nmcli:%s\n' "$*" >>"$MOCK_CALLS"
             uuid=244dd128-e3b1-458e-9639-5e4ab4d8854f
+            wrong_uuid=355ee239-f4c2-469f-a74a-6f5bc5e99650
             case "$*" in
               '-g GENERAL.CON-UUID device show usbmock0')
                 if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
-                   [ -e "$MOCK_ROOT/profile-restored" ] ||
-                   [ "${MOCK_DEFERRED_ACTIVE_UUID:-0}" = 1 ]; then
+                   [ -e "$MOCK_ROOT/profile-restored" ]; then
                   echo "$uuid"
+                elif [ "${MOCK_DEFERRED_ACTIVE_UUID:-0}" = 1 ]; then
+                  echo "$wrong_uuid"
+                elif [ "${MOCK_DEFERRED_STALE_UUID:-0}" = 1 ]; then
+                  echo "$uuid"
+                elif [ "${MOCK_DEFERRED_DUPLICATE_UUID:-0}" = 1 ]; then
+                  printf '%s\n' "$uuid" "$uuid"
+                elif [ "${MOCK_DEFERRED_MIXED_UUID:-0}" = 1 ]; then
+                  printf '%s\n' "$uuid" "$wrong_uuid"
                 elif [ "${MOCK_DEFERRED_PROFILE_GAP:-0}" = 1 ] &&
                      [ ! -e "$MOCK_ROOT/deferred-profile-gap-consumed" ]; then
                   : >"$MOCK_ROOT/deferred-profile-gap-consumed"
-                  echo "$uuid"
+                  echo "$wrong_uuid"
                 fi
                 ;;
               '-g connection.uuid,connection.id,connection.interface-name,connection.autoconnect connection show rog5-fallback-usb-ssh')
@@ -1760,9 +1768,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     )
                 )
 
-    def test_deferred_profile_requires_inactive_uuid_and_autoconnect_off(self):
+    def test_deferred_profile_rejects_unexpected_uuid_and_autoconnect_on(self):
         for variable in (
-            "MOCK_DEFERRED_ACTIVE_UUID",
+            "MOCK_DEFERRED_DUPLICATE_UUID",
+            "MOCK_DEFERRED_MIXED_UUID",
             "MOCK_DEFERRED_AUTOCONNECT",
         ):
             with self.subTest(variable=variable):
@@ -1772,6 +1781,49 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("nfs:start", self.fixture.call_lines())
                 self.assertIn("deferred", result.stderr)
+
+    def test_deferred_profile_rejects_one_wrong_uuid_exactly(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_DEFERRED_ACTIVE_UUID="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("nfs:start", self.fixture.call_lines())
+        self.assertIn(
+            "deferred recovery interface retains an unexpected profile "
+            "association",
+            result.stderr,
+        )
+
+    def test_deferred_profile_accepts_empty_uuid(self):
+        result = self.fixture.run("run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nfs:start", self.fixture.call_lines())
+
+    def test_deferred_profile_accepts_exact_stale_uuid_when_unmanaged(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_DEFERRED_STALE_UUID="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nfs:start", self.fixture.call_lines())
+
+    def test_stale_uuid_never_bypasses_other_deferred_profile_checks(self):
+        for variable in (
+            "MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE",
+            "MOCK_NM_RESIDUE_AFTER_BUNDLE",
+            "MOCK_DEFERRED_AUTOCONNECT",
+        ):
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "run",
+                    MOCK_DEFERRED_STALE_UUID="1",
+                    **{variable: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("nfs:start", self.fixture.call_lines())
 
     def test_bundle_cleanup_waits_for_deferred_profile_observation_race(self):
         result = self.fixture.run(

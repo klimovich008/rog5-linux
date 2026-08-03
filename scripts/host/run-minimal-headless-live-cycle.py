@@ -1824,21 +1824,6 @@ class LiveCycle:
                 "bundle cleanup did not leave the exact recovery NCM "
                 "profile deferred"
             )
-        active = run_capture(
-            [
-                str(self.dependencies.nmcli),
-                "-g",
-                "GENERAL.CON-UUID",
-                "device",
-                "show",
-                expected.name,
-            ],
-            timeout=self.remaining_timeout(deadline),
-        ).stdout.splitlines()
-        if active:
-            raise HostIdentityObservationError(
-                "deferred recovery interface retains an active profile"
-            )
         profile = run_capture(
             [
                 str(self.dependencies.nmcli),
@@ -1864,6 +1849,27 @@ class LiveCycle:
         ):
             raise HostIdentityObservationError(
                 "fallback profile is not exactly inactive and deferred"
+            )
+        # NetworkManager can retain the exact last profile UUID after the
+        # device is deactivated and explicitly made unmanaged.  Treat that
+        # association as historical only after the address-free, unmanaged,
+        # exact-profile, autoconnect-off checks above.  wait_host_clean()
+        # repeats this entire observation through one continuous clean dwell.
+        associated = run_capture(
+            [
+                str(self.dependencies.nmcli),
+                "-g",
+                "GENERAL.CON-UUID",
+                "device",
+                "show",
+                expected.name,
+            ],
+            timeout=self.remaining_timeout(deadline),
+        ).stdout.splitlines()
+        if associated not in ([], [profile[0]]):
+            raise HostIdentityObservationError(
+                "deferred recovery interface retains an unexpected profile "
+                "association"
             )
 
     def verify_host_clean(
