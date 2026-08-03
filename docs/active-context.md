@@ -309,8 +309,16 @@ See the
 The next test-first checkpoint extends the disposable AVB-generation oracle
 through Generation 9: two runs and both twins must reproduce, raw recovery
 must remain exact, and every Generation 1–8 wrapper identity must differ. It
-creates no retained output or boot authority; see the
+created no retained output or boot authority; see the
 [issuer-readiness result](../test-results/2026-08-03-generation-9-issuer-readiness-offline.md).
+The separately issued Generation-9 successor is AVB `b458e64b…d008` over
+unchanged raw recovery `f1a7c5ad…6a4ce`. Both retained host-local trees are
+byte-identical and locally pass exact artifact preflight. The immutable offline
+profile rejects connected preflight and boot before host inspection, the
+prospective live-profile name is unsupported, the inventory says
+`authority=none`, and temporary-boot policy remains empty. Clean-checkout CI
+skips only the ignored retained-tree checks. See the
+[offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

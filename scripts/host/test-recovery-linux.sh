@@ -194,6 +194,18 @@ awk -F '\t' -v name="$generation8" '
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-8 consumed artifact inventory is not exact'
+generation9='build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation9" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'offline generation-9 recovery is boot-allowlisted'
+awk -F '\t' -v name="$generation9" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008" &&
+	$4 == "unbooted generation-9 recovery-ACM-classifier diagnostic wrapper; host-local twin issuance changes only the AVB generation salt and digest over the unchanged audited raw recovery; exact offline profile and artifact preflight pass; authority=none; not in temporary-boot policy; never flash" &&
+	$5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-9 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

@@ -1135,9 +1135,19 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
    The subsequent test-first issuer checkpoint extends disposable twin
    generation through Generation 9, preserving both raw twins and rejecting
-   reuse of every Generation 1–8 AVB identity. No retained output or authority
-   exists; see the
+   reuse of every Generation 1–8 AVB identity; see the
    [issuer-readiness result](../test-results/2026-08-03-generation-9-issuer-readiness-offline.md).
+   Distinct Generation-9 AVB `b458e64b…d008` is now retained in two
+   byte-identical host-local trees over unchanged raw recovery
+   `f1a7c5ad…6a4ce`. Its immutable
+   `headless-diagnostic-generation9-offline-v1` profile pins the full tuple,
+   rejects connected actions before host inspection, and locally passes both
+   retained-tree artifact preflights plus mutated-generation-record rejection.
+   Clean-checkout CI intentionally skips those ignored-tree checks while the
+   tracked issuer and policy regressions still run. The inventory records
+   `authority=none`; temporary-boot policy remains empty, and the prospective
+   live-profile name is explicitly rejected. See the
+   [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
    Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
