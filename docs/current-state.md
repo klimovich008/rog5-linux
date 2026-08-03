@@ -972,7 +972,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md),
    and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
    The [generation-4 live-profile transition](../test-results/2026-08-03-generation-4-live-profile-offline.md)
-   remains phone-free pending review and CI.
+   remained phone-free and passed complete local CI, constrained Claude Opus
+   review, and GitHub Actions run `30787774104` at exact implementation commit
+   `f058d47`.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

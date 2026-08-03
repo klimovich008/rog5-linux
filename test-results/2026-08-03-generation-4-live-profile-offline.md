@@ -46,6 +46,9 @@ authority, lifecycle-only boot guard, generation selection, identical artifact
 pins, unchanged boot policy, and mutation coverage, and returned
 `NO FINDINGS`.
 
+GitHub Actions `Offline smoke` run `30787774104` passed both `recovery-core`
+and `qemu-system` at exact implementation commit `f058d47`.
+
 ## Authority boundary
 
 `manifests/temporary-boot-images.tsv` is unchanged and contains no `allow` row.
@@ -71,6 +74,5 @@ occurred.
 
 ## Next gate
 
-Publish this exact checkpoint and require green GitHub CI. Only then may a
-separate change add one exact temporary-boot `allow` row for connected
-preflight.
+The checkpoint is published and green. A separate reviewed change may now add
+one exact temporary-boot `allow` row for connected preflight.
