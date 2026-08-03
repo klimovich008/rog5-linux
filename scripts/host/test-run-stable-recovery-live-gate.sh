@@ -18,6 +18,9 @@ generation4_image=build/stable-recovery-generation4-timeout-lattice-20260803-a/r
 generation4_root=$repo/build/stable-recovery-generation4-timeout-lattice-20260803-a
 generation5_image=build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img
 generation5_root=$repo/build/stable-recovery-generation5-choreography-20260803-a
+[[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -80,16 +83,16 @@ generation5_root=$repo/build/stable-recovery-generation5-choreography-20260803-a
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-4 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation5_image" \
-	'$1 == name { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL offline generation-5 recovery entered temporary-boot policy' >&2; exit 1; }
+	'$1 == name && $2 == "allow" && \
+	$3 == "one generation-5 host-choreography diagnostic lifecycle after connected preflight; remove after any result; never flash" \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-5 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation5_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" \
-	&& $4 ~ /^unbooted generation-5 host-choreography diagnostic recovery/ \
-	&& $4 ~ /inventory only and not admitted$/ \
+	&& $4 == "unbooted generation-5 host-choreography diagnostic recovery; deterministic AVB-only successor over the unchanged generation-3 raw recovery after pre-commit fallback and transfer-observability correction; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-5 offline artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-5 admitted artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"

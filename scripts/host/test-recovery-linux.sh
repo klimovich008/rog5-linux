@@ -138,20 +138,22 @@ awk -F '\t' -v name="$generation4" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-4 consumed artifact inventory is not exact'
 generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
-if awk -F '\t' -v name="$generation5" '
-	$1 == name { found=1 }
-	END { exit found ? 0 : 1 }
-' "$policy"
-then
-	fail 'the offline generation-5 recovery entered temporary-boot policy'
-fi
+awk -F '\t' '
+	$2 == "allow" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'temporary-boot policy must contain exactly one allow row'
+awk -F '\t' -v name="$generation5" '
+	$1 == name && $2 == "allow" &&
+	$3 == "one generation-5 host-choreography diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" ||
+	fail 'generation-5 temporary-boot admission is not exact and one-shot'
 awk -F '\t' -v name="$generation5" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" &&
-	$4 ~ /^unbooted generation-5 host-choreography diagnostic recovery/ &&
-	$4 ~ /inventory only and not admitted$/ { count++ }
+	$4 == "unbooted generation-5 host-choreography diagnostic recovery; deterministic AVB-only successor over the unchanged generation-3 raw recovery after pre-commit fallback and transfer-observability correction; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-5 offline artifact inventory is not exact'
+' "$manifest" || fail 'generation-5 admitted artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

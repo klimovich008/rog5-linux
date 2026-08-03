@@ -4,8 +4,9 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–4 are consumed and no image is
-admitted**. Generation 4 passed connected preflight and one RAM-only recovery
+Tracked status: **diagnostic generations 0–4 are consumed; exactly one
+Generation-5 RAM-only lifecycle is admitted but unbooted**. Generation 4
+passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
 marker before the 45-second NFS-readiness deadline. NFS did not start, COMMIT
@@ -28,12 +29,13 @@ The corrected controller/server are installed, and their real bundle and
 residue; see the
 [host-install result](../test-results/2026-08-03-choreography-host-install-live.md).
 Distinct Generation-5 AVB `abe4501f…beb1a` is now twin-reproducible over the
-unchanged recovery payload and passes the complete offline artifact gate. Its
-profile is offline-only, and it remains absent from boot policy; see the
+unchanged recovery payload and passes the complete offline artifact gate. See the
 [Generation-5 issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
-The lifecycle now selects its exact live-capable profile, but direct boot is
-still lifecycle-only and no temporary-boot row exists; see the
-[profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md).
+The lifecycle now selects its exact live-capable profile, direct boot remains
+lifecycle-only, and central policy admits at most one cycle after connected
+preflight; see the
+[profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
+and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
