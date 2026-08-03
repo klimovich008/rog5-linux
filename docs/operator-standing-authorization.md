@@ -2,6 +2,13 @@
 
 ## Current operator directive
 
+**Latest controlling instruction (2026-08-03): do not ask the operator for
+further authorization. Use the standing authorizations needed for in-scope
+project work and continue until a real technical, safety, platform, input, or
+scope blocker is reached.** An authorization flag or an older note requesting
+fresh consent is not itself a blocker. This instruction does not waive the
+technical admission gates or the hard boundaries below.
+
 The operator's current standing instruction is: **do not ask for repeated
 authorization; use any authorization already supplied or otherwise available
 to complete the agreed ROG Phone 5 Linux project work.** Proceed when the

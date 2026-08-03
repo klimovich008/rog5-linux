@@ -11,6 +11,14 @@ postmortem evidence. Keep installed Alpine configuration and authorization
 unchanged; any shell-history or read-induced atime effect requires a separate
 action-scoped guard. Use temporary `fastboot boot` only.
 
+The operator's [standing authorization](operator-standing-authorization.md)
+permits the agent to satisfy those action-scoped guards, use the admitted
+project credentials, and perform other in-scope actions without asking again.
+Continue until a genuine technical, safety, platform, input, or scope blocker
+is reached. This latest directive supersedes stale goal or historical gate
+wording that requests fresh consent; it does not relax artifact admission,
+rollback, evidence, cleanup, or the no-flash/no-phone-storage-write boundary.
+
 GPU, display, desktop, browser automation, hotspot, persistent installation,
 and newer-kernel rebases remain frozen until the headless core passes.
 
