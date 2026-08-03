@@ -42,8 +42,8 @@ generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix
 ! grep -Fq 'headless-diagnostic-generation8-offline-v1' "$lifecycle" ||
 	{ echo 'FAIL generation-8 offline-only profile leaked into the lifecycle' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -142,16 +142,20 @@ generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-7 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation8_image" \
-	'$1 == name { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL offline generation-8 recovery is boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-8 temporary-boot policy name is not unique' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation8_image" \
+	'$1 == name && $2 == "allow" && \
+	$3 == "one generation-8 NetworkManager-empty-field-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-8 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation8_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" && \
-	$4 == "unbooted generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; authority=none; offline profile only; never flash" && \
+	$4 == "unbooted generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-8 offline artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-8 admitted artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -478,39 +482,65 @@ for generation8_connected_action in boot preflight; do
 		echo "FAIL generation-8 live profile reached direct $generation8_connected_action" >&2
 		exit 1
 	fi
-	grep -Fq 'generation-8 connected action requires the one-shot lifecycle controller' \
-		"$tmp/err"
+	if ! grep -Fq \
+		'generation-8 connected action requires the one-shot lifecycle controller' \
+		"$tmp/err"; then
+		echo "FAIL generation-8 direct $generation8_connected_action rejected for wrong reason" >&2
+		exit 1
+	fi
 	if grep -Fq 'missing live-gate command' "$tmp/err"; then
 		echo "FAIL generation-8 direct $generation8_connected_action reached host inspection" >&2
 		exit 1
 	fi
+done
 
-	if env -i PATH="$PATH" HOME="$HOME" \
-		ALLOW_TEMPORARY_BOOT=1 \
-		ALLOW_HEADLESS_LIVE_GATE=1 \
-		ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
-		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-live-v1 \
-		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
-		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
-		TRUST_KEY="$repo/build/unused-trust-key" \
-		BUNDLE_ROOT="$repo/build/unused-bundle-root" \
-		BUNDLE=headless-netroot-early-diag-v1 \
-		RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
-		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-		bash "$gate" "$generation8_connected_action" >"$tmp/out" 2>"$tmp/err"
-	then
-		echo "FAIL generation-8 live profile bypassed zero-policy $generation8_connected_action" >&2
-		exit 1
+for generation8_policy_shape in missing duplicate; do
+	policy_fixture=$tmp/generation8-policy-$generation8_policy_shape
+	install -d -m 0755 "$policy_fixture/scripts/host" \
+		"$policy_fixture/manifests"
+	install -m 0755 "$gate" \
+		"$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+	if [[ $generation8_policy_shape == missing ]]; then
+		awk -F '\t' -v name="$generation8_image" '$1 != name' \
+			"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+	else
+		cp -- "$boot_policy" \
+			"$policy_fixture/manifests/temporary-boot-images.tsv"
+		awk -F '\t' -v name="$generation8_image" '$1 == name' \
+			"$boot_policy" >>"$policy_fixture/manifests/temporary-boot-images.tsv"
 	fi
-	grep -Fq \
-		"temporary boot policy does not uniquely list $generation8_image" \
-		"$tmp/err"
-	if grep -Fq 'missing live-gate command' "$tmp/err"; then
-		echo "FAIL generation-8 guarded $generation8_connected_action reached host inspection" >&2
-		exit 1
-	fi
+	for generation8_connected_action in boot preflight; do
+		if env -i PATH="$PATH" HOME="$HOME" \
+			ALLOW_TEMPORARY_BOOT=1 \
+			ALLOW_HEADLESS_LIVE_GATE=1 \
+			ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-live-v1 \
+			LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+			RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+			TRUST_KEY="$repo/build/unused-trust-key" \
+			BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
+			"$generation8_connected_action" >"$tmp/out" 2>"$tmp/err"
+		then
+			echo "FAIL generation-8 $generation8_policy_shape policy reached $generation8_connected_action" >&2
+			exit 1
+		fi
+		if ! grep -Fq \
+			"temporary boot policy does not uniquely list $generation8_image" \
+			"$tmp/err"; then
+			echo "FAIL generation-8 $generation8_policy_shape policy rejected $generation8_connected_action for wrong reason" >&2
+			exit 1
+		fi
+		if grep -Fq 'missing live-gate command' "$tmp/err"; then
+			echo "FAIL generation-8 $generation8_policy_shape policy reached host inspection" >&2
+			exit 1
+		fi
+	done
 done
 
 if env -i PATH="$PATH" HOME="$HOME" \

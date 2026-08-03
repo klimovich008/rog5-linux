@@ -78,3 +78,9 @@ had already passed. The [offline race correction](2026-08-03-fallback-reboot-fix
 removes the fixture's orphaned wall-clock writer, makes the mock USB return
 poll-driven, and adds case-labelled failures without changing production
 reboot behavior or any Generation-8 artifact.
+
+The subsequent
+[one-shot admission](2026-08-03-generation-8-live-admission-offline.md)
+adds the separate exact central-policy row after local credential, artifact,
+fallback, and rollback checks. The profile tuple and all recovery bytes remain
+unchanged.

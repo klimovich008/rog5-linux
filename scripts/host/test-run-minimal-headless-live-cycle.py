@@ -537,6 +537,10 @@ class Fixture:
               [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
               [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
             fi
+            if [ "$1" = preflight ] && [ "$BUNDLE" = {DIAGNOSTIC_BUNDLE} ]; then
+              [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
+              [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
+            fi
             printf 'live:%s\n' "$1" >>"$MOCK_CALLS"
             echo "PASS live $1"
             """,

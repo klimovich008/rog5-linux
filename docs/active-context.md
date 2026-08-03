@@ -265,8 +265,11 @@ The separate
 now selects the identical tuple through the one-shot lifecycle. Both profile
 names pass exact policy and artifact preflight. Direct connected preflight or
 boot requires the lifecycle guard and then an exact central-policy row before
-host inspection. Central policy remains unchanged with zero `allow` rows, so
-neither action is yet admitted.
+host inspection. The separate
+[Generation-8 one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md)
+now supplies exactly one matching central-policy row. Generation 8 remains
+unbooted; publication and exact-head green CI are required before connected
+preflight.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

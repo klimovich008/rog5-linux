@@ -4,8 +4,9 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–7 are consumed and no diagnostic
-image is admitted**. Generation 4
+Tracked status: **diagnostic generations 0–7 are consumed; exactly one
+Generation-8 image is admitted for one connected-preflight-gated RAM-only
+lifecycle**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -117,8 +118,11 @@ Generation-8 image was issued or admitted. A subsequent
 is now host-locally twin-issued and artifact-pinned as AVB
 `f102d53c…f2415`. A separate
 [live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md)
-selects that exact tuple through the lifecycle. It remains `authority=none`,
-unbooted, and absent from boot policy.
+selects that exact tuple through the lifecycle. Its issuance record retains
+`authority=none`; the separate
+[one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md)
+adds exactly one central-policy row. It remains unbooted, and that row must be
+removed after any lifecycle result.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
