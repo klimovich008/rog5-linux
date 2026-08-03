@@ -477,12 +477,13 @@ Current execution order:
 7. **Complete:** pass connected preflight, run the sole Generation-8 RAM-only
    diagnostic lifecycle, preserve private evidence, consume it for the safe
    pre-COMMIT rejection, and restore exact Alpine fallback without retry.
-8. **In progress:** the mode-`0600` export table is now inspected read-only
+8. **Complete:** the mode-`0600` export table is now inspected read-only
    through the fixed privileged broker with no permission mutation; exact
    empty, metadata, hard-link, symlink, missing, and nonempty cases are covered
-   offline. Install and verify that host-only correction, then add bounded
-   non-sensitive recovery-ACM stability classification before issuing any
-   Generation-9 successor.
+   offline, and the exact reviewed bytes pass two real-host proofs without
+   changing table identity or metadata. **Next:** add bounded non-sensitive
+   recovery-ACM stability classification before issuing any Generation-9
+   successor.
 9. Promote a distinct normal SSH candidate only after diagnostic evidence
    identifies and fixes the failing boundary.
 10. If H2 passes, continue physical keys/indicator, then H3

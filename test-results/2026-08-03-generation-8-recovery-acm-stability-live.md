@@ -70,6 +70,9 @@ mount, interface, firewall, kernel-thread, and lifecycle-marker checks remain
 independent in the unprivileged controller. No phone action is part of that
 correction.
 
+Installation and real-host verification are recorded separately in the
+[host export-proof result](2026-08-03-generation-8-host-export-proof-install.md).
+
 ## Disposition and next diagnostic
 
 Generation 8 is removed from `manifests/temporary-boot-images.tsv`, recorded

@@ -285,6 +285,11 @@ root-owned mode `0600` or `0644` with one link and a bounded size, requires
 zero bytes, emits only a canonical empty-state proof, and never changes the
 table. The lifecycle uses this proof in production while retaining its local
 fixture reader for hardware-free tests. No phone boot is part of this fix.
+Commit `dc2313f` and exact-head GitHub Actions run `30836080889` pass. The
+fixed controller is installed; two production proofs accepted the real
+root-owned mode-`0600` zero-byte table without changing its inode or metadata,
+and independent host residue checks remain clean. See the
+[host export-proof install result](../test-results/2026-08-03-generation-8-host-export-proof-install.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
