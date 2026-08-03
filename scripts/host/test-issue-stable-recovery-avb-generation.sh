@@ -125,6 +125,38 @@ gen4_info=$(python3 "$avbtool" info_image \
 gen4_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen4_info")
 grep -Fxq "digest=$gen4_digest" "$tmp/gen4-a/avb-generation.txt"
 
+# Generation five is the first candidate issued after the host-side
+# pre-commit fallback and transfer-observability correction. Prove its exact
+# deterministic identity twice and keep it distinct from every predecessor
+# before creating either production output.
+"$issuer" "$source_root" "$tmp/gen5-a" 5 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen5-a.out"
+"$issuer" "$source_root" "$tmp/gen5-b" 5 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen5-b.out"
+cmp "$tmp/gen5-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen5-b/repack/stable-recovery-a.avb.img"
+cmp "$tmp/gen5-a/repack/stable-recovery-b.avb.img" \
+	"$tmp/gen5-b/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen5-a/avb-generation.txt" "$tmp/gen5-b/avb-generation.txt"
+for predecessor in gen1-a gen2 gen3 gen4-a; do
+	! cmp -s "$tmp/$predecessor/repack/stable-recovery-a.avb.img" \
+		"$tmp/gen5-a/repack/stable-recovery-a.avb.img" ||
+		fail "generation five reused the $predecessor AVB wrapper"
+done
+expected_gen5_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=5\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=5' "$tmp/gen5-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen5_salt" "$tmp/gen5-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen5-a/avb-generation.txt"
+gen5_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen5-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen5_info") == \
+	"$expected_gen5_salt" ]] || fail 'generation-five descriptor salt changed'
+gen5_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen5_info")
+grep -Fxq "digest=$gen5_digest" "$tmp/gen5-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
