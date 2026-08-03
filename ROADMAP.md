@@ -484,11 +484,11 @@ Current execution order:
    changing table identity or metadata. The bounded non-sensitive recovery-ACM
    classifier and test-first Generation-9 issuer regression are published and
    green.
-9. **Complete offline issuance:** retain two byte-identical host-local
-   Generation-9 successors, pin the immutable offline profile and inventory,
-   pass artifact/mutation/compatibility gates, and keep temporary-boot policy
-   empty. **Next:** publish exact-head CI, then add a separate live-profile
-   transition without boot authority.
+9. **In progress:** offline issuance of two byte-identical host-local
+   Generation-9 successors is complete and exact-head GitHub CI passed at
+   `6193056`. The separate live-profile transition now selects the same tuple
+   while temporary-boot policy remains empty. Publish this transition and pass
+   its exact-head CI before a separate one-shot central admission.
 10. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 11. If H2 passes, continue physical keys/indicator, then H3

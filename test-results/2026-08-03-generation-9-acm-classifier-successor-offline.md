@@ -80,3 +80,8 @@ Exact-head GitHub CI must pass this offline issuance first. A subsequent
 reviewed change may create a live lifecycle profile while keeping central boot
 policy empty. A still-separate change must admit one exact temporary lifecycle
 before any connected preflight or RAM-only boot.
+
+That exact-head gate passed in GitHub Actions run `30841980164` at commit
+`6193056`. The subsequent
+[live-profile transition](2026-08-03-generation-9-live-profile-offline.md)
+selects the identical tuple without adding central boot authority.

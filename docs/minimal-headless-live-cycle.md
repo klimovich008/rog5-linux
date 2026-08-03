@@ -144,8 +144,12 @@ over unchanged raw recovery `f1a7c5ad…6a4ce`. Its immutable offline profile
 locally passes both retained-tree artifact preflights and rejects connected
 actions before host inspection. Clean-checkout CI skips the ignored-tree
 artifact checks but still enforces issuer, profile, and policy boundaries. The
-inventory records `authority=none`, temporary-boot policy remains empty, and
-the prospective live-profile name is explicitly rejected. See the
+inventory records `authority=none`, and temporary-boot policy remains empty.
+A separate
+[live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md)
+now selects the identical tuple through the lifecycle. Direct connected
+actions require the lifecycle guard and then reject on the absent exact
+central-policy row before host inspection. See also the
 [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest

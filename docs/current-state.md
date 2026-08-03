@@ -1145,9 +1145,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    retained-tree artifact preflights plus mutated-generation-record rejection.
    Clean-checkout CI intentionally skips those ignored-tree checks while the
    tracked issuer and policy regressions still run. The inventory records
-   `authority=none`; temporary-boot policy remains empty, and the prospective
-   live-profile name is explicitly rejected. See the
-   [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
+   `authority=none`; temporary-boot policy remains empty. Exact-head GitHub run
+   `30841980164` passed at issuance commit `6193056`. The separate live profile
+   now selects the identical tuple through the lifecycle, but connected
+   actions still require the lifecycle guard and an exact central-policy row;
+   the latter remains absent. See the
+   [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
+   and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md).
    Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

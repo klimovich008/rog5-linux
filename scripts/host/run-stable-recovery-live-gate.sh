@@ -41,7 +41,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation7-live-v1 | \
 		headless-diagnostic-generation8-offline-v1 | \
 		headless-diagnostic-generation8-live-v1 | \
-		headless-diagnostic-generation9-offline-v1) ;;
+		headless-diagnostic-generation9-offline-v1 | \
+		headless-diagnostic-generation9-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -475,9 +476,16 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation9-offline-v1)
-		if [[ $action != policy-preflight && $action != artifact-preflight ]]; then
+	headless-diagnostic-generation9-offline-v1 | \
+	headless-diagnostic-generation9-live-v1)
+		if [[ $profile == headless-diagnostic-generation9-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-9 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation9-live-v1 &&
+			( $action == preflight || $action == boot ) &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-9 connected action requires the one-shot lifecycle controller'
 		fi
 		component_layout=structured
 		expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c
@@ -492,6 +500,9 @@ case $profile in
 		expected_generation_record=29beac5ec4ef88194927283a45427fcc89b95f94c4afa4fda9d6b24301fc9961
 		expected_avb_salt=4ddc34b9dace6d11338be71dba16797ff38e8f8e9e572cd61a6b1434c18b59df
 		expected_avb_digest=8c97c36eed4dab241bc3353b8f70dc0ece8301fb795362cb129fe331af6c8dc0
+		if [[ $profile == headless-diagnostic-generation9-live-v1 ]]; then
+			expected_boot_image=build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img
+		fi
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'generation-9 diagnostic runtime manifest is not pinned'
