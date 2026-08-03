@@ -115,8 +115,10 @@ ownership, profile, and autoconnect check. At that correction checkpoint no
 Generation-8 image was issued or admitted. A subsequent
 [offline-only Generation-8 successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
 is now host-locally twin-issued and artifact-pinned as AVB
-`f102d53c…f2415`; it remains `authority=none`, unbooted, unsupported by the
-lifecycle, and absent from boot policy.
+`f102d53c…f2415`. A separate
+[live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md)
+selects that exact tuple through the lifecycle. It remains `authority=none`,
+unbooted, and absent from boot policy.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

@@ -1106,10 +1106,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `headless-diagnostic-generation8-offline-v1` profile pins its full tuple,
    both retained trees pass artifact preflight, and a generation-record
    mutation fails closed. Connected preflight and boot reject before host
-   inspection. The prospective live profile is unsupported, the lifecycle
-   still selects consumed Generation 7, and central policy has zero `allow`
-   rows. See the
-   [offline successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md).
+   inspection. The separate live profile now selects that exact tuple through
+   the lifecycle. The profile wiring itself does not admit connected preflight
+   or boot: both require the lifecycle guard and exact central policy, which
+   still has zero `allow` rows. See the
+   [offline successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
+   and [live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md).
 9. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

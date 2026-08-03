@@ -36,8 +36,9 @@ record, salt, and digest tuple. It permits only `policy-preflight` and
 `artifact-preflight`. Connected `preflight` and `boot` reject before host or
 phone inspection even if every live guard is supplied.
 
-The prospective `headless-diagnostic-generation8-live-v1` remains unsupported.
-The lifecycle selector still names consumed Generation 7. The artifact
+At this checkpoint the prospective
+`headless-diagnostic-generation8-live-v1` remained unsupported, and the
+lifecycle selector still named consumed Generation 7. The artifact
 inventory contains one exact `unbooted`, `authority=none`, `never flash` row;
 temporary-boot policy contains no Generation-8 row and zero active `allow`
 rows. The compatibility oracle pins the resulting complete inventory as
@@ -89,3 +90,8 @@ No signing credential, privilege, fastboot command, phone interface, reboot,
 network listener, NFS export, or phone storage was used. A separate reviewed
 change is required to create a live lifecycle profile; a still-separate
 central-policy change is required to admit one temporary boot.
+
+The subsequent
+[live-profile transition](2026-08-03-generation-8-live-profile-offline.md)
+selects this exact tuple through the lifecycle without adding central boot
+authority.
