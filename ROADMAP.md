@@ -481,13 +481,18 @@ Current execution order:
    through the fixed privileged broker with no permission mutation; exact
    empty, metadata, hard-link, symlink, missing, and nonempty cases are covered
    offline, and the exact reviewed bytes pass two real-host proofs without
-   changing table identity or metadata. **Next:** add bounded non-sensitive
-   recovery-ACM stability classification before issuing any Generation-9
-   successor.
-9. Promote a distinct normal SSH candidate only after diagnostic evidence
-   identifies and fixes the failing boundary.
-10. If H2 passes, continue physical keys/indicator, then H3
-   power/charging/thermal/suspend and H4 sensors.
+   changing table identity or metadata. The bounded non-sensitive recovery-ACM
+   classifier and test-first Generation-9 issuer regression are published and
+   green.
+9. **Complete offline issuance:** retain two byte-identical host-local
+   Generation-9 successors, pin the immutable offline profile and inventory,
+   pass artifact/mutation/compatibility gates, and keep temporary-boot policy
+   empty. **Next:** publish exact-head CI, then add a separate live-profile
+   transition without boot authority.
+10. Promote a distinct normal SSH candidate only after diagnostic evidence
+    identifies and fixes the failing boundary.
+11. If H2 passes, continue physical keys/indicator, then H3
+    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
 completed chronology remains in the dated evidence and Git archive.

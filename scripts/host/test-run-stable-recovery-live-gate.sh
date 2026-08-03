@@ -35,6 +35,8 @@ generation7_root_b=$repo/build/stable-recovery-generation7-deferred-profile-fix-
 generation8_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img
 generation8_root_a=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a
 generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-b
+generation9_root_a=$repo/build/stable-recovery-generation9-acm-classifier-20260803-a
+generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-20260803-b
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation8-live-v1"' \
 	"$lifecycle") == 1 ]] ||
@@ -457,6 +459,48 @@ for generation8_action in boot preflight; do
 		exit 1
 	fi
 done
+
+for generation9_action in boot preflight; do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ALLOW_TEMPORARY_BOOT=1 \
+		ALLOW_HEADLESS_LIVE_GATE=1 \
+		ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation9-offline-v1 \
+		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+		TRUST_KEY="$repo/build/unused-trust-key" \
+		BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" "$generation9_action" >"$tmp/out" 2>"$tmp/err"
+	then
+		echo "FAIL offline generation-9 profile reached $generation9_action" >&2
+		exit 1
+	fi
+	grep -Fq 'generation-9 diagnostic profile is offline-only and not boot-authorized' \
+		"$tmp/err"
+	if grep -Fq 'missing live-gate command' "$tmp/err"; then
+		echo "FAIL offline generation-9 $generation9_action reached host inspection" >&2
+		exit 1
+	fi
+done
+
+if env -i PATH="$PATH" HOME="$HOME" \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation9-live-v1 \
+	RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL unissued generation-9 live profile passed policy preflight' >&2
+	exit 1
+fi
+grep -Fq 'policy preflight requires a fully pinned diagnostic profile' "$tmp/err"
 
 for generation8_connected_action in boot preflight; do
 	if env -i PATH="$PATH" HOME="$HOME" \
@@ -961,6 +1005,49 @@ do
 	done
 done
 
+generation9_exact=(
+	b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008
+	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
+	0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621
+	headless-netroot-early-diag-v1
+)
+generation9_fields=(recovery trust manifest host-verifier bundle)
+generation9_errors=(
+	'generation-9 diagnostic recovery image is not pinned'
+	'generation-9 diagnostic trust root is not pinned'
+	'generation-9 diagnostic runtime manifest is not pinned'
+	'generation-9 diagnostic host verifier is not pinned'
+	'profile requires bundle=headless-netroot-early-diag-v1'
+)
+[[ ${#generation9_fields[@]} -eq ${#generation9_exact[@]} &&
+	${#generation9_errors[@]} -eq ${#generation9_exact[@]} ]] ||
+	{ echo 'FAIL generation-9 policy mutation matrix is inconsistent' >&2; exit 1; }
+generation9_policy=$(run_generation3_policy \
+	headless-diagnostic-generation9-offline-v1 "${generation9_exact[@]}")
+grep -Fxq \
+	'recovery_profile=headless-diagnostic-generation9-offline-v1' \
+	<<<"$generation9_policy"
+grep -Fxq \
+	'recovery_sha256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008' \
+	<<<"$generation9_policy"
+grep -Fxq 'authority=none' <<<"$generation9_policy"
+grep -Fxq 'result=PASS' <<<"$generation9_policy"
+for index in "${!generation9_fields[@]}"; do
+	mutation=("${generation9_exact[@]}")
+	if ((index == 4)); then
+		mutation[$index]=wrong-generation9-bundle
+	else
+		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	fi
+	if run_generation3_policy headless-diagnostic-generation9-offline-v1 \
+		"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
+		echo "FAIL generation-9 profile accepted wrong ${generation9_fields[$index]}" >&2
+		exit 1
+	fi
+	grep -Fq "${generation9_errors[$index]}" "$tmp/err"
+done
+
 if [[ -d $generation3_root ]]; then
 	for generation3_profile in \
 		headless-diagnostic-generation3-offline-v1 \
@@ -1223,6 +1310,78 @@ else
 	echo 'SKIP generation-8 twin artifact preflight: ignored build trees absent' >&2
 fi
 
+if [[ -d $generation9_root_a || -d $generation9_root_b ]]; then
+	[[ -d $generation9_root_a && -d $generation9_root_b ]] ||
+		{ echo 'FAIL generation-9 production issuer twins are asymmetric' >&2; exit 1; }
+	[[ -d $generation3_root ]] ||
+		{ echo 'FAIL generation-9 retained component tree is absent' >&2; exit 1; }
+	if [[ -z $build_tmp ]]; then
+		build_tmp=$(mktemp -d "$repo/build/stable-recovery-gate-test.XXXXXX")
+	fi
+	for relative in \
+		avb-generation.txt \
+		repack/stable-recovery-a.avb.img \
+		repack/stable-recovery-a.raw.img \
+		repack/stable-recovery-b.avb.img \
+		repack/stable-recovery-b.raw.img \
+		wrapper-a/asus-kexec-stage/.config \
+		wrapper-a/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-a/rog5-kexec-stage-initramfs.cpio.gz \
+		wrapper-b/asus-kexec-stage/.config \
+		wrapper-b/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
+	do
+		cmp "$generation9_root_a/$relative" "$generation9_root_b/$relative"
+	done
+	for generation9_root in "$generation9_root_a" "$generation9_root_b"; do
+		cmp "$generation9_root/repack/stable-recovery-a.avb.img" \
+			"$generation9_root/repack/stable-recovery-b.avb.img"
+		cmp "$generation9_root/repack/stable-recovery-a.raw.img" \
+			"$generation9_root/repack/stable-recovery-b.raw.img"
+		generation9_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+				ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation9-offline-v1 \
+				LIVE_BUILD_ROOT="$generation9_root" \
+				RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+				TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+				BUNDLE_ROOT="$generation3_root/bundle-a" \
+				BUNDLE=headless-netroot-early-diag-v1 \
+				RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
+				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+				bash "$gate" artifact-preflight
+		)
+		grep -Fxq \
+			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation9-offline-v1 image_sha256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008' \
+			<<<"$generation9_artifact"
+	done
+
+	generation9_mutation=$build_tmp/generation9-record-mutation
+	cp -a --reflink=auto "$generation9_root_a" "$generation9_mutation"
+	chmod -R u+rwX "$generation9_mutation"
+	sed -i 's/^generation=9$/generation=8/' \
+		"$generation9_mutation/avb-generation.txt"
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation9-offline-v1 \
+		LIVE_BUILD_ROOT="$generation9_mutation" \
+		RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+		TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+		BUNDLE_ROOT="$generation3_root/bundle-a" \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" artifact-preflight >"$tmp/out" 2>"$tmp/err"; then
+		echo 'FAIL generation-9 artifact preflight accepted a mutated generation record' >&2
+		exit 1
+	fi
+	grep -Fq "identity mismatch: $generation9_mutation/avb-generation.txt" "$tmp/err"
+else
+	echo 'SKIP generation-9 twin artifact preflight: ignored build trees absent' >&2
+fi
+
 run_diagnostic_policy() {
 	local selected_bundle=$1 selected_image=$2 selected_manifest=$3
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -1329,6 +1488,7 @@ for required in \
 	'headless-diagnostic-generation7-live-v1' \
 	'headless-diagnostic-generation8-offline-v1' \
 	'headless-diagnostic-generation8-live-v1' \
+	'headless-diagnostic-generation9-offline-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -1342,6 +1502,7 @@ for required in \
 	'generation-7 boot requires the one-shot lifecycle controller' \
 	'generation-8 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-8 connected action requires the one-shot lifecycle controller' \
+	'generation-9 diagnostic profile is offline-only and not boot-authorized' \
 	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
@@ -1361,6 +1522,10 @@ for required in \
 	'6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398' \
 	'd3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901' \
 	'f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415' \
+	'b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008' \
+	'29beac5ec4ef88194927283a45427fcc89b95f94c4afa4fda9d6b24301fc9961' \
+	'4ddc34b9dace6d11338be71dba16797ff38e8f8e9e572cd61a6b1434c18b59df' \
+	'8c97c36eed4dab241bc3353b8f70dc0ece8301fb795362cb129fe331af6c8dc0' \
 	'expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c' \
 	'expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce' \
 	'expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec' \
