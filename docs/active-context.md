@@ -167,10 +167,19 @@ present. See the
 [offline Generation-6 result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The lifecycle now selects the same exact tuple through
 `headless-diagnostic-generation6-live-v1`; direct boot remains lifecycle-only,
-and central policy now admits exactly one connected-preflight-gated RAM-only
-lifecycle. Generation 6 remains unbooted. See the
+but Generation 6 is now consumed and absent from boot policy. Its connected
+preflight passed, then one RAM-only boot transferred the complete signed
+bundle while recovery control produced no output or `PREPARED` record.
+Independently, the collector expired with zero target frames. No COMMIT intent
+existed and no target ran. Alpine restoration and strict SSH passed. Automated
+final cleanup returned FAIL on a host-verifier bug; independent residue checks
+were clean:
+production fallback udev reports `ROG_Phone_5_Linux_Server`, while the
+interface classifier accepts only a `ROG5_` prefix. See the
 [offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
-and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md).
+and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
+[connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
+and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

@@ -21,8 +21,8 @@ generation5_root=$repo/build/stable-recovery-generation5-choreography-20260803-a
 generation6_image=build/stable-recovery-generation6-signal-fix-20260803-a/repack/stable-recovery-a.avb.img
 generation6_root=$repo/build/stable-recovery-generation6-signal-fix-20260803-a
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain no allow row after consumption' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -99,17 +99,16 @@ generation6_root=$repo/build/stable-recovery-generation6-signal-fix-20260803-a
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-5 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation6_image" \
-	'$1 == name && $2 == "allow" && \
-	$3 == "one generation-6 signal-mask-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-6 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-6 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation6_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398" \
-	&& $4 == "unbooted generation-6 signal-mask-corrected host diagnostic recovery; deterministic AVB-only successor over the unchanged accepted raw recovery after corrected broker installation; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" \
+	&& $4 == "consumed generation-6 signal-mask-corrected host diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer; recovery control produced no output and no PREPARED record; independently, the diagnostic collector reached its fixed 120-second ACM deadline with zero target frames; no COMMIT intent existed and no target ran; anchored Alpine restoration and strict SSH fallback passed; automated final host cleanup verification failed because production udev ID_MODEL=ROG_Phone_5_Linux_Server does not match the verifier-required ROG5_ prefix, while independent read-only residue checks passed; retain offline only; never retry or flash" \
 	&& $5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-6 admitted artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-6 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
