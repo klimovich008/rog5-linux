@@ -57,9 +57,12 @@ broker had allowed the controller and its watchdog to inherit blocked TERM,
 so successful transfer cleanup waited for the full watchdog instead of
 publishing its completion receipt. The corrected broker restores the caller's
 mask before spawn and forwards cancellation to the child process group. Its
-focused broker/controller/lifecycle suites and complete local CI pass. Do not
-raise the NFS timeout; exact host-only installation/hash verification is
-required before any distinct successor can be considered.
+focused broker/controller/lifecycle suites, complete local CI, and GitHub
+Actions run `30803393832` pass. The broker is installed at exact hash
+`fbafce24…cc42c`; both real host-only preflights pass with no final residue.
+See the
+[host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
+Do not raise the NFS timeout or reuse Generation 5.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

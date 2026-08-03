@@ -151,10 +151,13 @@ The controller therefore waited for the full 205-second watchdog instead of
 publishing its completion receipt. A test-first correction restores the exact
 caller mask before spawn, forwards cancellation to the child process group,
 and avoids a stale direct-PID fallback. Thirteen broker, 25 controller, and 47
-lifecycle tests and complete local CI pass. Do not increase the NFS deadline:
-the next checkpoint is exact host-only installation and hash verification.
+lifecycle tests and complete local CI pass. Do not increase the NFS deadline.
+The replacement GitHub run `30803393832` is green at exact head `c9e3285`, and
+the corrected broker is now installed at exact hash `fbafce24…cc42c`. Both
+real host-only bundle/root preflights pass and final host residue is empty.
 See the
-[offline signal correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md).
+[offline signal correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
+and [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

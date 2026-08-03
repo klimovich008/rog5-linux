@@ -83,6 +83,7 @@ success-path restoration was already present. This review is advisory, not
 independent execution evidence.
 
 No credential, signing key, server, fastboot command, or phone interface was
-used. Generation 5 remains consumed and must never be retried or flashed. A
-distinct successor remains forbidden until the exact corrected broker is
-installed and hash-verified through a separate host-only checkpoint.
+used by this offline correction. Generation 5 remains consumed and must never
+be retried or flashed. The corrected broker was subsequently installed and
+hash-verified through a separate
+[host-only checkpoint](2026-08-03-generation-5-signal-mask-host-install-live.md).

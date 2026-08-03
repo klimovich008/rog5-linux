@@ -1039,7 +1039,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    restores the exact caller mask before spawn, forwards cancellation to the
    child process group, and passes 13 broker, 25 controller, 47 lifecycle
    tests, and complete local CI. It does not increase a timeout, contact the
-   phone, or authorize a successor.
+   phone, or authorize a successor. GitHub Actions run `30803393832` passes at
+   exact follow-up commit `c9e3285`; the broker is installed at exact hash
+   `fbafce24…cc42c`, both real host-only preflights pass, and final host residue
+   is empty. See the
+   [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
