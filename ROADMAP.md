@@ -519,12 +519,23 @@ Current execution order:
     transport failure. Progress remains advisory, a send failure suppresses
     later phases without changing safe PREPARE state, and watchdog exit remains
     independently observed out of band. No Generation 10 was issued.
-13. **In progress:** integrate the changed responder into two reproducible
-    recovery-wrapper builds, preserve all existing recovery/fallback gates,
-    and admit no phone boot until the distinct artifact passes review and CI.
-14. Promote a distinct normal SSH candidate only after diagnostic evidence
+13. **Complete locally; exact-head publication verification pending:** the
+    changed responder is byte-verified inside two identical
+    recovery initramfses and two clean, byte-identical ASUS 5.4 wrapper/raw/AVB
+    builds. The disposable signing key was destroyed, `authority=none`, and no
+    Generation 10 artifact or phone action was created. Full local CI passes
+    and constrained re-review returned `NO FINDINGS`. See the
+    [offline integration result](test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
+14. **Next:** publish the integration checkpoint with green review and CI;
+    then create and production-sign one distinct recovery successor from the
+    exact accepted identities, bind its immutable lifecycle profile, and pass
+    artifact, credential, rollback, fallback, successor review, and CI gates
+    before admitting one diagnostic temporary boot. The offline instrumentation
+    does not itself locate the post-transfer gap; any Generation-10 lifecycle
+    remains diagnostic-only.
+15. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-15. If H2 passes, continue physical keys/indicator, then H3
+16. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
