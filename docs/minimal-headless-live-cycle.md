@@ -4,31 +4,20 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **the non-fixture r2 chain completed recovery transfer and one
-COMMIT; its target USB gadget disconnected after 23 seconds, strict SSH proved
-the fallback return, and r2 is consumed**. A distinct diagnostic successor is
-now production-signed, twin-built, artifact-admitted, and integrated into the
-controller. The prompt-free host boundary is installed and its real socket/NFS
-preflight passes. A later temporary recovery boot rejected before bundle
-listener because consumed r2 remained beside the diagnostic bundle; exact
-fallback passed, consumed r2 is recoverably archived, and the preflight now
-runs the same sole-root descriptor validator before another lifecycle. The
-published/reinstalled remediation passed real unchanged-atime bundle and
-37,735-entry NFS preflights without a listener or process residue; one
-separate diagnostic lifecycle then reached manifest transfer but rejected as
-`FETCH_MANIFEST` before `PREPARE`, intent, NFS, or `COMMIT_EXEC`. Exact
-fallback passed. A fresh corrected production wrapper was then twin-built and
-used once. Its recovery reached NCM/ACM, but the root-owned bundle controller
-rejected Steam's unrelated loopback-only TCP 8080 listener before transfer,
-`PREPARE`, intent, NFS, or `COMMIT_EXEC`; watchdog fallback and strict pinned
-Alpine SSH passed. That wrapper is consumed and no diagnostic boot is now
-admitted. The bounded host correction is also accepted offline: the
-lifecycle defers the fallback NetworkManager profile after bundle transfer
-and restores it only after stable same-port Alpine USB identity. Host
-installation, exact installed-hash checks, and connected preflight remain
-before any later lifecycle. The next host correction must scope the privileged
-controller's listener checks to real conflicts, then reissue a distinct signed
-wrapper without reviving the consumed image.
+Tracked status: **diagnostic generations 0–4 are consumed and no image is
+admitted**. Generation 4 passed connected preflight and one RAM-only recovery
+boot reached verified ACM/NCM with rollback armed. Its collector and bundle
+service became ready, but the service never emitted its independent completion
+marker before the 45-second NFS-readiness deadline. NFS did not start, COMMIT
+was never sent, and no target ran. The phone returned automatically to Alpine.
+Initial host cleanup proof failed while the controller remained alive under
+its 205-second watchdog and the shared `/30` was outside the managed profile;
+after watchdog exit, one fixed anchored restoration and strict fallback
+preflight passed with no project server/export residue. The next distinct
+generation must first gain hardware-free coverage for the
+PREPARE/completion-receipt/NFS choreography and automatic fixed restoration on
+every early control failure. Do not increase a timeout or revive a consumed
+image as a substitute for proving that ordering.
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
@@ -509,24 +498,24 @@ window. Hardware-free tests enforce those margins and reject PREPARED plus
 forged host receipt text when the host service exits nonzero. Commit `4c2da4b`
 passed local and GitHub CI; its exact controller/server sources are installed
 with matching hashes. Distinct generation-4 AVB `220e8556…270d` was then
-issued twice over unchanged raw recovery `f1a7c5ad…6a4ce`; all output files
-are byte-identical and the exact artifact preflight passes. The immutable
-`headless-diagnostic-generation4-offline-v1` profile rejects connected
-preflight and boot before host inspection. A distinct
-`headless-diagnostic-generation4-live-v1` profile pins the same chain and
-requires the one-shot lifecycle controller for boot; all 42 lifecycle tests
-select it. Its generation record says `authority=none`; one exact central
-policy row now admits only one connected-preflight-gated RAM-only lifecycle.
-After any result, consume the admission in one versioned change: remove the
-row, relabel the artifact as consumed/offline-only/never-retry-or-flash, invert
-the two policy gates back to absence plus exact consumed inventory, and update
-both downstream manifest/profile hash pins. The image must never be flashed.
+issued twice over unchanged raw recovery `f1a7c5ad…6a4ce`, admitted once, and
+booted once in RAM. Connected preflight passed. Recovery ACM/NCM and rollback
+passed, but the bundle service lacked its completion marker when control's
+45-second NFS-ready deadline expired. NFS did not start, COMMIT was never sent,
+and no target ran. Automatic fallback returned the phone to Alpine; fixed
+anchored restoration and strict fallback preflight passed after the host
+watchdog. The versioned consumption transition removes the policy row,
+relabels the artifact consumed/offline-only, requires its absence in both
+policy gates, and updates both downstream hash pins. The image must never be
+retried or flashed.
 See the
 [generation-4 offline result](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 The phone-free profile transition is in the
 [generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
 The separate authority change is in the
 [generation-4 admission result](../test-results/2026-08-03-generation-4-live-admission-offline.md).
+The sole lifecycle is in the
+[generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md).
 Generation-3 `boot` additionally required the lifecycle guard;
 the controller sets that explicit policy variable on its boot child after
 completing admission and connected preflight in the same invocation, and the

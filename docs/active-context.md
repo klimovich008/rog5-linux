@@ -84,32 +84,38 @@ lattice. Hardware-free tests enforce every margin and prove that PREPARED plus
 forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Commit
 `4c2da4b` passed local CI, Claude review, and GitHub Actions run `30785558945`;
 its exact controller and server are installed and hash-match their sources.
-A distinct generation-4 AVB wrapper `220e8556…270d` has now been issued
-twice independently over unchanged raw recovery `f1a7c5ad…6a4ce`; every file
-is byte-identical, and the exact offline artifact preflight passes. Its sole
-`headless-diagnostic-generation4-offline-v1` profile rejects connected
-actions before host inspection. A distinct
-`headless-diagnostic-generation4-live-v1` profile pins the same complete chain,
-requires the one-shot lifecycle guard for boot, and is now selected by all 42
-lifecycle tests. The generation record still says `authority=none`; one exact
-central-policy row now admits the live profile for one connected-preflight-
-gated RAM-only lifecycle, after which the row must be removed regardless of
-result. The image must never be flashed. The offline issuance passed focused/complete local CI, Claude
-review, and GitHub Actions run `30786957283` at exact implementation commit
-`e3a47a8`. The live-profile transition also remains phone-free and passed
-focused/complete local CI, constrained Claude Opus review, and GitHub Actions
-run `30787774104` at exact implementation commit `f058d47`. See the
-[generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
+Distinct generation-4 AVB wrapper `220e8556…270d` was issued twice over
+unchanged raw recovery `f1a7c5ad…6a4ce`, admitted once, and consumed by one
+RAM-only lifecycle. Connected preflight passed. Recovery reached verified
+ACM/NCM with rollback armed, and both the receive-only collector and bundle
+service became ready. The bundle service did not emit its independent
+completion marker before control's 45-second NFS-readiness deadline, so NFS
+never started, COMMIT was never sent, and no target ran. The phone returned
+automatically to Alpine. Initial cleanup proof failed while the root-owned
+controller remained alive under its 205-second watchdog and the shared `/30`
+was outside the exact managed profile; after watchdog exit, fixed anchored
+profile restoration and strict fallback preflight passed with no project
+server/export residue. Generation 4 is absent from boot policy and must never
+be retried or flashed. The next distinct generation must first prove the
+PREPARE/completion-receipt/NFS choreography and early-failure restoration in
+hardware-free tests. The offline issuance passed focused/complete local CI,
+Claude review, and GitHub Actions run `30786957283` at exact implementation
+commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
+constrained Claude Opus review, and GitHub Actions run `30787774104` at exact
+implementation commit `f058d47`. See the
+[generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
 [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),
+[generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md),
 [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md),
 and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 The successor profile transition is recorded in the
 [generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
 The separate one-shot authority change is recorded in the
 [generation-4 admission result](../test-results/2026-08-03-generation-4-live-admission-offline.md).
+That live result also records the consumed disposition.
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:

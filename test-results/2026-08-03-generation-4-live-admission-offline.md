@@ -2,14 +2,21 @@
 
 Date: 2026-08-03
 
-Result: **PASS reviewed offline**. One exact Generation-4 recovery is admitted
-for one connected-preflight-gated, RAM-only diagnostic lifecycle. Focused and
-complete local CI pass. No phone interface, credential, reboot, connected
-preflight, or boot was used.
+Historical result: **PASS reviewed offline**. At this checkpoint, one exact
+Generation-4 recovery was admitted for one connected-preflight-gated, RAM-only
+diagnostic lifecycle. Focused and complete local CI passed. No phone interface,
+credential, reboot, connected preflight, or boot was used by this admission
+change.
+
+Current status: **consumed; no longer admitted**. The sole lifecycle later
+ended before NFS or COMMIT, and the exact policy row described below has been
+removed. See the
+[Generation-4 live result](2026-08-03-generation-4-nfs-readiness-live.md).
 
 ## Exact authority
 
-`manifests/temporary-boot-images.tsv` contains one `allow` row:
+At this historical checkpoint, `manifests/temporary-boot-images.tsv` contained
+one `allow` row:
 
 - image: `build/stable-recovery-generation4-timeout-lattice-20260803-a/repack/stable-recovery-a.avb.img`
 - size: `100663296`
@@ -79,8 +86,10 @@ Do not retry the admitted image and never flash it. The live gate does not
 edit Git, so this versioned transition is part of lifecycle resolution rather
 than an automatic device-side action.
 
-## Next gate
+## Post-result disposition
 
-Run complete local CI and constrained read-only review, publish the exact
-checkpoint, and require green GitHub CI. Only then run connected preflight;
-the phone must not boot during that preflight.
+Connected preflight passed and the lifecycle consumed the sole admission. The
+versioned result removes the row, records the image as
+consumed/offline-only/never-retry-or-flash, restores both tests to requiring
+its absence, and repins both downstream compatibility hashes. Generation 4
+must not be retried or flashed.

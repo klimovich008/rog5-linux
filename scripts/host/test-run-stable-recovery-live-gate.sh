@@ -65,19 +65,18 @@ generation4_root=$repo/build/stable-recovery-generation4-timeout-lattice-2026080
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-3 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation4_image" \
-	'$1 == name && $2 == "allow" && \
-	$3 == "one generation-4 timeout-lattice diagnostic lifecycle after connected preflight; remove after any result; never flash" \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-4 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-4 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation4_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "220e85568d1e92d9dbe33e3405f28c9b23dc8520b9e1ab2c81a30085e9cb270d" \
-	&& $4 ~ /^unbooted generation-4 timeout-lattice diagnostic recovery/ \
-	&& $4 ~ /offline issuance record with authority=none/ \
-	&& $4 ~ /central policy separately admits one RAM-only lifecycle/ \
-	&& $4 ~ /never flash$/ \
+	&& $4 ~ /^consumed generation-4 timeout-lattice diagnostic recovery/ \
+	&& $4 ~ /45-second NFS readiness deadline expired/ \
+	&& $4 ~ /COMMIT was never sent and no target ran/ \
+	&& $4 ~ /retain offline only; never retry or flash$/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-4 admitted artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-4 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"

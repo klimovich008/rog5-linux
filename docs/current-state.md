@@ -955,14 +955,18 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    PREPARED/forged-receipt/nonzero-exit case still blocks NFS and COMMIT.
    Commit `4c2da4b` passed local and GitHub CI; its exact controller/server
    sources are installed with matching hashes. Distinct generation-4 AVB
-   `220e8556…270d` was issued twice independently over unchanged raw recovery
-   `f1a7c5ad…6a4ce`; the output trees are byte-identical and exact artifact
-   preflight passes. The immutable offline profile still rejects connected
-   actions; a separate live profile pins the same chain, requires the one-shot
-   lifecycle controller for boot, and is selected by all 42 lifecycle tests.
-   Its record has `authority=none`; one exact central-policy row now admits
-   only one connected-preflight-gated RAM-only lifecycle. Remove that row
-   after any result, and never flash the image.
+   `220e8556…270d` was issued twice over unchanged raw recovery
+   `f1a7c5ad…6a4ce`, admitted once, and consumed by one RAM-only lifecycle.
+   Connected preflight passed. Recovery ACM/NCM and rollback armed, and both
+   collector and bundle service became ready, but the service never emitted
+   its independent completion marker before the 45-second NFS-ready deadline.
+   NFS did not start, COMMIT was never sent, and no target ran. The phone
+   returned automatically to Alpine. Initial host cleanup proof failed while
+   the controller remained under its 205-second watchdog; after watchdog exit,
+   fixed anchored profile restoration and strict fallback preflight passed
+   with no project server/export residue. Generation 4 is removed from boot
+   policy, classified consumed/offline-only, and must never be retried or
+   flashed.
    See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
@@ -977,7 +981,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    review, and GitHub Actions run `30787774104` at exact implementation commit
    `f058d47`.
    The [generation-4 admission](../test-results/2026-08-03-generation-4-live-admission-offline.md)
-   is a separate phone-free policy change.
+   is the historical phone-free authority change. The
+   [generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md)
+   records its sole cycle and consumed disposition.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
