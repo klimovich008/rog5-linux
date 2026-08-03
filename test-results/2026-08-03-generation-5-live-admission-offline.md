@@ -59,8 +59,13 @@ preflight and boot, while the reviewed Git commit binds that policy. Adding
 the same mutable indirection would not add authenticity and would blur the
 intentional separation between artifact issuance and one-shot authority.
 
-Publication and GitHub Actions evidence remain to be added. After those pass,
-the next permitted phone interaction is read-only device discovery followed
+The implementation and admission record were published at exact commit
+`51f3bf0730fbbb1091f7f25d2cd55458681fb4e7`. GitHub Actions run
+[`30796577338`](https://github.com/klimovich008/rog5-linux/actions/runs/30796577338)
+passed both `qemu-system` in 1 minute 22 seconds and `recovery-core` in 3
+minutes 18 seconds.
+
+The next permitted phone interaction is read-only device discovery followed
 by one fresh `diagnostic-preflight`. A temporary boot may occur only if that
 connected preflight passes. After any lifecycle result, including ambiguous
 failure, the policy row must be removed and the artifact marked consumed; it

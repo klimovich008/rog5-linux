@@ -120,6 +120,8 @@ connected-preflight-gated RAM-only cycle. Generation 5 has not been connected,
 booted, or consumed. See the
 [profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
 and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
+The admission implementation passes complete local CI and GitHub Actions run
+`30796577338` at exact commit `51f3bf0`. No phone action occurred.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
