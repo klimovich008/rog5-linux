@@ -111,5 +111,16 @@ Each outer host layer now has time to observe and clean up the inner layer. A
 second hardware-free case drives recovery to a simulated PREPARED checkpoint,
 prints every expected host receipt marker, then exits the host service nonzero;
 NFS and COMMIT remain blocked. This validates process status as well as marker
-text. The correction does not admit an image or authorize another boot. Its
-reviewed host components must be installed before generation 4 is built.
+text. The correction does not admit an image or authorize another boot. At
+that checkpoint its reviewed host components still had to be installed before
+generation 4 could be built.
+
+Commit `4c2da4b` subsequently passed complete local CI and GitHub Actions run
+`30785558945`. The reviewed host update was then installed without a phone
+action. Installed controller SHA-256
+`5f6ec19cbe87d57cfda4d95d872d07db1888cb631f8a01faa6f9aa756020b7d4`
+and server SHA-256
+`9258c0e72ca7adb626fdafccfc1bababb68263b40ad23b635b0cc8c19b7ffac0`
+match their repository sources exactly. The fixed host-control socket is
+active and enabled with its required caller-owned mode `0600`; no bundle,
+recovery, or NFS lifecycle process was started.

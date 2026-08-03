@@ -952,8 +952,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    historical 190-second recovery fetch limit versus 70/75/95-second host
    bounds is now covered by a hardware-free regression. Source uses a nested
    180/190/195/205/220/260/320-second worker-to-control lattice, and a hostile
-   PREPARED/forged-receipt/nonzero-exit case still blocks NFS and COMMIT. The
-   reviewed host update must be installed before generation 4.
+   PREPARED/forged-receipt/nonzero-exit case still blocks NFS and COMMIT.
+   Commit `4c2da4b` passed local and GitHub CI; its exact controller/server
+   sources are installed with matching hashes. Generation 4 is next.
    See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
