@@ -533,6 +533,12 @@ Current execution order:
     before admitting one diagnostic temporary boot. The offline instrumentation
     does not itself locate the post-transfer gap; any Generation-10 lifecycle
     remains diagnostic-only.
+    The integration checkpoint is published and exact-head green. The guarded
+    production signing-input preflight and deterministic synthetic issuer
+    regression through Generation 10 now pass without signing or creating an
+    artifact; publish this readiness checkpoint before the production twin
+    build. See the
+    [issuer-readiness result](test-results/2026-08-03-generation-10-issuer-readiness-offline.md).
 15. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 16. If H2 passes, continue physical keys/indicator, then H3

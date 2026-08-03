@@ -316,6 +316,74 @@ gen9_info=$(python3 "$avbtool" info_image \
 gen9_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen9_info")
 grep -Fxq "digest=$gen9_digest" "$tmp/gen9-a/avb-generation.txt"
 
+# Generation ten is reserved for the first recovery wrapper carrying bounded
+# PREPARE progress records. Prove the generic issuer remains deterministic on
+# that generation and cannot reproduce any consumed Generation 1-9 wrapper
+# before a production signing input is used.
+"$issuer" "$source_root" "$tmp/gen10-a" 10 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen10-a.out"
+"$issuer" "$source_root" "$tmp/gen10-b" 10 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen10-b.out"
+for suffix in a b; do
+	cmp "$tmp/gen10-a/repack/stable-recovery-$suffix.avb.img" \
+		"$tmp/gen10-b/repack/stable-recovery-$suffix.avb.img"
+	cmp "$tmp/gen10-a/repack/stable-recovery-$suffix.raw.img" \
+		"$tmp/gen10-b/repack/stable-recovery-$suffix.raw.img"
+	cmp "$tmp/gen10-a/repack/stable-recovery-$suffix.raw.img" \
+		"$source_root/repack/stable-recovery-$suffix.raw.img"
+done
+cmp "$tmp/gen10-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen10-a/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen10-a/repack/stable-recovery-a.raw.img" \
+	"$tmp/gen10-a/repack/stable-recovery-b.raw.img"
+cmp "$tmp/gen10-a/avb-generation.txt" "$tmp/gen10-b/avb-generation.txt"
+cmp "$tmp/gen10-a.out" "$tmp/gen10-b.out"
+for successor in gen10-a gen10-b; do
+	for predecessor in \
+		gen1-a gen2 gen3 gen4-a gen5-a gen6-a gen7-a gen8-a gen9-a
+	do
+		for suffix in a b; do
+			predecessor_image=$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img
+			successor_image=$tmp/$successor/repack/stable-recovery-$suffix.avb.img
+			[[ -f $predecessor_image && ! -L $predecessor_image ]] ||
+				fail "missing $predecessor twin-$suffix AVB wrapper"
+			[[ -f $successor_image && ! -L $successor_image ]] ||
+				fail "missing $successor twin-$suffix AVB wrapper"
+			! cmp -s "$predecessor_image" "$successor_image" ||
+				fail "generation ten reused the $predecessor twin-$suffix AVB wrapper"
+		done
+	done
+done
+expected_gen10_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=10\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=10' "$tmp/gen10-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen10_salt" "$tmp/gen10-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen10-a/avb-generation.txt"
+gen10_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen10-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen10_info") == \
+	"$expected_gen10_salt" ]] || fail 'generation-ten descriptor salt changed'
+gen10_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen10_info")
+expected_gen10_digest=$(python3 -I -S - \
+	"$expected_gen10_salt" \
+	"$source_root/repack/stable-recovery-a.raw.img" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+digest.update(bytes.fromhex(sys.argv[1]))
+with open(sys.argv[2], "rb", buffering=0) as source:
+    while block := source.read(1024 * 1024):
+        digest.update(block)
+print(digest.hexdigest())
+PY
+)
+[[ $gen10_digest == "$expected_gen10_digest" ]] ||
+	fail 'generation-ten descriptor digest is not independently reproducible'
+grep -Fxq "digest=$gen10_digest" "$tmp/gen10-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
@@ -330,9 +398,15 @@ wrapper-b/asus-kexec-stage/arch/arm64/boot/Image
 wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
 EOF
 )
-observed_files=$(find "$tmp/gen1-a" -type f -printf '%P\n' | sort)
-[[ $observed_files == "$expected_files" ]] ||
-	fail 'AVB-generation output file set changed'
+for output in gen1-a gen10-a gen10-b; do
+	observed_files=$(find "$tmp/$output" -type f -printf '%P\n' | sort)
+	[[ $observed_files == "$expected_files" ]] ||
+		fail "$output AVB-generation output file set changed"
+done
+while IFS= read -r relative; do
+	[[ -n $relative ]] || continue
+	cmp "$tmp/gen10-a/$relative" "$tmp/gen10-b/$relative"
+done <<<"$expected_files"
 
 if "$issuer" "$source_root" "$tmp/wrong-hash" 1 \
 	ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff \

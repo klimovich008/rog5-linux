@@ -366,6 +366,13 @@ identities and pass profile, admission, fallback, review, and CI gates before
 one diagnostic temporary boot. This offline result embeds the instrumentation;
 it does not locate the post-transfer gap. Any Generation-10 lifecycle remains
 diagnostic-only.
+The guarded external signing-key/candidate-record preflight now passes and
+destroys its temporary snapshot without signing. A test-first synthetic issuer
+regression produces deterministic Generation-10 twins, preserves raw bytes,
+and proves both wrappers are distinct from Generations 1–9. No Generation-10
+artifact or profile exists yet; publish and pass exact-head CI before the
+production twin build. See the
+[issuer-readiness result](../test-results/2026-08-03-generation-10-issuer-readiness-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed
