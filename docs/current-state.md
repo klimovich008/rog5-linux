@@ -1052,15 +1052,25 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [Generation-6 offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
    The diagnostic lifecycle now selects that identical tuple through
    `headless-diagnostic-generation6-live-v1`; direct boot remains restricted
-   to the lifecycle. Central policy admits exactly one connected-preflight-
-   gated RAM-only cycle; Generation 6 remains unbooted. See the
+   to the lifecycle. Its connected preflight passed, then its sole RAM-only
+   cycle completed the signed-bundle transfer while recovery control produced
+   no output or `PREPARED` record. Independently, the collector expired with
+   zero target frames. No COMMIT intent existed and no target ran. Exact Alpine
+   restoration and strict SSH passed. Automated final cleanup returned FAIL
+   on the production fallback udev model mismatch; independent residue checks
+   were clean. Generation 6 is consumed and absent from policy. See the
    [offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
-   and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md).
-6. Use corrected diagnostic evidence to repair or promote a distinct normal
+   and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
+   [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
+   and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
+6. Reproduce and correct the exact fallback udev-model classification and the
+   complete-transfer/control-silence boundary before issuing a distinct
+   successor.
+7. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
    SSH.
-7. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+8. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the

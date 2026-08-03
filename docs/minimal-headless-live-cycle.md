@@ -4,9 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–5 are consumed; exactly one
-Generation-6 image is admitted for one connected-preflight-gated RAM-only
-lifecycle**. Generation 4
+Tracked status: **diagnostic generations 0–6 are consumed; no image is
+boot-authorized**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -70,10 +69,17 @@ immutable offline profile rejects connected preflight and boot before host
 inspection. See the
 [offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The lifecycle now selects its exact live-capable profile, direct boot remains
-lifecycle-only, and central policy admits exactly one cycle after connected
-preflight; see the
+lifecycle-only, but its sole admitted cycle is now consumed. Connected
+preflight passed and recovery transferred the complete signed bundle while
+control produced no output or `PREPARED` record. Independently, the collector
+expired with zero target frames. No COMMIT intent existed and no target ran.
+Alpine restoration and strict SSH passed. Automated final cleanup returned
+FAIL on the production fallback udev-model mismatch; independent residue
+checks were clean. See the
 [profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
-and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md).
+and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
+[connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
+and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

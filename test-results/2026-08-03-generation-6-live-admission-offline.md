@@ -71,3 +71,9 @@ followed by one fresh `diagnostic-preflight`. A temporary boot may occur only
 if that connected preflight passes. After any lifecycle result, including an
 ambiguous failure, the policy row must be removed and the artifact marked
 consumed; it must never be retried or flashed.
+
+## Subsequent disposition
+
+Exact run [`30807236352`](https://github.com/klimovich008/rog5-linux/actions/runs/30807236352)
+passed at `40ad052`; see the subsequent [connected preflight](2026-08-03-generation-6-connected-preflight-live.md)
+and consumed [live result](2026-08-03-generation-6-recovery-control-silence-live.md).
