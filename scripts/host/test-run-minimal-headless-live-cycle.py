@@ -270,11 +270,19 @@ class Fixture:
                 : >"$MOCK_ROOT/udev-clean-consumed"
               fi
             fi
+            model=${MOCK_UDEV_MODEL-ROG5_recovery}
+            omit_model=${MOCK_UDEV_OMIT_MODEL:-0}
+            if [ -e "$MOCK_ROOT/fallback-proved" ]; then
+              model=${MOCK_FALLBACK_UDEV_MODEL-ROG_Phone_5_Linux_Server}
+              omit_model=${MOCK_FALLBACK_UDEV_OMIT_MODEL:-0}
+            fi
             printf '%s\n' \
               'ID_VENDOR_ID=1d6b' \
               'ID_MODEL_ID=0104' \
-              'ID_MODEL=ROG5_recovery' \
               'ID_NET_DRIVER=cdc_ncm'
+            if [ "$omit_model" != 1 ]; then
+              printf 'ID_MODEL=%s\n' "$model"
+            fi
             """,
         )
         self.executable(
@@ -902,6 +910,30 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.fixture.close()
+
+    def test_ncm_model_allowlist_is_exact(self):
+        self.assertEqual(
+            CYCLE.ROG5_NCM_MODELS,
+            frozenset(
+                {
+                    "ROG5_recovery",
+                    "ROG5_network_root",
+                    "ROG5_diagnostic_network_root",
+                    "ROG_Phone_5_Linux_Server",
+                }
+            ),
+        )
+
+    def test_each_exact_ncm_model_is_classified(self):
+        for model in sorted(CYCLE.ROG5_NCM_MODELS):
+            with self.subTest(model=model):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "diagnostic-preflight",
+                    MOCK_UDEV_MODEL=model,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_privileged_restore_anchor_is_private_fresh_and_host_bound(self):
         anchor = self.fixture.evidence / "restore.anchor"
@@ -1831,6 +1863,77 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 line.startswith("control:resolve:")
                 for line in self.fixture.call_lines()
             )
+        )
+
+    def test_final_cleanup_rejects_udev_model_lookalikes(self):
+        for model in (
+            "",
+            "ROG5_",
+            "ROG5_evil",
+            "XROG5_recovery",
+            "ROG5_recovery_extra",
+            "ROG5_network_root_extra",
+            "ROG5_diagnostic_network_root_extra",
+            "ROG_Phone_5_Linux_Server_extra",
+            "ROG5_recovery_ROG5_network_root",
+            " ROG5_recovery",
+            "ROG5_recovery ",
+            "ROG5_recovery\t",
+            "rog_phone_5_linux_server",
+        ):
+            with self.subTest(model=model):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "run",
+                    MOCK_RUNTIME_FAIL="1",
+                    MOCK_FALLBACK_UDEV_MODEL=model,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("intent remains UNKNOWN", result.stderr)
+                self.assertIn(
+                    "shared ROG5 /30 escaped the exact managed USB profile",
+                    result.stderr,
+                )
+                self.assertFalse(
+                    any(
+                        line.startswith("control:resolve:")
+                        for line in self.fixture.call_lines()
+                    )
+                )
+
+    def test_final_cleanup_rejects_missing_udev_model(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_FALLBACK_UDEV_OMIT_MODEL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        self.assertIn(
+            "shared ROG5 /30 escaped the exact managed USB profile",
+            result.stderr,
+        )
+        self.assertFalse(
+            any(
+                line.startswith("control:resolve:")
+                for line in self.fixture.call_lines()
+            )
+        )
+
+    def test_exact_alpine_fallback_udev_model_cleans_and_resolves(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        self.assertNotIn("host cleanup proof failed", result.stderr)
+        self.assertEqual(
+            self.fixture.call_lines().count(
+                "control:resolve:FALLBACK_RETURNED"
+            ),
+            1,
         )
 
     def test_target_acceptance_waits_for_fallback_udev_identity(self):

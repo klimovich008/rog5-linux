@@ -103,3 +103,9 @@ Before issuing a distinct successor:
    driver, address, NetworkManager, or firewall checks.
 
 Increasing a timeout or reusing Generation 6 is not an acceptable correction.
+
+The first correction item subsequently passed offline in the
+[fallback udev-model classification result](2026-08-03-fallback-udev-model-classification-fix-offline.md).
+The complete-transfer/control-silence boundary remains unresolved; this does
+not change Generation 6's consumed status or repair the failed live cleanup
+proof retroactively.

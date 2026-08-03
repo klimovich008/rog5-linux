@@ -75,7 +75,10 @@ control produced no output or `PREPARED` record. Independently, the collector
 expired with zero target frames. No COMMIT intent existed and no target ran.
 Alpine restoration and strict SSH passed. Automated final cleanup returned
 FAIL on the production fallback udev-model mismatch; independent residue
-checks were clean. See the
+checks were clean. The mismatch is now reproduced and corrected offline with
+an exact four-model classifier, a realistic post-fallback fixture, and hostile
+lookalike coverage; this does not relabel the failed live proof. See the
+[offline udev correction](../test-results/2026-08-03-fallback-udev-model-classification-fix-offline.md),
 [profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
 and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
 [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
