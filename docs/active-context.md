@@ -81,8 +81,10 @@ the historical 70/75/95-second host timeout chain. Generation 3 is consumed,
 its allow row is removed, and no image is currently boot-authorized. Source
 now uses an explicit 180/190/195/205/220/260/320-second nested deadline
 lattice. Hardware-free tests enforce every margin and prove that PREPARED plus
-forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Install
-the reviewed host update before building and admitting generation 4. See the
+forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Commit
+`4c2da4b` passed local CI, Claude review, and GitHub Actions run `30785558945`;
+its exact controller and server are installed and hash-match their sources.
+Build and admit a distinct generation 4 next. See the
 [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),

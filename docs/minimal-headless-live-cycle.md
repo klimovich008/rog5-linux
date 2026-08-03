@@ -506,8 +506,9 @@ Source now nests the 180-second device worker, 190-second recovery supervisor,
 195-second host transfer, 205-second privileged watchdog, 220-second lifecycle
 receipt wait, 260-second PREPARE exchange, and 320-second complete control
 window. Hardware-free tests enforce those margins and reject PREPARED plus
-forged host receipt text when the host service exits nonzero. Install this
-reviewed host update before producing generation 4.
+forged host receipt text when the host service exits nonzero. Commit `4c2da4b`
+passed local and GitHub CI; its exact controller/server sources are installed
+with matching hashes. Produce a distinct generation 4 next.
 Generation-3 `boot` additionally required the lifecycle guard;
 the controller sets that explicit policy variable on its boot child after
 completing admission and connected preflight in the same invocation, and the
