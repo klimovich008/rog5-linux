@@ -105,6 +105,10 @@ passes with the Generation-4 artifact sizes. Complete local CI and GitHub
 Actions run `30793088424` pass at implementation commit `38b6019`; no
 Generation-5 image is built or admitted. See the
 [offline choreography correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
+The corrected controller/server are now installed with byte-exact hashes; the
+real 37,735-entry deployment-root preflight and retained diagnostic-bundle
+preflight pass through the installed boundary with no project residue. See the
+[host-install result](../test-results/2026-08-03-choreography-host-install-live.md).
 The offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

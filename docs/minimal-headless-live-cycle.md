@@ -23,6 +23,10 @@ Generation-4 artifact sizes. Complete local CI and GitHub Actions run
 admitted. Do not increase a timeout or revive a consumed image as a substitute
 for this ordering evidence. See the
 [offline correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
+The corrected controller/server are installed, and their real bundle and
+37,735-entry deployment-root preflights pass without phone access or project
+residue; see the
+[host-install result](../test-results/2026-08-03-choreography-host-install-live.md).
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time

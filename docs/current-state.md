@@ -992,7 +992,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md)
    records its sole cycle and consumed disposition. The
    [offline choreography correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md)
-   records the published host-side fix and its evidence boundary.
+   records the published host-side fix and its evidence boundary. The
+   [host-install result](../test-results/2026-08-03-choreography-host-install-live.md)
+   proves the corrected installed hashes, the real 37,735-entry deployment
+   root, the retained diagnostic-bundle preflight, and residue-free host idle
+   state without contacting the phone.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
