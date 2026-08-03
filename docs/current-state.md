@@ -1145,13 +1145,21 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    retained-tree artifact preflights plus mutated-generation-record rejection.
    Clean-checkout CI intentionally skips those ignored-tree checks while the
    tracked issuer and policy regressions still run. The inventory records
-   `authority=none`; temporary-boot policy remains empty. Exact-head GitHub run
+   issuance `authority=none`. Exact-head GitHub run
    `30841980164` passed at issuance commit `6193056`. The separate live profile
-   now selects the identical tuple through the lifecycle, but connected
-   actions still require the lifecycle guard and an exact central-policy row;
-   the latter remains absent. See the
+   now selects the identical tuple through the lifecycle; exact-head GitHub run
+   `30843398402` passed at commit `4979581`. Central policy now separately
+   admits exactly one connected-preflight-gated RAM-only lifecycle with the
+   exact remove-after-any-result and never-flash basis. Generation 9 remains
+   unbooted; the admission itself must be published and pass exact-head CI
+   before connected use. Missing, duplicate, and wrong-basis rows reject both
+   connected actions before host inspection. A private durable per-profile
+   `BOOT_CLAIMED` record is atomically created after successful preflight and
+   immediately before boot; an existing record rejects a later run before
+   connected preflight, so a stale policy row cannot permit a retry. See the
    [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
-   and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md).
+   [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
+   and [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
    Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

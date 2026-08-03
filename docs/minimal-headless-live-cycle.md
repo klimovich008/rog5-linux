@@ -4,8 +4,10 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–8 are consumed; no temporary-boot
-image is currently admitted**. Generation 4
+Tracked status: **diagnostic generations 0–8 are consumed; exactly one
+Generation-9 image is admitted for one connected-preflight-gated RAM-only
+lifecycle**. Generation 9 remains unbooted, and its admission must be
+published with exact-head CI green before connected use. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -144,12 +146,27 @@ over unchanged raw recovery `f1a7c5ad…6a4ce`. Its immutable offline profile
 locally passes both retained-tree artifact preflights and rejects connected
 actions before host inspection. Clean-checkout CI skips the ignored-tree
 artifact checks but still enforces issuer, profile, and policy boundaries. The
-inventory records `authority=none`, and temporary-boot policy remains empty.
+inventory records issuance `authority=none`. A separate central-policy change
+now admits exactly one Generation-9 connected-preflight-gated RAM-only
+lifecycle with the exact basis `one generation-9 recovery-ACM-classifier
+diagnostic lifecycle after connected preflight; remove after any result; never
+flash`. The
+artifact remains unbooted, and publication plus exact-head CI are required
+before connected use. See the
+[one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
+The lifecycle rejects an existing per-profile consumption record before
+connected preflight, then atomically writes a private durable `BOOT_CLAIMED`
+record under `${XDG_STATE_HOME:-$HOME/.local/state}/rog5-temporary-boot-consumption`
+after successful preflight and immediately before the boot gate. Thus a crash,
+ambiguous execute, or accidentally retained policy row cannot authorize a
+second Generation-9 run. A standalone connected preflight does not consume
+the lifecycle. Every successor generation must use a distinct recovery-profile
+name because this per-profile claim is permanent by design.
 A separate
 [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md)
 now selects the identical tuple through the lifecycle. Direct connected
-actions require the lifecycle guard and then reject on the absent exact
-central-policy row before host inspection. See also the
+actions require the lifecycle guard and exact one-shot policy basis. Missing,
+duplicate, or wrong-basis rows reject before host inspection. See also the
 [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
@@ -167,8 +184,8 @@ actions select only `headless-netroot-early-diag-v1`; they cannot reuse r2 or
 promote diagnostic evidence as normal runtime acceptance.
 After that candidate resolves as accepted, rejected, or unknown, remove its
 temporary recovery row from `manifests/temporary-boot-images.tsv` in the same
-evidence/publication update. Never retain the row as authority to retry an
-execute action.
+evidence/publication update. Preserve the durable consumption record; never
+retain the row or remove the record as authority to retry an execute action.
 
 ## Why one controller is needed
 

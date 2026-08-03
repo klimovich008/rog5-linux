@@ -71,3 +71,11 @@ at commit `6193056` before this separate transition began.
 
 No private credential, recovery signing key, privilege, USB interface, phone,
 network listener, NFS export, or phone storage was used.
+
+## Subsequent transition
+
+The separate
+[Generation-9 one-shot admission](2026-08-03-generation-9-live-admission-offline.md)
+later added the exact central-policy row without changing this historical
+zero-policy profile checkpoint. Generation 9 remained unbooted during that
+offline admission work.

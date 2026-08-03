@@ -1471,6 +1471,76 @@ class LiveCycle:
             base = Path.home() / ".local" / "state"
         return base / "rog5-recovery-intents"
 
+    def temporary_boot_consumption_root(self) -> Path:
+        state_home = os.environ.get("XDG_STATE_HOME")
+        if state_home:
+            base = Path(state_home)
+            if not base.is_absolute():
+                fail("XDG_STATE_HOME must be absolute for lifecycle state")
+        else:
+            base = Path.home() / ".local" / "state"
+        return base / "rog5-temporary-boot-consumption"
+
+    def temporary_boot_consumption_path(self) -> Path:
+        profile = self.profile.recovery_profile
+        if not re.fullmatch(r"[a-z0-9-]{1,96}", profile):
+            fail("recovery profile cannot identify temporary-boot state")
+        return self.temporary_boot_consumption_root() / f"{profile}.record"
+
+    def validate_temporary_boot_consumption_root(
+        self,
+        *,
+        create: bool,
+    ) -> Path:
+        root = self.temporary_boot_consumption_root()
+        if create:
+            root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if not root.exists() and not root.is_symlink():
+            return root
+        try:
+            metadata = root.lstat()
+        except OSError as error:
+            raise CycleError(
+                "cannot inspect temporary-boot consumption root"
+            ) from error
+        if (
+            stat.S_ISLNK(metadata.st_mode)
+            or not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) != 0o700
+        ):
+            fail("temporary-boot consumption root metadata is unsafe")
+        return root
+
+    def assert_temporary_boot_unconsumed(self) -> None:
+        self.validate_temporary_boot_consumption_root(create=False)
+        path = self.temporary_boot_consumption_path()
+        if path.exists() or path.is_symlink():
+            fail(
+                "temporary recovery lifecycle is already consumed on this "
+                "host"
+            )
+
+    def claim_temporary_boot(self) -> None:
+        self.validate_temporary_boot_consumption_root(create=True)
+        path = self.temporary_boot_consumption_path()
+        try:
+            write_record(
+                path,
+                (
+                    ("format", "rog5-temporary-boot-consumption-v1"),
+                    ("recovery_profile", self.profile.recovery_profile),
+                    ("candidate", self.profile.candidate),
+                    ("manifest_sha256", self.inputs.manifest_sha256),
+                    ("state", "BOOT_CLAIMED"),
+                ),
+            )
+        except FileExistsError:
+            fail(
+                "temporary recovery lifecycle is already consumed on this "
+                "host"
+            )
+
     def ledger_inventory(self) -> set[str]:
         root = self.ledger_root()
         if not root.exists() and not root.is_symlink():
@@ -2465,6 +2535,7 @@ class LiveCycle:
         handoff_token: str | None = None
         ledger_before: set[str] = set()
         recovery_ncm: tuple[InterfaceSnapshot, ...] = ()
+        self.claim_temporary_boot()
         try:
             run_logged(
                 [str(self.dependencies.live_gate), "boot"],
@@ -2940,6 +3011,8 @@ def main(arguments: list[str]) -> int:
         return 0
     inputs = parse_inputs(admission, admitted)
     cycle = LiveCycle(dependencies, inputs, profile)
+    if action == "run":
+        cycle.assert_temporary_boot_unconsumed()
     cycle.preflight()
     if action == "preflight":
         print(

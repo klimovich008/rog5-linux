@@ -301,6 +301,18 @@ class RawFetchServer:
             output.extend(chunk)
         return bytes(output)
 
+    @staticmethod
+    def _receive_request_end(connection: socket.socket) -> bytes:
+        deadline = time.monotonic() + 2
+        while True:
+            try:
+                return connection.recv(1)
+            except socket.timeout:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        "fetch helper did not close its canonical request"
+                    )
+
     def _run(self) -> None:
         connection: socket.socket | None = None
         try:
@@ -330,7 +342,7 @@ class RawFetchServer:
                 return
             self.request_payload = payload
             self.request_frame = prefix + payload
-            request_end = connection.recv(1)
+            request_end = self._receive_request_end(connection)
             if request_end:
                 raise AssertionError(
                     "helper emitted bytes after its canonical request"

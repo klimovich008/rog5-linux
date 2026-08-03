@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–8 are consumed and never reusable. Generation 8 passed connected preflight and booted once in RAM; recovery received the complete signed bundle, but recovery ACM identity did not remain stable, so no `PREPARED` record or commit intent existed and no target ran. Exact Alpine restoration and strict SSH fallback passed. Its separate mode-`0600` NFS export-table verifier defect now has a read-only privileged proof with hostile offline tests; bounded recovery-ACM stability classification is next. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–8 are consumed and never reusable. Generation 9 is a distinct, unbooted recovery-ACM-classifier successor over the unchanged audited raw recovery; its exact offline and live profiles pass, and central policy admits one connected-preflight-gated RAM-only lifecycle. Publication and exact-head CI must pass before connected use. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -77,9 +77,14 @@ gate.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
 It retains the twice-live-accepted v18 staging image as revoked historical
 evidence. Diagnostic generations 0–8 are consumed and absent from boot
-policy. Generation 8's sole RAM-only lifecycle is recorded in the
+policy. Exactly one Generation-9 successor is currently admitted for one
+connected-preflight-gated RAM-only lifecycle; it remains unbooted and must be
+removed from policy after any result. The lifecycle atomically claims a
+private durable per-profile consumption record immediately before boot, so an
+accidentally retained row cannot enable a retry. Generation 8's sole RAM-only
+lifecycle is recorded in the
 [live result](test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
-It must never be retried and may never be
+Generation 8 must never be retried, and no diagnostic image may ever be
 flashed.
 
 ## Recovery host workflow

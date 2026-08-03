@@ -59,6 +59,7 @@ expected_generation_record=
 expected_avb_salt=
 expected_avb_digest=
 expected_boot_image=
+expected_boot_basis=
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -457,6 +458,7 @@ case $profile in
 		expected_avb_salt=a8563ded9a34767ed97ed4f9130361a1b4efadc91ee7294d9a212caf59e53899
 		expected_avb_digest=b297100d269798d4eaf46b37899c3cf9196f7c076df3a31d39fe3d2db5915dbc
 		expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one generation-8 NetworkManager-empty-field-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'generation-8 diagnostic runtime manifest is not pinned'
@@ -502,6 +504,7 @@ case $profile in
 		expected_avb_digest=8c97c36eed4dab241bc3353b8f70dc0ece8301fb795362cb129fe331af6c8dc0
 		if [[ $profile == headless-diagnostic-generation9-live-v1 ]]; then
 			expected_boot_image=build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img
+			expected_boot_basis='one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash'
 		fi
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
@@ -531,6 +534,8 @@ esac
 
 if [[ -n $expected_boot_image &&
 	( $action == preflight || $action == boot ) ]]; then
+	[[ -n $expected_boot_basis ]] ||
+		fail "profile lacks an exact temporary-boot basis for $expected_boot_image"
 	early_boot_policy=$repo/manifests/temporary-boot-images.tsv
 	[[ -f $early_boot_policy && ! -L $early_boot_policy &&
 		-r $early_boot_policy ]] ||
@@ -549,6 +554,8 @@ if [[ -n $expected_boot_image &&
 		fail "temporary boot policy does not uniquely list $expected_boot_image"
 	[[ $early_policy_status == allow && -n $early_policy_basis ]] ||
 		fail "temporary boot policy does not allow $expected_boot_image"
+	[[ $early_policy_basis == "$expected_boot_basis" ]] ||
+		fail "temporary boot policy basis does not match $expected_boot_image"
 fi
 
 if [[ $action == policy-preflight ]]; then
@@ -686,6 +693,15 @@ if [[ $action == preflight || $action == boot ]]; then
 		'$1 == name { print $3; exit }' "$boot_policy")
 	[[ $policy_status == allow && -n $policy_basis ]] ||
 		fail "temporary boot policy does not allow $image_name"
+	# Re-read and revalidate pinned-profile basis after artifact path resolution
+	# so a policy change between the early guard and execution fails closed.
+	# Historical profiles without expected_boot_image retain their legacy
+	# non-empty-basis rule until they are retired or explicitly pinned.
+	if [[ -n $expected_boot_image ]]; then
+		[[ -n $expected_boot_basis &&
+			$policy_basis == "$expected_boot_basis" ]] ||
+			fail "temporary boot policy basis does not match $image_name"
+	fi
 	manifest_matches=$(awk -F '\t' -v name="$image_name" \
 		'$1 == name { count++ } END { print count + 0 }' \
 		"$artifact_manifest")

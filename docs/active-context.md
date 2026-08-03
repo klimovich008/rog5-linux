@@ -315,14 +315,23 @@ The separately issued Generation-9 successor is AVB `b458e64b…d008` over
 unchanged raw recovery `f1a7c5ad…6a4ce`. Both retained host-local trees are
 byte-identical and locally pass exact artifact preflight. The immutable offline
 profile rejects connected preflight and boot before host inspection, the
-inventory says `authority=none`, and temporary-boot policy remains empty.
+inventory says issuance `authority=none`, and a separate central-policy change
+now admits exactly one connected-preflight-gated RAM-only lifecycle with an
+exact remove-after-any-result and never-flash basis. Generation 9 remains
+unbooted; publish this admission and require exact-head CI before connected
+use. The lifecycle now also creates a private durable per-profile
+`BOOT_CLAIMED` record immediately before the boot gate and rejects an existing
+record before connected preflight, making an accidental second invocation
+fail closed even if policy cleanup is delayed.
 Clean-checkout CI skips only the ignored retained-tree checks. Exact-head
 GitHub run `30841980164` passed at issuance commit `6193056`. The separate
-live-profile transition now selects the identical tuple through the lifecycle;
-unguarded connected actions fail on the lifecycle guard, while guarded actions
-fail on the absent central-policy row before host inspection. See the
+live-profile transition selects the identical tuple through the lifecycle and
+passed exact-head GitHub run `30843398402` at commit `4979581`. Unguarded
+connected actions fail on the lifecycle guard; missing, duplicate, or
+wrong-basis policy rows fail before host inspection. See the
 [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
-and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md).
+and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
+then the [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

@@ -140,9 +140,9 @@ awk -F '\t' -v name="$generation4" '
 generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 0 ? 0 : 1 }
+	END { exit count == 1 ? 0 : 1 }
 ' "$policy" ||
-	fail 'consumed policy retains a temporary-boot allow row'
+	fail 'temporary-boot policy must contain exactly one allow row'
 awk -F '\t' -v name="$generation5" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }
@@ -197,15 +197,20 @@ awk -F '\t' -v name="$generation8" '
 generation9='build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' -v name="$generation9" '
 	$1 == name { count++ }
-	END { exit count == 0 ? 0 : 1 }
-' "$policy" || fail 'offline generation-9 recovery is boot-allowlisted'
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'generation-9 temporary-boot policy name is not unique'
+awk -F '\t' -v name="$generation9" '
+	$1 == name && $2 == "allow" &&
+	$3 == "one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'generation-9 temporary-boot admission is not exact and one-shot'
 awk -F '\t' -v name="$generation9" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008" &&
-	$4 == "unbooted generation-9 recovery-ACM-classifier diagnostic wrapper; host-local twin issuance changes only the AVB generation salt and digest over the unchanged audited raw recovery; exact offline profile and artifact preflight pass; authority=none; not in temporary-boot policy; never flash" &&
+	$4 == "unbooted generation-9 recovery-ACM-classifier diagnostic wrapper; host-local twin issuance changes only the AVB generation salt and digest over the unchanged audited raw recovery; exact offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; never flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-9 offline artifact inventory is not exact'
+' "$manifest" || fail 'generation-9 admitted artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
