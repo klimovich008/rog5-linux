@@ -1058,14 +1058,19 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    zero target frames. No COMMIT intent existed and no target ran. Exact Alpine
    restoration and strict SSH passed. Automated final cleanup returned FAIL
    on the production fallback udev model mismatch; independent residue checks
-   were clean. Generation 6 is consumed and absent from policy. See the
+   were clean. The classifier defect is now reproduced and corrected offline:
+   the real fallback model and three exact project NCM models are accepted,
+   while prefix, suffix, whitespace, case, empty, missing, and embedded
+   lookalikes fail closed. This is not a replacement live cleanup proof.
+   Generation 6 is consumed and absent from policy. See the
+   [offline udev correction](../test-results/2026-08-03-fallback-udev-model-classification-fix-offline.md),
    [offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
    and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
    [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
    and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
-6. Reproduce and correct the exact fallback udev-model classification and the
-   complete-transfer/control-silence boundary before issuing a distinct
-   successor.
+6. Explain and correct the complete-transfer/control-silence boundary offline
+   before issuing a distinct successor; the separate fallback udev-model
+   correction already passes its hardware-free hostile suite.
 7. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

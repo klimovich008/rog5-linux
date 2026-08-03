@@ -175,7 +175,12 @@ existed and no target ran. Alpine restoration and strict SSH passed. Automated
 final cleanup returned FAIL on a host-verifier bug; independent residue checks
 were clean:
 production fallback udev reports `ROG_Phone_5_Linux_Server`, while the
-interface classifier accepts only a `ROG5_` prefix. See the
+interface classifier accepted only a `ROG5_` prefix. The
+[offline udev correction](../test-results/2026-08-03-fallback-udev-model-classification-fix-offline.md)
+now uses an exact four-model set, makes the lifecycle fixture emit the real
+fallback model after fallback proof, and rejects prefix, suffix, whitespace,
+case, empty, missing, and embedded lookalikes. This correction is not yet a
+new live cleanup proof. See the
 [offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
 and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
 [connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),

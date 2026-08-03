@@ -35,6 +35,14 @@ FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 BUNDLE_HOST_ADDRESS = "169.254.77.1"
+ROG5_NCM_MODELS = frozenset(
+    {
+        "ROG5_recovery",
+        "ROG5_network_root",
+        "ROG5_diagnostic_network_root",
+        "ROG_Phone_5_Linux_Server",
+    }
+)
 BUNDLE_TIMEOUT_SECONDS = 220
 CONTROL_TIMEOUT_SECONDS = 320
 ZERO_SHA256 = "0" * 64
@@ -1688,7 +1696,7 @@ class LiveCycle:
                 properties.get("ID_VENDOR_ID") != "1d6b"
                 or properties.get("ID_MODEL_ID") != "0104"
                 or properties.get("ID_NET_DRIVER") != "cdc_ncm"
-                or not properties.get("ID_MODEL", "").startswith("ROG5_")
+                or properties.get("ID_MODEL", "") not in ROG5_NCM_MODELS
             ):
                 continue
             address_result = run_capture(
