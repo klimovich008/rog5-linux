@@ -1543,7 +1543,7 @@ class LiveCycle:
         return remaining
 
     def firewall_empty(self, *, deadline: float | None = None) -> bool:
-        target = run_capture(
+        drop_lines = run_capture(
             [
                 str(self.dependencies.firewall),
                 "--zone=drop",
@@ -1551,58 +1551,64 @@ class LiveCycle:
             ],
             timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
-        targets = [
-            line.split(":", 1)[1].strip()
-            for line in target
-            if line.strip().startswith("target:")
-        ]
-        if targets != ["DROP"]:
-            fail("drop firewall zone is not drop-by-default")
-        queries = (
-            "--list-interfaces",
-            "--list-sources",
-            "--list-services",
-            "--list-ports",
-            "--list-protocols",
-            "--list-source-ports",
-            "--list-forward-ports",
-            "--list-icmp-blocks",
-            "--list-rich-rules",
-        )
-        for query in queries:
-            result = run_capture(
-                [
-                    str(self.dependencies.firewall),
-                    "--zone=drop",
-                    query,
-                ],
-                timeout=self.remaining_timeout(deadline),
-            )
-            if result.stdout.strip():
+        if (
+            not drop_lines
+            or drop_lines[0].strip().split(maxsplit=1)[0] != "drop"
+        ):
+            fail("drop firewall zone output is not canonical")
+        drop_fields: dict[str, str] = {}
+        rich_rules_seen = False
+        for line in drop_lines[1:]:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if rich_rules_seen:
                 fail("drop firewall zone retains lifecycle state")
-        masquerade = run_capture(
-            [
-                str(self.dependencies.firewall),
-                "--zone=drop",
-                "--query-masquerade",
-            ],
-            timeout=self.remaining_timeout(deadline),
-            check=False,
-        )
-        if masquerade.returncode == 0:
+            name, separator, value = stripped.partition(":")
+            if not separator or not name or name in drop_fields:
+                fail("drop firewall zone output is not canonical")
+            drop_fields[name] = value.strip()
+            if name == "rich rules":
+                rich_rules_seen = True
+        required = {
+            "target",
+            "icmp-block-inversion",
+            "interfaces",
+            "sources",
+            "services",
+            "ports",
+            "protocols",
+            "forward",
+            "masquerade",
+            "forward-ports",
+            "source-ports",
+            "icmp-blocks",
+            "rich rules",
+        }
+        if not required.issubset(drop_fields):
+            fail("drop firewall zone output is incomplete")
+        if drop_fields["target"] != "DROP":
+            fail("drop firewall zone is not drop-by-default")
+        if drop_fields["icmp-block-inversion"] != "no":
+            fail("drop firewall zone has ICMP block inversion enabled")
+        for name in (
+            "interfaces",
+            "sources",
+            "services",
+            "ports",
+            "protocols",
+            "forward-ports",
+            "source-ports",
+            "icmp-blocks",
+            "rich rules",
+        ):
+            if drop_fields[name]:
+                fail("drop firewall zone retains lifecycle state")
+        if drop_fields["masquerade"] == "yes":
             fail("drop firewall zone has masquerading enabled")
-        if masquerade.returncode not in (1,):
+        if drop_fields["masquerade"] != "no":
             fail("cannot inspect drop-zone masquerading state")
-        forward = run_capture(
-            [
-                str(self.dependencies.firewall),
-                "--zone=drop",
-                "--query-forward",
-            ],
-            timeout=self.remaining_timeout(deadline),
-            check=False,
-        )
-        if forward.returncode not in (0, 1):
+        if drop_fields["forward"] not in {"yes", "no"}:
             fail("cannot inspect drop-zone forwarding state")
         zones_result = run_capture(
             [str(self.dependencies.firewall), "--get-zones"],
@@ -1623,22 +1629,33 @@ class LiveCycle:
             'rule family="ipv4" priority="-300" port port="32767" '
             'protocol="udp" drop',
         }
-        for zone in zones:
-            rules = [
-                line.strip()
-                for line in run_capture(
-                    [
-                        str(self.dependencies.firewall),
-                        f"--zone={zone}",
-                        "--list-rich-rules",
-                    ],
-                    timeout=self.remaining_timeout(deadline),
-                ).stdout.splitlines()
-                if line.strip()
-            ]
-            if forbidden_rules.intersection(rules):
-                fail(f"firewall zone {zone} retains a lifecycle drop rule")
-        return forward.returncode == 0
+        all_zones = run_capture(
+            [str(self.dependencies.firewall), "--list-all-zones"],
+            timeout=self.remaining_timeout(deadline),
+        ).stdout.splitlines()
+        observed_zones: list[str] = []
+        current_zone = ""
+        for line in all_zones:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if not line[0].isspace():
+                current_zone = stripped.split(maxsplit=1)[0]
+                if current_zone not in zones:
+                    fail("firewall returned an unknown zone snapshot")
+                observed_zones.append(current_zone)
+            elif stripped in forbidden_rules:
+                if not current_zone:
+                    fail("firewall rich rule lacks a zone identity")
+                fail(
+                    f"firewall zone {current_zone} retains a lifecycle "
+                    "drop rule"
+                )
+        if len(observed_zones) != len(zones) or set(observed_zones) != set(
+            zones
+        ):
+            fail("firewall all-zone snapshot is not canonical")
+        return drop_fields["forward"] == "yes"
 
     def capture_host_snapshot(
         self, *, deadline: float | None = None
@@ -1867,9 +1884,20 @@ class LiveCycle:
             timeout=self.remaining_timeout(deadline),
         ).stdout.splitlines()
         if associated not in ([], [profile[0]]):
+            if associated == ["--"]:
+                association_class = "placeholder"
+            elif associated and all(
+                value == profile[0] for value in associated
+            ):
+                association_class = "duplicate-exact"
+            elif profile[0] in associated:
+                association_class = "mixed"
+            else:
+                association_class = "foreign"
             raise HostIdentityObservationError(
                 "deferred recovery interface retains an unexpected profile "
-                "association"
+                f"association (class={association_class} "
+                f"count={len(associated)})"
             )
 
     def verify_host_clean(

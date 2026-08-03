@@ -62,3 +62,7 @@ tests passed after the selector change. The live gate's top-level action
 allowlist rejects every verb except `policy-preflight`, `artifact-preflight`,
 `preflight`, and `boot`, while the Generation-7 live profile applies its extra
 guard to `boot`. No review finding required a code change.
+
+The profile was subsequently used for its sole admitted lifecycle. See the
+[connected preflight](2026-08-03-generation-7-connected-preflight-live.md)
+and consumed [live result](2026-08-03-generation-7-acm-stability-live.md).

@@ -89,3 +89,11 @@ Exact GitHub publication remains required before connected preflight. A
 temporary boot may occur only if that connected preflight passes. After any
 lifecycle result, including an ambiguous failure, the policy row must be
 removed and the artifact marked consumed; it must never be retried or flashed.
+
+## Subsequent disposition
+
+Exact run [`30815999859`](https://github.com/klimovich008/rog5-linux/actions/runs/30815999859)
+passed at `158a8ac`; see the subsequent
+[connected preflight](2026-08-03-generation-7-connected-preflight-live.md)
+and consumed [live result](2026-08-03-generation-7-acm-stability-live.md).
+The admission row has been removed and cannot authorize a retry.

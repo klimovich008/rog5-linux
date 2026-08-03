@@ -92,18 +92,24 @@ retained the exact fallback profile UUID as historical association data. The
 accepts only that exact retained UUID or no association after all deferred
 state checks pass continuously. Thus Generation 6 did not prove recovery-side
 silence; it also did not produce a live `PREPARED` result.
-Distinct Generation-7 AVB `d3d4cdb9…12901` is twin-reproduced over the same
-unchanged raw recovery and passes exact policy and artifact gates. The
-`headless-diagnostic-generation7-offline-v1` profile rejects connected
-preflight and boot before host inspection. The separate
-`headless-diagnostic-generation7-live-v1` selects the identical tuple through
-the lifecycle and rejects direct boot without the lifecycle guard. Both
-independent issuer trees are byte-identical, and a mutated generation record
-fails closed. Central policy now admits exactly one cycle after connected
-preflight; Generation 7 remains unbooted. See the
+Distinct Generation-7 AVB `d3d4cdb9…12901` was twin-reproduced over the same
+unchanged raw recovery and used for one connected-preflight-gated RAM-only
+lifecycle. The complete signed bundle transferred, but recovery control
+produced no `PREPARED`, the collector observed no target frames before its
+fixed deadline, no COMMIT intent existed, and no target ran. Anchored Alpine
+restoration and strict SSH fallback passed; the final host cleanup proof
+exposed a remaining deadline/association defect. Generation 7 is consumed and
+its central-policy row is removed. See the
 [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
 and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
-then the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md).
+the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md),
+[connected preflight](../test-results/2026-08-03-generation-7-connected-preflight-live.md),
+and [consumed live result](../test-results/2026-08-03-generation-7-acm-stability-live.md).
+The [offline cleanup correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md)
+subsequently reduced one strict production host observation from about 5.72
+to 1.11 seconds by consolidating firewalld reads. The fixed deadline, dwell,
+and fail-closed residue checks are unchanged. No Generation-8 image is issued
+or admitted.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

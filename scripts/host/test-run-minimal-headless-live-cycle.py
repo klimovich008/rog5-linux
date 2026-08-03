@@ -345,6 +345,8 @@ class Fixture:
                   printf '%s\n' "$uuid" "$uuid"
                 elif [ "${MOCK_DEFERRED_MIXED_UUID:-0}" = 1 ]; then
                   printf '%s\n' "$uuid" "$wrong_uuid"
+                elif [ "${MOCK_DEFERRED_PLACEHOLDER_UUID:-0}" = 1 ]; then
+                  echo --
                 elif [ "${MOCK_DEFERRED_PROFILE_GAP:-0}" = 1 ] &&
                      [ ! -e "$MOCK_ROOT/deferred-profile-gap-consumed" ]; then
                   : >"$MOCK_ROOT/deferred-profile-gap-consumed"
@@ -381,29 +383,72 @@ class Fixture:
             """\
             #!/bin/sh
             printf 'firewall:%s\n' "$*" >>"$MOCK_CALLS"
+            if [ "${MOCK_FIREWALL_DELAY:-0}" != 0 ]; then
+              sleep "$MOCK_FIREWALL_DELAY"
+            fi
             case " $* " in
               *" --zone=drop --list-all "*)
-                printf '%s\n' 'drop' '  target: DROP'
+                drop_header=drop
+                drop_interfaces=
+                drop_inversion=no
+                if [ "${MOCK_DROP_ACTIVE_INTERFACE:-0}" = 1 ]; then
+                  drop_header='drop (active)'
+                  drop_interfaces=usbmock0
+                fi
+                if [ "${MOCK_DROP_ICMP_INVERSION:-0}" = 1 ]; then
+                  drop_inversion=yes
+                fi
+                printf '%s\n' \
+                  "$drop_header" \
+                  '  target: DROP' \
+                  "  icmp-block-inversion: $drop_inversion" \
+                  "  interfaces: $drop_interfaces" \
+                  '  sources: ' \
+                  '  services: ' \
+                  '  ports: ' \
+                  '  protocols: '
+                if [ "${MOCK_DROP_MALFORMED_LINE:-0}" = 1 ]; then
+                  echo '  malformed line'
+                fi
+                if [ "${MOCK_DROP_MISSING_FORWARD:-0}" != 1 ]; then
+                  echo '  forward: yes'
+                fi
+                printf '%s\n' \
+                  '  masquerade: no' \
+                  '  forward-ports: ' \
+                  '  source-ports: ' \
+                  '  icmp-blocks: ' \
+                  '  rich rules: '
+                if [ "${MOCK_DROP_RICH_RULE:-0}" = 1 ]; then
+                  echo '    rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="8080" protocol="tcp" drop'
+                fi
                 ;;
               *" --get-zones "*) echo 'drop public trusted' ;;
               *" --get-zone-of-interface=usbmock0 "*) echo public ;;
-              *" --query-masquerade "*) exit 1 ;;
-              *" --query-forward "*) exit 0 ;;
-              *" --list-rich-rules "*)
+              *" --list-all-zones "*)
+                printf '%s\n' \
+                  'drop' \
+                  '  rich rules: ' \
+                  '' \
+                  'public' \
+                  '  rich rules: '
                 if [ "${MOCK_RESIDUAL_AFTER_BUNDLE:-0}" = 1 ] &&
-                   [ -e "$MOCK_ROOT/bundle-consumed" ] &&
-                   [ "${1:-}" = "--zone=public" ]; then
-                  echo 'rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="8080" protocol="tcp" drop'
+                   [ -e "$MOCK_ROOT/bundle-consumed" ]; then
+                  echo '    rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="8080" protocol="tcp" drop'
                 elif [ "${MOCK_TRANSIENT_FIREWALL_AFTER_FALLBACK:-0}" = 1 ] &&
                      [ -e "$MOCK_ROOT/fallback-proved" ] &&
-                     [ ! -e "$MOCK_ROOT/firewall-gap-consumed" ] &&
-                     [ "${1:-}" = "--zone=public" ]; then
+                     [ ! -e "$MOCK_ROOT/firewall-gap-consumed" ]; then
                   : >"$MOCK_ROOT/firewall-gap-consumed"
-                  echo 'rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="2049" protocol="tcp" drop'
+                  echo '    rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="2049" protocol="tcp" drop'
                 elif [ "${MOCK_RESIDUAL_AFTER_NFS:-0}" = 1 ] &&
-                     [ -e "$MOCK_ROOT/target-departed" ] &&
-                     [ "${1:-}" = "--zone=public" ]; then
-                  echo 'rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="2049" protocol="tcp" drop'
+                     [ -e "$MOCK_ROOT/target-departed" ]; then
+                  echo '    rule family="ipv4" priority="-300" destination address="169.254.77.1/32" port port="2049" protocol="tcp" drop'
+                fi
+                if [ "${MOCK_ALL_ZONES_UNKNOWN:-0}" = 1 ]; then
+                  printf '%s\n' '' 'rogue' '  rich rules: '
+                fi
+                if [ "${MOCK_ALL_ZONES_MISSING_TRUSTED:-0}" != 1 ]; then
+                  printf '%s\n' '' 'trusted' '  rich rules: '
                 fi
                 ;;
             esac
@@ -1798,6 +1843,57 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "association",
             result.stderr,
         )
+        self.assertIn("class=foreign count=1", result.stderr)
+
+    def test_deferred_profile_rejection_classifies_nonsensitive_shape(self):
+        cases = {
+            "MOCK_DEFERRED_PLACEHOLDER_UUID": "placeholder count=1",
+            "MOCK_DEFERRED_DUPLICATE_UUID": "duplicate-exact count=2",
+            "MOCK_DEFERRED_MIXED_UUID": "mixed count=2",
+        }
+        for variable, classification in cases.items():
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{variable: "1"})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"class={classification}", result.stderr)
+                self.assertNotIn("nfs:start", self.fixture.call_lines())
+
+    def test_firewall_snapshot_mutations_fail_closed(self):
+        cases = {
+            "MOCK_DROP_ACTIVE_INTERFACE": (
+                "drop firewall zone retains lifecycle state"
+            ),
+            "MOCK_DROP_ICMP_INVERSION": (
+                "drop firewall zone has ICMP block inversion enabled"
+            ),
+            "MOCK_DROP_MALFORMED_LINE": (
+                "drop firewall zone output is not canonical"
+            ),
+            "MOCK_DROP_MISSING_FORWARD": (
+                "drop firewall zone output is incomplete"
+            ),
+            "MOCK_DROP_RICH_RULE": (
+                "drop firewall zone retains lifecycle state"
+            ),
+            "MOCK_ALL_ZONES_UNKNOWN": (
+                "firewall returned an unknown zone snapshot"
+            ),
+            "MOCK_ALL_ZONES_MISSING_TRUSTED": (
+                "firewall all-zone snapshot is not canonical"
+            ),
+        }
+        for variable, message in cases.items():
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "diagnostic-preflight",
+                    **{variable: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
 
     def test_deferred_profile_accepts_empty_uuid(self):
         result = self.fixture.run("run")
@@ -2068,6 +2164,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_final_cleanup_amortizes_firewall_snapshot_cost(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_RUNTIME_FAIL="1",
+            MOCK_FIREWALL_DELAY="0.02",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        self.assertNotIn("host cleanup proof failed", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"),
+            1,
+        )
+        self.assertIn("firewall:--list-all-zones", calls)
+        self.assertFalse(
+            any("--list-rich-rules" in line for line in calls)
         )
 
     def test_failed_fallback_proof_leaves_intent_unknown(self):

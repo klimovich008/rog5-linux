@@ -1,3 +1,2 @@
 name	status	basis
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash
-build/stable-recovery-generation7-deferred-profile-fix-20260803-a/repack/stable-recovery-a.avb.img	allow	one generation-7 deferred-profile-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash

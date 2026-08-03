@@ -95,3 +95,7 @@ selects the same exact tuple through the lifecycle without adding central boot
 authority. The later
 [one-shot admission](2026-08-03-generation-7-live-admission-offline.md) adds
 that authority as a separate central-policy change.
+
+That one-shot authority was subsequently consumed. See the
+[connected preflight](2026-08-03-generation-7-connected-preflight-live.md)
+and consumed [live result](2026-08-03-generation-7-acm-stability-live.md).
