@@ -1051,6 +1051,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    It is unbooted, absent from temporary-boot policy, and has no live profile
    or lifecycle selection. See the
    [Generation-6 offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
+   The diagnostic lifecycle now selects that identical tuple through
+   `headless-diagnostic-generation6-live-v1`; direct boot remains restricted
+   to the lifecycle, while the temporary-boot policy remains empty. See the
+   [offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

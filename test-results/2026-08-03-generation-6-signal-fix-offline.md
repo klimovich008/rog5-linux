@@ -62,6 +62,8 @@ to check predecessor non-reuse for both twins was applied. Claude output is
 advisory; the executable gates above are the evidence.
 
 No credential, signing key, privileged host action, fastboot command, phone
-interface, or phone storage was used. Any later live-profile transition is a
-separate reviewed change after complete local and GitHub CI; this result does
-not authorize or predict a phone boot.
+interface, or phone storage was used. The separate
+[live-profile transition](2026-08-03-generation-6-live-profile-offline.md)
+now wires the lifecycle to the same exact tuple without adding boot authority.
+Only a separately reviewed one-row temporary-boot admission remains before
+connected preflight; this result does not authorize or predict a phone boot.
