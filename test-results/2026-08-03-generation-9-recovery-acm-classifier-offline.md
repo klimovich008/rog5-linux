@@ -53,7 +53,15 @@ relax selection, or authorize a candidate.
   were applied. Its fail-fast claim was rejected against the old source because
   the old wait loop also caught selection `RuntimeError`s until deadline.
 - `scripts/host/test-repository-linux.sh ci` — PASS, complete local tier.
-- exact-head GitHub CI remains pending publication.
+- GitHub Actions `Offline smoke` run `30838804593` at exact commit
+  `77543ee2c7fadad19c3e247cebe448e8dfe0a9d2` — PASS: QEMU in 34 seconds and
+  recovery-core in 3 minutes 35 seconds.
+
+The lifecycle executes `stable-recovery-control.py` directly from the exact
+synchronized repository checkout. It is not one of the fixed root-installed
+broker files, so no privileged host reinstall is required or appropriate for
+this correction. A cautious installer invocation rejected at its initial
+PolicyKit-caller check before any mutation; no installed component changed.
 
 No phone command, boot, reboot, fastboot/ADB/SSH connection, signing key,
 credential, generation artifact, NFS service, or private evidence was used.

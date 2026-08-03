@@ -1128,8 +1128,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    most 16 transitions, and changed identity-field names only. Twenty-nine
    focused recovery-control tests, the 62-test lifecycle suite, and complete
    local repository CI pass; exact selection, two-second dwell, final
-   revalidation, and no-retry behavior stay unchanged. Publication, exact-head
-   CI, and host installation remain before Generation-9 issuance. See the
+   revalidation, and no-retry behavior stay unchanged. Commit `77543ee` and
+   exact-head GitHub run `30838804593` pass. The lifecycle executes this file
+   from the synchronized checkout, so no root-installed broker update is
+   involved. See the
    [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
    Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the

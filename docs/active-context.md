@@ -300,6 +300,10 @@ must still retain the same path, device number, `DEVPATH`, `ID_PATH`, and
 focused recovery-control tests, all 62 lifecycle tests, and complete local
 repository CI pass. No phone, credential, signing key, generation artifact,
 or private evidence was used.
+Commit `77543ee` and exact-head GitHub Actions run `30838804593` pass. The
+lifecycle uses this controller from the synchronized repository checkout; it
+is intentionally not part of the root-installed broker bundle, so no host
+reinstall is required.
 See the
 [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
