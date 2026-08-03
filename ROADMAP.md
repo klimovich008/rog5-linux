@@ -458,8 +458,9 @@ Current execution order:
 2. **Complete:** revalidate installed host components, the sealed deployment
    root, credential admission, and exact connected Alpine fallback without
    issuing or booting a candidate.
-3. **In progress:** publish the pre-issuance checkpoint and review every
-   retained Generation-7 issuer input before creating a successor.
+3. **In progress:** publish the pre-issuance checkpoint and the test-first
+   deterministic Generation-8 issuer/non-reuse regression after auditing
+   every retained source and Generation-7 input.
 4. Issue and twin-reproduce a distinct Generation-8 identity only after the
    reviewed checkpoint is clean and synchronized; keep central boot policy at
    zero `allow` rows during issuance.

@@ -236,6 +236,13 @@ re-hashed the installed host boundary, verified the 37,735-entry sealed export
 and retained bundle, passed strict-SSH credential admission, and proved exact
 connected Alpine through one signed ACM health probe. No Generation-8 image,
 signature, profile, policy row, or phone boot exists at this checkpoint.
+The next
+[test-first issuer checkpoint](../test-results/2026-08-03-generation-8-issuer-readiness-offline.md)
+audits the retained generation-zero/Generation-7 inputs and extends the
+deterministic issuer regression through Generation 8, including same-run A/B
+identity and non-reuse of every Generation 1–7 twin. It creates only
+disposable synthetic outputs; retained Generation-8 production output is still
+absent.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
