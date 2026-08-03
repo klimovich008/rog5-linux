@@ -166,6 +166,10 @@ host inspection even when every live authorization flag is present. It is
 unbooted, absent from temporary-boot policy, and has no live profile or
 lifecycle selection. See the
 [offline Generation-6 result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
+The lifecycle now selects the same exact tuple through
+`headless-diagnostic-generation6-live-v1`; direct boot remains lifecycle-only,
+and temporary-boot policy remains empty. See the
+[offline profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

@@ -69,6 +69,9 @@ profile rejects connected preflight and boot before host inspection; it is
 unbooted, absent from temporary-boot policy, and has no live profile or
 lifecycle selection. See the
 [offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
+The lifecycle now selects its exact live-capable profile, but direct boot is
+still lifecycle-only and no temporary-boot row exists; see the
+[profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
