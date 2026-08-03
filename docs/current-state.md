@@ -1120,9 +1120,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md),
    and [consumed live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
 9. The mode-`0600` export-table proof now runs read-only through the fixed
-   privileged host broker, preserves the table metadata, and passes hostile
-   offline identity/content tests. Install and verify that host-only
-   correction, then add bounded recovery-ACM stability classification before
+   privileged host broker, preserves the table metadata, passes hostile
+   offline identity/content tests, and is installed with two successful
+   production proofs of the real mode-`0600` empty table. Next, add bounded
+   recovery-ACM stability classification before
    issuing any distinct Generation-9 successor. Use that evidence to repair
    or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
