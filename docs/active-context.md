@@ -96,9 +96,15 @@ controller remained alive under its 205-second watchdog and the shared `/30`
 was outside the exact managed profile; after watchdog exit, fixed anchored
 profile restoration and strict fallback preflight passed with no project
 server/export residue. Generation 4 is absent from boot policy and must never
-be retried or flashed. The next distinct generation must first prove the
-PREPARE/completion-receipt/NFS choreography and early-failure restoration in
-hardware-free tests. The offline issuance passed focused/complete local CI,
+be retried or flashed. The required hardware-free correction now models the
+exact PREPARED/control-exits-first stall, performs one anchored fallback
+restoration and strict-SSH proof without an intent or retry, and still proves
+host cleanup when fallback proof fails. PREPARED is flushed before the NFS
+gate, artifact progress is non-authoritative, and the real server/fetcher pair
+passes with the Generation-4 artifact sizes. Complete local CI passes;
+publication is pending, and no Generation-5 image is built or admitted. See the
+[offline choreography correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
+The offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
 constrained Claude Opus review, and GitHub Actions run `30787774104` at exact

@@ -41,6 +41,7 @@ import signal
 import socket
 import struct
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -50,6 +51,9 @@ from typing import Callable, Iterable
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "tools/recovery_control/rog5-bundle-fetch.c"
+sys.path.insert(0, str(REPO))
+
+from tools.recovery_control import host_bundle_server as HOST_SERVER  # noqa: E402
 
 BUNDLE = "arch-test-v1"
 OTHER_BUNDLE = "debian-test-v1"
@@ -716,6 +720,87 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         self.assertEqual(server.request_payload, expected_request)
         self.assertEqual(server.request_frame, frame(expected_request))
         self.assert_published(root)
+
+    def test_real_host_server_and_fetcher_transfer_generation4_scale(self):
+        kernel = b"K" * 40_049_152
+        dtb = b"D" * 102_870
+        initramfs = b"I" * 6_010_870
+        signature = b"S" * 64
+        manifest = render_fields(
+            BundlePayload.manifest_fields(
+                self.payload.bundle,
+                kernel=kernel,
+                dtb=dtb,
+                initramfs=initramfs,
+            )
+        )
+        self.payload = BundlePayload(
+            bundle=self.payload.bundle,
+            manifest=manifest,
+            signature=signature,
+            kernel=kernel,
+            dtb=dtb,
+            initramfs=initramfs,
+        )
+
+        source_root = self.new_root("real-host-source")
+        source_bundle = source_root / self.payload.bundle
+        source_bundle.mkdir(mode=0o700)
+        for name, payload in self.payload.artifact_map().items():
+            path = source_bundle / name
+            path.write_bytes(payload)
+            path.chmod(0o400)
+        source_bundle.chmod(0o500)
+        source_descriptor = os.open(
+            source_root,
+            os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC,
+        )
+        prepared = HOST_SERVER.prepare_bundle(
+            source_descriptor,
+            self.payload.bundle,
+            self.payload.manifest_hash,
+            os.geteuid(),
+        )
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+        server_error: list[BaseException] = []
+
+        def serve() -> None:
+            try:
+                connection, _peer = listener.accept()
+                with connection:
+                    HOST_SERVER.serve_connection(
+                        connection,
+                        prepared,
+                        time.monotonic() + 15,
+                    )
+                    connection.shutdown(socket.SHUT_WR)
+            except BaseException as error:
+                server_error.append(error)
+            finally:
+                listener.close()
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+        destination = self.new_root("real-host-destination")
+        try:
+            result = self.invoke(
+                destination,
+                port,
+                timeout_ms=15_000,
+            )
+            thread.join(timeout=20)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(server_error, [])
+            self.assert_success(result)
+            self.assert_published(destination)
+        finally:
+            listener.close()
+            prepared.close()
+            os.close(source_descriptor)
 
     def test_response_header_requires_exact_canonical_record(self) -> None:
         base = self.payload.response_fields()

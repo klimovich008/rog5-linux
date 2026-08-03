@@ -13,11 +13,15 @@ was never sent, and no target ran. The phone returned automatically to Alpine.
 Initial host cleanup proof failed while the controller remained alive under
 its 205-second watchdog and the shared `/30` was outside the managed profile;
 after watchdog exit, one fixed anchored restoration and strict fallback
-preflight passed with no project server/export residue. The next distinct
-generation must first gain hardware-free coverage for the
-PREPARE/completion-receipt/NFS choreography and automatic fixed restoration on
-every early control failure. Do not increase a timeout or revive a consumed
-image as a substitute for proving that ordering.
+preflight passed with no project server/export residue. The required
+hardware-free regression now covers the exact PREPARED/control-exits-first
+stall, automatic fixed restoration, strict fallback proof, host cleanup even
+when fallback proof fails, and interrupt cleanup. PREPARED is flushed before
+the NFS gate, and the real host server and native fetcher pass together at the
+Generation-4 artifact sizes. Complete local CI passes; publication is pending,
+and no new image is admitted. Do not increase a timeout or revive a consumed
+image as a substitute for this ordering evidence. See the
+[offline correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time

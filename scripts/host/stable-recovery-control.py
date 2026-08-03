@@ -412,6 +412,7 @@ def prepare_and_commit(
     *,
     ledger_path: Path | None = None,
     before_commit: Callable[[], None] | None = None,
+    on_prepared: Callable[[Response], None] | None = None,
 ) -> tuple[Response, Response, object]:
     serial, session, _hello = connect()
     prepare_deadline = time.monotonic() + PREPARE_DEADLINE_SECONDS
@@ -461,6 +462,9 @@ def prepare_and_commit(
                 f"result={prepared.result} state={prepared.state} "
                 f"last_error={prepared.last_error}"
             )
+
+        if on_prepared is not None:
+            on_prepared(prepared)
 
         if before_commit is not None:
             before_commit()
@@ -528,11 +532,17 @@ def prepare_and_commit(
 
 
 def show_response(response: Response) -> None:
-    print(json.dumps(asdict(response), sort_keys=True, separators=(",", ":")))
+    print(
+        json.dumps(asdict(response), sort_keys=True, separators=(",", ":")),
+        flush=True,
+    )
 
 
 def show_intent(intent: object) -> None:
-    print(json.dumps(asdict(intent), sort_keys=True, separators=(",", ":")))
+    print(
+        json.dumps(asdict(intent), sort_keys=True, separators=(",", ":")),
+        flush=True,
+    )
 
 
 def ensure_host_ready() -> None:
@@ -660,11 +670,14 @@ def main(arguments: list[str]) -> int:
             bundle,
             arguments[2],
             before_commit=before_commit,
+            on_prepared=show_response,
         )
-        show_response(prepared)
         show_response(committed)
         show_intent(intent)
-        print("PASS recovery accepted one commit; outcome remains UNKNOWN")
+        print(
+            "PASS recovery accepted one commit; outcome remains UNKNOWN",
+            flush=True,
+        )
         return 0
 
     fail(
