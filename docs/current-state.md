@@ -44,9 +44,10 @@ entry cycle. The panel can remain off while the server is reachable.
 
 ## Recovery
 
-Recovery v18 remains the reusable staging image admitted by
-`manifests/temporary-boot-images.tsv`. The policy now also admits the exact
-single-use diagnostic production wrapper only after its connected preflight.
+Recovery v18 remains historical staging evidence and is recorded as revoked in
+`manifests/temporary-boot-images.tsv`. The policy admits only the exact
+single-use Generation-7 diagnostic wrapper for one connected-preflight-gated
+RAM-only lifecycle.
 Recovery v18 has:
 
 - exact fastboot product `lahaina`, observed by both accepted v18 preflights;
@@ -1087,10 +1088,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    preflight, and a mutated generation record fails closed. The separate
    `headless-diagnostic-generation7-live-v1` selects the identical tuple
    through the lifecycle and rejects direct boot without its lifecycle guard.
-   It is inventoried with `authority=none`, absent from temporary-boot policy,
-   and unbooted. See the
+   It is inventoried with the offline issuance record's `authority=none`, while
+   central policy separately admits exactly one connected-preflight-gated
+   RAM-only lifecycle. It remains unbooted. See the
    [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
-   and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md).
+   and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
+   then the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md).
 8. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

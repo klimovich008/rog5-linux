@@ -92,4 +92,6 @@ change would be required to admit one temporary lifecycle.
 The subsequent
 [live-profile transition](2026-08-03-generation-7-live-profile-offline.md)
 selects the same exact tuple through the lifecycle without adding central boot
-authority.
+authority. The later
+[one-shot admission](2026-08-03-generation-7-live-admission-offline.md) adds
+that authority as a separate central-policy change.

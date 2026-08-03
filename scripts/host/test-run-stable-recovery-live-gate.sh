@@ -32,8 +32,8 @@ generation7_image=build/stable-recovery-generation7-deferred-profile-fix-2026080
 generation7_root_a=$repo/build/stable-recovery-generation7-deferred-profile-fix-20260803-a
 generation7_root_b=$repo/build/stable-recovery-generation7-deferred-profile-fix-20260803-b
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL temporary-boot policy must contain no allow row after consumption' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -121,16 +121,17 @@ generation7_root_b=$repo/build/stable-recovery-generation7-deferred-profile-fix-
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-6 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation7_image" \
-	'$1 == name { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL offline generation-7 recovery is boot-allowlisted' >&2; exit 1; }
+	'$1 == name && $2 == "allow" && \
+	$3 == "one generation-7 deferred-profile-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-7 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation7_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901" \
-	&& $4 == "unbooted generation-7 deferred-profile-corrected host diagnostic recovery; deterministic AVB-only successor over unchanged accepted raw recovery after exact fallback udev-model and retained-profile-association host corrections; twin issuer outputs are byte-identical; authority=none; absent from temporary-boot policy; retain offline only; never flash" \
+	&& $4 == "unbooted generation-7 deferred-profile-corrected host diagnostic recovery; deterministic AVB-only successor over unchanged accepted raw recovery after exact fallback udev-model and retained-profile-association host corrections; twin issuer outputs are byte-identical; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" \
 	&& $5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-7 offline artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-7 admitted artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"

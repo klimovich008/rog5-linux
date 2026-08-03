@@ -3,8 +3,8 @@
 Date: 2026-08-03
 
 Result: **PASS offline**. The diagnostic lifecycle now selects the
-exact Generation-7 recovery through a distinct live-capable profile. Generation
-7 remains absent from temporary-boot policy. No connected preflight,
+exact Generation-7 recovery through a distinct live-capable profile. At this
+transition Generation 7 remained absent from temporary-boot policy. No connected preflight,
 credential use, privileged host mutation, fastboot command, or phone action
 occurred.
 
@@ -37,12 +37,13 @@ changed.
 - all 56 lifecycle tests select Generation 7;
 - the in-place generation-record mutation still fails exact artifact
   preflight; and
-- `manifests/temporary-boot-images.tsv` remains unchanged and contains no
-  Generation-7 row or any `allow` row.
+- at this transition, `manifests/temporary-boot-images.tsv` was unchanged and
+  contained no Generation-7 row or any `allow` row.
 
-This profile wiring itself does not admit connected preflight or boot. A
-separate reviewed central-policy change is required before any connected
-action. No phone or credential action is part of this transition.
+This profile wiring itself does not admit connected preflight or boot. The
+subsequent [one-shot admission](2026-08-03-generation-7-live-admission-offline.md)
+adds the separate central-policy row. No phone or credential action is part of
+this transition.
 
 ## Verification
 

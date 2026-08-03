@@ -1228,6 +1228,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         calls = self.fixture.call_lines()
         self.assertLess(
+            calls.index("live:preflight"),
+            calls.index("live:boot"),
+        )
+        self.assertLess(
             calls.index("collector:ready"),
             calls.index("control:prepare-commit"),
         )

@@ -140,9 +140,9 @@ awk -F '\t' -v name="$generation4" '
 generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 0 ? 0 : 1 }
+	END { exit count == 1 ? 0 : 1 }
 ' "$policy" ||
-	fail 'temporary-boot policy must contain no allow row after consumption'
+	fail 'temporary-boot policy must contain exactly one allow row'
 awk -F '\t' -v name="$generation5" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }
@@ -172,16 +172,17 @@ awk -F '\t' -v name="$generation6" '
 ' "$manifest" || fail 'generation-6 consumed artifact inventory is not exact'
 generation7='build/stable-recovery-generation7-deferred-profile-fix-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' -v name="$generation7" '
-	$1 == name { count++ }
-	END { exit count == 0 ? 0 : 1 }
-' "$policy" || fail 'offline generation-7 recovery is boot-allowlisted'
+	$1 == name && $2 == "allow" &&
+	$3 == "one generation-7 deferred-profile-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'generation-7 temporary-boot admission is not exact and one-shot'
 awk -F '\t' -v name="$generation7" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901" &&
-	$4 == "unbooted generation-7 deferred-profile-corrected host diagnostic recovery; deterministic AVB-only successor over unchanged accepted raw recovery after exact fallback udev-model and retained-profile-association host corrections; twin issuer outputs are byte-identical; authority=none; absent from temporary-boot policy; retain offline only; never flash" &&
+	$4 == "unbooted generation-7 deferred-profile-corrected host diagnostic recovery; deterministic AVB-only successor over unchanged accepted raw recovery after exact fallback udev-model and retained-profile-association host corrections; twin issuer outputs are byte-identical; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-7 offline artifact inventory is not exact'
+' "$manifest" || fail 'generation-7 admitted artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
