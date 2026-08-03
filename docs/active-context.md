@@ -354,9 +354,18 @@ An injected progress-send failure proves that later phases are suppressed
 while safe preparation and replay semantics continue. Watchdog exit remains
 out-of-band because reset may remove ACM before a final frame can drain. See
 the [offline result](../test-results/2026-08-03-prepare-progress-observability-offline.md).
-No Generation 10 has been issued or booted; next integrate and reproducibly
-verify the updated responder in a distinct recovery wrapper before considering
-one newly admitted diagnostic lifecycle.
+The updated responder is now byte-verified inside twin identical initramfses,
+ASUS 5.4 wrapper Images, raw header-v3 images, and unsigned AVB test wrappers.
+The responder is `67b4f012…c167`, initramfs `dd0c7729…1642`, wrapper Image
+`30ce237f…b50c`, raw image `a2f0f10d…f876`, and test AVB image
+`cb23bc4f…a448`. The build used a disposable key, retained
+`authority=none`, and created no Generation 10 artifact or phone action. See
+the [offline wrapper integration](../test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
+Next create a distinct production-signed recovery successor from those exact
+identities and pass profile, admission, fallback, review, and CI gates before
+one diagnostic temporary boot. This offline result embeds the instrumentation;
+it does not locate the post-transfer gap. Any Generation-10 lifecycle remains
+diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

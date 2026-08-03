@@ -1174,9 +1174,19 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    prefixes across transport loss, and prove that neither progress nor its
    loss can authorize COMMIT. Watchdog exit remains an independent lifecycle
    observation because reset can remove ACM before a final frame drains. No
-   Generation 10 is issued; the next step is reproducible wrapper integration
-   of this distinct responder before another diagnostic lifecycle. See the
-   [offline result](../test-results/2026-08-03-prepare-progress-observability-offline.md).
+   Generation 10 is issued. The distinct responder now also passes the full
+   offline integration path: twin cross-compiles, extracted initramfs component
+   identity, twin initramfses, two clean ASUS 5.4 wrapper Images, and twin
+   raw/unsigned-AVB repacks are byte-identical. The disposable key was
+   destroyed and the candidate remains `authority=none`; no phone interface
+   was used. See the
+   [progress result](../test-results/2026-08-03-prepare-progress-observability-offline.md)
+   and [wrapper result](../test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
+   The next separate gate is a production-signed successor and immutable
+   lifecycle profile before one diagnostic temporary boot. The gap is still
+   unlocated; this checkpoint proves only that its bounded instrumentation is
+   reproducibly embedded, so any Generation-10 lifecycle remains
+   diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
