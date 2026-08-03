@@ -306,6 +306,11 @@ is intentionally not part of the root-installed broker bundle, so no host
 reinstall is required.
 See the
 [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+The next test-first checkpoint extends the disposable AVB-generation oracle
+through Generation 9: two runs and both twins must reproduce, raw recovery
+must remain exact, and every Generation 1–8 wrapper identity must differ. It
+creates no retained output or boot authority; see the
+[issuer-readiness result](../test-results/2026-08-03-generation-9-issuer-readiness-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

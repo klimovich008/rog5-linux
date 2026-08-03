@@ -273,6 +273,49 @@ gen8_info=$(python3 "$avbtool" info_image \
 gen8_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen8_info")
 grep -Fxq "digest=$gen8_digest" "$tmp/gen8-a/avb-generation.txt"
 
+# Generation nine is the first candidate eligible for issuance after adding
+# bounded, non-sensitive recovery ACM stability classification. Prove two
+# disposable runs are byte-identical, preserve both raw twins, and cannot
+# reuse any predecessor before retained output is created.
+"$issuer" "$source_root" "$tmp/gen9-a" 9 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen9-a.out"
+"$issuer" "$source_root" "$tmp/gen9-b" 9 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen9-b.out"
+for suffix in a b; do
+	cmp "$tmp/gen9-a/repack/stable-recovery-$suffix.avb.img" \
+		"$tmp/gen9-b/repack/stable-recovery-$suffix.avb.img"
+	cmp "$tmp/gen9-a/repack/stable-recovery-$suffix.raw.img" \
+		"$tmp/gen9-b/repack/stable-recovery-$suffix.raw.img"
+	cmp "$tmp/gen9-a/repack/stable-recovery-$suffix.raw.img" \
+		"$source_root/repack/stable-recovery-$suffix.raw.img"
+done
+cmp "$tmp/gen9-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen9-a/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen9-a/repack/stable-recovery-a.raw.img" \
+	"$tmp/gen9-a/repack/stable-recovery-b.raw.img"
+cmp "$tmp/gen9-a/avb-generation.txt" "$tmp/gen9-b/avb-generation.txt"
+cmp "$tmp/gen9-a.out" "$tmp/gen9-b.out"
+for predecessor in gen1-a gen2 gen3 gen4-a gen5-a gen6-a gen7-a gen8-a; do
+	for suffix in a b; do
+		! cmp -s "$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img" \
+			"$tmp/gen9-a/repack/stable-recovery-$suffix.avb.img" ||
+			fail "generation nine reused the $predecessor twin-$suffix AVB wrapper"
+	done
+done
+expected_gen9_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=9\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=9' "$tmp/gen9-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen9_salt" "$tmp/gen9-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen9-a/avb-generation.txt"
+gen9_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen9-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen9_info") == \
+	"$expected_gen9_salt" ]] || fail 'generation-nine descriptor salt changed'
+gen9_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen9_info")
+grep -Fxq "digest=$gen9_digest" "$tmp/gen9-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
