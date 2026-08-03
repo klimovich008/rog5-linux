@@ -88,12 +88,15 @@ A distinct generation-4 AVB wrapper `220e8556…270d` has now been issued
 twice independently over unchanged raw recovery `f1a7c5ad…6a4ce`; every file
 is byte-identical, and the exact offline artifact preflight passes. Its sole
 `headless-diagnostic-generation4-offline-v1` profile rejects connected
-actions before host inspection, its generation record says `authority=none`,
-it is absent from temporary-boot policy, and no image is currently
-boot-authorized. Focused and complete local CI pass, the constrained Claude
-re-review reports no findings, and GitHub Actions run `30786957283` passes at
-exact implementation commit `e3a47a8`. A separately reviewed connected/live
-admission change remains the next prerequisite. See the
+actions before host inspection. A distinct
+`headless-diagnostic-generation4-live-v1` profile pins the same complete chain,
+requires the one-shot lifecycle guard for boot, and is now selected by all 42
+lifecycle tests. The generation record still says `authority=none`, the image
+is absent from temporary-boot policy, and no image is currently
+boot-authorized. The offline issuance passed focused/complete local CI, Claude
+review, and GitHub Actions run `30786957283` at exact implementation commit
+`e3a47a8`; the live-profile transition remains phone-free pending its own
+review and CI. See the
 [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
@@ -101,6 +104,8 @@ Historical context remains in the
 [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),
 [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md),
 and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
+The successor profile transition is recorded in the
+[generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:
