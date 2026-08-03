@@ -484,14 +484,21 @@ Current execution order:
    changing table identity or metadata. The bounded non-sensitive recovery-ACM
    classifier and test-first Generation-9 issuer regression are published and
    green.
-9. **In progress:** offline issuance of two byte-identical host-local
-   Generation-9 successors is complete and exact-head GitHub CI passed at
-   `6193056`. The separate live-profile transition now selects the same tuple
-   while temporary-boot policy remains empty. Publish this transition and pass
-   its exact-head CI before a separate one-shot central admission.
-10. Promote a distinct normal SSH candidate only after diagnostic evidence
+9. **Complete:** offline issuance of two byte-identical host-local
+   Generation-9 successors passed exact-head GitHub run `30841980164` at
+   `6193056`; the separate live-profile transition passed exact-head run
+   `30843398402` at `4979581` while central policy remained empty.
+10. **In progress:** add exactly one Generation-9 central-policy admission
+    with the exact connected-preflight, remove-after-any-result, and
+    never-flash basis; pass focused and complete local tests, constrained
+    review, publication, and exact-head GitHub CI without phone access.
+11. Pass connected preflight, then run at most one Generation-9 RAM-only
+    diagnostic lifecycle. Preserve private evidence, remove admission after
+    every result, preserve its durable host consumption claim, restore exact
+    Alpine fallback, and never retry Generation 9.
+12. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-11. If H2 passes, continue physical keys/indicator, then H3
+13. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

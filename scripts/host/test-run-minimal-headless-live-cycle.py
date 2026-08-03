@@ -537,6 +537,7 @@ class Fixture:
               [ "${{ALLOW_HEADLESS_LIVE_GATE:-}}" = 1 ]
               [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
               [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
+              [ -f "$XDG_STATE_HOME/rog5-temporary-boot-consumption/$ROG5_STABLE_RECOVERY_PROFILE.record" ]
             fi
             if [ "$1" = preflight ] && [ "$BUNDLE" = {DIAGNOSTIC_BUNDLE} ]; then
               [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
@@ -1124,6 +1125,52 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(self.fixture.call_lines(), [])
         self.assertFalse(any(self.fixture.evidence.iterdir()))
 
+    def test_temporary_boot_claim_is_durable_and_non_retryable(self):
+        with mock.patch.dict(
+            os.environ,
+            self.fixture.environment(),
+            clear=False,
+        ):
+            dependencies = CYCLE.Dependencies.from_environment()
+            inputs = CYCLE.Inputs(
+                manifest_sha256=MANIFEST,
+                ssh_key=self.fixture.ssh_key,
+                ssh_public_key_sha256="4" * 64,
+                root_package_sha256=PACKAGE_SHA256,
+                candidate_record=self.fixture.candidate,
+                candidate_sha256=CANDIDATE_SHA256,
+                fallback_known_hosts=self.fixture.known_hosts,
+                evidence_dir=self.fixture.evidence,
+                fallback_timeout=750,
+            )
+            cycle = CYCLE.LiveCycle(
+                dependencies,
+                inputs,
+                CYCLE.DIAGNOSTIC_CYCLE_PROFILE,
+            )
+            cycle.assert_temporary_boot_unconsumed()
+            cycle.claim_temporary_boot()
+            record = cycle.temporary_boot_consumption_path()
+            self.assertEqual(record.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(
+                record.read_text(encoding="ascii"),
+                "format=rog5-temporary-boot-consumption-v1\n"
+                f"recovery_profile={DIAGNOSTIC_RECOVERY_PROFILE}\n"
+                f"candidate={DIAGNOSTIC_CANDIDATE}\n"
+                f"manifest_sha256={MANIFEST}\n"
+                "state=BOOT_CLAIMED\n",
+            )
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "already consumed on this host",
+            ):
+                cycle.assert_temporary_boot_unconsumed()
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "already consumed on this host",
+            ):
+                cycle.claim_temporary_boot()
+
     def test_key_preflight_guards_fail_before_credentials(self):
         result = self.fixture.run(
             "key-preflight",
@@ -1183,6 +1230,14 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertNotIn("live:boot", calls)
         self.assertNotIn("fallback:ssh-preflight", calls)
         self.assertFalse(any(line.startswith("host-key:") for line in calls))
+        self.assertFalse(
+            (
+                self.fixture.xdg_state
+                / "rog5-temporary-boot-consumption"
+                / f"{RECOVERY_PROFILE}.record"
+            ).exists()
+        )
+
         self.assertFalse(any(self.fixture.evidence.iterdir()))
 
         self.fixture.nfs_exports.write_text(
@@ -1211,6 +1266,22 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(
             self.fixture.call_lines().count("bundle:preflight"),
             1,
+        )
+
+    def test_failed_run_preflight_does_not_consume_temporary_boot(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_SS_LISTENER_ADDRESS="0.0.0.0",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("host listener remains on TCP port 8080", result.stderr)
+        self.assertNotIn("live:boot", self.fixture.call_lines())
+        self.assertFalse(
+            (
+                self.fixture.xdg_state
+                / "rog5-temporary-boot-consumption"
+                / f"{RECOVERY_PROFILE}.record"
+            ).exists()
         )
 
     def test_diagnostic_preflight_stops_before_collector_and_phone(self):
