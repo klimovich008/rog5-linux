@@ -271,9 +271,11 @@ was published at `c667718`, and exact-head GitHub Actions run `30832269180`
 passed. Strict-SSH fallback control moved the phone to same-port exact
 `lahaina` fastboot and connected preflight passed. The sole Generation-8
 RAM-only boot then reached verified recovery ACM/NCM and transferred the full
-signed bundle, but recovery control rejected because ACM identity did not
-remain stable. No PREPARED record, COMMIT intent, or target execution existed.
-Exact Alpine fallback returned; the final host proof exposed a separate
+signed bundle, but recovery returned no PREPARED record. Its terminal
+identity-stability rejection did not label initial versus replay discovery;
+Generation-9 timing makes watchdog-fallback replay plausible but does not prove
+the Generation-8 phase. No COMMIT intent or target execution existed. Exact
+Alpine fallback returned; the final host proof exposed a separate
 root-owned mode-`0600` empty NFS export-table inspection defect while
 independent checks found no host residue. Generation 8 is consumed, absent
 from boot policy, never reusable, and never flashable. See the
@@ -334,8 +336,14 @@ wrong-basis policy rows fail before host inspection. See the
 and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
 the [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md),
 and the [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
-Before any Generation-10 issuance, preserve the original PREPARE transport-loss
-phase across replay failure and add bounded recovery-side fetch/verify/load/
+The host-side pre-Generation-10 correction now gives ACM discovery an explicit
+`initial` or `prepare-replay` phase and, when replay discovery fails, raises one
+bounded terminal error containing both the original PREPARE transport loss and
+the sanitized replay classifier. Thirty-three focused tests cover phase
+validation, the exact Generation-9-shaped product-mismatch replay, shared
+deadline, correlation, and no COMMIT intent. See the
+[offline result](../test-results/2026-08-03-prepare-replay-phase-preservation-offline.md).
+Before any Generation-10 issuance, add bounded recovery-side fetch/verify/load/
 PREPARED/watchdog evidence under hardware-free tests.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation

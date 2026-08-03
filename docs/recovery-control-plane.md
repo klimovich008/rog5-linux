@@ -384,6 +384,29 @@ root cannot authorize another bundle.
 See the
 [corrected offline result](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
+## PREPARE transport and replay evidence
+
+`PREPARE` is retry-safe only inside the same recovery session and under one
+absolute deadline. If the initial framed exchange loses ACM before returning a
+correlated response, the host closes that descriptor and performs one stable
+ACM discovery tagged `prepare-replay`. It replays the identical request only if
+the recovered `HELLO` returns the same session. `COMMIT_EXEC` remains
+non-retryable and is not part of this path.
+
+The host must not let replay discovery overwrite the reason replay was needed.
+A failed replay therefore reports one bounded terminal record containing:
+
+- the fixed initial PREPARE transport-loss reason;
+- the explicit `prepare-replay` phase; and
+- saturated ACM state counts, bounded state transitions, fixed identity-field
+  labels, and a truncation bit without device identity values.
+
+This closes the Generation-9 host observability defect: a later Alpine product
+mismatch can no longer masquerade as the initial recovery failure. It does not
+yet identify whether recovery stalled after fetch, verification, kexec load,
+or prepared-state publication. Those device-side phases require a separately
+framed, bounded progress contract before another recovery image is issued.
+
 ## Postmortem outcome oracle
 
 The installed fallback reserves 4 MiB for ramoops but cannot read it:

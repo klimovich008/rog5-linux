@@ -76,10 +76,27 @@ RECOVERY_ACM_IDENTITY_FIELDS = (
     "id-path",
     "serial",
 )
+RECOVERY_ACM_DISCOVERY_PHASES = frozenset({"initial", "prepare-replay"})
 
 
 class TransportLost(RuntimeError):
     """The ACM transaction ended without one correlated response."""
+
+
+class RecoveryAcmUnavailable(RuntimeError):
+    """Bounded recovery ACM discovery evidence for one named phase."""
+
+
+def bounded_failure_summary(
+    error: BaseException,
+    allowed: tuple[type[BaseException], ...],
+) -> str:
+    """Return one printable bounded detail only for fixed exception types."""
+    if isinstance(error, allowed):
+        summary = str(error)
+        if re.fullmatch(r"[\x20-\x7e]{1,512}", summary):
+            return summary
+    return type(error).__name__
 
 
 @dataclass(frozen=True)
@@ -242,10 +259,13 @@ def observe_recovery_acm() -> RecoveryAcmObservation:
 
 def wait_for_stable_recovery_acm(
     *,
+    discovery_phase: str = "initial",
     settle_seconds: float = 2.0,
     timeout_seconds: float = 45.0,
     poll_seconds: float = 0.2,
 ) -> str:
+    if discovery_phase not in RECOVERY_ACM_DISCOVERY_PHASES:
+        raise ValueError("invalid discovery phase")
     deadline = time.monotonic() + timeout_seconds
     candidate: tuple[str, int, str, str, str] | None = None
     stable_since = 0.0
@@ -270,9 +290,9 @@ def wait_for_stable_recovery_acm(
                 candidate = None
                 stable_since = 0.0
         time.sleep(poll_seconds)
-    fail(
+    raise RecoveryAcmUnavailable(
         "recovery ACM identity did not remain stable; "
-        f"{trace.summary()}"
+        f"phase={discovery_phase}; {trace.summary()}"
     )
 
 
@@ -385,8 +405,12 @@ def hello(serial: RecoverySerial) -> tuple[str, Response]:
     return response.session, response
 
 
-def connect() -> tuple[RecoverySerial, str, Response]:
-    serial = RecoverySerial(wait_for_stable_recovery_acm())
+def connect(
+    *, discovery_phase: str = "initial"
+) -> tuple[RecoverySerial, str, Response]:
+    serial = RecoverySerial(
+        wait_for_stable_recovery_acm(discovery_phase=discovery_phase)
+    )
     try:
         session, response = hello(serial)
     except BaseException:
@@ -545,9 +569,27 @@ def prepare_and_commit(
                 prepare_wire,
                 prepare_deadline - time.monotonic(),
             )
-        except TransportLost:
+        except TransportLost as initial_error:
             serial.close()
-            serial, repeated_session, _hello = connect()
+            serial = None
+            try:
+                replay_serial, repeated_session, _hello = connect(
+                    discovery_phase="prepare-replay"
+                )
+            except Exception as replay_error:
+                initial_summary = bounded_failure_summary(
+                    initial_error,
+                    (TransportLost,),
+                )
+                replay_summary = bounded_failure_summary(
+                    replay_error,
+                    (RecoveryAcmUnavailable, TransportLost),
+                )
+                raise TransportLost(
+                    "PREPARE transport lost before response; "
+                    f"initial={initial_summary}; replay={replay_summary}"
+                ) from replay_error
+            serial = replay_serial
             if repeated_session != session:
                 fail("recovery rebooted during PREPARE; refusing cross-session replay")
             remaining = prepare_deadline - time.monotonic()
@@ -641,7 +683,8 @@ def prepare_and_commit(
         finally:
             ledger.close()
     finally:
-        serial.close()
+        if serial is not None:
+            serial.close()
 
 
 def show_response(response: Response) -> None:
