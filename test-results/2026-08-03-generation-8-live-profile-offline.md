@@ -69,3 +69,12 @@ focused gate passed again and the follow-up Opus review returned `PASS`.
 
 No private credential, recovery signing key, privilege, USB interface, phone,
 network listener, NFS export, or phone storage was used.
+
+## CI follow-up
+
+The first pushed run later exposed a timing-dependent failure in the final
+fallback reboot *test fixture*. The Generation-8 gate and all recovery suites
+had already passed. The [offline race correction](2026-08-03-fallback-reboot-fixture-race.md)
+removes the fixture's orphaned wall-clock writer, makes the mock USB return
+poll-driven, and adds case-labelled failures without changing production
+reboot behavior or any Generation-8 artifact.

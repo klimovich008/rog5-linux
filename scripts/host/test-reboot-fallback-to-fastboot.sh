@@ -111,6 +111,7 @@ install -m 0600 /dev/null "$stage/ssh-key"
 install -m 0600 /dev/null "$stage/known-hosts"
 calls=$stage/calls
 ready=$stage/fastboot-ready
+usb_restore=$stage/usb-restore
 usb_device=$stage/sys/devices/pci0000:00/usb1/1-1/1-1.2
 install -d -m 0755 "$stage/sys/bus/usb/devices" "$usb_device"
 ln -s "$usb_device" "$stage/sys/bus/usb/devices/1-1.2"
@@ -155,23 +156,13 @@ case " $* " in
 				rm -f "$MOCK_USB_DEVICE/idVendor" \
 					"$MOCK_USB_DEVICE/idProduct" \
 					"$MOCK_USB_DEVICE/serial"
-				(
-					sleep 1.2
-					printf '%s\n' ROG5LINUX >"$MOCK_USB_DEVICE/serial"
-					printf '%s\n' 0104 >"$MOCK_USB_DEVICE/idProduct"
-					printf '%s\n' 1d6b >"$MOCK_USB_DEVICE/idVendor"
-				) >/dev/null 2>&1 &
+				printf '%s\n' ROG5LINUX >"$MOCK_USB_RESTORE"
 				;;
 			fallback-wrong-serial)
 				rm -f "$MOCK_USB_DEVICE/idVendor" \
 					"$MOCK_USB_DEVICE/idProduct" \
 					"$MOCK_USB_DEVICE/serial"
-				(
-					sleep 1.2
-					printf '%s\n' other >"$MOCK_USB_DEVICE/serial"
-					printf '%s\n' 0104 >"$MOCK_USB_DEVICE/idProduct"
-					printf '%s\n' 1d6b >"$MOCK_USB_DEVICE/idVendor"
-				) >/dev/null 2>&1 &
+				printf '%s\n' other >"$MOCK_USB_RESTORE"
 				;;
 			other)
 				printf '%s\n' 1234 >"$MOCK_USB_DEVICE/idVendor"
@@ -201,6 +192,13 @@ cat >"$stage/bin/fastboot" <<'MOCK'
 #!/bin/sh
 set -eu
 printf '%s\n' fastboot >>"$MOCK_CALLS"
+if [ -f "${MOCK_USB_RESTORE:-}" ]; then
+	IFS= read -r restore_serial <"$MOCK_USB_RESTORE"
+	rm -f "$MOCK_USB_RESTORE"
+	printf '%s\n' "$restore_serial" >"$MOCK_USB_DEVICE/serial"
+	printf '%s\n' 0104 >"$MOCK_USB_DEVICE/idProduct"
+	printf '%s\n' 1d6b >"$MOCK_USB_DEVICE/idVendor"
+fi
 if [ "${1:-}" = devices ] && [ -e "$MOCK_FASTBOOT_READY" ]; then
 	printf '%s\t%s\n' "${MOCK_FASTBOOT_SERIAL:-test-device}" \
 		"${MOCK_FASTBOOT_STATE:-fastboot}"
@@ -314,13 +312,17 @@ grep -Fxq \
 	'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement' \
 	<<<"$disconnect_output"
 
-[[ $(grep -Fxc preflight "$calls") == 1 ]]
-[[ $(grep -Fxc reboot "$calls") == 6 ]]
-[[ $(grep -Fxc fastboot "$calls") -ge 12 ]]
+preflight_calls=$(grep -Fxc preflight "$calls" || true)
+reboot_calls=$(grep -Fxc reboot "$calls" || true)
+fastboot_calls=$(grep -Fxc fastboot "$calls" || true)
+[[ $preflight_calls == 1 && $reboot_calls == 6 && $fastboot_calls -ge 12 ]] || {
+	echo "FAIL call ledger: preflight=$preflight_calls reboot=$reboot_calls fastboot=$fastboot_calls" >&2
+	exit 1
+}
 
 for case_name in no-disconnect no-reenumeration fastboot-userspace \
 	other-mode fallback-return fallback-wrong-serial; do
-	rm -f "$ready"
+	rm -f "$ready" "$usb_restore"
 	set_usb_identity 1d6b 0104 ROG5LINUX
 	case $case_name in
 		no-disconnect)
@@ -351,6 +353,7 @@ for case_name in no-disconnect no-reenumeration fastboot-userspace \
 	set +e
 	output=$(PATH="$stage/bin:$PATH" \
 		MOCK_CALLS=$calls MOCK_FASTBOOT_READY=$ready \
+		MOCK_USB_RESTORE=$usb_restore \
 		MOCK_USB_MODE=$usb_mode MOCK_NO_FASTBOOT_USERSPACE=1 \
 		ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 \
 		FASTBOOT_SERIAL=test-device SSH_KEY=$stage/ssh-key \
@@ -358,8 +361,15 @@ for case_name in no-disconnect no-reenumeration fastboot-userspace \
 			"$helper" reboot 2>&1)
 	status=$?
 	set -e
-	[[ $status -ne 0 ]]
-	grep -Fq "$expected" <<<"$output"
+	[[ $status -ne 0 ]] || {
+		echo "FAIL $case_name: helper unexpectedly succeeded" >&2
+		exit 1
+	}
+	grep -Fq "$expected" <<<"$output" || {
+		printf 'FAIL %s: expected %s\n--- output ---\n%s\n' \
+			"$case_name" "$expected" "$output" >&2
+		exit 1
+	}
 done
 
 for boundary in wrong-port wrong-sysfs-serial; do
@@ -387,8 +397,15 @@ for boundary in wrong-port wrong-sysfs-serial; do
 			"$helper" reboot 2>&1)
 	status=$?
 	set -e
-	[[ $status -ne 0 ]]
-	grep -Fq "$expected" <<<"$output"
+	[[ $status -ne 0 ]] || {
+		echo "FAIL $boundary: helper unexpectedly succeeded" >&2
+		exit 1
+	}
+	grep -Fq "$expected" <<<"$output" || {
+		printf 'FAIL %s: expected %s\n--- output ---\n%s\n' \
+			"$boundary" "$expected" "$output" >&2
+		exit 1
+	}
 done
 
 for fallback_count in zero duplicate; do
@@ -418,8 +435,15 @@ for fallback_count in zero duplicate; do
 			"$helper" reboot 2>&1)
 	status=$?
 	set -e
-	[[ $status -ne 0 ]]
-	grep -Fq "$expected" <<<"$output"
+	[[ $status -ne 0 ]] || {
+		echo "FAIL fallback-count-$fallback_count: helper unexpectedly succeeded" >&2
+		exit 1
+	}
+	grep -Fq "$expected" <<<"$output" || {
+		printf 'FAIL fallback-count-%s: expected %s\n--- output ---\n%s\n' \
+			"$fallback_count" "$expected" "$output" >&2
+		exit 1
+	}
 	if [[ $fallback_count == duplicate ]]; then
 		rm -f "$stage/sys/bus/usb/devices/1-1.3"
 	fi
