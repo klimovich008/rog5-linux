@@ -21,8 +21,8 @@ generation5_root=$repo/build/stable-recovery-generation5-choreography-20260803-a
 generation6_image=build/stable-recovery-generation6-signal-fix-20260803-a/repack/stable-recovery-a.avb.img
 generation6_root=$repo/build/stable-recovery-generation6-signal-fix-20260803-a
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL temporary-boot policy must contain no allow row after consumption' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -99,19 +99,17 @@ generation6_root=$repo/build/stable-recovery-generation6-signal-fix-20260803-a
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-5 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation6_image" \
-	'$1 == name { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL offline generation-6 recovery is boot-allowlisted' >&2; exit 1; }
+	'$1 == name && $2 == "allow" && \
+	$3 == "one generation-6 signal-mask-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-6 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation6_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398" \
-	&& $4 ~ /^candidate authority-free generation-6 signal-mask-corrected host diagnostic recovery/ \
-	&& $4 ~ /offline policy\/artifact preflight only/ \
-	&& $4 ~ /unbooted/ && $4 ~ /authority=none/ \
-	&& $4 ~ /no phone or credential use/ && $4 ~ /never flash$/ \
+	&& $4 == "unbooted generation-6 signal-mask-corrected host diagnostic recovery; deterministic AVB-only successor over the unchanged accepted raw recovery after corrected broker installation; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" \
 	&& $5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-6 candidate artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-6 admitted artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
