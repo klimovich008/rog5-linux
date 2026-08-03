@@ -4,9 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–7 are consumed; exactly one
-Generation-8 image is admitted for one connected-preflight-gated RAM-only
-lifecycle**. Generation 4
+Tracked status: **diagnostic generations 0–8 are consumed; no temporary-boot
+image is currently admitted**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -128,6 +127,15 @@ recovery ACM identity did not remain stable. No PREPARED record, COMMIT intent,
 or target execution existed. Exact Alpine fallback returned. Generation 8 is
 now consumed and absent from policy; see the
 [live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
+Before any Generation-9 issuance, the recovery controller now samples ACM
+enumeration into a bounded non-sensitive classifier. It distinguishes absence,
+inspection failure, product/node/duplicate faults, unreadable or read-only
+permissions, and one exact candidate. Timeout output contains only fixed state
+names, saturated sample counts, at most 16 state transitions, and the names of
+identity fields that changed; it never emits paths, serial values, udev values,
+or raw USB text. The exact candidate must still remain unchanged for two
+seconds and pass a final independent observation. See the
+[offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

@@ -290,6 +290,18 @@ fixed controller is installed; two production proofs accepted the real
 root-owned mode-`0600` zero-byte table without changing its inode or metadata,
 and independent host residue checks remain clean. See the
 [host export-proof install result](../test-results/2026-08-03-generation-8-host-export-proof-install.md).
+The next pre-Generation-9 host-only correction replaces the generic recovery
+ACM stability timeout with a bounded non-sensitive classifier. It records only
+one of eight fixed inventory states per sample, saturated counts, at most 16
+state transitions, and fixed identity-field labels when exact observations
+change. An opaque ACM node fails closed; one exact read/write character device
+must still retain the same path, device number, `DEVPATH`, `ID_PATH`, and
+`ID_SERIAL` through the two-second dwell and final revalidation. Twenty-nine
+focused recovery-control tests, all 62 lifecycle tests, and complete local
+repository CI pass. No phone, credential, signing key, generation artifact,
+or private evidence was used.
+See the
+[offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

@@ -25,6 +25,7 @@ SOURCE = Path(__file__).with_name("stable-recovery-control.py")
 SPEC = importlib.util.spec_from_file_location("stable_recovery_control", SOURCE)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 REPO = SOURCE.parents[2]
@@ -58,6 +59,284 @@ class StableRecoveryControlTest(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+
+    def test_recovery_acm_observation_classifies_without_exposing_identity(self):
+        metadata = mock.Mock(st_mode=stat.S_IFCHR | 0o660, st_rdev=123)
+        recovery = {
+            "ID_VENDOR_ID": "1d6b",
+            "ID_MODEL_ID": "0104",
+            "ID_MODEL": "ROG5_recovery",
+            "DEVPATH": "/devices/secret",
+            "ID_PATH": "secret-port",
+            "ID_SERIAL": "secret-serial",
+        }
+        cases = (
+            ([], {}, {}, None, "absent", None),
+            (
+                ["/dev/ttyACM-secret"],
+                {"/dev/ttyACM-secret": {"ID_MODEL": "other"}},
+                {"/dev/ttyACM-secret": metadata},
+                None,
+                "product-mismatch",
+                None,
+            ),
+            (
+                ["/dev/ttyACM-secret"],
+                {"/dev/ttyACM-secret": recovery},
+                {"/dev/ttyACM-secret": OSError("private path")},
+                None,
+                "inspect-error",
+                None,
+            ),
+            (
+                ["/dev/ttyACM-secret"],
+                {"/dev/ttyACM-secret": recovery},
+                {
+                    "/dev/ttyACM-secret": mock.Mock(
+                        st_mode=stat.S_IFREG | 0o660,
+                        st_rdev=123,
+                    )
+                },
+                None,
+                "node-mismatch",
+                None,
+            ),
+            (
+                ["/dev/ttyACM-a", "/dev/ttyACM-b"],
+                {"/dev/ttyACM-a": recovery, "/dev/ttyACM-b": recovery},
+                {"/dev/ttyACM-a": metadata, "/dev/ttyACM-b": metadata},
+                None,
+                "duplicate",
+                None,
+            ),
+            (
+                ["/dev/ttyACM-secret"],
+                {"/dev/ttyACM-secret": recovery},
+                {"/dev/ttyACM-secret": metadata},
+                {os.R_OK: False},
+                "unreadable",
+                None,
+            ),
+            (
+                ["/dev/ttyACM-secret"],
+                {"/dev/ttyACM-secret": recovery},
+                {"/dev/ttyACM-secret": metadata},
+                {os.R_OK: True, os.W_OK: False},
+                "read-only",
+                None,
+            ),
+        )
+        for (
+            devices,
+            properties,
+            metadata_by_path,
+            access,
+            state,
+            identity,
+        ) in cases:
+            def fake_stat(path, **_kwargs):
+                value = metadata_by_path[path]
+                if isinstance(value, BaseException):
+                    raise value
+                return value
+
+            with (
+                self.subTest(state=state),
+                mock.patch.object(MODULE.glob, "glob", return_value=devices),
+                mock.patch.object(
+                    MODULE,
+                    "udev_properties",
+                    side_effect=lambda path: properties[path],
+                ),
+                mock.patch.object(
+                    MODULE.os,
+                    "stat",
+                    side_effect=fake_stat,
+                ),
+                mock.patch.object(
+                    MODULE.os,
+                    "access",
+                    side_effect=lambda _path, mode: access[mode],
+                ) as access_mock,
+            ):
+                observed = MODULE.observe_recovery_acm()
+            self.assertEqual(observed.state, state)
+            self.assertEqual(observed.identity, identity)
+            if access is None:
+                access_mock.assert_not_called()
+
+    def test_opaque_acm_node_prevents_an_otherwise_exact_observation(self):
+        metadata = mock.Mock(st_mode=stat.S_IFCHR | 0o660, st_rdev=123)
+        recovery = {
+            "ID_VENDOR_ID": "1d6b",
+            "ID_MODEL_ID": "0104",
+            "ID_MODEL": "ROG5_recovery",
+        }
+
+        def inspect(path):
+            if path.endswith("opaque"):
+                raise OSError("private path")
+            return recovery
+
+        with (
+            mock.patch.object(
+                MODULE.glob,
+                "glob",
+                return_value=["/dev/ttyACM-exact", "/dev/ttyACM-opaque"],
+            ),
+            mock.patch.object(MODULE, "udev_properties", side_effect=inspect),
+            mock.patch.object(MODULE.os, "stat", return_value=metadata),
+            mock.patch.object(MODULE.os, "access") as access,
+        ):
+            observed = MODULE.observe_recovery_acm()
+        self.assertEqual(observed.state, "inspect-error")
+        self.assertIsNone(observed.identity)
+        access.assert_not_called()
+
+    def test_recovery_acm_observation_invariants_fail_closed(self):
+        identity = ("device", 1, "devpath", "id-path", "serial")
+        for state, value in (
+            ("invalid", None),
+            ("exact", None),
+            ("absent", identity),
+        ):
+            with self.subTest(state=state), self.assertRaises(ValueError):
+                MODULE.RecoveryAcmObservation(state, value)
+        with self.assertRaisesRegex(RuntimeError, "has no exact device"):
+            MODULE.RecoveryAcmObservation("absent").path()
+
+    def test_recovery_acm_observation_accepts_one_exact_rw_device(self):
+        metadata = mock.Mock(st_mode=stat.S_IFCHR | 0o660, st_rdev=123)
+        properties = {
+            "ID_VENDOR_ID": "1d6b",
+            "ID_MODEL_ID": "0104",
+            "ID_MODEL": "ROG5_recovery",
+            "DEVPATH": "/devices/secret",
+            "ID_PATH": "secret-port",
+            "ID_SERIAL": "secret-serial",
+        }
+        with (
+            mock.patch.object(
+                MODULE.glob, "glob", return_value=["/dev/ttyACM-secret"]
+            ),
+            mock.patch.object(
+                MODULE, "udev_properties", return_value=properties
+            ),
+            mock.patch.object(MODULE.os, "stat", return_value=metadata),
+            mock.patch.object(MODULE.os, "access", return_value=True),
+        ):
+            observed = MODULE.observe_recovery_acm()
+        self.assertEqual(observed.state, "exact")
+        self.assertEqual(observed.identity[1], 123)
+        self.assertEqual(observed.path(), "/dev/ttyACM-secret")
+
+    def test_stability_returns_only_after_exact_identity_revalidation(self):
+        identity = ("/dev/ttyACM-secret", 1, "dev", "path", "serial")
+        observation = MODULE.RecoveryAcmObservation("exact", identity)
+        with (
+            mock.patch.object(
+                MODULE,
+                "observe_recovery_acm",
+                side_effect=(observation, observation, observation),
+            ) as observe,
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 0.0, 0.1, 0.1),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+        ):
+            path = MODULE.wait_for_stable_recovery_acm(
+                settle_seconds=0.1,
+                timeout_seconds=1.0,
+                poll_seconds=0.01,
+            )
+        self.assertEqual(path, "/dev/ttyACM-secret")
+        self.assertEqual(observe.call_count, 3)
+
+    def test_recovery_acm_trace_is_bounded_and_reports_only_field_names(self):
+        trace = MODULE.RecoveryAcmTrace()
+        first = MODULE.RecoveryAcmObservation(
+            "exact",
+            (
+                "/dev/ttyACM-secret-a",
+                1,
+                "secret-dev-a",
+                "secret-path-a",
+                "secret-serial-a",
+            ),
+        )
+        second = MODULE.RecoveryAcmObservation(
+            "exact",
+            (
+                "/dev/ttyACM-secret-b",
+                2,
+                "secret-dev-b",
+                "secret-path-b",
+                "secret-serial-b",
+            ),
+        )
+        trace.record(first)
+        trace.record(second)
+        for index in range(MODULE.RECOVERY_ACM_TRACE_LIMIT + 4):
+            trace.record(
+                MODULE.RecoveryAcmObservation(
+                    "absent" if index % 2 else "product-mismatch"
+                )
+            )
+        summary = trace.summary()
+        self.assertIn("identity_changes=path,rdev,devpath,id-path,serial", summary)
+        self.assertIn("transitions_truncated=yes", summary)
+        self.assertLessEqual(
+            len(trace.transitions), MODULE.RECOVERY_ACM_TRACE_LIMIT
+        )
+        for secret in ("secret-a", "secret-b", "ttyACM"):
+            self.assertNotIn(secret, summary)
+
+    def test_recovery_acm_trace_counts_saturate_and_empty_summary_is_fixed(self):
+        empty = MODULE.RecoveryAcmTrace().summary()
+        self.assertEqual(
+            empty,
+            "states=none; transitions=none; identity_changes=none; "
+            "transitions_truncated=no",
+        )
+        trace = MODULE.RecoveryAcmTrace()
+        for _ in range(MODULE.RECOVERY_ACM_COUNT_LIMIT + 10):
+            trace.record(MODULE.RecoveryAcmObservation("absent"))
+        self.assertEqual(
+            trace.counts["absent"], MODULE.RECOVERY_ACM_COUNT_LIMIT
+        )
+        self.assertEqual(trace.transitions, ["absent"])
+        self.assertLess(len(trace.summary()), 160)
+
+    def test_stability_timeout_includes_bounded_non_sensitive_classifier(self):
+        observations = (
+            MODULE.RecoveryAcmObservation("absent"),
+            MODULE.RecoveryAcmObservation(
+                "exact", ("/dev/ttyACM-secret", 1, "dev", "path", "serial")
+            ),
+        )
+        with (
+            mock.patch.object(
+                MODULE, "observe_recovery_acm", side_effect=observations
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 0.0, 0.1, 0.1, 0.2),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+            self.assertRaisesRegex(
+                RuntimeError,
+                r"states=absent:1,exact:1; transitions=absent>exact",
+            ) as failure,
+        ):
+            MODULE.wait_for_stable_recovery_acm(
+                settle_seconds=2.0,
+                timeout_seconds=0.15,
+                poll_seconds=0.01,
+            )
+        self.assertNotIn("ttyACM-secret", str(failure.exception))
 
     def run_responder(
         self,

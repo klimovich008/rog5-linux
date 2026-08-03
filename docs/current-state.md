@@ -1122,10 +1122,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
 9. The mode-`0600` export-table proof now runs read-only through the fixed
    privileged host broker, preserves the table metadata, passes hostile
    offline identity/content tests, and is installed with two successful
-   production proofs of the real mode-`0600` empty table. Next, add bounded
-   recovery-ACM stability classification before
-   issuing any distinct Generation-9 successor. Use that evidence to repair
-   or promote a distinct normal
+   production proofs of the real mode-`0600` empty table. The next host-only
+   correction adds bounded recovery-ACM stability classification before any
+   distinct Generation-9 successor: eight fixed states, saturated counts, at
+   most 16 transitions, and changed identity-field names only. Twenty-nine
+   focused recovery-control tests, the 62-test lifecycle suite, and complete
+   local repository CI pass; exact selection, two-second dwell, final
+   revalidation, and no-retry behavior stay unchanged. Publication, exact-head
+   CI, and host installation remain before Generation-9 issuance. See the
+   [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+   Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
    SSH.
