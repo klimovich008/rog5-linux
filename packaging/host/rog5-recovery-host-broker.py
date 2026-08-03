@@ -421,20 +421,13 @@ def execute(
     original_mask = signal.pthread_sigmask(
         signal.SIG_BLOCK, managed_signals
     )
-    try:
-        child = subprocess.Popen(
-            argv,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            env=environment,
-            start_new_session=True,
-        )
-    except BaseException:
-        signal.pthread_sigmask(signal.SIG_SETMASK, original_mask)
-        raise
+    child: subprocess.Popen[bytes] | None = None
+    pending_signals: list[int] = []
 
     def forward(signum: int, _frame: object) -> None:
+        if child is None:
+            pending_signals.append(signum)
+            return
         if child.poll() is not None:
             return
         try:
@@ -446,7 +439,31 @@ def execute(
         signum: signal.signal(signum, forward)
         for signum in managed_signals
     }
+    # A blocked signal mask is inherited across fork and exec. Restore the
+    # caller's mask before spawning so the fixed controller, its watchdog,
+    # and cleanup children can receive TERM. The handlers above retain any
+    # signal arriving in the narrow pre-spawn window and forward it once the
+    # new process group exists.
     signal.pthread_sigmask(signal.SIG_SETMASK, original_mask)
+    try:
+        child = subprocess.Popen(
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=environment,
+            start_new_session=True,
+        )
+    except BaseException:
+        signal.pthread_sigmask(signal.SIG_BLOCK, managed_signals)
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
+        signal.pthread_sigmask(signal.SIG_SETMASK, original_mask)
+        if pending_signals:
+            return 128 + min(pending_signals[-1], 127)
+        raise
+    for signum in pending_signals:
+        forward(signum, None)
     try:
         assert child.stdout is not None
         with child.stdout:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 from pathlib import Path
+import signal
 import socket
 import subprocess
 import tempfile
@@ -46,6 +47,15 @@ class BrokerFixture:
         ):
             path.write_text(
                 "#!/bin/sh\n"
+                "if [ \"${1:-}\" = signal-mask-v1 ]; then\n"
+                "  awk '/^SigBlk:/ { print \"sigblk \" $2 }' /proc/self/status\n"
+                "fi\n"
+                "if [ \"${1:-}\" = signal-forward-v1 ]; then\n"
+                "  sleep 30 &\n"
+                "  printf '%s\\n' \"$!\" >\"${MOCK_CALLS}.grandchild-pid\"\n"
+                "  : >\"${MOCK_CALLS}.signal-ready\"\n"
+                "  wait\n"
+                "fi\n"
                 "sleep \"${MOCK_DELAY:-0}\"\n"
                 "if [ \"${MOCK_COLLIDE:-0}\" = 1 ]; then\n"
                 "  printf '%s\\n' '__ROG5_HOST_CONTROL_STATUS__=0'\n"
@@ -113,6 +123,25 @@ class BrokerFixture:
         collide: str = "0",
         partial: str = "0",
     ) -> tuple[int, bytes]:
+        process, parent = self.start(
+            payload,
+            exit_status=exit_status,
+            delay=delay,
+            collide=collide,
+            partial=partial,
+        )
+        response = self.read_response(parent)
+        return process.wait(timeout=5), response
+
+    def start(
+        self,
+        payload: bytes,
+        *,
+        exit_status: str = "0",
+        delay: str = "0",
+        collide: str = "0",
+        partial: str = "0",
+    ) -> tuple[subprocess.Popen[bytes], socket.socket]:
         parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
         environment = os.environ.copy()
         environment.update(
@@ -140,6 +169,10 @@ class BrokerFixture:
         child.close()
         parent.sendall(payload)
         parent.shutdown(socket.SHUT_WR)
+        return process, parent
+
+    @staticmethod
+    def read_response(parent: socket.socket) -> bytes:
         response = b""
         while True:
             try:
@@ -150,7 +183,7 @@ class BrokerFixture:
                 break
             response += chunk
         parent.close()
-        return process.wait(timeout=5), response
+        return response
 
 
 class RecoveryHostSocketTest(unittest.TestCase):
@@ -228,6 +261,76 @@ class RecoveryHostSocketTest(unittest.TestCase):
         )
         self.assertEqual(status, 0, response)
         self.assertTrue(response.endswith(STATUS + b"0\n"))
+
+    def test_child_inherits_original_signal_mask(self):
+        inherited_signal = signal.SIGUSR2
+        original_mask = signal.pthread_sigmask(
+            signal.SIG_BLOCK, {inherited_signal}
+        )
+        try:
+            status, response = self.fixture.run(
+                f"bundle signal-mask-v1 {DIGEST}\n".encode(),
+            )
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, original_mask)
+        self.assertEqual(status, 0, response)
+        line = next(
+            value
+            for value in response.splitlines()
+            if value.startswith(b"sigblk ")
+        )
+        blocked = int(line.split()[1], 16)
+        for signum in (1, 2, 15):
+            with self.subTest(signum=signum):
+                self.assertEqual(blocked & (1 << (signum - 1)), 0)
+        self.assertNotEqual(
+            blocked & (1 << (inherited_signal - 1)),
+            0,
+        )
+
+    def test_term_reaches_child_process_group_without_watchdog_delay(self):
+        process, channel = self.fixture.start(
+            f"bundle signal-forward-v1 {DIGEST}\n".encode()
+        )
+        self.addCleanup(channel.close)
+
+        def reap_broker() -> None:
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=2)
+
+        self.addCleanup(reap_broker)
+        ready = Path(f"{self.fixture.calls}.signal-ready")
+        grandchild_record = Path(
+            f"{self.fixture.calls}.grandchild-pid"
+        )
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not ready.exists():
+            time.sleep(0.01)
+        self.assertTrue(ready.exists())
+        grandchild = int(grandchild_record.read_text(encoding="ascii"))
+
+        def stop_grandchild() -> None:
+            try:
+                os.kill(grandchild, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+        self.addCleanup(stop_grandchild)
+        started = time.monotonic()
+        os.kill(process.pid, signal.SIGTERM)
+        response = self.fixture.read_response(channel)
+        self.assertEqual(process.wait(timeout=2), 0, response)
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertTrue(response.endswith(STATUS + b"143\n"), response)
+        for _attempt in range(100):
+            try:
+                os.kill(grandchild, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("watchdog-like grandchild survived broker TERM")
 
     def test_child_cannot_collide_with_status_framing(self):
         status, response = self.fixture.run(

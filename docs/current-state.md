@@ -1030,6 +1030,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    be retried or flashed. See the
    [connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
    and [live result](../test-results/2026-08-03-generation-5-nfs-readiness-live.md).
+   Timestamp reconstruction then proved the complete bundle was sent about 46
+   seconds before control rejected. The privileged broker had spawned the
+   controller with TERM blocked, and that mask propagated to its watchdog and
+   cleanup descendants. The controller consequently waited for the full
+   watchdog sleep and could not publish the completion receipt that gates NFS.
+   The [offline signal-mask correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
+   restores the exact caller mask before spawn, forwards cancellation to the
+   child process group, and passes 13 broker, 25 controller, 47 lifecycle
+   tests, and complete local CI. It does not increase a timeout, contact the
+   phone, or authorize a successor.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

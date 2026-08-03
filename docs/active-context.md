@@ -143,6 +143,18 @@ is consumed, absent from boot policy, and must never be retried or flashed.
 See the
 [connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
 and [live result](../test-results/2026-08-03-generation-5-nfs-readiness-live.md).
+Private timestamp reconstruction now proves all 46,163,787 bytes were sent
+about 46 seconds before that rejection. The host broker had restored signal
+handlers but not its blocked `SIGHUP`/`SIGINT`/`SIGTERM` mask before `Popen`,
+so the controller, watchdog, and cleanup descendants inherited blocked TERM.
+The controller therefore waited for the full 205-second watchdog instead of
+publishing its completion receipt. A test-first correction restores the exact
+caller mask before spawn, forwards cancellation to the child process group,
+and avoids a stale direct-PID fallback. Thirteen broker, 25 controller, and 47
+lifecycle tests and complete local CI pass. Do not increase the NFS deadline:
+the next checkpoint is exact host-only installation and hash verification.
+See the
+[offline signal correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
