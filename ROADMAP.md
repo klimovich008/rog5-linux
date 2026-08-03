@@ -447,9 +447,9 @@ Both host cleanup defects exposed by that cycle are now reproduced and fixed
 offline without extending deadlines or weakening identity checks. Firewalld
 state uses three coherent snapshots instead of roughly 23 subprocesses, and
 the NetworkManager verifier now handles the exact one-empty-field rendering
-of a NULL `GENERAL.CON-UUID`. Generation 8 is now host-locally twin-issued and
-pinned by an offline-only profile, but remains unbooted and absent from boot
-policy.
+of a NULL `GENERAL.CON-UUID`. Generation 8 is now host-locally twin-issued,
+pinned by immutable offline/live profile twins, and admitted centrally for one
+connected-preflight-gated RAM-only lifecycle. It remains unbooted.
 
 Current execution order:
 
@@ -467,9 +467,10 @@ Current execution order:
    zero `allow` rows.
 5. **Complete:** add a separate live lifecycle profile while keeping central
    policy at zero `allow` rows.
-6. **In progress:** add one-shot central admission only after artifact,
-   credential, rollback, host-cleanup, and fallback host-only preflights pass.
-7. Run the exact connected preflight, then at most one Generation-8 RAM-only
+6. **Complete offline:** add one-shot central admission after artifact,
+   credential, rollback, host-cleanup, and fallback host-only preflights pass;
+   publish it and require exact-head green CI before connected use.
+7. **Next:** run the exact connected preflight, then at most one Generation-8 RAM-only
    diagnostic lifecycle; consume it for every result, preserve
    recovery-control/collector/postmortem evidence, and never retry an
    ambiguous execute.

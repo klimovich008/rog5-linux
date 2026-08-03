@@ -1107,11 +1107,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    both retained trees pass artifact preflight, and a generation-record
    mutation fails closed. Connected preflight and boot reject before host
    inspection. The separate live profile now selects that exact tuple through
-   the lifecycle. The profile wiring itself does not admit connected preflight
-   or boot: both require the lifecycle guard and exact central policy, which
-   still has zero `allow` rows. See the
+   the lifecycle. Both connected actions require the lifecycle guard and exact
+   central policy. One exact central row now admits a single
+   connected-preflight-gated RAM-only lifecycle; Generation 8 remains
+   unbooted. See the
    [offline successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
-   and [live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md).
+   and [live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md),
+   then the [one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md).
 9. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

@@ -2135,7 +2135,9 @@ class LiveCycle:
         )
         run_capture(
             [str(self.dependencies.live_gate), "preflight"],
-            environment=child_environment(),
+            environment=child_environment(
+                ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE="1"
+            ),
             timeout=300,
         )
         run_capture(
