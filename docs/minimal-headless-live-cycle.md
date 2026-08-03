@@ -92,12 +92,15 @@ accepts only that exact retained UUID or no association after all deferred
 state checks pass continuously. Thus Generation 6 did not prove recovery-side
 silence; it also did not produce a live `PREPARED` result.
 Distinct Generation-7 AVB `d3d4cdb9…12901` is twin-reproduced over the same
-unchanged raw recovery and passes exact offline policy and artifact gates. Its
-only profile, `headless-diagnostic-generation7-offline-v1`, rejects connected
-preflight and boot before host inspection. Both independent issuer trees are
-byte-identical, a mutated generation record fails closed, and no Generation-7
-live profile or temporary-boot policy row exists. See the
-[offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md).
+unchanged raw recovery and passes exact policy and artifact gates. The
+`headless-diagnostic-generation7-offline-v1` profile rejects connected
+preflight and boot before host inspection. The separate
+`headless-diagnostic-generation7-live-v1` selects the identical tuple through
+the lifecycle and rejects direct boot without the lifecycle guard. Both
+independent issuer trees are byte-identical, a mutated generation record fails
+closed, and no Generation-7 temporary-boot policy row exists. See the
+[offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
+and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

@@ -410,20 +410,28 @@ for generation7_action in boot preflight; do
 	fi
 done
 
-if run_generation7_live_output=$(env -i PATH="$PATH" HOME="$HOME" \
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
 	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation7-live-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
 	BUNDLE=headless-netroot-early-diag-v1 \
 	RECOVERY_SHA256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901 \
 	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-	bash "$gate" policy-preflight 2>"$tmp/err"); then
-	echo "FAIL unissued generation-7 live profile passed: $run_generation7_live_output" >&2
+	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL generation-7 live profile booted outside lifecycle' >&2
 	exit 1
 fi
-grep -Fq 'policy preflight requires a fully pinned diagnostic profile' "$tmp/err"
-if grep -Fq 'headless-diagnostic-generation7-live-v1' "$gate"; then
-	echo 'FAIL production gate contains an unissued generation-7 live profile' >&2
+grep -Fq 'generation-7 boot requires the one-shot lifecycle controller' \
+	"$tmp/err"
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL generation-7 direct boot reached host inspection' >&2
 	exit 1
 fi
 
@@ -747,28 +755,32 @@ generation7_errors=(
 [[ ${#generation7_fields[@]} -eq ${#generation7_exact[@]} &&
 	${#generation7_errors[@]} -eq ${#generation7_exact[@]} ]] ||
 	{ echo 'FAIL generation-7 policy mutation matrix is inconsistent' >&2; exit 1; }
-generation7_profile=headless-diagnostic-generation7-offline-v1
-generation7_policy=$(run_generation3_policy \
-	"$generation7_profile" "${generation7_exact[@]}")
-grep -Fxq "recovery_profile=$generation7_profile" <<<"$generation7_policy"
-grep -Fxq \
-	'recovery_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901' \
-	<<<"$generation7_policy"
-grep -Fxq 'authority=none' <<<"$generation7_policy"
-grep -Fxq 'result=PASS' <<<"$generation7_policy"
-for index in "${!generation7_fields[@]}"; do
-	mutation=("${generation7_exact[@]}")
-	if ((index == 4)); then
-		mutation[$index]=wrong-generation7-bundle
-	else
-		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-	fi
-	if run_generation3_policy "$generation7_profile" "${mutation[@]}" \
-		>"$tmp/out" 2>"$tmp/err"; then
-		echo "FAIL $generation7_profile accepted wrong ${generation7_fields[$index]}" >&2
-		exit 1
-	fi
-	grep -Fq "${generation7_errors[$index]}" "$tmp/err"
+for generation7_profile in \
+	headless-diagnostic-generation7-offline-v1 \
+	headless-diagnostic-generation7-live-v1
+do
+	generation7_policy=$(run_generation3_policy \
+		"$generation7_profile" "${generation7_exact[@]}")
+	grep -Fxq "recovery_profile=$generation7_profile" <<<"$generation7_policy"
+	grep -Fxq \
+		'recovery_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901' \
+		<<<"$generation7_policy"
+	grep -Fxq 'authority=none' <<<"$generation7_policy"
+	grep -Fxq 'result=PASS' <<<"$generation7_policy"
+	for index in "${!generation7_fields[@]}"; do
+		mutation=("${generation7_exact[@]}")
+		if ((index == 4)); then
+			mutation[$index]=wrong-generation7-bundle
+		else
+			mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		fi
+		if run_generation3_policy "$generation7_profile" "${mutation[@]}" \
+			>"$tmp/out" 2>"$tmp/err"; then
+			echo "FAIL $generation7_profile accepted wrong ${generation7_fields[$index]}" >&2
+			exit 1
+		fi
+		grep -Fq "${generation7_errors[$index]}" "$tmp/err"
+	done
 done
 
 if [[ -d $generation3_root ]]; then
@@ -901,9 +913,13 @@ if [[ -d $generation7_root_a || -d $generation7_root_b ]]; then
 		cmp "$generation7_root_a/$relative" "$generation7_root_b/$relative"
 	done
 	for generation7_root in "$generation7_root_a" "$generation7_root_b"; do
-		generation7_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation7-offline-v1 \
+		for generation7_profile in \
+			headless-diagnostic-generation7-offline-v1 \
+			headless-diagnostic-generation7-live-v1
+		do
+			generation7_artifact=$(
+				env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE="$generation7_profile" \
 			LIVE_BUILD_ROOT="$generation7_root" \
 			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
@@ -913,11 +929,12 @@ if [[ -d $generation7_root_a || -d $generation7_root_b ]]; then
 			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation7-offline-v1 image_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901' \
-			<<<"$generation7_artifact"
+					bash "$gate" artifact-preflight
+			)
+			grep -Fxq \
+				"PASS stable-recovery artifact preflight profile=$generation7_profile image_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901" \
+				<<<"$generation7_artifact"
+		done
 	done
 
 	generation7_mutation=$build_tmp/generation7-record-mutation
@@ -1050,6 +1067,7 @@ for required in \
 	'headless-diagnostic-generation6-offline-v1' \
 	'headless-diagnostic-generation6-live-v1' \
 	'headless-diagnostic-generation7-offline-v1' \
+	'headless-diagnostic-generation7-live-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -1060,6 +1078,7 @@ for required in \
 	'generation-6 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-6 boot requires the one-shot lifecycle controller' \
 	'generation-7 diagnostic profile is offline-only and not boot-authorized' \
+	'generation-7 boot requires the one-shot lifecycle controller' \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \

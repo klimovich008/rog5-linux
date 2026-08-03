@@ -37,7 +37,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation5-live-v1 | \
 		headless-diagnostic-generation6-offline-v1 | \
 		headless-diagnostic-generation6-live-v1 | \
-		headless-diagnostic-generation7-offline-v1) ;;
+		headless-diagnostic-generation7-offline-v1 | \
+		headless-diagnostic-generation7-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -383,9 +384,17 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation7-offline-v1)
-		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+	headless-diagnostic-generation7-offline-v1 | \
+	headless-diagnostic-generation7-live-v1)
+		if [[ $profile == headless-diagnostic-generation7-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-7 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation7-live-v1 &&
+			$action == boot &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-7 boot requires the one-shot lifecycle controller'
+		fi
 		component_layout=structured
 		expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c
 		expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce
