@@ -199,21 +199,29 @@ proving no addresses, unmanaged ownership, exact profile/interface identity,
 and autoconnect off. Wrong, duplicate, mixed, or unsafe-state associations
 remain rejected through a continuous clean dwell. This explains the empty
 host log; it does not manufacture a live `PREPARED` result.
-Distinct Generation-7 AVB `d3d4cdb9…12901` is now independently issued twice
+Distinct Generation-7 AVB `d3d4cdb9…12901` was independently issued twice
 over unchanged raw recovery `f1a7c5ad…6a4ce`, with generation record
-`8127197d…799e`. Only
-`headless-diagnostic-generation7-offline-v1` permits policy and artifact
-preflight and rejects connected preflight and boot before host inspection.
-Both issuer trees pass exact artifact verification and are byte-identical; a
-mutated generation record and every wrong policy identity fail closed. The
-separate `headless-diagnostic-generation7-live-v1` now selects that identical
-tuple through the lifecycle and rejects direct boot without the lifecycle
-guard. Central policy now separately admits exactly one connected-preflight-
-gated RAM-only lifecycle; Generation 7 remains unbooted.
-See the
+`8127197d…799e`, then passed connected preflight and booted once in RAM. The
+complete 46,163,787-byte signed bundle transferred, but recovery control
+produced no `PREPARED` record and the fixed collector deadline expired with
+zero target frames. No COMMIT intent existed, NFS did not start, and no target
+ran. Anchored Alpine profile restoration and strict SSH fallback passed. The
+controller exposed a remaining host cleanup-verifier deadline/association
+defect; independent read-only residue checks were clean. Generation 7 is
+consumed, absent from boot policy, never reusable, and never flashable. See the
 [issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
 and [live-profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
-then the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md).
+the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md),
+[connected preflight](../test-results/2026-08-03-generation-7-connected-preflight-live.md),
+and [consumed live result](../test-results/2026-08-03-generation-7-acm-stability-live.md).
+The subsequent
+[offline cleanup correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md)
+reproduces the final deadline failure without the phone: one strict host
+observation required about 5.72 seconds because it launched roughly 23
+sequential firewalld queries. Three coherent fail-closed snapshots reduce that
+to about 1.11 seconds while preserving the 10-second deadline, one-second
+dwell, and all residue checks. The unrecorded transitional UUID remains
+rejected; future evidence reports only its non-sensitive shape and count.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
