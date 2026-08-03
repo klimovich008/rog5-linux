@@ -452,23 +452,26 @@ admitted.
 
 Current execution order:
 
-1. **In progress:** pass the focused and complete local suite, constrained
+1. **Complete:** pass the focused and complete local suite, constrained
    read-only review, publication, and GitHub CI for the exact NetworkManager
-   parser correction.
-2. Revalidate installed host components and exact Alpine fallback without
+   parser correction at `61c6ddd`.
+2. **Complete:** revalidate installed host components, the sealed deployment
+   root, credential admission, and exact connected Alpine fallback without
    issuing or booting a candidate.
-3. Issue and twin-reproduce a distinct Generation-8 identity only after the
+3. **In progress:** publish the pre-issuance checkpoint and review every
+   retained Generation-7 issuer input before creating a successor.
+4. Issue and twin-reproduce a distinct Generation-8 identity only after the
    reviewed checkpoint is clean and synchronized; keep central boot policy at
    zero `allow` rows during issuance.
-4. Add a separate lifecycle-only profile and one-shot central admission only
+5. Add a separate lifecycle-only profile and one-shot central admission only
    after artifact, credential, rollback, host-cleanup, fallback, and connected
    preflights all pass.
-5. Run at most one Generation-8 RAM-only diagnostic lifecycle, consume it for
+6. Run at most one Generation-8 RAM-only diagnostic lifecycle, consume it for
    every result, preserve recovery-control/collector/postmortem evidence, and
    never retry an ambiguous execute.
-6. Promote a distinct normal SSH candidate only after diagnostic evidence
+7. Promote a distinct normal SSH candidate only after diagnostic evidence
    identifies and fixes the failing boundary.
-7. If H2 passes, continue physical keys/indicator, then H3
+8. If H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

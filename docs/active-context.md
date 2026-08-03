@@ -229,6 +229,13 @@ one empty field only after every existing identity, address, ownership,
 profile-binding, and autoconnect check; `--`, duplicate, mixed, and foreign
 values remain rejected. See the
 [empty-field correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md).
+That exact correction is published at `61c6ddd`; complete local CI and GitHub
+Actions run `30821583020` pass. The subsequent
+[Generation-8 pre-issuance checkpoint](../test-results/2026-08-03-generation-8-host-fallback-readiness-live.md)
+re-hashed the installed host boundary, verified the 37,735-entry sealed export
+and retained bundle, passed strict-SSH credential admission, and proved exact
+connected Alpine through one signed ACM health probe. No Generation-8 image,
+signature, profile, policy row, or phone boot exists at this checkpoint.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
