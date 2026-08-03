@@ -53,16 +53,15 @@ generation3_root=$repo/build/early-target-diagnostic-deployment-20260802-fresh-f
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL NFS-gated successor artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation3_image" \
-	'$1 == name && $2 == "allow" && \
-	$3 ~ /^generation-3 fresh-fetch production recovery/ \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-3 live admission is not exact' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' \
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-3 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation3_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6" \
-	&& $4 ~ /^unbooted generation-3 fresh-fetch diagnostic recovery/ \
+	&& $4 ~ /^consumed generation-3 fresh-fetch diagnostic recovery/ \
 	{ count++ } END { print count + 0 }' "$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-3 artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-3 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"

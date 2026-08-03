@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4, but hardened r2 lost USB after NCM and returned safely to fallback. Generation-1 recovery `332889a8…b51830` then fetched/verified the diagnostic bundle and claimed one commit; a host policy omission let commit precede NFS startup, so no target frame arrived. Same-port signed Alpine fallback passed, the intent is resolved `FALLBACK_RETURNED`, and generation 1 is consumed. The fail-closed NFS-gate fix passes 20 control and 39 lifecycle tests, independent review, local CI, and GitHub CI. Distinct generation-2 wrapper `70fd77f7…fc72b1` preserves the exact raw recovery and passes full artifact preflight; connected preflight remains before at most one RAM-only cycle. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4, but hardened r2 lost USB after NCM and returned safely to fallback. Diagnostic generations 1–3 are consumed. Generation 3 reached verified `PREPARED` after fresh fetch, verification, and kexec load, but the host's former 70-second transfer service lacked its completion receipt; NFS never started, COMMIT was never sent, no target ran, and exact strict-SSH Alpine fallback passed. A hardware-free regression now enforces the corrected 180/190/195/205/220/260/320-second worker-to-control lattice, and a hostile PREPARED/forged-receipt test proves that host failure still blocks NFS and COMMIT. Installing the reviewed host update and producing a distinct generation 4 are next. No image is currently boot-authorized. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -76,9 +76,8 @@ gate.
 `manifests/artifacts.tsv` is an inventory, not boot authority.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
 It retains the twice-live-accepted v18 staging image as revoked historical
-evidence and admits only generation-2 diagnostic recovery `70fd77f7…fc72b1`
-for one guarded RAM-only cycle after all remaining preflights. Every earlier
-diagnostic image is consumed. No image may be flashed.
+evidence. Every diagnostic generation is consumed and there is currently no
+`allow` row. No image may be booted or flashed.
 
 ## Recovery host workflow
 

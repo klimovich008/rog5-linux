@@ -68,12 +68,23 @@ lifecycle tests, complete local CI, Claude review, and GitHub Actions run
 generation-3 AVB `eb514a57…d77b6`, raw wrapper `f1a7c5ad…6a4ce`, and recovery
 initramfs `144f1cfd…e4ec`. Its exact artifact preflight passes. The immutable
 `headless-diagnostic-generation3-offline-v1` profile still rejects connected
-actions; a distinct `headless-diagnostic-generation3-live-v1` profile now
-binds the lifecycle to the same exact chain, and the image is the sole
-one-cycle RAM-only boot admission. The
+actions; a distinct `headless-diagnostic-generation3-live-v1` profile
+bound the lifecycle to the same exact chain. Its
 [connected preflight](../test-results/2026-08-02-generation-3-connected-preflight-live.md)
-passes against one exact `lahaina` fastboot device; the boot has not run.
-See the
+passed against one exact `lahaina` fastboot device. The sole generation-3
+cycle then reached verified `PREPARED` after fresh fetch, signature/artifact
+verification, and kexec load, but the host's 70-second transfer service never
+emitted its completion receipt. NFS therefore never started, the control gate
+failed before COMMIT, no target ran, and exact strict-SSH Alpine fallback plus
+clean host state passed. The device-side fetch permits 190 seconds, exposing
+the historical 70/75/95-second host timeout chain. Generation 3 is consumed,
+its allow row is removed, and no image is currently boot-authorized. Source
+now uses an explicit 180/190/195/205/220/260/320-second nested deadline
+lattice. Hardware-free tests enforce every margin and prove that PREPARED plus
+forged receipt text and a nonzero host exit cannot start NFS or COMMIT. Install
+the reviewed host update before building and admitting generation 4. See the
+[generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
+Historical context remains in the
 [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
 [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
 [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),

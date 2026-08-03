@@ -506,6 +506,15 @@ class Fixture:
             fi
             : >"$MOCK_ROOT/bundle-consumed"
             printf 'bundle:transfer\n' >>"$MOCK_CALLS"
+            if [ "${MOCK_BUNDLE_FORGED_RECEIPT_FAILURE:-0}" = 1 ]; then
+              while [ ! -e "$MOCK_ROOT/prepare-observed" ]; do
+                sleep 0.01
+              done
+              echo 'PASS one recovery bundle transfer completed'
+              echo 'INFO recovery bundle host network state removed'
+              echo 'INFO fallback NetworkManager profile restoration deferred'
+              exit 1
+            fi
             echo 'PASS one recovery bundle transfer completed'
             echo 'INFO recovery bundle host network state removed'
             echo 'INFO fallback NetworkManager profile restoration deferred'
@@ -574,6 +583,13 @@ class Fixture:
                 [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
                 printf 'control:prepare-commit\n' >>"$MOCK_CALLS"
                 : >"$MOCK_ROOT/prepare-started"
+                if [ "${{MOCK_BUNDLE_FORGED_RECEIPT_FAILURE:-0}}" = 1 ]; then
+                  while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
+                    sleep 0.01
+                  done
+                  : >"$MOCK_ROOT/prepare-observed"
+                  printf 'control:prepared\n' >>"$MOCK_CALLS"
+                fi
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
                 done
@@ -1467,6 +1483,21 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertNotIn("bundle:transfer", calls)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_prepared_with_failed_host_receipt_never_starts_nfs(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_BUNDLE_FORGED_RECEIPT_FAILURE="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("bundle server failed with status 1", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertIn("control:prepared", calls)
+        self.assertIn("bundle:transfer", calls)
         self.assertNotIn("nfs:start", calls)
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)

@@ -211,6 +211,7 @@ if [[ $tier == ci ]]; then
 		scripts/host/test-generate-host-storage-cleanup-plan.py
 		scripts/host/test-cleanup-podman-volumes.py
 		scripts/host/test-recovery-fetch-native.py
+		scripts/host/test-recovery-timeout-lattice.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
 		scripts/host/test-recovery-host-socket.py
@@ -297,6 +298,7 @@ else
 		scripts/device/test-network-root-init.sh
 		scripts/device/test-persistent-root-verifier.sh
 		scripts/host/test-recovery-fetch-native.py
+		scripts/host/test-recovery-timeout-lattice.py
 		scripts/host/test-recovery-bundle-server.py
 		scripts/host/test-recovery-host-controller.py
 		scripts/host/test-recovery-host-socket.py

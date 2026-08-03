@@ -942,15 +942,26 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `eb514a57…d77b6`, raw wrapper `f1a7c5ad…6a4ce`, and recovery initramfs
    `144f1cfd…e4ec`; exact artifact preflight passes. The immutable offline
    profile still rejects connected actions. A separate exact
-   `headless-diagnostic-generation3-live-v1` profile is now selected by the
-   lifecycle, and its AVB is the sole one-cycle RAM-only boot admission;
-   connected preflight and boot remain unexecuted. See the
+   `headless-diagnostic-generation3-live-v1` profile selected the lifecycle.
+   Connected preflight passed, then the sole cycle reached verified
+   `PREPARED` after fresh fetch, verification, and kexec load. The 70-second
+   host transfer server did not emit its completion receipt, so recovery
+   network cleanup did not complete, NFS never started, and control failed
+   before COMMIT. No target ran; exact strict-SSH Alpine fallback and clean
+   host state passed. Generation 3 is consumed and no image is admitted. The
+   historical 190-second recovery fetch limit versus 70/75/95-second host
+   bounds is now covered by a hardware-free regression. Source uses a nested
+   180/190/195/205/220/260/320-second worker-to-control lattice, and a hostile
+   PREPARED/forged-receipt/nonzero-exit case still blocks NFS and COMMIT. The
+   reviewed host update must be installed before generation 4.
+   See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
    [NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
    [generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md),
    [generation-3 production build](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md),
-   and [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md).
+   [generation-3 admission](../test-results/2026-08-02-generation-3-live-admission-offline.md),
+   and [generation-3 live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

@@ -20,7 +20,9 @@ bundle=
 manifest_hash=
 expected_location=
 restore_timeout=
-server_sha256=536c36c42f4542ab49b2c288699edb61f7de9a7b1897e436ab394b729cafe03d
+server_sha256=9258c0e72ca7adb626fdafccfc1bababb68263b40ad23b635b0cc8c19b7ffac0
+HARD_SERVER_TIMEOUT_SECONDS=205
+OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS=5
 if [[ $action == restore-fallback ]]; then
 	[[ $# == 2 ]] ||
 		fail 'usage: rog5-recovery-bundle-controller restore-fallback USB_LOCATION TIMEOUT'
@@ -61,11 +63,11 @@ if [[ $offline_test == 1 ]]; then
 	server_path=${ROG5_TEST_SERVER_PATH:?missing ROG5_TEST_SERVER_PATH}
 	bundle_root=${ROG5_TEST_BUNDLE_ROOT:?missing ROG5_TEST_BUNDLE_ROOT}
 	lock_path=${ROG5_TEST_LOCK_PATH:?missing ROG5_TEST_LOCK_PATH}
-	hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-75}
+	hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS}
 	test_watchdog_pid_file=${ROG5_TEST_WATCHDOG_PID_FILE:-}
 	test_die_after_watchdog=${ROG5_TEST_DIE_AFTER_WATCHDOG:-0}
 	[[ $hard_server_timeout =~ ^[1-9][0-9]*$ &&
-		$hard_server_timeout -le 75 ]] ||
+		$hard_server_timeout -le "$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS" ]] ||
 		fail 'invalid offline hard-server timeout'
 	[[ $test_die_after_watchdog == 0 ||
 		$test_die_after_watchdog == 1 ]] ||
@@ -85,7 +87,7 @@ else
 	server_path=/usr/libexec/rog5-recovery-host/host_bundle_server.py
 	bundle_root=/var/lib/rog5-recovery-bundles
 	lock_path=/run/rog5-recovery-bundle-controller.lock
-	hard_server_timeout=75
+	hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS
 	test_watchdog_pid_file=
 	test_die_after_watchdog=0
 	controller_path=/usr/libexec/rog5-recovery-bundle-controller

@@ -56,6 +56,7 @@ DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
     "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 )
 PREPARE_DEADLINE_SECONDS = 260
+NFS_READY_TIMEOUT_SECONDS = 45
 
 
 class TransportLost(RuntimeError):
@@ -394,7 +395,7 @@ def wait_for_network_root_nfs(
     *,
     bundle: str = NETWORK_ROOT_BUNDLE,
     package_sha256: str = "",
-    timeout_seconds: float = 45.0,
+    timeout_seconds: float = NFS_READY_TIMEOUT_SECONDS,
     poll_seconds: float = 0.2,
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
