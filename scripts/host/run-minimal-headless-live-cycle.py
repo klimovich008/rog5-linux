@@ -35,6 +35,8 @@ FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 BUNDLE_HOST_ADDRESS = "169.254.77.1"
+BUNDLE_TIMEOUT_SECONDS = 220
+CONTROL_TIMEOUT_SECONDS = 320
 ZERO_SHA256 = "0" * 64
 CONSUMED_MANIFESTS = {
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
@@ -1421,8 +1423,12 @@ class LiveCycle:
         self.profile = profile
         self.poll = 0.02 if dependencies.offline else 0.25
         self.short_timeout = 4 if dependencies.offline else 120
-        self.bundle_timeout = 5 if dependencies.offline else 95
-        self.control_timeout = 5 if dependencies.offline else 320
+        self.bundle_timeout = (
+            5 if dependencies.offline else BUNDLE_TIMEOUT_SECONDS
+        )
+        self.control_timeout = (
+            5 if dependencies.offline else CONTROL_TIMEOUT_SECONDS
+        )
         self.network_timeout = 8 if dependencies.offline else 735
         self.diagnostic_timeout = 8 if dependencies.offline else 735
         self.cleanup_stabilize_timeout = (
