@@ -140,20 +140,24 @@ awk -F '\t' -v name="$generation4" '
 generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'temporary-boot policy must contain exactly one allow row'
-awk -F '\t' -v name="$generation5" '
-	$1 == name && $2 == "allow" &&
-	$3 == "one generation-5 host-choreography diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
-	END { exit count == 1 ? 0 : 1 }
+	END { exit count == 0 ? 0 : 1 }
 ' "$policy" ||
-	fail 'generation-5 temporary-boot admission is not exact and one-shot'
+	fail 'temporary-boot policy must contain no allow row after consumption'
+awk -F '\t' -v name="$generation5" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" ||
+	fail 'consumed generation-5 recovery remains boot-allowlisted'
 awk -F '\t' -v name="$generation5" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" &&
-	$4 == "unbooted generation-5 host-choreography diagnostic recovery; deterministic AVB-only successor over the unchanged generation-3 raw recovery after pre-commit fallback and transfer-observability correction; offline issuance record with authority=none; central policy separately admits one RAM-only lifecycle; never flash" { count++ }
+	$4 ~ /^consumed generation-5 host-choreography diagnostic recovery/ &&
+	$4 ~ /complete 46163787-byte bundle transfer/ &&
+	$4 ~ /NFSv4\.2 readiness gate failed before COMMIT/ &&
+	$4 ~ /execution_started remained NO and no target ran/ &&
+	$4 ~ /retain offline only; never retry or flash$/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-5 admitted artifact inventory is not exact'
+' "$manifest" || fail 'generation-5 consumed artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

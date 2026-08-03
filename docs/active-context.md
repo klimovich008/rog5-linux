@@ -113,11 +113,10 @@ Distinct Generation-5 AVB `abe4501f…beb1a` is now independently reproduced
 twice over the unchanged recovery payload and passes the complete artifact gate
 under `headless-diagnostic-generation5-offline-v1`. See the
 [offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
-The lifecycle selects the same exact tuple through
-`headless-diagnostic-generation5-live-v1`; direct boot remains lifecycle-only.
-Central policy now contains exactly one allow row for at most one
-connected-preflight-gated RAM-only cycle. Generation 5 has not been connected,
-booted, or consumed. See the
+The lifecycle selected the same exact tuple through
+`headless-diagnostic-generation5-live-v1`; direct boot remained lifecycle-only.
+Central policy admitted exactly one connected-preflight-gated RAM-only cycle.
+See the
 [profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
 and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
 The admission implementation passes complete local CI and GitHub Actions run
@@ -126,16 +125,24 @@ The exact Alpine fallback later passed guarded health preflight and
 acknowledged one SSH-issued `RESTART2("bootloader")`, but disconnected without
 re-enumerating during the fixed 45-second and additional 60-second windows.
 It subsequently appeared as exact ASUS fastboot at the same physical port;
-the cause of that later appearance is not inferred. Generation 5 remains
-unbooted and unconsumed. The standalone reboot helper now pins that port and
+the cause of that later appearance is not inferred. The standalone reboot
+helper now pins that port and
 classifies every terminal transition without runtime test overrides. See the
 [anchored transition result](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md).
 The subsequent exact Generation-5 connected lifecycle preflight passed at
 commit `4c55b1c`: deployment key admission, artifacts, installed host surfaces,
-rollback prerequisites, and one `lahaina` fastboot device were clean. It
-started no boot, transfer, SSH connection, privileged server, or lifecycle
-output. Generation 5 remains unbooted and unconsumed. See the
-[connected-preflight result](../test-results/2026-08-03-generation-5-connected-preflight-live.md).
+rollback prerequisites, and one `lahaina` fastboot device were clean. The
+exact pushed checkpoint `3e7ff47` then passed GitHub Actions run `30799181863`
+before the sole lifecycle. Recovery reached verified `PREPARED` and the host
+sent all 46,163,787 signed-bundle bytes, but the independent completion-to-NFS
+handoff did not make the exact NFSv4.2 listener ready before COMMIT.
+`execution_started` remained `NO` and no target ran. After the root controller
+left its fixed watchdog, anchored profile restoration, exact Alpine strict
+SSH, both installed preflights, and final residue checks passed. Generation 5
+is consumed, absent from boot policy, and must never be retried or flashed.
+See the
+[connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
+and [live result](../test-results/2026-08-03-generation-5-nfs-readiness-live.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
