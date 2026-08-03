@@ -96,6 +96,9 @@ count, dropped historical links, and no explicit relation between the
 45-second NFS gate and the process deadline lattice. All four were corrected.
 A smaller follow-up review returned `NO FINDINGS`.
 
+The exact published consumption commit `1f86287` passed GitHub Actions run
+`30790746334`: both `recovery-core` and `qemu-system` completed successfully.
+
 ## Disposition
 
 Generation 4 is single-use and consumed regardless of this pre-commit result.
