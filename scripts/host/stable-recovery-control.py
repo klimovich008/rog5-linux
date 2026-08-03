@@ -30,8 +30,10 @@ from tools.recovery_control import (  # noqa: E402
     ZERO_ID,
     FrameParser,
     HostIntentLedger,
+    PREPARE_PROGRESS_PHASES,
+    Progress,
     Response,
-    decode_response,
+    decode_recovery_record,
     encode_frame,
     encode_request,
 )
@@ -170,6 +172,48 @@ class RecoveryAcmTrace:
         return (
             f"states={states}; transitions={transitions}; "
             f"identity_changes={changes}; transitions_truncated={truncated}"
+        )
+
+
+@dataclass
+class PrepareProgressTrace:
+    """Correlated, ordered PREPARE evidence from at most two attempts."""
+
+    session: str
+    request: str
+    bundle: str
+    manifest_sha256: str
+    attempts: list[list[str]] = field(default_factory=lambda: [[]])
+
+    def record(self, progress: Progress) -> None:
+        if (
+            progress.session != self.session
+            or progress.request != self.request
+            or progress.bundle != self.bundle
+            or progress.manifest_sha256 != self.manifest_sha256
+            or progress.watchdog != "ARMED"
+        ):
+            fail("PREPARE progress does not correlate to the request")
+        current = self.attempts[-1]
+        expected_sequence = len(current) + 1
+        if (
+            expected_sequence > len(PREPARE_PROGRESS_PHASES)
+            or progress.sequence != expected_sequence
+            or progress.phase
+            != PREPARE_PROGRESS_PHASES[expected_sequence - 1]
+        ):
+            fail("PREPARE progress is not a contiguous ordered prefix")
+        current.append(progress.phase)
+
+    def start_replay(self) -> None:
+        if len(self.attempts) != 1:
+            fail("PREPARE progress permits only one replay attempt")
+        self.attempts.append([])
+
+    def summary(self) -> str:
+        return ";".join(
+            f"attempt{index}=" + (">".join(phases) or "none")
+            for index, phases in enumerate(self.attempts, 1)
         )
 
 
@@ -325,7 +369,13 @@ class RecoverySerial:
     def __exit__(self, _kind, _value, _traceback):
         self.close()
 
-    def exchange(self, payload: bytes, timeout_seconds: float) -> Response:
+    def exchange(
+        self,
+        payload: bytes,
+        timeout_seconds: float,
+        *,
+        on_progress: Callable[[Progress], None] | None = None,
+    ) -> Response:
         frame = encode_frame(payload)
         deadline = time.monotonic() + timeout_seconds
         view = memoryview(frame)
@@ -364,9 +414,21 @@ class RecoverySerial:
                 raise TransportLost("recovery ACM closed before response")
             payloads = parser.feed(chunk)
             if payloads:
-                if len(payloads) != 1:
-                    fail("recovery returned multiple responses to one request")
-                return decode_response(payloads[0])
+                response = None
+                for framed_payload in payloads:
+                    record = decode_recovery_record(framed_payload)
+                    if isinstance(record, Progress):
+                        if response is not None:
+                            fail("recovery returned progress after its response")
+                        if on_progress is None:
+                            fail("recovery returned unexpected progress")
+                        on_progress(record)
+                    elif response is not None:
+                        fail("recovery returned multiple responses to one request")
+                    else:
+                        response = record
+                if response is not None:
+                    return response
 
 
 def assert_correlated(
@@ -550,6 +612,7 @@ def prepare_and_commit(
     ledger_path: Path | None = None,
     before_commit: Callable[[], None] | None = None,
     on_prepared: Callable[[Response], None] | None = None,
+    on_progress: Callable[[Progress], None] | None = None,
 ) -> tuple[Response, Response, object]:
     serial, session, _hello = connect()
     prepare_deadline = time.monotonic() + PREPARE_DEADLINE_SECONDS
@@ -563,15 +626,29 @@ def prepare_and_commit(
             "manifest_sha256": manifest_sha256,
         },
     )
+    progress_trace = PrepareProgressTrace(
+        session=session,
+        request=prepare_identifier,
+        bundle=bundle,
+        manifest_sha256=manifest_sha256,
+    )
+
+    def record_progress(progress: Progress) -> None:
+        progress_trace.record(progress)
+        if on_progress is not None:
+            on_progress(progress)
+
     try:
         try:
             prepared = serial.exchange(
                 prepare_wire,
                 prepare_deadline - time.monotonic(),
+                on_progress=record_progress,
             )
         except TransportLost as initial_error:
             serial.close()
             serial = None
+            progress_trace.start_replay()
             try:
                 replay_serial, repeated_session, _hello = connect(
                     discovery_phase="prepare-replay"
@@ -587,7 +664,8 @@ def prepare_and_commit(
                 )
                 raise TransportLost(
                     "PREPARE transport lost before response; "
-                    f"initial={initial_summary}; replay={replay_summary}"
+                    f"initial={initial_summary}; replay={replay_summary}; "
+                    f"progress={progress_trace.summary()}"
                 ) from replay_error
             serial = replay_serial
             if repeated_session != session:
@@ -595,9 +673,29 @@ def prepare_and_commit(
             remaining = prepare_deadline - time.monotonic()
             if remaining <= 0:
                 raise TransportLost(
-                    "PREPARE deadline expired before same-session replay"
+                    "PREPARE deadline expired before same-session replay; "
+                    f"progress={progress_trace.summary()}"
                 )
-            prepared = serial.exchange(prepare_wire, remaining)
+            try:
+                prepared = serial.exchange(
+                    prepare_wire,
+                    remaining,
+                    on_progress=record_progress,
+                )
+            except TransportLost as replay_error:
+                initial_summary = bounded_failure_summary(
+                    initial_error,
+                    (TransportLost,),
+                )
+                replay_summary = bounded_failure_summary(
+                    replay_error,
+                    (TransportLost,),
+                )
+                raise TransportLost(
+                    "PREPARE transport lost before response; "
+                    f"initial={initial_summary}; replay={replay_summary}; "
+                    f"progress={progress_trace.summary()}"
+                ) from replay_error
         assert_correlated(
             prepared,
             session=session,

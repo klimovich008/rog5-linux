@@ -78,8 +78,11 @@ SERVER = load_module(
 sys.path.insert(0, str(REPO))
 from tools.recovery_control import (  # noqa: E402
     FrameParser,
+    PREPARE_PROGRESS_PHASES,
+    Progress,
+    Response,
     ZERO_ID,
-    decode_response,
+    decode_recovery_record,
     encode_frame,
     encode_request,
 )
@@ -655,7 +658,12 @@ class CandidateIntegrationTest(unittest.TestCase):
         self.fail("responder did not configure the test TTY")
         raise AssertionError("unreachable")
 
-    def read_response(self, master: int, timeout: float = 65):
+    def read_response(
+        self,
+        master: int,
+        timeout: float = 65,
+        progress: list[Progress] | None = None,
+    ) -> Response:
         parser = FrameParser()
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -672,14 +680,33 @@ class CandidateIntegrationTest(unittest.TestCase):
                 break
             payloads = parser.feed(chunk)
             if payloads:
-                self.assertEqual(len(payloads), 1)
-                return decode_response(payloads[0])
+                response = None
+                for payload in payloads:
+                    record = decode_recovery_record(payload)
+                    if isinstance(record, Progress):
+                        if response is not None:
+                            self.fail("progress followed a terminal response")
+                        if progress is None:
+                            self.fail("unexpected progress for a fixed verb")
+                        progress.append(record)
+                    elif response is not None:
+                        self.fail("responder returned multiple responses")
+                    else:
+                        response = record
+                if response is not None:
+                    return response
         self.fail("framed responder did not return one complete response")
         raise AssertionError("unreachable")
 
-    def exchange(self, master: int, payload: bytes, timeout: float = 65):
+    def exchange(
+        self,
+        master: int,
+        payload: bytes,
+        timeout: float = 65,
+        progress: list[Progress] | None = None,
+    ) -> Response:
         os.write(master, encode_frame(payload))
-        return self.read_response(master, timeout)
+        return self.read_response(master, timeout, progress)
 
     def hello(self, master: int) -> str:
         response = self.exchange(
@@ -700,8 +727,9 @@ class CandidateIntegrationTest(unittest.TestCase):
         session: str,
         bundle: str,
         manifest_hash: str,
-    ):
-        return self.exchange(
+    ) -> tuple[Response, list[Progress]]:
+        progress: list[Progress] = []
+        response = self.exchange(
             master,
             encode_request(
                 session=session,
@@ -712,7 +740,9 @@ class CandidateIntegrationTest(unittest.TestCase):
                     "manifest_sha256": manifest_hash,
                 },
             ),
+            progress=progress,
         )
+        return response, progress
 
     def assert_server_finished(self) -> None:
         for thread in self.server_threads:
@@ -750,7 +780,20 @@ class CandidateIntegrationTest(unittest.TestCase):
             kexec,
         )
         session = self.hello(master)
-        prepared = self.run_prepare(master, session, bundle, manifest_hash)
+        prepared, progress = self.run_prepare(
+            master, session, bundle, manifest_hash
+        )
+        self.assertEqual(
+            [record.phase for record in progress],
+            list(PREPARE_PROGRESS_PHASES),
+        )
+        for sequence, record in enumerate(progress, 1):
+            self.assertEqual(record.sequence, sequence)
+            self.assertEqual(record.session, session)
+            self.assertEqual(record.request, request_id(10))
+            self.assertEqual(record.bundle, bundle)
+            self.assertEqual(record.manifest_sha256, manifest_hash)
+            self.assertEqual(record.watchdog, "ARMED")
         self.assertEqual(prepared.result, "PREPARED")
         commit = self.exchange(
             master,
@@ -829,7 +872,13 @@ class CandidateIntegrationTest(unittest.TestCase):
             kexec,
         )
         session = self.hello(master)
-        response = self.run_prepare(master, session, bundle, manifest_hash)
+        response, progress = self.run_prepare(
+            master, session, bundle, manifest_hash
+        )
+        self.assertEqual(
+            [record.phase for record in progress],
+            list(PREPARE_PROGRESS_PHASES[:2]),
+        )
         self.assertEqual(response.result, "VERIFY_FAILED")
         self.assert_server_finished()
         operations = [

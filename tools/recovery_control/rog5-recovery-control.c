@@ -121,6 +121,7 @@ struct control_state {
 struct response_action {
 	char payload[RESPONSE_MAX];
 	size_t payload_length;
+	bool suppress_response;
 	bool execute;
 };
 
@@ -161,6 +162,8 @@ static struct postmortem_status postmortem;
 #ifdef ROG5_CONTROL_TESTING
 static bool test_kexec_configured;
 #endif
+
+static int send_frame(int descriptor, const char *payload, size_t length);
 
 static void fail(const char *format, ...)
 {
@@ -1390,6 +1393,75 @@ static void build_response(const struct control_state *state,
 	*output_length = (size_t)length;
 }
 
+static bool send_prepare_progress(int descriptor,
+				  const struct control_state *state,
+				  const struct request *request,
+				  unsigned int sequence,
+				  const char *phase)
+{
+	char body[384];
+	char body_hash[HASH_LENGTH + 1];
+	char payload[768];
+	int body_length;
+	int length;
+
+#ifdef ROG5_CONTROL_TESTING
+	{
+		const char *fail_at = getenv("ROG5_TEST_PROGRESS_FAIL_AT");
+		char sequence_text[16];
+		int sequence_length = snprintf(
+			sequence_text, sizeof(sequence_text), "%u", sequence);
+
+		if (sequence_length < 0 ||
+		    sequence_length >= (int)sizeof(sequence_text))
+			fail("progress sequence is too large");
+		if (fail_at != NULL && strcmp(fail_at, sequence_text) == 0)
+			return false;
+	}
+#endif
+	if (!watchdog_armed())
+		fail("rollback watchdog is not armed");
+	body_length = snprintf(
+		body, sizeof(body),
+		"sequence=%u\n"
+		"phase=%s\n"
+		"bundle=%s\n"
+		"manifest_sha256=%s\n"
+		"watchdog=ARMED\n",
+		sequence, phase, request->bundle,
+		request->manifest_sha256);
+	if (body_length < 0 || body_length >= (int)sizeof(body))
+		fail("progress body is too large");
+	hash_bytes(body, (size_t)body_length, body_hash);
+	length = snprintf(
+		payload, sizeof(payload),
+		"version=1\n"
+		"kind=progress\n"
+		"session=%s\n"
+		"request=%s\n"
+		"verb=PREPARE\n"
+		"body_sha256=%s\n"
+		"%s",
+		state->session, request->request, body_hash, body);
+	if (length < 0 || length >= (int)sizeof(payload) ||
+	    length > FRAME_MAX)
+		fail("progress payload is too large");
+	return send_frame(descriptor, payload, (size_t)length) == 0;
+}
+
+static void emit_prepare_progress(int descriptor,
+				  const struct control_state *state,
+				  const struct request *request,
+				  bool *available,
+				  unsigned int sequence,
+				  const char *phase)
+{
+	if (*available &&
+	    !send_prepare_progress(descriptor, state, request,
+				   sequence, phase))
+		*available = false;
+}
+
 static void read_ledger_record(
 	const char *request_id, char fingerprint[HASH_LENGTH + 1],
 	char verb[16], char result[24])
@@ -2191,7 +2263,8 @@ static bool load_verified_plan(
 }
 
 static enum prepare_outcome verify_prepare(
-	const struct request *request, const char **prepare_error)
+	const struct control_state *state, const struct request *request,
+	const char **prepare_error, int descriptor, bool *progress_available)
 {
 	struct verified_plan plan;
 	int artifacts[HANDOFF_DESCRIPTOR_COUNT] = { -1, -1, -1 };
@@ -2202,19 +2275,35 @@ static enum prepare_outcome verify_prepare(
 	if (getenv("ROG5_TEST_VERIFIER_PATH") == NULL) {
 		const char *allowed = getenv("ROG5_TEST_ALLOW_MANIFEST");
 
-		return allowed != NULL &&
-			strcmp(allowed, request->manifest_sha256) == 0 ?
-			PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
+		if (allowed == NULL ||
+		    strcmp(allowed, request->manifest_sha256) != 0)
+			return PREPARE_OUTCOME_VERIFY_FAILED;
+		emit_prepare_progress(descriptor, state, request,
+				      progress_available, 2, "FETCH_COMPLETE");
+		emit_prepare_progress(descriptor, state, request,
+				      progress_available, 3, "VERIFY_COMPLETE");
+		emit_prepare_progress(descriptor, state, request,
+				      progress_available, 4,
+				      "KEXEC_LOAD_COMPLETE");
+		return PREPARE_OUTCOME_OK;
 	}
 #endif
 	*prepare_error = "VERIFY_FAILED";
 	outcome = run_bundle_fetcher(request, prepare_error);
 	if (outcome != PREPARE_OUTCOME_OK)
 		return outcome;
+	emit_prepare_progress(descriptor, state, request,
+			      progress_available, 2, "FETCH_COMPLETE");
 	if (!run_bundle_verifier(request, &plan, artifacts))
 		return PREPARE_OUTCOME_VERIFY_FAILED;
+	emit_prepare_progress(descriptor, state, request,
+			      progress_available, 3, "VERIFY_COMPLETE");
 	loaded = load_verified_plan(&plan, artifacts);
 	close_artifact_descriptors(artifacts);
+	if (loaded)
+		emit_prepare_progress(descriptor, state, request,
+				      progress_available, 4,
+				      "KEXEC_LOAD_COMPLETE");
 	return loaded ? PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
 }
 
@@ -2286,7 +2375,8 @@ static bool crash_point(const char *point)
 
 static void handle_request(struct control_state *state,
 			   const struct request *request,
-			   struct response_action *action)
+			   struct response_action *action,
+			   int descriptor)
 {
 	char cached_fingerprint[HASH_LENGTH + 1];
 	char cached_result[24];
@@ -2295,6 +2385,7 @@ static void handle_request(struct control_state *state,
 	enum prepare_outcome prepare_outcome = PREPARE_OUTCOME_VERIFY_FAILED;
 	int decisions;
 	bool fetch_decided;
+	bool progress_available = true;
 
 	memset(action, 0, sizeof(*action));
 	if (strcmp(request->verb, "HELLO") != 0 &&
@@ -2387,8 +2478,12 @@ static void handle_request(struct control_state *state,
 		if (state->phase == PHASE_IDLE && fetch_decided) {
 			result = "PREPARE_ID_CONFLICT";
 		} else if (state->phase == PHASE_IDLE) {
+			emit_prepare_progress(descriptor, state, request,
+					      &progress_available, 1,
+					      "REQUEST_ACCEPTED");
 			prepare_outcome = verify_prepare(
-				request, &prepare_error);
+				state, request, &prepare_error, descriptor,
+				&progress_available);
 			if (prepare_outcome ==
 			    PREPARE_OUTCOME_BUNDLE_ID_CONFLICT) {
 				set_last_error(state, "BUNDLE_ID_CONFLICT");
@@ -2405,6 +2500,10 @@ static void handle_request(struct control_state *state,
 				if (crash_point("after_prepare_load"))
 					_exit(88);
 				persist_prepared(state, request);
+				emit_prepare_progress(
+					descriptor, state, request,
+					&progress_available, 5,
+					"PREPARED_PERSISTED");
 				if (crash_point("after_prepare"))
 					_exit(88);
 				result = "PREPARED";
@@ -2446,6 +2545,7 @@ static void handle_request(struct control_state *state,
 	build_response(state, request, result, action->payload,
 		       &action->payload_length);
 	remember_decision(request, result);
+	action->suppress_response = !progress_available;
 }
 
 static int write_bounded(int descriptor, const void *data, size_t length,
@@ -2743,7 +2843,9 @@ static void serve_connection(int descriptor, struct control_state *state)
 			return;
 		if (decode_request(payload, payload_length, &request) < 0)
 			return;
-		handle_request(state, &request, &action);
+		handle_request(state, &request, &action, descriptor);
+		if (action.suppress_response)
+			return;
 		if (send_frame(descriptor, action.payload,
 			       action.payload_length) < 0)
 			return;
