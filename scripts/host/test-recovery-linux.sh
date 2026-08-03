@@ -120,6 +120,20 @@ awk -F '\t' -v name="$generation3" '
 	$4 ~ /^consumed generation-3 fresh-fetch diagnostic recovery/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-3 consumed artifact inventory is not exact'
+generation4='build/stable-recovery-generation4-timeout-lattice-20260803-a/repack/stable-recovery-a.avb.img'
+if awk -F '\t' -v name="$generation4" '
+	$1 == name { found=1 }
+	END { exit found ? 0 : 1 }
+' "$policy"
+then
+	fail 'the offline generation-4 recovery is present in temporary-boot policy'
+fi
+awk -F '\t' -v name="$generation4" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "220e85568d1e92d9dbe33e3405f28c9b23dc8520b9e1ab2c81a30085e9cb270d" &&
+	$4 ~ /^unbooted generation-4 timeout-lattice diagnostic recovery/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-4 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

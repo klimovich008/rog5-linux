@@ -90,6 +90,40 @@ grep -Fxq "digest=$observed_digest" "$tmp/gen1-a/avb-generation.txt"
 ! cmp -s "$tmp/gen1-a/repack/stable-recovery-a.avb.img" \
 	"$tmp/gen2/repack/stable-recovery-a.avb.img" ||
 	fail 'distinct nonzero generations produced the same AVB wrapper'
+"$issuer" "$source_root" "$tmp/gen3" 3 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen3.out"
+
+# Generation four is the first production candidate issued after the nested
+# recovery/host deadline fix. Exercise its exact generation record twice before
+# any real artifact is issued so a stale or nondeterministic encoder fails
+# without involving the phone.
+"$issuer" "$source_root" "$tmp/gen4-a" 4 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen4-a.out"
+"$issuer" "$source_root" "$tmp/gen4-b" 4 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen4-b.out"
+cmp "$tmp/gen4-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen4-b/repack/stable-recovery-a.avb.img"
+cmp "$tmp/gen4-a/repack/stable-recovery-b.avb.img" \
+	"$tmp/gen4-b/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen4-a/avb-generation.txt" "$tmp/gen4-b/avb-generation.txt"
+for predecessor in gen1-a gen2 gen3; do
+	! cmp -s "$tmp/$predecessor/repack/stable-recovery-a.avb.img" \
+		"$tmp/gen4-a/repack/stable-recovery-a.avb.img" ||
+		fail "generation four reused the $predecessor AVB wrapper"
+done
+expected_gen4_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=4\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=4' "$tmp/gen4-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen4_salt" "$tmp/gen4-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen4-a/avb-generation.txt"
+gen4_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen4-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen4_info") == \
+	"$expected_gen4_salt" ]] || fail 'generation-four descriptor salt changed'
+gen4_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen4_info")
+grep -Fxq "digest=$gen4_digest" "$tmp/gen4-a/avb-generation.txt"
 
 expected_files=$(cat <<'EOF'
 avb-generation.txt
