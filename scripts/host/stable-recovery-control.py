@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 import errno
 import glob
 import hashlib
@@ -57,10 +57,103 @@ DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
 )
 PREPARE_DEADLINE_SECONDS = 260
 NFS_READY_TIMEOUT_SECONDS = 45
+RECOVERY_ACM_TRACE_LIMIT = 16
+RECOVERY_ACM_COUNT_LIMIT = 999
+RECOVERY_ACM_STATES = (
+    "absent",
+    "inspect-error",
+    "product-mismatch",
+    "node-mismatch",
+    "duplicate",
+    "unreadable",
+    "read-only",
+    "exact",
+)
+RECOVERY_ACM_IDENTITY_FIELDS = (
+    "path",
+    "rdev",
+    "devpath",
+    "id-path",
+    "serial",
+)
 
 
 class TransportLost(RuntimeError):
     """The ACM transaction ended without one correlated response."""
+
+
+@dataclass(frozen=True)
+class RecoveryAcmObservation:
+    """One sanitized recovery ACM inventory sample."""
+
+    state: str
+    identity: tuple[str, int, str, str, str] | None = None
+
+    def __post_init__(self) -> None:
+        if self.state not in RECOVERY_ACM_STATES:
+            raise ValueError("invalid recovery ACM observation state")
+        if (self.state == "exact") != (self.identity is not None):
+            raise ValueError("recovery ACM identity/state mismatch")
+
+    def path(self) -> str:
+        if self.identity is None:
+            fail("recovery ACM observation has no exact device")
+        return self.identity[0]
+
+
+@dataclass
+class RecoveryAcmTrace:
+    """Bounded state transitions with no device identity values."""
+
+    counts: dict[str, int] = field(
+        default_factory=lambda: {state: 0 for state in RECOVERY_ACM_STATES}
+    )
+    transitions: list[str] = field(default_factory=list)
+    changed_fields: set[str] = field(default_factory=set)
+    transitions_truncated: bool = False
+    _last_state: str | None = None
+    _last_identity: tuple[str, int, str, str, str] | None = None
+
+    def record(self, observation: RecoveryAcmObservation) -> None:
+        self.counts[observation.state] = min(
+            RECOVERY_ACM_COUNT_LIMIT,
+            self.counts[observation.state] + 1,
+        )
+        if observation.state != self._last_state:
+            if len(self.transitions) < RECOVERY_ACM_TRACE_LIMIT:
+                self.transitions.append(observation.state)
+            else:
+                self.transitions_truncated = True
+            self._last_state = observation.state
+        if observation.identity is not None:
+            if self._last_identity is not None:
+                for label, previous, current in zip(
+                    RECOVERY_ACM_IDENTITY_FIELDS,
+                    self._last_identity,
+                    observation.identity,
+                    strict=True,
+                ):
+                    if previous != current:
+                        self.changed_fields.add(label)
+            self._last_identity = observation.identity
+
+    def summary(self) -> str:
+        states = ",".join(
+            f"{state}:{self.counts[state]}"
+            for state in RECOVERY_ACM_STATES
+            if self.counts[state]
+        ) or "none"
+        transitions = ">".join(self.transitions) or "none"
+        changes = ",".join(
+            field_name
+            for field_name in RECOVERY_ACM_IDENTITY_FIELDS
+            if field_name in self.changed_fields
+        ) or "none"
+        truncated = "yes" if self.transitions_truncated else "no"
+        return (
+            f"states={states}; transitions={transitions}; "
+            f"identity_changes={changes}; transitions_truncated={truncated}"
+        )
 
 
 def fail(message: str) -> NoReturn:
@@ -96,39 +189,54 @@ def udev_properties(device: str) -> dict[str, str]:
     return properties
 
 
-def find_recovery_acm() -> str:
+def observe_recovery_acm() -> RecoveryAcmObservation:
     expected = {
         "ID_VENDOR_ID": "1d6b",
         "ID_MODEL_ID": "0104",
         "ID_MODEL": "ROG5_recovery",
     }
-    matches: list[str] = []
-    for device in glob.glob("/dev/ttyACM*"):
+    devices = sorted(glob.glob("/dev/ttyACM*"))
+    if not devices:
+        return RecoveryAcmObservation("absent")
+    matches: list[tuple[str, os.stat_result, dict[str, str]]] = []
+    inspection_failed = False
+    node_mismatch = False
+    for device in devices:
         try:
             properties = udev_properties(device)
             metadata = os.stat(device, follow_symlinks=False)
         except (OSError, subprocess.CalledProcessError):
+            inspection_failed = True
             continue
-        if stat.S_ISCHR(metadata.st_mode) and all(
-            properties.get(key) == value for key, value in expected.items()
-        ):
-            matches.append(device)
-    if len(matches) != 1:
-        fail(f"expected exactly one ROG5 recovery ACM device, found {len(matches)}")
-    if not os.access(matches[0], os.R_OK | os.W_OK):
-        fail("recovery ACM is not readable and writable")
-    return matches[0]
-
-
-def recovery_acm_identity(path: str) -> tuple[str, int, str, str, str]:
-    properties = udev_properties(path)
-    metadata = os.stat(path, follow_symlinks=False)
-    return (
-        path,
-        metadata.st_rdev,
-        properties.get("DEVPATH", ""),
-        properties.get("ID_PATH", ""),
-        properties.get("ID_SERIAL", ""),
+        if all(properties.get(key) == value for key, value in expected.items()):
+            if stat.S_ISCHR(metadata.st_mode):
+                matches.append((device, metadata, properties))
+            else:
+                node_mismatch = True
+    if inspection_failed:
+        return RecoveryAcmObservation("inspect-error")
+    if len(matches) > 1:
+        return RecoveryAcmObservation("duplicate")
+    if not matches:
+        return RecoveryAcmObservation(
+            "node-mismatch" if node_mismatch else "product-mismatch"
+        )
+    if node_mismatch:
+        return RecoveryAcmObservation("node-mismatch")
+    device, metadata, properties = matches[0]
+    if not os.access(device, os.R_OK):
+        return RecoveryAcmObservation("unreadable")
+    if not os.access(device, os.W_OK):
+        return RecoveryAcmObservation("read-only")
+    return RecoveryAcmObservation(
+        "exact",
+        (
+            device,
+            metadata.st_rdev,
+            properties.get("DEVPATH", ""),
+            properties.get("ID_PATH", ""),
+            properties.get("ID_SERIAL", ""),
+        ),
     )
 
 
@@ -141,26 +249,31 @@ def wait_for_stable_recovery_acm(
     deadline = time.monotonic() + timeout_seconds
     candidate: tuple[str, int, str, str, str] | None = None
     stable_since = 0.0
+    trace = RecoveryAcmTrace()
     while time.monotonic() < deadline:
         now = time.monotonic()
-        try:
-            path = find_recovery_acm()
-            identity = recovery_acm_identity(path)
-        except (OSError, RuntimeError, subprocess.CalledProcessError):
+        observation = observe_recovery_acm()
+        trace.record(observation)
+        if observation.identity is None:
             candidate = None
             stable_since = 0.0
         else:
+            identity = observation.identity
             if identity != candidate:
                 candidate = identity
                 stable_since = now
             elif now - stable_since >= settle_seconds:
-                final = find_recovery_acm()
-                if recovery_acm_identity(final) == candidate:
-                    return final
+                final = observe_recovery_acm()
+                trace.record(final)
+                if final.identity == candidate:
+                    return final.path()
                 candidate = None
                 stable_since = 0.0
         time.sleep(poll_seconds)
-    fail("recovery ACM identity did not remain stable")
+    fail(
+        "recovery ACM identity did not remain stable; "
+        f"{trace.summary()}"
+    )
 
 
 class RecoverySerial:

@@ -501,6 +501,15 @@ Run the real responder against `openpty(3)` with fault injection:
 Each live cycle gets one invocation. A transport timeout never authorizes a
 retry.
 
+Recovery ACM enumeration failures are classified before any Generation-9
+issuance. The host keeps only fixed state names, sample counts saturated at
+999, at most 16 transitions, and the names—not values—of changed identity
+fields. Any uninspectable ACM node fails closed. This diagnostic layer is
+observational: it does not weaken exact product selection, read/write access,
+the two-second stable-identity dwell, final revalidation, or the one-invocation
+rule. See the
+[offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+
 ## Rollout order
 
 1. Implement the parser/state reference model and fault-injection tests.

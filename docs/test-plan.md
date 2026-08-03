@@ -347,6 +347,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   private-key destruction. Complete local CI passes, and independent final
   review reports no actionable findings. A GitHub rerun remains required
   before production signing or any phone action.
+  The pre-Generation-9 recovery-control suite now adds bounded ACM inventory
+  classification: absent, inspection/product/node/duplicate faults,
+  unreadable/read-only permissions, and exact identity. Hostile tests prove
+  fail-closed opaque-node handling, observation invariants, exact stable dwell
+  plus final revalidation, 16-transition and 999-count saturation, and no path,
+  serial, udev-value, or raw-USB disclosure in timeout summaries.
   The exact diagnostic admission profile and one-shot supervisor add four
   focused lifecycle cases: phone-free preflight, collector readiness before
   recovery control, accepted/rejected capture with one commit and exact
