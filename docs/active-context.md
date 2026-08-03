@@ -158,6 +158,14 @@ real host-only bundle/root preflights pass and final host residue is empty.
 See the
 [offline signal correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
 and [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
+Distinct Generation-6 AVB `6aa47517…d398` is now twin-reproduced over that
+same accepted raw recovery, with exact generation record `bff8432e…52a2`.
+Its sole profile, `headless-diagnostic-generation6-offline-v1`, passes exact
+artifact and mutation gates but rejects connected preflight and boot before
+host inspection even when every live authorization flag is present. It is
+unbooted, absent from temporary-boot policy, and has no live profile or
+lifecycle selection. See the
+[offline Generation-6 result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

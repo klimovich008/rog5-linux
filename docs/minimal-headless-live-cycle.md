@@ -63,6 +63,12 @@ Actions run `30803393832` pass. The broker is installed at exact hash
 See the
 [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 Do not raise the NFS timeout or reuse Generation 5.
+Distinct Generation-6 AVB `6aa47517…d398` is twin-reproduced over the unchanged
+accepted recovery payload and passes its exact offline artifact gate. Its sole
+profile rejects connected preflight and boot before host inspection; it is
+unbooted, absent from temporary-boot policy, and has no live profile or
+lifecycle selection. See the
+[offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

@@ -157,6 +157,40 @@ gen5_info=$(python3 "$avbtool" info_image \
 gen5_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen5_info")
 grep -Fxq "digest=$gen5_digest" "$tmp/gen5-a/avb-generation.txt"
 
+# Generation six is the first candidate issued after correcting and installing
+# the recovery-host broker's inherited signal mask. Keep the recovery payload
+# unchanged, prove the new wrapper twice, and reject identity reuse from every
+# earlier nonzero generation before any production output is created.
+"$issuer" "$source_root" "$tmp/gen6-a" 6 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen6-a.out"
+"$issuer" "$source_root" "$tmp/gen6-b" 6 "$source_avb_sha" "$raw_sha" \
+	>"$tmp/gen6-b.out"
+cmp "$tmp/gen6-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen6-b/repack/stable-recovery-a.avb.img"
+cmp "$tmp/gen6-a/repack/stable-recovery-b.avb.img" \
+	"$tmp/gen6-b/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen6-a/avb-generation.txt" "$tmp/gen6-b/avb-generation.txt"
+for predecessor in gen1-a gen2 gen3 gen4-a gen5-a; do
+	for suffix in a b; do
+		! cmp -s "$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img" \
+			"$tmp/gen6-a/repack/stable-recovery-$suffix.avb.img" ||
+			fail "generation six reused the $predecessor twin-$suffix AVB wrapper"
+	done
+done
+expected_gen6_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=6\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=6' "$tmp/gen6-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen6_salt" "$tmp/gen6-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen6-a/avb-generation.txt"
+gen6_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen6-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen6_info") == \
+	"$expected_gen6_salt" ]] || fail 'generation-six descriptor salt changed'
+gen6_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen6_info")
+grep -Fxq "digest=$gen6_digest" "$tmp/gen6-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img

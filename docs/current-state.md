@@ -1044,6 +1044,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `fbafce24…cc42c`, both real host-only preflights pass, and final host residue
    is empty. See the
    [host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
+   Distinct Generation-6 AVB `6aa47517…d398` is independently reproduced
+   twice over unchanged raw recovery `f1a7c5ad…6a4ce`. Its only profile is
+   offline-only, its exact artifact/policy/mutation gates pass, and connected
+   preflight or boot rejects before host inspection even with all live flags.
+   It is unbooted, absent from temporary-boot policy, and has no live profile
+   or lifecycle selection. See the
+   [Generation-6 offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

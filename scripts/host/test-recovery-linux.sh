@@ -158,6 +158,21 @@ awk -F '\t' -v name="$generation5" '
 	$4 ~ /retain offline only; never retry or flash$/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-5 consumed artifact inventory is not exact'
+generation6='build/stable-recovery-generation6-signal-fix-20260803-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation6" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'offline generation-6 recovery is boot-allowlisted'
+awk -F '\t' -v name="$generation6" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398" &&
+	$4 ~ /^candidate authority-free generation-6 signal-mask-corrected host diagnostic recovery/ &&
+	$4 ~ /offline policy\/artifact preflight only/ &&
+	$4 ~ /unbooted/ && $4 ~ /authority=none/ &&
+	$4 ~ /no phone or credential use/ && $4 ~ /never flash$/ &&
+	$5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-6 candidate artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
