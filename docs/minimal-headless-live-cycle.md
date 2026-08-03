@@ -500,8 +500,8 @@ connected preflight passed and its sole cycle reached verified `PREPARED`, but
 the 70-second host transfer service did not emit its completion receipt. NFS
 never started, control failed before COMMIT, no target ran, and exact
 strict-SSH fallback passed. Generation 3 is consumed and its allow row is
-removed; no temporary image is currently admitted. The old generation-2 and
-generation-3 diagnostic profiles are now offline-only historical evidence.
+removed. The old generation-2 and generation-3 diagnostic profiles are now
+offline-only historical evidence.
 Source now nests the 180-second device worker, 190-second recovery supervisor,
 195-second host transfer, 205-second privileged watchdog, 220-second lifecycle
 receipt wait, 260-second PREPARE exchange, and 320-second complete control
@@ -515,19 +515,26 @@ are byte-identical and the exact artifact preflight passes. The immutable
 preflight and boot before host inspection. A distinct
 `headless-diagnostic-generation4-live-v1` profile pins the same chain and
 requires the one-shot lifecycle controller for boot; all 42 lifecycle tests
-select it. Its generation record says `authority=none`, it is absent from
-temporary-boot policy, and it must not be booted until a later reviewed
-admission change. See the
+select it. Its generation record says `authority=none`; one exact central
+policy row now admits only one connected-preflight-gated RAM-only lifecycle.
+After any result, consume the admission in one versioned change: remove the
+row, relabel the artifact as consumed/offline-only/never-retry-or-flash, invert
+the two policy gates back to absence plus exact consumed inventory, and update
+both downstream manifest/profile hash pins. The image must never be flashed.
+See the
 [generation-4 offline result](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 The phone-free profile transition is in the
 [generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
+The separate authority change is in the
+[generation-4 admission result](../test-results/2026-08-03-generation-4-live-admission-offline.md).
 Generation-3 `boot` additionally required the lifecycle guard;
 the controller sets that explicit policy variable on its boot child after
 completing admission and connected preflight in the same invocation, and the
 boot child then repeats all artifact and connected fastboot checks. Like the
 other `ALLOW_*` variables, it records the intended invocation path rather than
-authenticating the caller. Post-result consumption remains a required
-versioned removal of the sole allow row; the live gate does not edit Git. See
+authenticating the caller. Post-result consumption remains the required
+versioned policy/inventory/test/hash transition described above; the live gate
+does not edit Git. See
 the
 [generation-3 production result](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md)
 and [live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
