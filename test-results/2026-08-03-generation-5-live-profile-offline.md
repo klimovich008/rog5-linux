@@ -4,8 +4,9 @@ Date: 2026-08-03
 
 Result: **PASS reviewed offline**. The diagnostic lifecycle now selects the
 exact Generation-5 recovery through a distinct live-capable profile, while
-Generation 5 remains absent from temporary-boot policy. No connected preflight,
-credential use, host mutation, or phone action occurred.
+Generation 5 remained absent from temporary-boot policy at this transition.
+No connected preflight, credential use, host mutation, or phone action
+occurred.
 
 ## Exact transition
 
@@ -38,7 +39,7 @@ checked for authority leaks, stale Generation-4 selection, missing mutation or
 artifact coverage, and shell/Python inconsistencies and returned
 `NO FINDINGS`.
 
-Publication and GitHub Actions evidence remain to be added. This profile wiring
-does not admit connected preflight or boot. A separate reviewed one-row
-temporary-boot policy change with green local and GitHub CI remains mandatory
-before one attended RAM-only lifecycle.
+The later
+[one-shot admission](2026-08-03-generation-5-live-admission-offline.md) adds
+the separate reviewed policy row. This report remains the phone-free profile
+transition and does not itself grant boot authority.

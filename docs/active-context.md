@@ -111,13 +111,15 @@ preflight pass through the installed boundary with no project residue. See the
 [host-install result](../test-results/2026-08-03-choreography-host-install-live.md).
 Distinct Generation-5 AVB `abe4501f…beb1a` is now independently reproduced
 twice over the unchanged recovery payload and passes the complete artifact gate
-under `headless-diagnostic-generation5-offline-v1`. It remains inventory-only,
-absent from boot policy, and unable to reach connected preflight or boot. See
-the [offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
-The lifecycle now selects the same exact tuple through
-`headless-diagnostic-generation5-live-v1`; direct boot remains lifecycle-only,
-and the temporary-boot policy remains empty. See the
-[offline profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md).
+under `headless-diagnostic-generation5-offline-v1`. See the
+[offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
+The lifecycle selects the same exact tuple through
+`headless-diagnostic-generation5-live-v1`; direct boot remains lifecycle-only.
+Central policy now contains exactly one allow row for at most one
+connected-preflight-gated RAM-only cycle. Generation 5 has not been connected,
+booted, or consumed. See the
+[profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
+and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
