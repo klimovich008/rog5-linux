@@ -997,6 +997,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    proves the corrected installed hashes, the real 37,735-entry deployment
    root, the retained diagnostic-bundle preflight, and residue-free host idle
    state without contacting the phone.
+   Distinct Generation-5 AVB `abe4501f…beb1a` is independently reproduced
+   twice over unchanged raw recovery `f1a7c5ad…6a4ce`. Its offline-only profile
+   passes exact artifact and mutation gates, rejects connected preflight and
+   boot before host inspection, and remains absent from temporary-boot policy.
+   No image is admitted. See the
+   [Generation-5 offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

@@ -137,6 +137,21 @@ awk -F '\t' -v name="$generation4" '
 	$4 ~ /retain offline only; never retry or flash$/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-4 consumed artifact inventory is not exact'
+generation5='build/stable-recovery-generation5-choreography-20260803-a/repack/stable-recovery-a.avb.img'
+if awk -F '\t' -v name="$generation5" '
+	$1 == name { found=1 }
+	END { exit found ? 0 : 1 }
+' "$policy"
+then
+	fail 'the offline generation-5 recovery entered temporary-boot policy'
+fi
+awk -F '\t' -v name="$generation5" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" &&
+	$4 ~ /^unbooted generation-5 host-choreography diagnostic recovery/ &&
+	$4 ~ /inventory only and not admitted$/ { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-5 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
