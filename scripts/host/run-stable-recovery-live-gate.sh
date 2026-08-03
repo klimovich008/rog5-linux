@@ -556,6 +556,24 @@ if [[ -n $expected_boot_image &&
 		fail "temporary boot policy does not allow $expected_boot_image"
 	[[ $early_policy_basis == "$expected_boot_basis" ]] ||
 		fail "temporary boot policy basis does not match $expected_boot_image"
+	early_artifact_manifest=$repo/manifests/artifacts.tsv
+	[[ -f $early_artifact_manifest && ! -L $early_artifact_manifest &&
+		-r $early_artifact_manifest ]] ||
+		fail 'unsafe or missing early artifact manifest input'
+	early_artifact_matches=0
+	early_artifact_role=
+	while IFS=$'\t' read -r early_artifact_name early_size early_sha \
+		early_role early_tracked early_extra; do
+		if [[ $early_artifact_name == "$expected_boot_image" ]]; then
+			((early_artifact_matches += 1))
+			early_artifact_role=$early_role
+		fi
+	done <"$early_artifact_manifest"
+	[[ $early_artifact_matches == 1 ]] ||
+		fail "artifact manifest does not uniquely list $expected_boot_image"
+	case $early_artifact_role in
+		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
+	esac
 fi
 
 if [[ $action == policy-preflight ]]; then
@@ -711,6 +729,11 @@ if [[ $action == preflight || $action == boot ]]; then
 		'$1 == name { print $2 "\t" $3; exit }' "$artifact_manifest")
 	[[ $manifest_identity == $'100663296\t'"$expected_image" ]] ||
 		fail 'temporary boot artifact manifest identity is not allowlisted'
+	manifest_role=$(awk -F '\t' -v name="$image_name" \
+		'$1 == name { print $4; exit }' "$artifact_manifest")
+	case $manifest_role in
+		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
+	esac
 fi
 if [[ $requires_qualified_cpio == 1 ]]; then
 	for input in "$qualified_cpio" "$qualified_cpio_shim"; do

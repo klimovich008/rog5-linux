@@ -45,8 +45,8 @@ generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-202608
 ! grep -Fq 'headless-diagnostic-generation9-offline-v1' "$lifecycle" ||
 	{ echo 'FAIL generation-9 offline-only profile leaked into the lifecycle' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -150,25 +150,20 @@ generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-202608
 [[ $(awk -F '\t' -v name="$generation8_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" && \
-	$4 == "consumed generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer; recovery control rejected because recovery ACM identity did not remain stable and no PREPARED record existed; independently, the diagnostic collector rejected after its fixed ACM-stability deadline with zero target frames; no COMMIT intent existed and no target ran; exact Alpine fallback returned after the pre-commit failure; final host cleanup proof failed because the lifecycle could not inspect the empty root-owned mode-0600 NFS export table; independent read-only checks found no NFS listener, service, kernel threads, export mount, or lifecycle marker; retain offline only; never retry or flash" && \
+	$4 == "consumed generation-8 NetworkManager-empty-field-corrected host diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer; recovery returned no PREPARED record and the terminal identity-stability rejection did not label whether it sampled initial recovery or replay discovery after transport loss; Generation-9 timing makes replay of watchdog fallback plausible but does not retroactively prove that phase; independently, the diagnostic collector rejected after its fixed ACM-stability deadline with zero target frames; no COMMIT intent existed and no target ran; exact Alpine fallback returned after the pre-commit failure; final host cleanup proof failed because the lifecycle could not inspect the empty root-owned mode-0600 NFS export table; independent read-only checks found no NFS listener, service, kernel threads, export mount, or lifecycle marker; retain offline only; never retry or flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-8 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation9_image" \
-	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-9 temporary-boot policy name is not unique' >&2; exit 1; }
-[[ $(awk -F '\t' -v name="$generation9_image" \
-	'$1 == name && $2 == "allow" && \
-	$3 == "one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash" \
-	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-9 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-9 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation9_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008" && \
-	$4 == "unbooted generation-9 recovery-ACM-classifier diagnostic wrapper; host-local twin issuance changes only the AVB generation salt and digest over the unchanged audited raw recovery; exact offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; never flash" && \
+	$4 == "consumed generation-9 recovery-ACM-classifier diagnostic wrapper; one RAM-only recovery boot reached verified recovery ACM/NCM and completed the 46163787-byte signed-bundle transfer after PREPARE; recovery returned no PREPARED response and recovery USB disconnected about 178 seconds after enumeration; the terminal classifier reported product-mismatch in all 216 samples, one transition, no identity-field changes, and no truncation, but did not label the discovery phase; the complete transfer and USB timeline support replay discovery of Alpine after transport loss as the best interpretation, not direct phase evidence; recovery rejected before COMMIT, the diagnostic collector rejected at its ACM-stability preflight with zero frames and zero dropped USB events, no COMMIT intent existed, and no target ran; exact Alpine fallback returned and final host cleanup proof passed; retain offline only; never retry or flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-9 admitted artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-9 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -532,28 +527,41 @@ for generation9_connected_action in boot preflight; do
 	fi
 done
 
-for generation9_policy_shape in missing duplicate wrong-basis; do
+for generation9_policy_shape in missing duplicate wrong-basis readmitted-exact-basis; do
 	policy_fixture=$tmp/generation9-policy-$generation9_policy_shape
 	install -d -m 0755 "$policy_fixture/scripts/host" \
 		"$policy_fixture/manifests"
 	install -m 0755 "$gate" \
 		"$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+	cp -- "$artifact_manifest" "$policy_fixture/manifests/artifacts.tsv"
 	case $generation9_policy_shape in
 		missing)
-			awk -F '\t' -v name="$generation9_image" '$1 != name' \
-				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			cp -- "$boot_policy" \
+				"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		duplicate)
 			cp -- "$boot_policy" \
 				"$policy_fixture/manifests/temporary-boot-images.tsv"
-			awk -F '\t' -v name="$generation9_image" '$1 == name' \
-				"$boot_policy" >>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation9_image" \
+				'one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation9_image" \
+				'one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		wrong-basis)
-			awk -F '\t' -v name="$generation9_image" 'BEGIN { OFS="\t" }
-				$1 == name { $3="wrong generation-9 basis; never boot" }
-				{ print }' "$boot_policy" \
-				>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			cp -- "$boot_policy" \
+				"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation9_image" \
+				'wrong generation-9 basis; never boot' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		readmitted-exact-basis)
+			cp -- "$boot_policy" \
+				"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation9_image" \
+				'one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 	esac
 	for generation9_connected_action in boot preflight; do
@@ -579,6 +587,8 @@ for generation9_policy_shape in missing duplicate wrong-basis; do
 		fi
 		if [[ $generation9_policy_shape == wrong-basis ]]; then
 			expected_policy_error="temporary boot policy basis does not match $generation9_image"
+		elif [[ $generation9_policy_shape == readmitted-exact-basis ]]; then
+			expected_policy_error='temporary boot artifact is recorded as consumed'
 		else
 			expected_policy_error="temporary boot policy does not uniquely list $generation9_image"
 		fi
@@ -1629,6 +1639,7 @@ for required in \
 	'generation-8 connected action requires the one-shot lifecycle controller' \
 	'generation-9 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-9 connected action requires the one-shot lifecycle controller' \
+	'temporary boot artifact is recorded as consumed' \
 	'temporary boot policy basis does not match' \
 	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
 	'expected_boot_image=build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img' \

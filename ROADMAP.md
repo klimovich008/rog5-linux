@@ -437,7 +437,7 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
 runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
-generations 0–8 are consumed and absent from temporary-boot policy.
+generations 0–9 are consumed and absent from temporary-boot policy.
 Generation 7 transferred the complete signed bundle but the host rejected its
 post-transfer deferred-profile observation before receiving `PREPARED`; no
 intent, NFS handoff, or target execution occurred. Exact fallback and strict
@@ -454,6 +454,17 @@ not remain stable; no PREPARED record, COMMIT intent, or target execution
 existed. Exact Alpine fallback returned. The final host proof separately
 exposed an empty root-owned mode-`0600` NFS export-table inspection defect;
 independent checks found no host residue.
+
+Generation 9 then passed exact key and connected preflight and completed the
+46,163,787-byte signed-bundle transfer over exact recovery ACM/NCM. Recovery
+returned no `PREPARED` response before watchdog fallback. The complete transfer
+and USB timeline make replay discovery after the original transport loss, when
+Alpine was already present, the best interpretation of its terminal
+product-mismatch trace; the controller did not label that phase directly. No
+COMMIT intent or target execution occurred. Exact fallback and final host
+cleanup passed. The next correction is test-first transport/replay and
+recovery-side phase evidence, not another AVB generation over unchanged payload
+bytes.
 
 Current execution order:
 
@@ -488,17 +499,22 @@ Current execution order:
    Generation-9 successors passed exact-head GitHub run `30841980164` at
    `6193056`; the separate live-profile transition passed exact-head run
    `30843398402` at `4979581` while central policy remained empty.
-10. **In progress:** add exactly one Generation-9 central-policy admission
-    with the exact connected-preflight, remove-after-any-result, and
-    never-flash basis; pass focused and complete local tests, constrained
-    review, publication, and exact-head GitHub CI without phone access.
-11. Pass connected preflight, then run at most one Generation-9 RAM-only
-    diagnostic lifecycle. Preserve private evidence, remove admission after
-    every result, preserve its durable host consumption claim, restore exact
-    Alpine fallback, and never retry Generation 9.
-12. Promote a distinct normal SSH candidate only after diagnostic evidence
+10. **Complete:** publish the exact Generation-9 central-policy admission at
+    `eea0989`; complete local CI and exact-head GitHub run `30847253087` pass.
+11. **Complete:** pass key and connected preflight, run the sole Generation-9
+    RAM-only lifecycle, preserve its permanent `BOOT_CLAIMED` record, remove
+    admission after the safe pre-COMMIT rejection, and prove exact Alpine
+    fallback plus final host cleanup. The complete bundle transferred, but
+    recovery returned no `PREPARED` response before watchdog fallback; see the
+    [live result](test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
+12. **In progress:** reproduce the initial-connect/transport-loss/replay
+    sequence hardware-free, preserve the original failure phase in host
+    diagnostics, and add bounded recovery-side phase evidence for fetch,
+    verify, kexec load, PREPARED publication, and watchdog exit. Do not issue
+    Generation 10 from the unchanged payload.
+13. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-13. If H2 passes, continue physical keys/indicator, then H3
+14. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

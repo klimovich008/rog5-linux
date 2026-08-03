@@ -312,17 +312,18 @@ must remain exact, and every Generation 1–8 wrapper identity must differ. It
 created no retained output or boot authority; see the
 [issuer-readiness result](../test-results/2026-08-03-generation-9-issuer-readiness-offline.md).
 The separately issued Generation-9 successor is AVB `b458e64b…d008` over
-unchanged raw recovery `f1a7c5ad…6a4ce`. Both retained host-local trees are
-byte-identical and locally pass exact artifact preflight. The immutable offline
-profile rejects connected preflight and boot before host inspection, the
-inventory says issuance `authority=none`, and a separate central-policy change
-now admits exactly one connected-preflight-gated RAM-only lifecycle with an
-exact remove-after-any-result and never-flash basis. Generation 9 remains
-unbooted; publish this admission and require exact-head CI before connected
-use. The lifecycle now also creates a private durable per-profile
-`BOOT_CLAIMED` record immediately before the boot gate and rejects an existing
-record before connected preflight, making an accidental second invocation
-fail closed even if policy cleanup is delayed.
+unchanged raw recovery `f1a7c5ad…6a4ce`. Admission commit `eea0989` and
+exact-head GitHub run `30847253087` passed. Key and connected preflight then
+passed, followed by the sole RAM-only lifecycle. Exact recovery ACM/NCM served
+all 46,163,787 signed-bundle bytes, but recovery returned no `PREPARED`
+response before watchdog fallback. The complete transfer and USB timeline make
+same-session replay discovery after the original transport loss, when Alpine
+was already present, the best interpretation of the final 216-sample
+`product-mismatch` trace; the controller did not label the phase directly. It
+does not contradict the initial exact ACM connection that delivered PREPARE.
+No COMMIT intent existed and no target ran. Exact Alpine fallback and final
+host cleanup passed. Generation 9 is consumed, absent from policy, permanently
+`BOOT_CLAIMED`, and never reusable.
 Clean-checkout CI skips only the ignored retained-tree checks. Exact-head
 GitHub run `30841980164` passed at issuance commit `6193056`. The separate
 live-profile transition selects the identical tuple through the lifecycle and
@@ -331,7 +332,11 @@ connected actions fail on the lifecycle guard; missing, duplicate, or
 wrong-basis policy rows fail before host inspection. See the
 [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
 and [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
-then the [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
+the [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md),
+and the [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
+Before any Generation-10 issuance, preserve the original PREPARE transport-loss
+phase across replay failure and add bounded recovery-side fetch/verify/load/
+PREPARED/watchdog evidence under hardware-free tests.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

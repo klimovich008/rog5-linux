@@ -4,10 +4,10 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–8 are consumed; exactly one
-Generation-9 image is admitted for one connected-preflight-gated RAM-only
-lifecycle**. Generation 9 remains unbooted, and its admission must be
-published with exact-head CI green before connected use. Generation 4
+Tracked status: **diagnostic generations 0–9 are consumed and absent from
+temporary-boot policy**. Generation 9 completed the signed-bundle transfer but
+returned no `PREPARED` response before watchdog fallback; no COMMIT intent or
+target execution occurred. It must never be retried or flashed. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -141,32 +141,35 @@ exact-head GitHub Actions run `30838804593` pass. The lifecycle invokes this
 controller from the synchronized checkout; it is not deployed by the fixed
 root-broker installer. See the
 [offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
-Distinct Generation-9 AVB `b458e64b…d008` is now twin-issued on this host
-over unchanged raw recovery `f1a7c5ad…6a4ce`. Its immutable offline profile
-locally passes both retained-tree artifact preflights and rejects connected
-actions before host inspection. Clean-checkout CI skips the ignored-tree
-artifact checks but still enforces issuer, profile, and policy boundaries. The
-inventory records issuance `authority=none`. A separate central-policy change
-now admits exactly one Generation-9 connected-preflight-gated RAM-only
-lifecycle with the exact basis `one generation-9 recovery-ACM-classifier
-diagnostic lifecycle after connected preflight; remove after any result; never
-flash`. The
-artifact remains unbooted, and publication plus exact-head CI are required
-before connected use. See the
-[one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
+Distinct Generation-9 AVB `b458e64b…d008` was twin-issued on this host over
+unchanged raw recovery `f1a7c5ad…6a4ce`. Its admission checkpoint
+`eea0989` passed exact-head GitHub run `30847253087`; local key admission and
+connected preflight then passed. The sole RAM-only lifecycle reached exact
+recovery ACM/NCM and transferred all 46,163,787 signed-bundle bytes, but
+recovery returned no `PREPARED` response before its USB gadget disconnected
+about 178 seconds after enumeration and its watchdog restored Alpine.
+The complete transfer and USB timeline make replay discovery after transport
+loss, when the known Alpine product was already present, the best interpretation
+of the final 216-sample `product-mismatch` classifier trace; the controller did
+not label the phase directly. The initial exact recovery connection had
+necessarily succeeded to deliver the PREPARE that triggered the transfer. No
+COMMIT intent existed, no target ran, exact fallback returned, and final host
+cleanup passed. Generation 9 is consumed and absent from policy. See the
+[one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md)
+and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
 The lifecycle rejects an existing per-profile consumption record before
 connected preflight, then atomically writes a private durable `BOOT_CLAIMED`
 record under `${XDG_STATE_HOME:-$HOME/.local/state}/rog5-temporary-boot-consumption`
-after successful preflight and immediately before the boot gate. Thus a crash,
-ambiguous execute, or accidentally retained policy row cannot authorize a
-second Generation-9 run. A standalone connected preflight does not consume
-the lifecycle. Every successor generation must use a distinct recovery-profile
-name because this per-profile claim is permanent by design.
+after successful preflight and immediately before the boot gate. The permanent
+Generation-9 claim is now `BOOT_CLAIMED`; together with the removed policy row,
+it prevents a second run. Every successor generation must use a distinct
+recovery-profile name because this per-profile claim is permanent by design.
 A separate
 [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md)
-now selects the identical tuple through the lifecycle. Direct connected
-actions require the lifecycle guard and exact one-shot policy basis. Missing,
-duplicate, or wrong-basis rows reject before host inspection. See also the
+selected the identical tuple through the lifecycle. Direct connected actions
+still require the lifecycle guard and exact one-shot policy basis; with the
+row removed, both connected actions reject before host inspection. Missing,
+duplicate, and wrong-basis fixtures remain regression coverage. See also the
 [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest

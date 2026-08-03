@@ -1148,22 +1148,27 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    issuance `authority=none`. Exact-head GitHub run
    `30841980164` passed at issuance commit `6193056`. The separate live profile
    now selects the identical tuple through the lifecycle; exact-head GitHub run
-   `30843398402` passed at commit `4979581`. Central policy now separately
-   admits exactly one connected-preflight-gated RAM-only lifecycle with the
-   exact remove-after-any-result and never-flash basis. Generation 9 remains
-   unbooted; the admission itself must be published and pass exact-head CI
-   before connected use. Missing, duplicate, and wrong-basis rows reject both
-   connected actions before host inspection. A private durable per-profile
-   `BOOT_CLAIMED` record is atomically created after successful preflight and
-   immediately before boot; an existing record rejects a later run before
-   connected preflight, so a stale policy row cannot permit a retry. See the
+   `30843398402` passed at commit `4979581`. Admission commit `eea0989` and
+   exact-head GitHub run `30847253087` passed. Key and connected preflight then
+   passed. The sole RAM-only lifecycle transferred all 46,163,787 signed-bundle
+   bytes over exact recovery ACM/NCM, but recovery returned no `PREPARED`
+   response before USB disconnected about 178 seconds after enumeration and
+   watchdog fallback began. The complete transfer and USB timeline make replay
+   discovery after transport loss, when Alpine was already present, the best
+   interpretation of its final 216-sample `product-mismatch` trace; the
+   controller did not label that phase directly. Initial exact ACM had
+   succeeded and delivered PREPARE. No COMMIT intent existed and no target ran.
+   Exact Alpine fallback and final host cleanup passed. Generation 9 is
+   consumed, absent from policy, permanently `BOOT_CLAIMED`, and never
+   reusable. See the
    [offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md)
    [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
-   and [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md).
-   Use the next live evidence to repair or promote a distinct normal
-   minimal-headless candidate; then determine whether ramoops survives the
-   target/fallback path and collect the exact 88-field core record over strict
-   SSH.
+   [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md),
+   and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
+   Before issuing Generation 10, add hardware-free transport-loss/replay
+   regressions and bounded recovery-side phase evidence that locates the
+   post-transfer PREPARE gap. Only then repair or promote a distinct normal
+   minimal-headless candidate and collect the exact 88-field core record.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
