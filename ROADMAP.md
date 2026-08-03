@@ -447,8 +447,9 @@ Both host cleanup defects exposed by that cycle are now reproduced and fixed
 offline without extending deadlines or weakening identity checks. Firewalld
 state uses three coherent snapshots instead of roughly 23 subprocesses, and
 the NetworkManager verifier now handles the exact one-empty-field rendering
-of a NULL `GENERAL.CON-UUID`. No Generation-8 artifact has been issued or
-admitted.
+of a NULL `GENERAL.CON-UUID`. Generation 8 is now host-locally twin-issued and
+pinned by an offline-only profile, but remains unbooted and absent from boot
+policy.
 
 Current execution order:
 
@@ -458,13 +459,14 @@ Current execution order:
 2. **Complete:** revalidate installed host components, the sealed deployment
    root, credential admission, and exact connected Alpine fallback without
    issuing or booting a candidate.
-3. **In progress:** publish the pre-issuance checkpoint and the test-first
+3. **Complete:** publish the pre-issuance checkpoint and the test-first
    deterministic Generation-8 issuer/non-reuse regression after auditing
    every retained source and Generation-7 input.
-4. Issue and twin-reproduce a distinct Generation-8 identity only after the
-   reviewed checkpoint is clean and synchronized; keep central boot policy at
-   zero `allow` rows during issuance.
-5. Add a separate lifecycle-only profile and one-shot central admission only
+4. **Complete:** publish the host-locally twin-reproduced Generation-8
+   identity and immutable offline-only profile; keep central boot policy at
+   zero `allow` rows.
+5. **In progress:** add a separate live lifecycle profile, then one-shot
+   central admission only
    after artifact, credential, rollback, host-cleanup, fallback, and connected
    preflights all pass.
 6. Run at most one Generation-8 RAM-only diagnostic lifecycle, consume it for

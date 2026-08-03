@@ -241,8 +241,17 @@ The next
 audits the retained generation-zero/Generation-7 inputs and extends the
 deterministic issuer regression through Generation 8, including same-run A/B
 identity and non-reuse of every Generation 1–7 twin. It creates only
-disposable synthetic outputs; retained Generation-8 production output is still
-absent.
+disposable synthetic outputs; at that checkpoint retained Generation-8
+production output was still absent.
+The subsequent
+[offline Generation-8 successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
+was issued twice on this host as byte-identical AVB `f102d53c…f2415` trees
+over unchanged raw recovery `f1a7c5ad…6a4ce`. Its exact offline-only profile
+pins the complete
+tuple and both retained trees pass artifact preflight. The issuance record and
+artifact inventory retain `authority=none` and `unbooted`; the prospective
+live profile is unsupported, the lifecycle still selects consumed Generation
+7, and temporary-boot policy still has zero `allow` rows.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,

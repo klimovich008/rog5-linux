@@ -38,7 +38,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation6-offline-v1 | \
 		headless-diagnostic-generation6-live-v1 | \
 		headless-diagnostic-generation7-offline-v1 | \
-		headless-diagnostic-generation7-live-v1) ;;
+		headless-diagnostic-generation7-live-v1 | \
+		headless-diagnostic-generation8-offline-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -420,6 +421,42 @@ case $profile in
 		[[ $expected_host_verifier == \
 			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
 			fail 'generation-7 diagnostic host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	headless-diagnostic-generation8-offline-v1)
+		if [[ $action != policy-preflight && $action != artifact-preflight ]]; then
+			fail 'generation-8 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		component_layout=structured
+		expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c
+		expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce
+		expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec
+		expected_control=f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0
+		expected_target_id=headless-netroot-early-diag
+		expected_bundle=headless-netroot-early-diag-v1
+		expected_bundle_profile=diagnostic-initramfs-v1
+		expected_generation_record=9805809c27e1fe47efcbc7561fe5289e81d789beba231acbac59c32a67ae59d5
+		expected_avb_salt=a8563ded9a34767ed97ed4f9130361a1b4efadc91ee7294d9a212caf59e53899
+		expected_avb_digest=b297100d269798d4eaf46b37899c3cf9196f7c076df3a31d39fe3d2db5915dbc
+		[[ $expected_manifest == \
+			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
+			fail 'generation-8 diagnostic runtime manifest is not pinned'
+		[[ $expected_image == \
+			f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415 ]] ||
+			fail 'generation-8 diagnostic recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'generation-8 diagnostic trust root is not pinned'
+		[[ $expected_host_verifier == \
+			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
+			fail 'generation-8 diagnostic host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio

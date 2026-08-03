@@ -1100,11 +1100,21 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [live result](../test-results/2026-08-03-generation-7-acm-stability-live.md),
    [cleanup snapshot correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md),
    and [NetworkManager empty-field correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md).
-8. Use corrected diagnostic evidence to repair or promote a distinct normal
+8. Distinct Generation-8 AVB `f102d53c…f2415` is host-locally twin-issued
+   over unchanged raw recovery `f1a7c5ad…6a4ce`, with exact generation record
+   `9805809c…59d5`. The immutable
+   `headless-diagnostic-generation8-offline-v1` profile pins its full tuple,
+   both retained trees pass artifact preflight, and a generation-record
+   mutation fails closed. Connected preflight and boot reject before host
+   inspection. The prospective live profile is unsupported, the lifecycle
+   still selects consumed Generation 7, and central policy has zero `allow`
+   rows. See the
+   [offline successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md).
+9. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
    SSH.
-9. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
+10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
 GPU, display, desktop, hotspot, and automation work is frozen until the
