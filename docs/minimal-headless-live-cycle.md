@@ -134,7 +134,10 @@ permissions, and one exact candidate. Timeout output contains only fixed state
 names, saturated sample counts, at most 16 state transitions, and the names of
 identity fields that changed; it never emits paths, serial values, udev values,
 or raw USB text. The exact candidate must still remain unchanged for two
-seconds and pass a final independent observation. See the
+seconds and pass a final independent observation. Commit `77543ee` and
+exact-head GitHub Actions run `30838804593` pass. The lifecycle invokes this
+controller from the synchronized checkout; it is not deployed by the fixed
+root-broker installer. See the
 [offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
