@@ -345,6 +345,12 @@ class Fixture:
                   printf '%s\n' "$uuid" "$uuid"
                 elif [ "${MOCK_DEFERRED_MIXED_UUID:-0}" = 1 ]; then
                   printf '%s\n' "$uuid" "$wrong_uuid"
+                elif [ "${MOCK_DEFERRED_EMPTY_LINE_UUID:-0}" = 1 ]; then
+                  printf '\n'
+                elif [ "${MOCK_DEFERRED_DUPLICATE_EMPTY_UUID:-0}" = 1 ]; then
+                  printf '\n\n'
+                elif [ "${MOCK_DEFERRED_MIXED_EMPTY_UUID:-0}" = 1 ]; then
+                  printf '\n%s\n' "$wrong_uuid"
                 elif [ "${MOCK_DEFERRED_PLACEHOLDER_UUID:-0}" = 1 ]; then
                   echo --
                 elif [ "${MOCK_DEFERRED_PROFILE_GAP:-0}" = 1 ] &&
@@ -1848,6 +1854,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
     def test_deferred_profile_rejection_classifies_nonsensitive_shape(self):
         cases = {
             "MOCK_DEFERRED_PLACEHOLDER_UUID": "placeholder count=1",
+            "MOCK_DEFERRED_DUPLICATE_EMPTY_UUID": (
+                "duplicate-empty count=2"
+            ),
+            "MOCK_DEFERRED_MIXED_EMPTY_UUID": "mixed-empty count=2",
             "MOCK_DEFERRED_DUPLICATE_UUID": "duplicate-exact count=2",
             "MOCK_DEFERRED_MIXED_UUID": "mixed count=2",
         }
@@ -1900,6 +1910,14 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("nfs:start", self.fixture.call_lines())
 
+    def test_deferred_profile_accepts_nmcli_empty_field_line(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_DEFERRED_EMPTY_LINE_UUID="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nfs:start", self.fixture.call_lines())
+
     def test_deferred_profile_accepts_exact_stale_uuid_when_unmanaged(self):
         result = self.fixture.run(
             "run",
@@ -1920,6 +1938,23 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 result = self.fixture.run(
                     "run",
                     MOCK_DEFERRED_STALE_UUID="1",
+                    **{variable: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("nfs:start", self.fixture.call_lines())
+
+    def test_empty_field_never_bypasses_other_deferred_profile_checks(self):
+        for variable in (
+            "MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE",
+            "MOCK_NM_RESIDUE_AFTER_BUNDLE",
+            "MOCK_DEFERRED_AUTOCONNECT",
+        ):
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "run",
+                    MOCK_DEFERRED_EMPTY_LINE_UUID="1",
                     **{variable: "1"},
                 )
                 self.assertNotEqual(result.returncode, 0)

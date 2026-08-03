@@ -435,45 +435,40 @@ time.
 
 ## Current next action
 
-The hardware-free recovery, corrected-DTB, non-fixture key-bound root,
-deployment candidate, NFS, runtime, rollback, thermal, ACM fallback, and CI
-gates are complete. The consumed r2 target reached Linux 7.1 USB-NCM, lost the
-USB gadget after 23 seconds, and returned through exact signed Alpine fallback.
-The distinct `headless-netroot-early-diag-v1` successor now has a complete
-production-key twin build. Its A/B bundles, recovery initramfses, ASUS wrapper
-kernels, raw images, and AVB wrappers are byte-identical, and the exact
-diagnostic-only pins pass the full artifact gate. It has not been installed or
-booted. The receive-only collector remains wired into the one-shot lifecycle
-before the non-retryable recovery-control boundary.
+The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
+runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
+generations 0–7 are consumed and absent from temporary-boot policy.
+Generation 7 transferred the complete signed bundle but the host rejected its
+post-transfer deferred-profile observation before receiving `PREPARED`; no
+intent, NFS handoff, or target execution occurred. Exact fallback and strict
+SSH passed.
+
+Both host cleanup defects exposed by that cycle are now reproduced and fixed
+offline without extending deadlines or weakening identity checks. Firewalld
+state uses three coherent snapshots instead of roughly 23 subprocesses, and
+the NetworkManager verifier now handles the exact one-empty-field rendering
+of a NULL `GENERAL.CON-UUID`. No Generation-8 artifact has been issued or
+admitted.
 
 Current execution order:
 
-1. **Complete:** record the closed independent review and complete
-   disposable-key wrapper/twin-build/native-verification/artifact-preflight
-   execution;
-2. **Complete:** fast-forward the reviewed checkpoint to draft PR #1 and pass
-   both jobs in GitHub Actions run `30700630487` at exact head `6654c0c`;
-3. **Complete:** guarded production signing and twin build; the private-key
-   snapshot was destroyed and every diagnostic wrapper/trust/manifest/
-   configuration identity is pinned without changing the historical r2 pins;
-4. **Complete:** publish the reviewed pin update and pass both GitHub Actions
-   jobs in run `30706668986` at exact production-pin head `6821aa62`;
-5. **Complete:** classify the loopback-listener host rejection, scope and test
-   the privileged check, consume the attempted wrapper, and issue exact
-   generation-1 AVB successor `332889a8…b51830` over unchanged recovery bytes;
-6. **Complete:** install the corrected controller, pass local/GitHub CI and
-   connected preflight, boot generation 1 once, reach signed-bundle
-   `PREPARED` plus one `COMMIT_EXEC` claim, prove exact fallback/cleanup, and
-   identify that diagnostic was missing from the host's NFS-gated bundle set;
-7. **In progress:** the fail-closed diagnostic NFS policy is published/reviewed
-   with local and GitHub CI green; distinct generation-2 AVB
-   `70fd77f7…fc72b1` is issued over unchanged recovery bytes and passes the
-   complete artifact preflight. Publish/review these exact admission pins,
-   re-pass CI, install/preflight the exact host source, and run fresh fallback
-   and connected preflights before at most one further diagnostic cycle;
-8. repeat with a distinct normal SSH candidate only after the diagnostic
-   evidence identifies and fixes the failing boundary;
-9. if H2 passes, continue physical keys/indicator, then H3
+1. **In progress:** pass the focused and complete local suite, constrained
+   read-only review, publication, and GitHub CI for the exact NetworkManager
+   parser correction.
+2. Revalidate installed host components and exact Alpine fallback without
+   issuing or booting a candidate.
+3. Issue and twin-reproduce a distinct Generation-8 identity only after the
+   reviewed checkpoint is clean and synchronized; keep central boot policy at
+   zero `allow` rows during issuance.
+4. Add a separate lifecycle-only profile and one-shot central admission only
+   after artifact, credential, rollback, host-cleanup, fallback, and connected
+   preflights all pass.
+5. Run at most one Generation-8 RAM-only diagnostic lifecycle, consume it for
+   every result, preserve recovery-control/collector/postmortem evidence, and
+   never retry an ambiguous execute.
+6. Promote a distinct normal SSH candidate only after diagnostic evidence
+   identifies and fixes the failing boundary.
+7. If H2 passes, continue physical keys/indicator, then H3
    power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

@@ -4,9 +4,8 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–6 are consumed; exactly one
-Generation-7 image is admitted for one connected-preflight-gated RAM-only
-lifecycle**. Generation 4
+Tracked status: **diagnostic generations 0–7 are consumed and no diagnostic
+image is admitted**. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -108,8 +107,12 @@ and [consumed live result](../test-results/2026-08-03-generation-7-acm-stability
 The [offline cleanup correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md)
 subsequently reduced one strict production host observation from about 5.72
 to 1.11 seconds by consolidating firewalld reads. The fixed deadline, dwell,
-and fail-closed residue checks are unchanged. No Generation-8 image is issued
-or admitted.
+and fail-closed residue checks are unchanged. A second
+[offline correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md)
+reproduces NetworkManager 1.52.1's NULL `CON-UUID` as one empty `-g` field and
+accepts only that canonical shape after every existing identity, address,
+ownership, profile, and autoconnect check. No Generation-8 image is issued or
+admitted.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
