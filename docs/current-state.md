@@ -1081,13 +1081,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    live `PREPARED` and remains consumed.
 7. Distinct Generation-7 AVB `d3d4cdb9…12901` is independently issued twice
    over unchanged raw recovery `f1a7c5ad…6a4ce`, with exact generation record
-   `8127197d…799e`. Its only profile is
+   `8127197d…799e`. Its immutable offline issuance profile is
    `headless-diagnostic-generation7-offline-v1`; connected preflight and boot
-   reject before host inspection, an unissued live-profile name is rejected,
-   both production twin trees pass artifact preflight, and a mutated
-   generation record fails closed. It is inventoried with `authority=none`,
-   absent from temporary-boot policy, and unbooted. See the
-   [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md).
+   reject before host inspection, both production twin trees pass artifact
+   preflight, and a mutated generation record fails closed. The separate
+   `headless-diagnostic-generation7-live-v1` selects the identical tuple
+   through the lifecycle and rejects direct boot without its lifecycle guard.
+   It is inventoried with `authority=none`, absent from temporary-boot policy,
+   and unbooted. See the
+   [offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
+   and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md).
 8. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

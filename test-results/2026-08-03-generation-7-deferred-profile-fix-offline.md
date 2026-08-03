@@ -88,3 +88,8 @@ No credential, signing key, privileged host action, fastboot command, phone
 interface, NFS export, or phone storage was used. A separate reviewed change
 would be required to create a live profile; a still-separate central policy
 change would be required to admit one temporary lifecycle.
+
+The subsequent
+[live-profile transition](2026-08-03-generation-7-live-profile-offline.md)
+selects the same exact tuple through the lifecycle without adding central boot
+authority.
