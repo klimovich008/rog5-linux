@@ -101,8 +101,9 @@ exact PREPARED/control-exits-first stall, performs one anchored fallback
 restoration and strict-SSH proof without an intent or retry, and still proves
 host cleanup when fallback proof fails. PREPARED is flushed before the NFS
 gate, artifact progress is non-authoritative, and the real server/fetcher pair
-passes with the Generation-4 artifact sizes. Complete local CI passes;
-publication is pending, and no Generation-5 image is built or admitted. See the
+passes with the Generation-4 artifact sizes. Complete local CI and GitHub
+Actions run `30793088424` pass at implementation commit `38b6019`; no
+Generation-5 image is built or admitted. See the
 [offline choreography correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
 The offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
@@ -443,12 +444,11 @@ The reproducible commands and credential metadata rules are in
 [Build the non-fixture chain](minimal-headless-live-cycle.md#build-the-non-fixture-chain).
 
 The [standing operator authorization](operator-standing-authorization.md)
-records the earlier no-reprompt directive. The current active thread objective
-is narrower and requires fresh action-scoped authorization before credential
-use or phone-storage effects; that current objective controls this cycle.
-Invocation-time guards, exact preflights, one-shot candidate consumption,
-rollback, cleanup, and the no-flash/no-phone-storage boundaries remain
-mandatory.
+records the current no-reprompt directive and supersedes older goal or runbook
+wording that required fresh action-scoped authorization for an otherwise
+in-scope action. Invocation-time guards, exact preflights, one-shot candidate
+consumption, rollback, cleanup, and the no-flash/no-phone-storage boundaries
+remain mandatory.
 
 The authoritative procedure is the
 [minimal-headless lifecycle runbook](minimal-headless-live-cycle.md).

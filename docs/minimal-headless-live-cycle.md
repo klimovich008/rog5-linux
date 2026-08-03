@@ -18,9 +18,10 @@ hardware-free regression now covers the exact PREPARED/control-exits-first
 stall, automatic fixed restoration, strict fallback proof, host cleanup even
 when fallback proof fails, and interrupt cleanup. PREPARED is flushed before
 the NFS gate, and the real host server and native fetcher pass together at the
-Generation-4 artifact sizes. Complete local CI passes; publication is pending,
-and no new image is admitted. Do not increase a timeout or revive a consumed
-image as a substitute for this ordering evidence. See the
+Generation-4 artifact sizes. Complete local CI and GitHub Actions run
+`30793088424` pass at implementation commit `38b6019`; no new image is
+admitted. Do not increase a timeout or revive a consumed image as a substitute
+for this ordering evidence. See the
 [offline correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and

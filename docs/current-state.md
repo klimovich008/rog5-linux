@@ -966,7 +966,14 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    fixed anchored profile restoration and strict fallback preflight passed
    with no project server/export residue. Generation 4 is removed from boot
    policy, classified consumed/offline-only, and must never be retried or
-   flashed.
+   flashed. The hardware-free correction now reproduces the exact
+   PREPARED/control-exits-first stall, performs one anchored fallback restore
+   and strict-SSH proof without an intent or retry, and still proves host
+   cleanup if fallback proof fails. PREPARED is flushed before the NFS gate;
+   transfer progress is non-authoritative; and the real host server/native
+   fetcher pair passes at the Generation-4 artifact sizes. Complete local CI
+   and GitHub Actions run `30793088424` pass at implementation commit
+   `38b6019`. No Generation-5 image is built or admitted.
    See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
@@ -983,7 +990,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    The [generation-4 admission](../test-results/2026-08-03-generation-4-live-admission-offline.md)
    is the historical phone-free authority change. The
    [generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md)
-   records its sole cycle and consumed disposition.
+   records its sole cycle and consumed disposition. The
+   [offline choreography correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md)
+   records the published host-side fix and its evidence boundary.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
