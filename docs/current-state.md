@@ -1016,6 +1016,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    is inferred, no reboot was retried, and Generation 5 remains unbooted. The
    [anchored transition result](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md)
    records the live boundary and corrected standalone helper.
+   Generation 5 then passed its exact credential-bound connected lifecycle
+   preflight at commit `4c55b1c`, including deployment key admission,
+   installed host surfaces, rollback prerequisites, and one `lahaina`
+   fastboot device. No boot, transfer, SSH connection, privileged server, or
+   lifecycle output started; the image remains unconsumed. See the
+   [connected-preflight result](../test-results/2026-08-03-generation-5-connected-preflight-live.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

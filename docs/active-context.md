@@ -130,6 +130,12 @@ the cause of that later appearance is not inferred. Generation 5 remains
 unbooted and unconsumed. The standalone reboot helper now pins that port and
 classifies every terminal transition without runtime test overrides. See the
 [anchored transition result](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md).
+The subsequent exact Generation-5 connected lifecycle preflight passed at
+commit `4c55b1c`: deployment key admission, artifacts, installed host surfaces,
+rollback prerequisites, and one `lahaina` fastboot device were clean. It
+started no boot, transfer, SSH connection, privileged server, or lifecycle
+output. Generation 5 remains unbooted and unconsumed. See the
+[connected-preflight result](../test-results/2026-08-03-generation-5-connected-preflight-live.md).
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The live-profile transition passed focused/complete local CI,
