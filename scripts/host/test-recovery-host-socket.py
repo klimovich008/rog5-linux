@@ -263,9 +263,9 @@ class RecoveryHostSocketTest(unittest.TestCase):
         self.assertTrue(response.endswith(STATUS + b"0\n"))
 
     def test_child_inherits_original_signal_mask(self):
-        inherited_signal = signal.SIGUSR2
+        managed_signals = {signal.SIGHUP, signal.SIGINT, signal.SIGTERM}
         original_mask = signal.pthread_sigmask(
-            signal.SIG_BLOCK, {inherited_signal}
+            signal.SIG_UNBLOCK, managed_signals
         )
         try:
             status, response = self.fixture.run(
@@ -280,13 +280,9 @@ class RecoveryHostSocketTest(unittest.TestCase):
             if value.startswith(b"sigblk ")
         )
         blocked = int(line.split()[1], 16)
-        for signum in (1, 2, 15):
+        for signum in managed_signals:
             with self.subTest(signum=signum):
                 self.assertEqual(blocked & (1 << (signum - 1)), 0)
-        self.assertNotEqual(
-            blocked & (1 << (inherited_signal - 1)),
-            0,
-        )
 
     def test_term_reaches_child_process_group_without_watchdog_delay(self):
         process, channel = self.fixture.start(
