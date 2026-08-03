@@ -33,9 +33,9 @@ defect and is not an accepted correction.
 
 The first regression inspected `/proc/self/status` in the broker child. Before
 the correction, all three managed bits were present in `SigBlk`; after the
-correction they are clear while an unrelated mask bit deliberately inherited
-from the caller remains set. This proves restoration of the caller's exact
-mask rather than an indiscriminate unblock.
+correction they are clear. The test explicitly starts the broker from a caller
+with those three signals unblocked, so it is independent of the surrounding
+test runner's mask.
 
 A second regression starts a watchdog-like grandchild, sends `SIGTERM` to the
 broker, and requires the complete child process group to stop, protocol status
