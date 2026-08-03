@@ -1003,6 +1003,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    boot before host inspection, and remains absent from temporary-boot policy.
    No image is admitted. See the
    [Generation-5 offline issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
+   The diagnostic lifecycle now selects the identical tuple through
+   `headless-diagnostic-generation5-live-v1`; direct boot remains restricted
+   to that lifecycle, while the boot-policy row is still absent. See the
+   [offline profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md).
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

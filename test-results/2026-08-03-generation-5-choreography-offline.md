@@ -78,6 +78,10 @@ returned `NO FINDINGS`.
 Publication and GitHub Actions evidence remain to be added. No ADB, fastboot,
 ACM, NCM, SSH, signing key, administrator credential, phone reboot, phone
 boot, NFS startup, payload transfer, COMMIT, target execution, or phone-storage
-access occurred. A separate reviewed live-profile transition and one-row
-temporary-boot admission are still required before connected preflight or a
-single temporary boot.
+access occurred. A separate one-row temporary-boot admission remains required
+before connected preflight or a single temporary boot.
+
+The separate
+[live-profile transition](2026-08-03-generation-5-live-profile-offline.md)
+now wires the lifecycle to the same exact tuple without adding boot authority.
+Only the one-row temporary-boot admission remains before connected preflight.

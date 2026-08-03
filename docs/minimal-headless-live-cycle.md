@@ -31,6 +31,9 @@ Distinct Generation-5 AVB `abe4501f…beb1a` is now twin-reproducible over the
 unchanged recovery payload and passes the complete offline artifact gate. Its
 profile is offline-only, and it remains absent from boot policy; see the
 [Generation-5 issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
+The lifecycle now selects its exact live-capable profile, but direct boot is
+still lifecycle-only and no temporary-boot row exists; see the
+[profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md).
 The [standing operator authorization](operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
