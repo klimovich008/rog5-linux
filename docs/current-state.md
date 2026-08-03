@@ -1133,6 +1133,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    from the synchronized checkout, so no root-installed broker update is
    involved. See the
    [offline result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+   The subsequent test-first issuer checkpoint extends disposable twin
+   generation through Generation 9, preserving both raw twins and rejecting
+   reuse of every Generation 1–8 AVB identity. No retained output or authority
+   exists; see the
+   [issuer-readiness result](../test-results/2026-08-03-generation-9-issuer-readiness-offline.md).
    Use the next live evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
