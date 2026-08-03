@@ -50,6 +50,16 @@ bytes. The independent completion-to-NFS handoff still failed before COMMIT;
 no target ran. Exact Alpine fallback, strict SSH, and final host cleanup
 passed after the controller watchdog released its lock. Generation 5 is
 consumed and absent from boot policy; it must never be retried or flashed.
+The subsequent
+[offline signal-mask correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
+proves the transfer completed roughly 46 seconds before rejection. The host
+broker had allowed the controller and its watchdog to inherit blocked TERM,
+so successful transfer cleanup waited for the full watchdog instead of
+publishing its completion receipt. The corrected broker restores the caller's
+mask before spawn and forwards cancellation to the child process group. Its
+focused broker/controller/lifecycle suites and complete local CI pass. Do not
+raise the NFS timeout; exact host-only installation/hash verification is
+required before any distinct successor can be considered.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
