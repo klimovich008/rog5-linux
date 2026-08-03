@@ -111,8 +111,12 @@ and fail-closed residue checks are unchanged. A second
 [offline correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md)
 reproduces NetworkManager 1.52.1's NULL `CON-UUID` as one empty `-g` field and
 accepts only that canonical shape after every existing identity, address,
-ownership, profile, and autoconnect check. No Generation-8 image is issued or
-admitted.
+ownership, profile, and autoconnect check. At that correction checkpoint no
+Generation-8 image was issued or admitted. A subsequent
+[offline-only Generation-8 successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
+is now host-locally twin-issued and artifact-pinned as AVB
+`f102d53c…f2415`; it remains `authority=none`, unbooted, unsupported by the
+lifecycle, and absent from boot policy.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
