@@ -41,6 +41,11 @@ covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
 guard, preflight, one-shot limit, rollback rule, and no-flash boundary remains
 mandatory.
+The exact Generation-5
+[connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
+has passed without starting a boot or server. Generation 5 remains unconsumed;
+only one subsequent `diagnostic-run` is permitted, and every result consumes
+it.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
