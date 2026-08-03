@@ -2,7 +2,7 @@
 
 Date: 2026-08-03
 
-Result: **PASS in complete hardware-free CI; publication pending**. The
+Result: **PASS, reviewed and published**. The
 Generation-4 failure now has an exact regression, anchored pre-commit failures
 restore and prove fallback automatically, recovery `PREPARED` is observable
 before the NFS gate, and the host transfer reports artifact-boundary progress.
@@ -93,5 +93,8 @@ The final implementation tree passes complete
 `scripts/host/test-repository-linux.sh ci`, including all 41 documentation
 targets, 47 lifecycle tests, 31 native fetch tests, 12 host-server tests, 25
 privileged-controller tests, and the recovery protocol, source/DTB, and QEMU
-stages. Publication and GitHub Actions evidence remain to be added. No
-Generation-5 artifact is built or admitted by this result.
+stages. Exact implementation commit
+`38b60192a50b94227e63e7286272a56588698fa7` is published on the open PR
+branch. GitHub Actions run `30793088424` passed both `recovery-core` and
+`qemu-system` at that commit. No Generation-5 artifact is built or admitted by
+this result.
