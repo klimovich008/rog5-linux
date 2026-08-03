@@ -121,19 +121,21 @@ awk -F '\t' -v name="$generation3" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-3 consumed artifact inventory is not exact'
 generation4='build/stable-recovery-generation4-timeout-lattice-20260803-a/repack/stable-recovery-a.avb.img'
-if awk -F '\t' -v name="$generation4" '
-	$1 == name { found=1 }
-	END { exit found ? 0 : 1 }
-' "$policy"
-then
-	fail 'the offline generation-4 recovery is present in temporary-boot policy'
-fi
+awk -F '\t' -v name="$generation4" '
+	$1 == name && $2 == "allow" &&
+	$3 == "one generation-4 timeout-lattice diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" ||
+	fail 'generation-4 temporary-boot admission is not exact and one-shot'
 awk -F '\t' -v name="$generation4" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "220e85568d1e92d9dbe33e3405f28c9b23dc8520b9e1ab2c81a30085e9cb270d" &&
-	$4 ~ /^unbooted generation-4 timeout-lattice diagnostic recovery/ { count++ }
+	$4 ~ /^unbooted generation-4 timeout-lattice diagnostic recovery/ &&
+	$4 ~ /offline issuance record with authority=none/ &&
+	$4 ~ /central policy separately admits one RAM-only lifecycle/ &&
+	$4 ~ /never flash$/ { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-4 offline artifact inventory is not exact'
+' "$manifest" || fail 'generation-4 admitted artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

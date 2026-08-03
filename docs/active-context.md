@@ -91,9 +91,10 @@ is byte-identical, and the exact offline artifact preflight passes. Its sole
 actions before host inspection. A distinct
 `headless-diagnostic-generation4-live-v1` profile pins the same complete chain,
 requires the one-shot lifecycle guard for boot, and is now selected by all 42
-lifecycle tests. The generation record still says `authority=none`, the image
-is absent from temporary-boot policy, and no image is currently
-boot-authorized. The offline issuance passed focused/complete local CI, Claude
+lifecycle tests. The generation record still says `authority=none`; one exact
+central-policy row now admits the live profile for one connected-preflight-
+gated RAM-only lifecycle, after which the row must be removed regardless of
+result. The image must never be flashed. The offline issuance passed focused/complete local CI, Claude
 review, and GitHub Actions run `30786957283` at exact implementation commit
 `e3a47a8`. The live-profile transition also remains phone-free and passed
 focused/complete local CI, constrained Claude Opus review, and GitHub Actions
@@ -107,6 +108,8 @@ Historical context remains in the
 and [generation-4 offline issuance](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 The successor profile transition is recorded in the
 [generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
+The separate one-shot authority change is recorded in the
+[generation-4 admission result](../test-results/2026-08-03-generation-4-live-admission-offline.md).
 
 The complete non-fixture identity chain is built and passes hardware-free
 admission:

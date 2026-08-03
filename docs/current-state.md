@@ -960,8 +960,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    preflight passes. The immutable offline profile still rejects connected
    actions; a separate live profile pins the same chain, requires the one-shot
    lifecycle controller for boot, and is selected by all 42 lifecycle tests.
-   Its record has `authority=none`, and it remains absent from boot policy. No
-   image is admitted.
+   Its record has `authority=none`; one exact central-policy row now admits
+   only one connected-preflight-gated RAM-only lifecycle. Remove that row
+   after any result, and never flash the image.
    See the
    [live result](../test-results/2026-08-02-corrected-diagnostic-bundle-listener-rejected.md),
    [successor result](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
@@ -975,6 +976,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    remained phone-free and passed complete local CI, constrained Claude Opus
    review, and GitHub Actions run `30787774104` at exact implementation commit
    `f058d47`.
+   The [generation-4 admission](../test-results/2026-08-03-generation-4-live-admission-offline.md)
+   is a separate phone-free policy change.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict
