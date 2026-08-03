@@ -20,7 +20,7 @@ bundle=
 manifest_hash=
 expected_location=
 restore_timeout=
-server_sha256=9258c0e72ca7adb626fdafccfc1bababb68263b40ad23b635b0cc8c19b7ffac0
+server_sha256=72c636b73194ed3ccdcbd9cb86c7b25a2a8d2ff83b845e65c6e8cd11027b55ca
 HARD_SERVER_TIMEOUT_SECONDS=205
 OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS=5
 if [[ $action == restore-fallback ]]; then

@@ -2685,17 +2685,67 @@ class LiveCycle:
                 cleanup_note = f"; {cancellation}"
             else:
                 network_process = None
-            if intent is None:
-                terminate(collector_process)
-                collector_process = None
-                try:
-                    self.wait_host_clean()
-                except Exception as cleanup_error:
-                    cleanup_note += (
-                        "; host cleanup proof failed: "
-                        f"{cleanup_error}"
-                    )
             recovery_note = ""
+            if intent is None:
+                if fallback_contact_deadline is None:
+                    terminate(collector_process)
+                    collector_process = None
+                    try:
+                        self.wait_host_clean()
+                    except Exception as cleanup_error:
+                        cleanup_note += (
+                            "; host cleanup proof failed: "
+                            f"{cleanup_error}"
+                        )
+                else:
+                    fallback_error: BaseException | None = None
+                    cleanup_base_error: BaseException | None = None
+                    try:
+                        if fallback_attempted:
+                            fail(
+                                "fallback proof was already attempted and "
+                                "was not retried"
+                            )
+                        self.require_fallback_contact_budget(
+                            fallback_contact_deadline
+                        )
+                        fallback_attempted = True
+                        self.wait_fallback(None)
+                        fallback_proved = True
+                    except BaseException as recovery_error:
+                        fallback_error = recovery_error
+                    terminate(collector_process)
+                    collector_process = None
+                    try:
+                        final_cleanup_attempted = True
+                        self.wait_host_clean(final=fallback_proved)
+                        final_cleanup_completed = True
+                    except BaseException as cleanup_error:
+                        cleanup_note += (
+                            "; host cleanup proof failed: "
+                            f"{cleanup_error}"
+                        )
+                        if not isinstance(cleanup_error, Exception):
+                            cleanup_base_error = cleanup_error
+                    if fallback_error is None:
+                        recovery_note = (
+                            "; exact fallback returned after the pre-commit "
+                            "failure; no commit intent existed"
+                        )
+                        if final_cleanup_completed:
+                            recovery_note += "; host cleanup proof passed"
+                    else:
+                        recovery_note = (
+                            "; pre-commit fallback proof failed: "
+                            f"{fallback_error}"
+                        )
+                        if final_cleanup_completed:
+                            recovery_note += "; host cleanup proof passed"
+                    if cleanup_base_error is not None:
+                        raise cleanup_base_error
+                    if fallback_error is not None:
+                        if not isinstance(fallback_error, Exception):
+                            raise fallback_error
             if intent is not None and not resolved:
                 try:
                     if not fallback_proved:

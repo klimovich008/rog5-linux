@@ -211,6 +211,12 @@ class Fixture:
             """\
             #!/bin/sh
             printf 'ss:%s\n' "$*" >>"$MOCK_CALLS"
+            if [ "${MOCK_SS_HANG_AFTER_RESTORE_FAILURE:-0}" = 1 ] &&
+               [ -e "$MOCK_ROOT/profile-deferred" ] &&
+               [ ! -e "$MOCK_ROOT/ss-cleanup-hang.pid" ]; then
+              printf '%s\n' "$$" >"$MOCK_ROOT/ss-cleanup-hang.pid"
+              sleep 5
+            fi
             case ${MOCK_SS_LISTENER_ADDRESS:-} in
               127.0.0.1)
                 case $* in
@@ -485,6 +491,10 @@ class Fixture:
               [ "$#" = 3 ]
               [ -e "$MOCK_ROOT/profile-deferred" ]
               printf 'bundle:restore-fallback\n' >>"$MOCK_CALLS"
+              if [ "${MOCK_PROFILE_RESTORE_HANG:-0}" = 1 ]; then
+                printf '%s\n' "$$" >"$MOCK_ROOT/restore-hang.pid"
+                while :; do sleep 1; done
+              fi
               if [ "${MOCK_PROFILE_RESTORE_FAIL:-0}" = 1 ]; then
                 echo 'FAIL injected fallback profile restoration failure'
                 exit 1
@@ -506,6 +516,10 @@ class Fixture:
             fi
             : >"$MOCK_ROOT/bundle-consumed"
             printf 'bundle:transfer\n' >>"$MOCK_CALLS"
+            if [ "${MOCK_PREPARED_BUNDLE_STALL:-0}" = 1 ]; then
+              trap ': >"$MOCK_ROOT/profile-deferred"; printf "bundle:terminated\\n" >>"$MOCK_CALLS"; exit 130' TERM INT
+              while :; do sleep 1; done
+            fi
             if [ "${MOCK_BUNDLE_FORGED_RECEIPT_FAILURE:-0}" = 1 ]; then
               while [ ! -e "$MOCK_ROOT/prepare-observed" ]; do
                 sleep 0.01
@@ -589,6 +603,14 @@ class Fixture:
                   done
                   : >"$MOCK_ROOT/prepare-observed"
                   printf 'control:prepared\n' >>"$MOCK_CALLS"
+                fi
+                if [ "${{MOCK_PREPARED_BUNDLE_STALL:-0}}" = 1 ]; then
+                  while [ ! -e "$MOCK_ROOT/bundle-consumed" ]; do
+                    sleep 0.01
+                  done
+                  printf 'control:prepared\n' >>"$MOCK_CALLS"
+                  echo 'FAIL exact network-root NFSv4.2 listener was not ready before COMMIT'
+                  exit 1
                 fi
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
@@ -1364,7 +1386,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)
         )
-        self.assertNotIn("fallback:ssh-preflight", calls)
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertEqual(calls.count("nfs:cancel"), 1)
         self.assertEqual(calls.count("nfs:terminated"), 1)
         self.assertFalse((self.fixture.root / "nfs-state").exists())
@@ -1498,6 +1521,190 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         calls = self.fixture.call_lines()
         self.assertIn("control:prepared", calls)
         self.assertIn("bundle:transfer", calls)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_prepared_bundle_stall_restores_fallback_without_commit(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_PREPARED_BUNDLE_STALL="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "recovery control exited before the one-transfer bundle server",
+            result.stderr,
+        )
+        self.assertIn(
+            "exact fallback returned after the pre-commit failure; no "
+            "commit intent existed; host cleanup proof passed",
+            result.stderr,
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("control:prepared"), 1)
+        self.assertEqual(calls.count("bundle:transfer"), 1)
+        self.assertEqual(calls.count("bundle:terminated"), 1)
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_prepared_bundle_stall_still_proves_host_cleanup_if_fallback_fails(
+        self,
+    ):
+        for variable, ssh_count in (
+            ("MOCK_PROFILE_RESTORE_FAIL", 0),
+            ("MOCK_FALLBACK_FAIL", 1),
+        ):
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run(
+                    "diagnostic-run",
+                    MOCK_PREPARED_BUNDLE_STALL="1",
+                    **{variable: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "pre-commit fallback proof failed",
+                    result.stderr,
+                )
+                self.assertIn("host cleanup proof passed", result.stderr)
+                calls = self.fixture.call_lines()
+                self.assertEqual(
+                    calls.count("bundle:restore-fallback"),
+                    1,
+                )
+                self.assertEqual(
+                    calls.count("fallback:ssh-preflight"),
+                    ssh_count,
+                )
+                self.assertNotIn("nfs:start", calls)
+                self.assertFalse(
+                    any(
+                        line.startswith("control:resolve:")
+                        for line in calls
+                    )
+                )
+
+    def test_prepared_bundle_stall_reports_failed_final_host_cleanup(self):
+        result = self.fixture.run(
+            "diagnostic-run",
+            MOCK_PREPARED_BUNDLE_STALL="1",
+            MOCK_RESIDUAL_AFTER_BUNDLE="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "exact fallback returned after the pre-commit failure; no "
+            "commit intent existed",
+            result.stderr,
+        )
+        self.assertIn("host cleanup proof failed", result.stderr)
+        self.assertNotIn("host cleanup proof passed", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_interrupt_during_precommit_fallback_is_cleaned_then_reraised(self):
+        process = subprocess.Popen(
+            [str(RUNNER), "diagnostic-run"],
+            env=self.fixture.environment(
+                BUNDLE=DIAGNOSTIC_BUNDLE,
+                ROG5_STABLE_RECOVERY_PROFILE=(
+                    DIAGNOSTIC_RECOVERY_PROFILE
+                ),
+                MOCK_PREPARED_BUNDLE_STALL="1",
+                MOCK_PROFILE_RESTORE_HANG="1",
+            ),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for _attempt in range(500):
+            if "bundle:restore-fallback" in self.fixture.call_lines():
+                break
+            if process.poll() is not None:
+                stdout, stderr = process.communicate()
+                self.fail(
+                    "lifecycle exited before fallback restoration\n"
+                    f"stdout={stdout}\nstderr={stderr}"
+                )
+            time.sleep(0.01)
+        else:
+            process.kill()
+            process.wait(timeout=2)
+            self.fail("fallback restoration did not start")
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=15)
+        self.assertNotEqual(process.returncode, 0, stdout + stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 0)
+        restore_pid = int(
+            (self.fixture.root / "restore-hang.pid").read_text(
+                encoding="ascii"
+            )
+        )
+        self.assertFalse(Path(f"/proc/{restore_pid}").exists())
+        restore_index = calls.index("bundle:restore-fallback")
+        self.assertTrue(
+            any(line.startswith("ss:") for line in calls[restore_index + 1 :])
+        )
+        self.assertNotIn("nfs:start", calls)
+        self.assertFalse(
+            any(line.startswith("control:resolve:") for line in calls)
+        )
+
+    def test_interrupt_during_precommit_host_cleanup_is_reraised(self):
+        process = subprocess.Popen(
+            [str(RUNNER), "diagnostic-run"],
+            env=self.fixture.environment(
+                BUNDLE=DIAGNOSTIC_BUNDLE,
+                ROG5_STABLE_RECOVERY_PROFILE=(
+                    DIAGNOSTIC_RECOVERY_PROFILE
+                ),
+                MOCK_PREPARED_BUNDLE_STALL="1",
+                MOCK_PROFILE_RESTORE_FAIL="1",
+                MOCK_SS_HANG_AFTER_RESTORE_FAILURE="1",
+            ),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        marker = self.fixture.root / "ss-cleanup-hang.pid"
+        for _attempt in range(500):
+            if marker.exists():
+                break
+            if process.poll() is not None:
+                stdout, stderr = process.communicate()
+                self.fail(
+                    "lifecycle exited before its cleanup interrupt seam\n"
+                    f"stdout={stdout}\nstderr={stderr}"
+                )
+            time.sleep(0.01)
+        else:
+            process.kill()
+            process.wait(timeout=2)
+            self.fail("host cleanup interrupt seam did not start")
+        cleanup_pid = int(marker.read_text(encoding="ascii"))
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=15)
+        self.assertNotEqual(process.returncode, 0, stdout + stderr)
+        self.assertIn("KeyboardInterrupt", stderr)
+        self.assertFalse(Path(f"/proc/{cleanup_pid}").exists())
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 0)
         self.assertNotIn("nfs:start", calls)
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)

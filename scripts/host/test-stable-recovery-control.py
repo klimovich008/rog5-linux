@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
-import importlib.util
+from contextlib import redirect_stdout
 from dataclasses import replace
+import importlib.util
+import io
+import json
 import os
 from pathlib import Path
 import pty
@@ -98,6 +101,7 @@ class StableRecoveryControlTest(unittest.TestCase):
         drop_commit: bool = False,
         wrong_commit_fingerprint: bool = False,
         before_commit=None,
+        on_prepared=None,
     ):
         master, slave = pty.openpty()
         path = os.ttyname(slave)
@@ -121,6 +125,7 @@ class StableRecoveryControlTest(unittest.TestCase):
                     MANIFEST,
                     ledger_path=self.ledger,
                     before_commit=before_commit,
+                    on_prepared=on_prepared,
                 )
         finally:
             os.close(slave)
@@ -177,6 +182,25 @@ class StableRecoveryControlTest(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "NFS not ready"):
             self.pty_transaction(before_commit=refuse)
+        self.assertEqual(self.commit_requests, [])
+        self.assertFalse(self.ledger.exists())
+
+    def test_prepared_response_is_observable_before_precommit_failure(self):
+        def refuse():
+            raise RuntimeError("NFS not ready")
+
+        output = io.StringIO()
+        with (
+            redirect_stdout(output),
+            self.assertRaisesRegex(RuntimeError, "NFS not ready"),
+        ):
+            self.pty_transaction(
+                before_commit=refuse,
+                on_prepared=MODULE.show_response,
+            )
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(json.loads(lines[0])["result"], "PREPARED")
         self.assertEqual(self.commit_requests, [])
         self.assertFalse(self.ledger.exists())
 

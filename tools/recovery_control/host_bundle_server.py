@@ -414,8 +414,22 @@ def serve_connection(
     connection: socket.socket,
     prepared: PreparedBundle,
     deadline: float,
+    *,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> None:
+    def report(phase: str, sent: int, total: int) -> None:
+        if progress is None:
+            return
+        try:
+            progress(phase, sent, total)
+        except Exception:
+            # Evidence must never become part of transfer correctness.
+            pass
+
     receive_request(connection, prepared, deadline)
+    total = sum(prepared.sizes)
+    sent = 0
+    report("request-accepted", sent, total)
     manifest_size, signature_size, kernel_size, dtb_size, initramfs_size = (
         prepared.sizes
     )
@@ -433,8 +447,11 @@ def serve_connection(
         raise ServerRefusal("response header exceeds policy")
     send_all(connection, struct.pack(">I", len(header)), deadline)
     send_all(connection, header, deadline)
-    for descriptor, expected in zip(
-        prepared.descriptors, prepared.sizes, strict=True
+    for (name, _minimum, _maximum), descriptor, expected in zip(
+        ARTIFACTS,
+        prepared.descriptors,
+        prepared.sizes,
+        strict=True,
     ):
         os.lseek(descriptor, 0, os.SEEK_SET)
         remaining = expected
@@ -446,6 +463,8 @@ def serve_connection(
             remaining -= len(block)
         if os.read(descriptor, 1):
             raise ServerRefusal("opened artifact became oversized")
+        sent += expected
+        report(name, sent, total)
 
 
 def serve_listener(
@@ -453,6 +472,8 @@ def serve_listener(
     prepared: PreparedBundle,
     peer_allowed: Callable[[object], bool],
     timeout_seconds: int = TRANSFER_TIMEOUT_SECONDS,
+    *,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
     rejected = 0
@@ -468,7 +489,12 @@ def serve_listener(
                 if rejected >= MAX_REJECTED_PEERS:
                     raise ServerRefusal("too many rejected peers")
                 continue
-            serve_connection(connection, prepared, deadline)
+            serve_connection(
+                connection,
+                prepared,
+                deadline,
+                progress=progress,
+            )
             try:
                 connection.shutdown(socket.SHUT_WR)
             except OSError:
@@ -516,11 +542,25 @@ def run_preflight(bundle: str, manifest_hash: str) -> None:
 
 
 def run_production(bundle: str, manifest_hash: str) -> None:
+    def report_progress(phase: str, sent: int, total: int) -> None:
+        # The fixed broker merges child stderr into stdout and relays complete
+        # lines, so stdout is the intentional live evidence channel here.
+        print(
+            "INFO recovery bundle transfer "
+            f"phase={phase} bytes_sent={sent} bytes_total={total}",
+            flush=True,
+        )
+
     with prepare_production(bundle, manifest_hash) as prepared:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.bind((HOST_ADDRESS, HOST_PORT))
             listener.listen(1)
-            serve_listener(listener, prepared, production_peer)
+            serve_listener(
+                listener,
+                prepared,
+                production_peer,
+                progress=report_progress,
+            )
 
 
 def main(arguments: Sequence[str]) -> int:

@@ -203,6 +203,55 @@ class HostBundleServerTest(unittest.TestCase):
         )
         self.assertEqual(response[header_end:], expected_bodies)
 
+    def test_success_reports_monotonic_artifact_progress(self):
+        root, prepared = self.fixture.prepare()
+        self.addCleanup(os.close, root)
+        self.addCleanup(prepared.close)
+        client, server = socket.socketpair()
+        events: list[tuple[str, int, int]] = []
+        outcome: list[BaseException] = []
+
+        def observe(phase: str, sent: int, total: int) -> None:
+            events.append((phase, sent, total))
+            if phase == "manifest.sig":
+                raise RuntimeError("injected observer failure")
+
+        def worker() -> None:
+            with server:
+                try:
+                    serve_connection(
+                        server,
+                        prepared,
+                        __import__("time").monotonic() + 2,
+                        progress=observe,
+                    )
+                    server.shutdown(socket.SHUT_WR)
+                except BaseException as error:
+                    outcome.append(error)
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        with client:
+            client.sendall(
+                request(manifest_hash=self.fixture.manifest_hash)
+            )
+            client.shutdown(socket.SHUT_WR)
+            receive_all(client)
+        thread.join(timeout=2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(outcome, [])
+        total = sum(prepared.sizes)
+        cumulative = 0
+        expected = [("request-accepted", 0, total)]
+        for (name, _minimum, _maximum), size in zip(
+            ARTIFACTS,
+            prepared.sizes,
+            strict=True,
+        ):
+            cumulative += size
+            expected.append((name, cumulative, total))
+        self.assertEqual(events, expected)
+
     def test_path_replacement_after_prepare_cannot_change_bytes(self):
         root, prepared = self.fixture.prepare()
         original = b"".join(
