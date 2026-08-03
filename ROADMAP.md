@@ -449,9 +449,12 @@ state uses three coherent snapshots instead of roughly 23 subprocesses, and
 the NetworkManager verifier now handles the exact one-empty-field rendering
 of a NULL `GENERAL.CON-UUID`. Generation 8 was host-locally twin-issued and
 passed connected preflight. Its sole RAM-only boot transferred the complete
-signed bundle, but recovery control rejected because recovery ACM identity did
-not remain stable; no PREPARED record, COMMIT intent, or target execution
-existed. Exact Alpine fallback returned. The final host proof separately
+signed bundle, but recovery returned no PREPARED record. The terminal
+identity-stability rejection did not label whether it sampled initial recovery
+or replay discovery after transport loss; Generation-9 timing makes replay of
+watchdog fallback plausible but does not retroactively prove it. No COMMIT
+intent or target execution existed. Exact Alpine fallback returned. The final
+host proof separately
 exposed an empty root-owned mode-`0600` NFS export-table inspection defect;
 independent checks found no host residue.
 
@@ -507,11 +510,12 @@ Current execution order:
     fallback plus final host cleanup. The complete bundle transferred, but
     recovery returned no `PREPARED` response before watchdog fallback; see the
     [live result](test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
-12. **In progress:** reproduce the initial-connect/transport-loss/replay
-    sequence hardware-free, preserve the original failure phase in host
-    diagnostics, and add bounded recovery-side phase evidence for fetch,
-    verify, kexec load, PREPARED publication, and watchdog exit. Do not issue
-    Generation 10 from the unchanged payload.
+12. **In progress:** the hardware-free host regression now labels initial and
+    replay ACM discovery separately and preserves both the original PREPARE
+    transport loss and the bounded replay classifier. Next add bounded
+    recovery-side phase evidence for fetch, verify, kexec load, PREPARED
+    publication, and watchdog exit. Do not issue Generation 10 from the
+    unchanged payload.
 13. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 14. If H2 passes, continue physical keys/indicator, then H3

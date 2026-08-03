@@ -338,6 +338,39 @@ class StableRecoveryControlTest(unittest.TestCase):
             )
         self.assertNotIn("ttyACM-secret", str(failure.exception))
 
+    def test_stability_timeout_labels_the_discovery_phase(self):
+        with (
+            mock.patch.object(
+                MODULE,
+                "observe_recovery_acm",
+                return_value=MODULE.RecoveryAcmObservation(
+                    "product-mismatch"
+                ),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 0.0, 0.1),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+            self.assertRaisesRegex(
+                RuntimeError,
+                r"phase=prepare-replay; states=product-mismatch:1",
+            ),
+        ):
+            MODULE.wait_for_stable_recovery_acm(
+                discovery_phase="prepare-replay",
+                timeout_seconds=0.05,
+                poll_seconds=0.01,
+            )
+
+        with (
+            mock.patch.object(MODULE, "observe_recovery_acm") as observe,
+            self.assertRaisesRegex(ValueError, "invalid discovery phase"),
+        ):
+            MODULE.wait_for_stable_recovery_acm(discovery_phase="unbounded")
+        observe.assert_not_called()
+
     def run_responder(
         self,
         master: int,
@@ -507,6 +540,110 @@ class StableRecoveryControlTest(unittest.TestCase):
             MODULE.prepare_and_commit(BUNDLE, MANIFEST)
         self.assertEqual(first.exchange.call_args.args[1], 259.0)
         self.assertEqual(second.exchange.call_args.args[1], 256.0)
+        first.close.assert_called_once_with()
+
+    def test_prepare_replay_preserves_initial_loss_and_replay_classifier(self):
+        first = mock.MagicMock()
+        first.exchange.side_effect = MODULE.TransportLost(
+            "recovery ACM departed before response"
+        )
+        replay_failure = MODULE.RecoveryAcmUnavailable(
+            "recovery ACM identity did not remain stable; "
+            "phase=prepare-replay; states=product-mismatch:216; "
+            "transitions=product-mismatch; identity_changes=none; "
+            "transitions_truncated=no"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    replay_failure,
+                ),
+            ) as connect,
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0),
+            ),
+            self.assertRaises(MODULE.TransportLost) as failure,
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+
+        message = str(failure.exception)
+        self.assertIn(
+            "initial=recovery ACM departed before response", message
+        )
+        self.assertIn(
+            "replay=recovery ACM identity did not remain stable; "
+            "phase=prepare-replay; states=product-mismatch:216",
+            message,
+        )
+        connect.assert_has_calls(
+            [mock.call(), mock.call(discovery_phase="prepare-replay")]
+        )
+        first.close.assert_called_once_with()
+
+    def test_prepare_replay_redacts_unexpected_failure_detail(self):
+        first = mock.MagicMock()
+        first.exchange.side_effect = MODULE.TransportLost(
+            "timed out waiting for a framed response"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    RuntimeError("private unexpected detail"),
+                ),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0),
+            ),
+            self.assertRaises(MODULE.TransportLost) as failure,
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+
+        message = str(failure.exception)
+        self.assertIn("replay=RuntimeError", message)
+        self.assertNotIn("private unexpected detail", message)
+        first.close.assert_called_once_with()
+
+    def test_prepare_replay_redacts_noncanonical_initial_loss_detail(self):
+        first = mock.MagicMock()
+        first.exchange.side_effect = MODULE.TransportLost(
+            "private initial detail\nwith a second line"
+        )
+        replay_failure = MODULE.RecoveryAcmUnavailable(
+            "recovery ACM identity did not remain stable; "
+            "phase=prepare-replay; states=absent:1; transitions=absent; "
+            "identity_changes=none; transitions_truncated=no"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    replay_failure,
+                ),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0),
+            ),
+            self.assertRaises(MODULE.TransportLost) as failure,
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+
+        message = str(failure.exception)
+        self.assertIn("initial=TransportLost", message)
+        self.assertNotIn("private initial detail", message)
         first.close.assert_called_once_with()
 
     def test_guards_precede_device_discovery(self):

@@ -1165,8 +1165,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md),
    [one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md),
    and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
-   Before issuing Generation 10, add hardware-free transport-loss/replay
-   regressions and bounded recovery-side phase evidence that locates the
+   Hardware-free host regressions now preserve the initial PREPARE transport
+   loss while separately labeling and retaining bounded `prepare-replay` ACM
+   classification. Before issuing Generation 10, add bounded recovery-side
+   fetch/verify/load/PREPARED/watchdog phase evidence that locates the
    post-transfer PREPARE gap. Only then repair or promote a distinct normal
    minimal-headless candidate and collect the exact 88-field core record.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
