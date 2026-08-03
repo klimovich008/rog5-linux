@@ -1009,6 +1009,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    booted, or consumed. See the
    [offline profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
    and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
+   The exact Alpine fallback then passed guarded health preflight and
+   acknowledged one SSH-issued `RESTART2("bootloader")`. It disconnected with
+   no phone USB re-enumeration during 105 seconds of bounded observation, then
+   later appeared as exact ASUS fastboot at the same physical port. No cause
+   is inferred, no reboot was retried, and Generation 5 remains unbooted. The
+   [anchored transition result](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md)
+   records the live boundary and corrected standalone helper.
 6. Use corrected diagnostic evidence to repair or promote a distinct normal
    minimal-headless candidate; then determine whether ramoops survives the
    target/fallback path and collect the exact 88-field core record over strict

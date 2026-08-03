@@ -20,6 +20,9 @@ ssh_key=${SSH_KEY:-}
 known_hosts=${KNOWN_HOSTS:-}
 [[ -n $ssh_key && -n $known_hosts ]] ||
 	fail 'set SSH_KEY and KNOWN_HOSTS to the dedicated phone credentials'
+sys_bus_usb=/sys/bus/usb/devices
+sys_devices=/sys/devices
+fastboot_timeout=45
 for command in realpath ssh stat; do
 	command -v "$command" >/dev/null || fail "missing host command: $command"
 done
@@ -73,7 +76,63 @@ ssh_options=(
 	-o LogLevel=ERROR
 )
 
+read_usb_field() {
+	local path=$1 value
+	[[ -f $path && ! -L $path ]] || return 1
+	IFS= read -r value <"$path" || return 1
+	[[ $value =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || return 1
+	printf '%s\n' "$value"
+}
+
+usb_identity_at() {
+	local location=$1 raw vendor product
+	raw=$sys_devices/$location
+	[[ -d $raw ]] || return 1
+	vendor=$(read_usb_field "$raw/idVendor") || return 1
+	product=$(read_usb_field "$raw/idProduct") || return 1
+	vendor=${vendor,,}
+	product=${product,,}
+	[[ $vendor =~ ^[0-9a-f]{4}$ && $product =~ ^[0-9a-f]{4}$ ]] ||
+		return 1
+	printf '%s:%s\n' "$vendor" "$product"
+}
+
+find_fallback_usb_location() {
+	local candidate resolved vendor product serial location=
+	local count=0
+	for candidate in "$sys_bus_usb"/*; do
+		[[ -e $candidate ]] || continue
+		vendor=$(read_usb_field "$candidate/idVendor" 2>/dev/null || true)
+		product=$(read_usb_field "$candidate/idProduct" 2>/dev/null || true)
+		serial=$(read_usb_field "$candidate/serial" 2>/dev/null || true)
+		[[ ${vendor,,}:${product,,}:$serial == 1d6b:0104:ROG5LINUX ]] ||
+			continue
+		resolved=$(realpath -e "$candidate") || continue
+		case $resolved in
+			"$sys_devices"/*) ;;
+			*) continue ;;
+		esac
+		location=${resolved#"$sys_devices"/}
+		[[ -n $location && $location != "$resolved" ]] || continue
+		count=$((count + 1))
+	done
+	[[ $count == 1 ]] ||
+		fail "expected one exact fallback USB device, found $count"
+	printf '%s\n' "$location"
+}
+
+require_fastboot_usb_at() {
+	local location=$1 expected_serial=$2 raw serial
+	[[ $(usb_identity_at "$location" 2>/dev/null || true) == 0b05:4daf ]] ||
+		fail 'fastboot escaped the exact fallback USB device'
+	raw=$sys_devices/$location
+	serial=$(read_usb_field "$raw/serial" 2>/dev/null || true)
+	[[ $serial == "$expected_serial" ]] ||
+		fail 'fastboot serial changed at the anchored USB device'
+}
+
 if [[ $action == reboot ]]; then
+	fallback_usb_location=$(find_fallback_usb_location)
 	initial_count=$(fastboot devices 2>/dev/null |
 		awk '$2 == "fastboot" { count++ } END { print count + 0 }')
 	[[ $initial_count == 0 ]] ||
@@ -116,6 +175,8 @@ for directory in /sys/fs/pstore /mnt/pstore; do
 done
 [ "$pstore_records" -eq 0 ] || fail 'fallback pstore is not empty'
 fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
+command -v dmesg >/dev/null || fail 'fallback dmesg is unavailable'
+dmesg >/dev/null 2>&1 || fail 'fallback kernel log is unreadable'
 fatal_lines=$(dmesg 2>/dev/null |
 	grep -Eic "$fatal_pattern" || true)
 [ "$fatal_lines" -eq 0 ] || fail 'fallback kernel log has a fatal signature'
@@ -202,8 +263,39 @@ if [[ $restart_marker == 0 && $ssh_status != 255 ]]; then
 	fail "fallback restart2 acknowledgement is absent and SSH exited with status $ssh_status"
 fi
 
-deadline=$(( $(date +%s) + 45 ))
+fallback_identity=1d6b:0104
+fastboot_identity=0b05:4daf
+saw_disconnect=0
+saw_reenumeration=0
+saw_fastboot_usb=0
+saw_fallback_return=0
+deadline=$(( $(date +%s) + fastboot_timeout ))
 while (( $(date +%s) < deadline )); do
+	usb_identity=$(usb_identity_at "$fallback_usb_location" 2>/dev/null || true)
+	if [[ -z $usb_identity ]]; then
+		saw_disconnect=1
+	elif [[ $usb_identity != "$fallback_identity" ]]; then
+		saw_disconnect=1
+		saw_reenumeration=1
+		if [[ $usb_identity == "$fastboot_identity" ]]; then
+			saw_fastboot_usb=1
+			observed_usb_serial=$(read_usb_field \
+				"$sys_devices/$fallback_usb_location/serial" \
+				2>/dev/null || true)
+			if [[ -n $observed_usb_serial &&
+				$observed_usb_serial != "$fastboot_serial" ]]; then
+				fail 'fastboot serial changed at the anchored USB device'
+			fi
+		fi
+	elif [[ $saw_disconnect == 1 ]]; then
+		observed_usb_serial=$(read_usb_field \
+			"$sys_devices/$fallback_usb_location/serial" \
+			2>/dev/null || true)
+		[[ $observed_usb_serial == ROG5LINUX ]] ||
+			fail 'fallback serial changed at the anchored USB device'
+		saw_reenumeration=1
+		saw_fallback_return=1
+	fi
 	devices=$(fastboot devices 2>/dev/null || true)
 	device_count=$(awk 'NF { count++ } END { print count + 0 }' \
 		<<<"$devices")
@@ -214,6 +306,7 @@ while (( $(date +%s) < deadline )); do
 		[[ $observed_serial == "$fastboot_serial" &&
 			$observed_state == fastboot ]] ||
 			fail 'fastboot device identity does not match the expected serial'
+		require_fastboot_usb_at "$fallback_usb_location" "$fastboot_serial"
 		set +e
 		product_output=$(fastboot -s "$fastboot_serial" \
 			getvar product 2>&1)
@@ -234,6 +327,9 @@ while (( $(date +%s) < deadline )); do
 			echo 'PASS exact lahaina fastboot device proves restart2 despite SSH disconnect before acknowledgement'
 		fi
 		exit 0
+		fi
+	if (( device_count == 1 )); then
+		fail 'one fastboot device is present in an unexpected state'
 	fi
 	(( device_count == 0 )) ||
 		fail "expected at most one fastboot device, found $device_count"
@@ -242,4 +338,16 @@ done
 
 [[ $restart_marker == 1 ]] ||
 	fail 'fallback restart2 marker was absent and exact fastboot did not appear'
-fail 'fastboot did not appear after the guarded fallback reboot'
+if [[ $saw_disconnect == 0 ]]; then
+	fail 'fallback USB never disconnected after the acknowledged bootloader reboot'
+fi
+if [[ $saw_reenumeration == 0 ]]; then
+	fail 'fallback USB disconnected but no anchored-port USB re-enumeration was observed'
+fi
+if [[ $saw_fallback_return == 1 ]]; then
+	fail 'fallback Linux USB returned at the anchored port instead of fastboot'
+fi
+if [[ $saw_fastboot_usb == 1 ]]; then
+	fail 'exact fastboot USB re-enumerated but fastboot userspace discovery did not succeed'
+fi
+fail 'a non-fastboot USB mode was observed at the anchored port'
