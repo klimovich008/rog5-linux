@@ -33,10 +33,13 @@ sys.path.insert(0, str(REPO))
 
 from tools.recovery_control import (  # noqa: E402
     FrameParser,
+    PREPARE_PROGRESS_PHASES,
+    Progress,
     RecoveryModel,
     RecoveryState,
     decode_request,
     encode_frame,
+    encode_progress,
     encode_response,
 )
 
@@ -309,6 +312,89 @@ class StableRecoveryControlTest(unittest.TestCase):
         self.assertEqual(trace.transitions, ["absent"])
         self.assertLess(len(trace.summary()), 160)
 
+    def test_prepare_progress_trace_enforces_identity_and_contiguous_order(self):
+        request = "2" * 32
+        trace = MODULE.PrepareProgressTrace(
+            session=SESSION,
+            request=request,
+            bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+        )
+        for sequence, phase in enumerate(PREPARE_PROGRESS_PHASES, 1):
+            trace.record(
+                Progress(
+                    session=SESSION,
+                    request=request,
+                    sequence=sequence,
+                    phase=phase,
+                    bundle=BUNDLE,
+                    manifest_sha256=MANIFEST,
+                )
+            )
+        self.assertEqual(
+            trace.summary(),
+            "attempt1=" + ">".join(PREPARE_PROGRESS_PHASES),
+        )
+        trace.start_replay()
+        trace.record(
+            Progress(
+                session=SESSION,
+                request=request,
+                sequence=1,
+                phase=PREPARE_PROGRESS_PHASES[0],
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+            )
+        )
+        self.assertTrue(trace.summary().endswith(";attempt2=REQUEST_ACCEPTED"))
+
+        invalid = (
+            Progress(
+                session=SESSION,
+                request="3" * 32,
+                sequence=1,
+                phase=PREPARE_PROGRESS_PHASES[0],
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+            ),
+            Progress(
+                session=SESSION,
+                request=request,
+                sequence=2,
+                phase=PREPARE_PROGRESS_PHASES[1],
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+            ),
+        )
+        for progress in invalid:
+            fresh = MODULE.PrepareProgressTrace(
+                session=SESSION,
+                request=request,
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+            )
+            with self.subTest(progress=progress), self.assertRaisesRegex(
+                RuntimeError, "PREPARE progress"
+            ):
+                fresh.record(progress)
+        duplicate = MODULE.PrepareProgressTrace(
+            session=SESSION,
+            request=request,
+            bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+        )
+        first = Progress(
+            session=SESSION,
+            request=request,
+            sequence=1,
+            phase=PREPARE_PROGRESS_PHASES[0],
+            bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+        )
+        duplicate.record(first)
+        with self.assertRaisesRegex(RuntimeError, "PREPARE progress"):
+            duplicate.record(first)
+
     def test_stability_timeout_includes_bounded_non_sensitive_classifier(self):
         observations = (
             MODULE.RecoveryAcmObservation("absent"),
@@ -377,6 +463,7 @@ class StableRecoveryControlTest(unittest.TestCase):
         *,
         drop_commit: bool = False,
         wrong_commit_fingerprint: bool = False,
+        progress_mode: str = "none",
     ) -> None:
         model = RecoveryModel(RecoveryState(session=SESSION))
         parser = FrameParser()
@@ -393,6 +480,29 @@ class StableRecoveryControlTest(unittest.TestCase):
             for payload in parser.feed(chunk):
                 request = decode_request(payload)
                 response = model.handle(request)
+                progress = []
+                if request.verb == "PREPARE" and progress_mode != "none":
+                    progress = [
+                        Progress(
+                            session=request.session,
+                            request=request.request,
+                            sequence=sequence,
+                            phase=phase,
+                            bundle=request.value("bundle"),
+                            manifest_sha256=request.value(
+                                "manifest_sha256"
+                            ),
+                        )
+                        for sequence, phase in enumerate(
+                            PREPARE_PROGRESS_PHASES, 1
+                        )
+                    ]
+                    if progress_mode == "gap":
+                        progress = [progress[0], progress[2]]
+                    elif progress_mode == "wrong-request":
+                        progress[0] = replace(
+                            progress[0], request="f" * 32
+                        )
                 if request.verb == "COMMIT_EXEC":
                     self.commit_requests.append(request.request)
                     if drop_commit:
@@ -403,7 +513,15 @@ class StableRecoveryControlTest(unittest.TestCase):
                             response,
                             commit_fingerprint="f" * 64,
                         )
-                os.write(master, encode_frame(encode_response(response)))
+                wire = b"".join(
+                    [encode_frame(encode_progress(item)) for item in progress]
+                    + [encode_frame(encode_response(response))]
+                )
+                if progress_mode == "fragmented" and progress:
+                    for byte in wire:
+                        os.write(master, bytes([byte]))
+                else:
+                    os.write(master, wire)
                 if request.verb == "COMMIT_EXEC":
                     return
 
@@ -414,6 +532,8 @@ class StableRecoveryControlTest(unittest.TestCase):
         wrong_commit_fingerprint: bool = False,
         before_commit=None,
         on_prepared=None,
+        on_progress=None,
+        progress_mode: str = "none",
     ):
         master, slave = pty.openpty()
         path = os.ttyname(slave)
@@ -423,6 +543,7 @@ class StableRecoveryControlTest(unittest.TestCase):
             kwargs={
                 "drop_commit": drop_commit,
                 "wrong_commit_fingerprint": wrong_commit_fingerprint,
+                "progress_mode": progress_mode,
             },
         )
         thread.start()
@@ -432,12 +553,17 @@ class StableRecoveryControlTest(unittest.TestCase):
                 "wait_for_stable_recovery_acm",
                 return_value=path,
             ):
+                arguments = {
+                    "ledger_path": self.ledger,
+                    "before_commit": before_commit,
+                    "on_prepared": on_prepared,
+                }
+                if on_progress is not None:
+                    arguments["on_progress"] = on_progress
                 return MODULE.prepare_and_commit(
                     BUNDLE,
                     MANIFEST,
-                    ledger_path=self.ledger,
-                    before_commit=before_commit,
-                    on_prepared=on_prepared,
+                    **arguments,
                 )
         finally:
             os.close(slave)
@@ -455,6 +581,36 @@ class StableRecoveryControlTest(unittest.TestCase):
         self.assertEqual(intent.session, SESSION)
         self.assertEqual(intent.manifest_sha256, MANIFEST)
         self.assertEqual(len(self.commit_requests), 1)
+
+    def test_prepare_progress_is_parsed_when_coalesced_or_fragmented(self):
+        for mode in ("coalesced", "fragmented"):
+            with self.subTest(mode=mode):
+                self.ledger = Path(self.temporary.name) / f"ledger-{mode}"
+                self.commit_requests.clear()
+                observed = []
+                prepared, committed, _intent = self.pty_transaction(
+                    progress_mode=mode,
+                    on_progress=observed.append,
+                )
+                self.assertEqual(prepared.result, "PREPARED")
+                self.assertEqual(committed.result, "CLAIMED")
+                self.assertEqual(
+                    [item.phase for item in observed],
+                    list(PREPARE_PROGRESS_PHASES),
+                )
+                self.assertEqual(len(self.commit_requests), 1)
+
+    def test_invalid_prepare_progress_never_reaches_commit(self):
+        for mode in ("gap", "wrong-request"):
+            with self.subTest(mode=mode):
+                self.ledger = Path(self.temporary.name) / f"ledger-{mode}"
+                self.commit_requests.clear()
+                with self.assertRaisesRegex(
+                    RuntimeError, "PREPARE progress"
+                ):
+                    self.pty_transaction(progress_mode=mode)
+                self.assertEqual(self.commit_requests, [])
+                self.assertFalse(self.ledger.exists())
 
     def test_dropped_commit_response_is_never_retried(self):
         with self.assertRaisesRegex(
@@ -584,6 +740,119 @@ class StableRecoveryControlTest(unittest.TestCase):
             [mock.call(), mock.call(discovery_phase="prepare-replay")]
         )
         first.close.assert_called_once_with()
+
+    def test_prepare_replay_failure_preserves_last_correlated_progress(self):
+        first = mock.MagicMock()
+        prepare_request = "2" * 32
+
+        def lose_after_progress(_payload, _timeout, *, on_progress):
+            for sequence, phase in enumerate(
+                PREPARE_PROGRESS_PHASES[:2], 1
+            ):
+                on_progress(
+                    Progress(
+                        session=SESSION,
+                        request=prepare_request,
+                        sequence=sequence,
+                        phase=phase,
+                        bundle=BUNDLE,
+                        manifest_sha256=MANIFEST,
+                    )
+                )
+            raise MODULE.TransportLost("departed after fetch")
+
+        first.exchange.side_effect = lose_after_progress
+        replay_failure = MODULE.RecoveryAcmUnavailable(
+            "recovery ACM identity did not remain stable; "
+            "phase=prepare-replay; states=absent:1; transitions=absent; "
+            "identity_changes=none; transitions_truncated=no"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    replay_failure,
+                ),
+            ),
+            mock.patch.object(
+                MODULE, "request_id", return_value=prepare_request
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0),
+            ),
+            self.assertRaises(MODULE.TransportLost) as failure,
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+
+        self.assertIn(
+            "progress=attempt1=REQUEST_ACCEPTED>FETCH_COMPLETE;"
+            "attempt2=none",
+            str(failure.exception),
+        )
+
+    def test_prepare_replay_progress_restarts_and_both_losses_are_retained(self):
+        first = mock.MagicMock()
+        second = mock.MagicMock()
+        prepare_request = "2" * 32
+
+        def lose(phases, message):
+            def exchange(_payload, _timeout, *, on_progress):
+                for sequence, phase in enumerate(phases, 1):
+                    on_progress(
+                        Progress(
+                            session=SESSION,
+                            request=prepare_request,
+                            sequence=sequence,
+                            phase=phase,
+                            bundle=BUNDLE,
+                            manifest_sha256=MANIFEST,
+                        )
+                    )
+                raise MODULE.TransportLost(message)
+
+            return exchange
+
+        first.exchange.side_effect = lose(
+            PREPARE_PROGRESS_PHASES[:1], "initial departed"
+        )
+        second.exchange.side_effect = lose(
+            PREPARE_PROGRESS_PHASES[:2], "replay departed"
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                side_effect=(
+                    (first, SESSION, mock.sentinel.hello),
+                    (second, SESSION, mock.sentinel.hello),
+                ),
+            ),
+            mock.patch.object(
+                MODULE, "request_id", return_value=prepare_request
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(100.0, 101.0, 102.0),
+            ),
+            self.assertRaises(MODULE.TransportLost) as failure,
+        ):
+            MODULE.prepare_and_commit(BUNDLE, MANIFEST)
+
+        message = str(failure.exception)
+        self.assertIn("initial=initial departed", message)
+        self.assertIn("replay=replay departed", message)
+        self.assertIn(
+            "progress=attempt1=REQUEST_ACCEPTED;"
+            "attempt2=REQUEST_ACCEPTED>FETCH_COMPLETE",
+            message,
+        )
+        first.close.assert_called_once_with()
+        second.close.assert_called_once_with()
 
     def test_prepare_replay_redacts_unexpected_failure_detail(self):
         first = mock.MagicMock()

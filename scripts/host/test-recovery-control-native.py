@@ -26,9 +26,13 @@ sys.path.insert(0, str(REPO))
 
 from tools.recovery_control import (  # noqa: E402
     FrameParser,
+    PREPARE_PROGRESS_PHASES,
+    Progress,
     RecoveryModel,
     RecoveryState,
+    Response,
     ZERO_ID,
+    decode_recovery_record,
     decode_request,
     decode_response,
     encode_frame,
@@ -177,6 +181,7 @@ class NativeResponderTest(unittest.TestCase):
         fetch_timeout_ms: int | None = None,
         verify_timeout_ms: int | None = None,
         load_timeout_ms: int | None = None,
+        progress_fail_at: int | None = None,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -229,6 +234,10 @@ class NativeResponderTest(unittest.TestCase):
             )
         if load_timeout_ms is not None:
             environment["ROG5_TEST_LOAD_TIMEOUT_MS"] = str(load_timeout_ms)
+        if progress_fail_at is not None:
+            environment["ROG5_TEST_PROGRESS_FAIL_AT"] = str(
+                progress_fail_at
+            )
         process = subprocess.Popen(
             [
                 *self.runner,
@@ -300,18 +309,53 @@ class NativeResponderTest(unittest.TestCase):
         fragments: bool = False,
         response_read_size: int = 8192,
     ):
+        records = self.exchange_records(
+            master,
+            payload,
+            fragments=fragments,
+            response_read_size=response_read_size,
+        )
+        self.assertIsInstance(records[-1], Response)
+        return records[-1]
+
+    def exchange_records(
+        self,
+        master: int,
+        payload: bytes,
+        *,
+        fragments: bool = False,
+        response_read_size: int = 8192,
+    ) -> list[Response | Progress]:
         frame = encode_frame(payload)
         if fragments:
             for byte in frame:
                 os.write(master, bytes([byte]))
         else:
             os.write(master, frame)
-        responses = self.read_payloads(
-            master,
-            read_size=response_read_size,
-        )
-        self.assertEqual(len(responses), 1)
-        return decode_response(responses[0])
+        parser = FrameParser()
+        records: list[Response | Progress] = []
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            readable, _, _ = select.select(
+                [master],
+                [],
+                [],
+                max(0, deadline - time.monotonic()),
+            )
+            if not readable:
+                break
+            try:
+                chunk = os.read(master, response_read_size)
+            except OSError:
+                break
+            if not chunk:
+                break
+            for framed_payload in parser.feed(chunk):
+                record = decode_recovery_record(framed_payload)
+                records.append(record)
+                if isinstance(record, Response):
+                    return records
+        self.fail("responder did not return a terminal response")
 
     def hello(self, master: int, number: int = 1) -> str:
         response = self.exchange(
@@ -1160,7 +1204,32 @@ class NativeResponderTest(unittest.TestCase):
         baseline_fds = len(
             list(Path(f"/proc/{process.pid}/fd").iterdir())
         )
-        response = self.prepare(master, session)
+        prepare_identifier = request_id(10)
+        request = encode_request(
+            session=session,
+            request=prepare_identifier,
+            verb="PREPARE",
+            body={
+                "bundle": "arch-v1",
+                "manifest_sha256": MANIFEST,
+            },
+        )
+        records = self.exchange_records(master, request)
+        progress = records[:-1]
+        response = records[-1]
+        self.assertTrue(all(isinstance(item, Progress) for item in progress))
+        self.assertIsInstance(response, Response)
+        self.assertEqual(
+            [item.phase for item in progress],
+            list(PREPARE_PROGRESS_PHASES),
+        )
+        for sequence, item in enumerate(progress, 1):
+            self.assertEqual(item.sequence, sequence)
+            self.assertEqual(item.session, session)
+            self.assertEqual(item.request, prepare_identifier)
+            self.assertEqual(item.bundle, "arch-v1")
+            self.assertEqual(item.manifest_sha256, MANIFEST)
+            self.assertEqual(item.watchdog, "ARMED")
         self.assertEqual(response.result, "PREPARED")
         self.assertTrue((self.state / "prepared").is_file())
         self.assertEqual(
@@ -1185,7 +1254,101 @@ class NativeResponderTest(unittest.TestCase):
             ).splitlines(),
             ["fetch", "verify", "load"],
         )
+        replay = self.exchange_records(master, request)
+        self.assertEqual(replay, [response])
         self.stop_responder(process, master)
+
+    def test_prepare_failures_emit_only_contiguous_progress_prefixes(self):
+        cases = (
+            ("fetch", "fail", "ok", "ok", 1, "FETCH_FAILED"),
+            (
+                "verify",
+                "ok",
+                "malformed_plan",
+                "ok",
+                2,
+                "VERIFY_FAILED",
+            ),
+            ("load", "ok", "ok", "fail", 3, "VERIFY_FAILED"),
+        )
+        for index, (
+            name,
+            fetcher_mode,
+            verifier_mode,
+            loader_mode,
+            expected_count,
+            expected_result,
+        ) in enumerate(cases):
+            with self.subTest(boundary=name):
+                self.state = self.root / f"state-progress-{name}"
+                self.state.mkdir(mode=0o700)
+                verifier, loader, _marker = self.make_prepare_pipeline(
+                    f"progress-{name}",
+                    fetcher_mode=fetcher_mode,
+                    verifier_mode=verifier_mode,
+                    loader_mode=loader_mode,
+                )
+                process, master = self.start(
+                    verifier_path=verifier,
+                    kexec_path=loader,
+                )
+                session = self.hello(master, number=800 + index * 2)
+                identifier = request_id(801 + index * 2)
+                request = encode_request(
+                    session=session,
+                    request=identifier,
+                    verb="PREPARE",
+                    body={
+                        "bundle": "arch-v1",
+                        "manifest_sha256": MANIFEST,
+                    },
+                )
+                records = self.exchange_records(master, request)
+                progress = records[:-1]
+                response = records[-1]
+                self.assertEqual(
+                    [item.phase for item in progress],
+                    list(PREPARE_PROGRESS_PHASES[:expected_count]),
+                )
+                self.assertTrue(
+                    all(item.request == identifier for item in progress)
+                )
+                self.assertEqual(response.result, expected_result)
+                self.assertEqual(response.state, "IDLE")
+                self.stop_responder(process, master)
+
+    def test_progress_send_failure_is_advisory_and_suppresses_later_phases(self):
+        verifier, loader, _marker = self.make_prepare_pipeline(
+            "progress-send-failure"
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+            progress_fail_at=3,
+        )
+        session = self.hello(master)
+        request = encode_request(
+            session=session,
+            request=request_id(10),
+            verb="PREPARE",
+            body={
+                "bundle": "arch-v1",
+                "manifest_sha256": MANIFEST,
+            },
+        )
+        os.write(master, encode_frame(request))
+        payloads = self.read_payloads(master, count=3, timeout=0.2)
+        records = [decode_recovery_record(payload) for payload in payloads]
+        self.assertEqual(
+            [item.phase for item in records],
+            list(PREPARE_PROGRESS_PHASES[:2]),
+        )
+        self.assertTrue((self.state / "prepared").is_file())
+        self.stop_responder(process, master)
+        restarted, restarted_master = self.start()
+        replay = self.exchange(restarted_master, request)
+        self.assertEqual(replay.result, "PREPARED")
+        self.stop_responder(restarted, restarted_master)
 
     def test_fetch_failure_and_conflict_never_reach_verifier(self):
         cases = (

@@ -1167,10 +1167,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
    Hardware-free host regressions now preserve the initial PREPARE transport
    loss while separately labeling and retaining bounded `prepare-replay` ACM
-   classification. Before issuing Generation 10, add bounded recovery-side
-   fetch/verify/load/PREPARED/watchdog phase evidence that locates the
-   post-transfer PREPARE gap. Only then repair or promote a distinct normal
-   minimal-headless candidate and collect the exact 88-field core record.
+   classification. The recovery responder now emits five canonical,
+   body-hashed, request-correlated PREPARE boundaries from request acceptance
+   through immutable PREPARED publication. Host regressions enforce exact
+   identity and contiguous per-attempt order, preserve separate initial/replay
+   prefixes across transport loss, and prove that neither progress nor its
+   loss can authorize COMMIT. Watchdog exit remains an independent lifecycle
+   observation because reset can remove ACM before a final frame drains. No
+   Generation 10 is issued; the next step is reproducible wrapper integration
+   of this distinct responder before another diagnostic lifecycle. See the
+   [offline result](../test-results/2026-08-03-prepare-progress-observability-offline.md).
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

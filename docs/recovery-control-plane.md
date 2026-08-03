@@ -1,13 +1,13 @@
 # Stable recovery control plane
 
-Status: **shell-free framed path passed one signed live transaction and exact
-rollback; target rejected before SSH because its candidate selected historical
-DTB v1; corrected isolated candidate is offline**
+Status: **shell-free framed path is established; diagnostic Generations 0–9
+are consumed; bounded device-originated PREPARE progress is implemented and
+hardware-free tested; no Generation 10 is issued**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.
 
-Last reviewed: 2026-07-29
+Last reviewed: 2026-08-03
 
 The executable stdlib-only reference model is in
 `tools/recovery_control/reference.py`; its host test is
@@ -80,7 +80,8 @@ The recovery platform must preserve all of these properties:
 4. A rollback watchdog remains armed until an accepted target takes over.
 5. The ACM endpoint accepts no shell syntax and exposes no arbitrary command
    execution.
-6. Every request and response is framed and correlated by a request ID.
+6. Every request, advisory progress record, and response is framed and
+   correlated by session and request ID.
 7. The device, not the host, mints a fresh session ID once per recovery boot.
 8. Read-only and preparation requests are idempotent. Execution is claimed
    atomically on the device and is never automatically retried.
@@ -157,6 +158,28 @@ returns the device-minted session ID. USB already provides link integrity;
 body hashes protect canonical request/response identity and replay matching
 rather than replacing manifest signatures.
 
+During a newly executed `PREPARE`, the responder may emit canonical advisory
+progress records before the terminal response. Each record has
+`kind=progress`, `verb=PREPARE`, the exact session and request IDs, and a
+body-hashed tuple of sequence, phase, bundle, manifest hash, and
+`watchdog=ARMED`. The only valid ordered phases are:
+
+1. `REQUEST_ACCEPTED`;
+2. `FETCH_COMPLETE`;
+3. `VERIFY_COMPLETE`;
+4. `KEXEC_LOAD_COMPLETE`; and
+5. `PREPARED_PERSISTED`.
+
+The sequence number is fixed by that list. A trace is valid only as a
+contiguous prefix for one attempt; duplicate, skipped, reordered, stale,
+cross-request, cross-bundle, or cross-manifest records fail closed on the
+host. Progress never changes recovery state, records a decision, or authorizes
+`COMMIT_EXEC`. If one progress frame cannot be sent, the responder suppresses
+all later progress frames and every later write on that potentially partial
+frame stream. It still completes the existing safe PREPARE pipeline and
+decision ledger so a new same-session connection can replay the terminal
+decision without appending a response to a poisoned frame.
+
 All-zero request IDs and manifest hashes are reserved unset values and are
 rejected. Fixed result codes are bound to their valid verb and transaction
 state. `EXEC_FAILED` is valid only with the persisted execution-started
@@ -199,6 +222,14 @@ The first protocol needs only four verbs:
 1. `/usr/libexec/rog5-bundle-fetch <bundle> <manifest-hash>`;
 2. `/usr/libexec/rog5-bundle-verify --handoff-fd3 ...`; and
 3. `/usr/sbin/kexec -c -l` using only the three sealed descriptors.
+
+`REQUEST_ACCEPTED` is emitted only after session, replay-ledger, state, and
+capacity guards pass. The next three phases follow successful fetch, accepted
+verified-plan/descriptor handoff, and successful kexec load respectively.
+`PREPARED_PERSISTED` follows immutable prepared-state publication and precedes
+the terminal `PREPARED` response. A replay reconstructed from the durable RAM
+state returns only the terminal response and does not fabricate historical
+progress.
 
 The responder gives the fetch helper a 65-second outer deadline and checks
 the rollback-watchdog pidfd throughout. Fetcher exit 42 becomes the permanent
@@ -317,6 +348,21 @@ only the exact recovery ACM identity, performs `HELLO`, permits one same-ID
 before `COMMIT_EXEC`, and never retransmits that commit. A lost commit response
 therefore remains `UNKNOWN` until an out-of-band target, fallback, or recovery
 observation resolves it.
+
+For PREPARE, the host parser accepts fragmented or coalesced progress and
+terminal frames, validates one exact contiguous trace per attempt, and starts
+a fresh sequence namespace for the sole same-session replay. If initial or
+replay transport fails, the bounded error retains both transport classifiers
+and the last correlated phase prefix from each attempt. The trace is evidence,
+not authority: the host still requires a correlated terminal `PREPARED` before
+running any pre-commit gate or creating a durable COMMIT intent.
+
+There is intentionally no claimed in-band `WATCHDOG_EXIT` frame: watchdog
+reset can remove ACM before such a frame is drained. Every progress record
+proves only that the watchdog was armed at that boundary. Watchdog exit and
+fallback remain independently observed by the lifecycle, so the last device
+phase plus the USB/fallback timeline locates a loss without inventing a final
+device record.
 Ledger resolution is separately guarded by
 `ALLOW_RECOVERY_INTENT_RESOLVE=1`; it is set only after the recorded target
 identity or exact fallback observation has been captured.

@@ -467,7 +467,10 @@ product-mismatch trace; the controller did not label that phase directly. No
 COMMIT intent or target execution occurred. Exact fallback and final host
 cleanup passed. The next correction is test-first transport/replay and
 recovery-side phase evidence, not another AVB generation over unchanged payload
-bytes.
+bytes. That hardware-free correction now emits and retains five exact PREPARE
+boundaries while preserving terminal-response authority. The next action is
+reproducible integration of the changed responder into a distinct recovery
+wrapper, not reuse of any consumed generation.
 
 Current execution order:
 
@@ -510,15 +513,18 @@ Current execution order:
     fallback plus final host cleanup. The complete bundle transferred, but
     recovery returned no `PREPARED` response before watchdog fallback; see the
     [live result](test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
-12. **In progress:** the hardware-free host regression now labels initial and
-    replay ACM discovery separately and preserves both the original PREPARE
-    transport loss and the bounded replay classifier. Next add bounded
-    recovery-side phase evidence for fetch, verify, kexec load, PREPARED
-    publication, and watchdog exit. Do not issue Generation 10 from the
-    unchanged payload.
-13. Promote a distinct normal SSH candidate only after diagnostic evidence
+12. **Complete:** initial/replay ACM discovery is labeled separately; the
+    native responder emits five canonical PREPARE boundaries; the host enforces
+    one correlated contiguous prefix per attempt and retains both prefixes on
+    transport failure. Progress remains advisory, a send failure suppresses
+    later phases without changing safe PREPARE state, and watchdog exit remains
+    independently observed out of band. No Generation 10 was issued.
+13. **In progress:** integrate the changed responder into two reproducible
+    recovery-wrapper builds, preserve all existing recovery/fallback gates,
+    and admit no phone boot until the distinct artifact passes review and CI.
+14. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-14. If H2 passes, continue physical keys/indicator, then H3
+15. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

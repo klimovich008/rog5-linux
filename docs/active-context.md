@@ -343,8 +343,20 @@ the sanitized replay classifier. Thirty-three focused tests cover phase
 validation, the exact Generation-9-shaped product-mismatch replay, shared
 deadline, correlation, and no COMMIT intent. See the
 [offline result](../test-results/2026-08-03-prepare-replay-phase-preservation-offline.md).
-Before any Generation-10 issuance, add bounded recovery-side fetch/verify/load/
-PREPARED/watchdog evidence under hardware-free tests.
+The next hardware-free increment is now implemented: the native responder
+emits body-hashed, request-correlated `REQUEST_ACCEPTED`, `FETCH_COMPLETE`,
+`VERIFY_COMPLETE`, `KEXEC_LOAD_COMPLETE`, and `PREPARED_PERSISTED` records.
+The host accepts only a contiguous prefix per attempt, restarts sequencing for
+the sole same-session replay, and retains both attempt traces beside the
+initial and replay transport classifiers. Progress remains advisory and no
+COMMIT intent can exist without the terminal correlated `PREPARED` response.
+An injected progress-send failure proves that later phases are suppressed
+while safe preparation and replay semantics continue. Watchdog exit remains
+out-of-band because reset may remove ACM before a final frame can drain. See
+the [offline result](../test-results/2026-08-03-prepare-progress-observability-offline.md).
+No Generation 10 has been issued or booted; next integrate and reproducibly
+verify the updated responder in a distinct recovery wrapper before considering
+one newly admitted diagnostic lifecycle.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

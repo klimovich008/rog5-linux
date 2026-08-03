@@ -157,6 +157,20 @@ RESPONSE_BODY_FIELDS = (
     "postmortem_sha256",
     "postmortem_tail_hex",
 )
+PREPARE_PROGRESS_PHASES = (
+    "REQUEST_ACCEPTED",
+    "FETCH_COMPLETE",
+    "VERIFY_COMPLETE",
+    "KEXEC_LOAD_COMPLETE",
+    "PREPARED_PERSISTED",
+)
+PROGRESS_BODY_FIELDS = (
+    "sequence",
+    "phase",
+    "bundle",
+    "manifest_sha256",
+    "watchdog",
+)
 POSTMORTEM_STATES = {"UNAVAILABLE", "EMPTY", "PRESENT"}
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 TAIL_HEX = re.compile(r"(?:[0-9a-f]{2}){1,512}\Z")
@@ -273,6 +287,17 @@ class Request:
 
 
 @dataclass(frozen=True)
+class Progress:
+    session: str
+    request: str
+    sequence: int
+    phase: str
+    bundle: str
+    manifest_sha256: str
+    watchdog: str = "ARMED"
+
+
+@dataclass(frozen=True)
 class Response:
     session: str
     request: str
@@ -292,6 +317,55 @@ class Response:
     postmortem_bytes: str = "0"
     postmortem_sha256: str = ZERO_SHA256
     postmortem_tail_hex: str = "none"
+
+
+def encode_progress(progress: Progress) -> bytes:
+    if (
+        not all(
+            isinstance(value, str)
+            for value in (
+                progress.session,
+                progress.request,
+                progress.phase,
+                progress.bundle,
+                progress.manifest_sha256,
+                progress.watchdog,
+            )
+        )
+        or isinstance(progress.sequence, bool)
+        or not isinstance(progress.sequence, int)
+        or progress.sequence < 1
+        or progress.sequence > len(PREPARE_PROGRESS_PHASES)
+        or progress.phase
+        != PREPARE_PROGRESS_PHASES[progress.sequence - 1]
+        or not HEX_ID.fullmatch(progress.session)
+        or progress.session == ZERO_ID
+        or not HEX_ID.fullmatch(progress.request)
+        or progress.request == ZERO_ID
+        or not BUNDLE_ID.fullmatch(progress.bundle)
+        or ".." in progress.bundle
+        or not HEX_SHA256.fullmatch(progress.manifest_sha256)
+        or progress.manifest_sha256 == ZERO_SHA256
+        or progress.watchdog != "ARMED"
+    ):
+        raise ProtocolViolation("BAD_PROGRESS")
+    body = (
+        ("sequence", str(progress.sequence)),
+        ("phase", progress.phase),
+        ("bundle", progress.bundle),
+        ("manifest_sha256", progress.manifest_sha256),
+        ("watchdog", progress.watchdog),
+    )
+    fields = (
+        ("version", "1"),
+        ("kind", "progress"),
+        ("session", progress.session),
+        ("request", progress.request),
+        ("verb", "PREPARE"),
+        ("body_sha256", hashlib.sha256(_body_bytes(body)).hexdigest()),
+        *body,
+    )
+    return _body_bytes(fields)
 
 
 def encode_response(response: Response) -> bytes:
@@ -479,6 +553,57 @@ def decode_response(payload: bytes) -> Response:
         raise ProtocolViolation("BAD_BODY_HASH")
     encode_response(response)
     return response
+
+
+def decode_progress(payload: bytes) -> Progress:
+    keys, fields = _parse_lines(payload)
+    expected = [
+        "version",
+        "kind",
+        "session",
+        "request",
+        "verb",
+        "body_sha256",
+        *PROGRESS_BODY_FIELDS,
+    ]
+    if keys != expected:
+        raise ProtocolViolation("BAD_FIELDS")
+    if (
+        fields["version"] != "1"
+        or fields["kind"] != "progress"
+        or fields["verb"] != "PREPARE"
+    ):
+        raise ProtocolViolation("BAD_VERSION")
+    body = tuple((name, fields[name]) for name in PROGRESS_BODY_FIELDS)
+    if hashlib.sha256(_body_bytes(body)).hexdigest() != fields["body_sha256"]:
+        raise ProtocolViolation("BAD_BODY_HASH")
+    sequence_text = fields["sequence"]
+    if (
+        not sequence_text.isdecimal()
+        or (len(sequence_text) > 1 and sequence_text.startswith("0"))
+    ):
+        raise ProtocolViolation("BAD_PROGRESS")
+    progress = Progress(
+        session=fields["session"],
+        request=fields["request"],
+        sequence=int(sequence_text),
+        phase=fields["phase"],
+        bundle=fields["bundle"],
+        manifest_sha256=fields["manifest_sha256"],
+        watchdog=fields["watchdog"],
+    )
+    encode_progress(progress)
+    return progress
+
+
+def decode_recovery_record(payload: bytes) -> Response | Progress:
+    _keys, fields = _parse_lines(payload)
+    kind = fields.get("kind")
+    if kind == "response":
+        return decode_response(payload)
+    if kind == "progress":
+        return decode_progress(payload)
+    raise ProtocolViolation("BAD_KIND")
 
 
 def _body_bytes(body: tuple[tuple[str, str], ...]) -> bytes:

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from dataclasses import replace
 import multiprocessing
 from pathlib import Path
 import stat
@@ -21,14 +22,19 @@ from tools.recovery_control import (  # noqa: E402
     FrameParser,
     HostIntentLedger,
     InjectedCrash,
+    PREPARE_PROGRESS_PHASES,
+    Progress,
     ProtocolViolation,
     RecoveryModel,
     RecoveryState,
     Response,
     TargetDeparted,
+    decode_progress,
+    decode_recovery_record,
     decode_request,
     decode_response,
     encode_frame,
+    encode_progress,
     encode_request,
     encode_response,
 )
@@ -242,6 +248,80 @@ class RecordCodecTest(unittest.TestCase):
             postmortem_tail_hex="70616e6963",
         )
         self.assertEqual(decode_response(encode_response(detailed)), detailed)
+
+    def test_prepare_progress_round_trips_every_ordered_phase(self):
+        for sequence, phase in enumerate(PREPARE_PROGRESS_PHASES, 1):
+            progress = Progress(
+                session=SESSION,
+                request=request_id(10),
+                sequence=sequence,
+                phase=phase,
+                bundle="headless-netroot-early-diag-v1",
+                manifest_sha256=MANIFEST,
+            )
+            with self.subTest(phase=phase):
+                encoded = encode_progress(progress)
+                self.assertEqual(decode_progress(encoded), progress)
+                self.assertEqual(decode_recovery_record(encoded), progress)
+
+    def test_prepare_progress_rejects_identity_order_and_field_mutations(self):
+        progress = Progress(
+            session=SESSION,
+            request=request_id(10),
+            sequence=1,
+            phase=PREPARE_PROGRESS_PHASES[0],
+            bundle="headless-netroot-early-diag-v1",
+            manifest_sha256=MANIFEST,
+        )
+        invalid = (
+            replace(progress, session=ZERO_ID),
+            replace(progress, request=ZERO_ID),
+            replace(progress, sequence=2),
+            replace(progress, phase="UNBOUNDED"),
+            replace(progress, bundle="../escape"),
+            replace(progress, manifest_sha256="0" * 64),
+            replace(progress, watchdog="DISARMED"),
+        )
+        for candidate in invalid:
+            with self.subTest(candidate=candidate), self.assertRaisesRegex(
+                ProtocolViolation, "BAD_PROGRESS"
+            ):
+                encode_progress(candidate)
+
+        encoded = encode_progress(progress)
+        mutations = (
+            encoded.replace(b"kind=progress", b"kind=unknown"),
+            encoded.replace(b"body_sha256=", b"body_sha256=0", 1),
+            encoded.replace(b"sequence=1\nphase=", b"phase=", 1),
+            encoded + b"extra=value\n",
+        )
+        for payload in mutations:
+            with self.subTest(payload=payload), self.assertRaises(
+                ProtocolViolation
+            ):
+                decode_progress(payload)
+
+    def test_recovery_record_dispatch_rejects_requests_and_unknown_kinds(self):
+        response = Response(
+            session=SESSION,
+            request=request_id(1),
+            verb="HELLO",
+            result="OK",
+            state="IDLE",
+        )
+        self.assertEqual(
+            decode_recovery_record(encode_response(response)), response
+        )
+        for payload in (
+            make_request("STATUS", 2).wire,
+            encode_response(response).replace(
+                b"kind=response", b"kind=unknown"
+            ),
+        ):
+            with self.subTest(payload=payload), self.assertRaisesRegex(
+                ProtocolViolation, "BAD_KIND"
+            ):
+                decode_recovery_record(payload)
 
     def test_record_rejects_noncanonical_and_unknown_input(self):
         valid = make_request("STATUS", 1).wire
