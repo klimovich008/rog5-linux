@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import signal
 import socket
+import stat
 import subprocess
 import tempfile
 import threading
@@ -87,6 +88,9 @@ class BrokerFixture:
         self.config.chmod(0o444)
         self.host_boot_id = self.root / "host-boot-id"
         self.host_boot_id.write_text(HOST_BOOT_ID + "\n", encoding="ascii")
+        self.nfs_exports = self.root / "nfs-exports"
+        self.nfs_exports.write_bytes(b"")
+        self.nfs_exports.chmod(0o600)
         self.anchor = self.root / "recovery-usb.anchor"
         self.write_anchor()
 
@@ -150,6 +154,7 @@ class BrokerFixture:
                 "ROG5_TEST_BROKER_CONFIG": str(self.config),
                 "ROG5_TEST_BROKER_CONTROLLER": str(self.controller),
                 "ROG5_TEST_BROKER_NETWORK_SERVER": str(self.network),
+                "ROG5_TEST_BROKER_NFS_EXPORTS": str(self.nfs_exports),
                 "ROG5_TEST_BROKER_BOOT_ID": str(self.host_boot_id),
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_EXIT_STATUS": exit_status,
@@ -254,6 +259,80 @@ class RecoveryHostSocketTest(unittest.TestCase):
         self.assertEqual(status, 0, response)
         self.assertTrue(response.endswith(STATUS + b"17\n"))
 
+    def nfs_metadata(self) -> tuple[int, int, int, int, int]:
+        metadata = self.fixture.nfs_exports.lstat()
+        return (
+            metadata.st_dev,
+            metadata.st_ino,
+            stat.S_IMODE(metadata.st_mode),
+            metadata.st_size,
+            metadata.st_nlink,
+        )
+
+    def replace_nfs_exports_with_symlink(self) -> None:
+        self.fixture.nfs_exports.unlink()
+        self.fixture.nfs_exports.symlink_to(self.fixture.controller)
+
+    def test_broker_proves_exact_empty_export_table_without_mutation(self):
+        before = self.nfs_metadata()
+        status, response = self.fixture.run(b"network-export-state\n")
+        self.assertEqual(status, 0, response)
+        self.assertEqual(
+            response,
+            b"PASS host NFS export table is empty\n" + STATUS + b"0\n",
+        )
+        self.assertEqual(self.nfs_metadata(), before)
+        self.assertFalse(self.fixture.calls.exists())
+
+    def test_broker_rejects_nonempty_or_unsafe_export_table(self):
+        mutations = (
+            (
+                "nonempty",
+                lambda: self.fixture.nfs_exports.write_bytes(
+                    b"/export 169.254.77.2(sync)\n"
+                ),
+                b"host retains an NFS export",
+            ),
+            (
+                "loose-mode",
+                lambda: self.fixture.nfs_exports.chmod(0o666),
+                b"metadata or identity is unsafe",
+            ),
+            (
+                "hard-link",
+                lambda: os.link(
+                    self.fixture.nfs_exports,
+                    self.fixture.root / "nfs-exports-link",
+                ),
+                b"metadata or identity is unsafe",
+            ),
+            (
+                "symlink",
+                self.replace_nfs_exports_with_symlink,
+                b"cannot be opened",
+            ),
+            (
+                "missing",
+                lambda: self.fixture.nfs_exports.unlink(),
+                b"cannot be opened",
+            ),
+        )
+        for name, mutate, expected in mutations:
+            with self.subTest(name=name):
+                self.fixture.nfs_exports.unlink(missing_ok=True)
+                (self.fixture.root / "nfs-exports-link").unlink(
+                    missing_ok=True
+                )
+                self.fixture.nfs_exports.write_bytes(b"")
+                self.fixture.nfs_exports.chmod(0o600)
+                mutate()
+                _status, response = self.fixture.run(
+                    b"network-export-state\n"
+                )
+                self.assertIn(expected, response)
+                self.assertTrue(response.endswith(STATUS + b"1\n"))
+                self.assertFalse(self.fixture.calls.exists())
+
     def test_request_timeout_is_cleared_before_bounded_child(self):
         status, response = self.fixture.run(
             f"bundle arch-test-v1 {DIGEST}\n".encode(),
@@ -352,6 +431,7 @@ class RecoveryHostSocketTest(unittest.TestCase):
             b"bundle ../escape " + DIGEST.encode() + b"\n",
             b"bundle test " + b"0" * 64 + b"\n",
             b"network-cancel " + TOKEN.encode() + b"\nextra\n",
+            b"network-export-state extra\n",
             b"network-serve-v3 "
             + DIGEST.encode()
             + b" "
@@ -402,7 +482,11 @@ class RecoveryHostSocketTest(unittest.TestCase):
         self.assertEqual(response, b"")
         self.assertFalse(self.fixture.calls.exists())
 
-    def test_client_streams_output_and_propagates_status(self):
+    def run_client(
+        self,
+        arguments: list[str],
+        response: bytes,
+    ) -> tuple[subprocess.CompletedProcess[str], list[bytes]]:
         socket_path = self.fixture.root / "host.sock"
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server.bind(str(socket_path))
@@ -419,8 +503,7 @@ class RecoveryHostSocketTest(unittest.TestCase):
                     break
                 payload += chunk
             observed.append(payload)
-            connection.sendall(b"READY fixed test server\n")
-            connection.sendall(STATUS + b"23\n")
+            connection.sendall(response)
             connection.close()
             server.close()
 
@@ -434,12 +517,7 @@ class RecoveryHostSocketTest(unittest.TestCase):
             }
         )
         result = subprocess.run(
-            [
-                str(CLIENT),
-                "fallback-profile-restore",
-                str(self.fixture.anchor),
-                "750",
-            ],
+            [str(CLIENT), *arguments],
             env=environment,
             text=True,
             capture_output=True,
@@ -447,6 +525,18 @@ class RecoveryHostSocketTest(unittest.TestCase):
             timeout=5,
         )
         thread.join(timeout=5)
+        self.assertFalse(thread.is_alive())
+        return result, observed
+
+    def test_client_streams_output_and_propagates_status(self):
+        result, observed = self.run_client(
+            [
+                "fallback-profile-restore",
+                str(self.fixture.anchor),
+                "750",
+            ],
+            b"READY fixed test server\n" + STATUS + b"23\n",
+        )
         self.assertEqual(result.returncode, 23, result.stderr)
         self.assertEqual(result.stdout, "READY fixed test server\n")
         self.assertEqual(
@@ -457,6 +547,18 @@ class RecoveryHostSocketTest(unittest.TestCase):
                 + b" 750\n"
             ],
         )
+
+    def test_client_strips_status_from_canonical_export_proof(self):
+        result, observed = self.run_client(
+            ["network-export-state"],
+            b"PASS host NFS export table is empty\n" + STATUS + b"0\n",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout,
+            "PASS host NFS export table is empty\n",
+        )
+        self.assertEqual(observed, [b"network-export-state\n"])
 
     def test_privileged_restore_requires_exact_private_fresh_anchor(self):
         mutations = (

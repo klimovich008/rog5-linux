@@ -121,8 +121,13 @@ is now host-locally twin-issued and artifact-pinned as AVB
 selects that exact tuple through the lifecycle. Its issuance record retains
 `authority=none`; the separate
 [one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md)
-adds exactly one central-policy row. It remains unbooted, and that row must be
-removed after any lifecycle result.
+added exactly one central-policy row. Commit `c667718` and GitHub Actions run
+`30832269180` passed; connected preflight then passed. The sole RAM-only boot
+transferred the complete signed bundle, but recovery control rejected because
+recovery ACM identity did not remain stable. No PREPARED record, COMMIT intent,
+or target execution existed. Exact Alpine fallback returned. Generation 8 is
+now consumed and absent from policy; see the
+[live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
@@ -241,9 +246,11 @@ phone path:
   fixed child output and status;
 - the protocol exposes only ordinary or lifecycle-deferred bundle serve,
   exact anchored fallback-profile restoration, fixed
-  historical/deployment NFS preflight and serve, and token-bound NFS
-  cancellation. It exposes no shell, arbitrary command, arbitrary root path,
-  caller environment, installer, or repository executable;
+  historical/deployment NFS preflight and serve, token-bound NFS
+  cancellation, and one argument-free read-only proof that the fixed NFS
+  export table is safe and empty. It exposes no shell, arbitrary command,
+  arbitrary root path, caller environment, installer, or repository
+  executable;
 - `run-headless-network-root-server.sh preflight` requires those installed
   bytes to match the reviewed repository sources, then uses the socket; the
   recovery-bundle launcher does the same;
@@ -749,10 +756,18 @@ root, and canonical handoff marker. Preflight must not boot, transfer a
 payload, start a network service, contact target SSH, or offer the key to a
 phone. The NFS artifact check may execute the fixed root-owned verifier through
 the operator socket, but creates no export, mount, listener, marker, firewall
-rule, or interface state. The unprivileged lifecycle opens the fixed server's
-canonical root-owned mode-`0600`/`0644` `/var/lib/nfs/etab` with
-`O_NOFOLLOW`, validates and reads the same bounded inode, and requires an
-empty export inventory. It does not interpret `exportfs -v` output because
+rule, or interface state. In offline fixtures, the unprivileged lifecycle
+validates its caller-owned export-table fixture directly. In production it
+sends the argument-free `network-export-state` request through the fixed
+operator socket. The root broker opens only `/var/lib/nfs/etab` with
+`O_NOFOLLOW`, accepts only a root-owned regular mode-`0600` or mode-`0644`
+inode with one link and at most 1 MiB, reads it through the opened descriptor,
+revalidates the opened and named inode identities, requires an exact zero-byte
+payload, and emits one canonical proof. It does not chmod, replace, truncate,
+or otherwise mutate the table. This closes the Generation-8 mode-`0600`
+permission defect on normal cleanup and abnormal server termination when the
+canonical empty table remains; a missing table still fails closed. The
+lifecycle does not interpret unprivileged `exportfs -v` output because
 that command can return success while emitting an `.etab.lock` permission
 diagnostic when run without root. The later fixed root-owned server preflight
 performs the authoritative privileged `exportfs` check before any boot.

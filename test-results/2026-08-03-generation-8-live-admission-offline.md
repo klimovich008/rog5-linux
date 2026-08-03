@@ -2,11 +2,11 @@
 
 Date: 2026-08-03
 
-Result: **PASS offline; publication pending**. One exact Generation-8 recovery
-image is admitted for at most one connected-preflight-gated, RAM-only
-diagnostic lifecycle. The phone remains in the exact Alpine fallback and
-Generation 8 remains unbooted. No fastboot command, reboot, payload transfer,
-privileged host mutation, or phone-storage access occurred.
+Result: **PASS offline at commit `c667718`; now consumed**. One exact Generation-8 recovery
+image was admitted for at most one connected-preflight-gated, RAM-only
+diagnostic lifecycle. At this checkpoint the phone remained in exact Alpine
+fallback and Generation 8 was unbooted. No fastboot command, reboot, payload
+transfer, privileged host mutation, or phone-storage access occurred.
 
 ## Exact one-shot admission
 
@@ -79,5 +79,9 @@ fallback proof—the Generation-8 policy row must be removed and the artifact
 recorded as consumed in the same evidence/publication update. It must never be
 flashed.
 
-Connected preflight and temporary boot remain prohibited until this exact
+Connected preflight and temporary boot remained prohibited until this exact
 checkpoint is reviewed, committed, pushed, and green in GitHub Actions.
+
+That transition completed in GitHub Actions run `30832269180`. The sole
+admitted lifecycle was subsequently rejected safely and consumed; see the
+[Generation-8 live result](2026-08-03-generation-8-recovery-acm-stability-live.md).

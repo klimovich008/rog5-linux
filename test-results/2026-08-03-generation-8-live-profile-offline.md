@@ -84,3 +84,6 @@ The subsequent
 adds the separate exact central-policy row after local credential, artifact,
 fallback, and rollback checks. The profile tuple and all recovery bytes remain
 unchanged.
+
+That sole admission was later used and consumed. See the
+[Generation-8 live result](2026-08-03-generation-8-recovery-acm-stability-live.md).

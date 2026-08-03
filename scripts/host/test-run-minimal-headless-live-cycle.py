@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 import importlib.util
 import json
 import os
@@ -997,6 +998,66 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     MOCK_UDEV_MODEL=model,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_production_cleanup_uses_privileged_export_proof(self):
+        with mock.patch.dict(
+            os.environ,
+            self.fixture.environment(),
+            clear=False,
+        ):
+            dependencies = CYCLE.Dependencies.from_environment()
+        dependencies = replace(dependencies, offline=False)
+        inputs = CYCLE.Inputs(
+            manifest_sha256=MANIFEST,
+            ssh_key=self.fixture.ssh_key,
+            ssh_public_key_sha256="4" * 64,
+            root_package_sha256=PACKAGE_SHA256,
+            candidate_record=self.fixture.candidate,
+            candidate_sha256=CANDIDATE_SHA256,
+            fallback_known_hosts=self.fixture.known_hosts,
+            evidence_dir=self.fixture.evidence,
+            fallback_timeout=750,
+        )
+        cycle = CYCLE.LiveCycle(dependencies, inputs)
+        self.fixture.nfs_exports.chmod(0o000)
+        export_proof = ["PASS host NFS export table is empty\n"]
+
+        def capture(arguments, **_kwargs):
+            if arguments == [
+                str(dependencies.network_root_server),
+                "inspect",
+            ]:
+                return subprocess.CompletedProcess(
+                    arguments,
+                    0,
+                    export_proof[0],
+                    "",
+                )
+            return subprocess.CompletedProcess(arguments, 0, "", "")
+
+        with (
+            mock.patch.object(CYCLE, "run_capture", side_effect=capture) as run,
+            mock.patch.object(cycle, "rog5_ncm_interfaces", return_value=()),
+            mock.patch.object(
+                cycle,
+                "capture_host_snapshot",
+                return_value=CYCLE.HostSnapshot(False, "0"),
+            ),
+        ):
+            cycle.verify_host_clean(deadline=time.monotonic() + 5)
+            export_proof[0] += "unexpected trailing output\n"
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "host NFS export proof is not canonical",
+            ):
+                cycle.verify_host_clean(deadline=time.monotonic() + 5)
+        self.assertIn(
+            mock.call(
+                [str(dependencies.network_root_server), "inspect"],
+                timeout=mock.ANY,
+            ),
+            run.call_args_list,
+        )
 
     def test_privileged_restore_anchor_is_private_fresh_and_host_bound(self):
         anchor = self.fixture.evidence / "restore.anchor"
@@ -2302,6 +2363,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "network-preflight-v3",
             "network-serve-v3",
             "network-cancel",
+            "network-export-state",
             "ALLOW_HEADLESS_NETWORK_ROOT_CANCEL",
         ):
             self.assertIn(token, launcher)
