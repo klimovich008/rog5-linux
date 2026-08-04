@@ -15,10 +15,14 @@ offline profile `headless-diagnostic-generation11-offline-v1` against both
 retained trees. At that offline-profile checkpoint it was ignored, unadmitted,
 unbooted, absent from boot policy, and `authority=none`. A later
 [one-shot admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
-adds the sole exact central-policy row for a connected-preflight-gated RAM-only
-lifecycle. The artifact remains ignored, unbooted, `authority=none`, and has no
-boot claim; the phone has not been booted with this code.
-Generation 10 remains consumed and must never be retried.
+added the sole exact central-policy row for a connected-preflight-gated RAM-only
+lifecycle. Its [sole live cycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+reached exact recovery ACM/NCM, then failed closed before the bundle-server
+ready marker because the privileged host path rejected its started TCP 8081
+collector as not uniquely confined. The capture remained
+`PARTIAL/NO_ADMISSION` with zero records and `authority=NONE`; no PREPARE,
+transfer, COMMIT intent, NFS, or target occurred. Exact fallback and cleanup
+passed. Generations 10 and 11 are consumed and must never be retried.
 
 This channel addresses one exact failure: recovery can continue processing a
 valid `PREPARE` after the ACM response transport disappears. Generation 10
@@ -170,20 +174,30 @@ exact-head run `30904224177` green. The separately reviewed live-profile
 transition and one-shot central-policy admission are also published with
 exact-head CI green.
 
-The exact connected preflight now passes after strict fallback verification
-and an anchored Alpine-to-fastboot transition. No recovery image was booted,
-no payload or target SSH path started, and no Generation-11 boot claim exists.
+The exact connected preflight passed after strict fallback verification
+and an anchored Alpine-to-fastboot transition. At that checkpoint no recovery
+image had been booted, no payload or target SSH path had started, and no
+Generation-11 boot claim existed.
 Independent spec and standards review and complete local CI passed. Commit
 `7b76733` published the
 [connected-preflight evidence](../test-results/2026-08-04-generation-11-connected-preflight-live.md),
-and exact-head GitHub Actions run `30921019231` passed. The sole lifecycle is
-next.
+and exact-head GitHub Actions run `30921019231` passed. Publication commit
+`04132f0` passed exact-head run `30921533485`.
+
+The sole lifecycle then entered its permanent private claim and booted exact
+recovery ACM/NCM. The host progress-collector process emitted its ready marker,
+but the privileged controller's immediate TCP 8081 ownership/PID check rejected
+the listener as not uniquely confined before the TCP 8080 bundle server was
+declared ready. The lifecycle therefore never started recovery control; no
+PREPARE, transfer, COMMIT, NFS, or target followed. Exact Alpine fallback and
+cleanup passed.
 
 Both retained Generation-11 trees state `authority=none`; the generic recovery
-wrapper rejects generation diagnostics, and only the guarded one-shot lifecycle
-controller can consume the admission. The live boot gate's fixed claim consumer
-validates and irreversibly enters the controller's exact private durable
-`BOOT_CLAIMED` record before any host/device inspection.
+wrapper rejects generation diagnostics. The former policy row is removed, the
+artifact role is `consumed`, and the entered private `BOOT_CLAIMED` record
+independently prevents reuse. The next work is an offline production-faithful
+reproduction of the TCP 8081 listener ownership/PID check and SteamOS race,
+before any distinct successor is issued.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the

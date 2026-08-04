@@ -219,22 +219,21 @@ awk -F '\t' -v name="$generation10" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-10 consumed artifact inventory is not exact'
 generation11='build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img'
-generation11_basis='one generation-11 receive-only NCM-progress diagnostic lifecycle after connected preflight; remove after any result; never flash'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'temporary-boot policy does not contain exactly one allow row'
-awk -F '\t' -v name="$generation11" -v basis="$generation11_basis" '
-	$1 == name && $2 == "allow" && $3 == basis { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'generation-11 recovery admission is not exact'
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'consumed policy retains a temporary-boot allow row'
+awk -F '\t' -v name="$generation11" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'consumed generation-11 recovery remains boot-allowlisted'
 awk -F '\t' -v name="$generation11" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" &&
-	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one RAM-only lifecycle; exact connected preflight passed; no boot claim; never flash" &&
+	$4 == "consumed generation-11 receive-only NCM-progress diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM; the privileged serve-progress-deferred host path started the exact receive-only 8081 collector, but its post-start listener-confinement check failed before the bundle-server ready marker; capture ended PARTIAL/NO_ADMISSION with zero records and authority=NONE; early-target diagnostic ACM never became stable and produced zero frames with zero dropped USB events; no recovery PREPARE or COMMIT intent existed and no target ran; exact Alpine fallback, strict SSH, profile restoration, host cleanup, and Steam socket restoration passed; retain offline only; never retry or flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-11 admitted artifact inventory is not exact'
+' "$manifest" || fail 'generation-11 consumed artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

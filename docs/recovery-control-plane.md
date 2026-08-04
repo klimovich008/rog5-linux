@@ -1,11 +1,13 @@
 # Stable recovery control plane
 
-Status: **shell-free framed path is established; diagnostic Generations 0–10
-are consumed; Generation 10 proved correlated `REQUEST_ACCEPTED` plus complete
+Status: **shell-free framed path is established; diagnostic Generations 0–11
+are consumed. Generation 10 proved correlated `REQUEST_ACCEPTED` plus complete
 host transfer, then lost ACM before any later progress or `PREPARED` response
-reached the host; Generation 11 adds a receive-only NCM progress channel and is
-admitted for one connected-preflight-gated RAM-only lifecycle, but remains
-unbooted with no COMMIT, target-execution, or boot claim**
+reached the host. Generation 11 reached exact recovery ACM/NCM, but its
+privileged host path rejected the started TCP 8081 progress collector as not
+uniquely confined before recovery control began. No PREPARE, transfer, COMMIT
+intent, NFS, or target occurred; Generation 11 is permanently claimed and must
+never be retried.**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.

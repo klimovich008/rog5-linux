@@ -437,7 +437,7 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
 runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
-generations 0–10 are consumed and absent from temporary-boot policy.
+generations 0–11 are consumed and absent from temporary-boot policy.
 Generation 7 transferred the complete signed bundle but the host rejected its
 post-transfer deferred-profile observation before receiving `PREPARED`; no
 intent, NFS handoff, or target execution occurred. Exact fallback and strict
@@ -481,7 +481,10 @@ no COMMIT intent existed and no target ran. Exact Alpine fallback, strict SSH,
 profile restoration, and final host cleanup passed. Generation 10 is
 permanently `BOOT_CLAIMED`, absent from boot policy, consumed in inventory, and
 never reusable. The next correction must make post-acceptance progress
-independently observable across ACM loss before any Generation-11 issuance.
+independently observable across ACM loss. Generation 11 implemented that
+channel but was consumed by the later host listener-confinement failure; the
+current correction is the production-faithful TCP 8081 ownership/PID
+reproduction and fix before any distinct successor issuance.
 
 Current execution order:
 
@@ -629,20 +632,30 @@ Current execution order:
     admitted-policy and hostile-fixture gates pass; independent spec and
     standards reviews, complete local CI, commit `8e22bc5`, and exact-head
     GitHub Actions run `30916646825` are green. Exact key and connected
-    preflight then passed after an anchored Alpine-to-fastboot transition. The
-    artifact remains unbooted with `authority=none`, and no boot claim exists.
+    preflight then passed after an anchored Alpine-to-fastboot transition. At
+    that preflight checkpoint the artifact remained unbooted with
+    `authority=none`, and no boot claim existed.
     See the
     [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md)
     and [connected result](test-results/2026-08-04-generation-11-connected-preflight-live.md).
 23. **Complete:** independent spec and standards review, complete local CI,
     commit `7b76733`, and exact-head GitHub Actions run `30921019231` publish
-    the Generation-11 connected-preflight evidence. The artifact remains
-    unbooted and has no boot claim.
-24. Run the sole admitted Generation-11 RAM-only lifecycle with no retry, then
-    preserve its exact evidence and restore verified Alpine fallback.
-25. Promote a distinct normal SSH candidate only after diagnostic evidence
+    the Generation-11 connected-preflight evidence. At that publication
+    checkpoint the artifact remained unbooted and had no boot claim.
+24. **Complete and consumed:** the sole Generation-11 RAM-only boot reached
+    exact recovery ACM/NCM. The privileged host path then rejected its started
+    TCP 8081 collector as not uniquely confined before the bundle-server ready
+    marker. Progress remained `PARTIAL/NO_ADMISSION` with zero records; no
+    PREPARE, transfer, COMMIT intent, NFS, or target occurred. Exact Alpine
+    fallback, strict SSH, host cleanup, and Steam socket restoration passed.
+    The policy row is removed and exact-basis readmission rejects. See the
+    [live result](test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
+25. Reproduce and fix the production TCP 8081 listener ownership/PID check
+    offline, including the SteamOS listener race, before issuing a distinct
+    successor.
+26. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-26. If H2 passes, continue physical keys/indicator, then H3
+27. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

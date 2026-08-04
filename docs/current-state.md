@@ -45,10 +45,12 @@ entry cycle. The panel can remain off while the server is reachable.
 ## Recovery
 
 Recovery v18 remains historical staging evidence and is recorded as revoked in
-`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–10 are consumed
-and absent from boot policy. Generation 11 is the sole active `allow` row for
-one connected-preflight-gated RAM-only lifecycle; it remains unbooted,
-`authority=none`, and has no boot claim. Generation 10 accepted
+`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–11 are consumed
+and absent from boot policy. Generation 11 reached exact recovery ACM/NCM, then
+failed closed before the bundle-server ready marker when the privileged host
+path rejected its newly started TCP 8081 collector as not uniquely confined.
+No PREPARE, transfer, COMMIT, NFS, or target occurred; exact Alpine fallback
+and host cleanup passed. Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent
 existed, no target ran, and exact Alpine fallback plus host cleanup passed.
@@ -1273,8 +1275,8 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    while central boot policy remains deny-by-default for every other image. A
    separate
    [one-shot admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
-   now adds the sole exact `allow` row for use only after connected preflight. It remains
-   ignored, unbooted, and `authority=none`, with no boot claim. Commit `5293e56` passed exact-head
+   added the sole exact `allow` row for use only after connected preflight.
+   Commit `5293e56` passed exact-head
    GitHub Actions run `30899370666`. The reviewed profile and CI-race correction
    were published at `98f8d27`; exact-head run `30904224177` passed. The next
    live-profile transition now passes Claude Opus review, independent Codex
@@ -1284,10 +1286,21 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    at `8e22bc5`; exact-head GitHub Actions run `30916646825` passed. Exact key
    and [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
    then passed after strict fallback proof and an anchored same-port reboot to
-   one `lahaina` fastboot device. The artifact remains unbooted and has no boot
-   claim. Independent spec and standards review and complete local CI passed;
+   one `lahaina` fastboot device. At that checkpoint the artifact remained
+   unbooted and had no boot claim. Independent spec and standards review and
+   complete local CI passed;
    commit `7b76733` published this evidence and exact-head GitHub Actions run
-   `30921019231` passed. The sole RAM-only lifecycle is next.
+   `30921019231` passed. Publication commit `04132f0` then passed exact-head
+   run `30921533485`. The
+   [sole live cycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+   entered the permanent private claim and booted exact recovery ACM/NCM, but
+   the privileged host path rejected its started TCP 8081 collector as not
+   uniquely confined before the bundle-server ready marker. Progress remained
+   `PARTIAL/NO_ADMISSION` with zero records; recovery control never started, so
+   no PREPARE, transfer, COMMIT intent, NFS, or target occurred. Exact Alpine
+   fallback, strict SSH, host cleanup, and Steam socket restoration passed.
+   Generation 11 is absent from boot policy, recorded `consumed`, and cannot be
+   retried or readmitted on its former exact basis.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
