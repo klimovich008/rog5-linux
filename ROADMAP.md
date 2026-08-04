@@ -665,22 +665,26 @@ Current execution order:
     installed-host verification pass. Implementation commit `1f3cc66` passed
     exact-head GitHub Actions run `30931511061` (recovery-core 4m02s; QEMU
     37s).
-26. **Offline issuance, review, and local CI complete; publication pending:** deterministic
+26. **Complete:** deterministic
     Generation-12 twins preserve the exact Generation-11 raw recovery, kernel,
     config, and NCM-capable initramfs while deriving distinct AVB
     `615d7498…d72cf6`. Immutable offline profile
     `headless-diagnostic-generation12-offline-v1` passes both retained local
-    trees; direct
-    connected actions and an unreviewed live profile reject before host
-    inspection. Central policy remains at zero `allow` rows. See the
-    [offline result](test-results/2026-08-04-generation-12-host-confinement-successor-offline.md).
-27. Publish the reviewed checkpoint and pass exact-head clean-checkout CI.
-    Local CI verifies the retained production twins;
-    clean-checkout CI verifies the deterministic synthetic issuer, exact
-    committed identities, and refusal policy because ignored production trees
-    are intentionally absent;
-    only then add a separate Generation-12 live profile, one exact central
-    admission, and a connected preflight. No boot belongs to that transition.
+    trees; direct connected actions and the then-unsupported live profile
+    reject before host inspection. The reviewed checkpoint was published at
+    commit `52ce322`; exact-head GitHub Actions run `30935842119` passed
+    recovery-core in 4m11s and QEMU in 35s. See the [offline
+    result](test-results/2026-08-04-generation-12-host-confinement-successor-offline.md).
+27. **In progress, host-only:** add
+    `headless-diagnostic-generation12-live-v1`, make the one-shot controller
+    select it, admit exactly one central-policy row, and require an exact
+    irreversible Generation-12 `BOOT_CLAIMED` record before `boot` can inspect
+    the host. Hardware-free tests cover direct-action bypass, claim reuse and
+    filesystem races, policy/header/inventory mutations, and both retained
+    twins under offline and live profiles. Finish independent review, complete
+    CI, publication, and exact-head CI; then run connected preflight. No phone
+    boot belongs to this transition. See the [host-only admission
+    result](test-results/2026-08-04-generation-12-live-admission-offline.md).
 28. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 29. If H2 passes, continue physical keys/indicator, then H3

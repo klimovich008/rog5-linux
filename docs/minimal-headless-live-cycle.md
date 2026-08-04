@@ -164,8 +164,11 @@ cleanup passed. Generation 9 is consumed and absent from policy. See the
 and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
 The lifecycle rejects an existing per-profile consumption record before
 connected preflight, then atomically writes a private durable `BOOT_CLAIMED`
-record under `${XDG_STATE_HOME:-$HOME/.local/state}/rog5-temporary-boot-consumption`
-after successful preflight and immediately before the boot gate. The permanent
+record under the effective account's passwd-database home at
+`.local/state/rog5-temporary-boot-consumption` after successful preflight and
+immediately before the boot gate. Caller-controlled `HOME` and
+`XDG_STATE_HOME` cannot redirect the production claim; isolated tests use a
+separate offline-only root. The permanent
 Generation-9 claim is now `BOOT_CLAIMED`; together with the removed policy row,
 it prevents a second run. Every successor generation must use a distinct
 recovery-profile name because this per-profile claim is permanent by design.
@@ -244,6 +247,18 @@ transfer, COMMIT intent, NFS, or target occurred. The armed target collector
 also recorded zero frames. Exact Alpine fallback, strict SSH, profile
 restoration, host cleanup, and Steam socket restoration passed. Generation 11
 is consumed, absent from boot policy, and permanently claimed; never retry it.
+The distinct Generation-12 authority-free successor was published at commit
+`52ce322` and passed exact-head GitHub Actions run `30935842119`. The current
+host-only transition makes the controller select
+`headless-diagnostic-generation12-live-v1`, admits only AVB
+`615d7498…d72cf6` through one exact central-policy row, and adds a separate
+fixed claim consumer. Direct `preflight`/`boot` reject without the lifecycle
+guard; `boot` must irreversibly enter the exact private Generation-12
+`BOOT_CLAIMED` record before host inspection. Connected preflight is the next
+hardware action. This transition does not include a phone boot. Any failure
+after durable entry burns the candidate even when no phone boot occurred; the
+only recovery is a distinct successor generation, never record repair or
+retry.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable

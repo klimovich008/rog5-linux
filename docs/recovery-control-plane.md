@@ -7,7 +7,9 @@ reached the host. Generation 11 reached exact recovery ACM/NCM, but its
 privileged host path rejected the started TCP 8081 progress collector as not
 uniquely confined before recovery control began. No PREPARE, transfer, COMMIT
 intent, NFS, or target occurred; Generation 11 is permanently claimed and must
-never be retried.**
+never be retried. Generation 12 is the current unbooted successor; its
+host-confinement-corrected offline checkpoint is published, and an exact
+live-profile/admission/claim-consumer transition is under host-only review.**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.

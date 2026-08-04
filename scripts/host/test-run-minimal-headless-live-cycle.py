@@ -21,6 +21,9 @@ from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 RUNNER = REPO / "scripts/host/run-minimal-headless-live-cycle.py"
+CLAIM_CONSUMER_PATH = (
+    REPO / "scripts/host/consume-generation12-boot-claim.py"
+)
 NETWORK_LAUNCHER = (
     REPO / "scripts/host/run-headless-network-root-server.sh"
 )
@@ -44,7 +47,7 @@ DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
-DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation11-live-v1"
+DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"
 SESSION = "1" * 32
 PREPARE = "2" * 32
 REQUEST = "3" * 32
@@ -81,6 +84,21 @@ def load_runner_module():
 
 
 CYCLE = load_runner_module()
+
+
+def load_claim_consumer_module():
+    specification = importlib.util.spec_from_file_location(
+        "rog5_generation12_claim_consumer_test",
+        CLAIM_CONSUMER_PATH,
+    )
+    if specification is None or specification.loader is None:
+        raise RuntimeError("cannot load Generation-12 claim consumer")
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return module
+
+
+CLAIM_CONSUMER = load_claim_consumer_module()
 
 
 class Fixture:
@@ -1239,7 +1257,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         ):
             dependencies = CYCLE.Dependencies.from_environment()
             inputs = CYCLE.Inputs(
-                manifest_sha256=MANIFEST,
+                manifest_sha256=CLAIM_CONSUMER.MANIFEST_SHA256,
                 ssh_key=self.fixture.ssh_key,
                 ssh_public_key_sha256="4" * 64,
                 root_package_sha256=PACKAGE_SHA256,
@@ -1254,16 +1272,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 inputs,
                 CYCLE.DIAGNOSTIC_CYCLE_PROFILE,
             )
+            production_cycle = CYCLE.LiveCycle(
+                replace(dependencies, offline=False),
+                inputs,
+                CYCLE.DIAGNOSTIC_CYCLE_PROFILE,
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HOME": "/hostile-home",
+                    "XDG_STATE_HOME": "/hostile-state",
+                },
+            ):
+                self.assertEqual(
+                    production_cycle.temporary_boot_consumption_root(),
+                    CLAIM_CONSUMER.canonical_claim_root(),
+                )
             cycle.assert_temporary_boot_unconsumed()
             cycle.claim_temporary_boot()
             record = cycle.temporary_boot_consumption_path()
+            self.assertEqual(record.read_bytes(), CLAIM_CONSUMER.EXPECTED)
+            self.assertEqual(record.parent.stat().st_mode & 0o777, 0o700)
             self.assertEqual(record.stat().st_mode & 0o777, 0o600)
             self.assertEqual(
                 record.read_text(encoding="ascii"),
                 "format=rog5-temporary-boot-consumption-v1\n"
                 f"recovery_profile={DIAGNOSTIC_RECOVERY_PROFILE}\n"
                 f"candidate={DIAGNOSTIC_CANDIDATE}\n"
-                f"manifest_sha256={MANIFEST}\n"
+                f"manifest_sha256={CLAIM_CONSUMER.MANIFEST_SHA256}\n"
                 "state=BOOT_CLAIMED\n",
             )
             with self.assertRaisesRegex(

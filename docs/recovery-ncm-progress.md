@@ -40,7 +40,12 @@ The distinct
 is AVB `615d7498…d72cf6` over the byte-identical Generation-11 raw recovery,
 kernel, and NCM-capable initramfs. Both deterministic trees pass immutable
 offline profile `headless-diagnostic-generation12-offline-v1`. Central policy
-remains at zero `allow` rows; no live profile or lifecycle selector exists.
+remained at zero `allow` rows at commit `52ce322`, whose exact-head GitHub
+Actions run `30935842119` passed. The current host-only successor transition
+adds exact live profile `headless-diagnostic-generation12-live-v1`, selects it
+only through the one-shot lifecycle, admits one exact central-policy row, and
+requires irreversible entry of its private durable boot claim. Connected
+preflight and phone boot remain pending.
 
 This channel addresses one exact failure: recovery can continue processing a
 valid `PREPARE` after the ACM response transport disappears. Generation 10
@@ -216,10 +221,12 @@ artifact role is `consumed`, and the entered private `BOOT_CLAIMED` record
 independently prevents reuse. The production-faithful reproduction and exact
 listener-verification correction are complete offline. Complete local CI and
 installed-host verification pass; implementation commit `1f3cc66` passed
-exact-head GitHub Actions run `30931511061`. Generation 12 is now issued and
-artifact-preflighted offline. Independent review, complete CI, publication,
-and exact-head CI remain before a separate live-profile and connected-preflight
-transition. No phone boot is authorized by this checkpoint.
+exact-head GitHub Actions run `30931511061`. Generation 12's authority-free
+offline checkpoint is published at `52ce322` with exact-head run
+`30935842119`. The current host-only transition supplies its separate live
+profile, sole exact admission row, lifecycle selection, and irreversible claim
+consumer. Full review/publication and connected preflight remain before any
+phone boot; no execute action belongs to this transition.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the
