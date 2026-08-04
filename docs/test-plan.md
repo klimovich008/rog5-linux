@@ -439,20 +439,28 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   salt and digest reproduction, and `authority=none`. Immutable profile
   `headless-diagnostic-generation12-offline-v1` pins the exact artifact and
   complete signed runtime tuple. Separate live profile
-  `headless-diagnostic-generation12-live-v1` binds the same tuple to the
-  lifecycle and sole exact policy row. Direct connected actions reject without
-  the lifecycle guard; boot also requires irreversible entry of the private
-  exact `BOOT_CLAIMED` record. Eleven consumer cases cover canonical-root
+  `headless-diagnostic-generation12-live-v1` bound the same tuple to the
+  lifecycle and sole exact policy row at its admitted checkpoint. Direct
+  connected actions rejected without the lifecycle guard; boot also required
+  irreversible entry of the private exact `BOOT_CLAIMED` record. Eleven
+  consumer cases cover canonical-root
   confinement, symlinked passwd-home canonicalization, reuse, content,
   metadata, symlink, opened-root replacement, pre-existing destination, and
   pathname replacement.
   Missing/duplicate/malformed policy and artifact rows, wrong basis, denied
   status, identity mutation, consumed role, and trailing fields reject before
-  host inspection. Both profiles pass policy and retained-twin artifact
-  preflight. See the
+  host inspection. Both profiles pass retained-twin artifact preflight. The
+  sole lifecycle reached target stage 70 `nfs-mount-begin`, disconnected
+  before stage 80, and returned to exact fallback. Generation 12 is consumed,
+  absent from policy, and production diagnostic actions now reject before
+  credentials or phone inspection. The lifecycle parser requires the complete
+  18-field PREPARE/COMMIT objects, validates all postmortem states and bounds,
+  and rejects every missing/extra field, transaction mutation, malformed
+  postmortem tuple, or cross-response change. See the
   [offline result](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md),
   [live-admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md),
-  and [connected-preflight result](../test-results/2026-08-04-generation-12-connected-preflight-live.md).
+  [connected-preflight result](../test-results/2026-08-04-generation-12-connected-preflight-live.md),
+  and [live result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

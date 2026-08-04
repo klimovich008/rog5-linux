@@ -23,8 +23,8 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–11 are consumed, absent from boot policy, and never reusable. Generation 10 reached exact recovery ACM/NCM, emitted correlated `REQUEST_ACCEPTED`, and caused the complete 46,163,787-byte signed bundle transfer. The ACM response transport then closed before any later progress or `PREPARED` response reached the host; the exact device-side boundary remains unknown. Replay was explicitly classified as fallback/product-mismatch, no COMMIT intent existed, no target ran, and exact Alpine fallback plus final host cleanup passed. The permanent private boot claim and consumed inventory role independently prevent reuse. |
-| Next recovery increment | The receive-only [NCM progress channel](docs/recovery-ncm-progress.md) spans the exact device namespace, privileged broker/controller, root-to-user collector, and post-COMMIT lifecycle assessment. Generation 11 is consumed; its failure led to the reviewed TCP-8081 host-confinement correction. The distinct [Generation-12 offline successor](test-results/2026-08-04-generation-12-host-confinement-successor-offline.md), AVB `615d7498…d72cf6`, was published at commit `52ce322`. Its [live admission](test-results/2026-08-04-generation-12-live-admission-offline.md) was published at `328b33c`, passed exact-head run `30942517411`, and the [connected preflight](test-results/2026-08-04-generation-12-connected-preflight-live.md) then passed after an anchored Alpine-to-fastboot transition. No Generation-12 claim or boot has occurred. Publish this evidence exact-head green before the sole RAM-only diagnostic lifecycle. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–12 are consumed, absent from boot policy, and never reusable. The sole Generation-12 lifecycle transferred the exact signed bundle, accepted correlated PREPARE/COMMIT, and produced 40 lossless target frames through stage 70 `nfs-mount-begin`; USB disconnected before stage 80 `nfs-mount-ok`. The watchdog returned exact Alpine fallback and resolved the intent `FALLBACK_RETURNED`. |
+| Next recovery increment | The [Generation-12 live result](test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md) isolates failure to the first NFS mount or a lower kernel/USB/network boundary without claiming an unproven panic. Generation 12 is consumed and production diagnostic actions are held before credentials or phone inspection. The host parser is being corrected for the full postmortem-extended control contract; the next successor must add pre/post-syscall, host NFS/TCP, USB continuity, and current-cycle postmortem lineage before another one-shot boot. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -77,7 +77,7 @@ gate.
 `manifests/artifacts.tsv` is an inventory, not boot authority.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
 It retains the twice-live-accepted v18 staging image as revoked historical
-evidence. Diagnostic generations 0–11 are consumed and absent from boot
+evidence. Diagnostic generations 0–12 are consumed and absent from boot
 policy. Generation 10's sole RAM-only lifecycle emitted correlated
 `REQUEST_ACCEPTED` and completed the host-side signed-bundle transfer. The ACM
 response channel then closed before any later progress or `PREPARED` response
@@ -90,11 +90,11 @@ rejected the newly started progress collector's listener confinement before
 publishing the bundle-server ready marker. No PREPARE, transfer, COMMIT, NFS,
 or target followed. Exact fallback and cleanup passed. Its permanent claim,
 removed policy row, and consumed role independently prevent reuse.
-Generation 12 is the single current unbooted candidate. Its exact live profile
-is selected only by the one-shot lifecycle, one exact central-policy row admits
-it after connected preflight, and `boot` must irreversibly enter its private
-durable claim before host inspection. This admission does not itself authorize
-a retry, flash, phone-storage write, or persistent install.
+Generation 12 transferred the complete signed bundle, accepted PREPARE and
+COMMIT, reached repeated target stage 70 `nfs-mount-begin`, and disconnected
+before stage 80 `nfs-mount-ok`. Exact fallback and cleanup passed. Its policy
+row is removed, its artifact role and private claim are consumed, and
+production diagnostic actions reject before credential or phone inspection.
 See the Generation-8
 [live result](test-results/2026-08-03-generation-8-recovery-acm-stability-live.md)
 and Generation-9
@@ -107,7 +107,9 @@ plus the Generation-10
 [connected preflight](test-results/2026-08-04-generation-10-connected-preflight-live.md),
 and [live result](test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md),
 plus the Generation-11
-[live result](test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
+[live result](test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+and the Generation-12
+[live result](test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
 No consumed generation may be retried, and no diagnostic image may ever be
 flashed.
 

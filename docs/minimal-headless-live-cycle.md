@@ -4,7 +4,7 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–11 are consumed and absent from
+Tracked status: **diagnostic generations 0–12 are consumed and absent from
 temporary-boot policy**. Generation 10 emitted correlated `REQUEST_ACCEPTED`
 and completed the host-side signed-bundle transfer. ACM then closed before any
 later progress or `PREPARED` response reached the host; the exact device-side
@@ -249,19 +249,28 @@ restoration, host cleanup, and Steam socket restoration passed. Generation 11
 is consumed, absent from boot policy, and permanently claimed; never retry it.
 The distinct Generation-12 authority-free successor was published at commit
 `52ce322` and passed exact-head GitHub Actions run `30935842119`. Commit
-`328b33c` makes the controller select
-`headless-diagnostic-generation12-live-v1`, admits only AVB
+`328b33c` made the controller select
+`headless-diagnostic-generation12-live-v1` and admitted only AVB
 `615d7498…d72cf6` through one exact central-policy row, and adds a separate
 fixed claim consumer. Direct `preflight`/`boot` reject without the lifecycle
 guard; `boot` must irreversibly enter the exact private Generation-12
 `BOOT_CLAIMED` record before host inspection; exact-head run `30942517411`
-passed, then connected preflight passed after an anchored Alpine-to-fastboot
-transition and bounded Steam TCP-8081 socket stop/restore. No Generation-12
-claim or boot occurred. Publish that evidence exact-head green before the
-sole diagnostic run. Any failure
-after durable entry burns the candidate even when no phone boot occurred; the
-only recovery is a distinct successor generation, never record repair or
-retry.
+passed. Connected-preflight publication commit `1ee5508` and exact-head run
+`30944062957` then passed after an anchored Alpine-to-fastboot transition and
+bounded Steam TCP-8081 socket stop/restore.
+
+The [sole diagnostic run](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+entered the claim, transferred the exact signed bundle, accepted correlated
+PREPARE/COMMIT, and captured 40 lossless target frames through stage 70
+`nfs-mount-begin`. USB disconnected before stage 80 `nfs-mount-ok`; watchdog
+fallback, strict SSH, cleanup, Steam socket restoration, and
+`FALLBACK_RETURNED` resolution passed. Generation 12 is consumed, absent from
+policy, and held before credentials or phone inspection. The outer lifecycle
+parser separately rejected the valid postmortem-extended PREPARE object because
+it still expected a legacy seven-field shape; the host-only correction now
+requires the complete contract and hostile cross-response invariants. Only a
+distinct successor with stronger NFS/USB/postmortem instrumentation may run;
+never repair the record or retry Generation 12.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable

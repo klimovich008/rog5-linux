@@ -807,7 +807,7 @@ class Fixture:
                   echo 'FAIL exact network-root NFSv4.2 listener was not ready before COMMIT'
                   exit 1
                 fi
-                printf '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"%s","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}\n' \
+                printf '{{"commit_fingerprint":"{CYCLE.ZERO_SHA256}","commit_request":"{CYCLE.ZERO_ID}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{PREPARE}","result":"PREPARED","session":"{SESSION}","state":"PREPARED","verb":"PREPARE","watchdog":"ARMED"}}\n' \
                   "$BUNDLE"
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
@@ -837,7 +837,8 @@ class Fixture:
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
                 fi
-                printf '{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                printf '{{"commit_fingerprint":"{CANDIDATE_SHA256}","commit_request":"{REQUEST}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{REQUEST}","result":"CLAIMED","session":"{SESSION}","state":"CLAIMED","verb":"COMMIT_EXEC","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                  "$BUNDLE" \
                   "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
                 ;;
@@ -1099,6 +1100,294 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.fixture.close()
+
+    def control_records(
+        self,
+        *,
+        postmortem: dict[str, str] | None = None,
+    ) -> tuple[dict[str, str], dict[str, str], dict[str, object]]:
+        evidence = postmortem or {
+            "postmortem_state": "PRESENT",
+            "postmortem_records": "1",
+            "postmortem_bytes": "472926",
+            "postmortem_sha256": "4" * 64,
+            "postmortem_tail_hex": "00ff",
+        }
+        prepared = {
+            "commit_fingerprint": CYCLE.ZERO_SHA256,
+            "commit_request": CYCLE.ZERO_ID,
+            "execution_started": "NO",
+            "last_error": "NONE",
+            "manifest_sha256": MANIFEST,
+            **evidence,
+            "prepare_request": PREPARE,
+            "prepared_bundle": DIAGNOSTIC_BUNDLE,
+            "request": PREPARE,
+            "result": "PREPARED",
+            "session": SESSION,
+            "state": "PREPARED",
+            "verb": "PREPARE",
+            "watchdog": "ARMED",
+        }
+        committed = {
+            "commit_fingerprint": "5" * 64,
+            "commit_request": REQUEST,
+            "execution_started": "NO",
+            "last_error": "NONE",
+            "manifest_sha256": MANIFEST,
+            **evidence,
+            "prepare_request": PREPARE,
+            "prepared_bundle": DIAGNOSTIC_BUNDLE,
+            "request": REQUEST,
+            "result": "CLAIMED",
+            "session": SESSION,
+            "state": "CLAIMED",
+            "verb": "COMMIT_EXEC",
+            "watchdog": "ARMED",
+        }
+        intent: dict[str, object] = {
+            "created_unix_ns": 1,
+            "manifest_sha256": MANIFEST,
+            "outcome": "UNKNOWN",
+            "request": REQUEST,
+            "session": SESSION,
+            "state": "TRANSMITTED",
+            "target": DIAGNOSTIC_BUNDLE,
+        }
+        return prepared, committed, intent
+
+    def parse_control_records(
+        self,
+        prepared: dict[str, object],
+        committed: dict[str, object],
+        intent: dict[str, object],
+    ) -> tuple[CYCLE.Intent, str]:
+        path = self.fixture.root / "control-parser.log"
+        path.write_text(
+            "\n".join(
+                (
+                    json.dumps(prepared, sort_keys=True, separators=(",", ":")),
+                    json.dumps(committed, sort_keys=True, separators=(",", ":")),
+                    json.dumps(intent, sort_keys=True, separators=(",", ":")),
+                    "PASS recovery accepted one commit; outcome remains UNKNOWN",
+                    "",
+                )
+            ),
+            encoding="utf-8",
+        )
+        return CYCLE.parse_control_log(
+            path,
+            MANIFEST,
+            DIAGNOSTIC_BUNDLE,
+        )
+
+    def test_control_parser_accepts_full_correlated_postmortem_contract(self):
+        states = (
+            {
+                "postmortem_state": "PRESENT",
+                "postmortem_records": "64",
+                "postmortem_bytes": "4194304",
+                "postmortem_sha256": "4" * 64,
+                "postmortem_tail_hex": "00" * 512,
+            },
+            {
+                "postmortem_state": "EMPTY",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.EMPTY_SHA256,
+                "postmortem_tail_hex": "none",
+            },
+            {
+                "postmortem_state": "UNAVAILABLE",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.ZERO_SHA256,
+                "postmortem_tail_hex": "none",
+            },
+        )
+        for postmortem in states:
+            with self.subTest(state=postmortem["postmortem_state"]):
+                records = self.control_records(postmortem=postmortem)
+                intent, prepare_request = self.parse_control_records(*records)
+                self.assertEqual(intent.session, SESSION)
+                self.assertEqual(intent.request, REQUEST)
+                self.assertEqual(prepare_request, PREPARE)
+
+    def test_control_parser_rejects_missing_or_extra_response_fields(self):
+        for response_index in (0, 1):
+            for field in sorted(CYCLE.CONTROL_RESPONSE_FIELDS):
+                with self.subTest(response=response_index, missing=field):
+                    records = list(self.control_records())
+                    records[response_index] = dict(records[response_index])
+                    del records[response_index][field]
+                    with self.assertRaisesRegex(
+                        CYCLE.CycleError,
+                        "recovery (PREPARE|COMMIT) evidence is inconsistent",
+                    ):
+                        self.parse_control_records(*records)
+            with self.subTest(response=response_index, extra="unexpected"):
+                records = list(self.control_records())
+                records[response_index] = dict(records[response_index])
+                records[response_index]["unexpected"] = "field"
+                with self.assertRaisesRegex(
+                    CYCLE.CycleError,
+                    "recovery (PREPARE|COMMIT) evidence is inconsistent",
+                ):
+                    self.parse_control_records(*records)
+
+    def test_control_parser_rejects_malformed_postmortem_contract(self):
+        mutations = (
+            ("postmortem_state", "UNKNOWN"),
+            ("postmortem_records", "01"),
+            ("postmortem_records", "65"),
+            ("postmortem_bytes", "00"),
+            ("postmortem_bytes", "4194305"),
+            ("postmortem_sha256", "g" * 64),
+            ("postmortem_tail_hex", "0"),
+            ("postmortem_tail_hex", "00" * 513),
+        )
+        for field, value in mutations:
+            with self.subTest(field=field, value=value[:16]):
+                records = list(self.control_records())
+                records[0] = dict(records[0])
+                records[0][field] = value
+                with self.assertRaisesRegex(
+                    CYCLE.CycleError,
+                    "recovery PREPARE evidence is inconsistent",
+                ):
+                    self.parse_control_records(*records)
+
+        inconsistent_states = (
+            {
+                "postmortem_state": "PRESENT",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.ZERO_SHA256,
+                "postmortem_tail_hex": "none",
+            },
+            {
+                "postmortem_state": "EMPTY",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.ZERO_SHA256,
+                "postmortem_tail_hex": "none",
+            },
+            {
+                "postmortem_state": "UNAVAILABLE",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.EMPTY_SHA256,
+                "postmortem_tail_hex": "none",
+            },
+        )
+        for postmortem in inconsistent_states:
+            with self.subTest(inconsistent=postmortem["postmortem_state"]):
+                records = self.control_records(postmortem=postmortem)
+                with self.assertRaisesRegex(
+                    CYCLE.CycleError,
+                    "recovery PREPARE evidence is inconsistent",
+                ):
+                    self.parse_control_records(*records)
+
+    def test_control_parser_rejects_cross_response_postmortem_change(self):
+        records = list(self.control_records())
+        records[1] = dict(records[1])
+        records[1].update(
+            {
+                "postmortem_state": "EMPTY",
+                "postmortem_records": "0",
+                "postmortem_bytes": "0",
+                "postmortem_sha256": CYCLE.EMPTY_SHA256,
+                "postmortem_tail_hex": "none",
+            }
+        )
+        with self.assertRaisesRegex(
+            CYCLE.CycleError,
+            "recovery COMMIT evidence is inconsistent",
+        ):
+            self.parse_control_records(*records)
+
+    def test_control_parser_rejects_transaction_identity_mutations(self):
+        prepared_mutations = {
+            "session": CYCLE.ZERO_ID,
+            "request": CYCLE.ZERO_ID,
+            "verb": "STATUS",
+            "result": "OK",
+            "state": "CLAIMED",
+            "prepared_bundle": "wrong-bundle",
+            "manifest_sha256": "6" * 64,
+            "prepare_request": "7" * 32,
+            "commit_request": REQUEST,
+            "commit_fingerprint": "8" * 64,
+            "execution_started": "YES",
+            "watchdog": "INVALID",
+            "last_error": "FETCH_FAILED",
+        }
+        committed_mutations = {
+            "session": CYCLE.ZERO_ID,
+            "request": CYCLE.ZERO_ID,
+            "verb": "STATUS",
+            "result": "PREPARED",
+            "state": "PREPARED",
+            "prepared_bundle": "wrong-bundle",
+            "manifest_sha256": "6" * 64,
+            "prepare_request": "7" * 32,
+            "commit_request": "8" * 32,
+            "commit_fingerprint": CYCLE.ZERO_SHA256,
+            "execution_started": "YES",
+            "watchdog": "INVALID",
+            "last_error": "EXEC_FAILED",
+        }
+        for response_index, mutations, marker in (
+            (0, prepared_mutations, "PREPARE"),
+            (1, committed_mutations, "COMMIT"),
+        ):
+            for field, value in mutations.items():
+                with self.subTest(response=marker, field=field):
+                    records = list(self.control_records())
+                    records[response_index] = dict(records[response_index])
+                    records[response_index][field] = value
+                    with self.assertRaisesRegex(
+                        CYCLE.CycleError,
+                        f"recovery {marker} evidence is inconsistent",
+                    ):
+                        self.parse_control_records(*records)
+
+    def test_consumed_generation12_actions_fail_before_guards_or_credentials(
+        self,
+    ):
+        for action in (
+            "diagnostic-key-preflight",
+            "diagnostic-preflight",
+            "diagnostic-run",
+        ):
+            with self.subTest(action=action):
+                result = subprocess.run(
+                    [str(RUNNER), action],
+                    env={
+                        "PATH": os.environ["PATH"],
+                        "HOME": str(self.fixture.root / "absent-home"),
+                        "ROG5_DEPLOYMENT_SSH_KEY": str(
+                            self.fixture.root / "poison-key"
+                        ),
+                    },
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                    timeout=5,
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual(
+                    result.stderr,
+                    "FAIL no diagnostic recovery lifecycle is admitted; "
+                    "Generation-12 is consumed and must not be retried\n",
+                )
+                self.assertFalse(
+                    (self.fixture.root / "poison-key").exists()
+                )
 
     def test_ncm_model_allowlist_is_exact(self):
         self.assertEqual(

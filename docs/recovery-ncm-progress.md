@@ -41,11 +41,16 @@ is AVB `615d7498…d72cf6` over the byte-identical Generation-11 raw recovery,
 kernel, and NCM-capable initramfs. Both deterministic trees pass immutable
 offline profile `headless-diagnostic-generation12-offline-v1`. Central policy
 remained at zero `allow` rows at commit `52ce322`, whose exact-head GitHub
-Actions run `30935842119` passed. The current host-only successor transition
-adds exact live profile `headless-diagnostic-generation12-live-v1`, selects it
-only through the one-shot lifecycle, admits one exact central-policy row, and
-requires irreversible entry of its private durable boot claim. Connected
-preflight and phone boot remain pending.
+Actions run `30935842119` passed. The later transition added exact live profile
+`headless-diagnostic-generation12-live-v1`, selected it only through the
+one-shot lifecycle, admitted one exact central-policy row, and required
+irreversible entry of its private durable boot claim. Connected preflight and
+the [sole live cycle](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+then passed their gates. Recovery progress completed all five records; the
+target emitted 40 lossless frames through stage 70 `nfs-mount-begin`, then USB
+disconnected before stage 80. Exact fallback and cleanup passed. Generation 12
+is consumed, absent from policy, and never reusable. Production diagnostic
+actions reject before credentials or phone inspection.
 
 This channel addresses one exact failure: recovery can continue processing a
 valid `PREPARE` after the ACM response transport disappears. Generation 10
