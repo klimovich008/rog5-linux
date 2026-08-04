@@ -56,9 +56,12 @@ exact scoped record with the sole launched PID/fd owner and no IPv6 conflict;
 complete CI, host installation, and implementation-commit exact-head CI pass.
 Generation-12 AVB `615d7498…d72cf6` is the distinct authority-free successor
 over the byte-identical raw recovery. Its deterministic twins and immutable
-offline profile pass; no live profile, lifecycle selector, policy row,
-connected preflight, or boot authority exists. Independent review and complete
-local CI pass; publication and clean-checkout exact-head CI remain.
+offline profile pass. Commit `52ce322` and exact-head GitHub Actions run
+`30935842119` publish that reviewed checkpoint. The current host-only
+transition adds the exact live profile and lifecycle selector, the sole
+central-policy `allow` row, and a fail-closed irreversible Generation-12 claim
+consumer. Connected preflight, phone contact, and phone boot have not occurred;
+the candidate remains unbooted and never-flash.
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

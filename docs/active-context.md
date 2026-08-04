@@ -135,16 +135,26 @@ The distinct
 now has two deterministic trees at AVB `615d7498…d72cf6`. It preserves the
 exact Generation-11 raw recovery, kernel, config, and NCM-capable initramfs.
 Immutable profile `headless-diagnostic-generation12-offline-v1` passes both
-trees; direct preflight/boot and an unreviewed live profile reject before host
-inspection. Central policy has zero `allow` rows and neither lifecycle source
-selects Generation 12. Independent review and complete local CI pass;
-publication and exact-head clean-checkout CI remain before any
-live-profile/connected-preflight transition;
-no phone boot is authorized by this checkpoint. Independent spec and
-standards review plus complete local CI passed for the consumed
-transition; commit `3cee3f1` published it and
-exact-head GitHub Actions run `30926911113` passed recovery-core in 3m59s and
-QEMU in 35s.
+trees. Independent review and complete local CI passed; commit `52ce322`
+published the authority-free checkpoint and exact-head GitHub Actions run
+`30935842119` passed recovery-core in 4m11s and QEMU in 35s.
+
+The current host-only transition adds exact live profile
+`headless-diagnostic-generation12-live-v1`, selects it from the one-shot
+lifecycle, and adds the sole central-policy `allow` row for exact path
+`build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img`.
+Direct `preflight`/`boot` still reject without the lifecycle guard. `boot`
+must additionally validate and irreversibly enter the controller's private
+Generation-12 `BOOT_CLAIMED` record before any host inspection. Ten
+claim-consumer cases and hostile policy/inventory fixtures exercise canonical
+root confinement, symlinked passwd-home canonicalization, reuse,
+content/metadata/link races, missing or duplicate
+rows, wrong basis, denied status, consumed/altered role, tracked-state drift,
+and trailing fields. Finish full CI and independent
+review, publish exact-head green, then run connected preflight only. This
+transition has not contacted or booted the phone; no Generation-12 execute
+belongs to it. See the [host-only admission
+result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
 ## Historical deployment chronology
 

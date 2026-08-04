@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import pwd
 import re
 import secrets
 import signal
@@ -22,7 +23,7 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
-DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation11-live-v1"
+DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
@@ -1709,13 +1710,27 @@ class LiveCycle:
         return base / "rog5-recovery-intents"
 
     def temporary_boot_consumption_root(self) -> Path:
-        state_home = os.environ.get("XDG_STATE_HOME")
-        if state_home:
-            base = Path(state_home)
-            if not base.is_absolute():
-                fail("XDG_STATE_HOME must be absolute for lifecycle state")
+        if self.dependencies.offline:
+            state_home = os.environ.get("XDG_STATE_HOME")
+            if state_home:
+                base = Path(state_home)
+                if not base.is_absolute():
+                    fail(
+                        "XDG_STATE_HOME must be absolute for lifecycle state"
+                    )
+            else:
+                base = Path.home() / ".local" / "state"
         else:
-            base = Path.home() / ".local" / "state"
+            account_home = Path(pwd.getpwuid(os.geteuid()).pw_dir)
+            if not account_home.is_absolute():
+                fail("lifecycle account home must be absolute")
+            try:
+                account_home = account_home.resolve(strict=True)
+            except OSError as error:
+                raise CycleError(
+                    "lifecycle account home is unsafe or absent"
+                ) from error
+            base = account_home / ".local" / "state"
         return base / "rog5-temporary-boot-consumption"
 
     def temporary_boot_consumption_path(self) -> Path:

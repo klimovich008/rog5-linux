@@ -438,11 +438,20 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   AVB non-reuse, exact raw/kernel/config/initramfs preservation, independent
   salt and digest reproduction, and `authority=none`. Immutable profile
   `headless-diagnostic-generation12-offline-v1` pins the exact artifact and
-  complete signed runtime tuple. Policy and retained-tree artifact preflight
-  pass; five identity mutations, a generation-record mutation, direct
-  preflight/boot, an unreviewed live profile, lifecycle leakage, inventory
-  mutation, and any central-policy row reject. See the
-  [offline result](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md).
+  complete signed runtime tuple. Separate live profile
+  `headless-diagnostic-generation12-live-v1` binds the same tuple to the
+  lifecycle and sole exact policy row. Direct connected actions reject without
+  the lifecycle guard; boot also requires irreversible entry of the private
+  exact `BOOT_CLAIMED` record. Ten consumer cases cover canonical-root
+  confinement, symlinked passwd-home canonicalization, reuse, content,
+  metadata, symlink, opened-root replacement, pre-existing destination, and
+  pathname replacement.
+  Missing/duplicate/malformed policy and artifact rows, wrong basis, denied
+  status, identity mutation, consumed role, and trailing fields reject before
+  host inspection. Both profiles pass policy and retained-twin artifact
+  preflight. See the
+  [offline result](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md)
+  and [live-admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

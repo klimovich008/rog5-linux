@@ -183,6 +183,7 @@ if [[ $tier == ci ]]; then
 			scripts/device/test-build-early-target-diag.sh
 			scripts/host/test-recovery-linux.sh
 			scripts/host/test-consume-generation11-boot-claim.py
+			scripts/host/test-consume-generation12-boot-claim.py
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
 		scripts/host/test-recovery-progress-collector.py
@@ -270,6 +271,7 @@ else
 			scripts/host/test-collect-early-target-diagnostics.py
 			scripts/host/test-recovery-linux.sh
 			scripts/host/test-consume-generation11-boot-claim.py
+			scripts/host/test-consume-generation12-boot-claim.py
 		scripts/host/test-recovery-control-reference.py
 		scripts/host/test-recovery-control-native.py
 		scripts/host/test-recovery-progress-collector.py

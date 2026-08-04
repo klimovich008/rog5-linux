@@ -29,7 +29,8 @@ validate_artifact_manifest_header() {
 
 validate_exact_boot_admission() {
 	local policy=$1 inventory=$2 name=$3 basis=$4 sha=$5
-	local matches fields status found_basis identity role
+	local expected_role=${6:-} expected_tracked=${7:-}
+	local matches fields status found_basis identity role tracked
 	validate_temporary_boot_policy_header "$policy"
 	matches=$(awk -F '\t' -v name="$name" \
 		'$1 == name { count++ } END { print count + 0 }' "$policy")
@@ -68,6 +69,16 @@ validate_exact_boot_admission() {
 		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
 		*) fail 'temporary boot artifact is not recorded as unbooted' ;;
 	esac
+	if [[ -n $expected_role ]]; then
+		[[ $role == "$expected_role" ]] ||
+			fail 'temporary boot artifact role does not match the pinned profile'
+	fi
+	tracked=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print $5; exit }' "$inventory")
+	if [[ -n $expected_tracked ]]; then
+		[[ $tracked == "$expected_tracked" ]] ||
+			fail 'temporary boot artifact tracked state does not match the pinned profile'
+	fi
 }
 
 action=${1:-preflight}
@@ -111,7 +122,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation10-live-v1 | \
 		headless-diagnostic-generation11-offline-v1 | \
 		headless-diagnostic-generation11-live-v1 | \
-		headless-diagnostic-generation12-offline-v1) ;;
+		headless-diagnostic-generation12-offline-v1 | \
+		headless-diagnostic-generation12-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -129,6 +141,11 @@ expected_avb_salt=
 expected_avb_digest=
 expected_boot_image=
 expected_boot_basis=
+expected_boot_role=
+expected_boot_tracked=
+admission_snapshot_dir=
+early_boot_policy_snapshot=
+early_artifact_manifest_snapshot=
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
@@ -688,9 +705,16 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation12-offline-v1)
-		if [[ $action != policy-preflight && $action != artifact-preflight ]]; then
+	headless-diagnostic-generation12-offline-v1 | \
+	headless-diagnostic-generation12-live-v1)
+		if [[ $profile == headless-diagnostic-generation12-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-12 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation12-live-v1 &&
+			$action != policy-preflight && $action != artifact-preflight &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-12 connected action requires the one-shot lifecycle controller'
 		fi
 		component_layout=structured
 		expected_kernel=895272e87d5a90ae6b9b8df71862b48d819479d5bbf2741fab002126e47d3eae
@@ -705,6 +729,12 @@ case $profile in
 		expected_generation_record=2b8a05d4655a4794ae4ee5ce9fe1279b194dec39d3a4bfcb93904cc665192c72
 		expected_avb_salt=728dcc59f29e0fbf83165b6979bb5dc68571b0d0e0236993fc9b8f2dd98084c9
 		expected_avb_digest=31d1ec59526d876de914330004d42752cfc7b24bd069b955d64687ef750b526d
+		if [[ $profile == headless-diagnostic-generation12-live-v1 ]]; then
+			expected_boot_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img
+			expected_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'
+			expected_boot_role='unbooted generation-12 host-confinement-corrected diagnostic recovery; byte-identical generation-11 raw payload with a distinct deterministic authority-free AVB generation; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash'
+			expected_boot_tracked=no
+		fi
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'generation-12 diagnostic runtime manifest is not pinned'
@@ -743,9 +773,21 @@ if [[ -n $expected_boot_image &&
 	[[ -f $early_artifact_manifest && ! -L $early_artifact_manifest &&
 		-r $early_artifact_manifest ]] ||
 		fail 'unsafe or missing early artifact manifest input'
+	for command in cp mktemp; do
+		command -v "$command" >/dev/null ||
+			fail "missing admission-snapshot command: $command"
+	done
+	admission_snapshot_dir=$(mktemp -d)
+	trap 'rm -rf -- "$admission_snapshot_dir"' EXIT HUP INT TERM
+	early_boot_policy_snapshot=$admission_snapshot_dir/temporary-boot-images.tsv
+	early_artifact_manifest_snapshot=$admission_snapshot_dir/artifacts.tsv
+	cp --reflink=never -- "$early_boot_policy" "$early_boot_policy_snapshot"
+	cp --reflink=never -- "$early_artifact_manifest" \
+		"$early_artifact_manifest_snapshot"
 	validate_exact_boot_admission \
-		"$early_boot_policy" "$early_artifact_manifest" \
-		"$expected_boot_image" "$expected_boot_basis" "$expected_image"
+		"$early_boot_policy_snapshot" "$early_artifact_manifest_snapshot" \
+		"$expected_boot_image" "$expected_boot_basis" "$expected_image" \
+		"$expected_boot_role" "$expected_boot_tracked"
 fi
 
 if [[ $action == policy-preflight ]]; then
@@ -770,13 +812,13 @@ for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 		fail "missing live-gate command: $command"
 done
 [[ $(uname -s) == Linux ]] || fail 'the live gate requires Linux'
-if [[ $profile == headless-diagnostic-generation11-live-v1 &&
+if [[ $profile == headless-diagnostic-generation12-live-v1 &&
 	$action == boot ]]; then
-	claim_consumer=$repo/scripts/host/consume-generation11-boot-claim.py
+	claim_consumer=$repo/scripts/host/consume-generation12-boot-claim.py
 	[[ -f $claim_consumer && ! -L $claim_consumer && -x $claim_consumer ]] ||
-		fail 'generation-11 claim consumer is unsafe or absent'
+		fail 'generation-12 claim consumer is unsafe or absent'
 	"$claim_consumer" ||
-		fail 'generation-11 durable BOOT_CLAIMED record was not entered'
+		fail 'generation-12 durable BOOT_CLAIMED record was not entered'
 fi
 if [[ $action != artifact-preflight ]]; then
 	for command in sed systemctl; do
@@ -884,9 +926,16 @@ if [[ $action == preflight || $action == boot ]]; then
 	if [[ -n $expected_boot_image ]]; then
 		[[ $image_name == "$expected_boot_image" ]] ||
 			fail 'temporary boot image does not match the pinned profile path'
+		[[ -n $early_boot_policy_snapshot &&
+			-n $early_artifact_manifest_snapshot &&
+			-f $early_boot_policy_snapshot &&
+			-f $early_artifact_manifest_snapshot ]] ||
+			fail 'early temporary-boot admission snapshot is absent'
 		validate_exact_boot_admission \
-			"$boot_policy" "$artifact_manifest" "$image_name" \
-			"$expected_boot_basis" "$expected_image"
+			"$early_boot_policy_snapshot" \
+			"$early_artifact_manifest_snapshot" "$image_name" \
+			"$expected_boot_basis" "$expected_image" \
+			"$expected_boot_role" "$expected_boot_tracked"
 	else
 		# Historical profiles without an exact path pin retain their legacy
 		# non-empty-basis rule until they are retired.
@@ -981,7 +1030,7 @@ check_hash "$unpack" \
 	7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef
 
 inspection=$(mktemp -d)
-trap 'rm -rf -- "$inspection"' EXIT HUP INT TERM
+trap 'rm -rf -- "$inspection" "$admission_snapshot_dir"' EXIT HUP INT TERM
 # avbtool resolves a "boot" hash descriptor as boot.img beside the wrapper.
 # Private copies prevent an unrelated sibling from satisfying that descriptor.
 cp --reflink=never -- "$image" "$inspection/recovery.img"

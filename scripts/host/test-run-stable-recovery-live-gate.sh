@@ -51,6 +51,7 @@ generation11_root_b=$repo/build/stable-recovery-generation11-ncm-progress-202608
 generation11_base=$repo/build/generation11-ncm-progress-production-base-20260804
 generation11_bundle_base=$generation10_base
 generation12_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img
+generation12_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'
 generation12_root_a=$repo/build/stable-recovery-generation12-host-confinement-fix-20260804-a
 generation12_root_b=$repo/build/stable-recovery-generation12-host-confinement-fix-20260804-b
 generation12_base=$generation11_base
@@ -64,6 +65,14 @@ awk -F '\t' '
 		next
 	}
 	NR == 2 {
+		if ($1 != "build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img" ||
+			$2 != "allow" ||
+			$3 != "one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash" ||
+			NF != 3)
+			exit 1
+		next
+	}
+	NR == 3 {
 		if ($1 != "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" ||
 			$2 != "revoked" ||
 			$3 != "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" ||
@@ -72,17 +81,17 @@ awk -F '\t' '
 			next
 	}
 	{ exit 1 }
-	END { if (NR != 2) exit 1 }
+	END { if (NR != 3) exit 1 }
 ' "$boot_policy" ||
-	{ echo 'FAIL committed temporary-boot policy is not the exact deny-by-default shape' >&2; exit 1; }
+	{ echo 'FAIL committed temporary-boot policy is not the exact one-shot generation-12 admission shape' >&2; exit 1; }
 [[ $(grep -Fxc \
-	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation11-live-v1"' \
+	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \
 	"$lifecycle") == 1 ]] ||
-	{ echo 'FAIL lifecycle does not select exact generation-11 live profile' >&2; exit 1; }
+	{ echo 'FAIL lifecycle does not select exact generation-12 live profile' >&2; exit 1; }
 [[ $(grep -Fxc \
-	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation11-live-v1"' \
+	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \
 	"$lifecycle_test") == 1 ]] ||
-	{ echo 'FAIL lifecycle test does not pin exact generation-11 live profile' >&2; exit 1; }
+	{ echo 'FAIL lifecycle test does not pin exact generation-12 live profile' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle" ||
 	{ echo 'FAIL consumed generation-9 profile remains in the lifecycle' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle_test" ||
@@ -91,10 +100,10 @@ awk -F '\t' '
 	{ echo 'FAIL consumed generation-10 profile remains in the lifecycle' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation10-' "$lifecycle_test" ||
 	{ echo 'FAIL consumed generation-10 profile remains in the lifecycle test' >&2; exit 1; }
-! grep -Fq 'headless-diagnostic-generation11-offline-v1' "$lifecycle" ||
-	{ echo 'FAIL generation-11 offline-only profile leaked into the lifecycle' >&2; exit 1; }
-! grep -Fq 'headless-diagnostic-generation11-offline-v1' "$lifecycle_test" ||
-	{ echo 'FAIL generation-11 offline-only profile leaked into the lifecycle test' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation11-' "$lifecycle" ||
+	{ echo 'FAIL consumed generation-11 profile remains in the lifecycle' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation11-' "$lifecycle_test" ||
+	{ echo 'FAIL consumed generation-11 profile remains in the lifecycle test' >&2; exit 1; }
 for generation11_lifecycle_leak in \
 	"$generation11_image" \
 	8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562
@@ -106,7 +115,6 @@ do
 done
 for generation12_lifecycle_leak in \
 	headless-diagnostic-generation12-offline-v1 \
-	headless-diagnostic-generation12-live-v1 \
 	"$generation12_image" \
 	615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6
 do
@@ -116,14 +124,12 @@ do
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
-! grep -Fq 'generation12-host-confinement-fix' "$boot_policy" ||
-	{ echo 'FAIL generation-12 offline artifact leaked into temporary-boot policy' >&2; exit 1; }
-! grep -Fq \
-	'615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6' \
-	"$boot_policy" ||
-	{ echo 'FAIL generation-12 offline identity leaked into temporary-boot policy' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy does not contain exactly one allow row' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation12_image" -v basis="$generation12_boot_basis" \
+	'$1 == name && $2 == "allow" && $3 == basis { count++ } \
+	END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-12 recovery admission is not exact' >&2; exit 1; }
 check_generation12_inventory() {
 	local inventory=$1
 	awk -F '\t' -v name="$generation12_image" '
@@ -136,7 +142,7 @@ check_generation12_inventory() {
 		count++
 		if (NF != 5 || $2 != "100663296" ||
 			$3 != "615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" ||
-			$4 != "unbooted generation-12 host-confinement-corrected diagnostic recovery; byte-identical generation-11 raw payload with a distinct deterministic authority-free AVB generation; immutable offline profile only; never flash" ||
+			$4 != "unbooted generation-12 host-confinement-corrected diagnostic recovery; byte-identical generation-11 raw payload with a distinct deterministic authority-free AVB generation; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash" ||
 			$5 != "no")
 			exit 1
 	}
@@ -716,6 +722,228 @@ for generation12_action in boot preflight; do
 	fi
 done
 
+for generation12_connected_action in boot preflight; do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ALLOW_TEMPORARY_BOOT=1 \
+		ALLOW_HEADLESS_LIVE_GATE=1 \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-live-v1 \
+		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+		TRUST_KEY="$repo/build/unused-trust-key" \
+		BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" "$generation12_connected_action" >"$tmp/out" 2>"$tmp/err"
+	then
+		echo "FAIL generation-12 live profile reached direct $generation12_connected_action" >&2
+		exit 1
+	fi
+	grep -Fq \
+		'generation-12 connected action requires the one-shot lifecycle controller' \
+		"$tmp/err" ||
+		{ echo "FAIL generation-12 direct $generation12_connected_action returned the wrong rejection" >&2; exit 1; }
+	if grep -Fq 'missing live-gate command' "$tmp/err"; then
+		echo "FAIL generation-12 direct $generation12_connected_action reached host inspection" >&2
+		exit 1
+	fi
+done
+
+generation12_claimless_fixture=$tmp/generation12-claimless
+install -d -m 0755 "$generation12_claimless_fixture/scripts/host" \
+	"$generation12_claimless_fixture/manifests"
+install -m 0755 "$gate" \
+	"$generation12_claimless_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+cp -- "$boot_policy" \
+	"$generation12_claimless_fixture/manifests/temporary-boot-images.tsv"
+cp -- "$artifact_manifest" \
+	"$generation12_claimless_fixture/manifests/artifacts.tsv"
+{
+	printf '%s\n' '#!/bin/sh'
+	printf '%s\n' \
+		"echo 'FAIL generation-12 lifecycle claim root is unsafe or absent' >&2"
+	printf '%s\n' 'exit 1'
+} >"$generation12_claimless_fixture/scripts/host/consume-generation12-boot-claim.py"
+chmod 0755 \
+	"$generation12_claimless_fixture/scripts/host/consume-generation12-boot-claim.py"
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-live-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$generation12_claimless_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
+	boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL generation-12 boot passed without its durable lifecycle claim' >&2
+	exit 1
+fi
+grep -Fq 'generation-12 lifecycle claim root is unsafe or absent' "$tmp/err" ||
+	{
+		echo 'FAIL generation-12 claim-less boot returned the wrong rejection' >&2
+		sed -n '1,20p' "$tmp/err" >&2
+		exit 1
+	}
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL generation-12 claim-less boot reached host inspection' >&2
+	exit 1
+fi
+
+for generation12_policy_shape in \
+	missing-file missing-row malformed-header malformed-artifact-header \
+	missing-artifact-row duplicate-artifact-row duplicate wrong-basis \
+	denied-status identity-mismatch consumed-role altered-unbooted-role \
+	tracked-artifact policy-trailing-field artifact-trailing-field
+do
+	policy_fixture=$tmp/generation12-policy-$generation12_policy_shape
+	install -d -m 0755 "$policy_fixture/scripts/host" \
+		"$policy_fixture/manifests"
+	install -m 0755 "$gate" \
+		"$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+	cp -- "$artifact_manifest" "$policy_fixture/manifests/artifacts.tsv"
+	install -m 0644 "$boot_policy" \
+		"$policy_fixture/manifests/temporary-boot-images.tsv"
+	case $generation12_policy_shape in
+		missing-file)
+			rm -f -- "$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		missing-row)
+			awk -F '\t' -v name="$generation12_image" '$1 != name' \
+				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		malformed-header)
+			sed -i '1s/^name\tstatus\tbasis$/artifact\tstate\treason/' \
+				"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		malformed-artifact-header)
+			sed -i \
+				'1s/^name\tsize\tsha256\trole\ttracked$/artifact\tbytes\tdigest\tdisposition\tpresent/' \
+				"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		missing-artifact-row)
+			awk -F '\t' -v name="$generation12_image" '$1 != name' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		duplicate-artifact-row)
+			awk -F '\t' -v name="$generation12_image" '$1 == name { print }' \
+				"$artifact_manifest" >>"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		duplicate)
+			printf '%s\tallow\t%s\n' "$generation12_image" \
+				"$generation12_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		wrong-basis)
+			awk -F '\t' -v name="$generation12_image" '$1 != name' \
+				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation12_image" \
+				'wrong generation-12 basis; never boot' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		denied-status)
+			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+				'$1 == name { $2 = "deny" } { print }' "$boot_policy" \
+				>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		identity-mismatch)
+			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+				'$1 == name { $3 = "0000000000000000000000000000000000000000000000000000000000000000" } { print }' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		consumed-role)
+			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+				'$1 == name { $4 = "consumed generation-12 hostile fixture" } { print }' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		altered-unbooted-role)
+			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+				'$1 == name { $4 = "unbooted generation-12 weakened hostile fixture" } { print }' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		tracked-artifact)
+			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+				'$1 == name { $5 = "yes" } { print }' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+		policy-trailing-field)
+			awk -F '\t' -v name="$generation12_image" \
+				'$1 == name { print $0 "\t"; next } { print }' \
+				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		artifact-trailing-field)
+			awk -F '\t' -v name="$generation12_image" \
+				'$1 == name { print $0 "\t"; next } { print }' \
+				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+			;;
+	esac
+	for generation12_connected_action in boot preflight; do
+		if env -i PATH="$PATH" HOME="$HOME" \
+			ALLOW_TEMPORARY_BOOT=1 \
+			ALLOW_HEADLESS_LIVE_GATE=1 \
+			ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-live-v1 \
+			LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+			RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+			TRUST_KEY="$repo/build/unused-trust-key" \
+			BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
+			"$generation12_connected_action" >"$tmp/out" 2>"$tmp/err"
+		then
+			echo "FAIL generation-12 $generation12_policy_shape policy reached $generation12_connected_action" >&2
+			exit 1
+		fi
+		if [[ $generation12_policy_shape == missing-file ]]; then
+			expected_policy_error='unsafe or missing early temporary-boot policy input'
+		elif [[ $generation12_policy_shape == malformed-header ]]; then
+			expected_policy_error='malformed temporary-boot policy header'
+		elif [[ $generation12_policy_shape == malformed-artifact-header ]]; then
+			expected_policy_error='malformed artifact manifest header'
+		elif [[ $generation12_policy_shape == missing-artifact-row ||
+			$generation12_policy_shape == duplicate-artifact-row ]]; then
+			expected_policy_error="artifact manifest does not uniquely list $generation12_image"
+		elif [[ $generation12_policy_shape == wrong-basis ]]; then
+			expected_policy_error="temporary boot policy basis does not match $generation12_image"
+		elif [[ $generation12_policy_shape == denied-status ]]; then
+			expected_policy_error="temporary boot policy does not allow $generation12_image"
+		elif [[ $generation12_policy_shape == identity-mismatch ]]; then
+			expected_policy_error='temporary boot artifact manifest identity is not allowlisted'
+		elif [[ $generation12_policy_shape == consumed-role ]]; then
+			expected_policy_error='temporary boot artifact is recorded as consumed'
+		elif [[ $generation12_policy_shape == altered-unbooted-role ]]; then
+			expected_policy_error='temporary boot artifact role does not match the pinned profile'
+		elif [[ $generation12_policy_shape == tracked-artifact ]]; then
+			expected_policy_error='temporary boot artifact tracked state does not match the pinned profile'
+		elif [[ $generation12_policy_shape == policy-trailing-field ]]; then
+			expected_policy_error='temporary boot policy row has trailing fields'
+		elif [[ $generation12_policy_shape == artifact-trailing-field ]]; then
+			expected_policy_error='temporary boot artifact row has trailing fields'
+		else
+			expected_policy_error="temporary boot policy does not uniquely list $generation12_image"
+		fi
+		grep -Fq "$expected_policy_error" "$tmp/err" ||
+			{ echo "FAIL generation-12 $generation12_policy_shape returned the wrong policy rejection" >&2; exit 1; }
+		if grep -Fq 'missing live-gate command' "$tmp/err"; then
+			echo "FAIL generation-12 $generation12_policy_shape policy reached host inspection" >&2
+			exit 1
+		fi
+	done
+done
+
 for generation11_connected_action in boot preflight; do
 	if env -i PATH="$PATH" HOME="$HOME" \
 		ALLOW_TEMPORARY_BOOT=1 \
@@ -1048,8 +1276,11 @@ expected_generation11_profiles=$(printf '%s\n' \
 	{ echo 'FAIL an unreviewed generation-11 diagnostic profile is supported' >&2; exit 1; }
 generation12_profiles=$(grep -o \
 	'headless-diagnostic-generation12-[a-z0-9-]*' "$gate" | LC_ALL=C sort -u)
-[[ $generation12_profiles == headless-diagnostic-generation12-offline-v1 ]] ||
-	{ echo 'FAIL generation-12 support is not exactly one offline profile' >&2; exit 1; }
+expected_generation12_profiles=$(printf '%s\n' \
+	headless-diagnostic-generation12-live-v1 \
+	headless-diagnostic-generation12-offline-v1 | LC_ALL=C sort)
+[[ $generation12_profiles == "$expected_generation12_profiles" ]] ||
+	{ echo 'FAIL generation-12 support is not exactly one offline and one live profile' >&2; exit 1; }
 ! grep -Eq \
 	'headless-diagnostic-generation(1[3-9]|[2-9][0-9]|[1-9][0-9]{2,})-' \
 	"$gate" ||
@@ -1144,7 +1375,7 @@ do
 done
 
 generation12_case=$(awk '
-	index($0, "\theadless-diagnostic-generation12-offline-v1)") == 1 { capture = 1 }
+	index($0, "\theadless-diagnostic-generation12-offline-v1") == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
@@ -1168,10 +1399,42 @@ do
 		<<<"$generation12_case_unindented" ||
 		{ echo "FAIL generation-12 case does not pin $generation12_assignment" >&2; exit 1; }
 done
-! grep -Fq 'expected_boot_image=' <<<"$generation12_case" ||
-	{ echo 'FAIL generation-12 offline profile contains a boot-image admission' >&2; exit 1; }
-! grep -Fq 'expected_boot_basis=' <<<"$generation12_case" ||
-	{ echo 'FAIL generation-12 offline profile contains a boot basis' >&2; exit 1; }
+generation12_live_policy_block=$(awk '
+	index($0, "if [[ $profile == headless-diagnostic-generation12-live-v1 ]]; then") { capture = 1 }
+	capture { print }
+	capture && /^[[:space:]]*fi$/ { exit }
+' <<<"$generation12_case")
+generation12_live_policy_unindented=$(sed 's/^[[:space:]]*//' \
+	<<<"$generation12_live_policy_block")
+for generation12_live_assignment in \
+	expected_boot_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img \
+	"expected_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'"
+do
+	[[ $(grep -Fxc "$generation12_live_assignment" \
+		<<<"$generation12_case_unindented") == 1 ]] ||
+		{ echo "FAIL generation-12 case does not uniquely pin $generation12_live_assignment" >&2; exit 1; }
+	grep -Fxq "$generation12_live_assignment" \
+		<<<"$generation12_live_policy_unindented" ||
+		{ echo "FAIL generation-12 live-only block does not pin $generation12_live_assignment" >&2; exit 1; }
+done
+
+late_exact_admission=$(awk '
+	index($0, "\tif [[ -n $expected_boot_image ]]; then") == 1 {
+		capture = 1
+	}
+	capture { print }
+	capture && $0 == "\telse" { exit }
+' "$gate")
+for snapshot_input in \
+	'"$early_boot_policy_snapshot"' \
+	'"$early_artifact_manifest_snapshot"'
+do
+	grep -Fq "$snapshot_input" <<<"$late_exact_admission" ||
+		{ echo "FAIL late exact admission does not reuse $snapshot_input" >&2; exit 1; }
+done
+! grep -Fq '"$boot_policy" "$artifact_manifest"' \
+	<<<"$late_exact_admission" ||
+	{ echo 'FAIL late exact admission rereads live policy paths' >&2; exit 1; }
 
 for generation9_connected_action in boot preflight; do
 	if env -i PATH="$PATH" HOME="$HOME" \
@@ -1283,10 +1546,10 @@ if env -i PATH="$PATH" HOME="$HOME" \
 	BUNDLE=headless-netroot-early-diag-v1 \
 	bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
 then
-	echo 'FAIL unsupported generation-12 live profile passed policy preflight' >&2
+	echo 'FAIL generation-12 live profile accepted a wrong recovery identity' >&2
 	exit 1
 fi
-grep -Fq 'policy preflight requires a fully pinned diagnostic profile' "$tmp/err"
+grep -Fq 'generation-12 diagnostic recovery image is not pinned' "$tmp/err"
 
 for generation8_connected_action in boot preflight; do
 	if env -i PATH="$PATH" HOME="$HOME" \
@@ -1974,34 +2237,38 @@ generation12_errors=(
 [[ ${#generation12_fields[@]} -eq ${#generation12_exact[@]} &&
 	${#generation12_errors[@]} -eq ${#generation12_exact[@]} ]] ||
 	{ echo 'FAIL generation-12 policy mutation matrix is inconsistent' >&2; exit 1; }
-generation12_policy=$(run_diagnostic_policy \
-	headless-diagnostic-generation12-offline-v1 "${generation12_exact[@]}")
-grep -Fxq \
-	'recovery_profile=headless-diagnostic-generation12-offline-v1' \
-	<<<"$generation12_policy" ||
-	{ echo 'FAIL generation-12 policy omitted the exact profile' >&2; exit 1; }
-grep -Fxq \
-	'recovery_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6' \
-	<<<"$generation12_policy" ||
-	{ echo 'FAIL generation-12 policy omitted the exact recovery identity' >&2; exit 1; }
-grep -Fxq 'authority=none' <<<"$generation12_policy" ||
-	{ echo 'FAIL generation-12 policy granted authority' >&2; exit 1; }
-grep -Fxq 'result=PASS' <<<"$generation12_policy" ||
-	{ echo 'FAIL generation-12 policy did not pass' >&2; exit 1; }
-for index in "${!generation12_fields[@]}"; do
-	mutation=("${generation12_exact[@]}")
-	if ((index == 4)); then
-		mutation[$index]=wrong-generation12-bundle
-	else
-		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-	fi
-	if run_diagnostic_policy headless-diagnostic-generation12-offline-v1 \
-		"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
-		echo "FAIL generation-12 profile accepted wrong ${generation12_fields[$index]}" >&2
-		exit 1
-	fi
-	grep -Fq "${generation12_errors[$index]}" "$tmp/err" ||
-		{ echo "FAIL generation-12 wrong ${generation12_fields[$index]} returned the wrong rejection" >&2; exit 1; }
+for generation12_profile in \
+	headless-diagnostic-generation12-offline-v1 \
+	headless-diagnostic-generation12-live-v1
+do
+	generation12_policy=$(run_diagnostic_policy \
+		"$generation12_profile" "${generation12_exact[@]}")
+	grep -Fxq "recovery_profile=$generation12_profile" \
+		<<<"$generation12_policy" ||
+		{ echo "FAIL $generation12_profile policy omitted the exact profile" >&2; exit 1; }
+	grep -Fxq \
+		'recovery_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6' \
+		<<<"$generation12_policy" ||
+		{ echo "FAIL $generation12_profile policy omitted the exact recovery identity" >&2; exit 1; }
+	grep -Fxq 'authority=none' <<<"$generation12_policy" ||
+		{ echo "FAIL $generation12_profile policy granted authority" >&2; exit 1; }
+	grep -Fxq 'result=PASS' <<<"$generation12_policy" ||
+		{ echo "FAIL $generation12_profile policy did not pass" >&2; exit 1; }
+	for index in "${!generation12_fields[@]}"; do
+		mutation=("${generation12_exact[@]}")
+		if ((index == 4)); then
+			mutation[$index]=wrong-generation12-bundle
+		else
+			mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		fi
+		if run_diagnostic_policy "$generation12_profile" \
+			"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
+			echo "FAIL $generation12_profile accepted wrong ${generation12_fields[$index]}" >&2
+			exit 1
+		fi
+		grep -Fq "${generation12_errors[$index]}" "$tmp/err" ||
+			{ echo "FAIL $generation12_profile wrong ${generation12_fields[$index]} returned the wrong rejection" >&2; exit 1; }
+	done
 done
 
 if [[ -d $generation3_root ]]; then
@@ -2548,24 +2815,29 @@ if [[ -d $generation12_root_a || -d $generation12_root_b ||
 		else
 			generation12_root=$generation12_root_b
 		fi
-		generation12_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-				ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-offline-v1 \
-				LIVE_BUILD_ROOT="$generation12_root" \
-				RECOVERY_COMPONENT_ROOT="$generation12_base/recovery" \
-				TRUST_KEY="$generation12_base/recovery/ephemeral-public.raw" \
-				BUNDLE_ROOT="$generation12_bundle_base/bundle-$generation12_suffix" \
-				BUNDLE=headless-netroot-early-diag-v1 \
-				RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
-				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation12-offline-v1 image_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6' \
-			<<<"$generation12_artifact" ||
-			{ echo "FAIL generation-12 tree $generation12_suffix did not pass artifact preflight" >&2; exit 1; }
+		for generation12_profile in \
+			headless-diagnostic-generation12-offline-v1 \
+			headless-diagnostic-generation12-live-v1
+		do
+			generation12_artifact=$(
+				env -i PATH="$PATH" HOME="$HOME" \
+					ROG5_STABLE_RECOVERY_PROFILE="$generation12_profile" \
+					LIVE_BUILD_ROOT="$generation12_root" \
+					RECOVERY_COMPONENT_ROOT="$generation12_base/recovery" \
+					TRUST_KEY="$generation12_base/recovery/ephemeral-public.raw" \
+					BUNDLE_ROOT="$generation12_bundle_base/bundle-$generation12_suffix" \
+					BUNDLE=headless-netroot-early-diag-v1 \
+					RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
+					TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+					bash "$gate" artifact-preflight
+			)
+			grep -Fxq \
+				"PASS stable-recovery artifact preflight profile=$generation12_profile image_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" \
+				<<<"$generation12_artifact" ||
+				{ echo "FAIL generation-12 $generation12_profile tree $generation12_suffix did not pass artifact preflight" >&2; exit 1; }
+		done
 	done
 
 	generation12_mutation=$build_tmp/generation12-record-mutation
@@ -2708,6 +2980,7 @@ for required in \
 	'headless-diagnostic-generation11-offline-v1' \
 	'headless-diagnostic-generation11-live-v1' \
 	'headless-diagnostic-generation12-offline-v1' \
+	'headless-diagnostic-generation12-live-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -2728,12 +3001,18 @@ for required in \
 	'generation-11 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-11 connected action requires the one-shot lifecycle controller' \
 	'generation-12 diagnostic profile is offline-only and not boot-authorized' \
+	'generation-12 connected action requires the one-shot lifecycle controller' \
 	'temporary boot artifact is recorded as consumed' \
+	'temporary boot artifact role does not match the pinned profile' \
+	'temporary boot artifact tracked state does not match the pinned profile' \
+	'early temporary-boot admission snapshot is absent' \
 	'temporary boot policy basis does not match' \
 	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
 	'expected_boot_image=build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img' \
+	'expected_boot_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img' \
 	"expected_boot_basis='one generation-8 NetworkManager-empty-field-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'" \
 	"expected_boot_basis='one generation-9 recovery-ACM-classifier diagnostic lifecycle after connected preflight; remove after any result; never flash'" \
+	"expected_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'" \
 	'416d62e4f0d89e9184d8a362c8c9e5091bd265f4c48504916920706f08611430' \
 	'bc42d9ffc78ed88c5e8f597905844e472a5681c57caab020ce88c1eae1b706da' \
 	'157da94bf50635099c571ce97d3e3c797c22eb66e3b9730b4ea332d952a9261c' \
@@ -2859,6 +3138,12 @@ for required in \
 do
 	grep -Fq -- "$required" "$gate"
 done
+
+grep -Fq 'consume-generation12-boot-claim.py' "$gate" ||
+	{ echo 'FAIL generation-12 boot does not invoke its exact claim consumer' >&2; exit 1; }
+grep -Fq 'generation-12 lifecycle claim root is unsafe or absent' \
+	"$repo/scripts/host/consume-generation12-boot-claim.py" ||
+	{ echo 'FAIL generation-12 claim consumer does not fail closed on its state root' >&2; exit 1; }
 
 artifact_exit=$(
 	grep -n 'if \[\[ \$action == artifact-preflight \]\]' "$gate" |

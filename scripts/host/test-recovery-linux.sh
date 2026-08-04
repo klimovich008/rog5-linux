@@ -219,10 +219,23 @@ awk -F '\t' -v name="$generation10" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-10 consumed artifact inventory is not exact'
 generation11='build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img'
-awk -F '\t' '
-	$2 == "allow" { count++ }
-	END { exit count == 0 ? 0 : 1 }
-' "$policy" || fail 'consumed policy retains a temporary-boot allow row'
+generation12='build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation12" '
+	$2 == "allow" {
+		allow_count++
+		if ($1 == name &&
+			$3 == "one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash")
+			exact_count++
+	}
+	END { exit allow_count == 1 && exact_count == 1 ? 0 : 1 }
+' "$policy" || fail 'temporary-boot policy is not the exact generation-12 one-shot admission'
+awk -F '\t' -v name="$generation12" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" &&
+	$4 ~ /^unbooted generation-12 host-confinement-corrected diagnostic recovery/ &&
+	$4 ~ /authority=none/ && $4 ~ /never flash$/ && $5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-12 unbooted artifact inventory is not exact'
 awk -F '\t' -v name="$generation11" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }
