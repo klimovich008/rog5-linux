@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd' \
+	'reviewed_reporter_hash=dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
@@ -169,13 +169,24 @@ overlay_line=$(grep -n \
 [ "$readonly_check_line" -lt "$identity_line" ]
 [ "$identity_line" -lt "$overlay_line" ]
 
-for stage in 10 20 30 40 50 60 70 80 90 100 110 120; do
+for stage in 10 20 30 40 50 60 70 75 80 90 100 110 120; do
 	[ "$(grep -Ec "diagnostic_emit[[:space:]]+$stage([[:space:];]|$)" \
 		"$init")" -eq 1 ] || {
 		echo "FAIL diagnostic stage $stage is absent or duplicated" >&2
 		exit 1
 	}
 done
+mount_begin_line=$(grep -n 'diagnostic_emit 70' "$init" |
+	head -n1 | cut -d: -f1)
+mount_return_line=$(grep -n 'diagnostic_emit 75' "$init" |
+	head -n1 | cut -d: -f1)
+mount_ok_line=$(grep -n 'diagnostic_emit 80' "$init" |
+	head -n1 | cut -d: -f1)
+[ "$mount_begin_line" -lt "$mount_return_line" ]
+[ "$mount_return_line" -lt "$mount_ok_line" ]
+grep -Fq \
+	'lineage format=rog5-target-lineage-v1 candidate=$diagnostic_candidate boot_id=$boot_id' \
+	"$init"
 for fault in \
 	gadget-config-failed \
 	udc-bind-failed \

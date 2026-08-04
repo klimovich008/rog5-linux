@@ -22,9 +22,9 @@ for token in \
 	'mode=${3:-normal}' \
 	'diagnostic)' \
 	'rog5-early-target-diagnostic-initramfs.cpio.gz' \
-	'6010870' \
-	'10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c' \
-	'f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd' \
+	'6011337' \
+	'8324083480a4266bc9dd73d4974d20491979c5d5b11919c9a3ad8f09def8a31d' \
+	'dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10' \
 	'build-early-target-diag.sh' \
 	'rog5-early-target-diag.c' \
 	'--pull=never' \

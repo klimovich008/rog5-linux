@@ -6,17 +6,21 @@ The next target must be a distinct `diagnostic-initramfs-v1` bundle. It must
 not reuse `headless-ssh-network-root-v3-r2`, and it must not be accepted as a
 normal headless runtime.
 
-The 2026-08-01 r2 cycle proved recovery transfer, PREPARE, one COMMIT, Linux
-7.1 USB-NCM enumeration, watchdog rollback, and signed fallback return. The
-target gadget physically disconnected 23 seconds after enumeration, before
-SSH host-key acceptance. Every current initramfs failure after USB invokes an
-immediate reset, so timing alone cannot distinguish an NFS, seal, overlay,
-handoff, `switch_root`, systemd, or gadget failure. No pstore record survived.
+The consumed Generation-12 cycle proved recovery transfer, PREPARE/COMMIT,
+Linux 7.1 USB-NCM enumeration, 40 lossless target frames, watchdog rollback,
+and signed fallback return. It reached stage 70 `nfs-mount-begin`, then the USB
+gadget disappeared before stage 80 or a terminal fault. Stage 70 was emitted
+once before BusyBox invoked `mount`; its repeated heartbeats cannot distinguish
+a blocked first command from a returned failure followed by lower-layer loss.
+No current-cycle postmortem lineage was captured, so the result does not prove
+a panic.
 
-The diagnostic successor keeps the accepted Linux 7.1 Image, corrected DTB,
-and sealed NFS root. Its only functional delta is a bounded, receive-disabled
-ACM progress stream and diagnostic-only failure dwell. This is a measurement
-candidate, not a runtime candidate.
+The next diagnostic successor keeps the accepted Linux 7.1 Image, corrected
+DTB, and sealed NFS root. It adds one post-command stage, read-only host
+NCM/NFS counters, and a kernel-log lineage marker while retaining the bounded,
+receive-disabled ACM stream and diagnostic-only failure dwell. This is a
+measurement candidate, not a runtime candidate. Generation 12 is consumed and
+must never be retried.
 
 ## Channel
 
@@ -31,6 +35,8 @@ It:
 - ignores and never interprets host input;
 - emits canonical netstring frames at a fixed 250 ms cadence;
 - binds every frame to the diagnostic candidate and current kernel boot ID;
+- writes the same candidate/boot-ID tuple once to `/dev/kmsg` as
+  `rog5-target-lineage-v1` for a later read-only pstore correlation attempt;
 - includes a strictly increasing sequence, monotonic timestamp, current and
   last-good stages, watchdog deadline, and dropped-update counter;
 - accepts local stage updates only through a nonblocking abstract Unix
@@ -64,6 +70,7 @@ code. The host classifies by the greatest valid code observed for one boot.
 | 50 | `address-configured` | target owns only `169.254.77.2/30` |
 | 60 | `ncm-carrier-up` | host and target observe carrier |
 | 70 | `nfs-mount-begin` | the bounded NFSv4.2 mount call is entered |
+| 75 | `nfs-mount-returned` | at least one BusyBox `mount` command returned to PID 1 |
 | 80 | `nfs-mount-ok` | the read-only lower is mounted |
 | 90 | `seal-verify-ok` | the complete lower matches the pinned tree |
 | 100 | `overlay-ready` | tmpfs upper/work and merged root are ready |
@@ -76,6 +83,12 @@ code. The host classifies by the greatest valid code observed for one boot.
 
 `fault` carries the last-good code and one enumerated reason. It must not
 carry free-form kernel text, paths, credentials, or user data.
+
+Stage 75 is emitted immediately after either a successful or failed `mount`
+return and before retry accounting or stage 80. Repeated stage-75 updates are
+valid and mean only “returned at least once”; they do not count attempts. A
+70-only stream proves no return was observed. Stage 80 remains the stronger
+proof that `mountpoint` and the read-only `/proc/mounts` check passed.
 
 ## Failure and rollback behavior
 
@@ -120,6 +133,8 @@ The host collector starts before target enumeration and:
   wrong-candidate, and mixed-boot records;
 - timestamps each frame on host receipt and captures bounded matching kernel
   USB events;
+- samples only the anchored product's interface `00`/`cdc_ncm` sysfs state and
+  counters plus the kernel NFS server's aggregate `rpc` counters;
 - writes one mode-`0600` evidence record outside Git; and
 - sends zero bytes to the phone.
 
@@ -142,7 +157,13 @@ and stream capture in seconds. The collector starts a read-only kernel-journal
 tail before target enumeration, filters only the anchor port's USB, `cdc_acm`,
 and `cdc_ncm` messages, and excludes serial-number lines. It then admits one
 literal `ROG5 diagnostic network root` product and its interface `02`
-`cdc_acm` character device on that port.
+`cdc_acm` character device on that port. Once that identity is stable, the
+collector independently admits at most one sibling interface `00`/`cdc_ncm`
+on the same raw USB product. It takes change-only snapshots at one-second
+resolution. Each snapshot contains carrier, operstate, eight standard link
+counters, and the five aggregate `/proc/net/rpc/nfsd` `rpc` counters when the
+server exposes them. It opens no packet socket, captures no payload, and sends
+no network or serial bytes.
 
 After the journal subprocess starts successfully and before target
 enumeration begins, the collector emits and flushes exactly one supervisor
@@ -162,11 +183,56 @@ The tty is opened `O_RDONLY|O_NOCTTY|O_NONBLOCK`, locked with `flock` and
 file's device number is checked before parsing; the descriptor remains bound
 to that character device even when USB sysfs entries disappear during
 disconnect. No phone-facing write method exists. At most 4,096 validated
-frames and 64 sanitized USB events are retained. A valid timeout or disconnect
-and every post-anchor capture rejection produce exactly one canonical JSON
-record via exclusive mode-`0600` creation outside Git. Rejected evidence
-contains only records accepted before the violation and a bounded reason,
-never the raw untrusted stream.
+frames, 64 sanitized USB events, and 768 change-only transport snapshots are
+retained. Counter overflow is represented by a dropped-snapshot count and is
+not accepted by the lifecycle verifier. A valid timeout or disconnect and
+every post-anchor capture rejection produce exactly one canonical
+`rog5-early-target-evidence-v2` JSON record via exclusive mode-`0600` creation
+outside Git. Rejected evidence contains only records accepted before the
+violation and a bounded reason, never the raw untrusted stream.
+
+## Current-cycle postmortem capture
+
+The target-side lineage marker is not evidence by itself. The implemented
+fallback action `capture-ssh-postmortem` now runs after exact same-port Alpine
+profile restoration and before strict fallback health. It uses the already
+pinned client and host keys over non-interactive SSH, verifies the fallback
+kernel/init/DT/root identity, and scans only `/sys/fs/pstore` and
+`/mnt/pstore`. The scan is read-only, deduplicates identical roots and inodes,
+rejects symlinks and type/inode changes, and is bounded to 64 records and 4
+MiB. No raw pstore bytes leave the phone.
+
+The fallback signs one canonical summary bound to the expected candidate and
+target boot ID. The host verifies that signature, USB port, NCM identity,
+route, credential identities, state/count/hash consistency, lineage count,
+and fatal-token classification before exclusively creating private
+`fallback-postmortem.record`. The classifications remain deliberately
+distinct:
+
+- `UNAVAILABLE`, `NO_RECORDS`, `NO_LINEAGE`, `MATCH`, `MATCH_MULTIPLE`, or
+  `AMBIGUOUS`; and
+- `UNCORRELATED`, `NO_FATAL_TOKEN_OBSERVED`,
+  `FATAL_TOKEN_PRESENT_ORDER_UNKNOWN`, or `FATAL_TOKEN_AFTER_LINEAGE`.
+
+`EMPTY` is accepted only when an exact pstore filesystem remains mounted
+through the complete snapshot. Fatal tokens are counted both across the whole
+snapshot and after lineage within a marker-bearing record, so split ramoops
+records remain explicit as order unknown. None of `UNAVAILABLE`, `NO_RECORDS`,
+`NO_LINEAGE`, or a matched lineage with no recognized fatal token means “no
+panic.” The lifecycle then runs the
+unchanged strict fallback health proof and requires the same fallback boot ID
+across both signed records. A non-empty pstore may therefore preserve useful
+private evidence and still make strict fallback health fail; that leaves the
+durable intent unresolved rather than weakening the health policy or deleting
+records. Sixty-three fallback-controller and 80 lifecycle tests cover canonical
+states, hostile fields, framing, signatures, symlink/type races, bounds,
+ordering, failed capture, and cross-probe boot-ID changes.
+
+This closes the implementation portion of the postmortem HOLD. Complete local
+CI and independent review pass in the [host-only
+checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
+Exact-head publication and GitHub CI remain required, so central policy must
+still retain zero successor `allow` rows.
 
 ## Hardware-free gate
 
@@ -193,7 +259,13 @@ No diagnostic bundle may be signed or booted until tests prove:
 12. the normal runtime verifier rejects every diagnostic identity; and
 13. the host collector starts before enumeration, binds the exact anchor port,
     remains receive-only, distinguishes timeout from disconnect, bounds and
-    sanitizes kernel events, and publishes one private evidence record.
+    sanitizes kernel events, and publishes one private evidence record; and
+14. malformed NFS statistics, ambiguous/wrong-port NCM identities, partial
+    counters, snapshot overflow, stage-75 regression, and evidence-field
+    mutations all fail closed; and
+15. fallback pstore capture is read-only and bounded, signs an exact
+    candidate/boot-ID summary, rejects malformed or raced records, precedes
+    strict health, and cross-checks the fallback boot ID across both probes.
 
 ## Promotion sequence
 
@@ -241,7 +313,7 @@ two clean builds, native verifier, and artifact gate compose through final
 Actual production signing, installation, and phone execution remain pending
 behind their separate guarded actions.
 
-Twenty-three collector tests cover canonical private anchor/output handling,
+Twenty-six collector tests cover canonical private anchor/output handling,
 duplicate or wrong-port USB identities, interface/driver binding, character-
 device replacement, rejection of a pre-existing foreign holder, read-only
 raw/no-`HUPCL` tty behavior, timeout versus disconnect, fragmented valid
@@ -254,8 +326,12 @@ exit rejection, an exact flushed readiness handshake that is absent on
 journal-startup failure, and absence of a serial write or shell surface. A
 deterministic test executes the real subprocess/nonblocking-buffer/termination
 path, and a local smoke starts and stops `/usr/bin/journalctl` as the
-unprivileged user. The complete repository `ci` tier passes with this collector
-test in sequence.
+unprivileged user. They now also cover canonical/malformed NFS RPC records,
+change-only link/RPC snapshots, anchored-port rejection, departure, and the
+snapshot bound. Sixty-three fallback-controller tests, 80 lifecycle tests, and
+the complete repository CI tier pass with the bounded signed postmortem path
+described above. Publication and exact-head GitHub CI remain required before
+issuance.
 
 The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
 the fixed `headless-netroot-early-diag-v1` bundle identity are present. That
@@ -268,10 +344,10 @@ dwell, unit generation, handoff rollback, and failed-`switch_root` path.
 
 The archive builder optionally accepts only the sealed 67,288-byte reporter
 with SHA-256
-`f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd`.
-Two qualified diagnostic archive builds were byte-identical at 6,010,870 bytes,
+`dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10`.
+Two qualified diagnostic archive builds were byte-identical at 6,011,337 bytes,
 SHA-256
-`10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c`;
+`8324083480a4266bc9dd73d4974d20491979c5d5b11919c9a3ad8f09def8a31d`;
 normal mode separately reconstructs its frozen 5,978,369-byte archive,
 SHA-256
 `819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5`,
@@ -279,6 +355,9 @@ from the five required files at historical source commit
 `27a270f2955c57f61e2cb8aeae0be23b31223499`. This prevents diagnostic
 changes in the shared current init source from silently redefining the normal
 candidate's historical bytes.
+The previous reporter `f0a9a52b…a1fd` and 6,010,870-byte archive
+`10cc407e…35c` remain immutable historical inputs for consumed Generations
+0–12; the new bytes have no candidate, signature, policy row, or boot authority.
 The native signed-bundle verifier requires an executable reporter for the
 diagnostic profile and rejects one in every normal profile.
 

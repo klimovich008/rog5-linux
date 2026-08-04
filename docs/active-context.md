@@ -176,12 +176,23 @@ Generation 12 is consumed, removed from central boot policy, exact consumed in
 artifact inventory, and permanently claimed. Production diagnostic actions
 now reject before guards, credentials, repository, host, or phone inspection;
 the retained offline profiles and twins are regression evidence only. The
-current host-only increment repairs the outer lifecycle's obsolete seven-field
-PREPARE parser to require the complete postmortem-extended response and hostile
-cross-response invariants. Before any distinct successor is issued, design
-instrumentation for pre/post NFS syscall, host TCP/NFS request progress,
-USB/NCM continuity, and lineage-proven current-cycle postmortem evidence. See
-also the [host-only admission
+outer lifecycle parser correction is complete at `606303a`; exact-head run
+`30952333022` is green. The current host-only successor inserts stage 75
+`nfs-mount-returned`, records same-port NCM/link counters and kernel NFS-RPC
+totals in private evidence v2, and writes one candidate/boot-ID lineage marker
+to `/dev/kmsg`. Its static reporter and diagnostic initramfs twin-build at
+`dc53932d…a10` and `83240834…31d`. Fallback-side current-cycle pstore
+acquisition/correlation is now implemented host-only: a strict same-port SSH
+action reads at most 64 records/4 MiB without deleting them, signs a summary
+bound to the target candidate/boot ID, distinguishes lineage and fatal-token
+states, and runs before unchanged strict fallback health. The host rejects
+symlink/type/inode/mount races and cross-probe fallback boot-ID changes; 63 fallback
+and 80 lifecycle tests, complete local CI, and independent review pass in the
+[host-only stage-75/postmortem
+checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
+Publication and exact-head GitHub CI remain open, so central boot policy stays
+empty and no candidate may be issued, signed, admitted, or booted. See also the
+[host-only admission
 result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
 ## Historical deployment chronology
@@ -933,10 +944,12 @@ The controller must:
 6. pin the volatile target host key without TOFU;
 7. collect and verify one strict-SSH runtime record while rollback stays
    armed;
-8. verify the returned Alpine fallback through its strict-SSH signed,
+8. retain one bounded signed current-cycle pstore summary when the target boot
+   ID is known;
+9. verify the returned Alpine fallback through its strict-SSH signed,
    nonce-bound health record;
-9. prove all host network/export state is removed; and
-10. resolve the durable intent as accepted or fallback-returned.
+10. prove all host network/export state is removed; and
+11. resolve the durable intent as accepted or fallback-returned.
 
 Transport loss without enough correlated evidence remains `UNKNOWN`; it
 never authorizes another execute.

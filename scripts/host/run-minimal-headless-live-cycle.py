@@ -151,6 +151,8 @@ OUTPUT_NAMES = (
     "minimal-headless-runtime.record",
     "fallback-identity.record",
     "fallback-profile-restore.log",
+    "fallback-postmortem.log",
+    "fallback-postmortem.record",
     "fallback-preflight.log",
     "intent-resolution.log",
     "early-target-diagnostics.log",
@@ -158,6 +160,28 @@ OUTPUT_NAMES = (
     "recovery-progress.capture",
     "recovery-progress.stop",
     "recovery-progress-assessment.record",
+)
+FALLBACK_POSTMORTEM_FIELDS = (
+    "format",
+    "expected_candidate",
+    "expected_boot_id",
+    "fallback_boot_id",
+    "usb_location",
+    "pstore_state",
+    "pstore_records",
+    "pstore_bytes",
+    "pstore_sha256",
+    "lineage_matches",
+    "lineage_records",
+    "fatal_tokens_total",
+    "fatal_after_lineage",
+    "correlation",
+    "fatal_state",
+    "nonce",
+    "record_sha256",
+    "signature_sha256",
+    "host_pin_sha256",
+    "result",
 )
 ANCHOR_FIELDS = (
     "format",
@@ -1474,19 +1498,198 @@ def parse_any_intent(
 
 
 def parse_record(path: Path) -> dict[str, str]:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
     values: dict[str, str] = {}
     try:
-        lines = path.read_text(encoding="ascii").splitlines()
-    except (OSError, UnicodeDecodeError) as error:
+        descriptor = os.open(path, flags)
+        try:
+            before = os.fstat(descriptor)
+            payload = bytearray()
+            while len(payload) <= 65536:
+                block = os.read(descriptor, 65537 - len(payload))
+                if not block:
+                    break
+                payload.extend(block)
+            after = os.fstat(descriptor)
+            named = path.lstat()
+        finally:
+            os.close(descriptor)
+    except OSError as error:
+        raise CycleError(f"cannot read private record: {path}") from error
+    identity = lambda item: (
+        item.st_dev,
+        item.st_ino,
+        item.st_mode,
+        item.st_uid,
+        item.st_gid,
+        item.st_nlink,
+        item.st_size,
+        item.st_mtime_ns,
+        item.st_ctime_ns,
+    )
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or before.st_uid != os.geteuid()
+        or before.st_nlink != 1
+        or not 1 <= len(payload) <= 65536
+        or before.st_size != len(payload)
+        or identity(after) != identity(before)
+        or identity(named) != identity(before)
+        or not payload.endswith(b"\n")
+        or b"\r" in payload
+        or b"\0" in payload
+    ):
+        fail(f"private record metadata or encoding is unsafe: {path}")
+    try:
+        lines = bytes(payload).decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
         raise CycleError(f"cannot read private record: {path}") from error
     for line in lines:
         if "=" not in line:
             fail(f"private record is not canonical: {path}")
         name, value = line.split("=", 1)
-        if not name or name in values:
+        if (
+            not re.fullmatch(r"[a-z0-9_]{1,64}", name)
+            or not value
+            or name in values
+        ):
             fail(f"private record has a duplicate field: {path}")
         values[name] = value
+    if bytes(payload) != "".join(
+        f"{name}={value}\n" for name, value in values.items()
+    ).encode("ascii"):
+        fail(f"private record is not canonical: {path}")
     return values
+
+
+def verify_fallback_postmortem_evidence(
+    path: Path,
+    anchor_path: Path,
+    expected_candidate: str,
+    expected_target_boot_id: str,
+    dependencies: Dependencies,
+) -> str:
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise CycleError(
+            "fallback postmortem evidence is unavailable"
+        ) from error
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_nlink != 1
+        or not 1 <= metadata.st_size <= 8192
+    ):
+        fail("fallback postmortem evidence metadata is unsafe")
+    values = parse_record(path)
+    if tuple(values) != FALLBACK_POSTMORTEM_FIELDS:
+        fail("fallback postmortem evidence fields changed")
+
+    location = read_recovery_anchor_location(anchor_path, dependencies)
+    fallback_boot_id = values["fallback_boot_id"]
+    if fallback_boot_id == expected_target_boot_id:
+        fail("fallback retained the minimal-headless boot identity")
+    if (
+        values["format"] != "rog5-fallback-postmortem-evidence-v1"
+        or values["expected_candidate"] != expected_candidate
+        or values["expected_boot_id"] != expected_target_boot_id
+        or not BOOT_ID.fullmatch(expected_target_boot_id)
+        or not BOOT_ID.fullmatch(fallback_boot_id)
+        or values["usb_location"] != location
+        or not HEX_ID.fullmatch(values["nonce"])
+        or any(
+            not SHA256.fullmatch(values[name])
+            or values[name] == ZERO_SHA256
+            for name in (
+                "record_sha256",
+                "signature_sha256",
+                "host_pin_sha256",
+            )
+        )
+        or values["result"] != "PASS"
+    ):
+        fail("fallback postmortem evidence identity is not exact")
+
+    numeric_limits = {
+        "pstore_records": 64,
+        "pstore_bytes": 4 * 1024 * 1024,
+        "lineage_matches": 1_000_000,
+        "lineage_records": 64,
+        "fatal_tokens_total": 1_000_000,
+        "fatal_after_lineage": 1_000_000,
+    }
+    numbers: dict[str, int] = {}
+    for name, maximum in numeric_limits.items():
+        value = values[name]
+        if (
+            not value.isascii()
+            or not value.isdecimal()
+            or len(value) > 1
+            and value.startswith("0")
+            or not 0 <= int(value) <= maximum
+        ):
+            fail("fallback postmortem evidence count is invalid")
+        numbers[name] = int(value)
+
+    state = values["pstore_state"]
+    digest = values["pstore_sha256"]
+    records = numbers["pstore_records"]
+    byte_count = numbers["pstore_bytes"]
+    matches = numbers["lineage_matches"]
+    lineage_records = numbers["lineage_records"]
+    fatal_total = numbers["fatal_tokens_total"]
+    fatal = numbers["fatal_after_lineage"]
+    if state == "UNAVAILABLE":
+        consistent = records == byte_count == 0 and digest == ZERO_SHA256
+        correlation = "UNAVAILABLE"
+    elif state == "EMPTY":
+        consistent = records == byte_count == 0 and digest == EMPTY_SHA256
+        correlation = "NO_RECORDS"
+    elif state == "PRESENT":
+        consistent = (
+            1 <= records <= 64
+            and 0 <= byte_count <= 4 * 1024 * 1024
+            and SHA256.fullmatch(digest) is not None
+            and digest not in {ZERO_SHA256, EMPTY_SHA256}
+        )
+        if matches == 0:
+            correlation = "NO_LINEAGE"
+        elif matches == 1 and lineage_records == 1:
+            correlation = "MATCH"
+        elif matches == lineage_records and lineage_records > 1:
+            correlation = "MATCH_MULTIPLE"
+        else:
+            correlation = "AMBIGUOUS"
+    else:
+        consistent = False
+        correlation = "INVALID"
+    if (
+        not consistent
+        or lineage_records > records
+        or lineage_records > matches
+        or (matches == 0 and (lineage_records != 0 or fatal != 0))
+        or (matches > 0 and lineage_records == 0)
+        or fatal > fatal_total
+        or (state != "PRESENT" and fatal_total != 0)
+        or values["correlation"] != correlation
+    ):
+        fail("fallback postmortem evidence state is inconsistent")
+    fatal_state = (
+        "FATAL_TOKEN_AFTER_LINEAGE"
+        if correlation in {"MATCH", "MATCH_MULTIPLE"} and fatal > 0
+        else "FATAL_TOKEN_PRESENT_ORDER_UNKNOWN"
+        if correlation in {"MATCH", "MATCH_MULTIPLE"} and fatal_total > 0
+        else "NO_FATAL_TOKEN_OBSERVED"
+        if correlation in {"MATCH", "MATCH_MULTIPLE"}
+        else "UNCORRELATED"
+    )
+    if values["fatal_state"] != fatal_state:
+        fail("fallback postmortem fatal classification is inconsistent")
+    return fallback_boot_id
 
 
 def read_recovery_anchor_location(
@@ -1662,6 +1865,7 @@ def verify_diagnostic_evidence(
     expected_keys = {
         "candidate",
         "capture_status",
+        "dropped_transport_snapshots",
         "dropped_usb_events",
         "ended_unix_ns",
         "end_reason",
@@ -1672,6 +1876,8 @@ def verify_diagnostic_evidence(
         "started_unix_ns",
         "target_boot_id",
         "target_product",
+        "transport_snapshot_count",
+        "transport_snapshots",
         "usb_events",
         "usb_location",
     }
@@ -1688,10 +1894,11 @@ def verify_diagnostic_evidence(
         fail("recovery USB anchor schema changed")
     target_boot_id = value.get("target_boot_id")
     frames = value.get("frames")
+    transport_snapshots = value.get("transport_snapshots")
     usb_events = value.get("usb_events")
     if (
         set(value) != expected_keys
-        or value.get("format") != "rog5-early-target-evidence-v1"
+        or value.get("format") != "rog5-early-target-evidence-v2"
         or value.get("candidate") != expected_candidate
         or value.get("capture_status") != "valid"
         or value.get("target_product") != "ROG5 diagnostic network root"
@@ -1706,12 +1913,18 @@ def verify_diagnostic_evidence(
         or value["ended_unix_ns"] < value["started_unix_ns"]
         or type(value.get("dropped_usb_events")) is not int
         or value["dropped_usb_events"] < 0
+        or type(value.get("dropped_transport_snapshots")) is not int
+        or value["dropped_transport_snapshots"] != 0
         or not isinstance(frames, list)
+        or not isinstance(transport_snapshots, list)
         or not isinstance(usb_events, list)
         or len(usb_events) > 64
         or type(value.get("frame_count")) is not int
         or not 1 <= value["frame_count"] <= 4096
         or value["frame_count"] != len(frames)
+        or type(value.get("transport_snapshot_count")) is not int
+        or not 1 <= value["transport_snapshot_count"] <= 768
+        or value["transport_snapshot_count"] != len(transport_snapshots)
     ):
         fail("diagnostic evidence identity or status is invalid")
     frame_keys = {"host_monotonic_ns", "host_unix_ns", "record"}
@@ -1773,6 +1986,99 @@ def verify_diagnostic_evidence(
             or not 1 <= len(event["message"].encode("ascii")) <= 256
         ):
             fail("diagnostic evidence USB event is invalid")
+    transport_keys = {
+        "carrier",
+        "host_monotonic_ns",
+        "host_unix_ns",
+        "interface",
+        "nfs_rpc_badauth",
+        "nfs_rpc_badcalls",
+        "nfs_rpc_badclnt",
+        "nfs_rpc_calls",
+        "nfs_rpc_xdrcall",
+        "operstate",
+        "rx_bytes",
+        "rx_dropped",
+        "rx_errors",
+        "rx_packets",
+        "state",
+        "tx_bytes",
+        "tx_dropped",
+        "tx_errors",
+        "tx_packets",
+        "usb_location",
+    }
+    network_counters = {
+        "rx_bytes",
+        "rx_dropped",
+        "rx_errors",
+        "rx_packets",
+        "tx_bytes",
+        "tx_dropped",
+        "tx_errors",
+        "tx_packets",
+    }
+    nfs_counters = {
+        "nfs_rpc_badauth",
+        "nfs_rpc_badcalls",
+        "nfs_rpc_badclnt",
+        "nfs_rpc_calls",
+        "nfs_rpc_xdrcall",
+    }
+    operstates = {
+        "unknown",
+        "notpresent",
+        "down",
+        "lowerlayerdown",
+        "testing",
+        "dormant",
+        "up",
+    }
+    last_transport_monotonic = -1
+    last_transport_unix = 0
+    for snapshot in transport_snapshots:
+        if (
+            not isinstance(snapshot, dict)
+            or set(snapshot) != transport_keys
+            or type(snapshot.get("host_monotonic_ns")) is not int
+            or snapshot["host_monotonic_ns"] < last_transport_monotonic
+            or type(snapshot.get("host_unix_ns")) is not int
+            or snapshot["host_unix_ns"] < last_transport_unix
+            or not value["started_unix_ns"]
+            <= snapshot["host_unix_ns"]
+            <= value["ended_unix_ns"]
+            or snapshot.get("usb_location") != anchor["usb_location"]
+            or snapshot.get("state") not in {"present", "absent"}
+        ):
+            fail("diagnostic transport snapshot is invalid")
+        last_transport_monotonic = snapshot["host_monotonic_ns"]
+        last_transport_unix = snapshot["host_unix_ns"]
+        nfs_values = [snapshot.get(name) for name in nfs_counters]
+        if not (
+            all(item is None for item in nfs_values)
+            or all(type(item) is int and item >= 0 for item in nfs_values)
+        ):
+            fail("diagnostic NFS RPC snapshot is invalid")
+        if snapshot["state"] == "absent":
+            if (
+                snapshot.get("interface") is not None
+                or snapshot.get("carrier") is not None
+                or snapshot.get("operstate") is not None
+                or any(snapshot.get(name) is not None for name in network_counters)
+            ):
+                fail("absent diagnostic NCM snapshot carries link state")
+        elif (
+            not isinstance(snapshot.get("interface"), str)
+            or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,15}", snapshot["interface"])
+            or type(snapshot.get("carrier")) is not int
+            or snapshot["carrier"] not in {0, 1}
+            or snapshot.get("operstate") not in operstates
+            or any(
+                type(snapshot.get(name)) is not int or snapshot[name] < 0
+                for name in network_counters
+            )
+        ):
+            fail("present diagnostic NCM snapshot is invalid")
     return target_boot_id
 
 
@@ -2764,10 +3070,60 @@ class LiveCycle:
             self.output("fallback-profile-restore.log"),
             ("PASS exact Alpine fallback profile ",),
         )
+        postmortem_boot_id: str | None = None
+        if target_boot_id is not None:
+            remaining = fallback_deadline - time.monotonic()
+            if remaining < 1:
+                fail(
+                    "fallback profile restoration consumed the bounded "
+                    "postmortem window"
+                )
+            postmortem_timeout = max(1, min(900, int(remaining)))
+            postmortem = self.output("fallback-postmortem.record")
+            run_logged(
+                [
+                    str(self.dependencies.fallback),
+                    "capture-ssh-postmortem",
+                    str(self.inputs.fallback_known_hosts),
+                    str(self.inputs.ssh_key),
+                    self.inputs.ssh_public_key_sha256,
+                    str(anchor),
+                    str(postmortem_timeout),
+                    self.profile.candidate,
+                    target_boot_id,
+                    str(postmortem),
+                ],
+                self.output("fallback-postmortem.log"),
+                environment=child_environment(
+                    ALLOW_FALLBACK_SSH_CONTROL="1",
+                    ALLOW_FALLBACK_SSH_ATIME_EFFECTS="1",
+                    ALLOW_PHONE_CREDENTIAL_USE="1",
+                ),
+                timeout=(
+                    postmortem_timeout
+                    + FALLBACK_CONTROL_MARGIN_SECONDS
+                ),
+            )
+            require_log_markers(
+                self.output("fallback-postmortem.log"),
+                ("PASS bounded fallback pstore evidence captured ",),
+            )
+            postmortem_boot_id = verify_fallback_postmortem_evidence(
+                postmortem,
+                anchor,
+                self.profile.candidate,
+                target_boot_id,
+                self.dependencies,
+            )
         remaining = fallback_deadline - time.monotonic()
         if remaining < 1:
+            if target_boot_id is None:
+                fail(
+                    "fallback profile restoration consumed the bounded "
+                    "fallback window"
+                )
             fail(
-                "fallback profile restoration consumed the bounded "
+                "fallback postmortem capture consumed the bounded "
                 "fallback window"
             )
         ssh_timeout = max(1, min(900, int(remaining)))
@@ -2841,6 +3197,11 @@ class LiveCycle:
         fallback_boot_id = values["boot_id"]
         if target_boot_id is not None and fallback_boot_id == target_boot_id:
             fail("fallback retained the minimal-headless boot identity")
+        if (
+            postmortem_boot_id is not None
+            and fallback_boot_id != postmortem_boot_id
+        ):
+            fail("fallback boot identity changed after postmortem capture")
         return fallback_boot_id
 
     def discover_unknown_intent(

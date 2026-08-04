@@ -461,10 +461,23 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   [live-admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md),
   [connected-preflight result](../test-results/2026-08-04-generation-12-connected-preflight-live.md),
   and [live result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
+- Before any Generation-13 issuance, require an explicit stage 75 immediately
+  after every returned NFS `mount` command; same-port interface-00 `cdc_ncm`
+  carrier/operstate and eight sysfs counters; aggregate kernel NFS-server RPC
+  counters; and one candidate/boot-ID `/dev/kmsg` lineage marker. Host evidence
+  must be canonical v2, change-only, private, bounded to 768 snapshots, and
+  reject ambiguity, wrong ports, malformed/partial counters, overflow, and all
+  lifecycle identity mutations. **The target stage, host collector, hostile
+  tests, sealed reporter, and byte-identical diagnostic-initramfs twins pass
+  host-only. Bounded read-only fallback pstore acquisition/correlation also
+  passes: the signed summary is candidate/boot-ID bound, retains no raw log,
+  precedes strict health, and rejects symlink/type/inode races, malformed
+  classifications, and cross-probe fallback boot-ID changes. Full local CI and
+  independent review pass; publication and exact-head GitHub CI remain HOLD.
+  No candidate or boot authority exists.**
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
-  fallback control
-  plane without a client SSH key or host networking. Thirty-eight
-  hardware-free cases require one exact nonce-correlated frame, canonical
+  fallback control plane. Sixty-three hardware-free cases require one exact
+  nonce-correlated frame, canonical
   health fields, real disposable Ed25519 signing and verification, the exact
   private host pin, exclusive/raw bounded ACM transport, exact USB
   product/interface and physical location, ACK-before-reboot, disconnect, and
@@ -492,7 +505,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   nonce-bound ready marker. Missing and partial chunks expire without payload
   execution. The lifecycle suite also recovers a durable intent after
   zero-exit malformed control output and reserves a bounded post-discovery
-  control margin.
+  control margin. It additionally verifies the strict-SSH postmortem action,
+  all unavailable/empty/present lineage and fatal classifications, the
+  64-record/4-MiB limits, read-only pstore source, private summary output, and
+  credential/USB/route revalidation.
 - `test-verify-headless-ssh-v2-key-admission.py` has fourteen hostile,
   deployment-credential-free host scenarios around the boundary. It derives
   public halves only from disposable Ed25519 keys, accepts one exact
@@ -627,9 +643,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   disconnect before the remote marker is accepted only when that exact
   fastboot identity independently proves the reboot. The mocked test rejects
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
-- The active lifecycle uses `fallback-acm-control.py wait-ssh-preflight` over
-  the exact fallback USB-NCM product only after the root controller has
-  restored the profile on unique stable same-port Alpine identity. The
+- The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
+  followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
+  after the root controller restores the profile on unique stable same-port
+  Alpine identity. The
   controller bounds udev and monotonic wait time, serializes serve/restore,
   verifies the actual sysfs `cdc_ncm` driver separately from udev labels,
   revalidates detach races, and rolls partial activation back to
@@ -643,7 +660,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   pinned Ed25519 host key, direct `169.254.77.1/30` route, exact active
   NetworkManager profile UUID and restoration, recovery USB
   continuity, one signed nonce-bound health frame, and post-reply USB
-  revalidation. The interactive ACM actions remain emergency-only.
+  revalidation. Known-target cycles first retain a bounded signed pstore
+  summary and then require the same fallback boot ID from strict health; that
+  summary cannot replace health or authorize resolution. The interactive ACM
+  actions remain emergency-only.
 - `prepare-headless-ssh-deployment-candidate.py` can retain the proven v3
   target while assigning only the fixed r2 signed-bundle identity. Its test
   packages base and r2 with identical target inputs, requires every manifest

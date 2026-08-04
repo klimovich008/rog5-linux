@@ -73,6 +73,21 @@ SSH, profile restoration, host cleanup, Steam socket restoration, and
 recorded consumed, permanently claimed, and never reusable. The [live
 result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
 does not claim a panic without current-cycle console or postmortem lineage.
+The complete 18-field lifecycle parser correction is published through
+`606303a` with green exact-head run `30952333022`. A host-only, unissued
+successor now adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
+and private same-port NCM/NFS counter snapshots. Its reporter and diagnostic
+initramfs reproduce at `dc53932d…a10` and `83240834…31d`. This is not boot
+authority. Fallback-side pstore correlation is now implemented as a bounded,
+read-only, signed strict-SSH summary before unchanged fallback health. It
+binds the expected target boot ID and candidate, keeps raw records on the
+phone, classifies lineage separately from recognized fatal tokens, and
+cross-checks the fallback boot ID across both signed probes. Sixty-three
+fallback and 80 lifecycle tests, complete local CI, and independent review
+pass in the [host-only
+checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
+Publication and exact-head GitHub CI remain open, and policy contains no
+successor `allow` row.
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

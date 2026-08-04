@@ -37,6 +37,7 @@ STAGES = {
     50: "address-configured",
     60: "ncm-carrier-up",
     70: "nfs-mount-begin",
+    75: "nfs-mount-returned",
     80: "nfs-mount-ok",
     90: "seal-verify-ok",
     100: "overlay-ready",
@@ -47,7 +48,7 @@ STAGES = {
     200: "fault",
     210: "watchdog-pretimeout",
 }
-PROGRESS_CODES = frozenset(range(10, 141, 10))
+PROGRESS_CODES = frozenset(code for code in STAGES if code < 200)
 TERMINAL_CODES = frozenset({200, 210})
 FAULTS = frozenset(
     {
