@@ -409,11 +409,23 @@ The first connected-preflight transition began from exact Alpine fallback.
 Fallback health and the authenticated `RESTART2("bootloader")` request passed,
 but USB disconnected without any anchored-port mode returning during the fixed
 45-second window or an additional 30-second read-only check. No recovery image,
-payload, boot command, boot claim, or consumption occurred. The phone must be
-entered into fastboot manually before a fresh connected preflight; see the
-[transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
+payload, boot command, boot claim, or consumption occurred. Exact fastboot
+appeared later on the same connection after those bounded observations ended;
+the cause is not inferred. A fresh Generation-10 connected preflight at clean
+pushed commit `70d2f36` then passed the deployment-key chain, exact artifacts,
+installed host surfaces, rollback prerequisites, isolated USB profile, and one
+`lahaina` device. No phone boot, payload transfer, SSH connection, or privileged
+server was started. See the
+[transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
+and
+[connected-preflight result](../test-results/2026-08-04-generation-10-connected-preflight-live.md).
 The instrumentation still does not locate the post-transfer gap, so any
 Generation-10 lifecycle remains diagnostic-only.
+The next gate is review, publication, and exact-head CI for the new
+connected-preflight result itself; the already-green prerequisite run does not
+cover that uncommitted live evidence. Only then may the sole admitted
+diagnostic lifecycle execute. Generation 10 is still unbooted and unconsumed
+with no boot claim.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

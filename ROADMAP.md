@@ -573,16 +573,27 @@ Current execution order:
     The instrumentation does not locate the post-transfer gap, so this
     admission remains diagnostic-only. Commit `a9c012c` and exact-head GitHub
     Actions run `30870594823` are green.
-18. **In progress:** the first connected-preflight transition began from exact
+18. **Complete (preflight passed; transition failed):** the first
+    connected-preflight transition began from exact
     Alpine fallback. Fallback health and authenticated `RESTART2("bootloader")`
     passed, but the anchored USB port did not re-enumerate during the fixed
     45-second window or an additional 30-second read-only check. No boot or
-    payload action occurred. Manually enter fastboot, then run the exact
-    connected preflight before any Generation-10 lifecycle. See the
-    [transition result](test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
-19. Promote a distinct normal SSH candidate only after diagnostic evidence
+    payload action occurred. Exact fastboot appeared later on the same
+    connection, and the fresh Generation-10 connected preflight then passed
+    the deployment-key chain, artifacts, installed host state, rollback
+    prerequisites, isolated USB profile, and one `lahaina` device without
+    booting. See the
+    [transition result](test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
+    and
+    [connected-preflight result](test-results/2026-08-04-generation-10-connected-preflight-live.md).
+19. **In progress:** review, publish, and verify this new connected-preflight
+    result itself at exact-head CI; the already-green prerequisite run does
+    not cover the uncommitted live evidence. Then execute the sole admitted
+    Generation-10 diagnostic lifecycle. Remove its policy admission after any
+    result and never retry an ambiguous execute.
+20. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-20. If H2 passes, continue physical keys/indicator, then H3
+21. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
