@@ -70,8 +70,10 @@ as do the complete local Linux `ci` and provisioned `quick` tiers. See the
 Do not issue Generation 11 yet. Commit `2b90a0e` passed exact-head GitHub
 Actions run `30887436984`; the fixed privileged files were then installed from
 that checkout, byte-verified, and exercised through the read-only empty-export
-proof with SteamOS read-only mode restored. Next rerun the final AArch64 gate,
-then twin-build and review a distinct offline-only wrapper before creating any
+proof with SteamOS read-only mode restored. A clean sealed-container rebuild
+then reproduced the accepted QEMU kernel Image `cf318b…b4d98`, and the local
+QEMU 8.2 gate crossed the real AArch64 `systemd` stage-130/140 units. Next
+twin-build and review a distinct offline-only wrapper before creating any
 policy admission or connected action.
 
 ## Active deployment checkpoint

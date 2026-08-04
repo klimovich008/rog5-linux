@@ -101,6 +101,21 @@ mode-`0600` socket is active and enabled, SteamOS read-only mode is restored to
 host-only readiness result; it does not authorize or claim a Generation-11
 phone boot.
 
+## Final AArch64 gate
+
+The first local rerun exposed a stale 2026-08-01 QEMU kernel cache whose config
+predated the required FUTEX, MEMFD, SHMEM, and TMPFS correction. A clean build
+from pinned Linux commit `7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`
+inside the sealed kernel-builder reproduced config SHA-256
+`2092d393bcc0ab00193482051f97e261881efb2ca7069178ea24b746e75cfc25`
+and accepted Image SHA-256
+`cf318b26245fffd95a5661646c3c9111085ffd9ee4893ea2152b54310b9b4d98`.
+The reusable Ubuntu 24.04 QEMU 8.2 gate then passed the canonical 16-frame
+reporter stream and executed the production-generated stage-130 and stage-140
+units under real AArch64 `systemd`. The incompatible host QEMU 10 package,
+failed cross-compiler package cache, and redundant extracted toolchain were
+removed afterward; SteamOS read-only mode is enabled. No phone was contacted.
+
 ## Independent review
 
 A constrained, stdin-only Claude Opus review first identified five concrete
@@ -135,9 +150,8 @@ before the helper applies `SO_BINDTODEVICE`.
 
 ## Decision
 
-The host integration is ready for publication and installed-host preflight,
-not for a phone boot. Before any Generation-11 issuance, require green
-exact-head GitHub CI, install and verify the exact privileged files, rerun the
-final AArch64 gate, twin-build an offline-only wrapper, and review the complete
-artifact/profile/rollback chain. Generation 10 remains consumed and cannot be
-reused.
+The host integration is published, exact-head CI is green, installed-host
+preflight passes, and the final AArch64 gate passes. It is still not a phone
+boot authorization. Before any Generation-11 issuance, twin-build an
+offline-only wrapper and review the complete artifact/profile/rollback chain.
+Generation 10 remains consumed and cannot be reused.
