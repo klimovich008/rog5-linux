@@ -648,7 +648,10 @@ Current execution order:
     marker. Progress remained `PARTIAL/NO_ADMISSION` with zero records; no
     PREPARE, transfer, COMMIT intent, NFS, or target occurred. Exact Alpine
     fallback, strict SSH, host cleanup, and Steam socket restoration passed.
-    The policy row is removed and exact-basis readmission rejects. See the
+    The policy row is removed and exact-basis readmission rejects. Independent
+    spec and standards review plus complete local CI passed. Commit `3cee3f1`
+    published the transition, and exact-head GitHub Actions run `30926911113`
+    passed recovery-core in 3m59s and QEMU in 35s. See the
     [live result](test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
 25. Reproduce and fix the production TCP 8081 listener ownership/PID check
     offline, including the SteamOS listener race, before issuing a distinct

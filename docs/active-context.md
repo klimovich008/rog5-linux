@@ -122,7 +122,9 @@ ACM never stabilized. Exact Alpine fallback, strict SSH, profile restoration,
 host cleanup, and Steam socket restoration passed. Generation 11 is consumed,
 absent from boot policy, permanently claimed, and never reusable. Reproduce
 and fix the production listener ownership/PID check offline before issuing a
-distinct successor.
+distinct successor. Independent spec and standards review plus complete local
+CI passed; commit `3cee3f1` published this transition and exact-head GitHub
+Actions run `30926911113` passed recovery-core in 3m59s and QEMU in 35s.
 
 ## Historical deployment chronology
 

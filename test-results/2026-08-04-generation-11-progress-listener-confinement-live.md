@@ -91,3 +91,13 @@ This result identifies the next amplification-first boundary: reproduce and
 fix the production TCP 8081 ownership/PID check offline before issuing any
 distinct successor. It authorizes no Generation-11 retry and makes no target,
 kernel, storage, sensor, or normal-SSH acceptance claim.
+
+## Publication
+
+Independent spec and standards reviewers found and resolved stale current
+ranges, historical-checkpoint tense, one overclaim about listener ownership,
+and evidence wording/formatting issues. Two complete local Linux `ci` runs
+passed, including one final unchanged-tree run after every review fix. Commit
+`3cee3f177ba0b7ae758f0f661cc8fcdaa30b7c40` published the consumed transition;
+exact-head GitHub Actions run `30926911113` passed recovery-core in 3m59s and
+QEMU in 35s.
