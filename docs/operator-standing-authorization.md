@@ -9,6 +9,15 @@ scope blocker is reached.** An authorization flag or an older note requesting
 fresh consent is not itself a blocker. This instruction does not waive the
 technical admission gates or the hard boundaries below.
 
+The operator reaffirmed this after the Generation-10 lifecycle: **future
+in-scope authorization prompts are unnecessary; use the available standing
+authorizations until genuinely blocked.** This standing instruction covers
+ordinary project work without repeated consent prompts. Each future lifecycle
+boot still requires its own exact central-policy `allow` row and every
+technical admission gate to pass; once those conditions hold, no additional
+authorization prompt is needed. The instruction does not create an `allow`
+row or relax one-shot consumption rules.
+
 The operator's current standing instruction is: **do not ask for repeated
 authorization; use any authorization already supplied or otherwise available
 to complete the agreed ROG Phone 5 Linux project work.** Proceed when the

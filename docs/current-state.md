@@ -45,8 +45,11 @@ entry cycle. The panel can remain off while the server is reachable.
 ## Recovery
 
 Recovery v18 remains historical staging evidence and is recorded as revoked in
-`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–7 are consumed
-and the temporary-boot policy has no active `allow` row.
+`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–10 are consumed
+and the temporary-boot policy has no active `allow` row. Generation 10 accepted
+PREPARE and completed the host-side signed-bundle transfer, but ACM closed
+before later device progress or `PREPARED` could be observed. No COMMIT intent
+existed, no target ran, and exact Alpine fallback plus host cleanup passed.
 Recovery v18 has:
 
 - exact fastboot product `lahaina`, observed by both accepted v18 preflights;
@@ -1210,10 +1213,11 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    and passed exact-head GitHub Actions run `30869110964` while central policy
    remained empty. See the
    [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
-   A separate central-policy checkpoint now contains exactly one Generation-10
-   `allow` row with the pinned one-shot basis. Inventory still records issuance
-   `authority=none`, `unbooted`, and no boot claim. Focused and complete local
-   suites pass, and constrained Opus re-review returns `NO FINDINGS`;
+   A separate central-policy checkpoint then contained exactly one
+   Generation-10 `allow` row with the pinned one-shot basis. Inventory still
+   recorded issuance `authority=none`, `unbooted`, and no boot claim at that
+   checkpoint. Focused and complete local suites pass, and constrained Opus
+   re-review returns `NO FINDINGS`;
    publication at `a9c012c` passed exact-head GitHub Actions run `30870594823`.
    See the
    [admission result](../test-results/2026-08-04-generation-10-live-admission-offline.md).
@@ -1231,13 +1235,23 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
    and
    [connected-preflight result](../test-results/2026-08-04-generation-10-connected-preflight-live.md).
-   The gap remains unlocated, so any later
-   Generation-10 lifecycle is diagnostic-only.
-   Generation 10 remains unbooted and unconsumed with no boot claim. The next
-   gate is review, publication, and exact-head CI for the new
-   connected-preflight result itself; the already-green prerequisite run does
-   not cover that uncommitted live evidence. Only then may its sole admitted
-   diagnostic lifecycle execute.
+   The result was reviewed and published at `f4b9e1c`; exact-head GitHub run
+   `30872608193` passed (`recovery-core` 3m47s; QEMU 43s). The sole
+   Generation-10 lifecycle then reached exact recovery ACM/NCM, emitted
+   correlated `REQUEST_ACCEPTED`, and transferred all 46,163,787 signed-bundle
+   bytes. The ACM response channel then closed before any later progress or
+   `PREPARED` response reached the host; the exact device-side boundary remains
+   unknown. Replay was explicitly `prepare-replay` with 216 stable
+   fallback/product-mismatch samples and no identity changes. Restricted NFS
+   reached pre-COMMIT readiness, but no COMMIT intent existed and no target
+   ran. Exact Alpine fallback, strict SSH, profile restoration, and final host
+   cleanup passed. Generation 10 is permanently `BOOT_CLAIMED`, absent from
+   boot policy, consumed in inventory, and never reusable. See the
+   [live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
+   The next gate is a hardware-free reproduction of the exact accepted-request/
+   complete-transfer/ACM-loss/fallback-replay shape and an independent progress
+   or retained-postmortem channel that survives ACM loss. Generation 11 must
+   not be issued before that observability exists.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

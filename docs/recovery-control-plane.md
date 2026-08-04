@@ -1,10 +1,11 @@
 # Stable recovery control plane
 
-Status: **shell-free framed path is established; diagnostic Generations 0–9
-are consumed; bounded device-originated PREPARE progress is implemented and
-hardware-free tested; Generation 10 is issued, live-profiled, and admitted for
-one connected-preflight-gated RAM-only lifecycle, but remains unbooted with no
-boot claim**
+Status: **shell-free framed path is established; diagnostic Generations 0–10
+are consumed; Generation 10 proved correlated `REQUEST_ACCEPTED` plus complete
+host transfer, then lost ACM before any later progress or `PREPARED` response
+reached the host; the exact device-side boundary remains unknown, no COMMIT or
+target execution occurred, exact fallback and cleanup passed, and the next gate
+is progress evidence that survives response-channel loss**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.
