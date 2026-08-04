@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -1079,10 +1080,12 @@ def observe_prepared_identity(
         return None
     session = value.get("session")
     request = value.get("request")
-    if not valid_prepared_response(value, manifest_sha256, target):
+    if (
+        not valid_prepared_response(value, manifest_sha256, target)
+        or not isinstance(session, str)
+        or not isinstance(request, str)
+    ):
         return None
-    assert isinstance(session, str)
-    assert isinstance(request, str)
     return session, request
 
 
@@ -1281,8 +1284,9 @@ def valid_postmortem(value: dict[str, object]) -> bool:
         return (
             records != "0"
             and byte_count != "0"
-            and digest != ZERO_SHA256
+            and digest not in {ZERO_SHA256, EMPTY_SHA256}
             and tail != "none"
+            and len(tail) // 2 <= int(byte_count)
         )
     if state == "EMPTY":
         return (
@@ -1346,6 +1350,7 @@ def valid_committed_response(
         and isinstance(request, str)
         and bool(HEX_ID.fullmatch(request))
         and request != ZERO_ID
+        and request != prepare_request
         and committed.get("verb") == "COMMIT_EXEC"
         and committed.get("result") == "CLAIMED"
         and committed.get("state") == "CLAIMED"
@@ -1354,13 +1359,39 @@ def valid_committed_response(
         and committed.get("prepare_request") == prepare_request
         and committed.get("commit_request") == request
         and isinstance(fingerprint, str)
-        and bool(SHA256.fullmatch(fingerprint))
-        and fingerprint != ZERO_SHA256
+        and fingerprint
+        == commit_request_fingerprint(
+            session,
+            request,
+            prepare_request,
+            manifest_sha256,
+        )
         and committed.get("watchdog") == "ARMED"
         and committed.get("execution_started") == "NO"
         and committed.get("last_error") == "NONE"
         and valid_postmortem(committed)
     )
+
+
+def commit_request_fingerprint(
+    session: str,
+    request: str,
+    prepare_request: str,
+    manifest_sha256: str,
+) -> str:
+    body = (
+        f"prepare_request={prepare_request}\n"
+        f"manifest_sha256={manifest_sha256}\n"
+    ).encode("ascii")
+    wire = (
+        "version=1\n"
+        "kind=request\n"
+        f"session={session}\n"
+        f"request={request}\n"
+        "verb=COMMIT_EXEC\n"
+        f"body_sha256={hashlib.sha256(body).hexdigest()}\n"
+    ).encode("ascii") + body
+    return hashlib.sha256(wire).hexdigest()
 
 
 def parse_control_log(
@@ -1384,13 +1415,19 @@ def parse_control_log(
     prepared_request = prepared.get("request")
     if not valid_prepared_response(prepared, manifest_sha256, target):
         fail("recovery PREPARE evidence is inconsistent")
-    assert isinstance(prepared_request, str)
+    if not isinstance(prepared_request, str):
+        fail("recovery PREPARE evidence is inconsistent")
     if not valid_committed_response(
         committed,
         manifest_sha256,
         target,
         prepared_request,
-    ) or postmortem_tuple(prepared) != postmortem_tuple(committed):
+    ):
+        fail("recovery COMMIT evidence is inconsistent")
+    # The native responder loads /run/rog5-postmortem.status exactly once
+    # before its request loop. Same-session PREPARE replay is mandatory, so
+    # both accepted responses must carry that immutable in-process snapshot.
+    if postmortem_tuple(prepared) != postmortem_tuple(committed):
         fail("recovery COMMIT evidence is inconsistent")
     intent = validate_intent(
         intent_value,
@@ -3415,10 +3452,14 @@ def main(arguments: list[str]) -> int:
             "key-preflight | preflight | run | diagnostic-key-preflight | "
             "diagnostic-preflight | diagnostic-run"
         )
-    if (
-        requested.startswith("diagnostic-")
-        and os.environ.get("ROG5_LIVE_CYCLE_OFFLINE_TEST") != "1"
-    ):
+    offline_test_root = os.environ.get("ROG5_LIVE_CYCLE_TEST_ROOT")
+    isolated_offline_test = (
+        os.environ.get("ROG5_LIVE_CYCLE_OFFLINE_TEST") == "1"
+        and isinstance(offline_test_root, str)
+        and bool(offline_test_root)
+        and Path(offline_test_root).is_absolute()
+    )
+    if requested.startswith("diagnostic-") and not isolated_offline_test:
         fail(
             "no diagnostic recovery lifecycle is admitted; Generation-12 "
             f"is {DIAGNOSTIC_LIVE_STATUS} and must not be retried"
