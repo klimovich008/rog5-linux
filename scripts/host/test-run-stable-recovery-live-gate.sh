@@ -747,6 +747,57 @@ for generation12_connected_action in boot preflight; do
 	fi
 done
 
+generation12_claim_gate_fixture=$tmp/generation12-claim-gate
+install -d -m 0755 "$generation12_claim_gate_fixture/scripts/host" \
+	"$generation12_claim_gate_fixture/manifests"
+install -m 0755 "$gate" \
+	"$generation12_claim_gate_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+cp -- "$boot_policy" \
+	"$generation12_claim_gate_fixture/manifests/temporary-boot-images.tsv"
+printf '%s\tallow\t%s\n' "$generation12_image" \
+	"$generation12_boot_basis" \
+	>>"$generation12_claim_gate_fixture/manifests/temporary-boot-images.tsv"
+awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
+	-v role="$generation12_unbooted_role" \
+	'$1 == name { $4 = role } { print }' \
+	"$artifact_manifest" \
+	>"$generation12_claim_gate_fixture/manifests/artifacts.tsv"
+{
+	printf '%s\n' '#!/bin/sh'
+	printf '%s\n' \
+		"echo 'FAIL generation-12 durable BOOT_CLAIMED record is unsafe or absent' >&2"
+	printf '%s\n' 'exit 1'
+} >"$generation12_claim_gate_fixture/scripts/host/consume-generation12-boot-claim.py"
+chmod 0755 \
+	"$generation12_claim_gate_fixture/scripts/host/consume-generation12-boot-claim.py"
+if env -i PATH="$PATH" HOME="$HOME" \
+	ALLOW_TEMPORARY_BOOT=1 \
+	ALLOW_HEADLESS_LIVE_GATE=1 \
+	ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-live-v1 \
+	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+	TRUST_KEY="$repo/build/unused-trust-key" \
+	BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+	BUNDLE=headless-netroot-early-diag-v1 \
+	RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
+	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+	bash "$generation12_claim_gate_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
+	boot >"$tmp/out" 2>"$tmp/err"
+then
+	echo 'FAIL historical generation-12 admission passed without its durable claim' >&2
+	exit 1
+fi
+grep -Fq 'generation-12 durable BOOT_CLAIMED record is unsafe or absent' \
+	"$tmp/err" ||
+	{ echo 'FAIL historical generation-12 admission did not reach its claim gate' >&2; exit 1; }
+if grep -Fq 'missing live-gate command' "$tmp/err"; then
+	echo 'FAIL generation-12 claim gate reached host inspection' >&2
+	exit 1
+fi
+
 for generation12_policy_shape in \
 	missing-file missing-row malformed-header malformed-artifact-header \
 	missing-artifact-row duplicate-artifact-row duplicate wrong-basis \

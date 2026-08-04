@@ -1225,6 +1225,51 @@ class NativeResponderTest(unittest.TestCase):
             "executed\n",
         )
 
+    def test_commit_fingerprint_matches_canonical_wire_vector(self):
+        session = "1" * 32
+        prepare_request = "2" * 32
+        commit_request = "3" * 32
+        expected_fingerprint = (
+            "d2552f9cc0e0f2bf67cb1f18ad01b2be3fd592a07dcdb23c49ba4d35a15b8552"
+        )
+        session_record = self.state / "session"
+        session_record.write_text(
+            f"session={session}\n",
+            encoding="ascii",
+        )
+        session_record.chmod(0o600)
+
+        process, master = self.start()
+        self.assertEqual(self.hello(master), session)
+        prepared = self.exchange(
+            master,
+            encode_request(
+                session=session,
+                request=prepare_request,
+                verb="PREPARE",
+                body={
+                    "bundle": "arch-v1",
+                    "manifest_sha256": MANIFEST,
+                },
+            ),
+        )
+        self.assertEqual(prepared.result, "PREPARED")
+        claimed = self.exchange(
+            master,
+            encode_request(
+                session=session,
+                request=commit_request,
+                verb="COMMIT_EXEC",
+                body={
+                    "prepare_request": prepare_request,
+                    "manifest_sha256": MANIFEST,
+                },
+            ),
+        )
+        self.assertEqual(claimed.result, "CLAIMED")
+        self.assertEqual(claimed.commit_fingerprint, expected_fingerprint)
+        self.wait_exit(process)
+
     def test_prepare_pipeline_loads_exact_descriptors_before_persist(self):
         verifier, loader, marker = self.make_prepare_pipeline("exact")
         process, master = self.start(
