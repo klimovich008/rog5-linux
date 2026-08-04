@@ -401,10 +401,17 @@ admits exactly one image and exact one-shot basis for a
 connected-preflight-gated RAM-only lifecycle. Inventory retains issuance
 `authority=none`; Generation 10 remains unbooted with no boot claim. See the
 [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
-The admission's focused and complete local suites pass, and constrained Opus
-re-review returns `NO FINDINGS`; publication and exact-head CI remain before
-connected preflight. See the
+The admission's focused and complete local suites pass, constrained Opus
+re-review returns `NO FINDINGS`, and publication at `a9c012c` passed exact-head
+GitHub Actions run `30870594823` (`recovery-core` 3m58s; QEMU 35s). See the
 [admission result](../test-results/2026-08-04-generation-10-live-admission-offline.md).
+The first connected-preflight transition began from exact Alpine fallback.
+Fallback health and the authenticated `RESTART2("bootloader")` request passed,
+but USB disconnected without any anchored-port mode returning during the fixed
+45-second window or an additional 30-second read-only check. No recovery image,
+payload, boot command, boot claim, or consumption occurred. The phone must be
+entered into fastboot manually before a fresh connected preflight; see the
+[transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
 The instrumentation still does not locate the post-transfer gap, so any
 Generation-10 lifecycle remains diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,

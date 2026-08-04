@@ -1214,8 +1214,16 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `allow` row with the pinned one-shot basis. Inventory still records issuance
    `authority=none`, `unbooted`, and no boot claim. Focused and complete local
    suites pass, and constrained Opus re-review returns `NO FINDINGS`;
-   publication and exact-head CI remain before connected preflight. See the
+   publication at `a9c012c` passed exact-head GitHub Actions run `30870594823`.
+   See the
    [admission result](../test-results/2026-08-04-generation-10-live-admission-offline.md).
+   The first connected-preflight transition verified exact Alpine fallback and
+   issued one authenticated `RESTART2("bootloader")`, but USB disconnected
+   without any anchored-port mode returning during the fixed 45-second window
+   or an additional 30-second read-only check. No recovery image, payload, boot
+   command, boot claim, or consumption occurred. Manual fastboot entry is now
+   required before a fresh connected preflight. See the
+   [transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
    The gap remains unlocated, so any later
    Generation-10 lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
