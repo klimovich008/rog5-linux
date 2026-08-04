@@ -2,13 +2,14 @@
 
 Status: **shell-free framed path is established; diagnostic Generations 0–9
 are consumed; bounded device-originated PREPARE progress is implemented and
-hardware-free tested; Generation 10 is issued and live-profiled but remains
-unbooted and unadmitted with zero boot-policy allow rows**
+hardware-free tested; Generation 10 is issued, live-profiled, and admitted for
+one connected-preflight-gated RAM-only lifecycle, but remains unbooted with no
+boot claim**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.
 
-Last reviewed: 2026-08-03
+Last reviewed: 2026-08-04
 
 The executable stdlib-only reference model is in
 `tools/recovery_control/reference.py`; its host test is

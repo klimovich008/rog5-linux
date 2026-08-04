@@ -395,13 +395,17 @@ and exact-head GitHub Actions run `30867110893` are green. The subsequent
 `headless-diagnostic-generation10-live-v1` profile now selects the identical
 tuple through the lifecycle. Direct connected actions require the lifecycle
 guard, and missing, duplicate, or wrong-basis policy states reject before host
-inspection. Central policy still has zero `allow` rows, so Generation 10
-remains unbooted and unadmitted. See the
+inspection. That transition was published at `adc4123` and passed exact-head
+GitHub Actions run `30869110964`. A separate central-policy checkpoint now
+admits exactly one image and exact one-shot basis for a
+connected-preflight-gated RAM-only lifecycle. Inventory retains issuance
+`authority=none`; Generation 10 remains unbooted with no boot claim. See the
 [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
-Constrained re-review and complete local CI pass. Next publish and pass
-exact-head CI for the live-profile checkpoint. One-shot central admission
-remains a later distinct gate. The
-instrumentation still does not locate the post-transfer gap, so any
+The admission's focused and complete local suites pass, and constrained Opus
+re-review returns `NO FINDINGS`; publication and exact-head CI remain before
+connected preflight. See the
+[admission result](../test-results/2026-08-04-generation-10-live-admission-offline.md).
+The instrumentation still does not locate the post-transfer gap, so any
 Generation-10 lifecycle remains diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation

@@ -1206,12 +1206,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `headless-diagnostic-generation10-live-v1` profile now selects that exact
    tuple through the lifecycle, but direct connected actions require the
    lifecycle guard and every missing, duplicate, or wrong-basis policy state
-   rejects before host inspection. Central policy remains empty, so this
-   transition grants no boot authority. See the
+   rejects before host inspection. That transition was published at `adc4123`
+   and passed exact-head GitHub Actions run `30869110964` while central policy
+   remained empty. See the
    [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
-   Constrained re-review and complete local CI pass. Publication and exact-head
-   CI remain before a separate one-shot admission change. The gap remains
-   unlocated, so any later
+   A separate central-policy checkpoint now contains exactly one Generation-10
+   `allow` row with the pinned one-shot basis. Inventory still records issuance
+   `authority=none`, `unbooted`, and no boot claim. Focused and complete local
+   suites pass, and constrained Opus re-review returns `NO FINDINGS`;
+   publication and exact-head CI remain before connected preflight. See the
+   [admission result](../test-results/2026-08-04-generation-10-live-admission-offline.md).
+   The gap remains unlocated, so any later
    Generation-10 lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
