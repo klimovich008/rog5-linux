@@ -377,17 +377,23 @@ trees at AVB `b983e89b…8b51`, salt `5f62ef87…d3ee`, and generation-record
 `cb999cd8…3b6d`. Cross-tree and A/B equality, pinned `avbtool`, an independently
 recomputed salt-plus-raw digest, unchanged raw bytes, and distinct retained
 Generation 4–9 identities all pass. The synthetic regression covers
-Generations 1–9. No phone interface was used. Generation 10 is unbooted,
-unprofiled, absent from artifact inventory and boot policy, and retains
-`authority=none`; see the
+Generations 1–9. No phone interface was used. Generation 10 is unbooted and
+retains `authority=none`; see the
 [offline successor result](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
 
 This issuance was independently reviewed, published at `d04b804`, and passed
-exact-head GitHub Actions run `30865091104`. Next add an immutable offline-only
-profile in a separate change and pass both retained-tree artifact gates.
+exact-head GitHub Actions run `30865091104`. The subsequent immutable
+`headless-diagnostic-generation10-offline-v1` profile now pins the full tuple,
+rejects connected actions before host inspection, and passes both retained
+issuer trees plus generation-record mutation rejection. Artifact inventory
+records `unbooted` and `authority=none`; temporary-boot policy is unchanged
+with zero `allow` rows. See the
+[offline profile result](../test-results/2026-08-03-generation-10-offline-profile.md).
+Constrained re-review and complete local CI pass. Next publish and pass
+exact-head CI for that profile.
 Live-profile selection and one-shot central admission remain later, distinct
-gates before any diagnostic temporary boot. The instrumentation still does
-not locate the post-transfer gap, so any Generation-10 lifecycle remains
+gates before any diagnostic temporary boot. The instrumentation still does not
+locate the post-transfer gap, so any Generation-10 lifecycle remains
 diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation

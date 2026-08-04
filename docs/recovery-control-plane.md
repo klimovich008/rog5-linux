@@ -2,7 +2,8 @@
 
 Status: **shell-free framed path is established; diagnostic Generations 0–9
 are consumed; bounded device-originated PREPARE progress is implemented and
-hardware-free tested; no Generation 10 is issued**
+hardware-free tested; Generation 10 is issued and offline-profiled but remains
+unbooted and unadmitted**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.

@@ -545,14 +545,21 @@ Current execution order:
     [offline successor result](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
     The production issuance was independently reviewed, published at
     `d04b804`, and passed exact-head GitHub Actions run `30865091104`.
-15. **Next:** in a separate change, create an immutable offline-only profile
-    and prove both retained-tree artifact preflights before considering a live
-    profile or one-shot central admission. The offline instrumentation does not
-    itself locate the post-transfer gap; any Generation-10 lifecycle remains
-    diagnostic-only.
-16. Promote a distinct normal SSH candidate only after diagnostic evidence
+15. **Complete locally and independently reviewed; publication pending:** the immutable
+    `headless-diagnostic-generation10-offline-v1` profile pins the full tuple,
+    rejects connected actions before host inspection, and passes both retained
+    11-file trees plus generation-record mutation rejection. Artifact inventory
+    records `unbooted` and `authority=none`; boot policy remains unchanged with
+    zero `allow` rows. See the
+    [offline profile result](test-results/2026-08-03-generation-10-offline-profile.md).
+16. **Next:** publish and pass exact-head CI for the offline profile. Only a
+    later separate change may select the same tuple in
+    a live lifecycle profile; one-shot central admission remains later still.
+    The instrumentation does not locate the post-transfer gap, so any eventual
+    Generation-10 lifecycle remains diagnostic-only.
+17. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-17. If H2 passes, continue physical keys/indicator, then H3
+18. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

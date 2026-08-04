@@ -1190,13 +1190,20 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    `b983e89b…8b51`, generation record `cb999cd8…3b6d`, and
    `authority=none`. The private snapshot was destroyed, external inputs
    remained unchanged, and the phone was not contacted. Generation 10 remains
-   unbooted, unprofiled, absent from inventory and boot policy, and cannot be
-   used by the lifecycle. See the
+   unbooted and cannot be used by the lifecycle. See the
    [offline successor](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
    Independent review, publication at `d04b804`, and exact-head GitHub Actions
-   run `30865091104` now pass. The next separate gate is an immutable
-   offline-only profile and both retained artifact preflights. The gap remains
-   unlocated, so any later Generation-10 lifecycle is diagnostic-only.
+   run `30865091104` now pass. The immutable
+   `headless-diagnostic-generation10-offline-v1` profile subsequently pins the
+   complete tuple, rejects connected actions before host inspection, and
+   passes both retained-tree artifact preflights plus generation-record
+   mutation rejection. Inventory records `unbooted` and `authority=none`;
+   temporary-boot policy remains unchanged with zero `allow` rows. See the
+   [offline profile](../test-results/2026-08-03-generation-10-offline-profile.md).
+   Constrained re-review and complete local CI pass; publication and exact-head
+   CI are the next gate before any separate live-profile work. The gap remains
+   unlocated, so any later Generation-10
+   lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

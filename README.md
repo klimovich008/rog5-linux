@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–9 are consumed and never reusable. Generation 9 transferred the complete signed bundle but recovery returned no `PREPARED` response before watchdog fallback; no COMMIT or target execution occurred. A progress-instrumented, production-key-bound Generation-10 recovery is twin-issued offline at AVB `b983e89b…8b51`; it is unbooted, unprofiled, `authority=none`, absent from boot policy, and exact-head CI green pending immutable-profile gates. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–9 are consumed and never reusable. Generation 9 transferred the complete signed bundle but recovery returned no `PREPARED` response before watchdog fallback; no COMMIT or target execution occurred. A progress-instrumented, production-key-bound Generation-10 recovery is twin-issued offline at AVB `b983e89b…8b51`; its immutable offline-only profile locally passes both retained-tree artifact gates, while the image remains unbooted, `authority=none`, and absent from boot policy. Constrained review and full local CI pass; publication and exact-head CI remain pending. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -82,13 +82,15 @@ transfer, but recovery did not return `PREPARED` before watchdog fallback; no
 COMMIT intent or target execution occurred. Its permanent private
 `BOOT_CLAIMED` record and the removed policy row independently prevent reuse.
 Generation 10 exists only as two matching ignored offline trees with
-`authority=none`; it has no profile, inventory row, policy row, or boot claim.
+`authority=none`; its offline-only profile and inventory row grant no live
+authority, and it has no live profile, policy row, or boot claim.
 See the Generation-8
 [live result](test-results/2026-08-03-generation-8-recovery-acm-stability-live.md)
 and Generation-9
 [live result](test-results/2026-08-03-generation-9-prepared-response-gap-live.md),
 plus the Generation-10
-[offline successor](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
+[offline successor](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md)
+and [offline profile](test-results/2026-08-03-generation-10-offline-profile.md).
 No consumed generation may be retried, and no diagnostic image may ever be
 flashed.
 
