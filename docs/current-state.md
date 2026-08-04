@@ -45,7 +45,7 @@ entry cycle. The panel can remain off while the server is reachable.
 ## Recovery
 
 Recovery v18 remains historical staging evidence and is recorded as revoked in
-`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–11 are consumed
+`manifests/temporary-boot-images.tsv`. Diagnostic generations 0–12 are consumed
 and absent from boot policy. Generation 11 reached exact recovery ACM/NCM, then
 failed closed before the bundle-server ready marker when the privileged host
 path rejected its newly started TCP 8081 collector as not uniquely confined.
@@ -62,8 +62,17 @@ exact live profile and lifecycle selector, the sole
 central-policy `allow` row, and a fail-closed irreversible Generation-12 claim
 consumer; exact-head run `30942517411` passed. An anchored strict-SSH
 Alpine-to-fastboot transition and connected preflight then passed, with the
-conflicting Steam TCP-8081 socket restored. No Generation-12 claim or boot has
-occurred; the candidate remains unbooted and never-flash.
+conflicting Steam TCP-8081 socket restored. Commit `1ee5508` and exact-head run
+`30944062957` published that evidence. The sole Generation-12 lifecycle then
+entered its private claim, transferred all 46,163,787 bundle bytes, accepted
+correlated PREPARE/COMMIT, and produced 40 lossless target frames through
+stage 70 `nfs-mount-begin`. USB disconnected before stage 80 `nfs-mount-ok` or
+a terminal fault frame. The watchdog returned exact Alpine fallback; strict
+SSH, profile restoration, host cleanup, Steam socket restoration, and
+`FALLBACK_RETURNED` resolution passed. Generation 12 is removed from policy,
+recorded consumed, permanently claimed, and never reusable. The [live
+result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+does not claim a panic without current-cycle console or postmortem lineage.
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

@@ -1,15 +1,18 @@
 # Stable recovery control plane
 
-Status: **shell-free framed path is established; diagnostic Generations 0–11
+Status: **shell-free framed path is established; diagnostic Generations 0–12
 are consumed. Generation 10 proved correlated `REQUEST_ACCEPTED` plus complete
 host transfer, then lost ACM before any later progress or `PREPARED` response
 reached the host. Generation 11 reached exact recovery ACM/NCM, but its
 privileged host path rejected the started TCP 8081 progress collector as not
 uniquely confined before recovery control began. No PREPARE, transfer, COMMIT
 intent, NFS, or target occurred; Generation 11 is permanently claimed and must
-never be retried. Generation 12 is the current unbooted successor; its
-host-confinement-corrected offline checkpoint is published, and an exact
-live-profile/admission/claim-consumer transition is under host-only review.**
+never be retried. Generation 12 corrected that host boundary, transferred and
+verified the complete bundle, accepted correlated PREPARE/COMMIT, and reached
+target stage 70 `nfs-mount-begin`; USB disconnected before stage 80. Exact
+watchdog fallback and cleanup passed. Generation 12 is consumed and absent from
+policy. The outer lifecycle's obsolete response parser is being corrected
+host-only before a more observable successor is designed.**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.

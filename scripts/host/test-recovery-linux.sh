@@ -223,19 +223,18 @@ generation12='build/stable-recovery-generation12-host-confinement-fix-20260804-a
 awk -F '\t' -v name="$generation12" '
 	$2 == "allow" {
 		allow_count++
-		if ($1 == name &&
-			$3 == "one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash")
-			exact_count++
 	}
-	END { exit allow_count == 1 && exact_count == 1 ? 0 : 1 }
-' "$policy" || fail 'temporary-boot policy is not the exact generation-12 one-shot admission'
+	$1 == name { generation12_count++ }
+	END { exit allow_count == 0 && generation12_count == 0 ? 0 : 1 }
+' "$policy" || fail 'temporary-boot policy retains generation-12 admission'
 awk -F '\t' -v name="$generation12" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" &&
-	$4 ~ /^unbooted generation-12 host-confinement-corrected diagnostic recovery/ &&
-	$4 ~ /authority=none/ && $4 ~ /never flash$/ && $5 == "no" { count++ }
+	$4 ~ /^consumed generation-12 host-confinement-corrected diagnostic recovery/ &&
+	$4 ~ /stage 70 nfs-mount-begin/ && $4 ~ /FALLBACK_RETURNED/ &&
+	$4 ~ /never retry or flash$/ && $5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-12 unbooted artifact inventory is not exact'
+' "$manifest" || fail 'generation-12 consumed artifact inventory is not exact'
 awk -F '\t' -v name="$generation11" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }

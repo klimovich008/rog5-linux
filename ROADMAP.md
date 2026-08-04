@@ -437,7 +437,7 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
 runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
-generations 0–11 are consumed and absent from temporary-boot policy.
+generations 0–12 are consumed and absent from temporary-boot policy.
 Generation 7 transferred the complete signed bundle but the host rejected its
 post-transfer deferred-profile observation before receiving `PREPARED`; no
 intent, NFS handoff, or target execution occurred. Exact fallback and strict
@@ -483,11 +483,12 @@ permanently `BOOT_CLAIMED`, absent from boot policy, consumed in inventory, and
 never reusable. The next correction must make post-acceptance progress
 independently observable across ACM loss. Generation 11 implemented that
 channel but was consumed by the later host listener-confinement failure; the
-current correction has reproduced the real scoped TCP 8081 endpoint and
-implemented exact endpoint/sole-owner verification offline. Complete CI and
-installed-host verification pass; implementation commit `1f3cc66` passed
-exact-head GitHub Actions run `30931511061`. A distinct diagnostic successor
-may now be issued and preflighted offline; no phone boot is implied.
+Generation-12 host correction reproduced the real scoped TCP 8081 endpoint and
+implemented exact endpoint/sole-owner verification offline. Its sole cycle
+then reached target stage 70 `nfs-mount-begin` before USB disconnected. Exact
+fallback passed; Generation 12 is consumed. The current host-only work repairs
+the outer response parser and defines stronger NFS/USB/postmortem evidence
+before a distinct successor may be issued; no phone boot is implied.
 
 Current execution order:
 
@@ -688,12 +689,28 @@ Current execution order:
     admission](test-results/2026-08-04-generation-12-live-admission-offline.md)
     and [connected-preflight
     result](test-results/2026-08-04-generation-12-connected-preflight-live.md).
-28. **Next:** publish the connected-preflight evidence and pass exact-head CI,
-    then run the sole Generation-12 RAM-only diagnostic lifecycle. Burn the
-    candidate after any result and never flash it.
-29. Promote a distinct normal SSH candidate only after diagnostic evidence
-    identifies and fixes the failing boundary.
-30. If H2 passes, continue physical keys/indicator, then H3
+28. **Complete and consumed:** commit `1ee5508` and exact-head GitHub Actions
+    run `30944062957` published the connected-preflight evidence. The sole
+    Generation-12 RAM-only lifecycle then transferred the exact 46,163,787-byte
+    bundle, accepted correlated PREPARE/COMMIT, and captured 40 lossless target
+    frames through stage 70 `nfs-mount-begin`; USB disconnected before stage
+    80 `nfs-mount-ok`. The watchdog returned exact Alpine fallback, strict SSH,
+    cleanup, Steam socket restoration, and `FALLBACK_RETURNED` intent
+    resolution passed. Generation 12 is removed from boot policy, recorded
+    consumed, and never reusable. See the [live
+    result](test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
+29. **In progress, host-only:** correct the outer lifecycle's obsolete
+    seven-field PREPARE parser to require the full postmortem-extended response
+    contract. Keep production diagnostics held before credentials or phone
+    inspection. Add hostile full-field, postmortem-bound, phase-identity, and
+    cross-response mutation tests, then publish only after complete local and
+    exact-head CI plus independent review.
+30. Design a distinct successor that separates target pre/post-NFS-syscall,
+    host TCP/NFS request progress, USB/NCM continuity, and lineage-proven
+    current-cycle postmortem evidence. Do not issue or admit it until the
+    offline contract and rollback review pass. Promote a normal SSH candidate
+    only after that evidence identifies and fixes the failing boundary.
+31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

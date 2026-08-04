@@ -24,6 +24,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"
+DIAGNOSTIC_LIVE_STATUS = "consumed"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
@@ -63,6 +64,29 @@ CONSUMED_MANIFESTS = {
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 SSH_FINGERPRINT = re.compile(r"SHA256:[A-Za-z0-9+/]{43}\Z")
 HEX_ID = re.compile(r"[0-9a-f]{32}\Z")
+POSTMORTEM_TAIL_HEX = re.compile(r"(?:[0-9a-f]{2}){1,512}\Z")
+CONTROL_RESPONSE_FIELDS = frozenset(
+    {
+        "session",
+        "request",
+        "verb",
+        "result",
+        "state",
+        "prepared_bundle",
+        "manifest_sha256",
+        "prepare_request",
+        "commit_request",
+        "commit_fingerprint",
+        "execution_started",
+        "watchdog",
+        "last_error",
+        "postmortem_state",
+        "postmortem_records",
+        "postmortem_bytes",
+        "postmortem_sha256",
+        "postmortem_tail_hex",
+    }
+)
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
@@ -1055,30 +1079,10 @@ def observe_prepared_identity(
         return None
     session = value.get("session")
     request = value.get("request")
-    if (
-        set(value)
-        != {
-            "session",
-            "request",
-            "result",
-            "state",
-            "prepared_bundle",
-            "manifest_sha256",
-            "watchdog",
-        }
-        or not isinstance(session, str)
-        or not HEX_ID.fullmatch(session)
-        or session == ZERO_ID
-        or not isinstance(request, str)
-        or not HEX_ID.fullmatch(request)
-        or request == ZERO_ID
-        or value.get("result") != "PREPARED"
-        or value.get("state") != "PREPARED"
-        or value.get("prepared_bundle") != target
-        or value.get("manifest_sha256") != manifest_sha256
-        or value.get("watchdog") != "ARMED"
-    ):
+    if not valid_prepared_response(value, manifest_sha256, target):
         return None
+    assert isinstance(session, str)
+    assert isinstance(request, str)
     return session, request
 
 
@@ -1239,6 +1243,126 @@ def inspect_progress_capture(
     )
 
 
+def postmortem_tuple(value: dict[str, object]) -> tuple[object, ...]:
+    return tuple(
+        value.get(name)
+        for name in (
+            "postmortem_state",
+            "postmortem_records",
+            "postmortem_bytes",
+            "postmortem_sha256",
+            "postmortem_tail_hex",
+        )
+    )
+
+
+def valid_postmortem(value: dict[str, object]) -> bool:
+    state, records, byte_count, digest, tail = postmortem_tuple(value)
+    if (
+        not isinstance(state, str)
+        or not isinstance(records, str)
+        or not isinstance(byte_count, str)
+        or not isinstance(digest, str)
+        or not isinstance(tail, str)
+        or state not in {"PRESENT", "EMPTY", "UNAVAILABLE"}
+        or not records.isdecimal()
+        or (len(records) > 1 and records.startswith("0"))
+        or len(records) > 2
+        or int(records) > 64
+        or not byte_count.isdecimal()
+        or (len(byte_count) > 1 and byte_count.startswith("0"))
+        or len(byte_count) > 7
+        or int(byte_count) > 4194304
+        or not SHA256.fullmatch(digest)
+        or (tail != "none" and not POSTMORTEM_TAIL_HEX.fullmatch(tail))
+    ):
+        return False
+    if state == "PRESENT":
+        return (
+            records != "0"
+            and byte_count != "0"
+            and digest != ZERO_SHA256
+            and tail != "none"
+        )
+    if state == "EMPTY":
+        return (
+            records == "0"
+            and byte_count == "0"
+            and digest == EMPTY_SHA256
+            and tail == "none"
+        )
+    return (
+        records == "0"
+        and byte_count == "0"
+        and digest == ZERO_SHA256
+        and tail == "none"
+    )
+
+
+def valid_prepared_response(
+    prepared: dict[str, object],
+    manifest_sha256: str,
+    target: str,
+) -> bool:
+    session = prepared.get("session")
+    request = prepared.get("request")
+    return (
+        set(prepared) == CONTROL_RESPONSE_FIELDS
+        and isinstance(session, str)
+        and bool(HEX_ID.fullmatch(session))
+        and session != ZERO_ID
+        and isinstance(request, str)
+        and bool(HEX_ID.fullmatch(request))
+        and request != ZERO_ID
+        and prepared.get("verb") == "PREPARE"
+        and prepared.get("result") == "PREPARED"
+        and prepared.get("state") == "PREPARED"
+        and prepared.get("prepared_bundle") == target
+        and prepared.get("manifest_sha256") == manifest_sha256
+        and prepared.get("prepare_request") == request
+        and prepared.get("commit_request") == ZERO_ID
+        and prepared.get("commit_fingerprint") == ZERO_SHA256
+        and prepared.get("execution_started") == "NO"
+        and prepared.get("watchdog") == "ARMED"
+        and prepared.get("last_error") == "NONE"
+        and valid_postmortem(prepared)
+    )
+
+
+def valid_committed_response(
+    committed: dict[str, object],
+    manifest_sha256: str,
+    target: str,
+    prepare_request: str,
+) -> bool:
+    session = committed.get("session")
+    request = committed.get("request")
+    fingerprint = committed.get("commit_fingerprint")
+    return (
+        set(committed) == CONTROL_RESPONSE_FIELDS
+        and isinstance(session, str)
+        and bool(HEX_ID.fullmatch(session))
+        and session != ZERO_ID
+        and isinstance(request, str)
+        and bool(HEX_ID.fullmatch(request))
+        and request != ZERO_ID
+        and committed.get("verb") == "COMMIT_EXEC"
+        and committed.get("result") == "CLAIMED"
+        and committed.get("state") == "CLAIMED"
+        and committed.get("prepared_bundle") == target
+        and committed.get("manifest_sha256") == manifest_sha256
+        and committed.get("prepare_request") == prepare_request
+        and committed.get("commit_request") == request
+        and isinstance(fingerprint, str)
+        and bool(SHA256.fullmatch(fingerprint))
+        and fingerprint != ZERO_SHA256
+        and committed.get("watchdog") == "ARMED"
+        and committed.get("execution_started") == "NO"
+        and committed.get("last_error") == "NONE"
+        and valid_postmortem(committed)
+    )
+
+
 def parse_control_log(
     path: Path,
     manifest_sha256: str,
@@ -1258,34 +1382,15 @@ def parse_control_log(
         fail("recovery-control output is not one complete transaction")
     prepared, committed, intent_value = map(canonical_json, lines[:3])
     prepared_request = prepared.get("request")
-    if (
-        set(prepared)
-        != {
-            "session",
-            "request",
-            "result",
-            "state",
-            "prepared_bundle",
-            "manifest_sha256",
-            "watchdog",
-        }
-        or not isinstance(prepared_request, str)
-        or not HEX_ID.fullmatch(prepared_request)
-        or prepared_request == ZERO_ID
-        or prepared.get("result") != "PREPARED"
-        or prepared.get("state") != "PREPARED"
-        or prepared.get("prepared_bundle") != target
-        or prepared.get("manifest_sha256") != manifest_sha256
-        or prepared.get("watchdog") != "ARMED"
-    ):
+    if not valid_prepared_response(prepared, manifest_sha256, target):
         fail("recovery PREPARE evidence is inconsistent")
-    if (
-        committed.get("result") != "CLAIMED"
-        or committed.get("state") != "CLAIMED"
-        or committed.get("manifest_sha256") != manifest_sha256
-        or committed.get("watchdog") != "ARMED"
-        or committed.get("execution_started") != "NO"
-    ):
+    assert isinstance(prepared_request, str)
+    if not valid_committed_response(
+        committed,
+        manifest_sha256,
+        target,
+        prepared_request,
+    ) or postmortem_tuple(prepared) != postmortem_tuple(committed):
         fail("recovery COMMIT evidence is inconsistent")
     intent = validate_intent(
         intent_value,
@@ -3309,6 +3414,14 @@ def main(arguments: list[str]) -> int:
             "usage: run-minimal-headless-live-cycle.py "
             "key-preflight | preflight | run | diagnostic-key-preflight | "
             "diagnostic-preflight | diagnostic-run"
+        )
+    if (
+        requested.startswith("diagnostic-")
+        and os.environ.get("ROG5_LIVE_CYCLE_OFFLINE_TEST") != "1"
+    ):
+        fail(
+            "no diagnostic recovery lifecycle is admitted; Generation-12 "
+            f"is {DIAGNOSTIC_LIVE_STATUS} and must not be retried"
         )
     action, profile = actions[requested]
     if action == "run":

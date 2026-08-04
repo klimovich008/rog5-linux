@@ -139,9 +139,9 @@ trees. Independent review and complete local CI passed; commit `52ce322`
 published the authority-free checkpoint and exact-head GitHub Actions run
 `30935842119` passed recovery-core in 4m11s and QEMU in 35s.
 
-The live-admission transition adds exact profile
-`headless-diagnostic-generation12-live-v1`, selects it from the one-shot
-lifecycle, and adds the sole central-policy `allow` row for exact path
+The live-admission transition added exact profile
+`headless-diagnostic-generation12-live-v1`, selected it from the one-shot
+lifecycle, and added the sole central-policy `allow` row for exact path
 `build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img`.
 Direct `preflight`/`boot` still reject without the lifecycle guard. `boot`
 must additionally validate and irreversibly enter the controller's private
@@ -154,11 +154,35 @@ and trailing fields. Commit `328b33c` published that transition and exact-head
 run `30942517411` passed recovery-core in 4m10s and QEMU in 52s. Strict pinned
 fallback SSH proved Alpine health, the anchored helper reached exact
 `lahaina` fastboot, and connected preflight passed after temporarily stopping
-and exactly restoring Steam's TCP-8081 socket. No Generation-12 claim or boot
-occurred. Publish the [connected-preflight
-result](../test-results/2026-08-04-generation-12-connected-preflight-live.md)
-exact-head green before the sole diagnostic run. See also the [host-only
-admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
+and exactly restoring Steam's TCP-8081 socket. Commit `1ee5508` published the
+[connected-preflight
+result](../test-results/2026-08-04-generation-12-connected-preflight-live.md),
+and exact-head run `30944062957` passed.
+
+The [sole Generation-12 lifecycle](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+then entered its durable claim, transferred all 46,163,787 signed-bundle
+bytes, and accepted correlated PREPARE/COMMIT. Forty valid receive-only target
+frames had zero dropped USB events or target updates: reporter stage 10,
+address stage 50, then repeated stage 70 `nfs-mount-begin` from 3.544 through
+12.547 seconds. USB disconnected before stage 80 `nfs-mount-ok` or a terminal
+fault frame. The exact 37,735-entry read-only NFS export had been verified and
+was ready. This isolates the next investigation to the first NFS mount or a
+lower kernel/USB/network boundary, but does not prove a panic. The watchdog
+returned exact Alpine fallback; strict SSH, profile restoration, NFS/firewall
+cleanup, Steam socket restoration, and `FALLBACK_RETURNED` intent resolution
+passed at 43.1 C.
+
+Generation 12 is consumed, removed from central boot policy, exact consumed in
+artifact inventory, and permanently claimed. Production diagnostic actions
+now reject before guards, credentials, repository, host, or phone inspection;
+the retained offline profiles and twins are regression evidence only. The
+current host-only increment repairs the outer lifecycle's obsolete seven-field
+PREPARE parser to require the complete postmortem-extended response and hostile
+cross-response invariants. Before any distinct successor is issued, design
+instrumentation for pre/post NFS syscall, host TCP/NFS request progress,
+USB/NCM continuity, and lineage-proven current-cycle postmortem evidence. See
+also the [host-only admission
+result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
 ## Historical deployment chronology
 
