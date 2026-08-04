@@ -437,7 +437,7 @@ time.
 
 The hardware-free recovery, corrected-DTB, non-fixture key-bound root, NFS,
 runtime, rollback, thermal, fallback, and CI gates are complete. Diagnostic
-generations 0–9 are consumed and absent from temporary-boot policy.
+generations 0–10 are consumed and absent from temporary-boot policy.
 Generation 7 transferred the complete signed bundle but the host rejected its
 post-transfer deferred-profile observation before receiving `PREPARED`; no
 intent, NFS handoff, or target execution occurred. Exact fallback and strict
@@ -458,19 +458,30 @@ host proof separately
 exposed an empty root-owned mode-`0600` NFS export-table inspection defect;
 independent checks found no host residue.
 
-Generation 9 then passed exact key and connected preflight and completed the
-46,163,787-byte signed-bundle transfer over exact recovery ACM/NCM. Recovery
-returned no `PREPARED` response before watchdog fallback. The complete transfer
-and USB timeline make replay discovery after the original transport loss, when
-Alpine was already present, the best interpretation of its terminal
-product-mismatch trace; the controller did not label that phase directly. No
-COMMIT intent or target execution occurred. Exact fallback and final host
-cleanup passed. The next correction is test-first transport/replay and
-recovery-side phase evidence, not another AVB generation over unchanged payload
-bytes. That hardware-free correction now emits and retains five exact PREPARE
-boundaries while preserving terminal-response authority. The next action is
-reproducible integration of the changed responder into a distinct recovery
-wrapper, not reuse of any consumed generation.
+Generation 9 then passed its reviewed one-shot admission and connected
+preflight. Its sole RAM-only lifecycle reached exact recovery ACM/NCM and
+transferred all 46,163,787 signed-bundle bytes, but no `PREPARED` response
+reached the host before recovery USB disconnected and watchdog fallback began.
+The final 216-sample product-mismatch trace is best explained by fallback-only
+replay discovery, but that generation did not label the phase directly. No
+COMMIT intent existed, no target ran, and exact Alpine fallback plus final host
+cleanup passed. Generation 9 is consumed, absent from policy, and never
+reusable. Its ambiguity motivated the labeled replay and correlated progress
+instrumentation used by Generation 10.
+
+Generation 10 then passed exact key and connected preflight at the reviewed,
+published, exact-head-green checkpoint. Its sole RAM-only lifecycle reached
+exact recovery ACM/NCM, emitted correlated `REQUEST_ACCEPTED`, and caused the
+host to send all 46,163,787 signed-bundle bytes. The response transport then
+closed before any later progress or `PREPARED` response reached the host; the
+exact device-side fetch/verify/load boundary remains unknown. Replay was
+explicitly classified as `prepare-replay` with 216 stable
+fallback/product-mismatch samples. The pre-COMMIT NFS export became ready, but
+no COMMIT intent existed and no target ran. Exact Alpine fallback, strict SSH,
+profile restoration, and final host cleanup passed. Generation 10 is
+permanently `BOOT_CLAIMED`, absent from boot policy, consumed in inventory, and
+never reusable. The next correction must make post-acceptance progress
+independently observable across ACM loss before any Generation-11 issuance.
 
 Current execution order:
 
@@ -565,7 +576,7 @@ Current execution order:
     See the
     [live-profile result](test-results/2026-08-04-generation-10-live-profile-offline.md).
 17. **Complete:**
-    central policy admits exactly one Generation-10 image and basis
+    central policy admitted exactly one Generation-10 image and basis
     for one connected-preflight-gated RAM-only lifecycle. Missing, duplicate,
     and wrong-basis policy fixtures reject before host inspection; inventory
     retains issuance `authority=none`, `unbooted`, and no boot claim. See the
@@ -586,14 +597,23 @@ Current execution order:
     [transition result](test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
     and
     [connected-preflight result](test-results/2026-08-04-generation-10-connected-preflight-live.md).
-19. **In progress:** review, publish, and verify this new connected-preflight
-    result itself at exact-head CI; the already-green prerequisite run does
-    not cover the uncommitted live evidence. Then execute the sole admitted
-    Generation-10 diagnostic lifecycle. Remove its policy admission after any
-    result and never retry an ambiguous execute.
-20. Promote a distinct normal SSH candidate only after diagnostic evidence
+19. **Complete:** the connected-preflight result was reviewed and published at
+    `f4b9e1c`; exact-head GitHub Actions run `30872608193` passed. The sole
+    Generation-10 lifecycle then emitted `REQUEST_ACCEPTED`, transferred all
+    signed-bundle bytes, and lost ACM before any later progress or `PREPARED`
+    response reached the host. The exact device-side boundary remains unknown.
+    No COMMIT intent or target execution occurred. Exact fallback and host
+    cleanup passed; the permanent boot claim is retained, policy admission is
+    removed, and inventory is consumed. See the
+    [live result](test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
+20. **In progress:** reproduce the exact Generation-10 shape hardware-free—
+    first-attempt `REQUEST_ACCEPTED`, complete transfer, response-channel loss,
+    and fallback-only replay—then add an independent device progress or
+    retained-postmortem path that survives ACM loss. Do not issue Generation
+    11 from unchanged observability or by changing only the AVB generation.
+21. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-21. If H2 passes, continue physical keys/indicator, then H3
+22. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

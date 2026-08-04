@@ -55,10 +55,15 @@ awk -F '\t' '
 ' "$policy" "$manifest" ||
 	fail 'temporary-boot policy is malformed or not uniquely manifest-backed'
 
-grep -Fq \
-	'artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img' \
-	"$policy" ||
-	fail 'the accepted v18 staging image is absent from temporary-boot policy'
+awk -F '\t' '
+	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
+	$2 == "revoked" &&
+	$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" {
+		count++
+	}
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" ||
+	fail 'the exact revoked v18 staging row is absent from temporary-boot policy'
 consumed_diagnostic='build/early-target-diagnostic-deployment-20260801-production/wrapper/repack/stable-recovery-a.avb.img'
 if grep -Fq "$consumed_diagnostic" "$policy"; then
 	fail 'the consumed diagnostic wrapper remains in temporary-boot policy'
@@ -204,25 +209,20 @@ awk -F '\t' -v name="$generation9" '
 generation10='build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' '
 	$2 == "allow" { count++ }
-	END { exit count == 1 ? 0 : 1 }
+	END { exit count == 0 ? 0 : 1 }
 ' "$policy" ||
-	fail 'temporary-boot policy must contain exactly one allow row'
+	fail 'consumed policy retains a temporary-boot allow row'
 awk -F '\t' -v name="$generation10" '
 	$1 == name { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'generation-10 temporary-boot policy name is not unique'
-awk -F '\t' -v name="$generation10" '
-	$1 == name && $2 == "allow" &&
-	$3 == "one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash" { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$policy" || fail 'generation-10 temporary-boot admission is not exact and one-shot'
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'consumed generation-10 recovery remains boot-allowlisted'
 awk -F '\t' -v name="$generation10" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" &&
-	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash" &&
+	$4 == "consumed generation-10 PREPARE-progress-instrumented diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM and accepted PREPARE; the responder emitted REQUEST_ACCEPTED and the one-transfer host sent all 46163787 signed-bundle bytes, but the ACM transport closed before FETCH_COMPLETE or PREPARED; replay discovery reported stable product-mismatch in all 216 samples with phase=prepare-replay and no identity changes; the diagnostic collector expired after its fixed 120-second ACM-stability deadline with zero frames; restricted NFSv4.2 reached pre-COMMIT readiness, but no COMMIT intent existed and no target ran; exact Alpine fallback, strict SSH, profile restoration, and final host cleanup passed; retain offline only; never retry or flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-10 admitted artifact inventory is not exact'
+' "$manifest" || fail 'generation-10 consumed artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

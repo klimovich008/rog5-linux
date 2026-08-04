@@ -6,6 +6,27 @@ fail() {
 	exit 1
 }
 
+validate_temporary_boot_policy_header() {
+	local input=$1 name_header status_header basis_header extra
+	IFS=$'\t' read -r name_header status_header basis_header extra \
+		<"$input" || fail 'malformed temporary-boot policy header'
+	[[ $name_header == name && $status_header == status &&
+		$basis_header == basis && -z $extra ]] ||
+		fail 'malformed temporary-boot policy header'
+}
+
+validate_artifact_manifest_header() {
+	local input=$1 name_header size_header sha_header role_header \
+		tracked_header extra
+	IFS=$'\t' read -r name_header size_header sha_header role_header \
+		tracked_header extra <"$input" ||
+		fail 'malformed artifact manifest header'
+	[[ $name_header == name && $size_header == size &&
+		$sha_header == sha256 && $role_header == role &&
+		$tracked_header == tracked && -z $extra ]] ||
+		fail 'malformed artifact manifest header'
+}
+
 action=${1:-preflight}
 case $action in
 	policy-preflight) ;;
@@ -589,6 +610,7 @@ if [[ -n $expected_boot_image &&
 	[[ -f $early_boot_policy && ! -L $early_boot_policy &&
 		-r $early_boot_policy ]] ||
 		fail 'unsafe or missing early temporary-boot policy input'
+	validate_temporary_boot_policy_header "$early_boot_policy"
 	early_policy_matches=0
 	early_policy_status=
 	early_policy_basis=
@@ -609,6 +631,7 @@ if [[ -n $expected_boot_image &&
 	[[ -f $early_artifact_manifest && ! -L $early_artifact_manifest &&
 		-r $early_artifact_manifest ]] ||
 		fail 'unsafe or missing early artifact manifest input'
+	validate_artifact_manifest_header "$early_artifact_manifest"
 	early_artifact_matches=0
 	early_artifact_role=
 	while IFS=$'\t' read -r early_artifact_name early_size early_sha \
@@ -620,6 +643,7 @@ if [[ -n $expected_boot_image &&
 	done <"$early_artifact_manifest"
 	[[ $early_artifact_matches == 1 ]] ||
 		fail "artifact manifest does not uniquely list $expected_boot_image"
+	# The role's first token is the fail-closed lifecycle disposition.
 	case $early_artifact_role in
 		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
 	esac
@@ -747,6 +771,8 @@ if [[ $action == preflight || $action == boot ]]; then
 		[[ -f $policy_input && ! -L $policy_input && -r $policy_input ]] ||
 			fail "unsafe or missing temporary-boot policy input: $policy_input"
 	done
+	validate_temporary_boot_policy_header "$boot_policy"
+	validate_artifact_manifest_header "$artifact_manifest"
 	image_name=${image#"$repo"/}
 	[[ $image_name != "$image" ]] ||
 		fail 'temporary boot image must remain below the repository'
@@ -780,6 +806,7 @@ if [[ $action == preflight || $action == boot ]]; then
 		fail 'temporary boot artifact manifest identity is not allowlisted'
 	manifest_role=$(awk -F '\t' -v name="$image_name" \
 		'$1 == name { print $4; exit }' "$artifact_manifest")
+	# The role's first token is the fail-closed lifecycle disposition.
 	case $manifest_role in
 		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
 	esac

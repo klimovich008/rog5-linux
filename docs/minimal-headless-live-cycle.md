@@ -4,10 +4,15 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–9 are consumed and absent from
-temporary-boot policy**. Generation 9 completed the signed-bundle transfer but
-returned no `PREPARED` response before watchdog fallback; no COMMIT intent or
-target execution occurred. It must never be retried or flashed. Generation 4
+Tracked status: **diagnostic generations 0–10 are consumed and absent from
+temporary-boot policy**. Generation 10 emitted correlated `REQUEST_ACCEPTED`
+and completed the host-side signed-bundle transfer. ACM then closed before any
+later progress or `PREPARED` response reached the host; the exact device-side
+boundary remains unknown. No COMMIT intent or target execution occurred. Exact
+fallback and cleanup passed. Its permanent boot claim and consumed inventory
+role prevent readmission; it must never be retried or flashed.
+Generation 9 likewise completed its signed-bundle transfer without returning
+`PREPARED` before watchdog fallback. Generation 4
 passed connected preflight and one RAM-only recovery
 boot reached verified ACM/NCM with rollback armed. Its collector and bundle
 service became ready, but the service never emitted its independent completion
@@ -176,16 +181,23 @@ The progress-instrumented Generation-10 successor is twin-issued at AVB
 `edae5d1`, and exact-head GitHub Actions run `30867110893`. The separate
 `headless-diagnostic-generation10-live-v1` transition selects that identical
 tuple through the lifecycle and passed publication at `adc4123` plus
-exact-head GitHub Actions run `30869110964`. Central policy now admits one
-exact Generation-10 path and one-shot basis. Direct connected actions require
-the lifecycle guard; missing, duplicate, and wrong-basis policy states reject
-before host inspection. Generation 10 retains issuance `authority=none` and
-remains unbooted with no durable boot claim.
+exact-head GitHub Actions run `30869110964`. Central policy later admitted one
+exact path and one-shot basis; connected preflight passed from reviewed commit
+`f4b9e1c` and exact-head run `30872608193`. The sole RAM-only lifecycle emitted
+correlated `REQUEST_ACCEPTED` and completed the host-side signed-bundle
+transfer. ACM then closed before any later progress or `PREPARED` response
+reached the host; the exact device-side boundary remains unknown. No COMMIT
+intent or target execution occurred; exact fallback and host cleanup passed.
+Generation 10 is permanently `BOOT_CLAIMED`, absent from boot policy, consumed
+in inventory, and never reusable. Missing, duplicate, wrong-basis, and former
+exact-basis readmission states reject before host inspection.
 See the
 [offline profile](../test-results/2026-08-03-generation-10-offline-profile.md),
 [live-profile transition](../test-results/2026-08-04-generation-10-live-profile-offline.md),
+[one-shot admission](../test-results/2026-08-04-generation-10-live-admission-offline.md),
+[connected preflight](../test-results/2026-08-04-generation-10-connected-preflight-live.md),
 and
-[one-shot admission](../test-results/2026-08-04-generation-10-live-admission-offline.md).
+[live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

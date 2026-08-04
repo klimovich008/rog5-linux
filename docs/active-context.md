@@ -396,10 +396,10 @@ and exact-head GitHub Actions run `30867110893` are green. The subsequent
 tuple through the lifecycle. Direct connected actions require the lifecycle
 guard, and missing, duplicate, or wrong-basis policy states reject before host
 inspection. That transition was published at `adc4123` and passed exact-head
-GitHub Actions run `30869110964`. A separate central-policy checkpoint now
-admits exactly one image and exact one-shot basis for a
-connected-preflight-gated RAM-only lifecycle. Inventory retains issuance
-`authority=none`; Generation 10 remains unbooted with no boot claim. See the
+GitHub Actions run `30869110964`. A separate central-policy checkpoint then
+admitted exactly one image and exact one-shot basis for a
+connected-preflight-gated RAM-only lifecycle. Inventory retained issuance
+`authority=none` at that checkpoint. See the
 [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
 The admission's focused and complete local suites pass, constrained Opus
 re-review returns `NO FINDINGS`, and publication at `a9c012c` passed exact-head
@@ -419,13 +419,22 @@ server was started. See the
 [transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
 and
 [connected-preflight result](../test-results/2026-08-04-generation-10-connected-preflight-live.md).
-The instrumentation still does not locate the post-transfer gap, so any
-Generation-10 lifecycle remains diagnostic-only.
-The next gate is review, publication, and exact-head CI for the new
-connected-preflight result itself; the already-green prerequisite run does not
-cover that uncommitted live evidence. Only then may the sole admitted
-diagnostic lifecycle execute. Generation 10 is still unbooted and unconsumed
-with no boot claim.
+That result was reviewed and published at `f4b9e1c`; exact-head GitHub Actions
+run `30872608193` passed (`recovery-core` 3m47s; QEMU 43s). The sole
+Generation-10 RAM-only lifecycle then reached exact recovery ACM/NCM, emitted
+correlated `REQUEST_ACCEPTED`, and transferred all 46,163,787 signed-bundle
+bytes. The ACM response transport then closed before any later progress or
+`PREPARED` response reached the host; the exact device-side boundary remains
+unknown. Replay was explicitly `phase=prepare-replay` and observed 216 stable
+fallback/product-mismatch samples with no identity changes. NFS reached
+pre-COMMIT readiness, but no COMMIT intent existed and no target ran. Exact
+Alpine fallback, strict SSH, profile restoration, and final host cleanup
+passed. Generation 10 is permanently `BOOT_CLAIMED`, absent from boot policy,
+consumed in inventory, and never reusable. See the
+[live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
+The next increment is hardware-free reproduction of this exact progress/
+transport/replay sequence and an independent device-side progress or retained
+postmortem path that survives ACM loss. Do not issue Generation 11 yet.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed
