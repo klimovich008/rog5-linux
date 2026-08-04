@@ -4,7 +4,7 @@ This is the host runbook for one temporary stable-recovery boot, one signed
 minimal-headless target, one private strict-SSH observation, and automatic
 return to the configuration-unchanged Alpine fallback.
 
-Tracked status: **diagnostic generations 0–10 are consumed and absent from
+Tracked status: **diagnostic generations 0–11 are consumed and absent from
 temporary-boot policy**. Generation 10 emitted correlated `REQUEST_ACCEPTED`
 and completed the host-side signed-bundle transfer. ACM then closed before any
 later progress or `PREPARED` response reached the host; the exact device-side
@@ -210,7 +210,7 @@ listener ownership conflicts still fail closed. See the
 A distinct
 [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 now reproduces across two clean builds and two offline issuances. It remains
-ignored, unbooted, and `authority=none`. Its exact recovery and
+ignored and issuance remains `authority=none`. Its exact recovery and
 unchanged signed-target tuple passes an immutable
 [offline profile](../test-results/2026-08-04-generation-11-offline-profile.md)
 against both retained trees. The one-shot controller now selects the same
@@ -224,14 +224,26 @@ The live-profile transition passed Claude Opus review, independent Codex
 review, and complete local CI. Commit `2a483ec` passed exact-head GitHub Actions
 run `30908649494`. A separate
 [central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
-now adds exactly one connected-preflight-gated RAM-only lifecycle. The
+added exactly one connected-preflight-gated RAM-only lifecycle. The
 admitted-policy and hostile-fixture tests pass offline; exact
 [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
 then passed after strict fallback proof and an anchored same-port transition
 to one `lahaina` fastboot device. No recovery image boot, payload transfer, or
-Generation-11 boot claim occurred. Independent spec and standards review and
-complete local CI passed; commit `7b76733` published the connected evidence and
-exact-head GitHub Actions run `30921019231` passed. The sole lifecycle is next.
+Generation-11 boot claim occurred at that checkpoint. Independent spec and
+standards review and complete local CI passed; commit `7b76733` published the
+connected evidence and exact-head GitHub Actions run `30921019231` passed.
+Publication commit `04132f0` then passed exact-head run `30921533485`.
+
+The [sole live cycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+entered the durable private claim and booted exact recovery ACM/NCM. The
+privileged `serve-progress-deferred` host path then rejected its newly started
+TCP 8081 collector as not uniquely confined before publishing the bundle-server
+ready marker. Progress remained `PARTIAL/NO_ADMISSION` with zero records and
+`authority=NONE`; recovery control never started, so no PREPARE, bundle
+transfer, COMMIT intent, NFS, or target occurred. The armed target collector
+also recorded zero frames. Exact Alpine fallback, strict SSH, profile
+restoration, host cleanup, and Steam socket restoration passed. Generation 11
+is consumed, absent from boot policy, and permanently claimed; never retry it.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable

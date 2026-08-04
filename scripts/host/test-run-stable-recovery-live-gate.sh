@@ -59,25 +59,17 @@ awk -F '\t' '
 		next
 	}
 	NR == 2 {
-		if ($1 != "build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img" ||
-			$2 != "allow" ||
-			$3 != "one generation-11 receive-only NCM-progress diagnostic lifecycle after connected preflight; remove after any result; never flash" ||
-			NF != 3)
-			exit 1
-		next
-	}
-	NR == 3 {
 		if ($1 != "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" ||
 			$2 != "revoked" ||
 			$3 != "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" ||
 			NF != 3)
 			exit 1
-		next
+			next
 	}
 	{ exit 1 }
-	END { if (NR != 3) exit 1 }
+	END { if (NR != 2) exit 1 }
 ' "$boot_policy" ||
-	{ echo 'FAIL committed temporary-boot policy is not the exact one-shot generation-11 admission shape' >&2; exit 1; }
+	{ echo 'FAIL committed temporary-boot policy is not the exact deny-by-default shape' >&2; exit 1; }
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation11-live-v1"' \
 	"$lifecycle") == 1 ]] ||
@@ -108,8 +100,8 @@ do
 		{ echo 'FAIL generation-11 artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly one allow row' >&2; exit 1; }
+	"$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -238,17 +230,15 @@ done
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-10 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation11_image" \
-	-v basis="$generation11_boot_basis" \
-	'$1 == name && $2 == "allow" && $3 == basis { count++ } \
-	END { print count + 0 }' "$boot_policy") == 1 ]] ||
-	{ echo 'FAIL generation-11 recovery admission is not exact' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed generation-11 recovery remains boot-allowlisted' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation11_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" && \
-	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one RAM-only lifecycle; exact connected preflight passed; no boot claim; never flash" && \
+	$4 == "consumed generation-11 receive-only NCM-progress diagnostic recovery; one RAM-only recovery boot reached verified recovery ACM/NCM; the privileged serve-progress-deferred host path started the exact receive-only 8081 collector, but its post-start listener-confinement check failed before the bundle-server ready marker; capture ended PARTIAL/NO_ADMISSION with zero records and authority=NONE; early-target diagnostic ACM never became stable and produced zero frames with zero dropped USB events; no recovery PREPARE or COMMIT intent existed and no target ran; exact Alpine fallback, strict SSH, profile restoration, host cleanup, and Steam socket restoration passed; retain offline only; never retry or flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-11 admitted artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-11 consumed artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -688,20 +678,21 @@ if env -i PATH="$PATH" HOME="$HOME" \
 	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
 	bash "$gate" boot >"$tmp/out" 2>"$tmp/err"
 then
-	echo 'FAIL generation-11 boot passed without its durable lifecycle claim' >&2
+	echo 'FAIL consumed generation-11 boot passed without a policy row' >&2
 	exit 1
 fi
-grep -Fq 'generation-11 lifecycle claim root is unsafe or absent' "$tmp/err" ||
-	{ echo 'FAIL generation-11 claim-less boot returned the wrong rejection' >&2; exit 1; }
+grep -Fq "temporary boot policy does not uniquely list $generation11_image" \
+	"$tmp/err" ||
+	{ echo 'FAIL consumed generation-11 boot returned the wrong policy rejection' >&2; exit 1; }
 if grep -Fq 'missing live-gate command' "$tmp/err"; then
-	echo 'FAIL generation-11 claim-less boot reached host inspection' >&2
+	echo 'FAIL consumed generation-11 boot reached host inspection' >&2
 	exit 1
 fi
 
 for generation11_policy_shape in \
 	missing-file missing-row malformed-header malformed-artifact-header \
 	missing-artifact-row duplicate-artifact-row duplicate wrong-basis \
-	denied-status identity-mismatch consumed-role policy-trailing-field \
+	denied-status identity-mismatch readmitted-exact-basis policy-trailing-field \
 	artifact-trailing-field
 do
 	policy_fixture=$tmp/generation11-policy-$generation11_policy_shape
@@ -717,23 +708,30 @@ do
 			rm -f -- "$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		missing-row)
-			awk -F '\t' -v name="$generation11_image" '$1 != name' \
-				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		malformed-header)
 			sed -i '1s/^name\tstatus\tbasis$/artifact\tstate\treason/' \
 				"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		malformed-artifact-header)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			sed -i \
 				'1s/^name\tsize\tsha256\trole\ttracked$/artifact\tbytes\tdigest\tdisposition\tpresent/' \
 				"$policy_fixture/manifests/artifacts.tsv"
 			;;
 		missing-artifact-row)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			awk -F '\t' -v name="$generation11_image" '$1 != name' \
 				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
 			;;
 		duplicate-artifact-row)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			awk -F '\t' -v name="$generation11_image" '$1 == name { print }' \
 				"$artifact_manifest" >>"$policy_fixture/manifests/artifacts.tsv"
 			;;
@@ -741,35 +739,42 @@ do
 			printf '%s\tallow\t%s\n' "$generation11_image" \
 				"$generation11_boot_basis" \
 				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		wrong-basis)
-			awk -F '\t' -v name="$generation11_image" '$1 != name' \
-				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
 			printf '%s\tallow\t%s\n' "$generation11_image" \
 				'wrong generation-11 basis; never boot' \
 				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		denied-status)
-			awk -F '\t' -v OFS='\t' -v name="$generation11_image" \
-				'$1 == name { $2 = "deny" } { print }' "$boot_policy" \
-				>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tdeny\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		identity-mismatch)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			awk -F '\t' -v OFS='\t' -v name="$generation11_image" \
 				'$1 == name { $3 = "0000000000000000000000000000000000000000000000000000000000000000" } { print }' \
 				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
 			;;
-		consumed-role)
-			awk -F '\t' -v OFS='\t' -v name="$generation11_image" \
-				'$1 == name { $4 = "consumed generation-11 hostile fixture" } { print }' \
-				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
+		readmitted-exact-basis)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		policy-trailing-field)
-			awk -F '\t' -v name="$generation11_image" \
-				'$1 == name { print $0 "\t"; next } { print }' \
-				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\t\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		artifact-trailing-field)
+			printf '%s\tallow\t%s\n' "$generation11_image" \
+				"$generation11_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			awk -F '\t' -v name="$generation11_image" \
 				'$1 == name { print $0 "\t"; next } { print }' \
 				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
@@ -811,7 +816,7 @@ do
 			expected_policy_error="temporary boot policy does not allow $generation11_image"
 		elif [[ $generation11_policy_shape == identity-mismatch ]]; then
 			expected_policy_error='temporary boot artifact manifest identity is not allowlisted'
-		elif [[ $generation11_policy_shape == consumed-role ]]; then
+		elif [[ $generation11_policy_shape == readmitted-exact-basis ]]; then
 			expected_policy_error='temporary boot artifact is recorded as consumed'
 		elif [[ $generation11_policy_shape == policy-trailing-field ]]; then
 			expected_policy_error='temporary boot policy row has trailing fields'

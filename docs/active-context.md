@@ -87,9 +87,8 @@ The one-shot lifecycle now selects the identical tuple through distinct
 Direct connected actions and absent or malformed policy fixtures reject before
 host inspection. A separate
 [central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
-now adds the sole `allow` row for one exact connected-preflight-gated RAM-only
-lifecycle. Generation 11 remains ignored, unbooted, `authority=none`, and has
-no boot claim. The issuer/evidence checkpoint was published at `5293e56`;
+added the sole `allow` row for one exact connected-preflight-gated RAM-only
+lifecycle. The issuer/evidence checkpoint was published at `5293e56`;
 exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
 QEMU in 35s. The reviewed profile and its CI-race correction were published at
 `98f8d27`; exact-head run `30904224177` passed recovery-core in 3m57s and QEMU
@@ -103,15 +102,31 @@ spec and standards reviews report no findings. The admission was published at
 [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
 then passed after strict fallback health proof and an anchored
 `RESTART2("bootloader")` transition to one same-port `lahaina` fastboot device.
-The artifact remains unbooted, no Generation-11 claim exists, and Steam's
-temporarily released port-8081 socket was restored. Independent spec and
+At that preflight checkpoint the artifact was unbooted, no Generation-11 claim
+existed, and Steam's temporarily released port-8081 socket was restored.
+Independent spec and
 standards review and complete local CI passed; commit `7b76733` published the
 evidence and exact-head GitHub Actions run `30921019231` passed recovery-core
-in 4m01s and QEMU in 39s. The sole admitted RAM-only lifecycle is next.
+in 4m01s and QEMU in 39s. Publication commit `04132f0` then passed exact-head
+run `30921533485`.
 
-## Active deployment checkpoint
+The [sole Generation-11 lifecycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+entered its durable private claim and booted exact recovery in RAM. Recovery
+ACM/NCM passed, but the privileged `serve-progress-deferred` host path rejected
+its newly started TCP 8081 collector as not uniquely confined before the
+bundle-server ready marker. The capture remained `PARTIAL/NO_ADMISSION` with
+zero records and `authority=NONE`; recovery control never started, so no
+PREPARE, bundle transfer, COMMIT intent, NFS, or target occurred. The armed
+target collector independently rejected with zero frames because diagnostic
+ACM never stabilized. Exact Alpine fallback, strict SSH, profile restoration,
+host cleanup, and Steam socket restoration passed. Generation 11 is consumed,
+absent from boot policy, permanently claimed, and never reusable. Reproduce
+and fix the production listener ownership/PID check offline before issuing a
+distinct successor.
 
-Latest exact checkpoint (2026-08-02): generation 1 reached signed-bundle
+## Historical deployment chronology
+
+Historical checkpoint (2026-08-02): generation 1 reached signed-bundle
 `PREPARED` and one commit claim, exposed a missing host NFS gate, returned to
 exact signed same-port Alpine fallback at 41.8 C, and is consumed. The durable
 intent is resolved `FALLBACK_RETURNED`. The fail-closed host fix passes 20
