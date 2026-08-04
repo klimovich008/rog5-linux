@@ -82,8 +82,24 @@ network namespace. The gate now recognizes only that exact setup refusal and
 reruns only the single namespace test through noninteractive passwordless
 `sudo`; ordinary local execution remains rootless, all product binaries remain
 unchanged, and every other failure still propagates. The focused test and the
-complete local `ci` tier pass after this correction. A replacement exact-head
-GitHub run is still required before installed-host preflight.
+complete local `ci` tier pass after this correction.
+
+Replacement exact-head GitHub Actions run `30887436984` validated commit
+`2b90a0e5a82b1bbd8e9ae027b1da0963f62c6d76`: QEMU passed in 39 seconds and
+the complete recovery-core job passed in 4 minutes 5 seconds, including the
+production namespace gate through the hosted-runner fallback.
+
+## Installed-host preflight
+
+After exact-head CI passed, the fixed host controller was atomically updated
+from the same checkout without issuing a phone command. The controller,
+bundle server, progress collector, progress package initializer, progress
+reference, progress module, broker, and client all byte-match their source
+files. Root-owned executable/read-only metadata is exact, the operator-owned
+mode-`0600` socket is active and enabled, SteamOS read-only mode is restored to
+`enabled`, and the broker proves the host NFS export table is empty. This is a
+host-only readiness result; it does not authorize or claim a Generation-11
+phone boot.
 
 ## Independent review
 
