@@ -385,16 +385,24 @@ This issuance was independently reviewed, published at `d04b804`, and passed
 exact-head GitHub Actions run `30865091104`. The subsequent immutable
 `headless-diagnostic-generation10-offline-v1` profile now pins the full tuple,
 rejects connected actions before host inspection, and passes both retained
-issuer trees plus generation-record mutation rejection. Artifact inventory
-records `unbooted` and `authority=none`; temporary-boot policy is unchanged
-with zero `allow` rows. See the
+issuer trees plus generation-record mutation rejection on this host. Clean CI
+skips those ignored trees. Artifact inventory records `unbooted` and
+`authority=none`; temporary-boot policy is unchanged with zero `allow` rows.
+See the
 [offline profile result](../test-results/2026-08-03-generation-10-offline-profile.md).
+Constrained re-review and complete local CI passed; publication at `edae5d1`
+and exact-head GitHub Actions run `30867110893` are green. The subsequent
+`headless-diagnostic-generation10-live-v1` profile now selects the identical
+tuple through the lifecycle. Direct connected actions require the lifecycle
+guard, and missing, duplicate, or wrong-basis policy states reject before host
+inspection. Central policy still has zero `allow` rows, so Generation 10
+remains unbooted and unadmitted. See the
+[live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
 Constrained re-review and complete local CI pass. Next publish and pass
-exact-head CI for that profile.
-Live-profile selection and one-shot central admission remain later, distinct
-gates before any diagnostic temporary boot. The instrumentation still does not
-locate the post-transfer gap, so any Generation-10 lifecycle remains
-diagnostic-only.
+exact-head CI for the live-profile checkpoint. One-shot central admission
+remains a later distinct gate. The
+instrumentation still does not locate the post-transfer gap, so any
+Generation-10 lifecycle remains diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed
