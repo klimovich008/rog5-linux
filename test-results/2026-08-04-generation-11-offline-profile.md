@@ -114,6 +114,16 @@ Adding the inventory row advances the fail-closed integrity chain:
 - complete `scripts/host/test-repository-linux.sh ci`: pass, including all 42
   tracked Markdown-link checks and the AArch64 QEMU/systemd closure.
 
+The first exact-head GitHub run for the profile exposed an unrelated
+pre-existing race in
+`test_watchdog_death_while_waiting_for_tty_is_terminal`: a fixed sleep could
+terminate the watchdog before the responder validated its lease, producing the
+correct earlier `stale` refusal instead of reaching the branch under test. The
+test now synchronizes on the immutable session record, which is created only
+after lease validation, before terminating the watchdog. Production source is
+unchanged. The corrected case passed 20 consecutive isolated runs, all 63
+native-responder tests, and the complete local Linux `ci` tier.
+
 No credential, privilege, network listener, NFS export, fastboot, ADB, SSH,
 phone interface, reboot, boot, flash, wipe, slot operation, or phone-storage
 access occurred. A separate reviewed live-profile change must bind the complete

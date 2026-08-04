@@ -993,8 +993,17 @@ class NativeResponderTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
         self.processes.append(process)
-        time.sleep(0.1)
+        # The immutable session appears only after watchdog-lease validation.
+        session = self.state / "session"
+        deadline = time.monotonic() + 3
+        while (
+            time.monotonic() < deadline
+            and process.poll() is None
+            and not session.exists()
+        ):
+            time.sleep(0.01)
         self.assertIsNone(process.poll())
+        self.assertTrue(session.exists())
         self.assertFalse(ready.exists())
         self.stop_watchdog()
         self.wait_exit(process)
