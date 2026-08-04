@@ -1221,11 +1221,23 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    issued one authenticated `RESTART2("bootloader")`, but USB disconnected
    without any anchored-port mode returning during the fixed 45-second window
    or an additional 30-second read-only check. No recovery image, payload, boot
-   command, boot claim, or consumption occurred. Manual fastboot entry is now
-   required before a fresh connected preflight. See the
-   [transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
+   command, boot claim, or consumption occurred. Exact fastboot appeared later
+   on the same connection after those bounded observations ended; the cause is
+   not inferred. A fresh Generation-10 connected preflight from clean pushed
+   commit `70d2f36` then passed the complete deployment-key chain, exact
+   recovery/bundle artifacts, installed host state, rollback prerequisites,
+   isolated USB profile, and one `lahaina` device. It started no phone boot,
+   payload transfer, SSH connection, or privileged server. See the
+   [transition result](../test-results/2026-08-04-generation-10-connected-preflight-transition-live.md)
+   and
+   [connected-preflight result](../test-results/2026-08-04-generation-10-connected-preflight-live.md).
    The gap remains unlocated, so any later
    Generation-10 lifecycle is diagnostic-only.
+   Generation 10 remains unbooted and unconsumed with no boot claim. The next
+   gate is review, publication, and exact-head CI for the new
+   connected-preflight result itself; the already-green prerequisite run does
+   not cover that uncommitted live evidence. Only then may its sole admitted
+   diagnostic lifecycle execute.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
