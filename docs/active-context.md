@@ -92,9 +92,10 @@ exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
 QEMU in 35s. The reviewed profile and its CI-race correction were published at
 `98f8d27`; exact-head run `30904224177` passed recovery-core in 3m57s and QEMU
 in 37s. The live-profile transition passed focused and complete local CI,
-Claude Opus review, and independent Codex review. Next publish it and pass
-exact-head CI, then prepare a separate central-policy admission change. Neither
-step is a phone action.
+Claude Opus review, and independent Codex review. It was published at
+`2a483ec`; exact-head run `30908649494` passed recovery-core in 3m49s and QEMU
+in 40s. Next prepare a separate central-policy admission change. That is not a
+phone action.
 
 ## Active deployment checkpoint
 

@@ -1273,8 +1273,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    GitHub Actions run `30899370666`. The reviewed profile and CI-race correction
    were published at `98f8d27`; exact-head run `30904224177` passed. The next
    live-profile transition now passes Claude Opus review, independent Codex
-   review, and complete local CI. The next gates are publication and exact-head
-   CI, followed by a separate central-policy admission change, not a phone action.
+   review, and complete local CI. Commit `2a483ec` passed exact-head GitHub run
+   `30908649494`. The next gate is a separate central-policy admission change,
+   not a phone action.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
