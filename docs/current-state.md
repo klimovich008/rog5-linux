@@ -1267,8 +1267,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
    against both retained trees. It is ignored, unadmitted, unbooted, absent
    from boot policy, and `authority=none`. Commit `5293e56` passed exact-head
-   GitHub Actions run `30899370666`; the next gate is whole-chain review and
-   publication before a distinct live-profile transition, not a phone action.
+   GitHub Actions run `30899370666`. The reviewed profile and CI-race correction
+   were published at `98f8d27`; exact-head run `30904224177` passed. The next
+   gate is a distinct live-profile transition binding the installed host and
+   whole lifecycle chain, not a phone action.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

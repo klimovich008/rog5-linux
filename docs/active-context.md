@@ -86,8 +86,11 @@ or lifecycle selector exists, and boot policy retains zero `allow` rows.
 Generation 11 therefore remains ignored, unadmitted, unbooted, and
 `authority=none`. The issuer/evidence checkpoint was published at `5293e56`;
 exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
-QEMU in 35s. Next review and publish the whole offline profile/rollback/evidence
-chain before a separate live-profile transition; this is not a phone action.
+QEMU in 35s. The reviewed profile and its CI-race correction were published at
+`98f8d27`; exact-head run `30904224177` passed recovery-core in 3m57s and QEMU
+in 37s. Next create and review a separate live-profile transition that binds
+the installed host components and whole rollback/evidence chain; this is not a
+phone action.
 
 ## Active deployment checkpoint
 

@@ -215,8 +215,9 @@ unchanged signed-target tuple passes an immutable
 [offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
 against both retained trees. Whole-chain review, publication, and a distinct
 live-profile transition remain mandatory before any central-policy admission
-or connected action. The issuer/evidence checkpoint passed exact-head GitHub
-Actions run `30899370666` at commit `5293e56`.
+or connected action. The offline profile review and publication are complete:
+commit `98f8d27` passed exact-head GitHub Actions run `30904224177` after the
+CI-only watchdog-race test was synchronized without changing production code.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

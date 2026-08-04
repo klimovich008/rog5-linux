@@ -124,6 +124,13 @@ after lease validation, before terminating the watchdog. Production source is
 unchanged. The corrected case passed 20 consecutive isolated runs, all 63
 native-responder tests, and the complete local Linux `ci` tier.
 
+The profile implementation was published at
+`472efc557b51c3fb61fb4ed7bf4e74c212313625`. The race correction was published
+at `98f8d27501ba1c600de6f451dcb9533f0fedbbb9`. Exact-head GitHub Actions run
+`30904224177` passed recovery-core in 3m57s and QEMU in 37s. This publication
+does not create a live profile, lifecycle selector, boot-policy row, connected
+action, or phone authority.
+
 No credential, privilege, network listener, NFS export, fastboot, ADB, SSH,
 phone interface, reboot, boot, flash, wipe, slot operation, or phone-storage
 access occurred. A separate reviewed live-profile change must bind the complete

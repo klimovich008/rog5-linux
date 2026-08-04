@@ -161,15 +161,12 @@ retained AArch64 gate, clean twin wrapper build, and Generation-11 issuer
 publication are complete. The issuer/evidence checkpoint passed exact-head
 GitHub Actions run `30899370666` at commit `5293e56`. Offline issuance did not
 create boot authority. The immutable offline-only profile now passes against
-both retained trees. Continue in this order:
+both retained trees. Its review and publication completed at `98f8d27` with
+exact-head run `30904224177` green. Continue in this order:
 
-1. review and verify the completed profile together with the timeout lattice,
-   rollback,
-   fallback, one-shot consumption, and private-evidence paths;
-2. publish the profile with green local and exact-head GitHub CI;
-3. create and separately review a live-profile transition that binds the
+1. create and separately review a live-profile transition that binds the
    installed NCM host components and complete lifecycle path; and
-4. only then consider one distinct central-policy admission and connected
+2. only then consider one distinct central-policy admission and connected
    preflight before any temporary boot.
 
 The current work creates no policy row, connected action, or phone state
