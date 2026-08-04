@@ -1,2 +1,3 @@
 name	status	basis
+build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img	allow	one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash

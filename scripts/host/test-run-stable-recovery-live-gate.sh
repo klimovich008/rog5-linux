@@ -40,6 +40,7 @@ generation9_image=build/stable-recovery-generation9-acm-classifier-20260803-a/re
 generation9_root_a=$repo/build/stable-recovery-generation9-acm-classifier-20260803-a
 generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-20260803-b
 generation10_image=build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img
+generation10_boot_basis='one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash'
 generation10_root_a=$repo/build/stable-recovery-generation10-prepare-progress-20260803-a
 generation10_root_b=$repo/build/stable-recovery-generation10-prepare-progress-20260803-b
 generation10_base=$repo/build/prepare-progress-generation10-production-base-20260803
@@ -60,8 +61,8 @@ generation10_base=$repo/build/prepare-progress-generation10-production-base-2026
 ! grep -Fq 'headless-diagnostic-generation10-offline-v1' "$lifecycle_test" ||
 	{ echo 'FAIL generation-10 offline-only profile leaked into the lifecycle test' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy must contain exactly one allow row' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$diagnostic_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed diagnostic wrapper remains boot-allowlisted' >&2; exit 1; }
@@ -180,15 +181,21 @@ generation10_base=$repo/build/prepare-progress-generation10-production-base-2026
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-9 consumed artifact identity is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation10_image" \
-	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
-	{ echo 'FAIL unbooted generation-10 recovery is boot-allowlisted' >&2; exit 1; }
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-10 temporary-boot policy name is not unique' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation10_image" \
+	-v basis="$generation10_boot_basis" \
+	'$1 == name && $2 == "allow" && \
+	$3 == basis \
+	{ count++ } END { print count + 0 }' "$boot_policy") == 1 ]] ||
+	{ echo 'FAIL generation-10 temporary-boot admission is not exact and one-shot' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation10_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" && \
-	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline profile and separate live lifecycle profile; authority=none; no phone contact, temporary-boot admission, or boot claim; retain offline until separately admitted; never flash" && \
+	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-10 unadmitted live-profile artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-10 admitted artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -582,7 +589,6 @@ for generation10_connected_action in boot preflight; do
 	fi
 done
 
-generation10_boot_basis='one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash'
 for generation10_policy_shape in missing duplicate wrong-basis; do
 	policy_fixture=$tmp/generation10-policy-$generation10_policy_shape
 	install -d -m 0755 "$policy_fixture/scripts/host" \
@@ -590,19 +596,23 @@ for generation10_policy_shape in missing duplicate wrong-basis; do
 	install -m 0755 "$gate" \
 		"$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh"
 	cp -- "$artifact_manifest" "$policy_fixture/manifests/artifacts.tsv"
-	cp -- "$boot_policy" \
+	install -m 0644 "$boot_policy" \
 		"$policy_fixture/manifests/temporary-boot-images.tsv"
 	case $generation10_policy_shape in
-		missing) ;;
+		missing)
+			awk -F '\t' -v name="$generation10_image" '$1 != name' \
+				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
 		duplicate)
-			printf '%s\tallow\t%s\n' "$generation10_image" \
-				"$generation10_boot_basis" \
-				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			cp -- "$boot_policy" \
+				"$policy_fixture/manifests/temporary-boot-images.tsv"
 			printf '%s\tallow\t%s\n' "$generation10_image" \
 				"$generation10_boot_basis" \
 				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			;;
 		wrong-basis)
+			awk -F '\t' -v name="$generation10_image" '$1 != name' \
+				"$boot_policy" >"$policy_fixture/manifests/temporary-boot-images.tsv"
 			printf '%s\tallow\t%s\n' "$generation10_image" \
 				'wrong generation-10 basis; never boot' \
 				>>"$policy_fixture/manifests/temporary-boot-images.tsv"

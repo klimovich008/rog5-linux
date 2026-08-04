@@ -23,7 +23,7 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
-| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–9 are consumed and never reusable. Generation 9 transferred the complete signed bundle but recovery returned no `PREPARED` response before watchdog fallback; no COMMIT or target execution occurred. The progress-instrumented, production-key-bound Generation-10 recovery was twin-issued offline at AVB `b983e89b…8b51`; its offline profile was published at `edae5d1` and passed exact-head GitHub run `30867110893`. Retained-tree artifact gates passed host-locally and are skipped by clean CI because those trees are ignored. A separate live lifecycle profile now selects the identical tuple; constrained review and full local CI pass, but the image remains unbooted, `authority=none`, absent from boot policy, and unusable until a later admission checkpoint. |
+| Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–9 are consumed and never reusable. Generation 9 transferred the complete signed bundle but recovery returned no `PREPARED` response before watchdog fallback; no COMMIT or target execution occurred. The progress-instrumented, production-key-bound Generation-10 recovery was twin-issued offline at AVB `b983e89b…8b51`; its offline profile was published at `edae5d1` and passed exact-head GitHub run `30867110893`. Retained-tree artifact gates passed host-locally and are skipped by clean CI because those trees are ignored. Its live lifecycle profile was published at `adc4123` and passed exact-head run `30869110964`. Central policy now admits one connected-preflight-gated RAM-only diagnostic lifecycle; the image remains unbooted, retains issuance `authority=none`, and has no boot claim. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. A new candidate/boot/source-bound collector and host verifier define fixed 21-sample, 10-minute unplugged/USB/wireless observations and an unplugged-versus-USB comparison that derives either current-sign convention; 11 hostile hardware-free test groups pass. No new phone observation, charging-control surface, dual-cell interpretation, or charging-safety acceptance is claimed |
 | Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
@@ -81,11 +81,12 @@ policy. Generation 9's sole RAM-only lifecycle completed the signed-bundle
 transfer, but recovery did not return `PREPARED` before watchdog fallback; no
 COMMIT intent or target execution occurred. Its permanent private
 `BOOT_CLAIMED` record and the removed policy row independently prevent reuse.
-The Generation-10 artifact exists only as two matching ignored offline trees with
-`authority=none`; its offline-only profile and inventory row grant no live
-authority. Its separate live lifecycle profile selects the same tuple but
-cannot pass connected preflight or boot because it has no policy row or boot
-claim.
+The Generation-10 artifact exists as two matching ignored offline trees with
+issuance `authority=none`. Its separately published live lifecycle profile
+selects that exact tuple, and central policy now admits exactly one
+connected-preflight-gated RAM-only diagnostic lifecycle. It remains unbooted
+and has no `BOOT_CLAIMED` record; admission is not evidence of a successful
+preflight or boot.
 See the Generation-8
 [live result](test-results/2026-08-03-generation-8-recovery-acm-stability-live.md)
 and Generation-9
@@ -93,7 +94,8 @@ and Generation-9
 plus the Generation-10
 [offline successor](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md),
 [offline profile](test-results/2026-08-03-generation-10-offline-profile.md),
-and [live-profile transition](test-results/2026-08-04-generation-10-live-profile-offline.md).
+[live-profile transition](test-results/2026-08-04-generation-10-live-profile-offline.md),
+and [one-shot admission](test-results/2026-08-04-generation-10-live-admission-offline.md).
 No consumed generation may be retried, and no diagnostic image may ever be
 flashed.
 

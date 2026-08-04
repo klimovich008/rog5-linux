@@ -175,14 +175,17 @@ The progress-instrumented Generation-10 successor is twin-issued at AVB
 `b983e89b…8b51`. Its immutable offline profile passed review, publication at
 `edae5d1`, and exact-head GitHub Actions run `30867110893`. The separate
 `headless-diagnostic-generation10-live-v1` transition selects that identical
-tuple through the lifecycle while central policy remains unchanged with zero
-`allow` rows. Direct connected actions require the lifecycle guard; even with
-it, missing, duplicate, and wrong-basis policy states reject before host
-inspection. Generation 10 remains `authority=none`, unbooted, and unadmitted.
+tuple through the lifecycle and passed publication at `adc4123` plus
+exact-head GitHub Actions run `30869110964`. Central policy now admits one
+exact Generation-10 path and one-shot basis. Direct connected actions require
+the lifecycle guard; missing, duplicate, and wrong-basis policy states reject
+before host inspection. Generation 10 retains issuance `authority=none` and
+remains unbooted with no durable boot claim.
 See the
-[offline profile](../test-results/2026-08-03-generation-10-offline-profile.md)
+[offline profile](../test-results/2026-08-03-generation-10-offline-profile.md),
+[live-profile transition](../test-results/2026-08-04-generation-10-live-profile-offline.md),
 and
-[live-profile transition](../test-results/2026-08-04-generation-10-live-profile-offline.md).
+[one-shot admission](../test-results/2026-08-04-generation-10-live-admission-offline.md).
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

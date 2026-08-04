@@ -555,20 +555,28 @@ Current execution order:
     [offline profile result](test-results/2026-08-03-generation-10-offline-profile.md).
     Constrained review and full local CI passed; publication at `edae5d1` and
     exact-head GitHub Actions run `30867110893` are green.
-16. **Complete locally and independently reviewed; publication pending:** the distinct
+16. **Complete:** the distinct
     `headless-diagnostic-generation10-live-v1` profile and lifecycle selector
     reuse the exact tuple. Direct connected actions require the lifecycle
     controller; missing, duplicate, and wrong-basis policy states reject before
-    host inspection. Central policy remains unchanged with zero `allow` rows.
+    host inspection. This profile transition was published at `adc4123` and
+    passed exact-head GitHub Actions run `30869110964` while central policy
+    still had zero `allow` rows.
     See the
     [live-profile result](test-results/2026-08-04-generation-10-live-profile-offline.md).
-17. **Next:** publish and pass exact-head CI for the live profile. One-shot
-    central admission remains a later separate change.
-    The instrumentation does not locate the post-transfer gap, so any eventual
-    Generation-10 lifecycle remains diagnostic-only.
-18. Promote a distinct normal SSH candidate only after diagnostic evidence
+17. **Complete locally and independently reviewed; publication pending:**
+    central policy admits exactly one Generation-10 image and basis
+    for one connected-preflight-gated RAM-only lifecycle. Missing, duplicate,
+    and wrong-basis policy fixtures reject before host inspection; inventory
+    retains issuance `authority=none`, `unbooted`, and no boot claim. See the
+    [admission result](test-results/2026-08-04-generation-10-live-admission-offline.md).
+    The instrumentation does not locate the post-transfer gap, so this
+    admission remains diagnostic-only.
+18. **Next:** publish the admission, pass exact-head GitHub CI, then run
+    connected preflight as a separate checkpoint.
+19. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-19. If H2 passes, continue physical keys/indicator, then H3
+20. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
