@@ -384,6 +384,160 @@ PY
 	fail 'generation-ten descriptor digest is not independently reproducible'
 grep -Fxq "digest=$gen10_digest" "$tmp/gen10-a/avb-generation.txt"
 
+# Generation eleven is reserved for the first recovery wrapper carrying the
+# independent receive-only NCM PREPARE-progress channel. Model the separately
+# twin-built production input with a distinct synthetic raw payload and an
+# explicit sender marker. The generic issuer must preserve that fresh source,
+# bind its identity into the AVB salt, and never silently accept the pre-NCM
+# raw identity supplied by its caller.
+gen11_source_root=$tmp/gen11-source
+cp -a -- "$source_root" "$gen11_source_root"
+gen11_ncm_marker=synthetic-receive-only-ncm-progress-sender-v1
+for suffix in a b; do
+	printf '%s\n' "$gen11_ncm_marker" \
+		>>"$gen11_source_root/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz"
+	printf '%s\n' "$gen11_ncm_marker" \
+		>>"$gen11_source_root/repack/stable-recovery-$suffix.raw.img"
+done
+cmp "$gen11_source_root/repack/stable-recovery-a.raw.img" \
+	"$gen11_source_root/repack/stable-recovery-b.raw.img"
+! cmp -s "$gen11_source_root/repack/stable-recovery-a.raw.img" \
+	"$source_root/repack/stable-recovery-a.raw.img" ||
+	fail 'generation eleven reused the pre-NCM raw wrapper'
+gen11_raw_sha=$(sha256sum \
+	"$gen11_source_root/repack/stable-recovery-a.raw.img" | cut -d ' ' -f 1)
+[[ $gen11_raw_sha != "$raw_sha" ]] ||
+	fail 'generation-eleven raw identity did not change'
+for suffix in a b; do
+	cp "$gen11_source_root/repack/stable-recovery-$suffix.raw.img" \
+		"$gen11_source_root/repack/stable-recovery-$suffix.avb.img"
+	python3 "$avbtool" add_hash_footer \
+		--image "$gen11_source_root/repack/stable-recovery-$suffix.avb.img" \
+		--partition_name boot --partition_size 131072 \
+		--algorithm NONE --salt "$gen11_raw_sha"
+	grep -aFq "$gen11_ncm_marker" \
+		"$gen11_source_root/repack/stable-recovery-$suffix.raw.img"
+	grep -aFq "$gen11_ncm_marker" \
+		"$gen11_source_root/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz"
+done
+gen11_source_avb_sha=$(sha256sum \
+	"$gen11_source_root/repack/stable-recovery-a.avb.img" | cut -d ' ' -f 1)
+cmp "$gen11_source_root/repack/stable-recovery-a.avb.img" \
+	"$gen11_source_root/repack/stable-recovery-b.avb.img"
+
+"$issuer" "$gen11_source_root" "$tmp/gen11-a" 11 \
+	"$gen11_source_avb_sha" "$gen11_raw_sha" \
+	>"$tmp/gen11-a.out"
+"$issuer" "$gen11_source_root" "$tmp/gen11-b" 11 \
+	"$gen11_source_avb_sha" "$gen11_raw_sha" \
+	>"$tmp/gen11-b.out"
+for suffix in a b; do
+	cmp "$tmp/gen11-a/repack/stable-recovery-$suffix.avb.img" \
+		"$tmp/gen11-b/repack/stable-recovery-$suffix.avb.img"
+	cmp "$tmp/gen11-a/repack/stable-recovery-$suffix.raw.img" \
+		"$tmp/gen11-b/repack/stable-recovery-$suffix.raw.img"
+	cmp "$tmp/gen11-a/repack/stable-recovery-$suffix.raw.img" \
+		"$gen11_source_root/repack/stable-recovery-$suffix.raw.img"
+	grep -aFq "$gen11_ncm_marker" \
+		"$tmp/gen11-a/repack/stable-recovery-$suffix.raw.img"
+	grep -aFq "$gen11_ncm_marker" \
+		"$tmp/gen11-a/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz"
+done
+cmp "$tmp/gen11-a/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen11-a/repack/stable-recovery-b.avb.img"
+cmp "$tmp/gen11-a/repack/stable-recovery-a.raw.img" \
+	"$tmp/gen11-a/repack/stable-recovery-b.raw.img"
+cmp "$tmp/gen11-a/avb-generation.txt" "$tmp/gen11-b/avb-generation.txt"
+cmp "$tmp/gen11-a.out" "$tmp/gen11-b.out"
+for successor in gen11-a gen11-b; do
+	for predecessor in \
+		gen1-a gen2 gen3 gen4-a gen5-a gen6-a gen7-a gen8-a gen9-a gen10-a
+	do
+		for suffix in a b; do
+			predecessor_image=$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img
+			successor_image=$tmp/$successor/repack/stable-recovery-$suffix.avb.img
+			predecessor_raw=$tmp/$predecessor/repack/stable-recovery-$suffix.raw.img
+			successor_raw=$tmp/$successor/repack/stable-recovery-$suffix.raw.img
+			predecessor_initramfs=$tmp/$predecessor/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz
+			successor_initramfs=$tmp/$successor/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz
+			[[ -f $predecessor_image && ! -L $predecessor_image ]] ||
+				fail "missing $predecessor twin-$suffix AVB wrapper"
+			[[ -f $successor_image && ! -L $successor_image ]] ||
+				fail "missing $successor twin-$suffix AVB wrapper"
+			! cmp -s "$predecessor_image" "$successor_image" ||
+				fail "generation eleven reused the $predecessor twin-$suffix AVB wrapper"
+			! cmp -s "$predecessor_raw" "$successor_raw" ||
+				fail "generation eleven reused the $predecessor twin-$suffix raw wrapper"
+			! cmp -s "$predecessor_initramfs" "$successor_initramfs" ||
+				fail "generation eleven reused the $predecessor twin-$suffix initramfs"
+		done
+	done
+done
+expected_gen11_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=11\n' \
+		"$gen11_raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=11' "$tmp/gen11-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen11_salt" "$tmp/gen11-a/avb-generation.txt"
+for successor in gen11-a gen11-b; do
+	grep -Fxq 'authority=none' "$tmp/$successor/avb-generation.txt"
+done
+gen11_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen11-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen11_info") == \
+	"$expected_gen11_salt" ]] || fail 'generation-eleven descriptor salt changed'
+gen11_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen11_info")
+expected_gen11_digest=$(python3 -I -S - \
+	"$expected_gen11_salt" \
+	"$tmp/gen11-a/repack/stable-recovery-a.raw.img" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+digest.update(bytes.fromhex(sys.argv[1]))
+with open(sys.argv[2], "rb", buffering=0) as source:
+    while block := source.read(1024 * 1024):
+        digest.update(block)
+print(digest.hexdigest())
+PY
+)
+[[ $gen11_digest == "$expected_gen11_digest" ]] ||
+	fail 'generation-eleven descriptor digest is not independently reproducible'
+grep -Fxq "digest=$gen11_digest" "$tmp/gen11-a/avb-generation.txt"
+
+# The same generation over the old raw identity must produce a different salt
+# and wrapper. This proves the fresh raw hash, not only the generation number,
+# contributes to the Generation-11 identity.
+"$issuer" "$source_root" "$tmp/gen11-old-raw" 11 \
+	"$source_avb_sha" "$raw_sha" >"$tmp/gen11-old-raw.out"
+# This is an authority-free domain-separation oracle, not a retained candidate:
+# lifecycle one-shot uniqueness belongs to the exact central policy, while the
+# offline issuer must bind both generation and raw identity deterministically.
+old_raw_gen11_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=11\n' \
+		"$raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq "salt=$old_raw_gen11_salt" \
+	"$tmp/gen11-old-raw/avb-generation.txt"
+grep -Fxq 'authority=none' \
+	"$tmp/gen11-old-raw/avb-generation.txt"
+[[ $old_raw_gen11_salt != "$expected_gen11_salt" ]] ||
+	fail 'generation-eleven salt does not bind the fresh raw identity'
+! cmp -s "$tmp/gen11-old-raw/repack/stable-recovery-a.avb.img" \
+	"$tmp/gen11-a/repack/stable-recovery-a.avb.img" ||
+	fail 'old and fresh Generation-11 raw inputs produced one AVB wrapper'
+
+if "$issuer" "$gen11_source_root" "$tmp/gen11-wrong-raw" 11 \
+	"$gen11_source_avb_sha" "$raw_sha" \
+	>"$tmp/gen11-wrong-raw.out" 2>&1
+then
+	fail 'generation eleven accepted the pre-NCM raw identity'
+fi
+grep -Fxq 'FAIL source raw wrapper identity changed' \
+	"$tmp/gen11-wrong-raw.out"
+[[ ! -e $tmp/gen11-wrong-raw && ! -L $tmp/gen11-wrong-raw ]] ||
+	fail 'rejected generation-eleven raw identity published output'
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
@@ -398,7 +552,7 @@ wrapper-b/asus-kexec-stage/arch/arm64/boot/Image
 wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
 EOF
 )
-for output in gen1-a gen10-a gen10-b; do
+for output in gen1-a gen10-a gen10-b gen11-a gen11-b gen11-old-raw; do
 	observed_files=$(find "$tmp/$output" -type f -printf '%P\n' | LC_ALL=C sort)
 	if [[ $observed_files != "$expected_files" ]]; then
 		printf 'Expected AVB-generation files:\n%s\n' "$expected_files" >&2
@@ -410,6 +564,7 @@ done
 while IFS= read -r relative; do
 	[[ -n $relative ]] || continue
 	cmp "$tmp/gen10-a/$relative" "$tmp/gen10-b/$relative"
+	cmp "$tmp/gen11-a/$relative" "$tmp/gen11-b/$relative"
 done <<<"$expected_files"
 
 if "$issuer" "$source_root" "$tmp/wrong-hash" 1 \

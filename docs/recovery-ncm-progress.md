@@ -5,9 +5,13 @@
 The device sender, bounded host collector, fixed privileged host boundary,
 lifecycle correlation, and hardware-free regression tests are implemented.
 The implementation passes the complete local Linux `ci` and provisioned
-`quick` tiers. It has not yet been installed as the live host controller, no
-Generation-11 successor has been built or admitted, and the phone has not been
-booted with this code.
+`quick` tiers and the hash-pinned host controller is installed and
+host-preflighted. A distinct
+[Generation-11 successor](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+was clean-built twice and issued twice offline as AVB
+`8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562`.
+It remains ignored, unprofiled, unadmitted, unbooted, and `authority=none`;
+the phone has not been booted with this code.
 Generation 10 remains consumed and must never be retried.
 
 This channel addresses one exact failure: recovery can continue processing a
@@ -120,11 +124,11 @@ identity changes, noncontiguous prefixes, wrong peers, one-connection listener
 closure, exact mocked interface/endpoint binding, the PREPARED-stop versus
 buffered-clean-EOF race, and the stop-drain absolute deadline.
 
-`scripts/host/test-recovery-progress-runtime.py` has seven tests for the fixed
+`scripts/host/test-recovery-progress-runtime.py` has eight tests for the fixed
 argument surface, descriptor-relative no-replace output, privilege-drop order
 and irreversibility, parent-death re-arming, one private record, and
 non-authoritative refusal classification. The controller and broker layers add
-32 and 18 tests respectively, including no-listener continuation,
+34 and 18 tests respectively, including no-listener continuation,
 post-transfer EOF-marker failure, port conflicts before and after startup,
 watchdog cleanup, exact output-directory forwarding, and signal propagation.
 
@@ -148,23 +152,27 @@ The complete repository Linux `ci` tier passes, including corrected-DTB,
 source, generic QEMU/systemd, recovery, packaging, timeout, rollback, and
 repository-policy gates. This remains hardware-free evidence.
 
-## Remaining gate before a successor image
+## Remaining gate after offline issuance
 
-Do not issue Generation 11 until all remaining deployment gates are complete:
+The base NCM implementation publication, hash-pinned installed-host proof,
+retained AArch64 gate, and clean twin wrapper build are complete. The current
+Generation-11 issuer regression and evidence change still requires its own
+publication verification. Offline issuance did not create boot authority.
+Continue in this order:
 
-1. publish this exact implementation with green exact-head GitHub CI;
-2. install the hash-pinned broker/controller/helper/module set and prove its
-   metadata, service state, and host-only preflights on the development host;
-3. rerun the retained exact AArch64 package/build gate for the final source;
-4. twin-build and independently verify a distinct offline-only recovery
-   wrapper without creating boot authority;
-5. review the exact wrapper, lifecycle profile, timeout lattice, rollback,
-   fallback, and private-evidence paths together; and
-6. only then create one distinct central-policy admission and run connected
+1. publish this issuer/evidence checkpoint with green local and exact-head
+   GitHub CI;
+2. pin the exact Generation-11 wrapper and existing target tuple in one
+   immutable offline-only lifecycle profile;
+3. review and verify that profile together with the timeout lattice, rollback,
+   fallback, one-shot consumption, and private-evidence paths;
+4. publish the profile with green local and exact-head GitHub CI; and
+5. only then consider one distinct central-policy admission and connected
    preflight before any temporary boot.
 
-The current work does not create a Generation-11 image, policy row, connected
-action, or phone state change.
+The current work creates no policy row, connected action, or phone state
+change. Both retained Generation-11 trees state `authority=none` and cannot be
+booted by the lifecycle controller.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the
