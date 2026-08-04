@@ -1189,21 +1189,30 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    Generation-10 issuer invocations retain exact matching 11-file trees at AVB
    `b983e89b…8b51`, generation record `cb999cd8…3b6d`, and
    `authority=none`. The private snapshot was destroyed, external inputs
-   remained unchanged, and the phone was not contacted. Generation 10 remains
-   unbooted and cannot be used by the lifecycle. See the
+   remained unchanged, and the phone was not contacted. At that checkpoint,
+   Generation 10 was unbooted and could not be used by the lifecycle. See the
    [offline successor](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
    Independent review, publication at `d04b804`, and exact-head GitHub Actions
    run `30865091104` now pass. The immutable
    `headless-diagnostic-generation10-offline-v1` profile subsequently pins the
    complete tuple, rejects connected actions before host inspection, and
    passes both retained-tree artifact preflights plus generation-record
-   mutation rejection. Inventory records `unbooted` and `authority=none`;
+   mutation rejection on this host; clean CI skips those ignored trees.
+   Inventory records `unbooted` and `authority=none`;
    temporary-boot policy remains unchanged with zero `allow` rows. See the
    [offline profile](../test-results/2026-08-03-generation-10-offline-profile.md).
-   Constrained re-review and complete local CI pass; publication and exact-head
-   CI are the next gate before any separate live-profile work. The gap remains
-   unlocated, so any later Generation-10
-   lifecycle is diagnostic-only.
+   Constrained re-review and complete local CI passed; publication at `edae5d1`
+   and exact-head GitHub Actions run `30867110893` are green. The separate
+   `headless-diagnostic-generation10-live-v1` profile now selects that exact
+   tuple through the lifecycle, but direct connected actions require the
+   lifecycle guard and every missing, duplicate, or wrong-basis policy state
+   rejects before host inspection. Central policy remains empty, so this
+   transition grants no boot authority. See the
+   [live-profile result](../test-results/2026-08-04-generation-10-live-profile-offline.md).
+   Constrained re-review and complete local CI pass. Publication and exact-head
+   CI remain before a separate one-shot admission change. The gap remains
+   unlocated, so any later
+   Generation-10 lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

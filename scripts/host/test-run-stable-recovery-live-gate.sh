@@ -4,6 +4,7 @@ set -euo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
+lifecycle_test=$repo/scripts/host/test-run-minimal-headless-live-cycle.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 artifact_manifest=$repo/manifests/artifacts.tsv
 tmp=$(mktemp -d)
@@ -43,13 +44,21 @@ generation10_root_a=$repo/build/stable-recovery-generation10-prepare-progress-20
 generation10_root_b=$repo/build/stable-recovery-generation10-prepare-progress-20260803-b
 generation10_base=$repo/build/prepare-progress-generation10-production-base-20260803
 [[ $(grep -Fxc \
-	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation9-live-v1"' \
+	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation10-live-v1"' \
 	"$lifecycle") == 1 ]] ||
-	{ echo 'FAIL lifecycle does not select exact generation-9 live profile' >&2; exit 1; }
-! grep -Fq 'headless-diagnostic-generation9-offline-v1' "$lifecycle" ||
-	{ echo 'FAIL generation-9 offline-only profile leaked into the lifecycle' >&2; exit 1; }
-! grep -Fq 'headless-diagnostic-generation10-' "$lifecycle" ||
+	{ echo 'FAIL lifecycle does not select exact generation-10 live profile' >&2; exit 1; }
+[[ $(grep -Fxc \
+	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation10-live-v1"' \
+	"$lifecycle_test") == 1 ]] ||
+	{ echo 'FAIL lifecycle test does not pin exact generation-10 live profile' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle" ||
+	{ echo 'FAIL consumed generation-9 profile remains in the lifecycle' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle_test" ||
+	{ echo 'FAIL consumed generation-9 profile remains in the lifecycle test' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation10-offline-v1' "$lifecycle" ||
 	{ echo 'FAIL generation-10 offline-only profile leaked into the lifecycle' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation10-offline-v1' "$lifecycle_test" ||
+	{ echo 'FAIL generation-10 offline-only profile leaked into the lifecycle test' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
@@ -176,10 +185,10 @@ generation10_base=$repo/build/prepare-progress-generation10-production-base-2026
 [[ $(awk -F '\t' -v name="$generation10_image" \
 	'$1 == name && $2 == "100663296" && \
 	$3 == "b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" && \
-	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline-only profile; authority=none; no phone contact, live profile, temporary-boot admission, or boot claim; retain offline only; never flash" && \
+	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline profile and separate live lifecycle profile; authority=none; no phone contact, temporary-boot admission, or boot claim; retain offline until separately admitted; never flash" && \
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
-	{ echo 'FAIL generation-10 offline artifact identity is not exact' >&2; exit 1; }
+	{ echo 'FAIL generation-10 unadmitted live-profile artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -544,14 +553,108 @@ for generation10_action in boot preflight; do
 	fi
 done
 
-! grep -Fq 'headless-diagnostic-generation10-live-v1' "$gate" ||
-	{ echo 'FAIL unreviewed generation-10 live profile is supported' >&2; exit 1; }
+for generation10_connected_action in boot preflight; do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ALLOW_TEMPORARY_BOOT=1 \
+		ALLOW_HEADLESS_LIVE_GATE=1 \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-live-v1 \
+		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+		TRUST_KEY="$repo/build/unused-trust-key" \
+		BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" "$generation10_connected_action" >"$tmp/out" 2>"$tmp/err"
+	then
+		echo "FAIL generation-10 live profile reached direct $generation10_connected_action" >&2
+		exit 1
+	fi
+	grep -Fq \
+		'generation-10 connected action requires the one-shot lifecycle controller' \
+		"$tmp/err" ||
+		{ echo "FAIL generation-10 direct $generation10_connected_action returned the wrong rejection" >&2; exit 1; }
+	if grep -Fq 'missing live-gate command' "$tmp/err"; then
+		echo "FAIL generation-10 direct $generation10_connected_action reached host inspection" >&2
+		exit 1
+	fi
+done
+
+generation10_boot_basis='one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash'
+for generation10_policy_shape in missing duplicate wrong-basis; do
+	policy_fixture=$tmp/generation10-policy-$generation10_policy_shape
+	install -d -m 0755 "$policy_fixture/scripts/host" \
+		"$policy_fixture/manifests"
+	install -m 0755 "$gate" \
+		"$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh"
+	cp -- "$artifact_manifest" "$policy_fixture/manifests/artifacts.tsv"
+	cp -- "$boot_policy" \
+		"$policy_fixture/manifests/temporary-boot-images.tsv"
+	case $generation10_policy_shape in
+		missing) ;;
+		duplicate)
+			printf '%s\tallow\t%s\n' "$generation10_image" \
+				"$generation10_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			printf '%s\tallow\t%s\n' "$generation10_image" \
+				"$generation10_boot_basis" \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+		wrong-basis)
+			printf '%s\tallow\t%s\n' "$generation10_image" \
+				'wrong generation-10 basis; never boot' \
+				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
+			;;
+	esac
+	for generation10_connected_action in boot preflight; do
+		if env -i PATH="$PATH" HOME="$HOME" \
+			ALLOW_TEMPORARY_BOOT=1 \
+			ALLOW_HEADLESS_LIVE_GATE=1 \
+			ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-live-v1 \
+			LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+			RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+			TRUST_KEY="$repo/build/unused-trust-key" \
+			BUNDLE_ROOT="$repo/build/unused-bundle-root" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$policy_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
+			"$generation10_connected_action" >"$tmp/out" 2>"$tmp/err"
+		then
+			echo "FAIL generation-10 $generation10_policy_shape policy reached $generation10_connected_action" >&2
+			exit 1
+		fi
+		if [[ $generation10_policy_shape == wrong-basis ]]; then
+			expected_policy_error="temporary boot policy basis does not match $generation10_image"
+		else
+			expected_policy_error="temporary boot policy does not uniquely list $generation10_image"
+		fi
+		grep -Fq "$expected_policy_error" "$tmp/err" ||
+			{ echo "FAIL generation-10 $generation10_policy_shape returned the wrong policy rejection" >&2; exit 1; }
+		if grep -Fq 'missing live-gate command' "$tmp/err"; then
+			echo "FAIL generation-10 $generation10_policy_shape policy reached host inspection" >&2
+			exit 1
+		fi
+	done
+done
+
+! grep -Eq \
+	'headless-diagnostic-generation(1[1-9]|[2-9][0-9]|[1-9][0-9]{2,})-' \
+	"$gate" ||
+	{ echo 'FAIL an unreviewed future diagnostic generation is supported' >&2; exit 1; }
 
 generation10_case=$(awk '
-	/^[[:space:]]*headless-diagnostic-generation10-offline-v1\)$/ { capture = 1 }
+	index($0, "\theadless-diagnostic-generation10-offline-v1") == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
+generation10_case_unindented=$(sed 's/^[[:space:]]*//' \
+	<<<"$generation10_case")
 for generation10_assignment in \
 	expected_kernel=bb49b4057ce573e3a53366c4663094cf462efb09d496b64b890ed2b0dcb65f98 \
 	expected_raw=27f4dbcc61decd00ce6861cddb021070f38e9badde99152fc2dedbd4103d73b3 \
@@ -566,9 +669,27 @@ for generation10_assignment in \
 	expected_avb_salt=5f62ef87305b45de2d189729a601ac4b143c45e83485272ef5b91c508df5d3ee \
 	expected_avb_digest=32b0de39bd409601da6b8c16bf5039fe9102410d9fb13a8b9f668283d53aee42
 do
-	grep -Eq "^[[:space:]]*$generation10_assignment$" \
-		<<<"$generation10_case" ||
+	grep -Fxq "$generation10_assignment" \
+		<<<"$generation10_case_unindented" ||
 		{ echo "FAIL generation-10 case does not pin $generation10_assignment" >&2; exit 1; }
+done
+generation10_live_policy_block=$(awk '
+	index($0, "if [[ $profile == headless-diagnostic-generation10-live-v1 ]]; then") { capture = 1 }
+	capture { print }
+	capture && /^[[:space:]]*fi$/ { exit }
+' <<<"$generation10_case")
+generation10_live_policy_unindented=$(sed 's/^[[:space:]]*//' \
+	<<<"$generation10_live_policy_block")
+for generation10_live_assignment in \
+	expected_boot_image=build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img \
+	"expected_boot_basis='one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash'"
+do
+	[[ $(grep -Fxc "$generation10_live_assignment" \
+		<<<"$generation10_case_unindented") == 1 ]] ||
+		{ echo "FAIL generation-10 case does not uniquely pin $generation10_live_assignment" >&2; exit 1; }
+	grep -Fxq "$generation10_live_assignment" \
+		<<<"$generation10_live_policy_unindented" ||
+		{ echo "FAIL generation-10 live-only block does not pin $generation10_live_assignment" >&2; exit 1; }
 done
 
 for generation9_connected_action in boot preflight; do
@@ -673,7 +794,7 @@ for generation9_policy_shape in missing duplicate wrong-basis readmitted-exact-b
 done
 
 if env -i PATH="$PATH" HOME="$HOME" \
-	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-live-v1 \
+	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation11-live-v1 \
 	RECOVERY_SHA256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
 	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
@@ -681,7 +802,7 @@ if env -i PATH="$PATH" HOME="$HOME" \
 	BUNDLE=headless-netroot-early-diag-v1 \
 	bash "$gate" policy-preflight >"$tmp/out" 2>"$tmp/err"
 then
-	echo 'FAIL unissued generation-10 live profile passed policy preflight' >&2
+	echo 'FAIL unsupported generation-11 live profile passed policy preflight' >&2
 	exit 1
 fi
 grep -Fq 'policy preflight requires a fully pinned diagnostic profile' "$tmp/err"
@@ -1267,34 +1388,38 @@ generation10_errors=(
 [[ ${#generation10_fields[@]} -eq ${#generation10_exact[@]} &&
 	${#generation10_errors[@]} -eq ${#generation10_exact[@]} ]] ||
 	{ echo 'FAIL generation-10 policy mutation matrix is inconsistent' >&2; exit 1; }
-generation10_policy=$(run_generation3_policy \
-	headless-diagnostic-generation10-offline-v1 "${generation10_exact[@]}")
-grep -Fxq \
-	'recovery_profile=headless-diagnostic-generation10-offline-v1' \
-	<<<"$generation10_policy" ||
-	{ echo 'FAIL generation-10 policy omitted the exact profile' >&2; exit 1; }
-grep -Fxq \
-	'recovery_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
-	<<<"$generation10_policy" ||
-	{ echo 'FAIL generation-10 policy omitted the exact recovery identity' >&2; exit 1; }
-grep -Fxq 'authority=none' <<<"$generation10_policy" ||
-	{ echo 'FAIL generation-10 policy granted authority' >&2; exit 1; }
-grep -Fxq 'result=PASS' <<<"$generation10_policy" ||
-	{ echo 'FAIL generation-10 policy did not pass' >&2; exit 1; }
-for index in "${!generation10_fields[@]}"; do
-	mutation=("${generation10_exact[@]}")
-	if ((index == 4)); then
-		mutation[$index]=wrong-generation10-bundle
-	else
-		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-	fi
-	if run_generation3_policy headless-diagnostic-generation10-offline-v1 \
-		"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
-		echo "FAIL generation-10 offline profile accepted wrong ${generation10_fields[$index]}" >&2
-		exit 1
-	fi
-	grep -Fq "${generation10_errors[$index]}" "$tmp/err" ||
-		{ echo "FAIL generation-10 wrong ${generation10_fields[$index]} returned the wrong rejection" >&2; exit 1; }
+for generation10_profile in \
+	headless-diagnostic-generation10-offline-v1 \
+	headless-diagnostic-generation10-live-v1
+do
+	generation10_policy=$(run_generation3_policy \
+		"$generation10_profile" "${generation10_exact[@]}")
+	grep -Fxq "recovery_profile=$generation10_profile" \
+		<<<"$generation10_policy" ||
+		{ echo "FAIL $generation10_profile policy omitted the exact profile" >&2; exit 1; }
+	grep -Fxq \
+		'recovery_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
+		<<<"$generation10_policy" ||
+		{ echo "FAIL $generation10_profile policy omitted the exact recovery identity" >&2; exit 1; }
+	grep -Fxq 'authority=none' <<<"$generation10_policy" ||
+		{ echo "FAIL $generation10_profile policy granted authority" >&2; exit 1; }
+	grep -Fxq 'result=PASS' <<<"$generation10_policy" ||
+		{ echo "FAIL $generation10_profile policy did not pass" >&2; exit 1; }
+	for index in "${!generation10_fields[@]}"; do
+		mutation=("${generation10_exact[@]}")
+		if ((index == 4)); then
+			mutation[$index]=wrong-generation10-bundle
+		else
+			mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+		fi
+		if run_generation3_policy "$generation10_profile" \
+			"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
+			echo "FAIL $generation10_profile accepted wrong ${generation10_fields[$index]}" >&2
+			exit 1
+		fi
+		grep -Fq "${generation10_errors[$index]}" "$tmp/err" ||
+			{ echo "FAIL $generation10_profile wrong ${generation10_fields[$index]} returned the wrong rejection" >&2; exit 1; }
+	done
 done
 
 if [[ -d $generation3_root ]]; then
@@ -1659,30 +1784,35 @@ if [[ -d $generation10_root_a || -d $generation10_root_b ||
 	do
 		cmp "$generation10_root_a/$relative" "$generation10_root_b/$relative"
 	done
-	for generation10_suffix in a b; do
-		if [[ $generation10_suffix == a ]]; then
-			generation10_root=$generation10_root_a
-		else
-			generation10_root=$generation10_root_b
-		fi
-		generation10_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-				ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-offline-v1 \
-				LIVE_BUILD_ROOT="$generation10_root" \
-				RECOVERY_COMPONENT_ROOT="$generation10_base/recovery" \
-				TRUST_KEY="$generation10_base/recovery/ephemeral-public.raw" \
-				BUNDLE_ROOT="$generation10_base/bundle-$generation10_suffix" \
-				BUNDLE=headless-netroot-early-diag-v1 \
-				RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
-				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation10-offline-v1 image_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
-			<<<"$generation10_artifact" ||
-			{ echo "FAIL generation-10 tree $generation10_suffix did not pass artifact preflight" >&2; exit 1; }
+	for generation10_profile in \
+		headless-diagnostic-generation10-offline-v1 \
+		headless-diagnostic-generation10-live-v1
+	do
+		for generation10_suffix in a b; do
+			if [[ $generation10_suffix == a ]]; then
+				generation10_root=$generation10_root_a
+			else
+				generation10_root=$generation10_root_b
+			fi
+			generation10_artifact=$(
+				env -i PATH="$PATH" HOME="$HOME" \
+					ROG5_STABLE_RECOVERY_PROFILE="$generation10_profile" \
+					LIVE_BUILD_ROOT="$generation10_root" \
+					RECOVERY_COMPONENT_ROOT="$generation10_base/recovery" \
+					TRUST_KEY="$generation10_base/recovery/ephemeral-public.raw" \
+					BUNDLE_ROOT="$generation10_base/bundle-$generation10_suffix" \
+					BUNDLE=headless-netroot-early-diag-v1 \
+					RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+					TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+					bash "$gate" artifact-preflight
+			)
+			grep -Fxq \
+				"PASS stable-recovery artifact preflight profile=$generation10_profile image_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" \
+				<<<"$generation10_artifact" ||
+				{ echo "FAIL $generation10_profile tree $generation10_suffix did not pass artifact preflight" >&2; exit 1; }
+		done
 	done
 
 	generation10_mutation=$build_tmp/generation10-record-mutation
@@ -1821,6 +1951,7 @@ for required in \
 	'headless-diagnostic-generation9-offline-v1' \
 	'headless-diagnostic-generation9-live-v1' \
 	'headless-diagnostic-generation10-offline-v1' \
+	'headless-diagnostic-generation10-live-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -1837,6 +1968,7 @@ for required in \
 	'generation-9 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-9 connected action requires the one-shot lifecycle controller' \
 	'generation-10 diagnostic profile is offline-only and not boot-authorized' \
+	'generation-10 connected action requires the one-shot lifecycle controller' \
 	'temporary boot artifact is recorded as consumed' \
 	'temporary boot policy basis does not match' \
 	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
@@ -1876,6 +2008,8 @@ for required in \
 	'expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0' \
 	'expected_target_id=headless-netroot-early-diag' \
 	'expected_bundle_profile=diagnostic-initramfs-v1' \
+	'expected_boot_image=build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img' \
+	"expected_boot_basis='one generation-10 PREPARE-progress-instrumented diagnostic lifecycle after connected preflight; remove after any result; never flash'" \
 	'expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c' \
 	'expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce' \
 	'expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec' \
