@@ -529,8 +529,7 @@ Current execution order:
     constrained re-review, publication at `6b9f00e`, and exact-head GitHub run
     `30860916085` pass. See the
     [offline integration result](test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
-14. **Issuer readiness published; production issuance complete locally with
-    publication verification pending:** the guarded
+14. **Complete:** the guarded
     production signing-input preflight and deterministic synthetic issuer
     regression through Generation 10 passed without creating an artifact and
     were published at `d6d20b0`; exact-head GitHub run `30861861026` is green.
@@ -544,12 +543,13 @@ Current execution order:
     [issuer-readiness result](test-results/2026-08-03-generation-10-issuer-readiness-offline.md)
     and
     [offline successor result](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
-15. **Next:** independently review and publish the Generation-10 production
-    issuance, then pass exact-head CI. In a later separate change, create an
-    immutable offline-only profile and prove both retained-tree artifact
-    preflights before considering a live profile or one-shot central admission.
-    The offline instrumentation does not itself locate the post-transfer gap;
-    any Generation-10 lifecycle remains diagnostic-only.
+    The production issuance was independently reviewed, published at
+    `d04b804`, and passed exact-head GitHub Actions run `30865091104`.
+15. **Next:** in a separate change, create an immutable offline-only profile
+    and prove both retained-tree artifact preflights before considering a live
+    profile or one-shot central admission. The offline instrumentation does not
+    itself locate the post-transfer gap; any Generation-10 lifecycle remains
+    diagnostic-only.
 16. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 17. If H2 passes, continue physical keys/indicator, then H3

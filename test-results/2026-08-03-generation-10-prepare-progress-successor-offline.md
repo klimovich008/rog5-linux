@@ -85,7 +85,8 @@ non-reuse through all Generations 1–9.
 - complete `scripts/host/test-repository-linux.sh ci`: pass, including all 41
   tracked Markdown-link checks and the Generation-10 issuer regression.
 
-Exact-head GitHub CI remains pending publication of this checkpoint.
+The checkpoint was published at `d04b804`; exact-head GitHub Actions run
+`30865091104` passed recovery-core in 3m35s and QEMU in 40s.
 
 ## Boundary and next gate
 
