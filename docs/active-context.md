@@ -139,22 +139,26 @@ trees. Independent review and complete local CI passed; commit `52ce322`
 published the authority-free checkpoint and exact-head GitHub Actions run
 `30935842119` passed recovery-core in 4m11s and QEMU in 35s.
 
-The current host-only transition adds exact live profile
+The live-admission transition adds exact profile
 `headless-diagnostic-generation12-live-v1`, selects it from the one-shot
 lifecycle, and adds the sole central-policy `allow` row for exact path
 `build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img`.
 Direct `preflight`/`boot` still reject without the lifecycle guard. `boot`
 must additionally validate and irreversibly enter the controller's private
-Generation-12 `BOOT_CLAIMED` record before any host inspection. Ten
+Generation-12 `BOOT_CLAIMED` record before any host inspection. Eleven
 claim-consumer cases and hostile policy/inventory fixtures exercise canonical
 root confinement, symlinked passwd-home canonicalization, reuse,
 content/metadata/link races, missing or duplicate
 rows, wrong basis, denied status, consumed/altered role, tracked-state drift,
-and trailing fields. Finish full CI and independent
-review, publish exact-head green, then run connected preflight only. This
-transition has not contacted or booted the phone; no Generation-12 execute
-belongs to it. See the [host-only admission
-result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
+and trailing fields. Commit `328b33c` published that transition and exact-head
+run `30942517411` passed recovery-core in 4m10s and QEMU in 52s. Strict pinned
+fallback SSH proved Alpine health, the anchored helper reached exact
+`lahaina` fastboot, and connected preflight passed after temporarily stopping
+and exactly restoring Steam's TCP-8081 socket. No Generation-12 claim or boot
+occurred. Publish the [connected-preflight
+result](../test-results/2026-08-04-generation-12-connected-preflight-live.md)
+exact-head green before the sole diagnostic run. See also the [host-only
+admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
 ## Historical deployment chronology
 

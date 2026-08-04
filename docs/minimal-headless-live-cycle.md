@@ -248,14 +248,17 @@ also recorded zero frames. Exact Alpine fallback, strict SSH, profile
 restoration, host cleanup, and Steam socket restoration passed. Generation 11
 is consumed, absent from boot policy, and permanently claimed; never retry it.
 The distinct Generation-12 authority-free successor was published at commit
-`52ce322` and passed exact-head GitHub Actions run `30935842119`. The current
-host-only transition makes the controller select
+`52ce322` and passed exact-head GitHub Actions run `30935842119`. Commit
+`328b33c` makes the controller select
 `headless-diagnostic-generation12-live-v1`, admits only AVB
 `615d7498…d72cf6` through one exact central-policy row, and adds a separate
 fixed claim consumer. Direct `preflight`/`boot` reject without the lifecycle
 guard; `boot` must irreversibly enter the exact private Generation-12
-`BOOT_CLAIMED` record before host inspection. Connected preflight is the next
-hardware action. This transition does not include a phone boot. Any failure
+`BOOT_CLAIMED` record before host inspection; exact-head run `30942517411`
+passed, then connected preflight passed after an anchored Alpine-to-fastboot
+transition and bounded Steam TCP-8081 socket stop/restore. No Generation-12
+claim or boot occurred. Publish that evidence exact-head green before the
+sole diagnostic run. Any failure
 after durable entry burns the candidate even when no phone boot occurred; the
 only recovery is a distinct successor generation, never record repair or
 retry.

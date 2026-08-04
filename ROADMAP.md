@@ -675,19 +675,25 @@ Current execution order:
     commit `52ce322`; exact-head GitHub Actions run `30935842119` passed
     recovery-core in 4m11s and QEMU in 35s. See the [offline
     result](test-results/2026-08-04-generation-12-host-confinement-successor-offline.md).
-27. **In progress, host-only:** add
+27. **Complete:** add
     `headless-diagnostic-generation12-live-v1`, make the one-shot controller
     select it, admit exactly one central-policy row, and require an exact
     irreversible Generation-12 `BOOT_CLAIMED` record before `boot` can inspect
     the host. Hardware-free tests cover direct-action bypass, claim reuse and
     filesystem races, policy/header/inventory mutations, and both retained
-    twins under offline and live profiles. Finish independent review, complete
-    CI, publication, and exact-head CI; then run connected preflight. No phone
-    boot belongs to this transition. See the [host-only admission
-    result](test-results/2026-08-04-generation-12-live-admission-offline.md).
-28. Promote a distinct normal SSH candidate only after diagnostic evidence
+    twins under offline and live profiles. Commit `328b33c` and exact-head run
+    `30942517411` passed; the connected preflight then passed after an anchored
+    Alpine-to-fastboot transition and exact Steam TCP-8081 socket restoration.
+    No Generation-12 boot claim or phone boot occurred. See the [host-only
+    admission](test-results/2026-08-04-generation-12-live-admission-offline.md)
+    and [connected-preflight
+    result](test-results/2026-08-04-generation-12-connected-preflight-live.md).
+28. **Next:** publish the connected-preflight evidence and pass exact-head CI,
+    then run the sole Generation-12 RAM-only diagnostic lifecycle. Burn the
+    candidate after any result and never flash it.
+29. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-29. If H2 passes, continue physical keys/indicator, then H3
+30. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
