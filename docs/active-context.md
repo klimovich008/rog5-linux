@@ -382,12 +382,13 @@ unprofiled, absent from artifact inventory and boot policy, and retains
 `authority=none`; see the
 [offline successor result](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
 
-Next publish this issuance with independent review and exact-head CI. A later
-separate change may add an immutable offline-only profile and pass both
-retained-tree artifact gates. Live-profile selection and one-shot central
-admission remain later, distinct gates before any diagnostic temporary boot.
-The instrumentation still does not locate the post-transfer gap, so any
-Generation-10 lifecycle remains diagnostic-only.
+This issuance was independently reviewed, published at `d04b804`, and passed
+exact-head GitHub Actions run `30865091104`. Next add an immutable offline-only
+profile in a separate change and pass both retained-tree artifact gates.
+Live-profile selection and one-shot central admission remain later, distinct
+gates before any diagnostic temporary boot. The instrumentation still does
+not locate the post-transfer gap, so any Generation-10 lifecycle remains
+diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

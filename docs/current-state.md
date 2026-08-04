@@ -1193,10 +1193,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    unbooted, unprofiled, absent from inventory and boot policy, and cannot be
    used by the lifecycle. See the
    [offline successor](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
-   The next gate is independent review, publication, and exact-head CI,
-   followed separately by an immutable offline-only profile and both retained
-   artifact preflights. The gap remains unlocated, so any later Generation-10
-   lifecycle is diagnostic-only.
+   Independent review, publication at `d04b804`, and exact-head GitHub Actions
+   run `30865091104` now pass. The next separate gate is an immutable
+   offline-only profile and both retained artifact preflights. The gap remains
+   unlocated, so any later Generation-10 lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
