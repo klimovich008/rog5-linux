@@ -2,35 +2,19 @@
 
 ## Current operator directive
 
-**Latest reaffirmation (2026-08-04): the agent does not need to ask for any
-further in-scope authorization. It may use the standing authorizations and
-available project credentials as needed, and should continue until it reaches
-a genuine technical, safety, platform, input, or scope blocker.** Routine
-authorization flags and older notes requesting fresh consent may be satisfied
-from this directive; they are not reasons to pause. Consequential actions
-should still be reported as work proceeds, but that notice is informational.
+**Latest controlling instruction (reaffirmed 2026-08-04): the agent does not
+need to ask for further in-scope authorization. Use the standing
+authorizations and available project credentials as needed, and continue using
+them until a genuine technical, safety, platform, input, or scope blocker is
+reached.** Routine authorization flags and older notes requesting fresh
+consent may be satisfied from this directive; neither is a reason to pause.
+Consequential actions should still be reported as work proceeds, but that
+notice is informational rather than a request for permission.
 
-**Latest controlling instruction (2026-08-04): do not ask the operator for
-further authorization. Use the standing authorizations needed for in-scope
-project work and continue until a real technical, safety, platform, input, or
-scope blocker is reached.** An authorization flag or an older note requesting
-fresh consent is not itself a blocker. This instruction does not waive the
-technical admission gates or the hard boundaries below.
-
-The operator reaffirmed this after the Generation-10 lifecycle: **future
-in-scope authorization prompts are unnecessary; use the available standing
-authorizations until genuinely blocked.** This standing instruction covers
-ordinary project work without repeated consent prompts. Each future lifecycle
-boot still requires its own exact central-policy `allow` row and every
-technical admission gate to pass; once those conditions hold, no additional
-authorization prompt is needed. The instruction does not create an `allow`
-row or relax one-shot consumption rules.
-
-The operator's current standing instruction is: **do not ask for repeated
-authorization; use any authorization already supplied or otherwise available
-to complete the agreed ROG Phone 5 Linux project work.** Proceed when the
-applicable technical checks pass, and report the action instead of pausing for
-another consent prompt.
+This instruction remains in force across future task continuations until the
+operator explicitly stops, narrows, or revokes it. It does not create a
+technical policy `allow` row, relax one-shot artifact consumption, waive
+admission checks, or expand the project beyond the hard boundaries below.
 
 The operator reaffirmed this instruction on 2026-08-02: the agent does not
 need to ask for authorization and may autonomously exercise any authorization
