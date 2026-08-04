@@ -296,6 +296,14 @@ if [ "${MOCK_PROGRESS_LISTENER_EXISTING:-0}" = 1 ]; then
       ;;
   esac
 fi
+if [ "${MOCK_PROGRESS_IPV6_EXISTING:-0}" = 1 ]; then
+  case $* in
+    *"-lnt6"*"sport = :8081 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+      printf '%s\\n' \\
+        'LISTEN 0 4096 [::]:8081 [::]:* users:(("systemd",pid=1,fd=205))'
+      ;;
+  esac
+fi
 if [ -s "$MOCK_SERVER_PID" ]; then
   case $* in
     *"-lntp4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
@@ -329,18 +337,45 @@ esac
 if [ "${MOCK_PROGRESS_LISTENER_AFTER_SERVER:-0}" = 1 ] &&
    [ -s "$MOCK_SERVER_PID" ]; then
   case $* in
-    *"-lntp4"*"sport = :8081"*)
+    *"-lntp4"*"sport = :8081 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
       printf '%s\n' \
-        'LISTEN 0 1 169.254.77.1:8081 0.0.0.0:* users:(("other",pid=997,fd=3))'
+        'LISTEN 0 1 169.254.77.1%usbtest0:8081 0.0.0.0:* users:(("other",pid=997,fd=3))'
       ;;
   esac
 elif [ "${MOCK_PROGRESS_NO_LISTENER:-0}" != 1 ] &&
      [ -s "$MOCK_PROGRESS_PID" ]; then
   case $* in
-    *"-lntp4"*"sport = :8081"*)
+    *"-lntp4"*"sport = :8081 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
       pid=$(sed -n '1p' "$MOCK_PROGRESS_PID")
+      if [ "${MOCK_PROGRESS_LISTENER_UNSCOPED:-0}" = 1 ]; then
+        local_address=169.254.77.1:8081
+      elif [ "${MOCK_PROGRESS_LISTENER_WRONG_INTERFACE:-0}" = 1 ]; then
+        local_address=169.254.77.1%xusbtest0:8081
+      elif [ "${MOCK_PROGRESS_LISTENER_WRONG_ADDRESS:-0}" = 1 ]; then
+        local_address=169.254.77.10%usbtest0:8081
+      else
+        local_address=169.254.77.1%usbtest0:8081
+      fi
+      if [ "${MOCK_PROGRESS_LISTENER_SHARED_OWNER:-0}" = 1 ]; then
+        owner_field="users:((\\\"python3\\\",pid=$pid,fd=3),(\\\"other\\\",pid=996,fd=4))"
+      else
+        owner_field="users:((\\\"python3\\\",pid=$pid,fd=3))"
+      fi
       printf '%s\n' \
-        "LISTEN 0 1 169.254.77.1:8081 0.0.0.0:* users:((\"python3\",pid=$pid,fd=3))"
+        "LISTEN 0 1 $local_address 0.0.0.0:* $owner_field"
+      if [ "${MOCK_PROGRESS_LISTENER_DUPLICATE:-0}" = 1 ]; then
+        printf '%s\n' \
+          "LISTEN 0 1 $local_address 0.0.0.0:* $owner_field"
+      fi
+      ;;
+  esac
+fi
+if [ "${MOCK_PROGRESS_IPV6_AFTER_SERVER:-0}" = 1 ] &&
+  [ -s "$MOCK_SERVER_PID" ]; then
+  case $* in
+    *"-lntp6"*"sport = :8081 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+      printf '%s\n' \
+        'LISTEN 0 4096 [::]:8081 [::]:* users:(("systemd",pid=1,fd=205))'
       ;;
   esac
 fi
@@ -530,18 +565,28 @@ class RecoveryHostControllerTest(unittest.TestCase):
         )
 
     def test_progress_port_conflict_refuses_before_network_mutation(self):
-        result = self.fixture.run(
-            "serve-progress-deferred",
-            BUNDLE,
-            MANIFEST_HASH,
-            str(self.fixture.progress_output),
-            MOCK_PROGRESS_LISTENER_EXISTING="1",
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("TCP port 8081 already has a listener", result.stderr)
-        calls = self.fixture.call_log()
-        self.assertNotIn("--add-rich-rule=", calls)
-        self.assertNotIn("connection down uuid", calls)
+        for override in (
+            "MOCK_PROGRESS_LISTENER_EXISTING",
+            "MOCK_PROGRESS_IPV6_EXISTING",
+        ):
+            with self.subTest(override=override):
+                self.fixture.close()
+                self.fixture = ControllerFixture()
+                result = self.fixture.run(
+                    "serve-progress-deferred",
+                    BUNDLE,
+                    MANIFEST_HASH,
+                    str(self.fixture.progress_output),
+                    **{override: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "TCP port 8081 already has a listener",
+                    result.stderr,
+                )
+                calls = self.fixture.call_log()
+                self.assertNotIn("--add-rich-rule=", calls)
+                self.assertNotIn("connection down uuid", calls)
 
     def test_progress_listener_absence_is_advisory_and_deferred(self):
         result = self.fixture.run(
@@ -576,6 +621,75 @@ class RecoveryHostControllerTest(unittest.TestCase):
         self.assertEqual(
             self.fixture.progress_ss_count.read_text(encoding="ascii"),
             "4\n",
+        )
+
+    def test_progress_listener_requires_exact_interface_scope(self):
+        for override in (
+            "MOCK_PROGRESS_LISTENER_UNSCOPED",
+            "MOCK_PROGRESS_LISTENER_WRONG_INTERFACE",
+            "MOCK_PROGRESS_LISTENER_WRONG_ADDRESS",
+        ):
+            with self.subTest(override=override):
+                self.fixture.close()
+                self.fixture = ControllerFixture()
+                result = self.fixture.run(
+                    "serve-progress-deferred",
+                    BUNDLE,
+                    MANIFEST_HASH,
+                    str(self.fixture.progress_output),
+                    **{override: "1"},
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "progress listener is not uniquely confined",
+                    result.stderr,
+                )
+
+    def test_steam_style_ipv6_progress_race_fails_closed(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_IPV6_AFTER_SERVER="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "progress listener is not uniquely confined",
+            result.stderr,
+        )
+        calls = self.fixture.call_log()
+        self.assertIn(
+            "ss -H -lntp6 sport = :8081 and ( src = ::/128 or ",
+            calls,
+        )
+
+    def test_progress_listener_rejects_shared_owner_record(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_LISTENER_SHARED_OWNER="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "progress listener is not uniquely confined",
+            result.stderr,
+        )
+
+    def test_progress_listener_rejects_duplicate_records(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_LISTENER_DUPLICATE="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "progress listener is not uniquely confined",
+            result.stderr,
         )
 
     def test_progress_listener_conflict_after_start_fails_closed(self):

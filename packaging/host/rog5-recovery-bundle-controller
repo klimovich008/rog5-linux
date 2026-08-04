@@ -856,12 +856,32 @@ if [[ $action == serve-progress-deferred ]]; then
 			fail 'cannot verify recovery progress listener'
 		if [[ -n $progress_listeners || -n $progress_conflicting_ipv6 ]]; then
 			mapfile -t progress_listener_lines <<<"$progress_listeners"
+			progress_state=
+			progress_recvq=
+			progress_sendq=
+			progress_local=
+			progress_peer=
+			progress_process=
+			progress_extra=
+			progress_owner_pattern=
+			if (( ${#progress_listener_lines[@]} == 1 )); then
+				read -r progress_state progress_recvq progress_sendq \
+					progress_local progress_peer progress_process \
+					progress_extra <<<"${progress_listener_lines[0]}"
+				progress_owner_pattern='^users:\(\("python3",pid='
+				progress_owner_pattern+="$progress_collector_pid"
+				progress_owner_pattern+=',fd=[0-9]+\)\)$'
+			fi
 			[[ -z $progress_conflicting_ipv6 &&
 				${#progress_listener_lines[@]} == 1 &&
-				${progress_listener_lines[0]} == \
-				*"$host_ip:$progress_port"* &&
-				${progress_listener_lines[0]} =~ \
-				pid=$progress_collector_pid([,\)]) ]] &&
+				$progress_state == LISTEN &&
+				$progress_recvq =~ ^[0-9]+$ &&
+				$progress_sendq =~ ^[0-9]+$ &&
+				$progress_local == \
+				"$host_ip%$interface:$progress_port" &&
+				$progress_peer == '0.0.0.0:*' &&
+				-z $progress_extra &&
+				$progress_process =~ $progress_owner_pattern ]] &&
 				kill -0 "$progress_collector_pid" 2>/dev/null ||
 				fail 'recovery progress listener is not uniquely confined'
 			progress_listener_ready=1
