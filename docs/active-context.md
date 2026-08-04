@@ -99,8 +99,13 @@ Claude Opus review, and independent Codex review. It was published at
 in 40s. Admission-focused and complete local CI pass offline, and independent
 spec and standards reviews report no findings. The admission was published at
 `8e22bc5`; exact-head GitHub Actions run `30916646825` passed recovery-core in
-3m47s and QEMU in 37s. The next separate checkpoint is connected preflight,
-not a phone boot. No phone action occurred.
+3m47s and QEMU in 37s. Exact key and
+[connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
+then passed after strict fallback health proof and an anchored
+`RESTART2("bootloader")` transition to one same-port `lahaina` fastboot device.
+The artifact remains unbooted, no Generation-11 claim exists, and Steam's
+temporarily released port-8081 socket was restored. Review, publication, and
+exact-head CI of this live evidence remain before the sole lifecycle.
 
 ## Active deployment checkpoint
 
@@ -487,9 +492,9 @@ consumed in inventory, and never reusable. See the
 At that live checkpoint, the next increment was hardware-free reproduction of
 this exact progress/transport/replay sequence and an independent device-side
 progress path that survives ACM loss. That implementation and its distinct
-Generation-11 wrapper now pass offline; its separate one-shot central
-admission also passes offline, and the current pre-connected-preflight
-boundary is recorded in the observability section above.
+Generation-11 wrapper and separate one-shot central admission pass offline;
+connected preflight now passes, and the current pre-boot publication boundary
+is recorded in the observability section above.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

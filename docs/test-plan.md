@@ -425,8 +425,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   reuse, content, metadata, symlink, root, pre-existing-destination, and
   pathname-replacement race cases.
   `authority=none` and `unbooted` remain exact. See the
-  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md)
-  and [admission result](../test-results/2026-08-04-generation-11-live-admission-offline.md).
+  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md),
+  [admission result](../test-results/2026-08-04-generation-11-live-admission-offline.md),
+  and [connected-preflight result](../test-results/2026-08-04-generation-11-connected-preflight-live.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

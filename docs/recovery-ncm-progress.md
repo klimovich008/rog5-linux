@@ -166,20 +166,22 @@ publication are complete. The issuer/evidence checkpoint passed exact-head
 GitHub Actions run `30899370666` at commit `5293e56`. Offline issuance did not
 create boot authority. The immutable offline-only profile now passes against
 both retained trees. Its review and publication completed at `98f8d27` with
-exact-head run `30904224177` green. Continue in this order:
+exact-head run `30904224177` green. The separately reviewed live-profile
+transition and one-shot central-policy admission are also published with
+exact-head CI green.
 
-1. publish the separately reviewed live-profile transition and one-shot
-   central-policy admission with exact-head GitHub CI green; and
-2. only then perform one separate connected preflight before any temporary
-   boot.
+The exact connected preflight now passes after strict fallback verification
+and an anchored Alpine-to-fastboot transition. No recovery image was booted,
+no payload or target SSH path started, and no Generation-11 boot claim exists.
+Review, publication, and exact-head CI of the
+[connected-preflight evidence](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
+remain before the sole lifecycle.
 
-The admission creates one policy row but no connected action or phone state
-change. Both retained Generation-11 trees state `authority=none`; the generic
-recovery wrapper rejects generation diagnostics, and only the guarded one-shot
-lifecycle controller can consume the admission after connected preflight. The
-live boot gate's fixed claim consumer validates and irreversibly enters the
-controller's exact private durable `BOOT_CLAIMED` record before any
-host/device inspection.
+Both retained Generation-11 trees state `authority=none`; the generic recovery
+wrapper rejects generation diagnostics, and only the guarded one-shot lifecycle
+controller can consume the admission. The live boot gate's fixed claim consumer
+validates and irreversibly enters the controller's exact private durable
+`BOOT_CLAIMED` record before any host/device inspection.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the

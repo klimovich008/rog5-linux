@@ -1281,9 +1281,12 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    review, and complete local CI. Commit `2a483ec` passed exact-head GitHub run
    `30908649494`. Admission-focused and complete local CI pass, and independent
    spec and standards reviews report no findings. The admission was published
-   at `8e22bc5`; exact-head GitHub Actions run `30916646825` passed. The next
-   separate checkpoint is connected preflight, not a phone boot. No phone
-   action occurred.
+   at `8e22bc5`; exact-head GitHub Actions run `30916646825` passed. Exact key
+   and [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
+   then passed after strict fallback proof and an anchored same-port reboot to
+   one `lahaina` fastboot device. The artifact remains unbooted and has no boot
+   claim. Review, publication, and exact-head CI of this connected evidence
+   remain before the sole RAM-only lifecycle.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
