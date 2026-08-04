@@ -564,16 +564,22 @@ Current execution order:
     still had zero `allow` rows.
     See the
     [live-profile result](test-results/2026-08-04-generation-10-live-profile-offline.md).
-17. **Complete locally and independently reviewed; publication pending:**
+17. **Complete:**
     central policy admits exactly one Generation-10 image and basis
     for one connected-preflight-gated RAM-only lifecycle. Missing, duplicate,
     and wrong-basis policy fixtures reject before host inspection; inventory
     retains issuance `authority=none`, `unbooted`, and no boot claim. See the
     [admission result](test-results/2026-08-04-generation-10-live-admission-offline.md).
     The instrumentation does not locate the post-transfer gap, so this
-    admission remains diagnostic-only.
-18. **Next:** publish the admission, pass exact-head GitHub CI, then run
-    connected preflight as a separate checkpoint.
+    admission remains diagnostic-only. Commit `a9c012c` and exact-head GitHub
+    Actions run `30870594823` are green.
+18. **In progress:** the first connected-preflight transition began from exact
+    Alpine fallback. Fallback health and authenticated `RESTART2("bootloader")`
+    passed, but the anchored USB port did not re-enumerate during the fixed
+    45-second window or an additional 30-second read-only check. No boot or
+    payload action occurred. Manually enter fastboot, then run the exact
+    connected preflight before any Generation-10 lifecycle. See the
+    [transition result](test-results/2026-08-04-generation-10-connected-preflight-transition-live.md).
 19. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 20. If H2 passes, continue physical keys/indicator, then H3
