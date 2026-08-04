@@ -84,6 +84,12 @@ def load_runner_module():
 
 
 CYCLE = load_runner_module()
+COMMIT_FINGERPRINT = CYCLE.commit_request_fingerprint(
+    SESSION,
+    REQUEST,
+    PREPARE,
+    MANIFEST,
+)
 
 
 def load_claim_consumer_module():
@@ -837,7 +843,7 @@ class Fixture:
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
                 fi
-                printf '{{"commit_fingerprint":"{CANDIDATE_SHA256}","commit_request":"{REQUEST}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{REQUEST}","result":"CLAIMED","session":"{SESSION}","state":"CLAIMED","verb":"COMMIT_EXEC","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                printf '{{"commit_fingerprint":"{COMMIT_FINGERPRINT}","commit_request":"{REQUEST}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{REQUEST}","result":"CLAIMED","session":"{SESSION}","state":"CLAIMED","verb":"COMMIT_EXEC","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
                   "$BUNDLE" \
                   "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
@@ -1130,7 +1136,12 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "watchdog": "ARMED",
         }
         committed = {
-            "commit_fingerprint": "5" * 64,
+            "commit_fingerprint": CYCLE.commit_request_fingerprint(
+                SESSION,
+                REQUEST,
+                PREPARE,
+                MANIFEST,
+            ),
             "commit_request": REQUEST,
             "execution_started": "NO",
             "last_error": "NONE",
@@ -1213,6 +1224,17 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 self.assertEqual(intent.request, REQUEST)
                 self.assertEqual(prepare_request, PREPARE)
 
+    def test_commit_fingerprint_matches_canonical_protocol_fixture(self):
+        self.assertEqual(
+            CYCLE.commit_request_fingerprint(
+                SESSION,
+                REQUEST,
+                PREPARE,
+                MANIFEST,
+            ),
+            "d2552f9cc0e0f2bf67cb1f18ad01b2be3fd592a07dcdb23c49ba4d35a15b8552",
+        )
+
     def test_control_parser_rejects_missing_or_extra_response_fields(self):
         for response_index in (0, 1):
             for field in sorted(CYCLE.CONTROL_RESPONSE_FIELDS):
@@ -1243,6 +1265,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             ("postmortem_bytes", "00"),
             ("postmortem_bytes", "4194305"),
             ("postmortem_sha256", "g" * 64),
+            ("postmortem_sha256", CYCLE.EMPTY_SHA256),
             ("postmortem_tail_hex", "0"),
             ("postmortem_tail_hex", "00" * 513),
         )
@@ -1289,6 +1312,15 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 ):
                     self.parse_control_records(*records)
 
+        records = list(self.control_records())
+        records[0] = dict(records[0])
+        records[0]["postmortem_bytes"] = "1"
+        with self.assertRaisesRegex(
+            CYCLE.CycleError,
+            "recovery PREPARE evidence is inconsistent",
+        ):
+            self.parse_control_records(*records)
+
     def test_control_parser_rejects_cross_response_postmortem_change(self):
         records = list(self.control_records())
         records[1] = dict(records[1])
@@ -1333,7 +1365,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "manifest_sha256": "6" * 64,
             "prepare_request": "7" * 32,
             "commit_request": "8" * 32,
-            "commit_fingerprint": CYCLE.ZERO_SHA256,
+            "commit_fingerprint": "8" * 64,
             "execution_started": "YES",
             "watchdog": "INVALID",
             "last_error": "EXEC_FAILED",
@@ -1352,6 +1384,28 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                         f"recovery {marker} evidence is inconsistent",
                     ):
                         self.parse_control_records(*records)
+
+        records = list(self.control_records())
+        records[1] = dict(records[1])
+        records[1].update(
+            {
+                "request": PREPARE,
+                "commit_request": PREPARE,
+                "commit_fingerprint": CYCLE.commit_request_fingerprint(
+                    SESSION,
+                    PREPARE,
+                    PREPARE,
+                    MANIFEST,
+                ),
+            }
+        )
+        records[2] = dict(records[2])
+        records[2]["request"] = PREPARE
+        with self.assertRaisesRegex(
+            CYCLE.CycleError,
+            "recovery COMMIT evidence is inconsistent",
+        ):
+            self.parse_control_records(*records)
 
     def test_consumed_generation12_actions_fail_before_guards_or_credentials(
         self,
@@ -1387,6 +1441,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 )
                 self.assertFalse(
                     (self.fixture.root / "poison-key").exists()
+                )
+
+        for incomplete_test_environment in (
+            {"ROG5_LIVE_CYCLE_OFFLINE_TEST": "1"},
+            {
+                "ROG5_LIVE_CYCLE_OFFLINE_TEST": "1",
+                "ROG5_LIVE_CYCLE_TEST_ROOT": "relative-test-root",
+            },
+        ):
+            with self.subTest(environment=incomplete_test_environment):
+                result = subprocess.run(
+                    [str(RUNNER), "diagnostic-run"],
+                    env={
+                        "PATH": os.environ["PATH"],
+                        "HOME": str(self.fixture.root / "absent-home"),
+                        **incomplete_test_environment,
+                    },
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                    timeout=5,
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(
+                    "Generation-12 is consumed and must not be retried",
+                    result.stderr,
                 )
 
     def test_ncm_model_allowlist_is_exact(self):

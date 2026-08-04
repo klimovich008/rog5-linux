@@ -52,6 +52,7 @@ generation11_base=$repo/build/generation11-ncm-progress-production-base-20260804
 generation11_bundle_base=$generation10_base
 generation12_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img
 generation12_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'
+generation12_unbooted_role='unbooted generation-12 host-confinement-corrected diagnostic recovery; byte-identical generation-11 raw payload with a distinct deterministic authority-free AVB generation; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash'
 generation12_consumed_role='consumed generation-12 host-confinement-corrected diagnostic recovery; one RAM-only lifecycle transferred the exact 46163787-byte signed bundle and recovery accepted correlated PREPARE and COMMIT; receive-only target evidence reached stage 70 nfs-mount-begin, then USB disconnected before stage 80 nfs-mount-ok with no terminal fault frame; the lifecycle host parser separately misclassified the valid postmortem-extended PREPARE response after commit, then the durable intent resolved FALLBACK_RETURNED; exact Alpine fallback, strict SSH, profile restoration, final host cleanup, and Steam socket restoration passed; no target acceptance; retain offline only; never retry or flash'
 generation12_root_a=$repo/build/stable-recovery-generation12-host-confinement-fix-20260804-a
 generation12_root_b=$repo/build/stable-recovery-generation12-host-confinement-fix-20260804-b
@@ -746,57 +747,6 @@ for generation12_connected_action in boot preflight; do
 	fi
 done
 
-generation12_claimless_fixture=$tmp/generation12-claimless
-install -d -m 0755 "$generation12_claimless_fixture/scripts/host" \
-	"$generation12_claimless_fixture/manifests"
-install -m 0755 "$gate" \
-	"$generation12_claimless_fixture/scripts/host/run-stable-recovery-live-gate.sh"
-cp -- "$boot_policy" \
-	"$generation12_claimless_fixture/manifests/temporary-boot-images.tsv"
-cp -- "$artifact_manifest" \
-	"$generation12_claimless_fixture/manifests/artifacts.tsv"
-{
-	printf '%s\n' '#!/bin/sh'
-	printf '%s\n' \
-		"echo 'FAIL generation-12 lifecycle claim root is unsafe or absent' >&2"
-	printf '%s\n' 'exit 1'
-} >"$generation12_claimless_fixture/scripts/host/consume-generation12-boot-claim.py"
-chmod 0755 \
-	"$generation12_claimless_fixture/scripts/host/consume-generation12-boot-claim.py"
-if env -i PATH="$PATH" HOME="$HOME" \
-	ALLOW_TEMPORARY_BOOT=1 \
-	ALLOW_HEADLESS_LIVE_GATE=1 \
-	ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
-	ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-live-v1 \
-	LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
-	RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
-	TRUST_KEY="$repo/build/unused-trust-key" \
-	BUNDLE_ROOT="$repo/build/unused-bundle-root" \
-	BUNDLE=headless-netroot-early-diag-v1 \
-	RECOVERY_SHA256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6 \
-	TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-	MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-	HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-	bash "$generation12_claimless_fixture/scripts/host/run-stable-recovery-live-gate.sh" \
-	boot >"$tmp/out" 2>"$tmp/err"
-then
-	echo 'FAIL generation-12 boot passed without its durable lifecycle claim' >&2
-	exit 1
-fi
-grep -Fq "temporary boot policy does not uniquely list $generation12_image" \
-	"$tmp/err" ||
-	{
-		echo 'FAIL consumed generation-12 boot returned the wrong policy rejection' >&2
-		sed -n '1,20p' "$tmp/err" >&2
-		exit 1
-	}
-! grep -Fq 'generation-12 lifecycle claim root is unsafe or absent' "$tmp/err" ||
-	{ echo 'FAIL consumed generation-12 reached its claim consumer' >&2; exit 1; }
-if grep -Fq 'missing live-gate command' "$tmp/err"; then
-	echo 'FAIL generation-12 claim-less boot reached host inspection' >&2
-	exit 1
-fi
-
 for generation12_policy_shape in \
 	missing-file missing-row malformed-header malformed-artifact-header \
 	missing-artifact-row duplicate-artifact-row duplicate wrong-basis \
@@ -894,7 +844,8 @@ do
 				"$generation12_boot_basis" \
 				>>"$policy_fixture/manifests/temporary-boot-images.tsv"
 			awk -F '\t' -v OFS='\t' -v name="$generation12_image" \
-				'$1 == name { $5 = "yes" } { print }' \
+				-v role="$generation12_unbooted_role" \
+				'$1 == name { $4 = role; $5 = "yes" } { print }' \
 				"$artifact_manifest" >"$policy_fixture/manifests/artifacts.tsv"
 			;;
 		policy-trailing-field)
@@ -952,7 +903,7 @@ do
 		elif [[ $generation12_policy_shape == altered-unbooted-role ]]; then
 			expected_policy_error='temporary boot artifact role does not match the pinned profile'
 		elif [[ $generation12_policy_shape == tracked-artifact ]]; then
-			expected_policy_error='temporary boot artifact is recorded as consumed'
+			expected_policy_error='temporary boot artifact tracked state does not match the pinned profile'
 		elif [[ $generation12_policy_shape == policy-trailing-field ]]; then
 			expected_policy_error='temporary boot policy row has trailing fields'
 		elif [[ $generation12_policy_shape == artifact-trailing-field ]]; then

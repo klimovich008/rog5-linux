@@ -93,6 +93,12 @@ postmortem tuples across the two responses. Hostile tests remove or add every
 field and mutate transaction identities, numeric bounds, digest/tail shape,
 state coherence, and cross-response consistency.
 
+Cross-response postmortem equality is source-bound: the native responder loads
+`/run/rog5-postmortem.status` exactly once before entering its request loop,
+and the host permits PREPARE replay only in the same recovery session. The two
+accepted responses therefore expose one immutable in-process snapshot rather
+than independently refreshed observations.
+
 The recovery responses contained one `PRESENT` postmortem record with 472,926
 bytes and SHA-256
 `3ffaea80ae5afca30a77da2e9ba8444856ae12ef1424352f37c1ebd3ebf8a9cf`.
