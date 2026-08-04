@@ -206,6 +206,18 @@ awk -F '\t' -v name="$generation9" '
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-9 consumed artifact inventory is not exact'
+generation10='build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation10" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'unbooted generation-10 recovery is boot-allowlisted'
+awk -F '\t' -v name="$generation10" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" &&
+	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline-only profile; authority=none; no phone contact, live profile, temporary-boot admission, or boot claim; retain offline only; never flash" &&
+	$5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-10 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

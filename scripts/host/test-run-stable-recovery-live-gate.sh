@@ -38,12 +38,18 @@ generation8_root_b=$repo/build/stable-recovery-generation8-nmcli-empty-field-fix
 generation9_image=build/stable-recovery-generation9-acm-classifier-20260803-a/repack/stable-recovery-a.avb.img
 generation9_root_a=$repo/build/stable-recovery-generation9-acm-classifier-20260803-a
 generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-20260803-b
+generation10_image=build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img
+generation10_root_a=$repo/build/stable-recovery-generation10-prepare-progress-20260803-a
+generation10_root_b=$repo/build/stable-recovery-generation10-prepare-progress-20260803-b
+generation10_base=$repo/build/prepare-progress-generation10-production-base-20260803
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation9-live-v1"' \
 	"$lifecycle") == 1 ]] ||
 	{ echo 'FAIL lifecycle does not select exact generation-9 live profile' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation9-offline-v1' "$lifecycle" ||
 	{ echo 'FAIL generation-9 offline-only profile leaked into the lifecycle' >&2; exit 1; }
+! grep -Fq 'headless-diagnostic-generation10-' "$lifecycle" ||
+	{ echo 'FAIL generation-10 offline-only profile leaked into the lifecycle' >&2; exit 1; }
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 0 ]] ||
 	{ echo 'FAIL consumed policy retains a temporary-boot allow row' >&2; exit 1; }
@@ -164,6 +170,16 @@ generation9_root_b=$repo/build/stable-recovery-generation9-acm-classifier-202608
 	$5 == "no" { count++ } END { print count + 0 }' \
 	"$artifact_manifest") == 1 ]] ||
 	{ echo 'FAIL generation-9 consumed artifact identity is not exact' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation10_image" \
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL unbooted generation-10 recovery is boot-allowlisted' >&2; exit 1; }
+[[ $(awk -F '\t' -v name="$generation10_image" \
+	'$1 == name && $2 == "100663296" && \
+	$3 == "b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" && \
+	$4 == "unbooted generation-10 PREPARE-progress-instrumented diagnostic recovery; production-key-bound twin wrapper build and two deterministic issuer invocations pass; immutable offline-only profile; authority=none; no phone contact, live profile, temporary-boot admission, or boot claim; retain offline only; never flash" && \
+	$5 == "no" { count++ } END { print count + 0 }' \
+	"$artifact_manifest") == 1 ]] ||
+	{ echo 'FAIL generation-10 offline artifact identity is not exact' >&2; exit 1; }
 
 if env -i PATH="$PATH" HOME="$HOME" bash "$gate" boot \
 	>"$tmp/out" 2>"$tmp/err"
@@ -497,6 +513,62 @@ for generation9_action in boot preflight; do
 		echo "FAIL offline generation-9 $generation9_action reached host inspection" >&2
 		exit 1
 	fi
+done
+
+for generation10_action in boot preflight; do
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ALLOW_TEMPORARY_BOOT=1 \
+		ALLOW_HEADLESS_LIVE_GATE=1 \
+		ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-offline-v1 \
+		LIVE_BUILD_ROOT="$repo/build/unused-live-root" \
+		RECOVERY_COMPONENT_ROOT="$repo/build/unused-component-root" \
+		TRUST_KEY="$repo/build/unused-trust-key" \
+		BUNDLE_ROOT=/var/lib/rog5-recovery-bundles \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" "$generation10_action" >"$tmp/out" 2>"$tmp/err"
+	then
+		echo "FAIL offline generation-10 profile reached $generation10_action" >&2
+		exit 1
+	fi
+	grep -Fq 'generation-10 diagnostic profile is offline-only and not boot-authorized' \
+		"$tmp/err" ||
+		{ echo "FAIL offline generation-10 $generation10_action returned the wrong rejection" >&2; exit 1; }
+	if grep -Fq 'missing live-gate command' "$tmp/err"; then
+		echo "FAIL offline generation-10 $generation10_action reached host inspection" >&2
+		exit 1
+	fi
+done
+
+! grep -Fq 'headless-diagnostic-generation10-live-v1' "$gate" ||
+	{ echo 'FAIL unreviewed generation-10 live profile is supported' >&2; exit 1; }
+
+generation10_case=$(awk '
+	/^[[:space:]]*headless-diagnostic-generation10-offline-v1\)$/ { capture = 1 }
+	capture { print }
+	capture && /^[[:space:]]*;;$/ { exit }
+' "$gate")
+for generation10_assignment in \
+	expected_kernel=bb49b4057ce573e3a53366c4663094cf462efb09d496b64b890ed2b0dcb65f98 \
+	expected_raw=27f4dbcc61decd00ce6861cddb021070f38e9badde99152fc2dedbd4103d73b3 \
+	expected_initramfs=99046d30e0910531ebda1163719ae8b5b81489f11329e29e12195fbfd63c6e31 \
+	expected_control=67b4f012aab21e7b29934d3d6e41949aca5e46fdf90e9578ad5f6c87a3f2c167 \
+	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
+	expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0 \
+	expected_target_id=headless-netroot-early-diag \
+	expected_bundle=headless-netroot-early-diag-v1 \
+	expected_bundle_profile=diagnostic-initramfs-v1 \
+	expected_generation_record=cb999cd881959055f32fc1b7299cf1dffcf139656ff8c326ea1101d2ffd63b6d \
+	expected_avb_salt=5f62ef87305b45de2d189729a601ac4b143c45e83485272ef5b91c508df5d3ee \
+	expected_avb_digest=32b0de39bd409601da6b8c16bf5039fe9102410d9fb13a8b9f668283d53aee42
+do
+	grep -Eq "^[[:space:]]*$generation10_assignment$" \
+		<<<"$generation10_case" ||
+		{ echo "FAIL generation-10 case does not pin $generation10_assignment" >&2; exit 1; }
 done
 
 for generation9_connected_action in boot preflight; do
@@ -1177,6 +1249,54 @@ do
 	done
 done
 
+generation10_exact=(
+	b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51
+	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
+	4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76
+	0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621
+	headless-netroot-early-diag-v1
+)
+generation10_fields=(recovery trust manifest host-verifier bundle)
+generation10_errors=(
+	'generation-10 diagnostic recovery image is not pinned'
+	'generation-10 diagnostic trust root is not pinned'
+	'generation-10 diagnostic runtime manifest is not pinned'
+	'generation-10 diagnostic host verifier is not pinned'
+	'profile requires bundle=headless-netroot-early-diag-v1'
+)
+[[ ${#generation10_fields[@]} -eq ${#generation10_exact[@]} &&
+	${#generation10_errors[@]} -eq ${#generation10_exact[@]} ]] ||
+	{ echo 'FAIL generation-10 policy mutation matrix is inconsistent' >&2; exit 1; }
+generation10_policy=$(run_generation3_policy \
+	headless-diagnostic-generation10-offline-v1 "${generation10_exact[@]}")
+grep -Fxq \
+	'recovery_profile=headless-diagnostic-generation10-offline-v1' \
+	<<<"$generation10_policy" ||
+	{ echo 'FAIL generation-10 policy omitted the exact profile' >&2; exit 1; }
+grep -Fxq \
+	'recovery_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
+	<<<"$generation10_policy" ||
+	{ echo 'FAIL generation-10 policy omitted the exact recovery identity' >&2; exit 1; }
+grep -Fxq 'authority=none' <<<"$generation10_policy" ||
+	{ echo 'FAIL generation-10 policy granted authority' >&2; exit 1; }
+grep -Fxq 'result=PASS' <<<"$generation10_policy" ||
+	{ echo 'FAIL generation-10 policy did not pass' >&2; exit 1; }
+for index in "${!generation10_fields[@]}"; do
+	mutation=("${generation10_exact[@]}")
+	if ((index == 4)); then
+		mutation[$index]=wrong-generation10-bundle
+	else
+		mutation[$index]=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+	fi
+	if run_generation3_policy headless-diagnostic-generation10-offline-v1 \
+		"${mutation[@]}" >"$tmp/out" 2>"$tmp/err"; then
+		echo "FAIL generation-10 offline profile accepted wrong ${generation10_fields[$index]}" >&2
+		exit 1
+	fi
+	grep -Fq "${generation10_errors[$index]}" "$tmp/err" ||
+		{ echo "FAIL generation-10 wrong ${generation10_fields[$index]} returned the wrong rejection" >&2; exit 1; }
+done
+
 if [[ -d $generation3_root ]]; then
 	for generation3_profile in \
 		headless-diagnostic-generation3-offline-v1 \
@@ -1516,6 +1636,82 @@ else
 	echo 'SKIP generation-9 twin artifact preflight: ignored build trees absent' >&2
 fi
 
+if [[ -d $generation10_root_a || -d $generation10_root_b ||
+	-d $generation10_base ]]; then
+	[[ -d $generation10_root_a && -d $generation10_root_b &&
+		-d $generation10_base ]] ||
+		{ echo 'FAIL generation-10 production inputs are asymmetric' >&2; exit 1; }
+	if [[ -z $build_tmp ]]; then
+		build_tmp=$(mktemp -d "$repo/build/stable-recovery-gate-test.XXXXXX")
+	fi
+	for relative in \
+		avb-generation.txt \
+		repack/stable-recovery-a.avb.img \
+		repack/stable-recovery-a.raw.img \
+		repack/stable-recovery-b.avb.img \
+		repack/stable-recovery-b.raw.img \
+		wrapper-a/asus-kexec-stage/.config \
+		wrapper-a/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-a/rog5-kexec-stage-initramfs.cpio.gz \
+		wrapper-b/asus-kexec-stage/.config \
+		wrapper-b/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
+	do
+		cmp "$generation10_root_a/$relative" "$generation10_root_b/$relative"
+	done
+	for generation10_suffix in a b; do
+		if [[ $generation10_suffix == a ]]; then
+			generation10_root=$generation10_root_a
+		else
+			generation10_root=$generation10_root_b
+		fi
+		generation10_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+				ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-offline-v1 \
+				LIVE_BUILD_ROOT="$generation10_root" \
+				RECOVERY_COMPONENT_ROOT="$generation10_base/recovery" \
+				TRUST_KEY="$generation10_base/recovery/ephemeral-public.raw" \
+				BUNDLE_ROOT="$generation10_base/bundle-$generation10_suffix" \
+				BUNDLE=headless-netroot-early-diag-v1 \
+				RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+				bash "$gate" artifact-preflight
+		)
+		grep -Fxq \
+			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation10-offline-v1 image_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
+			<<<"$generation10_artifact" ||
+			{ echo "FAIL generation-10 tree $generation10_suffix did not pass artifact preflight" >&2; exit 1; }
+	done
+
+	generation10_mutation=$build_tmp/generation10-record-mutation
+	cp -a --reflink=auto "$generation10_root_a" "$generation10_mutation"
+	chmod -R u+rwX "$generation10_mutation"
+	sed -i 's/^generation=10$/generation=9/' \
+		"$generation10_mutation/avb-generation.txt"
+	if env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-offline-v1 \
+		LIVE_BUILD_ROOT="$generation10_mutation" \
+		RECOVERY_COMPONENT_ROOT="$generation10_base/recovery" \
+		TRUST_KEY="$generation10_base/recovery/ephemeral-public.raw" \
+		BUNDLE_ROOT="$generation10_base/bundle-a" \
+		BUNDLE=headless-netroot-early-diag-v1 \
+		RECOVERY_SHA256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51 \
+		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+		bash "$gate" artifact-preflight >"$tmp/out" 2>"$tmp/err"; then
+		echo 'FAIL generation-10 artifact preflight accepted a mutated generation record' >&2
+		exit 1
+	fi
+	grep -Fq "identity mismatch: $generation10_mutation/avb-generation.txt" \
+		"$tmp/err" ||
+		{ echo 'FAIL generation-10 record mutation returned the wrong rejection' >&2; exit 1; }
+else
+	echo 'SKIP generation-10 twin artifact preflight: ignored build trees absent' >&2
+fi
+
 run_diagnostic_policy() {
 	local selected_bundle=$1 selected_image=$2 selected_manifest=$3
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -1624,6 +1820,7 @@ for required in \
 	'headless-diagnostic-generation8-live-v1' \
 	'headless-diagnostic-generation9-offline-v1' \
 	'headless-diagnostic-generation9-live-v1' \
+	'headless-diagnostic-generation10-offline-v1' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
@@ -1639,6 +1836,7 @@ for required in \
 	'generation-8 connected action requires the one-shot lifecycle controller' \
 	'generation-9 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-9 connected action requires the one-shot lifecycle controller' \
+	'generation-10 diagnostic profile is offline-only and not boot-authorized' \
 	'temporary boot artifact is recorded as consumed' \
 	'temporary boot policy basis does not match' \
 	'expected_boot_image=build/stable-recovery-generation8-nmcli-empty-field-fix-20260803-a/repack/stable-recovery-a.avb.img' \
@@ -1667,6 +1865,17 @@ for required in \
 	'29beac5ec4ef88194927283a45427fcc89b95f94c4afa4fda9d6b24301fc9961' \
 	'4ddc34b9dace6d11338be71dba16797ff38e8f8e9e572cd61a6b1434c18b59df' \
 	'8c97c36eed4dab241bc3353b8f70dc0ece8301fb795362cb129fe331af6c8dc0' \
+	'expected_generation_record=cb999cd881959055f32fc1b7299cf1dffcf139656ff8c326ea1101d2ffd63b6d' \
+	'expected_avb_salt=5f62ef87305b45de2d189729a601ac4b143c45e83485272ef5b91c508df5d3ee' \
+	'expected_avb_digest=32b0de39bd409601da6b8c16bf5039fe9102410d9fb13a8b9f668283d53aee42' \
+	'expected_kernel=bb49b4057ce573e3a53366c4663094cf462efb09d496b64b890ed2b0dcb65f98' \
+	'expected_raw=27f4dbcc61decd00ce6861cddb021070f38e9badde99152fc2dedbd4103d73b3' \
+	'expected_initramfs=99046d30e0910531ebda1163719ae8b5b81489f11329e29e12195fbfd63c6e31' \
+	'expected_control=67b4f012aab21e7b29934d3d6e41949aca5e46fdf90e9578ad5f6c87a3f2c167' \
+	'expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800' \
+	'expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0' \
+	'expected_target_id=headless-netroot-early-diag' \
+	'expected_bundle_profile=diagnostic-initramfs-v1' \
 	'expected_kernel=8c3d6bb8271eb4bcf6bd31ff828aed2d62c49408e13d3db07caa469a72c27d0c' \
 	'expected_raw=f1a7c5ad6bf27d67d495b9149965f72abfa40359da69c6f4392cfa871356a4ce' \
 	'expected_initramfs=144f1cfde88302278c487b763199f53f1a9448ac5ea8c594b9b7d2a0837ae4ec' \
