@@ -409,7 +409,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   separately passes a retained clean production twin-build. The synthetic
   issuer regression covers deterministic duplicate issuance, fresh raw and
   initramfs non-reuse, pinned AVB, and independent digest gates. The retained
-  artifacts remain unprofiled and `authority=none`.
+  artifacts now pass immutable offline-only profile
+  `headless-diagnostic-generation11-offline-v1` against both trees and the
+  unchanged signed-target twins. Connected actions reject before host
+  inspection; no Generation-11 live profile, lifecycle selection, or boot
+  policy row exists, and `authority=none` remains exact. See the
+  [offline profile result](../test-results/2026-08-04-generation-11-offline-profile.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

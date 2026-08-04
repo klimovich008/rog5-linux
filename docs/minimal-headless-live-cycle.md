@@ -210,10 +210,13 @@ listener ownership conflicts still fail closed. See the
 A distinct
 [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 now reproduces across two clean builds and two offline issuances. It remains
-ignored, unprofiled, unadmitted, unbooted, and `authority=none`. An immutable
-offline lifecycle profile and whole-chain review remain mandatory before any
-central-policy admission or connected action. The issuer/evidence checkpoint
-passed exact-head GitHub Actions run `30899370666` at commit `5293e56`.
+ignored, unadmitted, unbooted, and `authority=none`. Its exact recovery and
+unchanged signed-target tuple passes an immutable
+[offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
+against both retained trees. Whole-chain review, publication, and a distinct
+live-profile transition remain mandatory before any central-policy admission
+or connected action. The issuer/evidence checkpoint passed exact-head GitHub
+Actions run `30899370666` at commit `5293e56`.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

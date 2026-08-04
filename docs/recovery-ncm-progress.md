@@ -10,8 +10,10 @@ host-preflighted. A distinct
 [Generation-11 successor](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 was clean-built twice and issued twice offline as AVB
 `8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562`.
-It remains ignored, unprofiled, unadmitted, unbooted, and `authority=none`;
-the phone has not been booted with this code.
+Its exact recovery and unchanged signed-target tuple now passes immutable
+offline profile `headless-diagnostic-generation11-offline-v1` against both
+retained trees. It remains ignored, unadmitted, unbooted, absent from boot
+policy, and `authority=none`; the phone has not been booted with this code.
 Generation 10 remains consumed and must never be retried.
 
 This channel addresses one exact failure: recovery can continue processing a
@@ -158,13 +160,15 @@ The base NCM implementation publication, hash-pinned installed-host proof,
 retained AArch64 gate, clean twin wrapper build, and Generation-11 issuer
 publication are complete. The issuer/evidence checkpoint passed exact-head
 GitHub Actions run `30899370666` at commit `5293e56`. Offline issuance did not
-create boot authority. Continue in this order:
+create boot authority. The immutable offline-only profile now passes against
+both retained trees. Continue in this order:
 
-1. pin the exact Generation-11 wrapper and existing target tuple in one
-   immutable offline-only lifecycle profile;
-2. review and verify that profile together with the timeout lattice, rollback,
+1. review and verify the completed profile together with the timeout lattice,
+   rollback,
    fallback, one-shot consumption, and private-evidence paths;
-3. publish the profile with green local and exact-head GitHub CI; and
+2. publish the profile with green local and exact-head GitHub CI;
+3. create and separately review a live-profile transition that binds the
+   installed NCM host components and complete lifecycle path; and
 4. only then consider one distinct central-policy admission and connected
    preflight before any temporary boot.
 

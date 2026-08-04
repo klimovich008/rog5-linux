@@ -77,12 +77,17 @@ responder `242ac7fc…149e7`; two clean ASUS wrapper builds reproduced raw image
 `44c43e27…12b2`, and two offline Generation-11 issuances reproduced AVB
 `8472b206…bcf562`. See the
 [wrapper result](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md).
-Generation 11 remains ignored, unprofiled, unadmitted, unbooted, and
+Its exact recovery and unchanged signed-target tuple now passes immutable
+offline profile `headless-diagnostic-generation11-offline-v1` against both
+retained trees; see the
+[profile result](../test-results/2026-08-04-generation-11-offline-profile.md).
+Connected actions reject before host inspection, no Generation-11 live profile
+or lifecycle selector exists, and boot policy retains zero `allow` rows.
+Generation 11 therefore remains ignored, unadmitted, unbooted, and
 `authority=none`. The issuer/evidence checkpoint was published at `5293e56`;
 exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
-QEMU in 35s. Next pin the exact tuple in an immutable offline lifecycle profile
-and review the whole rollback/evidence chain before creating any boot admission
-or connected action.
+QEMU in 35s. Next review and publish the whole offline profile/rollback/evidence
+chain before a separate live-profile transition; this is not a phone action.
 
 ## Active deployment checkpoint
 
