@@ -620,14 +620,15 @@ Current execution order:
     immutable offline profile, and selected by the one-shot controller through
     a separate live-capable profile without changing central boot policy. See
     the [offline transition](test-results/2026-08-04-generation-11-live-profile-offline.md).
-21. **In progress:** focused and complete local CI, Claude Opus review, and
+21. **Complete:** focused and complete local CI, Claude Opus review, and
     independent Codex review pass for the Generation-11 live-profile
-    transition. Publish and pass exact-head CI, then make a separate reviewed
-    central-policy admission change before any connected preflight or phone
-    action.
-22. Promote a distinct normal SSH candidate only after diagnostic evidence
+    transition. Commit `2a483ec` passed exact-head GitHub Actions run
+    `30908649494`.
+22. **In progress:** make a separate reviewed central-policy admission change
+    before any connected preflight or phone action.
+23. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-23. If H2 passes, continue physical keys/indicator, then H3
+24. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

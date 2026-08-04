@@ -98,8 +98,10 @@ boot authority. The updated fail-closed chain is:
   and
 - independent Codex review: no actionable correctness findings.
 
-Publication and exact-head GitHub CI are the remaining offline gates. No private credential, signing
-key, privilege, network listener, NFS export, fastboot, ADB, SSH, recovery
+The reviewed implementation was published at commit `2a483ec`; exact-head
+GitHub Actions run `30908649494` passed `recovery-core` in 3m49s and
+`qemu-system` in 40s. The next gate is a separate central-policy admission
+change. No private credential, signing key, privilege, network listener, NFS export, fastboot, ADB, SSH, recovery
 transport, phone interface, reboot, boot, flash, wipe, slot operation, or
 phone-storage access occurred. A separately reviewed and published central
 policy change is still required before any connected preflight or temporary

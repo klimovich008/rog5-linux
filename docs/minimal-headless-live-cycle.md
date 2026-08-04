@@ -221,8 +221,8 @@ before host inspection. The offline profile review and publication are complete:
 commit `98f8d27` passed exact-head GitHub Actions run `30904224177` after the
 CI-only watchdog-race test was synchronized without changing production code.
 The live-profile transition passed Claude Opus review, independent Codex
-review, and complete local CI. It still requires publication and exact-head CI
-before a separate central-policy admission change.
+review, and complete local CI. Commit `2a483ec` passed exact-head GitHub Actions
+run `30908649494`; a separate central-policy admission change remains required.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
