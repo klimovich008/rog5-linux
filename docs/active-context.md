@@ -130,9 +130,18 @@ conflict. Its 38 hardware-free controller cases cover hostile scope, address,
 owner, duplicate-record, delay, absence, and IPv6 races. Complete local CI and
 installed-host verification pass; implementation commit `1f3cc66` passed
 exact-head GitHub Actions run `30931511061` (recovery-core 4m02s; QEMU 37s).
-The next gate is offline issuance and preflight of a distinct diagnostic
-successor; no phone boot is authorized by this checkpoint. Independent spec
-and standards review plus complete local CI passed for the consumed
+The distinct
+[Generation-12 offline successor](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md)
+now has two deterministic trees at AVB `615d7498…d72cf6`. It preserves the
+exact Generation-11 raw recovery, kernel, config, and NCM-capable initramfs.
+Immutable profile `headless-diagnostic-generation12-offline-v1` passes both
+trees; direct preflight/boot and an unreviewed live profile reject before host
+inspection. Central policy has zero `allow` rows and neither lifecycle source
+selects Generation 12. Independent review and complete local CI pass;
+publication and exact-head clean-checkout CI remain before any
+live-profile/connected-preflight transition;
+no phone boot is authorized by this checkpoint. Independent spec and
+standards review plus complete local CI passed for the consumed
 transition; commit `3cee3f1` published it and
 exact-head GitHub Actions run `30926911113` passed recovery-core in 3m59s and
 QEMU in 35s.

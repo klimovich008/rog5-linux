@@ -35,6 +35,13 @@ shape. Complete local CI and installed-host verification pass; publication
 and exact-head GitHub CI passed at implementation commit `1f3cc66`. This result
 grants no reuse or successor boot authority.
 
+The distinct
+[Generation-12 offline successor](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md)
+is AVB `615d7498…d72cf6` over the byte-identical Generation-11 raw recovery,
+kernel, and NCM-capable initramfs. Both deterministic trees pass immutable
+offline profile `headless-diagnostic-generation12-offline-v1`. Central policy
+remains at zero `allow` rows; no live profile or lifecycle selector exists.
+
 This channel addresses one exact failure: recovery can continue processing a
 valid `PREPARE` after the ACM response transport disappears. Generation 10
 proved `REQUEST_ACCEPTED` and a complete host-side bundle transfer, but ACM
@@ -209,9 +216,10 @@ artifact role is `consumed`, and the entered private `BOOT_CLAIMED` record
 independently prevents reuse. The production-faithful reproduction and exact
 listener-verification correction are complete offline. Complete local CI and
 installed-host verification pass; implementation commit `1f3cc66` passed
-exact-head GitHub Actions run `30931511061`. A distinct diagnostic successor
-may now be issued and preflighted offline, but no phone boot is authorized by
-this checkpoint.
+exact-head GitHub Actions run `30931511061`. Generation 12 is now issued and
+artifact-preflighted offline. Independent review, complete CI, publication,
+and exact-head CI remain before a separate live-profile and connected-preflight
+transition. No phone boot is authorized by this checkpoint.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the

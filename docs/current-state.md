@@ -54,8 +54,12 @@ and host cleanup passed. A production-faithful host-only reproduction captured
 the real scoped `SO_BINDTODEVICE` endpoint, and the controller now requires one
 exact scoped record with the sole launched PID/fd owner and no IPv6 conflict;
 complete CI, host installation, and implementation-commit exact-head CI pass.
-The next gate is a distinct diagnostic successor's offline issuance and
-preflight. Generation 10 accepted
+Generation-12 AVB `615d7498…d72cf6` is the distinct authority-free successor
+over the byte-identical raw recovery. Its deterministic twins and immutable
+offline profile pass; no live profile, lifecycle selector, policy row,
+connected preflight, or boot authority exists. Independent review and complete
+local CI pass; publication and clean-checkout exact-head CI remain.
+Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent
 existed, no target ran, and exact Alpine fallback plus host cleanup passed.

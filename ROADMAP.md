@@ -665,13 +665,25 @@ Current execution order:
     installed-host verification pass. Implementation commit `1f3cc66` passed
     exact-head GitHub Actions run `30931511061` (recovery-core 4m02s; QEMU
     37s).
-26. Issue and preflight a distinct one-shot diagnostic successor from the
-    unchanged signed target tuple and corrected host boundary. Keep central
-    policy at zero `allow` rows until every offline, review, publication, and
-    connected-preflight gate passes.
-27. Promote a distinct normal SSH candidate only after diagnostic evidence
+26. **Offline issuance, review, and local CI complete; publication pending:** deterministic
+    Generation-12 twins preserve the exact Generation-11 raw recovery, kernel,
+    config, and NCM-capable initramfs while deriving distinct AVB
+    `615d7498…d72cf6`. Immutable offline profile
+    `headless-diagnostic-generation12-offline-v1` passes both retained local
+    trees; direct
+    connected actions and an unreviewed live profile reject before host
+    inspection. Central policy remains at zero `allow` rows. See the
+    [offline result](test-results/2026-08-04-generation-12-host-confinement-successor-offline.md).
+27. Publish the reviewed checkpoint and pass exact-head clean-checkout CI.
+    Local CI verifies the retained production twins;
+    clean-checkout CI verifies the deterministic synthetic issuer, exact
+    committed identities, and refusal policy because ignored production trees
+    are intentionally absent;
+    only then add a separate Generation-12 live profile, one exact central
+    admission, and a connected preflight. No boot belongs to that transition.
+28. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-28. If H2 passes, continue physical keys/indicator, then H3
+29. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

@@ -538,6 +538,75 @@ grep -Fxq 'FAIL source raw wrapper identity changed' \
 [[ ! -e $tmp/gen11-wrong-raw && ! -L $tmp/gen11-wrong-raw ]] ||
 	fail 'rejected generation-eleven raw identity published output'
 
+# Generation twelve follows a host-only listener-confinement correction. It
+# must preserve every Generation-11 payload byte while deriving a distinct,
+# deterministic AVB identity that carries no boot authority.
+"$issuer" "$gen11_source_root" "$tmp/gen12-a" 12 \
+	"$gen11_source_avb_sha" "$gen11_raw_sha" \
+	>"$tmp/gen12-a.out"
+"$issuer" "$gen11_source_root" "$tmp/gen12-b" 12 \
+	"$gen11_source_avb_sha" "$gen11_raw_sha" \
+	>"$tmp/gen12-b.out"
+for suffix in a b; do
+	cmp "$tmp/gen12-a/repack/stable-recovery-$suffix.avb.img" \
+		"$tmp/gen12-b/repack/stable-recovery-$suffix.avb.img"
+	cmp "$tmp/gen12-a/repack/stable-recovery-$suffix.raw.img" \
+		"$tmp/gen11-a/repack/stable-recovery-$suffix.raw.img"
+	cmp "$tmp/gen12-a/wrapper-$suffix/asus-kexec-stage/.config" \
+		"$tmp/gen11-a/wrapper-$suffix/asus-kexec-stage/.config"
+	cmp "$tmp/gen12-a/wrapper-$suffix/asus-kexec-stage/arch/arm64/boot/Image" \
+		"$tmp/gen11-a/wrapper-$suffix/asus-kexec-stage/arch/arm64/boot/Image"
+	cmp "$tmp/gen12-a/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz" \
+		"$tmp/gen11-a/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz"
+done
+cmp "$tmp/gen12-a/avb-generation.txt" "$tmp/gen12-b/avb-generation.txt"
+cmp "$tmp/gen12-a.out" "$tmp/gen12-b.out"
+for successor in gen12-a gen12-b; do
+	for predecessor in \
+		gen1-a gen2 gen3 gen4-a gen5-a gen6-a gen7-a gen8-a gen9-a gen10-a gen11-a
+	do
+		for suffix in a b; do
+			predecessor_image=$tmp/$predecessor/repack/stable-recovery-$suffix.avb.img
+			successor_image=$tmp/$successor/repack/stable-recovery-$suffix.avb.img
+			[[ -f $predecessor_image && ! -L $predecessor_image ]] ||
+				fail "missing $predecessor twin-$suffix AVB wrapper"
+			[[ -f $successor_image && ! -L $successor_image ]] ||
+				fail "missing $successor twin-$suffix AVB wrapper"
+			! cmp -s "$predecessor_image" "$successor_image" ||
+				fail "generation twelve reused the $predecessor twin-$suffix AVB wrapper"
+		done
+	done
+done
+expected_gen12_salt=$(
+	printf 'format=rog5-stable-recovery-avb-generation-v1\nraw_sha256=%s\ngeneration=12\n' \
+		"$gen11_raw_sha" | sha256sum | cut -d ' ' -f 1
+)
+grep -Fxq 'generation=12' "$tmp/gen12-a/avb-generation.txt"
+grep -Fxq "salt=$expected_gen12_salt" "$tmp/gen12-a/avb-generation.txt"
+grep -Fxq 'authority=none' "$tmp/gen12-a/avb-generation.txt"
+gen12_info=$(python3 "$avbtool" info_image \
+	--image "$tmp/gen12-a/repack/stable-recovery-a.avb.img")
+[[ $(awk '/^      Salt:/ { print $2; exit }' <<<"$gen12_info") == \
+	"$expected_gen12_salt" ]] || fail 'generation-twelve descriptor salt changed'
+gen12_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$gen12_info")
+expected_gen12_digest=$(python3 -I -S - \
+	"$expected_gen12_salt" \
+	"$tmp/gen12-a/repack/stable-recovery-a.raw.img" <<'PY'
+import hashlib
+import sys
+
+digest = hashlib.sha256()
+digest.update(bytes.fromhex(sys.argv[1]))
+with open(sys.argv[2], "rb", buffering=0) as source:
+    while block := source.read(1024 * 1024):
+        digest.update(block)
+print(digest.hexdigest())
+PY
+)
+[[ $gen12_digest == "$expected_gen12_digest" ]] ||
+	fail 'generation-twelve descriptor digest is not independently reproducible'
+grep -Fxq "digest=$gen12_digest" "$tmp/gen12-a/avb-generation.txt"
+
 expected_files=$(cat <<'EOF'
 avb-generation.txt
 repack/stable-recovery-a.avb.img
@@ -552,7 +621,9 @@ wrapper-b/asus-kexec-stage/arch/arm64/boot/Image
 wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
 EOF
 )
-for output in gen1-a gen10-a gen10-b gen11-a gen11-b gen11-old-raw; do
+for output in gen1-a gen10-a gen10-b gen11-a gen11-b gen11-old-raw \
+	gen12-a gen12-b
+do
 	observed_files=$(find "$tmp/$output" -type f -printf '%P\n' | LC_ALL=C sort)
 	if [[ $observed_files != "$expected_files" ]]; then
 		printf 'Expected AVB-generation files:\n%s\n' "$expected_files" >&2
@@ -565,6 +636,7 @@ while IFS= read -r relative; do
 	[[ -n $relative ]] || continue
 	cmp "$tmp/gen10-a/$relative" "$tmp/gen10-b/$relative"
 	cmp "$tmp/gen11-a/$relative" "$tmp/gen11-b/$relative"
+	cmp "$tmp/gen12-a/$relative" "$tmp/gen12-b/$relative"
 done <<<"$expected_files"
 
 if "$issuer" "$source_root" "$tmp/wrong-hash" 1 \
