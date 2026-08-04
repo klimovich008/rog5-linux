@@ -128,9 +128,12 @@ substring. The correction parses one exact `ss` record and requires the scoped
 endpoint, sole launched `python3` PID/fd owner, a live process, and no IPv6
 conflict. Its 38 hardware-free controller cases cover hostile scope, address,
 owner, duplicate-record, delay, absence, and IPv6 races. Complete local CI and
-installed-host verification pass; publication and exact-head CI remain before
-any distinct successor. Independent spec and standards review plus complete
-local CI passed for the consumed transition; commit `3cee3f1` published it and
+installed-host verification pass; implementation commit `1f3cc66` passed
+exact-head GitHub Actions run `30931511061` (recovery-core 4m02s; QEMU 37s).
+The next gate is offline issuance and preflight of a distinct diagnostic
+successor; no phone boot is authorized by this checkpoint. Independent spec
+and standards review plus complete local CI passed for the consumed
+transition; commit `3cee3f1` published it and
 exact-head GitHub Actions run `30926911113` passed recovery-core in 3m59s and
 QEMU in 35s.
 
