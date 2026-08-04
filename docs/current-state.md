@@ -1262,10 +1262,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    A distinct
    [Generation-11 recovery wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
    now reproduces across two clean builds and two offline issuances as AVB
-   `8472b206…bcf562`. It is ignored, unprofiled, unadmitted, unbooted, and
-   `authority=none`. Commit `5293e56` passed exact-head GitHub Actions run
-   `30899370666`; the next gate is an immutable offline lifecycle profile and
-   whole-chain review, not a phone action.
+   `8472b206…bcf562`. Its exact recovery and unchanged signed-target tuple now
+   passes an immutable
+   [offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
+   against both retained trees. It is ignored, unadmitted, unbooted, absent
+   from boot policy, and `authority=none`. Commit `5293e56` passed exact-head
+   GitHub Actions run `30899370666`; the next gate is whole-chain review and
+   publication before a distinct live-profile transition, not a phone action.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

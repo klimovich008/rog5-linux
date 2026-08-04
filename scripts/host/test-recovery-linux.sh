@@ -223,6 +223,18 @@ awk -F '\t' -v name="$generation10" '
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-10 consumed artifact inventory is not exact'
+generation11='build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation11" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'unbooted generation-11 recovery is boot-allowlisted'
+awk -F '\t' -v name="$generation11" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" &&
+	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline-only profile; authority=none; no phone contact, live profile, temporary-boot admission, or boot claim; retain offline only; never flash" &&
+	$5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'generation-11 offline artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
