@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <dirent.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -18,6 +19,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <netinet/in.h>
 #include <termios.h>
 #include <time.h>
 #include <sys/ioctl.h>
@@ -26,6 +28,7 @@
 
 #define FRAME_MAX 4096
 #define RESPONSE_MAX 3072
+#define PROGRESS_PAYLOAD_MAX 768
 #define STATE_FILE_MAX 8192
 #define POSTMORTEM_FILE_MAX 1400
 #define POSTMORTEM_TAIL_MAX 1024
@@ -45,6 +48,11 @@
 #define FETCH_TIMEOUT_MS 190000
 #define VERIFY_TIMEOUT_MS 30000
 #define KEXEC_LOAD_TIMEOUT_MS 15000
+#define PROGRESS_CONNECT_TIMEOUT_MS 25
+#define PROGRESS_INTERFACE "usb0"
+#define PROGRESS_HOST_ADDRESS "169.254.77.1"
+#define PROGRESS_DEVICE_ADDRESS "169.254.77.2"
+#define PROGRESS_HOST_PORT 8081
 #define CHILD_REAP_TIMEOUT_MS 1000
 #define FETCH_BUNDLE_CONFLICT_EXIT 42
 #define FETCH_ROOT_FAILED_EXIT 43
@@ -125,6 +133,11 @@ struct response_action {
 	bool execute;
 };
 
+struct advisory_progress_sink {
+	int descriptor;
+	bool available;
+};
+
 struct postmortem_status {
 	char state[12];
 	char records[3];
@@ -161,9 +174,11 @@ static unsigned int kexec_load_timeout_ms = KEXEC_LOAD_TIMEOUT_MS;
 static struct postmortem_status postmortem;
 #ifdef ROG5_CONTROL_TESTING
 static bool test_kexec_configured;
+static int test_progress_fd = -1;
 #endif
 
 static int send_frame(int descriptor, const char *payload, size_t length);
+static void close_advisory_progress(struct advisory_progress_sink *sink);
 
 static void fail(const char *format, ...)
 {
@@ -1393,32 +1408,17 @@ static void build_response(const struct control_state *state,
 	*output_length = (size_t)length;
 }
 
-static bool send_prepare_progress(int descriptor,
-				  const struct control_state *state,
-				  const struct request *request,
-				  unsigned int sequence,
-				  const char *phase)
+static size_t build_prepare_progress(const struct control_state *state,
+				     const struct request *request,
+				     unsigned int sequence,
+				     const char *phase,
+				     char payload[PROGRESS_PAYLOAD_MAX])
 {
 	char body[384];
 	char body_hash[HASH_LENGTH + 1];
-	char payload[768];
 	int body_length;
 	int length;
 
-#ifdef ROG5_CONTROL_TESTING
-	{
-		const char *fail_at = getenv("ROG5_TEST_PROGRESS_FAIL_AT");
-		char sequence_text[16];
-		int sequence_length = snprintf(
-			sequence_text, sizeof(sequence_text), "%u", sequence);
-
-		if (sequence_length < 0 ||
-		    sequence_length >= (int)sizeof(sequence_text))
-			fail("progress sequence is too large");
-		if (fail_at != NULL && strcmp(fail_at, sequence_text) == 0)
-			return false;
-	}
-#endif
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed");
 	body_length = snprintf(
@@ -1434,7 +1434,7 @@ static bool send_prepare_progress(int descriptor,
 		fail("progress body is too large");
 	hash_bytes(body, (size_t)body_length, body_hash);
 	length = snprintf(
-		payload, sizeof(payload),
+		payload, PROGRESS_PAYLOAD_MAX,
 		"version=1\n"
 		"kind=progress\n"
 		"session=%s\n"
@@ -1443,23 +1443,177 @@ static bool send_prepare_progress(int descriptor,
 		"body_sha256=%s\n"
 		"%s",
 		state->session, request->request, body_hash, body);
-	if (length < 0 || length >= (int)sizeof(payload) ||
+	if (length < 0 || length >= PROGRESS_PAYLOAD_MAX ||
 	    length > FRAME_MAX)
 		fail("progress payload is too large");
-	return send_frame(descriptor, payload, (size_t)length) == 0;
+	return (size_t)length;
+}
+
+static bool send_acm_prepare_progress(int descriptor, const char *payload,
+				      size_t length, unsigned int sequence)
+{
+#ifdef ROG5_CONTROL_TESTING
+	const char *fail_at = getenv("ROG5_TEST_PROGRESS_FAIL_AT");
+	char sequence_text[16];
+	int sequence_length = snprintf(
+		sequence_text, sizeof(sequence_text), "%u", sequence);
+
+	if (sequence_length < 0 ||
+	    sequence_length >= (int)sizeof(sequence_text))
+		fail("progress sequence is too large");
+	if (fail_at != NULL && strcmp(fail_at, sequence_text) == 0)
+		return false;
+#else
+	(void)sequence;
+#endif
+	return send_frame(descriptor, payload, length) == 0;
+}
+
+static int open_advisory_progress_socket(void)
+{
+#ifdef ROG5_CONTROL_TESTING
+	int descriptor;
+	int flags;
+
+	if (test_progress_fd < 0)
+		return -1;
+	descriptor = test_progress_fd;
+	test_progress_fd = -1;
+	flags = fcntl(descriptor, F_GETFL);
+	if (flags < 0 || fcntl(descriptor, F_SETFL,
+				      flags | O_NONBLOCK) < 0) {
+		close(descriptor);
+		return -1;
+	}
+	return descriptor;
+#else
+	struct sockaddr_in source = { .sin_family = AF_INET };
+	struct sockaddr_in peer = {
+		.sin_family = AF_INET,
+		.sin_port = htons(PROGRESS_HOST_PORT),
+	};
+	int descriptor;
+	int error = 0;
+	socklen_t error_length = sizeof(error);
+	int ready;
+
+	descriptor = socket(AF_INET,
+			    SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+			    IPPROTO_TCP);
+	if (descriptor < 0)
+		return -1;
+	if (setsockopt(descriptor, SOL_SOCKET, SO_BINDTODEVICE,
+		       PROGRESS_INTERFACE, sizeof(PROGRESS_INTERFACE)) < 0 ||
+	    inet_pton(AF_INET, PROGRESS_DEVICE_ADDRESS,
+		      &source.sin_addr) != 1 ||
+	    inet_pton(AF_INET, PROGRESS_HOST_ADDRESS, &peer.sin_addr) != 1 ||
+	    bind(descriptor, (struct sockaddr *)&source, sizeof(source)) < 0)
+		goto suppress;
+	if (connect(descriptor, (struct sockaddr *)&peer, sizeof(peer)) == 0)
+		return descriptor;
+	if (errno != EINPROGRESS)
+		goto suppress;
+	ready = wait_io(
+		descriptor, POLLOUT,
+		monotonic_milliseconds() + PROGRESS_CONNECT_TIMEOUT_MS);
+	if (ready != 1 ||
+	    getsockopt(descriptor, SOL_SOCKET, SO_ERROR,
+		       &error, &error_length) < 0 ||
+	    error_length != sizeof(error) || error != 0)
+		goto suppress;
+	return descriptor;
+
+suppress:
+	close(descriptor);
+	return -1;
+#endif
+}
+
+static bool send_advisory_progress(struct advisory_progress_sink *sink,
+				   const char *payload, size_t length,
+				   unsigned int sequence)
+{
+	char frame[FRAME_MAX + 32];
+	int prefix_length;
+	size_t frame_length;
+	size_t send_length;
+	ssize_t sent;
+
+	if (!sink->available)
+		return false;
+	if (sink->descriptor < 0) {
+		sink->descriptor = open_advisory_progress_socket();
+		if (sink->descriptor < 0) {
+			sink->available = false;
+			return false;
+		}
+	}
+	prefix_length = snprintf(frame, sizeof(frame), "%zu:", length);
+	if (prefix_length < 0 ||
+	    prefix_length >= (int)sizeof(frame) ||
+	    (size_t)prefix_length + length + 1 > sizeof(frame)) {
+		close_advisory_progress(sink);
+		return false;
+	}
+	memcpy(frame + prefix_length, payload, length);
+	frame_length = (size_t)prefix_length + length + 1;
+	frame[frame_length - 1] = ',';
+	send_length = frame_length;
+#ifdef ROG5_CONTROL_TESTING
+	{
+		const char *partial_at = getenv(
+			"ROG5_TEST_NCM_PROGRESS_PARTIAL_AT");
+		char sequence_text[16];
+		int sequence_length = snprintf(
+			sequence_text, sizeof(sequence_text), "%u", sequence);
+
+		if (sequence_length < 0 ||
+		    sequence_length >= (int)sizeof(sequence_text))
+			fail("progress sequence is too large");
+		if (partial_at != NULL &&
+		    strcmp(partial_at, sequence_text) == 0)
+			send_length = frame_length / 2;
+	}
+#else
+	(void)sequence;
+#endif
+	sent = send(sink->descriptor, frame, send_length,
+		    MSG_DONTWAIT | MSG_NOSIGNAL);
+	if (sent != (ssize_t)frame_length) {
+		close(sink->descriptor);
+		sink->descriptor = -1;
+		sink->available = false;
+		return false;
+	}
+	return true;
+}
+
+static void close_advisory_progress(struct advisory_progress_sink *sink)
+{
+	if (sink->descriptor >= 0) {
+		close(sink->descriptor);
+		sink->descriptor = -1;
+	}
+	sink->available = false;
 }
 
 static void emit_prepare_progress(int descriptor,
 				  const struct control_state *state,
 				  const struct request *request,
-				  bool *available,
+				  bool *acm_available,
+				  struct advisory_progress_sink *sink,
 				  unsigned int sequence,
 				  const char *phase)
 {
-	if (*available &&
-	    !send_prepare_progress(descriptor, state, request,
-				   sequence, phase))
-		*available = false;
+	char payload[PROGRESS_PAYLOAD_MAX];
+	size_t length = build_prepare_progress(
+		state, request, sequence, phase, payload);
+
+	/* Advisory NCM evidence is emitted before any possibly stalled ACM write. */
+	send_advisory_progress(sink, payload, length, sequence);
+	if (*acm_available &&
+	    !send_acm_prepare_progress(descriptor, payload, length, sequence))
+		*acm_available = false;
 }
 
 static void read_ledger_record(
@@ -2264,7 +2418,8 @@ static bool load_verified_plan(
 
 static enum prepare_outcome verify_prepare(
 	const struct control_state *state, const struct request *request,
-	const char **prepare_error, int descriptor, bool *progress_available)
+	const char **prepare_error, int descriptor, bool *progress_available,
+	struct advisory_progress_sink *progress_sink)
 {
 	struct verified_plan plan;
 	int artifacts[HANDOFF_DESCRIPTOR_COUNT] = { -1, -1, -1 };
@@ -2279,11 +2434,13 @@ static enum prepare_outcome verify_prepare(
 		    strcmp(allowed, request->manifest_sha256) != 0)
 			return PREPARE_OUTCOME_VERIFY_FAILED;
 		emit_prepare_progress(descriptor, state, request,
-				      progress_available, 2, "FETCH_COMPLETE");
+				      progress_available, progress_sink,
+				      2, "FETCH_COMPLETE");
 		emit_prepare_progress(descriptor, state, request,
-				      progress_available, 3, "VERIFY_COMPLETE");
+				      progress_available, progress_sink,
+				      3, "VERIFY_COMPLETE");
 		emit_prepare_progress(descriptor, state, request,
-				      progress_available, 4,
+				      progress_available, progress_sink, 4,
 				      "KEXEC_LOAD_COMPLETE");
 		return PREPARE_OUTCOME_OK;
 	}
@@ -2293,16 +2450,18 @@ static enum prepare_outcome verify_prepare(
 	if (outcome != PREPARE_OUTCOME_OK)
 		return outcome;
 	emit_prepare_progress(descriptor, state, request,
-			      progress_available, 2, "FETCH_COMPLETE");
+			      progress_available, progress_sink,
+			      2, "FETCH_COMPLETE");
 	if (!run_bundle_verifier(request, &plan, artifacts))
 		return PREPARE_OUTCOME_VERIFY_FAILED;
 	emit_prepare_progress(descriptor, state, request,
-			      progress_available, 3, "VERIFY_COMPLETE");
+			      progress_available, progress_sink,
+			      3, "VERIFY_COMPLETE");
 	loaded = load_verified_plan(&plan, artifacts);
 	close_artifact_descriptors(artifacts);
 	if (loaded)
 		emit_prepare_progress(descriptor, state, request,
-				      progress_available, 4,
+				      progress_available, progress_sink, 4,
 				      "KEXEC_LOAD_COMPLETE");
 	return loaded ? PREPARE_OUTCOME_OK : PREPARE_OUTCOME_VERIFY_FAILED;
 }
@@ -2386,6 +2545,10 @@ static void handle_request(struct control_state *state,
 	int decisions;
 	bool fetch_decided;
 	bool progress_available = true;
+	struct advisory_progress_sink progress_sink = {
+		.descriptor = -1,
+		.available = true,
+	};
 
 	memset(action, 0, sizeof(*action));
 	if (strcmp(request->verb, "HELLO") != 0 &&
@@ -2479,11 +2642,12 @@ static void handle_request(struct control_state *state,
 			result = "PREPARE_ID_CONFLICT";
 		} else if (state->phase == PHASE_IDLE) {
 			emit_prepare_progress(descriptor, state, request,
-					      &progress_available, 1,
+					      &progress_available,
+					      &progress_sink, 1,
 					      "REQUEST_ACCEPTED");
 			prepare_outcome = verify_prepare(
 				state, request, &prepare_error, descriptor,
-				&progress_available);
+				&progress_available, &progress_sink);
 			if (prepare_outcome ==
 			    PREPARE_OUTCOME_BUNDLE_ID_CONFLICT) {
 				set_last_error(state, "BUNDLE_ID_CONFLICT");
@@ -2502,7 +2666,7 @@ static void handle_request(struct control_state *state,
 				persist_prepared(state, request);
 				emit_prepare_progress(
 					descriptor, state, request,
-					&progress_available, 5,
+					&progress_available, &progress_sink, 5,
 					"PREPARED_PERSISTED");
 				if (crash_point("after_prepare"))
 					_exit(88);
@@ -2541,6 +2705,8 @@ static void handle_request(struct control_state *state,
 	} else {
 		fail("decoder admitted an unknown verb");
 	}
+	if (strcmp(request->verb, "PREPARE") == 0)
+		close_advisory_progress(&progress_sink);
 
 	build_response(state, request, result, action->payload,
 		       &action->payload_length);
@@ -2889,6 +3055,7 @@ static void configure_test_runtime(void)
 	const char *test_fetcher = getenv("ROG5_TEST_FETCHER_PATH");
 	const char *test_verifier = getenv("ROG5_TEST_VERIFIER_PATH");
 	const char *test_kexec = getenv("ROG5_TEST_KEXEC_PATH");
+	const char *progress_fd = getenv("ROG5_TEST_NCM_PROGRESS_FD");
 	const char *timeout = getenv("ROG5_TEST_IO_TIMEOUT_MS");
 
 	if ((test_fetcher == NULL) != (test_verifier == NULL) ||
@@ -2908,6 +3075,22 @@ static void configure_test_runtime(void)
 		verifier_path = test_verifier;
 		kexec_path = test_kexec;
 		test_kexec_configured = true;
+	}
+	if (progress_fd != NULL) {
+		char *end = NULL;
+		long value;
+		int flags;
+
+		errno = 0;
+		value = strtol(progress_fd, &end, 10);
+		if (errno != 0 || end == progress_fd || *end != '\0' ||
+		    value < 3 || value > INT_MAX)
+			fail("invalid test NCM progress descriptor");
+		flags = fcntl((int)value, F_GETFD);
+		if (flags < 0 ||
+		    fcntl((int)value, F_SETFD, flags | FD_CLOEXEC) < 0)
+			fail("unavailable test NCM progress descriptor");
+		test_progress_fd = (int)value;
 	}
 	if (timeout != NULL) {
 		char *end = NULL;

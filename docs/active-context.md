@@ -50,6 +50,20 @@ and newer-kernel rebases remain frozen until the headless core passes.
 
 These facts do not prove the corrected candidate on the phone.
 
+## Current observability increment
+
+Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a
+complete host-side bundle transfer. The new
+[receive-only NCM progress contract](recovery-ncm-progress.md) has a bounded
+device sender, host collector core, and hostile hardware-free tests, including
+the exact ACM-loss shape and every wire truncation point. A complete NCM trace
+is explicitly non-authoritative and cannot create a COMMIT claim.
+
+Do not issue Generation 11 yet. The fixed privileged broker must retain the
+exact NCM interface, address, firewall rule, and port-8081 listener after bundle
+EOF; the lifecycle must correlate private evidence; and the exact AArch64,
+complete CI, review, and publication gates must pass first.
+
 ## Active deployment checkpoint
 
 Latest exact checkpoint (2026-08-02): generation 1 reached signed-bundle

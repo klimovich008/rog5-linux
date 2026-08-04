@@ -65,6 +65,9 @@ strings "$temporary" |
 	grep -qx '/usr/libexec/rog5-bundle-verify'
 strings "$temporary" | grep -qx -- '--handoff-fd3'
 strings "$temporary" | grep -qx '/proc/self/fd/%d'
+strings "$temporary" | grep -qx 'usb0'
+strings "$temporary" | grep -qx '169.254.77.1'
+strings "$temporary" | grep -qx '169.254.77.2'
 if strings "$temporary" | grep -q 'ROG5_TEST_'; then
 	echo 'FAIL production responder contains a test interface' >&2
 	exit 1
