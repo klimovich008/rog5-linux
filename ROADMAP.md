@@ -628,8 +628,9 @@ Current execution order:
     receive-only NCM-progress lifecycle after connected preflight. The
     admitted-policy and hostile-fixture gates pass without phone contact; the
     artifact remains unbooted with `authority=none`. Independent spec and
-    standards reviews plus complete local CI pass. Publication and exact-head
-    GitHub CI remain before a separate connected preflight checkpoint. See the
+    standards reviews plus complete local CI pass. Commit `8e22bc5` passed
+    exact-head GitHub Actions run `30916646825`; the next separate checkpoint
+    is connected preflight, not a phone boot. See the
     [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md).
 23. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.

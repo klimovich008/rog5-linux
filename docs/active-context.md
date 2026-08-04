@@ -97,8 +97,10 @@ in 37s. The live-profile transition passed focused and complete local CI,
 Claude Opus review, and independent Codex review. It was published at
 `2a483ec`; exact-head run `30908649494` passed recovery-core in 3m49s and QEMU
 in 40s. Admission-focused and complete local CI pass offline, and independent
-spec and standards reviews report no findings. Publication and exact-head CI
-remain before any connected preflight. No phone action occurred.
+spec and standards reviews report no findings. The admission was published at
+`8e22bc5`; exact-head GitHub Actions run `30916646825` passed recovery-core in
+3m47s and QEMU in 37s. The next separate checkpoint is connected preflight,
+not a phone boot. No phone action occurred.
 
 ## Active deployment checkpoint
 
