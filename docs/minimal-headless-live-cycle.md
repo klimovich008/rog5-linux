@@ -225,8 +225,12 @@ review, and complete local CI. Commit `2a483ec` passed exact-head GitHub Actions
 run `30908649494`. A separate
 [central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
 now adds exactly one connected-preflight-gated RAM-only lifecycle. The
-admitted-policy and hostile-fixture tests pass offline; review, publication,
-and exact-head CI remain before connected preflight. No phone action occurred.
+admitted-policy and hostile-fixture tests pass offline; exact
+[connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
+then passed after strict fallback proof and an anchored same-port transition
+to one `lahaina` fastboot device. No recovery image boot, payload transfer, or
+Generation-11 boot claim occurred. Review, publication, and exact-head CI of
+the connected evidence remain before the sole lifecycle.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable

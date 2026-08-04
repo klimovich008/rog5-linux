@@ -624,17 +624,21 @@ Current execution order:
     independent Codex review pass for the Generation-11 live-profile
     transition. Commit `2a483ec` passed exact-head GitHub Actions run
     `30908649494`.
-22. **Complete offline:** central policy now admits exactly one Generation-11
+22. **Complete live preflight:** central policy admits exactly one Generation-11
     receive-only NCM-progress lifecycle after connected preflight. The
-    admitted-policy and hostile-fixture gates pass without phone contact; the
-    artifact remains unbooted with `authority=none`. Independent spec and
-    standards reviews plus complete local CI pass. Commit `8e22bc5` passed
-    exact-head GitHub Actions run `30916646825`; the next separate checkpoint
-    is connected preflight, not a phone boot. See the
-    [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md).
-23. Promote a distinct normal SSH candidate only after diagnostic evidence
+    admitted-policy and hostile-fixture gates pass; independent spec and
+    standards reviews, complete local CI, commit `8e22bc5`, and exact-head
+    GitHub Actions run `30916646825` are green. Exact key and connected
+    preflight then passed after an anchored Alpine-to-fastboot transition. The
+    artifact remains unbooted with `authority=none`, and no boot claim exists.
+    See the
+    [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md)
+    and [connected result](test-results/2026-08-04-generation-11-connected-preflight-live.md).
+23. Review and publish the Generation-11 connected-preflight evidence with
+    complete local and exact-head GitHub CI before the sole RAM-only lifecycle.
+24. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-24. If H2 passes, continue physical keys/indicator, then H3
+25. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
