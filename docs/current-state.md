@@ -1173,20 +1173,30 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    identity and contiguous per-attempt order, preserve separate initial/replay
    prefixes across transport loss, and prove that neither progress nor its
    loss can authorize COMMIT. Watchdog exit remains an independent lifecycle
-   observation because reset can remove ACM before a final frame drains. No
-   Generation 10 is issued. The distinct responder now also passes the full
-   offline integration path: twin cross-compiles, extracted initramfs component
-   identity, twin initramfses, two clean ASUS 5.4 wrapper Images, and twin
-   raw/unsigned-AVB repacks are byte-identical. The disposable key was
-   destroyed and the candidate remains `authority=none`; no phone interface
-   was used. See the
+   observation because reset can remove ACM before a final frame drains. The
+   distinct responder also passes the full offline integration path: twin
+   cross-compiles, extracted initramfs component identity, twin initramfses,
+   two clean ASUS 5.4 wrapper Images, and twin raw/unsigned-AVB repacks are
+   byte-identical. The disposable key was destroyed and the candidate remained
+   `authority=none`; no phone interface was used. See the
    [progress result](../test-results/2026-08-03-prepare-progress-observability-offline.md)
    and [wrapper result](../test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
-   The next separate gate is a production-signed successor and immutable
-   lifecycle profile before one diagnostic temporary boot. The gap is still
-   unlocated; this checkpoint proves only that its bounded instrumentation is
-   reproducibly embedded, so any Generation-10 lifecycle remains
-   diagnostic-only.
+   The subsequent guarded production build bound that responder to the
+   existing production trust root and produced byte-identical A/B signed
+   bundles, recovery initramfses, ASUS 5.4 wrapper Images, raw wrappers, and
+   canonical AVB wrappers. The recovery initramfs is `99046d30…6e31`, wrapper
+   Image `bb49b405…5f98`, and raw wrapper `27f4dbcc…73b3`. Two separate
+   Generation-10 issuer invocations retain exact matching 11-file trees at AVB
+   `b983e89b…8b51`, generation record `cb999cd8…3b6d`, and
+   `authority=none`. The private snapshot was destroyed, external inputs
+   remained unchanged, and the phone was not contacted. Generation 10 remains
+   unbooted, unprofiled, absent from inventory and boot policy, and cannot be
+   used by the lifecycle. See the
+   [offline successor](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
+   The next gate is independent review, publication, and exact-head CI,
+   followed separately by an immutable offline-only profile and both retained
+   artifact preflights. The gap remains unlocated, so any later Generation-10
+   lifecycle is diagnostic-only.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

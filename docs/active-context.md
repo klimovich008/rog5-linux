@@ -359,20 +359,35 @@ ASUS 5.4 wrapper Images, raw header-v3 images, and unsigned AVB test wrappers.
 The responder is `67b4f012…c167`, initramfs `dd0c7729…1642`, wrapper Image
 `30ce237f…b50c`, raw image `a2f0f10d…f876`, and test AVB image
 `cb23bc4f…a448`. The build used a disposable key, retained
-`authority=none`, and created no Generation 10 artifact or phone action. See
+`authority=none`, and created no Generation 10 artifact or phone action at
+that checkpoint. See
 the [offline wrapper integration](../test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
-Next create a distinct production-signed recovery successor from those exact
-identities and pass profile, admission, fallback, review, and CI gates before
-one diagnostic temporary boot. This offline result embeds the instrumentation;
-it does not locate the post-transfer gap. Any Generation-10 lifecycle remains
-diagnostic-only.
-The guarded external signing-key/candidate-record preflight now passes and
-destroys its temporary snapshot without signing. A test-first synthetic issuer
-regression produces deterministic Generation-10 twins, preserves raw bytes,
-and proves both wrappers are distinct from Generations 1–9. No Generation-10
-artifact or profile exists yet; publish and pass exact-head CI before the
-production twin build. See the
+The guarded external signing-key/candidate-record preflight and synthetic
+Generation-10 issuer regression pass; see the
 [issuer-readiness result](../test-results/2026-08-03-generation-10-issuer-readiness-offline.md).
+The subsequent guarded production operation bound the same responder to the
+existing production trust root, signed the diagnostic runtime bundle, and
+produced two clean byte-identical ASUS 5.4 wrappers. The production recovery
+initramfs is `99046d30…6e31`, wrapper Image `bb49b405…5f98`, raw wrapper
+`27f4dbcc…73b3`, and canonical source AVB `b2ada6b8…ba83`. The private key
+snapshot was destroyed and the external inputs remained unchanged.
+
+Two independent issuer invocations now retain exact 11-file Generation-10
+trees at AVB `b983e89b…8b51`, salt `5f62ef87…d3ee`, and generation-record
+`cb999cd8…3b6d`. Cross-tree and A/B equality, pinned `avbtool`, an independently
+recomputed salt-plus-raw digest, unchanged raw bytes, and distinct retained
+Generation 4–9 identities all pass. The synthetic regression covers
+Generations 1–9. No phone interface was used. Generation 10 is unbooted,
+unprofiled, absent from artifact inventory and boot policy, and retains
+`authority=none`; see the
+[offline successor result](../test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
+
+Next publish this issuance with independent review and exact-head CI. A later
+separate change may add an immutable offline-only profile and pass both
+retained-tree artifact gates. Live-profile selection and one-shot central
+admission remain later, distinct gates before any diagnostic temporary boot.
+The instrumentation still does not locate the post-transfer gap, so any
+Generation-10 lifecycle remains diagnostic-only.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed
