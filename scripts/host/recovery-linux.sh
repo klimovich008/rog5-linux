@@ -36,7 +36,8 @@ awk -F '\t' '
 awk -F '\t' '
 	NR == 1 {
 		exit !($1 == "name" && $2 == "size" &&
-			$3 == "sha256" && NF >= 3)
+			$3 == "sha256" && $4 == "role" &&
+			$5 == "tracked" && NF == 5)
 	}
 ' "$manifest" ||
 	fail 'artifact manifest has an invalid header'
@@ -59,6 +60,9 @@ policy_entry=$(awk -F '\t' -v name="$artifact_name" \
 	fail "temporary boot policy does not allow $artifact_name"
 policy_basis=$(awk -F '\t' -v name="$artifact_name" \
 	'$1 == name { print $3; exit }' "$boot_policy")
+[ "$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { print NF; exit }' "$boot_policy")" -eq 3 ] ||
+	fail 'temporary boot policy row has trailing fields'
 [ -n "$policy_basis" ] ||
 	fail "temporary boot policy has no acceptance basis for $artifact_name"
 
@@ -66,14 +70,29 @@ manifest_matches=$(awk -F '\t' -v name="$artifact_name" \
 	'$1 == name { count++ } END { print count + 0 }' "$manifest")
 [ "$manifest_matches" -eq 1 ] ||
 	fail "expected one manifest row for $artifact_name"
+[ "$(awk -F '\t' -v name="$artifact_name" \
+	'$1 == name { print NF; exit }' "$manifest")" -eq 5 ] ||
+	fail 'temporary boot artifact row has trailing fields'
 entry=$(awk -F '\t' -v name="$artifact_name" \
-	'$1 == name { print $2 "\t" $3; exit }' "$manifest")
+	'$1 == name { print $2 "\t" $3 "\t" $4; exit }' "$manifest")
 expected_size=$(printf '%s\n' "$entry" | cut -f 1)
 expected_hash=$(printf '%s\n' "$entry" | cut -f 2)
+artifact_role=$(printf '%s\n' "$entry" | cut -f 3-)
+case $artifact_role in
+	unbooted\ *) ;;
+	consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
+	*) fail 'temporary boot artifact is not recorded as unbooted' ;;
+esac
 [ "$(stat -c %s "$boot_image")" = "$expected_size" ] ||
 	fail 'recovery image size does not match the manifest'
 [ "$(sha256sum "$boot_image" | cut -d ' ' -f 1)" = "$expected_hash" ] ||
 	fail 'recovery image hash does not match the manifest'
+
+case $artifact_name in
+	build/stable-recovery-generation*/*)
+		fail 'generation diagnostic recovery requires the one-shot lifecycle controller'
+		;;
+esac
 
 command -v "$fastboot" >/dev/null || fail 'fastboot is missing; install android-tools'
 "$fastboot" --version | sed -n '1p'

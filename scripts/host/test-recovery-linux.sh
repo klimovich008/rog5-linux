@@ -207,11 +207,6 @@ awk -F '\t' -v name="$generation9" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-9 consumed artifact inventory is not exact'
 generation10='build/stable-recovery-generation10-prepare-progress-20260803-a/repack/stable-recovery-a.avb.img'
-awk -F '\t' '
-	$2 == "allow" { count++ }
-	END { exit count == 0 ? 0 : 1 }
-' "$policy" ||
-	fail 'consumed policy retains a temporary-boot allow row'
 awk -F '\t' -v name="$generation10" '
 	$1 == name { count++ }
 	END { exit count == 0 ? 0 : 1 }
@@ -224,17 +219,22 @@ awk -F '\t' -v name="$generation10" '
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-10 consumed artifact inventory is not exact'
 generation11='build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img'
-awk -F '\t' -v name="$generation11" '
-	$1 == name { count++ }
-	END { exit count == 0 ? 0 : 1 }
-' "$policy" || fail 'unbooted generation-11 recovery is boot-allowlisted'
+generation11_basis='one generation-11 receive-only NCM-progress diagnostic lifecycle after connected preflight; remove after any result; never flash'
+awk -F '\t' '
+	$2 == "allow" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'temporary-boot policy does not contain exactly one allow row'
+awk -F '\t' -v name="$generation11" -v basis="$generation11_basis" '
+	$1 == name && $2 == "allow" && $3 == basis { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'generation-11 recovery admission is not exact'
 awk -F '\t' -v name="$generation11" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" &&
-	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline profile and separate live lifecycle profile; authority=none; no phone contact, temporary-boot admission, or boot claim; retain offline until separately admitted; never flash" &&
+	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$manifest" || fail 'generation-11 offline artifact inventory is not exact'
+' "$manifest" || fail 'generation-11 admitted artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \
@@ -267,21 +267,29 @@ install -m 0755 "$recovery" "$mock_repo/scripts/host/recovery-linux.sh"
 
 accepted=$mock_repo/artifacts/recovery-stage-v18/accepted.avb.img
 consumed=$mock_repo/artifacts/consumed/consumed.avb.img
+lifecycle=$mock_repo/build/stable-recovery-generation-fixture/repack/recovery.avb.img
+install -d -m 0755 "$(dirname "$lifecycle")"
 printf '%s\n' 'accepted temporary recovery fixture' >"$accepted"
 printf '%s\n' 'consumed recovery fixture' >"$consumed"
+printf '%s\n' 'lifecycle recovery fixture' >"$lifecycle"
 accepted_name=${accepted#"$mock_repo"/}
 consumed_name=${consumed#"$mock_repo"/}
+lifecycle_name=${lifecycle#"$mock_repo"/}
 accepted_size=$(stat -c %s "$accepted")
 consumed_size=$(stat -c %s "$consumed")
+lifecycle_size=$(stat -c %s "$lifecycle")
 accepted_hash=$(sha256sum "$accepted" | cut -d ' ' -f 1)
 consumed_hash=$(sha256sum "$consumed" | cut -d ' ' -f 1)
+lifecycle_hash=$(sha256sum "$lifecycle" | cut -d ' ' -f 1)
 
 {
 	printf 'name\tsize\tsha256\trole\ttracked\n'
-	printf '%s\t%s\t%s\taccepted fixture\tno\n' \
+	printf '%s\t%s\t%s\tunbooted accepted fixture\tno\n' \
 		"$accepted_name" "$accepted_size" "$accepted_hash"
 	printf '%s\t%s\t%s\tconsumed fixture\tno\n' \
 		"$consumed_name" "$consumed_size" "$consumed_hash"
+	printf '%s\t%s\t%s\tunbooted generation fixture\tno\n' \
+		"$lifecycle_name" "$lifecycle_size" "$lifecycle_hash"
 } >"$mock_repo/manifests/artifacts.tsv"
 {
 	printf 'name\tstatus\tbasis\n'
@@ -328,6 +336,27 @@ output=$(BOOT_IMAGE=$accepted \
 printf '%s\n' "$output" |
 	grep -Fq "PASS Linux recovery preflight image_sha256=$accepted_hash" ||
 	fail 'legacy-prefixed fastboot product did not pass recovery preflight'
+
+{
+	printf 'name\tstatus\tbasis\n'
+	printf '%s\tallow\tone fixture lifecycle; never flash\n' "$lifecycle_name"
+} >"$mock_repo/manifests/temporary-boot-images.tsv"
+set +e
+output=$(BOOT_IMAGE=$lifecycle \
+	FASTBOOT=$mock_bin/fastboot \
+	MOCK_FASTBOOT_CALLS=$calls \
+	"$mock_repo/scripts/host/recovery-linux.sh" preflight 2>&1)
+status=$?
+set -e
+[ "$status" -ne 0 ] || fail 'generation lifecycle image passed the generic recovery wrapper'
+printf '%s\n' "$output" |
+	grep -Fq 'generation diagnostic recovery requires the one-shot lifecycle controller' ||
+	fail 'generation lifecycle bypass did not report the controller boundary'
+
+{
+	printf 'name\tstatus\tbasis\n'
+	printf '%s\tallow\taccepted fixture\n' "$accepted_name"
+} >"$mock_repo/manifests/temporary-boot-images.tsv"
 
 set +e
 output=$(BOOT_IMAGE=$consumed \

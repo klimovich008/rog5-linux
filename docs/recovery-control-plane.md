@@ -3,9 +3,9 @@
 Status: **shell-free framed path is established; diagnostic Generations 0–10
 are consumed; Generation 10 proved correlated `REQUEST_ACCEPTED` plus complete
 host transfer, then lost ACM before any later progress or `PREPARED` response
-reached the host; the exact device-side boundary remains unknown, no COMMIT or
-target execution occurred, exact fallback and cleanup passed, and the next gate
-is progress evidence that survives response-channel loss**
+reached the host; Generation 11 adds a receive-only NCM progress channel and is
+admitted for one connected-preflight-gated RAM-only lifecycle, but remains
+unbooted with no COMMIT, target-execution, or boot claim**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.

@@ -85,17 +85,20 @@ The one-shot lifecycle now selects the identical tuple through distinct
 `headless-diagnostic-generation11-live-v1`; see the
 [offline transition](../test-results/2026-08-04-generation-11-live-profile-offline.md).
 Direct connected actions and absent or malformed policy fixtures reject before
-host inspection, and boot policy retains zero `allow` rows.
-Generation 11 therefore remains ignored, unadmitted, unbooted, and
-`authority=none`. The issuer/evidence checkpoint was published at `5293e56`;
+host inspection. A separate
+[central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+now adds the sole `allow` row for one exact connected-preflight-gated RAM-only
+lifecycle. Generation 11 remains ignored, unbooted, `authority=none`, and has
+no boot claim. The issuer/evidence checkpoint was published at `5293e56`;
 exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
 QEMU in 35s. The reviewed profile and its CI-race correction were published at
 `98f8d27`; exact-head run `30904224177` passed recovery-core in 3m57s and QEMU
 in 37s. The live-profile transition passed focused and complete local CI,
 Claude Opus review, and independent Codex review. It was published at
 `2a483ec`; exact-head run `30908649494` passed recovery-core in 3m49s and QEMU
-in 40s. Next prepare a separate central-policy admission change. That is not a
-phone action.
+in 40s. Admission-focused and complete local CI pass offline, and independent
+spec and standards reviews report no findings. Publication and exact-head CI
+remain before any connected preflight. No phone action occurred.
 
 ## Active deployment checkpoint
 
@@ -482,8 +485,9 @@ consumed in inventory, and never reusable. See the
 At that live checkpoint, the next increment was hardware-free reproduction of
 this exact progress/transport/replay sequence and an independent device-side
 progress path that survives ACM loss. That implementation and its distinct
-Generation-11 wrapper now pass offline; the current unadmitted boundary is
-recorded in the observability section above.
+Generation-11 wrapper now pass offline; its separate one-shot central
+admission also passes offline, and the current pre-connected-preflight
+boundary is recorded in the observability section above.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

@@ -27,6 +27,49 @@ validate_artifact_manifest_header() {
 		fail 'malformed artifact manifest header'
 }
 
+validate_exact_boot_admission() {
+	local policy=$1 inventory=$2 name=$3 basis=$4 sha=$5
+	local matches fields status found_basis identity role
+	validate_temporary_boot_policy_header "$policy"
+	matches=$(awk -F '\t' -v name="$name" \
+		'$1 == name { count++ } END { print count + 0 }' "$policy")
+	[[ $matches == 1 ]] ||
+		fail "temporary boot policy does not uniquely list $name"
+	fields=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print NF; exit }' "$policy")
+	[[ $fields == 3 ]] ||
+		fail 'temporary boot policy row has trailing fields'
+	status=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print $2; exit }' "$policy")
+	found_basis=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print $3; exit }' "$policy")
+	[[ $status == allow && -n $found_basis ]] ||
+		fail "temporary boot policy does not allow $name"
+	[[ $found_basis == "$basis" ]] ||
+		fail "temporary boot policy basis does not match $name"
+
+	validate_artifact_manifest_header "$inventory"
+	matches=$(awk -F '\t' -v name="$name" \
+		'$1 == name { count++ } END { print count + 0 }' "$inventory")
+	[[ $matches == 1 ]] ||
+		fail "artifact manifest does not uniquely list $name"
+	fields=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print NF; exit }' "$inventory")
+	[[ $fields == 5 ]] ||
+		fail 'temporary boot artifact row has trailing fields'
+	identity=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print $2 "\t" $3; exit }' "$inventory")
+	[[ $identity == $'100663296\t'"$sha" ]] ||
+		fail 'temporary boot artifact manifest identity is not allowlisted'
+	role=$(awk -F '\t' -v name="$name" \
+		'$1 == name { print $4; exit }' "$inventory")
+	case $role in
+		unbooted\ *) ;;
+		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
+		*) fail 'temporary boot artifact is not recorded as unbooted' ;;
+	esac
+}
+
 action=${1:-preflight}
 case $action in
 	policy-preflight) ;;
@@ -656,46 +699,16 @@ if [[ -n $expected_boot_image &&
 	[[ -n $expected_boot_basis ]] ||
 		fail "profile lacks an exact temporary-boot basis for $expected_boot_image"
 	early_boot_policy=$repo/manifests/temporary-boot-images.tsv
+	early_artifact_manifest=$repo/manifests/artifacts.tsv
 	[[ -f $early_boot_policy && ! -L $early_boot_policy &&
 		-r $early_boot_policy ]] ||
 		fail 'unsafe or missing early temporary-boot policy input'
-	validate_temporary_boot_policy_header "$early_boot_policy"
-	early_policy_matches=0
-	early_policy_status=
-	early_policy_basis=
-	while IFS=$'\t' read -r early_name early_status early_basis early_extra; do
-		if [[ $early_name == "$expected_boot_image" ]]; then
-			((early_policy_matches += 1))
-			early_policy_status=$early_status
-			early_policy_basis=$early_basis
-		fi
-	done <"$early_boot_policy"
-	[[ $early_policy_matches == 1 ]] ||
-		fail "temporary boot policy does not uniquely list $expected_boot_image"
-	[[ $early_policy_status == allow && -n $early_policy_basis ]] ||
-		fail "temporary boot policy does not allow $expected_boot_image"
-	[[ $early_policy_basis == "$expected_boot_basis" ]] ||
-		fail "temporary boot policy basis does not match $expected_boot_image"
-	early_artifact_manifest=$repo/manifests/artifacts.tsv
 	[[ -f $early_artifact_manifest && ! -L $early_artifact_manifest &&
 		-r $early_artifact_manifest ]] ||
 		fail 'unsafe or missing early artifact manifest input'
-	validate_artifact_manifest_header "$early_artifact_manifest"
-	early_artifact_matches=0
-	early_artifact_role=
-	while IFS=$'\t' read -r early_artifact_name early_size early_sha \
-		early_role early_tracked early_extra; do
-		if [[ $early_artifact_name == "$expected_boot_image" ]]; then
-			((early_artifact_matches += 1))
-			early_artifact_role=$early_role
-		fi
-	done <"$early_artifact_manifest"
-	[[ $early_artifact_matches == 1 ]] ||
-		fail "artifact manifest does not uniquely list $expected_boot_image"
-	# The role's first token is the fail-closed lifecycle disposition.
-	case $early_artifact_role in
-		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
-	esac
+	validate_exact_boot_admission \
+		"$early_boot_policy" "$early_artifact_manifest" \
+		"$expected_boot_image" "$expected_boot_basis" "$expected_image"
 fi
 
 if [[ $action == policy-preflight ]]; then
@@ -720,6 +733,14 @@ for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 		fail "missing live-gate command: $command"
 done
 [[ $(uname -s) == Linux ]] || fail 'the live gate requires Linux'
+if [[ $profile == headless-diagnostic-generation11-live-v1 &&
+	$action == boot ]]; then
+	claim_consumer=$repo/scripts/host/consume-generation11-boot-claim.py
+	[[ -f $claim_consumer && ! -L $claim_consumer && -x $claim_consumer ]] ||
+		fail 'generation-11 claim consumer is unsafe or absent'
+	"$claim_consumer" ||
+		fail 'generation-11 durable BOOT_CLAIMED record was not entered'
+fi
 if [[ $action != artifact-preflight ]]; then
 	for command in sed systemctl; do
 		command -v "$command" >/dev/null ||
@@ -820,45 +841,34 @@ if [[ $action == preflight || $action == boot ]]; then
 		[[ -f $policy_input && ! -L $policy_input && -r $policy_input ]] ||
 			fail "unsafe or missing temporary-boot policy input: $policy_input"
 	done
-	validate_temporary_boot_policy_header "$boot_policy"
-	validate_artifact_manifest_header "$artifact_manifest"
 	image_name=${image#"$repo"/}
 	[[ $image_name != "$image" ]] ||
 		fail 'temporary boot image must remain below the repository'
-	policy_matches=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { count++ } END { print count + 0 }' "$boot_policy")
-	[[ $policy_matches == 1 ]] ||
-		fail "temporary boot policy does not uniquely list $image_name"
-	policy_status=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { print $2; exit }' "$boot_policy")
-	policy_basis=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { print $3; exit }' "$boot_policy")
-	[[ $policy_status == allow && -n $policy_basis ]] ||
-		fail "temporary boot policy does not allow $image_name"
-	# Re-read and revalidate pinned-profile basis after artifact path resolution
-	# so a policy change between the early guard and execution fails closed.
-	# Historical profiles without expected_boot_image retain their legacy
-	# non-empty-basis rule until they are retired or explicitly pinned.
 	if [[ -n $expected_boot_image ]]; then
-		[[ -n $expected_boot_basis &&
-			$policy_basis == "$expected_boot_basis" ]] ||
-			fail "temporary boot policy basis does not match $image_name"
+		[[ $image_name == "$expected_boot_image" ]] ||
+			fail 'temporary boot image does not match the pinned profile path'
+		validate_exact_boot_admission \
+			"$boot_policy" "$artifact_manifest" "$image_name" \
+			"$expected_boot_basis" "$expected_image"
+	else
+		# Historical profiles without an exact path pin retain their legacy
+		# non-empty-basis rule until they are retired.
+		validate_temporary_boot_policy_header "$boot_policy"
+		validate_artifact_manifest_header "$artifact_manifest"
+		policy_matches=$(awk -F '\t' -v name="$image_name" \
+			'$1 == name { count++ } END { print count + 0 }' "$boot_policy")
+		[[ $policy_matches == 1 ]] ||
+			fail "temporary boot policy does not uniquely list $image_name"
+		policy_status=$(awk -F '\t' -v name="$image_name" \
+			'$1 == name { print $2; exit }' "$boot_policy")
+		policy_basis=$(awk -F '\t' -v name="$image_name" \
+			'$1 == name { print $3; exit }' "$boot_policy")
+		[[ $policy_status == allow && -n $policy_basis ]] ||
+			fail "temporary boot policy does not allow $image_name"
+		validate_exact_boot_admission \
+			"$boot_policy" "$artifact_manifest" "$image_name" \
+			"$policy_basis" "$expected_image"
 	fi
-	manifest_matches=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { count++ } END { print count + 0 }' \
-		"$artifact_manifest")
-	[[ $manifest_matches == 1 ]] ||
-		fail "artifact manifest does not uniquely list $image_name"
-	manifest_identity=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { print $2 "\t" $3; exit }' "$artifact_manifest")
-	[[ $manifest_identity == $'100663296\t'"$expected_image" ]] ||
-		fail 'temporary boot artifact manifest identity is not allowlisted'
-	manifest_role=$(awk -F '\t' -v name="$image_name" \
-		'$1 == name { print $4; exit }' "$artifact_manifest")
-	# The role's first token is the fail-closed lifecycle disposition.
-	case $manifest_role in
-		consumed\ *) fail 'temporary boot artifact is recorded as consumed' ;;
-	esac
 fi
 if [[ $requires_qualified_cpio == 1 ]]; then
 	for input in "$qualified_cpio" "$qualified_cpio_shim"; do

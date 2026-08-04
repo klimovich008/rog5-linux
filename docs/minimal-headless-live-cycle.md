@@ -210,7 +210,7 @@ listener ownership conflicts still fail closed. See the
 A distinct
 [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 now reproduces across two clean builds and two offline issuances. It remains
-ignored, unadmitted, unbooted, and `authority=none`. Its exact recovery and
+ignored, unbooted, and `authority=none`. Its exact recovery and
 unchanged signed-target tuple passes an immutable
 [offline profile](../test-results/2026-08-04-generation-11-offline-profile.md)
 against both retained trees. The one-shot controller now selects the same
@@ -222,7 +222,15 @@ commit `98f8d27` passed exact-head GitHub Actions run `30904224177` after the
 CI-only watchdog-race test was synchronized without changing production code.
 The live-profile transition passed Claude Opus review, independent Codex
 review, and complete local CI. Commit `2a483ec` passed exact-head GitHub Actions
-run `30908649494`; a separate central-policy admission change remains required.
+run `30908649494`. A separate
+[central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+now adds exactly one connected-preflight-gated RAM-only lifecycle. The
+admitted-policy and hostile-fixture tests pass offline; review, publication,
+and exact-head CI remain before connected preflight. No phone action occurred.
+The generic recovery wrapper rejects every Generation diagnostic path, and the
+live gate accepts `boot` only after the fixed claim consumer validates and
+irreversibly enters the lifecycle controller's private, exact, durable
+`BOOT_CLAIMED` record. A failed first gate attempt therefore remains consumed.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
