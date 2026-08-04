@@ -67,14 +67,21 @@ listener-ownership conflict still fails closed. The 8 runtime, 21 collector,
 as do the complete local Linux `ci` and provisioned `quick` tiers. See the
 [offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 
-Do not issue Generation 11 yet. Commit `2b90a0e` passed exact-head GitHub
-Actions run `30887436984`; the fixed privileged files were then installed from
-that checkout, byte-verified, and exercised through the read-only empty-export
-proof with SteamOS read-only mode restored. A clean sealed-container rebuild
-then reproduced the accepted QEMU kernel Image `cf318b…b4d98`, and the local
-QEMU 8.2 gate crossed the real AArch64 `systemd` stage-130/140 units. Next
-twin-build and review a distinct offline-only wrapper before creating any
-policy admission or connected action.
+Commit `2b90a0e` passed exact-head GitHub Actions run `30887436984`; the fixed
+privileged files were then installed from that checkout, byte-verified, and
+exercised through the read-only empty-export proof with SteamOS read-only mode
+restored. A clean sealed-container rebuild reproduced the accepted QEMU kernel
+Image `cf318b…b4d98`, and the local QEMU 8.2 gate crossed the real AArch64
+`systemd` stage-130/140 units. A fresh recovery initramfs then embedded NCM
+responder `242ac7fc…149e7`; two clean ASUS wrapper builds reproduced raw image
+`44c43e27…12b2`, and two offline Generation-11 issuances reproduced AVB
+`8472b206…bcf562`. See the
+[wrapper result](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md).
+Generation 11 remains ignored, unprofiled, unadmitted, unbooted, and
+`authority=none`. Next publish this issuer/evidence checkpoint with green
+exact-head CI, then pin the exact tuple in an immutable offline lifecycle
+profile and review the whole rollback/evidence chain before creating any boot
+admission or connected action.
 
 ## Active deployment checkpoint
 
@@ -458,9 +465,11 @@ Alpine fallback, strict SSH, profile restoration, and final host cleanup
 passed. Generation 10 is permanently `BOOT_CLAIMED`, absent from boot policy,
 consumed in inventory, and never reusable. See the
 [live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
-The next increment is hardware-free reproduction of this exact progress/
-transport/replay sequence and an independent device-side progress or retained
-postmortem path that survives ACM loss. Do not issue Generation 11 yet.
+At that live checkpoint, the next increment was hardware-free reproduction of
+this exact progress/transport/replay sequence and an independent device-side
+progress path that survives ACM loss. That implementation and its distinct
+Generation-11 wrapper now pass offline; the current unadmitted boundary is
+recorded in the observability section above.
 The Generation-4 offline issuance passed focused/complete local CI,
 Claude review, and GitHub Actions run `30786957283` at exact implementation
 commit `e3a47a8`. The Generation-4 live-profile transition passed

@@ -207,9 +207,13 @@ Progress absence or invalid evidence is advisory and cannot gate COMMIT;
 listener ownership conflicts still fail closed. See the
 [contract](recovery-ncm-progress.md) and
 [offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
-No Generation-11 wrapper, policy admission, connected action, or phone boot
-exists. Publication, installed-host verification, final AArch64, and distinct
-twin-build/review gates remain mandatory before the next temporary boot.
+A distinct
+[Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+now reproduces across two clean builds and two offline issuances. It remains
+ignored, unprofiled, unadmitted, unbooted, and `authority=none`. An immutable
+offline lifecycle profile and whole-chain review remain mandatory after this
+issuer/evidence checkpoint is published with green exact-head CI and before
+any central-policy admission or connected action.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

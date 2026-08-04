@@ -1259,8 +1259,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    [the NCM progress contract](recovery-ncm-progress.md)
    and
    [offline host-integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
-   Generation 11 must not be issued until publication, installed-host, final
-   AArch64, twin-build, review, and connected-preflight gates pass.
+   A distinct
+   [Generation-11 recovery wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+   now reproduces across two clean builds and two offline issuances as AVB
+   `8472b206…bcf562`. It is ignored, unprofiled, unadmitted, unbooted, and
+   `authority=none`; the next gates are publication of this issuer/evidence
+   checkpoint with green exact-head CI, then an immutable offline lifecycle
+   profile and whole-chain review—not a phone action.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 
