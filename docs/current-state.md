@@ -1280,8 +1280,10 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    live-profile transition now passes Claude Opus review, independent Codex
    review, and complete local CI. Commit `2a483ec` passed exact-head GitHub run
    `30908649494`. Admission-focused and complete local CI pass, and independent
-   spec and standards reviews report no findings. Publication and exact-head
-   CI remain before a separate connected preflight. No phone action occurred.
+   spec and standards reviews report no findings. The admission was published
+   at `8e22bc5`; exact-head GitHub Actions run `30916646825` passed. The next
+   separate checkpoint is connected preflight, not a phone boot. No phone
+   action occurred.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

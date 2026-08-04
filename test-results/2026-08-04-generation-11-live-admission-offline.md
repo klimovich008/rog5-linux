@@ -2,8 +2,8 @@
 
 Date: 2026-08-04
 
-Result: **PASS offline; independent review and complete local CI pass;
-publication and exact-head GitHub CI remain pending**. Central temporary-boot policy now
+Result: **PASS offline; reviewed, published, and exact-head CI green**.
+Central temporary-boot policy now
 admits exactly one Generation-11 receive-only NCM-progress diagnostic
 lifecycle after connected preflight. Generation 11 remains unbooted and has
 no durable boot claim. No phone, credential, privileged host action, USB
@@ -95,6 +95,11 @@ The policy-aware inventory role advances the compatibility hash chain to:
   incorporates; a final Claude re-review was unavailable because its session
   limit had not reset.
 
-The next gate is publication and exact-head GitHub CI. Only this reviewed, published,
-exact-head-green admission may proceed to a separate connected preflight
-checkpoint.
+## Publication
+
+The reviewed admission was published at commit
+`8e22bc5d9a5d9e957eb58b3f8c0fcf020bd6cd3d`. Exact-head GitHub Actions run
+`30916646825` passed recovery-core in 3m47s and QEMU in 37s.
+
+The next separate gate is connected preflight, not a phone boot. Generation 11
+remains unbooted and has no durable boot claim.
