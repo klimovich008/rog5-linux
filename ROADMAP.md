@@ -518,30 +518,41 @@ Current execution order:
     one correlated contiguous prefix per attempt and retains both prefixes on
     transport failure. Progress remains advisory, a send failure suppresses
     later phases without changing safe PREPARE state, and watchdog exit remains
-    independently observed out of band. No Generation 10 was issued.
-13. **Complete locally; exact-head publication verification pending:** the
+    independently observed out of band. No Generation 10 was issued at that
+    checkpoint.
+13. **Complete:** the
     changed responder is byte-verified inside two identical
     recovery initramfses and two clean, byte-identical ASUS 5.4 wrapper/raw/AVB
     builds. The disposable signing key was destroyed, `authority=none`, and no
-    Generation 10 artifact or phone action was created. Full local CI passes
-    and constrained re-review returned `NO FINDINGS`. See the
+    Generation 10 artifact or phone action was created at that checkpoint.
+    Full local CI,
+    constrained re-review, publication at `6b9f00e`, and exact-head GitHub run
+    `30860916085` pass. See the
     [offline integration result](test-results/2026-08-03-prepare-progress-wrapper-integration-offline.md).
-14. **Next:** publish the integration checkpoint with green review and CI;
-    then create and production-sign one distinct recovery successor from the
-    exact accepted identities, bind its immutable lifecycle profile, and pass
-    artifact, credential, rollback, fallback, successor review, and CI gates
-    before admitting one diagnostic temporary boot. The offline instrumentation
-    does not itself locate the post-transfer gap; any Generation-10 lifecycle
-    remains diagnostic-only.
-    The integration checkpoint is published and exact-head green. The guarded
+14. **Issuer readiness published; production issuance complete locally with
+    publication verification pending:** the guarded
     production signing-input preflight and deterministic synthetic issuer
-    regression through Generation 10 now pass without signing or creating an
-    artifact; publish this readiness checkpoint before the production twin
-    build. See the
-    [issuer-readiness result](test-results/2026-08-03-generation-10-issuer-readiness-offline.md).
-15. Promote a distinct normal SSH candidate only after diagnostic evidence
+    regression through Generation 10 passed without creating an artifact and
+    were published at `d6d20b0`; exact-head GitHub run `30861861026` is green.
+    The subsequent guarded production build retained identical A/B signed
+    bundles, initramfses, wrapper Images, raw wrappers, and canonical AVB
+    wrappers under the existing production trust root. Two independent
+    Generation-10 issuances now retain exact matching 11-file trees at AVB
+    `b983e89b…8b51` over unchanged raw recovery `27f4dbcc…73b3`. The key
+    snapshot was destroyed, external inputs remained unchanged, no phone was
+    contacted, and every record retains `authority=none`. See the
+    [issuer-readiness result](test-results/2026-08-03-generation-10-issuer-readiness-offline.md)
+    and
+    [offline successor result](test-results/2026-08-03-generation-10-prepare-progress-successor-offline.md).
+15. **Next:** independently review and publish the Generation-10 production
+    issuance, then pass exact-head CI. In a later separate change, create an
+    immutable offline-only profile and prove both retained-tree artifact
+    preflights before considering a live profile or one-shot central admission.
+    The offline instrumentation does not itself locate the post-transfer gap;
+    any Generation-10 lifecycle remains diagnostic-only.
+16. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-16. If H2 passes, continue physical keys/indicator, then H3
+17. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed
