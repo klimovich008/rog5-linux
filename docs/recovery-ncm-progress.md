@@ -24,6 +24,16 @@ collector as not uniquely confined. The capture remained
 transfer, COMMIT intent, NFS, or target occurred. Exact fallback and cleanup
 passed. Generations 10 and 11 are consumed and must never be retried.
 
+A [production-faithful host-only reproduction](../test-results/2026-08-04-generation-11-progress-listener-scope-reproduction-offline.md)
+then captured the collector as `169.254.77.1%enp4s0f3u1u2:8081`, the expected
+effect of its `SO_BINDTODEVICE` confinement. The old controller searched for
+an unscoped endpoint. The correction parses one `ss` record and requires the
+exact scoped local endpoint, IPv4 wildcard peer, sole launched `python3`
+PID/fd owner, live process, and empty IPv6 inventory. Its 38 controller cases
+cover pre-existing and post-start IPv6 conflicts, including the Steam socket
+shape. Complete local CI and installed-host verification pass; publication
+remains pending. This result grants no reuse or successor boot authority.
+
 This channel addresses one exact failure: recovery can continue processing a
 valid `PREPARE` after the ACM response transport disappears. Generation 10
 proved `REQUEST_ACCEPTED` and a complete host-side bundle transfer, but ACM
@@ -195,9 +205,10 @@ cleanup passed.
 Both retained Generation-11 trees state `authority=none`; the generic recovery
 wrapper rejects generation diagnostics. The former policy row is removed, the
 artifact role is `consumed`, and the entered private `BOOT_CLAIMED` record
-independently prevents reuse. The next work is an offline production-faithful
-reproduction of the TCP 8081 listener ownership/PID check and SteamOS race,
-before any distinct successor is issued.
+independently prevents reuse. The production-faithful reproduction and exact
+listener-verification correction are complete offline. Complete local CI and
+installed-host verification pass; publication and exact-head CI remain before
+any distinct successor is issued.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the

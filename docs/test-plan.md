@@ -391,11 +391,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   buffered-clean-EOF race. Eight runtime cases cover canonical arguments,
   descriptor-relative private
   output, irreversible privilege drop, parent-death re-arming, and
-  non-authoritative refusal. Thirty-four controller and eighteen broker/socket
-  cases cover exact port-`8081` ownership, missing-listener continuation,
-  pre-existing and post-start conflicts, post-transfer marker/collector
-  failure, watchdog cleanup, fixed hash-pinned installation, canonical private
-  output forwarding, and signal masks/process groups. Sixty-three native
+  non-authoritative refusal. Thirty-eight controller and eighteen broker/socket
+  cases cover exact scoped port-`8081` endpoint and sole PID/fd ownership,
+  unscoped/wrong-scope/wrong-address lookalikes, shared owners, duplicate
+  records, missing-listener continuation, pre-existing and post-start IPv6
+  conflicts, post-transfer marker/collector failure, watchdog cleanup, fixed
+  hash-pinned installation, canonical private output forwarding, and signal
+  masks/process groups. Sixty-three native
   responder cases include a dedicated rootless user/network-namespace test of
   production `usb0`, `169.254.77.2` to `169.254.77.1:8081`, wrong host
   interface, and unresolved peer. Sixty-nine lifecycle cases require that

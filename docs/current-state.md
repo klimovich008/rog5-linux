@@ -50,7 +50,11 @@ and absent from boot policy. Generation 11 reached exact recovery ACM/NCM, then
 failed closed before the bundle-server ready marker when the privileged host
 path rejected its newly started TCP 8081 collector as not uniquely confined.
 No PREPARE, transfer, COMMIT, NFS, or target occurred; exact Alpine fallback
-and host cleanup passed. Generation 10 accepted
+and host cleanup passed. A production-faithful host-only reproduction captured
+the real scoped `SO_BINDTODEVICE` endpoint, and the controller now requires one
+exact scoped record with the sole launched PID/fd owner and no IPv6 conflict;
+complete CI and host installation pass, while publication remains. Generation
+10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent
 existed, no target ran, and exact Alpine fallback plus host cleanup passed.

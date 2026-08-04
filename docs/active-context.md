@@ -63,7 +63,7 @@ broker/controller, irreversible root-to-operator collector, and private
 post-COMMIT lifecycle assessment. Missing, malformed, mismatched, partial, and
 complete evidence remains `authority=NONE`; absence cannot gate COMMIT, while a
 listener-ownership conflict still fails closed. The 8 runtime, 21 collector,
-34 controller, 18 broker/socket, 63 native-control, and 69 lifecycle tests pass,
+38 controller, 18 broker/socket, 63 native-control, and 69 lifecycle tests pass,
 as do the complete local Linux `ci` and provisioned `quick` tiers. See the
 [offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 
@@ -120,11 +120,19 @@ PREPARE, bundle transfer, COMMIT intent, NFS, or target occurred. The armed
 target collector independently rejected with zero frames because diagnostic
 ACM never stabilized. Exact Alpine fallback, strict SSH, profile restoration,
 host cleanup, and Steam socket restoration passed. Generation 11 is consumed,
-absent from boot policy, permanently claimed, and never reusable. Reproduce
-and fix the production listener ownership/PID check offline before issuing a
-distinct successor. Independent spec and standards review plus complete local
-CI passed; commit `3cee3f1` published this transition and exact-head GitHub
-Actions run `30926911113` passed recovery-core in 3m59s and QEMU in 35s.
+absent from boot policy, permanently claimed, and never reusable. A
+[production-faithful host-only reproduction](../test-results/2026-08-04-generation-11-progress-listener-scope-reproduction-offline.md)
+captured the real `SO_BINDTODEVICE` listener as
+`169.254.77.1%enp4s0f3u1u2:8081`; the controller had required an unscoped
+substring. The correction parses one exact `ss` record and requires the scoped
+endpoint, sole launched `python3` PID/fd owner, a live process, and no IPv6
+conflict. Its 38 hardware-free controller cases cover hostile scope, address,
+owner, duplicate-record, delay, absence, and IPv6 races. Complete local CI and
+installed-host verification pass; publication and exact-head CI remain before
+any distinct successor. Independent spec and standards review plus complete
+local CI passed for the consumed transition; commit `3cee3f1` published it and
+exact-head GitHub Actions run `30926911113` passed recovery-core in 3m59s and
+QEMU in 35s.
 
 ## Historical deployment chronology
 
