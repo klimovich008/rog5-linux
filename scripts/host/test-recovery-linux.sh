@@ -231,7 +231,7 @@ awk -F '\t' -v name="$generation11" '
 awk -F '\t' -v name="$generation11" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" &&
-	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline-only profile; authority=none; no phone contact, live profile, temporary-boot admission, or boot claim; retain offline only; never flash" &&
+	$4 == "unbooted generation-11 receive-only NCM-progress diagnostic recovery; production-trust-root recovery initramfs and clean ASUS 5.4 twin wrapper build pass; two deterministic issuer invocations pass; immutable offline profile and separate live lifecycle profile; authority=none; no phone contact, temporary-boot admission, or boot claim; retain offline until separately admitted; never flash" &&
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-11 offline artifact inventory is not exact'

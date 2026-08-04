@@ -411,10 +411,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   initramfs non-reuse, pinned AVB, and independent digest gates. The retained
   artifacts now pass immutable offline-only profile
   `headless-diagnostic-generation11-offline-v1` against both trees and the
-  unchanged signed-target twins. Connected actions reject before host
-  inspection; no Generation-11 live profile, lifecycle selection, or boot
-  policy row exists, and `authority=none` remains exact. See the
-  [offline profile result](../test-results/2026-08-04-generation-11-offline-profile.md).
+  unchanged signed-target twins. The one-shot lifecycle selects a separate
+  Generation-11 live-capable profile, while direct connected actions and
+  absent or malformed policy fixtures reject before host inspection. No
+  Generation-11 boot-policy row exists, and `authority=none` remains exact. See the
+  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

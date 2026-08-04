@@ -606,7 +606,7 @@ Current execution order:
     cleanup passed; the permanent boot claim is retained, policy admission is
     removed, and inventory is consumed. See the
     [live result](test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
-20. **In progress:** the independent receive-only NCM progress path now spans
+20. **Complete:** the independent receive-only NCM progress path now spans
     the device responder, exact production namespace, privileged broker and
     firewall controller, irreversible root-to-user collector, and private
     post-COMMIT lifecycle assessment. Every wire truncation, torn record,
@@ -616,12 +616,18 @@ Current execution order:
     provisioned `quick` tiers pass. See the
     [contract](docs/recovery-ncm-progress.md) and
     [offline result](test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
-    Publish exact-head CI, verify the installed host boundary, rerun the final
-    AArch64 gate, and twin-build/review a distinct offline-only wrapper before
-    any Generation-11 policy admission or phone action.
-21. Promote a distinct normal SSH candidate only after diagnostic evidence
+    Generation 11 was then clean-built twice, issued twice, pinned through an
+    immutable offline profile, and selected by the one-shot controller through
+    a separate live-capable profile without changing central boot policy. See
+    the [offline transition](test-results/2026-08-04-generation-11-live-profile-offline.md).
+21. **In progress:** focused and complete local CI, Claude Opus review, and
+    independent Codex review pass for the Generation-11 live-profile
+    transition. Publish and pass exact-head CI, then make a separate reviewed
+    central-policy admission change before any connected preflight or phone
+    action.
+22. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-22. If H2 passes, continue physical keys/indicator, then H3
+23. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

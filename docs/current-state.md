@@ -1264,13 +1264,17 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    now reproduces across two clean builds and two offline issuances as AVB
    `8472b206…bcf562`. Its exact recovery and unchanged signed-target tuple now
    passes an immutable
-   [offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
-   against both retained trees. It is ignored, unadmitted, unbooted, absent
-   from boot policy, and `authority=none`. Commit `5293e56` passed exact-head
+   [offline profile](../test-results/2026-08-04-generation-11-offline-profile.md)
+   against both retained trees. The one-shot controller now selects the same
+   tuple through a separate
+   [live-capable profile](../test-results/2026-08-04-generation-11-live-profile-offline.md),
+   while central boot policy remains deny-by-default. It is ignored,
+   unadmitted, unbooted, absent from boot policy, and `authority=none`. Commit `5293e56` passed exact-head
    GitHub Actions run `30899370666`. The reviewed profile and CI-race correction
    were published at `98f8d27`; exact-head run `30904224177` passed. The next
-   gate is a distinct live-profile transition binding the installed host and
-   whole lifecycle chain, not a phone action.
+   live-profile transition now passes Claude Opus review, independent Codex
+   review, and complete local CI. The next gates are publication and exact-head
+   CI, followed by a separate central-policy admission change, not a phone action.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

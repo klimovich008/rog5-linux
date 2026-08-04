@@ -66,7 +66,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation9-live-v1 | \
 		headless-diagnostic-generation10-offline-v1 | \
 		headless-diagnostic-generation10-live-v1 | \
-		headless-diagnostic-generation11-offline-v1) ;;
+		headless-diagnostic-generation11-offline-v1 | \
+		headless-diagnostic-generation11-live-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -596,9 +597,16 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-generation11-offline-v1)
-		if [[ $action != policy-preflight && $action != artifact-preflight ]]; then
+	headless-diagnostic-generation11-offline-v1 | \
+	headless-diagnostic-generation11-live-v1)
+		if [[ $profile == headless-diagnostic-generation11-offline-v1 &&
+			$action != policy-preflight && $action != artifact-preflight ]]; then
 			fail 'generation-11 diagnostic profile is offline-only and not boot-authorized'
+		fi
+		if [[ $profile == headless-diagnostic-generation11-live-v1 &&
+			$action != policy-preflight && $action != artifact-preflight &&
+			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
+			fail 'generation-11 connected action requires the one-shot lifecycle controller'
 		fi
 		component_layout=structured
 		expected_kernel=895272e87d5a90ae6b9b8df71862b48d819479d5bbf2741fab002126e47d3eae
@@ -613,6 +621,10 @@ case $profile in
 		expected_generation_record=4b62b7906ad40f2a36b52a9756a7250364dfe6d9eff4b0c57d25f60713145e49
 		expected_avb_salt=00272b827ebb11f198be4758db4008cf534f592f0e63fc82c891cda3b4691c6d
 		expected_avb_digest=9ccf32a823f5a4685922ed42400bc024d7210412216537cfffb1c128e17febf9
+		if [[ $profile == headless-diagnostic-generation11-live-v1 ]]; then
+			expected_boot_image=build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img
+			expected_boot_basis='one generation-11 receive-only NCM-progress diagnostic lifecycle after connected preflight; remove after any result; never flash'
+		fi
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
 			fail 'generation-11 diagnostic runtime manifest is not pinned'
