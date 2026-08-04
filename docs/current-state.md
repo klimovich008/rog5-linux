@@ -1248,10 +1248,13 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    cleanup passed. Generation 10 is permanently `BOOT_CLAIMED`, absent from
    boot policy, consumed in inventory, and never reusable. See the
    [live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
-   The next gate is a hardware-free reproduction of the exact accepted-request/
-   complete-transfer/ACM-loss/fallback-replay shape and an independent progress
-   or retained-postmortem channel that survives ACM loss. Generation 11 must
-   not be issued before that observability exists.
+   The next gate is an independent progress channel that survives ACM loss.
+   Its receive-only NCM primitive now reproduces the accepted-request/ACM-loss
+   boundary hardware-free and proves complete traces cannot authorize COMMIT;
+   every byte-level truncation is explicitly partial. The fixed privileged
+   broker, firewall, lifecycle evidence, and exact AArch64 gates remain to be
+   integrated. See [the NCM progress contract](recovery-ncm-progress.md).
+   Generation 11 must not be issued from this partial integration.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

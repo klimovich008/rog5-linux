@@ -451,10 +451,13 @@ A failed replay therefore reports one bounded terminal record containing:
   labels, and a truncation bit without device identity values.
 
 This closes the Generation-9 host observability defect: a later Alpine product
-mismatch can no longer masquerade as the initial recovery failure. It does not
-yet identify whether recovery stalled after fetch, verification, kexec load,
-or prepared-state publication. Those device-side phases require a separately
-framed, bounded progress contract before another recovery image is issued.
+mismatch can no longer masquerade as the initial recovery failure. Generation
+10 then proved that ACM progress alone can still disappear after
+`REQUEST_ACCEPTED`. The separate receive-only
+[NCM progress contract](recovery-ncm-progress.md) now has a bounded device
+sender, host collector core, and hostile hardware-free tests. It is advisory
+and cannot authorize COMMIT. Privileged broker/lifecycle integration and the
+exact AArch64 gate remain mandatory before another recovery image is issued.
 
 ## Postmortem outcome oracle
 

@@ -9,6 +9,7 @@ import pty
 import select
 import shlex
 import shutil
+import socket
 import subprocess
 import tempfile
 import termios
@@ -37,6 +38,9 @@ from tools.recovery_control import (  # noqa: E402
     decode_response,
     encode_frame,
     encode_request,
+)
+from tools.recovery_control.host_progress_collector import (  # noqa: E402
+    collect_connection,
 )
 
 
@@ -182,6 +186,8 @@ class NativeResponderTest(unittest.TestCase):
         verify_timeout_ms: int | None = None,
         load_timeout_ms: int | None = None,
         progress_fail_at: int | None = None,
+        ncm_progress_fd: int | None = None,
+        ncm_partial_at: int | None = None,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -238,6 +244,14 @@ class NativeResponderTest(unittest.TestCase):
             environment["ROG5_TEST_PROGRESS_FAIL_AT"] = str(
                 progress_fail_at
             )
+        if ncm_progress_fd is not None:
+            environment["ROG5_TEST_NCM_PROGRESS_FD"] = str(
+                ncm_progress_fd
+            )
+        if ncm_partial_at is not None:
+            environment["ROG5_TEST_NCM_PROGRESS_PARTIAL_AT"] = str(
+                ncm_partial_at
+            )
         process = subprocess.Popen(
             [
                 *self.runner,
@@ -256,6 +270,7 @@ class NativeResponderTest(unittest.TestCase):
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            pass_fds=(ncm_progress_fd,) if ncm_progress_fd is not None else (),
         )
         self.processes.append(process)
         deadline = time.monotonic() + 3
@@ -1350,6 +1365,120 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(replay.result, "PREPARED")
         self.stop_responder(restarted, restarted_master)
 
+    def test_ncm_progress_survives_generation10_shaped_acm_loss(self):
+        host_progress, device_progress = socket.socketpair()
+        self.addCleanup(host_progress.close)
+        process, master = self.start(
+            progress_fail_at=2,
+            ncm_progress_fd=device_progress.fileno(),
+        )
+        device_progress.close()
+        session = self.hello(master)
+        request = encode_request(
+            session=session,
+            request=request_id(10),
+            verb="PREPARE",
+            body={
+                "bundle": "arch-v1",
+                "manifest_sha256": MANIFEST,
+            },
+        )
+        os.write(master, encode_frame(request))
+        acm_payloads = self.read_payloads(master, count=2, timeout=0.2)
+        acm_records = [
+            decode_recovery_record(payload) for payload in acm_payloads
+        ]
+        self.assertEqual(
+            [record.phase for record in acm_records],
+            list(PREPARE_PROGRESS_PHASES[:1]),
+        )
+        capture = collect_connection(
+            host_progress,
+            bundle="arch-v1",
+            manifest_sha256=MANIFEST,
+            deadline=time.monotonic() + 2,
+            expected_session=session,
+            expected_request=request_id(10),
+        )
+        self.assertTrue(capture.complete)
+        self.assertEqual(capture.phases, PREPARE_PROGRESS_PHASES)
+        self.assertTrue((self.state / "prepared").is_file())
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(process, master)
+
+    def test_ncm_progress_never_authorizes_commit(self):
+        host_progress, device_progress = socket.socketpair()
+        self.addCleanup(host_progress.close)
+        self.addCleanup(device_progress.close)
+        process, master = self.start(
+            ncm_progress_fd=device_progress.fileno()
+        )
+        hostile_input = b"COMMIT_EXEC\nrequest=host-injected\n"
+        host_progress.sendall(hostile_input)
+        session = self.hello(master)
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "PREPARED")
+        device_progress.settimeout(0.2)
+        self.assertEqual(device_progress.recv(len(hostile_input)), hostile_input)
+        device_progress.close()
+        capture = collect_connection(
+            host_progress,
+            bundle="arch-v1",
+            manifest_sha256=MANIFEST,
+            deadline=time.monotonic() + 2,
+            expected_session=session,
+            expected_request=request_id(10),
+        )
+        self.assertTrue(capture.complete)
+        self.assertFalse((self.state / "claim").exists())
+        committed = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(committed.result, "CLAIMED")
+        self.assertTrue((self.state / "claim").is_file())
+        self.stop_responder(process, master)
+
+    def test_torn_ncm_record_is_advisory_to_healthy_acm(self):
+        host_progress, device_progress = socket.socketpair()
+        self.addCleanup(host_progress.close)
+        process, master = self.start(
+            ncm_progress_fd=device_progress.fileno(),
+            ncm_partial_at=3,
+        )
+        device_progress.close()
+        session = self.hello(master)
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "PREPARED")
+        capture = collect_connection(
+            host_progress,
+            bundle="arch-v1",
+            manifest_sha256=MANIFEST,
+            deadline=time.monotonic() + 2,
+            expected_session=session,
+            expected_request=request_id(10),
+        )
+        self.assertFalse(capture.complete)
+        self.assertEqual(capture.phases, PREPARE_PROGRESS_PHASES[:2])
+        self.assertEqual(capture.reason, "TORN_FRAME")
+        self.assertTrue((self.state / "prepared").is_file())
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(process, master)
+
+    def test_dead_ncm_peer_does_not_delay_or_gate_prepare(self):
+        host_progress, device_progress = socket.socketpair()
+        device_progress.shutdown(socket.SHUT_RDWR)
+        device_progress.close()
+        process, master = self.start(
+            ncm_progress_fd=host_progress.fileno()
+        )
+        host_progress.close()
+        session = self.hello(master)
+        started = time.monotonic()
+        response = self.prepare(master, session)
+        self.assertLess(time.monotonic() - started, 1.0)
+        self.assertEqual(response.result, "PREPARED")
+        self.assertTrue((self.state / "prepared").is_file())
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(process, master)
+
     def test_fetch_failure_and_conflict_never_reach_verifier(self):
         cases = (
             ("failure", "fail", "FETCH_FAILED", "FETCH_EXEC"),
@@ -1892,7 +2021,7 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(status.execution_started, "YES")
         self.stop_responder(restarted, restarted_master)
 
-    def test_watchdog_death_during_fetch_reaps_helper_tree(self):
+    def test_watchdog_death_after_acm_progress_loss_reaps_fetch_tree(self):
         verifier, loader, marker = self.make_prepare_pipeline(
             "watchdog-fetch",
             fetcher_mode="nested_hang",
@@ -1901,6 +2030,7 @@ class NativeResponderTest(unittest.TestCase):
             verifier_path=verifier,
             kexec_path=loader,
             fetch_timeout_ms=5000,
+            progress_fail_at=1,
         )
         session = self.hello(master)
         os.write(
@@ -2825,6 +2955,9 @@ class NativeResponderTest(unittest.TestCase):
         self.assertIn("--handoff-fd3", production_strings)
         self.assertIn("/proc/self/fd/%d", production_strings)
         self.assertIn("rog5-kexec", production_strings)
+        self.assertIn("usb0", production_strings)
+        self.assertIn("169.254.77.1", production_strings)
+        self.assertIn("169.254.77.2", production_strings)
         self.assertNotIn("ROG5_TEST_", production_strings)
         self.assertNotIn("test-executed", production_strings)
         refused = subprocess.run(

@@ -606,11 +606,16 @@ Current execution order:
     cleanup passed; the permanent boot claim is retained, policy admission is
     removed, and inventory is consumed. See the
     [live result](test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
-20. **In progress:** reproduce the exact Generation-10 shape hardware-free—
-    first-attempt `REQUEST_ACCEPTED`, complete transfer, response-channel loss,
-    and fallback-only replay—then add an independent device progress or
-    retained-postmortem path that survives ACM loss. Do not issue Generation
-    11 from unchanged observability or by changing only the AVB generation.
+20. **In progress:** the independent receive-only NCM progress primitive now
+    reproduces the decisive Generation-10 shape hardware-free: ACM exposes only
+    `REQUEST_ACCEPTED`, while NCM retains the complete contiguous fetch,
+    verify, load, and prepared-state trace. Every wire truncation, torn record,
+    absent/stalled collector, identity/order mismatch, and fabricated authority
+    remains partial or rejected; a complete trace still creates no COMMIT
+    claim. Finish the privileged broker/firewall/lifecycle integration and
+    exact AArch64/CI/review gates described in
+    [the contract](docs/recovery-ncm-progress.md). Do not issue Generation 11
+    from the primitive alone or by changing only the AVB generation.
 21. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 22. If H2 passes, continue physical keys/indicator, then H3
