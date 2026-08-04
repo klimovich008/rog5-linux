@@ -92,6 +92,8 @@ class BrokerFixture:
         self.nfs_exports.write_bytes(b"")
         self.nfs_exports.chmod(0o600)
         self.anchor = self.root / "recovery-usb.anchor"
+        self.progress_output = self.root / "progress-output"
+        self.progress_output.mkdir(mode=0o700)
         self.write_anchor()
 
     def write_anchor(
@@ -207,6 +209,16 @@ class RecoveryHostSocketTest(unittest.TestCase):
             (
                 f"bundle-deferred arch-test-v1 {DIGEST}\n".encode(),
                 f"controller serve-deferred arch-test-v1 {DIGEST}\n".encode(),
+            ),
+            (
+                (
+                    "bundle-progress-deferred arch-test-v1 "
+                    f"{DIGEST} {self.fixture.progress_output}\n"
+                ).encode(),
+                (
+                    "controller serve-progress-deferred arch-test-v1 "
+                    f"{DIGEST} {self.fixture.progress_output}\n"
+                ).encode(),
             ),
             (
                 f"fallback-profile-restore {self.fixture.anchor} 750\n".encode(),
@@ -438,6 +450,9 @@ class RecoveryHostSocketTest(unittest.TestCase):
             + TOKEN.encode()
             + b" 901\n",
             b"bundle  test " + DIGEST.encode() + b"\n",
+            b"bundle-progress-deferred test "
+            + DIGEST.encode()
+            + b" relative\n",
             b"fallback-profile-restore relative-anchor 750\n",
             b"fallback-profile-restore /tmp/../escape 750\n",
             f"fallback-profile-restore {self.fixture.anchor} 0\n".encode(),
@@ -448,6 +463,43 @@ class RecoveryHostSocketTest(unittest.TestCase):
                 if self.fixture.calls.exists():
                     self.fixture.calls.unlink()
                 _status, response = self.fixture.run(payload)
+                self.assertIn(b"FAIL ", response)
+                self.assertTrue(response.endswith(STATUS + b"1\n"))
+                self.assertFalse(self.fixture.calls.exists())
+
+    def test_progress_output_directory_is_exact_private_and_unused(self):
+        mutations = (
+            (
+                "loose-mode",
+                lambda: self.fixture.progress_output.chmod(0o755),
+            ),
+            (
+                "existing-capture",
+                lambda: (
+                    self.fixture.progress_output / "recovery-progress.capture"
+                ).write_text("existing\n", encoding="ascii"),
+            ),
+            (
+                "existing-stop",
+                lambda: (
+                    self.fixture.progress_output / "recovery-progress.stop"
+                ).write_text("existing\n", encoding="ascii"),
+            ),
+        )
+        for name, mutate in mutations:
+            with self.subTest(name=name):
+                self.fixture.progress_output.chmod(0o700)
+                for output in self.fixture.progress_output.iterdir():
+                    output.unlink()
+                mutate()
+                if self.fixture.calls.exists():
+                    self.fixture.calls.unlink()
+                _status, response = self.fixture.run(
+                    (
+                        "bundle-progress-deferred arch-test-v1 "
+                        f"{DIGEST} {self.fixture.progress_output}\n"
+                    ).encode()
+                )
                 self.assertIn(b"FAIL ", response)
                 self.assertTrue(response.endswith(STATUS + b"1\n"))
                 self.assertFalse(self.fixture.calls.exists())
@@ -559,6 +611,27 @@ class RecoveryHostSocketTest(unittest.TestCase):
             "PASS host NFS export table is empty\n",
         )
         self.assertEqual(observed, [b"network-export-state\n"])
+
+    def test_client_sends_progress_output_directory_as_one_fixed_field(self):
+        result, observed = self.run_client(
+            [
+                "bundle-progress-deferred",
+                "arch-test-v1",
+                DIGEST,
+                str(self.fixture.progress_output),
+            ],
+            STATUS + b"0\n",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            observed,
+            [
+                (
+                    "bundle-progress-deferred arch-test-v1 "
+                    f"{DIGEST} {self.fixture.progress_output}\n"
+                ).encode()
+            ],
+        )
 
     def test_privileged_restore_requires_exact_private_fresh_anchor(self):
         mutations = (

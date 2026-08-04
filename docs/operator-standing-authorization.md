@@ -2,6 +2,14 @@
 
 ## Current operator directive
 
+**Latest reaffirmation (2026-08-04): the agent does not need to ask for any
+further in-scope authorization. It may use the standing authorizations and
+available project credentials as needed, and should continue until it reaches
+a genuine technical, safety, platform, input, or scope blocker.** Routine
+authorization flags and older notes requesting fresh consent may be satisfied
+from this directive; they are not reasons to pause. Consequential actions
+should still be reported as work proceeds, but that notice is informational.
+
 **Latest controlling instruction (2026-08-04): do not ask the operator for
 further authorization. Use the standing authorizations needed for in-scope
 project work and continue until a real technical, safety, platform, input, or

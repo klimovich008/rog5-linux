@@ -31,8 +31,14 @@ def fail(message: str) -> "NoReturn":
 
 def request(arguments: list[str]) -> bytes:
     action = arguments[0] if arguments else ""
-    if action in {"bundle", "bundle-deferred"} and len(arguments) == 3:
-        bundle, digest = arguments[1:]
+    if action in {
+        "bundle",
+        "bundle-deferred",
+        "bundle-progress-deferred",
+    } and len(arguments) in {3, 4}:
+        if (action == "bundle-progress-deferred") != (len(arguments) == 4):
+            fail("invalid bundle progress request shape")
+        bundle, digest = arguments[1:3]
         if (
             not IDENTITY.fullmatch(bundle)
             or ".." in bundle
@@ -41,6 +47,15 @@ def request(arguments: list[str]) -> bytes:
             fail("invalid bundle identity")
         if not SHA256.fullmatch(digest) or digest == "0" * 64:
             fail("invalid manifest SHA-256")
+        if action == "bundle-progress-deferred":
+            output = arguments[3]
+            if (
+                not ANCHOR_PATH.fullmatch(output)
+                or output.endswith("/")
+                or "//" in output
+                or ".." in output.split("/")
+            ):
+                fail("invalid progress output directory")
     elif action == "fallback-profile-restore" and len(arguments) == 3:
         anchor, timeout = arguments[1:]
         if (
@@ -86,6 +101,7 @@ def request(arguments: list[str]) -> bytes:
         fail(
             "usage: rog5-recovery-host-client.py bundle BUNDLE SHA256 | "
             "bundle-deferred BUNDLE SHA256 | "
+            "bundle-progress-deferred BUNDLE SHA256 OUTPUT_DIRECTORY | "
             "fallback-profile-restore ANCHOR TIMEOUT | "
             "network-preflight-v1 | network-preflight-v3 PACKAGE_SHA256 | "
             "network-serve-v1 TOKEN TIMEOUT | "

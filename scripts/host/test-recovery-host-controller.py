@@ -62,6 +62,11 @@ class ControllerFixture:
         self.managed_state = self.root / "device-managed"
         self.managed_state.write_text("yes\n", encoding="ascii")
         self.pid = self.root / "server.pid"
+        self.progress_pid = self.root / "progress.pid"
+        self.progress_ss_count = self.root / "progress-ss.count"
+        self.progress_eof = self.root / "progress.eof"
+        self.progress_output = self.root / "progress-output"
+        self.progress_output.mkdir(mode=0o700)
         self.watchdog_pid = self.root / "watchdog.pid"
         self.server = self.root / "host_bundle_server.py"
         self.server.write_text(
@@ -78,6 +83,58 @@ class ControllerFixture:
             encoding="utf-8",
         )
         self.server.chmod(0o555)
+        self.progress_collector = self.root / "progress_collector.py"
+        self.progress_collector.write_text(
+            textwrap.dedent(
+                """\
+                import hashlib
+                import os
+                from pathlib import Path
+                import sys
+                import time
+
+                Path(os.environ["MOCK_PROGRESS_PID"]).write_text(
+                    f"{os.getpid()}\\n", encoding="ascii"
+                )
+                if os.environ.get("MOCK_PROGRESS_EXIT") == "1":
+                    raise SystemExit(1)
+                eof = Path(sys.argv[8])
+                if eof != Path(os.environ["ROG5_TEST_PROGRESS_EOF_MARKER"]):
+                    raise SystemExit(2)
+                if int(sys.argv[9]) != os.getppid():
+                    raise SystemExit(3)
+                if os.environ.get("MOCK_PROGRESS_PRECREATE_EOF") == "1":
+                    eof.touch()
+                    time.sleep(10)
+                stop = Path(sys.argv[4]) / "recovery-progress.stop"
+                while not eof.exists() and not stop.exists():
+                    time.sleep(0.01)
+                if os.environ.get("MOCK_PROGRESS_HANG") == "1":
+                    time.sleep(10)
+                if os.environ.get("MOCK_PROGRESS_EXIT_AFTER_EOF") == "1":
+                    raise SystemExit(1)
+                if os.environ.get("MOCK_PROGRESS_NO_CAPTURE") == "1":
+                    raise SystemExit(0)
+                empty = hashlib.sha256(b"").hexdigest()
+                payload = (
+                    "format=rog5-recovery-progress-capture-v1\\n"
+                    + "session=" + "0" * 32 + "\\n"
+                    + "request=" + "0" * 32 + "\\n"
+                    + f"bundle={sys.argv[2]}\\n"
+                    + f"manifest_sha256={sys.argv[3]}\\n"
+                    + "records=0\\nphases=none\\nwire_bytes=0\\n"
+                    + f"wire_sha256={empty}\\n"
+                    + "result=PARTIAL\\ntruncated=YES\\n"
+                    + "reason=NO_ADMISSION\\nauthority=NONE\\n"
+                )
+                output = Path(sys.argv[4]) / "recovery-progress.capture"
+                output.write_text(payload, encoding="ascii")
+                output.chmod(0o600)
+                """
+            ),
+            encoding="utf-8",
+        )
+        self.progress_collector.chmod(0o555)
         self._write_mocks()
 
     def close(self) -> None:
@@ -231,6 +288,14 @@ if [ "${MOCK_LISTENER_EXISTING:-0}" = 1 ]; then
       ;;
   esac
 fi
+if [ "${MOCK_PROGRESS_LISTENER_EXISTING:-0}" = 1 ]; then
+  case $* in
+    *"-lnt4"*"sport = :8081"*)
+      printf '%s\n' \
+        'LISTEN 0 1 169.254.77.1:8081 0.0.0.0:* users:(("other",pid=998,fd=3))'
+      ;;
+  esac
+fi
 if [ -s "$MOCK_SERVER_PID" ]; then
   case $* in
     *"-lntp4"*"sport = :8080 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
@@ -243,6 +308,39 @@ if [ -s "$MOCK_SERVER_PID" ]; then
     :::*"-lntp6"*"sport = :8080 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
       printf '%s\n' \
         'LISTEN 0 1 [::]:8080 [::]:* users:(("other",pid=999,fd=3))'
+      ;;
+  esac
+fi
+case $* in
+  *"-lntp4"*"sport = :8081"*)
+    if [ -n "${MOCK_PROGRESS_LISTENER_DELAY_CALLS:-}" ]; then
+      count=0
+      if [ -f "$MOCK_PROGRESS_SS_COUNT" ]; then
+        count=$(sed -n '1p' "$MOCK_PROGRESS_SS_COUNT")
+      fi
+      count=$((count + 1))
+      printf '%s\n' "$count" >"$MOCK_PROGRESS_SS_COUNT"
+      if [ "$count" -le "$MOCK_PROGRESS_LISTENER_DELAY_CALLS" ]; then
+        exit 0
+      fi
+    fi
+    ;;
+esac
+if [ "${MOCK_PROGRESS_LISTENER_AFTER_SERVER:-0}" = 1 ] &&
+   [ -s "$MOCK_SERVER_PID" ]; then
+  case $* in
+    *"-lntp4"*"sport = :8081"*)
+      printf '%s\n' \
+        'LISTEN 0 1 169.254.77.1:8081 0.0.0.0:* users:(("other",pid=997,fd=3))'
+      ;;
+  esac
+elif [ "${MOCK_PROGRESS_NO_LISTENER:-0}" != 1 ] &&
+     [ -s "$MOCK_PROGRESS_PID" ]; then
+  case $* in
+    *"-lntp4"*"sport = :8081"*)
+      pid=$(sed -n '1p' "$MOCK_PROGRESS_PID")
+      printf '%s\n' \
+        "LISTEN 0 1 169.254.77.1:8081 0.0.0.0:* users:((\"python3\",pid=$pid,fd=3))"
       ;;
   esac
 fi
@@ -259,7 +357,11 @@ while [ "$#" -gt 0 ]; do
     *) shift ;;
   esac
 done
-printf '%s\n' "$$" >"$MOCK_SERVER_PID"
+for argument in "$@"; do
+  if [ "$argument" = "$ROG5_TEST_SERVER_PATH" ]; then
+    printf '%s\n' "$$" >"$MOCK_SERVER_PID"
+  fi
+done
 exec "$@"
 """,
         )
@@ -276,10 +378,16 @@ exec "$@"
                 "ROG5_TEST_SYS_DEVICES": str(self.sys_devices),
                 "ROG5_TEST_SYS_BUS_USB": str(self.sys_bus_usb),
                 "ROG5_TEST_SERVER_PATH": str(self.server),
+                "ROG5_TEST_PROGRESS_COLLECTOR_PATH": str(
+                    self.progress_collector
+                ),
+                "ROG5_TEST_PROGRESS_EOF_MARKER": str(self.progress_eof),
                 "ROG5_TEST_BUNDLE_ROOT": str(self.bundle_root),
                 "ROG5_TEST_LOCK_PATH": str(self.lock),
                 "MOCK_CALLS": str(self.calls),
                 "MOCK_SERVER_PID": str(self.pid),
+                "MOCK_PROGRESS_PID": str(self.progress_pid),
+                "MOCK_PROGRESS_SS_COUNT": str(self.progress_ss_count),
                 "MOCK_CONNECTION_STATE": str(self.connection_state),
                 "MOCK_AUTOCONNECT_STATE": str(self.autoconnect_state),
                 "MOCK_MANAGED_STATE": str(self.managed_state),
@@ -384,6 +492,192 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "--reset-env",
         ):
             self.assertIn(policy, setpriv)
+
+    def test_progress_mode_owns_both_listeners_until_capture_then_defers(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("progress listener ready on 169.254.77.1:8081", result.stdout)
+        self.assertIn("bounded recovery progress capture completed", result.stdout)
+        self.assertIn(
+            "bounded recovery progress collection concluded authority=NONE",
+            result.stdout,
+        )
+        self.assertIn("profile restoration deferred", result.stdout)
+        capture = self.fixture.progress_output / "recovery-progress.capture"
+        self.assertTrue(capture.is_file())
+        self.assertEqual(capture.stat().st_mode & 0o777, 0o600)
+        self.assertIn("authority=NONE\n", capture.read_text(encoding="ascii"))
+        self.assertFalse(self.fixture.progress_eof.exists())
+        calls = self.fixture.call_log()
+        for port in ("8080", "8081"):
+            self.assertIn(f'port port="{port}" protocol="tcp" accept', calls)
+            self.assertIn(f'port port="{port}" protocol="tcp" drop', calls)
+        self.assertIn("sport = :8081", calls)
+        self.assertIn("--timeout=360s", calls)
+        self.assertIn(
+            "valid_lft 360 preferred_lft 360",
+            calls,
+        )
+        self.assertIn(
+            "setpriv --pdeathsig TERM -- /usr/bin/python3 -I -S -B "
+            + str(self.fixture.progress_collector),
+            calls,
+        )
+
+    def test_progress_port_conflict_refuses_before_network_mutation(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_LISTENER_EXISTING="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("TCP port 8081 already has a listener", result.stderr)
+        calls = self.fixture.call_log()
+        self.assertNotIn("--add-rich-rule=", calls)
+        self.assertNotIn("connection down uuid", calls)
+
+    def test_progress_listener_absence_is_advisory_and_deferred(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_NO_LISTENER="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("progress listener unavailable", result.stdout)
+        self.assertIn("authority=NONE", result.stdout)
+        self.assertIn("profile restoration deferred", result.stdout)
+        calls = self.fixture.call_log()
+        self.assertIn(
+            "ip address del 169.254.77.1/30 dev usbtest0",
+            calls,
+        )
+        self.assertNotIn("nmcli device set usbtest0 managed yes", calls)
+        self.assertFalse(self.fixture.progress_eof.exists())
+
+    def test_delayed_healthy_progress_listener_is_admitted(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_LISTENER_DELAY_CALLS="3",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("progress listener ready", result.stdout)
+        self.assertEqual(
+            self.fixture.progress_ss_count.read_text(encoding="ascii"),
+            "4\n",
+        )
+
+    def test_progress_listener_conflict_after_start_fails_closed(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_LISTENER_AFTER_SERVER="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "progress listener is not uniquely confined",
+            result.stderr,
+        )
+        calls = self.fixture.call_log()
+        self.assertIn(
+            "ip address del 169.254.77.1/30 dev usbtest0",
+            calls,
+        )
+        self.assertIn("nmcli device set usbtest0 managed yes", calls)
+
+    def test_progress_conflict_after_collector_exit_fails_closed(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_EXIT="1",
+            MOCK_PROGRESS_LISTENER_AFTER_SERVER="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "progress listener is not uniquely confined",
+            result.stderr,
+        )
+
+    def test_post_transfer_progress_failure_is_advisory_and_deferred(self):
+        for override in (
+            "MOCK_PROGRESS_NO_CAPTURE",
+            "MOCK_PROGRESS_EXIT_AFTER_EOF",
+        ):
+            with self.subTest(override=override):
+                self.fixture.close()
+                self.fixture = ControllerFixture()
+                result = self.fixture.run(
+                    "serve-progress-deferred",
+                    BUNDLE,
+                    MANIFEST_HASH,
+                    str(self.fixture.progress_output),
+                    **{override: "1"},
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("authority=NONE", result.stdout + result.stderr)
+                self.assertIn("profile restoration deferred", result.stdout)
+                calls = self.fixture.call_log()
+                self.assertIn(
+                    "ip address del 169.254.77.1/30 dev usbtest0",
+                    calls,
+                )
+                self.assertNotIn("nmcli device set usbtest0 managed yes", calls)
+                self.assertFalse(self.fixture.progress_eof.exists())
+
+    def test_progress_eof_marker_failure_is_advisory_and_deferred(self):
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_PRECREATE_EOF="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("bundle-EOF marker is unavailable", result.stderr)
+        self.assertIn("authority=NONE", result.stderr)
+        self.assertIn("one recovery bundle transfer completed", result.stdout)
+        self.assertIn("profile restoration deferred", result.stdout)
+        calls = self.fixture.call_log()
+        self.assertNotIn("nmcli device set usbtest0 managed yes", calls)
+        self.assertFalse(self.fixture.progress_eof.exists())
+
+    def test_progress_stall_is_advisory_after_bounded_grace(self):
+        started = time.monotonic()
+        result = self.fixture.run(
+            "serve-progress-deferred",
+            BUNDLE,
+            MANIFEST_HASH,
+            str(self.fixture.progress_output),
+            MOCK_PROGRESS_HANG="1",
+            ROG5_TEST_HARD_SERVER_TIMEOUT="3",
+            ROG5_TEST_PROGRESS_POST_TRANSFER_GRACE="1",
+        )
+        elapsed = time.monotonic() - started
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(elapsed, 2.5)
+        self.assertIn("exceeded post-transfer grace", result.stderr)
+        self.assertIn("authority=NONE", result.stderr)
+        self.assertIn("one recovery bundle transfer completed", result.stdout)
+        self.assertIn("profile restoration deferred", result.stdout)
+        self.assertFalse(self.fixture.progress_eof.exists())
+        calls = self.fixture.call_log()
+        self.assertIn("--remove-rich-rule=", calls)
+        self.assertNotIn("nmcli device set usbtest0 managed yes", calls)
 
     def test_missing_or_duplicate_gadget_fails_before_mutation(self):
         missing = self.fixture.run(
@@ -965,7 +1259,7 @@ class RecoveryHostControllerTest(unittest.TestCase):
             "--pdeathsig TERM",
             "--reset-env",
             "--timeout=",
-            "valid_lft 180",
+            'address_lifetime=360',
         ):
             self.assertIn(contract, controller)
         self.assertIn(
@@ -977,6 +1271,22 @@ class RecoveryHostControllerTest(unittest.TestCase):
             launcher,
         )
         self.assertNotIn("exec pkexec", launcher)
+
+        progress_metadata = launcher.index(
+            "[[ -f $progress_collector && ! -L $progress_collector"
+        )
+        progress_hashes = launcher.index(
+            '"$progress_collector:$progress_collector_source"'
+        )
+        for protected_offset in (progress_metadata, progress_hashes):
+            guard_offset = launcher.rfind(
+                "if [[ $action == serve-progress-deferred ]]; then",
+                0,
+                protected_offset,
+            )
+            dispatch_offset = launcher.find("\nfi\n", protected_offset)
+            self.assertGreaterEqual(guard_offset, 0)
+            self.assertGreater(dispatch_offset, protected_offset)
         self.assertIn("install -o root -g root -m 0555", installer)
         self.assertIn(
             "install-headless-ssh-deployment-export.py",
@@ -1000,6 +1310,34 @@ class RecoveryHostControllerTest(unittest.TestCase):
             ).read_bytes()
         ).hexdigest()
         self.assertIn(f"server_sha256={server_hash}", controller)
+        progress_sources = {
+            "progress_collector_sha256": (
+                REPO / "packaging/host/rog5-recovery-progress-collector.py"
+            ),
+            "progress_package_init_sha256": (
+                REPO / "tools/recovery_control/__init__.py"
+            ),
+            "progress_reference_sha256": (
+                REPO / "tools/recovery_control/reference.py"
+            ),
+            "progress_module_sha256": (
+                REPO
+                / "tools/recovery_control/host_progress_collector.py"
+            ),
+        }
+        for pin, source in progress_sources.items():
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            self.assertIn(f"{pin}={digest}", controller)
+            self.assertIn(f'"{pin}:$', installer)
+        for contract in (
+            "rog5-recovery-progress-collector.py",
+            "progress_package_root=$progress_tools_root/recovery_control",
+            'install -o root -g root -m 0444',
+            '"$progress_package_root/host_progress_collector.py"',
+            "installed progress collector module set does not match "
+            "controller pins",
+        ):
+            self.assertIn(contract, controller + installer)
         self.assertIn(
             "controller source does not pin this bundle-server source",
             installer,

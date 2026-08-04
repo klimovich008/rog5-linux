@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import pty
+from concurrent.futures import ThreadPoolExecutor
 import select
 import shlex
 import shutil
@@ -40,7 +41,10 @@ from tools.recovery_control import (  # noqa: E402
     encode_request,
 )
 from tools.recovery_control.host_progress_collector import (  # noqa: E402
+    CollectorRefusal,
     collect_connection,
+    collect_listener,
+    open_fixed_listener,
 )
 
 
@@ -188,6 +192,7 @@ class NativeResponderTest(unittest.TestCase):
         progress_fail_at: int | None = None,
         ncm_progress_fd: int | None = None,
         ncm_partial_at: int | None = None,
+        ncm_progress_live: bool = False,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -248,6 +253,8 @@ class NativeResponderTest(unittest.TestCase):
             environment["ROG5_TEST_NCM_PROGRESS_FD"] = str(
                 ncm_progress_fd
             )
+        if ncm_progress_live:
+            environment["ROG5_TEST_NCM_PROGRESS_LIVE"] = "1"
         if ncm_partial_at is not None:
             environment["ROG5_TEST_NCM_PROGRESS_PARTIAL_AT"] = str(
                 ncm_partial_at
@@ -1405,6 +1412,148 @@ class NativeResponderTest(unittest.TestCase):
         self.assertTrue((self.state / "prepared").is_file())
         self.assertFalse((self.state / "claim").exists())
         self.stop_responder(process, master)
+
+    def test_production_ncm_progress_uses_fixed_usb0_namespace_path(self):
+        if os.environ.get("ROG5_PROGRESS_NETNS_INSIDE") != "1":
+            unshare = shutil.which("unshare")
+            if unshare is None:
+                self.fail("unshare is required for the production NCM gate")
+            environment = os.environ.copy()
+            environment["ROG5_PROGRESS_NETNS_INSIDE"] = "1"
+            result = subprocess.run(
+                [
+                    unshare,
+                    "--user",
+                    "--map-root-user",
+                    "--net",
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    (
+                        "NativeResponderTest."
+                        "test_production_ncm_progress_uses_fixed_usb0_"
+                        "namespace_path"
+                    ),
+                ],
+                cwd=REPO,
+                env=environment,
+                text=True,
+                capture_output=True,
+                timeout=30,
+                check=False,
+            )
+            self.assertEqual(
+                result.returncode,
+                0,
+                f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
+            )
+            return
+
+        ip = shutil.which("ip")
+        unshare = shutil.which("unshare")
+        nsenter = shutil.which("nsenter")
+        if ip is None or unshare is None or nsenter is None:
+            self.fail(
+                "ip, unshare, and nsenter are required inside the "
+                "production NCM namespace"
+            )
+        subprocess.run(
+            [ip, "link", "add", "host0", "type", "veth", "peer", "name", "device0"],
+            check=True,
+        )
+        holder = subprocess.Popen(
+            [unshare, "--net", "sleep", "120"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.processes.append(holder)
+        time.sleep(0.05)
+        for arguments in (
+            ["link", "set", "device0", "netns", str(holder.pid)],
+            ["link", "set", "host0", "up"],
+            ["address", "add", "169.254.77.1/30", "dev", "host0"],
+        ):
+            subprocess.run([ip, *arguments], check=True)
+        for arguments in (
+            ["link", "set", "device0", "name", "usb0"],
+            ["link", "set", "usb0", "up"],
+            ["address", "add", "169.254.77.2/30", "dev", "usb0"],
+        ):
+            subprocess.run(
+                [nsenter, "--target", str(holder.pid), "--net", ip, *arguments],
+                check=True,
+            )
+        self.runner = [nsenter, "--target", str(holder.pid), "--net"]
+
+        listener = open_fixed_listener("host0")
+        self.addCleanup(listener.close)
+        process, master = self.start(ncm_progress_live=True)
+        session = self.hello(master)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                collect_listener,
+                listener,
+                bundle="arch-v1",
+                manifest_sha256=MANIFEST,
+                deadline=time.monotonic() + 3,
+                expected_session=session,
+                expected_request=request_id(10),
+            )
+            response = self.prepare(master, session)
+            capture = future.result(timeout=4)
+        self.assertEqual(response.result, "PREPARED")
+        self.assertTrue(capture.complete)
+        self.assertEqual(capture.phases, PREPARE_PROGRESS_PHASES)
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(process, master)
+
+        listener.close()
+        subprocess.run(
+            [ip, "link", "add", "wrong0", "type", "dummy"],
+            check=True,
+        )
+        subprocess.run([ip, "link", "set", "wrong0", "up"], check=True)
+        wrong_listener = open_fixed_listener("wrong0")
+        self.addCleanup(wrong_listener.close)
+        self.state = self.root / "state-wrong-host-interface"
+        self.state.mkdir(mode=0o700)
+        wrong_process, wrong_master = self.start(ncm_progress_live=True)
+        wrong_session = self.hello(wrong_master)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            refused = executor.submit(
+                collect_listener,
+                wrong_listener,
+                bundle="arch-v1",
+                manifest_sha256=MANIFEST,
+                deadline=time.monotonic() + 0.3,
+            )
+            wrong_response = self.prepare(wrong_master, wrong_session)
+            with self.assertRaisesRegex(
+                CollectorRefusal,
+                "progress listener timed out",
+            ):
+                refused.result(timeout=1)
+        self.assertEqual(wrong_response.result, "PREPARED")
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(wrong_process, wrong_master)
+
+        wrong_listener.close()
+        subprocess.run(
+            [ip, "address", "del", "169.254.77.1/30", "dev", "host0"],
+            check=True,
+        )
+        self.state = self.root / "state-unresolved-progress-peer"
+        self.state.mkdir(mode=0o700)
+        timeout_process, timeout_master = self.start(
+            ncm_progress_live=True
+        )
+        timeout_session = self.hello(timeout_master)
+        started = time.monotonic()
+        timeout_response = self.prepare(timeout_master, timeout_session)
+        self.assertLess(time.monotonic() - started, 1.0)
+        self.assertEqual(timeout_response.result, "PREPARED")
+        self.assertFalse((self.state / "claim").exists())
+        self.stop_responder(timeout_process, timeout_master)
 
     def test_ncm_progress_never_authorizes_commit(self):
         host_progress, device_progress = socket.socketpair()

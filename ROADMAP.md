@@ -606,16 +606,19 @@ Current execution order:
     cleanup passed; the permanent boot claim is retained, policy admission is
     removed, and inventory is consumed. See the
     [live result](test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
-20. **In progress:** the independent receive-only NCM progress primitive now
-    reproduces the decisive Generation-10 shape hardware-free: ACM exposes only
-    `REQUEST_ACCEPTED`, while NCM retains the complete contiguous fetch,
-    verify, load, and prepared-state trace. Every wire truncation, torn record,
+20. **In progress:** the independent receive-only NCM progress path now spans
+    the device responder, exact production namespace, privileged broker and
+    firewall controller, irreversible root-to-user collector, and private
+    post-COMMIT lifecycle assessment. Every wire truncation, torn record,
     absent/stalled collector, identity/order mismatch, and fabricated authority
-    remains partial or rejected; a complete trace still creates no COMMIT
-    claim. Finish the privileged broker/firewall/lifecycle integration and
-    exact AArch64/CI/review gates described in
-    [the contract](docs/recovery-ncm-progress.md). Do not issue Generation 11
-    from the primitive alone or by changing only the AVB generation.
+    remains partial, unavailable, or rejected; a complete trace still creates
+    no COMMIT claim. Focused suites and the complete local Linux `ci` and
+    provisioned `quick` tiers pass. See the
+    [contract](docs/recovery-ncm-progress.md) and
+    [offline result](test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
+    Publish exact-head CI, verify the installed host boundary, rerun the final
+    AArch64 gate, and twin-build/review a distinct offline-only wrapper before
+    any Generation-11 policy admission or phone action.
 21. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 22. If H2 passes, continue physical keys/indicator, then H3

@@ -40,7 +40,21 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         supervisor_ms = integer_constant(control, "FETCH_TIMEOUT_MS")
         kexec_ms = integer_constant(control, "KEXEC_LOAD_TIMEOUT_MS")
         transfer = integer_constant(server, "TRANSFER_TIMEOUT_SECONDS")
-        watchdog = integer_constant(controller, "HARD_SERVER_TIMEOUT_SECONDS")
+        base_watchdog = integer_constant(
+            controller, "HARD_SERVER_TIMEOUT_SECONDS"
+        )
+        watchdog = integer_constant(
+            controller, "PROGRESS_HARD_SERVER_TIMEOUT_SECONDS"
+        )
+        progress = integer_constant(
+            controller, "PROGRESS_CAPTURE_TIMEOUT_SECONDS"
+        )
+        progress_ready_attempts = integer_constant(
+            controller, "PROGRESS_LISTENER_READY_ATTEMPTS"
+        )
+        progress_grace = integer_constant(
+            controller, "PROGRESS_POST_TRANSFER_GRACE_SECONDS"
+        )
         offline_watchdog = integer_constant(
             controller, "OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS"
         )
@@ -57,9 +71,15 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         supervisor = supervisor_ms // 1000
         kexec = kexec_ms // 1000
         self.assertGreaterEqual(transfer, supervisor + 5)
-        self.assertGreaterEqual(watchdog, transfer + 10)
+        self.assertGreaterEqual(base_watchdog, transfer + 10)
+        self.assertGreaterEqual(progress, transfer + 40)
+        self.assertGreaterEqual(watchdog, progress + 5)
+        self.assertGreaterEqual(progress_ready_attempts, 10)
+        self.assertLessEqual(progress_ready_attempts, 30)
+        self.assertGreaterEqual(progress_grace, 1)
+        self.assertLessEqual(progress_grace, watchdog - transfer)
         self.assertGreaterEqual(bundle, watchdog + 10)
-        self.assertGreaterEqual(prepare, bundle + 30)
+        self.assertGreaterEqual(prepare, watchdog + 10)
         self.assertGreaterEqual(prepare, supervisor + kexec + 30)
         self.assertGreaterEqual(control_total, prepare + nfs_ready + 10)
         self.assertLessEqual(offline_watchdog, 5)

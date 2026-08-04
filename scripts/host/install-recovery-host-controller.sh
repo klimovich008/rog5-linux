@@ -16,6 +16,10 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 controller_source=$repo/packaging/host/rog5-recovery-bundle-controller
 server_source=$repo/tools/recovery_control/host_bundle_server.py
+progress_collector_source=$repo/packaging/host/rog5-recovery-progress-collector.py
+progress_package_init_source=$repo/tools/recovery_control/__init__.py
+progress_reference_source=$repo/tools/recovery_control/reference.py
+progress_module_source=$repo/tools/recovery_control/host_progress_collector.py
 network_server_source=$repo/scripts/host/serve-network-root.sh
 headless_verifier_source=$repo/scripts/host/headless-network-root.py
 persistent_root_tool_source=$repo/scripts/device/persistent-root-tool.py
@@ -25,6 +29,9 @@ client_source=$repo/scripts/host/rog5-recovery-host-client.py
 socket_unit_template=$repo/packaging/host/rog5-recovery-host.socket.in
 service_unit_source=$repo/packaging/host/rog5-recovery-host@.service
 destination=/usr/libexec/rog5-recovery-host
+progress_python_root=$destination/python
+progress_tools_root=$progress_python_root/tools
+progress_package_root=$progress_tools_root/recovery_control
 controller_destination=/usr/libexec/rog5-recovery-bundle-controller
 bundle_root=/var/lib/rog5-recovery-bundles
 export_storage_root=/home/rog5-linux
@@ -41,7 +48,10 @@ for command in awk chmod chown getent grep install mktemp mv rm sha256sum \
 	command -v "$command" >/dev/null ||
 		fail "missing installer command: $command"
 done
-for source in "$controller_source" "$server_source" "$network_server_source" \
+for source in "$controller_source" "$server_source" \
+	"$progress_collector_source" "$progress_package_init_source" \
+	"$progress_reference_source" "$progress_module_source" \
+	"$network_server_source" \
 	"$headless_verifier_source" "$persistent_root_tool_source" \
 	"$deployment_export_installer_source" "$broker_source" "$client_source" \
 	"$socket_unit_template" "$service_unit_source"; do
@@ -55,6 +65,20 @@ controller_pin=$(awk -F= '
 ' "$controller_source")
 [[ $controller_pin == "$server_hash" ]] ||
 	fail 'controller source does not pin this bundle-server source'
+for pin_and_source in \
+	"progress_collector_sha256:$progress_collector_source" \
+	"progress_package_init_sha256:$progress_package_init_source" \
+	"progress_reference_sha256:$progress_reference_source" \
+	"progress_module_sha256:$progress_module_source"; do
+	pin_name=${pin_and_source%%:*}
+	pin_source=${pin_and_source#*:}
+	pin_value=$(awk -F= -v name="$pin_name" '
+		$1 == name { count++; value=$2 }
+		END { if (count == 1) print value }
+	' "$controller_source")
+	[[ $pin_value == "$(sha256sum "$pin_source" | awk '{ print $1 }')" ]] ||
+		fail "controller source does not pin $pin_name source"
+done
 [[ ! -L /usr/libexec ]] ||
 	fail 'refusing symlinked /usr/libexec'
 caller_record=$(getent passwd "$PKEXEC_UID") ||
@@ -105,6 +129,15 @@ if [[ -e $destination ]]; then
 		$(stat -Lc '%u:%g:%a:%F' -- "$destination") == '0:0:755:directory' ]] ||
 		fail 'unsafe existing recovery-host installation directory'
 fi
+for progress_directory in "$progress_python_root" "$progress_tools_root" \
+	"$progress_package_root"; do
+	if [[ -e $progress_directory || -L $progress_directory ]]; then
+		[[ -d $progress_directory && ! -L $progress_directory &&
+			$(stat -Lc '%u:%g:%a:%F' -- "$progress_directory") == \
+			'0:0:755:directory' ]] ||
+			fail 'unsafe existing progress-module directory'
+	fi
+done
 if [[ -e $controller_destination ]]; then
 	[[ -f $controller_destination && ! -L $controller_destination &&
 		$(stat -Lc '%u:%g:%a:%F' -- "$controller_destination") == '0:0:555:regular file' ]] ||
@@ -140,6 +173,10 @@ done
 
 controller_temporary=
 server_temporary=
+progress_collector_temporary=
+progress_package_init_temporary=
+progress_reference_temporary=
+progress_module_temporary=
 network_server_temporary=
 headless_verifier_temporary=
 persistent_root_tool_temporary=
@@ -161,6 +198,18 @@ cleanup() {
 	fi
 	if [[ -n $server_temporary ]]; then
 		rm -f -- "$server_temporary"
+	fi
+	if [[ -n $progress_collector_temporary ]]; then
+		rm -f -- "$progress_collector_temporary"
+	fi
+	if [[ -n $progress_package_init_temporary ]]; then
+		rm -f -- "$progress_package_init_temporary"
+	fi
+	if [[ -n $progress_reference_temporary ]]; then
+		rm -f -- "$progress_reference_temporary"
+	fi
+	if [[ -n $progress_module_temporary ]]; then
+		rm -f -- "$progress_module_temporary"
 	fi
 	if [[ -n $network_server_temporary ]]; then
 		rm -f -- "$network_server_temporary"
@@ -298,6 +347,8 @@ if [[ -e $socket_unit_destination ]]; then
 		fail 'existing recovery host-control socket did not stop'
 fi
 install -d -o root -g root -m 0755 "$destination"
+install -d -o root -g root -m 0755 \
+	"$progress_python_root" "$progress_tools_root" "$progress_package_root"
 install -d -o "$PKEXEC_UID" -g "$caller_gid" -m 0700 "$bundle_root"
 install -d -o root -g root -m 0700 \
 	"$export_storage_root" "$export_parent"
@@ -306,6 +357,14 @@ controller_temporary=$(mktemp --tmpdir=/usr/libexec \
 	.rog5-recovery-bundle-controller.XXXXXX)
 server_temporary=$(mktemp --tmpdir="$destination" \
 	.host_bundle_server.py.XXXXXX)
+progress_collector_temporary=$(mktemp --tmpdir="$destination" \
+	.rog5-recovery-progress-collector.py.XXXXXX)
+progress_package_init_temporary=$(mktemp --tmpdir="$progress_package_root" \
+	.__init__.py.XXXXXX)
+progress_reference_temporary=$(mktemp --tmpdir="$progress_package_root" \
+	.reference.py.XXXXXX)
+progress_module_temporary=$(mktemp --tmpdir="$progress_package_root" \
+	.host_progress_collector.py.XXXXXX)
 network_server_temporary=$(mktemp --tmpdir="$destination" \
 	.serve-network-root.sh.XXXXXX)
 headless_verifier_temporary=$(mktemp --tmpdir="$destination" \
@@ -328,6 +387,14 @@ install -o root -g root -m 0555 \
 	"$controller_source" "$controller_temporary"
 install -o root -g root -m 0555 \
 	"$server_source" "$server_temporary"
+install -o root -g root -m 0555 \
+	"$progress_collector_source" "$progress_collector_temporary"
+install -o root -g root -m 0444 \
+	"$progress_package_init_source" "$progress_package_init_temporary"
+install -o root -g root -m 0444 \
+	"$progress_reference_source" "$progress_reference_temporary"
+install -o root -g root -m 0444 \
+	"$progress_module_source" "$progress_module_temporary"
 install -o root -g root -m 0555 \
 	"$network_server_source" "$network_server_temporary"
 install -o root -g root -m 0555 \
@@ -389,6 +456,18 @@ mv -fT -- "$network_server_temporary" \
 network_server_temporary=
 mv -fT -- "$server_temporary" "$destination/host_bundle_server.py"
 server_temporary=
+mv -fT -- "$progress_module_temporary" \
+	"$progress_package_root/host_progress_collector.py"
+progress_module_temporary=
+mv -fT -- "$progress_reference_temporary" \
+	"$progress_package_root/reference.py"
+progress_reference_temporary=
+mv -fT -- "$progress_package_init_temporary" \
+	"$progress_package_root/__init__.py"
+progress_package_init_temporary=
+mv -fT -- "$progress_collector_temporary" \
+	"$destination/rog5-recovery-progress-collector.py"
+progress_collector_temporary=
 mv -fT -- "$controller_temporary" "$controller_destination"
 controller_temporary=
 
@@ -414,6 +493,10 @@ echo "INFO controller_sha256=$(sha256sum "$controller_destination" |
 	awk '{ print $1 }')"
 echo "INFO server_sha256=$(sha256sum "$destination/host_bundle_server.py" |
 	awk '{ print $1 }')"
+echo "INFO progress_collector_sha256=$(sha256sum \
+	"$destination/rog5-recovery-progress-collector.py" | awk '{ print $1 }')"
+echo "INFO progress_module_sha256=$(sha256sum \
+	"$progress_package_root/host_progress_collector.py" | awk '{ print $1 }')"
 echo "INFO network_server_sha256=$(sha256sum \
 	"$destination/serve-network-root.sh" | awk '{ print $1 }')"
 echo "INFO headless_verifier_sha256=$(sha256sum \

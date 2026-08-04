@@ -15,13 +15,25 @@ if [[ ${1:-} == serve-deferred ]]; then
 elif [[ ${1:-} == restore-fallback ]]; then
 	action=restore-fallback
 	shift
+elif [[ ${1:-} == serve-progress-deferred ]]; then
+	action=serve-progress-deferred
+	shift
 fi
 bundle=
 manifest_hash=
+progress_output_directory=
 expected_location=
 restore_timeout=
 server_sha256=72c636b73194ed3ccdcbd9cb86c7b25a2a8d2ff83b845e65c6e8cd11027b55ca
+progress_collector_sha256=8b15aaac28d54ac0acf93411dc2dbb77d9a9b7b5dfc8e2cc591609f7a23ed20a
+progress_package_init_sha256=22364e5f8e8e18744fc9e1aabb069acf2e7020251f40c64202f4d30227b38175
+progress_reference_sha256=82497ccf98ddf67fbaeccf6173c8ce5531029977d28c7015e191d940de84a4da
+progress_module_sha256=5c5ee9480fa49448e204f30f97679dc8108c60687627a0f94ca3c812322ee5a8
 HARD_SERVER_TIMEOUT_SECONDS=205
+PROGRESS_HARD_SERVER_TIMEOUT_SECONDS=250
+PROGRESS_CAPTURE_TIMEOUT_SECONDS=245
+PROGRESS_LISTENER_READY_ATTEMPTS=20
+PROGRESS_POST_TRANSFER_GRACE_SECONDS=2
 OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS=5
 if [[ $action == restore-fallback ]]; then
 	[[ $# == 2 ]] ||
@@ -40,6 +52,27 @@ if [[ $action == restore-fallback ]]; then
 	[[ $restore_timeout =~ ^[1-9][0-9]*$ &&
 		$restore_timeout -le 900 ]] ||
 		fail 'invalid fallback-profile timeout'
+elif [[ $action == serve-progress-deferred ]]; then
+	[[ $# == 3 ]] ||
+		fail 'usage: rog5-recovery-bundle-controller serve-progress-deferred BUNDLE MANIFEST_SHA256 OUTPUT_DIRECTORY'
+	bundle=$1
+	manifest_hash=$2
+	progress_output_directory=$3
+	[[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
+		$bundle != *..* && $bundle != none ]] ||
+		fail 'invalid bundle identity'
+	[[ $manifest_hash =~ ^[0-9a-f]{64}$ &&
+		$manifest_hash != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+		fail 'invalid manifest SHA-256'
+	[[ $progress_output_directory =~ ^/[A-Za-z0-9._/+-]{1,399}$ &&
+		$progress_output_directory != */ &&
+		$progress_output_directory != *//* ]] ||
+		fail 'invalid progress output directory'
+	IFS=/ read -r -a progress_output_parts <<<"$progress_output_directory"
+	for progress_output_part in "${progress_output_parts[@]}"; do
+		[[ -z $progress_output_part || $progress_output_part != .. ]] ||
+			fail 'invalid progress output directory'
+	done
 else
 	[[ $# == 2 ]] ||
 		fail 'usage: rog5-recovery-bundle-controller [serve-deferred] BUNDLE MANIFEST_SHA256'
@@ -61,14 +94,21 @@ if [[ $offline_test == 1 ]]; then
 	sys_devices=${ROG5_TEST_SYS_DEVICES:?missing ROG5_TEST_SYS_DEVICES}
 	sys_bus_usb=${ROG5_TEST_SYS_BUS_USB:?missing ROG5_TEST_SYS_BUS_USB}
 	server_path=${ROG5_TEST_SERVER_PATH:?missing ROG5_TEST_SERVER_PATH}
+	progress_collector_path=${ROG5_TEST_PROGRESS_COLLECTOR_PATH:-$server_path}
 	bundle_root=${ROG5_TEST_BUNDLE_ROOT:?missing ROG5_TEST_BUNDLE_ROOT}
 	lock_path=${ROG5_TEST_LOCK_PATH:?missing ROG5_TEST_LOCK_PATH}
+	progress_eof_marker=${ROG5_TEST_PROGRESS_EOF_MARKER:-$lock_path.progress-eof}
 	hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS}
+	progress_post_transfer_grace=${ROG5_TEST_PROGRESS_POST_TRANSFER_GRACE:-1}
 	test_watchdog_pid_file=${ROG5_TEST_WATCHDOG_PID_FILE:-}
 	test_die_after_watchdog=${ROG5_TEST_DIE_AFTER_WATCHDOG:-0}
 	[[ $hard_server_timeout =~ ^[1-9][0-9]*$ &&
 		$hard_server_timeout -le "$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS" ]] ||
 		fail 'invalid offline hard-server timeout'
+	[[ $progress_post_transfer_grace =~ ^[1-9][0-9]*$ &&
+		$progress_post_transfer_grace -le \
+		"$PROGRESS_POST_TRANSFER_GRACE_SECONDS" ]] ||
+		fail 'invalid offline progress post-transfer grace'
 	[[ $test_die_after_watchdog == 0 ||
 		$test_die_after_watchdog == 1 ]] ||
 		fail 'invalid offline watchdog-death mode'
@@ -85,9 +125,19 @@ else
 	sys_devices=/sys/devices
 	sys_bus_usb=/sys/bus/usb/devices
 	server_path=/usr/libexec/rog5-recovery-host/host_bundle_server.py
+	progress_collector_path=/usr/libexec/rog5-recovery-host/rog5-recovery-progress-collector.py
+	progress_python_root=/usr/libexec/rog5-recovery-host/python
+	progress_package_root=$progress_python_root/tools/recovery_control
+	progress_eof_marker=/run/rog5-recovery-progress.bundle-eof
 	bundle_root=/var/lib/rog5-recovery-bundles
 	lock_path=/run/rog5-recovery-bundle-controller.lock
-	hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS
+	if [[ $action == serve-progress-deferred ]]; then
+		hard_server_timeout=$PROGRESS_HARD_SERVER_TIMEOUT_SECONDS
+		progress_post_transfer_grace=$PROGRESS_POST_TRANSFER_GRACE_SECONDS
+	else
+		hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS
+		progress_post_transfer_grace=0
+	fi
 	test_watchdog_pid_file=
 	test_die_after_watchdog=0
 	controller_path=/usr/libexec/rog5-recovery-bundle-controller
@@ -108,7 +158,7 @@ fi
 export PATH
 
 for command in awk firewall-cmd flock getent grep id ip kill nmcli \
-	python3 realpath setpriv sha256sum sleep sort ss stat systemctl timeout \
+	python3 realpath rm setpriv sha256sum sleep sort ss stat systemctl timeout \
 	udevadm; do
 	command -v "$command" >/dev/null ||
 		fail "missing host command: $command"
@@ -130,6 +180,52 @@ caller_gid=$(awk -F: -v uid="$caller_uid" '
 [[ -f $server_path && ! -L $server_path &&
 	$(stat -Lc '%u:%g:%a:%F' -- "$server_path") == "$privileged_uid:$privileged_gid:555:regular file" ]] ||
 	fail 'unsafe installed bundle-server metadata'
+if [[ $action == serve-progress-deferred ]]; then
+	[[ -f $progress_collector_path && ! -L $progress_collector_path &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$progress_collector_path") == \
+		"$privileged_uid:$privileged_gid:555:regular file" ]] ||
+		fail 'unsafe installed progress-collector metadata'
+	if [[ $offline_test == 0 ]]; then
+		for progress_directory in "$progress_python_root" \
+			"$progress_python_root/tools" "$progress_package_root"; do
+			[[ -d $progress_directory && ! -L $progress_directory &&
+				$(stat -Lc '%u:%g:%a:%F' -- "$progress_directory") == \
+				'0:0:755:directory' ]] ||
+				fail 'unsafe installed progress-module directory'
+		done
+		progress_package_init=$progress_package_root/__init__.py
+		progress_reference=$progress_package_root/reference.py
+		progress_module=$progress_package_root/host_progress_collector.py
+		for progress_file in "$progress_package_init" \
+			"$progress_reference" "$progress_module"; do
+			[[ -f $progress_file && ! -L $progress_file &&
+				$(stat -Lc '%u:%g:%a:%F' -- "$progress_file") == \
+				'0:0:444:regular file' ]] ||
+				fail 'unsafe installed progress-module metadata'
+		done
+		[[ $(sha256sum "$progress_collector_path" | awk '{ print $1 }') == \
+			"$progress_collector_sha256" &&
+			$(sha256sum "$progress_package_init" | awk '{ print $1 }') == \
+			"$progress_package_init_sha256" &&
+			$(sha256sum "$progress_reference" | awk '{ print $1 }') == \
+			"$progress_reference_sha256" &&
+			$(sha256sum "$progress_module" | awk '{ print $1 }') == \
+			"$progress_module_sha256" ]] ||
+			fail 'installed progress collector module set does not match controller pins'
+	fi
+	[[ -d $progress_output_directory &&
+		! -L $progress_output_directory &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$progress_output_directory") == \
+		"$caller_uid:$caller_gid:700:directory" ]] ||
+		fail 'unsafe progress output-directory metadata'
+	[[ ! -e $progress_output_directory/recovery-progress.capture &&
+		! -L $progress_output_directory/recovery-progress.capture &&
+		! -e $progress_output_directory/recovery-progress.stop &&
+		! -L $progress_output_directory/recovery-progress.stop ]] ||
+		fail 'progress output path already exists'
+	[[ ! -e $progress_eof_marker && ! -L $progress_eof_marker ]] ||
+		fail 'stale progress bundle-EOF marker exists'
+fi
 [[ -d $bundle_root && ! -L $bundle_root &&
 	$(stat -Lc '%u:%g:%a:%F' -- "$bundle_root") == "$caller_uid:$caller_gid:700:directory" ]] ||
 	fail 'unsafe fixed host bundle-root metadata'
@@ -142,12 +238,22 @@ phone_ip=169.254.77.2
 host_cidr=$host_ip/30
 fallback_profile=rog5-fallback-usb-ssh
 host_port=8080
+progress_port=8081
 bundle_ipv4_filter="sport = :$host_port and ( src = 0.0.0.0/32 or src = $host_ip/32 )"
 bundle_ipv6_filter="sport = :$host_port and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:$host_ip/128 )"
 firewall_zone=drop
 state_lifetime=180s
+address_lifetime=180
+if [[ $action == serve-progress-deferred ]]; then
+	state_lifetime=360s
+	address_lifetime=360
+fi
 allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"$host_port\" protocol=\"tcp\" accept"
 drop_rule="rule family=\"ipv4\" priority=\"-300\" destination address=\"$host_ip/32\" port port=\"$host_port\" protocol=\"tcp\" drop"
+progress_ipv4_filter="sport = :$progress_port and ( src = 0.0.0.0/32 or src = $host_ip/32 )"
+progress_ipv6_filter="sport = :$progress_port and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:$host_ip/128 )"
+progress_allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"$progress_port\" protocol=\"tcp\" accept"
+progress_drop_rule="rule family=\"ipv4\" priority=\"-300\" destination address=\"$host_ip/32\" port port=\"$progress_port\" protocol=\"tcp\" drop"
 
 monotonic_deciseconds() {
 	local uptime_value whole fraction
@@ -437,6 +543,14 @@ existing_ipv6_listeners=$(ss -H -lnt6 "$bundle_ipv6_filter") ||
 	fail 'cannot inspect host listeners'
 [[ -z $existing_ipv4_listeners && -z $existing_ipv6_listeners ]] ||
 	fail 'TCP port 8080 already has a listener'
+if [[ $action == serve-progress-deferred ]]; then
+	existing_progress_ipv4=$(ss -H -lnt4 "$progress_ipv4_filter") ||
+		fail 'cannot inspect host progress listeners'
+	existing_progress_ipv6=$(ss -H -lnt6 "$progress_ipv6_filter") ||
+		fail 'cannot inspect host progress listeners'
+	[[ -z $existing_progress_ipv4 && -z $existing_progress_ipv6 ]] ||
+		fail 'TCP port 8081 already has a listener'
+fi
 [[ $(firewall-cmd --zone="$firewall_zone" --list-all |
 	awk '$1 == "target:" { print $2 }') == DROP ]] ||
 	fail 'drop firewall zone is not drop-by-default'
@@ -473,10 +587,20 @@ if firewall-cmd --zone="$firewall_zone" \
 	--query-rich-rule="$allow_rule" >/dev/null; then
 	fail 'recovery allow rule already exists'
 fi
+if [[ $action == serve-progress-deferred ]] &&
+	firewall-cmd --zone="$firewall_zone" \
+		--query-rich-rule="$progress_allow_rule" >/dev/null; then
+	fail 'recovery progress allow rule already exists'
+fi
 for zone in "${protected_zones[@]}"; do
 	if firewall-cmd --zone="$zone" \
 		--query-rich-rule="$drop_rule" >/dev/null; then
 		fail "recovery drop rule already exists in $zone"
+	fi
+	if [[ $action == serve-progress-deferred ]] &&
+		firewall-cmd --zone="$zone" \
+			--query-rich-rule="$progress_drop_rule" >/dev/null; then
+		fail "recovery progress drop rule already exists in $zone"
 	fi
 done
 
@@ -535,9 +659,12 @@ read_profile "$original_connection_uuid" "$interface"
 	fail 'fallback NetworkManager profile autoconnect is not enabled'
 
 server_pid=
+progress_collector_pid=
+progress_grace_pid=
 server_watchdog_pid=
 address_added=0
 allow_added=0
+progress_allow_added=0
 interface_moved=0
 managed_changed=0
 connection_deactivated=0
@@ -553,10 +680,23 @@ cleanup() {
 		kill -TERM "$server_watchdog_pid" >/dev/null 2>&1
 		wait "$server_watchdog_pid" >/dev/null 2>&1
 	fi
+	if [[ -n $progress_grace_pid ]]; then
+		kill -TERM "$progress_grace_pid" >/dev/null 2>&1
+		wait "$progress_grace_pid" >/dev/null 2>&1
+	fi
 	if [[ -n $server_pid ]]; then
 		kill -TERM "$server_pid" >/dev/null 2>&1
 		sleep 0.1
 		kill -KILL "$server_pid" >/dev/null 2>&1
+	fi
+	if [[ -n $progress_collector_pid ]]; then
+		kill -TERM "$progress_collector_pid" >/dev/null 2>&1
+		sleep 0.1
+		kill -KILL "$progress_collector_pid" >/dev/null 2>&1
+		wait "$progress_collector_pid" >/dev/null 2>&1
+	fi
+	if [[ $action == serve-progress-deferred ]]; then
+		rm -f -- "$progress_eof_marker"
 	fi
 	if [[ $address_added == 1 && -e $sys_class_net/$interface ]]; then
 		ip address del "$host_cidr" dev "$interface" >/dev/null 2>&1
@@ -564,6 +704,10 @@ cleanup() {
 	if [[ $allow_added == 1 ]]; then
 		firewall-cmd --zone="$firewall_zone" \
 			--remove-rich-rule="$allow_rule" >/dev/null 2>&1
+	fi
+	if [[ $progress_allow_added == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--remove-rich-rule="$progress_allow_rule" >/dev/null 2>&1
 	fi
 	if [[ $interface_moved == 1 ]]; then
 		if [[ -n $original_zone && -e $sys_class_net/$interface ]]; then
@@ -577,6 +721,10 @@ cleanup() {
 	for zone in "${drop_added_zones[@]}"; do
 		firewall-cmd --zone="$zone" \
 			--remove-rich-rule="$drop_rule" >/dev/null 2>&1
+		if [[ $action == serve-progress-deferred ]]; then
+			firewall-cmd --zone="$zone" \
+				--remove-rich-rule="$progress_drop_rule" >/dev/null 2>&1
+		fi
 	done
 	if [[ $forward_disabled == 1 ]]; then
 		firewall-cmd --zone="$firewall_zone" \
@@ -612,9 +760,14 @@ for zone in "${protected_zones[@]}"; do
 	drop_added_zones+=("$zone")
 	firewall-cmd --zone="$zone" \
 		--add-rich-rule="$drop_rule" --timeout="$state_lifetime" >/dev/null
+	if [[ $action == serve-progress-deferred ]]; then
+		firewall-cmd --zone="$zone" \
+			--add-rich-rule="$progress_drop_rule" \
+			--timeout="$state_lifetime" >/dev/null
+	fi
 done
 
-if [[ $action == serve-deferred ]]; then
+if [[ $action == serve-deferred || $action == serve-progress-deferred ]]; then
 	autoconnect_disabled=1
 	bounded_nmcli connection modify uuid "$original_connection_uuid" \
 		connection.autoconnect no >/dev/null
@@ -641,10 +794,25 @@ fi
 allow_added=1
 firewall-cmd --zone="$firewall_zone" \
 	--add-rich-rule="$allow_rule" --timeout="$state_lifetime" >/dev/null
+if [[ $action == serve-progress-deferred ]]; then
+	progress_allow_added=1
+	firewall-cmd --zone="$firewall_zone" \
+		--add-rich-rule="$progress_allow_rule" \
+		--timeout="$state_lifetime" >/dev/null
+fi
 if [[ -z $interface_addresses ]]; then
 	address_added=1
 	ip address add "$host_cidr" dev "$interface" \
-		valid_lft 180 preferred_lft 180
+		valid_lft "$address_lifetime" preferred_lft "$address_lifetime"
+fi
+
+if [[ $action == serve-progress-deferred ]]; then
+	setpriv --pdeathsig TERM -- \
+		/usr/bin/python3 -I -S -B "$progress_collector_path" \
+		"$interface" "$bundle" "$manifest_hash" \
+		"$progress_output_directory" "$caller_uid" "$caller_gid" \
+		"$PROGRESS_CAPTURE_TIMEOUT_SECONDS" "$progress_eof_marker" "$$" &
+	progress_collector_pid=$!
 fi
 
 setpriv --reuid "$caller_uid" --regid "$caller_gid" --clear-groups \
@@ -676,6 +844,53 @@ for _attempt in {1..300}; do
 done
 ((listener_ready == 1)) ||
 	fail 'recovery bundle server did not create its fixed listener'
+if [[ $action == serve-progress-deferred ]]; then
+	progress_listener_ready=0
+	for ((_attempt = 1;
+		_attempt <= PROGRESS_LISTENER_READY_ATTEMPTS;
+		_attempt += 1)); do
+		progress_listeners=$(ss -H -lntp4 "$progress_ipv4_filter") ||
+			fail 'cannot verify recovery progress listener'
+		progress_conflicting_ipv6=$(ss -H -lntp6 \
+			"$progress_ipv6_filter") ||
+			fail 'cannot verify recovery progress listener'
+		if [[ -n $progress_listeners || -n $progress_conflicting_ipv6 ]]; then
+			mapfile -t progress_listener_lines <<<"$progress_listeners"
+			[[ -z $progress_conflicting_ipv6 &&
+				${#progress_listener_lines[@]} == 1 &&
+				${progress_listener_lines[0]} == \
+				*"$host_ip:$progress_port"* &&
+				${progress_listener_lines[0]} =~ \
+				pid=$progress_collector_pid([,\)]) ]] &&
+				kill -0 "$progress_collector_pid" 2>/dev/null ||
+				fail 'recovery progress listener is not uniquely confined'
+			progress_listener_ready=1
+			break
+		fi
+		kill -0 "$progress_collector_pid" 2>/dev/null || break
+		sleep 0.1
+	done
+	if ((progress_listener_ready == 0)); then
+		if kill -0 "$progress_collector_pid" 2>/dev/null; then
+			kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+			sleep 0.1
+			kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+		fi
+		set +e
+		wait "$progress_collector_pid"
+		progress_status=$?
+		set -e
+		progress_collector_pid=
+		progress_listeners=$(ss -H -lntp4 "$progress_ipv4_filter") ||
+			fail 'cannot verify recovery progress listener'
+		progress_conflicting_ipv6=$(ss -H -lntp6 \
+			"$progress_ipv6_filter") ||
+			fail 'cannot verify recovery progress listener'
+		[[ -z $progress_listeners && -z $progress_conflicting_ipv6 ]] ||
+			fail 'recovery progress listener conflict survived collector exit'
+		echo "INFO recovery progress listener unavailable (collector status $progress_status); authority=NONE"
+	fi
+fi
 
 controller_pid=$$
 if [[ $offline_test == 1 ]]; then
@@ -697,18 +912,79 @@ if [[ $test_die_after_watchdog == 1 ]]; then
 fi
 
 echo "PASS recovery bundle server ready on $host_ip:$host_port via $interface"
+if [[ $action == serve-progress-deferred && $progress_listener_ready == 1 ]]; then
+	echo "PASS recovery progress listener ready on $host_ip:$progress_port via $interface"
+fi
 echo "INFO serving bundle=$bundle manifest_sha256=$manifest_hash exactly once"
 set +e
 wait "$server_pid"
 server_status=$?
 set -e
-kill -TERM "$server_watchdog_pid" >/dev/null 2>&1 || true
-wait "$server_watchdog_pid" >/dev/null 2>&1 || true
-server_watchdog_pid=
 server_pid=
 ((server_status == 0)) ||
 	fail "recovery bundle server failed with status $server_status"
-if [[ $action == serve-deferred ]]; then
+if [[ $action == serve-progress-deferred ]]; then
+	if [[ -n $progress_collector_pid ]]; then
+		progress_marker_ready=1
+		if ! /usr/bin/python3 -I -S -B -c \
+			'import os,sys; descriptor=os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600); os.close(descriptor)' \
+			"$progress_eof_marker"; then
+			echo 'WARN recovery progress bundle-EOF marker is unavailable; authority=NONE' >&2
+			progress_marker_ready=0
+			kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+			sleep 0.1
+			kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+		fi
+		if ((progress_marker_ready == 1)) &&
+			kill -0 "$progress_collector_pid" 2>/dev/null; then
+			sleep "$progress_post_transfer_grace" &
+			progress_grace_pid=$!
+			progress_first_pid=
+			set +e
+			wait -n -p progress_first_pid \
+				"$progress_collector_pid" "$progress_grace_pid"
+			progress_first_status=$?
+			set -e
+			if [[ $progress_first_pid == "$progress_grace_pid" ]]; then
+				echo 'WARN recovery progress collector exceeded post-transfer grace; authority=NONE' >&2
+				kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+				sleep 0.1
+				kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+				set +e
+				wait "$progress_collector_pid"
+				progress_status=$?
+				set -e
+			else
+				progress_status=$progress_first_status
+				kill -TERM "$progress_grace_pid" >/dev/null 2>&1 || true
+			fi
+			wait "$progress_grace_pid" >/dev/null 2>&1 || true
+			progress_grace_pid=
+		else
+			set +e
+			wait "$progress_collector_pid"
+			progress_status=$?
+			set -e
+		fi
+		progress_collector_pid=
+		if ((progress_status != 0)); then
+			echo "WARN recovery progress collector failed with status $progress_status; authority=NONE" >&2
+		elif [[ -f $progress_output_directory/recovery-progress.capture &&
+			! -L $progress_output_directory/recovery-progress.capture &&
+			$(stat -Lc '%u:%g:%a:%F' -- \
+				"$progress_output_directory/recovery-progress.capture") == \
+			"$caller_uid:$caller_gid:600:regular file" ]]; then
+			echo 'PASS bounded recovery progress capture completed'
+		else
+			echo 'WARN recovery progress capture is unavailable or unsafe; authority=NONE' >&2
+		fi
+	fi
+	echo 'PASS bounded recovery progress collection concluded authority=NONE'
+fi
+kill -TERM "$server_watchdog_pid" >/dev/null 2>&1 || true
+wait "$server_watchdog_pid" >/dev/null 2>&1 || true
+server_watchdog_pid=
+if [[ $action == serve-deferred || $action == serve-progress-deferred ]]; then
 	defer_restore=1
 fi
 echo 'PASS one recovery bundle transfer completed'
