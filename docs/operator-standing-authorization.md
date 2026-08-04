@@ -8,13 +8,20 @@ authorizations and available project credentials as needed, and continue using
 them until a genuine technical, safety, platform, input, or scope blocker is
 reached.** Routine authorization flags and older notes requesting fresh
 consent may be satisfied from this directive; neither is a reason to pause.
+The operator's latest wording expressly permits continued use of those
+authorizations until the work is genuinely blocked.
 Consequential actions should still be reported as work proceeds, but that
 notice is informational rather than a request for permission.
 
-This instruction remains in force across future task continuations until the
-operator explicitly stops, narrows, or revokes it. It does not create a
-technical policy `allow` row, relax one-shot artifact consumption, waive
-admission checks, or expand the project beyond the hard boundaries below.
+The authenticated operator directed that this instruction be used across
+future task continuations until explicitly stopped, narrowed, or revoked.
+This file only records that directive; it does not renew or manufacture
+authority, and a future agent may rely on it only while trusted task state
+retains the authenticated instruction. Every lifecycle boot still requires
+its own exact central-policy `allow` row and every technical admission gate to
+pass. The directive does not create that row, relax one-shot artifact
+consumption, waive admission checks, or expand the project beyond the hard
+boundaries below.
 
 The operator reaffirmed this instruction on 2026-08-02: the agent does not
 need to ask for authorization and may autonomously exercise any authorization
