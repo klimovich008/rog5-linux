@@ -46,7 +46,9 @@ entry cycle. The panel can remain off while the server is reachable.
 
 Recovery v18 remains historical staging evidence and is recorded as revoked in
 `manifests/temporary-boot-images.tsv`. Diagnostic generations 0–10 are consumed
-and the temporary-boot policy has no active `allow` row. Generation 10 accepted
+and absent from boot policy. Generation 11 is the sole active `allow` row for
+one connected-preflight-gated RAM-only lifecycle; it remains unbooted,
+`authority=none`, and has no boot claim. Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent
 existed, no target ran, and exact Alpine fallback plus host cleanup passed.
@@ -1268,14 +1270,18 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    against both retained trees. The one-shot controller now selects the same
    tuple through a separate
    [live-capable profile](../test-results/2026-08-04-generation-11-live-profile-offline.md),
-   while central boot policy remains deny-by-default. It is ignored,
-   unadmitted, unbooted, absent from boot policy, and `authority=none`. Commit `5293e56` passed exact-head
+   while central boot policy remains deny-by-default for every other image. A
+   separate
+   [one-shot admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+   now adds the sole exact `allow` row for use only after connected preflight. It remains
+   ignored, unbooted, and `authority=none`, with no boot claim. Commit `5293e56` passed exact-head
    GitHub Actions run `30899370666`. The reviewed profile and CI-race correction
    were published at `98f8d27`; exact-head run `30904224177` passed. The next
    live-profile transition now passes Claude Opus review, independent Codex
    review, and complete local CI. Commit `2a483ec` passed exact-head GitHub run
-   `30908649494`. The next gate is a separate central-policy admission change,
-   not a phone action.
+   `30908649494`. Admission-focused and complete local CI pass, and independent
+   spec and standards reviews report no findings. Publication and exact-head
+   CI remain before a separate connected preflight. No phone action occurred.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

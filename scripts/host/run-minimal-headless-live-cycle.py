@@ -1724,6 +1724,9 @@ class LiveCycle:
             fail("recovery profile cannot identify temporary-boot state")
         return self.temporary_boot_consumption_root() / f"{profile}.record"
 
+    def temporary_boot_entered_path(self) -> Path:
+        return Path(f"{self.temporary_boot_consumption_path()}.entered")
+
     def validate_temporary_boot_consumption_root(
         self,
         *,
@@ -1752,7 +1755,13 @@ class LiveCycle:
     def assert_temporary_boot_unconsumed(self) -> None:
         self.validate_temporary_boot_consumption_root(create=False)
         path = self.temporary_boot_consumption_path()
-        if path.exists() or path.is_symlink():
+        entered = self.temporary_boot_entered_path()
+        if (
+            path.exists()
+            or path.is_symlink()
+            or entered.exists()
+            or entered.is_symlink()
+        ):
             fail(
                 "temporary recovery lifecycle is already consumed on this "
                 "host"
@@ -1761,6 +1770,12 @@ class LiveCycle:
     def claim_temporary_boot(self) -> None:
         self.validate_temporary_boot_consumption_root(create=True)
         path = self.temporary_boot_consumption_path()
+        entered = self.temporary_boot_entered_path()
+        if entered.exists() or entered.is_symlink():
+            fail(
+                "temporary recovery lifecycle is already consumed on this "
+                "host"
+            )
         try:
             write_record(
                 path,

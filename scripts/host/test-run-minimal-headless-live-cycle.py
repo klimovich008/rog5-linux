@@ -1276,6 +1276,18 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 "already consumed on this host",
             ):
                 cycle.claim_temporary_boot()
+            entered = cycle.temporary_boot_entered_path()
+            record.rename(entered)
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "already consumed on this host",
+            ):
+                cycle.assert_temporary_boot_unconsumed()
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "already consumed on this host",
+            ):
+                cycle.claim_temporary_boot()
 
     def test_key_preflight_guards_fail_before_credentials(self):
         result = self.fixture.run(

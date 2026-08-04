@@ -414,8 +414,19 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   unchanged signed-target twins. The one-shot lifecycle selects a separate
   Generation-11 live-capable profile, while direct connected actions and
   absent or malformed policy fixtures reject before host inspection. No
-  Generation-11 boot-policy row exists, and `authority=none` remains exact. See the
-  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md).
+  direct connected action is admitted. Central policy now contains one exact
+  Generation-11 row; hostile missing-file, missing-row, malformed-header,
+  missing/duplicate-artifact-row, duplicate-policy-row, wrong-basis, denied
+  status, identity mutation, consumed disposition, and trailing-field fixtures
+  reject both preflight and boot before host inspection. Generation-11 `boot`
+  also requires the fixed claim consumer to validate and irreversibly enter
+  the private exact durable lifecycle `BOOT_CLAIMED` record before host
+  inspection; seven hardware-free claim-consumer tests cover one-shot entry,
+  reuse, content, metadata, symlink, root, pre-existing-destination, and
+  pathname-replacement race cases.
+  `authority=none` and `unbooted` remain exact. See the
+  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md)
+  and [admission result](../test-results/2026-08-04-generation-11-live-admission-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

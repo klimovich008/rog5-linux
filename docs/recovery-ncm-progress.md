@@ -12,8 +12,12 @@ was clean-built twice and issued twice offline as AVB
 `8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562`.
 Its exact recovery and unchanged signed-target tuple now passes immutable
 offline profile `headless-diagnostic-generation11-offline-v1` against both
-retained trees. It remains ignored, unadmitted, unbooted, absent from boot
-policy, and `authority=none`; the phone has not been booted with this code.
+retained trees. At that offline-profile checkpoint it was ignored, unadmitted,
+unbooted, absent from boot policy, and `authority=none`. A later
+[one-shot admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+adds the sole exact central-policy row for a connected-preflight-gated RAM-only
+lifecycle. The artifact remains ignored, unbooted, `authority=none`, and has no
+boot claim; the phone has not been booted with this code.
 Generation 10 remains consumed and must never be retried.
 
 This channel addresses one exact failure: recovery can continue processing a
@@ -164,14 +168,18 @@ create boot authority. The immutable offline-only profile now passes against
 both retained trees. Its review and publication completed at `98f8d27` with
 exact-head run `30904224177` green. Continue in this order:
 
-1. create and separately review a live-profile transition that binds the
-   installed NCM host components and complete lifecycle path; and
-2. only then consider one distinct central-policy admission and connected
-   preflight before any temporary boot.
+1. publish the separately reviewed live-profile transition and one-shot
+   central-policy admission with exact-head GitHub CI green; and
+2. only then perform one separate connected preflight before any temporary
+   boot.
 
-The current work creates no policy row, connected action, or phone state
-change. Both retained Generation-11 trees state `authority=none` and cannot be
-booted by the lifecycle controller.
+The admission creates one policy row but no connected action or phone state
+change. Both retained Generation-11 trees state `authority=none`; the generic
+recovery wrapper rejects generation diagnostics, and only the guarded one-shot
+lifecycle controller can consume the admission after connected preflight. The
+live boot gate's fixed claim consumer validates and irreversibly enters the
+controller's exact private durable `BOOT_CLAIMED` record before any
+host/device inspection.
 
 Pstore remains a complementary prior-boot oracle. It cannot replace this
 same-lifecycle channel because the verified Alpine fallback cannot read the

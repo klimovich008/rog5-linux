@@ -624,8 +624,13 @@ Current execution order:
     independent Codex review pass for the Generation-11 live-profile
     transition. Commit `2a483ec` passed exact-head GitHub Actions run
     `30908649494`.
-22. **In progress:** make a separate reviewed central-policy admission change
-    before any connected preflight or phone action.
+22. **Complete offline:** central policy now admits exactly one Generation-11
+    receive-only NCM-progress lifecycle after connected preflight. The
+    admitted-policy and hostile-fixture gates pass without phone contact; the
+    artifact remains unbooted with `authority=none`. Independent spec and
+    standards reviews plus complete local CI pass. Publication and exact-head
+    GitHub CI remain before a separate connected preflight checkpoint. See the
+    [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md).
 23. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
 24. If H2 passes, continue physical keys/indicator, then H3
