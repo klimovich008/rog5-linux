@@ -67,10 +67,12 @@ listener-ownership conflict still fails closed. The 8 runtime, 21 collector,
 as do the complete local Linux `ci` and provisioned `quick` tiers. See the
 [offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 
-Do not issue Generation 11 yet. Publish this exact source with green exact-head
-GitHub CI, install and verify the fixed privileged files, rerun the final
-AArch64 gate, then twin-build and review a distinct offline-only wrapper before
-creating any policy admission or connected action.
+Do not issue Generation 11 yet. Commit `2b90a0e` passed exact-head GitHub
+Actions run `30887436984`; the fixed privileged files were then installed from
+that checkout, byte-verified, and exercised through the read-only empty-export
+proof with SteamOS read-only mode restored. Next rerun the final AArch64 gate,
+then twin-build and review a distinct offline-only wrapper before creating any
+policy admission or connected action.
 
 ## Active deployment checkpoint
 
