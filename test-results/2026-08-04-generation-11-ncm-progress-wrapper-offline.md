@@ -94,6 +94,10 @@ identity before publishing output.
 - complete `scripts/host/test-repository-linux.sh ci`: pass, including all 42
   tracked Markdown-link checks and the AArch64 QEMU/systemd closure.
 
+The implementation and evidence checkpoint was published at exact commit
+`5293e562c7db7da2aa65a43df5642a9fae5bc19d`. Exact-head GitHub Actions run
+`30899370666` passed recovery-core in 3m53s and QEMU in 35s.
+
 A constrained, tool-free Claude review first found missing positive proof of
 the fresh NCM raw identity, insufficient cross-generation mutation coverage,
 one indirect digest input, and two standing-authorization wording issues.
@@ -124,10 +128,9 @@ row, temporary-boot policy row, connected admission, or live evidence. These
 files cannot authorize a boot.
 
 Before any phone action, a separate reviewed change must pin this exact tuple
-in one immutable offline lifecycle profile. First this issuer/evidence
-checkpoint must pass complete local and exact-head GitHub CI. The later profile
-must verify both retained trees against the complete timeout/rollback/fallback/
-private-evidence chain and pass its own publication gates before any distinct
-one-shot central-policy admission or connected preflight is considered. The
-temporary lifecycle remains diagnostic-only, boot-only, non-retryable after
-consumption, and never flashable.
+in one immutable offline lifecycle profile. The later profile must verify both
+retained trees against the complete timeout/rollback/fallback/private-evidence
+chain and pass its own publication gates before any distinct one-shot
+central-policy admission or connected preflight is considered. The temporary
+lifecycle remains diagnostic-only, boot-only, non-retryable after consumption,
+and never flashable.
