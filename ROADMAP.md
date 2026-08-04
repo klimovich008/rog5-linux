@@ -485,8 +485,9 @@ independently observable across ACM loss. Generation 11 implemented that
 channel but was consumed by the later host listener-confinement failure; the
 current correction has reproduced the real scoped TCP 8081 endpoint and
 implemented exact endpoint/sole-owner verification offline. Complete CI and
-installed-host verification pass; publication and exact-head CI remain before
-any distinct successor issuance.
+installed-host verification pass; implementation commit `1f3cc66` passed
+exact-head GitHub Actions run `30931511061`. A distinct diagnostic successor
+may now be issued and preflighted offline; no phone boot is implied.
 
 Current execution order:
 
@@ -655,17 +656,22 @@ Current execution order:
     published the transition, and exact-head GitHub Actions run `30926911113`
     passed recovery-core in 3m59s and QEMU in 35s. See the
     [live result](test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
-25. **Implementation complete; publication pending:** a production-faithful
+25. **Complete:** a production-faithful
     host-only run captured the `SO_BINDTODEVICE` listener as
     `169.254.77.1%interface:8081`. The controller now parses one exact `ss`
     record and requires the scoped endpoint, sole launched `python3` PID/fd
     owner, live process, and empty IPv6 inventory. Thirty-eight controller
     cases cover SteamOS races and hostile lookalikes. Complete local CI and
-    installed-host verification pass; publication and exact-head CI remain
-    before issuing a distinct successor.
-26. Promote a distinct normal SSH candidate only after diagnostic evidence
+    installed-host verification pass. Implementation commit `1f3cc66` passed
+    exact-head GitHub Actions run `30931511061` (recovery-core 4m02s; QEMU
+    37s).
+26. Issue and preflight a distinct one-shot diagnostic successor from the
+    unchanged signed target tuple and corrected host boundary. Keep central
+    policy at zero `allow` rows until every offline, review, publication, and
+    connected-preflight gate passes.
+27. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-27. If H2 passes, continue physical keys/indicator, then H3
+28. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

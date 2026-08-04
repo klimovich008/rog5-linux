@@ -78,8 +78,10 @@ host surface: another host or iproute2 version that emits a different local
 endpoint must run and document the production-faithful reproducer before its
 controller is installed; it is not silently accepted. Broader review,
 complete local CI, and installed-host replacement passed. Publication and
-exact-head GitHub CI remain required before this host fix can support a
-distinct successor preflight.
+exact-head GitHub CI then passed at implementation commit `1f3cc66` in run
+`30931511061` (recovery-core 4m02s; QEMU 37s). This host fix can now support
+offline issuance and preflight of a distinct diagnostic successor; it does not
+authorize that successor's phone boot.
 This result grants no Generation-11 retry and no phone-boot authority.
 
 ## Validation and installed host
