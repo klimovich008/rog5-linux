@@ -75,6 +75,16 @@ the real production `usb0` source bind/connect path, a wrong host interface,
 and an unresolved peer. Other testing builds require explicit opt-in before
 they can touch that path.
 
+GitHub exact-head run `30886635962` passed the QEMU job but exposed one runner
+policy difference in that namespace gate: Ubuntu's hosted runner rejected the
+unprivileged `/proc/self/uid_map` write before the test entered its isolated
+network namespace. The gate now recognizes only that exact setup refusal and
+reruns only the single namespace test through noninteractive passwordless
+`sudo`; ordinary local execution remains rootless, all product binaries remain
+unchanged, and every other failure still propagates. The focused test and the
+complete local `ci` tier pass after this correction. A replacement exact-head
+GitHub run is still required before installed-host preflight.
+
 ## Independent review
 
 A constrained, stdin-only Claude Opus review first identified five concrete

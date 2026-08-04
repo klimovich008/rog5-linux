@@ -1420,6 +1420,11 @@ class NativeResponderTest(unittest.TestCase):
                 self.fail("unshare is required for the production NCM gate")
             environment = os.environ.copy()
             environment["ROG5_PROGRESS_NETNS_INSIDE"] = "1"
+            test_name = (
+                "NativeResponderTest."
+                "test_production_ncm_progress_uses_fixed_usb0_"
+                "namespace_path"
+            )
             result = subprocess.run(
                 [
                     unshare,
@@ -1428,11 +1433,7 @@ class NativeResponderTest(unittest.TestCase):
                     "--net",
                     sys.executable,
                     str(Path(__file__).resolve()),
-                    (
-                        "NativeResponderTest."
-                        "test_production_ncm_progress_uses_fixed_usb0_"
-                        "namespace_path"
-                    ),
+                    test_name,
                 ],
                 cwd=REPO,
                 env=environment,
@@ -1441,6 +1442,35 @@ class NativeResponderTest(unittest.TestCase):
                 timeout=30,
                 check=False,
             )
+            if (
+                result.returncode != 0
+                and "/proc/self/uid_map" in result.stderr
+                and "Operation not permitted" in result.stderr
+            ):
+                sudo = shutil.which("sudo")
+                if sudo is None:
+                    self.fail(
+                        "unprivileged user namespaces are disabled and sudo "
+                        "is unavailable for the isolated production NCM gate"
+                    )
+                result = subprocess.run(
+                    [
+                        sudo,
+                        "-n",
+                        "env",
+                        "ROG5_PROGRESS_NETNS_INSIDE=1",
+                        unshare,
+                        "--net",
+                        sys.executable,
+                        str(Path(__file__).resolve()),
+                        test_name,
+                    ],
+                    cwd=REPO,
+                    text=True,
+                    capture_output=True,
+                    timeout=30,
+                    check=False,
+                )
             self.assertEqual(
                 result.returncode,
                 0,
