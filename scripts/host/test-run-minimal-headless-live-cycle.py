@@ -1215,6 +1215,15 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 "postmortem_sha256": CYCLE.ZERO_SHA256,
                 "postmortem_tail_hex": "none",
             },
+            {
+                "postmortem_state": "PRESENT",
+                "postmortem_records": "1",
+                "postmortem_bytes": "1",
+                "postmortem_sha256": "5" * 64,
+                # recovery-init tails its aggregate snapshot, which includes
+                # record metadata in addition to the pstore payload bytes.
+                "postmortem_tail_hex": "7265636f72643d702d31",
+            },
         )
         for postmortem in states:
             with self.subTest(state=postmortem["postmortem_state"]):
@@ -1225,6 +1234,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 self.assertEqual(prepare_request, PREPARE)
 
     def test_commit_fingerprint_matches_canonical_protocol_fixture(self):
+        # The same literal is independently emitted by the compiled native C
+        # responder in test_commit_fingerprint_matches_canonical_wire_vector.
         self.assertEqual(
             CYCLE.commit_request_fingerprint(
                 SESSION,
@@ -1311,15 +1322,6 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     "recovery PREPARE evidence is inconsistent",
                 ):
                     self.parse_control_records(*records)
-
-        records = list(self.control_records())
-        records[0] = dict(records[0])
-        records[0]["postmortem_bytes"] = "1"
-        with self.assertRaisesRegex(
-            CYCLE.CycleError,
-            "recovery PREPARE evidence is inconsistent",
-        ):
-            self.parse_control_records(*records)
 
     def test_control_parser_rejects_cross_response_postmortem_change(self):
         records = list(self.control_records())

@@ -1286,7 +1286,6 @@ def valid_postmortem(value: dict[str, object]) -> bool:
             and byte_count != "0"
             and digest not in {ZERO_SHA256, EMPTY_SHA256}
             and tail != "none"
-            and len(tail) // 2 <= int(byte_count)
         )
     if state == "EMPTY":
         return (
@@ -3453,13 +3452,17 @@ def main(arguments: list[str]) -> int:
             "diagnostic-preflight | diagnostic-run"
         )
     offline_test_root = os.environ.get("ROG5_LIVE_CYCLE_TEST_ROOT")
-    isolated_offline_test = (
+    offline_harness_requested = (
         os.environ.get("ROG5_LIVE_CYCLE_OFFLINE_TEST") == "1"
         and isinstance(offline_test_root, str)
         and bool(offline_test_root)
         and Path(offline_test_root).is_absolute()
     )
-    if requested.startswith("diagnostic-") and not isolated_offline_test:
+    # Dependencies.from_environment() subsequently resolves this root
+    # strictly, rejects root execution, and routes every executable and
+    # mutable host path into the fixture. These markers only select that
+    # fail-closed harness; they do not themselves claim isolation.
+    if requested.startswith("diagnostic-") and not offline_harness_requested:
         fail(
             "no diagnostic recovery lifecycle is admitted; Generation-12 "
             f"is {DIAGNOSTIC_LIVE_STATUS} and must not be retried"
