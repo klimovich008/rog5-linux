@@ -77,20 +77,24 @@ responder `242ac7fc…149e7`; two clean ASUS wrapper builds reproduced raw image
 `44c43e27…12b2`, and two offline Generation-11 issuances reproduced AVB
 `8472b206…bcf562`. See the
 [wrapper result](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md).
-Its exact recovery and unchanged signed-target tuple now passes immutable
-offline profile `headless-diagnostic-generation11-offline-v1` against both
-retained trees; see the
+Its exact recovery and unchanged signed-target tuple passes immutable offline
+profile `headless-diagnostic-generation11-offline-v1` against both retained
+trees; see the
 [profile result](../test-results/2026-08-04-generation-11-offline-profile.md).
-Connected actions reject before host inspection, no Generation-11 live profile
-or lifecycle selector exists, and boot policy retains zero `allow` rows.
+The one-shot lifecycle now selects the identical tuple through distinct
+`headless-diagnostic-generation11-live-v1`; see the
+[offline transition](../test-results/2026-08-04-generation-11-live-profile-offline.md).
+Direct connected actions and absent or malformed policy fixtures reject before
+host inspection, and boot policy retains zero `allow` rows.
 Generation 11 therefore remains ignored, unadmitted, unbooted, and
 `authority=none`. The issuer/evidence checkpoint was published at `5293e56`;
 exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
 QEMU in 35s. The reviewed profile and its CI-race correction were published at
 `98f8d27`; exact-head run `30904224177` passed recovery-core in 3m57s and QEMU
-in 37s. Next create and review a separate live-profile transition that binds
-the installed host components and whole rollback/evidence chain; this is not a
-phone action.
+in 37s. The live-profile transition passed focused and complete local CI,
+Claude Opus review, and independent Codex review. Next publish it and pass
+exact-head CI, then prepare a separate central-policy admission change. Neither
+step is a phone action.
 
 ## Active deployment checkpoint
 

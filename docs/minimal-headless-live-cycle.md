@@ -212,12 +212,17 @@ A distinct
 now reproduces across two clean builds and two offline issuances. It remains
 ignored, unadmitted, unbooted, and `authority=none`. Its exact recovery and
 unchanged signed-target tuple passes an immutable
-[offline-only profile](../test-results/2026-08-04-generation-11-offline-profile.md)
-against both retained trees. Whole-chain review, publication, and a distinct
-live-profile transition remain mandatory before any central-policy admission
-or connected action. The offline profile review and publication are complete:
+[offline profile](../test-results/2026-08-04-generation-11-offline-profile.md)
+against both retained trees. The one-shot controller now selects the same
+tuple through a separate
+[live-capable profile](../test-results/2026-08-04-generation-11-live-profile-offline.md),
+while direct connected actions and absent or malformed policy fixtures reject
+before host inspection. The offline profile review and publication are complete:
 commit `98f8d27` passed exact-head GitHub Actions run `30904224177` after the
 CI-only watchdog-race test was synchronized without changing production code.
+The live-profile transition passed Claude Opus review, independent Codex
+review, and complete local CI. It still requires publication and exact-head CI
+before a separate central-policy admission change.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export
