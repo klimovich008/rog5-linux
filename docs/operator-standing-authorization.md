@@ -2,7 +2,7 @@
 
 ## Current operator directive
 
-**Latest controlling instruction (2026-08-03): do not ask the operator for
+**Latest controlling instruction (2026-08-04): do not ask the operator for
 further authorization. Use the standing authorizations needed for in-scope
 project work and continue until a real technical, safety, platform, input, or
 scope blocker is reached.** An authorization flag or an older note requesting
