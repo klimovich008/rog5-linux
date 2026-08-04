@@ -82,6 +82,58 @@ def frame(nonce: str, action: str = "preflight") -> bytes:
     return output
 
 
+POSTMORTEM_CANDIDATE = "headless-netroot-early-diag-v1"
+POSTMORTEM_TARGET_BOOT_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+
+
+def postmortem_record(
+    challenge_nonce: str,
+    **updates: str,
+) -> tuple[OrderedDict[str, str], bytes]:
+    values = OrderedDict(
+        (
+            ("format", MODULE.POSTMORTEM_FORMAT),
+            ("nonce", challenge_nonce),
+            ("action", "postmortem"),
+            ("kernel_release", MODULE.FALLBACK_KERNEL),
+            ("init", "/bin/busybox"),
+            ("compatible", "qcom,lahaina-mtp"),
+            ("root_fstype", "ext4"),
+            ("pstore_state", "EMPTY"),
+            ("pstore_records", "0"),
+            ("pstore_bytes", "0"),
+            ("pstore_sha256", MODULE.EMPTY_SHA256),
+            ("expected_candidate", POSTMORTEM_CANDIDATE),
+            ("expected_boot_id", POSTMORTEM_TARGET_BOOT_ID),
+            ("lineage_matches", "0"),
+            ("lineage_records", "0"),
+            ("fatal_tokens_total", "0"),
+            ("fatal_after_lineage", "0"),
+            ("boot_id", "11111111-2222-4333-8444-555555555555"),
+            ("result", "PASS"),
+        )
+    )
+    values.update(updates)
+    payload = "".join(
+        f"{key}={value}\n" for key, value in values.items()
+    ).encode("ascii")
+    return values, payload
+
+
+def postmortem_frame(nonce: str, **updates: str) -> bytes:
+    _, payload = postmortem_record(nonce, **updates)
+    return (
+        f"ROG5_FALLBACK_POSTMORTEM_BEGIN {nonce}\r\n".encode()
+        + base64.b64encode(payload)
+        + b"\r\n"
+        + base64.b64encode(b"synthetic-postmortem-signature")
+        + b"\r\n"
+        + (
+            f"ROG5_FALLBACK_POSTMORTEM_END {nonce} PREPARED\r\n"
+        ).encode()
+    )
+
+
 def read_line(descriptor: int) -> bytes:
     output = bytearray()
     while not output.endswith(b"\n"):
@@ -188,6 +240,434 @@ class FrameTest(unittest.TestCase):
         )
         with self.assertRaises(MODULE.FallbackError):
             MODULE.parse_record(unsafe_return, nonce, "classify")
+
+
+class PostmortemFrameTest(unittest.TestCase):
+    def test_all_canonical_classifications_pass(self) -> None:
+        nonce = "7" * 32
+        cases = (
+            (
+                {
+                    "pstore_state": "UNAVAILABLE",
+                    "pstore_sha256": MODULE.ZERO_SHA256,
+                },
+                ("UNAVAILABLE", "UNCORRELATED"),
+            ),
+            ({}, ("NO_RECORDS", "UNCORRELATED")),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "0",
+                    "pstore_sha256": "4" * 64,
+                },
+                ("NO_LINEAGE", "UNCORRELATED"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "12",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                },
+                ("MATCH", "NO_FATAL_TOKEN_OBSERVED"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "12",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "2",
+                    "fatal_after_lineage": "2",
+                },
+                ("MATCH", "FATAL_TOKEN_AFTER_LINEAGE"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "24",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "1",
+                },
+                ("MATCH", "FATAL_TOKEN_PRESENT_ORDER_UNKNOWN"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "24",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "2",
+                    "lineage_records": "2",
+                },
+                ("MATCH_MULTIPLE", "NO_FATAL_TOKEN_OBSERVED"),
+            ),
+        )
+        for updates, expected in cases:
+            with self.subTest(expected=expected):
+                _, payload = postmortem_record(nonce, **updates)
+                values = MODULE.parse_postmortem_payload(
+                    payload,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+                self.assertEqual(
+                    MODULE.postmortem_classification(values),
+                    expected,
+                )
+
+    def test_hostile_payload_mutations_fail_closed(self) -> None:
+        nonce = "8" * 32
+        mutations = (
+            {"format": "wrong"},
+            {"nonce": "9" * 32},
+            {"action": "classify"},
+            {"kernel_release": "wrong"},
+            {"init": "/sbin/init"},
+            {"compatible": "qcom,lahaina"},
+            {"root_fstype": "tmpfs"},
+            {"pstore_state": "UNKNOWN"},
+            {"pstore_records": "01"},
+            {"pstore_records": "65"},
+            {"pstore_bytes": "4194305"},
+            {"pstore_sha256": "g" * 64},
+            {"expected_candidate": "other"},
+            {"expected_boot_id": "not-a-boot-id"},
+            {"lineage_matches": "01"},
+            {"lineage_records": "65"},
+            {"fatal_tokens_total": "1000001"},
+            {"fatal_after_lineage": "1000001"},
+            {"boot_id": "not-a-boot-id"},
+            {"result": "FAIL"},
+            {
+                "pstore_state": "PRESENT",
+                "pstore_records": "0",
+                "pstore_bytes": "0",
+                "pstore_sha256": MODULE.ZERO_SHA256,
+            },
+            {"lineage_matches": "1"},
+            {"fatal_after_lineage": "1"},
+            {
+                "pstore_state": "PRESENT",
+                "pstore_records": "1",
+                "pstore_bytes": "12",
+                "pstore_sha256": "4" * 64,
+                "lineage_matches": "1",
+                "lineage_records": "1",
+                "fatal_after_lineage": "1",
+            },
+        )
+        for updates in mutations:
+            with self.subTest(updates=updates):
+                _, payload = postmortem_record(nonce, **updates)
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_postmortem_payload(
+                        payload,
+                        nonce,
+                        POSTMORTEM_CANDIDATE,
+                        POSTMORTEM_TARGET_BOOT_ID,
+                    )
+
+    def test_field_order_count_and_frame_structure_are_exact(self) -> None:
+        nonce = "9" * 32
+        _, payload = postmortem_record(nonce)
+        lines = payload.splitlines(keepends=True)
+        for candidate in (
+            b"".join((lines[1], lines[0], *lines[2:])),
+            payload + b"extra=value\n",
+            payload[:-1],
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.parse_postmortem_payload(
+                    candidate,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+        valid = postmortem_frame(nonce)
+        values, parsed, signature = MODULE.parse_postmortem_frame(
+            valid,
+            nonce,
+            POSTMORTEM_CANDIDATE,
+            POSTMORTEM_TARGET_BOOT_ID,
+        )
+        self.assertEqual(values["result"], "PASS")
+        self.assertEqual(parsed, payload)
+        self.assertEqual(signature, b"synthetic-postmortem-signature")
+        for candidate in (
+            valid + valid,
+            valid.replace(b"PREPARED", b"PASS"),
+            valid.replace(base64.b64encode(payload), b"not-base64"),
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.parse_postmortem_frame(
+                    candidate,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+
+    def test_private_evidence_contains_only_bounded_summary(self) -> None:
+        nonce = "a" * 32
+        values, payload = postmortem_record(
+            nonce,
+            pstore_state="PRESENT",
+            pstore_records="1",
+            pstore_bytes="123",
+            pstore_sha256="4" * 64,
+            lineage_matches="1",
+            lineage_records="1",
+            fatal_tokens_total="1",
+            fatal_after_lineage="1",
+        )
+        proof = OrderedDict(
+            (
+                ("nonce", nonce),
+                ("usb_location", "pci/usb1/1-1/1-1.2"),
+                ("record_sha256", hashlib.sha256(payload).hexdigest()),
+                ("signature_sha256", "5" * 64),
+                ("host_pin_sha256", "6" * 64),
+            )
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-postmortem-evidence-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            output = root / "postmortem.record"
+            MODULE.write_postmortem_evidence(output, values, proof)
+            evidence = output.read_text(encoding="ascii")
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            self.assertIn(
+                f"format={MODULE.POSTMORTEM_EVIDENCE_FORMAT}\n",
+                evidence,
+            )
+            self.assertIn("correlation=MATCH\n", evidence)
+            self.assertIn(
+                "fatal_state=FATAL_TOKEN_AFTER_LINEAGE\n",
+                evidence,
+            )
+            self.assertIn("result=PASS\n", evidence)
+            self.assertNotIn("Kernel panic", evidence)
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.write_postmortem_evidence(output, values, proof)
+
+
+class PostmortemRemoteSnapshotTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-postmortem-snapshot-"
+        )
+        self.root = Path(self.temporary.name)
+        self.sys_pstore = self.root / "sys-pstore"
+        self.mnt_pstore = self.root / "mnt-pstore"
+        self.sys_pstore.mkdir()
+        self.mnt_pstore.mkdir()
+        self.mounts = self.root / "mounts"
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        names = {
+            "MAX_RECORDS",
+            "MAX_BYTES",
+            "ZERO_SHA256",
+            "EMPTY_SHA256",
+            "RECORD_NAME",
+            "FATAL",
+        }
+        body = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in names
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name in {"read_record", "pstore_mounts", "snapshot"}
+            )
+        ]
+
+        def mapped_path(value: str) -> Path:
+            if value == "/sys/fs/pstore":
+                return self.sys_pstore
+            if value == "/mnt/pstore":
+                return self.mnt_pstore
+            if value == "/proc/mounts":
+                return self.mounts
+            return Path(value)
+
+        self.namespace: dict[str, object] = {
+            "hashlib": hashlib,
+            "os": os,
+            "Path": mapped_path,
+            "re": __import__("re"),
+            "stat": stat,
+        }
+        exec(
+            compile(
+                ast.Module(body=body, type_ignores=[]),
+                "fallback-postmortem-snapshot.py",
+                "exec",
+            ),
+            self.namespace,
+        )
+        self.snapshot = self.namespace["snapshot"]
+        self.marker = (
+            "rog5-network-root: lineage format=rog5-target-lineage-v1 "
+            f"candidate={POSTMORTEM_CANDIDATE} "
+            f"boot_id={POSTMORTEM_TARGET_BOOT_ID}"
+        ).encode()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def test_unavailable_empty_and_deduplicated_records(self) -> None:
+        original_sys = self.sys_pstore
+        original_mnt = self.mnt_pstore
+        self.sys_pstore = self.root / "absent-sys"
+        self.mnt_pstore = self.root / "absent-mnt"
+        self.mounts.write_text("", encoding="ascii")
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("UNAVAILABLE", 0, 0, MODULE.ZERO_SHA256, 0, 0, 0, 0),
+        )
+        self.sys_pstore = original_sys
+        self.mnt_pstore = original_mnt
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("UNAVAILABLE", 0, 0, MODULE.ZERO_SHA256, 0, 0, 0, 0),
+        )
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("EMPTY", 0, 0, MODULE.EMPTY_SHA256, 0, 0, 0, 0),
+        )
+        payload = b"record without lineage"
+        (self.sys_pstore / "dmesg-ramoops-0").write_bytes(payload)
+        values = self.snapshot(self.marker)
+        self.assertEqual(values[:3], ("PRESENT", 1, len(payload)))
+        self.assertEqual(values[4:], (0, 0, 0, 0))
+        self.assertNotIn(values[3], {MODULE.ZERO_SHA256, MODULE.EMPTY_SHA256})
+        self.mnt_pstore = original_mnt
+        os.link(
+            self.sys_pstore / "dmesg-ramoops-0",
+            self.mnt_pstore / "dmesg-ramoops-duplicate",
+        )
+        self.assertEqual(self.snapshot(self.marker), values)
+
+    def test_lineage_and_only_subsequent_fatal_tokens_are_counted(self) -> None:
+        payload = (
+            b"Kernel panic before lineage\n"
+            + self.marker
+            + b"\nnormal\nOops: after lineage\nwatchdog-bite\n"
+            + self.marker
+        )
+        (self.sys_pstore / "console-ramoops-0").write_bytes(payload)
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[0:3], ("PRESENT", 1, len(payload)))
+        self.assertEqual(state[4:], (2, 1, 3, 2))
+
+    def test_cross_record_fatal_is_present_with_unknown_order(self) -> None:
+        (self.sys_pstore / "console-ramoops-0").write_bytes(self.marker)
+        (self.sys_pstore / "dmesg-ramoops-0").write_bytes(
+            b"Kernel panic in a separate backend record"
+        )
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 1, 0))
+
+    def test_fatal_token_boundaries_are_nonconsuming_and_offset_exact(
+        self,
+    ) -> None:
+        payload = self.marker + b" BUG: Oops: end"
+        (self.sys_pstore / "console-ramoops-0").write_bytes(payload)
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 2, 2))
+        (self.sys_pstore / "console-ramoops-0").write_bytes(
+            self.marker + b"BUG: is not token-delimited"
+        )
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 0, 0))
+
+    def test_pstore_mount_change_during_snapshot_fails_closed(self) -> None:
+        (self.sys_pstore / "console-ramoops-0").write_bytes(self.marker)
+        mounted = {str(self.sys_pstore), str(self.mnt_pstore)}
+        observations = iter((mounted, mounted, set()))
+        self.namespace["pstore_mounts"] = lambda: next(observations)
+        with self.assertRaisesRegex(RuntimeError, "mount-race"):
+            self.snapshot(self.marker)
+
+    def test_unknown_mount_probe_error_and_late_mount_fail_closed(
+        self,
+    ) -> None:
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n"
+            "none /run/pstore pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        with self.assertRaisesRegex(RuntimeError, "pstore-location"):
+            self.snapshot(self.marker)
+
+        inaccessible = mock.Mock()
+        inaccessible.lstat.side_effect = PermissionError("denied")
+        self.sys_pstore = inaccessible
+        self.mnt_pstore = self.root / "absent-mnt"
+        self.mounts.write_text("", encoding="ascii")
+        with self.assertRaisesRegex(RuntimeError, "pstore-root"):
+            self.snapshot(self.marker)
+
+        self.sys_pstore = self.root / "absent-sys"
+        observations = iter((set(), {"/run/pstore"}))
+        self.namespace["pstore_mounts"] = lambda: next(observations)
+        with self.assertRaisesRegex(RuntimeError, "mount-race"):
+            self.snapshot(self.marker)
+
+    def test_symlinks_bad_names_and_bounds_fail_closed(
+        self,
+    ) -> None:
+        outside = self.root / "outside"
+        outside.write_bytes(b"not a pstore record")
+        (self.sys_pstore / "dmesg-ramoops-0").symlink_to(outside)
+        with self.assertRaisesRegex(RuntimeError, "record-type"):
+            self.snapshot(self.marker)
+        (self.sys_pstore / "dmesg-ramoops-0").unlink()
+        (self.sys_pstore / "empty").touch()
+        empty = self.snapshot(self.marker)
+        self.assertEqual(empty[:3], ("PRESENT", 1, 0))
+        self.assertNotIn(
+            empty[3],
+            {MODULE.ZERO_SHA256, MODULE.EMPTY_SHA256},
+        )
+        self.assertEqual(empty[4:], (0, 0, 0, 0))
+        (self.sys_pstore / "empty").unlink()
+        (self.sys_pstore / "bad name").write_bytes(b"x")
+        with self.assertRaisesRegex(RuntimeError, "record-name"):
+            self.snapshot(self.marker)
+        (self.sys_pstore / "bad name").unlink()
+        (self.sys_pstore / "one").write_bytes(b"x")
+        (self.sys_pstore / "two").write_bytes(b"y")
+        self.namespace["MAX_RECORDS"] = 1
+        with self.assertRaisesRegex(RuntimeError, "snapshot-bound"):
+            self.snapshot(self.marker)
 
 
 class SignatureTest(unittest.TestCase):
@@ -1278,6 +1758,106 @@ class SshTransportTest(unittest.TestCase):
         self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
         verify.assert_called_once()
 
+    def test_postmortem_probe_is_strict_bounded_and_usb_revalidated(
+        self,
+    ) -> None:
+        nonce = "cd" * 16
+        location = "pci/usb1/1-1/1-1.2"
+        interface = "usbtest0"
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-postmortem-ssh-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            ssh_key = root / "deployment-key"
+            known_hosts = root / "fallback-known-hosts"
+            ssh_key.write_bytes(b"k" * 64)
+            ssh_key.chmod(0o600)
+            known_hosts.write_bytes(b"synthetic-allowed-signers\n")
+            known_hosts.chmod(0o600)
+            allowed_signers = known_hosts.read_bytes()
+            result = subprocess.CompletedProcess(
+                [],
+                0,
+                postmortem_frame(
+                    nonce,
+                    pstore_state="PRESENT",
+                    pstore_records="1",
+                    pstore_bytes="12",
+                    pstore_sha256="4" * 64,
+                    lineage_matches="1",
+                    lineage_records="1",
+                ),
+                b"",
+            )
+            with (
+                mock.patch.object(MODULE, "read_anchor", return_value=location),
+                mock.patch.object(
+                    MODULE,
+                    "wait_fallback_ncm",
+                    return_value=(interface, location),
+                ),
+                mock.patch.object(MODULE, "exact_fallback_route") as route,
+                mock.patch.object(MODULE, "verify_network_profile"),
+                mock.patch.object(
+                    MODULE.os,
+                    "urandom",
+                    return_value=b"\xcd" * 16,
+                ),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=result,
+                ) as run,
+                mock.patch.object(MODULE, "verify_signature") as verify,
+                mock.patch.object(
+                    MODULE,
+                    "verify_ssh_key",
+                    return_value=ssh_key,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_known_hosts",
+                    return_value=allowed_signers,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "fallback_ncm_identity",
+                    return_value=(interface, location),
+                ),
+            ):
+                values, proof = MODULE.ssh_postmortem_probe(
+                    known_hosts,
+                    allowed_signers,
+                    ssh_key,
+                    "1" * 64,
+                    Path("/private/recovery.anchor"),
+                    60,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+        arguments = run.call_args.args[0]
+        self.assertIn("StrictHostKeyChecking=yes", arguments)
+        self.assertIn("BatchMode=yes", arguments)
+        self.assertEqual(
+            arguments[-4:],
+            [
+                nonce,
+                "postmortem",
+                POSTMORTEM_CANDIDATE,
+                POSTMORTEM_TARGET_BOOT_ID,
+            ],
+        )
+        self.assertEqual(
+            run.call_args.kwargs["input"],
+            MODULE.POSTMORTEM_REMOTE_SOURCE.encode("utf-8"),
+        )
+        self.assertEqual(run.call_args.kwargs["timeout"], 30)
+        self.assertEqual(values["lineage_matches"], "1")
+        self.assertEqual(proof["usb_location"], location)
+        self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
+        verify.assert_called_once()
+
     def test_network_profile_is_exact_and_interface_bound(self) -> None:
         exact = subprocess.CompletedProcess(
             [],
@@ -1567,6 +2147,7 @@ class PolicyTest(unittest.TestCase):
                 MODULE.require_guards("wait-ssh-preflight")
             MODULE.os.environ["ALLOW_FALLBACK_SSH_ATIME_EFFECTS"] = "1"
             MODULE.require_guards("wait-ssh-preflight")
+            MODULE.require_guards("capture-ssh-postmortem")
 
     def test_remote_payload_is_fixed_read_only_except_restart2(self) -> None:
         source = MODULE.REMOTE_SOURCE
@@ -1610,6 +2191,54 @@ class PolicyTest(unittest.TestCase):
         self.assertIn(b"/usr/bin/python3 -I -S -B -c", launcher)
         self.assertNotIn(b" env python3 ", launcher)
         self.assertTrue(chunks)
+
+    def test_postmortem_remote_is_bounded_read_only_and_noninteractive(
+        self,
+    ) -> None:
+        source = MODULE.POSTMORTEM_REMOTE_SOURCE
+        compile(source, "fallback-postmortem-remote.py", "exec")
+        for required in (
+            "MAX_RECORDS = 64",
+            "MAX_BYTES = 4 * 1024 * 1024",
+            "os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW",
+            "entry.lstat()",
+            "expected_identity",
+            'Path("/proc/mounts")',
+            'fields[2] == "pstore"',
+            'RuntimeError("mount-race")',
+            "lineage_matches",
+            "fatal_tokens_total",
+            "fatal_after_lineage",
+            "ssh_host_ed25519_key",
+            '"-Y"',
+            '"sign"',
+        ):
+            self.assertIn(required, source)
+        for forbidden in (
+            "fastboot",
+            "authorized_keys",
+            "O_WRONLY",
+            "O_RDWR",
+            "O_CREAT",
+            "O_TRUNC",
+            "unlink(",
+            "remove(",
+            "rmdir(",
+            "rename(",
+            "replace(",
+            "truncate(",
+            "chmod(",
+            "chown(",
+            "write_text(",
+            "write_bytes(",
+            "mount(",
+            "reboot",
+            "restart2",
+            "shutil",
+            "sysrq-trigger",
+            "input(",
+        ):
+            self.assertNotIn(forbidden, source)
 
     def test_frame_and_commit_waits_cover_remote_health_and_signing_bounds(
         self,

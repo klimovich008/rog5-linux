@@ -107,6 +107,28 @@ class EarlyTargetDiagnosticTest(unittest.TestCase):
         self.assertEqual(len(stream.feed(frames)), 8)
         self.assertEqual(stream.maximum_progress, 70)
 
+    def test_nfs_return_boundary_is_monotonic_between_begin_and_success(self):
+        stream = MODULE.DiagnosticStream(CANDIDATE)
+        accepted = stream.feed(
+            b"".join(
+                MODULE.frame_for(record(index, stage))
+                for index, stage in enumerate((70, 75, 75, 80), 1)
+            )
+        )
+        self.assertEqual(
+            [item.stage for item in accepted],
+            [
+                "nfs-mount-begin",
+                "nfs-mount-returned",
+                "nfs-mount-returned",
+                "nfs-mount-ok",
+            ],
+        )
+        regressing = MODULE.DiagnosticStream(CANDIDATE)
+        regressing.feed(MODULE.frame_for(record(1, 75)))
+        with self.assertRaises(MODULE.DiagnosticError):
+            regressing.feed(MODULE.frame_for(record(2, 70)))
+
     def test_deadline_is_absolute_but_remaining_interval_is_bounded(self):
         stream = MODULE.DiagnosticStream(CANDIDATE)
         accepted = stream.feed(

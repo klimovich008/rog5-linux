@@ -160,10 +160,11 @@ class Fixture:
         self.diagnostic_evidence = {
             "candidate": DIAGNOSTIC_CANDIDATE,
             "capture_status": "valid",
+            "dropped_transport_snapshots": 0,
             "dropped_usb_events": 0,
             "ended_unix_ns": 300,
             "end_reason": "disconnected",
-            "format": "rog5-early-target-evidence-v1",
+            "format": "rog5-early-target-evidence-v2",
             "frame_count": 1,
             "frames": [
                 {
@@ -187,6 +188,31 @@ class Fixture:
             "started_unix_ns": 100,
             "target_boot_id": TARGET_BOOT_ID,
             "target_product": "ROG5 diagnostic network root",
+            "transport_snapshot_count": 1,
+            "transport_snapshots": [
+                {
+                    "carrier": None,
+                    "host_monotonic_ns": 200,
+                    "host_unix_ns": 200,
+                    "interface": None,
+                    "nfs_rpc_badauth": 0,
+                    "nfs_rpc_badcalls": 0,
+                    "nfs_rpc_badclnt": 0,
+                    "nfs_rpc_calls": 0,
+                    "nfs_rpc_xdrcall": 0,
+                    "operstate": None,
+                    "rx_bytes": None,
+                    "rx_dropped": None,
+                    "rx_errors": None,
+                    "rx_packets": None,
+                    "state": "absent",
+                    "tx_bytes": None,
+                    "tx_dropped": None,
+                    "tx_errors": None,
+                    "tx_packets": None,
+                    "usb_location": "pci/usb1/1-1/1-1.2",
+                }
+            ],
             "usb_events": [],
             "usb_location": "pci/usb1/1-1/1-1.2",
         }
@@ -999,6 +1025,121 @@ class Fixture:
               echo 'PASS fallback SSH host preflight'
               exit 0
             fi
+            if [ "$1" = capture-ssh-postmortem ]; then
+              [ "$#" = 9 ]
+              [ "$2" = "{self.known_hosts}" ]
+              [ "$3" = "{self.ssh_key}" ]
+              [ "$4" = "{'1' * 64}" ]
+              [ "$5" = "{self.evidence / 'recovery-usb.anchor'}" ]
+              [ -f "$5" ]
+              [ "$6" -ge 1 ]
+              [ "$6" -le 750 ]
+              case "$7" in
+                {CANDIDATE}|{DIAGNOSTIC_CANDIDATE}) ;;
+                *) exit 1 ;;
+              esac
+              [ "$8" = "{TARGET_BOOT_ID}" ]
+              [ "$9" = "{self.evidence / 'fallback-postmortem.record'}" ]
+              [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
+              [ "${{ALLOW_FALLBACK_SSH_ATIME_EFFECTS:-}}" = 1 ]
+              [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
+              [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
+              [ -e "$MOCK_ROOT/profile-restored" ]
+              printf 'fallback:postmortem\n' >>"$MOCK_CALLS"
+              if [ "${{MOCK_POSTMORTEM_FAIL:-0}}" = 1 ]; then
+                echo 'FAIL injected fallback postmortem rejection'
+                exit 1
+              fi
+              fallback_boot_id={FALLBACK_BOOT_ID}
+              if [ "${{MOCK_FALLBACK_REUSE_TARGET_BOOT:-0}}" = 1 ]; then
+                fallback_boot_id={TARGET_BOOT_ID}
+              fi
+              state=EMPTY
+              records=0
+              bytes=0
+              digest={CYCLE.EMPTY_SHA256}
+              matches=0
+              lineage_records=0
+              fatal_total=0
+              fatal=0
+              correlation=NO_RECORDS
+              fatal_state=UNCORRELATED
+              if [ "${{MOCK_POSTMORTEM_PRESENT:-0}}" = 1 ]; then
+                state=PRESENT
+                records=1
+                bytes=123
+                digest={'a' * 64}
+                matches=1
+                lineage_records=1
+                correlation=MATCH
+                fatal_state=NO_FATAL_TOKEN_OBSERVED
+              fi
+              if [ "${{MOCK_POSTMORTEM_FATAL:-0}}" = 1 ]; then
+                state=PRESENT
+                records=1
+                bytes=123
+                digest={'a' * 64}
+                matches=1
+                lineage_records=1
+                fatal_total=1
+                fatal=1
+                correlation=MATCH
+                fatal_state=FATAL_TOKEN_AFTER_LINEAGE
+              fi
+              if [ "${{MOCK_POSTMORTEM_ORDER_UNKNOWN:-0}}" = 1 ]; then
+                state=PRESENT
+                records=2
+                bytes=246
+                digest={'a' * 64}
+                matches=1
+                lineage_records=1
+                fatal_total=1
+                correlation=MATCH
+                fatal_state=FATAL_TOKEN_PRESENT_ORDER_UNKNOWN
+              fi
+              if [ "${{MOCK_POSTMORTEM_MULTIPLE:-0}}" = 1 ]; then
+                state=PRESENT
+                records=2
+                bytes=246
+                digest={'a' * 64}
+                matches=2
+                lineage_records=2
+                correlation=MATCH_MULTIPLE
+                fatal_state=NO_FATAL_TOKEN_OBSERVED
+              fi
+              candidate=$7
+              if [ "${{MOCK_POSTMORTEM_WRONG_CANDIDATE:-0}}" = 1 ]; then
+                candidate=wrong-candidate
+              fi
+              if [ "${{MOCK_POSTMORTEM_WRONG_CLASSIFICATION:-0}}" = 1 ]; then
+                correlation=AMBIGUOUS
+              fi
+              umask 077
+              printf '%s\n' \
+                'format=rog5-fallback-postmortem-evidence-v1' \
+                "expected_candidate=$candidate" \
+                "expected_boot_id=$8" \
+                "fallback_boot_id=$fallback_boot_id" \
+                'usb_location=pci/usb1/1-1/1-1.2' \
+                "pstore_state=$state" \
+                "pstore_records=$records" \
+                "pstore_bytes=$bytes" \
+                "pstore_sha256=$digest" \
+                "lineage_matches=$matches" \
+                "lineage_records=$lineage_records" \
+                "fatal_tokens_total=$fatal_total" \
+                "fatal_after_lineage=$fatal" \
+                "correlation=$correlation" \
+                "fatal_state=$fatal_state" \
+                'nonce={'5' * 32}' \
+                'record_sha256={'6' * 64}' \
+                'signature_sha256={'7' * 64}' \
+                'host_pin_sha256={'8' * 64}' \
+                'result=PASS' \
+                >"$9"
+              echo 'PASS bounded fallback pstore evidence captured over strict SSH correlation='$correlation' fatal_state='$fatal_state
+              exit 0
+            fi
             [ "$1" = wait-ssh-preflight ]
             [ "$2" = "{self.known_hosts}" ]
             [ "$3" = "{self.ssh_key}" ]
@@ -1026,6 +1167,9 @@ class Fixture:
             fallback_boot_id={FALLBACK_BOOT_ID}
             if [ "${{MOCK_FALLBACK_REUSE_TARGET_BOOT:-0}}" = 1 ]; then
               fallback_boot_id={TARGET_BOOT_ID}
+            fi
+            if [ "${{MOCK_FALLBACK_HEALTH_BOOT_CHANGE:-0}}" = 1 ]; then
+              fallback_boot_id=bbbbbbbb-cccc-4ddd-8eee-ffffffffffff
             fi
             printf '%s\n' \
               'format=rog5-fallback-identity-v2' \
@@ -1609,6 +1753,185 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         with self.assertRaises(CYCLE.CycleError):
             CYCLE.read_recovery_anchor_location(anchor, dependencies)
 
+    def test_fallback_postmortem_evidence_is_exact_and_correlated(self):
+        anchor = self.fixture.evidence / "postmortem.anchor"
+        anchor.write_text(
+            "format=rog5-minimal-headless-usb-anchor-v1\n"
+            f"host_boot_id={TARGET_BOOT_ID}\n"
+            f"created_unix={self.fixture.anchor_created}\n"
+            "usb_location=pci/usb1/1-1/1-1.2\n"
+            "recovery_vendor=1d6b\n"
+            "recovery_product_id=0104\n"
+            "recovery_product=ROG5 recovery\n",
+            encoding="ascii",
+        )
+        anchor.chmod(0o600)
+        with mock.patch.dict(
+            os.environ,
+            self.fixture.environment(),
+            clear=False,
+        ):
+            dependencies = CYCLE.Dependencies.from_environment()
+
+        baseline = {
+            "format": "rog5-fallback-postmortem-evidence-v1",
+            "expected_candidate": CANDIDATE,
+            "expected_boot_id": TARGET_BOOT_ID,
+            "fallback_boot_id": FALLBACK_BOOT_ID,
+            "usb_location": "pci/usb1/1-1/1-1.2",
+            "pstore_state": "EMPTY",
+            "pstore_records": "0",
+            "pstore_bytes": "0",
+            "pstore_sha256": CYCLE.EMPTY_SHA256,
+            "lineage_matches": "0",
+            "lineage_records": "0",
+            "fatal_tokens_total": "0",
+            "fatal_after_lineage": "0",
+            "correlation": "NO_RECORDS",
+            "fatal_state": "UNCORRELATED",
+            "nonce": "5" * 32,
+            "record_sha256": "6" * 64,
+            "signature_sha256": "7" * 64,
+            "host_pin_sha256": "8" * 64,
+            "result": "PASS",
+        }
+
+        def write(name: str, updates: dict[str, str]) -> Path:
+            values = {**baseline, **updates}
+            path = self.fixture.evidence / f"postmortem-{name}.record"
+            path.write_text(
+                "".join(
+                    f"{field}={values[field]}\n"
+                    for field in CYCLE.FALLBACK_POSTMORTEM_FIELDS
+                ),
+                encoding="ascii",
+            )
+            path.chmod(0o600)
+            return path
+
+        canonical = (
+            ("empty", {}),
+            (
+                "unavailable",
+                {
+                    "pstore_state": "UNAVAILABLE",
+                    "pstore_sha256": CYCLE.ZERO_SHA256,
+                    "correlation": "UNAVAILABLE",
+                },
+            ),
+            (
+                "zero-byte-record",
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "0",
+                    "pstore_sha256": "a" * 64,
+                    "correlation": "NO_LINEAGE",
+                },
+            ),
+            (
+                "match",
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "123",
+                    "pstore_sha256": "a" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "correlation": "MATCH",
+                    "fatal_state": "NO_FATAL_TOKEN_OBSERVED",
+                },
+            ),
+            (
+                "fatal",
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "123",
+                    "pstore_sha256": "a" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "1",
+                    "fatal_after_lineage": "1",
+                    "correlation": "MATCH",
+                    "fatal_state": "FATAL_TOKEN_AFTER_LINEAGE",
+                },
+            ),
+            (
+                "order-unknown",
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "246",
+                    "pstore_sha256": "a" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "1",
+                    "correlation": "MATCH",
+                    "fatal_state": "FATAL_TOKEN_PRESENT_ORDER_UNKNOWN",
+                },
+            ),
+            (
+                "multiple",
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "246",
+                    "pstore_sha256": "a" * 64,
+                    "lineage_matches": "2",
+                    "lineage_records": "2",
+                    "correlation": "MATCH_MULTIPLE",
+                    "fatal_state": "NO_FATAL_TOKEN_OBSERVED",
+                },
+            ),
+        )
+        for name, updates in canonical:
+            with self.subTest(canonical=name):
+                self.assertEqual(
+                    CYCLE.verify_fallback_postmortem_evidence(
+                        write(name, updates),
+                        anchor,
+                        CANDIDATE,
+                        TARGET_BOOT_ID,
+                        dependencies,
+                    ),
+                    FALLBACK_BOOT_ID,
+                )
+
+        mutations = {
+            "candidate": {"expected_candidate": "wrong"},
+            "target-boot": {"expected_boot_id": FALLBACK_BOOT_ID},
+            "fallback-boot": {"fallback_boot_id": TARGET_BOOT_ID},
+            "location": {"usb_location": "pci/usb1/1-1/1-1.9"},
+            "proof": {"record_sha256": CYCLE.ZERO_SHA256},
+            "leading-zero": {"pstore_records": "00"},
+            "state": {
+                "pstore_state": "PRESENT",
+                "pstore_sha256": "a" * 64,
+            },
+            "correlation": {"correlation": "MATCH"},
+            "fatal": {"fatal_state": "FATAL_TOKEN_AFTER_LINEAGE"},
+            "fatal-after-total": {
+                "pstore_state": "PRESENT",
+                "pstore_records": "1",
+                "pstore_bytes": "123",
+                "pstore_sha256": "a" * 64,
+                "lineage_matches": "1",
+                "lineage_records": "1",
+                "fatal_after_lineage": "1",
+            },
+        }
+        for name, updates in mutations.items():
+            with self.subTest(mutation=name):
+                with self.assertRaises(CYCLE.CycleError):
+                    CYCLE.verify_fallback_postmortem_evidence(
+                        write(f"bad-{name}", updates),
+                        anchor,
+                        CANDIDATE,
+                        TARGET_BOOT_ID,
+                        dependencies,
+                    )
+
     def test_guards_fail_before_any_dependency_or_credential_use(self):
         result = self.fixture.run(
             "run",
@@ -1926,6 +2249,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertLess(
             calls.index("bundle:restore-fallback"),
+            calls.index("fallback:postmortem"),
+        )
+        self.assertLess(
+            calls.index("fallback:postmortem"),
             calls.index("fallback:ssh-preflight"),
         )
         self.assertLess(
@@ -1933,12 +2260,16 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             calls.index("control:resolve:TARGET_ACCEPTED"),
         )
         self.assertEqual(calls.count("bundle:restore-fallback"), 1)
+        self.assertEqual(calls.count("fallback:postmortem"), 1)
         self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
         self.assertTrue(
             (self.fixture.evidence / "target-known-hosts").is_file()
         )
         self.assertTrue(
             (self.fixture.evidence / "fallback-identity.record").is_file()
+        )
+        self.assertTrue(
+            (self.fixture.evidence / "fallback-postmortem.record").is_file()
         )
         self.assertTrue(
             (
@@ -1956,6 +2287,83 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("capture_result=PARTIAL\n", progress)
         self.assertIn("correlation=UNAVAILABLE\n", progress)
         self.assertIn("authority=NONE\n", progress)
+
+    def test_postmortem_match_and_fatal_classifications_are_retained(self):
+        cases = (
+            (
+                "MOCK_POSTMORTEM_PRESENT",
+                "correlation=MATCH\n",
+                "fatal_state=NO_FATAL_TOKEN_OBSERVED\n",
+            ),
+            (
+                "MOCK_POSTMORTEM_FATAL",
+                "correlation=MATCH\n",
+                "fatal_state=FATAL_TOKEN_AFTER_LINEAGE\n",
+            ),
+            (
+                "MOCK_POSTMORTEM_ORDER_UNKNOWN",
+                "correlation=MATCH\n",
+                "fatal_state=FATAL_TOKEN_PRESENT_ORDER_UNKNOWN\n",
+            ),
+            (
+                "MOCK_POSTMORTEM_MULTIPLE",
+                "correlation=MATCH_MULTIPLE\n",
+                "fatal_state=NO_FATAL_TOKEN_OBSERVED\n",
+            ),
+        )
+        for variable, correlation, fatal_state in cases:
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{variable: "1"})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                evidence = (
+                    self.fixture.evidence / "fallback-postmortem.record"
+                ).read_text(encoding="ascii")
+                self.assertIn(correlation, evidence)
+                self.assertIn(fatal_state, evidence)
+                calls = self.fixture.call_lines()
+                self.assertEqual(calls.count("fallback:postmortem"), 1)
+                self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+
+    def test_postmortem_failure_or_mutation_stops_before_fallback_health(self):
+        cases = (
+            ("MOCK_POSTMORTEM_FAIL", "fallback-postmortem failed"),
+            (
+                "MOCK_POSTMORTEM_WRONG_CANDIDATE",
+                "postmortem evidence identity is not exact",
+            ),
+            (
+                "MOCK_POSTMORTEM_WRONG_CLASSIFICATION",
+                "postmortem evidence state is inconsistent",
+            ),
+        )
+        for variable, message in cases:
+            with self.subTest(variable=variable):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{variable: "1"})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertIn("intent remains UNKNOWN", result.stderr)
+                calls = self.fixture.call_lines()
+                self.assertEqual(calls.count("fallback:postmortem"), 1)
+                self.assertEqual(calls.count("fallback:ssh-preflight"), 0)
+
+    def test_fallback_boot_identity_cannot_change_after_postmortem(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_FALLBACK_HEALTH_BOOT_CHANGE="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "fallback boot identity changed after postmortem capture",
+            result.stderr,
+        )
+        self.assertIn("intent remains UNKNOWN", result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("fallback:postmortem"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
 
     def test_prepared_stops_advisory_stream_before_nfs_without_authority(self):
         result = self.fixture.run(
@@ -2106,6 +2514,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         def top(name: str, value: object):
             return lambda document: document.__setitem__(name, value)
 
+        def boolean_carrier(document: dict[str, object]) -> None:
+            snapshot = document["transport_snapshots"][0]
+            snapshot.update(
+                {
+                    "state": "present",
+                    "interface": "usb0",
+                    "carrier": True,
+                    "operstate": "up",
+                    "rx_bytes": 0,
+                    "rx_dropped": 0,
+                    "rx_errors": 0,
+                    "rx_packets": 0,
+                    "tx_bytes": 0,
+                    "tx_dropped": 0,
+                    "tx_errors": 0,
+                    "tx_packets": 0,
+                }
+            )
+
         mutations = {
             "format": top("format", "wrong-format"),
             "candidate": top("candidate", "wrong-candidate"),
@@ -2116,6 +2543,21 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "target-product": top("target_product", "wrong product"),
             "end-reason": top("end_reason", "rejected"),
             "frame-count": top("frame_count", 2),
+            "transport-count": top("transport_snapshot_count", 2),
+            "transport-dropped": top("dropped_transport_snapshots", 1),
+            "transport-location": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("usb_location", "pci/usb9/9-9"),
+            "transport-state": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("state", "unknown"),
+            "transport-boolean-carrier": boolean_carrier,
+            "transport-absent-counter": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("rx_bytes", 1),
+            "transport-partial-nfs": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_rpc_calls", None),
             "frame-candidate": lambda document: document["frames"][0][
                 "record"
             ].__setitem__("candidate", "wrong-candidate"),
@@ -2168,7 +2610,8 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             result.stderr,
         )
         calls = self.fixture.call_lines()
-        self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
+        self.assertEqual(calls.count("fallback:postmortem"), 1)
+        self.assertEqual(calls.count("fallback:ssh-preflight"), 0)
         self.assertFalse(
             any(line.startswith("control:resolve:") for line in calls)
         )

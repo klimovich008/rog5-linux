@@ -75,6 +75,31 @@ def anchor_payload(location: str = LOCATION) -> bytes:
     ).encode("ascii")
 
 
+def transport_snapshot() -> MODULE.TransportSnapshot:
+    return MODULE.TransportSnapshot(
+        host_unix_ns=100,
+        host_monotonic_ns=10,
+        state="present",
+        interface="usb7",
+        usb_location=LOCATION,
+        carrier=1,
+        operstate="up",
+        rx_bytes=100,
+        rx_packets=2,
+        rx_errors=0,
+        rx_dropped=0,
+        tx_bytes=200,
+        tx_packets=3,
+        tx_errors=0,
+        tx_dropped=0,
+        nfs_rpc_calls=1,
+        nfs_rpc_badcalls=0,
+        nfs_rpc_badauth=0,
+        nfs_rpc_badclnt=0,
+        nfs_rpc_xdrcall=0,
+    )
+
+
 class CollectorPolicyTest(unittest.TestCase):
     def private_directory(self, root: Path) -> Path:
         directory = root / "private"
@@ -179,6 +204,102 @@ class CollectorPolicyTest(unittest.TestCase):
                 MODULE.usb_interface_identity(tty_root, raw),
                 ("02", "cdc_acm"),
             )
+
+
+class TransportObserverTest(unittest.TestCase):
+    def test_nfs_rpc_parser_is_bounded_and_canonical(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "nfsd"
+            path.write_text(
+                "net 12 0 12 4\nrpc 10 1 2 3 4\nproc4 2 0 10\n",
+                encoding="ascii",
+            )
+            with mock.patch.object(MODULE, "NFSD_STATS", path):
+                self.assertEqual(MODULE.nfs_rpc_state(), (10, 1, 2, 3, 4))
+            for payload in (
+                "rpc 10 1 2 3\n",
+                "rpc 10 1 2 3 4\nrpc 11 0 0 0 0\n",
+                "rpc 01 0 0 0 0\n",
+                "rpc x 0 0 0 0\n",
+            ):
+                path.write_text(payload, encoding="ascii")
+                with (
+                    self.subTest(payload=payload),
+                    mock.patch.object(MODULE, "NFSD_STATS", path),
+                    self.assertRaises(MODULE.CollectorError),
+                ):
+                    MODULE.nfs_rpc_state()
+            path.unlink()
+            with mock.patch.object(MODULE, "NFSD_STATS", path):
+                self.assertIsNone(MODULE.nfs_rpc_state())
+
+    def test_observer_records_only_changes_and_departure(self):
+        clock = mock.Mock()
+        clock.monotonic.side_effect = [0.0, 1.0, 2.0, 3.0]
+        clock.time_ns.side_effect = [100, 200, 300]
+        clock.monotonic_ns.side_effect = [10, 20, 30]
+        identity = MODULE.NcmIdentity("usb7", LOCATION)
+        first = (1, "up", (100, 2, 0, 0, 200, 3, 0, 0))
+        changed = (1, "up", (140, 3, 0, 0, 260, 4, 0, 0))
+        with (
+            mock.patch.object(
+                MODULE,
+                "diagnostic_ncm_identities",
+                side_effect=[[identity], [identity], [identity], []],
+            ),
+            mock.patch.object(
+                MODULE, "ncm_state", side_effect=[first, first, changed]
+            ),
+            mock.patch.object(
+                MODULE,
+                "nfs_rpc_state",
+                side_effect=[
+                    (0, 0, 0, 0, 0),
+                    (0, 0, 0, 0, 0),
+                    (2, 0, 0, 0, 0),
+                    (2, 0, 0, 0, 0),
+                ],
+            ),
+        ):
+            observer = MODULE.TransportObserver(LOCATION, clock=clock)
+            for _ in range(4):
+                observer.poll(force=True)
+        self.assertEqual(len(observer.snapshots), 3)
+        self.assertEqual(
+            [item.state for item in observer.snapshots],
+            ["present", "present", "absent"],
+        )
+        self.assertEqual(observer.snapshots[1].nfs_rpc_calls, 2)
+        self.assertIsNone(observer.snapshots[-1].rx_bytes)
+        self.assertEqual(observer.dropped, 0)
+
+    def test_observer_rejects_wrong_port_and_bounds_changes(self):
+        wrong = MODULE.NcmIdentity("usb7", "pci/usb4/4-1")
+        observer = MODULE.TransportObserver(LOCATION, clock=mock.Mock(monotonic=lambda: 0.0))
+        with (
+            mock.patch.object(MODULE, "diagnostic_ncm_identities", return_value=[wrong]),
+            self.assertRaises(MODULE.CollectorError),
+        ):
+            observer.poll(force=True)
+
+        clock = mock.Mock()
+        clock.monotonic.side_effect = [0.0, 1.0]
+        clock.time_ns.return_value = 1
+        clock.monotonic_ns.return_value = 1
+        with (
+            mock.patch.object(MODULE, "MAX_TRANSPORT_SNAPSHOTS", 1),
+            mock.patch.object(MODULE, "diagnostic_ncm_identities", side_effect=[[], []]),
+            mock.patch.object(
+                MODULE,
+                "nfs_rpc_state",
+                side_effect=[(0, 0, 0, 0, 0), (1, 0, 0, 0, 0)],
+            ),
+        ):
+            observer = MODULE.TransportObserver(LOCATION, clock=clock)
+            observer.poll(force=True)
+            observer.poll(force=True)
+        self.assertEqual(len(observer.snapshots), 1)
+        self.assertEqual(observer.dropped, 1)
 
 
 class ReceiveOnlySerialTest(unittest.TestCase):
@@ -395,6 +516,7 @@ class EvidenceAndCaptureTest(unittest.TestCase):
             usb_events=(MODULE.UsbEvent(90, "usb 3-2: connected"),),
             dropped_usb_events=0,
             end_reason="disconnected",
+            transport_snapshots=(transport_snapshot(),),
         )
         evidence = MODULE.evidence_document(
             anchor=OrderedDict(
@@ -408,6 +530,7 @@ class EvidenceAndCaptureTest(unittest.TestCase):
         encoded = MODULE.encode_evidence(evidence)
         self.assertEqual(encoded, json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n")
         self.assertNotIn(b"raw", encoded)
+        self.assertEqual(evidence["transport_snapshot_count"], 1)
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary) / "private"
             directory.mkdir(mode=0o700)

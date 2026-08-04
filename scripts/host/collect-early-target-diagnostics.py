@@ -33,7 +33,7 @@ PARSER = importlib.util.module_from_spec(PARSER_SPEC)
 sys.modules[PARSER_SPEC.name] = PARSER
 PARSER_SPEC.loader.exec_module(PARSER)
 
-EVIDENCE_FORMAT = "rog5-early-target-evidence-v1"
+EVIDENCE_FORMAT = "rog5-early-target-evidence-v2"
 CANDIDATE = "headless-netroot-early-diag-v1"
 ANCHOR_FORMAT = "rog5-minimal-headless-usb-anchor-v1"
 RECOVERY_PRODUCT = "ROG5 recovery"
@@ -42,6 +42,8 @@ USB_VENDOR = "1d6b"
 USB_PRODUCT = "0104"
 USB_DRIVER = "cdc_acm"
 USB_INTERFACE = "02"
+USB_NCM_DRIVER = "cdc_ncm"
+USB_NCM_INTERFACE = "00"
 ANCHOR_MAX_AGE_SECONDS = 7200
 ENUMERATION_TIMEOUT_SECONDS = 60
 CAPTURE_TIMEOUT_SECONDS = 900
@@ -50,7 +52,9 @@ MAX_USB_EVENTS = 64
 MAX_EVENT_BYTES = 256
 MAX_JOURNAL_BUFFER = 8192
 MAX_EVIDENCE_BYTES = 2 * 1024 * 1024
+MAX_TRANSPORT_SNAPSHOTS = 768
 READ_INTERVAL_SECONDS = 0.25
+TRANSPORT_SAMPLE_INTERVAL_SECONDS = 1.0
 STABLE_ENUMERATION_SECONDS = 0.5
 FINAL_EVENT_POLLS = 10
 FINAL_EVENT_INTERVAL_SECONDS = 0.05
@@ -60,8 +64,10 @@ COLLECTOR_READY = "READY receive-only early-target diagnostic collector"
 SYS_DEVICES = Path("/sys/devices")
 SYS_BUS_USB = Path("/sys/bus/usb/devices")
 SYS_CLASS_TTY = Path("/sys/class/tty")
+SYS_CLASS_NET = Path("/sys/class/net")
 DEV_ROOT = Path("/dev")
 HOST_BOOT_ID = Path("/proc/sys/kernel/random/boot_id")
+NFSD_STATS = Path("/proc/net/rpc/nfsd")
 JOURNALCTL = Path("/usr/bin/journalctl")
 FUSER = Path("/usr/bin/fuser")
 
@@ -70,6 +76,28 @@ BOOT_ID = re.compile(
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
 )
 LOCATION = re.compile(r"[A-Za-z0-9._:+/-]{1,512}\Z")
+INTERFACE_NAME = re.compile(r"[A-Za-z0-9_.:-]{1,15}\Z")
+OPERSTATES = frozenset(
+    {
+        "unknown",
+        "notpresent",
+        "down",
+        "lowerlayerdown",
+        "testing",
+        "dormant",
+        "up",
+    }
+)
+NETWORK_COUNTERS = (
+    "rx_bytes",
+    "rx_packets",
+    "rx_errors",
+    "rx_dropped",
+    "tx_bytes",
+    "tx_packets",
+    "tx_errors",
+    "tx_dropped",
+)
 ANCHOR_FIELDS = (
     "format",
     "host_boot_id",
@@ -106,6 +134,12 @@ class AcmIdentity:
 
 
 @dataclass(frozen=True)
+class NcmIdentity:
+    name: str
+    location: str
+
+
+@dataclass(frozen=True)
 class TimestampedRecord:
     host_unix_ns: int
     host_monotonic_ns: int
@@ -119,11 +153,37 @@ class UsbEvent:
 
 
 @dataclass(frozen=True)
+class TransportSnapshot:
+    host_unix_ns: int
+    host_monotonic_ns: int
+    state: str
+    interface: str | None
+    usb_location: str
+    carrier: int | None
+    operstate: str | None
+    rx_bytes: int | None
+    rx_packets: int | None
+    rx_errors: int | None
+    rx_dropped: int | None
+    tx_bytes: int | None
+    tx_packets: int | None
+    tx_errors: int | None
+    tx_dropped: int | None
+    nfs_rpc_calls: int | None
+    nfs_rpc_badcalls: int | None
+    nfs_rpc_badauth: int | None
+    nfs_rpc_badclnt: int | None
+    nfs_rpc_xdrcall: int | None
+
+
+@dataclass(frozen=True)
 class CaptureResult:
     frames: tuple[TimestampedRecord, ...]
     usb_events: tuple[UsbEvent, ...]
     dropped_usb_events: int
     end_reason: str
+    transport_snapshots: tuple[TransportSnapshot, ...] = ()
+    dropped_transport_snapshots: int = 0
 
 
 class Clock(Protocol):
@@ -452,6 +512,203 @@ def diagnostic_acm_identities() -> list[AcmIdentity]:
     return matches
 
 
+def diagnostic_ncm_identities() -> list[NcmIdentity]:
+    matches: list[NcmIdentity] = []
+    try:
+        entries = sorted(SYS_CLASS_NET.iterdir())
+    except OSError as error:
+        raise CollectorError("cannot inspect host network interfaces") from error
+    for entry in entries:
+        if not INTERFACE_NAME.fullmatch(entry.name):
+            continue
+        observed = usb_ancestor(entry)
+        if observed is None:
+            continue
+        raw, vendor, product_id, product = observed
+        interface = usb_interface_identity(entry, raw)
+        if (
+            vendor != USB_VENDOR
+            or product_id != USB_PRODUCT
+            or product != TARGET_PRODUCT
+            or interface != (USB_NCM_INTERFACE, USB_NCM_DRIVER)
+        ):
+            continue
+        location = raw.relative_to(SYS_DEVICES).as_posix()
+        validate_location(location)
+        matches.append(NcmIdentity(entry.name, location))
+    return matches
+
+
+def canonical_counter(value: str, label: str) -> int:
+    if (
+        not value
+        or not value.isascii()
+        or not value.isdecimal()
+        or len(value) > 1
+        and value.startswith("0")
+    ):
+        fail(f"{label} is not a canonical decimal")
+    parsed = int(value)
+    if not 0 <= parsed <= (1 << 64) - 1:
+        fail(f"{label} is outside policy")
+    return parsed
+
+
+def ncm_state(identity: NcmIdentity) -> tuple[int, str, tuple[int, ...]]:
+    root = SYS_CLASS_NET / identity.name
+    observed = usb_ancestor(root)
+    if observed is None:
+        fail("diagnostic NCM disappeared during one snapshot")
+    raw, vendor, product_id, product = observed
+    if (
+        raw.relative_to(SYS_DEVICES).as_posix() != identity.location
+        or vendor != USB_VENDOR
+        or product_id != USB_PRODUCT
+        or product != TARGET_PRODUCT
+        or usb_interface_identity(root, raw)
+        != (USB_NCM_INTERFACE, USB_NCM_DRIVER)
+    ):
+        fail("diagnostic NCM identity changed during one snapshot")
+    carrier_value = read_small_regular(root / "carrier", 8)
+    if carrier_value not in {"0", "1"}:
+        fail("diagnostic NCM carrier is invalid")
+    operstate = read_small_regular(root / "operstate", 32)
+    if operstate not in OPERSTATES:
+        fail("diagnostic NCM operstate is invalid")
+    counters = tuple(
+        canonical_counter(
+            read_small_regular(root / "statistics" / name, 32),
+            f"diagnostic NCM {name}",
+        )
+        for name in NETWORK_COUNTERS
+    )
+    return int(carrier_value), operstate, counters
+
+
+def read_bounded_regular(path: Path, maximum: int) -> bytes:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = -1
+    try:
+        descriptor = os.open(path, flags)
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            fail("bounded system record metadata is unsafe")
+        payload = bytearray()
+        while len(payload) <= maximum:
+            block = os.read(descriptor, min(4096, maximum + 1 - len(payload)))
+            if not block:
+                break
+            payload.extend(block)
+        after = os.fstat(descriptor)
+        if (
+            len(payload) > maximum
+            or (before.st_dev, before.st_ino, before.st_mode)
+            != (after.st_dev, after.st_ino, after.st_mode)
+        ):
+            fail("bounded system record changed while being read")
+    except OSError as error:
+        raise CollectorError("cannot read bounded system record") from error
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+    return bytes(payload)
+
+
+def nfs_rpc_state() -> tuple[int, int, int, int, int] | None:
+    if not NFSD_STATS.exists():
+        return None
+    payload = read_bounded_regular(NFSD_STATS, 64 * 1024)
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise CollectorError("NFS server statistics are not ASCII") from error
+    matches = [line.split() for line in lines if line.startswith("rpc ")]
+    if len(matches) != 1 or len(matches[0]) != 6 or matches[0][0] != "rpc":
+        fail("NFS server RPC statistics are not canonical")
+    return tuple(
+        canonical_counter(value, "NFS server RPC counter")
+        for value in matches[0][1:]
+    )
+
+
+class TransportObserver:
+    """Change-only read-side evidence for the anchored NCM/NFS path."""
+
+    def __init__(
+        self,
+        expected_location: str,
+        *,
+        clock: Clock = time,
+        interval_seconds: float = TRANSPORT_SAMPLE_INTERVAL_SECONDS,
+    ):
+        validate_location(expected_location)
+        if interval_seconds <= 0:
+            raise ValueError("transport sample interval must be positive")
+        self.expected_location = expected_location
+        self.clock = clock
+        self.interval_seconds = interval_seconds
+        self.next_sample = 0.0
+        self.snapshots: list[TransportSnapshot] = []
+        self.dropped = 0
+        self._last_state: tuple[object, ...] | None = None
+
+    def poll(self, *, force: bool = False) -> None:
+        now = self.clock.monotonic()
+        if not force and now < self.next_sample:
+            return
+        self.next_sample = now + self.interval_seconds
+        matches = diagnostic_ncm_identities()
+        if len(matches) > 1:
+            fail("multiple diagnostic NCM interfaces appeared")
+        identity = matches[0] if matches else None
+        if identity is not None and identity.location != self.expected_location:
+            fail("diagnostic NCM escaped the anchored USB port")
+        rpc = nfs_rpc_state()
+        if identity is None:
+            state: tuple[object, ...] = ("absent", None, *(None,) * 10, rpc)
+            values: tuple[object, ...] = (None, None, None, *(None,) * 8)
+        else:
+            carrier, operstate, counters = ncm_state(identity)
+            state = ("present", identity.name, carrier, operstate, *counters, rpc)
+            values = (identity.name, carrier, operstate, *counters)
+        if state == self._last_state:
+            return
+        self._last_state = state
+        if len(self.snapshots) >= MAX_TRANSPORT_SNAPSHOTS:
+            self.dropped += 1
+            return
+        interface, carrier, operstate, *counters = values
+        rpc_values: tuple[int | None, ...] = (
+            rpc if rpc is not None else (None,) * 5
+        )
+        self.snapshots.append(
+            TransportSnapshot(
+                host_unix_ns=self.clock.time_ns(),
+                host_monotonic_ns=self.clock.monotonic_ns(),
+                state="present" if identity is not None else "absent",
+                interface=interface,
+                usb_location=self.expected_location,
+                carrier=carrier,
+                operstate=operstate,
+                rx_bytes=counters[0],
+                rx_packets=counters[1],
+                rx_errors=counters[2],
+                rx_dropped=counters[3],
+                tx_bytes=counters[4],
+                tx_packets=counters[5],
+                tx_errors=counters[6],
+                tx_dropped=counters[7],
+                nfs_rpc_calls=rpc_values[0],
+                nfs_rpc_badcalls=rpc_values[1],
+                nfs_rpc_badauth=rpc_values[2],
+                nfs_rpc_badclnt=rpc_values[3],
+                nfs_rpc_xdrcall=rpc_values[4],
+            )
+        )
+
+
 def find_diagnostic_acm(expected_location: str) -> AcmIdentity:
     validate_location(expected_location)
     products = diagnostic_product_locations()
@@ -760,6 +1017,7 @@ def capture_stream(
     clock: Clock = time,
     revalidate: Callable[[], None],
     poll_events: Callable[[], list[UsbEvent]],
+    poll_transport: Callable[[], None] = lambda: None,
     initial_events: tuple[UsbEvent, ...] = (),
     initial_dropped_events: int = 0,
 ) -> CaptureResult:
@@ -793,6 +1051,16 @@ def capture_stream(
             events.extend(poll_events())
         except CollectorError as error:
             rejected("kernel-events", str(error), frames, events, dropped_events)
+        try:
+            poll_transport()
+        except CollectorError as error:
+            rejected(
+                "transport-evidence",
+                str(error),
+                frames,
+                events,
+                dropped_events,
+            )
         remaining = deadline_monotonic - clock.monotonic()
         if remaining <= 0:
             try:
@@ -877,11 +1145,13 @@ def evidence_document(
             }
         )
     events = [asdict(event) for event in result.usb_events]
+    transport = [asdict(snapshot) for snapshot in result.transport_snapshots]
     boot_ids = {frame.record.boot_id for frame in result.frames}
     document: dict[str, object] = {
         "candidate": CANDIDATE,
         "capture_status": "rejected" if rejection_code else "valid",
         "dropped_usb_events": result.dropped_usb_events,
+        "dropped_transport_snapshots": result.dropped_transport_snapshots,
         "ended_unix_ns": ended_unix_ns,
         "end_reason": result.end_reason,
         "format": EVIDENCE_FORMAT,
@@ -891,6 +1161,8 @@ def evidence_document(
         "started_unix_ns": started_unix_ns,
         "target_boot_id": next(iter(boot_ids)) if len(boot_ids) == 1 else None,
         "target_product": TARGET_PRODUCT,
+        "transport_snapshot_count": len(transport),
+        "transport_snapshots": transport,
         "usb_events": events,
         "usb_location": anchor["usb_location"],
     }
@@ -994,6 +1266,7 @@ def main(arguments: list[str]) -> int:
     pre_capture_events: tuple[UsbEvent, ...] = ()
     pre_capture_dropped = 0
     observed: CaptureResult | None = None
+    transport: TransportObserver | None = None
     rejection_code: str | None = None
     rejection_message: str | None = None
     try:
@@ -1004,6 +1277,8 @@ def main(arguments: list[str]) -> int:
                 identity = wait_diagnostic_acm(
                     anchor["usb_location"], enumeration_timeout, journal.poll
                 )
+                transport = TransportObserver(anchor["usb_location"])
+                transport.poll(force=True)
                 initial_events = tuple(journal.filter.events)
                 initial_dropped = journal.filter.dropped
                 with ReceiveOnlySerial(identity) as serial:
@@ -1013,12 +1288,19 @@ def main(arguments: list[str]) -> int:
                         deadline_monotonic=time.monotonic() + capture_timeout,
                         revalidate=lambda: revalidate_diagnostic_acm(identity),
                         poll_events=journal.poll,
+                        poll_transport=transport.poll,
                         initial_events=initial_events,
                         initial_dropped_events=initial_dropped,
                     )
             except BaseException as error:
                 primary_error = error
             finally:
+                if transport is not None:
+                    try:
+                        transport.poll(force=True)
+                    except CollectorError as error:
+                        if primary_error is None:
+                            primary_error = error
                 try:
                     settle_kernel_events(journal.poll)
                 except CollectorError as error:
@@ -1036,6 +1318,8 @@ def main(arguments: list[str]) -> int:
             pre_capture_events,
             pre_capture_dropped,
             observed.end_reason,
+            tuple(transport.snapshots) if transport is not None else (),
+            transport.dropped if transport is not None else 0,
         )
     except CaptureRejected as error:
         result = CaptureResult(
@@ -1043,6 +1327,8 @@ def main(arguments: list[str]) -> int:
             pre_capture_events,
             pre_capture_dropped,
             error.partial.end_reason,
+            tuple(transport.snapshots) if transport is not None else (),
+            transport.dropped if transport is not None else 0,
         )
         rejection_code = error.code
         rejection_message = str(error)
@@ -1052,6 +1338,8 @@ def main(arguments: list[str]) -> int:
             pre_capture_events,
             pre_capture_dropped,
             "rejected",
+            tuple(transport.snapshots) if transport is not None else (),
+            transport.dropped if transport is not None else 0,
         )
         rejection_code = (
             "collector-finalization"

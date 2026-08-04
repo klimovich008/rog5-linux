@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-early-target-diag.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=20913
-expected_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361
+expected_source_size=20939
+expected_source_sha256=2f8a3bc21a43b415f08a341d01179603401842df25da0b3ce17a67f5cdbd8a65
 expected_output_size=67288
-expected_output_sha256=f0a9a52b42385a5c963230d5c48f152bed2e24e382c22de09acdba529082a1fd
+expected_output_sha256=dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10
 
 fail() {
 	echo "FAIL $*" >&2
@@ -78,8 +78,9 @@ fi
 	fail 'early-target reporter output hash is not sealed'
 for marker in \
 	'/dev/ttyGS0' \
-	'rog5-early-target-diag-v1' \
-	'watchdog-pretimeout' \
+		'rog5-early-target-diag-v1' \
+		'nfs-mount-returned' \
+		'watchdog-pretimeout' \
 	'cannot require diagnostic peer credentials'; do
 	strings "$temporary" | grep -Fqx "$marker" ||
 		fail "early-target reporter lacks marker: $marker"

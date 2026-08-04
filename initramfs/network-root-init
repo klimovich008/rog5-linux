@@ -70,6 +70,7 @@ start_diagnostics() {
 		[ ! -L "$diagnostic_binary" ] || return 1
 	case ${deadline_boottime:-} in *[!0-9]*|'') return 1 ;; esac
 	boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	log "lineage format=rog5-target-lineage-v1 candidate=$diagnostic_candidate boot_id=$boot_id"
 	deadline_ms=$((deadline_boottime * 1000))
 	reporter_log=/dev/null
 	[ ! -w /dev/kmsg ] || reporter_log=/dev/kmsg
@@ -536,8 +537,12 @@ mount_network_root() {
 		if mount -t nfs4 \
 			-o vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1 \
 			169.254.77.1:/ /mnt/root-ro; then
-			break
+			mount_status=0
+		else
+			mount_status=$?
 		fi
+		diagnostic_emit 75 || true
+		[ "$mount_status" -ne 0 ] || break
 		attempt=$((attempt + 1))
 		sleep 1
 	done

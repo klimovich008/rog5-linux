@@ -54,6 +54,7 @@ static const struct stage stages[] = {
 	{ 50, "address-configured" },
 	{ 60, "ncm-carrier-up" },
 	{ 70, "nfs-mount-begin" },
+	{ 75, "nfs-mount-returned" },
 	{ 80, "nfs-mount-ok" },
 	{ 90, "seal-verify-ok" },
 	{ 100, "overlay-ready" },
@@ -170,7 +171,7 @@ static const char *stage_name(unsigned int code)
 
 static bool valid_progress(unsigned int code)
 {
-	return code >= 10 && code <= 140 && code % 10 == 0;
+	return code < 200 && stage_name(code) != NULL;
 }
 
 static const char *canonical_fault(const char *value)

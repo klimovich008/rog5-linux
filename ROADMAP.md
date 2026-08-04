@@ -699,17 +699,30 @@ Current execution order:
     resolution passed. Generation 12 is removed from boot policy, recorded
     consumed, and never reusable. See the [live
     result](test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
-29. **In progress, host-only:** correct the outer lifecycle's obsolete
-    seven-field PREPARE parser to require the full postmortem-extended response
-    contract. Keep production diagnostics held before credentials or phone
-    inspection. Add hostile full-field, postmortem-bound, phase-identity, and
-    cross-response mutation tests, then publish only after complete local and
-    exact-head CI plus independent review.
-30. Design a distinct successor that separates target pre/post-NFS-syscall,
-    host TCP/NFS request progress, USB/NCM continuity, and lineage-proven
-    current-cycle postmortem evidence. Do not issue or admit it until the
-    offline contract and rollback review pass. Promote a normal SSH candidate
-    only after that evidence identifies and fixes the failing boundary.
+29. **Complete:** the outer lifecycle now requires all 18 PREPARE/COMMIT
+    fields, recomputes the canonical COMMIT request fingerprint, binds the
+    immutable postmortem tuple across both responses, and rejects hostile
+    missing/extra/cross-phase mutations. Native and exact claim-gate
+    regressions pass. Commits `5ce677e`, `baf57cf`, and `606303a` publish the
+    correction; exact-head GitHub Actions run `30952333022` passed QEMU in 35s
+    and recovery-core in 11m40s.
+30. **In progress, host-only and issuance HOLD:** the distinct successor now
+    inserts stage 75 `nfs-mount-returned` between begin and verified success,
+    emits one candidate/boot-ID kernel-log lineage marker, and extends private
+    evidence with change-only same-port NCM plus kernel NFS-RPC snapshots. The
+    67,288-byte reporter and 6,011,337-byte diagnostic initramfs twin-build
+    exactly at `dc53932d…a10` and `83240834…31d`. Hostile parser, collector,
+    lifecycle, and build-contract tests pass. The fallback now captures a
+    signed, read-only, 64-record/4-MiB pstore summary before strict health,
+    binds it to the expected candidate/target boot ID, separates lineage and
+    fatal-token classifications, and cross-checks the fallback boot ID across
+    both probes. Sixty-three fallback and 80 lifecycle tests, complete local
+    CI, and independent review pass in the [host-only
+    checkpoint](test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
+    Publication and exact-head GitHub CI remain required. Do not issue, sign,
+    admit, or boot a successor before both close; promote a normal SSH
+    candidate only after the evidence locates and the implementation fixes the
+    failing boundary.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 

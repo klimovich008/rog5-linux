@@ -81,7 +81,7 @@ for token in \
 	'-device virtconsole,chardev=diagnostic' \
 	'PASS generated diagnostic units ran under ARM64 systemd' \
 	'DiagnosticStream("headless-netroot-early-diag-v1")' \
-	'reporter_source_sha256=f8f35865d2c1918c6514c651705bf825a678d2e1084743ad1191306123986361' \
+	'reporter_source_sha256=2f8a3bc21a43b415f08a341d01179603401842df25da0b3ce17a67f5cdbd8a65' \
 	'for required in (10, 120, 130, 140)'; do
 	grep -Fq -- "$token" "$handoff_runner" ||
 		fail "QEMU diagnostic handoff contract is missing: $token"

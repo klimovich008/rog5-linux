@@ -267,10 +267,17 @@ fallback, strict SSH, cleanup, Steam socket restoration, and
 `FALLBACK_RETURNED` resolution passed. Generation 12 is consumed, absent from
 policy, and held before credentials or phone inspection. The outer lifecycle
 parser separately rejected the valid postmortem-extended PREPARE object because
-it still expected a legacy seven-field shape; the host-only correction now
-requires the complete contract and hostile cross-response invariants. Only a
-distinct successor with stronger NFS/USB/postmortem instrumentation may run;
-never repair the record or retry Generation 12.
+it still expected a legacy seven-field shape; the published host-only correction
+now requires the complete contract and hostile cross-response invariants. The
+unissued successor adds stage 75 after a returned NFS mount command, private
+same-port NCM/NFS snapshots, and a target lineage marker. Fallback-side
+current-cycle pstore correlation is now implemented host-only as a bounded,
+read-only, signed summary before unchanged strict health. Complete local CI and
+independent review pass in the [host-only
+checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md);
+publication and exact-head GitHub CI are still required, so no new candidate,
+signature, policy row, or phone boot exists. Never repair the record or retry
+Generation 12.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable
@@ -329,6 +336,7 @@ complete preflight
   -> target watchdog rollback
   -> NFS cleanup
   -> exact same-port Alpine NCM and bounded fallback-profile restoration
+  -> signed bounded current-cycle pstore summary
   -> exact host-key-signed strict-SSH Alpine fallback
   -> host cleanup proof
   -> durable intent resolution
@@ -342,6 +350,7 @@ private same-boot USB anchor
   -> fixed bundle transfer, NFS handoff, and one COMMIT_EXEC
   -> bounded accepted or rejected diagnostic evidence
   -> exact same-port Alpine NCM and bounded fallback-profile restoration
+  -> signed bounded current-cycle pstore summary
   -> exact strict-SSH Alpine fallback
   -> host cleanup proof
   -> durable intent resolution as FALLBACK_RETURNED
@@ -363,6 +372,21 @@ interface after the signed reply. Interactive ACM remains an emergency tool,
 but it is no longer in the normal lifecycle. The lifecycle reserves a
 separate bounded post-discovery control margin and never contacts fallback
 twice if later host cleanup fails.
+
+When the target boot ID is known, the lifecycle first invokes
+`capture-ssh-postmortem` over that same strict SSH path. The fallback scans at
+most 64 pstore records and 4 MiB without deleting records, emits only a signed
+candidate/boot-ID-bound summary, and returns no raw log bytes. The host
+independently validates state/count/hash consistency, lineage and fatal-token
+classifications, exact USB/NCM/route continuity, and credential identities
+before creating private evidence. The unchanged strict health probe then runs
+and must report the same fallback boot ID. Postmortem evidence is diagnostic
+only: it cannot satisfy fallback health, authorize intent resolution, or turn
+an absent lineage/fatal token into a “no panic” claim.
+An empty directory is `UNAVAILABLE` unless an exact pstore filesystem remains
+mounted across the complete snapshot. Exact lineage copies in multiple
+deduplicated backend records are `MATCH_MULTIPLE`; fatal tokens found outside
+the marker-bearing record are retained as present with unknown ordering.
 
 SSH does not enter the BusyBox line editor, but reading `authorized_keys`,
 the SSH host key, Python, and libraries from Alpine's writable `relatime`
@@ -959,6 +983,7 @@ All lifecycle outputs are created exclusively as mode-`0600` files below
 - `recovery-control.log`
 - `minimal-headless-runtime.record`
 - `early-target-diagnostics.log` and `early-target-diagnostics.json`
+- `fallback-postmortem.log` and `fallback-postmortem.record`
 - `fallback-identity.record`
 - `fallback-preflight.log`
 - `intent-resolution.log`
@@ -979,6 +1004,11 @@ metadata: boot ID, USB location, nonce, maximum sampled temperature, and
 SHA-256 identities of the signed record, signature, and inspected host-key
 pin. The pin itself, signature bytes, and SSH host private key are never
 published.
+The postmortem record similarly retains only the expected candidate and target
+boot ID, fallback boot ID, USB location, pstore state/count/byte/digest
+summary, lineage/fatal counts and classifications, nonce, and proof hashes.
+It contains no raw pstore text and remains useful even when the following
+strict health probe rejects non-empty pstore.
 
 ## Failure and outcome rules
 
@@ -1022,11 +1052,11 @@ not permission to retry a decided PREPARE request.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers sixteen admission
-scenarios, `test-fallback-acm-control.py` covers fifty fallback
+scenarios, `test-fallback-acm-control.py` covers sixty-three fallback
 protocol tests, `test-recovery-host-controller.py` covers twenty-two privileged
-controller tests, `test-recovery-host-socket.py` covers eleven socket tests, and
-`test-run-minimal-headless-live-cycle.py` covers thirty-seven lifecycle test
-methods. Together they prove:
+controller tests, `test-recovery-host-socket.py` covers eleven socket tests,
+and `test-run-minimal-headless-live-cycle.py` covers 80 lifecycle tests.
+Together they prove:
 
 - exact non-fixture v3 key/package/candidate/manifest binding passes;
 - tracked fixture keys and each tracked fixture root identity fail;
@@ -1064,6 +1094,11 @@ methods. Together they prove:
 - fallback classification uses strict key-only SSH, one exact nonce-framed
   signed record, exact USB-NCM identity/location and route, bounded output,
   and post-reply USB revalidation;
+- before strict fallback health, known-target cycles capture one bounded
+  signed pstore summary without returning raw records, reject symlink/type/
+  inode/mount races and malformed state/classification fields, preserve
+  cross-record fatal tokens without inventing order, and require the same
+  fallback boot ID across both probes;
 - host writes drain and retain bounded shell echoes, fail with canonical
   stage/byte progress, and require one non-echoable nonce shell-ready marker
   after an atomic stale-line reset;

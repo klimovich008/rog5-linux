@@ -27,6 +27,8 @@ import zlib
 REPO = Path(__file__).resolve().parents[2]
 FORMAT = "rog5-fallback-acm-v1"
 IDENTITY_FORMAT = "rog5-fallback-identity-v2"
+POSTMORTEM_FORMAT = "rog5-fallback-postmortem-v1"
+POSTMORTEM_EVIDENCE_FORMAT = "rog5-fallback-postmortem-evidence-v1"
 HOST_ALIAS = "rog5-fallback"
 SIGN_NAMESPACE = "rog5-fallback-acm-v1"
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
@@ -102,6 +104,8 @@ UNAVAILABLE_THERMAL_TYPES = frozenset(
 )
 ANCHOR_MAX_AGE_SECONDS = 7200
 ZERO_ID = "0" * 32
+ZERO_SHA256 = "0" * 64
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 NONCE = re.compile(r"[0-9a-f]{32}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -110,6 +114,7 @@ BOOT_ID = re.compile(
 LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}\Z")
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+TARGET_CANDIDATE = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}\Z")
 UDEVADM = Path("/usr/bin/udevadm")
 SSH_KEYGEN = Path("/usr/bin/ssh-keygen")
 SSH = Path("/usr/bin/ssh")
@@ -161,6 +166,27 @@ RESULT_FIELDS = (
     "thermal_zones",
     "thermal_max",
     "python_major",
+    "boot_id",
+    "result",
+)
+POSTMORTEM_FIELDS = (
+    "format",
+    "nonce",
+    "action",
+    "kernel_release",
+    "init",
+    "compatible",
+    "root_fstype",
+    "pstore_state",
+    "pstore_records",
+    "pstore_bytes",
+    "pstore_sha256",
+    "expected_candidate",
+    "expected_boot_id",
+    "lineage_matches",
+    "lineage_records",
+    "fatal_tokens_total",
+    "fatal_after_lineage",
     "boot_id",
     "result",
 )
@@ -570,6 +596,293 @@ def restart_bootloader():
         ctypes.c_char_p(b"bootloader"),
     )
     raise RuntimeError(f"reboot-returned-{result}-{ctypes.get_errno()}")
+
+
+try:
+    main()
+except SystemExit:
+    raise
+except Exception:
+    nonce = sys.argv[1] if len(sys.argv) > 1 else "unknown"
+    stop(nonce, "probe")
+'''
+
+
+POSTMORTEM_REMOTE_SOURCE = r'''
+import base64
+import hashlib
+import os
+from pathlib import Path
+import platform
+import re
+import stat
+import subprocess
+import sys
+
+FORMAT = "rog5-fallback-postmortem-v1"
+NAMESPACE = "rog5-fallback-acm-v1"
+KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
+HOST_KEY = Path("/etc/ssh/ssh_host_ed25519_key")
+MAX_RECORDS = 64
+MAX_BYTES = 4 * 1024 * 1024
+ZERO_SHA256 = "0" * 64
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
+BOOT_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
+)
+CANDIDATE = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}\Z")
+RECORD_NAME = re.compile(r"[A-Za-z0-9._-]{1,255}\Z")
+FATAL = re.compile(
+    rb"(?<![A-Za-z0-9_])(?:Kernel panic|Oops:|BUG:|"
+    rb"watchdog[ _-]+bite|Kernel fault|Unable to handle kernel|"
+    rb"Synchronous External Abort)(?![A-Za-z0-9_])",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def stop(nonce, code):
+    print("ROG5_FALLBACK_POSTMORTEM_ERROR", nonce, code, flush=True)
+    raise SystemExit(1)
+
+
+def mount_type():
+    for line in Path("/proc/mounts").read_text().splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and fields[1] == "/":
+            return fields[2]
+    return ""
+
+
+def read_record(path, remaining, expected_identity):
+    descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        metadata = os.fstat(descriptor)
+        identity = (metadata.st_dev, metadata.st_ino)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or identity != expected_identity
+        ):
+            raise RuntimeError("record-type")
+        payload = bytearray()
+        while len(payload) <= remaining:
+            block = os.read(descriptor, min(65536, remaining + 1 - len(payload)))
+            if not block:
+                break
+            payload.extend(block)
+        after = os.fstat(descriptor)
+        if (
+            len(payload) > remaining
+            or (metadata.st_dev, metadata.st_ino, metadata.st_mode)
+            != (after.st_dev, after.st_ino, after.st_mode)
+        ):
+            raise RuntimeError("record-bound")
+        return bytes(payload)
+    finally:
+        os.close(descriptor)
+
+
+def pstore_mounts():
+    mounted = set()
+    for line in Path("/proc/mounts").read_text().splitlines():
+        fields = line.split()
+        if len(fields) != 6:
+            raise RuntimeError("mount-table")
+        if fields[2] == "pstore":
+            mounted.add(fields[1])
+    return mounted
+
+
+def snapshot(marker):
+    roots = []
+    root_ids = set()
+    mounted = pstore_mounts()
+    selected_mounts = set()
+    for name in ("/sys/fs/pstore", "/mnt/pstore"):
+        root = Path(name)
+        try:
+            metadata = root.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise RuntimeError("pstore-root") from error
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise RuntimeError("pstore-root")
+        try:
+            resolved = root.resolve(strict=True)
+            resolved_metadata = resolved.lstat()
+        except OSError as error:
+            raise RuntimeError("pstore-root") from error
+        mount_name = str(resolved)
+        if mount_name not in mounted:
+            continue
+        selected_mounts.add(mount_name)
+        identity = (resolved_metadata.st_dev, resolved_metadata.st_ino)
+        if identity not in root_ids:
+            roots.append((resolved, identity))
+            root_ids.add(identity)
+    if selected_mounts != mounted:
+        raise RuntimeError("pstore-location")
+    if pstore_mounts() != mounted:
+        raise RuntimeError("mount-race")
+    if not roots:
+        return "UNAVAILABLE", 0, 0, ZERO_SHA256, 0, 0, 0, 0
+
+    aggregate = bytearray()
+    records = 0
+    byte_count = 0
+    matches = 0
+    lineage_records = 0
+    fatal_total = 0
+    fatal_after = 0
+    seen = set()
+    for root, _root_identity in roots:
+        for entry in sorted(root.iterdir(), key=lambda item: item.name):
+            if not RECORD_NAME.fullmatch(entry.name):
+                raise RuntimeError("record-name")
+            metadata = entry.lstat()
+            if not stat.S_ISREG(metadata.st_mode):
+                raise RuntimeError("record-type")
+            identity = (metadata.st_dev, metadata.st_ino)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            if records >= MAX_RECORDS or byte_count >= MAX_BYTES:
+                raise RuntimeError("snapshot-bound")
+            payload = read_record(
+                entry,
+                MAX_BYTES - byte_count,
+                identity,
+            )
+            aggregate.extend(f"record={entry.name}\nsize={len(payload)}\n".encode())
+            aggregate.extend(payload)
+            aggregate.extend(b"\n")
+            records += 1
+            byte_count += len(payload)
+            count = payload.count(marker)
+            matches += count
+            fatal_matches = tuple(FATAL.finditer(payload))
+            fatal_total += len(fatal_matches)
+            if count:
+                lineage_records += 1
+                position = payload.find(marker) + len(marker)
+                fatal_after += sum(
+                    match.start() >= position for match in fatal_matches
+                )
+    if pstore_mounts() != mounted or any(
+        (root.stat().st_dev, root.stat().st_ino) != identity
+        for root, identity in roots
+    ):
+        raise RuntimeError("mount-race")
+    if records == 0:
+        return "EMPTY", 0, 0, EMPTY_SHA256, 0, 0, 0, 0
+    return (
+        "PRESENT",
+        records,
+        byte_count,
+        hashlib.sha256(aggregate).hexdigest(),
+        matches,
+        lineage_records,
+        fatal_total,
+        fatal_after,
+    )
+
+
+def sign(payload):
+    metadata = HOST_KEY.lstat()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != 0
+        or metadata.st_gid != 0
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_nlink != 1
+    ):
+        raise RuntimeError("host-key-metadata")
+    result = subprocess.run(
+        [
+            "/usr/bin/ssh-keygen",
+            "-Y",
+            "sign",
+            "-f",
+            str(HOST_KEY),
+            "-n",
+            NAMESPACE,
+            "-",
+        ],
+        input=payload,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        timeout=10,
+    )
+    if result.returncode != 0 or not result.stdout:
+        raise RuntimeError("host-key-sign")
+    return result.stdout
+
+
+def main():
+    if len(sys.argv) != 5:
+        raise RuntimeError("arguments")
+    nonce, action, candidate, expected_boot_id = sys.argv[1:]
+    if (
+        not re.fullmatch(r"[0-9a-f]{32}", nonce)
+        or action != "postmortem"
+        or not CANDIDATE.fullmatch(candidate)
+        or ".." in candidate
+        or not BOOT_ID.fullmatch(expected_boot_id)
+    ):
+        raise RuntimeError("arguments")
+    compatible = Path("/proc/device-tree/compatible").read_bytes().split(b"\0")
+    boot_id = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    if (
+        platform.release() != KERNEL
+        or os.readlink("/proc/1/exe") != "/bin/busybox"
+        or b"qcom,lahaina-mtp" not in compatible
+        or mount_type() != "ext4"
+        or not BOOT_ID.fullmatch(boot_id)
+    ):
+        stop(nonce, "identity")
+    marker = (
+        "rog5-network-root: lineage format=rog5-target-lineage-v1 "
+        f"candidate={candidate} boot_id={expected_boot_id}"
+    ).encode()
+    (
+        state,
+        records,
+        byte_count,
+        digest,
+        matches,
+        lineage_records,
+        fatal_total,
+        fatal_after,
+    ) = snapshot(marker)
+    values = [
+        ("format", FORMAT),
+        ("nonce", nonce),
+        ("action", action),
+        ("kernel_release", platform.release()),
+        ("init", os.readlink("/proc/1/exe")),
+        ("compatible", "qcom,lahaina-mtp"),
+        ("root_fstype", mount_type()),
+        ("pstore_state", state),
+        ("pstore_records", str(records)),
+        ("pstore_bytes", str(byte_count)),
+        ("pstore_sha256", digest),
+        ("expected_candidate", candidate),
+        ("expected_boot_id", expected_boot_id),
+        ("lineage_matches", str(matches)),
+        ("lineage_records", str(lineage_records)),
+        ("fatal_tokens_total", str(fatal_total)),
+        ("fatal_after_lineage", str(fatal_after)),
+        ("boot_id", boot_id),
+        ("result", "PASS"),
+    ]
+    payload = "".join(f"{key}={value}\n" for key, value in values).encode()
+    signature = sign(payload)
+    print("ROG5_FALLBACK_POSTMORTEM_BEGIN", nonce)
+    print(base64.b64encode(payload).decode())
+    print(base64.b64encode(signature).decode())
+    print("ROG5_FALLBACK_POSTMORTEM_END", nonce, "PREPARED", flush=True)
 
 
 try:
@@ -1574,6 +1887,173 @@ def parse_record(payload: bytes, nonce: str, action: str) -> OrderedDict[str, st
     return values
 
 
+def bounded_decimal(value: str, label: str, maximum: int) -> int:
+    if (
+        not value
+        or not value.isascii()
+        or not value.isdecimal()
+        or len(value) > 1
+        and value.startswith("0")
+    ):
+        fail(f"{label} is not a canonical decimal")
+    parsed = int(value)
+    if not 0 <= parsed <= maximum:
+        fail(f"{label} is outside policy")
+    return parsed
+
+
+def parse_postmortem_payload(
+    payload: bytes,
+    nonce: str,
+    expected_candidate: str,
+    expected_boot_id: str,
+) -> OrderedDict[str, str]:
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise FallbackError("fallback postmortem record is not ASCII") from error
+    if len(lines) != len(POSTMORTEM_FIELDS) or not payload.endswith(b"\n"):
+        fail("fallback postmortem field count changed")
+    values: OrderedDict[str, str] = OrderedDict()
+    for expected, line in zip(POSTMORTEM_FIELDS, lines, strict=True):
+        key, separator, value = line.partition("=")
+        if separator != "=" or key != expected or not value:
+            fail("fallback postmortem record is not canonical")
+        values[key] = value
+    if payload != "".join(
+        f"{key}={value}\n" for key, value in values.items()
+    ).encode("ascii"):
+        fail("fallback postmortem encoding changed")
+    exact = {
+        "format": POSTMORTEM_FORMAT,
+        "nonce": nonce,
+        "action": "postmortem",
+        "kernel_release": FALLBACK_KERNEL,
+        "init": "/bin/busybox",
+        "compatible": "qcom,lahaina-mtp",
+        "root_fstype": "ext4",
+        "expected_candidate": expected_candidate,
+        "expected_boot_id": expected_boot_id,
+        "result": "PASS",
+    }
+    if (
+        not TARGET_CANDIDATE.fullmatch(expected_candidate)
+        or ".." in expected_candidate
+        or not BOOT_ID.fullmatch(expected_boot_id)
+        or any(values[key] != value for key, value in exact.items())
+        or not BOOT_ID.fullmatch(values["boot_id"])
+        or not SHA256.fullmatch(values["pstore_sha256"])
+    ):
+        fail("fallback postmortem identity changed")
+    records = bounded_decimal(values["pstore_records"], "pstore records", 64)
+    byte_count = bounded_decimal(
+        values["pstore_bytes"], "pstore bytes", 4 * 1024 * 1024
+    )
+    matches = bounded_decimal(
+        values["lineage_matches"], "lineage matches", 1_000_000
+    )
+    lineage_records = bounded_decimal(
+        values["lineage_records"], "lineage records", 64
+    )
+    fatal_total = bounded_decimal(
+        values["fatal_tokens_total"],
+        "fatal-token count",
+        1_000_000,
+    )
+    fatal = bounded_decimal(
+        values["fatal_after_lineage"],
+        "fatal-after-lineage count",
+        1_000_000,
+    )
+    state = values["pstore_state"]
+    digest = values["pstore_sha256"]
+    if state == "UNAVAILABLE":
+        consistent = records == byte_count == 0 and digest == ZERO_SHA256
+    elif state == "EMPTY":
+        consistent = records == byte_count == 0 and digest == EMPTY_SHA256
+    elif state == "PRESENT":
+        consistent = (
+            1 <= records <= 64
+            and 0 <= byte_count <= 4 * 1024 * 1024
+            and digest not in {ZERO_SHA256, EMPTY_SHA256}
+        )
+    else:
+        consistent = False
+    if (
+        not consistent
+        or lineage_records > records
+        or lineage_records > matches
+        or (matches == 0 and (lineage_records != 0 or fatal != 0))
+        or (matches > 0 and lineage_records == 0)
+        or fatal > fatal_total
+        or (state != "PRESENT" and fatal_total != 0)
+    ):
+        fail("fallback postmortem state is inconsistent")
+    return values
+
+
+def parse_postmortem_frame(
+    output: bytes,
+    nonce: str,
+    expected_candidate: str,
+    expected_boot_id: str,
+) -> tuple[OrderedDict[str, str], bytes, bytes]:
+    lines = sanitize(output)
+    begin = f"ROG5_FALLBACK_POSTMORTEM_BEGIN {nonce}"
+    end = f"ROG5_FALLBACK_POSTMORTEM_END {nonce} PREPARED"
+    if lines.count(begin) != 1 or lines.count(end) != 1:
+        fail("fallback postmortem did not return one correlated frame")
+    first = lines.index(begin)
+    last = lines.index(end)
+    if last != first + 3:
+        fail("fallback postmortem frame structure changed")
+    try:
+        payload = base64.b64decode(lines[first + 1], validate=True)
+        signature = base64.b64decode(lines[first + 2], validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise FallbackError(
+            "fallback postmortem frame is not canonical base64"
+        ) from error
+    values = parse_postmortem_payload(
+        payload,
+        nonce,
+        expected_candidate,
+        expected_boot_id,
+    )
+    return values, payload, signature
+
+
+def postmortem_classification(
+    values: OrderedDict[str, str],
+) -> tuple[str, str]:
+    state = values["pstore_state"]
+    matches = int(values["lineage_matches"])
+    records = int(values["lineage_records"])
+    fatal_total = int(values["fatal_tokens_total"])
+    fatal = int(values["fatal_after_lineage"])
+    if state == "UNAVAILABLE":
+        correlation = "UNAVAILABLE"
+    elif state == "EMPTY":
+        correlation = "NO_RECORDS"
+    elif matches == 0:
+        correlation = "NO_LINEAGE"
+    elif matches == records == 1:
+        correlation = "MATCH"
+    elif matches == records and records > 1:
+        correlation = "MATCH_MULTIPLE"
+    else:
+        correlation = "AMBIGUOUS"
+    if correlation not in {"MATCH", "MATCH_MULTIPLE"}:
+        fatal_state = "UNCORRELATED"
+    elif fatal > 0:
+        fatal_state = "FATAL_TOKEN_AFTER_LINEAGE"
+    elif fatal_total > 0:
+        fatal_state = "FATAL_TOKEN_PRESENT_ORDER_UNKNOWN"
+    else:
+        fatal_state = "NO_FATAL_TOKEN_OBSERVED"
+    return correlation, fatal_state
+
+
 def parse_frame(
     output: bytes,
     nonce: str,
@@ -1852,6 +2332,131 @@ def ssh_probe(
     return values, proof
 
 
+def ssh_postmortem_probe(
+    known_hosts: Path,
+    allowed_signers: bytes,
+    ssh_key: Path,
+    expected_public_sha256: str,
+    anchor_path: Path,
+    timeout_seconds: int,
+    expected_candidate: str,
+    expected_boot_id: str,
+) -> tuple[OrderedDict[str, str], OrderedDict[str, str]]:
+    if (
+        not TARGET_CANDIDATE.fullmatch(expected_candidate)
+        or ".." in expected_candidate
+        or not BOOT_ID.fullmatch(expected_boot_id)
+    ):
+        fail("fallback postmortem expectation is invalid")
+    expected_location = read_anchor(anchor_path)
+    interface, location = wait_fallback_ncm(
+        expected_location,
+        timeout_seconds,
+    )
+    verify_network_profile(interface)
+    exact_fallback_route(interface)
+    nonce = os.urandom(16).hex()
+    if not NONCE.fullmatch(nonce) or nonce == ZERO_ID:
+        fail("cannot mint one fallback postmortem challenge")
+    host_pin_identity = file_identity(known_hosts)
+    key_identity = file_identity(ssh_key)
+    command = [
+        str(SSH),
+        "-F",
+        "/dev/null",
+        "-i",
+        str(ssh_key),
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        f"UserKnownHostsFile={known_hosts}",
+        "-o",
+        "GlobalKnownHostsFile=/dev/null",
+        "-o",
+        f"HostKeyAlias={HOST_ALIAS}",
+        "-o",
+        "ConnectTimeout=8",
+        "-o",
+        "ConnectionAttempts=1",
+        "-o",
+        "ServerAliveInterval=5",
+        "-o",
+        "ServerAliveCountMax=2",
+        "-o",
+        "LogLevel=ERROR",
+        f"root@{FALLBACK_ADDRESS}",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "-B",
+        "-",
+        nonce,
+        "postmortem",
+        expected_candidate,
+        expected_boot_id,
+    ]
+    result = subprocess.run(
+        command,
+        input=POSTMORTEM_REMOTE_SOURCE.encode("utf-8"),
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    )
+    if (
+        file_identity(known_hosts) != host_pin_identity
+        or verify_known_hosts(known_hosts) != allowed_signers
+        or file_identity(ssh_key) != key_identity
+        or verify_ssh_key(ssh_key, expected_public_sha256) != ssh_key
+    ):
+        fail("fallback SSH credentials changed during postmortem capture")
+    if (
+        result.returncode != 0
+        or result.stderr
+        or len(result.stdout) > MAX_SERIAL_OUTPUT
+    ):
+        diagnostic = ascii(
+            result.stderr.decode("utf-8", errors="replace").strip()[:512]
+        )
+        fail(
+            "fallback strict SSH postmortem capture failed "
+            f"status={result.returncode} stderr={diagnostic}"
+        )
+    values, payload, signature = parse_postmortem_frame(
+        result.stdout,
+        nonce,
+        expected_candidate,
+        expected_boot_id,
+    )
+    verify_signature(allowed_signers, payload, signature)
+    if fallback_ncm_identity() != (interface, location):
+        fail("fallback NCM identity changed after postmortem capture")
+    exact_fallback_route(interface)
+    if read_anchor(anchor_path) != location:
+        fail("recovery USB anchor changed after postmortem capture")
+    proof = OrderedDict(
+        (
+            ("nonce", values["nonce"]),
+            ("usb_location", location),
+            ("record_sha256", hashlib.sha256(payload).hexdigest()),
+            (
+                "signature_sha256",
+                hashlib.sha256(signature).hexdigest(),
+            ),
+            (
+                "host_pin_sha256",
+                hashlib.sha256(allowed_signers).hexdigest(),
+            ),
+        )
+    )
+    return values, proof
+
+
 def safe_new_output(path: Path) -> Path:
     if not path.is_absolute():
         fail("fallback evidence output must be absolute")
@@ -1914,6 +2519,70 @@ def write_identity(
             or metadata.st_size != len(payload)
         ):
             fail("fallback identity output metadata is unsafe")
+        succeeded = True
+    finally:
+        os.close(descriptor)
+        if not succeeded:
+            try:
+                destination.unlink()
+            except OSError:
+                pass
+    directory = os.open(destination.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def write_postmortem_evidence(
+    path: Path,
+    values: OrderedDict[str, str],
+    proof: OrderedDict[str, str],
+) -> None:
+    destination = safe_new_output(path)
+    correlation, fatal_state = postmortem_classification(values)
+    payload = (
+        f"format={POSTMORTEM_EVIDENCE_FORMAT}\n"
+        f"expected_candidate={values['expected_candidate']}\n"
+        f"expected_boot_id={values['expected_boot_id']}\n"
+        f"fallback_boot_id={values['boot_id']}\n"
+        f"usb_location={proof['usb_location']}\n"
+        f"pstore_state={values['pstore_state']}\n"
+        f"pstore_records={values['pstore_records']}\n"
+        f"pstore_bytes={values['pstore_bytes']}\n"
+        f"pstore_sha256={values['pstore_sha256']}\n"
+        f"lineage_matches={values['lineage_matches']}\n"
+        f"lineage_records={values['lineage_records']}\n"
+        f"fatal_tokens_total={values['fatal_tokens_total']}\n"
+        f"fatal_after_lineage={values['fatal_after_lineage']}\n"
+        f"correlation={correlation}\n"
+        f"fatal_state={fatal_state}\n"
+        f"nonce={proof['nonce']}\n"
+        f"record_sha256={proof['record_sha256']}\n"
+        f"signature_sha256={proof['signature_sha256']}\n"
+        f"host_pin_sha256={proof['host_pin_sha256']}\n"
+        "result=PASS\n"
+    ).encode("ascii")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
+    descriptor = os.open(destination, flags, 0o600)
+    succeeded = False
+    try:
+        view = memoryview(payload)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                fail("fallback postmortem evidence write made no progress")
+            view = view[written:]
+        os.fsync(descriptor)
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_nlink != 1
+            or metadata.st_size != len(payload)
+        ):
+            fail("fallback postmortem evidence metadata is unsafe")
         succeeded = True
     finally:
         os.close(descriptor)
@@ -2063,7 +2732,11 @@ def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
 
 
 def require_guards(action: str) -> None:
-    ssh_action = action in {"ssh-host-preflight", "wait-ssh-preflight"}
+    ssh_action = action in {
+        "ssh-host-preflight",
+        "wait-ssh-preflight",
+        "capture-ssh-postmortem",
+    }
     guard = (
         "ALLOW_FALLBACK_SSH_CONTROL"
         if ssh_action
@@ -2188,6 +2861,7 @@ def main(arguments: list[str]) -> int:
         "preflight",
         "wait-preflight",
         "wait-ssh-preflight",
+        "capture-ssh-postmortem",
         "reboot",
     }:
         fail(
@@ -2200,6 +2874,8 @@ def main(arguments: list[str]) -> int:
             "wait-ssh-preflight KNOWN_HOSTS SSH_KEY PUBLIC_KEY_SHA256 "
             "ANCHOR TIMEOUT "
             "OUTPUT | "
+            "capture-ssh-postmortem KNOWN_HOSTS SSH_KEY PUBLIC_KEY_SHA256 "
+            "ANCHOR TIMEOUT EXPECTED_CANDIDATE EXPECTED_BOOT_ID OUTPUT | "
             "reboot KNOWN_HOSTS"
         )
     require_guards(action)
@@ -2209,13 +2885,18 @@ def main(arguments: list[str]) -> int:
         "preflight": 3,
         "wait-preflight": 5,
         "wait-ssh-preflight": 7,
+        "capture-ssh-postmortem": 9,
         "reboot": 2,
     }
     if len(arguments) != expected_arguments[action]:
         fail(f"invalid arguments for fallback {action}")
     fixed_binary(UDEVADM)
     fixed_binary(SSH_KEYGEN)
-    if action in {"ssh-host-preflight", "wait-ssh-preflight"}:
+    if action in {
+        "ssh-host-preflight",
+        "wait-ssh-preflight",
+        "capture-ssh-postmortem",
+    }:
         fixed_binary(SSH)
         fixed_binary(IP)
         fixed_binary(NMCLI)
@@ -2230,6 +2911,8 @@ def main(arguments: list[str]) -> int:
         output = safe_new_output(Path(arguments[4]))
     elif action == "wait-ssh-preflight":
         output = safe_new_output(Path(arguments[6]))
+    elif action == "capture-ssh-postmortem":
+        output = safe_new_output(Path(arguments[8]))
     known_hosts_path = canonical_private_file(
         Path(arguments[1]),
         "fallback host pin",
@@ -2250,6 +2933,11 @@ def main(arguments: list[str]) -> int:
         wait_timeout = parse_wait_timeout(arguments[4])
         require_anchor_budget(arguments[5], wait_timeout)
         compile(REMOTE_SOURCE, "fallback-ssh-remote.py", "exec")
+        compile(
+            POSTMORTEM_REMOTE_SOURCE,
+            "fallback-postmortem-remote.py",
+            "exec",
+        )
         print(
             "PASS fallback strict-SSH host prerequisites, client key, "
             "and pinned host key are exact; no phone contact occurred"
@@ -2269,6 +2957,30 @@ def main(arguments: list[str]) -> int:
         _, location, _ = probe(known_hosts, action="reboot")
         wait_fastboot(location)
         print("PASS pinned Alpine fallback reached exact fastboot device")
+        return 0
+    if action == "capture-ssh-postmortem":
+        if output is None:
+            fail("postmortem evidence output is unavailable")
+        expected_public_sha256 = arguments[3]
+        ssh_key = verify_ssh_key(Path(arguments[2]), expected_public_sha256)
+        anchor = Path(arguments[4])
+        timeout = parse_wait_timeout(arguments[5], minimum=1)
+        values, proof = ssh_postmortem_probe(
+            known_hosts_path,
+            known_hosts,
+            ssh_key,
+            expected_public_sha256,
+            anchor,
+            timeout,
+            arguments[6],
+            arguments[7],
+        )
+        write_postmortem_evidence(output, values, proof)
+        correlation, fatal_state = postmortem_classification(values)
+        print(
+            "PASS bounded fallback pstore evidence captured over strict SSH "
+            f"correlation={correlation} fatal_state={fatal_state}"
+        )
         return 0
     if action == "wait-ssh-preflight":
         if output is None:
