@@ -634,11 +634,15 @@ Current execution order:
     See the
     [admission result](test-results/2026-08-04-generation-11-live-admission-offline.md)
     and [connected result](test-results/2026-08-04-generation-11-connected-preflight-live.md).
-23. Review and publish the Generation-11 connected-preflight evidence with
-    complete local and exact-head GitHub CI before the sole RAM-only lifecycle.
-24. Promote a distinct normal SSH candidate only after diagnostic evidence
+23. **Complete:** independent spec and standards review, complete local CI,
+    commit `7b76733`, and exact-head GitHub Actions run `30921019231` publish
+    the Generation-11 connected-preflight evidence. The artifact remains
+    unbooted and has no boot claim.
+24. Run the sole admitted Generation-11 RAM-only lifecycle with no retry, then
+    preserve its exact evidence and restore verified Alpine fallback.
+25. Promote a distinct normal SSH candidate only after diagnostic evidence
     identifies and fixes the failing boundary.
-25. If H2 passes, continue physical keys/indicator, then H3
+26. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
 Use [active-context.md](docs/active-context.md) as the resume point. Detailed

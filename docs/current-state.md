@@ -1285,8 +1285,9 @@ Mainline refresh-rate acceptance waits for stable DRM/KWin acceleration.
    and [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
    then passed after strict fallback proof and an anchored same-port reboot to
    one `lahaina` fastboot device. The artifact remains unbooted and has no boot
-   claim. Review, publication, and exact-head CI of this connected evidence
-   remain before the sole RAM-only lifecycle.
+   claim. Independent spec and standards review and complete local CI passed;
+   commit `7b76733` published this evidence and exact-head GitHub Actions run
+   `30921019231` passed. The sole RAM-only lifecycle is next.
 10. Bring up the headless core in order: boot/storage/USB/SSH, power/charging/
    thermal/suspend, input/sensors, then audio and wireless.
 

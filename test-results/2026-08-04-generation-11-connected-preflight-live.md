@@ -77,8 +77,14 @@ remain outside Git.
 - source/DT outer:
   `7cc263208382bf812f6a1a9bed9f09af35c262023353f08d531bacfb6f7b734f`.
 
+## Publication
+
+Independent spec and standards review and the complete local Linux `ci` tier
+passed. Commit `7b767333835dfabdb0acf116cd3bc7a3da851425` published this
+evidence. Exact-head GitHub Actions run `30921019231` passed recovery-core in
+4m01s and QEMU in 39s.
+
 This pass establishes the connected-preflight precondition for the sole
-Generation-11 lifecycle only after this evidence update is independently
-reviewed, published, and green at exact-head CI. It is not runtime evidence,
-does not consume the artifact, and authorizes neither flashing nor a retry
-after any later ambiguous execute.
+Generation-11 lifecycle. It is not runtime evidence, does not consume the
+artifact, and authorizes neither flashing nor a retry after any later ambiguous
+execute.

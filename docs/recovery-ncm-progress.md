@@ -173,9 +173,11 @@ exact-head CI green.
 The exact connected preflight now passes after strict fallback verification
 and an anchored Alpine-to-fastboot transition. No recovery image was booted,
 no payload or target SSH path started, and no Generation-11 boot claim exists.
-Review, publication, and exact-head CI of the
-[connected-preflight evidence](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
-remain before the sole lifecycle.
+Independent spec and standards review and complete local CI passed. Commit
+`7b76733` published the
+[connected-preflight evidence](../test-results/2026-08-04-generation-11-connected-preflight-live.md),
+and exact-head GitHub Actions run `30921019231` passed. The sole lifecycle is
+next.
 
 Both retained Generation-11 trees state `authority=none`; the generic recovery
 wrapper rejects generation diagnostics, and only the guarded one-shot lifecycle

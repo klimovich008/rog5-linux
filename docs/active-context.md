@@ -104,8 +104,10 @@ spec and standards reviews report no findings. The admission was published at
 then passed after strict fallback health proof and an anchored
 `RESTART2("bootloader")` transition to one same-port `lahaina` fastboot device.
 The artifact remains unbooted, no Generation-11 claim exists, and Steam's
-temporarily released port-8081 socket was restored. Review, publication, and
-exact-head CI of this live evidence remain before the sole lifecycle.
+temporarily released port-8081 socket was restored. Independent spec and
+standards review and complete local CI passed; commit `7b76733` published the
+evidence and exact-head GitHub Actions run `30921019231` passed recovery-core
+in 4m01s and QEMU in 39s. The sole admitted RAM-only lifecycle is next.
 
 ## Active deployment checkpoint
 

@@ -229,8 +229,9 @@ admitted-policy and hostile-fixture tests pass offline; exact
 [connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
 then passed after strict fallback proof and an anchored same-port transition
 to one `lahaina` fastboot device. No recovery image boot, payload transfer, or
-Generation-11 boot claim occurred. Review, publication, and exact-head CI of
-the connected evidence remain before the sole lifecycle.
+Generation-11 boot claim occurred. Independent spec and standards review and
+complete local CI passed; commit `7b76733` published the connected evidence and
+exact-head GitHub Actions run `30921019231` passed. The sole lifecycle is next.
 The generic recovery wrapper rejects every Generation diagnostic path, and the
 live gate accepts `boot` only after the fixed claim consumer validates and
 irreversibly enters the lifecycle controller's private, exact, durable
