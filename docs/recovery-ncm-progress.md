@@ -155,19 +155,17 @@ repository-policy gates. This remains hardware-free evidence.
 ## Remaining gate after offline issuance
 
 The base NCM implementation publication, hash-pinned installed-host proof,
-retained AArch64 gate, and clean twin wrapper build are complete. The current
-Generation-11 issuer regression and evidence change still requires its own
-publication verification. Offline issuance did not create boot authority.
-Continue in this order:
+retained AArch64 gate, clean twin wrapper build, and Generation-11 issuer
+publication are complete. The issuer/evidence checkpoint passed exact-head
+GitHub Actions run `30899370666` at commit `5293e56`. Offline issuance did not
+create boot authority. Continue in this order:
 
-1. publish this issuer/evidence checkpoint with green local and exact-head
-   GitHub CI;
-2. pin the exact Generation-11 wrapper and existing target tuple in one
+1. pin the exact Generation-11 wrapper and existing target tuple in one
    immutable offline-only lifecycle profile;
-3. review and verify that profile together with the timeout lattice, rollback,
+2. review and verify that profile together with the timeout lattice, rollback,
    fallback, one-shot consumption, and private-evidence paths;
-4. publish the profile with green local and exact-head GitHub CI; and
-5. only then consider one distinct central-policy admission and connected
+3. publish the profile with green local and exact-head GitHub CI; and
+4. only then consider one distinct central-policy admission and connected
    preflight before any temporary boot.
 
 The current work creates no policy row, connected action, or phone state

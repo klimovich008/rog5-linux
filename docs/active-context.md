@@ -78,10 +78,11 @@ responder `242ac7fc…149e7`; two clean ASUS wrapper builds reproduced raw image
 `8472b206…bcf562`. See the
 [wrapper result](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md).
 Generation 11 remains ignored, unprofiled, unadmitted, unbooted, and
-`authority=none`. Next publish this issuer/evidence checkpoint with green
-exact-head CI, then pin the exact tuple in an immutable offline lifecycle
-profile and review the whole rollback/evidence chain before creating any boot
-admission or connected action.
+`authority=none`. The issuer/evidence checkpoint was published at `5293e56`;
+exact-head GitHub Actions run `30899370666` passed recovery-core in 3m53s and
+QEMU in 35s. Next pin the exact tuple in an immutable offline lifecycle profile
+and review the whole rollback/evidence chain before creating any boot admission
+or connected action.
 
 ## Active deployment checkpoint
 
