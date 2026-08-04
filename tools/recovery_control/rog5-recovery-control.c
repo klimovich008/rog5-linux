@@ -175,6 +175,7 @@ static struct postmortem_status postmortem;
 #ifdef ROG5_CONTROL_TESTING
 static bool test_kexec_configured;
 static int test_progress_fd = -1;
+static bool test_progress_live;
 #endif
 
 static int send_frame(int descriptor, const char *payload, size_t length);
@@ -1471,28 +1472,30 @@ static bool send_acm_prepare_progress(int descriptor, const char *payload,
 
 static int open_advisory_progress_socket(void)
 {
-#ifdef ROG5_CONTROL_TESTING
 	int descriptor;
+
+#ifdef ROG5_CONTROL_TESTING
 	int flags;
 
-	if (test_progress_fd < 0)
-		return -1;
-	descriptor = test_progress_fd;
-	test_progress_fd = -1;
-	flags = fcntl(descriptor, F_GETFL);
-	if (flags < 0 || fcntl(descriptor, F_SETFL,
-				      flags | O_NONBLOCK) < 0) {
-		close(descriptor);
-		return -1;
+	if (test_progress_fd >= 0) {
+		descriptor = test_progress_fd;
+		test_progress_fd = -1;
+		flags = fcntl(descriptor, F_GETFL);
+		if (flags < 0 || fcntl(descriptor, F_SETFL,
+					      flags | O_NONBLOCK) < 0) {
+			close(descriptor);
+			return -1;
+		}
+		return descriptor;
 	}
-	return descriptor;
-#else
+	if (!test_progress_live)
+		return -1;
+#endif
 	struct sockaddr_in source = { .sin_family = AF_INET };
 	struct sockaddr_in peer = {
 		.sin_family = AF_INET,
 		.sin_port = htons(PROGRESS_HOST_PORT),
 	};
-	int descriptor;
 	int error = 0;
 	socklen_t error_length = sizeof(error);
 	int ready;
@@ -1526,7 +1529,6 @@ static int open_advisory_progress_socket(void)
 suppress:
 	close(descriptor);
 	return -1;
-#endif
 }
 
 static bool send_advisory_progress(struct advisory_progress_sink *sink,
@@ -3056,6 +3058,7 @@ static void configure_test_runtime(void)
 	const char *test_verifier = getenv("ROG5_TEST_VERIFIER_PATH");
 	const char *test_kexec = getenv("ROG5_TEST_KEXEC_PATH");
 	const char *progress_fd = getenv("ROG5_TEST_NCM_PROGRESS_FD");
+	const char *progress_live = getenv("ROG5_TEST_NCM_PROGRESS_LIVE");
 	const char *timeout = getenv("ROG5_TEST_IO_TIMEOUT_MS");
 
 	if ((test_fetcher == NULL) != (test_verifier == NULL) ||
@@ -3091,6 +3094,11 @@ static void configure_test_runtime(void)
 		    fcntl((int)value, F_SETFD, flags | FD_CLOEXEC) < 0)
 			fail("unavailable test NCM progress descriptor");
 		test_progress_fd = (int)value;
+	}
+	if (progress_live != NULL) {
+		if (strcmp(progress_live, "1") != 0)
+			fail("invalid test live NCM progress mode");
+		test_progress_live = true;
 	}
 	if (timeout != NULL) {
 		char *end = NULL;

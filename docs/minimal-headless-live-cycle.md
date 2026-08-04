@@ -198,6 +198,18 @@ See the
 [connected preflight](../test-results/2026-08-04-generation-10-connected-preflight-live.md),
 and
 [live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
+The hardware-free successor infrastructure now adds one fixed receive-only NCM
+progress stream on port `8081`. Its device sender, exact namespace path,
+privileged host controller, irreversible root-to-user collector, and
+post-COMMIT assessment pass focused tests and the complete local Linux `ci`
+and provisioned `quick` tiers.
+Progress absence or invalid evidence is advisory and cannot gate COMMIT;
+listener ownership conflicts still fail closed. See the
+[contract](recovery-ncm-progress.md) and
+[offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
+No Generation-11 wrapper, policy admission, connected action, or phone boot
+exists. Publication, installed-host verification, final AArch64, and distinct
+twin-build/review gates remain mandatory before the next temporary boot.
 The admission gate derives the public half locally, rejects every tracked
 fixture identity, and requires one exact v3 package/candidate/runtime-manifest
 chain before privilege or phone discovery. The fixed no-replace export

@@ -385,6 +385,24 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
   The complete authority-free package identities are in the
   [offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
+- The receive-only recovery NCM progress gate uses four focused suites plus the
+  lifecycle. Twenty collector cases cover every wire truncation, frame/order/
+  identity fault, wrong peer, cap, timeout, stop, and buffered-clean-EOF race.
+  Seven runtime cases cover canonical arguments, descriptor-relative private
+  output, irreversible privilege drop, parent-death re-arming, and
+  non-authoritative refusal. Thirty-two controller and eighteen broker/socket
+  cases cover exact port-`8081` ownership, missing-listener continuation,
+  pre-existing and post-start conflicts, post-transfer marker/collector
+  failure, watchdog cleanup, fixed hash-pinned installation, canonical private
+  output forwarding, and signal masks/process groups. Sixty-three native
+  responder cases include a dedicated rootless user/network-namespace test of
+  production `usb0`, `169.254.77.2` to `169.254.77.1:8081`, wrong host
+  interface, and unresolved peer. Sixty-nine lifecycle cases require that
+  missing, partial, malformed, mismatched, and complete captures remain
+  `authority=NONE`, are assessed only after durable COMMIT, and never replace
+  the port-`8080` transfer receipt. See the
+  [contract](recovery-ncm-progress.md) and
+  [offline result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control
   plane without a client SSH key or host networking. Thirty-eight

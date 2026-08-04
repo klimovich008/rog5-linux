@@ -15,9 +15,12 @@ The operator's [standing authorization](operator-standing-authorization.md)
 permits the agent to satisfy those action-scoped guards, use the admitted
 project credentials, and perform other in-scope actions without asking again.
 Continue until a genuine technical, safety, platform, input, or scope blocker
-is reached. This latest directive supersedes stale goal or historical gate
-wording that requests fresh consent; it does not relax artifact admission,
-rollback, evidence, cleanup, or the no-flash/no-phone-storage-write boundary.
+is reached. The operator reaffirmed this no-reprompt instruction on 2026-08-04:
+routine authorization gates may be satisfied from the standing directive and
+must not cause another consent pause. This latest directive supersedes stale
+goal or historical gate wording that requests fresh consent; it does not relax
+artifact admission, rollback, evidence, cleanup, or the
+no-flash/no-phone-storage-write boundary.
 
 GPU, display, desktop, browser automation, hotspot, persistent installation,
 and newer-kernel rebases remain frozen until the headless core passes.
@@ -54,15 +57,20 @@ These facts do not prove the corrected candidate on the phone.
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a
 complete host-side bundle transfer. The new
-[receive-only NCM progress contract](recovery-ncm-progress.md) has a bounded
-device sender, host collector core, and hostile hardware-free tests, including
-the exact ACM-loss shape and every wire truncation point. A complete NCM trace
-is explicitly non-authoritative and cannot create a COMMIT claim.
+[receive-only NCM progress contract](recovery-ncm-progress.md) now has a
+bounded device sender, exact production namespace test, hash-pinned privileged
+broker/controller, irreversible root-to-operator collector, and private
+post-COMMIT lifecycle assessment. Missing, malformed, mismatched, partial, and
+complete evidence remains `authority=NONE`; absence cannot gate COMMIT, while a
+listener-ownership conflict still fails closed. The 8 runtime, 21 collector,
+34 controller, 18 broker/socket, 63 native-control, and 69 lifecycle tests pass,
+as do the complete local Linux `ci` and provisioned `quick` tiers. See the
+[offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 
-Do not issue Generation 11 yet. The fixed privileged broker must retain the
-exact NCM interface, address, firewall rule, and port-8081 listener after bundle
-EOF; the lifecycle must correlate private evidence; and the exact AArch64,
-complete CI, review, and publication gates must pass first.
+Do not issue Generation 11 yet. Publish this exact source with green exact-head
+GitHub CI, install and verify the fixed privileged files, rerun the final
+AArch64 gate, then twin-build and review a distinct offline-only wrapper before
+creating any policy admission or connected action.
 
 ## Active deployment checkpoint
 

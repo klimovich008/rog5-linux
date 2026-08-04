@@ -134,6 +134,67 @@ class RecoveryProgressCollectorTest(unittest.TestCase):
         self.assertTrue(capture.truncated)
         self.assertIn("authority=NONE\n", capture.record().decode("ascii"))
 
+    def test_stream_stop_is_partial_and_never_authoritative(self):
+        client, server = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(server.close)
+        stopped = False
+
+        def request_stop() -> bool:
+            return stopped
+
+        first = progress_stream().split(b",", 1)[0] + b","
+        client.sendall(first)
+        stopped = True
+        capture = collect_connection(
+            server,
+            bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            deadline=time.monotonic() + 2,
+            stop_requested=request_stop,
+            stop_poll_interval=0.01,
+        )
+        self.assertEqual(capture.result, "PARTIAL")
+        self.assertEqual(capture.reason, "STOP_REQUESTED")
+        self.assertTrue(capture.truncated)
+        self.assertIn("authority=NONE\n", capture.record().decode("ascii"))
+
+    def test_stream_stop_cannot_disable_the_absolute_deadline(self):
+        client, server = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(server.close)
+        with mock.patch("select.select") as poll:
+            capture = collect_connection(
+                server,
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+                deadline=time.monotonic() - 1,
+                stop_requested=lambda: True,
+                stop_poll_interval=0.01,
+            )
+        self.assertEqual(capture.result, "PARTIAL")
+        self.assertEqual(capture.reason, "STOP_REQUESTED")
+        self.assertTrue(capture.truncated)
+        poll.assert_not_called()
+
+    def test_stream_stop_drains_buffered_complete_eof_before_stopping(self):
+        client, server = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(server.close)
+        client.sendall(progress_stream())
+        client.shutdown(socket.SHUT_WR)
+        capture = collect_connection(
+            server,
+            bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            deadline=time.monotonic() + 2,
+            stop_requested=lambda: True,
+            stop_poll_interval=0.01,
+        )
+        self.assertTrue(capture.complete)
+        self.assertEqual(capture.reason, "CLEAN_EOF")
+        self.assertEqual(capture.phases, PREPARE_PROGRESS_PHASES)
+
     def test_wrong_pinned_session_or_request_rejects_whole_stream(self):
         for session, request in (("f" * 32, REQUEST), (SESSION, "f" * 32)):
             with self.subTest(session=session, request=request):
@@ -171,8 +232,20 @@ class RecoveryProgressCollectorTest(unittest.TestCase):
                 )
             )
         )
-        with self.assertRaisesRegex(CollectorRefusal, "identity mismatch"):
+        with self.assertRaisesRegex(
+            CollectorRefusal, "identity mismatch"
+        ) as caught:
             capture_bytes(first + wrong)
+        capture = caught.exception.capture
+        self.assertIsNotNone(capture)
+        assert capture is not None
+        self.assertEqual(capture.reason, "IDENTITY_MISMATCH")
+        self.assertEqual(capture.phases, PREPARE_PROGRESS_PHASES[:1])
+        self.assertEqual(capture.wire_bytes, len(first + wrong))
+        self.assertEqual(
+            capture.wire_sha256,
+            hashlib.sha256(first + wrong).hexdigest(),
+        )
 
     def test_noncontiguous_prefix_rejects_whole_stream(self):
         record = Progress(
@@ -257,21 +330,21 @@ class RecoveryProgressCollectorTest(unittest.TestCase):
 
     def test_fixed_listener_is_bound_to_exact_interface_and_endpoint(self):
         listener = mock.MagicMock()
-        listener.getsockopt.return_value = b"usb0\0"
+        listener.getsockopt.return_value = b"enp4s0f3u1u2\0"
         listener.getsockname.return_value = ("169.254.77.1", 8081)
         with mock.patch("socket.socket", return_value=listener):
-            result = open_fixed_listener("usb0")
+            result = open_fixed_listener("enp4s0f3u1u2")
         self.assertIs(result, listener)
         listener.setsockopt.assert_any_call(
             socket.SOL_SOCKET,
             socket.SO_BINDTODEVICE,
-            b"usb0\0",
+            b"enp4s0f3u1u2\0",
         )
         listener.bind.assert_called_once_with(("169.254.77.1", 8081))
         listener.listen.assert_called_once_with(1)
 
-    def test_fixed_listener_rejects_every_other_interface(self):
-        for interface in ("eth0", "usbé", "usb/0", "usb 0", "", 3):
+    def test_fixed_listener_rejects_noncanonical_interface(self):
+        for interface in ("usbé", "usb/0", "usb 0", "", "a" * 16, 3):
             with self.subTest(interface=interface), self.assertRaisesRegex(
                 CollectorRefusal, "invalid"
             ):
@@ -280,8 +353,8 @@ class RecoveryProgressCollectorTest(unittest.TestCase):
     def test_fixed_listener_rejects_post_bind_identity_mismatch(self):
         cases = (
             (b"eth0\0", ("169.254.77.1", 8081)),
-            (b"usb0\0", ("0.0.0.0", 8081)),
-            (b"usb0\0", ("169.254.77.1", 8082)),
+            (b"enp4s0f3u1u2\0", ("0.0.0.0", 8081)),
+            (b"enp4s0f3u1u2\0", ("169.254.77.1", 8082)),
         )
         for bound_interface, endpoint in cases:
             with self.subTest(interface=bound_interface, endpoint=endpoint):
@@ -292,9 +365,23 @@ class RecoveryProgressCollectorTest(unittest.TestCase):
                     mock.patch("socket.socket", return_value=listener),
                     self.assertRaisesRegex(CollectorRefusal, "binding mismatch"),
                 ):
-                    open_fixed_listener("usb0")
+                    open_fixed_listener("enp4s0f3u1u2")
                 listener.close.assert_called_once_with()
                 listener.listen.assert_not_called()
+
+    def test_bundle_eof_can_stop_listener_before_admission(self):
+        listener = mock.MagicMock()
+        listener.setblocking.return_value = None
+        with self.assertRaisesRegex(CollectorRefusal, "admission stopped"):
+            collect_listener(
+                listener,
+                bundle=BUNDLE,
+                manifest_sha256=MANIFEST,
+                deadline=time.monotonic() + 2,
+                admission_stop_requested=lambda: True,
+                stop_poll_interval=0.01,
+            )
+        listener.accept.assert_not_called()
 
     def test_capture_rejects_noncanonical_caller_identity(self):
         invalid = (

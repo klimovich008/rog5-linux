@@ -375,6 +375,36 @@ def recovery_anchor_location(
     return location
 
 
+def operator_output_directory(value: str, operator_uid: int, operator_gid: int) -> str:
+    if (
+        not ANCHOR_PATH.fullmatch(value)
+        or value.endswith("/")
+        or "//" in value
+        or ".." in value.split("/")
+    ):
+        fail("invalid progress output directory")
+    path = Path(value)
+    try:
+        resolved = path.resolve(strict=True)
+        metadata = path.lstat()
+    except OSError as error:
+        raise BrokerError("progress output directory is unavailable") from error
+    if resolved != path:
+        fail("progress output directory path is not canonical")
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != operator_uid
+        or metadata.st_gid != operator_gid
+        or stat.S_IMODE(metadata.st_mode) != 0o700
+    ):
+        fail("progress output directory metadata is unsafe")
+    for name in ("recovery-progress.capture", "recovery-progress.stop"):
+        output = path / name
+        if output.exists() or output.is_symlink():
+            fail("progress output path already exists")
+    return value
+
+
 def command(
     arguments: list[str],
     controller: Path,
@@ -385,8 +415,16 @@ def command(
     offline: bool,
 ) -> list[str]:
     action = arguments[0] if arguments else ""
-    if action in {"bundle", "bundle-deferred"} and len(arguments) == 3:
-        bundle, digest = arguments[1:]
+    if action in {
+        "bundle",
+        "bundle-deferred",
+        "bundle-progress-deferred",
+    } and len(arguments) in {3, 4}:
+        if (action == "bundle-progress-deferred") != (len(arguments) == 4):
+            fail("invalid bundle progress request shape")
+        bundle, digest = arguments[1:3]
+        if action == "bundle-progress-deferred":
+            bundle, digest, output = arguments[1:]
         if (
             not IDENTITY.fullmatch(bundle)
             or ".." in bundle
@@ -397,6 +435,19 @@ def command(
             fail("invalid manifest SHA-256")
         if action == "bundle-deferred":
             return [str(controller), "serve-deferred", bundle, digest]
+        if action == "bundle-progress-deferred":
+            output = operator_output_directory(
+                output,
+                operator_uid,
+                operator_gid,
+            )
+            return [
+                str(controller),
+                "serve-progress-deferred",
+                bundle,
+                digest,
+                output,
+            ]
         return [str(controller), bundle, digest]
     if action == "fallback-profile-restore" and len(arguments) == 3:
         anchor, timeout = arguments[1:]

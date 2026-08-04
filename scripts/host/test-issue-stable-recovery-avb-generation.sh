@@ -399,9 +399,13 @@ wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
 EOF
 )
 for output in gen1-a gen10-a gen10-b; do
-	observed_files=$(find "$tmp/$output" -type f -printf '%P\n' | sort)
-	[[ $observed_files == "$expected_files" ]] ||
+	observed_files=$(find "$tmp/$output" -type f -printf '%P\n' | LC_ALL=C sort)
+	if [[ $observed_files != "$expected_files" ]]; then
+		printf 'Expected AVB-generation files:\n%s\n' "$expected_files" >&2
+		printf 'Observed AVB-generation files in %s:\n%s\n' \
+			"$output" "$observed_files" >&2
 		fail "$output AVB-generation output file set changed"
+	fi
 done
 while IFS= read -r relative; do
 	[[ -n $relative ]] || continue

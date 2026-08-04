@@ -43,9 +43,18 @@ ROG5_NCM_MODELS = frozenset(
         "ROG_Phone_5_Linux_Server",
     }
 )
-BUNDLE_TIMEOUT_SECONDS = 220
+BUNDLE_TIMEOUT_SECONDS = 260
 CONTROL_TIMEOUT_SECONDS = 320
 ZERO_SHA256 = "0" * 64
+EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ZERO_ID = "0" * 32
+PROGRESS_PHASES = (
+    "REQUEST_ACCEPTED",
+    "FETCH_COMPLETE",
+    "VERIFY_COMPLETE",
+    "KEXEC_LOAD_COMPLETE",
+    "PREPARED_PERSISTED",
+)
 CONSUMED_MANIFESTS = {
     "457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e",
     "9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630",
@@ -120,6 +129,9 @@ OUTPUT_NAMES = (
     "intent-resolution.log",
     "early-target-diagnostics.log",
     "early-target-diagnostics.json",
+    "recovery-progress.capture",
+    "recovery-progress.stop",
+    "recovery-progress-assessment.record",
 )
 ANCHOR_FIELDS = (
     "format",
@@ -347,6 +359,13 @@ class Intent:
     request: str
     outcome: str
     state: str
+
+
+@dataclass(frozen=True)
+class ProgressAssessment:
+    capture_result: str
+    correlation: str
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -1015,11 +1034,215 @@ def validate_intent(
     )
 
 
+def observe_prepared_identity(
+    path: Path,
+    manifest_sha256: str,
+    target: str,
+) -> tuple[str, str] | None:
+    """Observe PREPARED only to stop the non-authoritative progress tail."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        try:
+            payload = os.read(descriptor, 8193)
+        finally:
+            os.close(descriptor)
+        first, separator, _remaining = payload.partition(b"\n")
+        if not separator or len(first) > 8192:
+            return None
+        value = canonical_json(first.decode("ascii"))
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError, CycleError):
+        return None
+    session = value.get("session")
+    request = value.get("request")
+    if (
+        set(value)
+        != {
+            "session",
+            "request",
+            "result",
+            "state",
+            "prepared_bundle",
+            "manifest_sha256",
+            "watchdog",
+        }
+        or not isinstance(session, str)
+        or not HEX_ID.fullmatch(session)
+        or session == ZERO_ID
+        or not isinstance(request, str)
+        or not HEX_ID.fullmatch(request)
+        or request == ZERO_ID
+        or value.get("result") != "PREPARED"
+        or value.get("state") != "PREPARED"
+        or value.get("prepared_bundle") != target
+        or value.get("manifest_sha256") != manifest_sha256
+        or value.get("watchdog") != "ARMED"
+    ):
+        return None
+    return session, request
+
+
+def inspect_progress_capture(
+    path: Path,
+    *,
+    bundle: str,
+    manifest_sha256: str,
+    session: str,
+    prepare_request: str,
+) -> ProgressAssessment:
+    """Classify caller-owned progress evidence without granting authority."""
+    invalid = ProgressAssessment("INVALID", "UNAVAILABLE", "INVALID_RECORD")
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        try:
+            before = os.fstat(descriptor)
+            payload = os.read(descriptor, 8193)
+            after = os.fstat(descriptor)
+        finally:
+            os.close(descriptor)
+        named = path.lstat()
+    except OSError:
+        return ProgressAssessment("MISSING", "UNAVAILABLE", "MISSING")
+
+    def identity(value: os.stat_result) -> tuple[int, ...]:
+        return (
+            value.st_dev,
+            value.st_ino,
+            value.st_uid,
+            value.st_gid,
+            stat.S_IFMT(value.st_mode),
+            stat.S_IMODE(value.st_mode),
+            value.st_nlink,
+            value.st_size,
+            value.st_mtime_ns,
+            value.st_ctime_ns,
+        )
+
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or before.st_uid != os.geteuid()
+        or before.st_gid != os.getegid()
+        or stat.S_IMODE(before.st_mode) != 0o600
+        or before.st_nlink != 1
+        or not 1 <= before.st_size <= 8192
+        or len(payload) != before.st_size
+        or identity(before) != identity(after)
+        or identity(before) != identity(named)
+        or not payload.endswith(b"\n")
+        or b"\r" in payload
+        or b"\0" in payload
+    ):
+        return invalid
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError:
+        return invalid
+    fields = (
+        "format",
+        "session",
+        "request",
+        "bundle",
+        "manifest_sha256",
+        "records",
+        "phases",
+        "wire_bytes",
+        "wire_sha256",
+        "result",
+        "truncated",
+        "reason",
+        "authority",
+    )
+    if len(lines) != len(fields):
+        return invalid
+    values: dict[str, str] = {}
+    for expected, line in zip(fields, lines, strict=True):
+        name, separator, value = line.partition("=")
+        if separator != "=" or name != expected or not value:
+            return invalid
+        values[name] = value
+    if (
+        values["format"] != "rog5-recovery-progress-capture-v1"
+        or not HEX_ID.fullmatch(values["session"])
+        or not HEX_ID.fullmatch(values["request"])
+        or not values["records"].isascii()
+        or not values["records"].isdecimal()
+        or len(values["records"]) > 1
+        or not values["wire_bytes"].isascii()
+        or not values["wire_bytes"].isdecimal()
+        or len(values["wire_bytes"]) > 4
+        or not 0 <= int(values["wire_bytes"]) <= 8192
+        or not SHA256.fullmatch(values["wire_sha256"])
+        or not SHA256.fullmatch(values["manifest_sha256"])
+        or values["result"] not in {"COMPLETE", "PARTIAL"}
+        or values["truncated"] not in {"YES", "NO"}
+        or values["authority"] != "NONE"
+        or not re.fullmatch(r"[A-Z_]{2,32}", values["reason"])
+    ):
+        return invalid
+    phases = () if values["phases"] == "none" else tuple(
+        values["phases"].split(">")
+    )
+    records = int(values["records"])
+    wire_bytes = int(values["wire_bytes"])
+    if (
+        records != len(phases)
+        or phases != PROGRESS_PHASES[:records]
+        or records > len(PROGRESS_PHASES)
+        or (wire_bytes == 0 and values["wire_sha256"] != EMPTY_SHA256)
+        or (wire_bytes > 0 and values["wire_sha256"] == EMPTY_SHA256)
+        or (records > 0 and wire_bytes == 0)
+        or (
+            records > 0
+            and (
+                values["session"] == ZERO_ID
+                or values["request"] == ZERO_ID
+            )
+        )
+        or (
+            values["result"] == "COMPLETE"
+            and (
+                phases != PROGRESS_PHASES
+                or values["truncated"] != "NO"
+                or values["reason"] != "CLEAN_EOF"
+            )
+        )
+        or (
+            values["result"] == "PARTIAL"
+            and values["truncated"] != "YES"
+        )
+    ):
+        return invalid
+    identity_matches = (
+        values["bundle"] == bundle
+        and values["manifest_sha256"] == manifest_sha256
+        and values["session"] == session
+        and values["request"] == prepare_request
+    )
+    identity_unavailable = (
+        values["result"] == "PARTIAL"
+        and values["session"] == ZERO_ID
+        and values["request"] == ZERO_ID
+        and values["bundle"] == bundle
+        and values["manifest_sha256"] == manifest_sha256
+    )
+    correlation = (
+        "MATCH"
+        if identity_matches
+        else "UNAVAILABLE"
+        if identity_unavailable
+        else "MISMATCH"
+    )
+    return ProgressAssessment(
+        values["result"],
+        correlation,
+        values["reason"],
+    )
+
+
 def parse_control_log(
     path: Path,
     manifest_sha256: str,
     target: str = BUNDLE,
-) -> Intent:
+) -> tuple[Intent, str]:
     try:
         lines = [
             line
@@ -1033,8 +1256,22 @@ def parse_control_log(
     ):
         fail("recovery-control output is not one complete transaction")
     prepared, committed, intent_value = map(canonical_json, lines[:3])
+    prepared_request = prepared.get("request")
     if (
-        prepared.get("result") != "PREPARED"
+        set(prepared)
+        != {
+            "session",
+            "request",
+            "result",
+            "state",
+            "prepared_bundle",
+            "manifest_sha256",
+            "watchdog",
+        }
+        or not isinstance(prepared_request, str)
+        or not HEX_ID.fullmatch(prepared_request)
+        or prepared_request == ZERO_ID
+        or prepared.get("result") != "PREPARED"
         or prepared.get("state") != "PREPARED"
         or prepared.get("prepared_bundle") != target
         or prepared.get("manifest_sha256") != manifest_sha256
@@ -1061,7 +1298,7 @@ def parse_control_log(
         or committed.get("commit_request") != intent.request
     ):
         fail("recovery transaction and host intent do not correlate")
-    return intent
+    return intent, prepared_request
 
 
 def parse_any_intent(
@@ -2005,6 +2242,19 @@ class LiveCycle:
                 "src = ::ffff:0.0.0.0/128 or "
                 f"src = ::ffff:{BUNDLE_HOST_ADDRESS}/128 )",
             ),
+            (
+                "8081",
+                "-lnt4",
+                "sport = :8081 and ( src = 0.0.0.0/32 or "
+                f"src = {BUNDLE_HOST_ADDRESS}/32 )",
+            ),
+            (
+                "8081",
+                "-lnt6",
+                "sport = :8081 and ( src = ::/128 or "
+                "src = ::ffff:0.0.0.0/128 or "
+                f"src = ::ffff:{BUNDLE_HOST_ADDRESS}/128 )",
+            ),
             ("2049", "-lntu4", "sport = :2049"),
             ("32767", "-lntu4", "sport = :32767"),
         )
@@ -2247,7 +2497,21 @@ class LiveCycle:
         observer: ManagedProcess | None = None,
     ) -> None:
         deadline = time.monotonic() + self.bundle_timeout
+        progress_stop = self.output("recovery-progress.stop")
+        progress_stop_created = False
         while time.monotonic() < deadline:
+            if not progress_stop_created:
+                prepared = observe_prepared_identity(
+                    control.log,
+                    self.inputs.manifest_sha256,
+                    self.profile.bundle,
+                )
+                if prepared is not None:
+                    write_record(
+                        progress_stop,
+                        (("format", "rog5-recovery-progress-stop-v1"),),
+                    )
+                    progress_stop_created = True
             if observer is not None:
                 observer_status = observer.process.poll()
                 if observer_status is not None:
@@ -2590,9 +2854,10 @@ class LiveCycle:
                 "recovery bundle server",
                 [
                     str(self.dependencies.bundle_server),
-                    "serve-deferred",
+                    "serve-progress-deferred",
                     self.profile.bundle,
                     self.inputs.manifest_sha256,
+                    str(self.inputs.evidence_dir),
                 ],
                 bundle_log,
                 environment=child_environment(),
@@ -2677,7 +2942,7 @@ class LiveCycle:
                     "stable recovery control failed after one non-retryable "
                     f"attempt; inspect {control_log}"
                 )
-            intent = parse_control_log(
+            intent, prepare_request = parse_control_log(
                 control_log,
                 self.inputs.manifest_sha256,
                 self.profile.bundle,
@@ -2685,6 +2950,28 @@ class LiveCycle:
             ledger_intent = self.new_ledger_intent(ledger_before)
             if ledger_intent != intent:
                 fail("successful control output lacks its durable intent")
+            progress = inspect_progress_capture(
+                self.output("recovery-progress.capture"),
+                bundle=self.profile.bundle,
+                manifest_sha256=self.inputs.manifest_sha256,
+                session=intent.session,
+                prepare_request=prepare_request,
+            )
+            write_record(
+                self.output("recovery-progress-assessment.record"),
+                (
+                    ("format", "rog5-recovery-progress-assessment-v1"),
+                    ("capture_result", progress.capture_result),
+                    ("correlation", progress.correlation),
+                    ("reason", progress.reason),
+                    ("authority", "NONE"),
+                ),
+            )
+            print(
+                "INFO recovery progress evidence "
+                f"capture={progress.capture_result} "
+                f"correlation={progress.correlation} authority=NONE"
+            )
 
             if self.profile.diagnostic:
                 if collector_process is None:
@@ -2944,6 +3231,7 @@ class LiveCycle:
             terminate(collector_process)
             terminate(control_process)
             terminate(bundle_process)
+            self.output("recovery-progress.stop").unlink(missing_ok=True)
             cancel_network_process(
                 network_process,
                 self.dependencies,

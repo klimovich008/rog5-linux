@@ -245,6 +245,24 @@ class Fixture:
                 esac
                 ;;
             esac
+            case ${MOCK_SS_PROGRESS_LISTENER_ADDRESS:-} in
+              0.0.0.0|169.254.77.1)
+                case $* in
+                  *"-lnt4"*"sport = :8081 and ( src = 0.0.0.0/32 or src = 169.254.77.1/32 )"*)
+                    printf 'tcp LISTEN 0 10 %s:8081 0.0.0.0:*\n' \
+                      "$MOCK_SS_PROGRESS_LISTENER_ADDRESS"
+                    ;;
+                esac
+                ;;
+              ::|::ffff:0.0.0.0|::ffff:169.254.77.1)
+                case $* in
+                  *"-lnt6"*"sport = :8081 and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:169.254.77.1/128 )"*)
+                    printf 'tcp LISTEN 0 10 [%s]:8081 [::]:*\n' \
+                      "$MOCK_SS_PROGRESS_LISTENER_ADDRESS"
+                    ;;
+                esac
+                ;;
+            esac
             """,
         )
         self.executable(
@@ -577,10 +595,17 @@ class Fixture:
               echo 'PASS exact Alpine fallback profile restored on usbmock0'
               exit 0
             fi
-            [ "$1" = serve-deferred ]
-            shift
+            [ "$1" = serve-progress-deferred ]
+            [ "$#" = 4 ]
+            bundle=$2
+            manifest=$3
+            output=$4
+            [ "$output" = "$MOCK_ROOT/evidence" ]
             printf 'bundle:start\n' >>"$MOCK_CALLS"
             echo 'PASS recovery bundle server ready on 169.254.77.1:8080 via usb0'
+            if [ "${MOCK_PROGRESS_UNAVAILABLE:-0}" != 1 ]; then
+              echo 'PASS recovery progress listener ready on 169.254.77.1:8081 via usb0'
+            fi
             while [ ! -e "$MOCK_ROOT/prepare-started" ]; do
               sleep 0.01
             done
@@ -598,9 +623,88 @@ class Fixture:
                 sleep 0.01
               done
               echo 'PASS one recovery bundle transfer completed'
+              echo 'PASS bounded recovery progress capture completed'
+              echo 'PASS bounded recovery progress collection concluded authority=NONE'
               echo 'INFO recovery bundle host network state removed'
               echo 'INFO fallback NetworkManager profile restoration deferred'
               exit 1
+            fi
+            if [ "${MOCK_PROGRESS_UNAVAILABLE:-0}" = 1 ]; then
+              :
+            elif [ "${MOCK_PROGRESS_WAIT_FOR_PREPARED:-0}" = 1 ]; then
+              while [ ! -e "$output/recovery-progress.stop" ]; do
+                sleep 0.01
+              done
+              session=11111111111111111111111111111111
+              request=22222222222222222222222222222222
+              records=1
+              phases=REQUEST_ACCEPTED
+              result=PARTIAL
+              truncated=YES
+              reason=STOP_REQUESTED
+            elif [ "${MOCK_PROGRESS_COMPLETE:-0}" = 1 ]; then
+              session=11111111111111111111111111111111
+              request=22222222222222222222222222222222
+              records=5
+              phases='REQUEST_ACCEPTED>FETCH_COMPLETE>VERIFY_COMPLETE>KEXEC_LOAD_COMPLETE>PREPARED_PERSISTED'
+              result=COMPLETE
+              truncated=NO
+              reason=CLEAN_EOF
+            else
+              session=00000000000000000000000000000000
+              request=00000000000000000000000000000000
+              records=0
+              phases=none
+              result=PARTIAL
+              truncated=YES
+              reason=NO_ADMISSION
+            fi
+            if [ "${MOCK_PROGRESS_UNAVAILABLE:-0}" != 1 ] &&
+               [ "${MOCK_PROGRESS_MISMATCH:-0}" = 1 ]; then
+              request=dddddddddddddddddddddddddddddddd
+            fi
+            if [ "${MOCK_PROGRESS_UNAVAILABLE:-0}" != 1 ] &&
+               [ "${MOCK_PROGRESS_ZERO_ID_WITH_RECORDS:-0}" = 1 ]; then
+              session=00000000000000000000000000000000
+              request=00000000000000000000000000000000
+              records=1
+              phases=REQUEST_ACCEPTED
+              result=PARTIAL
+              truncated=YES
+              reason=STOP_REQUESTED
+            fi
+            if [ "${MOCK_PROGRESS_UNAVAILABLE:-0}" != 1 ]; then
+              wire_bytes=0
+              wire_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+              if [ "$records" != 0 ]; then
+                wire_bytes=1
+                wire_sha256=2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881
+              fi
+              if [ "${MOCK_PROGRESS_IMPOSSIBLE_EMPTY:-0}" = 1 ]; then
+                wire_bytes=0
+                wire_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+              fi
+              umask 077
+              printf '%s\n' \
+                'format=rog5-recovery-progress-capture-v1' \
+                "session=$session" \
+                "request=$request" \
+                "bundle=$bundle" \
+                "manifest_sha256=$manifest" \
+                "records=$records" \
+                "phases=$phases" \
+                "wire_bytes=$wire_bytes" \
+                "wire_sha256=$wire_sha256" \
+                "result=$result" \
+                "truncated=$truncated" \
+                "reason=$reason" \
+                'authority=NONE' \
+                >"$output/recovery-progress.capture"
+              if [ "${MOCK_PROGRESS_MALFORMED:-0}" = 1 ]; then
+                printf 'malformed\n' >"$output/recovery-progress.capture"
+              fi
+              echo 'PASS bounded recovery progress capture completed'
+              echo 'PASS bounded recovery progress collection concluded authority=NONE'
             fi
             echo 'PASS one recovery bundle transfer completed'
             echo 'INFO recovery bundle host network state removed'
@@ -685,6 +789,8 @@ class Fixture:
                   echo 'FAIL exact network-root NFSv4.2 listener was not ready before COMMIT'
                   exit 1
                 fi
+                printf '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"%s","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}\n' \
+                  "$BUNDLE"
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
                 done
@@ -713,8 +819,8 @@ class Fixture:
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
                 fi
-                printf '{{"session":"{SESSION}","request":"{PREPARE}","result":"PREPARED","state":"PREPARED","prepared_bundle":"%s","manifest_sha256":"{MANIFEST}","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
-                  "$BUNDLE" "$BUNDLE"
+                printf '{{"session":"{SESSION}","request":"{REQUEST}","commit_request":"{REQUEST}","result":"CLAIMED","state":"CLAIMED","manifest_sha256":"{MANIFEST}","watchdog":"ARMED","execution_started":"NO"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                  "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
                 ;;
               show)
@@ -1336,6 +1442,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     result.stderr,
                 )
 
+    def test_preflight_rejects_conflicting_progress_port(self):
+        for address in (
+            "0.0.0.0",
+            "169.254.77.1",
+            "::",
+            "::ffff:0.0.0.0",
+            "::ffff:169.254.77.1",
+        ):
+            with self.subTest(address=address):
+                result = self.fixture.run(
+                    "diagnostic-preflight",
+                    MOCK_SS_PROGRESS_LISTENER_ADDRESS=address,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "host listener remains on TCP port 8081",
+                    result.stderr,
+                )
+
     def test_historical_recovery_profile_fails_before_credential_paths(self):
         result = self.fixture.run(
             "preflight",
@@ -1404,6 +1529,95 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.fixture.evidence / "intent-resolution.log"
         ).read_text(encoding="utf-8")
         self.assertIn('"outcome":"TARGET_ACCEPTED"', resolution)
+        progress = (
+            self.fixture.evidence / "recovery-progress-assessment.record"
+        ).read_text(encoding="ascii")
+        self.assertIn("capture_result=PARTIAL\n", progress)
+        self.assertIn("correlation=UNAVAILABLE\n", progress)
+        self.assertIn("authority=NONE\n", progress)
+
+    def test_prepared_stops_advisory_stream_before_nfs_without_authority(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_PROGRESS_WAIT_FOR_PREPARED="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(
+            (self.fixture.evidence / "recovery-progress.stop").exists()
+        )
+        capture = (
+            self.fixture.evidence / "recovery-progress.capture"
+        ).read_text(encoding="ascii")
+        self.assertIn("reason=STOP_REQUESTED\n", capture)
+        assessment = (
+            self.fixture.evidence / "recovery-progress-assessment.record"
+        ).read_text(encoding="ascii")
+        self.assertIn("capture_result=PARTIAL\n", assessment)
+        self.assertIn("correlation=MATCH\n", assessment)
+        self.assertIn("authority=NONE\n", assessment)
+        calls = self.fixture.call_lines()
+        self.assertLess(calls.index("bundle:clean"), calls.index("nfs:start"))
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+
+    def test_missing_progress_listener_and_capture_do_not_gate_commit(self):
+        result = self.fixture.run("run", MOCK_PROGRESS_UNAVAILABLE="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(
+            (self.fixture.evidence / "recovery-progress.capture").exists()
+        )
+        assessment = (
+            self.fixture.evidence / "recovery-progress-assessment.record"
+        ).read_text(encoding="ascii")
+        self.assertIn("capture_result=MISSING\n", assessment)
+        self.assertIn("correlation=UNAVAILABLE\n", assessment)
+        self.assertIn("reason=MISSING\n", assessment)
+        self.assertIn("authority=NONE\n", assessment)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("control:resolve:TARGET_ACCEPTED"), 1)
+
+    def test_complete_progress_correlates_only_after_commit(self):
+        result = self.fixture.run("run", MOCK_PROGRESS_COMPLETE="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        assessment = (
+            self.fixture.evidence / "recovery-progress-assessment.record"
+        ).read_text(encoding="ascii")
+        self.assertIn("capture_result=COMPLETE\n", assessment)
+        self.assertIn("correlation=MATCH\n", assessment)
+        self.assertIn("reason=CLEAN_EOF\n", assessment)
+        self.assertIn("authority=NONE\n", assessment)
+
+    def test_bad_progress_evidence_never_gates_or_authorizes_commit(self):
+        for name, update, expected in (
+            ("mismatch", "MOCK_PROGRESS_MISMATCH", "MISMATCH"),
+            ("malformed", "MOCK_PROGRESS_MALFORMED", "UNAVAILABLE"),
+            (
+                "impossible-empty-complete",
+                "MOCK_PROGRESS_IMPOSSIBLE_EMPTY",
+                "UNAVAILABLE",
+            ),
+            (
+                "impossible-zero-id-records",
+                "MOCK_PROGRESS_ZERO_ID_WITH_RECORDS",
+                "UNAVAILABLE",
+            ),
+        ):
+            with self.subTest(name=name):
+                self.fixture.close()
+                self.fixture = Fixture()
+                result = self.fixture.run("run", **{update: "1"})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                assessment = (
+                    self.fixture.evidence
+                    / "recovery-progress-assessment.record"
+                ).read_text(encoding="ascii")
+                self.assertIn(f"correlation={expected}\n", assessment)
+                self.assertIn("authority=NONE\n", assessment)
+                calls = self.fixture.call_lines()
+                self.assertEqual(calls.count("control:prepare-commit"), 1)
+                self.assertEqual(
+                    calls.count("control:resolve:TARGET_ACCEPTED"), 1
+                )
 
     def test_diagnostic_collector_is_ready_before_commit_and_resolves_fallback(self):
         result = self.fixture.run("diagnostic-run")
