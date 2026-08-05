@@ -709,14 +709,17 @@ Current execution order:
 30. **In progress, host-only and issuance HOLD:** the distinct successor now
     inserts stage 75 `nfs-mount-returned` between begin and verified success,
     emits one candidate/boot-ID kernel-log lineage marker, and extends private
-    evidence with change-only same-port NCM plus kernel NFS-RPC snapshots. The
+    evidence with change-only same-port NCM, kernel NFS-RPC, and exact
+    `169.254.77.1:2049`-to-target TCP state/queue/current-unrecovered-RTO
+    snapshots. The
     67,288-byte reporter and 6,011,337-byte diagnostic initramfs twin-build
     exactly at `dc53932d…a10` and `83240834…31d`. Hostile parser, collector,
     lifecycle, and build-contract tests pass. The fallback now captures a
     signed, read-only, 64-record/4-MiB pstore summary before strict health,
     binds it to the expected candidate/target boot ID, separates lineage and
     fatal-token classifications, and cross-checks the fallback boot ID across
-    both probes. Sixty-three fallback and 80 lifecycle tests, complete local
+    both probes. Sixty-four fallback, 27 collector, and 80 lifecycle tests,
+    complete local
     CI, and independent review pass in the [host-only
     checkpoint](test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
     Publication and exact-head GitHub CI remain required. Do not issue, sign,

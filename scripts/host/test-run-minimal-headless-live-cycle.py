@@ -200,6 +200,13 @@ class Fixture:
                     "nfs_rpc_badclnt": 0,
                     "nfs_rpc_calls": 0,
                     "nfs_rpc_xdrcall": 0,
+                    "nfs_tcp_accept_backlog": 0,
+                    "nfs_tcp_connections": 0,
+                    "nfs_tcp_listener": 0,
+                    "nfs_tcp_unrecovered_retransmits": 0,
+                    "nfs_tcp_rx_queue": 0,
+                    "nfs_tcp_states": "absent",
+                    "nfs_tcp_tx_queue": 0,
                     "operstate": None,
                     "rx_bytes": None,
                     "rx_dropped": None,
@@ -2558,6 +2565,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "transport-partial-nfs": lambda document: document[
                 "transport_snapshots"
             ][0].__setitem__("nfs_rpc_calls", None),
+            "transport-boolean-tcp-listener": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_tcp_listener", True),
+            "transport-inconsistent-tcp-absence": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_tcp_states", "established"),
+            "transport-backlog-without-listener": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_tcp_accept_backlog", 1),
+            "transport-noncanonical-tcp-states": lambda document: document[
+                "transport_snapshots"
+            ][0].update(
+                {
+                    "nfs_tcp_connections": 2,
+                    "nfs_tcp_states": "time-wait,established",
+                }
+            ),
+            "transport-too-many-tcp-states": lambda document: document[
+                "transport_snapshots"
+            ][0].update(
+                {
+                    "nfs_tcp_connections": 1,
+                    "nfs_tcp_states": "established,time-wait",
+                }
+            ),
+            "transport-negative-tcp-queue": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_tcp_tx_queue", -1),
             "frame-candidate": lambda document: document["frames"][0][
                 "record"
             ].__setitem__("candidate", "wrong-candidate"),

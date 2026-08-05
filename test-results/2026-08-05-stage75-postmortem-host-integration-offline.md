@@ -30,7 +30,10 @@ here is a host-only successor contract, not a Generation-13 issuance.
 - The target writes one `/dev/kmsg` lineage record carrying the fixed format,
   candidate, and current target boot ID.
 - Private evidence v2 records change-only snapshots of the exact physical USB
-  port's `cdc_ncm` interface, link counters, and host kernel NFS RPC counters.
+  port's `cdc_ncm` interface and link counters, host kernel NFS RPC counters,
+  and the exact `169.254.77.1:2049` listener plus target-specific
+  `169.254.77.2:*` TCP connection states, queues, and current unrecovered RTO
+  timeouts. This is not cumulative retransmission history.
 - After the independent watchdog returns the phone to Alpine and the exact
   fallback profile is restored, a separate strict-SSH action reads pstore
   without clearing or modifying it. It examines at most 64 deduplicated
@@ -69,10 +72,17 @@ was created from these bytes.
 
 ## Verification
 
-- `test-fallback-acm-control.py`: **63/63 pass**, including canonical signed
+- `test-fallback-acm-control.py`: **64/64 pass**, including canonical signed
   states, adjacent token boundaries, cross-record ordering, zero-byte records,
   duplicate aliases, unknown pstore locations, probe failures, mount races,
-  hostile framing, credential identity checks, and read-only source policy.
+  hostile framing, post-open pathname replacement, credential identity checks,
+  and read-only source policy.
+- `test-collect-early-target-diagnostics.py`: **27/27 pass**, including exact
+  bound-listener/target-flow parsing, wildcard and wrong-address refusal,
+  listener backlog, state/queue/current-unrecovered-RTO aggregation, mutable
+  seq-file duplicate deduplication and changed-duplicate refusal, malformed
+  and bounded tables, change-only behavior, and existing receive-only
+  transport policy.
 - `test-run-minimal-headless-live-cycle.py`: **80/80 pass**, including exact
   postmortem schema, target/fallback boot-ID separation, capture failure,
   cross-response mutation, fallback-health ordering, cleanup, and no-retry
@@ -87,7 +97,10 @@ was created from these bytes.
   pstore mount completeness, probe-error and late-mount handling, exact
   non-consuming fatal-token boundaries, cross-record classification,
   zero-length records, strict JSON integer typing, and broader read-only
-  source guards. Its final targeted re-review reported **NO FINDINGS**.
+  source guards. A subsequent exact-diff review found and drove fixes for
+  mutable `/proc/net/tcp` duplicate rows and the non-cumulative semantics of
+  its `retrnsmt` column. The final targeted re-review reported **NO
+  FINDINGS**.
 
 The review suggestions to classify `Call trace:` or watchdog bark as fatal
 were not adopted because the existing project-wide 5.4 behavioral oracle

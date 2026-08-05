@@ -68,8 +68,28 @@ SYS_CLASS_NET = Path("/sys/class/net")
 DEV_ROOT = Path("/dev")
 HOST_BOOT_ID = Path("/proc/sys/kernel/random/boot_id")
 NFSD_STATS = Path("/proc/net/rpc/nfsd")
+TCP_STATS = Path("/proc/net/tcp")
 JOURNALCTL = Path("/usr/bin/journalctl")
 FUSER = Path("/usr/bin/fuser")
+
+NFS_SERVER_TCP_ADDRESS = "014DFEA9"
+NFS_CLIENT_TCP_ADDRESS = "024DFEA9"
+NFS_TCP_PORT = "0801"
+MAX_NFS_TCP_CONNECTIONS = 64
+TCP_STATES = {
+    "01": "established",
+    "02": "syn-sent",
+    "03": "syn-recv",
+    "04": "fin-wait-1",
+    "05": "fin-wait-2",
+    "06": "time-wait",
+    "07": "close",
+    "08": "close-wait",
+    "09": "last-ack",
+    "0A": "listen",
+    "0B": "closing",
+    "0C": "new-syn-recv",
+}
 
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -153,6 +173,45 @@ class UsbEvent:
 
 
 @dataclass(frozen=True)
+class NfsTcpState:
+    listener: int
+    accept_backlog: int
+    connections: int
+    states: str
+    tx_queue: int
+    rx_queue: int
+    unrecovered_retransmits: int
+
+
+@dataclass(frozen=True)
+class TransportState:
+    state: str
+    interface: str | None
+    carrier: int | None
+    operstate: str | None
+    rx_bytes: int | None
+    rx_packets: int | None
+    rx_errors: int | None
+    rx_dropped: int | None
+    tx_bytes: int | None
+    tx_packets: int | None
+    tx_errors: int | None
+    tx_dropped: int | None
+    nfs_rpc_calls: int | None
+    nfs_rpc_badcalls: int | None
+    nfs_rpc_badauth: int | None
+    nfs_rpc_badclnt: int | None
+    nfs_rpc_xdrcall: int | None
+    nfs_tcp_listener: int
+    nfs_tcp_accept_backlog: int
+    nfs_tcp_connections: int
+    nfs_tcp_states: str
+    nfs_tcp_tx_queue: int
+    nfs_tcp_rx_queue: int
+    nfs_tcp_unrecovered_retransmits: int
+
+
+@dataclass(frozen=True)
 class TransportSnapshot:
     host_unix_ns: int
     host_monotonic_ns: int
@@ -174,6 +233,13 @@ class TransportSnapshot:
     nfs_rpc_badauth: int | None
     nfs_rpc_badclnt: int | None
     nfs_rpc_xdrcall: int | None
+    nfs_tcp_listener: int
+    nfs_tcp_accept_backlog: int
+    nfs_tcp_connections: int
+    nfs_tcp_states: str
+    nfs_tcp_tx_queue: int
+    nfs_tcp_rx_queue: int
+    nfs_tcp_unrecovered_retransmits: int
 
 
 @dataclass(frozen=True)
@@ -633,6 +699,120 @@ def nfs_rpc_state() -> tuple[int, int, int, int, int] | None:
     )
 
 
+def tcp_endpoint(value: str, label: str) -> tuple[str, str]:
+    match = re.fullmatch(r"([0-9A-F]{8}):([0-9A-F]{4})", value)
+    if match is None:
+        fail(f"{label} is not canonical")
+    return match.group(1), match.group(2)
+
+
+def tcp_hex_counter(value: str, label: str) -> int:
+    if re.fullmatch(r"[0-9A-F]{8}", value) is None:
+        fail(f"{label} is not canonical")
+    return int(value, 16)
+
+
+def nfs_tcp_state() -> NfsTcpState:
+    payload = read_bounded_regular(TCP_STATS, 512 * 1024)
+    try:
+        lines = payload.decode("ascii").splitlines()
+    except UnicodeDecodeError as error:
+        raise CollectorError("host TCP table is not ASCII") from error
+    if not lines or lines[0].split()[:6] != [
+        "sl",
+        "local_address",
+        "rem_address",
+        "st",
+        "tx_queue",
+        "rx_queue",
+    ]:
+        fail("host TCP table header is not canonical")
+
+    listeners = 0
+    accept_backlog = 0
+    flows: list[tuple[str, int, int, int]] = []
+    seen_rows: dict[
+        tuple[str, str, str], tuple[str, int, int, int]
+    ] = {}
+    for line in lines[1:]:
+        fields = line.split()
+        if (
+            len(fields) < 10
+            or re.fullmatch(r"[0-9]+:", fields[0]) is None
+            or fields[3] not in TCP_STATES
+            or re.fullmatch(r"[0-9]+", fields[9]) is None
+        ):
+            fail("host TCP table row is not canonical")
+        local_address, local_port = tcp_endpoint(
+            fields[1], "host TCP local endpoint"
+        )
+        remote_address, remote_port = tcp_endpoint(
+            fields[2], "host TCP remote endpoint"
+        )
+        if local_port != NFS_TCP_PORT:
+            continue
+        if local_address != NFS_SERVER_TCP_ADDRESS:
+            fail("NFS TCP listener escaped the fixed host address")
+        queue_match = re.fullmatch(
+            r"([0-9A-F]{8}):([0-9A-F]{8})", fields[4]
+        )
+        if queue_match is None:
+            fail("NFS TCP queue is not canonical")
+        tx_queue = tcp_hex_counter(queue_match.group(1), "NFS TCP TX queue")
+        rx_queue = tcp_hex_counter(queue_match.group(2), "NFS TCP RX queue")
+        unrecovered_retransmits = tcp_hex_counter(
+            fields[6], "NFS TCP unrecovered retransmits"
+        )
+        if remote_address == "00000000" and remote_port == "0000":
+            if fields[3] != "0A":
+                fail("NFS TCP listener row is inconsistent")
+            row_kind = "listener"
+        else:
+            if (
+                remote_address != NFS_CLIENT_TCP_ADDRESS
+                or remote_port == "0000"
+                or fields[3] == "0A"
+            ):
+                fail("unexpected NFS TCP client flow")
+            row_kind = "flow"
+        identity = (fields[1], fields[2], fields[9])
+        row = (
+            fields[3],
+            tx_queue,
+            rx_queue,
+            unrecovered_retransmits,
+        )
+        previous = seen_rows.get(identity)
+        if previous is not None:
+            if previous != row:
+                fail("NFS TCP row changed during snapshot")
+            continue
+        seen_rows[identity] = row
+        if row_kind == "listener":
+            listeners += 1
+            accept_backlog = rx_queue
+        else:
+            flows.append(row)
+
+    if listeners > 1 or len(flows) > MAX_NFS_TCP_CONNECTIONS:
+        fail("NFS TCP flow inventory is ambiguous")
+    states = (
+        ",".join(TCP_STATES[code] for code in sorted({row[0] for row in flows}))
+        if flows
+        else "absent"
+    )
+    totals = tuple(sum(row[index] for row in flows) for index in (1, 2, 3))
+    return NfsTcpState(
+        listener=listeners,
+        accept_backlog=accept_backlog,
+        connections=len(flows),
+        states=states,
+        tx_queue=totals[0],
+        rx_queue=totals[1],
+        unrecovered_retransmits=totals[2],
+    )
+
+
 class TransportObserver:
     """Change-only read-side evidence for the anchored NCM/NFS path."""
 
@@ -652,7 +832,7 @@ class TransportObserver:
         self.next_sample = 0.0
         self.snapshots: list[TransportSnapshot] = []
         self.dropped = 0
-        self._last_state: tuple[object, ...] | None = None
+        self._last_state: TransportState | None = None
 
     def poll(self, *, force: bool = False) -> None:
         now = self.clock.monotonic()
@@ -666,45 +846,56 @@ class TransportObserver:
         if identity is not None and identity.location != self.expected_location:
             fail("diagnostic NCM escaped the anchored USB port")
         rpc = nfs_rpc_state()
+        tcp = nfs_tcp_state()
         if identity is None:
-            state: tuple[object, ...] = ("absent", None, *(None,) * 10, rpc)
-            values: tuple[object, ...] = (None, None, None, *(None,) * 8)
+            interface = None
+            carrier = None
+            operstate = None
+            counters: tuple[int | None, ...] = (None,) * 8
         else:
             carrier, operstate, counters = ncm_state(identity)
-            state = ("present", identity.name, carrier, operstate, *counters, rpc)
-            values = (identity.name, carrier, operstate, *counters)
+            interface = identity.name
+        rpc_values: tuple[int | None, ...] = (
+            rpc if rpc is not None else (None,) * 5
+        )
+        state = TransportState(
+            state="present" if identity is not None else "absent",
+            interface=interface,
+            carrier=carrier,
+            operstate=operstate,
+            rx_bytes=counters[0],
+            rx_packets=counters[1],
+            rx_errors=counters[2],
+            rx_dropped=counters[3],
+            tx_bytes=counters[4],
+            tx_packets=counters[5],
+            tx_errors=counters[6],
+            tx_dropped=counters[7],
+            nfs_rpc_calls=rpc_values[0],
+            nfs_rpc_badcalls=rpc_values[1],
+            nfs_rpc_badauth=rpc_values[2],
+            nfs_rpc_badclnt=rpc_values[3],
+            nfs_rpc_xdrcall=rpc_values[4],
+            nfs_tcp_listener=tcp.listener,
+            nfs_tcp_accept_backlog=tcp.accept_backlog,
+            nfs_tcp_connections=tcp.connections,
+            nfs_tcp_states=tcp.states,
+            nfs_tcp_tx_queue=tcp.tx_queue,
+            nfs_tcp_rx_queue=tcp.rx_queue,
+            nfs_tcp_unrecovered_retransmits=tcp.unrecovered_retransmits,
+        )
         if state == self._last_state:
             return
         self._last_state = state
         if len(self.snapshots) >= MAX_TRANSPORT_SNAPSHOTS:
             self.dropped += 1
             return
-        interface, carrier, operstate, *counters = values
-        rpc_values: tuple[int | None, ...] = (
-            rpc if rpc is not None else (None,) * 5
-        )
         self.snapshots.append(
             TransportSnapshot(
                 host_unix_ns=self.clock.time_ns(),
                 host_monotonic_ns=self.clock.monotonic_ns(),
-                state="present" if identity is not None else "absent",
-                interface=interface,
                 usb_location=self.expected_location,
-                carrier=carrier,
-                operstate=operstate,
-                rx_bytes=counters[0],
-                rx_packets=counters[1],
-                rx_errors=counters[2],
-                rx_dropped=counters[3],
-                tx_bytes=counters[4],
-                tx_packets=counters[5],
-                tx_errors=counters[6],
-                tx_dropped=counters[7],
-                nfs_rpc_calls=rpc_values[0],
-                nfs_rpc_badcalls=rpc_values[1],
-                nfs_rpc_badauth=rpc_values[2],
-                nfs_rpc_badclnt=rpc_values[3],
-                nfs_rpc_xdrcall=rpc_values[4],
+                **asdict(state),
             )
         )
 

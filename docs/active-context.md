@@ -178,16 +178,19 @@ now reject before guards, credentials, repository, host, or phone inspection;
 the retained offline profiles and twins are regression evidence only. The
 outer lifecycle parser correction is complete at `606303a`; exact-head run
 `30952333022` is green. The current host-only successor inserts stage 75
-`nfs-mount-returned`, records same-port NCM/link counters and kernel NFS-RPC
-totals in private evidence v2, and writes one candidate/boot-ID lineage marker
-to `/dev/kmsg`. Its static reporter and diagnostic initramfs twin-build at
+`nfs-mount-returned`, records same-port NCM/link counters, kernel NFS-RPC
+totals, and exact target-specific NFS TCP states/queues/current unrecovered RTO
+timeouts in private
+evidence v2, and writes one candidate/boot-ID lineage marker to `/dev/kmsg`.
+Its static reporter and diagnostic initramfs twin-build at
 `dc53932d…a10` and `83240834…31d`. Fallback-side current-cycle pstore
 acquisition/correlation is now implemented host-only: a strict same-port SSH
 action reads at most 64 records/4 MiB without deleting them, signs a summary
 bound to the target candidate/boot ID, distinguishes lineage and fatal-token
 states, and runs before unchanged strict fallback health. The host rejects
-symlink/type/inode/mount races and cross-probe fallback boot-ID changes; 63 fallback
-and 80 lifecycle tests, complete local CI, and independent review pass in the
+symlink/type/inode/mount races and cross-probe fallback boot-ID changes; 64
+fallback, 27 collector, and 80 lifecycle tests, complete local CI, and
+independent review pass in the
 [host-only stage-75/postmortem
 checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
 Publication and exact-head GitHub CI remain open, so central boot policy stays
