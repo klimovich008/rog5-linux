@@ -722,9 +722,11 @@ Current execution order:
     complete local
     CI, and independent review pass in the [host-only
     checkpoint](test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
-    Publication and exact-head GitHub CI remain required. Do not issue, sign,
-    admit, or boot a successor before both close; promote a normal SSH
-    candidate only after the evidence locates and the implementation fixes the
+    Implementation commit `eeb157b` is published with green exact-head GitHub
+    Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
+    closes the host-only publication gate, not issuance: do not issue, sign,
+    admit, or boot a successor from this checkpoint. Promote a normal SSH
+    candidate only after new evidence locates and the implementation fixes the
     failing boundary.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.

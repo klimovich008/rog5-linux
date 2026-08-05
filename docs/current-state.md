@@ -88,8 +88,10 @@ fallback, 27 collector, and 80 lifecycle tests, complete local CI, and
 independent review
 pass in the [host-only
 checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
-Publication and exact-head GitHub CI remain open, and policy contains no
-successor `allow` row.
+Implementation commit `eeb157b` is published with green exact-head GitHub
+Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
+closes the host-only publication gate; policy still contains no successor
+`allow` row and issuance remains HOLD.
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

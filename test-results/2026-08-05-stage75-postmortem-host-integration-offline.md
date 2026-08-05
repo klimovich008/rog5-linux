@@ -115,15 +115,17 @@ suggested additional anchor-budget gate was also unnecessary: the lifecycle
 already owns one shared fallback deadline and the strict-SSH collector
 revalidates the exact anchor both before and after its bounded probe.
 
-## Effects and remaining gates
+## Effects and publication
 
 No phone, fastboot, ADB, ACM, NCM, SSH credential, signing key, administrator
 credential, reboot, temporary boot, flash, erase, wipe, slot, persistent
 installation, or phone-storage operation was used in this checkpoint.
 
 Local implementation, tests, reproducible builds, documentation, and review
-are complete. Commit review, branch publication, and exact-head GitHub Actions
-remain required before the host-only checkpoint is considered published.
-Even after those gates pass, issuance remains a separate HOLD: a fresh
-successor would still require an exact signed artifact tuple and one central
-temporary-boot policy row before any RAM-only phone execution.
+are complete. Implementation commit `eeb157b` is published in draft PR #1 and
+passed exact-head GitHub Actions run `30988099391` (`qemu-system` 37s;
+`recovery-core` 4m03s). This closes the host-only publication gate.
+
+Issuance remains a separate HOLD: a fresh successor would still require an
+exact signed artifact tuple and one central temporary-boot policy row before
+any RAM-only phone execution.

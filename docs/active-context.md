@@ -193,8 +193,10 @@ fallback, 27 collector, and 80 lifecycle tests, complete local CI, and
 independent review pass in the
 [host-only stage-75/postmortem
 checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
-Publication and exact-head GitHub CI remain open, so central boot policy stays
-empty and no candidate may be issued, signed, admitted, or booted. See also the
+Implementation commit `eeb157b` is published with green exact-head GitHub
+Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). The
+host-only publication gate is closed, but central boot policy stays empty and
+no candidate may be issued, signed, admitted, or booted. See also the
 [host-only admission
 result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 

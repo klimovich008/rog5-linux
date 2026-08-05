@@ -346,8 +346,8 @@ records, fixed listener/target endpoint policy, change-only link/RPC/TCP
 snapshots, anchored-port rejection, departure, and the snapshot bound.
 Sixty-four fallback-controller tests, 80 lifecycle tests, and
 the complete repository CI tier pass with the bounded signed postmortem path
-described above. Publication and exact-head GitHub CI remain required before
-issuance.
+described above. Implementation commit `eeb157b` is published with green
+exact-head GitHub Actions run `30988099391`; issuance remains a separate HOLD.
 
 The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
 the fixed `headless-netroot-early-diag-v1` bundle identity are present. That
