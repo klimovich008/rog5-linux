@@ -669,6 +669,31 @@ class PostmortemRemoteSnapshotTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "snapshot-bound"):
             self.snapshot(self.marker)
 
+    def test_post_open_record_path_replacement_fails_closed(self) -> None:
+        record = self.sys_pstore / "console-ramoops-0"
+        displaced = self.root / "displaced-record"
+        record.write_bytes(self.marker)
+        real_read = os.read
+        replaced = False
+
+        def replace_after_open(descriptor: int, size: int) -> bytes:
+            nonlocal replaced
+            if not replaced:
+                replaced = True
+                record.rename(displaced)
+                record.write_bytes(b"replacement")
+            return real_read(descriptor, size)
+
+        with (
+            mock.patch.object(
+                self.namespace["os"],
+                "read",
+                side_effect=replace_after_open,
+            ),
+            self.assertRaisesRegex(RuntimeError, "record-race"),
+        ):
+            self.snapshot(self.marker)
+
 
 class SignatureTest(unittest.TestCase):
     def setUp(self) -> None:

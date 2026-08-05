@@ -655,6 +655,8 @@ def mount_type():
 
 
 def read_record(path, remaining, expected_identity):
+    if not isinstance(expected_identity, tuple) or len(expected_identity) != 2:
+        raise RuntimeError("record-identity")
     descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:
         metadata = os.fstat(descriptor)
@@ -671,12 +673,19 @@ def read_record(path, remaining, expected_identity):
                 break
             payload.extend(block)
         after = os.fstat(descriptor)
-        if (
-            len(payload) > remaining
-            or (metadata.st_dev, metadata.st_ino, metadata.st_mode)
-            != (after.st_dev, after.st_ino, after.st_mode)
-        ):
+        try:
+            named = path.lstat()
+        except OSError as error:
+            raise RuntimeError("record-race") from error
+        if len(payload) > remaining:
             raise RuntimeError("record-bound")
+        if (
+            (metadata.st_dev, metadata.st_ino, metadata.st_mode)
+            != (after.st_dev, after.st_ino, after.st_mode)
+            or not stat.S_ISREG(named.st_mode)
+            or (named.st_dev, named.st_ino) != expected_identity
+        ):
+            raise RuntimeError("record-race")
         return bytes(payload)
     finally:
         os.close(descriptor)

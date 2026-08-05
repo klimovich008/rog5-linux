@@ -270,7 +270,8 @@ parser separately rejected the valid postmortem-extended PREPARE object because
 it still expected a legacy seven-field shape; the published host-only correction
 now requires the complete contract and hostile cross-response invariants. The
 unissued successor adds stage 75 after a returned NFS mount command, private
-same-port NCM/NFS snapshots, and a target lineage marker. Fallback-side
+same-port NCM/NFS-RPC plus exact target-specific TCP
+state/queue/current-unrecovered-RTO snapshots, and a target lineage marker. Fallback-side
 current-cycle pstore correlation is now implemented host-only as a bounded,
 read-only, signed summary before unchanged strict health. Complete local CI and
 independent review pass in the [host-only
@@ -1052,7 +1053,7 @@ not permission to retry a decided PREPARE request.
 ## Hardware-free coverage
 
 `test-verify-headless-ssh-v2-key-admission.py` covers sixteen admission
-scenarios, `test-fallback-acm-control.py` covers sixty-three fallback
+scenarios, `test-fallback-acm-control.py` covers sixty-four fallback
 protocol tests, `test-recovery-host-controller.py` covers twenty-two privileged
 controller tests, `test-recovery-host-socket.py` covers eleven socket tests,
 and `test-run-minimal-headless-live-cycle.py` covers 80 lifecycle tests.

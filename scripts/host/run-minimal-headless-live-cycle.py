@@ -1996,6 +1996,13 @@ def verify_diagnostic_evidence(
         "nfs_rpc_badclnt",
         "nfs_rpc_calls",
         "nfs_rpc_xdrcall",
+        "nfs_tcp_accept_backlog",
+        "nfs_tcp_connections",
+        "nfs_tcp_listener",
+        "nfs_tcp_unrecovered_retransmits",
+        "nfs_tcp_rx_queue",
+        "nfs_tcp_states",
+        "nfs_tcp_tx_queue",
         "operstate",
         "rx_bytes",
         "rx_dropped",
@@ -2034,6 +2041,19 @@ def verify_diagnostic_evidence(
         "dormant",
         "up",
     }
+    tcp_states = (
+        "established",
+        "syn-sent",
+        "syn-recv",
+        "fin-wait-1",
+        "fin-wait-2",
+        "time-wait",
+        "close",
+        "close-wait",
+        "last-ack",
+        "closing",
+        "new-syn-recv",
+    )
     last_transport_monotonic = -1
     last_transport_unix = 0
     for snapshot in transport_snapshots:
@@ -2059,6 +2079,43 @@ def verify_diagnostic_evidence(
             or all(type(item) is int and item >= 0 for item in nfs_values)
         ):
             fail("diagnostic NFS RPC snapshot is invalid")
+        listener = snapshot.get("nfs_tcp_listener")
+        accept_backlog = snapshot.get("nfs_tcp_accept_backlog")
+        connections = snapshot.get("nfs_tcp_connections")
+        observed_tcp_states = snapshot.get("nfs_tcp_states")
+        tcp_counters = (
+            snapshot.get("nfs_tcp_tx_queue"),
+            snapshot.get("nfs_tcp_rx_queue"),
+            snapshot.get("nfs_tcp_unrecovered_retransmits"),
+        )
+        if (
+            type(listener) is not int
+            or listener not in {0, 1}
+            or type(accept_backlog) is not int
+            or not 0 <= accept_backlog <= (1 << 32) - 1
+            or listener == 0
+            and accept_backlog != 0
+            or type(connections) is not int
+            or not 0 <= connections <= 64
+            or not isinstance(observed_tcp_states, str)
+            or any(
+                type(item) is not int or not 0 <= item <= (1 << 64) - 1
+                for item in tcp_counters
+            )
+        ):
+            fail("diagnostic NFS TCP snapshot is invalid")
+        if connections == 0:
+            if observed_tcp_states != "absent" or any(tcp_counters):
+                fail("absent diagnostic NFS TCP snapshot is inconsistent")
+        else:
+            selected_tcp_states = observed_tcp_states.split(",")
+            if (
+                any(item not in tcp_states for item in selected_tcp_states)
+                or len(selected_tcp_states) > connections
+                or selected_tcp_states
+                != [item for item in tcp_states if item in selected_tcp_states]
+            ):
+                fail("diagnostic NFS TCP states are not canonical")
         if snapshot["state"] == "absent":
             if (
                 snapshot.get("interface") is not None

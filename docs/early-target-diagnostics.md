@@ -191,6 +191,21 @@ every post-anchor capture rejection produce exactly one canonical
 outside Git. Rejected evidence contains only records accepted before the
 violation and a bounded reason, never the raw untrusted stream.
 
+Each change-only transport snapshot combines the exact anchored interface-00
+`cdc_ncm` carrier/operstate and eight link counters with aggregate kernel NFS
+RPC counters and a bounded read of `/proc/net/tcp`. TCP evidence accepts only
+the explicitly bound `169.254.77.1:2049` listener and target-specific
+`169.254.77.2:*` flows. It records listener presence and accept backlog,
+connection count, canonical state set, aggregate TX/RX queues, and the current
+unrecovered RTO timeout count from `/proc/net/tcp`'s `retrnsmt` column. That
+counter is not cumulative and is zero for TIME_WAIT rows. Identical rows
+repeated by a mutable seq-file read are deduplicated by endpoint and inode;
+same-identity rows whose values change during the read fail closed.
+Wildcard/wrong-address port-2049 rows, malformed tables, more than 64 target
+flows, noncanonical states, and counter/schema mutations fail closed.
+The reviewed NFS launcher already enforces the corresponding fixed
+`rpc.nfsd --host 169.254.77.1` bind.
+
 ## Current-cycle postmortem capture
 
 The target-side lineage marker is not evidence by itself. The implemented
@@ -224,7 +239,7 @@ unchanged strict fallback health proof and requires the same fallback boot ID
 across both signed records. A non-empty pstore may therefore preserve useful
 private evidence and still make strict fallback health fail; that leaves the
 durable intent unresolved rather than weakening the health policy or deleting
-records. Sixty-three fallback-controller and 80 lifecycle tests cover canonical
+records. Sixty-four fallback-controller and 80 lifecycle tests cover canonical
 states, hostile fields, framing, signatures, symlink/type races, bounds,
 ordering, failed capture, and cross-probe boot-ID changes.
 
@@ -313,7 +328,7 @@ two clean builds, native verifier, and artifact gate compose through final
 Actual production signing, installation, and phone execution remain pending
 behind their separate guarded actions.
 
-Twenty-six collector tests cover canonical private anchor/output handling,
+Twenty-seven collector tests cover canonical private anchor/output handling,
 duplicate or wrong-port USB identities, interface/driver binding, character-
 device replacement, rejection of a pre-existing foreign holder, read-only
 raw/no-`HUPCL` tty behavior, timeout versus disconnect, fragmented valid
@@ -326,9 +341,10 @@ exit rejection, an exact flushed readiness handshake that is absent on
 journal-startup failure, and absence of a serial write or shell surface. A
 deterministic test executes the real subprocess/nonblocking-buffer/termination
 path, and a local smoke starts and stops `/usr/bin/journalctl` as the
-unprivileged user. They now also cover canonical/malformed NFS RPC records,
-change-only link/RPC snapshots, anchored-port rejection, departure, and the
-snapshot bound. Sixty-three fallback-controller tests, 80 lifecycle tests, and
+unprivileged user. They now also cover canonical/malformed NFS RPC and TCP
+records, fixed listener/target endpoint policy, change-only link/RPC/TCP
+snapshots, anchored-port rejection, departure, and the snapshot bound.
+Sixty-four fallback-controller tests, 80 lifecycle tests, and
 the complete repository CI tier pass with the bounded signed postmortem path
 described above. Publication and exact-head GitHub CI remain required before
 issuance.

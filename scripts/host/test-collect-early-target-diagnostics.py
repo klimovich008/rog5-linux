@@ -97,6 +97,13 @@ def transport_snapshot() -> MODULE.TransportSnapshot:
         nfs_rpc_badauth=0,
         nfs_rpc_badclnt=0,
         nfs_rpc_xdrcall=0,
+        nfs_tcp_listener=1,
+        nfs_tcp_accept_backlog=0,
+        nfs_tcp_connections=1,
+        nfs_tcp_states="established",
+        nfs_tcp_tx_queue=16,
+        nfs_tcp_rx_queue=32,
+        nfs_tcp_unrecovered_retransmits=0,
     )
 
 
@@ -233,6 +240,105 @@ class TransportObserverTest(unittest.TestCase):
             with mock.patch.object(MODULE, "NFSD_STATS", path):
                 self.assertIsNone(MODULE.nfs_rpc_state())
 
+    def test_nfs_tcp_parser_is_exact_bounded_and_target_specific(self):
+        header = (
+            "sl local_address rem_address st tx_queue rx_queue tr "
+            "tm->when retrnsmt uid timeout inode\n"
+        )
+        listener = (
+            "0: 014DFEA9:0801 00000000:0000 0A "
+            "00000000:00000005 00:00000000 00000000 0 0 1\n"
+        )
+        established = (
+            "1: 014DFEA9:0801 024DFEA9:C001 01 "
+            "00000010:00000020 00:00000000 00000003 0 0 2\n"
+        )
+        time_wait = (
+            "2: 014DFEA9:0801 024DFEA9:C002 06 "
+            "00000001:00000002 00:00000000 00000000 0 0 0\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            table = Path(temporary) / "tcp"
+            table.write_text(
+                header + listener + established + time_wait,
+                encoding="ascii",
+            )
+            with mock.patch.object(MODULE, "TCP_STATS", table):
+                self.assertEqual(
+                    MODULE.nfs_tcp_state(),
+                    MODULE.NfsTcpState(
+                        listener=1,
+                        accept_backlog=5,
+                        connections=2,
+                        states="established,time-wait",
+                        tx_queue=17,
+                        rx_queue=34,
+                        unrecovered_retransmits=3,
+                    ),
+                )
+
+            table.write_text(
+                header
+                + listener
+                + listener.replace("0:", "9:", 1)
+                + established
+                + established.replace("1:", "8:", 1)
+                + time_wait,
+                encoding="ascii",
+            )
+            with mock.patch.object(MODULE, "TCP_STATS", table):
+                self.assertEqual(
+                    MODULE.nfs_tcp_state(),
+                    MODULE.NfsTcpState(
+                        listener=1,
+                        accept_backlog=5,
+                        connections=2,
+                        states="established,time-wait",
+                        tx_queue=17,
+                        rx_queue=34,
+                        unrecovered_retransmits=3,
+                    ),
+                )
+
+            hostile = (
+                header.replace("local_address", "local"),
+                header
+                + listener.replace("014DFEA9:0801", "00000000:0801"),
+                header
+                + established.replace("024DFEA9:C001", "034DFEA9:C001"),
+                header
+                + established.replace(
+                    "00000010:00000020", "00000010:xyz"
+                ),
+                header
+                + listener
+                + listener.replace("0:", "1:", 1).replace(
+                    " 0 0 1\n", " 0 0 3\n"
+                ),
+                header
+                + established
+                + established.replace("00000003 0 0 2", "00000004 0 0 2"),
+                header + established.replace(" 01 ", " FF "),
+            )
+            for index, payload in enumerate(hostile):
+                table.write_text(payload, encoding="ascii")
+                with (
+                    self.subTest(index=index),
+                    mock.patch.object(MODULE, "TCP_STATS", table),
+                    self.assertRaises(MODULE.CollectorError),
+                ):
+                    MODULE.nfs_tcp_state()
+            table.write_text(
+                header + established + time_wait,
+                encoding="ascii",
+            )
+            with (
+                mock.patch.object(MODULE, "TCP_STATS", table),
+                mock.patch.object(MODULE, "MAX_NFS_TCP_CONNECTIONS", 1),
+                self.assertRaises(MODULE.CollectorError),
+            ):
+                MODULE.nfs_tcp_state()
+
     def test_observer_records_only_changes_and_departure(self):
         clock = mock.Mock()
         clock.monotonic.side_effect = [0.0, 1.0, 2.0, 3.0]
@@ -241,6 +347,7 @@ class TransportObserverTest(unittest.TestCase):
         identity = MODULE.NcmIdentity("usb7", LOCATION)
         first = (1, "up", (100, 2, 0, 0, 200, 3, 0, 0))
         changed = (1, "up", (140, 3, 0, 0, 260, 4, 0, 0))
+        tcp = MODULE.NfsTcpState(1, 0, 1, "established", 0, 0, 0)
         with (
             mock.patch.object(
                 MODULE,
@@ -260,6 +367,7 @@ class TransportObserverTest(unittest.TestCase):
                     (2, 0, 0, 0, 0),
                 ],
             ),
+            mock.patch.object(MODULE, "nfs_tcp_state", return_value=tcp),
         ):
             observer = MODULE.TransportObserver(LOCATION, clock=clock)
             for _ in range(4):
@@ -293,6 +401,13 @@ class TransportObserverTest(unittest.TestCase):
                 MODULE,
                 "nfs_rpc_state",
                 side_effect=[(0, 0, 0, 0, 0), (1, 0, 0, 0, 0)],
+            ),
+            mock.patch.object(
+                MODULE,
+                "nfs_tcp_state",
+                return_value=MODULE.NfsTcpState(
+                    0, 0, 0, "absent", 0, 0, 0
+                ),
             ),
         ):
             observer = MODULE.TransportObserver(LOCATION, clock=clock)

@@ -76,14 +76,16 @@ does not claim a panic without current-cycle console or postmortem lineage.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 successor now adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
-and private same-port NCM/NFS counter snapshots. Its reporter and diagnostic
+and private same-port NCM, NFS-RPC, and exact target-specific TCP
+state/queue/current-unrecovered-RTO snapshots. Its reporter and diagnostic
 initramfs reproduce at `dc53932d…a10` and `83240834…31d`. This is not boot
 authority. Fallback-side pstore correlation is now implemented as a bounded,
 read-only, signed strict-SSH summary before unchanged fallback health. It
 binds the expected target boot ID and candidate, keeps raw records on the
 phone, classifies lineage separately from recognized fatal tokens, and
-cross-checks the fallback boot ID across both signed probes. Sixty-three
-fallback and 80 lifecycle tests, complete local CI, and independent review
+cross-checks the fallback boot ID across both signed probes. Sixty-four
+fallback, 27 collector, and 80 lifecycle tests, complete local CI, and
+independent review
 pass in the [host-only
 checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
 Publication and exact-head GitHub CI remain open, and policy contains no

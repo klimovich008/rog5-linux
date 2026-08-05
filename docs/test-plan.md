@@ -464,9 +464,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
 - Before any Generation-13 issuance, require an explicit stage 75 immediately
   after every returned NFS `mount` command; same-port interface-00 `cdc_ncm`
   carrier/operstate and eight sysfs counters; aggregate kernel NFS-server RPC
-  counters; and one candidate/boot-ID `/dev/kmsg` lineage marker. Host evidence
-  must be canonical v2, change-only, private, bounded to 768 snapshots, and
-  reject ambiguity, wrong ports, malformed/partial counters, overflow, and all
+  counters; exact `169.254.77.1:2049` listener/accept-backlog plus target
+  `169.254.77.2:*` TCP connection count, canonical states, TX/RX queues, and
+  current unrecovered RTO timeouts (not cumulative retransmission history,
+  and zero for TIME_WAIT rows); and one candidate/boot-ID `/dev/kmsg` lineage
+  marker. Identical mutable-seq-file duplicate rows must deduplicate by exact
+  endpoint/inode identity, while changed duplicates fail closed. The host
+  NFS launcher must retain its explicit `rpc.nfsd --host 169.254.77.1` bind;
+  wildcard and wrong-address port-2049 rows fail closed. Host evidence must be
+  canonical v2, change-only, private, bounded to 768 snapshots, and reject
+  ambiguity, wrong ports, malformed/partial counters, overflow, and all
   lifecycle identity mutations. **The target stage, host collector, hostile
   tests, sealed reporter, and byte-identical diagnostic-initramfs twins pass
   host-only. Bounded read-only fallback pstore acquisition/correlation also
@@ -476,7 +483,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   independent review pass; publication and exact-head GitHub CI remain HOLD.
   No candidate or boot authority exists.**
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
-  fallback control plane. Sixty-three hardware-free cases require one exact
+  fallback control plane. Sixty-four hardware-free cases require one exact
   nonce-correlated frame, canonical
   health fields, real disposable Ed25519 signing and verification, the exact
   private host pin, exclusive/raw bounded ACM transport, exact USB
