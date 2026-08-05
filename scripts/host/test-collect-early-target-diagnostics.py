@@ -318,6 +318,11 @@ class TransportObserverTest(unittest.TestCase):
                 header
                 + established
                 + established.replace("00000003 0 0 2", "00000004 0 0 2"),
+                header
+                + time_wait.replace(
+                    "00:00000000 00000000 0 0 0",
+                    "00:00000000 00000001 0 0 0",
+                ),
                 header + established.replace(" 01 ", " FF "),
             )
             for index, payload in enumerate(hostile):

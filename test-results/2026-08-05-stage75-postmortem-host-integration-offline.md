@@ -81,12 +81,12 @@ was created from these bytes.
   bound-listener/target-flow parsing, wildcard and wrong-address refusal,
   listener backlog, state/queue/current-unrecovered-RTO aggregation, mutable
   seq-file duplicate deduplication and changed-duplicate refusal, malformed
-  and bounded tables, change-only behavior, and existing receive-only
-  transport policy.
+  and bounded tables, impossible nonzero TIME_WAIT RTO refusal, change-only
+  behavior, and existing receive-only transport policy.
 - `test-run-minimal-headless-live-cycle.py`: **80/80 pass**, including exact
   postmortem schema, target/fallback boot-ID separation, capture failure,
-  cross-response mutation, fallback-health ordering, cleanup, and no-retry
-  behavior.
+  cross-response mutation, unsigned-64-bit NCM/NFS counter bounds,
+  fallback-health ordering, cleanup, and no-retry behavior.
 - Early-target state/reporter suite: **25/25 pass**.
 - Complete repository Linux `ci` tier: **PASS**, ending with
   `PASS repository Linux ci tier`. This includes source/DT compatibility,
@@ -100,6 +100,12 @@ was created from these bytes.
   source guards. A subsequent exact-diff review found and drove fixes for
   mutable `/proc/net/tcp` duplicate rows and the non-cumulative semantics of
   its `retrnsmt` column. The final targeted re-review reported **NO
+  FINDINGS**.
+- Independent exact-parent standards and specification reviews then ran in
+  parallel. The specification review reported no findings. The standards
+  review found missing independent unsigned-64-bit bounds for NCM/NFS RPC
+  counters and missing enforcement of zero TIME_WAIT unrecovered-RTO evidence;
+  both were fixed with hostile tests, and its final re-review reported **NO
   FINDINGS**.
 
 The review suggestions to classify `Call trace:` or watchdog bark as fatal
