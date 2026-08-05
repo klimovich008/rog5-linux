@@ -2076,7 +2076,10 @@ def verify_diagnostic_evidence(
         nfs_values = [snapshot.get(name) for name in nfs_counters]
         if not (
             all(item is None for item in nfs_values)
-            or all(type(item) is int and item >= 0 for item in nfs_values)
+            or all(
+                type(item) is int and 0 <= item <= (1 << 64) - 1
+                for item in nfs_values
+            )
         ):
             fail("diagnostic NFS RPC snapshot is invalid")
         listener = snapshot.get("nfs_tcp_listener")
@@ -2131,7 +2134,8 @@ def verify_diagnostic_evidence(
             or snapshot["carrier"] not in {0, 1}
             or snapshot.get("operstate") not in operstates
             or any(
-                type(snapshot.get(name)) is not int or snapshot[name] < 0
+                type(snapshot.get(name)) is not int
+                or not 0 <= snapshot[name] <= (1 << 64) - 1
                 for name in network_counters
             )
         ):

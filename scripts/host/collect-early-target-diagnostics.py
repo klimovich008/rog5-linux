@@ -763,6 +763,8 @@ def nfs_tcp_state() -> NfsTcpState:
         unrecovered_retransmits = tcp_hex_counter(
             fields[6], "NFS TCP unrecovered retransmits"
         )
+        if fields[3] == "06" and unrecovered_retransmits != 0:
+            fail("TIME_WAIT NFS TCP row carries unrecovered retransmits")
         if remote_address == "00000000" and remote_port == "0000":
             if fields[3] != "0A":
                 fail("NFS TCP listener row is inconsistent")

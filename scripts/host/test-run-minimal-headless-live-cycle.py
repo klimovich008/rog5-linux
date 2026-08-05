@@ -2540,6 +2540,25 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 }
             )
 
+        def overflowing_ncm_counter(document: dict[str, object]) -> None:
+            snapshot = document["transport_snapshots"][0]
+            snapshot.update(
+                {
+                    "state": "present",
+                    "interface": "usb0",
+                    "carrier": 1,
+                    "operstate": "up",
+                    "rx_bytes": 1 << 64,
+                    "rx_dropped": 0,
+                    "rx_errors": 0,
+                    "rx_packets": 0,
+                    "tx_bytes": 0,
+                    "tx_dropped": 0,
+                    "tx_errors": 0,
+                    "tx_packets": 0,
+                }
+            )
+
         mutations = {
             "format": top("format", "wrong-format"),
             "candidate": top("candidate", "wrong-candidate"),
@@ -2559,9 +2578,13 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 "transport_snapshots"
             ][0].__setitem__("state", "unknown"),
             "transport-boolean-carrier": boolean_carrier,
+            "transport-overflowing-ncm-counter": overflowing_ncm_counter,
             "transport-absent-counter": lambda document: document[
                 "transport_snapshots"
             ][0].__setitem__("rx_bytes", 1),
+            "transport-overflowing-nfs-counter": lambda document: document[
+                "transport_snapshots"
+            ][0].__setitem__("nfs_rpc_calls", 1 << 64),
             "transport-partial-nfs": lambda document: document[
                 "transport_snapshots"
             ][0].__setitem__("nfs_rpc_calls", None),
