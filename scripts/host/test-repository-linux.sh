@@ -177,6 +177,7 @@ shared_tests=(
 	scripts/host/test-run-headless-ssh-deployment-export-install.py
 	scripts/host/test-headless-battery-series.py
 	scripts/host/test-fallback-acm-control.py
+	scripts/host/test-retired-legacy-acm-entrypoints.py
 	scripts/host/test-run-minimal-headless-live-cycle.py
 	scripts/host/test-early-target-diagnostics.py
 	scripts/host/test-collect-early-target-diagnostics.py

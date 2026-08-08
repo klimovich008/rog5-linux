@@ -19,6 +19,10 @@ from typing import NoReturn
 
 
 LOAD_MARKER = b"PASS mainline network-root payload loaded"
+RETIRED_MESSAGE = (
+    "legacy interactive ACM execution is retired; "
+    "use the framed stable-recovery lifecycle"
+)
 ACTIONS = {
     "load-normal": (
         "ROG5_SYSTEMD_DIAGNOSTIC=0 ROG5_RECOVERY_TIMEOUT=900 "
@@ -240,7 +244,7 @@ def run_fixed_sequence(sequence: str) -> str:
     return "".join(output)
 
 
-def main(arguments: list[str]) -> int:
+def _historical_main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_NETWORK_ROOT_ACM") != "1":
         fail("set ALLOW_NETWORK_ROOT_ACM=1 for one fixed staging action or sequence")
     if (
@@ -280,6 +284,11 @@ def main(arguments: list[str]) -> int:
         print(output, end="" if output.endswith("\n") else "\n")
     print(f"PASS control-safe network-root ACM {result_label}")
     return 0
+
+
+def main(arguments: list[str]) -> int:
+    del arguments
+    fail(RETIRED_MESSAGE)
 
 
 if __name__ == "__main__":

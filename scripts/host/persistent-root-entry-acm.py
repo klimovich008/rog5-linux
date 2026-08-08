@@ -50,6 +50,10 @@ EXPECTED_LINES = (
     PASS_LINE,
 )
 EXPECTED_MARKER = b"\n".join(EXPECTED_LINES) + b"\n"
+RETIRED_MESSAGE = (
+    "legacy interactive ACM execution is retired; "
+    "use the framed stable-recovery lifecycle"
+)
 
 
 class MissingEntryMarkerError(RuntimeError):
@@ -194,7 +198,7 @@ def wait_for_stable_entry_acm(
         time.sleep(poll_seconds)
 
 
-def main(arguments: list[str]) -> int:
+def _historical_main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_PERSISTENT_ROOT_ENTRY_ACM") != "1":
         fail(
             "set ALLOW_PERSISTENT_ROOT_ENTRY_ACM=1 "
@@ -218,6 +222,11 @@ def main(arguments: list[str]) -> int:
     print(marker, end="")
     print("PASS receive-only P2 early-entry ACM marker")
     return 0
+
+
+def main(arguments: list[str]) -> int:
+    del arguments
+    fail(RETIRED_MESSAGE)
 
 
 if __name__ == "__main__":

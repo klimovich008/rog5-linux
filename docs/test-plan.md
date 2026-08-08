@@ -681,8 +681,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   continuity, one signed nonce-bound health frame, and post-reply USB
   revalidation. Known-target cycles first retain a bounded signed pstore
   summary and then require the same fallback boot ID from strict health; that
-  summary cannot replace health or authorize resolution. The interactive ACM
-  actions remain emergency-only.
+  summary cannot replace health or authorize resolution. This authenticated,
+  nonce-framed fallback responder is not one of the retired interactive ACM
+  execution helpers.
+- `test-retired-legacy-acm-entrypoints.py` proves the superseded
+  `network-root-acm.py`, persistent-root ACM helpers, and both historical P2
+  live-gate runners refuse with one exact terminal result before checking an
+  authority variable, credential, host service, USB node, or phone. It also
+  requires the historical transport/parser sources to remain present. Their
+  internal fixture tests remain useful evidence, but no public entry point can
+  send an interactive command or execute kexec.
 - `prepare-headless-ssh-deployment-candidate.py` can retain the proven v3
   target while assigning only the fixed r2 signed-bundle identity. Its test
   packages base and r2 with identical target inputs, requires every manifest

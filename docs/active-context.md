@@ -233,6 +233,15 @@ dominant unattended release cost. Its 10.09 GB duplicate output tree was
 removed after recording hashes. See the
 [current disposable twin-build result](../test-results/2026-08-08-stage75-v2-current-disposable-build.md).
 
+The superseded interactive recovery ACM path is now retired from active
+operation. `network-root-acm.py`, both persistent-root ACM helpers, and the two
+old P2 live-gate runners terminate before authority, credential, host, USB, or
+phone inspection. Their helper bodies remain tracked as historical evidence,
+while hostile tests make the framed stable-recovery lifecycle the only active
+target-execution path. This change is phone-free and grants no candidate or
+boot authority; see the
+[offline retirement result](../test-results/2026-08-08-legacy-acm-retirement-offline.md).
+
 ## Historical deployment chronology
 
 Historical checkpoint (2026-08-02): generation 1 reached signed-bundle

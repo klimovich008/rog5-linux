@@ -265,7 +265,11 @@ duplicate builds can be removed safely.
   its transfer, PREPARE, and one COMMIT passed on hardware.
 - [ ] Prove deterministic target, recovery, fallback, and watchdog outcomes.
 - [ ] Prove postmortem retention or select the tested UART fallback.
-- [ ] Retire legacy ACM execution helpers from active operation.
+- [x] Retire legacy ACM execution helpers from active operation. Their
+  transport/parser bodies remain historical evidence, but all three Python
+  entry points and both old live-gate runners now refuse before authority,
+  credential, host, USB, or phone inspection; the framed stable-recovery
+  lifecycle is the only active execution path.
 - [x] Build the
   [early-target diagnostic successor](docs/early-target-diagnostics.md) with a
   one-way framed stage stream, bounded failure dwell, switch-root continuity,

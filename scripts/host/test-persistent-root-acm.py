@@ -131,34 +131,22 @@ class PersistentRootAcmTest(unittest.TestCase):
             "marker must exist only in successful command output",
         )
 
-    def test_load_guard_fails_before_device_discovery(self) -> None:
-        environment = os.environ.copy()
-        environment.pop("ALLOW_PERSISTENT_ROOT_ACM", None)
-        result = subprocess.run(
-            [sys.executable, SOURCE, "load"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=environment,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ALLOW_PERSISTENT_ROOT_ACM", result.stderr)
-
-    def test_execute_guard_fails_before_device_discovery(self) -> None:
-        environment = os.environ.copy()
-        environment["ALLOW_PERSISTENT_ROOT_ACM"] = "1"
-        environment.pop("ALLOW_ATTENDED_KEXEC", None)
-        result = subprocess.run(
-            [sys.executable, SOURCE, "execute"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=environment,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ALLOW_ATTENDED_KEXEC", result.stderr)
+    def test_entrypoint_is_retired_before_device_discovery(self) -> None:
+        with (
+            mock.patch.object(MODULE.os, "uname") as uname,
+            mock.patch.object(MODULE.shutil, "which") as which,
+            mock.patch.object(MODULE.subprocess, "run") as run,
+            mock.patch.object(
+                MODULE.TRANSPORT,
+                "wait_for_stable_recovery_acm",
+            ) as wait,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "legacy interactive ACM"):
+                MODULE.main(["execute"])
+        uname.assert_not_called()
+        which.assert_not_called()
+        run.assert_not_called()
+        wait.assert_not_called()
 
     def test_source_has_no_persistent_write_or_credential_path(self) -> None:
         source = SOURCE.read_text()
@@ -171,6 +159,7 @@ class PersistentRootAcmTest(unittest.TestCase):
         self.assertNotRegex(source, r"BEGIN .*PRIVATE KEY|authorized_keys")
         self.assertNotRegex(MODULE.PREFLIGHT_COMMAND, r"\bmount\b|\bdd\b")
         self.assertIn("network-root-acm.py", source)
+        self.assertIn("RETIRED_MESSAGE", source)
         self.assertIn("ALLOW_ATTENDED_KEXEC", source)
 
 
