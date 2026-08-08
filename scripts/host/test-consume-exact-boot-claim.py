@@ -132,27 +132,36 @@ class ExactClaimConsumerTest(unittest.TestCase):
                 CLAIMS.consume(profile, self.root)
         self.assertFalse(entered.exists())
 
-    def test_pathname_replacement_after_validation_is_irreversibly_refused(
+    def test_pathname_replacement_cannot_poison_irreversible_entry(
         self,
     ) -> None:
         profile = next(iter(PROFILES))
         record = self.write_record(profile)
         _record, entered = self.paths(profile)
-        original_link = os.link
+        original_create = CLAIMS.create_entered_record
 
-        def replace_then_link(*args: object, **kwargs: object) -> None:
+        def replace_then_create(*args: object, **kwargs: object) -> int:
             record.unlink()
             self.write_record(
                 profile,
                 self.expected(profile).replace(b"BOOT_CLAIMED", b"UNVALIDATED"),
             )
-            original_link(*args, **kwargs)
+            return original_create(*args, **kwargs)
 
-        with mock.patch.object(CLAIMS.os, "link", side_effect=replace_then_link):
-            with self.assertRaisesRegex(CLAIMS.ClaimError, "validated claim"):
+        with mock.patch.object(
+            CLAIMS,
+            "create_entered_record",
+            side_effect=replace_then_create,
+        ):
+            with self.assertRaisesRegex(
+                CLAIMS.ClaimError,
+                "source BOOT_CLAIMED record changed during entry",
+            ):
                 CLAIMS.consume(profile, self.root)
         self.assertTrue(entered.exists())
-        self.assertIn(b"UNVALIDATED", entered.read_bytes())
+        self.assertEqual(entered.read_bytes(), self.expected(profile))
+        with self.assertRaisesRegex(CLAIMS.ClaimError, "already entered"):
+            CLAIMS.consume(profile, self.root)
 
     def test_fsync_and_final_root_revalidation_preserve_at_most_once(self) -> None:
         profile = next(iter(PROFILES))
