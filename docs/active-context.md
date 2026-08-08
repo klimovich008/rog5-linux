@@ -50,8 +50,9 @@ and newer-kernel rebases remain frozen until the headless core passes.
 - Local CI and GitHub Actions cover the generic QEMU boot, recovery protocol,
   candidate packaging, runtime parsers, rollback, and repository policy. The
   local full-system gate additionally executes the production-generated stage
-  130/140 units under real AArch64 `systemd 260.2-2-arch`; its SSH service is an
-  ordering stub, not a real OpenSSH proof.
+  130/140 units under real AArch64 `systemd 260.2-2-arch`, starts OpenSSH
+  10.3, accepts one disposable Ed25519 key login over loopback, executes the
+  authenticated command, and rejects a keyless login.
 
 These facts do not prove the corrected candidate on the phone.
 
@@ -804,9 +805,11 @@ forbids it elsewhere. The corrected Linux 7.1.4 QEMU profile enables the
 demonstrated FUTEX, MEMFD_CREATE, SHMEM, and TMPFS requirements. Its clean
 local full-system run enters the sealed Arch runtime under real AArch64
 `systemd 260.2-2-arch` and executes the exact generated stage 130/140 units.
-The test SSH daemon is only an ordering stub, so real OpenSSH and all phone
-hardware remain outside this evidence. See the
-[systemd QEMU result](../test-results/2026-08-01-arm64-systemd-qemu-gate.md).
+The hardware-free successor now starts real OpenSSH 10.3, accepts one
+disposable Ed25519 key login over loopback, executes the authenticated command,
+and rejects a keyless login. Phone hardware remains outside this evidence. See
+the [real OpenSSH QEMU
+result](../test-results/2026-08-08-real-openssh-qemu-gate-offline.md).
 The receive-only host collector now starts kernel-event capture before target
 enumeration, binds one diagnostic ACM interface to the recovery anchor's port,
 parses only validated frames through the shared oracle, and writes one bounded

@@ -40,7 +40,7 @@ case $output_root in
 esac
 git -C "$repo" check-ignore -q "$output_root" ||
 	fail 'QEMU kernel output is not ignored by Git'
-for command in clang git make realpath; do
+for command in bc clang git make realpath; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU kernel build command: $command"
 done
@@ -52,7 +52,7 @@ export KBUILD_BUILD_USER=rog5
 export KBUILD_BUILD_HOST=qemu-smoke
 cache_identity=$(rog5_kernel_cache_identity)
 toolchain_identity=$(rog5_kernel_toolchain_identity \
-	make clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-strip)
+	make bc clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-strip)
 build_state=$(
 	printf 'format=rog5-kbuild-inputs-v1\n'
 	printf 'profile=qemu-system-arm64-tiny-v1\n'
@@ -78,9 +78,10 @@ config=$source_root/scripts/config
 [[ -x $config ]] || fail 'Linux scripts/config is unavailable'
 required_runtime_options=(
 	BLK_DEV_INITRD BINFMT_ELF CGROUPS DEVTMPFS DEVTMPFS_MOUNT EPOLL
-	FHANDLE FILE_LOCKING FUTEX INOTIFY_USER MEMFD_CREATE NET PRINTK PROC_FS
-	RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS
-	TIMERFD TMPFS TTY UNIX VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO
+	FHANDLE FILE_LOCKING FUTEX INET INOTIFY_USER MEMFD_CREATE MULTIUSER NET
+	NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP SECCOMP SECCOMP_FILTER
+	SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS TTY UNIX
+	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO
 )
 config_arguments=()
 for required_runtime_option in "${required_runtime_options[@]}"; do

@@ -23,12 +23,18 @@ bash -n "$builder" "$verifier"
 for token in \
 	'expected_source_size=536747283' \
 	'expected_source_sha256=60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b' \
-	'closure=recursive-dt-needed+required-dlopen' \
-	'elf_count=17' \
+	'closure=recursive-dt-needed+required-dlopen+openssh-client-server' \
+	'elf_count=32' \
 	'systemd-executor' \
+	'source / "usr/bin/ssh"' \
+	'source / "usr/bin/sshd"' \
+	'source / "usr/lib/ssh/sshd-auth"' \
+	'source / "usr/lib/ssh/sshd-session"' \
 	'source / "usr/lib/libmount.so.1"' \
 	'libgcc=16.1.1+r12+g301eb08fa2c5-1' \
 	'util-linux-libs=2.42.1-1' \
+	'openssh=10.3p1-1' \
+	'root/usr/share/licenses/openssh/*' \
 	'LGPL-2.1-or-later.txt' \
 	'root/usr/share/licenses/libgcc/*' \
 	'root/usr/share/licenses/util-linux-libs/*' \
@@ -39,7 +45,7 @@ for token in \
 		fail "systemd runtime builder contract changed: $token"
 done
 grep -Fqx \
-	'5011267029d8da251c20e66f232cce2f36530e09d18a36e0a492018255f178f7  runtime.cpio.gz' \
+	'990689a5ebc0a3cdc16f9c6198bab3a9cc4531ead17ffe4ee0ad14c81c1aebde  runtime.cpio.gz' \
 	"$checksums" || fail 'systemd runtime checksum file changed'
 "$verifier" "$artifact"
 

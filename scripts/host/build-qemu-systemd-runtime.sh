@@ -47,17 +47,25 @@ trap cleanup EXIT HUP INT TERM
 mkdir "$work/all" "$work/closure"
 
 bsdtar --no-xattrs -xpf "$source_archive" -C "$work/all" \
+	'root/usr/bin/ssh' \
+	'root/usr/bin/sshd' \
 	'root/usr/lib/*.so*' \
+	'root/usr/lib/ssh/sshd-auth' \
+	'root/usr/lib/ssh/sshd-session' \
 	'root/usr/lib/systemd/systemd' \
 	'root/usr/lib/systemd/systemd-executor' \
 	'root/usr/lib/systemd/*.so*' \
 	'root/usr/share/doc/systemd/LICENSES/*' \
 	'root/usr/share/licenses/brotli/*' \
 	'root/usr/share/licenses/libgcc/*' \
+	'root/usr/share/licenses/krb5/*' \
+	'root/usr/share/licenses/openssh/*' \
 	'root/usr/share/licenses/openssl/*' \
 	'root/usr/share/licenses/spdx/GFDL-1.3-or-later.txt' \
 	'root/usr/share/licenses/spdx/GPL-2.0-or-later.txt' \
+	'root/usr/share/licenses/spdx/GPL-2.0-only.txt' \
 	'root/usr/share/licenses/spdx/GPL-3.0-or-later.txt' \
+	'root/usr/share/licenses/spdx/LGPL-2.0-or-later.txt' \
 	'root/usr/share/licenses/spdx/LGPL-2.1-or-later.txt' \
 	'root/usr/share/licenses/systemd/*' \
 	'root/usr/share/licenses/util-linux-libs/*' \
@@ -75,7 +83,11 @@ import sys
 
 source = Path(sys.argv[1]).resolve(strict=True)
 destination = Path(sys.argv[2]).resolve(strict=True)
-search = (source / "usr/lib/systemd", source / "usr/lib")
+search = (
+    source / "usr/lib/ssh",
+    source / "usr/lib/systemd",
+    source / "usr/lib",
+)
 queue = deque(
     (
         source / "usr/lib/systemd/systemd",
@@ -86,6 +98,10 @@ queue = deque(
         # systemd's mount-option parser loads libmount at runtime rather than
         # declaring it in DT_NEEDED. PID 1 cannot mount /dev/shm without it.
         source / "usr/lib/libmount.so.1",
+        source / "usr/bin/ssh",
+        source / "usr/bin/sshd",
+        source / "usr/lib/ssh/sshd-auth",
+        source / "usr/lib/ssh/sshd-session",
     )
 )
 needed_pattern = re.compile(r"Shared library: \[(.+?)\]")
@@ -147,12 +163,14 @@ while queue:
         else:
             raise SystemExit(f"missing dependency {library} for {binary}")
 
-if len(seen) != 17:
+if len(seen) != 32:
     raise SystemExit(f"unexpected systemd ELF closure size: {len(seen)}")
 (destination / "lib").symlink_to("usr/lib")
 for package in (
     "brotli",
     "libgcc",
+    "krb5",
+    "openssh",
     "openssl",
     "systemd",
     "util-linux-libs",
@@ -172,7 +190,9 @@ spdx_destination.mkdir(parents=True, exist_ok=True)
 for license_name in (
     "GFDL-1.3-or-later.txt",
     "GPL-2.0-or-later.txt",
+    "GPL-2.0-only.txt",
     "GPL-3.0-or-later.txt",
+    "LGPL-2.0-or-later.txt",
     "LGPL-2.1-or-later.txt",
 ):
     license_source = source / "usr/share/licenses/spdx" / license_name
@@ -195,12 +215,20 @@ provenance.write_text(
     "source_archive_size=536747283\n"
     "source_archive_sha256="
     "60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b\n"
-    "closure=recursive-dt-needed+required-dlopen\n"
-    "elf_count=17\n"
+    "closure=recursive-dt-needed+required-dlopen+openssh-client-server\n"
+    "elf_count=32\n"
     "systemd=260.2-2\n"
     "glibc=2.43+r22+g8362e8ce10b2-2\n"
     "libgcc=16.1.1+r12+g301eb08fa2c5-1\n"
     "util-linux-libs=2.42.1-1\n"
+    "audit=4.1.4-2\n"
+    "e2fsprogs=1.47.4-1\n"
+    "keyutils=1.6.3-4\n"
+    "krb5=1.22.2-1\n"
+    "libcap-ng=0.9.3-1\n"
+    "libxcrypt=4.5.2-1\n"
+    "openssh=10.3p1-1\n"
+    "pam=1.7.2-2\n"
     "openssl=3.6.2-2\n"
     "brotli=1.2.0-1\n"
     "zlib=1:1.3.2-3\n"

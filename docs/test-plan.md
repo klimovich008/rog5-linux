@@ -335,9 +335,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   tests require the reporter only for `diagnostic-initramfs-v1`; twin local
   diagnostic archives are byte-identical. The board-neutral ARM64 QEMU harness
   now enters a sealed Arch runtime under real `systemd 260.2-2-arch` and
-  executes the exact generated units for stages 130 and 140. Its `sshd.service`
-  remains an ordering stub, so this is systemd execution evidence rather than
-  OpenSSH evidence. The clean local full-system gate and repository CI pass;
+  executes the exact generated units for stages 130 and 140. Its
+  `sshd.service` starts OpenSSH 10.3 and the gate requires one disposable
+  Ed25519 key login, authenticated command execution, and keyless-login
+  rejection over loopback. The clean local full-system gate and repository CI pass;
   twenty-three additional host-collector cases require a fresh private recovery
   anchor, one exact product/interface/port, read-only exclusive raw ACM, a sole
   open holder, fixed frame/event/time/evidence bounds, host receipt timestamps,

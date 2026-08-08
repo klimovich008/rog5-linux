@@ -4,6 +4,12 @@ Date: 2026-08-01
 
 Status: local hardware-free acceptance passed; GitHub rerun pending
 
+Successor note (2026-08-08): the ordering-stub limitation recorded below is
+closed by the real OpenSSH loopback gate. The current harness requires a
+disposable Ed25519 key login, authenticated command execution, and rejection
+of a keyless login before accepting stage 140. The text below remains the
+historical result of the original 2026-08-01 run.
+
 ## Result
 
 The pinned upstream Linux 7.1.4 QEMU kernel now boots the sealed AArch64

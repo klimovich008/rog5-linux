@@ -21,6 +21,7 @@
 #define RETAINED_REPORTER "/run/initramfs/sbin/rog5-early-target-diag"
 #define CANDIDATE "headless-netroot-early-diag-v2"
 #define SYSTEMD "/usr/lib/systemd/systemd"
+#define SSH_PROOF_COMMAND "rog5-qemu-openssh-proof-v1"
 #define PUBLICATION_SETTLE_MS 500
 
 static void console_write(const char *message)
@@ -100,6 +101,93 @@ static int wait_child(pid_t child)
 			return -1;
 	}
 	return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+static int run_ssh(bool with_key)
+{
+	pid_t child = fork();
+
+	if (child < 0)
+		return -1;
+	if (child == 0) {
+		if (with_key) {
+			execl("/usr/bin/ssh", "ssh", "-F", "/dev/null", "-T",
+			      "-p", "2222", "-o", "BatchMode=yes", "-o",
+			      "ConnectTimeout=2", "-o", "ConnectionAttempts=1",
+			      "-o", "IdentitiesOnly=yes", "-o",
+			      "StrictHostKeyChecking=yes", "-o",
+			      "UserKnownHostsFile=/etc/ssh/ssh_known_hosts",
+			      "-o", "GlobalKnownHostsFile=/dev/null", "-i",
+			      "/etc/ssh/client_ed25519_key",
+			      "root@127.0.0.1", SSH_PROOF_COMMAND,
+			      (char *)NULL);
+		} else {
+			execl("/usr/bin/ssh", "ssh", "-F", "/dev/null", "-T",
+			      "-p", "2222", "-o", "BatchMode=yes", "-o",
+			      "ConnectTimeout=2", "-o", "ConnectionAttempts=1",
+			      "-o", "IdentitiesOnly=yes", "-o",
+			      "PubkeyAuthentication=no", "-o",
+			      "PasswordAuthentication=no", "-o",
+			      "KbdInteractiveAuthentication=no", "-o",
+			      "StrictHostKeyChecking=yes", "-o",
+			      "UserKnownHostsFile=/etc/ssh/ssh_known_hosts",
+			      "-o", "GlobalKnownHostsFile=/dev/null",
+			      "root@127.0.0.1", SSH_PROOF_COMMAND,
+			      (char *)NULL);
+		}
+		_exit(127);
+	}
+	return wait_child(child);
+}
+
+static int ssh_proof(void)
+{
+	int status = -1;
+
+	for (unsigned int attempt = 0; attempt < 100; attempt++) {
+		status = run_ssh(true);
+		if (status == 0)
+			break;
+		sleep_milliseconds(50);
+	}
+	if (status != 0) {
+		console_write("FAIL real OpenSSH key login was not accepted\n");
+		return EXIT_FAILURE;
+	}
+	if (run_ssh(false) == 0) {
+		console_write("FAIL OpenSSH accepted a keyless login\n");
+		return EXIT_FAILURE;
+	}
+	console_write("PASS real key-only OpenSSH login completed\n");
+	return EXIT_SUCCESS;
+}
+
+__attribute__((noreturn)) static void sshd_check(void)
+{
+	int console_descriptor = open("/dev/console", O_WRONLY | O_CLOEXEC);
+
+	if (console_descriptor >= 0) {
+		(void)dup2(console_descriptor, STDOUT_FILENO);
+		(void)dup2(console_descriptor, STDERR_FILENO);
+		(void)close(console_descriptor);
+	}
+	execl("/usr/bin/sshd", "/usr/bin/sshd", "-t", "-e", "-f",
+	      "/etc/ssh/sshd_config", (char *)NULL);
+	_exit(127);
+}
+
+__attribute__((noreturn)) static void sshd_server(void)
+{
+	int console_descriptor = open("/dev/console", O_WRONLY | O_CLOEXEC);
+
+	if (console_descriptor >= 0) {
+		(void)dup2(console_descriptor, STDOUT_FILENO);
+		(void)dup2(console_descriptor, STDERR_FILENO);
+		(void)close(console_descriptor);
+	}
+	execl("/usr/bin/sshd", "/usr/bin/sshd", "-D", "-e", "-f",
+	      "/etc/ssh/sshd_config", (char *)NULL);
+	_exit(127);
 }
 
 static int emit_stage(const char *stage)
@@ -328,13 +416,21 @@ __attribute__((noreturn)) static void initial_init(void)
 
 int main(int argc, char **argv)
 {
-	if (argc == 2 && strcmp(argv[1], "systemd-success") == 0)
-		systemd_success();
-	if (argc == 2 && strcmp(argv[1], "sshd-stub") == 0) {
-		sleep_milliseconds(PUBLICATION_SETTLE_MS);
-		console_write("PASS systemd activated the sshd dependency\n");
+	if (argc == 3 && strcmp(argv[1], "-c") == 0 &&
+	    strcmp(argv[2], SSH_PROOF_COMMAND) == 0) {
+		if (getenv("SSH_CONNECTION") == NULL || getenv("SSH_CLIENT") == NULL)
+			return EXIT_FAILURE;
+		console_write("PASS OpenSSH executed the authenticated command\n");
 		return EXIT_SUCCESS;
 	}
+	if (argc == 2 && strcmp(argv[1], "systemd-success") == 0)
+		systemd_success();
+	if (argc == 2 && strcmp(argv[1], "ssh-proof") == 0)
+		return ssh_proof();
+	if (argc == 2 && strcmp(argv[1], "sshd-check") == 0)
+		sshd_check();
+	if (argc == 2 && strcmp(argv[1], "sshd-server") == 0)
+		sshd_server();
 	if (argc != 1)
 		return EXIT_FAILURE;
 	initial_init();
