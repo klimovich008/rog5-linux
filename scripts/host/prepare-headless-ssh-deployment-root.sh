@@ -52,6 +52,8 @@ upstream=$(git -C "$repo" rev-parse \
 	--abbrev-ref --symbolic-full-name '@{u}')
 [[ $upstream == "origin/$branch" ]] ||
 	fail 'deployment-root branch does not track its origin peer'
+git -C "$repo" fetch --no-tags --prune origin \
+	"refs/heads/$branch:refs/remotes/origin/$branch"
 [[ $(git -C "$repo" rev-parse HEAD) == \
 	$(git -C "$repo" rev-parse "$upstream") ]] ||
 	fail 'deployment-root checkpoint differs from its origin peer'

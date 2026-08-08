@@ -30,6 +30,9 @@ if SPEC is None or SPEC.loader is None:
     raise RuntimeError("cannot load generic exact-record claim consumer")
 CLAIMS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CLAIMS)
+REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (
+    CLAIMS.anchor_parent_is_replace_protected
+)
 
 
 class ExactClaimConsumerTest(unittest.TestCase):
@@ -39,6 +42,13 @@ class ExactClaimConsumerTest(unittest.TestCase):
         self.state = Path(self.temporary.name) / "state"
         self.root = self.state / "rog5-temporary-boot-consumption"
         self.root.mkdir(parents=True, mode=0o700)
+        anchor_protection = mock.patch.object(
+            CLAIMS,
+            "anchor_parent_is_replace_protected",
+            return_value=True,
+        )
+        anchor_protection.start()
+        self.addCleanup(anchor_protection.stop)
 
     def expected(self, profile: str) -> bytes:
         return (
@@ -52,6 +62,11 @@ class ExactClaimConsumerTest(unittest.TestCase):
     def paths(self, profile: str) -> tuple[Path, Path]:
         record = self.root / f"{profile}.record"
         return record, record.with_name(record.name + ".entered")
+
+    def guard(self, profile: str) -> Path:
+        return self.state / (
+            f".rog5-temporary-boot-consumption.{profile}.entered"
+        )
 
     def write_record(self, profile: str, payload: bytes | None = None) -> Path:
         record, _entered = self.paths(profile)
@@ -109,6 +124,79 @@ class ExactClaimConsumerTest(unittest.TestCase):
         with self.assertRaisesRegex(CLAIMS.ClaimError, "root is unsafe"):
             CLAIMS.consume(profile, self.root)
 
+    def test_replaceable_anchor_parent_fails_before_entry(self) -> None:
+        profile = next(iter(PROFILES))
+        self.write_record(profile)
+        with (
+            mock.patch.object(
+                CLAIMS,
+                "anchor_parent_is_replace_protected",
+                return_value=False,
+            ),
+            self.assertRaisesRegex(
+                CLAIMS.ClaimError,
+                "anchor parent is replaceable",
+            ),
+        ):
+            CLAIMS.consume(profile, self.root)
+        self.assertFalse(self.guard(profile).exists())
+        _record, entered = self.paths(profile)
+        self.assertFalse(entered.exists())
+
+    def test_lifecycle_owned_readonly_anchor_parent_fails_before_entry(
+        self,
+    ) -> None:
+        profile = next(iter(PROFILES))
+        self.write_record(profile)
+        anchor_parent = self.state.parent
+        anchor_parent.chmod(0o555)
+        self.addCleanup(anchor_parent.chmod, 0o700)
+        with (
+            mock.patch.object(
+                CLAIMS,
+                "anchor_parent_is_replace_protected",
+                REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED,
+            ),
+            self.assertRaisesRegex(
+                CLAIMS.ClaimError,
+                "anchor parent is replaceable",
+            ),
+        ):
+            CLAIMS.consume(profile, self.root)
+        self.assertFalse(self.guard(profile).exists())
+        _record, entered = self.paths(profile)
+        self.assertFalse(entered.exists())
+
+    def test_global_guard_requires_exact_content_and_metadata(self) -> None:
+        profile = next(iter(PROFILES))
+        _record, entered = self.paths(profile)
+        guard = self.guard(profile)
+        for case in ("content", "mode", "hardlink", "symlink"):
+            with self.subTest(case=case):
+                guard.unlink(missing_ok=True)
+                entered.unlink(missing_ok=True)
+                copy = guard.with_suffix(".copy")
+                copy.unlink(missing_ok=True)
+                target = guard.with_suffix(".target")
+                target.unlink(missing_ok=True)
+                guard.write_bytes(self.expected(profile))
+                guard.chmod(0o600)
+                if case == "content":
+                    guard.write_bytes(self.expected(profile) + b"extra=1\n")
+                elif case == "mode":
+                    guard.chmod(0o644)
+                elif case == "hardlink":
+                    os.link(guard, copy)
+                else:
+                    guard.replace(target)
+                    guard.symlink_to(target)
+                self.write_record(profile)
+                with self.assertRaisesRegex(
+                    CLAIMS.ClaimError,
+                    "global BOOT_CLAIMED guard is unsafe",
+                ):
+                    CLAIMS.consume(profile, self.root)
+                self.assertFalse(entered.exists())
     def test_wrong_record_owner_fails_before_entry(self) -> None:
         profile = next(iter(PROFILES))
         self.write_record(profile)
@@ -140,12 +228,19 @@ class ExactClaimConsumerTest(unittest.TestCase):
         _record, entered = self.paths(profile)
         original_create = CLAIMS.create_entered_record
 
+        create_calls = 0
+
         def replace_then_create(*args: object, **kwargs: object) -> int:
-            record.unlink()
-            self.write_record(
-                profile,
-                self.expected(profile).replace(b"BOOT_CLAIMED", b"UNVALIDATED"),
-            )
+            nonlocal create_calls
+            create_calls += 1
+            if create_calls == 2:
+                record.unlink()
+                self.write_record(
+                    profile,
+                    self.expected(profile).replace(
+                        b"BOOT_CLAIMED", b"UNVALIDATED"
+                    ),
+                )
             return original_create(*args, **kwargs)
 
         with mock.patch.object(
@@ -173,7 +268,7 @@ class ExactClaimConsumerTest(unittest.TestCase):
             nonlocal calls
             original_fsync(descriptor)
             calls += 1
-            if calls == 3:
+            if calls == 5:
                 moved = self.state / "entered-root"
                 self.root.rename(moved)
                 self.root.mkdir(mode=0o700)
@@ -181,10 +276,52 @@ class ExactClaimConsumerTest(unittest.TestCase):
         with mock.patch.object(CLAIMS.os, "fsync", side_effect=replace_after_final_fsync):
             with self.assertRaisesRegex(CLAIMS.ClaimError, "changed during entry"):
                 CLAIMS.consume(profile, self.root)
-        self.assertEqual(calls, 3)
+        self.assertEqual(calls, 5)
         self.assertTrue(
             (self.state / "entered-root" / f"{profile}.record.entered").exists()
         )
+
+    def test_root_replacement_after_global_entry_cannot_be_consumed_twice(
+        self,
+    ) -> None:
+        profile = next(iter(PROFILES))
+        self.write_record(profile)
+        moved = self.state / "detached-root"
+        original_create = CLAIMS.create_entered_record
+        create_calls = 0
+
+        def replace_root_before_inner_entry(
+            *args: object,
+            **kwargs: object,
+        ) -> int:
+            nonlocal create_calls
+            create_calls += 1
+            if create_calls == 2:
+                self.root.rename(moved)
+                self.root.mkdir(mode=0o700)
+                self.write_record(profile)
+            return original_create(*args, **kwargs)
+
+        with mock.patch.object(
+            CLAIMS,
+            "create_entered_record",
+            side_effect=replace_root_before_inner_entry,
+        ):
+            with self.assertRaisesRegex(
+                CLAIMS.ClaimError,
+                "claim root changed during entry",
+            ):
+                CLAIMS.consume(profile, self.root)
+
+        self.assertEqual(self.guard(profile).read_bytes(), self.expected(profile))
+        self.assertEqual(
+            (moved / f"{profile}.record.entered").read_bytes(),
+            self.expected(profile),
+        )
+        with self.assertRaisesRegex(CLAIMS.ClaimError, "already entered"):
+            CLAIMS.consume(profile, self.root)
+        _record, replacement_entered = self.paths(profile)
+        self.assertFalse(replacement_entered.exists())
 
     def test_concurrent_consumers_admit_exactly_one(self) -> None:
         profile = next(iter(PROFILES))

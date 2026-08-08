@@ -350,6 +350,9 @@ run_configure_usb_case() (
 		elif [ "$case_name" = after-bind ] && [ "$count" -eq 4 ]; then
 			rmdir "$udc_class_dir/a600000.dwc3"
 			mkdir "$udc_class_dir/a800000.dwc3"
+		elif [ "$case_name" = late-change ] && [ "$count" -eq 5 ]; then
+			rmdir "$udc_class_dir/a600000.dwc3"
+			mkdir "$udc_class_dir/a800000.dwc3"
 		fi
 		validate_expected_udc_once
 	}
@@ -372,13 +375,14 @@ run_configure_usb_case() (
 	esac
 	if [ "$case_name" = exact ]; then
 		[ "$bound" = a600000.dwc3 ]
-	elif [ "$case_name" != after-bind ]; then
+	elif [ "$case_name" != after-bind ] &&
+		[ "$case_name" != late-change ]; then
 		[ -z "$bound" ]
 	fi
 )
 
 run_configure_usb_case exact 0
-for hostile_bind in before-bind multiple-before-bind after-bind; do
+for hostile_bind in before-bind multiple-before-bind after-bind late-change; do
 	run_configure_usb_case "$hostile_bind" 1
 done
 
@@ -413,15 +417,32 @@ run_diagnostic_mount_case() (
 	ip() {
 		case "$*" in
 			'-4 address show dev usb0')
-				[ "$case_name" = address ] ||
-					printf '%s\n' 'inet 169.254.77.2/30 scope global usb0'
+				case $case_name in
+					address) ;;
+					address-lookalike)
+						printf '%s\n' 'inet 169.254.77.2/24 scope global usb0'
+						;;
+					address-extra)
+						printf '%s\n' \
+							'inet 169.254.77.2/30 scope global usb0' \
+							'inet 192.0.2.2/24 scope global usb0'
+						;;
+					*) printf '%s\n' 'inet 169.254.77.2/30 scope global usb0' ;;
+				esac
 				;;
 			'-4 route get 169.254.77.1')
-				if [ "$case_name" = route ]; then
-					printf '%s\n' '169.254.77.1 via 169.254.77.3 dev usb0 src 169.254.77.2'
-				else
-					printf '%s\n' '169.254.77.1 dev usb0 src 169.254.77.2'
-				fi
+				case $case_name in
+					route)
+						printf '%s\n' '169.254.77.1 via 169.254.77.3 dev usb0 src 169.254.77.2'
+						;;
+					route-device)
+						printf '%s\n' '169.254.77.1 dev eth0 src 169.254.77.2'
+						;;
+					route-source)
+						printf '%s\n' '169.254.77.1 dev usb0 src 169.254.77.3'
+						;;
+					*) printf '%s\n' '169.254.77.1 dev usb0 src 169.254.77.2' ;;
+				esac
 				;;
 			*) return 1 ;;
 		esac
@@ -460,7 +481,11 @@ run_diagnostic_mount_case udc udc-bind-failed
 run_diagnostic_mount_case interface ncm-interface-failed
 run_diagnostic_mount_case carrier carrier-timeout
 run_diagnostic_mount_case address address-failed
+run_diagnostic_mount_case address-lookalike address-failed
+run_diagnostic_mount_case address-extra address-failed
 run_diagnostic_mount_case route route-failed
+run_diagnostic_mount_case route-device route-failed
+run_diagnostic_mount_case route-source route-failed
 
 run_mount_completion_case() (
 	case_name=$1

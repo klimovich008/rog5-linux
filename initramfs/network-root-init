@@ -480,6 +480,12 @@ validate_expected_udc() {
 	validate_expected_udc_once
 }
 
+expected_udc_is_bound() {
+	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || return 1
+	[ "$bound_udc" = "$expected_udc" ] &&
+		[ "$(validate_expected_udc)" = "$expected_udc" ]
+}
+
 select_expected_udc() {
 	attempt=0
 	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
@@ -544,9 +550,7 @@ configure_usb() {
 	udc=$(select_expected_udc) || return 1
 	[ "$(validate_expected_udc)" = "$udc" ] || return 1
 	echo "$udc" >"$gadget/UDC" || return 1
-	[ "$(validate_expected_udc)" = "$udc" ] || return 1
-	[ "$(cat "$gadget/UDC" 2>/dev/null)" = "$expected_udc" ] ||
-		return 1
+	expected_udc_is_bound || return 1
 	diagnostic_emit 30 || true
 
 	diagnostic_fault=ncm-interface-failed
@@ -566,6 +570,10 @@ configure_usb() {
 	attempt=0
 	while [ "$attempt" -lt 100 ]; do
 		if [ "$(cat "$net_class_dir/usb0/carrier" 2>/dev/null || echo 0)" = 1 ]; then
+			expected_udc_is_bound || {
+				diagnostic_fault=udc-bind-failed
+				return 1
+			}
 			diagnostic_emit 60 || true
 			return 0
 		fi
@@ -576,12 +584,7 @@ configure_usb() {
 }
 
 classify_network_root_transport() {
-	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || {
-		diagnostic_fault=udc-bind-failed
-		return 1
-	}
-	[ "$bound_udc" = "$expected_udc" ] &&
-		[ "$(validate_expected_udc)" = "$expected_udc" ] || {
+	expected_udc_is_bound || {
 		diagnostic_fault=udc-bind-failed
 		return 1
 	}
@@ -598,8 +601,12 @@ classify_network_root_transport() {
 		return 1
 	}
 	printf '%s\n' "$address_state" |
-		awk '$1 == "inet" && $2 == "169.254.77.2/30" { found=1 }
-			END { exit !found }' || {
+		awk '$1 == "inet" {
+				count++
+				if ($2 == "169.254.77.2/30")
+					exact++
+			}
+			END { exit count != 1 || exact != 1 }' || {
 		diagnostic_fault=address-failed
 		return 1
 	}

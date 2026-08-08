@@ -62,6 +62,74 @@ def canonical_claim_root() -> Path:
     return account_home / ".local/state/rog5-temporary-boot-consumption"
 
 
+def canonical_claim_anchor() -> Path:
+    try:
+        return Path(pwd.getpwuid(os.geteuid()).pw_dir).resolve(strict=True)
+    except OSError as error:
+        raise ClaimError("lifecycle claim anchor is unsafe or absent") from error
+
+
+def anchor_parent_is_replace_protected(
+    parent_fd: int,
+    metadata: os.stat_result,
+) -> bool:
+    if metadata.st_uid == os.geteuid():
+        return False
+    mode = stat.S_IMODE(metadata.st_mode)
+    groups = {os.getegid(), *os.getgroups()}
+    if metadata.st_gid in groups:
+        mode_protected = not mode & stat.S_IWGRP
+    else:
+        mode_protected = not mode & stat.S_IWOTH
+    return mode_protected and not os.access(
+        f"/proc/self/fd/{parent_fd}",
+        os.W_OK,
+        effective_ids=True,
+    )
+
+
+def open_claim_anchor(anchor: Path) -> tuple[int, int]:
+    if not anchor.is_absolute():
+        fail("lifecycle claim anchor must be absolute")
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    parent = anchor.parent
+    if parent == anchor:
+        fail("lifecycle claim anchor parent is unsafe")
+    try:
+        parent_fd = os.open(parent, flags | nofollow)
+    except OSError as error:
+        raise ClaimError("lifecycle claim anchor parent is unsafe") from error
+    try:
+        parent_metadata = os.fstat(parent_fd)
+        opened_parent = Path(f"/proc/self/fd/{parent_fd}").resolve(strict=True)
+        if (
+            opened_parent != parent
+            or not stat.S_ISDIR(parent_metadata.st_mode)
+            or not anchor_parent_is_replace_protected(
+                parent_fd,
+                parent_metadata,
+            )
+        ):
+            fail("lifecycle claim anchor parent is replaceable")
+        anchor_fd = os.open(anchor.name, flags | nofollow, dir_fd=parent_fd)
+        metadata = os.fstat(anchor_fd)
+        opened_path = Path(f"/proc/self/fd/{anchor_fd}").resolve(strict=True)
+        if (
+            opened_path != anchor
+            or not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) & 0o022
+        ):
+            fail("lifecycle claim anchor is unsafe or absent")
+    except (ClaimError, OSError):
+        if "anchor_fd" in locals():
+            os.close(anchor_fd)
+        os.close(parent_fd)
+        raise
+    return anchor_fd, parent_fd
+
+
 def open_claim_root(root: Path) -> int:
     if not root.is_absolute():
         fail("lifecycle claim state root must be absolute")
@@ -103,6 +171,36 @@ def verify_claim_root_path(root: Path, directory_fd: int) -> None:
         fail("lifecycle claim root changed during entry")
 
 
+def verify_claim_anchor_path(
+    anchor: Path,
+    anchor_fd: int,
+    parent_fd: int,
+) -> None:
+    opened = os.fstat(anchor_fd)
+    opened_parent = os.fstat(parent_fd)
+    try:
+        current_parent = os.stat(anchor.parent, follow_symlinks=False)
+        current = os.stat(
+            anchor.name,
+            dir_fd=parent_fd,
+            follow_symlinks=False,
+        )
+    except OSError as error:
+        raise ClaimError("lifecycle claim anchor changed during entry") from error
+    if (
+        current_parent.st_dev != opened_parent.st_dev
+        or current_parent.st_ino != opened_parent.st_ino
+        or not stat.S_ISDIR(current_parent.st_mode)
+        or not anchor_parent_is_replace_protected(parent_fd, current_parent)
+        or current.st_dev != opened.st_dev
+        or current.st_ino != opened.st_ino
+        or not stat.S_ISDIR(current.st_mode)
+        or current.st_uid != os.geteuid()
+        or stat.S_IMODE(current.st_mode) & 0o022
+    ):
+        fail("lifecycle claim anchor changed during entry")
+
+
 def verify_source_path(
     record_name: str,
     directory_fd: int,
@@ -133,6 +231,39 @@ def verify_source_path(
     content = os.read(source_fd, len(expected) + 1)
     if content != expected or os.read(source_fd, 1):
         fail("source BOOT_CLAIMED record changed during entry")
+
+
+def existing_guard_is_exact(
+    guard_name: str,
+    anchor_fd: int,
+    expected: bytes,
+) -> bool:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        guard_fd = os.open(guard_name, flags | nofollow, dir_fd=anchor_fd)
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        raise ClaimError("global BOOT_CLAIMED guard is unsafe") from error
+    try:
+        opened = os.fstat(guard_fd)
+        named = os.stat(guard_name, dir_fd=anchor_fd, follow_symlinks=False)
+        content = os.read(guard_fd, len(expected) + 1)
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or opened.st_uid != os.geteuid()
+            or stat.S_IMODE(opened.st_mode) != 0o600
+            or opened.st_nlink != 1
+            or named.st_dev != opened.st_dev
+            or named.st_ino != opened.st_ino
+            or content != expected
+            or os.read(guard_fd, 1)
+        ):
+            fail("global BOOT_CLAIMED guard is unsafe")
+    finally:
+        os.close(guard_fd)
+    return True
 
 
 def create_entered_record(
@@ -195,12 +326,26 @@ def consume(profile: str, root: Path | None = None) -> None:
     entered_name = f"{record_name}.entered"
     if root is None:
         root = canonical_claim_root()
-    directory_fd = open_claim_root(root)
+        anchor = canonical_claim_anchor()
+    else:
+        anchor = root.parent
+    guard_name = f".rog5-temporary-boot-consumption.{profile}.entered"
+    anchor_fd, anchor_parent_fd = open_claim_anchor(anchor)
+    try:
+        directory_fd = open_claim_root(root)
+    except Exception:
+        os.close(anchor_fd)
+        os.close(anchor_parent_fd)
+        raise
     flags = os.O_RDONLY | os.O_CLOEXEC
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     source_fd = -1
     entered_fd = -1
+    guard_fd = -1
     try:
+        if existing_guard_is_exact(guard_name, anchor_fd, expected):
+            fail("durable BOOT_CLAIMED record is already entered")
+
         try:
             os.stat(entered_name, dir_fd=directory_fd, follow_symlinks=False)
         except FileNotFoundError:
@@ -233,6 +378,15 @@ def consume(profile: str, root: Path | None = None) -> None:
             fail("durable BOOT_CLAIMED record is not exact")
 
         verify_source_path(record_name, directory_fd, source_fd, expected)
+        verify_claim_root_path(root, directory_fd)
+        verify_claim_anchor_path(anchor, anchor_fd, anchor_parent_fd)
+        guard_fd = create_entered_record(
+            guard_name,
+            anchor_fd,
+            expected,
+        )
+        os.fsync(anchor_fd)
+        verify_claim_anchor_path(anchor, anchor_fd, anchor_parent_fd)
         entered_fd = create_entered_record(
             entered_name,
             directory_fd,
@@ -256,12 +410,17 @@ def consume(profile: str, root: Path | None = None) -> None:
             fail("source BOOT_CLAIMED record changed during entry")
         os.fsync(directory_fd)
         verify_claim_root_path(root, directory_fd)
+        verify_claim_anchor_path(anchor, anchor_fd, anchor_parent_fd)
     finally:
         if entered_fd >= 0:
             os.close(entered_fd)
+        if guard_fd >= 0:
+            os.close(guard_fd)
         if source_fd >= 0:
             os.close(source_fd)
         os.close(directory_fd)
+        os.close(anchor_fd)
+        os.close(anchor_parent_fd)
 
 
 def main() -> int:

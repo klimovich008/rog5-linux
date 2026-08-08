@@ -23,6 +23,8 @@ for token in \
 	EVIDENCE_DIR \
 	'git -C "$repo" status --porcelain --untracked-files=all' \
 	'origin/$branch' \
+	'fetch --no-tags --prune origin' \
+	'refs/heads/$branch:refs/remotes/origin/$branch' \
 	'StrictHostKeyChecking=yes' \
 	'HostKeyAlias=rog5-minimal-headless-v1' \
 	'ConnectionAttempts=3' \
@@ -178,8 +180,27 @@ case $* in
 	*"rev-parse --abbrev-ref --symbolic-full-name @{u}"*)
 		echo origin/agent/linux-recovery-host
 		;;
-	*"rev-parse HEAD"*|*"rev-parse origin/agent/linux-recovery-host"*)
-		echo synchronized-checkpoint
+	*"fetch --no-tags --prune origin refs/heads/agent/linux-recovery-host:refs/remotes/origin/agent/linux-recovery-host"*)
+		[ -z "${MOCK_GIT_CALLS:-}" ] || printf '%s\n' fetch >>"$MOCK_GIT_CALLS"
+		[ "${MOCK_GIT_STALE:-0}" != 1 ] || : >"$MOCK_GIT_FETCHED"
+		;;
+	*"rev-parse HEAD"*)
+		if [ "${MOCK_GIT_STALE:-0}" = 1 ]; then
+			echo stale-checkpoint
+		else
+			echo synchronized-checkpoint
+		fi
+		;;
+	*"rev-parse origin/agent/linux-recovery-host"*)
+		if [ "${MOCK_GIT_STALE:-0}" = 1 ]; then
+			if [ -e "$MOCK_GIT_FETCHED" ]; then
+				echo fresh-remote-checkpoint
+			else
+				echo stale-checkpoint
+			fi
+		else
+			echo synchronized-checkpoint
+		fi
 		;;
 	*) exit 1 ;;
 esac
@@ -192,6 +213,20 @@ printf '%s\n' collect >>"$MOCK_CALLS"
 cat "$MOCK_RECORD"
 EOF
 chmod 0755 "$stage/bin/git" "$stage/bin/ssh"
+
+set +e
+PATH="$stage/bin:$PATH" \
+MOCK_GIT_STALE=1 \
+MOCK_GIT_CALLS="$stage/git.calls" \
+MOCK_GIT_FETCHED="$stage/git.fetched" \
+ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+	"$runner" >"$stage/stale.out" 2>"$stage/stale.err"
+stale_status=$?
+set -e
+[[ $stale_status -ne 0 ]]
+grep -Fxq fetch "$stage/git.calls"
+grep -Fq 'local and remote-tracking checkpoints differ' "$stage/stale.err"
+[[ ! -e $calls ]] || fail 'stale checkpoint reached the target SSH command'
 
 output=$(
 	PATH="$stage/bin:$PATH" \
