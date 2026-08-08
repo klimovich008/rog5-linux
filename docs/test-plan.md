@@ -338,7 +338,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   executes the exact generated units for stages 130 and 140. Its
   `sshd.service` starts OpenSSH 10.3 and the gate requires one disposable
   Ed25519 key login, authenticated command execution, and keyless-login
-  rejection over loopback. The clean local full-system gate and repository CI pass;
+  rejection over loopback. A separate Linux 7.1.4 QEMU boot mounts the exact
+  NFSv4.2 export first through the direct kernel API and then through
+  `mount_network_root()` extracted verbatim from the production init. The
+  second path requires exactly one stage 70 plus stages 75, 80, and 90, the
+  production transport classifier, `/proc/mounts` read-only state, and denied
+  writes; it intentionally stops before OverlayFS because that mount-only
+  QEMU kernel does not include it. The clean local full-system gate and
+  repository CI pass;
   twenty-three additional host-collector cases require a fresh private recovery
   anchor, one exact product/interface/port, read-only exclusive raw ACM, a sole
   open holder, fixed frame/event/time/evidence bounds, host receipt timestamps,

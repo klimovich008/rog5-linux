@@ -11,17 +11,24 @@ fail() {
 kernel=$(realpath -e -- "$1") || fail 'cannot resolve ARM64 kernel Image'
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 source_file=$repo/tools/qemu-network-root-nfs/init.c
+production_harness=$repo/tools/qemu-network-root-nfs/production-init.sh
+network_init=$repo/initramfs/network-root-init
 config_template=$repo/tools/qemu-network-root-nfs/ganesha.conf.in
+runtime=$repo/artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz
+runtime_sha256=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
 compiler=${CROSS_CC:-aarch64-linux-gnu-gcc}
-for command in cp cpio find ganesha.nfsd grep gzip mkdir mktemp python3 \
-	qemu-system-aarch64 realpath sed sort tail timeout "$compiler"; do
+for command in awk cp cpio find ganesha.nfsd grep gzip mkdir mktemp python3 \
+	qemu-system-aarch64 realpath sed sha256sum sort tail timeout "$compiler"; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU NFS command: $command"
 done
-for source in "$source_file" "$config_template"; do
+for source in "$source_file" "$production_harness" "$network_init" \
+	"$config_template" "$runtime"; do
 	[[ -f $source && ! -L $source ]] ||
 		fail "missing QEMU NFS source: $source"
 done
+[[ $(sha256sum "$runtime" | cut -d ' ' -f 1) == "$runtime_sha256" ]] ||
+	fail 'pinned network-root QEMU runtime hash changed'
 [[ -f $kernel && ! -L $kernel && $(stat -c %s "$kernel") -gt 1048576 ]] ||
 	fail 'unsafe or implausibly small kernel Image'
 
@@ -36,14 +43,29 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 stage=$test_root/stage
-mkdir -p "$stage/proc" "$stage/mnt/root-ro"
+mkdir -p "$stage"
+gzip -dc "$runtime" |
+	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
+mkdir -p "$stage/proc" "$stage/sys" "$stage/run" "$stage/mnt/root-ro"
 cp -- "$config_template" "$test_root/ganesha.conf"
+
+network_functions=$stage/network-functions.sh
+awk '
+	/^udc_candidate_count\(\) \{/ { copy=1 }
+	/^install_diagnostic_units\(\) \{/ { copy=0 }
+	copy { print }
+' "$network_init" >"$network_functions"
+grep -Fqx 'mount_network_root() {' "$network_functions" ||
+	fail 'production network-root mount function was not extracted'
+[[ $(grep -Fxc 'mount_network_root() {' "$network_functions") == 1 ]] ||
+	fail 'production network-root mount function extraction is ambiguous'
+cp -- "$production_harness" "$stage/production-init"
 
 "$compiler" -std=c11 -O2 -static -fPIE -pie \
 	-fstack-protector-strong -Wall -Wextra -Werror \
 	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none -s \
 	"$source_file" -o "$stage/init"
-chmod 0755 "$stage/init"
+chmod 0755 "$stage/init" "$stage/production-init"
 (
 	cd "$stage"
 	find . -mindepth 1 -print0 | sort -z |
@@ -101,12 +123,24 @@ guestfwd=tcp:169.254.77.1:2049-tcp:127.0.0.1:2049 \
 qemu_status=$?
 set -e
 if ! grep -Fq \
-	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only' \
+	'PASS production network-root shell mounted exact NFSv4.2 root read-only' \
 	"$test_root/qemu.log"; then
 	sed -n '1,320p' "$test_root/qemu.log" >&2
 	tail -n 240 "$test_root/ganesha.log" >&2
 	tail -n 80 "$test_root/ganesha.console" >&2
 	fail "QEMU did not mount the NFS root; status=$qemu_status"
 fi
+grep -Fq 'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only' \
+	"$test_root/qemu.log" || fail 'direct kernel NFS probe did not complete'
+[[ $(grep -Fc 'ROG5_QEMU_PRODUCTION_STAGE 70' "$test_root/qemu.log") == 1 ]] ||
+	fail 'production diagnostic path did not make exactly one stage-70 attempt'
+for exact_stage in 75 80 90; do
+	[[ $(grep -Fc "ROG5_QEMU_PRODUCTION_STAGE $exact_stage" \
+		"$test_root/qemu.log") == 1 ]] ||
+		fail "production diagnostic path lost stage $exact_stage"
+done
+if grep -Fq 'ROG5_QEMU_PRODUCTION_STAGE 100' "$test_root/qemu.log"; then
+	fail 'empty QEMU export unexpectedly completed the root handoff'
+fi
 
-echo 'PASS full-system ARM64 exact NFSv4.2 read-only mount'
+echo 'PASS full-system ARM64 direct and production-shell NFSv4.2 mount'
