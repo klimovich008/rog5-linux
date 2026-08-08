@@ -730,13 +730,14 @@ Current execution order:
     initramfs `71537ca0…c58e`, accepted Image, corrected DTB, and sealed Arch
     root. The prior authority-free disposable-key wrapper tuple is retained as
     superseded offline composition evidence only. The active candidate has no
-    signed wrapper, policy row, production credential, or boot authority. The profile is
-    offline-only and central policy remains empty. Next review and publish this
-    candidate checkpoint, bind a fresh production credential, issue one new
-    generation with distinct one-shot admission, run connected preflight, and
-    only then execute one temporary lifecycle. Promote a normal SSH candidate
-    only after that evidence locates and the implementation fixes the failing
-    boundary.
+    signed wrapper, policy row, production credential, or boot authority. The
+    profile is offline-only and central policy remains empty. The exact
+    candidate checkpoint is reviewed and published at
+    `9088c8ff70e24c1c71c3b3b806f7161848dd7320` with green exact-head CI. Next,
+    bind a fresh production credential, issue one new generation with distinct
+    one-shot admission, run connected preflight, and only then execute one
+    temporary lifecycle. Promote a normal SSH candidate only after that
+    evidence locates and the implementation fixes the failing boundary.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 

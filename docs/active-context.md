@@ -214,6 +214,16 @@ and the
 [host-only admission
 result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
+The exact candidate checkpoint is published at
+`9088c8ff70e24c1c71c3b3b806f7161848dd7320`; GitHub run `31256569397`
+passed exact-head, merge-compatibility, QEMU, and candidate-publication jobs.
+The guarded SSH and diagnostic deployment launchers now refresh the exact
+tracked branch before accepting their repository checkpoint. This closes the
+remaining stale-`origin` path before a sealed implementation or signing input
+can be admitted; the test advances a bare remote behind the clone's stale
+tracking ref and requires an exact refusal. This is host-only and grants no
+credential, generation, connected-preflight, or boot authority.
+
 ## Historical deployment chronology
 
 Historical checkpoint (2026-08-02): generation 1 reached signed-bundle

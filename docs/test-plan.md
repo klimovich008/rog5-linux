@@ -585,6 +585,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   point rebuilds both target bundles, shell-free initramfs files, vendor
   wrapper kernels, raw images, and unsigned AVB test wrappers, then destroys
   the disposable private key.
+- `test-build-headless-ssh-deployment-candidate-contract.sh` covers the two
+  guarded credential-bound launchers and their shared sealed implementation.
+  Each launcher must fetch its exact branch before comparing `HEAD` with the
+  remote-tracking ref; a hostile fixture advances the remote while leaving the
+  local `origin` ref stale and proves refusal before the sealed implementation
+  boundary. The remaining fixtures keep startup hooks, caller tools,
+  credentials, phone transports, and authority out of the build boundary.
 - `test-corrected-successor-live-gate-offline.sh` submits the retained
   corrected successor to the exact production stable-recovery artifact
   profile. It pins the signed bundle, corrected DTB, trust root, initramfs
