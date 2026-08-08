@@ -11,10 +11,24 @@ fail() {
 	while :; do sleep 60; done
 }
 
+verify_sha256() {
+	expected=$1
+	path=$2
+	record=$(sha256sum "$path") || return 1
+	[ "${record%% *}" = "$expected" ]
+}
+
 grep -q ' /proc proc ' /proc/mounts 2>/dev/null ||
 	mount -t proc proc /proc || fail mount-proc
 grep -q ' /sys sysfs ' /proc/mounts 2>/dev/null ||
 	mount -t sysfs sysfs /sys || fail mount-sysfs
+grep -q ' /dev devtmpfs ' /proc/mounts 2>/dev/null ||
+	mount -t devtmpfs devtmpfs /dev || fail mount-devtmpfs
+grep -q ' /run tmpfs ' /proc/mounts 2>/dev/null ||
+	mount -t tmpfs -o mode=0755,size=8m tmpfs /run || fail mount-run
+mkdir -p /sys/fs/cgroup || fail cgroup-directory
+grep -q ' /sys/fs/cgroup cgroup2 ' /proc/mounts 2>/dev/null ||
+	mount -t cgroup2 cgroup2 /sys/fs/cgroup || fail mount-cgroup2
 
 interface=
 interface_count=0
@@ -69,6 +83,15 @@ verify_network_root_identity() {
 # runner. It is data from the production script, not a QEMU implementation.
 . /network-functions.sh
 
+directory_delegations=$(cat /sys/module/nfsv4/parameters/directory_delegations) ||
+	fail directory-delegations-read
+[ "$directory_delegations" = N ] || fail directory-delegations-enabled
+printf 'PASS QEMU disabled unsupported NFS directory delegations\n'
+nfs4_disable_idmapping=$(cat /sys/module/nfs/parameters/nfs4_disable_idmapping) ||
+	fail idmapping-read
+[ "$nfs4_disable_idmapping" = Y ] || fail idmapping-enabled
+printf 'PASS QEMU pinned numeric NFSv4 owner mapping\n'
+
 if ! mount_network_root; then
 	if ! awk -v root="$network_newroot" \
 		'$2 == root && $3 == "overlay" { found=1 }
@@ -95,8 +118,27 @@ awk -v root="$network_newroot" \
 touch "$network_newroot/overlay-write" || fail merged-root-write
 [ -e "$network_root_state/upper/overlay-write" ] || fail upper-write-missing
 [ ! -e "$network_root_ro/overlay-write" ] || fail lower-root-was-modified
+[ -x "$network_newroot/usr/bin/rog5-qemu-diagnostic-handoff" ] ||
+	fail systemd-proof-helper-missing
+verify_sha256 dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 \
+	"$network_newroot/usr/lib/systemd/systemd" || fail systemd-hash
+verify_sha256 b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d \
+	"$network_newroot/usr/lib/ld-linux-aarch64.so.1" || fail loader-hash
+verify_sha256 6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab \
+	"$network_newroot/usr/lib/libc.so.6" || fail libc-hash
 
 printf '%s\n' \
 	'PASS production network-root shell assembled NFSv4.2 plus OverlayFS root'
-poweroff -f
-while :; do sleep 60; done
+
+diagnostic_mode=0
+handoff_newroot=$network_newroot
+handoff_root_ro=$network_root_ro
+handoff_state=$network_root_state
+handoff_dev=/dev
+handoff_sys=/sys
+handoff_proc=/proc
+handoff_run=/run
+prepare_shutdown_root || fail exitrd
+handoff_network_root || fail handoff
+exec switch_root "$handoff_newroot" /sbin/init
+fail switch-root-returned

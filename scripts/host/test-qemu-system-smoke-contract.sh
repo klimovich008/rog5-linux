@@ -12,10 +12,9 @@ source_file=$repo/tools/qemu-smoke/init.c
 builder=${QEMU_KERNEL_BUILDER:-$repo/scripts/host/build-qemu-smoke-kernel.sh}
 cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
-handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
+handoff_source=${QEMU_HANDOFF_SOURCE:-$repo/tools/qemu-diagnostic-handoff/init.c}
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
 nfs_source=${QEMU_NFS_SOURCE:-$repo/tools/qemu-network-root-nfs/init.c}
-nfs_seed=${QEMU_NFS_SEED:-$repo/tools/qemu-network-root-nfs/seed-init.sh}
 nfs_production_harness=${QEMU_NFS_PRODUCTION_HARNESS:-$repo/tools/qemu-network-root-nfs/production-init.sh}
 nfs_config=${QEMU_NFS_CONFIG:-$repo/tools/qemu-network-root-nfs/ganesha.conf.in}
 nfs_runner=${QEMU_NFS_RUNNER:-$repo/scripts/host/test-qemu-network-root-nfs.sh}
@@ -26,7 +25,7 @@ workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
 	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$nfs_source" \
-	"$nfs_seed" "$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
+	"$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -73,6 +72,12 @@ for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
 done
 grep -Fq 'config_arguments+=(--enable "$required_runtime_option")' "$builder" ||
 	fail 'minimal QEMU kernel does not derive enable arguments from its required list'
+grep -Fq 'disabled_runtime_options=(NFS_V4_2_READ_PLUS)' "$builder" ||
+	fail 'minimal QEMU kernel enables Ganesha-unsupported NFSv4.2 READ_PLUS'
+grep -Fq 'config_arguments+=(--disable "$disabled_runtime_option")' "$builder" ||
+	fail 'minimal QEMU kernel does not apply its disabled option list'
+grep -Fq 'QEMU kernel enabled unsupported $disabled_runtime_option' "$builder" ||
+	fail 'minimal QEMU kernel does not verify disabled options after resolution'
 [[ $(grep -Fc 'for required_runtime_option in "${required_runtime_options[@]}"; do' \
 	"$builder") == 2 ]] ||
 	fail 'minimal QEMU kernel does not verify the same resolved option list'
@@ -129,7 +134,7 @@ tty_alias_line=$(grep -n 'symlink("/dev/hvc0", "/dev/ttyGS0")' \
 	fail 'QEMU reporter no longer starts before its transport exists'
 grep -Fq 'test-qemu-diagnostic-handoff.sh' "$workflow"
 grep -Fq 'test-qemu-network-root-nfs.sh' "$workflow"
-grep -Fq 'nfs-ganesha-mem' "$workflow"
+grep -Fq 'nfs-ganesha-vfs' "$workflow"
 grep -Fq 'iproute2' "$workflow" ||
 	fail 'QEMU workflow lacks the ss provider used for listener isolation'
 grep -Fq 'libc6-dev-arm64-cross' "$workflow" ||
@@ -148,33 +153,24 @@ for token in \
 	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only' \
 	'PASS QEMU NFS server rejected an RW client write' \
 	'PASS production network-root shell assembled NFSv4.2 plus OverlayFS root' \
-	'PASS QEMU NFS fixture seeded over NFSv4.2' \
-	'/seed-init.sh' \
+	'nfsv4.directory_delegations=0' \
+	'nfs.nfs4_disable_idmapping=1' \
 	'artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz' \
 	'4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac' \
 	'TCP port 2049 is already in use' \
 	'pid=$ganesha_pid,' \
-	'Reread exports complete' \
 	"/^udc_candidate_count\\(\\) \\{/" \
 	'mount_network_root'; do
-	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" "$nfs_seed" \
+	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" \
 		"$nfs_production_harness" ||
 		fail "QEMU NFS contract is missing: $token"
 done
-grep -Fq 'vers=4.2,proto=tcp,port=2049,rw,nolock,soft,timeo=10,retrans=1' \
-	"$nfs_seed" || fail 'QEMU NFS seed does not request an RW setup mount'
-grep -Fq 'rog5.qemu_nfs_seed=1' "$nfs_runner" ||
-	fail 'QEMU NFS runner does not request the fixture seed mode'
-grep -Fqx $'\t\tseed_fixture();' "$nfs_source" ||
-	fail 'QEMU NFS client does not enter the requested fixture seed mode'
 grep -Fqx $'\tverify_server_read_only(server_probe_options);' "$nfs_source" ||
 	fail 'QEMU NFS client does not prove server-side read-only enforcement'
 grep -Fqx $'\tverify_server_probe_client_rw();' "$nfs_source" ||
 	fail 'QEMU NFS server-RO probe does not prove the client mount is RW'
-grep -Fqx 'cp -- "$stage/init" "$seed_stage/init"' "$nfs_runner" ||
-	fail 'QEMU NFS seed does not reuse the compiled static init'
 [[ $(grep -Fc \
-	'timeout --signal=TERM --kill-after=2 45 qemu-system-aarch64 \' \
+	'timeout --signal=TERM --kill-after=2 60 qemu-system-aarch64 \' \
 	"$nfs_runner") == 1 ]] ||
 	fail 'QEMU NFS runner duplicates the guest invocation'
 if grep -Fq 'vers=4.2' "$nfs_production_harness"; then
@@ -182,6 +178,12 @@ if grep -Fq 'vers=4.2' "$nfs_production_harness"; then
 fi
 grep -Fqx 'if ! mount_network_root; then' "$nfs_production_harness" ||
 	fail 'QEMU production harness does not call mount_network_root'
+grep -Fq '[ "$directory_delegations" = N ] || fail directory-delegations-enabled' \
+	"$nfs_production_harness" ||
+	fail 'QEMU production harness does not verify directory-delegation disablement'
+grep -Fq '[ "$nfs4_disable_idmapping" = Y ] || fail idmapping-enabled' \
+	"$nfs_production_harness" ||
+	fail 'QEMU production harness does not verify numeric owner mapping'
 grep -Fq "[ \"\$stages\" = '70 75 80 90 100' ]" \
 	"$nfs_production_harness" ||
 	fail 'QEMU production harness does not require stage 100'
@@ -198,15 +200,66 @@ qemu_nfs_options=$(
 )
 [[ -n $production_nfs_options && $qemu_nfs_options == "$production_nfs_options" ]] ||
 	fail 'QEMU NFS mount options differ from production'
-for token in 'Minor_Versions = 2' 'Access_Type = RO' 'Protocols = 4' \
+for token in 'Minor_Versions = 2' 'Only_Numeric_Owners = true' \
+	'Access_Type = RO' 'Protocols = 4' \
 	'Enable_UDP = false' 'Enable_NLM = false' 'Enable_RQUOTA = false' \
-	'Transports = TCP' 'Name = MEM'; do
+	'Transports = TCP' 'Path = @EXPORT_ROOT@' 'Name = VFS'; do
 	grep -Fq "$token" "$nfs_config" ||
 		fail "QEMU NFS server contract is missing: $token"
 done
 grep -Fq 'verify_read_only_enforcement();' "$nfs_source" ||
 	fail 'QEMU NFS client does not test read-only enforcement'
+grep -Fq 'verify_seeded_systemd();' "$nfs_source" ||
+	fail 'QEMU NFS client does not prove the staged systemd payload is readable'
 grep -Fq 'execl("/bin/sh", "sh", "/production-init", NULL);' "$nfs_source" ||
 	fail 'direct QEMU probe does not enter the production shell probe'
+for token in \
+	'artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz' \
+	'verify-qemu-systemd-runtime.sh' \
+	'/dev/shm/rog5-qemu-network-root.XXXXXX' \
+	'rog5-qemu-diagnostic-handoff network-root-success' \
+	'PASS production NFS/OverlayFS root reached ARM64 systemd and key-only OpenSSH'; do
+	grep -Fq -- "$token" "$nfs_runner" \
+		"$nfs_production_harness" ||
+		fail "QEMU production root handoff contract is missing: $token"
+done
+grep -Fq '[[ $(stat -f -c %T "$test_root") == tmpfs ]]' "$nfs_runner" ||
+	fail 'QEMU NFS export is not constrained to private tmpfs'
+grep -Fq 'sed "s|@EXPORT_ROOT@|$export_root|"' "$nfs_runner" ||
+	fail 'QEMU NFS VFS export path is not bound to the private tmpfs root'
+grep -Fqx 'prepare_shutdown_root || fail exitrd' "$nfs_production_harness" ||
+	fail 'QEMU production root handoff contract is missing: prepare_shutdown_root'
+grep -Fqx 'handoff_network_root || fail handoff' "$nfs_production_harness" ||
+	fail 'QEMU production root handoff contract is missing: handoff_network_root'
+grep -Fqx 'exec switch_root "$handoff_newroot" /sbin/init' \
+	"$nfs_production_harness" ||
+	fail 'QEMU production root handoff contract is missing: exec switch_root "$handoff_newroot" /sbin/init'
+grep -Fq 'strcmp(argv[1], "network-root-success")' "$handoff_source" ||
+	fail 'QEMU systemd helper lacks the network-root success mode'
+grep -Fq 'require_network_root_state();' "$handoff_source" ||
+	fail 'QEMU systemd helper skips the production-root topology proof'
+grep -Fq 'require_no_block_devices();' "$handoff_source" ||
+	fail 'QEMU systemd helper skips the live zero-storage proof'
+grep -Fq 'opendir("/sys/class/block")' "$handoff_source" ||
+	fail 'QEMU live zero-storage proof does not inspect block topology'
+grep -Fq 'directory == NULL && errno == ENOENT' "$handoff_source" ||
+	fail 'QEMU zero-storage proof does not distinguish absent block class'
+grep -Fq 'mountinfo_has("/.rog5/root-ro", "nfs4", "169.254.77.1:/"' \
+	"$handoff_source" ||
+	fail 'QEMU systemd helper does not verify the exact NFS lower topology'
+grep -Fq \
+	'PASS production NFS/OverlayFS root reached ARM64 systemd and key-only OpenSSH' \
+	"$handoff_source" ||
+	fail 'QEMU systemd helper lacks the production-root terminal proof'
+[[ $(grep -Fc 'verify_sha256 ' "$nfs_production_harness") == 3 ]] ||
+	fail 'QEMU production harness does not verify the exact systemd runtime hashes'
+grep -Fq '[[ $qemu_status -eq 0 ]] ||' "$nfs_runner" ||
+	fail 'QEMU NFS runner does not reject failure after terminal proof'
+grep -Fq 'PasswordAuthentication no' "$nfs_runner" ||
+	fail 'QEMU OpenSSH fixture permits password authentication'
+grep -Fq 'PreferredAuthentications=password' "$handoff_source" ||
+	fail 'QEMU OpenSSH proof does not attempt password-only rejection'
+grep -Fq 'SSH_ASKPASS_REQUIRE' "$handoff_source" ||
+	fail 'QEMU OpenSSH password probe cannot supply its test credential'
 
 echo 'PASS board-neutral full-system QEMU smoke contract'

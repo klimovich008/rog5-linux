@@ -128,9 +128,13 @@ kernel from the exact pinned upstream Linux v7.1.4 commit, proves the generic
 kernel-to-initramfs handoff, then enters a sealed Arch runtime under real
 `systemd 260.2-2-arch` and executes the production-generated stage 130/140
 units. Its content-keyed kernel cache is invalidated when the build recipe
-changes. The SSH dependency is a test stub, and QEMU does not emulate ROG
-Phone hardware; see the
-[systemd QEMU result](test-results/2026-08-01-arm64-systemd-qemu-gate.md).
+changes. The sealed runtime starts real OpenSSH and proves one disposable
+key-only login. A second board-neutral gate mounts the production NFSv4.2 and
+OverlayFS root, executes the production shutdown-root handoff and
+`switch_root`, and repeats the real systemd/OpenSSH proof from that root.
+QEMU does not emulate ROG Phone hardware; see the
+[systemd QEMU result](test-results/2026-08-01-arm64-systemd-qemu-gate.md) and
+[network-root QEMU result](test-results/2026-08-08-qemu-network-root-nfs-v42-offline.md).
 For the wider provisioned local suite, run:
 
 ```sh

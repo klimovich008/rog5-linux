@@ -2,6 +2,7 @@
 
 #define _GNU_SOURCE
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -22,6 +23,8 @@
 #define CANDIDATE "headless-netroot-early-diag-v2"
 #define SYSTEMD "/usr/lib/systemd/systemd"
 #define SSH_PROOF_COMMAND "rog5-qemu-openssh-proof-v1"
+#define SSH_PASSWORD_ASKPASS "rog5-qemu-password-askpass"
+#define SSH_PASSWORD_PROBE "rog5-qemu-password"
 #define PUBLICATION_SETTLE_MS 500
 
 static void console_write(const char *message)
@@ -140,6 +143,36 @@ static int run_ssh(bool with_key)
 	return wait_child(child);
 }
 
+static int run_password_ssh(void)
+{
+	pid_t child = fork();
+
+	if (child < 0)
+		return -1;
+	if (child == 0) {
+		if (setenv("SSH_ASKPASS", "/usr/bin/" SSH_PASSWORD_ASKPASS,
+			   1) < 0 ||
+		    setenv("SSH_ASKPASS_REQUIRE", "force", 1) < 0 ||
+		    setenv("DISPLAY", "rog5-qemu", 1) < 0)
+			_exit(126);
+		execl("/usr/bin/ssh", "ssh", "-F", "/dev/null", "-T",
+		      "-p", "2222", "-o", "BatchMode=no", "-o",
+		      "ConnectTimeout=2", "-o", "ConnectionAttempts=1",
+		      "-o", "IdentitiesOnly=yes", "-o",
+		      "PreferredAuthentications=password", "-o",
+		      "PubkeyAuthentication=no", "-o",
+		      "KbdInteractiveAuthentication=no", "-o",
+		      "NumberOfPasswordPrompts=1", "-o",
+		      "StrictHostKeyChecking=yes", "-o",
+		      "UserKnownHostsFile=/etc/ssh/ssh_known_hosts", "-o",
+		      "GlobalKnownHostsFile=/dev/null",
+		      "password-probe@127.0.0.1", SSH_PROOF_COMMAND,
+		      (char *)NULL);
+		_exit(127);
+	}
+	return wait_child(child);
+}
+
 static int ssh_proof(void)
 {
 	int status = -1;
@@ -156,6 +189,10 @@ static int ssh_proof(void)
 	}
 	if (run_ssh(false) == 0) {
 		console_write("FAIL OpenSSH accepted a keyless login\n");
+		return EXIT_FAILURE;
+	}
+	if (run_password_ssh() == 0) {
+		console_write("FAIL OpenSSH accepted a password login\n");
 		return EXIT_FAILURE;
 	}
 	console_write("PASS real key-only OpenSSH login completed\n");
@@ -312,13 +349,9 @@ __attribute__((noreturn)) static void enter_new_root(const char *new_root,
 	stop("new init returned from exec");
 }
 
-__attribute__((noreturn)) static void systemd_success(void)
+static void require_systemd_pid_one(void)
 {
 	char pid_one[128];
-	char pid_text[32];
-	char *end = NULL;
-	long reporter_pid;
-	int descriptor;
 	ssize_t length;
 
 	length = readlink("/proc/1/exe", pid_one, sizeof(pid_one) - 1);
@@ -327,8 +360,159 @@ __attribute__((noreturn)) static void systemd_success(void)
 	pid_one[length] = '\0';
 	if (strcmp(pid_one, SYSTEMD) != 0)
 		stop("generated units did not run under systemd PID 1");
+}
+
+static bool mount_option_present(const char *options, const char *required)
+{
+	size_t required_length = strlen(required);
+	const char *cursor = options;
+
+	while (*cursor != '\0') {
+		const char *end = strchr(cursor, ',');
+		size_t length = end == NULL ? strlen(cursor) :
+			(size_t)(end - cursor);
+
+		if (length == required_length &&
+		    strncmp(cursor, required, length) == 0)
+			return true;
+		if (end == NULL)
+			break;
+		cursor = end + 1;
+	}
+	return false;
+}
+
+static bool mountinfo_has(const char *required_mountpoint,
+			  const char *required_type,
+			  const char *required_source,
+			  const char *required_option)
+{
+	char *line = NULL;
+	size_t capacity = 0;
+	unsigned int matches = 0;
+	FILE *stream;
+
+	stream = fopen("/proc/self/mountinfo", "re");
+	if (stream == NULL)
+		stop("cannot open network-root mountinfo");
+	while (getline(&line, &capacity, stream) >= 0) {
+		char mountpoint[256];
+		char mount_options[512];
+		char filesystem_type[64];
+		char source[256];
+		char *separator = strstr(line, " - ");
+
+		if (separator == NULL)
+			continue;
+		*separator = '\0';
+		if (sscanf(line, "%*s %*s %*s %*s %255s %511s",
+			   mountpoint, mount_options) != 2 ||
+		    sscanf(separator + 3, "%63s %255s",
+			   filesystem_type, source) != 2)
+			continue;
+		if (strcmp(mountpoint, required_mountpoint) == 0 &&
+		    strcmp(filesystem_type, required_type) == 0 &&
+		    strcmp(source, required_source) == 0 &&
+		    mount_option_present(mount_options, required_option))
+			matches++;
+	}
+	if (ferror(stream)) {
+		free(line);
+		(void)fclose(stream);
+		stop("cannot read network-root mountinfo");
+	}
+	free(line);
+	if (fclose(stream) != 0)
+		stop("cannot close network-root mountinfo");
+	return matches == 1;
+}
+
+static bool exact_file(const char *path, const char *expected)
+{
+	char content[128];
+	size_t expected_length = strlen(expected);
+	ssize_t length;
+	int descriptor;
+
+	if (expected_length >= sizeof(content))
+		stop("network-root expected record is too long");
+	descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+	if (descriptor < 0)
+		return false;
+	length = read(descriptor, content, sizeof(content));
+	if (close(descriptor) < 0)
+		return false;
+	return length == (ssize_t)expected_length &&
+		memcmp(content, expected, expected_length) == 0;
+}
+
+static void require_no_block_devices(void)
+{
+	struct dirent *entry;
+	DIR *directory;
+	bool found = false;
+	int read_error;
+
+	directory = opendir("/sys/class/block");
+	if (directory == NULL && errno == ENOENT)
+		return;
+	if (directory == NULL)
+		stop("cannot inspect live block topology");
+	errno = 0;
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".") == 0 ||
+		    strcmp(entry->d_name, "..") == 0)
+			continue;
+		found = true;
+		break;
+	}
+	read_error = errno;
+	if (closedir(directory) < 0)
+		stop("cannot close live block topology");
+	if (read_error != 0)
+		stop("cannot read live block topology");
+	if (found)
+		stop("live block device appeared in network-root gate");
+}
+
+static void require_network_root_state(void)
+{
+	struct stat metadata;
+
+	require_no_block_devices();
+	if (!mountinfo_has("/", "overlay", "overlay", "rw"))
+		stop("PID 1 root is not the production overlay");
+	if (!mountinfo_has("/.rog5/root-ro", "nfs4", "169.254.77.1:/",
+			   "ro"))
+		stop("production NFS lower identity changed after handoff");
+	if (!mountinfo_has("/.rog5/state", "tmpfs", "tmpfs", "rw"))
+		stop("production tmpfs state identity changed after handoff");
+	if (!exact_file("/run/rog5-physical-block-count", "0\n"))
+		stop("production physical-storage record changed");
+	if (!exact_file("/run/rog5-network-root-source",
+			"169.254.77.1:/\n"))
+		stop("production network-root source record changed");
+	if (lstat("/run/rog5-network-root-mounted", &metadata) < 0 ||
+	    !S_ISREG(metadata.st_mode) || metadata.st_size != 0)
+		stop("production network-root marker changed");
+	if (access("/overlay-write", F_OK) < 0 ||
+	    access("/.rog5/state/upper/overlay-write", F_OK) < 0)
+		stop("production overlay upper write did not survive handoff");
+	errno = 0;
+	if (access("/.rog5/root-ro/overlay-write", F_OK) == 0 || errno != ENOENT)
+		stop("production overlay write reached the NFS lower");
+}
+
+__attribute__((noreturn)) static void finish_systemd_gate(const char *message)
+{
+	char pid_text[32];
+	char *end = NULL;
+	long reporter_pid;
+	int descriptor;
+	ssize_t length;
+
 	sleep_milliseconds(PUBLICATION_SETTLE_MS);
-	console_write("PASS generated diagnostic units ran under ARM64 systemd\n");
+	console_write(message);
 	descriptor = open("/run/rog5-qemu-reporter.pid", O_RDONLY | O_CLOEXEC);
 	if (descriptor >= 0) {
 		length = read(descriptor, pid_text, sizeof(pid_text) - 1);
@@ -345,6 +529,21 @@ __attribute__((noreturn)) static void systemd_success(void)
 	(void)reboot(RB_POWER_OFF);
 	for (;;)
 		pause();
+}
+
+__attribute__((noreturn)) static void systemd_success(void)
+{
+	require_systemd_pid_one();
+	finish_systemd_gate(
+		"PASS generated diagnostic units ran under ARM64 systemd\n");
+}
+
+__attribute__((noreturn)) static void network_root_success(void)
+{
+	require_systemd_pid_one();
+	require_network_root_state();
+	finish_systemd_gate(
+		"PASS production NFS/OverlayFS root reached ARM64 systemd and key-only OpenSSH\n");
 }
 
 __attribute__((noreturn)) static void initial_init(void)
@@ -416,6 +615,18 @@ __attribute__((noreturn)) static void initial_init(void)
 
 int main(int argc, char **argv)
 {
+	const char *program = strrchr(argv[0], '/');
+
+	program = program == NULL ? argv[0] : program + 1;
+	if (strcmp(program, SSH_PASSWORD_ASKPASS) == 0) {
+		static const char password[] = SSH_PASSWORD_PROBE "\n";
+
+		if (argc != 2 || write(STDOUT_FILENO, password,
+				       sizeof(password) - 1) !=
+				(ssize_t)(sizeof(password) - 1))
+			return EXIT_FAILURE;
+		return EXIT_SUCCESS;
+	}
 	if (argc == 3 && strcmp(argv[1], "-c") == 0 &&
 	    strcmp(argv[2], SSH_PROOF_COMMAND) == 0) {
 		if (getenv("SSH_CONNECTION") == NULL || getenv("SSH_CLIENT") == NULL)
@@ -425,6 +636,8 @@ int main(int argc, char **argv)
 	}
 	if (argc == 2 && strcmp(argv[1], "systemd-success") == 0)
 		systemd_success();
+	if (argc == 2 && strcmp(argv[1], "network-root-success") == 0)
+		network_root_success();
 	if (argc == 2 && strcmp(argv[1], "ssh-proof") == 0)
 		return ssh_proof();
 	if (argc == 2 && strcmp(argv[1], "sshd-check") == 0)

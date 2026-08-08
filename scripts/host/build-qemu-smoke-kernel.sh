@@ -84,9 +84,13 @@ required_runtime_options=(
 	SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS TMPFS_XATTR TTY UNIX
 	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO VIRTIO_NET
 )
+disabled_runtime_options=(NFS_V4_2_READ_PLUS)
 config_arguments=()
 for required_runtime_option in "${required_runtime_options[@]}"; do
 	config_arguments+=(--enable "$required_runtime_option")
+done
+for disabled_runtime_option in "${disabled_runtime_options[@]}"; do
+	config_arguments+=(--disable "$disabled_runtime_option")
 done
 "$config" --file "$output_root/.config" \
 	"${config_arguments[@]}" --disable DEBUG_INFO
@@ -95,6 +99,11 @@ required_runtime_options+=(HVC_DRIVER)
 for required_runtime_option in "${required_runtime_options[@]}"; do
 	grep -Fqx "CONFIG_${required_runtime_option}=y" "$output_root/.config" ||
 		fail "QEMU kernel lost $required_runtime_option after olddefconfig"
+done
+for disabled_runtime_option in "${disabled_runtime_options[@]}"; do
+	grep -Fqx "# CONFIG_${disabled_runtime_option} is not set" \
+		"$output_root/.config" ||
+		fail "QEMU kernel enabled unsupported $disabled_runtime_option"
 done
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \
 	-j"${JOBS:-$(nproc)}" Image

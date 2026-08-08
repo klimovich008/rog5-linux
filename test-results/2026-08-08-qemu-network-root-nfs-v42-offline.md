@@ -140,3 +140,76 @@ reuse, single QEMU invocation, stage 100, OverlayFS, and tmpfs xattrs.
 No phone, fastboot/ADB operation, credential, signing key, GitHub mutation, or
 phone storage was used. Generation 12 remains consumed and must never be
 retried; the active successor remains unissued and has no boot authority.
+
+## Production systemd and OpenSSH handoff follow-up
+
+Date: 2026-08-09
+
+Starting repository SHA:
+`dafebf77592077133b14676d447d7974751199e2`.
+
+The stage-100 gate still stopped at a sentinel merged init. It did not run the
+production shutdown-root handoff, execute `switch_root`, reach systemd as PID
+1, or prove OpenSSH over the assembled root. Several fixture incompatibilities
+were exposed while closing that gap:
+
+1. Ganesha's MEM backend returned `EIO` while reading the 198,968-byte systemd
+   binary; its VFS backend requires real file handles and therefore a bounded
+   privileged test container.
+2. Linux NFSv4.2 `READ_PLUS` requests failed against Ganesha 4.3. The
+   QEMU-only kernel profile now disables `CONFIG_NFS_V4_2_READ_PLUS`; this is
+   not a broad target-kernel config cleanup.
+3. Ganesha rejected optional `GET_DIR_DELEGATION`. The fixture pins
+   `nfsv4.directory_delegations=0` and verifies the live module parameter.
+4. String owner mapping made the NFS files appear non-root and caused sshd to
+   reject `/usr/share/empty.sshd`. The server now requires numeric NFSv4
+   owners, the client pins `nfs.nfs4_disable_idmapping=1`, and the guest
+   verifies that policy before mounting.
+
+The single test guest now validates the direct server read-only contract,
+executes the production NFS/OverlayFS path through stage 100, verifies exact
+systemd/loader/libc hashes, and calls the production
+`prepare_shutdown_root()` and `handoff_network_root()` functions before
+`switch_root`. Real ARM64 systemd becomes PID 1, real OpenSSH accepts one
+disposable key-only command, and the terminal helper revalidates the exact
+OverlayFS root, read-only NFS lower, tmpfs state, storage-isolation records,
+upper write, and unchanged lower before powering QEMU off. The obsolete seed
+guest is removed.
+
+Regression evidence:
+
+- red contract before integration: expected failure, 319 ms;
+- sealed runtime archive SHA-256:
+  `990689a5ebc0a3cdc16f9c6198bab3a9cc4531ead17ffe4ee0ad14c81c1aebde`;
+- clean Linux 7.1.4 QEMU kernel build: PASS, 320,815 ms;
+- kernel configuration SHA-256:
+  `f4aa4a887ee3e42bb601988529cf2be82f0dcf0c85f1ffcd0659d9cc67a6b008`;
+- Linux Image SHA-256:
+  `ce35c6732a553a3931d67a2af4b74dfd9a61396620d0b15e00290ff20253ebcc`;
+- focused static contract: PASS, 318 ms;
+- 39 hostile mutations, including owner mapping, runtime hashes, live
+  zero-block topology, terminal QEMU status, password-only rejection, and
+  post-handoff topology: PASS, 11,149 ms with the static contract;
+- prior server-read-only plus stage-100 QEMU gate: PASS, 6,529 ms;
+- production systemd plus key-only OpenSSH QEMU gate after independent review:
+  PASS, 12,309 ms;
+- added end-to-end coverage cost: 5,780 ms;
+- prior complete repository Linux `ci` checkpoint: PASS, 441,010 ms;
+- pre-review complete repository Linux `ci`: PASS, 480,632 ms;
+- final post-review complete repository Linux `ci`: PASS, 441,490 ms, an
+  increase of 480 ms (0.1%) from the starting checkpoint.
+
+Independent standards/spec review found and closed four missing assertions:
+the runner now rejects a nonzero QEMU status even after terminal markers, the
+terminal helper measures live block topology instead of trusting only the
+handoff record, the hostile contract pins the semantic mount checks rather
+than only their caller, and a disposable non-root account performs a real
+password-only authentication attempt that must fail. The minimal kernel has
+no `/sys/class/block` class; exact `ENOENT` is accepted as zero topology while
+all other inspection failures and every listed device fail closed. The same
+review corrected stale README wording that still described SSH as a stub.
+
+No phone, fastboot/ADB operation, credential, signing key, GitHub mutation, or
+phone storage was used. Generation 12 remains consumed and must never be
+retried. The active stage-75/current-cycle-postmortem successor remains
+unissued and has no boot authority.

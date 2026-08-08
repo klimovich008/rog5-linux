@@ -136,14 +136,17 @@ postmortem operations without per-candidate recovery rebuilds.
 - [x] Keep QEMU tests board-neutral; never claim that QEMU proves ROG Phone
   hardware.
 - [x] Exercise the exact network-root NFSv4.2 client options under Linux 7.1.4
-  against a rootless userspace server, with the production `/30`, TCP-only
-  forwarding, server-enforced read-only behavior, and hostile drift tests. A
-  setup guest seeds the volatile export before it is reloaded read-only. The
-  test guest continues through the `mount_network_root()` function extracted
-  verbatim from the current production init, proving one diagnostic attempt,
-  stages 70, 75, 80, 90, and 100, and the real BusyBox NFS-plus-OverlayFS root
-  path. This closes a hardware-free gap through root assembly; it does not
-  prove USB/NCM continuity on the phone.
+  against a userspace server, with the production `/30`, TCP-only forwarding,
+  server-enforced read-only behavior, and hostile drift tests. The private
+  tmpfs VFS export carries the sealed ARM64 systemd/OpenSSH runtime with exact
+  numeric ownership. The test guest continues through the
+  `mount_network_root()` function extracted verbatim from the current
+  production init, proving one diagnostic attempt, stages 70, 75, 80, 90,
+  and 100, production shutdown-root handoff and `switch_root`, real systemd
+  PID 1, and real key-only OpenSSH. Its terminal proof revalidates exact
+  OverlayFS, NFS, and tmpfs topology after handoff. This closes the
+  hardware-free path through minimal userspace service; it does not prove
+  USB/NCM continuity on the phone.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
   gate, and 39-case mutation/CLI suite.
