@@ -253,6 +253,44 @@ PY
 [[ -z $(git -C "$integration_repo" status --porcelain --untracked-files=all) ]] ||
 	fail 'sealed implementation replacement test did not restore the repository'
 
+# Advance the remote without refreshing this clone's origin ref. The launcher
+# must fetch the exact branch itself; trusting the stale local ref would admit
+# the obsolete local HEAD and cross the sealed-implementation boundary.
+integration_publisher=$integration_root/publisher
+git clone -q "$integration_remote" "$integration_publisher"
+git -C "$integration_publisher" config user.name 'ROG5 Test Publisher'
+git -C "$integration_publisher" config user.email 'rog5-publisher@example.invalid'
+printf 'remote advanced\n' >"$integration_publisher/remote-checkpoint"
+git -C "$integration_publisher" add remote-checkpoint
+git -C "$integration_publisher" commit -q -m 'advance remote checkpoint'
+git -C "$integration_publisher" push -q origin HEAD
+
+/usr/bin/python3 -I -S - \
+	"$integration_repo/scripts/host/build-early-target-diagnostic-deployment-candidate.sh" <<'PY'
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+from pathlib import Path
+import sys
+
+launcher = Path(sys.argv[1])
+loader = importlib.machinery.SourceFileLoader("rog5_stale_ref_test", str(launcher))
+specification = importlib.util.spec_from_loader(loader.name, loader)
+if specification is None:
+    raise SystemExit("cannot load deployment launcher")
+module = importlib.util.module_from_spec(specification)
+loader.exec_module(module)
+try:
+    module.verified_implementation()
+except SystemExit as error:
+    if str(error) != "FAIL deployment-signing checkpoint differs from origin":
+        raise
+else:
+    raise SystemExit("stale origin ref admitted an obsolete launcher checkpoint")
+PY
+git -C "$integration_repo" pull -q --ff-only
+
 integration_key=$integration_private/recovery-signing-key.pem
 integration_candidate=$integration_private/diagnostic-candidate.json
 openssl genpkey -algorithm ED25519 -out "$integration_key" 2>/dev/null
@@ -314,6 +352,11 @@ for token in \
 	'headless-ssh-network-root'; do
 	grep -Fq -- "$token" "$wrapper" ||
 		fail "deployment-candidate wrapper omits token: $token"
+done
+
+for launcher in "$wrapper" "$diagnostic_wrapper"; do
+	grep -Fq 'refs/heads/{branch}:refs/remotes/origin/{branch}' "$launcher" ||
+		fail "deployment launcher does not refresh its exact origin branch: ${launcher#"$repo"/}"
 done
 
 for token in \

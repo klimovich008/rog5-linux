@@ -163,6 +163,14 @@ def verified_implementation() -> tuple[Path, int]:
     )
     if not branch or upstream != f"origin/{branch}":
         raise SystemExit("FAIL deployment-signing branch has no exact origin peer")
+    git_output(
+        repository,
+        "fetch",
+        "--no-tags",
+        "--prune",
+        "origin",
+        f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+    )
     if git_output(repository, "rev-parse", "HEAD") != git_output(
         repository, "rev-parse", upstream
     ):
