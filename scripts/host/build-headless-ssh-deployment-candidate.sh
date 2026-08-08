@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import stat
 import subprocess
+import tempfile
 
 
 GIT_ENV = {
@@ -76,7 +77,11 @@ def git_bytes(repository: Path, *arguments: str) -> bytes:
     return result.stdout
 
 
-def sealed_implementation(repository: Path, implementation: Path) -> int:
+def sealed_implementation(
+    repository: Path,
+    implementation: Path,
+    checkpoint: str,
+) -> int:
     flags = os.O_RDONLY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -87,7 +92,7 @@ def sealed_implementation(repository: Path, implementation: Path) -> int:
         expected = git_bytes(
             repository,
             "show",
-            f"HEAD:{IMPLEMENTATION_REPOSITORY_PATH}",
+            f"{checkpoint}:{IMPLEMENTATION_REPOSITORY_PATH}",
         )
         payload = bytearray()
         while True:
@@ -102,7 +107,9 @@ def sealed_implementation(repository: Path, implementation: Path) -> int:
             or before.st_size != after.st_size
             or bytes(payload) != expected
         ):
-            raise SystemExit("FAIL deployment implementation differs from HEAD")
+            raise SystemExit(
+                "FAIL deployment implementation differs from reviewed checkpoint"
+            )
         sealed = os.memfd_create(
             "rog5-deployment-builder",
             os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING,
@@ -127,7 +134,71 @@ def sealed_implementation(repository: Path, implementation: Path) -> int:
         os.close(source)
 
 
-def verified_implementation() -> tuple[Path, int]:
+def remove_checkpoint_worktree(repository: Path, snapshot: Path) -> None:
+    subprocess.run(
+        [
+            "/usr/bin/git",
+            "-C",
+            str(repository),
+            "worktree",
+            "remove",
+            "--force",
+            str(snapshot),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=GIT_ENV,
+        timeout=15,
+        check=False,
+    )
+
+
+def checkpoint_worktree(repository: Path, checkpoint: str) -> Path:
+    build_root = repository / "build"
+    build_root.mkdir(mode=0o700, exist_ok=True)
+    metadata = build_root.lstat()
+    if (
+        build_root.resolve(strict=True) != build_root
+        or stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISDIR(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_gid != os.getegid()
+        or stat.S_IMODE(metadata.st_mode) & 0o022
+    ):
+        raise SystemExit("FAIL deployment checkpoint parent is unsafe")
+    git_output(repository, "check-ignore", "-q", str(build_root))
+    reserved = Path(
+        tempfile.mkdtemp(prefix=".rog5-reviewed-checkpoint-", dir=build_root)
+    )
+    reserved.rmdir()
+    try:
+        git_output(
+            repository,
+            "worktree",
+            "add",
+            "--detach",
+            str(reserved),
+            checkpoint,
+        )
+        reserved.chmod(0o700)
+        if (
+            git_output(reserved, "rev-parse", "HEAD") != checkpoint
+            or git_output(
+                reserved,
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+            )
+        ):
+            raise SystemExit("FAIL deployment checkpoint worktree is not exact")
+        return reserved
+    except BaseException:
+        remove_checkpoint_worktree(repository, reserved)
+        raise
+
+
+def verified_implementation() -> tuple[Path, Path, str, int]:
     lexical = Path(os.path.abspath(__file__))
     resolved = lexical.resolve(strict=True)
     repository = resolved.parents[2]
@@ -171,11 +242,20 @@ def verified_implementation() -> tuple[Path, int]:
         "origin",
         f"refs/heads/{branch}:refs/remotes/origin/{branch}",
     )
-    if git_output(repository, "rev-parse", "HEAD") != git_output(
-        repository, "rev-parse", upstream
-    ):
+    checkpoint = git_output(repository, "rev-parse", "HEAD")
+    if checkpoint != git_output(repository, "rev-parse", upstream):
         raise SystemExit("FAIL deployment-signing checkpoint differs from origin")
-    return repository, sealed_implementation(repository, implementation)
+    implementation_fd = sealed_implementation(
+        repository,
+        implementation,
+        checkpoint,
+    )
+    try:
+        snapshot = checkpoint_worktree(repository, checkpoint)
+    except BaseException:
+        os.close(implementation_fd)
+        raise
+    return repository, snapshot, checkpoint, implementation_fd
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -198,11 +278,13 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> None:
     arguments = parse_arguments()
-    repository, implementation_fd = verified_implementation()
+    repository, snapshot, checkpoint, implementation_fd = verified_implementation()
     environment = {
         "PATH": "/usr/bin:/bin",
         "LC_ALL": "C",
-        "ROG5_INTERNAL_REPOSITORY_ROOT": str(repository),
+        "ROG5_INTERNAL_REPOSITORY_ROOT": str(snapshot),
+        "ROG5_INTERNAL_CHECKPOINT_REPOSITORY_ROOT": str(repository),
+        "ROG5_INTERNAL_REPOSITORY_COMMIT": checkpoint,
         "ROG5_INTERNAL_IMPLEMENTATION_SEALED": "1",
         "ALLOW_RECOVERY_DEPLOYMENT_BUILD": "1",
         "ALLOW_PHONE_CREDENTIAL_USE": "1",
@@ -218,17 +300,22 @@ def main() -> None:
         ),
         "ROG5_OFFLINE_EXPECTED_TARGET": "headless-ssh-network-root",
     }
-    os.execve(
-        "/usr/bin/bash",
-        [
+    try:
+        os.execve(
             "/usr/bin/bash",
-            "--noprofile",
-            "--norc",
-            f"/proc/self/fd/{implementation_fd}",
-            arguments.output_root,
-        ],
-        environment,
-    )
+            [
+                "/usr/bin/bash",
+                "--noprofile",
+                "--norc",
+                f"/proc/self/fd/{implementation_fd}",
+                arguments.output_root,
+            ],
+            environment,
+        )
+    except BaseException:
+        os.close(implementation_fd)
+        remove_checkpoint_worktree(repository, snapshot)
+        raise
 
 
 if __name__ == "__main__":

@@ -488,9 +488,12 @@ def stage_inputs(
     staged_candidate: Path,
     raw_public_key: Path,
     candidate_id: str = DEFAULT_CANDIDATE_ID,
+    expected_checkpoint: str | None = None,
 ) -> tuple[str, str, str]:
     repository = canonical_repository(repository_path)
     checkpoint = verify_repository_checkpoint(repository)
+    if expected_checkpoint is not None and checkpoint != expected_checkpoint:
+        fail("repository checkpoint does not match the launcher snapshot")
     candidate_payload = read_private_input(
         candidate_record,
         repository,
@@ -498,6 +501,14 @@ def stage_inputs(
         0o444,
     )
     validate_candidate(candidate_payload, candidate_id)
+    try:
+        current_checkpoint = verify_repository_checkpoint(repository)
+    except SigningInputError as error:
+        raise SigningInputError(
+            "repository checkpoint changed before credential read"
+        ) from error
+    if current_checkpoint != checkpoint:
+        fail("repository checkpoint changed before credential read")
     reservations: list[OutputReservation] = []
     try:
         reservations.append(
@@ -564,6 +575,7 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
         choices=ALLOWED_CANDIDATE_IDS,
         default=DEFAULT_CANDIDATE_ID,
     )
+    parser.add_argument("--expected-repository-commit")
     return parser.parse_args(arguments)
 
 
@@ -581,6 +593,7 @@ def main(arguments: list[str] | None = None) -> int:
             options.staged_candidate,
             options.raw_public_key,
             options.candidate_id,
+            options.expected_repository_commit,
         )
     except (CANDIDATE.CandidateError, SigningInputError) as error:
         print(

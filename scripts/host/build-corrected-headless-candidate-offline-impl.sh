@@ -5,7 +5,7 @@ set -euo pipefail
 
 PATH=/usr/bin:/bin
 export PATH
-unset -f bash chmod cmp cp cut dirname env find git grep id mkdir mktemp \
+unset -f bash chmod cmp cp cut dirname env find git grep id mkdir mktemp mv \
 	openssl podman python3 realpath rm sed sha256sum stat tail 2>/dev/null || true
 
 # Credential paths may arrive as exported wrapper inputs. Capture them in an
@@ -14,15 +14,20 @@ unset -f bash chmod cmp cp cut dirname env find git grep id mkdir mktemp \
 unset deployment_credential_paths deployment_candidate_record \
 	deployment_private_key secret_root private_key public_key \
 	candidate_record private_key_path internal_repository \
+	internal_checkpoint_repository internal_repository_commit \
 	internal_implementation_sealed
 internal_repository=${ROG5_INTERNAL_REPOSITORY_ROOT:-}
+internal_checkpoint_repository=${ROG5_INTERNAL_CHECKPOINT_REPOSITORY_ROOT:-}
+internal_repository_commit=${ROG5_INTERNAL_REPOSITORY_COMMIT:-}
 internal_implementation_sealed=${ROG5_INTERNAL_IMPLEMENTATION_SEALED:-0}
 deployment_credential_paths=(
 	"${ROG5_DEPLOYMENT_CANDIDATE_RECORD:-}"
 	"${ROG5_DEPLOYMENT_SIGNING_KEY:-}"
 )
 unset ROG5_DEPLOYMENT_CANDIDATE_RECORD ROG5_DEPLOYMENT_SIGNING_KEY
-unset ROG5_INTERNAL_REPOSITORY_ROOT ROG5_INTERNAL_IMPLEMENTATION_SEALED
+unset ROG5_INTERNAL_REPOSITORY_ROOT \
+	ROG5_INTERNAL_CHECKPOINT_REPOSITORY_ROOT \
+	ROG5_INTERNAL_REPOSITORY_COMMIT ROG5_INTERNAL_IMPLEMENTATION_SEALED
 deployment_candidate_record=${deployment_credential_paths[0]}
 deployment_private_key=${deployment_credential_paths[1]}
 unset deployment_credential_paths
@@ -39,11 +44,14 @@ if [[ -n $internal_repository ]]; then
 	esac
 	[[ -d $internal_repository && ! -L $internal_repository ]] ||
 		fail 'internal repository root metadata is unsafe'
+	[[ $(realpath -e -- "$internal_repository") == "$internal_repository" ]] ||
+		fail 'internal repository root is not canonical'
 	repo=$internal_repository
 else
 	repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 fi
-output_root=${1:?usage: build-corrected-headless-candidate-offline.sh OUTPUT_ROOT}
+checkpoint_repository=$repo
+requested_output_root=${1:?usage: build-corrected-headless-candidate-offline.sh OUTPUT_ROOT}
 candidate=${ROG5_OFFLINE_CANDIDATE:-headless-network-root-v1}
 expected_dtb=${ROG5_OFFLINE_EXPECTED_DTB:-86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46}
 expected_target=${ROG5_OFFLINE_EXPECTED_TARGET:-headless-network-root}
@@ -57,6 +65,7 @@ qualified_cpio_path=$repo/scripts/host/qualified-cpio-path
 arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 deployment_input_stager=$repo/scripts/host/stage-recovery-deployment-signing-inputs.py
 secret_root=
+snapshot_active=0
 
 [[ $expected_dtb =~ ^[0-9a-f]{64}$ ]] ||
 	fail 'offline candidate DTB identity is malformed'
@@ -97,8 +106,27 @@ case "$candidate:$expected_dtb:$expected_target" in
 esac
 if [[ $deployment_build == 1 ]]; then
 	[[ $internal_implementation_sealed == 1 &&
-		-n $internal_repository ]] ||
+		-n $internal_repository &&
+		-n $internal_checkpoint_repository &&
+		$internal_repository_commit =~ ^[0-9a-f]{40}$ ]] ||
 		fail 'credentialed build requires a sealed implementation snapshot'
+	case $internal_checkpoint_repository in
+	/*) ;;
+	*) fail 'checkpoint repository root is not absolute' ;;
+	esac
+	[[ -d $internal_checkpoint_repository &&
+		! -L $internal_checkpoint_repository &&
+		$(realpath -e -- "$internal_checkpoint_repository") == "$internal_checkpoint_repository" ]] ||
+		fail 'checkpoint repository root metadata is unsafe'
+	checkpoint_repository=$internal_checkpoint_repository
+	[[ $(git -C "$repo" rev-parse HEAD) == "$internal_repository_commit" &&
+		-z $(git -C "$repo" status --porcelain --untracked-files=all) ]] ||
+		fail 'reviewed checkpoint worktree identity changed'
+	case $repo in
+	"$checkpoint_repository"/build/.rog5-reviewed-checkpoint-*) ;;
+	*) fail 'reviewed checkpoint worktree location is unsafe' ;;
+	esac
+	snapshot_active=1
 	[[ ${ALLOW_RECOVERY_DEPLOYMENT_BUILD:-} == 1 ]] ||
 		fail 'set ALLOW_RECOVERY_DEPLOYMENT_BUILD=1 for one signed recovery build'
 	[[ ${ALLOW_PHONE_CREDENTIAL_USE:-} == 1 ]] ||
@@ -116,15 +144,39 @@ else
 	tracked_candidate=$repo/configs/recovery-candidates/$candidate.json
 fi
 
-cleanup() {
+cleanup_secret() {
 	if [[ -n $secret_root && -d $secret_root && $secret_root != / ]]; then
 		chmod -R u+rwX -- "$secret_root" 2>/dev/null || true
 		rm -rf -- "$secret_root"
 	fi
 }
+
+cleanup_snapshot() {
+	local snapshot_path
+	[[ $snapshot_active == 1 ]] || return 0
+	snapshot_path=$repo
+	case $snapshot_path in
+	"$checkpoint_repository"/build/.rog5-reviewed-checkpoint-*) ;;
+	*) return 1 ;;
+	esac
+	if ! /usr/bin/git -C "$checkpoint_repository" worktree remove --force \
+		"$snapshot_path" >/dev/null 2>&1; then
+		chmod -R u+rwX -- "$snapshot_path" 2>/dev/null || true
+		rm -rf -- "$snapshot_path"
+		/usr/bin/git -C "$checkpoint_repository" worktree prune \
+			>/dev/null 2>&1 || true
+	fi
+	[[ ! -e $snapshot_path && ! -L $snapshot_path ]] || return 1
+	snapshot_active=0
+}
+
+cleanup() {
+	cleanup_secret
+	cleanup_snapshot || true
+}
 trap cleanup EXIT HUP INT TERM
 
-for command in chmod cmp cut env find git grep id mkdir mktemp openssl podman \
+for command in chmod cmp cut env find git grep id mkdir mktemp mv openssl podman \
 	python3 realpath rm sed sha256sum stat tail; do
 	command -v "$command" >/dev/null ||
 		fail "missing corrected-candidate command: $command"
@@ -139,16 +191,25 @@ if [[ $deployment_build == 0 ]]; then
 		fail 'offline candidate record identity changed'
 fi
 
-output_root=$(realpath -m "$output_root")
-case $output_root in
-	"$repo"/build/*) ;;
+requested_output_root=$(realpath -m "$requested_output_root")
+case $requested_output_root in
+	"$checkpoint_repository"/build/*) ;;
 	*) fail 'output root must be below the ignored repository build directory' ;;
 esac
-git -C "$repo" check-ignore -q "$output_root" ||
+git -C "$checkpoint_repository" check-ignore -q "$requested_output_root" ||
 	fail 'output root is not ignored by Git'
-[[ ! -d $output_root ||
-	-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
-	fail 'refusing nonempty corrected-candidate output root'
+if [[ $deployment_build == 1 ]]; then
+	[[ ! -e $requested_output_root && ! -L $requested_output_root ]] ||
+		fail 'credentialed output root must not already exist'
+	output_root=$repo/build/deployment-output
+	git -C "$repo" check-ignore -q "$output_root" ||
+		fail 'checkpoint output root is not ignored by Git'
+else
+	output_root=$requested_output_root
+	[[ ! -d $output_root ||
+		-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
+		fail 'refusing nonempty corrected-candidate output root'
+fi
 
 [[ -f $builder_verifier && ! -L $builder_verifier &&
 	-x $builder_verifier ]] ||
@@ -174,7 +235,8 @@ if [[ $deployment_build == 1 ]]; then
 		PATH=/usr/bin:/bin \
 		LC_ALL=C \
 		/usr/bin/python3 -I -S "$deployment_input_stager" \
-		--repository "$repo" \
+		--repository "$checkpoint_repository" \
+		--expected-repository-commit "$internal_repository_commit" \
 		--signing-key "$deployment_private_key" \
 		--candidate-record "$deployment_candidate_record" \
 		--candidate-id "$candidate" \
@@ -192,6 +254,9 @@ if [[ $deployment_build == 1 ]]; then
 	grep -Fxq 'authority=none' \
 		"$secret_root/deployment-input-admission.txt" ||
 		fail 'deployment signing-input admission returned authority'
+	grep -Fxq "repository_commit=$internal_repository_commit" \
+		"$secret_root/deployment-input-admission.txt" ||
+		fail 'deployment signing-input checkpoint did not match the launcher'
 	candidate_record_sha256=$(
 		sed -n 's/^candidate_record_sha256=//p' \
 			"$secret_root/deployment-input-admission.txt"
@@ -227,10 +292,13 @@ fi
 
 if [[ $deployment_input_preflight == 1 ]]; then
 	private_key_path=$private_key
+	checkpoint_path=$repo
 	cleanup
 	secret_root=
 	[[ ! -e $private_key_path ]] ||
 		fail 'private signing-key snapshot survived input preflight'
+	[[ ! -e $checkpoint_path && ! -L $checkpoint_path ]] ||
+		fail 'reviewed checkpoint worktree survived input preflight'
 	echo 'PASS guarded deployment signing inputs staged, validated, scrubbed from the child environment, and destroyed without signing'
 	exit 0
 fi
@@ -367,10 +435,18 @@ sha256sum \
 	>"$output_root/SHA256SUMS"
 
 private_key_path=$private_key
-cleanup
+cleanup_secret
 secret_root=
 [[ ! -e $private_key_path ]] ||
 	fail 'private signing-key snapshot survived candidate build'
+if [[ $deployment_build == 1 ]]; then
+	internal_output_root=$output_root
+	mv --no-clobber -T -- "$internal_output_root" "$requested_output_root"
+	[[ ! -e $internal_output_root && -d $requested_output_root ]] ||
+		fail 'credentialed output publication refused an occupied destination'
+	output_root=$requested_output_root
+	cleanup_snapshot || fail 'reviewed checkpoint worktree cleanup failed'
+fi
 
 printf 'candidate=%s\nbundle=%s\nmanifest_sha256=%s\ntrust_key_sha256=%s\n' \
 	"$candidate" "$bundle_id_a" "$manifest_a" "$trust_a"
