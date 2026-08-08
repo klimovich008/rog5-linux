@@ -28,6 +28,9 @@ mkdir -p "$source_dir/scripts/kconfig" "$device_dir" "$fake_bin"
 cp -- "$builder" "$device_dir/build-mainline-network-root.sh"
 cp -- "$contract" "$device_dir/kernel-build-contract.sh"
 chmod 0755 "$device_dir"/*.sh
+if command -v dash >/dev/null 2>&1; then
+	sed -i '1c#!/usr/bin/dash' "$device_dir/build-mainline-network-root.sh"
+fi
 printf '%s\n' 'CONFIG_BASE_TEST=y' >"$base_fragment"
 printf '%s\n' 'CONFIG_NETWORK_ROOT_TEST=y' >"$network_fragment"
 

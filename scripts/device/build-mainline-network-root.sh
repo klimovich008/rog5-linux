@@ -27,6 +27,7 @@ case ${ROG5_NETWORK_ROOT_CLEAN_ENV:-0} in
 	0)
 		clean_home=${HOME:-/nonexistent}
 		exec /usr/bin/env -i PATH="$PATH" HOME="$clean_home" LC_ALL=C \
+			PWD="$(pwd -P)" SHLVL=0 _=/usr/bin/env \
 			SOURCE_DIR="$source_dir" OUTPUT_DIR="$output_dir" \
 			BASE_FRAGMENT="$base_fragment" NETWORK_FRAGMENT="$network_fragment" \
 			LINUX_COMMIT="$expected_commit" EXPECTED_RELEASE="$expected_release" \
