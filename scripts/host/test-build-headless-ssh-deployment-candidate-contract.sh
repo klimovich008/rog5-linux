@@ -217,6 +217,7 @@ import importlib.machinery
 import importlib.util
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 launcher = Path(sys.argv[1])
@@ -226,18 +227,36 @@ if specification is None:
     raise SystemExit("cannot load deployment launcher")
 module = importlib.util.module_from_spec(specification)
 loader.exec_module(module)
-_repository, descriptor = module.verified_implementation()
+repository, reviewed_worktree, checkpoint, descriptor = (
+    module.verified_implementation()
+)
 implementation = launcher.with_name(
     "build-corrected-headless-candidate-offline-impl.sh"
 )
+reviewed_implementation = reviewed_worktree / implementation.relative_to(repository)
 mode = implementation.stat().st_mode & 0o777
 os.lseek(descriptor, 0, os.SEEK_SET)
 snapshot = os.read(descriptor, 1024 * 1024)
 try:
+    if reviewed_worktree == repository:
+        raise SystemExit("reviewed implementation reused the mutable checkout")
+    if module.git_output(reviewed_worktree, "rev-parse", "HEAD") != checkpoint:
+        raise SystemExit("reviewed worktree HEAD differs from the checkpoint")
+    if module.git_output(
+        reviewed_worktree,
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+    ):
+        raise SystemExit("reviewed worktree is not clean")
+    if reviewed_implementation.read_bytes() != snapshot:
+        raise SystemExit("reviewed worktree implementation differs from sealed bytes")
     implementation.write_bytes(b"#!/usr/bin/bash\nexit 97\n")
     os.lseek(descriptor, 0, os.SEEK_SET)
     if os.read(descriptor, 1024 * 1024) != snapshot:
         raise SystemExit("sealed implementation followed pathname replacement")
+    if reviewed_implementation.read_bytes() != snapshot:
+        raise SystemExit("reviewed worktree followed mutable checkout replacement")
     try:
         os.pwrite(descriptor, b"X", 0)
     except OSError as error:
@@ -249,6 +268,22 @@ finally:
     implementation.write_bytes(snapshot)
     implementation.chmod(mode)
     os.close(descriptor)
+    subprocess.run(
+        [
+            "/usr/bin/git",
+            "-C",
+            str(repository),
+            "worktree",
+            "remove",
+            "--force",
+            str(reviewed_worktree),
+        ],
+        check=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=module.GIT_ENV,
+    )
 PY
 [[ -z $(git -C "$integration_repo" status --porcelain --untracked-files=all) ]] ||
 	fail 'sealed implementation replacement test did not restore the repository'
@@ -334,6 +369,9 @@ grep -Fxq \
 	fail 'diagnostic input preflight changed its caller-owned disposable key'
 [[ ! -e $integration_repo/build/diagnostic-input-preflight ]] ||
 	fail 'signing-input preflight created a build output'
+[[ -z $(find "$integration_repo/build" -mindepth 1 -maxdepth 1 \
+	-type d -name '.rog5-reviewed-checkpoint-*' -print -quit) ]] ||
+	fail 'signing-input preflight retained a reviewed checkpoint worktree'
 [[ ! -e $integration_helper_log || ! -s $integration_helper_log ]] ||
 	fail 'caller PATH helper intercepted the credentialed build'
 
@@ -346,7 +384,10 @@ for token in \
 	'os.execve(' \
 	'os.memfd_create(' \
 	'F_ADD_SEALS' \
-	'HEAD:{IMPLEMENTATION_REPOSITORY_PATH}' \
+	'f"{checkpoint}:{IMPLEMENTATION_REPOSITORY_PATH}"' \
+	'checkpoint_worktree(' \
+	'"ROG5_INTERNAL_CHECKPOINT_REPOSITORY_ROOT"' \
+	'"ROG5_INTERNAL_REPOSITORY_COMMIT"' \
 	'"ROG5_DEPLOYMENT_BUILD": "1"' \
 	'headless-ssh-network-root-v3' \
 	'headless-ssh-network-root'; do
@@ -407,6 +448,8 @@ for token in \
 	'stage-recovery-deployment-signing-inputs.py' \
 	'rog5-recovery-deployment-signing-inputs-v2' \
 	'--candidate-id "$candidate"' \
+	'--repository "$checkpoint_repository"' \
+	'--expected-repository-commit "$internal_repository_commit"' \
 	'--staged-key "$private_key"' \
 	'--staged-candidate "$candidate_record"' \
 	'--raw-public-key "$public_key"' \
@@ -418,6 +461,8 @@ for token in \
 	'private signing-key snapshot survived candidate build' \
 	'deployment credential path or authorization leaked after staging' \
 	'private signing-key snapshot survived input preflight' \
+	'reviewed checkpoint worktree survived input preflight' \
+	'credentialed output publication refused an occupied destination' \
 	'authority=none'; do
 	grep -Fq -- "$token" "$builder_impl" ||
 		fail "shared deployment builder omits token: $token"

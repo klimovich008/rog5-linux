@@ -426,6 +426,91 @@ class SigningInputTest(unittest.TestCase):
         self.assertFalse(self.staged_candidate.exists())
         self.assertFalse(self.public.exists())
 
+    def test_checkpoint_change_after_candidate_validation_fails_before_key_read(
+        self,
+    ) -> None:
+        checkpoint = subprocess.run(
+            ["/usr/bin/git", "-C", str(self.repository), "rev-parse", "HEAD"],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+        original_read = TOOL.read_private_input
+
+        def read_then_advance(
+            path: Path,
+            repository: Path,
+            label: str,
+            mode: int,
+        ) -> bytes:
+            if label == "deployment signing key":
+                self.fail("checkpoint change reached the signing key")
+            payload = original_read(path, repository, label, mode)
+            if label == "deployment candidate record":
+                (self.repository / "concurrent-checkout").write_text(
+                    "changed after candidate validation\n",
+                    encoding="ascii",
+                )
+                self.git("add", "concurrent-checkout", cwd=self.repository)
+                self.git(
+                    "commit",
+                    "-m",
+                    "simulate concurrent checkout",
+                    cwd=self.repository,
+                )
+            return payload
+
+        with (
+            mock.patch.object(
+                TOOL,
+                "read_private_input",
+                side_effect=read_then_advance,
+            ),
+            self.assertRaisesRegex(
+                TOOL.SigningInputError,
+                "checkpoint changed before credential read",
+            ),
+        ):
+            TOOL.stage_inputs(
+                self.repository,
+                self.key,
+                self.candidate,
+                self.staged_key,
+                self.staged_candidate,
+                self.public,
+                expected_checkpoint=checkpoint,
+            )
+        self.assertFalse(self.staged_key.exists())
+        self.assertFalse(self.staged_candidate.exists())
+        self.assertFalse(self.public.exists())
+
+    def test_wrong_launcher_checkpoint_fails_before_private_input_read(
+        self,
+    ) -> None:
+        with (
+            mock.patch.object(
+                TOOL,
+                "read_private_input",
+                side_effect=AssertionError("private input was read"),
+            ),
+            self.assertRaisesRegex(
+                TOOL.SigningInputError,
+                "does not match the launcher snapshot",
+            ),
+        ):
+            TOOL.stage_inputs(
+                self.repository,
+                self.key,
+                self.candidate,
+                self.staged_key,
+                self.staged_candidate,
+                self.public,
+                expected_checkpoint="0" * 40,
+            )
+        self.assertFalse(self.staged_key.exists())
+        self.assertFalse(self.staged_candidate.exists())
+        self.assertFalse(self.public.exists())
+
     def test_repository_internal_credential_is_rejected(self) -> None:
         internal = self.repository / "signing.pem"
         shutil.copyfile(self.key, internal)
