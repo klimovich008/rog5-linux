@@ -147,6 +147,7 @@ shared_tests=(
 	scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
 	scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
 	scripts/host/test-restore-stable-recovery-inputs-contract.sh
+	scripts/host/test-stable-recovery-retained-preflight-dedup.sh
 	scripts/host/test-fetch-android-boot-tools-contract.sh
 	scripts/host/test-canonical-boot-v3-template-contract.sh
 	scripts/host/test-asus-kexec-stage-successor-contract.sh
