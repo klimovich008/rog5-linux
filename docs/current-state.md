@@ -104,7 +104,17 @@ the v2 profile is offline-only, central policy remains empty, no production
 credential or phone was used, and production-bound issuance remains HOLD.
 Generation 12 is consumed and must never be retried; it is not pending live
 admission. Any future one-shot generation must be a new exact record consumed
-through the generic repository-owned claim consumer after exact-head CI.
+through the generic repository-owned claim consumer after exact-head CI. The
+generic consumer now requires a lifecycle-account anchor whose parent is
+neither owned nor writable by the lifecycle user, then enters a
+repository-derived, no-replace
+guard there before publishing the claim-root marker. A
+claim-root rename can therefore fail the current invocation but cannot expose
+the replacement root to a second successful consumption. Exact guard bytes,
+owner, mode, link count, fsync, source pathname revalidation, root/anchor
+and anchor-parent revalidation, lifecycle-owned read-only parent refusal, and
+concurrent refusal are hardware-free tested. See the
+[current-head follow-up](../test-results/2026-08-08-current-head-targeted-recovery-follow-up.md).
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

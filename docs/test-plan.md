@@ -470,7 +470,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   [connected-preflight result](../test-results/2026-08-04-generation-12-connected-preflight-live.md),
   and [live result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
 - Before any Generation-13 issuance, require an explicit stage 75 immediately
-  after every returned NFS `mount` command; same-port interface-00 `cdc_ncm`
+  after the sole diagnostic NFS `mount` command. Stage 70 immediately precedes
+  that call, stage 75 immediately follows its return, and stage 80 follows only
+  a successful mount whose read-only state is verified. Post-return transport
+  classification requires the sole exact `169.254.77.2/30` IPv4 address, the
+  direct source-bound route, one unchanged `a600000.dwc3` UDC, `usb0`, and
+  carrier; missing, lookalike, additional, and late-changing states have exact
+  hostile terminal tests. Also require same-port interface-00 `cdc_ncm`
   carrier/operstate and eight sysfs counters; aggregate kernel NFS-server RPC
   counters; exact `169.254.77.1:2049` listener/accept-backlog plus target
   `169.254.77.2:*` TCP connection count, canonical states, TX/RX queues, and
@@ -495,6 +501,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   credential binding, review/publication of this candidate checkpoint, a fresh
   one-shot generation, and connected preflight remain required before any
   phone boot.**
+- Before a future claim profile is added, the generic exact-record consumer's
+  twelve hardware-free cases require fixed repository-owned records, an
+  anchor below a parent the lifecycle user neither owns nor can write,
+  descriptor-relative no-follow access, exact owner/mode/content/link state,
+  file and directory fsync, no-replace global and claim-root entries, source
+  and directory pathname revalidation, one winner under concurrency, and
+  permanent refusal after claim-root replacement. Historical Generation-11
+  and Generation-12 consumer scripts remain evidence only; no Generation-13
+  copy exists.
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control plane. Sixty-four hardware-free cases require one exact
   nonce-correlated frame, canonical

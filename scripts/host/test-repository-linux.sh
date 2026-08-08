@@ -288,17 +288,96 @@ isolated_tests=(
 	scripts/host/test-steam-deck-builder-contract.sh
 )
 parallel_root=$(mktemp -d)
-trap 'rm -rf -- "$parallel_root"' EXIT HUP INT TERM
 parallel_pids=()
 parallel_paths=()
+parallel_status_files=()
+parallel_group_has_other_members() {
+	local group_pid=$1
+	local member_pid member_pgid
+	while read -r member_pid member_pgid; do
+		if [[ $member_pgid == "$group_pid" && $member_pid != "$group_pid" ]]; then
+			return 0
+		fi
+	done < <(ps -e -o pid= -o pgid=)
+	return 1
+}
+terminate_parallel_group() {
+	local group_pid=$1
+	local attempt=0
+	/bin/kill -0 "$group_pid" 2>/dev/null || return 1
+	/bin/kill -TERM -- "-$group_pid" 2>/dev/null || return 1
+	while [[ $attempt -lt 100 ]]; do
+		/bin/kill -0 "$group_pid" 2>/dev/null || return 1
+		if ! parallel_group_has_other_members "$group_pid"; then
+			/bin/kill -KILL "$group_pid" 2>/dev/null || return 1
+			return 0
+		fi
+		sleep 0.01
+		attempt=$((attempt + 1))
+	done
+	/bin/kill -0 "$group_pid" 2>/dev/null || return 1
+	/bin/kill -KILL -- "-$group_pid" 2>/dev/null
+}
+cleanup_parallel_tests() {
+	cleanup_status=$?
+	trap - EXIT HUP INT TERM
+	for pid in "${parallel_pids[@]}"; do
+		[[ -z $pid ]] || terminate_parallel_group "$pid" || true
+	done
+	for pid in "${parallel_pids[@]}"; do
+		[[ -z $pid ]] || wait "$pid" 2>/dev/null || true
+	done
+	rm -rf -- "$parallel_root"
+	exit "$cleanup_status"
+}
+trap cleanup_parallel_tests EXIT HUP INT TERM
+set -m
 for test_path in "${isolated_tests[@]}"; do
 	parallel_paths+=("$test_path")
-	(run_test "$test_path") >"$parallel_root/${#parallel_paths[@]}.log" 2>&1 &
+	status_file=$parallel_root/${#parallel_paths[@]}.status
+	hold_fifo=$parallel_root/${#parallel_paths[@]}.hold
+	mkfifo -- "$hold_fifo"
+	parallel_status_files+=("$status_file")
+	(
+		trap : TERM
+		if run_test "$test_path"; then
+			test_status=0
+		else
+			test_status=$?
+		fi
+		printf '%s\n' "$test_status" >"$status_file"
+		while :; do
+			read -r _ <"$hold_fifo" || true
+		done
+	) >"$parallel_root/${#parallel_paths[@]}.log" 2>&1 &
 	parallel_pids+=("$!")
 done
+set +m
 for index in "${!parallel_pids[@]}"; do
 	log=$parallel_root/$((index + 1)).log
-	if wait "${parallel_pids[$index]}"; then
+	pid=${parallel_pids[$index]}
+	status_file=${parallel_status_files[$index]}
+	while [[ ! -s $status_file ]]; do
+		/bin/kill -0 "$pid" 2>/dev/null || {
+			wait "$pid" 2>/dev/null || true
+			parallel_pids[$index]=
+			fail "isolated offline test supervisor exited early: ${parallel_paths[$index]}"
+		}
+		sleep 0.01
+	done
+	read -r wait_status <"$status_file"
+	[[ $wait_status =~ ^[0-9]+$ ]] ||
+		fail "isolated offline test returned an invalid status: ${parallel_paths[$index]}"
+	had_descendants=false
+	parallel_group_has_other_members "$pid" && had_descendants=true
+	terminate_parallel_group "$pid" ||
+		fail "isolated offline test supervisor identity was lost: ${parallel_paths[$index]}"
+	wait "$pid" 2>/dev/null || true
+	parallel_pids[$index]=
+	if [[ $wait_status == 0 ]]; then
+		if $had_descendants; then
+			fail "isolated offline test left background descendants: ${parallel_paths[$index]}"
+		fi
 		cat "$log"
 	else
 		cat "$log" >&2
