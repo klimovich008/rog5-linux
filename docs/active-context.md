@@ -58,18 +58,19 @@ and newer-kernel rebases remain frozen until the headless core passes.
   10.3, accepts one disposable Ed25519 key login over loopback, executes the
   authenticated command, and rejects a keyless login.
 - The board-neutral Linux 7.1.4 QEMU kernel now also includes its NFSv4.2
-  client prerequisites and completes a real TCP mount using the exact
-  `network-root-init` option string and `169.254.77.2/30` client identity. The
-  direct kernel probe then invokes BusyBox and the `mount_network_root()`
-  function extracted verbatim from the current production init. That second
-  real mount emits stages 70, 75, 80, and 90 exactly once, passes the
-  production transport and read-only checks, and stops at the deliberately
-  absent OverlayFS capability. A rootless in-memory Ganesha export and one
-  explicit restricted TCP/2049 forward keep the fixture independent of host
-  storage. Hostile mutations reject option, server-mode, backend, isolation,
-  read-only-check, production-handoff, copied-implementation, and invocation
-  drift. This narrows the stage-70 blind spot but remains hardware-free
-  evidence only. See the
+  and OverlayFS prerequisites and completes real TCP mounts using the exact
+  `network-root-init` option string and `169.254.77.2/30` client identity. A
+  setup guest seeds the in-memory export while it is writable; Ganesha then
+  reloads the export read-only. The test guest proves that a client-requested
+  read-write mount receives `EROFS`, retains the direct read-only probe, and
+  invokes BusyBox plus the `mount_network_root()` function extracted verbatim
+  from the current production init. That production path emits stages 70, 75,
+  80, 90, and 100 exactly once and verifies the NFS lower, executable merged
+  init, writable tmpfs upper, and unchanged lower. One restricted TCP/2049
+  forward keeps the fixture independent of host storage. Hostile mutations
+  cover listener isolation, fixture seeding, server-side read-only
+  enforcement, option drift, production handoff, OverlayFS capability, and
+  invocation drift. This remains hardware-free evidence only. See the
   [QEMU NFSv4.2 result](../test-results/2026-08-08-qemu-network-root-nfs-v42-offline.md).
 
 These facts do not prove the corrected candidate on the phone.

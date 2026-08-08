@@ -341,11 +341,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   rejection over loopback. A separate Linux 7.1.4 QEMU boot mounts the exact
   NFSv4.2 export first through the direct kernel API and then through
   `mount_network_root()` extracted verbatim from the production init. The
-  second path requires exactly one stage 70 plus stages 75, 80, and 90, the
-  production transport classifier, `/proc/mounts` read-only state, and denied
-  writes; it intentionally stops before OverlayFS because that mount-only
-  QEMU kernel does not include it. The clean local full-system gate and
-  repository CI pass;
+  second path requires exactly one stage 70 plus stages 75, 80, 90, and 100,
+  the production transport classifier, a read-write client probe rejected by
+  the read-only server, `/proc/mounts` read-only lower state, denied lower
+  writes, an executable merged init, and writes isolated to the tmpfs upper.
+  The clean local full-system gate and repository CI pass;
   twenty-three additional host-collector cases require a fresh private recovery
   anchor, one exact product/interface/port, read-only exclusive raw ACM, a sole
   open holder, fixed frame/event/time/evidence bounds, host receipt timestamps,

@@ -9,12 +9,13 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 source_file=$repo/tools/qemu-smoke/init.c
-builder=$repo/scripts/host/build-qemu-smoke-kernel.sh
+builder=${QEMU_KERNEL_BUILDER:-$repo/scripts/host/build-qemu-smoke-kernel.sh}
 cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
 nfs_source=${QEMU_NFS_SOURCE:-$repo/tools/qemu-network-root-nfs/init.c}
+nfs_seed=${QEMU_NFS_SEED:-$repo/tools/qemu-network-root-nfs/seed-init.sh}
 nfs_production_harness=${QEMU_NFS_PRODUCTION_HARNESS:-$repo/tools/qemu-network-root-nfs/production-init.sh}
 nfs_config=${QEMU_NFS_CONFIG:-$repo/tools/qemu-network-root-nfs/ganesha.conf.in}
 nfs_runner=${QEMU_NFS_RUNNER:-$repo/scripts/host/test-qemu-network-root-nfs.sh}
@@ -25,7 +26,7 @@ workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
 	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$nfs_source" \
-	"$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
+	"$nfs_seed" "$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -64,8 +65,8 @@ grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
 for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
 	FUTEX INET INOTIFY_USER IP_PNP MEMFD_CREATE MULTIUSER NET NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP \
-	NFS_FS NFS_V4 NFS_V4_2 ROOT_NFS SECCOMP SECCOMP_FILTER SERIAL_AMBA_PL011_CONSOLE \
-	SHMEM SIGNALFD SUNRPC SYSFS TIMERFD TMPFS UNIX VIRTIO VIRTIO_CONSOLE \
+	NFS_FS NFS_V4 NFS_V4_2 OVERLAY_FS ROOT_NFS SECCOMP SECCOMP_FILTER SERIAL_AMBA_PL011_CONSOLE \
+	SHMEM SIGNALFD SUNRPC SYSFS TIMERFD TMPFS TMPFS_XATTR UNIX VIRTIO VIRTIO_CONSOLE \
 	VIRTIO_MENU VIRTIO_MMIO VIRTIO_NET; do
 	grep -Eq "(^|[[:space:]])$option([[:space:]]|$)" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
@@ -129,6 +130,8 @@ tty_alias_line=$(grep -n 'symlink("/dev/hvc0", "/dev/ttyGS0")' \
 grep -Fq 'test-qemu-diagnostic-handoff.sh' "$workflow"
 grep -Fq 'test-qemu-network-root-nfs.sh' "$workflow"
 grep -Fq 'nfs-ganesha-mem' "$workflow"
+grep -Fq 'iproute2' "$workflow" ||
+	fail 'QEMU workflow lacks the ss provider used for listener isolation'
 grep -Fq 'libc6-dev-arm64-cross' "$workflow" ||
 	fail 'QEMU workflow lacks the ARM64 static libc development package'
 if grep -Eq 'fastboot|/dev/(sd|nvme|ufs)|mount[[:space:]].*root=' \
@@ -143,26 +146,55 @@ for token in \
 	'host=169.254.77.3,dns=169.254.77.4,restrict=on' \
 	'guestfwd=tcp:169.254.77.1:2049-tcp:127.0.0.1:2049' \
 	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only' \
-	'PASS production network-root shell mounted exact NFSv4.2 root read-only' \
+	'PASS QEMU NFS server rejected an RW client write' \
+	'PASS production network-root shell assembled NFSv4.2 plus OverlayFS root' \
+	'PASS QEMU NFS fixture seeded over NFSv4.2' \
+	'/seed-init.sh' \
 	'artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz' \
 	'4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac' \
+	'TCP port 2049 is already in use' \
+	'pid=$ganesha_pid,' \
+	'Reread exports complete' \
 	"/^udc_candidate_count\\(\\) \\{/" \
 	'mount_network_root'; do
-	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" \
+	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" "$nfs_seed" \
 		"$nfs_production_harness" ||
 		fail "QEMU NFS contract is missing: $token"
 done
+grep -Fq 'vers=4.2,proto=tcp,port=2049,rw,nolock,soft,timeo=10,retrans=1' \
+	"$nfs_seed" || fail 'QEMU NFS seed does not request an RW setup mount'
+grep -Fq 'rog5.qemu_nfs_seed=1' "$nfs_runner" ||
+	fail 'QEMU NFS runner does not request the fixture seed mode'
+grep -Fqx $'\t\tseed_fixture();' "$nfs_source" ||
+	fail 'QEMU NFS client does not enter the requested fixture seed mode'
+grep -Fqx $'\tverify_server_read_only(server_probe_options);' "$nfs_source" ||
+	fail 'QEMU NFS client does not prove server-side read-only enforcement'
+grep -Fqx $'\tverify_server_probe_client_rw();' "$nfs_source" ||
+	fail 'QEMU NFS server-RO probe does not prove the client mount is RW'
+grep -Fqx 'cp -- "$stage/init" "$seed_stage/init"' "$nfs_runner" ||
+	fail 'QEMU NFS seed does not reuse the compiled static init'
+[[ $(grep -Fc \
+	'timeout --signal=TERM --kill-after=2 45 qemu-system-aarch64 \' \
+	"$nfs_runner") == 1 ]] ||
+	fail 'QEMU NFS runner duplicates the guest invocation'
 if grep -Fq 'vers=4.2' "$nfs_production_harness"; then
 	fail 'QEMU production harness copied the NFS mount implementation'
 fi
-grep -Fqx 'if mount_network_root; then' "$nfs_production_harness" ||
+grep -Fqx 'if ! mount_network_root; then' "$nfs_production_harness" ||
 	fail 'QEMU production harness does not call mount_network_root'
+grep -Fq "[ \"\$stages\" = '70 75 80 90 100' ]" \
+	"$nfs_production_harness" ||
+	fail 'QEMU production harness does not require stage 100'
 production_nfs_options=$(
 	sed -n 's/^[[:space:]]*-o \([^[:space:]]*\).*/\1/p' \
 		"$repo/initramfs/network-root-init" | grep '^vers=4\.2,' | sort -u
 )
 qemu_nfs_options=$(
-	sed -n 's/.*"\(vers=4\.2,[^"]*\)";.*/\1/p' "$nfs_source"
+	sed -n '/static const char production_options\[\] =/ {
+		n
+		s/.*"\(vers=4\.2,[^"]*\)";.*/\1/p
+		q
+	}' "$nfs_source"
 )
 [[ -n $production_nfs_options && $qemu_nfs_options == "$production_nfs_options" ]] ||
 	fail 'QEMU NFS mount options differ from production'
