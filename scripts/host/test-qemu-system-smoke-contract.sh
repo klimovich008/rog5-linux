@@ -81,11 +81,18 @@ for token in \
 	'-device virtconsole,chardev=diagnostic' \
 	'PASS generated diagnostic units ran under ARM64 systemd' \
 	'DiagnosticStream("headless-netroot-early-diag-v2")' \
-	'reporter_source_sha256=2f8a3bc21a43b415f08a341d01179603401842df25da0b3ce17a67f5cdbd8a65' \
+	'reporter_source_sha256=d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a' \
 	'for required in (10, 120, 130, 140)'; do
 	grep -Fq -- "$token" "$handoff_runner" ||
 		fail "QEMU diagnostic handoff contract is missing: $token"
 done
+actual_reporter_source_sha256=$(
+	sha256sum "$repo/tools/early_target_diag/rog5-early-target-diag.c" |
+		cut -d ' ' -f 1
+)
+[[ $actual_reporter_source_sha256 == \
+	d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a ]] ||
+	fail 'QEMU diagnostic contract reporter source seal is stale'
 grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
