@@ -76,7 +76,8 @@ authorization guard is supplied. `headless-diagnostic-generation12-live-v1`
 is unsupported. Neither lifecycle source contains a Generation-12 profile,
 path, or identity. `manifests/temporary-boot-images.tsv` retains zero `allow`
 rows and no Generation-12 row; `manifests/artifacts.tsv` records exactly one
-unbooted, untracked, never-flash Generation-12 identity.
+then-pre-consumption, untracked, never-flash Generation-12 identity. Generation
+12 has since been consumed and is never reusable.
 
 ## Regression
 

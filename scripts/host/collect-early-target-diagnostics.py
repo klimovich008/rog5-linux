@@ -34,7 +34,7 @@ sys.modules[PARSER_SPEC.name] = PARSER
 PARSER_SPEC.loader.exec_module(PARSER)
 
 EVIDENCE_FORMAT = "rog5-early-target-evidence-v2"
-CANDIDATE = "headless-netroot-early-diag-v1"
+CANDIDATE = "headless-netroot-early-diag-v2"
 ANCHOR_FORMAT = "rog5-minimal-headless-usb-anchor-v1"
 RECOVERY_PRODUCT = "ROG5 recovery"
 TARGET_PRODUCT = "ROG5 diagnostic network root"

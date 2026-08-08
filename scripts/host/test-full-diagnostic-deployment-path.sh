@@ -18,7 +18,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 output_root=${1:?usage: test-full-diagnostic-deployment-path.sh OUTPUT_ROOT}
 wrapper=$repo/scripts/host/build-early-target-diagnostic-deployment-candidate.sh
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
-candidate_source=$repo/configs/recovery-candidates/headless-netroot-early-diag-v1.json
+candidate_source=$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json
 
 [[ -x $wrapper && -x $gate && -f $candidate_source ]] ||
 	fail 'full-path diagnostic test inputs are unavailable'
@@ -91,77 +91,76 @@ host_verifier_sha=$(sha256sum "$host_verifier" | cut -d ' ' -f 1)
 control_sha=$(sha256sum "$control" | cut -d ' ' -f 1)
 fetcher_sha=$(sha256sum "$fetcher" | cut -d ' ' -f 1)
 verifier_sha=$(sha256sum "$verifier" | cut -d ' ' -f 1)
+avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+avb_info=$(python3 "$avbtool" info_image --image "$image")
+fixture_avb_salt=$(awk '/^      Salt:/ { print $2; exit }' <<<"$avb_info")
+fixture_avb_digest=$(awk '/^      Digest:/ { print $2; exit }' <<<"$avb_info")
+[[ $fixture_avb_salt == "$raw_sha" &&
+	$fixture_avb_digest =~ ^[0-9a-f]{64}$ &&
+	$fixture_avb_digest != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+	fail 'full disposable diagnostic AVB descriptor identity is malformed'
 
 cp -- "$gate" "$fixture_gate"
-# This disposable builder emits the canonical generation-zero AVB wrapper and
-# no generation record. Rewrite only the private gate copy: preserve the real
-# consumed guard through the sentinel below, admit the fixture image, and clear
-# generation-2-only record/salt/digest pins.
+# Rewrite only the private gate copy from the exact authority-free stage-75 v2
+# tuple to this run's disposable trust-root tuple. The manifest and component
+# binaries remain deterministic; the embedded public key changes the recovery
+# initramfs, wrapper kernel, raw image, AVB image, and descriptor digest.
 python3 - "$fixture_gate" \
-	"9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef=$image_sha" \
-	"70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1=$image_sha" \
-	"4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109=" \
-	"8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712=" \
-	"903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541=" \
-	"0d101a12ff456414fda7bb0e0c2b5e4c8f61e5469625bb6b75214e2fc6497f9a=$raw_sha" \
-	"d348cdfedccb55aabf15eb97b5136f2e45ba906b85989c6c7c3b842914f69eb5=$kernel_sha" \
+	"833899cb067a28d57e41c5a8291c7f5099c4f7fcc11316c2976d04a7b926e7de=$image_sha" \
+	"406b2497bff8174b01119e4bcfa4dddb544df3de8fdb9168d80e88708f20a995=$raw_sha" \
+	"7a6c2a19c7a00a2699fd598b4fc3ad5fed680bf2cd9cb7cfa7bafa783d9fe563=$kernel_sha" \
 	"df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f=$config_sha" \
-	"cd30a2067322edc12c3be172cd05bd5d365a1ad09815594b8fa56302cd0b813b=$initramfs_sha" \
-	"f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b=$trust_sha" \
+	"a38b61462468272c8d8409461d7318cfc442c3a4707a624e9f8ab1751ef047a4=$initramfs_sha" \
+	"58950b2101dca0702f2c436015bbb21eb6535e4e06f74808c2f8183c9da27268=$trust_sha" \
 	"0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621=$host_verifier_sha" \
-	"f564fb848eb58724c09f3b4dabeebcc95f95fb35cdc259045d3c29c226dd1e77=$control_sha" \
-	"677fa731b1bd9fd11efc46aabeb32e7a725725483c86a2f58d417f482c27f392=$fetcher_sha" \
-	"5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0=$verifier_sha" <<'PY'
+	"242ac7fc4b7d7614cf5fe8a26162255c898de2f2aeef9cf70687d0d327c149e7=$control_sha" \
+	"77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800=$fetcher_sha" \
+	"5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0=$verifier_sha" \
+	"a1d19575dd21b6da3fd3cbb6c0f4ea33e312cc59ddc860889f1f54ef976e7b49=$fixture_avb_digest" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 payload = path.read_text(encoding="ascii")
-consumed_image = "9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef"
-consumed_record = f"consumed_diagnostic_recovery={consumed_image}"
-if payload.count(consumed_record) != 1:
-    raise SystemExit("missing exact consumed diagnostic recovery guard")
-sentinel = "consumed_diagnostic_recovery=ROG5_FIXTURE_PRESERVE_CONSUMED"
-if sentinel in payload:
-    raise SystemExit("fixture preservation sentinel already exists")
-payload = payload.replace(consumed_record, sentinel)
+consumed_records = (
+    "consumed_diagnostic_recovery=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef",
+    "consumed_corrected_diagnostic_recovery=f710bbcd1f9602f0fdc3ce7023298f66cc5e7a014a0627c4f9123d7cc897b0ef",
+    "consumed_listener_successor_recovery=332889a83f541ed0e17c94656836c512a35b5bfd6bbbaf735d2f5f6b94b51830",
+    "consumed_nfs_gated_generation2_recovery=70fd77f7f0225d1fe9cce54111d378002b1c8c8a0d1d59c581b4d4ef9bfc72b1",
+)
+for record in consumed_records:
+    if payload.count(record) != 1:
+        raise SystemExit(f"missing exact consumed recovery guard: {record}")
 for replacement in sys.argv[2:]:
     before, after = replacement.split("=", 1)
     if before not in payload:
         raise SystemExit(f"missing fixture pin: {before}")
     payload = payload.replace(before, after)
-payload = payload.replace(sentinel, consumed_record)
-if payload.count(consumed_record) != 1 or sentinel in payload:
-    raise SystemExit("consumed diagnostic recovery guard was not preserved")
-if f"consumed_diagnostic_recovery={sys.argv[2].split('=', 1)[1]}" in payload:
-    raise SystemExit("fixture image collided with the consumed recovery guard")
-fixture_image = sys.argv[3].split("=", 1)[1]
+fixture_image = sys.argv[2].split("=", 1)[1]
 if payload.count(fixture_image) != 1:
-    raise SystemExit("fixture image is not the unique diagnostic allowlist pin")
-for generation_identity in (
-    "4a1de575f2c428ae2625e38a37f31fa70850ce64895cf549509434d806e8d109",
-    "8f20854a98ee31fa889c5bfe2b7818ed42c5ed6186b671a55b3f57835c87e712",
-    "903826e0579863b0290004f5f415aecfcee1384f5b81a949ddd8845c880a7541",
-):
-    if generation_identity in payload:
-        raise SystemExit("generation-2 identity survived in generation-zero fixture")
+    raise SystemExit("fixture image is not the unique stage-75 v2 allowlist pin")
+for record in consumed_records:
+    if payload.count(record) != 1:
+        raise SystemExit(f"consumed recovery guard changed by fixture rewrite: {record}")
+    if record.endswith(fixture_image):
+        raise SystemExit("fixture image collides with a consumed recovery guard")
 path.write_text(payload, encoding="ascii")
 PY
 chmod 0755 "$fixture_gate"
 
-ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-deployment-v1 \
+ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-stage75-v2-superseded-offline-v1 \
 LIVE_BUILD_ROOT="$output_root/wrapper" \
 RECOVERY_COMPONENT_ROOT="$output_root/recovery" \
 TRUST_KEY="$trust" \
 BUNDLE_ROOT="$output_root/bundle-a" \
-BUNDLE=headless-netroot-early-diag-v1 \
+BUNDLE=headless-netroot-early-diag-v2 \
 RECOVERY_SHA256="$image_sha" \
 TRUST_KEY_SHA256="$trust_sha" \
-MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+MANIFEST_SHA256=2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7 \
 HOST_VERIFIER_SHA256="$host_verifier_sha" \
 	"$fixture_gate" artifact-preflight >"$test_root/artifact-preflight.out"
 grep -Fxq \
-	"PASS stable-recovery artifact preflight profile=headless-diagnostic-deployment-v1 image_sha256=$image_sha" \
+	"PASS stable-recovery artifact preflight profile=headless-diagnostic-stage75-v2-superseded-offline-v1 image_sha256=$image_sha" \
 	"$test_root/artifact-preflight.out" ||
 	fail 'disposable diagnostic artifact preflight omitted its exact pass marker'
 

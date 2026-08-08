@@ -25,7 +25,7 @@ FIXTURE_CANDIDATE = (
 )
 DIAGNOSTIC_CANDIDATE = (
     REPO
-    / "configs/recovery-candidates/headless-netroot-early-diag-v1.json"
+    / "configs/recovery-candidates/headless-netroot-early-diag-v2.json"
 )
 
 
@@ -377,6 +377,54 @@ class SigningInputTest(unittest.TestCase):
             "differs from its origin peer",
         ):
             self.stage_inputs()
+
+    def test_stale_origin_ref_is_refreshed_before_signing_key_read(self) -> None:
+        publisher = self.root / "publisher"
+        self.git("clone", str(self.remote), str(publisher), cwd=self.root)
+        self.git("config", "user.name", "ROG5 Publisher", cwd=publisher)
+        self.git(
+            "config",
+            "user.email",
+            "publisher@example.invalid",
+            cwd=publisher,
+        )
+        (publisher / "remote-update").write_text(
+            "new remote head\n",
+            encoding="ascii",
+        )
+        self.git("add", "remote-update", cwd=publisher)
+        self.git("commit", "-m", "advance remote", cwd=publisher)
+        self.git("push", "origin", "HEAD", cwd=publisher)
+        stale = subprocess.run(
+            [
+                "/usr/bin/git",
+                "-C",
+                str(self.repository),
+                "rev-parse",
+                "@{upstream}",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual(
+            stale,
+            subprocess.run(
+                ["/usr/bin/git", "-C", str(self.repository), "rev-parse", "HEAD"],
+                check=True,
+                stdout=subprocess.PIPE,
+                text=True,
+            ).stdout.strip(),
+        )
+        self.key.unlink()
+        with self.assertRaisesRegex(
+            TOOL.SigningInputError,
+            "differs from its origin peer",
+        ):
+            self.stage_inputs()
+        self.assertFalse(self.staged_key.exists())
+        self.assertFalse(self.staged_candidate.exists())
+        self.assertFalse(self.public.exists())
 
     def test_repository_internal_credential_is_rejected(self) -> None:
         internal = self.repository / "signing.pem"

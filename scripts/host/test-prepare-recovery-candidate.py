@@ -404,6 +404,58 @@ class RecoveryCandidateTest(unittest.TestCase):
                 mutated[field] = changed
                 self.assertNotEqual(manifest_hash(mutated), expected_manifest)
 
+    def test_stage75_diagnostic_successor_is_distinct_and_offline(self) -> None:
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        candidate = "headless-netroot-early-diag-v2"
+        record = RUNNER.load_candidate(candidate)
+        candidate_path = self.original_candidate_root / f"{candidate}.json"
+        self.assertEqual(
+            hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
+            "f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157",
+        )
+        self.assertEqual(record["status"], "offline")
+        self.assertEqual(record["authority"], "none")
+        self.assertEqual(record["bundle"], candidate)
+        self.assertEqual(record["profile"], "diagnostic-initramfs-v1")
+        self.assertEqual(record["target_id"], candidate)
+        self.assertEqual(
+            record["artifacts"]["initramfs.cpio.gz"],
+            {
+                "path": (
+                    "artifacts/early-target-diagnostic-v2/"
+                    "rog5-early-target-diagnostic-initramfs.cpio.gz"
+                ),
+                "size": 6011687,
+                "sha256": (
+                    "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
+                ),
+            },
+        )
+        artifacts = {
+            name: REPO / record["artifacts"][name]["path"]
+            for name in RUNNER.ARTIFACT_NAMES
+        }
+        observed = {
+            name: (
+                record["artifacts"][name]["size"],
+                record["artifacts"][name]["sha256"],
+            )
+            for name in RUNNER.ARTIFACT_NAMES
+        }
+        configuration = RUNNER.bundle_configuration(
+            record,
+            artifacts,
+            self.private_key,
+            self.bundle_root,
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                RUNNER.PACKAGER.manifest_bytes(configuration, observed)
+            ).hexdigest(),
+            "2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7",
+        )
+
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo
         RUNNER.CANDIDATE_ROOT = self.original_candidate_root

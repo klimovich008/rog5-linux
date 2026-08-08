@@ -61,6 +61,7 @@ FAULTS = frozenset(
         "ncm-interface-failed",
         "address-failed",
         "carrier-timeout",
+        "route-failed",
         "nfs-mount-failed",
         "seal-verify-failed",
         "overlay-failed",

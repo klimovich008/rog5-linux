@@ -77,7 +77,7 @@ EXPECTED_ARTIFACTS = {
         ),
     },
 }
-DIAGNOSTIC_EXPECTED_ARTIFACTS = {
+LEGACY_DIAGNOSTIC_EXPECTED_ARTIFACTS = {
     "Image": {
         "path": "artifacts/network-root-v1/Image-7.1.4-network-root",
         "size": 40049152,
@@ -103,6 +103,35 @@ DIAGNOSTIC_EXPECTED_ARTIFACTS = {
         "size": 6010870,
         "sha256": (
             "10cc407e2bb5a9c9b63fd7eb30c7fc785d78b587e0c7c0b32346f7b1a50ce35c"
+        ),
+    },
+}
+DIAGNOSTIC_EXPECTED_ARTIFACTS = {
+    "Image": {
+        "path": "artifacts/network-root-v1/Image-7.1.4-network-root",
+        "size": 40049152,
+        "sha256": (
+            "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
+        ),
+    },
+    "board.dtb": {
+        "path": (
+            "artifacts/network-root-v3/"
+            "sm8350-asus-rog-phone5-recovery.dtb"
+        ),
+        "size": 102870,
+        "sha256": (
+            "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
+        ),
+    },
+    "initramfs.cpio.gz": {
+        "path": (
+            "artifacts/early-target-diagnostic-v2/"
+            "rog5-early-target-diagnostic-initramfs.cpio.gz"
+        ),
+        "size": 6011687,
+        "sha256": (
+            "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
         ),
     },
 }
@@ -194,7 +223,9 @@ DEPLOYMENT_ADMISSION_PROFILE = AdmissionProfile(
     target_release=TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(EXPECTED_ARTIFACTS),
 )
-DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
+LEGACY_DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
+    # Read-side verification only for immutable consumed v1 evidence. Current
+    # credentialed builders accept only DIAGNOSTIC_ADMISSION_PROFILE below.
     name="early-target-diagnostic-v1",
     candidate_id="headless-netroot-early-diag-v1",
     bundle_id="headless-netroot-early-diag-v1",
@@ -203,6 +234,19 @@ DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
     build_profile=BUILD_PROFILE,
     target_id="headless-netroot-early-diag",
     target_release=TARGET_RELEASE,
+    expected_artifacts=immutable_artifacts(
+        LEGACY_DIAGNOSTIC_EXPECTED_ARTIFACTS
+    ),
+)
+DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
+    name="early-target-diagnostic-v2",
+    candidate_id="headless-netroot-early-diag-v2",
+    bundle_id="headless-netroot-early-diag-v2",
+    bundle_profile="diagnostic-initramfs-v1",
+    package_profile=PROFILE,
+    build_profile=BUILD_PROFILE,
+    target_id="headless-netroot-early-diag-v2",
+    target_release=TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(DIAGNOSTIC_EXPECTED_ARTIFACTS),
 )
 ADMISSION_PROFILES = MappingProxyType(
@@ -210,6 +254,7 @@ ADMISSION_PROFILES = MappingProxyType(
         profile.name: profile
         for profile in (
             DEPLOYMENT_ADMISSION_PROFILE,
+            LEGACY_DIAGNOSTIC_ADMISSION_PROFILE,
             DIAGNOSTIC_ADMISSION_PROFILE,
         )
     }

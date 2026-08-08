@@ -257,6 +257,8 @@ class Fixture:
               *"rev-parse --abbrev-ref --symbolic-full-name @{u}"*)
                 echo origin/agent/linux-recovery-host
                 ;;
+              *"fetch --no-tags --prune origin refs/heads/agent/linux-recovery-host:refs/remotes/origin/agent/linux-recovery-host"*)
+                ;;
               *"rev-parse HEAD"*|*"rev-parse origin/agent/linux-recovery-host"*)
                 echo synchronized-checkpoint
                 ;;

@@ -18,10 +18,17 @@ handoff_proc=/proc
 handoff_sys=/sys
 handoff_run=/run
 diagnostic_binary=/sbin/rog5-early-target-diag
-diagnostic_candidate=headless-netroot-early-diag-v1
+diagnostic_candidate=headless-netroot-early-diag-v2
 diagnostic_mode=0
 diagnostic_pid=
 diagnostic_fault=none
+expected_udc=a600000.dwc3
+udc_class_dir=/sys/class/udc
+net_class_dir=/sys/class/net
+usb_mode_path=/sys/bus/platform/devices/a600000.ssusb/mode
+usb_configfs_root=/sys/kernel/config
+usb_gadget_root=/sys/kernel/config/usb_gadget/rog5-network-root
+udc_poll_attempts=200
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -447,13 +454,62 @@ arm_watchdog() {
 	log "network-root watchdog armed for $recovery_timeout seconds"
 }
 
+udc_candidate_count() {
+	count=0
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+	done
+	printf '%s\n' "$count"
+}
+
+validate_expected_udc_once() {
+	count=0
+	selected=
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=$(basename "$candidate") || return 1
+	done
+	[ "$count" -eq 1 ] && [ "$selected" = "$expected_udc" ] ||
+		return 1
+	printf '%s\n' "$selected"
+}
+
+validate_expected_udc() {
+	validate_expected_udc_once
+}
+
+select_expected_udc() {
+	attempt=0
+	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
+		candidate_count=$(udc_candidate_count) || return 1
+		case $candidate_count in
+			0)
+			sleep 0.1
+			attempt=$((attempt + 1))
+			continue
+			;;
+			1) ;;
+			*) return 1 ;;
+		esac
+		first=$(validate_expected_udc) || return 1
+		sleep 0.1
+		second=$(validate_expected_udc) || return 1
+		[ "$first" = "$second" ] || return 1
+		printf '%s\n' "$first"
+		return 0
+	done
+	return 1
+}
+
 configure_usb() {
 	diagnostic_fault=gadget-config-failed
-	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+	usb_mode=$usb_mode_path
 	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
-	mount -t configfs configfs /sys/kernel/config || return 1
+	mount -t configfs configfs "$usb_configfs_root" || return 1
 
-	gadget=/sys/kernel/config/usb_gadget/rog5-network-root
+	gadget=$usb_gadget_root
 	mkdir -p "$gadget/strings/0x409" \
 		"$gadget/configs/c.1/strings/0x409" || return 1
 	echo 0x1d6b >"$gadget/idVendor" || return 1
@@ -485,30 +541,21 @@ configure_usb() {
 	diagnostic_emit 20 || true
 
 	diagnostic_fault=udc-bind-failed
-	udc=
-	attempt=0
-	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
-		for candidate in /sys/class/udc/*; do
-			[ -e "$candidate" ] || continue
-			case $(basename "$candidate") in
-				*a600000*) udc=$(basename "$candidate"); break ;;
-			esac
-			[ -n "$udc" ] || udc=$(basename "$candidate")
-		done
-		[ -n "$udc" ] || sleep 0.1
-		attempt=$((attempt + 1))
-	done
-	[ -n "$udc" ] || return 1
+	udc=$(select_expected_udc) || return 1
+	[ "$(validate_expected_udc)" = "$udc" ] || return 1
 	echo "$udc" >"$gadget/UDC" || return 1
+	[ "$(validate_expected_udc)" = "$udc" ] || return 1
+	[ "$(cat "$gadget/UDC" 2>/dev/null)" = "$expected_udc" ] ||
+		return 1
 	diagnostic_emit 30 || true
 
 	diagnostic_fault=ncm-interface-failed
 	attempt=0
-	while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+	while [ "$attempt" -lt 100 ] && [ ! -e "$net_class_dir/usb0" ]; do
 		sleep 0.1
 		attempt=$((attempt + 1))
 	done
-	[ -e /sys/class/net/usb0 ] || return 1
+	[ -e "$net_class_dir/usb0" ] || return 1
 	ip link set usb0 up || return 1
 	diagnostic_emit 40 || true
 	diagnostic_fault=address-failed
@@ -518,7 +565,7 @@ configure_usb() {
 	diagnostic_fault=carrier-timeout
 	attempt=0
 	while [ "$attempt" -lt 100 ]; do
-		if [ "$(cat /sys/class/net/usb0/carrier 2>/dev/null || echo 0)" = 1 ]; then
+		if [ "$(cat "$net_class_dir/usb0/carrier" 2>/dev/null || echo 0)" = 1 ]; then
 			diagnostic_emit 60 || true
 			return 0
 		fi
@@ -528,27 +575,103 @@ configure_usb() {
 	return 1
 }
 
+classify_network_root_transport() {
+	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || {
+		diagnostic_fault=udc-bind-failed
+		return 1
+	}
+	[ "$bound_udc" = "$expected_udc" ] &&
+		[ "$(validate_expected_udc)" = "$expected_udc" ] || {
+		diagnostic_fault=udc-bind-failed
+		return 1
+	}
+	[ -e "$net_class_dir/usb0" ] || {
+		diagnostic_fault=ncm-interface-failed
+		return 1
+	}
+	[ "$(cat "$net_class_dir/usb0/carrier" 2>/dev/null || echo 0)" = 1 ] || {
+		diagnostic_fault=carrier-timeout
+		return 1
+	}
+	address_state=$(ip -4 address show dev usb0 2>/dev/null) || {
+		diagnostic_fault=address-failed
+		return 1
+	}
+	printf '%s\n' "$address_state" |
+		awk '$1 == "inet" && $2 == "169.254.77.2/30" { found=1 }
+			END { exit !found }' || {
+		diagnostic_fault=address-failed
+		return 1
+	}
+	route_state=$(ip -4 route get 169.254.77.1 2>/dev/null) || {
+		diagnostic_fault=route-failed
+		return 1
+	}
+	case " $route_state " in
+		*' via '*)
+			diagnostic_fault=route-failed
+			return 1
+			;;
+	esac
+	set -- $route_state
+	[ "${1:-}" = 169.254.77.1 ] && [ "${2:-}" = dev ] &&
+		[ "${3:-}" = usb0 ] || {
+		diagnostic_fault=route-failed
+		return 1
+	}
+	route_source=
+	while [ "$#" -gt 1 ]; do
+		if [ "$1" = src ]; then
+			route_source=$2
+			break
+		fi
+		shift
+	done
+	[ "$route_source" = 169.254.77.2 ] || {
+		diagnostic_fault=route-failed
+		return 1
+	}
+	return 0
+}
+
 mount_network_root() {
 	diagnostic_fault=nfs-mount-failed
-	mkdir -p /mnt/root-ro /mnt/state /newroot
-	diagnostic_emit 70 || true
-	attempt=0
-	while [ "$attempt" -lt 30 ]; do
+	network_root_ro=${network_root_ro:-/mnt/root-ro}
+	network_root_state=${network_root_state:-/mnt/state}
+	network_newroot=${network_newroot:-/newroot}
+	network_mounts=${network_mounts:-/proc/mounts}
+	mkdir -p "$network_root_ro" "$network_root_state" "$network_newroot"
+	if [ "$diagnostic_mode" -eq 1 ]; then
+		diagnostic_emit 70 || true
 		if mount -t nfs4 \
 			-o vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1 \
-			169.254.77.1:/ /mnt/root-ro; then
+			169.254.77.1:/ "$network_root_ro"; then
 			mount_status=0
 		else
 			mount_status=$?
 		fi
 		diagnostic_emit 75 || true
-		[ "$mount_status" -ne 0 ] || break
-		attempt=$((attempt + 1))
-		sleep 1
-	done
-	mountpoint -q /mnt/root-ro || return 1
-	awk '$2 == "/mnt/root-ro" && $4 ~ /(^|,)ro(,|$)/ { found=1 }
-		END { exit !found }' /proc/mounts || return 1
+		classify_network_root_transport || return 1
+		[ "$mount_status" -eq 0 ] || return 1
+	else
+		attempt=0
+		while [ "$attempt" -lt 30 ]; do
+			if mount -t nfs4 \
+				-o vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1 \
+				169.254.77.1:/ "$network_root_ro"; then
+				mount_status=0
+			else
+				mount_status=$?
+			fi
+			[ "$mount_status" -ne 0 ] || break
+			attempt=$((attempt + 1))
+			sleep 1
+		done
+	fi
+	mountpoint -q "$network_root_ro" || return 1
+	awk -v root="$network_root_ro" \
+		'$2 == root && $4 ~ /(^|,)ro(,|$)/ { found=1 }
+		END { exit !found }' "$network_mounts" || return 1
 	diagnostic_emit 80 || true
 	diagnostic_fault=seal-verify-failed
 	verify_network_root_identity || return 1
@@ -556,12 +679,12 @@ mount_network_root() {
 
 	diagnostic_fault=overlay-failed
 	mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
-		tmpfs /mnt/state || return 1
-	mkdir -p /mnt/state/upper /mnt/state/work
+		tmpfs "$network_root_state" || return 1
+	mkdir -p "$network_root_state/upper" "$network_root_state/work"
 	mount -t overlay overlay \
-		-o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
-		/newroot || return 1
-	[ -x /newroot/sbin/init ] || return 1
+		-o "lowerdir=$network_root_ro,upperdir=$network_root_state/upper,workdir=$network_root_state/work" \
+		"$network_newroot" || return 1
+	[ -x "$network_newroot/sbin/init" ] || return 1
 	diagnostic_emit 100 || true
 	return 0
 }

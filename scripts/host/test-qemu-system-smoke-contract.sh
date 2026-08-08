@@ -80,7 +80,7 @@ for token in \
 	'-device virtio-serial-device' \
 	'-device virtconsole,chardev=diagnostic' \
 	'PASS generated diagnostic units ran under ARM64 systemd' \
-	'DiagnosticStream("headless-netroot-early-diag-v1")' \
+	'DiagnosticStream("headless-netroot-early-diag-v2")' \
 	'reporter_source_sha256=2f8a3bc21a43b415f08a341d01179603401842df25da0b3ce17a67f5cdbd8a65' \
 	'for required in (10, 120, 130, 140)'; do
 	grep -Fq -- "$token" "$handoff_runner" ||

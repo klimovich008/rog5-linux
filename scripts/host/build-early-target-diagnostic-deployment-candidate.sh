@@ -204,11 +204,11 @@ def main() -> None:
         "ROG5_DEPLOYMENT_SIGNING_INPUT_PREFLIGHT": (
             "1" if arguments.signing_input_preflight else "0"
         ),
-        "ROG5_OFFLINE_CANDIDATE": "headless-netroot-early-diag-v1",
+        "ROG5_OFFLINE_CANDIDATE": "headless-netroot-early-diag-v2",
         "ROG5_OFFLINE_EXPECTED_DTB": (
             "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
         ),
-        "ROG5_OFFLINE_EXPECTED_TARGET": "headless-netroot-early-diag",
+        "ROG5_OFFLINE_EXPECTED_TARGET": "headless-netroot-early-diag-v2",
     }
     os.execve(
         "/usr/bin/bash",

@@ -10,13 +10,14 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 fetcher=$repo/scripts/host/fetch-linux-stable-v7.1.4.sh
 builder=$repo/scripts/host/build-network-root-kernel-offline.sh
 device_builder=$repo/scripts/device/build-mainline-network-root.sh
+kernel_contract=$repo/scripts/device/kernel-build-contract.sh
 device_verifier=$repo/scripts/device/verify-mainline-network-root-build.sh
 historical_recipe=$repo/containers/kernel-builder/Dockerfile.historical-20260724
 historical_verifier=$repo/scripts/host/verify-historical-network-root-builder.sh
 
 for path in \
 	"$fetcher" "$builder" "$device_builder" "$device_verifier" \
-	"$historical_verifier"; do
+	"$historical_verifier" "$kernel_contract"; do
 	[[ -f $path && ! -L $path && -x $path ]] ||
 		fail "missing executable network-root rebuild contract: ${path#"$repo"/}"
 	bash -n "$path"
@@ -49,13 +50,37 @@ for token in \
 	'KBUILD_BUILD_HOST=rog5-builder' \
 	'KBUILD_BUILD_TIMESTAMP=' \
 	'PYTHONHASHSEED=0' \
-	'output directory is not empty' \
+	'KBUILD_BUILD_VERSION=1' \
+	'exec /usr/bin/env -i PATH="$PATH" HOME="$clean_home" LC_ALL=C' \
+	'ROG5_NETWORK_ROOT_CLEAN_ENV=1' \
+	'/usr/bin/env -0' \
+	'network-root builder environment is not the exact allowlist' \
+	'llvm-objdump' \
+	'. "$kernel_contract"' \
+	'rog5_kernel_prepare_output "$output_dir" "$build_state"' \
+	'rog5_kernel_make -C "$source_dir"' \
+	'rog5_kernel_cache_stats' \
+	'JOBS must be an integer from 1 through 64' \
+	'base_fragment_sha256=%s' \
+	'network_fragment_sha256=%s' \
+	'contract_sha256=%s' \
+	'kbuild_version=%s' \
+	'cache_identity=$(rog5_kernel_cache_identity)' \
+	'rm -rf -- "$modules_stage"' \
 	'tar --sort=name --mtime=' \
 	'--owner=0 --group=0' \
 	'gzip -n'; do
 	grep -Fq -- "$token" "$device_builder" ||
 		fail "device network-root builder omits release gate: $token"
 done
+if grep -Eq '^[[:space:]]*make -C ' "$device_builder"; then
+	fail 'device network-root builder bypasses the cache-aware make wrapper'
+fi
+release_metadata=$(sed -n "/printf 'kernel_commit=/,/build-meta.txt/p" \
+	"$device_builder")
+if grep -Eq 'incremental_output=|compiler_cache=' <<<"$release_metadata"; then
+	fail 'network-root release metadata now depends on acceleration mode'
+fi
 
 for token in \
 	'7.1.4-g7a5cef0db479' \

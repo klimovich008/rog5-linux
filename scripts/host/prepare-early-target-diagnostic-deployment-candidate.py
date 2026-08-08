@@ -15,9 +15,9 @@ REPO = Path(__file__).resolve().parents[2]
 DEPLOYMENT_PATH = (
     REPO / "scripts/host/prepare-headless-ssh-deployment-candidate.py"
 )
-CANDIDATE_ID = "headless-netroot-early-diag-v1"
+CANDIDATE_ID = "headless-netroot-early-diag-v2"
 EXPECTED_SHA256 = (
-    "7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8"
+    "f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157"
 )
 
 

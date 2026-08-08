@@ -42,7 +42,7 @@ PARSER = importlib.util.module_from_spec(PARSER_SPEC)
 sys.modules[PARSER_SPEC.name] = PARSER
 PARSER_SPEC.loader.exec_module(PARSER)
 
-CANDIDATE = "headless-netroot-early-diag-v1"
+CANDIDATE = "headless-netroot-early-diag-v2"
 BOOT = "12345678-1234-4abc-8def-1234567890ab"
 HOST_BOOT = "87654321-4321-4abc-8def-1234567890ab"
 LOCATION = "pci0000:00/0000:00:08.1/usb3/3-2"

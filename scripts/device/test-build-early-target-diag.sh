@@ -16,9 +16,9 @@ sh -n "$builder"
 bash -n "$host_gate"
 
 for token in \
-	'expected_source_sha256=2f8a3bc21a43b415f08a341d01179603401842df25da0b3ce17a67f5cdbd8a65' \
+	'expected_source_sha256=d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a' \
 	'expected_output_size=67288' \
-	'expected_output_sha256=dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10' \
+	'expected_output_sha256=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1' \
 	'[ "$(uname -m)" = aarch64 ]' \
 	'[ "$(cc -dumpfullversion)" = 15.2.0 ]' \
 	'-static -fPIE -pie -fstack-protector-strong' \

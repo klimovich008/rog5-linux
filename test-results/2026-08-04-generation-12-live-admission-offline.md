@@ -62,7 +62,8 @@ reusable.
   mismatch, consumed or altered-unbooted role, tracked-state mutation, and
   policy/artifact trailing fields fail closed before host inspection.
 - Recovery policy aggregate: **PASS**. It requires exactly the sole
-  Generation-12 admission and exact unbooted, authority-free inventory row
+  then-pre-consumption Generation-12 admission and exact authority-free
+  inventory row (Generation 12 is now consumed and never reusable)
   while continuing to reject every consumed generation.
 - Shell/Python syntax and `git diff --check`: **PASS**.
 - Complete local repository `ci` tier: **PASS**, including the retained exact

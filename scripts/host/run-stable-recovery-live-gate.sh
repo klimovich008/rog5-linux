@@ -123,7 +123,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation11-offline-v1 | \
 		headless-diagnostic-generation11-live-v1 | \
 		headless-diagnostic-generation12-offline-v1 | \
-		headless-diagnostic-generation12-live-v1) ;;
+		headless-diagnostic-generation12-live-v1 | \
+		headless-diagnostic-stage75-v2-superseded-offline-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -712,9 +713,8 @@ case $profile in
 			fail 'generation-12 diagnostic profile is offline-only and not boot-authorized'
 		fi
 		if [[ $profile == headless-diagnostic-generation12-live-v1 &&
-			$action != policy-preflight && $action != artifact-preflight &&
-			${ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-} != 1 ]]; then
-			fail 'generation-12 connected action requires the one-shot lifecycle controller'
+			$action != policy-preflight && $action != artifact-preflight ]]; then
+			fail 'generation-12 is consumed and cannot enter connected preflight or boot'
 		fi
 		component_layout=structured
 		expected_kernel=895272e87d5a90ae6b9b8df71862b48d819479d5bbf2741fab002126e47d3eae
@@ -730,10 +730,7 @@ case $profile in
 		expected_avb_salt=728dcc59f29e0fbf83165b6979bb5dc68571b0d0e0236993fc9b8f2dd98084c9
 		expected_avb_digest=31d1ec59526d876de914330004d42752cfc7b24bd069b955d64687ef750b526d
 		if [[ $profile == headless-diagnostic-generation12-live-v1 ]]; then
-			expected_boot_image=build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img
-			expected_boot_basis='one generation-12 host-confinement-corrected diagnostic lifecycle after connected preflight; remove after any result; never flash'
-			expected_boot_role='unbooted generation-12 host-confinement-corrected diagnostic recovery; byte-identical generation-11 raw payload with a distinct deterministic authority-free AVB generation; immutable offline and live profiles plus artifact preflight pass; issuance authority=none; central policy separately admits one connected-preflight-gated RAM-only lifecycle; no phone contact or boot claim; never flash'
-			expected_boot_tracked=no
+			expected_boot_role='consumed generation-12 host-confinement-corrected diagnostic recovery; one RAM-only lifecycle transferred the exact 46163787-byte signed bundle and recovery accepted correlated PREPARE and COMMIT; receive-only target evidence reached stage 70 nfs-mount-begin, then USB disconnected before stage 80 nfs-mount-ok with no terminal fault frame; the lifecycle host parser separately misclassified the valid postmortem-extended PREPARE response after commit, then the durable intent resolved FALLBACK_RETURNED; exact Alpine fallback, strict SSH, profile restoration, final host cleanup, and Steam socket restoration passed; no target acceptance; retain offline only; never retry or flash'
 		fi
 		[[ $expected_manifest == \
 			4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ]] ||
@@ -747,6 +744,42 @@ case $profile in
 		[[ $expected_host_verifier == \
 			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
 			fail 'generation-12 diagnostic host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	headless-diagnostic-stage75-v2-superseded-offline-v1)
+		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+			fail 'superseded stage-75 v2 artifact profile is historical, offline-only, and not boot-authorized'
+		component_layout=structured
+		expected_kernel=7a6c2a19c7a00a2699fd598b4fc3ad5fed680bf2cd9cb7cfa7bafa783d9fe563
+		expected_raw=406b2497bff8174b01119e4bcfa4dddb544df3de8fdb9168d80e88708f20a995
+		expected_initramfs=a38b61462468272c8d8409461d7318cfc442c3a4707a624e9f8ab1751ef047a4
+		expected_control=242ac7fc4b7d7614cf5fe8a26162255c898de2f2aeef9cf70687d0d327c149e7
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0
+		expected_target_id=headless-netroot-early-diag-v2
+		expected_bundle=headless-netroot-early-diag-v2
+		expected_bundle_profile=diagnostic-initramfs-v1
+		# The deterministic builder intentionally derives the AVB salt from the
+		# complete raw-wrapper digest; equality is independently checked here.
+		expected_avb_salt=406b2497bff8174b01119e4bcfa4dddb544df3de8fdb9168d80e88708f20a995
+		expected_avb_digest=a1d19575dd21b6da3fd3cbb6c0f4ea33e312cc59ddc860889f1f54ef976e7b49
+		[[ $expected_manifest == \
+			2fb99ba07676d696fd3182da6bf62bd572b032b9e4bb90bff4b0d2a24544e156 ]] ||
+			fail 'stage-75 v2 diagnostic runtime manifest is not pinned'
+		[[ $expected_image == \
+			833899cb067a28d57e41c5a8291c7f5099c4f7fcc11316c2976d04a7b926e7de ]] ||
+			fail 'stage-75 v2 diagnostic recovery image is not pinned'
+		[[ $expected_trust == \
+			58950b2101dca0702f2c436015bbb21eb6535e4e06f74808c2f8183c9da27268 ]] ||
+			fail 'stage-75 v2 diagnostic trust root is not pinned'
+		[[ $expected_host_verifier == \
+			0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 ]] ||
+			fail 'stage-75 v2 diagnostic host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -812,14 +845,6 @@ for command in awk cmp cp cut find git grep mktemp python3 realpath sha256sum \
 		fail "missing live-gate command: $command"
 done
 [[ $(uname -s) == Linux ]] || fail 'the live gate requires Linux'
-if [[ $profile == headless-diagnostic-generation12-live-v1 &&
-	$action == boot ]]; then
-	claim_consumer=$repo/scripts/host/consume-generation12-boot-claim.py
-	[[ -f $claim_consumer && ! -L $claim_consumer && -x $claim_consumer ]] ||
-		fail 'generation-12 claim consumer is unsafe or absent'
-	"$claim_consumer" ||
-		fail 'generation-12 durable BOOT_CLAIMED record was not entered'
-fi
 if [[ $action != artifact-preflight ]]; then
 	for command in sed systemctl; do
 		command -v "$command" >/dev/null ||

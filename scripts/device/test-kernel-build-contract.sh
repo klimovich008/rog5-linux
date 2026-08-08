@@ -105,9 +105,9 @@ identity_c=$(PATH="$fake_bin:/usr/bin:/bin" sh -c \
 [ "$identity_a" != "$identity_c" ] ||
 	fail 'toolchain binary mutation did not change identity'
 
-printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$MAKE_LOG"\nprintf "%%s\\n" "${CCACHE_COMPILERCHECK-}|${CCACHE_NODEPEND-}|${CCACHE_SLOPPINESS-unset}" >"$MAKE_ENV_LOG"\nprintf stable >"$MAKE_ARTIFACT"\n' \
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$MAKE_LOG"\nprintf "%%s\\n" "${CCACHE_COMPILERCHECK-}|${CCACHE_NODEPEND-}|${CCACHE_SLOPPINESS-unset}|${CCACHE_CONFIGPATH-unset}" >"$MAKE_ENV_LOG"\nprintf stable >"$MAKE_ARTIFACT"\n' \
 	>"$fake_bin/make"
-printf '#!/bin/sh\nexec "$@"\n' >"$fake_bin/ccache"
+printf '#!/bin/sh\nif [ "${1-}" = --show-config ]; then printf "%%s\\n" "cache_dir = /tmp/rog5-test-cache"; exit 0; fi\nexec "$@"\n' >"$fake_bin/ccache"
 chmod 755 "$fake_bin/make" "$fake_bin/ccache"
 
 MAKE_LOG=$test_tmp/uncached.log
@@ -134,7 +134,7 @@ grep -Fq 'HOSTCC=ccache clang' "$MAKE_LOG" ||
 	fail 'cached make path did not wrap the host compiler'
 grep -Fq 'HOSTCXX=ccache clang++' "$MAKE_LOG" ||
 	fail 'cached make path did not wrap the host C++ compiler'
-grep -Fxq 'content|true|' "$MAKE_ENV_LOG" ||
+grep -Fxq 'content|true||/dev/null' "$MAKE_ENV_LOG" ||
 	fail 'cached make path did not enforce safe ccache environment'
 cmp "$test_tmp/uncached.bin" "$test_tmp/cached.bin" ||
 	fail 'cached and uncached fixture artifacts differ'
