@@ -2102,41 +2102,37 @@ do
 	done
 done
 
+# The hostile policy matrix above checks both names in every offline/live
+# pair. Each pair shares one artifact contract in the gate, so verify each
+# distinct retained byte tree once. Twin-root comparisons below prove when a
+# second build tree has the same byte inputs; bundle-a/b remain separate when
+# they are not covered by those comparisons.
 if [[ -d $generation3_root ]]; then
-	for generation3_profile in \
-		headless-diagnostic-generation3-offline-v1 \
-		headless-diagnostic-generation3-live-v1
-	do
-		generation3_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-				ROG5_STABLE_RECOVERY_PROFILE="$generation3_profile" \
-				LIVE_BUILD_ROOT="$generation3_root/wrapper" \
-				RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
-				TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
-				BUNDLE_ROOT="$generation3_root/bundle-a" \
-				BUNDLE=headless-netroot-early-diag-v1 \
-				RECOVERY_SHA256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6 \
-				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			"PASS stable-recovery artifact preflight profile=$generation3_profile image_sha256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6" \
-			<<<"$generation3_artifact"
-	done
+	generation3_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation3-offline-v1 \
+			LIVE_BUILD_ROOT="$generation3_root/wrapper" \
+			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+			BUNDLE_ROOT="$generation3_root/bundle-a" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation3-offline-v1 image_sha256=eb514a57eb8cf27c5864a01d64256e77919f2e12604ea45f7daba02c52cd77b6' \
+		<<<"$generation3_artifact"
 else
 	echo 'SKIP generation-3 retained artifact preflight: ignored build tree absent' >&2
 fi
 
 if [[ -d $generation4_root && -d $generation3_root ]]; then
-	for generation4_profile in \
-		headless-diagnostic-generation4-offline-v1 \
-		headless-diagnostic-generation4-live-v1
-	do
-		generation4_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE="$generation4_profile" \
+	generation4_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation4-offline-v1 \
 			LIVE_BUILD_ROOT="$generation4_root" \
 			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
@@ -2146,24 +2142,19 @@ if [[ -d $generation4_root && -d $generation3_root ]]; then
 			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			"PASS stable-recovery artifact preflight profile=$generation4_profile image_sha256=220e85568d1e92d9dbe33e3405f28c9b23dc8520b9e1ab2c81a30085e9cb270d" \
-			<<<"$generation4_artifact"
-	done
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation4-offline-v1 image_sha256=220e85568d1e92d9dbe33e3405f28c9b23dc8520b9e1ab2c81a30085e9cb270d' \
+		<<<"$generation4_artifact"
 else
 	echo 'SKIP generation-4 artifact preflight: ignored build trees absent' >&2
 fi
 
 if [[ -d $generation5_root && -d $generation3_root ]]; then
-	for generation5_profile in \
-		headless-diagnostic-generation5-offline-v1 \
-		headless-diagnostic-generation5-live-v1
-	do
-		generation5_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-		ROG5_STABLE_RECOVERY_PROFILE="$generation5_profile" \
+	generation5_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+		ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation5-offline-v1 \
 		LIVE_BUILD_ROOT="$generation5_root" \
 		RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 		TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
@@ -2173,24 +2164,19 @@ if [[ -d $generation5_root && -d $generation3_root ]]; then
 		TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 		MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 		HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			"PASS stable-recovery artifact preflight profile=$generation5_profile image_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a" \
-			<<<"$generation5_artifact"
-	done
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation5-offline-v1 image_sha256=abe4501f9a5fb2892d30d425c9498556cab84ab8c9557c18aba5ae4caf5beb1a' \
+		<<<"$generation5_artifact"
 else
 	echo 'SKIP generation-5 artifact preflight: ignored build trees absent' >&2
 fi
 
 if [[ -d $generation6_root && -d $generation3_root ]]; then
-	for generation6_profile in \
-		headless-diagnostic-generation6-offline-v1 \
-		headless-diagnostic-generation6-live-v1
-	do
-		generation6_artifact=$(
-			env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE="$generation6_profile" \
+	generation6_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation6-offline-v1 \
 			LIVE_BUILD_ROOT="$generation6_root" \
 			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
@@ -2200,12 +2186,11 @@ if [[ -d $generation6_root && -d $generation3_root ]]; then
 			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-				bash "$gate" artifact-preflight
-		)
-		grep -Fxq \
-			"PASS stable-recovery artifact preflight profile=$generation6_profile image_sha256=6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398" \
-			<<<"$generation6_artifact"
-	done
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation6-offline-v1 image_sha256=6aa47517de806fea73b70f5b5b2e4c749ec39f9e3538a622b7a75f1a1cd9d398' \
+		<<<"$generation6_artifact"
 else
 	echo 'SKIP generation-6 artifact preflight: ignored build trees absent' >&2
 fi
@@ -2231,15 +2216,10 @@ if [[ -d $generation7_root_a || -d $generation7_root_b ]]; then
 	do
 		cmp "$generation7_root_a/$relative" "$generation7_root_b/$relative"
 	done
-	for generation7_root in "$generation7_root_a" "$generation7_root_b"; do
-		for generation7_profile in \
-			headless-diagnostic-generation7-offline-v1 \
-			headless-diagnostic-generation7-live-v1
-		do
-			generation7_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE="$generation7_profile" \
-			LIVE_BUILD_ROOT="$generation7_root" \
+	generation7_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation7-offline-v1 \
+			LIVE_BUILD_ROOT="$generation7_root_a" \
 			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
 			BUNDLE_ROOT="$generation3_root/bundle-a" \
@@ -2248,13 +2228,11 @@ if [[ -d $generation7_root_a || -d $generation7_root_b ]]; then
 			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation7_profile image_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901" \
-				<<<"$generation7_artifact"
-		done
-	done
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation7-offline-v1 image_sha256=d3d4cdb99b3192ee68498b4cfa4ac7505c213e572b41a7aa35c2882e6a812901' \
+		<<<"$generation7_artifact"
 
 	generation7_mutation=$build_tmp/generation7-record-mutation
 	cp -a --reflink=auto "$generation7_root_a" "$generation7_mutation"
@@ -2312,15 +2290,10 @@ if [[ -d $generation8_root_a || -d $generation8_root_b ]]; then
 		cmp "$generation8_root/repack/stable-recovery-a.raw.img" \
 			"$generation8_root/repack/stable-recovery-b.raw.img"
 	done
-	for generation8_root in "$generation8_root_a" "$generation8_root_b"; do
-		for generation8_profile in \
-			headless-diagnostic-generation8-offline-v1 \
-			headless-diagnostic-generation8-live-v1
-		do
-			generation8_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-				ROG5_STABLE_RECOVERY_PROFILE="$generation8_profile" \
-				LIVE_BUILD_ROOT="$generation8_root" \
+	generation8_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation8-offline-v1 \
+			LIVE_BUILD_ROOT="$generation8_root_a" \
 				RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
 				TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
 				BUNDLE_ROOT="$generation3_root/bundle-a" \
@@ -2329,13 +2302,11 @@ if [[ -d $generation8_root_a || -d $generation8_root_b ]]; then
 				TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
 				MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 				HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation8_profile image_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415" \
-				<<<"$generation8_artifact"
-		done
-	done
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation8-offline-v1 image_sha256=f102d53c3b64ac8407ebe81b06213899c5907666bd9ed79b149dc91ec69f2415' \
+		<<<"$generation8_artifact"
 
 	generation8_mutation=$build_tmp/generation8-record-mutation
 	cp -a --reflink=auto "$generation8_root_a" "$generation8_mutation"
@@ -2392,29 +2363,24 @@ if [[ -d $generation9_root_a || -d $generation9_root_b ]]; then
 			"$generation9_root/repack/stable-recovery-b.avb.img"
 		cmp "$generation9_root/repack/stable-recovery-a.raw.img" \
 			"$generation9_root/repack/stable-recovery-b.raw.img"
-		for generation9_profile in \
-			headless-diagnostic-generation9-offline-v1 \
-			headless-diagnostic-generation9-live-v1
-		do
-			generation9_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-					ROG5_STABLE_RECOVERY_PROFILE="$generation9_profile" \
-					LIVE_BUILD_ROOT="$generation9_root" \
-					RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
-					TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
-					BUNDLE_ROOT="$generation3_root/bundle-a" \
-					BUNDLE=headless-netroot-early-diag-v1 \
-					RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
-					TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
-					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
-					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
-					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation9_profile image_sha256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008" \
-				<<<"$generation9_artifact"
-		done
 	done
+	generation9_artifact=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation9-offline-v1 \
+			LIVE_BUILD_ROOT="$generation9_root_a" \
+			RECOVERY_COMPONENT_ROOT="$generation3_root/recovery" \
+			TRUST_KEY="$generation3_root/recovery/ephemeral-public.raw" \
+			BUNDLE_ROOT="$generation3_root/bundle-a" \
+			BUNDLE=headless-netroot-early-diag-v1 \
+			RECOVERY_SHA256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008 \
+			TRUST_KEY_SHA256=f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b \
+			MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
+			HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation9-offline-v1 image_sha256=b458e64bca6ab3b94aa88ceb968ed306625e4282836bbad57f9e22689482d008' \
+		<<<"$generation9_artifact"
 
 	generation9_mutation=$build_tmp/generation9-record-mutation
 	cp -a --reflink=auto "$generation9_root_a" "$generation9_mutation"
@@ -2464,19 +2430,15 @@ if [[ -d $generation10_root_a || -d $generation10_root_b ||
 	do
 		cmp "$generation10_root_a/$relative" "$generation10_root_b/$relative"
 	done
-	for generation10_profile in \
-		headless-diagnostic-generation10-offline-v1 \
-		headless-diagnostic-generation10-live-v1
-	do
-		for generation10_suffix in a b; do
-			if [[ $generation10_suffix == a ]]; then
-				generation10_root=$generation10_root_a
-			else
-				generation10_root=$generation10_root_b
-			fi
-			generation10_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-					ROG5_STABLE_RECOVERY_PROFILE="$generation10_profile" \
+	for generation10_suffix in a b; do
+		if [[ $generation10_suffix == a ]]; then
+			generation10_root=$generation10_root_a
+		else
+			generation10_root=$generation10_root_b
+		fi
+		generation10_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+					ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation10-offline-v1 \
 					LIVE_BUILD_ROOT="$generation10_root" \
 					RECOVERY_COMPONENT_ROOT="$generation10_base/recovery" \
 					TRUST_KEY="$generation10_base/recovery/ephemeral-public.raw" \
@@ -2487,12 +2449,11 @@ if [[ -d $generation10_root_a || -d $generation10_root_b ||
 					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
 					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation10_profile image_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51" \
-				<<<"$generation10_artifact" ||
-				{ echo "FAIL $generation10_profile tree $generation10_suffix did not pass artifact preflight" >&2; exit 1; }
-		done
+		)
+		grep -Fxq \
+			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation10-offline-v1 image_sha256=b983e89b0279eecc8d936ef6d2d0c96222c09bd2af1de530619ef6988d468b51' \
+			<<<"$generation10_artifact" ||
+			{ echo "FAIL generation-10 tree $generation10_suffix did not pass artifact preflight" >&2; exit 1; }
 	done
 
 	generation10_mutation=$build_tmp/generation10-record-mutation
@@ -2545,19 +2506,15 @@ if [[ -d $generation11_root_a || -d $generation11_root_b ||
 	do
 		cmp "$generation11_root_a/$relative" "$generation11_root_b/$relative"
 	done
-	for generation11_profile in \
-		headless-diagnostic-generation11-offline-v1 \
-		headless-diagnostic-generation11-live-v1
-	do
-		for generation11_suffix in a b; do
-			if [[ $generation11_suffix == a ]]; then
-				generation11_root=$generation11_root_a
-			else
-				generation11_root=$generation11_root_b
-			fi
-			generation11_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-					ROG5_STABLE_RECOVERY_PROFILE="$generation11_profile" \
+	for generation11_suffix in a b; do
+		if [[ $generation11_suffix == a ]]; then
+			generation11_root=$generation11_root_a
+		else
+			generation11_root=$generation11_root_b
+		fi
+		generation11_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+					ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation11-offline-v1 \
 					LIVE_BUILD_ROOT="$generation11_root" \
 					RECOVERY_COMPONENT_ROOT="$generation11_base/recovery" \
 					TRUST_KEY="$generation11_base/recovery/ephemeral-public.raw" \
@@ -2568,12 +2525,11 @@ if [[ -d $generation11_root_a || -d $generation11_root_b ||
 					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
 					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation11_profile image_sha256=8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562" \
-				<<<"$generation11_artifact" ||
-				{ echo "FAIL $generation11_profile tree $generation11_suffix did not pass artifact preflight" >&2; exit 1; }
-		done
+		)
+		grep -Fxq \
+			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation11-offline-v1 image_sha256=8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562' \
+			<<<"$generation11_artifact" ||
+			{ echo "FAIL generation-11 tree $generation11_suffix did not pass artifact preflight" >&2; exit 1; }
 	done
 
 	generation11_mutation=$build_tmp/generation11-record-mutation
@@ -2646,13 +2602,9 @@ if [[ -d $generation12_root_a || -d $generation12_root_b ||
 		else
 			generation12_root=$generation12_root_b
 		fi
-		for generation12_profile in \
-			headless-diagnostic-generation12-offline-v1 \
-			headless-diagnostic-generation12-live-v1
-		do
-			generation12_artifact=$(
-				env -i PATH="$PATH" HOME="$HOME" \
-					ROG5_STABLE_RECOVERY_PROFILE="$generation12_profile" \
+		generation12_artifact=$(
+			env -i PATH="$PATH" HOME="$HOME" \
+					ROG5_STABLE_RECOVERY_PROFILE=headless-diagnostic-generation12-offline-v1 \
 					LIVE_BUILD_ROOT="$generation12_root" \
 					RECOVERY_COMPONENT_ROOT="$generation12_base/recovery" \
 					TRUST_KEY="$generation12_base/recovery/ephemeral-public.raw" \
@@ -2663,12 +2615,11 @@ if [[ -d $generation12_root_a || -d $generation12_root_b ||
 					MANIFEST_SHA256=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 \
 					HOST_VERIFIER_SHA256=0a5708053725c2eea2637b3df2432c22dcda02313280abd17cc3d0b61855b621 \
 					bash "$gate" artifact-preflight
-			)
-			grep -Fxq \
-				"PASS stable-recovery artifact preflight profile=$generation12_profile image_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" \
-				<<<"$generation12_artifact" ||
-				{ echo "FAIL generation-12 $generation12_profile tree $generation12_suffix did not pass artifact preflight" >&2; exit 1; }
-		done
+		)
+		grep -Fxq \
+			'PASS stable-recovery artifact preflight profile=headless-diagnostic-generation12-offline-v1 image_sha256=615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6' \
+			<<<"$generation12_artifact" ||
+			{ echo "FAIL generation-12 tree $generation12_suffix did not pass artifact preflight" >&2; exit 1; }
 	done
 
 	generation12_mutation=$build_tmp/generation12-record-mutation
