@@ -148,6 +148,8 @@ jobs:
             libssl-dev \
             lld \
             llvm \
+            nfs-ganesha \
+            nfs-ganesha-mem \
             qemu-system-arm
       - name: Fetch pinned upstream Linux source
         if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
@@ -177,4 +179,6 @@ jobs:
           scripts/host/test-qemu-system-smoke.sh \
             build/qemu-smoke-kernel/arch/arm64/boot/Image
           scripts/host/test-qemu-diagnostic-handoff.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image
+          sudo scripts/host/test-qemu-network-root-nfs.sh \
             build/qemu-smoke-kernel/arch/arm64/boot/Image

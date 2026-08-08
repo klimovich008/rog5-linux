@@ -14,13 +14,17 @@ cache_integration=$repo/scripts/host/test-kernel-build-cache-integration.sh
 runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
+nfs_source=${QEMU_NFS_SOURCE:-$repo/tools/qemu-network-root-nfs/init.c}
+nfs_config=${QEMU_NFS_CONFIG:-$repo/tools/qemu-network-root-nfs/ganesha.conf.in}
+nfs_runner=${QEMU_NFS_RUNNER:-$repo/scripts/host/test-qemu-network-root-nfs.sh}
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 systemd_runtime_builder=$repo/scripts/host/build-qemu-systemd-runtime.sh
 systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
 	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
-	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$workflow"; do
+	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$nfs_source" \
+	"$nfs_config" "$nfs_runner" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -58,9 +62,10 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
 for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
-	FUTEX INET INOTIFY_USER MEMFD_CREATE MULTIUSER NET NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP \
-	SECCOMP SECCOMP_FILTER SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS UNIX \
-	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO; do
+	FUTEX INET INOTIFY_USER IP_PNP MEMFD_CREATE MULTIUSER NET NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP \
+	NFS_FS NFS_V4 NFS_V4_2 ROOT_NFS SECCOMP SECCOMP_FILTER SERIAL_AMBA_PL011_CONSOLE \
+	SHMEM SIGNALFD SUNRPC SYSFS TIMERFD TMPFS UNIX VIRTIO VIRTIO_CONSOLE \
+	VIRTIO_MENU VIRTIO_MMIO VIRTIO_NET; do
 	grep -Eq "(^|[[:space:]])$option([[:space:]]|$)" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
 done
@@ -121,11 +126,41 @@ tty_alias_line=$(grep -n 'symlink("/dev/hvc0", "/dev/ttyGS0")' \
 [[ $reporter_start_line -lt $tty_alias_line ]] ||
 	fail 'QEMU reporter no longer starts before its transport exists'
 grep -Fq 'test-qemu-diagnostic-handoff.sh' "$workflow"
+grep -Fq 'test-qemu-network-root-nfs.sh' "$workflow"
+grep -Fq 'nfs-ganesha-mem' "$workflow"
 grep -Fq 'libc6-dev-arm64-cross' "$workflow" ||
 	fail 'QEMU workflow lacks the ARM64 static libc development package'
 if grep -Eq 'fastboot|/dev/(sd|nvme|ufs)|mount[[:space:]].*root=' \
-	"$runner" "$handoff_runner"; then
+	"$runner" "$handoff_runner" "$nfs_runner"; then
 	fail 'board-neutral QEMU smoke contains a phone or storage action'
 fi
+
+for token in \
+	'169.254.77.2::169.254.77.1:255.255.255.252' \
+	'ganesha.nfsd -F' \
+	'net=169.254.77.0/24' \
+	'host=169.254.77.3,dns=169.254.77.4,restrict=on' \
+	'guestfwd=tcp:169.254.77.1:2049-tcp:127.0.0.1:2049' \
+	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only'; do
+	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" ||
+		fail "QEMU NFS contract is missing: $token"
+done
+production_nfs_options=$(
+	sed -n 's/^[[:space:]]*-o \([^[:space:]]*\).*/\1/p' \
+		"$repo/initramfs/network-root-init" | grep '^vers=4\.2,' | sort -u
+)
+qemu_nfs_options=$(
+	sed -n 's/.*"\(vers=4\.2,[^"]*\)";.*/\1/p' "$nfs_source"
+)
+[[ -n $production_nfs_options && $qemu_nfs_options == "$production_nfs_options" ]] ||
+	fail 'QEMU NFS mount options differ from production'
+for token in 'Minor_Versions = 2' 'Access_Type = RO' 'Protocols = 4' \
+	'Enable_UDP = false' 'Enable_NLM = false' 'Enable_RQUOTA = false' \
+	'Transports = TCP' 'Name = MEM'; do
+	grep -Fq "$token" "$nfs_config" ||
+		fail "QEMU NFS server contract is missing: $token"
+done
+grep -Fq 'verify_read_only_enforcement();' "$nfs_source" ||
+	fail 'QEMU NFS client does not test read-only enforcement'
 
 echo 'PASS board-neutral full-system QEMU smoke contract'
