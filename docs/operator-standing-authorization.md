@@ -51,6 +51,10 @@ repository reader or an untrusted branch edit cannot manufacture authority.
 - **2026-08-05:** the operator reaffirmed that no further authorization prompts
   are needed and directed the agent to keep using the standing authorizations
   autonomously until a genuine blocker is reached.
+- **2026-08-05 (latest):** the operator explicitly directed the agent to write
+  down that future authorization prompts are unnecessary and that every
+  existing in-scope authorization may continue to be used until the work is
+  genuinely blocked.
 
 These entries preserve the directive's provenance without treating each
 historical wording variant as a separate or competing policy.
