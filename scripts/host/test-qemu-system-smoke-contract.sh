@@ -45,6 +45,8 @@ grep -Fq 'LLVM=1 tinyconfig' "$builder"
 grep -Fq 'rog5_kernel_prepare_output "$output_root" "$build_state"' "$builder"
 grep -Fq 'rog5_kernel_make -s -C "$source_root"' "$builder"
 grep -Fq 'KBUILD_BUILD_TIMESTAMP=' "$builder"
+grep -Fq 'make bc clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-strip' \
+	"$builder" || fail 'QEMU kernel state does not bind every build tool'
 grep -Fq 'fresh cached and uncached Images differ' "$cache_integration"
 grep -Fq 'INCREMENTAL_BUILD=1' "$cache_integration"
 grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh')" \
@@ -56,8 +58,8 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
 for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
-	FUTEX INOTIFY_USER MEMFD_CREATE NET PRINTK PROC_FS RD_GZIP \
-	SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS UNIX \
+	FUTEX INET INOTIFY_USER MEMFD_CREATE MULTIUSER NET NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP \
+	SECCOMP SECCOMP_FILTER SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS UNIX \
 	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO; do
 	grep -Eq "(^|[[:space:]])$option([[:space:]]|$)" "$builder" ||
 		fail "minimal QEMU kernel is missing $option"
@@ -77,8 +79,11 @@ for token in \
 	'tools/early_target_diag/rog5-early-target-diag.c' \
 	'verify-qemu-systemd-runtime.sh' \
 	'install_diagnostic_units' \
+	'ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff sshd-server' \
+	'ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff ssh-proof' \
 	'-device virtio-serial-device' \
 	'-device virtconsole,chardev=diagnostic' \
+	'PASS real key-only OpenSSH login completed' \
 	'PASS generated diagnostic units ran under ARM64 systemd' \
 	'DiagnosticStream("headless-netroot-early-diag-v2")' \
 	'reporter_source_sha256=d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a' \
@@ -86,6 +91,12 @@ for token in \
 	grep -Fq -- "$token" "$handoff_runner" ||
 		fail "QEMU diagnostic handoff contract is missing: $token"
 done
+grep -Fq 'execl("/usr/bin/sshd", "/usr/bin/sshd", "-D", "-e", "-f"' \
+	"$handoff_source" || fail 'QEMU harness does not execute the real OpenSSH daemon'
+if grep -Fq 'sshd-stub' "$handoff_runner" ||
+	grep -Fq 'SSH ordering stub' "$handoff_runner"; then
+	fail 'QEMU diagnostic handoff still substitutes an SSH ordering stub'
+fi
 actual_reporter_source_sha256=$(
 	sha256sum "$repo/tools/early_target_diag/rog5-early-target-diag.c" |
 		cut -d ' ' -f 1
@@ -98,8 +109,8 @@ grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"
 grep -Fq 'bind_file(REPORTER, RETAINED_REPORTER)' "$handoff_source"
 grep -Fq '#define PUBLICATION_SETTLE_MS 500' "$handoff_source"
 [[ $(grep -Fc 'sleep_milliseconds(PUBLICATION_SETTLE_MS);' \
-	"$handoff_source") == 2 ]] ||
-	fail 'QEMU harness does not preserve both reporter publication windows'
+	"$handoff_source") == 1 ]] ||
+	fail 'QEMU harness lost its final reporter publication window'
 if grep -Eq 'require_emit\("(130|140)"\)' "$handoff_source"; then
 	fail 'QEMU harness directly emits a systemd-owned diagnostic stage'
 fi

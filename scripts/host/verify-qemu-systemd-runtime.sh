@@ -8,8 +8,8 @@ fail() {
 
 [[ $# == 1 ]] || fail 'usage: verify-qemu-systemd-runtime.sh RUNTIME_CPIO_GZ'
 archive=$(realpath -e -- "$1") || fail 'cannot resolve systemd runtime archive'
-expected_size=9628993
-expected_sha256=5011267029d8da251c20e66f232cce2f36530e09d18a36e0a492018255f178f7
+expected_size=12006001
+expected_sha256=990689a5ebc0a3cdc16f9c6198bab3a9cc4531ead17ffe4ee0ad14c81c1aebde
 for command_name in cpio cut file find grep gzip mktemp python3 readelf \
 	readlink realpath sha256sum stat wc; do
 	command -v "$command_name" >/dev/null ||
@@ -31,12 +31,12 @@ gzip -dc "$archive" |
 [[ ! -e $work/etc && ! -e $work/root && ! -e $work/home &&
 	! -e $work/var && -L $work/lib && $(readlink "$work/lib") == usr/lib ]] ||
 	fail 'systemd runtime carries mutable host or user state'
-[[ $(find "$work" -type f | wc -l) == 45 ]] ||
+[[ $(find "$work" -type f | wc -l) == 74 ]] ||
 	fail 'systemd runtime regular-file count changed'
-[[ $(find "$work" -type l | wc -l) == 10 ]] ||
+[[ $(find "$work" -type l | wc -l) == 20 ]] ||
 	fail 'systemd runtime symlink count changed'
 [[ -f $work/usr/share/rog5-qemu-systemd/runtime-files.sha256 &&
-	$(wc -l <"$work/usr/share/rog5-qemu-systemd/runtime-files.sha256") == 44 ]] ||
+	$(wc -l <"$work/usr/share/rog5-qemu-systemd/runtime-files.sha256") == 73 ]] ||
 	fail 'systemd runtime manifest shape changed'
 (
 	cd "$work"
@@ -55,16 +55,22 @@ for runtime_library in libmount.so.1 libblkid.so.1 libsystemd.so.0; do
 		-f $work/usr/lib/$runtime_library ]] ||
 		fail "systemd runtime lacks required dynamic library: $runtime_library"
 done
+for openssh_binary in usr/bin/ssh usr/bin/sshd usr/lib/ssh/sshd-auth \
+	usr/lib/ssh/sshd-session; do
+	[[ -f $work/$openssh_binary && ! -L $work/$openssh_binary ]] ||
+		fail "systemd runtime lacks OpenSSH executable: $openssh_binary"
+done
 grep -aFq 'libmount.so.1' \
 	"$work/usr/lib/systemd/libsystemd-shared-260.2-2.so" ||
 	fail 'systemd shared runtime no longer declares its libmount load name'
 for marker in \
 	'format=rog5-qemu-systemd-runtime-v1' \
-	'closure=recursive-dt-needed+required-dlopen' \
-	'elf_count=17' \
+	'closure=recursive-dt-needed+required-dlopen+openssh-client-server' \
+	'elf_count=32' \
 	'systemd=260.2-2' \
 	'libgcc=16.1.1+r12+g301eb08fa2c5-1' \
 	'util-linux-libs=2.42.1-1' \
+	'openssh=10.3p1-1' \
 	'boot_authority=none' \
 	'phone_storage=absent'; do
 	grep -Fqx "$marker" \
@@ -75,6 +81,8 @@ done
 	fail 'systemd runtime lacks its license corpus'
 for license_path in \
 	usr/share/licenses/libgcc/RUNTIME.LIBRARY.EXCEPTION \
+	usr/share/licenses/krb5/LICENSE \
+	usr/share/licenses/openssh/LICENCE \
 	usr/share/licenses/spdx/GFDL-1.3-or-later.txt \
 	usr/share/licenses/spdx/GPL-2.0-or-later.txt \
 	usr/share/licenses/spdx/GPL-3.0-or-later.txt \
@@ -123,7 +131,7 @@ for path in root.rglob("*"):
     if "Machine:" not in result.stdout or "AArch64" not in result.stdout:
         raise SystemExit(f"non-AArch64 ELF in runtime: {relative}")
     elf_count += 1
-if elf_count != 17:
+if elf_count != 32:
     raise SystemExit(f"unexpected runtime ELF count: {elf_count}")
 PY
 

@@ -18,9 +18,12 @@ network_init=$repo/initramfs/network-root-init
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
 compiler=${CROSS_CC:-aarch64-linux-gnu-gcc}
-for command in awk cat chmod cp cpio find grep gzip ln mkdir mktemp python3 \
+qemu_timeout=${QEMU_TIMEOUT:-60}
+[[ $qemu_timeout =~ ^[1-9][0-9]?$ && $qemu_timeout -le 60 ]] ||
+	fail 'QEMU_TIMEOUT must be an integer from 1 through 60'
+for command in awk cat chmod cp cpio find grep gzip install ln mkdir mktemp python3 \
 	qemu-system-aarch64 realpath readelf sed sha256sum sort stat strings \
-	timeout "$compiler"; do
+	ssh-keygen timeout "$compiler"; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU diagnostic handoff command: $command"
 done
@@ -38,6 +41,10 @@ done
 
 test_root=$(mktemp -d)
 trap 'find "$test_root" -depth -delete 2>/dev/null || true' EXIT HUP INT TERM
+ssh-keygen -q -t ed25519 -N '' -C qemu-client \
+	-f "$test_root/client_ed25519_key"
+ssh-keygen -q -t ed25519 -N '' -C qemu-host \
+	-f "$test_root/ssh_host_ed25519_key"
 stage=$test_root/stage
 systemd_root=$stage/systemd-root
 mkdir -p "$stage/dev" "$stage/sbin" "$systemd_root"
@@ -53,13 +60,25 @@ gzip -dc "$systemd_runtime" |
 	"$harness_source" -o "$stage/qemu-diagnostic-handoff"
 cp "$stage/qemu-diagnostic-handoff" "$stage/init"
 mkdir -p "$systemd_root/usr/bin" "$systemd_root/etc/systemd/system" \
+	"$systemd_root/etc/ssh" "$systemd_root/root/.ssh" \
 	"$systemd_root/dev" "$systemd_root/proc" "$systemd_root/run" \
-	"$systemd_root/sys" "$systemd_root/tmp"
+	"$systemd_root/run/sshd" "$systemd_root/sys" "$systemd_root/tmp" \
+	"$systemd_root/usr/share/empty.sshd"
 cp "$stage/qemu-diagnostic-handoff" \
 	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
 chmod 0755 "$stage/init" "$stage/qemu-diagnostic-handoff" \
 	"$stage/sbin/rog5-early-target-diag" \
 	"$systemd_root/usr/bin/rog5-qemu-diagnostic-handoff"
+install -m 0600 "$test_root/client_ed25519_key" \
+	"$systemd_root/etc/ssh/client_ed25519_key"
+install -m 0600 "$test_root/ssh_host_ed25519_key" \
+	"$systemd_root/etc/ssh/ssh_host_ed25519_key"
+install -m 0600 "$test_root/client_ed25519_key.pub" \
+	"$systemd_root/root/.ssh/authorized_keys"
+awk '{print "[127.0.0.1]:2222 " $1 " " $2}' \
+	"$test_root/ssh_host_ed25519_key.pub" \
+	>"$systemd_root/etc/ssh/ssh_known_hosts"
+chmod 0644 "$systemd_root/etc/ssh/ssh_known_hosts"
 chmod 1777 "$systemd_root/tmp"
 for binary in "$stage/init" "$stage/sbin/rog5-early-target-diag"; do
 	readelf -h "$binary" | grep -q 'Machine:.*AArch64' ||
@@ -105,31 +124,60 @@ DefaultDependencies=no
 Requires=rog5-early-target-new-init.service
 After=rog5-early-target-new-init.service
 EOF
+cat >"$systemd_root/etc/ssh/sshd_config" <<'EOF'
+HostKey /etc/ssh/ssh_host_ed25519_key
+ListenAddress 127.0.0.1
+Port 2222
+AuthorizedKeysFile /root/.ssh/authorized_keys
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+PubkeyAuthentication yes
+StrictModes yes
+UseDNS no
+UsePAM no
+EOF
 cat >"$unit_root/sshd.service" <<'EOF'
 [Unit]
-Description=ROG5 QEMU SSH ordering stub
+Description=ROG5 QEMU real OpenSSH daemon
 DefaultDependencies=no
 After=basic.target
 
 [Service]
+Type=notify-reload
+ExecStartPre=/usr/bin/rog5-qemu-diagnostic-handoff sshd-check
+ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff sshd-server
+NotifyAccess=main
+KillMode=process
+StandardOutput=journal+console
+StandardError=journal+console
+EOF
+cat >"$unit_root/rog5-qemu-openssh-proof.service" <<'EOF'
+[Unit]
+Description=ROG5 QEMU key-only OpenSSH login proof
+DefaultDependencies=no
+Requires=sshd.service rog5-early-target-sshd.service
+After=sshd.service rog5-early-target-sshd.service
+
+[Service]
 Type=oneshot
-ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff sshd-stub
+ExecStart=/usr/bin/rog5-qemu-diagnostic-handoff ssh-proof
 RemainAfterExit=yes
 EOF
 cat >"$unit_root/multi-user.target" <<'EOF'
 [Unit]
 Description=ROG5 QEMU diagnostic acceptance target
 DefaultDependencies=no
-Requires=basic.target sshd.service rog5-early-target-sshd.service
-After=basic.target sshd.service rog5-early-target-sshd.service
+Requires=basic.target sshd.service rog5-early-target-sshd.service rog5-qemu-openssh-proof.service
+After=basic.target sshd.service rog5-early-target-sshd.service rog5-qemu-openssh-proof.service
 AllowIsolate=yes
 EOF
 cat >"$unit_root/rog5-qemu-systemd-success.service" <<'EOF'
 [Unit]
 Description=ROG5 QEMU systemd diagnostic acceptance
 DefaultDependencies=no
-Requires=rog5-early-target-sshd.service
-After=rog5-early-target-sshd.service
+Requires=rog5-qemu-openssh-proof.service
+After=rog5-qemu-openssh-proof.service
 Before=multi-user.target
 
 [Service]
@@ -146,10 +194,23 @@ NAME="ROG5 QEMU systemd gate"
 ID=rog5-qemu-systemd
 EOF
 cat >"$systemd_root/etc/passwd" <<'EOF'
-root:x:0:0:root:/root:/usr/bin/nologin
+root:x:0:0:root:/root:/usr/bin/rog5-qemu-diagnostic-handoff
+nobody:x:65534:65534:Nobody:/:/usr/bin/nologin
 EOF
 cat >"$systemd_root/etc/group" <<'EOF'
 root:x:0:
+nobody:x:65534:
+EOF
+cat >"$systemd_root/etc/shadow" <<'EOF'
+root::19793:0:99999:7:::
+nobody:!*:19793::::::
+EOF
+chmod 0600 "$systemd_root/etc/shadow"
+cat >"$systemd_root/etc/nsswitch.conf" <<'EOF'
+passwd: files
+group: files
+shadow: files
+hosts: files dns
 EOF
 
 grep -Fqx 'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
@@ -167,7 +228,7 @@ fi
 ) | gzip -n >"$test_root/initramfs.cpio.gz"
 
 set +e
-timeout --signal=TERM --kill-after=2 60 \
+timeout --signal=TERM --kill-after=2 "$qemu_timeout" \
 	qemu-system-aarch64 \
 		-M virt \
 		-cpu cortex-a57 \
@@ -194,8 +255,10 @@ if ((qemu_status != 0)) ||
 	sed -n '1,120p' "$test_root/qemu.stderr" >&2
 	fail "QEMU did not complete diagnostic root handoff; status=$qemu_status"
 fi
-grep -Fq 'PASS systemd activated the sshd dependency' \
-	"$test_root/console.log" || fail 'systemd never activated sshd.service'
+grep -Fq 'PASS OpenSSH executed the authenticated command' \
+	"$test_root/console.log" || fail 'OpenSSH never executed the key-authenticated command'
+grep -Fq 'PASS real key-only OpenSSH login completed' \
+	"$test_root/console.log" || fail 'real OpenSSH key-only login proof did not pass'
 
 python3 - "$parser" "$test_root/diagnostic.frames" <<'PY'
 import importlib.util
