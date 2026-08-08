@@ -143,6 +143,7 @@ jobs:
             flex \
             gcc-aarch64-linux-gnu \
             git \
+            iproute2 \
             libelf-dev \
             libc6-dev-arm64-cross \
             libssl-dev \

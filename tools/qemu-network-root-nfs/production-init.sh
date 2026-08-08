@@ -69,19 +69,34 @@ verify_network_root_identity() {
 # runner. It is data from the production script, not a QEMU implementation.
 . /network-functions.sh
 
-if mount_network_root; then
-	fail unexpected-complete-root
+if ! mount_network_root; then
+	if ! awk -v root="$network_newroot" \
+		'$2 == root && $3 == "overlay" { found=1 }
+		 END { exit !found }' "$network_mounts"; then
+		fail overlay-mount
+	fi
+	[ -e "$network_root_ro/sbin/init" ] || fail lower-init-missing
+	[ -x "$network_root_ro/sbin/init" ] || fail lower-init-not-executable
+	[ -e "$network_newroot/sbin/init" ] || fail overlay-init-missing
+	[ -x "$network_newroot/sbin/init" ] || fail overlay-init-not-executable
+	fail incomplete-root
 fi
-[ "$diagnostic_fault" = overlay-failed ] || fail mount-function-fault
-[ "$stages" = '70 75 80 90' ] || fail mount-function-stages
+[ "$stages" = '70 75 80 90 100' ] || fail mount-function-stages
 awk -v root="$network_root_ro" \
 	'$2 == root && $3 == "nfs4" && $4 ~ /(^|,)ro(,|$)/ { found=1 }
 	 END { exit !found }' "$network_mounts" || fail root-not-read-only
 if touch "$network_root_ro/must-not-exist" 2>/dev/null; then
 	fail read-only-create-succeeded
 fi
+awk -v root="$network_newroot" \
+	'$2 == root && $3 == "overlay" { found=1 }
+	 END { exit !found }' "$network_mounts" || fail merged-root-not-overlay
+[ -x "$network_newroot/sbin/init" ] || fail merged-root-init-missing
+touch "$network_newroot/overlay-write" || fail merged-root-write
+[ -e "$network_root_state/upper/overlay-write" ] || fail upper-write-missing
+[ ! -e "$network_root_ro/overlay-write" ] || fail lower-root-was-modified
 
 printf '%s\n' \
-	'PASS production network-root shell mounted exact NFSv4.2 root read-only'
+	'PASS production network-root shell assembled NFSv4.2 plus OverlayFS root'
 poweroff -f
 while :; do sleep 60; done

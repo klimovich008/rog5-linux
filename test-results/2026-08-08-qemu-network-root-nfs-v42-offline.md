@@ -91,3 +91,52 @@ Focused evidence:
 No phone, fastboot/ADB operation, credential, signing key, GitHub mutation,
 or phone storage was used. This remains board-neutral evidence and does not
 prove USB/NCM continuity or the current successor on the phone.
+
+## Server-read-only and OverlayFS follow-up
+
+Starting repository SHA:
+`a3cb1995d1b74c9b48f2cbd8841ed39692c435bc`.
+
+The production-shell gate stopped at stage 90 because the minimal QEMU kernel
+omitted OverlayFS and the in-memory export contained no executable init. It
+therefore could not catch regressions between a verified read-only NFS lower
+and the stage-100 merged root. The previous direct probe also requested a
+read-only client mount, so its rejected write did not independently prove that
+the NFS server enforced the export policy.
+
+The minimal profile now includes built-in OverlayFS and tmpfs xattrs. A first
+guest uses the same static PID 1 to seed an executable sentinel into the
+volatile MEM export while it is writable. The host verifies ownership of the
+sole TCP/2049 listener, reloads that exact Ganesha process with the static
+read-only configuration, and starts the test guest. The test guest first
+proves that its server-policy probe is mounted read-write yet receives exact
+`EROFS` on create. It then retains the direct read-only mount and executes the
+production function through stages 70, 75, 80, 90, and 100. The final checks
+require an NFSv4.2 read-only lower, executable merged init, writable OverlayFS
+root, a corresponding upper-file write, and no lower-root mutation.
+
+The regression contract was added first and failed with:
+
+`FAIL missing QEMU smoke source: tools/qemu-network-root-nfs/seed-init.sh`
+
+Focused evidence:
+
+- static contract: PASS, 290 ms;
+- hostile mutation suite: PASS, 5,502 ms;
+- clean Linux 7.1.4 kernel build: PASS, 395,827 ms;
+- exact-state incremental rebuild: PASS, 18,625 ms;
+- unchanged Linux Image SHA-256:
+  `fe5c693ab264f4c8ac69b48c727851026d703c08e49cd277dfb4fbb8a879d0b6`;
+- unchanged kernel configuration SHA-256:
+  `87f73146614d64de55f8d7f07d2ada1aba63918e176b5d48e4cf3ca327e200d5`;
+- prior stage-90 production-shell gate: PASS, 3,669 ms;
+- server-read-only plus stage-100 gate: PASS, 6,529 ms.
+
+Hostile mutations remove or corrupt each new invariant: exclusive listener
+preflight and exact listener ownership, configuration reload, writable fixture
+seed, seed-mode entry, server-read-only probe, client-RW proof, static-init
+reuse, single QEMU invocation, stage 100, OverlayFS, and tmpfs xattrs.
+
+No phone, fastboot/ADB operation, credential, signing key, GitHub mutation, or
+phone storage was used. Generation 12 remains consumed and must never be
+retried; the active successor remains unissued and has no boot authority.

@@ -15,6 +15,7 @@
 
 #define EXPORT_SOURCE "169.254.77.1:/"
 #define MOUNTPOINT "/mnt/root-ro"
+#define SERVER_PROBE_MOUNTPOINT "/mnt/server-ro-probe"
 
 static void stop_guest(bool passed)
 {
@@ -80,6 +81,83 @@ static void verify_mount(void)
 	}
 }
 
+static bool fixture_seed_requested(void)
+{
+	char cmdline[4096];
+	ssize_t count;
+	int descriptor;
+
+	descriptor = open("/proc/cmdline", O_RDONLY | O_CLOEXEC);
+	if (descriptor == -1)
+		fail("open-cmdline");
+	count = read(descriptor, cmdline, sizeof(cmdline) - 1);
+	if (count <= 0)
+		fail("read-cmdline");
+	if (close(descriptor) == -1)
+		fail("close-cmdline");
+	cmdline[count] = '\0';
+	return strstr(cmdline, "rog5.qemu_nfs_seed=1") != NULL;
+}
+
+static void seed_fixture(void)
+{
+	execl("/bin/sh", "sh", "/seed-init.sh", NULL);
+	fail("exec-seed-init");
+}
+
+static void verify_server_probe_client_rw(void)
+{
+	char mountinfo[16384];
+	ssize_t count;
+	int descriptor;
+
+	descriptor = open("/proc/self/mountinfo", O_RDONLY | O_CLOEXEC);
+	if (descriptor == -1)
+		fail("open-server-probe-mountinfo");
+	count = read(descriptor, mountinfo, sizeof(mountinfo) - 1);
+	if (count <= 0)
+		fail("read-server-probe-mountinfo");
+	if (close(descriptor) == -1)
+		fail("close-server-probe-mountinfo");
+	mountinfo[count] = '\0';
+	if (strstr(mountinfo, " /mnt/server-ro-probe rw,") == NULL ||
+	    strstr(mountinfo, " - nfs4 169.254.77.1:/ rw,") == NULL) {
+		errno = EROFS;
+		fail("server-probe-client-not-rw");
+	}
+}
+
+static void verify_server_read_only(const char *mount_options)
+{
+	struct statfs filesystem;
+	int descriptor;
+
+	require_directory(SERVER_PROBE_MOUNTPOINT);
+	if (mount(EXPORT_SOURCE, SERVER_PROBE_MOUNTPOINT, "nfs4",
+		  MS_NOSUID | MS_NODEV, mount_options) == -1)
+		fail("mount-server-ro-probe");
+	if (statfs(SERVER_PROBE_MOUNTPOINT, &filesystem) == -1)
+		fail("statfs-server-ro-probe");
+	if ((unsigned long)filesystem.f_type != NFS_SUPER_MAGIC) {
+		errno = ENODEV;
+		fail("server-ro-probe-filesystem-type");
+	}
+	verify_server_probe_client_rw();
+	descriptor = open(SERVER_PROBE_MOUNTPOINT "/must-not-exist",
+			  O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+	if (descriptor != -1) {
+		(void)close(descriptor);
+		errno = EPROTO;
+		fail("server-rw-create-succeeded");
+	}
+	if (errno != EROFS)
+		fail("server-rw-create-error");
+	if (umount2(SERVER_PROBE_MOUNTPOINT, MNT_DETACH) == -1)
+		fail("unmount-server-ro-probe");
+	dprintf(STDOUT_FILENO,
+		"PASS QEMU NFS server rejected an RW client write\n");
+}
+
 static void enter_production_probe(void)
 {
 	dprintf(STDOUT_FILENO,
@@ -92,8 +170,12 @@ int main(void)
 {
 	static const char production_options[] =
 		"vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1";
+	static const char server_probe_options_base[] =
+		"vers=4.2,proto=tcp,port=2049,rw,nolock,soft,timeo=10,retrans=1";
 	char kernel_options[sizeof(production_options) +
 			    sizeof(",addr=169.254.77.1")];
+	char server_probe_options[sizeof(server_probe_options_base) +
+				  sizeof(",addr=169.254.77.1")];
 
 	/* mount.nfs resolves the source and appends addr before sys_mount(). */
 	if (snprintf(kernel_options, sizeof(kernel_options), "%s,addr=%s",
@@ -102,6 +184,12 @@ int main(void)
 		errno = EOVERFLOW;
 		fail("kernel-options");
 	}
+	if (snprintf(server_probe_options, sizeof(server_probe_options),
+		     "%s,addr=%s", server_probe_options_base,
+		     "169.254.77.1") >= (int)sizeof(server_probe_options)) {
+		errno = EOVERFLOW;
+		fail("server-probe-options");
+	}
 
 	require_directory("/proc");
 	require_directory("/mnt");
@@ -109,6 +197,9 @@ int main(void)
 	if (mount("proc", "/proc", "proc", MS_NOSUID | MS_NODEV | MS_NOEXEC,
 		  NULL) == -1)
 		fail("mount-proc");
+	if (fixture_seed_requested())
+		seed_fixture();
+	verify_server_read_only(server_probe_options);
 	if (mount(EXPORT_SOURCE, MOUNTPOINT, "nfs4",
 		  MS_RDONLY | MS_NOSUID | MS_NODEV, kernel_options) == -1)
 		fail("mount-nfs4");
