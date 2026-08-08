@@ -224,6 +224,15 @@ can be admitted; the test advances a bare remote behind the clone's stale
 tracking ref and requires an exact refusal. This is host-only and grants no
 credential, generation, connected-preflight, or boot authority.
 
+At local checkpoint `afc0e9e94bbc6edea1aa0c2ace17b2b5d00cef83`, the
+active v2 candidate also passed one complete disposable-key build: two clean
+ASUS wrappers were byte-identical, the single-attempt target tuple and manifest
+were exact, the temporary private key was destroyed, and authority remained
+`none`. The 2,332.019-second build establishes clean wrapper compilation as the
+dominant unattended release cost. Its 10.09 GB duplicate output tree was
+removed after recording hashes. See the
+[current disposable twin-build result](../test-results/2026-08-08-stage75-v2-current-disposable-build.md).
+
 ## Historical deployment chronology
 
 Historical checkpoint (2026-08-02): generation 1 reached signed-bundle

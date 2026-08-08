@@ -734,7 +734,8 @@ Current execution order:
     profile is offline-only and central policy remains empty. The exact
     candidate checkpoint is reviewed and published at
     `9088c8ff70e24c1c71c3b3b806f7161848dd7320` with green exact-head CI. Next,
-    bind a fresh production credential, issue one new generation with distinct
+    preserve the now-passed clean disposable twin-build identities, bind a
+    fresh production credential, issue one new generation with distinct
     one-shot admission, run connected preflight, and only then execute one
     temporary lifecycle. Promote a normal SSH candidate only after that
     evidence locates and the implementation fixes the failing boundary.
