@@ -6,6 +6,8 @@ fail() {
 	exit 1
 }
 
+fail 'legacy interactive ACM execution is retired; use the framed stable-recovery lifecycle'
+
 [[ ${ALLOW_PERSISTENT_ROOT_ENTRY_LIVE_GATE:-} == 1 ]] ||
 	fail 'set ALLOW_PERSISTENT_ROOT_ENTRY_LIVE_GATE=1 for the one-shot entry gate'
 [[ ${ALLOW_TEMPORARY_BOOT:-} == 1 ]] ||

@@ -25,6 +25,10 @@ LOAD_COMMAND = (
     "/usr/local/sbin/rog5-load-mainline-recovery"
 )
 LOAD_MARKER = b"PASS mainline read-only persistent-root payload loaded"
+RETIRED_MESSAGE = (
+    "legacy interactive ACM execution is retired; "
+    "use the framed stable-recovery lifecycle"
+)
 PREFLIGHT_COMMAND = (
     "set -eu; "
     '[ -e /run/rog5-recovery-armed ]; '
@@ -104,7 +108,7 @@ def execute_persistent_root() -> str:
     return TRANSPORT.run_serial(path, "kexec -e", None, True, 20)
 
 
-def main(arguments: list[str]) -> int:
+def _historical_main(arguments: list[str]) -> int:
     if os.environ.get("ALLOW_PERSISTENT_ROOT_ACM") != "1":
         fail("set ALLOW_PERSISTENT_ROOT_ACM=1 for one fixed P2 staging action")
     if (
@@ -136,6 +140,11 @@ def main(arguments: list[str]) -> int:
         print(output, end="" if output.endswith("\n") else "\n")
     print(f"PASS control-safe persistent-root ACM action={action}")
     return 0
+
+
+def main(arguments: list[str]) -> int:
+    del arguments
+    fail(RETIRED_MESSAGE)
 
 
 if __name__ == "__main__":

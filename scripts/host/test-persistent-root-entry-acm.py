@@ -147,19 +147,19 @@ class PersistentRootEntryAcmTest(unittest.TestCase):
             )
         self.assertEqual(path, "/dev/ttyACM1")
 
-    def test_guard_fails_before_device_discovery(self) -> None:
-        environment = os.environ.copy()
-        environment.pop("ALLOW_PERSISTENT_ROOT_ENTRY_ACM", None)
-        result = subprocess.run(
-            [sys.executable, SOURCE, "read"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=environment,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ALLOW_PERSISTENT_ROOT_ENTRY_ACM", result.stderr)
+    def test_entrypoint_is_retired_before_device_discovery(self) -> None:
+        with (
+            mock.patch.object(MODULE.os, "uname") as uname,
+            mock.patch.object(MODULE.shutil, "which") as which,
+            mock.patch.object(MODULE.subprocess, "run") as run,
+            mock.patch.object(MODULE, "wait_for_stable_entry_acm") as wait,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "legacy interactive ACM"):
+                MODULE.main(["read"])
+        uname.assert_not_called()
+        which.assert_not_called()
+        run.assert_not_called()
+        wait.assert_not_called()
 
     def test_source_has_no_transmit_or_credential_path(self) -> None:
         source = SOURCE.read_text()

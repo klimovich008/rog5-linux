@@ -98,34 +98,19 @@ class SerialTransportTest(unittest.TestCase):
         self.assertEqual(received, b"kexec -e\n")
         self.assertEqual(output, "")
 
-    def test_missing_guard_fails_before_device_discovery(self) -> None:
-        environment = os.environ.copy()
-        environment.pop("ALLOW_NETWORK_ROOT_ACM", None)
-        result = subprocess.run(
-            [sys.executable, SOURCE, "load-normal"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=environment,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ALLOW_NETWORK_ROOT_ACM", result.stderr)
-
-    def test_atomic_confirmation_requires_kexec_guard_before_discovery(self) -> None:
-        environment = os.environ.copy()
-        environment["ALLOW_NETWORK_ROOT_ACM"] = "1"
-        environment.pop("ALLOW_ATTENDED_KEXEC", None)
-        result = subprocess.run(
-            [sys.executable, SOURCE, "confirm-gpucc"],
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=environment,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("ALLOW_ATTENDED_KEXEC", result.stderr)
+    def test_entrypoint_is_retired_before_device_discovery(self) -> None:
+        with (
+            mock.patch.object(MODULE.os, "uname") as uname,
+            mock.patch.object(MODULE.shutil, "which") as which,
+            mock.patch.object(MODULE.subprocess, "run") as run,
+            mock.patch.object(MODULE, "wait_for_stable_recovery_acm") as wait,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "legacy interactive ACM"):
+                MODULE.main(["confirm-gpucc"])
+        uname.assert_not_called()
+        which.assert_not_called()
+        run.assert_not_called()
+        wait.assert_not_called()
 
     def test_acm_must_stabilize_after_reenumeration(self) -> None:
         paths = [
@@ -325,6 +310,7 @@ class SerialTransportTest(unittest.TestCase):
         self.assertIn("ID_MODEL_ID", source)
         self.assertIn("ROG5_recovery", source)
         self.assertIn("os.O_NOCTTY", source)
+        self.assertIn("RETIRED_MESSAGE", source)
         self.assertIn("ALLOW_ATTENDED_KEXEC", source)
         self.assertIn('if action == "execute":', source)
         self.assertIn("run_fixed_sequence", source)
