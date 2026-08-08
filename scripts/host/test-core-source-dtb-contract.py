@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -21,6 +22,20 @@ SCRIPT = REPO / "scripts/host/verify-core-source-dtb-contract.py"
 PROFILE = (
     REPO / "configs/compatibility/rog5-core-source-dtb-v1.json"
 )
+DEFAULT_ACCEPTED_KERNEL_SOURCE = (
+    REPO / "build/linux-stable-v7.1.4-source"
+)
+
+
+def accepted_kernel_source(
+    default: Path = DEFAULT_ACCEPTED_KERNEL_SOURCE,
+) -> Path | None:
+    override = os.environ.get("ROG5_ACCEPTED_KERNEL_SOURCE", "")
+    if override:
+        return Path(override)
+    if os.path.lexists(default):
+        return default
+    return None
 
 
 def load_module():
@@ -1693,15 +1708,15 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source path is unsafe"):
             module.validate_contract(REPO, contract)
 
-    def test_accepted_source_and_dtb_pass_when_explicitly_available(self) -> None:
-        source_raw = os.environ.get("ROG5_ACCEPTED_KERNEL_SOURCE", "")
+    def test_accepted_source_and_dtb_pass_when_retained_input_available(self) -> None:
+        source = accepted_kernel_source()
         accepted_dtb = REPO / str(self.contract["accepted_dtb"]["path"])
-        if not source_raw or not accepted_dtb.exists():
+        if source is None or not accepted_dtb.exists():
             self.skipTest("retained accepted source/DTB are optional in CI")
         result = run(
             [
                 "--kernel-source",
-                source_raw,
+                str(source),
                 "--source-role",
                 "baseline",
                 "--dtb",
@@ -1712,6 +1727,47 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("status=baseline-verified", result.stdout)
+
+
+class AcceptedSourceDiscoveryTest(unittest.TestCase):
+    def test_explicit_source_overrides_retained_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            explicit = root / "explicit"
+            default = root / "default"
+            default.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {"ROG5_ACCEPTED_KERNEL_SOURCE": str(explicit)},
+            ):
+                self.assertEqual(
+                    accepted_kernel_source(default),
+                    explicit,
+                )
+
+    def test_retained_default_is_automatic_and_absence_skips(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            default = root / "accepted"
+            with mock.patch.dict(
+                os.environ,
+                {"ROG5_ACCEPTED_KERNEL_SOURCE": ""},
+            ):
+                self.assertIsNone(accepted_kernel_source(default))
+                default.mkdir()
+                self.assertEqual(accepted_kernel_source(default), default)
+
+    def test_unsafe_retained_path_is_not_silently_skipped(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            missing = root / "missing"
+            default = root / "accepted"
+            default.symlink_to(missing, target_is_directory=True)
+            with mock.patch.dict(
+                os.environ,
+                {"ROG5_ACCEPTED_KERNEL_SOURCE": ""},
+            ):
+                self.assertEqual(accepted_kernel_source(default), default)
 
 
 if __name__ == "__main__":
