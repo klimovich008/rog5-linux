@@ -1260,6 +1260,73 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.fixture.close()
 
+    def test_repository_checkpoint_refreshes_stale_origin_before_comparison(
+        self,
+    ) -> None:
+        fetched = False
+        commands: list[tuple[str, ...]] = []
+
+        def git_result(
+            arguments: list[str],
+            **_kwargs: object,
+        ) -> subprocess.CompletedProcess[str]:
+            nonlocal fetched
+            command = tuple(arguments[3:])
+            commands.append(command)
+            output = ""
+            if command == ("status", "--porcelain", "--untracked-files=all"):
+                pass
+            elif command == ("branch", "--show-current"):
+                output = "agent/linux-recovery-host\n"
+            elif command == (
+                "rev-parse",
+                "--abbrev-ref",
+                "--symbolic-full-name",
+                "@{u}",
+            ):
+                output = "origin/agent/linux-recovery-host\n"
+            elif command == (
+                "fetch",
+                "--no-tags",
+                "--prune",
+                "origin",
+                "refs/heads/agent/linux-recovery-host:"
+                "refs/remotes/origin/agent/linux-recovery-host",
+            ):
+                fetched = True
+            elif command == ("rev-parse", "HEAD"):
+                output = "stale-checkpoint\n"
+            elif command == (
+                "rev-parse",
+                "origin/agent/linux-recovery-host",
+            ):
+                output = (
+                    "fresh-remote-checkpoint\n"
+                    if fetched
+                    else "stale-checkpoint\n"
+                )
+            else:
+                self.fail(f"unexpected git command: {command}")
+            return subprocess.CompletedProcess(arguments, 0, output, "")
+
+        with mock.patch.object(CYCLE, "run_capture", side_effect=git_result):
+            with self.assertRaisesRegex(
+                CYCLE.CycleError,
+                "local and remote-tracking checkpoints differ",
+            ):
+                CYCLE.verify_repository_checkpoint(Path("/usr/bin/git"))
+
+        self.assertTrue(fetched)
+        fetch_index = next(
+            index
+            for index, command in enumerate(commands)
+            if command and command[0] == "fetch"
+        )
+        remote_index = commands.index(
+            ("rev-parse", "origin/agent/linux-recovery-host")
+        )
+        self.assertLess(fetch_index, remote_index)
+
     def control_records(
         self,
         *,

@@ -291,6 +291,74 @@ class DeploymentExportLaunchTest(unittest.TestCase):
         ):
             LAUNCHER.verify_repository_checkpoint()
 
+    def test_repository_checkpoint_refreshes_stale_origin_before_comparison(
+        self,
+    ) -> None:
+        fetched = False
+        commands: list[tuple[str, ...]] = []
+
+        def git_output(arguments: list[str]) -> str:
+            nonlocal fetched
+            command = tuple(arguments)
+            commands.append(command)
+            if command == ("status", "--porcelain", "--untracked-files=all"):
+                return ""
+            if command == ("branch", "--show-current"):
+                return "agent/linux-recovery-host"
+            if command == (
+                "rev-parse",
+                "--abbrev-ref",
+                "--symbolic-full-name",
+                "@{u}",
+            ):
+                return "origin/agent/linux-recovery-host"
+            if command == (
+                "fetch",
+                "--no-tags",
+                "--prune",
+                "origin",
+                "refs/heads/agent/linux-recovery-host:"
+                "refs/remotes/origin/agent/linux-recovery-host",
+            ):
+                fetched = True
+                return ""
+            if command == ("rev-parse", "HEAD"):
+                return "stale-checkpoint"
+            if command == (
+                "rev-parse",
+                "origin/agent/linux-recovery-host",
+            ):
+                return (
+                    "fresh-remote-checkpoint"
+                    if fetched
+                    else "stale-checkpoint"
+                )
+            self.fail(f"unexpected git command: {command}")
+
+        with (
+            mock.patch.object(
+                LAUNCHER,
+                "git_output",
+                side_effect=git_output,
+            ),
+            self.assertRaisesRegex(
+                LAUNCHER.ExportLaunchError,
+                "local and remote-tracking checkpoints differ",
+            ),
+        ):
+            LAUNCHER.verify_repository_checkpoint()
+
+        self.assertTrue(fetched)
+        fetch_index = next(
+            index
+            for index, command in enumerate(commands)
+            if command and command[0] == "fetch"
+        )
+        remote_index = commands.index(
+            ("rev-parse", "origin/agent/linux-recovery-host")
+        )
+        self.assertLess(fetch_index, remote_index)
+
     def test_installer_is_part_of_fixed_host_controller_install(self) -> None:
         source = INSTALL_CONTROLLER.read_text(encoding="utf-8")
         self.assertIn(

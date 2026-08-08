@@ -103,6 +103,92 @@ def verify_claim_root_path(root: Path, directory_fd: int) -> None:
         fail("lifecycle claim root changed during entry")
 
 
+def verify_source_path(
+    record_name: str,
+    directory_fd: int,
+    source_fd: int,
+    expected: bytes,
+) -> None:
+    try:
+        named = os.stat(
+            record_name,
+            dir_fd=directory_fd,
+            follow_symlinks=False,
+        )
+    except OSError as error:
+        raise ClaimError(
+            "source BOOT_CLAIMED record changed during entry"
+        ) from error
+    opened = os.fstat(source_fd)
+    if (
+        named.st_dev != opened.st_dev
+        or named.st_ino != opened.st_ino
+        or not stat.S_ISREG(opened.st_mode)
+        or opened.st_uid != os.geteuid()
+        or stat.S_IMODE(opened.st_mode) != 0o600
+        or opened.st_nlink != 1
+    ):
+        fail("source BOOT_CLAIMED record changed during entry")
+    os.lseek(source_fd, 0, os.SEEK_SET)
+    content = os.read(source_fd, len(expected) + 1)
+    if content != expected or os.read(source_fd, 1):
+        fail("source BOOT_CLAIMED record changed during entry")
+
+
+def create_entered_record(
+    entered_name: str,
+    directory_fd: int,
+    expected: bytes,
+) -> int:
+    flags = os.O_RDWR | os.O_CLOEXEC | os.O_CREAT | os.O_EXCL
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        entered_fd = os.open(
+            entered_name,
+            flags | nofollow,
+            0o600,
+            dir_fd=directory_fd,
+        )
+    except FileExistsError as error:
+        raise ClaimError(
+            "durable BOOT_CLAIMED record is already entered"
+        ) from error
+    except OSError as error:
+        raise ClaimError("cannot enter durable BOOT_CLAIMED record") from error
+    try:
+        os.fchmod(entered_fd, 0o600)
+        remaining = memoryview(expected)
+        while remaining:
+            written = os.write(entered_fd, remaining)
+            if written <= 0:
+                fail("cannot write entered BOOT_CLAIMED record")
+            remaining = remaining[written:]
+        os.fsync(entered_fd)
+        os.lseek(entered_fd, 0, os.SEEK_SET)
+        metadata = os.fstat(entered_fd)
+        content = os.read(entered_fd, len(expected) + 1)
+        named = os.stat(
+            entered_name,
+            dir_fd=directory_fd,
+            follow_symlinks=False,
+        )
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_nlink != 1
+            or named.st_dev != metadata.st_dev
+            or named.st_ino != metadata.st_ino
+            or content != expected
+            or os.read(entered_fd, 1)
+        ):
+            fail("entered BOOT_CLAIMED record is not exact")
+    except Exception:
+        os.close(entered_fd)
+        raise
+    return entered_fd
+
+
 def consume(profile: str, root: Path | None = None) -> None:
     expected = expected_record(profile)
     record_name = f"{profile}.record"
@@ -146,59 +232,28 @@ def consume(profile: str, root: Path | None = None) -> None:
         if content != expected or os.read(source_fd, 1):
             fail("durable BOOT_CLAIMED record is not exact")
 
-        try:
-            os.link(
-                record_name,
-                entered_name,
-                src_dir_fd=directory_fd,
-                dst_dir_fd=directory_fd,
-                follow_symlinks=False,
-            )
-        except FileExistsError as error:
-            raise ClaimError(
-                "durable BOOT_CLAIMED record is already entered"
-            ) from error
-        except OSError as error:
-            raise ClaimError("cannot enter durable BOOT_CLAIMED record") from error
-
-        try:
-            entered_fd = os.open(
-                entered_name,
-                flags | nofollow,
-                dir_fd=directory_fd,
-            )
-        except OSError as error:
-            raise ClaimError(
-                "entered BOOT_CLAIMED record cannot be verified"
-            ) from error
-        entered_metadata = os.fstat(entered_fd)
-        entered_content = os.read(entered_fd, len(expected) + 1)
-        if (
-            entered_metadata.st_dev != metadata.st_dev
-            or entered_metadata.st_ino != metadata.st_ino
-            or entered_content != expected
-            or os.read(entered_fd, 1)
-        ):
-            fail("entered BOOT_CLAIMED record does not match the validated claim")
-        os.fsync(entered_fd)
+        verify_source_path(record_name, directory_fd, source_fd, expected)
+        entered_fd = create_entered_record(
+            entered_name,
+            directory_fd,
+            expected,
+        )
         os.fsync(directory_fd)
 
-        current_source = os.stat(
+        verify_source_path(
             record_name,
-            dir_fd=directory_fd,
-            follow_symlinks=False,
+            directory_fd,
+            source_fd,
+            expected,
         )
-        if (
-            current_source.st_dev != metadata.st_dev
-            or current_source.st_ino != metadata.st_ino
-        ):
-            fail("source BOOT_CLAIMED record changed during entry")
         try:
             os.unlink(record_name, dir_fd=directory_fd)
         except OSError as error:
             raise ClaimError(
                 "durable BOOT_CLAIMED record entered but source cleanup failed"
             ) from error
+        if os.fstat(source_fd).st_nlink != 0:
+            fail("source BOOT_CLAIMED record changed during entry")
         os.fsync(directory_fd)
         verify_claim_root_path(root, directory_fd)
     finally:
