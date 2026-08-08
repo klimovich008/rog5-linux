@@ -57,6 +57,15 @@ and newer-kernel rebases remain frozen until the headless core passes.
   130/140 units under real AArch64 `systemd 260.2-2-arch`, starts OpenSSH
   10.3, accepts one disposable Ed25519 key login over loopback, executes the
   authenticated command, and rejects a keyless login.
+- The board-neutral Linux 7.1.4 QEMU kernel now also includes its NFSv4.2
+  client prerequisites and completes a real TCP mount using the exact
+  `network-root-init` option string and `169.254.77.2/30` client identity. A
+  rootless in-memory Ganesha export and one explicit restricted TCP/2049
+  forward keep the fixture independent of host storage. The guest verifies
+  NFS mount metadata and rejected writes; hostile mutations reject option,
+  server-mode, backend, isolation, and read-only-check drift. This narrows the
+  stage-70 blind spot but remains hardware-free evidence only. See the
+  [QEMU NFSv4.2 result](../test-results/2026-08-08-qemu-network-root-nfs-v42-offline.md).
 
 These facts do not prove the corrected candidate on the phone.
 

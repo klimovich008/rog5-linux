@@ -135,6 +135,11 @@ postmortem operations without per-candidate recovery rebuilds.
   feature-branch push/PR runs.
 - [x] Keep QEMU tests board-neutral; never claim that QEMU proves ROG Phone
   hardware.
+- [x] Exercise the exact network-root NFSv4.2 client options under Linux 7.1.4
+  against a rootless userspace server, with the production `/30`, TCP-only
+  forwarding, read-only mount enforcement, and hostile drift tests. This
+  closes a hardware-free gap at the stage-70 mount boundary; it does not prove
+  USB/NCM continuity on the phone.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a
   fail-closed core compatibility profile, committed golden Kconfig, build
   gate, and 39-case mutation/CLI suite.
