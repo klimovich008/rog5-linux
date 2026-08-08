@@ -52,6 +52,28 @@ static void verify_read_only_enforcement(void)
 		fail("read-only-create-error");
 }
 
+static void verify_seeded_systemd(void)
+{
+	static const unsigned char elf_magic[] = { 0x7f, 'E', 'L', 'F' };
+	unsigned char actual[sizeof(elf_magic)];
+	ssize_t count;
+	int descriptor;
+
+	descriptor = open(MOUNTPOINT "/usr/lib/systemd/systemd",
+			  O_RDONLY | O_CLOEXEC);
+	if (descriptor == -1)
+		fail("open-seeded-systemd");
+	count = read(descriptor, actual, sizeof(actual));
+	if (count != (ssize_t)sizeof(actual))
+		fail("read-seeded-systemd");
+	if (close(descriptor) == -1)
+		fail("close-seeded-systemd");
+	if (memcmp(actual, elf_magic, sizeof(actual)) != 0) {
+		errno = ENOEXEC;
+		fail("seeded-systemd-elf");
+	}
+}
+
 static void verify_mount(void)
 {
 	char mountinfo[16384];
@@ -79,30 +101,6 @@ static void verify_mount(void)
 		errno = EROFS;
 		fail("read-only-mountinfo");
 	}
-}
-
-static bool fixture_seed_requested(void)
-{
-	char cmdline[4096];
-	ssize_t count;
-	int descriptor;
-
-	descriptor = open("/proc/cmdline", O_RDONLY | O_CLOEXEC);
-	if (descriptor == -1)
-		fail("open-cmdline");
-	count = read(descriptor, cmdline, sizeof(cmdline) - 1);
-	if (count <= 0)
-		fail("read-cmdline");
-	if (close(descriptor) == -1)
-		fail("close-cmdline");
-	cmdline[count] = '\0';
-	return strstr(cmdline, "rog5.qemu_nfs_seed=1") != NULL;
-}
-
-static void seed_fixture(void)
-{
-	execl("/bin/sh", "sh", "/seed-init.sh", NULL);
-	fail("exec-seed-init");
 }
 
 static void verify_server_probe_client_rw(void)
@@ -197,14 +195,13 @@ int main(void)
 	if (mount("proc", "/proc", "proc", MS_NOSUID | MS_NODEV | MS_NOEXEC,
 		  NULL) == -1)
 		fail("mount-proc");
-	if (fixture_seed_requested())
-		seed_fixture();
 	verify_server_read_only(server_probe_options);
 	if (mount(EXPORT_SOURCE, MOUNTPOINT, "nfs4",
 		  MS_RDONLY | MS_NOSUID | MS_NODEV, kernel_options) == -1)
 		fail("mount-nfs4");
 	verify_mount();
 	verify_read_only_enforcement();
+	verify_seeded_systemd();
 	if (umount2(MOUNTPOINT, MNT_DETACH) == -1)
 		fail("unmount-nfs4");
 	enter_production_probe();

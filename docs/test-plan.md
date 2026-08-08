@@ -887,6 +887,14 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Require read-only NFS lower, 2 GiB `nodev,nosuid` tmpfs upper, OverlayFS
   `/`, zero physical block devices, and zero block-backed mounts before
   accepting userspace.
+- Keep the board-neutral QEMU gate on an isolated private tmpfs VFS export.
+  Require exact numeric NFSv4 ownership on both server and client, disabled
+  unsupported directory delegation and `READ_PLUS`, the sealed ARM64 runtime
+  hashes, production `prepare_shutdown_root`/`handoff_network_root`/
+  `switch_root`, real systemd as PID 1, one successful key-only OpenSSH
+  command, and post-handoff revalidation of the OverlayFS root, read-only NFS
+  lower, tmpfs state, upper write, and unchanged lower. Treat this as
+  hardware-free behavior only; it cannot satisfy the phone USB/NCM gate.
 - Boot `multi-user.target`, leave `usb0` unmanaged, and require key-only SSH.
 - Verify exact kernel release, systemd state, nested mounts, watchdog, stable
   USB traffic, no fatal log signature, and automatic return to fallback.

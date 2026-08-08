@@ -59,18 +59,27 @@ and newer-kernel rebases remain frozen until the headless core passes.
   authenticated command, and rejects a keyless login.
 - The board-neutral Linux 7.1.4 QEMU kernel now also includes its NFSv4.2
   and OverlayFS prerequisites and completes real TCP mounts using the exact
-  `network-root-init` option string and `169.254.77.2/30` client identity. A
-  setup guest seeds the in-memory export while it is writable; Ganesha then
-  reloads the export read-only. The test guest proves that a client-requested
-  read-write mount receives `EROFS`, retains the direct read-only probe, and
-  invokes BusyBox plus the `mount_network_root()` function extracted verbatim
-  from the current production init. That production path emits stages 70, 75,
-  80, 90, and 100 exactly once and verifies the NFS lower, executable merged
-  init, writable tmpfs upper, and unchanged lower. One restricted TCP/2049
-  forward keeps the fixture independent of host storage. Hostile mutations
-  cover listener isolation, fixture seeding, server-side read-only
-  enforcement, option drift, production handoff, OverlayFS capability, and
-  invocation drift. This remains hardware-free evidence only. See the
+  `network-root-init` option string and `169.254.77.2/30` client identity.
+  Ganesha's VFS backend exports a private tmpfs tree read-only with numeric
+  NFSv4 ownership; the matching client disables ID mapping. The test guest
+  proves that a client-requested read-write mount receives `EROFS`, retains
+  the direct read-only probe, and invokes BusyBox plus the
+  `mount_network_root()` function extracted verbatim from the current
+  production init. That path emits stages 70, 75, 80, 90, and 100 exactly
+  once, verifies the NFS lower and writable tmpfs upper, then runs the
+  production `prepare_shutdown_root`, `handoff_network_root`, and
+  `switch_root` sequence. The sealed ARM64 runtime reaches real systemd as
+  PID 1 and real key-only OpenSSH; its terminal helper revalidates exact
+  OverlayFS/NFS/tmpfs topology and proves that upper writes never reached the
+  lower. The QEMU-only kernel disables NFSv4.2 `READ_PLUS`, and the fixture
+  disables directory delegations, because Ganesha 4.3 does not implement
+  either operation correctly for this path. One restricted TCP/2049 forward
+  keeps the fixture independent of host storage. Thirty-nine hostile
+  mutations cover listener isolation, server-side read-only enforcement,
+  owner mapping, option drift, production handoff, sealed runtime hashes,
+  live zero-block topology, terminal QEMU status, password-only rejection,
+  post-switch-root topology, OverlayFS capability, and invocation drift.
+  This remains hardware-free evidence only. See the
   [QEMU NFSv4.2 result](../test-results/2026-08-08-qemu-network-root-nfs-v42-offline.md).
 
 These facts do not prove the corrected candidate on the phone.

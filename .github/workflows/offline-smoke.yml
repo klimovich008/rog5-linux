@@ -150,7 +150,7 @@ jobs:
             lld \
             llvm \
             nfs-ganesha \
-            nfs-ganesha-mem \
+            nfs-ganesha-vfs \
             qemu-system-arm
       - name: Fetch pinned upstream Linux source
         if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'

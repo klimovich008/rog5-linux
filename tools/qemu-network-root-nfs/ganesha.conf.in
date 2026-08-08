@@ -10,11 +10,12 @@ NFS_CORE_PARAM {
 NFSv4 {
 	Graceless = true;
 	Minor_Versions = 2;
+	Only_Numeric_Owners = true;
 }
 
 EXPORT {
 	Export_Id = 77;
-	Path = /;
+	Path = @EXPORT_ROOT@;
 	Pseudo = /;
 	Access_Type = RO;
 	Squash = No_Root_Squash;
@@ -24,6 +25,6 @@ EXPORT {
 	SecType = sys;
 
 	FSAL {
-		Name = MEM;
+		Name = VFS;
 	}
 }
