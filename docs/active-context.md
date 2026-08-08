@@ -242,6 +242,15 @@ target-execution path. This change is phone-free and grants no candidate or
 boot authority; see the
 [offline retirement result](../test-results/2026-08-08-legacy-acm-retirement-offline.md).
 
+The active key-bound minimal root now has an exact package-closure gate rather
+than relying on a short deferred-package denylist. The retained source archive
+and sealed network root both expose the same 152 sorted package/version rows,
+SHA-256 `13586291…f8b`; every future stage compares that tracked closure with
+both its recorded inventory and fresh Pacman database output. Twelve hostile
+add/remove/version/order/format/link mutations fail. Existing root and
+candidate bytes are unchanged, and no credential or phone was used. See the
+[offline package-closure result](../test-results/2026-08-08-headless-package-closure-offline.md).
+
 ## Historical deployment chronology
 
 Historical checkpoint (2026-08-02): generation 1 reached signed-bundle

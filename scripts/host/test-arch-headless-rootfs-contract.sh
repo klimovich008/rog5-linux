@@ -3,6 +3,8 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 packages=$repo/packaging/arch/headless-packages.txt
+package_closure=$repo/packaging/arch/headless-package-closure.txt
+package_closure_verifier=$repo/scripts/device/verify-exact-package-closure.sh
 stage=$repo/scripts/device/stage-arch-headless-rootfs.sh
 verify=$repo/scripts/device/verify-staged-arch-headless-rootfs.sh
 runner=$repo/scripts/device/run-arch-rootfs-stage.sh
@@ -28,6 +30,14 @@ bash -n "$runner"
 if [ ! -f "$packages" ] || [ -L "$packages" ]; then
 	fail 'missing headless package profile'
 fi
+for path in "$package_closure" "$package_closure_verifier"; do
+	if [ ! -f "$path" ] || [ -L "$path" ]; then
+		fail "missing exact headless package-closure input: $path"
+	fi
+done
+bash -n "$package_closure_verifier"
+bash "$package_closure_verifier" "$package_closure" "$package_closure" \
+	>/dev/null
 if [ ! -f "$fixture" ] || [ -L "$fixture" ]; then
 	fail 'missing public-only headless build fixture'
 fi
@@ -68,6 +78,9 @@ grep -Fq "ssh-keygen -l -f \"\$authorized_key\"" "$stage" "$host"
 grep -Fq 'pacman -Rn --noconfirm' "$stage"
 grep -Fq 'find /etc/pacman.d/gnupg -depth -mindepth 1 -delete' "$stage"
 grep -Fq 'generated Pacman trust or signing state' "$verify"
+grep -Fq 'headless-package-closure.txt' "$verify"
+grep -Fq 'verify-exact-package-closure.sh' "$verify"
+grep -Fq 'LC_ALL=C pacman -Q | LC_ALL=C sort >"$actual_packages"' "$verify"
 grep -Fq ': >/var/log/pacman.log' "$stage"
 grep -Fq 'root:root:644:0' "$verify"
 grep -Fq 'rm -f -- /var/cache/ldconfig/aux-cache' "$stage"
