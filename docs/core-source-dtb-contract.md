@@ -108,11 +108,20 @@ The source must be an exact clean Git worktree at
 `86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46`.
 A pass reports `status=baseline-verified`.
 
-The retained source tree and ignored DTB are optional local artifacts. The
-current source location and preservation rule are maintained in the
-[host cleanup inventory](host-storage-cleanup.md#preservation-rules), rather
-than duplicated here. A fresh GitHub checkout runs the complete synthetic
-mutation suite without requiring either large retained input.
+The retained source tree is an optional local artifact. The focused suite
+automatically uses the canonical
+`build/linux-stable-v7.1.4-source` worktree when it exists, so a normal local
+repository `ci` checkpoint cannot silently skip the real accepted-source and
+corrected-DTB pair. `ROG5_ACCEPTED_KERNEL_SOURCE` remains an explicit override
+for another exact retained worktree. A path object at the canonical location
+is always submitted to the fail-closed verifier: a link, non-directory,
+dirty tree, wrong commit, or wrong source identity fails instead of being
+treated as absent. A fresh GitHub checkout without the ignored source runs
+the complete synthetic mutation suite and reports the real-input case as an
+intentional skip.
+
+The current source location and preservation rule are maintained in the
+[host cleanup inventory](host-storage-cleanup.md#preservation-rules).
 
 ## Candidate mode
 
@@ -146,7 +155,8 @@ Run the focused suite:
 scripts/host/test-core-source-dtb-contract.py
 ```
 
-To include the retained accepted source and DTB positive case:
+The canonical retained accepted source and DTB positive case is automatic
+when the source exists. To select another exact retained worktree explicitly:
 
 ```sh
 ROG5_ACCEPTED_KERNEL_SOURCE=/path/to/clean/linux-7.1.4 \
