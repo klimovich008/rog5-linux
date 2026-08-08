@@ -94,6 +94,15 @@ def verify_repository_checkpoint() -> None:
     )
     if upstream != f"origin/{branch}":
         fail("export-install branch does not track its origin peer")
+    git_output(
+        [
+            "fetch",
+            "--no-tags",
+            "--prune",
+            "origin",
+            f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+        ]
+    )
     if git_output(["rev-parse", "HEAD"]) != git_output(
         ["rev-parse", upstream]
     ):

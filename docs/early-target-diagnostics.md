@@ -69,8 +69,8 @@ code. The host classifies by the greatest valid code observed for one boot.
 | 40 | `ncm-interface-up` | `usb0` exists and is administratively up |
 | 50 | `address-configured` | target owns only `169.254.77.2/30` |
 | 60 | `ncm-carrier-up` | host and target observe carrier |
-| 70 | `nfs-mount-begin` | the bounded NFSv4.2 mount call is entered |
-| 75 | `nfs-mount-returned` | at least one BusyBox `mount` command returned to PID 1 |
+| 70 | `nfs-mount-begin` | the diagnostic profile is about to enter its sole NFSv4.2 mount call |
+| 75 | `nfs-mount-returned` | that one diagnostic `mount` command returned to PID 1 |
 | 80 | `nfs-mount-ok` | the read-only lower is mounted |
 | 90 | `seal-verify-ok` | the complete lower matches the pinned tree |
 | 100 | `overlay-ready` | tmpfs upper/work and merged root are ready |
@@ -84,11 +84,17 @@ code. The host classifies by the greatest valid code observed for one boot.
 `fault` carries the last-good code and one enumerated reason. It must not
 carry free-form kernel text, paths, credentials, or user data.
 
-Stage 75 is emitted immediately after either a successful or failed `mount`
-return and before retry accounting or stage 80. Repeated stage-75 updates are
-valid and mean only “returned at least once”; they do not count attempts. A
-70-only stream proves no return was observed. Stage 80 remains the stronger
-proof that `mountpoint` and the read-only `/proc/mounts` check passed.
+Diagnostic mode makes exactly one NFS mount attempt. Stage 70 is emitted
+immediately before that call and stage 75 immediately after it returns,
+whether it succeeded or failed. The target then verifies that the exact
+`a600000.dwc3` UDC remains bound, `usb0` and carrier remain present, the exact
+`169.254.77.2/30` address remains assigned, and the direct route to
+`169.254.77.1` remains intact. Terminal faults distinguish UDC, interface,
+carrier, address, route, and NFS failures. A 70-only stream proves no return
+was observed. Stage 80 remains the stronger proof that the one mount succeeded
+and both `mountpoint` and the read-only mount-table check passed. Normal,
+non-diagnostic network-root mode retains its bounded retry behavior without
+emitting diagnostic stages.
 
 ## Failure and rollback behavior
 
@@ -349,21 +355,24 @@ the complete repository CI tier pass with the bounded signed postmortem path
 described above. Implementation commit `eeb157b` is published with green
 exact-head GitHub Actions run `30988099391`; issuance remains a separate HOLD.
 
-The shared init admits diagnostic mode only when both `rog5.diagnostic=1` and
-the fixed `headless-netroot-early-diag-v1` bundle identity are present. That
-branch alone adds ACM, starts the reporter after the independent watchdog is
-attested, emits stages 10 through 120, retains the helper across
-`switch_root`, injects the two volatile systemd units, and dwells exactly five
-seconds after a terminal fault. Normal mode creates no ACM function, reporter,
-dwell, or units. Isolated shell tests execute the command-line gate, rollback
-dwell, unit generation, handoff rollback, and failed-`switch_root` path.
+The shared init's current write-side diagnostic contract admits mode only when
+both `rog5.diagnostic=1` and the fixed
+`headless-netroot-early-diag-v2` bundle identity are present. Recovery retains
+read compatibility for immutable v1 bundles from consumed Generations 0–12,
+but no current builder emits v1. The diagnostic branch alone adds ACM, starts
+the reporter after the independent watchdog is attested, emits stages 10
+through 140, retains the helper across `switch_root`, injects the two volatile
+systemd units, and dwells exactly five seconds after a terminal fault. Normal
+mode creates no ACM function, reporter, dwell, or units. Isolated shell tests
+execute the command-line gate, rollback dwell, unit generation, handoff
+rollback, and failed-`switch_root` path.
 
-The archive builder optionally accepts only the sealed 67,288-byte reporter
-with SHA-256
-`dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10`.
-Two qualified diagnostic archive builds were byte-identical at 6,011,337 bytes,
+The v2 archive builder accepts only the sealed 67,288-byte reporter with
 SHA-256
-`8324083480a4266bc9dd73d4974d20491979c5d5b11919c9a3ad8f09def8a31d`;
+`0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1`.
+Two qualified v2 diagnostic archive builds were byte-identical at 6,011,687
+bytes, SHA-256
+`71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e`;
 normal mode separately reconstructs its frozen 5,978,369-byte archive,
 SHA-256
 `819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5`,
@@ -371,9 +380,14 @@ from the five required files at historical source commit
 `27a270f2955c57f61e2cb8aeae0be23b31223499`. This prevents diagnostic
 changes in the shared current init source from silently redefining the normal
 candidate's historical bytes.
-The previous reporter `f0a9a52b…a1fd` and 6,010,870-byte archive
-`10cc407e…35c` remain immutable historical inputs for consumed Generations
-0–12; the new bytes have no candidate, signature, policy row, or boot authority.
+The previous reporter `f0a9a52b…a1fd`, 6,010,870-byte archive
+`10cc407e…35c`, and stage-75 v1 archive `83240834…31d` remain immutable
+historical inputs. The distinct v2 candidate record binds the accepted Image,
+corrected DTB, sealed Arch root, and new archive. The earlier authority-free
+disposable-key wrapper and signed manifest `2fb99ba0…e156` bind the superseded
+pre-single-attempt payload and remain historical composition evidence only.
+The current corrected candidate has no signed wrapper, production credential,
+policy row, connected authority, or boot authority.
 The native signed-bundle verifier requires an executable reporter for the
 diagnostic profile and rejects one in every normal profile.
 

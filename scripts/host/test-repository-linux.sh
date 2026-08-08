@@ -13,7 +13,7 @@ case $tier in
 	*) fail 'usage: test-repository-linux.sh [ci|quick|rootfs]' ;;
 esac
 
-for command in bash dtc gcc git head nm openssl pkg-config python3 sh \
+for command in bash date dtc gcc git head nm openssl pkg-config python3 sh \
 	ssh-keygen strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
@@ -133,213 +133,183 @@ then
 	fail 'repository contains a private-key header or literal OpenRouter key'
 fi
 
-if [[ $tier == ci ]]; then
-	tests=(
-		scripts/host/test-qemu-system-smoke-contract.sh
-		scripts/host/test-qemu-systemd-runtime.sh
-		scripts/host/test-kernel-builder-bootstrap-contract.sh
-		scripts/host/test-import-asus-source-volume-contract.sh
-		scripts/host/test-steam-deck-builder-contract.sh
-		scripts/host/test-network-root-kernel-rebuild-contract.sh
-		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
-		scripts/host/test-reconstruct-network-root-v3-contract.sh
-		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
-		scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
-		scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
-		scripts/host/test-restore-stable-recovery-inputs-contract.sh
-		scripts/host/test-fetch-android-boot-tools-contract.sh
-		scripts/host/test-canonical-boot-v3-template-contract.sh
-		scripts/host/test-asus-kexec-stage-successor-contract.sh
-		scripts/host/test-private-arm64-binfmt-contract.sh
-		scripts/host/test-steam-deck-recovery-builders-contract.sh
-		scripts/host/test-verify-asus-source-tree.py
-		scripts/host/test-corrected-headless-candidate-offline-contract.sh
-		scripts/host/test-corrected-successor-live-gate-offline.sh
-		scripts/host/test-headless-core-candidate-offline-contract.sh
-		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
-		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
-		scripts/host/test-stage-recovery-deployment-signing-inputs.py
-		scripts/host/test-preflight-headless-ssh-successor-candidate.py
-		scripts/device/test-recovery-candidate-dtb-contract.sh
-			scripts/device/test-buttons-indicator-candidate-dtb.sh
-			scripts/host/test-buttons-indicator-source-contract.py
-			scripts/host/test-core-compatibility-oracle.py
-			scripts/host/test-core-source-dtb-contract.py
-			scripts/device/test-collect-minimal-headless-runtime.sh
-			scripts/host/test-verify-minimal-headless-runtime.py
-			scripts/host/test-pin-minimal-headless-host-key.py
-			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
-			scripts/host/test-verify-headless-ssh-v2-key-admission.py
-			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
-		scripts/host/test-prepare-headless-ssh-deployment-candidate.py
-		scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
-			scripts/host/test-install-headless-ssh-deployment-export.py
-			scripts/host/test-run-headless-ssh-deployment-export-install.py
-			scripts/host/test-headless-battery-series.py
-			scripts/host/test-fallback-acm-control.py
-			scripts/host/test-run-minimal-headless-live-cycle.py
-			scripts/host/test-early-target-diagnostics.py
-			scripts/host/test-collect-early-target-diagnostics.py
-			scripts/device/test-build-early-target-diag.sh
-			scripts/host/test-recovery-linux.sh
-			scripts/host/test-consume-generation11-boot-claim.py
-			scripts/host/test-consume-generation12-boot-claim.py
-		scripts/host/test-recovery-control-reference.py
-		scripts/host/test-recovery-control-native.py
-		scripts/host/test-recovery-progress-collector.py
-		scripts/host/test-recovery-progress-runtime.py
-		scripts/host/test-stable-recovery-control.py
-		scripts/host/test-verified-fastboot-boot.py
-		scripts/host/test-run-stable-recovery-live-gate.sh
-		scripts/host/test-recovery-bundle-native.py
-		scripts/host/test-prepare-recovery-runtime-bundle.py
-		scripts/host/test-prepare-recovery-candidate.py
-		scripts/host/test-recovery-candidate-integration.py
-		scripts/host/test-headless-network-root.py
-		scripts/host/test-compare-root-archives.py
-		scripts/host/test-normalize-headless-core-archive-contract.sh
-		scripts/host/test-kernel-source-seal.py
-		scripts/host/test-stable-recovery-wrapper-cache.py
-		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
-		scripts/host/test-issue-stable-recovery-avb-generation.sh
-		scripts/host/test-stable-wrapper-slim-config.py
-		scripts/host/test-stable-wrapper-slim-config-contract.sh
-		scripts/host/test-arch-headless-rootfs-contract.sh
-		scripts/host/test-key-indicatord.sh
-		scripts/host/test-arch-headless-core-rootfs-contract.sh
-		scripts/host/test-claude-readonly-review.sh
-		scripts/device/test-network-root-init.sh
-		scripts/device/test-kernel-build-contract.sh
-		scripts/device/test-asus-kexec-stage-slim-build-contract.sh
-		scripts/host/test-generate-artifact-prune-plan.py
-		scripts/host/test-generate-host-storage-cleanup-plan.py
-		scripts/host/test-cleanup-podman-volumes.py
-		scripts/host/test-recovery-fetch-native.py
-		scripts/host/test-recovery-timeout-lattice.py
-		scripts/host/test-recovery-bundle-server.py
-		scripts/host/test-recovery-host-controller.py
-		scripts/host/test-recovery-host-socket.py
-		scripts/host/test-recovery-init-policy.py
-		scripts/host/test-reboot-fallback-to-fastboot.sh
-	)
-else
-	tests=(
-		scripts/host/test-qemu-system-smoke-contract.sh
-		scripts/host/test-qemu-systemd-runtime.sh
-		scripts/host/test-kernel-builder-bootstrap-contract.sh
-		scripts/host/test-import-asus-source-volume-contract.sh
-		scripts/host/test-steam-deck-builder-contract.sh
-		scripts/host/test-network-root-kernel-rebuild-contract.sh
-		scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
-		scripts/host/test-reconstruct-network-root-v3-contract.sh
-		scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
-		scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
-		scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
-		scripts/host/test-restore-stable-recovery-inputs-contract.sh
-		scripts/host/test-fetch-android-boot-tools-contract.sh
-		scripts/host/test-canonical-boot-v3-template-contract.sh
-		scripts/host/test-asus-kexec-stage-successor-contract.sh
-		scripts/host/test-private-arm64-binfmt-contract.sh
-		scripts/host/test-steam-deck-recovery-builders-contract.sh
-		scripts/host/test-verify-asus-source-tree.py
-		scripts/host/test-corrected-headless-candidate-offline-contract.sh
-		scripts/host/test-corrected-successor-live-gate-offline.sh
-		scripts/host/test-headless-core-candidate-offline-contract.sh
-		scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
-		scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
-		scripts/host/test-stage-recovery-deployment-signing-inputs.py
-		scripts/host/test-preflight-headless-ssh-successor-candidate.py
-			scripts/device/test-recovery-candidate-dtb-contract.sh
-			scripts/device/test-buttons-indicator-candidate-dtb.sh
-			scripts/host/test-buttons-indicator-source-contract.py
-			scripts/host/test-core-compatibility-oracle.py
-			scripts/host/test-core-source-dtb-contract.py
-			scripts/device/test-collect-minimal-headless-runtime.sh
-			scripts/host/test-verify-minimal-headless-runtime.py
-			scripts/host/test-pin-minimal-headless-host-key.py
-			scripts/host/test-run-minimal-headless-runtime-acceptance.sh
-			scripts/host/test-verify-headless-ssh-v2-key-admission.py
-			scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
-			scripts/host/test-prepare-headless-ssh-deployment-candidate.py
-			scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
-			scripts/host/test-install-headless-ssh-deployment-export.py
-			scripts/host/test-run-headless-ssh-deployment-export-install.py
-			scripts/host/test-headless-battery-series.py
-			scripts/host/test-fallback-acm-control.py
-			scripts/host/test-run-minimal-headless-live-cycle.py
-			scripts/host/test-early-target-diagnostics.py
-			scripts/host/test-collect-early-target-diagnostics.py
-			scripts/host/test-recovery-linux.sh
-			scripts/host/test-consume-generation11-boot-claim.py
-			scripts/host/test-consume-generation12-boot-claim.py
-		scripts/host/test-recovery-control-reference.py
-		scripts/host/test-recovery-control-native.py
-		scripts/host/test-recovery-progress-collector.py
-		scripts/host/test-recovery-progress-runtime.py
-		scripts/host/test-stable-recovery-control.py
-		scripts/host/test-verified-fastboot-boot.py
-		scripts/host/test-run-stable-recovery-live-gate.sh
-		scripts/host/test-recovery-bundle-native.py
-		scripts/host/test-prepare-recovery-runtime-bundle.py
-		scripts/host/test-prepare-recovery-candidate.py
-		scripts/host/test-recovery-candidate-integration.py
-		scripts/host/test-headless-network-root.py
-		scripts/host/test-compare-root-archives.py
-		scripts/host/test-normalize-headless-core-archive-contract.sh
-		scripts/host/test-kernel-source-seal.py
-		scripts/host/test-stable-recovery-wrapper-cache.py
-		scripts/host/test-stable-recovery-wrapper-cache-contract.sh
-		scripts/host/test-issue-stable-recovery-avb-generation.sh
-		scripts/host/test-stable-wrapper-slim-config.py
-		scripts/host/test-stable-wrapper-slim-config-contract.sh
-		scripts/host/test-arch-headless-rootfs-contract.sh
-		scripts/host/test-key-indicatord.sh
-		scripts/host/test-arch-headless-core-rootfs-contract.sh
-		scripts/host/test-claude-readonly-review.sh
-		scripts/host/test-generate-artifact-prune-plan.py
-		scripts/host/test-generate-host-storage-cleanup-plan.py
-		scripts/host/test-cleanup-podman-volumes.py
-		scripts/device/test-kernel-build-contract.sh
-		scripts/device/test-asus-kexec-stage-slim-build-contract.sh
-		scripts/device/test-a660-acceptance.py
-		scripts/host/test-a660-runtime-root.py
-		scripts/device/test-network-root-init.sh
-		scripts/device/test-persistent-root-verifier.sh
-		scripts/host/test-recovery-fetch-native.py
-		scripts/host/test-recovery-timeout-lattice.py
-		scripts/host/test-recovery-bundle-server.py
-		scripts/host/test-recovery-host-controller.py
-		scripts/host/test-recovery-host-socket.py
-		scripts/host/test-recovery-init-policy.py
-		scripts/host/test-reboot-fallback-to-fastboot.sh
-		scripts/host/test-network-root-acm.py
-		scripts/host/test-persistent-root-acm.py
-		scripts/host/test-persistent-root-entry-acm.py
-		scripts/host/test-network-root-gpucc-atomic-confirmation.sh
-		scripts/host/test-network-root-host.sh
-		scripts/host/test-capture-vendor-kernel-log.sh
-		scripts/host/test-sync-network-root-time.sh
-		scripts/host/test-rog5-remote-tunnel-service.sh
-	)
-fi
+shared_tests=(
+	scripts/host/test-qemu-system-smoke-contract.sh
+	scripts/host/test-qemu-systemd-runtime.sh
+	scripts/host/test-kernel-builder-bootstrap-contract.sh
+	scripts/host/test-import-asus-source-volume-contract.sh
+	scripts/host/test-steam-deck-builder-contract.sh
+	scripts/host/test-network-root-kernel-rebuild-contract.sh
+	scripts/host/test-network-root-kernel-builder-acceleration.sh
+	scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
+	scripts/host/test-reconstruct-network-root-v3-contract.sh
+	scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh
+	scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh
+	scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh
+	scripts/host/test-restore-stable-recovery-inputs-contract.sh
+	scripts/host/test-fetch-android-boot-tools-contract.sh
+	scripts/host/test-canonical-boot-v3-template-contract.sh
+	scripts/host/test-asus-kexec-stage-successor-contract.sh
+	scripts/host/test-private-arm64-binfmt-contract.sh
+	scripts/host/test-steam-deck-recovery-builders-contract.sh
+	scripts/host/test-verify-asus-source-tree.py
+	scripts/host/test-corrected-headless-candidate-offline-contract.sh
+	scripts/host/test-corrected-successor-live-gate-offline.sh
+	scripts/host/test-headless-core-candidate-offline-contract.sh
+	scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
+	scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
+	scripts/host/test-stage-recovery-deployment-signing-inputs.py
+	scripts/host/test-preflight-headless-ssh-successor-candidate.py
+	scripts/device/test-recovery-candidate-dtb-contract.sh
+	scripts/device/test-buttons-indicator-candidate-dtb.sh
+	scripts/host/test-buttons-indicator-source-contract.py
+	scripts/host/test-core-compatibility-oracle.py
+	scripts/host/test-core-source-dtb-contract.py
+	scripts/device/test-collect-minimal-headless-runtime.sh
+	scripts/host/test-verify-minimal-headless-runtime.py
+	scripts/host/test-pin-minimal-headless-host-key.py
+	scripts/host/test-run-minimal-headless-runtime-acceptance.sh
+	scripts/host/test-verify-headless-ssh-v2-key-admission.py
+	scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
+	scripts/host/test-prepare-headless-ssh-deployment-candidate.py
+	scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
+	scripts/host/test-install-headless-ssh-deployment-export.py
+	scripts/host/test-run-headless-ssh-deployment-export-install.py
+	scripts/host/test-headless-battery-series.py
+	scripts/host/test-fallback-acm-control.py
+	scripts/host/test-run-minimal-headless-live-cycle.py
+	scripts/host/test-early-target-diagnostics.py
+	scripts/host/test-collect-early-target-diagnostics.py
+	scripts/host/test-recovery-linux.sh
+	scripts/host/test-consume-generation11-boot-claim.py
+	scripts/host/test-consume-generation12-boot-claim.py
+	scripts/host/test-consume-exact-boot-claim.py
+	scripts/host/test-recovery-control-reference.py
+	scripts/host/test-recovery-control-native.py
+	scripts/host/test-recovery-progress-collector.py
+	scripts/host/test-recovery-progress-runtime.py
+	scripts/host/test-stable-recovery-control.py
+	scripts/host/test-verified-fastboot-boot.py
+	scripts/host/test-run-stable-recovery-live-gate.sh
+	scripts/host/test-recovery-bundle-native.py
+	scripts/host/test-prepare-recovery-runtime-bundle.py
+	scripts/host/test-prepare-recovery-candidate.py
+	scripts/host/test-recovery-candidate-integration.py
+	scripts/host/test-headless-network-root.py
+	scripts/host/test-compare-root-archives.py
+	scripts/host/test-normalize-headless-core-archive-contract.sh
+	scripts/host/test-kernel-source-seal.py
+	scripts/host/test-stable-recovery-wrapper-cache.py
+	scripts/host/test-stable-recovery-wrapper-cache-contract.sh
+	scripts/host/test-issue-stable-recovery-avb-generation.sh
+	scripts/host/test-stable-wrapper-slim-config.py
+	scripts/host/test-stable-wrapper-slim-config-contract.sh
+	scripts/host/test-arch-headless-rootfs-contract.sh
+	scripts/host/test-key-indicatord.sh
+	scripts/host/test-arch-headless-core-rootfs-contract.sh
+	scripts/host/test-claude-readonly-review.sh
+	scripts/host/test-github-exact-head-workflow.sh
+	scripts/host/test-repository-linux-runner-contract.sh
+	scripts/device/test-network-root-init.sh
+	scripts/device/test-kernel-build-contract.sh
+	scripts/device/test-asus-kexec-stage-slim-build-contract.sh
+	scripts/host/test-generate-artifact-prune-plan.py
+	scripts/host/test-generate-host-storage-cleanup-plan.py
+	scripts/host/test-cleanup-podman-volumes.py
+	scripts/host/test-recovery-fetch-native.py
+	scripts/host/test-recovery-timeout-lattice.py
+	scripts/host/test-recovery-bundle-server.py
+	scripts/host/test-recovery-host-controller.py
+	scripts/host/test-recovery-host-socket.py
+	scripts/host/test-recovery-init-policy.py
+	scripts/host/test-reboot-fallback-to-fastboot.sh
+)
+
+tier_tests=()
+case $tier in
+	ci)
+		tier_tests+=(scripts/device/test-build-early-target-diag.sh)
+		;;
+	quick|rootfs)
+		tier_tests+=(
+			scripts/device/test-a660-acceptance.py
+			scripts/host/test-a660-runtime-root.py
+			scripts/device/test-persistent-root-verifier.sh
+			scripts/host/test-network-root-acm.py
+			scripts/host/test-persistent-root-acm.py
+			scripts/host/test-persistent-root-entry-acm.py
+			scripts/host/test-network-root-gpucc-atomic-confirmation.sh
+			scripts/host/test-network-root-host.sh
+			scripts/host/test-capture-vendor-kernel-log.sh
+			scripts/host/test-sync-network-root-time.sh
+			scripts/host/test-rog5-remote-tunnel-service.sh
+		)
+		[[ $tier != rootfs ]] ||
+			tier_tests+=(scripts/host/test-linux-rootfs-tools.sh)
+		;;
+esac
+tests=("${shared_tests[@]}" "${tier_tests[@]}")
 
 for test_path in "${tests[@]}"; do
 	test_file=$repo/$test_path
 	[[ -f $test_file && ! -L $test_file ]] ||
 		fail "missing core offline test: $test_path"
 	case $test_file in
-		*.py) python3 "$test_file" ;;
-		*) [[ -x $test_file ]] || fail "offline test is not executable: $test_path"
-			"$test_file"
-			;;
+		*.py) ;;
+		*) [[ -x $test_file ]] ||
+			fail "offline test is not executable: $test_path" ;;
 	esac
 done
 
-if [[ $tier == rootfs ]]; then
-	rootfs_test=$repo/scripts/host/test-linux-rootfs-tools.sh
-	[[ -f $rootfs_test && ! -L $rootfs_test && -x $rootfs_test ]] ||
-		fail 'missing executable rootfs offline suite'
-	"$rootfs_test"
-fi
+run_test() {
+	test_path=$1
+	test_file=$repo/$test_path
+	started=$(date +%s%N)
+	set +e
+	case $test_file in
+		*.py) python3 "$test_file" ;;
+		*) "$test_file" ;;
+	esac
+	status=$?
+	set -e
+	finished=$(date +%s%N)
+	elapsed_ms=$(((finished - started) / 1000000))
+	printf 'DURATION %s %dms\n' "$test_path" "$elapsed_ms"
+	return "$status"
+}
+
+isolated_tests=(
+	scripts/host/test-qemu-system-smoke-contract.sh
+	scripts/host/test-kernel-builder-bootstrap-contract.sh
+	scripts/host/test-import-asus-source-volume-contract.sh
+	scripts/host/test-steam-deck-builder-contract.sh
+)
+parallel_root=$(mktemp -d)
+trap 'rm -rf -- "$parallel_root"' EXIT HUP INT TERM
+parallel_pids=()
+parallel_paths=()
+for test_path in "${isolated_tests[@]}"; do
+	parallel_paths+=("$test_path")
+	(run_test "$test_path") >"$parallel_root/${#parallel_paths[@]}.log" 2>&1 &
+	parallel_pids+=("$!")
+done
+for index in "${!parallel_pids[@]}"; do
+	log=$parallel_root/$((index + 1)).log
+	if wait "${parallel_pids[$index]}"; then
+		cat "$log"
+	else
+		cat "$log" >&2
+		fail "isolated offline test failed: ${parallel_paths[$index]}"
+	fi
+done
+
+for test_path in "${tests[@]}"; do
+	case " ${isolated_tests[*]} " in
+		*" $test_path "*) continue ;;
+	esac
+	if ! run_test "$test_path"; then
+		fail "sequential offline test failed: $test_path"
+	fi
+done
 
 echo "PASS repository Linux $tier tier"

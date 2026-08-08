@@ -20,7 +20,9 @@ routine authorization gates may be satisfied from the standing directive and
 must not cause another consent pause. This latest directive supersedes stale
 goal or historical gate wording that requests fresh consent; it does not relax
 artifact admission, rollback, evidence, cleanup, or the
-no-flash/no-phone-storage-write boundary.
+no-flash/no-phone-storage-write boundary. The operator reaffirmed the same
+directive again on 2026-08-05; the standing-authorization record is the
+canonical wording.
 
 GPU, display, desktop, browser automation, hotspot, persistent installation,
 and newer-kernel rebases remain frozen until the headless core passes.
@@ -177,13 +179,13 @@ artifact inventory, and permanently claimed. Production diagnostic actions
 now reject before guards, credentials, repository, host, or phone inspection;
 the retained offline profiles and twins are regression evidence only. The
 outer lifecycle parser correction is complete at `606303a`; exact-head run
-`30952333022` is green. The current host-only successor inserts stage 75
+`30952333022` is green. The published host-only successor inserts stage 75
 `nfs-mount-returned`, records same-port NCM/link counters, kernel NFS-RPC
 totals, and exact target-specific NFS TCP states/queues/current unrecovered RTO
 timeouts in private
 evidence v2, and writes one candidate/boot-ID lineage marker to `/dev/kmsg`.
-Its static reporter and diagnostic initramfs twin-build at
-`dc53932d…a10` and `83240834…31d`. Fallback-side current-cycle pstore
+Its historical sealed static reporter is `dc53932d…a10`. Fallback-side
+current-cycle pstore
 acquisition/correlation is now implemented host-only: a strict same-port SSH
 action reads at most 64 records/4 MiB without deleting them, signs a summary
 bound to the target candidate/boot ID, distinguishes lineage and fatal-token
@@ -195,8 +197,20 @@ independent review pass in the
 checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
 Implementation commit `eeb157b` is published with green exact-head GitHub
 Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). The
-host-only publication gate is closed, but central boot policy stays empty and
-no candidate may be issued, signed, admitted, or booted. See also the
+host-only publication gate is closed. The distinct, unissued
+`headless-netroot-early-diag-v2` write-side candidate now binds the
+single-attempt reporter `0b5d318e…7bc1` and 6,011,687-byte initramfs
+`71537ca0…c58e`, plus the accepted Image, corrected DTB, and sealed Arch root.
+The prior disposable-key wrapper tuple is retained only as superseded offline
+composition evidence and is not the current candidate. Central boot policy
+remains empty, the profile is offline-only, and
+no production credential or phone was used. This stage-75/current-cycle-
+postmortem successor is the active work and has no boot authority. Generation
+12 is consumed and must never be retried. A separately reviewed, exact-head-CI
+qualified one-shot generation would be required before any connected preflight
+or temporary phone boot. See the
+[v2 offline result](../test-results/2026-08-05-stage75-v2-candidate-offline.md)
+and the
 [host-only admission
 result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 

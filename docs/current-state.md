@@ -75,11 +75,13 @@ result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
 does not claim a panic without current-cycle console or postmortem lineage.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
-successor now adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
+stage-75/current-cycle-postmortem successor is the active work and has no boot
+authority. It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
-state/queue/current-unrecovered-RTO snapshots. Its reporter and diagnostic
-initramfs reproduce at `dc53932d…a10` and `83240834…31d`. This is not boot
-authority. Fallback-side pstore correlation is now implemented as a bounded,
+state/queue/current-unrecovered-RTO snapshots. Its historical reporter and
+diagnostic initramfs v1 reproduce at `dc53932d…a10` and `83240834…31d`.
+Fallback-side
+pstore correlation is implemented as a bounded,
 read-only, signed strict-SSH summary before unchanged fallback health. It
 binds the expected target boot ID and candidate, keeps raw records on the
 phone, classifies lineage separately from recognized fatal tokens, and
@@ -91,7 +93,18 @@ checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offli
 Implementation commit `eeb157b` is published with green exact-head GitHub
 Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
 closes the host-only publication gate; policy still contains no successor
-`allow` row and issuance remains HOLD.
+`allow` row. A distinct current write-side candidate
+`headless-netroot-early-diag-v2` now binds the single-attempt reporter
+`0b5d318e…7bc1` to a 6,011,687-byte initramfs `71537ca0…c58e`, accepted Image,
+corrected DTB, and sealed Arch root. The prior disposable-key signed tuple is
+retained only as superseded offline composition evidence; it is not the
+current candidate and confers no authority. This current state proves source
+and initramfs composition only:
+the v2 profile is offline-only, central policy remains empty, no production
+credential or phone was used, and production-bound issuance remains HOLD.
+Generation 12 is consumed and must never be retried; it is not pending live
+admission. Any future one-shot generation must be a new exact record consumed
+through the generic repository-owned claim consumer after exact-head CI.
 Generation 10 accepted
 PREPARE and completed the host-side signed-bundle transfer, but ACM closed
 before later device progress or `PREPARED` could be observed. No COMMIT intent

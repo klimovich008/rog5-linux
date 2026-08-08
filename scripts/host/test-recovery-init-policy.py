@@ -53,7 +53,7 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn("169.254.77.2/30", network)
         self.assertNotIn("/dev/ttyGS0", network)
         self.assertIn(
-            "diagnostic_candidate=headless-netroot-early-diag-v1",
+            "diagnostic_candidate=headless-netroot-early-diag-v2",
             network,
         )
         self.assertIn(

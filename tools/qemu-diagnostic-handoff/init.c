@@ -19,7 +19,7 @@
 
 #define REPORTER "/sbin/rog5-early-target-diag"
 #define RETAINED_REPORTER "/run/initramfs/sbin/rog5-early-target-diag"
-#define CANDIDATE "headless-netroot-early-diag-v1"
+#define CANDIDATE "headless-netroot-early-diag-v2"
 #define SYSTEMD "/usr/lib/systemd/systemd"
 #define PUBLICATION_SETTLE_MS 500
 

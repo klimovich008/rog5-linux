@@ -640,6 +640,22 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
 
 class EarlyTargetDiagnosticStateTest(unittest.TestCase):
 
+    def test_route_loss_is_a_distinct_terminal_fault(self):
+        stream = MODULE.DiagnosticStream(CANDIDATE)
+        stream.feed(MODULE.frame_for(record(1, 70)))
+        parsed = stream.feed(
+            MODULE.frame_for(
+                record(
+                    2,
+                    200,
+                    last_good_code=70,
+                    fault="route-failed",
+                )
+            )
+        )
+        self.assertEqual(parsed[-1].fault, "route-failed")
+        self.assertEqual(stream.terminal, (200, 70, "route-failed"))
+
     def test_sequence_time_stage_and_drop_regressions_fail(self):
         mutations = (
             record(1, 20),

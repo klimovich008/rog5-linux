@@ -19,14 +19,14 @@ from typing import Any, NoReturn
 SOURCE_REPO = Path(__file__).resolve().parents[2]
 CANDIDATE_PATH = SOURCE_REPO / "scripts/host/prepare-recovery-candidate.py"
 DEFAULT_CANDIDATE_ID = "headless-ssh-network-root-v3"
-DIAGNOSTIC_CANDIDATE_ID = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_CANDIDATE_ID = "headless-netroot-early-diag-v2"
 ALLOWED_CANDIDATE_IDS = (
     DEFAULT_CANDIDATE_ID,
     DIAGNOSTIC_CANDIDATE_ID,
 )
 EXACT_CANDIDATE_SHA256 = {
     DIAGNOSTIC_CANDIDATE_ID: (
-        "7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8"
+        "f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157"
     ),
 }
 GIT = Path("/usr/bin/git")
@@ -138,6 +138,16 @@ def verify_repository_checkpoint(repository: Path) -> str:
     )
     if upstream != f"origin/{branch}":
         fail("deployment-signing branch does not track its origin peer")
+    git_output(
+        repository,
+        [
+            "fetch",
+            "--no-tags",
+            "--prune",
+            "origin",
+            f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+        ],
+    )
     checkpoint = git_output(repository, ["rev-parse", "HEAD"])
     if checkpoint != git_output(repository, ["rev-parse", upstream]):
         fail("deployment-signing checkpoint differs from its origin peer")

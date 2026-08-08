@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10' \
+	'reviewed_reporter_hash=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
@@ -80,7 +80,7 @@ for text in \
 	'verify_network_root_identity || return 1' \
 	'format=rog5-network-root-identity-v1' \
 	'publish_network_root_identity' \
-	'diagnostic_candidate=headless-netroot-early-diag-v1' \
+	'diagnostic_candidate=headless-netroot-early-diag-v2' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
 	'functions/acm.usb0' \
@@ -158,7 +158,7 @@ handoff_line=$(grep -n \
 [ "$identity_publish_line" -lt "$handoff_line" ]
 
 readonly_check_line=$(grep -n \
-	'^[[:space:]]*awk .*"/mnt/root-ro".*ro' "$init" |
+	'^[[:space:]]*awk -v root="\$network_root_ro"' "$init" |
 	head -n1 | cut -d: -f1)
 identity_line=$(grep -n \
 	'^[[:space:]]*verify_network_root_identity || return 1$' "$init" |
@@ -193,6 +193,7 @@ for fault in \
 	ncm-interface-failed \
 	address-failed \
 	carrier-timeout \
+	route-failed \
 	nfs-mount-failed \
 	seal-verify-failed \
 	overlay-failed \
@@ -212,7 +213,7 @@ done
 
 [ "$(grep -Fc 'rog5.netroot=1' "$init")" -eq 1 ]
 grep -Fq '[ "$physical_count" -eq 0 ]' "$init"
-grep -Fq '[ -x /newroot/sbin/init ]' "$init"
+grep -Fq '[ -x "$network_newroot/sbin/init" ]' "$init"
 grep -Fq 'move_handoff_mount "$handoff_dev" "$handoff_newroot/dev"' "$init"
 grep -Fq 'move_handoff_mount "$handoff_proc" "$handoff_newroot/proc"' "$init"
 grep -Fq 'move_handoff_mount "$handoff_sys" "$handoff_newroot/sys"' "$init"
@@ -252,6 +253,302 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 mkdir "$work/run"
+
+network_functions=$work/network-functions.sh
+awk '
+	/^udc_candidate_count\(\) \{/ { copy=1 }
+	/^install_diagnostic_units\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$network_functions"
+grep -Fq 'validate_expected_udc() {' "$network_functions"
+grep -Fq 'mount_network_root() {' "$network_functions"
+
+run_udc_selection_case() (
+	case_name=$1
+	expected_status=$2
+	udc_class_dir=$work/udc-$case_name
+	expected_udc=a600000.dwc3
+	mkdir -p "$udc_class_dir"
+	case $case_name in
+		exact) mkdir "$udc_class_dir/a600000.dwc3" ;;
+		zero) ;;
+		multiple)
+			mkdir "$udc_class_dir/a600000.dwc3" \
+				"$udc_class_dir/a800000.dwc3"
+			;;
+		wrong) mkdir "$udc_class_dir/a800000.dwc3" ;;
+		renamed) mkdir "$udc_class_dir/evil-a600000.dwc3" ;;
+		changing) mkdir "$udc_class_dir/a600000.dwc3" ;;
+	esac
+	udc_poll_attempts=2
+	change_done=0
+	sleep() {
+		if [ "$case_name" = changing ] && [ "$change_done" -eq 0 ]; then
+			rmdir "$udc_class_dir/a600000.dwc3"
+			mkdir "$udc_class_dir/a800000.dwc3"
+			change_done=1
+		fi
+	}
+	# shellcheck disable=SC1090
+	. "$network_functions"
+	if selected=$(select_expected_udc); then
+		actual_status=0
+		[ "$selected" = a600000.dwc3 ]
+	else
+		actual_status=$?
+	fi
+	[ "$actual_status" -eq "$expected_status" ] || {
+		echo "FAIL UDC case $case_name returned $actual_status, expected $expected_status" >&2
+		exit 1
+	}
+)
+
+run_udc_selection_case exact 0
+for hostile_udc in zero multiple wrong renamed changing; do
+	run_udc_selection_case "$hostile_udc" 1
+done
+
+run_configure_usb_case() (
+	case_name=$1
+	expected_status=$2
+	case_root=$work/configure-$case_name
+	udc_class_dir=$case_root/udc
+	net_class_dir=$case_root/net
+	usb_mode_path=$case_root/absent-mode
+	usb_configfs_root=$case_root/configfs
+	usb_gadget_root=$usb_configfs_root/usb_gadget/rog5-network-root
+	expected_udc=a600000.dwc3
+	udc_poll_attempts=1
+	diagnostic_mode=0
+	diagnostic_fault=none
+	mkdir -p "$udc_class_dir/a600000.dwc3" \
+		"$net_class_dir/usb0" "$usb_gadget_root"
+	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
+	: >"$usb_gadget_root/UDC"
+	validation_count=$case_root/validation-count
+	printf '%s\n' 0 >"$validation_count"
+	mount() { return 0; }
+	mdev() { return 0; }
+	ip() { return 0; }
+	sleep() { return 0; }
+	diagnostic_emit() { return 0; }
+	# shellcheck disable=SC1090
+	. "$network_functions"
+	validate_expected_udc() {
+		count=$(cat "$validation_count")
+		count=$((count + 1))
+		printf '%s\n' "$count" >"$validation_count"
+		if { [ "$case_name" = before-bind ] ||
+			[ "$case_name" = multiple-before-bind ]; } &&
+			[ "$count" -eq 3 ]; then
+			if [ "$case_name" = before-bind ]; then
+				rmdir "$udc_class_dir/a600000.dwc3"
+				mkdir "$udc_class_dir/a800000.dwc3"
+			else
+				mkdir "$udc_class_dir/a800000.dwc3"
+			fi
+		elif [ "$case_name" = after-bind ] && [ "$count" -eq 4 ]; then
+			rmdir "$udc_class_dir/a600000.dwc3"
+			mkdir "$udc_class_dir/a800000.dwc3"
+		fi
+		validate_expected_udc_once
+	}
+	if configure_usb; then
+		actual_status=0
+	else
+		actual_status=$?
+	fi
+	[ "$actual_status" -eq "$expected_status" ] || {
+		echo "FAIL configure_usb case $case_name returned $actual_status, expected $expected_status" >&2
+		exit 1
+	}
+	bound=$(cat "$usb_gadget_root/UDC")
+	case $bound in
+		''|a600000.dwc3) ;;
+		*)
+			echo "FAIL configure_usb case $case_name wrote arbitrary UDC $bound" >&2
+			exit 1
+			;;
+	esac
+	if [ "$case_name" = exact ]; then
+		[ "$bound" = a600000.dwc3 ]
+	elif [ "$case_name" != after-bind ]; then
+		[ -z "$bound" ]
+	fi
+)
+
+run_configure_usb_case exact 0
+for hostile_bind in before-bind multiple-before-bind after-bind; do
+	run_configure_usb_case "$hostile_bind" 1
+done
+
+run_diagnostic_mount_case() (
+	case_name=$1
+	expected_fault=$2
+	case_root=$work/mount-$case_name
+	udc_class_dir=$case_root/sys/class/udc
+	expected_udc=a600000.dwc3
+	net_class_dir=$case_root/sys/class/net
+	gadget=$case_root/gadget
+	network_root_ro=$case_root/root-ro
+	network_root_state=$case_root/state
+	network_newroot=$case_root/newroot
+	network_mounts=$case_root/mounts
+	mkdir -p "$udc_class_dir/a600000.dwc3" \
+		"$net_class_dir/usb0" "$gadget" "$network_root_ro"
+	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
+	: >"$network_mounts"
+	diagnostic_mode=1
+	diagnostic_fault=none
+	mount_calls=0
+	stages=
+	diagnostic_emit() {
+		[ "$diagnostic_mode" -eq 1 ] || return 0
+		stages="${stages}${stages:+ }$1"
+	}
+	sleep() {
+		:
+	}
+	ip() {
+		case "$*" in
+			'-4 address show dev usb0')
+				[ "$case_name" = address ] ||
+					printf '%s\n' 'inet 169.254.77.2/30 scope global usb0'
+				;;
+			'-4 route get 169.254.77.1')
+				if [ "$case_name" = route ]; then
+					printf '%s\n' '169.254.77.1 via 169.254.77.3 dev usb0 src 169.254.77.2'
+				else
+					printf '%s\n' '169.254.77.1 dev usb0 src 169.254.77.2'
+				fi
+				;;
+			*) return 1 ;;
+		esac
+	}
+	mount() {
+		mount_calls=$((mount_calls + 1))
+		case $case_name in
+			udc) printf '%s\n' a800000.dwc3 >"$gadget/UDC" ;;
+			interface) rm -rf -- "$net_class_dir/usb0" ;;
+			carrier) printf '%s\n' 0 >"$net_class_dir/usb0/carrier" ;;
+		esac
+		return 32
+	}
+	# shellcheck disable=SC1090
+	. "$network_functions"
+	if mount_network_root; then
+		echo "FAIL diagnostic mount case $case_name succeeded" >&2
+		exit 1
+	fi
+	[ "$mount_calls" -eq 1 ] || {
+		echo "FAIL diagnostic mount case $case_name made $mount_calls attempts" >&2
+		exit 1
+	}
+	[ "$stages" = '70 75' ] || {
+		echo "FAIL diagnostic mount case $case_name emitted stages: $stages" >&2
+		exit 1
+	}
+	[ "$diagnostic_fault" = "$expected_fault" ] || {
+		echo "FAIL diagnostic mount case $case_name classified $diagnostic_fault, expected $expected_fault" >&2
+		exit 1
+	}
+)
+
+run_diagnostic_mount_case nfs nfs-mount-failed
+run_diagnostic_mount_case udc udc-bind-failed
+run_diagnostic_mount_case interface ncm-interface-failed
+run_diagnostic_mount_case carrier carrier-timeout
+run_diagnostic_mount_case address address-failed
+run_diagnostic_mount_case route route-failed
+
+run_mount_completion_case() (
+	case_name=$1
+	expected_calls=$2
+	expected_stages=$3
+	case_root=$work/completion-$case_name
+	udc_class_dir=$case_root/sys/class/udc
+	expected_udc=a600000.dwc3
+	net_class_dir=$case_root/sys/class/net
+	gadget=$case_root/gadget
+	network_root_ro=$case_root/root-ro
+	network_root_state=$case_root/state
+	network_newroot=$case_root/newroot
+	network_mounts=$case_root/mounts
+	mkdir -p "$udc_class_dir/a600000.dwc3" \
+		"$net_class_dir/usb0" "$gadget" "$network_newroot/sbin"
+	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
+	printf '#!/bin/sh\n' >"$network_newroot/sbin/init"
+	chmod 0755 "$network_newroot/sbin/init"
+	if [ "$case_name" = readonly-failure ]; then
+		printf 'server:/ %s nfs4 rw,relatime 0 0\n' "$network_root_ro" \
+			>"$network_mounts"
+	else
+		printf 'server:/ %s nfs4 ro,relatime 0 0\n' "$network_root_ro" \
+			>"$network_mounts"
+	fi
+	diagnostic_mode=1
+	[ "$case_name" != normal-retry ] || diagnostic_mode=0
+	diagnostic_fault=none
+	mount_calls=0
+	stages=
+	diagnostic_emit() {
+		[ "$diagnostic_mode" -eq 1 ] || return 0
+		stages="${stages}${stages:+ }$1"
+	}
+	sleep() {
+		:
+	}
+	ip() {
+		case "$*" in
+			'-4 address show dev usb0')
+				printf '%s\n' 'inet 169.254.77.2/30 scope global usb0'
+				;;
+			'-4 route get 169.254.77.1')
+				printf '%s\n' '169.254.77.1 dev usb0 src 169.254.77.2'
+				;;
+			*) return 1 ;;
+		esac
+	}
+	mount() {
+		case " $* " in
+			*' -t nfs4 '*)
+				mount_calls=$((mount_calls + 1))
+				if [ "$case_name" = normal-retry ] &&
+					[ "$mount_calls" -lt 3 ]; then
+					return 32
+				fi
+				;;
+		esac
+		return 0
+	}
+	mountpoint() {
+		return 0
+	}
+	verify_network_root_identity() {
+		return 0
+	}
+	# shellcheck disable=SC1090
+	. "$network_functions"
+	if [ "$case_name" = readonly-failure ]; then
+		if mount_network_root; then
+			echo 'FAIL diagnostic read-write lower reached stage 80' >&2
+			exit 1
+		fi
+	else
+		mount_network_root
+	fi
+	[ "$mount_calls" -eq "$expected_calls" ]
+	[ "$stages" = "$expected_stages" ] || {
+		echo "FAIL mount completion case $case_name emitted stages: $stages" >&2
+		exit 1
+	}
+)
+
+run_mount_completion_case readonly-failure 1 '70 75'
+run_mount_completion_case readonly-success 1 '70 75 80 90 100'
+run_mount_completion_case normal-retry 3 ''
 
 diagnostic_functions=$work/diagnostic-functions.sh
 awk '
@@ -660,7 +957,7 @@ rog5.root_seal_sha256=$hash_c
 rog5.root_tree_entries=42
 rog5.root_subtree=/"
 kernel_cmdline=$work/cmdline
-diagnostic_candidate=headless-netroot-early-diag-v1
+diagnostic_candidate=headless-netroot-early-diag-v2
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
@@ -702,7 +999,7 @@ for family in \
 done
 
 diagnostic_cmdline=$(printf '%s\n' "$valid_cmdline" |
-	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-netroot-early-diag-v1/')
+	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-netroot-early-diag-v2/')
 diagnostic_cmdline="$diagnostic_cmdline
 rog5.diagnostic=1"
 printf '%s\n' "$diagnostic_cmdline" >"$kernel_cmdline"

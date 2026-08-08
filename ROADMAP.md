@@ -706,14 +706,15 @@ Current execution order:
     regressions pass. Commits `5ce677e`, `baf57cf`, and `606303a` publish the
     correction; exact-head GitHub Actions run `30952333022` passed QEMU in 35s
     and recovery-core in 11m40s.
-30. **In progress, host-only and issuance HOLD:** the distinct successor now
+30. **In progress, offline candidate complete and production issuance HOLD:**
+    the distinct successor
     inserts stage 75 `nfs-mount-returned` between begin and verified success,
     emits one candidate/boot-ID kernel-log lineage marker, and extends private
     evidence with change-only same-port NCM, kernel NFS-RPC, and exact
     `169.254.77.1:2049`-to-target TCP state/queue/current-unrecovered-RTO
     snapshots. The
-    67,288-byte reporter and 6,011,337-byte diagnostic initramfs twin-build
-    exactly at `dc53932d…a10` and `83240834…31d`. Hostile parser, collector,
+    historical 67,288-byte reporter was sealed at `dc53932d…a10`. The active
+    single-attempt reporter is `0b5d318e…7bc1`. Hostile parser, collector,
     lifecycle, and build-contract tests pass. The fallback now captures a
     signed, read-only, 64-record/4-MiB pstore summary before strict health,
     binds it to the expected candidate/target boot ID, separates lineage and
@@ -724,10 +725,18 @@ Current execution order:
     checkpoint](test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
     Implementation commit `eeb157b` is published with green exact-head GitHub
     Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
-    closes the host-only publication gate, not issuance: do not issue, sign,
-    admit, or boot a successor from this checkpoint. Promote a normal SSH
-    candidate only after new evidence locates and the implementation fixes the
-    failing boundary.
+    closes the host-only publication gate. The new write-side
+    `headless-netroot-early-diag-v2` candidate binds a 6,011,687-byte
+    initramfs `71537ca0…c58e`, accepted Image, corrected DTB, and sealed Arch
+    root. The prior authority-free disposable-key wrapper tuple is retained as
+    superseded offline composition evidence only. The active candidate has no
+    signed wrapper, policy row, production credential, or boot authority. The profile is
+    offline-only and central policy remains empty. Next review and publish this
+    candidate checkpoint, bind a fresh production credential, issue one new
+    generation with distinct one-shot admission, run connected preflight, and
+    only then execute one temporary lifecycle. Promote a normal SSH candidate
+    only after that evidence locates and the implementation fixes the failing
+    boundary.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 

@@ -20,9 +20,14 @@ rog5_kernel_cache_identity() {
 				rog5_kernel_fail 'KBUILD_CCACHE=1 but ccache is unavailable'
 			[ -f "$_rog5_ccache_path" ] && [ -x "$_rog5_ccache_path" ] ||
 				rog5_kernel_fail 'ccache is not an executable regular file'
+			_rog5_ccache_config=$(CCACHE_CONFIGPATH=/dev/null \
+				ccache --show-config) ||
+				rog5_kernel_fail 'cannot inspect the effective ccache configuration'
 			printf '%s\n' \
 				'compiler_cache=ccache' \
-				"ccache_sha256=$(sha256sum "$_rog5_ccache_path" | cut -d ' ' -f 1)"
+				"ccache_sha256=$(sha256sum "$_rog5_ccache_path" | cut -d ' ' -f 1)" \
+				"ccache_config_sha256=$(printf '%s\n' "$_rog5_ccache_config" |
+					sha256sum | cut -d ' ' -f 1)"
 			;;
 		*)
 			rog5_kernel_fail 'KBUILD_CCACHE must be 0 or 1'
@@ -133,6 +138,7 @@ rog5_kernel_make() {
 			command -v ccache >/dev/null ||
 				rog5_kernel_fail 'ccache disappeared after build preparation'
 			CCACHE_COMPILERCHECK=content \
+			CCACHE_CONFIGPATH=/dev/null \
 			CCACHE_NODEPEND=true \
 			CCACHE_SLOPPINESS='' \
 				command make "$@" \

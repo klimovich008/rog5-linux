@@ -14,7 +14,7 @@ base_sha=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
 verifier_size=326920
 verifier_sha=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 reporter_size=67288
-reporter_sha=dc53932d6275180fa71972ceed0ae409bd4ae1604fca8befd9f030d476583a10
+reporter_sha=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1
 profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
 profile_sha=780d564013d30c278b709939db6402347243eb2866065c6cbbe1788a946b842f
 builder_verifier=$repo/scripts/host/verify-steam-deck-recovery-builders.sh
@@ -44,12 +44,12 @@ case $mode in
 		legacy_source_tree=56668d6b44907ffb3644c04d6d9ff3a7c1f49b95
 		;;
 	diagnostic)
-		output_root=${2:-$repo/artifacts/early-target-diagnostic-v1}
+		output_root=${2:-$repo/artifacts/early-target-diagnostic-v2}
 		output_name=rog5-early-target-diagnostic-initramfs.cpio.gz
-		output_size=6011337
-		output_sha=8324083480a4266bc9dd73d4974d20491979c5d5b11919c9a3ad8f09def8a31d
+		output_size=6011687
+		output_sha=71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e
 		report_name=early-target-diagnostic-initramfs-rebuild.txt
-		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v1
+		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v2
 		report_state=exact-pinned-bytes-reproduced
 		reproducibility=twin-verifier-reporter-and-twin-initramfs-builds
 		;;
@@ -251,9 +251,11 @@ build_archive "$verifier_b" "$reporter_b" "$archive_b" \
 	>"$work/initramfs-b.txt"
 cmp "$archive_a" "$archive_b" ||
 	fail 'two qualified headless initramfs builds differ'
-[[ $(stat -c %s "$archive_a") == "$output_size" &&
-	$(sha256sum "$archive_a" | cut -d ' ' -f 1) == "$output_sha" ]] ||
-	fail 'network-root initramfs identity changed'
+observed_output_size=$(stat -c %s "$archive_a")
+observed_output_sha=$(sha256sum "$archive_a" | cut -d ' ' -f 1)
+[[ $observed_output_size == "$output_size" &&
+	$observed_output_sha == "$output_sha" ]] ||
+	fail "network-root initramfs identity changed: size=$observed_output_size sha256=$observed_output_sha"
 if [[ $mode == diagnostic ]]; then
 	PATH="$cpio_path:/usr/bin:/bin:/usr/sbin:/sbin" \
 	NETWORK_ROOT_VERIFIER="$verifier_a" \

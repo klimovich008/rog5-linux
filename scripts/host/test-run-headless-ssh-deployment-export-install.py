@@ -252,6 +252,7 @@ class DeploymentExportLaunchTest(unittest.TestCase):
             "",
             "agent/linux-recovery-host",
             "origin/agent/linux-recovery-host",
+            "",
             "checkpoint",
             "checkpoint",
         ]

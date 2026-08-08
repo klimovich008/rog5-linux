@@ -191,7 +191,7 @@ for source in \
 	cp -p -- "$repo/$source" "$integration_repo/$source"
 done
 cp -p -- \
-	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v1.json" \
+	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json" \
 	"$integration_repo/configs/recovery-candidates/"
 printf 'build/\n__pycache__/\n' >"$integration_repo/.gitignore"
 for stub in \
@@ -258,7 +258,7 @@ integration_candidate=$integration_private/diagnostic-candidate.json
 openssl genpkey -algorithm ED25519 -out "$integration_key" 2>/dev/null
 chmod 0600 "$integration_key"
 cp -- \
-	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v1.json" \
+	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json" \
 	"$integration_candidate"
 chmod 0444 "$integration_candidate"
 key_before=$(sha256sum "$integration_key" | cut -d ' ' -f 1)
@@ -321,12 +321,13 @@ for token in \
 	'build-early-target-diagnostic-deployment-candidate.sh' \
 	'--authorize-recovery-deployment-build' \
 	'--authorize-phone-credential-use' \
-	'headless-diagnostic-deployment-v1' \
-	'consumed_diagnostic_recovery=' \
-	'consumed diagnostic recovery guard was not preserved' \
-	'fixture image collided with the consumed recovery guard' \
-	'fixture image is not the unique diagnostic allowlist pin' \
-	'generation-2 identity survived in generation-zero fixture' \
+	'headless-diagnostic-stage75-v2-superseded-offline-v1' \
+	'missing exact consumed recovery guard' \
+	'consumed recovery guard changed by fixture rewrite' \
+	'fixture image collides with a consumed recovery guard' \
+	'fixture image is not the unique stage-75 v2 allowlist pin' \
+	'2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7' \
+	'833899cb067a28d57e41c5a8291c7f5099c4f7fcc11316c2976d04a7b926e7de' \
 	'artifact-preflight' \
 	'full disposable-key diagnostic wrapper, twin build, native verification, and artifact-preflight fixture' \
 	'authority=none'; do
@@ -335,8 +336,8 @@ for token in \
 done
 
 for token in \
-	'headless-netroot-early-diag-v1' \
-	'7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8' \
+	'headless-netroot-early-diag-v2' \
+	'f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157' \
 	'DEPLOYMENT.parse_package' \
 	'DEPLOYMENT.write_candidate' \
 	'candidate and deployment package roots differ' \
@@ -351,8 +352,8 @@ for token in \
 	'"ROG5_DEPLOYMENT_BUILD": "1"' \
 	'ROG5_DEPLOYMENT_CANDIDATE_RECORD' \
 	'ROG5_DEPLOYMENT_SIGNING_KEY' \
-	'headless-netroot-early-diag-v1' \
-	'headless-netroot-early-diag'; do
+	'headless-netroot-early-diag-v2' \
+	'headless-netroot-early-diag-v2'; do
 	grep -Fq -- "$token" "$diagnostic_wrapper" ||
 		fail "diagnostic deployment wrapper omits token: $token"
 done

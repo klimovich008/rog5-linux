@@ -724,6 +724,18 @@ def verify_repository_checkpoint(git: Path) -> None:
     ).stdout.strip()
     if upstream != f"origin/{branch}":
         fail("lifecycle branch does not track its exact origin peer")
+    run_capture(
+        [
+            str(git),
+            "-C",
+            str(REPO),
+            "fetch",
+            "--no-tags",
+            "--prune",
+            "origin",
+            f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+        ]
+    )
     head = run_capture(
         [str(git), "-C", str(REPO), "rev-parse", "HEAD"]
     ).stdout.strip()

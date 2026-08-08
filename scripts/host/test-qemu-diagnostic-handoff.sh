@@ -211,7 +211,7 @@ assert spec is not None and spec.loader is not None
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
-stream = module.DiagnosticStream("headless-netroot-early-diag-v1")
+stream = module.DiagnosticStream("headless-netroot-early-diag-v2")
 records = stream.feed(frames)
 stream.finalize()
 codes = [record.stage_code for record in records]

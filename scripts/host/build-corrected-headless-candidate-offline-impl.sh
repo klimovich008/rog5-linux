@@ -89,6 +89,10 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_profile=diagnostic-initramfs-v1
 		expected_candidate_sha=7081a0c77158ed695e62751e152baff101b18a9b364640c0cbffd6ef8ba1c6e8
 		expected_manifest=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ;;
+	headless-netroot-early-diag-v2:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-netroot-early-diag-v2)
+		expected_profile=diagnostic-initramfs-v1
+		expected_candidate_sha=f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157
+		expected_manifest=2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then
@@ -101,7 +105,7 @@ if [[ $deployment_build == 1 ]]; then
 		fail 'set ALLOW_PHONE_CREDENTIAL_USE=1 before using the signing key'
 	case "$candidate:$expected_target" in
 		headless-ssh-network-root-v3:headless-ssh-network-root | \
-		headless-netroot-early-diag-v1:headless-netroot-early-diag) ;;
+		headless-netroot-early-diag-v2:headless-netroot-early-diag-v2) ;;
 		*) fail 'credentialed build is limited to one fixed deployment candidate' ;;
 	esac
 	[[ -n $deployment_candidate_record && -n $deployment_private_key ]] ||
@@ -282,7 +286,7 @@ bundle_id_a=$(sed -n 's/^bundle=//p' "$output_root/candidate-a.txt")
 bundle_id_b=$(sed -n 's/^bundle=//p' "$output_root/candidate-b.txt")
 [[ $manifest_a =~ ^[0-9a-f]{64}$ && $manifest_a == "$manifest_b" ]] ||
 	fail 'twin corrected candidate manifests differ'
-[[ $deployment_build == 1 && $candidate != headless-netroot-early-diag-v1 ||
+[[ $deployment_build == 1 && $candidate != headless-netroot-early-diag-v2 ||
 	$manifest_a == "$expected_manifest" ]] ||
 	fail 'offline candidate manifest identity changed'
 [[ $trust_a =~ ^[0-9a-f]{64}$ && $trust_a == "$trust_b" &&

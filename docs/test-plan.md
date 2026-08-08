@@ -479,9 +479,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   host-only. Bounded read-only fallback pstore acquisition/correlation also
   passes: the signed summary is candidate/boot-ID bound, retains no raw log,
   precedes strict health, and rejects symlink/type/inode races, malformed
-  classifications, and cross-probe fallback boot-ID changes. Full local CI and
-  independent review pass; publication and exact-head GitHub CI remain HOLD.
-  No candidate or boot authority exists.**
+  classifications, and cross-probe fallback boot-ID changes. The host-only
+  contract is published with green exact-head CI. A distinct v2 candidate,
+  disposable-key signed bundle, recovery initramfs twins, ASUS wrapper twins,
+  and exact offline policy/artifact preflight now pass with `authority=none`.
+  The v2 profile is offline-only and absent from central boot policy; production
+  credential binding, review/publication of this candidate checkpoint, a fresh
+  one-shot generation, and connected preflight remain required before any
+  phone boot.**
 - `test-fallback-acm-control.py` covers the configuration-unchanged Alpine
   fallback control plane. Sixty-four hardware-free cases require one exact
   nonce-correlated frame, canonical

@@ -85,7 +85,7 @@ class DiagnosticDeploymentCandidateTest(unittest.TestCase):
             (
                 REPO
                 / "configs/recovery-candidates/"
-                "headless-netroot-early-diag-v1.json"
+                "headless-netroot-early-diag-v2.json"
             ).read_bytes(),
         )
 
