@@ -109,6 +109,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   signing state, normalize output mtimes, sort archive members, and disable
   sparse-file reads. Release admission additionally requires two fresh
   byte-identical full builds; source-contract tests alone are insufficient.
+- `test-headless-package-closure.py` pins all 152 package/version rows from
+  the active key-bound source archive and sealed network root, then proves
+  staging compares that record with both `/etc/rog5/packages.txt` and a fresh
+  sorted `pacman -Q` result. Added, removed, version-mutated, reordered,
+  duplicate, blank, commented, extra-field, malformed-name, CRLF, and linked
+  inventories fail closed. The shorter desktop/browser/GPU denylist remains
+  defense in depth, not the release identity.
 - `test-collect-vendor-wifi-contract.py` fixture-tests the read-only vendor
   CNSS/PCIe collector. It requires one unambiguous QCA6490 node and matching
   root complex, exact supplies/GPIOs/pinctrl and PCI endpoint identity,

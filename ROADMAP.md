@@ -295,7 +295,10 @@ Exit: failed boots are diagnosable and recover automatically.
 - [ ] Boot kernel → initramfs → read-only root.
 - [ ] Verify storage discovery, USB NCM, init, key-only SSH, time sync, and
   clean reboot.
-- [ ] Remove desktop/browser/GPU packages from the active image.
+- [x] Remove desktop/browser/GPU packages from the active image. The three
+  requested packages remain `attr`, `diffutils`, and `openssh`; the complete
+  152-package dependency closure is now byte-pinned and checked against both
+  the recorded inventory and a fresh `pacman -Q` result during every stage.
 - [ ] Prove the fallback root remains unchanged after failure.
 
 Exit: a repeatable native Linux shell is reachable without Android or a GUI.

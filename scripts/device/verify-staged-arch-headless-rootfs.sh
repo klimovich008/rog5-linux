@@ -4,6 +4,8 @@ trap 'echo "FAIL headless verify line=$LINENO command=$BASH_COMMAND" >&2' ERR
 
 repo=/workspace/repo
 packages_file=$repo/packaging/arch/headless-packages.txt
+package_closure=$repo/packaging/arch/headless-package-closure.txt
+package_closure_verifier=$repo/scripts/device/verify-exact-package-closure.sh
 : "${TARGET_KERNEL_RELEASE:?missing TARGET_KERNEL_RELEASE}"
 expected_profile=${EXPECTED_HEADLESS_PROFILE:-headless-ssh-v1}
 
@@ -35,6 +37,17 @@ while read -r package; do
 	case $package in \#*) continue ;; esac
 	pacman -Q "$package" >/dev/null
 done </etc/rog5/packages.requested.txt
+actual_packages=$(mktemp /run/rog5-headless-packages.XXXXXX)
+cleanup_packages() {
+	rm -f -- "$actual_packages"
+}
+trap cleanup_packages EXIT
+LC_ALL=C pacman -Q | LC_ALL=C sort >"$actual_packages"
+bash "$package_closure_verifier" "$package_closure" \
+	/etc/rog5/packages.txt
+bash "$package_closure_verifier" "$package_closure" "$actual_packages"
+rm -f -- "$actual_packages"
+trap - EXIT
 if pacman -Q linux-aarch64 >/dev/null 2>&1; then
 	fail 'headless root retained the distribution kernel'
 fi

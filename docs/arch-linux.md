@@ -77,6 +77,16 @@ and fixes `AuthorizedKeysFile` to `/root/.ssh/authorized_keys`. The host then
 extracts the final archive into a second clean volume and runs the verifier
 again.
 
+The deferred-package denylist is only a readable secondary check. Release
+verification also compares the complete, sorted `pacman -Q` output against
+`packaging/arch/headless-package-closure.txt`. The accepted `headless-ssh-v2`
+source and sealed network root both contain exactly 152 package/version rows
+with SHA-256
+`135862912935df91bb3305302e959498f9d5cf240a0ee74283abbf0bfa251f8b`.
+Any added, removed, upgraded, downgraded, reordered, duplicate, malformed, or
+linked inventory fails staging. This prevents a desktop, browser, GPU stack,
+or unrelated dependency from entering under an unlisted package name.
+
 Historical offline result (not currently deployable):
 
 ```text

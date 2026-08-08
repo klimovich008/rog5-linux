@@ -206,6 +206,7 @@ shared_tests=(
 	scripts/host/test-stable-wrapper-slim-config.py
 	scripts/host/test-stable-wrapper-slim-config-contract.sh
 	scripts/host/test-arch-headless-rootfs-contract.sh
+	scripts/host/test-headless-package-closure.py
 	scripts/host/test-key-indicatord.sh
 	scripts/host/test-arch-headless-core-rootfs-contract.sh
 	scripts/host/test-claude-readonly-review.sh
