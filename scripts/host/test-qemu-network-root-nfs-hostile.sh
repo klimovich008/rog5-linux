@@ -11,7 +11,9 @@ contract=$repo/scripts/host/test-qemu-system-smoke-contract.sh
 source_file=$repo/tools/qemu-network-root-nfs/init.c
 config_file=$repo/tools/qemu-network-root-nfs/ganesha.conf.in
 runner_file=$repo/scripts/host/test-qemu-network-root-nfs.sh
-for path in "$contract" "$source_file" "$config_file" "$runner_file"; do
+production_harness=$repo/tools/qemu-network-root-nfs/production-init.sh
+for path in "$contract" "$source_file" "$config_file" "$runner_file" \
+	"$production_harness"; do
 	[[ -f $path && ! -L $path ]] || fail "unsafe hostile-test input: $path"
 done
 
@@ -55,5 +57,21 @@ cp -- "$source_file" "$test_root/init.c"
 sed -i '/verify_read_only_enforcement();/d' "$test_root/init.c"
 expect_rejection 'QEMU NFS client does not test read-only enforcement' \
 	env QEMU_NFS_SOURCE="$test_root/init.c" "$contract"
+
+cp -- "$source_file" "$test_root/init.c"
+sed -i '/execl("\/bin\/sh", "sh", "\/production-init"/d' "$test_root/init.c"
+expect_rejection 'direct QEMU probe does not enter the production shell probe' \
+	env QEMU_NFS_SOURCE="$test_root/init.c" "$contract"
+
+cp -- "$production_harness" "$test_root/production-init.sh"
+sed -i 's/mount_network_root/mount_network_root_copy/' \
+	"$test_root/production-init.sh"
+expect_rejection 'QEMU production harness does not call mount_network_root' \
+	env QEMU_NFS_PRODUCTION_HARNESS="$test_root/production-init.sh" "$contract"
+
+cp -- "$production_harness" "$test_root/production-init.sh"
+printf '\n# copied implementation: vers=4.2\n' >>"$test_root/production-init.sh"
+expect_rejection 'QEMU production harness copied the NFS mount implementation' \
+	env QEMU_NFS_PRODUCTION_HARNESS="$test_root/production-init.sh" "$contract"
 
 echo 'PASS hostile QEMU NFS mutations fail closed with exact classifications'

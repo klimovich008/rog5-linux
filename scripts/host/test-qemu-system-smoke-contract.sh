@@ -15,6 +15,7 @@ runner=$repo/scripts/host/test-qemu-system-smoke.sh
 handoff_source=$repo/tools/qemu-diagnostic-handoff/init.c
 handoff_runner=$repo/scripts/host/test-qemu-diagnostic-handoff.sh
 nfs_source=${QEMU_NFS_SOURCE:-$repo/tools/qemu-network-root-nfs/init.c}
+nfs_production_harness=${QEMU_NFS_PRODUCTION_HARNESS:-$repo/tools/qemu-network-root-nfs/production-init.sh}
 nfs_config=${QEMU_NFS_CONFIG:-$repo/tools/qemu-network-root-nfs/ganesha.conf.in}
 nfs_runner=${QEMU_NFS_RUNNER:-$repo/scripts/host/test-qemu-network-root-nfs.sh}
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
@@ -24,7 +25,7 @@ workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
 	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$nfs_source" \
-	"$nfs_config" "$nfs_runner" "$workflow"; do
+	"$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
 for command in clang ld.lld readelf strings; do
@@ -141,10 +142,21 @@ for token in \
 	'net=169.254.77.0/24' \
 	'host=169.254.77.3,dns=169.254.77.4,restrict=on' \
 	'guestfwd=tcp:169.254.77.1:2049-tcp:127.0.0.1:2049' \
-	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only'; do
-	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" ||
+	'PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only' \
+	'PASS production network-root shell mounted exact NFSv4.2 root read-only' \
+	'artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz' \
+	'4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac' \
+	"/^udc_candidate_count\\(\\) \\{/" \
+	'mount_network_root'; do
+	grep -Fq -- "$token" "$nfs_runner" "$nfs_source" \
+		"$nfs_production_harness" ||
 		fail "QEMU NFS contract is missing: $token"
 done
+if grep -Fq 'vers=4.2' "$nfs_production_harness"; then
+	fail 'QEMU production harness copied the NFS mount implementation'
+fi
+grep -Fqx 'if mount_network_root; then' "$nfs_production_harness" ||
+	fail 'QEMU production harness does not call mount_network_root'
 production_nfs_options=$(
 	sed -n 's/^[[:space:]]*-o \([^[:space:]]*\).*/\1/p' \
 		"$repo/initramfs/network-root-init" | grep '^vers=4\.2,' | sort -u
@@ -162,5 +174,7 @@ for token in 'Minor_Versions = 2' 'Access_Type = RO' 'Protocols = 4' \
 done
 grep -Fq 'verify_read_only_enforcement();' "$nfs_source" ||
 	fail 'QEMU NFS client does not test read-only enforcement'
+grep -Fq 'execl("/bin/sh", "sh", "/production-init", NULL);' "$nfs_source" ||
+	fail 'direct QEMU probe does not enter the production shell probe'
 
 echo 'PASS board-neutral full-system QEMU smoke contract'

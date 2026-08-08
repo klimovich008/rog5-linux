@@ -137,7 +137,10 @@ postmortem operations without per-candidate recovery rebuilds.
   hardware.
 - [x] Exercise the exact network-root NFSv4.2 client options under Linux 7.1.4
   against a rootless userspace server, with the production `/30`, TCP-only
-  forwarding, read-only mount enforcement, and hostile drift tests. This
+  forwarding, read-only mount enforcement, and hostile drift tests. The same
+  QEMU boot now continues through the `mount_network_root()` function
+  extracted verbatim from the current production init, proving one diagnostic
+  attempt and stages 70, 75, 80, and 90 with the real BusyBox mount path. This
   closes a hardware-free gap at the stage-70 mount boundary; it does not prove
   USB/NCM continuity on the phone.
 - [x] Convert the ASUS 5.4 and accepted Linux 7.1 behavioral ancestry into a

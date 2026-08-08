@@ -80,6 +80,14 @@ static void verify_mount(void)
 	}
 }
 
+static void enter_production_probe(void)
+{
+	dprintf(STDOUT_FILENO,
+		"PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only\n");
+	execl("/bin/sh", "sh", "/production-init", NULL);
+	fail("exec-production-init");
+}
+
 int main(void)
 {
 	static const char production_options[] =
@@ -108,7 +116,5 @@ int main(void)
 	verify_read_only_enforcement();
 	if (umount2(MOUNTPOINT, MNT_DETACH) == -1)
 		fail("unmount-nfs4");
-	dprintf(STDOUT_FILENO,
-		"PASS Linux 7.1.4 mounted exact NFSv4.2 root read-only\n");
-	stop_guest(true);
+	enter_production_probe();
 }
