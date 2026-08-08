@@ -213,6 +213,7 @@ shared_tests=(
 	scripts/host/test-arch-headless-core-rootfs-contract.sh
 	scripts/host/test-claude-readonly-review.sh
 	scripts/host/test-github-exact-head-workflow.sh
+	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-network-root-init.sh
 	scripts/device/test-kernel-build-contract.sh

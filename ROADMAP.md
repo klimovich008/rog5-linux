@@ -704,7 +704,8 @@ Current execution order:
     twins under offline and live profiles. Commit `328b33c` and exact-head run
     `30942517411` passed; the connected preflight then passed after an anchored
     Alpine-to-fastboot transition and exact Steam TCP-8081 socket restoration.
-    No Generation-12 boot claim or phone boot occurred. See the [host-only
+    This host-only admission checkpoint preceded the sole Generation-12
+    lifecycle recorded in step 28. See the [host-only
     admission](test-results/2026-08-04-generation-12-live-admission-offline.md)
     and [connected-preflight
     result](test-results/2026-08-04-generation-12-connected-preflight-live.md).
