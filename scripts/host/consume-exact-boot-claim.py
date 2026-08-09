@@ -27,12 +27,15 @@ def exact_record(profile: str) -> bytes:
 
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
+CLAIM_PROFILES = (
+    "headless-diagnostic-generation11-live-v1",
+    "headless-diagnostic-generation12-live-v1",
+)
+
+
 CLAIMS = {
     profile: exact_record(profile)
-    for profile in (
-        "headless-diagnostic-generation11-live-v1",
-        "headless-diagnostic-generation12-live-v1",
-    )
+    for profile in CLAIM_PROFILES
 }
 
 

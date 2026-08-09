@@ -1,0 +1,942 @@
+#!/usr/bin/env python3
+"""Hostile tests for the two-identity retention-cycle admission review."""
+
+from __future__ import annotations
+
+import copy
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import struct
+import subprocess
+import tempfile
+import unittest
+
+
+REPO = Path(__file__).resolve().parents[2]
+VERIFIER = REPO / "scripts/host/verify-retention-cycle-admission.py"
+PROFILE = REPO / "configs/retention-cycles/host-rendezvous-v3-observer-v1.json"
+SPEC = importlib.util.spec_from_file_location(
+    "verify_retention_cycle_admission", VERIFIER
+)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("cannot load retention-cycle admission verifier")
+ADMISSION = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(ADMISSION)
+RECOVERY_CMDLINE = ADMISSION.EXPECTED_RECOVERY_CMDLINE
+
+
+def digest(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def align4(payload: bytearray) -> None:
+    payload.extend(b"\0" * ((-len(payload)) & 3))
+
+
+def newc(entries: dict[str, tuple[int, bytes]]) -> bytes:
+    archive = bytearray()
+    inode = 1
+    for name, (mode, payload) in entries.items():
+        encoded = name.encode("utf-8") + b"\0"
+        fields = (
+            inode,
+            mode,
+            0,
+            0,
+            1,
+            0,
+            len(payload),
+            0,
+            0,
+            0,
+            0,
+            len(encoded),
+            0,
+        )
+        archive.extend(b"070701" + b"".join(f"{value:08x}".encode() for value in fields))
+        archive.extend(encoded)
+        align4(archive)
+        archive.extend(payload)
+        align4(archive)
+        inode += 1
+    trailer = b"TRAILER!!!\0"
+    fields = (inode, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, len(trailer), 0)
+    archive.extend(b"070701" + b"".join(f"{value:08x}".encode() for value in fields))
+    archive.extend(trailer)
+    align4(archive)
+    return gzip.compress(bytes(archive), compresslevel=9, mtime=0)
+
+
+def recovery_archive(mode: str, *, inject_kexec: bool = False) -> bytes:
+    entries = {
+        "init": (stat.S_IFREG | 0o755, b"init\n"),
+        "usr/libexec/rog5-recovery-control": (
+            stat.S_IFREG | 0o755,
+            b"control\n",
+        ),
+        "etc/rog5/recovery-mode": (
+            stat.S_IFREG | 0o444,
+            f"{mode}\n".encode("ascii"),
+        ),
+    }
+    if mode == "full-v1" or inject_kexec:
+        entries.update(
+            {
+                "usr/libexec/rog5-bundle-fetch": (
+                    stat.S_IFREG | 0o755,
+                    b"fetch\n",
+                ),
+                "usr/libexec/rog5-bundle-verify": (
+                    stat.S_IFREG | 0o755,
+                    b"verify\n",
+                ),
+                "etc/rog5/recovery-bundle-ed25519.pub": (
+                    stat.S_IFREG | 0o444,
+                    b"K" * 32,
+                ),
+                "usr/sbin/kexec": (stat.S_IFREG | 0o755, b"kexec\n"),
+            }
+        )
+    return newc(entries)
+
+
+def fake_avb(raw: bytes, *, algorithm: int = 0) -> bytes:
+    salt = hashlib.sha256(raw).digest()
+    recorded_digest = hashlib.sha256(salt + raw).digest()
+    descriptor = struct.pack(
+        "!QQQ32sLLLL60s",
+        2,
+        184,
+        len(raw),
+        b"sha256",
+        4,
+        32,
+        32,
+        0,
+        b"\0" * 60,
+    ) + b"boot" + salt + recorded_digest
+    auxiliary = descriptor + b"\0" * (256 - len(descriptor))
+    header = bytearray(256)
+    header[:4] = b"AVB0"
+    struct.pack_into("!2I", header, 4, 1, 0)
+    struct.pack_into("!2Q", header, 12, 0, len(auxiliary))
+    struct.pack_into("!I", header, 28, algorithm)
+    struct.pack_into("!2Q", header, 64, len(descriptor), 0)
+    struct.pack_into("!2Q", header, 80, len(descriptor), 0)
+    struct.pack_into("!2Q", header, 96, 0, len(descriptor))
+    header[128 : 128 + len(b"avbtool 1.4.0")] = b"avbtool 1.4.0"
+    vbmeta = bytes(header) + auxiliary
+    footer = struct.pack(
+        "!4s2I3Q28x",
+        b"AVBf",
+        1,
+        0,
+        len(raw),
+        len(raw),
+        len(vbmeta),
+    )
+    return raw + vbmeta + footer
+
+
+def fake_boot_v3(kernel: bytes, ramdisk: bytes) -> bytes:
+    page = 4096
+    header = bytearray(page)
+    header[:8] = b"ANDROID!"
+    struct.pack_into("<4I", header, 8, len(kernel), len(ramdisk), 0, 1580)
+    struct.pack_into("<I", header, 40, 3)
+    command_line = RECOVERY_CMDLINE.encode("ascii")
+    header[44 : 44 + len(command_line)] = command_line
+    payload = bytearray(header)
+    payload.extend(kernel)
+    payload.extend(b"\0" * ((-len(kernel)) & (page - 1)))
+    payload.extend(ramdisk)
+    payload.extend(b"\0" * ((-len(ramdisk)) & (page - 1)))
+    return bytes(payload)
+
+
+class RetentionCycleAdmissionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.base = Path(self.temporary.name)
+        self.reset_fixture()
+
+    def reset_fixture(self) -> None:
+        self.repo = self.base / "repo"
+        self.execution = self.base / "execution"
+        self.observer = self.base / "observer"
+        for directory in (self.repo, self.execution, self.observer):
+            shutil.rmtree(directory, ignore_errors=True)
+        for directory in (self.repo, self.execution, self.observer):
+            directory.mkdir(mode=0o700)
+        self.profile = copy.deepcopy(
+            json.loads(PROFILE.read_text(encoding="utf-8"))
+        )
+        self.profile_path = self.base / "profile.json"
+        self.artifacts_path = self.repo / "manifests/artifacts.tsv"
+        self.policy_path = self.repo / "manifests/temporary-boot-images.tsv"
+        self.consumer = self.repo / "scripts/host/consume-exact-boot-claim.py"
+        self.consumer.parent.mkdir(parents=True)
+        self.consumer.write_text(
+            "def exact_record(profile):\n"
+            "    return profile.encode()\n"
+            "CLAIM_PROFILES = ('historical-v1',)\n"
+            "CLAIMS = {profile: exact_record(profile) "
+            "for profile in CLAIM_PROFILES}\n"
+        )
+        self.consumer.chmod(0o755)
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.build_fixture()
+
+    def write(self, root: Path, relative: str, payload: bytes) -> Path:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+        path.chmod(0o600)
+        return path
+
+    def set_single(self, section: dict[str, object], key: str, root: Path, payload: bytes) -> Path:
+        record = section[key]
+        assert isinstance(record, dict)
+        path = self.write(root, str(record["path"]), payload)
+        record["size"] = len(payload)
+        record["sha256"] = digest(payload)
+        return path
+
+    def set_pair(self, section: dict[str, object], key: str, root: Path, payload: bytes) -> tuple[Path, Path]:
+        record = section[key]
+        assert isinstance(record, dict)
+        first = self.write(root, str(record["path_a"]), payload)
+        second = self.write(root, str(record["path_b"]), payload)
+        record["size"] = len(payload)
+        record["sha256"] = digest(payload)
+        return first, second
+
+    def build_fixture(self) -> None:
+        execution = self.profile["execution"]
+        observer = self.profile["observer"]
+        assert isinstance(execution, dict)
+        assert isinstance(observer, dict)
+
+        candidate_id = str(execution["candidate"])
+        artifact_payloads = {
+            "Image": b"target-kernel",
+            "board.dtb": b"target-dtb",
+            "initramfs.cpio.gz": b"target-initramfs",
+        }
+        candidate = {
+            "format": "rog5-recovery-candidate-v1",
+            "candidate": candidate_id,
+            "status": "offline",
+            "authority": "none",
+            "bundle": candidate_id,
+            "profile": "diagnostic-initramfs-v1",
+            "target_id": candidate_id,
+            "target_release": "7.1.4-test",
+            "rollback_timeout": "600",
+            "target_timeout": "480",
+            "a660_command_manifest_sha256": "a" * 64,
+            "root_generation": "arch-a",
+            "root_tree_sha256": "b" * 64,
+            "root_seal_sha256": "c" * 64,
+            "root_tree_entries": "3",
+            "root_subtree": "/",
+            "artifacts": {
+                name: {
+                    "path": f"artifacts/{name}",
+                    "size": len(payload),
+                    "sha256": digest(payload),
+                }
+                for name, payload in artifact_payloads.items()
+            },
+        }
+        candidate_path = self.write(
+            self.repo,
+            str(execution["candidate_path"]),
+            (json.dumps(candidate, indent=2) + "\n").encode(),
+        )
+        execution["candidate_size"] = candidate_path.stat().st_size
+        execution["candidate_sha256"] = digest(candidate_path.read_bytes())
+
+        self.artifacts_path.parent.mkdir(parents=True, exist_ok=True)
+        self.artifacts_path.write_text(
+            "name\tsize\tsha256\trole\ttracked\n"
+            f"{execution['candidate_path']}\t{execution['candidate_size']}\t"
+            f"{execution['candidate_sha256']}\ttracked current diagnostic identity\tyes\n"
+        )
+        self.artifacts_path.chmod(0o600)
+        self.policy_path.write_text(
+            "name\tstatus\tbasis\n"
+            "historical/recovery.img\trevoked\thistorical only\n"
+        )
+        self.policy_path.chmod(0o600)
+
+        for prefix_key in ("bundle_a", "bundle_b"):
+            prefix = str(execution[prefix_key])
+            for name, payload in artifact_payloads.items():
+                self.write(self.execution, f"{prefix}/{name}", payload)
+
+        manifest = (
+            "format=rog5-recovery-bundle-v2\n"
+            f"bundle={candidate_id}\n"
+            "profile=diagnostic-initramfs-v1\n"
+            f"kernel_size={len(artifact_payloads['Image'])}\n"
+            f"kernel_sha256={digest(artifact_payloads['Image'])}\n"
+            f"dtb_size={len(artifact_payloads['board.dtb'])}\n"
+            f"dtb_sha256={digest(artifact_payloads['board.dtb'])}\n"
+            f"initramfs_size={len(artifact_payloads['initramfs.cpio.gz'])}\n"
+            f"initramfs_sha256={digest(artifact_payloads['initramfs.cpio.gz'])}\n"
+            f"target_id={candidate_id}\n"
+            "target_release=7.1.4-test\n"
+            "rollback_timeout=600\n"
+            "target_timeout=480\n"
+            f"a660_command_manifest_sha256={'a' * 64}\n"
+            "root_generation=arch-a\n"
+            f"root_tree_sha256={'b' * 64}\n"
+            f"root_seal_sha256={'c' * 64}\n"
+            "root_tree_entries=3\n"
+            "root_subtree=/\n"
+        ).encode("ascii")
+        manifest_a, manifest_b = self.set_pair(
+            execution,
+            "runtime_manifest",
+            self.execution,
+            manifest,
+        )
+
+        signing_key = self.base / "signing-key.pem"
+        subprocess.run(
+            ["/usr/bin/openssl", "genpkey", "-algorithm", "Ed25519", "-out", str(signing_key)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        public_der = subprocess.run(
+            ["/usr/bin/openssl", "pkey", "-in", str(signing_key), "-pubout", "-outform", "DER"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).stdout
+        trust_key = self.set_single(
+            execution,
+            "trust_key",
+            self.execution,
+            public_der[-32:],
+        )
+        signature = self.base / "manifest.sig"
+        subprocess.run(
+            [
+                "/usr/bin/openssl",
+                "pkeyutl",
+                "-sign",
+                "-inkey",
+                str(signing_key),
+                "-rawin",
+                "-in",
+                str(manifest_a),
+                "-out",
+                str(signature),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.set_pair(
+            execution,
+            "runtime_signature",
+            self.execution,
+            signature.read_bytes(),
+        )
+        candidate_record = (
+            "format=rog5-prepared-candidate-v1\n"
+            f"candidate={candidate_id}\n"
+            "status=offline\n"
+            "authority=none\n"
+            f"bundle={candidate_id}\n"
+            f"manifest_sha256={digest(manifest)}\n"
+            f"trust_key_sha256={digest(trust_key.read_bytes())}\n"
+        ).encode("ascii")
+        self.set_pair(
+            execution,
+            "candidate_record",
+            self.execution,
+            candidate_record,
+        )
+
+        execution_archive = recovery_archive("full-v1")
+        self.set_pair(
+            execution,
+            "recovery_initramfs",
+            self.execution,
+            execution_archive,
+        )
+        shared_config = (
+            b"CONFIG_PSTORE=y\n"
+            b"CONFIG_PSTORE_CONSOLE=y\n"
+            b"CONFIG_PSTORE_PMSG=y\n"
+            b"CONFIG_PSTORE_RAM=y\n"
+        )
+        self.set_pair(execution, "wrapper_config", self.execution, shared_config)
+        execution_image = b"execution-image"
+        self.set_pair(execution, "wrapper_image", self.execution, execution_image)
+        execution_raw = fake_boot_v3(execution_image, execution_archive)
+        self.set_pair(execution, "raw_boot", self.execution, execution_raw)
+        self.set_pair(
+            execution,
+            "unsigned_avb",
+            self.execution,
+            fake_avb(execution_raw),
+        )
+
+        observer_archive = recovery_archive("observation-only-v1")
+        self.set_pair(observer, "recovery_initramfs", self.observer, observer_archive)
+        self.set_pair(observer, "wrapper_config", self.observer, shared_config)
+        observer_image = b"observer-image"
+        self.set_pair(observer, "wrapper_image", self.observer, observer_image)
+        observer_raw = fake_boot_v3(observer_image, observer_archive)
+        self.set_pair(observer, "raw_boot", self.observer, observer_raw)
+        self.set_pair(
+            observer,
+            "unsigned_avb",
+            self.observer,
+            fake_avb(observer_raw),
+        )
+        self.refresh_observer_evidence()
+        self.save_profile()
+
+    def refresh_observer_evidence(self) -> None:
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        evidence = (
+            "format=rog5-observation-recovery-wrapper-evidence-v1\n"
+            f"observer_initramfs_size={observer['recovery_initramfs']['size']}\n"
+            f"observer_initramfs_sha256={observer['recovery_initramfs']['sha256']}\n"
+            f"wrapper_config_size={observer['wrapper_config']['size']}\n"
+            f"wrapper_config_sha256={observer['wrapper_config']['sha256']}\n"
+            f"wrapper_image_size={observer['wrapper_image']['size']}\n"
+            f"wrapper_image_sha256={observer['wrapper_image']['sha256']}\n"
+            f"raw_boot_size={observer['raw_boot']['size']}\n"
+            f"raw_boot_sha256={observer['raw_boot']['sha256']}\n"
+            f"unsigned_avb_size={observer['unsigned_avb']['size']}\n"
+            f"unsigned_avb_sha256={observer['unsigned_avb']['sha256']}\n"
+            "ramoops_mem_address=0x9b800000\n"
+            "ramoops_mem_size=0x400000\n"
+            "authority=none\n"
+            "candidate=none\n"
+            "boot_authority=none\n"
+            "retention=unproven\n"
+            "PASS observation-only clean-twin wrapper evidence is exact and offline-only\n"
+        ).encode("ascii")
+        self.set_single(
+            observer,
+            "wrapper_evidence",
+            self.observer,
+            evidence,
+        )
+
+    def save_profile(self) -> None:
+        self.profile_path.write_text(json.dumps(self.profile, indent=2) + "\n")
+        self.profile_path.chmod(0o600)
+
+    def verify(self) -> str:
+        return ADMISSION.verify(
+            self.profile_path,
+            self.repo,
+            self.execution,
+            self.observer,
+            self.artifacts_path,
+            self.policy_path,
+            enforce_repository_layout=False,
+        )
+
+    def assert_rejected(self, message: str) -> None:
+        with self.assertRaisesRegex(ADMISSION.AdmissionError, message):
+            self.verify()
+
+    def test_exact_distinct_authority_free_pair_passes(self) -> None:
+        report = self.verify()
+        self.assertIn("temporary_boot_allow_rows=0", report)
+        self.assertIn("execution_claim=not-defined", report)
+        self.assertIn("observer_claim=not-defined", report)
+        self.assertIn("missing_pstore=inconclusive", report)
+        self.assertIn("recommendation=HOLD", report)
+
+    def test_profile_authority_role_sequence_and_claim_mutations_fail(self) -> None:
+        cases = (
+            ("authority", "live", "weakens the HOLD boundary"),
+            ("boot_authority", "one-shot", "weakens the HOLD boundary"),
+            ("missing_pstore", "no-crash", "weakens the HOLD boundary"),
+            ("sequence", list(reversed(self.profile["sequence"])), "weakens the HOLD boundary"),
+            ("execution.role", "observation-only-v1", "roles are not fail-closed"),
+            ("observer.role", "target-execution-v1", "roles are not fail-closed"),
+            ("claims.execution", "issued", "claim policy is not exact"),
+            ("claims.reuse", "allowed", "claim policy is not exact"),
+        )
+        baseline = copy.deepcopy(self.profile)
+        for dotted, value, message in cases:
+            with self.subTest(field=dotted):
+                self.profile = copy.deepcopy(baseline)
+                target: dict[str, object] = self.profile
+                parts = dotted.split(".")
+                for part in parts[:-1]:
+                    child = target[part]
+                    assert isinstance(child, dict)
+                    target = child
+                target[parts[-1]] = value
+                self.save_profile()
+                self.assert_rejected(message)
+
+    def test_policy_allow_or_malformed_row_fails_closed(self) -> None:
+        for payload, message in (
+            (
+                "name\tstatus\tbasis\nfuture.img\tallow\tone boot\n",
+                "grants authority during HOLD",
+            ),
+            (
+                "name\tstatus\tbasis\nfuture.img\tpending\tunknown\n",
+                "status is unknown",
+            ),
+            ("name\tstatus\tbasis\nbroken\n", "row is malformed"),
+        ):
+            with self.subTest(message=message):
+                self.policy_path.write_text(payload)
+                self.assert_rejected(message)
+
+    def test_candidate_semantics_inventory_and_bundle_mutations_fail(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        candidate_path = self.repo / str(execution["candidate_path"])
+        candidate = json.loads(candidate_path.read_text())
+        candidate["authority"] = "live"
+        candidate_path.write_text(json.dumps(candidate) + "\n")
+        execution["candidate_size"] = candidate_path.stat().st_size
+        execution["candidate_sha256"] = digest(candidate_path.read_bytes())
+        rows = self.artifacts_path.read_text().splitlines()
+        fields = rows[1].split("\t")
+        fields[1] = str(execution["candidate_size"])
+        fields[2] = str(execution["candidate_sha256"])
+        self.artifacts_path.write_text(rows[0] + "\n" + "\t".join(fields) + "\n")
+        self.save_profile()
+        self.assert_rejected("not authority-free and exact")
+
+        self.reset_fixture()
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        bundle = self.execution / str(execution["bundle_b"]) / "board.dtb"
+        bundle.write_bytes(b"mutated")
+        self.assert_rejected("bundle B board.dtb size changed")
+
+        self.reset_fixture()
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        self.write(
+            self.execution,
+            f"{execution['bundle_a']}/unmanifested",
+            b"extra",
+        )
+        self.assert_rejected("bundle A inventory is not exact")
+
+    def test_candidate_and_manifest_fields_are_exact(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        candidate_path = self.repo / str(execution["candidate_path"])
+        candidate = json.loads(candidate_path.read_text())
+        candidate.pop("root_tree_sha256")
+        candidate_path.write_text(json.dumps(candidate) + "\n")
+        execution["candidate_size"] = candidate_path.stat().st_size
+        execution["candidate_sha256"] = digest(candidate_path.read_bytes())
+        fields = self.artifacts_path.read_text().splitlines()[1].split("\t")
+        fields[1] = str(execution["candidate_size"])
+        fields[2] = str(execution["candidate_sha256"])
+        self.artifacts_path.write_text(
+            "name\tsize\tsha256\trole\ttracked\n" + "\t".join(fields) + "\n"
+        )
+        self.save_profile()
+        self.assert_rejected("candidate fields are not exact")
+
+        self.reset_fixture()
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        manifest_record = execution["runtime_manifest"]
+        assert isinstance(manifest_record, dict)
+        manifest = (
+            self.execution / str(manifest_record["path_a"])
+        ).read_bytes() + b"extra_directive=1\n"
+        manifest_a, _manifest_b = self.set_pair(
+            execution,
+            "runtime_manifest",
+            self.execution,
+            manifest,
+        )
+        signature = self.base / "mutated-manifest.sig"
+        subprocess.run(
+            [
+                "/usr/bin/openssl",
+                "pkeyutl",
+                "-sign",
+                "-inkey",
+                str(self.base / "signing-key.pem"),
+                "-rawin",
+                "-in",
+                str(manifest_a),
+                "-out",
+                str(signature),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.set_pair(
+            execution,
+            "runtime_signature",
+            self.execution,
+            signature.read_bytes(),
+        )
+        candidate_record = execution["candidate_record"]
+        assert isinstance(candidate_record, dict)
+        record_path = self.execution / str(candidate_record["path_a"])
+        record = record_path.read_text().replace(
+            next(
+                line
+                for line in record_path.read_text().splitlines()
+                if line.startswith("manifest_sha256=")
+            ),
+            f"manifest_sha256={digest(manifest)}",
+        ).encode("ascii")
+        self.set_pair(
+            execution,
+            "candidate_record",
+            self.execution,
+            record,
+        )
+        self.save_profile()
+        self.assert_rejected("manifest fields are not exact")
+
+    def test_signature_and_private_key_fail_closed(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        signature = execution["runtime_signature"]
+        assert isinstance(signature, dict)
+        payload = b"X" * 64
+        self.set_pair(execution, "runtime_signature", self.execution, payload)
+        self.save_profile()
+        self.assert_rejected("runtime signature is invalid")
+
+        self.reset_fixture()
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        self.write(self.execution, str(execution["private_key_path"]), b"private")
+        self.assert_rejected("private signing key must be absent")
+
+    def test_observer_execution_path_and_wrong_mode_fail_closed(self) -> None:
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        self.set_pair(
+            observer,
+            "recovery_initramfs",
+            self.observer,
+            recovery_archive("observation-only-v1", inject_kexec=True),
+        )
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("retains a payload execution path")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        self.set_pair(
+            observer,
+            "recovery_initramfs",
+            self.observer,
+            recovery_archive("full-v1"),
+        )
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("mode is not exact")
+
+    def test_noncanonical_archive_path_is_rejected_before_role_checks(self) -> None:
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        archive = newc(
+            {
+                "init": (stat.S_IFREG | 0o755, b"init\n"),
+                "usr/libexec/rog5-recovery-control": (
+                    stat.S_IFREG | 0o755,
+                    b"control\n",
+                ),
+                "etc/rog5/recovery-mode": (
+                    stat.S_IFREG | 0o444,
+                    b"observation-only-v1\n",
+                ),
+                "usr/./libexec/rog5-bundle-fetch": (
+                    stat.S_IFREG | 0o755,
+                    b"fetch\n",
+                ),
+            }
+        )
+        self.set_pair(observer, "recovery_initramfs", self.observer, archive)
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("unsafe or duplicate path")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        first = recovery_archive("observation-only-v1")
+        second = recovery_archive("full-v1")
+        concatenated = gzip.compress(
+            gzip.decompress(first) + gzip.decompress(second),
+            compresslevel=9,
+            mtime=0,
+        )
+        self.set_pair(
+            observer,
+            "recovery_initramfs",
+            self.observer,
+            concatenated,
+        )
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("trailing archive member")
+
+    def test_observer_is_exact_execution_free_derivation(self) -> None:
+        execution = self.profile["execution"]
+        observer = self.profile["observer"]
+        assert isinstance(execution, dict)
+        assert isinstance(observer, dict)
+        entries = {
+            "init": (stat.S_IFREG | 0o755, b"init\n"),
+            "usr/libexec/rog5-recovery-control": (
+                stat.S_IFREG | 0o755,
+                b"different-control\n",
+            ),
+            "etc/rog5/recovery-mode": (
+                stat.S_IFREG | 0o444,
+                b"observation-only-v1\n",
+            ),
+        }
+        archive = newc(entries)
+        self.set_pair(observer, "recovery_initramfs", self.observer, archive)
+        image_record = observer["wrapper_image"]
+        assert isinstance(image_record, dict)
+        image = (self.observer / str(image_record["path_a"])).read_bytes()
+        raw = fake_boot_v3(image, archive)
+        self.set_pair(observer, "raw_boot", self.observer, raw)
+        self.set_pair(observer, "unsigned_avb", self.observer, fake_avb(raw))
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("changed a shared base entry")
+
+    def test_signed_avb_payload_mismatch_and_identity_crossover_fail(self) -> None:
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        raw_record = observer["raw_boot"]
+        assert isinstance(raw_record, dict)
+        raw = (self.observer / str(raw_record["path_a"])).read_bytes()
+        self.set_pair(observer, "unsigned_avb", self.observer, fake_avb(raw, algorithm=1))
+        self.save_profile()
+        self.assert_rejected("algorithm is not NONE")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        avb_record = observer["unsigned_avb"]
+        assert isinstance(avb_record, dict)
+        first = self.observer / str(avb_record["path_a"])
+        payload = bytearray(first.read_bytes())
+        payload[0] ^= 1
+        self.set_pair(observer, "unsigned_avb", self.observer, bytes(payload))
+        self.save_profile()
+        self.assert_rejected("payload differs")
+
+        self.reset_fixture()
+        execution = self.profile["execution"]
+        observer = self.profile["observer"]
+        assert isinstance(execution, dict)
+        assert isinstance(observer, dict)
+        execution_raw = execution["raw_boot"]
+        assert isinstance(execution_raw, dict)
+        raw = (self.execution / str(execution_raw["path_a"])).read_bytes()
+        self.set_pair(observer, "raw_boot", self.observer, raw)
+        self.set_pair(observer, "unsigned_avb", self.observer, fake_avb(raw))
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("boot-v3 header is not exact")
+
+    def test_boot_embedding_and_avb_geometry_are_bound(self) -> None:
+        execution = self.profile["execution"]
+        observer = self.profile["observer"]
+        assert isinstance(execution, dict)
+        assert isinstance(observer, dict)
+        observer_image_record = observer["wrapper_image"]
+        execution_initramfs_record = execution["recovery_initramfs"]
+        assert isinstance(observer_image_record, dict)
+        assert isinstance(execution_initramfs_record, dict)
+        observer_image = (
+            self.observer / str(observer_image_record["path_a"])
+        ).read_bytes()
+        full_initramfs = (
+            self.execution / str(execution_initramfs_record["path_a"])
+        ).read_bytes()
+        hostile_raw = fake_boot_v3(observer_image, full_initramfs)
+        self.set_pair(observer, "raw_boot", self.observer, hostile_raw)
+        self.set_pair(observer, "unsigned_avb", self.observer, fake_avb(hostile_raw))
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("boot-v3 header is not exact")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        avb_record = observer["unsigned_avb"]
+        assert isinstance(avb_record, dict)
+        avb_path = self.observer / str(avb_record["path_a"])
+        avb = bytearray(avb_path.read_bytes())
+        raw_record = observer["raw_boot"]
+        assert isinstance(raw_record, dict)
+        raw_size = int(raw_record["size"])
+        struct.pack_into("!Q", avb, len(avb) - 64 + 20, raw_size + 1)
+        self.set_pair(observer, "unsigned_avb", self.observer, bytes(avb))
+        self.save_profile()
+        self.assert_rejected("AVB footer is not exact")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        avb_record = observer["unsigned_avb"]
+        raw_record = observer["raw_boot"]
+        assert isinstance(avb_record, dict)
+        assert isinstance(raw_record, dict)
+        avb_path = self.observer / str(avb_record["path_a"])
+        avb = bytearray(avb_path.read_bytes())
+        struct.pack_into("!Q", avb, int(raw_record["size"]) + 12, 1)
+        self.set_pair(observer, "unsigned_avb", self.observer, bytes(avb))
+        self.save_profile()
+        self.assert_rejected("algorithm is not NONE")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        image_record = observer["wrapper_image"]
+        initramfs_record = observer["recovery_initramfs"]
+        assert isinstance(image_record, dict)
+        assert isinstance(initramfs_record, dict)
+        image = (self.observer / str(image_record["path_a"])).read_bytes()
+        initramfs = (
+            self.observer / str(initramfs_record["path_a"])
+        ).read_bytes()
+        raw = bytearray(fake_boot_v3(image, initramfs))
+        raw[44] ^= 1
+        self.set_pair(observer, "raw_boot", self.observer, bytes(raw))
+        self.set_pair(observer, "unsigned_avb", self.observer, fake_avb(bytes(raw)))
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("command line is not exact")
+
+    def test_descriptor_pinning_detects_content_and_pathname_races(self) -> None:
+        path = self.base / "racy-input"
+        expected = b"expected"
+        path.write_bytes(expected)
+        path.chmod(0o600)
+        with self.assertRaisesRegex(
+            ADMISSION.AdmissionError,
+            "changed during verification",
+        ):
+            with ADMISSION.verified_descriptor(
+                path,
+                "racy input",
+                expected_size=len(expected),
+                expected_digest=digest(expected),
+            ):
+                path.write_bytes(b"mutated!")
+
+        path.write_bytes(expected)
+        detached = self.base / "detached-input"
+        with self.assertRaisesRegex(
+            ADMISSION.AdmissionError,
+            "changed during verification",
+        ):
+            with ADMISSION.verified_descriptor(
+                path,
+                "racy input",
+                expected_size=len(expected),
+                expected_digest=digest(expected),
+            ):
+                path.rename(detached)
+                path.write_bytes(expected)
+                path.chmod(0o600)
+
+    def test_symlink_evidence_and_preissued_consumer_fail_closed(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        record = execution["wrapper_image"]
+        assert isinstance(record, dict)
+        path = self.execution / str(record["path_b"])
+        target = self.base / "outside-image"
+        path.replace(target)
+        path.symlink_to(target)
+        self.assert_rejected("unsafe or missing execution wrapper Image B")
+
+        self.reset_fixture()
+        self.consumer.write_text(
+            "def exact_record(profile):\n"
+            "    return profile.encode()\n"
+            "CLAIM_PROFILES = ('host-rendezvous-v3-observer-v1',)\n"
+            "CLAIMS = {profile: exact_record(profile) "
+            "for profile in CLAIM_PROFILES}\n"
+        )
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("already has a consumable boot claim")
+
+        self.reset_fixture()
+        self.consumer.write_text(
+            self.consumer.read_text() + "CLAIMS['late-profile'] = b'issued'\n"
+        )
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is mutated after definition")
+
+    def test_observer_evidence_fields_are_exact(self) -> None:
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        evidence_record = observer["wrapper_evidence"]
+        assert isinstance(evidence_record, dict)
+        evidence_path = self.observer / str(evidence_record["path"])
+        lines = evidence_path.read_text().splitlines()
+        lines.insert(-1, "extra=unreviewed")
+        self.set_single(
+            observer,
+            "wrapper_evidence",
+            self.observer,
+            ("\n".join(lines) + "\n").encode("ascii"),
+        )
+        self.save_profile()
+        self.assert_rejected("does not bind the offline role")
+
+    def test_repository_profile_and_verifier_are_registered_but_not_live(self) -> None:
+        self.assertTrue(VERIFIER.is_file())
+        self.assertTrue(PROFILE.is_file())
+        source = VERIFIER.read_text(encoding="utf-8")
+        self.assertNotIn("fastboot", source.lower())
+        self.assertNotIn("ALLOW_TEMPORARY_BOOT", source)
+        self.assertNotIn("generation13", source.lower())
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

@@ -792,12 +792,14 @@ Current execution order:
     active candidate has no policy row, production credential, or boot
     authority; central policy remains empty. The preceding candidate
     checkpoint was reviewed and published at
-    `9088c8ff70e24c1c71c3b3b806f7161848dd7320` with green exact-head CI. Next,
-    retain the corrected disposable twin-build evidence, pass exact-head CI,
-    and review a distinct two-identity target/observer admission. Only a later
-    fresh authorization may bind production credentials or issue one new
-    one-shot generation. Promote a normal SSH candidate only after physical
-    evidence locates and the implementation fixes the failing boundary. The
+    `9088c8ff70e24c1c71c3b3b806f7161848dd7320` with green exact-head CI. The
+    corrected disposable twins and distinct target/observer identities now
+    pass a joint [offline retention review](test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
+    with zero policy rows and no new claim records. This remains composition
+    evidence, not candidate admission. Only a later fresh authorization may
+    bind production credentials or issue one new one-shot generation. Promote
+    a normal SSH candidate only after physical evidence locates and the
+    implementation fixes the failing boundary. The
     authority-free [v3 rebind proof](test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md)
     is retained locally with candidate admission still on hold.
 31. If H2 passes, continue physical keys/indicator, then H3

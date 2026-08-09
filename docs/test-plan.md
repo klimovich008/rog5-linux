@@ -723,6 +723,14 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   appear after absence snapshots, require inventory revalidation, and pin
   bytecode-disabled execution. This remains a prerequisite for the
   observation-recovery experiment, not evidence that retention occurred.
+- Before any retention experiment can be admitted, the
+  [two-identity offline review](../test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
+  must bind distinct non-nested execution and observation evidence roots,
+  exact signed-bundle/initramfs/boot-v3/AVB identities, the fixed transition
+  order, exact generic claim-consumer state, and zero temporary-boot `allow`
+  rows. It rejects aliasing, races, malformed archives, mismatched derivation,
+  preissued claims, and late claim mutation. Passing it grants no credential,
+  claim, policy row, phone action, or boot authority.
 - The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
   followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
   after the root controller restores the profile on unique stable same-port
