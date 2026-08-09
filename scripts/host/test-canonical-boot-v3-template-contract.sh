@@ -8,9 +8,12 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 builder=$repo/scripts/host/build-canonical-boot-v3-template.sh
+workflow=$repo/.github/workflows/offline-smoke.yml
 
 [[ -f $builder && ! -L $builder && -x $builder ]] ||
 	fail 'missing executable canonical boot-v3 template builder'
+[[ -f $workflow && ! -L $workflow ]] ||
+	fail 'missing offline-smoke workflow'
 bash -n "$builder"
 
 for token in \
@@ -29,6 +32,9 @@ for token in \
 	grep -Fq -- "$token" "$builder" ||
 		fail "canonical boot-v3 template builder omits token: $token"
 done
+[[ $(grep -Fc \
+	'run: scripts/host/build-canonical-boot-v3-template.sh' "$workflow") == 2 ]] ||
+	fail 'head-exact and merge-compat CI do not both build the canonical template'
 if grep -Eq \
 	'\b(fastboot|adb|sudo|pkexec)\b|(^|[;&|[:space:]])(ssh|scp|curl|wget)([[:space:]]|$)|/dev/(sd|nvme|ufs)' \
 	"$builder"; then
