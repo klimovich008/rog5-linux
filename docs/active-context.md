@@ -346,11 +346,12 @@ Implementation commit `eeb157b` is published with green exact-head GitHub
 Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). The
 host-only publication gate is closed. The distinct, unissued
 `headless-netroot-early-diag-v2` write-side candidate now binds the
-single-attempt reporter `0b5d318e…7bc1` and 6,011,687-byte initramfs
-`71537ca0…c58e`, plus the accepted Image, corrected DTB, and sealed Arch root.
-The prior disposable-key wrapper tuple is retained only as superseded offline
-composition evidence and is not the current candidate. Central boot policy
-remains empty, the profile is offline-only, and
+host-port-classifying reporter `26249252…bafa` and 6,013,458-byte bounded
+rendezvous v3 initramfs `94edd625…cffc`, plus the accepted Image, corrected
+DTB, and sealed Arch root. The prior v2 payload and disposable-key wrapper
+tuple are retained only as superseded offline composition evidence and are not
+the current candidate. Central boot policy remains empty, the profile is
+offline-only, and
 no production credential or phone was used. This stage-75/current-cycle-
 postmortem successor is the active work and has no boot authority. Generation
 12 is consumed and must never be retried. A separately reviewed, exact-head-CI
@@ -361,9 +362,10 @@ and the
 [host-only admission
 result](../test-results/2026-08-04-generation-12-live-admission-offline.md).
 
-The exact candidate checkpoint is published at
+The superseded v2 candidate checkpoint is published at
 `9088c8ff70e24c1c71c3b3b806f7161848dd7320`; GitHub run `31256569397`
-passed exact-head, merge-compatibility, QEMU, and candidate-publication jobs.
+passed exact-head, merge-compatibility, QEMU, and candidate-publication jobs
+for those historical bytes.
 The guarded SSH and diagnostic deployment launchers now refresh the exact
 tracked branch before accepting their repository checkpoint. This closes the
 remaining stale-`origin` path before a sealed implementation or signing input
@@ -371,14 +373,19 @@ can be admitted; the test advances a bare remote behind the clone's stale
 tracking ref and requires an exact refusal. This is host-only and grants no
 credential, generation, connected-preflight, or boot authority.
 
-At local checkpoint `afc0e9e94bbc6edea1aa0c2ace17b2b5d00cef83`, the
-active v2 candidate also passed one complete disposable-key build: two clean
-ASUS wrappers were byte-identical, the single-attempt target tuple and manifest
-were exact, the temporary private key was destroyed, and authority remained
-`none`. The 2,332.019-second build establishes clean wrapper compilation as the
-dominant unattended release cost. Its 10.09 GB duplicate output tree was
-removed after recording hashes. See the
-[current disposable twin-build result](../test-results/2026-08-08-stage75-v2-current-disposable-build.md).
+At historical local checkpoint
+`afc0e9e94bbc6edea1aa0c2ace17b2b5d00cef83`, that superseded v2 candidate also
+passed one complete disposable-key build: two clean ASUS wrappers were
+byte-identical, the single-attempt target tuple and manifest were exact, the
+temporary private key was destroyed, and authority remained `none`. The
+2,332.019-second build establishes clean wrapper compilation as the dominant
+unattended release cost. Its 10.09 GB duplicate output tree was removed after
+recording hashes. See the
+[historical v2 disposable twin-build result](../test-results/2026-08-08-stage75-v2-current-disposable-build.md).
+Neither old checkpoint validates the current v3 payload. Current-candidate
+composition evidence is solely the
+[v3 offline rebind result](../test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md),
+with candidate admission still on hold.
 
 The superseded interactive recovery ACM path is now retired from active
 operation. `network-root-acm.py`, both persistent-root ACM helpers, and the two
