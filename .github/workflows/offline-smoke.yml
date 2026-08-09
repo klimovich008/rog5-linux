@@ -48,6 +48,8 @@ jobs:
             pkg-config
       - name: Bootstrap pinned Android boot tools
         run: scripts/host/fetch-android-boot-tools.sh
+      - name: Build canonical boot-v3 template
+        run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run hardware-free recovery core
         run: scripts/host/test-repository-linux.sh ci
 
@@ -81,6 +83,8 @@ jobs:
             pkg-config
       - name: Bootstrap pinned Android boot tools
         run: scripts/host/fetch-android-boot-tools.sh
+      - name: Build canonical boot-v3 template
+        run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run merge-compatibility recovery core
         run: scripts/host/test-repository-linux.sh ci
 
