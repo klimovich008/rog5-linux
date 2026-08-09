@@ -48,9 +48,11 @@ target, exact Alpine fallback, bootloader, observation recovery, then
 The verifier fails closed unless:
 
 - the execution and observer evidence roots are distinct, non-nested, ignored
-  local directories with closed inventories;
-- every selected file is root-owned, has its expected mode and size, is opened
-  without symlink following, and survives descriptor and pathname
+  local directories with exact top-level inventories and closed bundle
+  inventories;
+- every selected file is owned by the verifier identity, has its exact reviewed
+  mode and size, is reached by descriptor-relative no-follow traversal from
+  pinned roots, and survives descriptor, ancestor, root, and pathname
   revalidation;
 - both signed execution bundles have exact schemas, byte-identical twins, and
   valid Ed25519 signatures under the disposable offline public key;
@@ -72,17 +74,22 @@ no crash or of successful retention.
 ## Regression evidence
 
 The fail-first run stopped because the repository-owned verifier/profile did
-not exist: one test failed in 0.053 seconds. The completed hostile suite covers
-role, sequence, authority, policy, schema, signature, archive, derivation,
-boot-v3, AVB, descriptor race, symlink, root crossover, late claim mutation,
-and evidence-inventory failures. Focused and full repository timing is recorded
-in the final checkpoint handoff after exact-head execution.
+not exist: one test failed in 0.053 seconds. The completed 17-test hostile
+suite passes in 1.979 seconds and covers role, sequence, authority, policy,
+schema, signature, archive, derivation, boot-v3, AVB,
+descriptor/ancestor/root races, symlinks, root crossover, detached signed
+manifests, exact modes, bounded reads, late claim mutation, and evidence
+inventory failures. Full repository timing is recorded in the final checkpoint
+handoff after exact-head execution.
 
 Two independent read-only Opus reviews identified incomplete boot-image
 binding, path aliases, heuristic claim inspection, partial schemas, TOCTOU,
 AVB geometry, unbounded archives, appended CPIO members, bundle-root aliasing,
-and post-definition claim mutation. The implementation and hostile fixtures
-were tightened for each material finding before final CI.
+and post-definition claim mutation. The formal Standards/Spec review then
+reproduced ancestor replacement, detached signed manifests, claim-profile
+extension/rebinding, non-exact modes, top-level inventory additions, embedded
+NUL CPIO aliases, and unbounded buffered input. The implementation and hostile
+fixtures were tightened for every material finding before final CI.
 
 ## Remaining uncertainty
 
