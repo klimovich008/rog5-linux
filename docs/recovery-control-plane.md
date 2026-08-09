@@ -481,14 +481,40 @@ already has built-in `PSTORE`, `PSTORE_CONSOLE`, and `PSTORE_RAM`, and its
 boot-v3 command line carries the exact reservation. Before starting the
 framed responder, recovery now mounts pstore read-only in practice, copies
 bounded regular records into a private RAM snapshot without unlinking them,
-and publishes canonical metadata. The responder validates and pins that
-owner-only status file at startup and includes it in every response.
+and publishes canonical metadata. The responder now validates both the
+owner-only status and the complete fixed snapshot before creating a control
+session. It requires private regular no-follow files, exact aggregate record
+framing, the 64-record/4-MiB bounds, matching record/payload counts, aggregate
+SHA-256, and the exact final 512-byte tail already carried by the status.
 
-Offline tests prove empty, present, unavailable, malformed, partial-I/O, and
-restart behavior. They do **not** prove the Snapdragon DRAM region survives a
-target → bootloader → recovery transition. That requires a controlled live
-cycle. If it does not survive, the next oracle experiment is the possible
-Qualcomm USB-C debug UART; no UART capability is currently claimed.
+The responder scans the validated payloads for the exact
+`rog5-target-lineage-v1` candidate/boot-ID marker. It accepts the marker at a
+line start or after only the two formats emitted by the accepted target:
+`[time] ` from `console-ramoops` and canonical `<priority>[time] ` from panic
+`dmesg-ramoops`. Arbitrary prefixes, malformed lookalikes, and distinct valid
+markers are ambiguous. Responses expose only marker multiplicity and the
+SHA-256 of one exact marker; that syntactic state is not a current-cycle match
+claim.
+
+For correlation, the read-only host action
+`stable-recovery-control.py postmortem-status CANDIDATE BOOT_ID` validates the
+expected identity before device discovery, computes the exact expected marker
+hash, and emits one redacted record classified as `UNAVAILABLE`, `NO_RECORDS`,
+`NO_MARKER`, `AMBIGUOUS`, `DIFFERENT_MARKER`, `MATCH`, or
+`MATCH_REPEATED`. It does not emit the responder's reversible tail field or
+raw pstore content. The generic `status` command remains the raw diagnostic
+action and must not be used as a correlation claim. The three lineage fields
+extend the fixed `version=1` response schema, so this re-freeze is deliberately
+fail-closed rather than wire-compatible with an older peer: recovery and host
+must be deployed from the same reviewed repository checkpoint.
+
+Offline tests prove empty, present, unavailable, malformed, aggregate and
+metadata disagreement, hostile path types, printk formatting, stale-marker
+classification, redaction, partial-I/O, and restart behavior. They do **not**
+prove the Snapdragon DRAM region survives a target → bootloader → recovery
+transition. That requires a separately admitted controlled live cycle. If it
+does not survive, the next oracle experiment remains the possible Qualcomm
+debug UART; no physical UART capability is currently claimed.
 
 ## Test suite before re-freeze
 

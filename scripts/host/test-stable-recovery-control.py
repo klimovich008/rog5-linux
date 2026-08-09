@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from contextlib import redirect_stdout
 from dataclasses import replace
+import hashlib
 import importlib.util
 import io
 import json
@@ -52,6 +53,7 @@ DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v2"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64
+TARGET_BOOT_ID = "12345678-1234-1234-1234-123456789abc"
 
 
 class StableRecoveryControlTest(unittest.TestCase):
@@ -62,6 +64,165 @@ class StableRecoveryControlTest(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+
+    def test_postmortem_lineage_requires_exact_expected_identity(self):
+        def response(**values):
+            fields = {
+                "session": SESSION,
+                "request": "2" * 32,
+                "verb": "STATUS",
+                "result": "OK",
+                "state": "IDLE",
+            }
+            fields.update(values)
+            return MODULE.Response(**fields)
+
+        expected = hashlib.sha256(
+            (
+                "rog5-network-root: lineage "
+                "format=rog5-target-lineage-v1 "
+                f"candidate={DIAGNOSTIC_BUNDLE} "
+                f"boot_id={TARGET_BOOT_ID}"
+            ).encode("ascii")
+        ).hexdigest()
+        self.assertEqual(
+            MODULE.expected_postmortem_lineage_sha256(
+                DIAGNOSTIC_BUNDLE, TARGET_BOOT_ID
+            ),
+            expected,
+        )
+        cases = (
+            (
+                "unavailable",
+                response(),
+                "UNAVAILABLE",
+            ),
+            (
+                "empty",
+                response(postmortem_state="EMPTY"),
+                "NO_RECORDS",
+            ),
+            (
+                "none",
+                response(postmortem_state="PRESENT"),
+                "NO_MARKER",
+            ),
+            (
+                "ambiguous",
+                response(
+                    postmortem_state="PRESENT",
+                    postmortem_lineage_state="AMBIGUOUS",
+                ),
+                "AMBIGUOUS",
+            ),
+            (
+                "stale",
+                response(
+                    postmortem_state="PRESENT",
+                    postmortem_lineage_state="UNIQUE",
+                    postmortem_lineage_matches="1",
+                    postmortem_lineage_sha256="f" * 64,
+                ),
+                "DIFFERENT_MARKER",
+            ),
+            (
+                "match",
+                response(
+                    postmortem_state="PRESENT",
+                    postmortem_lineage_state="UNIQUE",
+                    postmortem_lineage_matches="1",
+                    postmortem_lineage_sha256=expected,
+                ),
+                "MATCH",
+            ),
+            (
+                "repeated",
+                response(
+                    postmortem_state="PRESENT",
+                    postmortem_lineage_state="REPEATED",
+                    postmortem_lineage_matches="2",
+                    postmortem_lineage_sha256=expected,
+                ),
+                "MATCH_REPEATED",
+            ),
+        )
+        for name, response, classification in cases:
+            with self.subTest(case=name):
+                result = MODULE.correlate_postmortem_lineage(
+                    response, DIAGNOSTIC_BUNDLE, TARGET_BOOT_ID
+                )
+                self.assertEqual(result.classification, classification)
+                self.assertEqual(result.expected_lineage_sha256, expected)
+
+    def test_postmortem_identity_fails_before_device_discovery(self):
+        cases = (
+            ("none", TARGET_BOOT_ID),
+            ("../escape", TARGET_BOOT_ID),
+            (DIAGNOSTIC_BUNDLE, TARGET_BOOT_ID.upper()),
+            (DIAGNOSTIC_BUNDLE, "not-a-boot-id"),
+        )
+        for candidate, boot_id in cases:
+            with (
+                self.subTest(candidate=candidate, boot_id=boot_id),
+                mock.patch.object(MODULE, "read_recovery_status") as read,
+                self.assertRaisesRegex(RuntimeError, "invalid expected"),
+            ):
+                MODULE.main(["postmortem-status", candidate, boot_id])
+            read.assert_not_called()
+
+    def test_postmortem_status_reports_only_correlated_hash_evidence(self):
+        expected = MODULE.expected_postmortem_lineage_sha256(
+            DIAGNOSTIC_BUNDLE, TARGET_BOOT_ID
+        )
+        raw_tail = "726f67352d726177"
+        hello = MODULE.Response(
+            session=SESSION,
+            request="1" * 32,
+            verb="HELLO",
+            result="OK",
+            state="IDLE",
+        )
+        status = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="STATUS",
+            result="OK",
+            state="IDLE",
+            postmortem_state="PRESENT",
+            postmortem_records="1",
+            postmortem_bytes="100",
+            postmortem_sha256="a" * 64,
+            postmortem_tail_hex=raw_tail,
+            postmortem_lineage_state="UNIQUE",
+            postmortem_lineage_matches="1",
+            postmortem_lineage_sha256=expected,
+        )
+        output = io.StringIO()
+        with (
+            mock.patch.object(
+                MODULE,
+                "read_recovery_status",
+                return_value=(hello, status),
+            ) as read,
+            redirect_stdout(output),
+        ):
+            self.assertEqual(
+                MODULE.main(
+                    ["postmortem-status", DIAGNOSTIC_BUNDLE, TARGET_BOOT_ID]
+                ),
+                0,
+            )
+        read.assert_called_once_with()
+        records = tuple(
+            json.loads(line) for line in output.getvalue().splitlines()
+        )
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["classification"], "MATCH")
+        self.assertEqual(records[0]["expected_lineage_sha256"], expected)
+        self.assertEqual(records[0]["observed_lineage_sha256"], expected)
+        self.assertNotIn("postmortem_tail_hex", records[0])
+        self.assertNotIn(raw_tail, output.getvalue())
+        self.assertNotIn("rog5-network-root", output.getvalue())
 
     def test_recovery_acm_observation_classifies_without_exposing_identity(self):
         metadata = mock.Mock(st_mode=stat.S_IFCHR | 0o660, st_rdev=123)

@@ -56,6 +56,15 @@ cannot prove survival below the gadget layer. Host USB journal timestamps are
 part of the evidence and distinguish reporter silence from physical device
 departure as far as the shared transport permits.
 
+Stable recovery's later correlation path validates the complete bounded
+pstore snapshot before opening its framed session. It recognizes this exact
+marker both in the target's timestamped `console-ramoops` form and in the
+canonical priority-plus-timestamp `dmesg-ramoops` panic form. Marker
+multiplicity/hash alone is only syntactic evidence: the host reports `MATCH`
+or `MATCH_REPEATED` only after recomputing the hash from an explicitly supplied
+candidate and target boot ID. Missing or ambiguous evidence never means that
+no crash occurred.
+
 ## Minimal stage vocabulary
 
 Stage codes are monotonic. A later code may never be replaced by an earlier

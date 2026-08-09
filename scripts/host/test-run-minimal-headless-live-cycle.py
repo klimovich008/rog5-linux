@@ -848,7 +848,7 @@ class Fixture:
                   echo 'FAIL exact network-root NFSv4.2 listener was not ready before COMMIT'
                   exit 1
                 fi
-                printf '{{"commit_fingerprint":"{CYCLE.ZERO_SHA256}","commit_request":"{CYCLE.ZERO_ID}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{PREPARE}","result":"PREPARED","session":"{SESSION}","state":"PREPARED","verb":"PREPARE","watchdog":"ARMED"}}\n' \
+                printf '{{"commit_fingerprint":"{CYCLE.ZERO_SHA256}","commit_request":"{CYCLE.ZERO_ID}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_lineage_matches":"0","postmortem_lineage_sha256":"{CYCLE.ZERO_SHA256}","postmortem_lineage_state":"NONE","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{PREPARE}","result":"PREPARED","session":"{SESSION}","state":"PREPARED","verb":"PREPARE","watchdog":"ARMED"}}\n' \
                   "$BUNDLE"
                 while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
                   sleep 0.01
@@ -878,7 +878,7 @@ class Fixture:
                   : >"$MOCK_ROOT/ledger-armed"
                   while :; do sleep 1; done
                 fi
-                printf '{{"commit_fingerprint":"{COMMIT_FINGERPRINT}","commit_request":"{REQUEST}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{REQUEST}","result":"CLAIMED","session":"{SESSION}","state":"CLAIMED","verb":"COMMIT_EXEC","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
+                printf '{{"commit_fingerprint":"{COMMIT_FINGERPRINT}","commit_request":"{REQUEST}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_lineage_matches":"0","postmortem_lineage_sha256":"{CYCLE.ZERO_SHA256}","postmortem_lineage_state":"NONE","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{REQUEST}","result":"CLAIMED","session":"{SESSION}","state":"CLAIMED","verb":"COMMIT_EXEC","watchdog":"ARMED"}}\n{{"session":"{SESSION}","request":"{REQUEST}","manifest_sha256":"{MANIFEST}","target":"%s","state":"TRANSMITTED","outcome":"UNKNOWN"}}\n' \
                   "$BUNDLE" \
                   "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
@@ -1332,13 +1332,26 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         *,
         postmortem: dict[str, str] | None = None,
     ) -> tuple[dict[str, str], dict[str, str], dict[str, object]]:
-        evidence = postmortem or {
+        selected = postmortem or {
             "postmortem_state": "PRESENT",
             "postmortem_records": "1",
             "postmortem_bytes": "472926",
             "postmortem_sha256": "4" * 64,
             "postmortem_tail_hex": "00ff",
         }
+        if selected["postmortem_state"] == "PRESENT":
+            lineage = {
+                "postmortem_lineage_state": "UNIQUE",
+                "postmortem_lineage_matches": "1",
+                "postmortem_lineage_sha256": "6" * 64,
+            }
+        else:
+            lineage = {
+                "postmortem_lineage_state": "NONE",
+                "postmortem_lineage_matches": "0",
+                "postmortem_lineage_sha256": CYCLE.ZERO_SHA256,
+            }
+        evidence = {**lineage, **selected}
         prepared = {
             "commit_fingerprint": CYCLE.ZERO_SHA256,
             "commit_request": CYCLE.ZERO_ID,
@@ -1499,6 +1512,13 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             ("postmortem_sha256", CYCLE.EMPTY_SHA256),
             ("postmortem_tail_hex", "0"),
             ("postmortem_tail_hex", "00" * 513),
+            ("postmortem_lineage_state", "UNKNOWN"),
+            ("postmortem_lineage_matches", "01"),
+            ("postmortem_lineage_matches", "65536"),
+            ("postmortem_lineage_sha256", "g" * 64),
+            ("postmortem_lineage_state", "REPEATED"),
+            ("postmortem_lineage_matches", "2"),
+            ("postmortem_lineage_sha256", CYCLE.ZERO_SHA256),
         )
         for field, value in mutations:
             with self.subTest(field=field, value=value[:16]):
