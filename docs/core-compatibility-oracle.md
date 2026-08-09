@@ -70,9 +70,10 @@ Future capabilities remain unaccepted:
 - buttons and battery have baseline diagnostic evidence only, not
   corrected-candidate evidence. The future `battery-charging` capability now
   names the hardware-free
-  [battery-series oracle](battery-telemetry-series.md), but that gate only
-  validates sustained read-only record structure and phase comparison; it
-  does not promote the capability;
+  [battery-series oracle](battery-telemetry-series.md) and the hardware-free
+  [dual-cell read-only contract](dual-cell-readonly-telemetry.md), but those
+  gates only validate observation structure, protocol/DT boundaries, and
+  phase comparison; they do not promote the capability;
 - suspend/resume, sensors, and audio remain pending.
 
 The accepted Linux 7.1.4 config still has

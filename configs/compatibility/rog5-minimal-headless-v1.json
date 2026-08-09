@@ -465,7 +465,10 @@
       "maximum_integer_config": {},
       "forbidden_config": [],
       "ci_gates": [
-        "scripts/host/test-headless-battery-series.py"
+        "scripts/host/test-headless-battery-series.py",
+        "scripts/host/test-dual-cell-readonly-snapshot.py",
+        "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
+        "scripts/device/test-dual-cell-readonly-candidate-dtb.sh"
       ]
     },
     {

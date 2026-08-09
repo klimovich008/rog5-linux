@@ -1062,7 +1062,8 @@ never authorizes another execute.
 If the core runtime passes, continue in this order:
 
 1. physical power/volume keys and bounded default-off indicator pulse;
-2. sustained read-only battery telemetry and charger-state comparison;
+2. read-only dual-cell topology observation, then sustained battery telemetry
+   and charger-state comparison;
 3. CPU cooling, PMIC alarm registration, and bounded thermal fallback;
 4. panel-off operation, suspend/wake, SSH continuity, and idle power;
 5. sensors, then audio, then WCN6855 enumeration and Wi-Fi client mode.

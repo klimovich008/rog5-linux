@@ -185,6 +185,9 @@ shared_tests=(
 	scripts/host/test-install-headless-ssh-deployment-export.py
 	scripts/host/test-run-headless-ssh-deployment-export-install.py
 	scripts/host/test-headless-battery-series.py
+	scripts/host/test-dual-cell-readonly-snapshot.py
+	scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh
+	scripts/device/test-dual-cell-readonly-candidate-dtb.sh
 	scripts/host/test-fallback-acm-control.py
 	scripts/host/test-retired-legacy-acm-entrypoints.py
 	scripts/host/test-run-minimal-headless-live-cycle.py

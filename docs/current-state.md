@@ -206,6 +206,17 @@ test contract, not a new phone result or charging-safety acceptance. See the
 [contract](battery-telemetry-series.md) and
 [offline result](../test-results/2026-07-31-headless-battery-series-offline.md).
 
+The battery path also has a bounded
+[read-only dual-cell candidate](dual-cell-readonly-telemetry.md). It adds one
+DT-opt-in OEM PMIC GLINK read to upstream qcom_battmgr, validates the exact
+vendor-evidenced 16-byte response, and exposes only mode-`0444`
+`cell_voltages`. Hostile source, one-property DT, and sysfs-fixture gates pass,
+and the patched driver compiles as AArch64 in the pinned builder. This is an
+offline topology/ABI result only: no clean twin full kernel, phone execution,
+cell observation, battery-health classification, or charging acceptance is
+claimed. See the
+[offline result](../test-results/2026-08-09-dual-cell-readonly-candidate-offline.md).
+
 The corrected target's next live observation is now specified independently
 of the boot controller. One read-only target probe emits exactly 88 canonical
 fields for the six active capabilities. A host verifier binds the record to
