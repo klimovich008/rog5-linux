@@ -86,6 +86,7 @@ export_mount=/run/rog5-network-root-export
 mountd_port=32767
 grace_time=10
 lease_time=10
+network_root_poll_interval=1
 handoff_marker=/run/rog5-network-root-nfs-ready
 service_state=/run/rog5-network-root-server.state
 deployment_export=/home/rog5-linux/exports/headless-ssh-network-root-v3
@@ -614,6 +615,28 @@ if [[ -n $handoff_token ]]; then
 	handoff_marker_temp=
 fi
 
+network_transition_time_ms() {
+	awk '{ printf "%.0f\n", $1 * 1000 }' /proc/uptime
+}
+
+log_network_transition() {
+	local transition=$1 interface=$2 timestamp
+
+	timestamp=$(network_transition_time_ms) ||
+		fail 'cannot timestamp network-root USB transition'
+	echo "STATE network-root-usb transition=$transition monotonic_ms=$timestamp interface=$interface"
+}
+
+verify_exact_nfs_listener() {
+	local -a listeners
+
+	mapfile -t listeners < <(
+		ss -H -lnt4 'sport = :2049' | awk '{ print $4 }'
+	)
+	[[ ${#listeners[@]} == 1 &&
+		${listeners[0]} == "$host_ip:2049" ]]
+}
+
 find_target_interface() {
 	local interface properties
 	for path in /sys/class/net/*; do
@@ -637,7 +660,11 @@ configure_target_interface() {
 	done
 	((known == 1)) || touched_interfaces+=("$interface")
 	nmcli device set "$interface" managed no 2>/dev/null || true
+	[[ $(nmcli -g GENERAL.NM-MANAGED device show "$interface" 2>/dev/null) == no ]] ||
+		fail 'NetworkManager did not complete the unmanaged transition'
+	log_network_transition networkmanager-unmanaged "$interface"
 	ip link set "$interface" up
+	log_network_transition link-up "$interface"
 	if ! ip -4 -o address show dev "$interface" |
 		awk -v cidr="$host_cidr" '$4 == cidr { found=1 }
 			END { exit !found }'; then
@@ -653,12 +680,27 @@ configure_target_interface() {
 		)
 		ip address add "$host_cidr" dev "$interface"
 	fi
+	ip -4 -o address show dev "$interface" |
+		awk -v cidr="$host_cidr" '$4 == cidr { exact++ }
+			$4 != cidr { other++ }
+			END { exit exact != 1 || other != 0 }' ||
+		fail 'network-root host address state is not exact'
+	log_network_transition host-address-present "$interface"
 	zone=$(firewall-cmd --get-zone-of-interface="$interface" 2>/dev/null ||
 		true)
 	if [[ $zone != "$firewall_zone" ]]; then
 		firewall-cmd --zone="$firewall_zone" \
 			--change-interface="$interface" >/dev/null
 	fi
+	zone=$(firewall-cmd --get-zone-of-interface="$interface" 2>/dev/null ||
+		true)
+	[[ $zone == "$firewall_zone" ]] ||
+		fail 'network-root interface did not enter the exact firewall zone'
+	log_network_transition firewall-zone-confirmed "$interface"
+	verify_exact_nfs_listener ||
+		fail 'exact NFS listener disappeared during USB link setup'
+	log_network_transition tcp-2049-listening "$interface"
+	log_network_transition exact-network-root-link-ready "$interface"
 }
 
 echo "PASS restricted NFSv4.2 export ready; waiting for exact USB gadget"
@@ -670,6 +712,8 @@ while (( $(date +%s) < deadline )); do
 	if [[ -n $target_interface ]]; then
 		if [[ $target_seen == 0 ]]; then
 			[[ -e /sys/class/net/$target_interface ]] || continue
+			log_network_transition gadget-interface-discovered \
+				"$target_interface"
 			configure_target_interface "$target_interface"
 			echo "PASS exact network-root USB link ready on $target_interface"
 			target_seen=1
@@ -683,7 +727,7 @@ while (( $(date +%s) < deadline )); do
 			exit 0
 		fi
 	fi
-	sleep 1
+	sleep "$network_root_poll_interval"
 done
 
 fail 'attended NFS window expired'

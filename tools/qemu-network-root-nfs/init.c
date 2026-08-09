@@ -167,9 +167,9 @@ static void enter_production_probe(void)
 int main(void)
 {
 	static const char production_options[] =
-		"vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1";
+		"vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2";
 	static const char server_probe_options_base[] =
-		"vers=4.2,proto=tcp,port=2049,rw,nolock,soft,timeo=10,retrans=1";
+		"vers=4.2,proto=tcp,port=2049,rw,soft,timeo=30,retrans=2";
 	char kernel_options[sizeof(production_options) +
 			    sizeof(",addr=169.254.77.1")];
 	char server_probe_options[sizeof(server_probe_options_base) +

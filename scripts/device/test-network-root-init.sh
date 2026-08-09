@@ -83,14 +83,22 @@ for text in \
 	'diagnostic_candidate=headless-netroot-early-diag-v2' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
+	'export LC_ALL=C' \
 	'functions/acm.usb0' \
+	'/usr/bin/nc' \
+	'host_port_probe_attempts=12' \
+	'host_port_probe_timeout=1' \
+	'host_port_probe_interval=0.25' \
+	'host_port_timeout_floor_ms=900' \
+	'wait_for_host_tcp_accept || return 1' \
+	'probe_host_tcp_accept -n -z -w "$host_port_probe_timeout"' \
 	'rog5-early-target-new-init.service' \
 	'rog5-early-target-sshd.service' \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
 	'cp -p "$diagnostic_binary"' \
 	'mount -t nfs4' \
-	'vers=4.2,proto=tcp,port=2049,ro,nolock' \
+	'vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2' \
 	'mount -t tmpfs -o nodev,nosuid' \
 		'mount -t overlay overlay' \
 		'/run/initramfs' \
@@ -106,6 +114,17 @@ for text in \
 		exit 1
 	}
 done
+
+if grep -Eq '(^|,)nolock(,|$)' "$init"; then
+	echo 'FAIL NFSv4 network-root options still force obsolete NLM behavior' >&2
+	exit 1
+fi
+# Linux 7.1.4 uses a linear TCP RPC major timeout of
+# timeo + timeo * retrans. Thirty deciseconds and two retries therefore
+# produce a nine-second major timeout where NFSv4 permits it.
+[ "$((30 * (1 + 2) / 10))" -eq 9 ]
+grep -Fq 'usr/bin/nc' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
 
 [ "$(grep -Fc 'network-root watchdog attestation failed' "$init")" -eq 1 ]
 grep -Fq 'chmod 0400 "$lease_stage" "$pid_stage"' "$init"
@@ -178,10 +197,14 @@ for stage in 10 20 30 40 50 60 70 75 80 90 100 110 120; do
 done
 mount_begin_line=$(grep -n 'diagnostic_emit 70' "$init" |
 	head -n1 | cut -d: -f1)
+host_accept_line=$(grep -n \
+	'^[[:space:]]*wait_for_host_tcp_accept || return 1$' "$init" |
+	head -n1 | cut -d: -f1)
 mount_return_line=$(grep -n 'diagnostic_emit 75' "$init" |
 	head -n1 | cut -d: -f1)
 mount_ok_line=$(grep -n 'diagnostic_emit 80' "$init" |
 	head -n1 | cut -d: -f1)
+[ "$host_accept_line" -lt "$mount_begin_line" ]
 [ "$mount_begin_line" -lt "$mount_return_line" ]
 [ "$mount_return_line" -lt "$mount_ok_line" ]
 grep -Fq \
@@ -194,6 +217,9 @@ for fault in \
 	address-failed \
 	carrier-timeout \
 	route-failed \
+	host-port-probe-failed \
+	host-port-unreachable \
+	host-port-timeout \
 	nfs-mount-failed \
 	seal-verify-failed \
 	overlay-failed \
@@ -389,6 +415,12 @@ done
 run_diagnostic_mount_case() (
 	case_name=$1
 	expected_fault=$2
+	expected_mounts=${3:-1}
+	if [ "$#" -ge 4 ]; then
+		expected_stages=$4
+	else
+		expected_stages='70 75'
+	fi
 	case_root=$work/mount-$case_name
 	udc_class_dir=$case_root/sys/class/udc
 	expected_udc=a600000.dwc3
@@ -398,6 +430,11 @@ run_diagnostic_mount_case() (
 	network_root_state=$case_root/state
 	network_newroot=$case_root/newroot
 	network_mounts=$case_root/mounts
+	host_port_probe_attempts=12
+	host_port_probe_timeout=1
+	host_port_probe_interval=0.25
+	host_port_timeout_floor_ms=900
+	host_port_probe_output=$case_root/probe-output
 	mkdir -p "$udc_class_dir/a600000.dwc3" \
 		"$net_class_dir/usb0" "$gadget" "$network_root_ro"
 	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
@@ -413,6 +450,9 @@ run_diagnostic_mount_case() (
 	}
 	sleep() {
 		:
+	}
+	nc() {
+		return 0
 	}
 	ip() {
 		case "$*" in
@@ -458,15 +498,18 @@ run_diagnostic_mount_case() (
 	}
 	# shellcheck disable=SC1090
 	. "$network_functions"
+	probe_host_tcp_accept() {
+		nc "$@"
+	}
 	if mount_network_root; then
 		echo "FAIL diagnostic mount case $case_name succeeded" >&2
 		exit 1
 	fi
-	[ "$mount_calls" -eq 1 ] || {
-		echo "FAIL diagnostic mount case $case_name made $mount_calls attempts" >&2
+	[ "$mount_calls" -eq "$expected_mounts" ] || {
+		echo "FAIL diagnostic mount case $case_name made $mount_calls attempts, expected $expected_mounts" >&2
 		exit 1
 	}
-	[ "$stages" = '70 75' ] || {
+	[ "$stages" = "$expected_stages" ] || {
 		echo "FAIL diagnostic mount case $case_name emitted stages: $stages" >&2
 		exit 1
 	}
@@ -480,12 +523,12 @@ run_diagnostic_mount_case nfs nfs-mount-failed
 run_diagnostic_mount_case udc udc-bind-failed
 run_diagnostic_mount_case interface ncm-interface-failed
 run_diagnostic_mount_case carrier carrier-timeout
-run_diagnostic_mount_case address address-failed
-run_diagnostic_mount_case address-lookalike address-failed
-run_diagnostic_mount_case address-extra address-failed
-run_diagnostic_mount_case route route-failed
-run_diagnostic_mount_case route-device route-failed
-run_diagnostic_mount_case route-source route-failed
+run_diagnostic_mount_case address address-failed 0 ''
+run_diagnostic_mount_case address-lookalike address-failed 0 ''
+run_diagnostic_mount_case address-extra address-failed 0 ''
+run_diagnostic_mount_case route route-failed 0 ''
+run_diagnostic_mount_case route-device route-failed 0 ''
+run_diagnostic_mount_case route-source route-failed 0 ''
 
 run_mount_completion_case() (
 	case_name=$1
@@ -500,6 +543,11 @@ run_mount_completion_case() (
 	network_root_state=$case_root/state
 	network_newroot=$case_root/newroot
 	network_mounts=$case_root/mounts
+	host_port_probe_attempts=12
+	host_port_probe_timeout=1
+	host_port_probe_interval=0.25
+	host_port_timeout_floor_ms=900
+	host_port_probe_output=$case_root/probe-output
 	mkdir -p "$udc_class_dir/a600000.dwc3" \
 		"$net_class_dir/usb0" "$gadget" "$network_newroot/sbin"
 	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
@@ -514,7 +562,7 @@ run_mount_completion_case() (
 			>"$network_mounts"
 	fi
 	diagnostic_mode=1
-	[ "$case_name" != normal-retry ] || diagnostic_mode=0
+	case $case_name in normal-*) diagnostic_mode=0 ;; esac
 	diagnostic_fault=none
 	mount_calls=0
 	stages=
@@ -524,6 +572,9 @@ run_mount_completion_case() (
 	}
 	sleep() {
 		:
+	}
+	nc() {
+		return 0
 	}
 	ip() {
 		case "$*" in
@@ -540,11 +591,158 @@ run_mount_completion_case() (
 		case " $* " in
 			*' -t nfs4 '*)
 				mount_calls=$((mount_calls + 1))
+				if [ "$case_name" = normal-failure ]; then
+					return 32
+				fi
 				if [ "$case_name" = normal-retry ] &&
 					[ "$mount_calls" -lt 3 ]; then
 					return 32
 				fi
 				;;
+		esac
+		return 0
+	}
+	mountpoint() {
+		[ "$case_name" != normal-failure ] || return 1
+		return 0
+	}
+	verify_network_root_identity() {
+		return 0
+	}
+	# shellcheck disable=SC1090
+	. "$network_functions"
+	probe_host_tcp_accept() {
+		nc "$@"
+	}
+	if [ "$case_name" = readonly-failure ] ||
+		[ "$case_name" = normal-failure ]; then
+		if mount_network_root; then
+			echo "FAIL mount failure case $case_name succeeded" >&2
+			exit 1
+		fi
+	else
+		mount_network_root
+	fi
+	[ "$mount_calls" -eq "$expected_calls" ]
+	[ "$stages" = "$expected_stages" ] || {
+		echo "FAIL mount completion case $case_name emitted stages: $stages" >&2
+		exit 1
+	}
+	if [ "$case_name" = normal-failure ]; then
+		[ "$diagnostic_fault" = nfs-mount-failed ] || {
+			echo "FAIL normal mount failure classified $diagnostic_fault" >&2
+			exit 1
+		}
+	fi
+)
+
+run_mount_completion_case readonly-failure 1 '70 75'
+run_mount_completion_case readonly-success 1 '70 75 80 90 100'
+run_mount_completion_case normal-retry 3 ''
+run_mount_completion_case normal-failure 30 ''
+
+run_host_rendezvous_case() (
+	case_name=$1
+	expected_status=$2
+	expected_fault=$3
+	expected_probes=$4
+	expected_mounts=$5
+	case_root=$work/rendezvous-$case_name
+	udc_class_dir=$case_root/sys/class/udc
+	expected_udc=a600000.dwc3
+	net_class_dir=$case_root/sys/class/net
+	gadget=$case_root/gadget
+	network_root_ro=$case_root/root-ro
+	network_root_state=$case_root/state
+	network_newroot=$case_root/newroot
+	network_mounts=$case_root/mounts
+	host_port_probe_output=$case_root/probe-output
+	mkdir -p "$udc_class_dir/a600000.dwc3" \
+		"$net_class_dir/usb0" "$gadget" "$network_newroot/sbin"
+	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
+	printf '#!/bin/sh\n' >"$network_newroot/sbin/init"
+	chmod 0755 "$network_newroot/sbin/init"
+	printf 'server:/ %s nfs4 ro,relatime 0 0\n' "$network_root_ro" \
+		>"$network_mounts"
+	diagnostic_mode=1
+	diagnostic_fault=none
+	host_port_probe_attempts=3
+	host_port_probe_timeout=1
+	host_port_probe_interval=0.25
+	host_port_timeout_floor_ms=900
+	watchdog_pid=4242
+	probe_calls=0
+	probe_clock_file=$case_root/probe-clock
+	printf '%s\n' 1000 >"$probe_clock_file"
+	mount_calls=0
+	stages=
+	diagnostic_emit() {
+		stages="${stages}${stages:+ }$1"
+	}
+	sleep() {
+		:
+	}
+	ip() {
+		case "$*" in
+			'-4 address show dev usb0')
+				printf '%s\n' 'inet 169.254.77.2/30 scope global usb0'
+				;;
+			'-4 route get 169.254.77.1')
+				case $case_name in
+					wrong-route)
+						printf '%s\n' \
+							'169.254.77.1 via 169.254.77.3 dev usb0 src 169.254.77.2'
+						;;
+					wrong-source)
+						printf '%s\n' \
+							'169.254.77.1 dev usb0 src 169.254.77.3'
+						;;
+					*)
+						printf '%s\n' \
+							'169.254.77.1 dev usb0 src 169.254.77.2'
+						;;
+				esac
+				;;
+			*) return 1 ;;
+		esac
+	}
+	nc() {
+		probe_calls=$((probe_calls + 1))
+		[ "$*" = \
+			'-n -z -w 1 -s 169.254.77.2 169.254.77.1 2049' ] || {
+			echo "FAIL rendezvous used an inexact endpoint: $*" >&2
+			return 64
+		}
+		case $case_name in
+			ready-late)
+				[ "$probe_calls" -ge 2 ]
+				;;
+			interface-loss)
+				rm -rf -- "$net_class_dir/usb0"
+				return 1
+				;;
+			carrier-loss)
+				printf '%s\n' 0 >"$net_class_dir/usb0/carrier"
+				return 1
+				;;
+			listener-timeout) return 1 ;;
+			listener-after-deadline)
+				[ "$probe_calls" -ge 4 ]
+				;;
+			probe-missing) return 127 ;;
+			connection-refused|unrelated-service|listener-never)
+				return 1
+				;;
+			wrong-route|wrong-source)
+				echo 'FAIL route failure reached the TCP probe' >&2
+				return 65
+				;;
+		esac
+	}
+	mount() {
+		case " $* " in
+			*' -t nfs4 '*) mount_calls=$((mount_calls + 1)) ;;
 		esac
 		return 0
 	}
@@ -556,24 +754,57 @@ run_mount_completion_case() (
 	}
 	# shellcheck disable=SC1090
 	. "$network_functions"
-	if [ "$case_name" = readonly-failure ]; then
-		if mount_network_root; then
-			echo 'FAIL diagnostic read-write lower reached stage 80' >&2
-			exit 1
-		fi
+	network_monotonic_ms() {
+		probe_clock=$(cat "$probe_clock_file") || return 1
+		printf '%s\n' "$probe_clock"
+		case $case_name in
+			listener-timeout) probe_clock_step=1000 ;;
+			*) probe_clock_step=10 ;;
+		esac
+		printf '%s\n' "$((probe_clock + probe_clock_step))" \
+			>"$probe_clock_file"
+	}
+	probe_host_tcp_accept() {
+		nc "$@"
+	}
+	if mount_network_root; then
+		actual_status=0
 	else
-		mount_network_root
+		actual_status=$?
 	fi
-	[ "$mount_calls" -eq "$expected_calls" ]
-	[ "$stages" = "$expected_stages" ] || {
-		echo "FAIL mount completion case $case_name emitted stages: $stages" >&2
+	[ "$actual_status" -eq "$expected_status" ] || {
+		echo "FAIL rendezvous case $case_name returned $actual_status, expected $expected_status" >&2
+		exit 1
+	}
+	[ "$diagnostic_fault" = "$expected_fault" ] || {
+		echo "FAIL rendezvous case $case_name classified $diagnostic_fault, expected $expected_fault" >&2
+		exit 1
+	}
+	[ "$probe_calls" -eq "$expected_probes" ] || {
+		echo "FAIL rendezvous case $case_name made $probe_calls probes, expected $expected_probes" >&2
+		exit 1
+	}
+	[ "$mount_calls" -eq "$expected_mounts" ] || {
+		echo "FAIL rendezvous case $case_name made $mount_calls mounts, expected $expected_mounts" >&2
+		exit 1
+	}
+	[ "$watchdog_pid" -eq 4242 ] || {
+		echo "FAIL rendezvous case $case_name changed the armed watchdog" >&2
 		exit 1
 	}
 )
 
-run_mount_completion_case readonly-failure 1 '70 75'
-run_mount_completion_case readonly-success 1 '70 75 80 90 100'
-run_mount_completion_case normal-retry 3 ''
+run_host_rendezvous_case ready-late 0 overlay-failed 2 1
+run_host_rendezvous_case interface-loss 1 ncm-interface-failed 1 0
+run_host_rendezvous_case carrier-loss 1 carrier-timeout 1 0
+run_host_rendezvous_case wrong-route 1 route-failed 0 0
+run_host_rendezvous_case wrong-source 1 route-failed 0 0
+run_host_rendezvous_case listener-never 1 host-port-unreachable 3 0
+run_host_rendezvous_case connection-refused 1 host-port-unreachable 3 0
+run_host_rendezvous_case listener-timeout 1 host-port-timeout 3 0
+run_host_rendezvous_case listener-after-deadline 1 host-port-unreachable 3 0
+run_host_rendezvous_case unrelated-service 1 host-port-unreachable 3 0
+run_host_rendezvous_case probe-missing 1 host-port-probe-failed 1 0
 
 diagnostic_functions=$work/diagnostic-functions.sh
 awk '
@@ -726,6 +957,7 @@ for path in \
 	sbin/switch_root \
 	usr/bin/awk \
 	usr/bin/find \
+	usr/bin/nc \
 	usr/bin/readlink \
 	usr/bin/sha256sum \
 	usr/bin/setsid \

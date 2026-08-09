@@ -92,6 +92,7 @@ for path in \
 	sbin/switch_root \
 	usr/bin/awk \
 	usr/bin/find \
+	usr/bin/nc \
 	usr/bin/readlink \
 	usr/bin/sha256sum \
 	usr/bin/setsid \
