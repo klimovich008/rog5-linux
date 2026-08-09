@@ -324,6 +324,10 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
 - [x] Freeze the accepted Linux 7.1.4 static thermal source/DTB topology and
   reject disabled/rewired TSENS, CPU cooling, trip, PMIC, and shutdown paths.
   This is an offline regression gate, not runtime thermal acceptance.
+- [x] Add an offline minimal-server display-isolation DTB that explicitly
+  disables the otherwise implicit DISPCC provider, changes no other DT
+  property, and hostile-tests zero display platform/class/device exposure.
+  This is not live OLED-off or power acceptance.
 - [ ] Verify charger detection and safe charging states.
 - [ ] Verify battery capacity, voltage, current, and temperature telemetry.
 - [ ] Prove CPU cooling response and PMIC alarm registration on the corrected

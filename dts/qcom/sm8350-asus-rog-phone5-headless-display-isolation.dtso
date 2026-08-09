@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/*
+ * MDSS and every display link are already disabled by the accepted recovery
+ * DTB.  DISPCC is a separate platform device, however, and otherwise probes
+ * even when MDSS has no active consumer.  Keep it absent from the minimal
+ * headless server tier; display bring-up must use a separately reviewed DTB.
+ */
+&dispcc {
+	status = "disabled";
+};

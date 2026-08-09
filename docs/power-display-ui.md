@@ -72,6 +72,16 @@ and LEDs remain intentionally disabled. Backlight control remains the fallback
 if DPMS is unavailable once display bring-up begins. Power measurements must
 compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
 
+The
+[headless display-isolation candidate](../test-results/2026-08-09-headless-display-isolation-offline.md)
+now closes one offline minimal-server gap: the accepted DTB disabled MDSS and
+every display link but left the separate DISPCC provider implicitly enabled.
+Its one-property overlay explicitly disables DISPCC, while a structural
+verifier rejects every other DT change. A separate runtime oracle requires no
+MDSS/DISPCC platform device, DRM node, backlight, framebuffer, or display
+device node. This is the default-off provider contract for a server-only DTB,
+not OLED/bridge, DPMS, wake, SSH-continuity, or power acceptance.
+
 ## Memory policy
 
 Do not optimize an 11 GiB device by killing useful caches. Prefer:

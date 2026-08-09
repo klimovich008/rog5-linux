@@ -80,6 +80,17 @@
         "low-overhead aggregate CPU remained below 1%",
         "not battery-depletion, Linux 7.1"
       ]
+    },
+    {
+      "id": "mainline-7.1-headless-display-isolation-offline",
+      "path": "test-results/2026-08-09-headless-display-isolation-offline.md",
+      "sha256": "b5dbeb4035b030087fd63abbe5d316621759b10796d80f4cc82e2eb556dd5f8e",
+      "markers": [
+        "Result: **PASS for offline headless display-provider isolation; no phone boot or power claim.**",
+        "The new overlay adds only `status = \"disabled\"` to the exact DISPCC node.",
+        "approved_changes=1",
+        "No panel, GPU, suspend, or battery behavior was tested."
+      ]
     }
   ],
   "artifacts": [
@@ -383,10 +394,11 @@
     {
       "id": "display-off-server",
       "phase": "future",
-      "candidate_status": "baseline-only",
+      "candidate_status": "baseline-diagnostic-partial",
       "baseline_evidence": [
         "vendor-5.4-core",
-        "fallback-screen-off"
+        "fallback-screen-off",
+        "mainline-7.1-headless-display-isolation-offline"
       ],
       "required_config": {
         "CONFIG_PM": "y"
@@ -394,7 +406,10 @@
       "minimum_integer_config": {},
       "maximum_integer_config": {},
       "forbidden_config": [],
-      "ci_gates": []
+      "ci_gates": [
+        "scripts/device/test-headless-display-isolation-candidate-dtb.sh",
+        "scripts/device/test-headless-display-isolation-runtime.sh"
+      ]
     },
     {
       "id": "buttons-indicators",
