@@ -192,9 +192,12 @@ decision without appending a response to a poisoned frame.
 
 All-zero request IDs and manifest hashes are reserved unset values and are
 rejected. Fixed result codes are bound to their valid verb and transaction
-state. `EXEC_FAILED` is valid only with the persisted execution-started
-marker. Successful target departure is classified out of band; the last
-recoverable device state remains `CLAIMED` with `execution_started=YES`.
+state. `EXEC_FAILED` normally requires the persisted execution-started marker.
+The sole pre-execution exception is `last_error=HAVEN_WDOG_FAILED`, which
+requires `execution_started=NO` and proves that the already-consumed claim was
+refused before target execution. Successful target departure is classified
+out of band; the last recoverable device state remains `CLAIMED` with
+`execution_started=YES`.
 
 The responder opens `/dev/ttyGS0` itself, applies raw/no-echo termios, and
 uses nonblocking I/O with fixed deadlines for a started frame, response
@@ -337,15 +340,32 @@ Before `COMMIT_EXEC` calls `kexec -e`, it must:
    fingerprint;
 3. write and `fsync` the claim, then `fsync` its directory;
 4. send and drain a `CLAIMED` response;
-5. call `kexec -e` directly with `execve`, never through a shell.
+5. while the userspace rollback watchdog remains live, open the fixed
+   `/sys/bus/platform/drivers/hh-watchdog` directory and prove that it contains
+   exactly one bound device whose `driver` resolves back to that directory and
+   whose exact DT compatible is `qcom,hh-watchdog`;
+6. establish a `/dev/kmsg` sequence boundary, make exactly one `1\n` write to
+   that device's owner-only `disable` control, revalidate the pinned identity,
+   require exact `1\n` readback, and reject any new
+   `Failed to deactivate secure wdog` or `failed disabling VDOG` kernel
+   record; and
+7. call `kexec -e` directly with `execve`, never through a shell.
 
-Immediately before calling `kexec -e`, the responder persists an
-execution-started marker. If `kexec -e` returns, the device records
-`EXEC_FAILED` and remains fail-closed until rollback. A duplicate commit or a
-responder restart after either marker never calls `kexec` again; it returns
-the recorded transaction identity and state if the responder is still alive.
-If USB disappears before the host receives a response, the result is
-`UNKNOWN`, not success or failure.
+The Haven handoff has no production path override, glob, retry, or alternate
+device fallback. Any missing, duplicate, rebound, unsafe, unreadable, or
+unverified control persists `HAVEN_WDOG_FAILED`, unloads the prepared image,
+and leaves the irreversible claim consumed without an execution-started
+marker. This preserves the separate userspace rollback layer and prevents the
+mainline target from inheriting the recovery kernel's actively serviced Haven
+watchdog.
+
+Immediately before calling `kexec -e`, and only after that handoff succeeds,
+the responder persists an execution-started marker. If `kexec -e` returns, the
+device records `EXEC_FAILED` and remains fail-closed until rollback. A
+duplicate commit or a responder restart after the claim, failure, or execution
+marker never calls `kexec` again; it returns the recorded transaction identity
+and state if the responder is still alive. If USB disappears before the host
+receives a response, the result is `UNKNOWN`, not success or failure.
 
 ## Host write-ahead ledger
 

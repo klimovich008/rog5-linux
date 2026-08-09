@@ -252,6 +252,25 @@ class RecordCodecTest(unittest.TestCase):
         )
         self.assertEqual(decode_response(encode_response(detailed)), detailed)
 
+        blocked = replace(
+            detailed,
+            state="EXEC_FAILED",
+            last_error="HAVEN_WDOG_FAILED",
+        )
+        self.assertEqual(decode_response(encode_response(blocked)), blocked)
+
+        for invalid in (
+            replace(blocked, execution_started="YES"),
+            replace(blocked, state="CLAIMED"),
+            replace(blocked, last_error="EXEC_FAILED"),
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(
+                    ProtocolViolation,
+                    "BAD_RESPONSE",
+                ):
+                    encode_response(invalid)
+
     def test_postmortem_lineage_response_combinations_are_strict(self):
         valid = Response(
             session=SESSION,
@@ -698,15 +717,33 @@ class RecoveryStateModelTest(unittest.TestCase):
             calls.append("execute")
             raise TargetDeparted()
 
-        self.assertEqual(self.model.execute_claimed(departed), "CLAIMED")
-        self.assertEqual(self.model.execute_claimed(departed), "CLAIMED")
+        self.assertEqual(
+            self.model.execute_claimed(
+                departed,
+                haven_handoff=lambda: True,
+            ),
+            "CLAIMED",
+        )
+        self.assertEqual(
+            self.model.execute_claimed(
+                departed,
+                haven_handoff=lambda: True,
+            ),
+            "CLAIMED",
+        )
         self.assertEqual(calls, ["execute"])
         self.assertEqual(self.state.execute_calls, 1)
 
     def test_kexec_return_or_exception_permanently_fails_session(self):
         self.prepare()
         self.model.handle(commit_request())
-        self.assertEqual(self.model.execute_claimed(lambda: None), "EXEC_FAILED")
+        self.assertEqual(
+            self.model.execute_claimed(
+                lambda: None,
+                haven_handoff=lambda: True,
+            ),
+            "EXEC_FAILED",
+        )
         self.assertEqual(self.state.last_error, "EXEC_RETURNED")
         self.assertEqual(
             self.model.handle(make_request("STATUS", 20)).state,
@@ -721,8 +758,42 @@ class RecoveryStateModelTest(unittest.TestCase):
         def failed():
             raise OSError("synthetic kexec failure")
 
-        self.assertEqual(model.execute_claimed(failed), "EXEC_FAILED")
+        self.assertEqual(
+            model.execute_claimed(
+                failed,
+                haven_handoff=lambda: True,
+            ),
+            "EXEC_FAILED",
+        )
         self.assertEqual(state.last_error, "EXEC_FAILED")
+
+    def test_haven_handoff_failure_prevents_execution(self):
+        self.prepare()
+        self.model.handle(commit_request())
+        handoff_calls = []
+        execute_calls = []
+
+        with self.assertRaisesRegex(TypeError, "haven_handoff"):
+            self.model.execute_claimed(  # type: ignore[call-arg]
+                lambda: execute_calls.append("execute")
+            )
+        self.assertEqual(
+            self.model.execute_claimed(
+                lambda: execute_calls.append("execute"),
+                haven_handoff=lambda: handoff_calls.append("handoff")
+                and False,
+            ),
+            "EXEC_FAILED",
+        )
+        self.assertEqual(handoff_calls, ["handoff"])
+        self.assertEqual(execute_calls, [])
+        self.assertFalse(self.state.execution_started)
+        self.assertEqual(self.state.execute_calls, 0)
+        self.assertEqual(self.state.last_error, "HAVEN_WDOG_FAILED")
+        restored = RecoveryState.from_snapshot(self.state.snapshot())
+        self.assertEqual(restored.phase, "EXEC_FAILED")
+        self.assertFalse(restored.execution_started)
+        self.assertEqual(restored.last_error, "HAVEN_WDOG_FAILED")
 
     def test_crash_before_claim_leaves_prepared_state(self):
         self.prepare()
@@ -769,7 +840,10 @@ class RecoveryStateModelTest(unittest.TestCase):
         self.assertEqual(restarted.handle(commit).result, "CLAIMED")
         calls = []
         self.assertEqual(
-            restarted.execute_claimed(lambda: calls.append("execute")),
+            restarted.execute_claimed(
+                lambda: calls.append("execute"),
+                haven_handoff=lambda: True,
+            ),
             "CLAIMED",
         )
         self.assertEqual(calls, [])
@@ -795,7 +869,10 @@ class RecoveryStateModelTest(unittest.TestCase):
         replay = restarted.handle(commit)
         self.assertEqual(replay.result, "CLAIMED")
         calls = []
-        restarted.execute_claimed(lambda: calls.append("execute"))
+        restarted.execute_claimed(
+            lambda: calls.append("execute"),
+            haven_handoff=lambda: True,
+        )
         self.assertEqual(calls, [])
 
     def test_full_ledger_fails_closed_without_eviction(self):
@@ -947,13 +1024,17 @@ class RecoveryStateModelTest(unittest.TestCase):
         with self.assertRaisesRegex(InjectedCrash, "after_execute_start"):
             self.model.execute_claimed(
                 lambda: self.fail("executor must not run before injection"),
+                haven_handoff=lambda: True,
                 inject="after_execute_start",
             )
         persisted = RecoveryState.from_snapshot(self.state.snapshot())
         restarted = RecoveryModel(persisted)
         calls = []
         self.assertEqual(
-            restarted.execute_claimed(lambda: calls.append("execute")),
+            restarted.execute_claimed(
+                lambda: calls.append("execute"),
+                haven_handoff=lambda: True,
+            ),
             "CLAIMED",
         )
         self.assertEqual(calls, [])

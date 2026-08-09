@@ -132,9 +132,39 @@ class NativeResponderTest(unittest.TestCase):
             encoding="ascii",
         )
         self.postmortem.chmod(0o600)
+        self.haven_driver = (
+            self.root / "sys/bus/platform/drivers/hh-watchdog"
+        )
+        self.haven_device = (
+            self.root / "sys/devices/platform/qcom_wdt_hh"
+        )
+        self.haven_of_node = self.haven_device / "of_node"
+        self.haven_disable = self.haven_device / "disable"
+        self.haven_kmsg = self.root / "kmsg"
+        self.make_haven_watchdog_fixture()
         self.processes: list[subprocess.Popen] = []
         self.descriptors: list[int] = []
         self.start_watchdog()
+
+    def make_haven_watchdog_fixture(self) -> None:
+        self.haven_driver.mkdir(parents=True, mode=0o755)
+        self.haven_device.mkdir(parents=True, mode=0o755)
+        self.haven_of_node.mkdir(mode=0o755)
+        (self.haven_driver / "qcom_wdt_hh").symlink_to(
+            self.haven_device,
+            target_is_directory=True,
+        )
+        (self.haven_device / "driver").symlink_to(
+            self.haven_driver,
+            target_is_directory=True,
+        )
+        compatible = self.haven_of_node / "compatible"
+        compatible.write_bytes(b"qcom,hh-watchdog\0")
+        compatible.chmod(0o444)
+        self.haven_disable.write_text("0\n", encoding="ascii")
+        self.haven_disable.chmod(0o600)
+        self.haven_kmsg.write_bytes(b"")
+        self.haven_kmsg.chmod(0o600)
 
     def start_watchdog(self) -> subprocess.Popen:
         process = subprocess.Popen(
@@ -207,6 +237,59 @@ class NativeResponderTest(unittest.TestCase):
             self.watchdog_process.terminate()
             self.watchdog_process.wait(timeout=2)
 
+    def assert_haven_handoff_refused(
+        self,
+        *,
+        haven_mode: str | None = None,
+    ) -> str:
+        process, master = self.start(
+            execute="return",
+            haven_mode=haven_mode,
+        )
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        claimed = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(claimed.result, "CLAIMED")
+
+        failure = self.state / "failure"
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not failure.exists():
+            time.sleep(0.01)
+        self.assertEqual(
+            failure.read_text(encoding="ascii"),
+            "error=HAVEN_WDOG_FAILED\n",
+        )
+        status = self.status(master, session, 20)
+        self.assertEqual(status.state, "EXEC_FAILED")
+        self.assertEqual(status.execution_started, "NO")
+        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.assertFalse((self.state / "execution-started").exists())
+        self.assertFalse((self.state / "test-executed").exists())
+        replay = self.exchange(master, self.commit_payload(session))
+        self.assertEqual(replay.result, "CLAIMED")
+        self.assertEqual(replay.execution_started, "NO")
+        self.stop_responder(process, master)
+        return session
+
+    def assert_stale_haven_error_ignored(self, message: bytes) -> None:
+        self.haven_kmsg.write_bytes(message)
+        process, master = self.start(execute="return")
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        self.assertEqual(
+            self.exchange(master, self.commit_payload(session)).result,
+            "CLAIMED",
+        )
+        deadline = time.monotonic() + 2
+        while (
+            time.monotonic() < deadline
+            and not (self.state / "execution-started").exists()
+        ):
+            time.sleep(0.01)
+        self.assertTrue((self.state / "execution-started").is_file())
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
+        self.stop_responder(process, master)
+
     def tearDown(self):
         for process in self.processes:
             if process.poll() is None:
@@ -248,6 +331,7 @@ class NativeResponderTest(unittest.TestCase):
         ncm_partial_at: int | None = None,
         ncm_progress_live: bool = False,
         responder_mode: str | None = None,
+        haven_mode: str | None = None,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -270,8 +354,12 @@ class NativeResponderTest(unittest.TestCase):
                 "ROG5_TEST_REPLY_DELAY_MS": str(reply_delay_ms),
                 "ROG5_TEST_IO_TIMEOUT_MS": str(io_timeout_ms),
                 "ROG5_TEST_EXEC_DELAY_MS": str(execute_delay_ms),
+                "ROG5_TEST_HAVEN_DRIVER_DIR": str(self.haven_driver),
+                "ROG5_TEST_HAVEN_KMSG": str(self.haven_kmsg),
             }
         )
+        if haven_mode is not None:
+            environment["ROG5_TEST_HAVEN_MODE"] = haven_mode
         if crash is not None:
             environment["ROG5_TEST_CRASH"] = crash
         if write_chunk:
@@ -2589,6 +2677,202 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(status.last_error, "EXEC_FAILED")
         self.stop_responder(process, master)
 
+    def test_missing_haven_watchdog_blocks_execution_before_marker(self):
+        (self.haven_driver / "qcom_wdt_hh").unlink()
+        session = self.assert_haven_handoff_refused()
+        self.assertEqual(
+            self.haven_disable.read_text(encoding="ascii"),
+            "0\n",
+        )
+
+        restarted, restarted_master = self.start(execute="return")
+        status = self.status(restarted_master, session, 21)
+        self.assertEqual(status.state, "EXEC_FAILED")
+        self.assertEqual(status.execution_started, "NO")
+        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.assertFalse((self.state / "test-executed").exists())
+        self.stop_responder(restarted, restarted_master)
+
+    def test_multiple_haven_watchdog_candidates_fail_closed(self):
+        (self.haven_driver / "duplicate_hh_wdt").symlink_to(
+            self.haven_device,
+            target_is_directory=True,
+        )
+        self.assert_haven_handoff_refused()
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_wrong_haven_driver_identity_fails_closed(self):
+        wrong_driver = self.root / "sys/bus/platform/drivers/wrong-watchdog"
+        wrong_driver.mkdir(mode=0o755)
+        (self.haven_device / "driver").unlink()
+        (self.haven_device / "driver").symlink_to(
+            wrong_driver,
+            target_is_directory=True,
+        )
+        self.assert_haven_handoff_refused()
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_wrong_or_extended_haven_compatible_fails_closed(self):
+        compatible = self.haven_of_node / "compatible"
+        compatible.chmod(0o644)
+        compatible.write_bytes(b"qcom,hh-watchdog\0qcom,other\0")
+        compatible.chmod(0o444)
+        self.assert_haven_handoff_refused()
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_unsafe_haven_disable_symlink_fails_closed(self):
+        alternate = self.root / "alternate-disable"
+        alternate.write_text("0\n", encoding="ascii")
+        alternate.chmod(0o600)
+        self.haven_disable.unlink()
+        self.haven_disable.symlink_to(alternate)
+        self.assert_haven_handoff_refused()
+        self.assertEqual(alternate.read_text(encoding="ascii"), "0\n")
+
+    def test_already_disabled_haven_watchdog_fails_closed(self):
+        self.haven_disable.write_text("1\n", encoding="ascii")
+        self.assert_haven_handoff_refused()
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
+
+    def test_short_haven_write_is_not_retried(self):
+        self.assert_haven_handoff_refused(haven_mode="short_write")
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
+
+    def test_haven_readback_failure_blocks_execution(self):
+        self.assert_haven_handoff_refused(haven_mode="wrong_readback")
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_new_secure_watchdog_error_blocks_execution(self):
+        self.assert_haven_handoff_refused(haven_mode="secure_error")
+        self.assertIn(
+            b"Failed to deactivate secure wdog",
+            self.haven_kmsg.read_bytes(),
+        )
+
+    def test_new_hypervisor_watchdog_error_blocks_execution(self):
+        self.assert_haven_handoff_refused(haven_mode="hypervisor_error")
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
+        self.assertIn(
+            b"failed disabling VDOG",
+            self.haven_kmsg.read_bytes(),
+        )
+
+    def test_stale_secure_watchdog_error_precedes_boundary(self):
+        self.assert_stale_haven_error_ignored(
+            b"6,1,1,-;Failed to deactivate secure wdog, ret = -1\n"
+        )
+
+    def test_stale_hypervisor_watchdog_error_precedes_boundary(self):
+        self.assert_stale_haven_error_ignored(
+            b"3,1,1,-;failed disabling VDOG, hret = 10 ret = -12\n"
+        )
+
+    def test_haven_device_disappearance_after_write_fails_closed(self):
+        self.assert_haven_handoff_refused(haven_mode="device_disappears")
+        self.assertFalse((self.haven_driver / "qcom_wdt_hh").exists())
+
+    def test_unsafe_haven_kernel_log_fails_before_write(self):
+        self.haven_kmsg.chmod(0o644)
+        self.assert_haven_handoff_refused()
+        self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_haven_refusal_unloads_prepared_fixed_image(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "haven-refusal-unload"
+        )
+        process, master = self.start(
+            execute="fixed_path",
+            verifier_path=verifier,
+            kexec_path=loader,
+            haven_mode="secure_error",
+        )
+        session = self.hello(master)
+        self.assertEqual(self.prepare(master, session).result, "PREPARED")
+        self.assertTrue((marker.parent / "loaded-state").is_file())
+        self.assertEqual(
+            self.exchange(master, self.commit_payload(session)).result,
+            "CLAIMED",
+        )
+        deadline = time.monotonic() + 2
+        while (
+            time.monotonic() < deadline
+            and (marker.parent / "loaded-state").exists()
+        ):
+            time.sleep(0.01)
+        self.assertFalse((marker.parent / "loaded-state").exists())
+        self.assertFalse((marker.parent / "executor-marker").exists())
+        self.assertGreaterEqual(
+            len(
+                (marker.parent / "unload-marker")
+                .read_text(encoding="ascii")
+                .splitlines()
+            ),
+            1,
+        )
+        status = self.status(master, session, 20)
+        self.assertEqual(status.state, "EXEC_FAILED")
+        self.assertEqual(status.execution_started, "NO")
+        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.stop_responder(process, master)
+
+    def test_haven_failure_publication_crashes_remain_one_use(self):
+        (self.haven_driver / "qcom_wdt_hh").unlink()
+        stages = {
+            "before_write": False,
+            "after_write": False,
+            "after_file_fsync": False,
+            "after_link": True,
+            "after_unlink": True,
+            "after_dir_fsync": True,
+        }
+        for stage, published in stages.items():
+            with self.subTest(stage=stage):
+                self.state = self.root / f"haven-failure-state-{stage}"
+                self.state.mkdir(mode=0o700)
+                process, master = self.start(
+                    execute="return",
+                    persist_crash=f"failure:{stage}",
+                )
+                session = self.hello(master)
+                self.assertEqual(
+                    self.prepare(master, session).result,
+                    "PREPARED",
+                )
+                self.assertEqual(
+                    self.exchange(
+                        master,
+                        self.commit_payload(session),
+                    ).result,
+                    "CLAIMED",
+                )
+                self.wait_exit(process)
+                self.assertFalse(
+                    (self.state / "execution-started").exists()
+                )
+                self.assertFalse((self.state / "test-executed").exists())
+
+                restarted, restarted_master = self.start(execute="return")
+                status = self.status(restarted_master, session, 20)
+                self.assertEqual(
+                    status.state,
+                    "EXEC_FAILED" if published else "CLAIMED",
+                )
+                self.assertEqual(status.execution_started, "NO")
+                self.assertEqual(
+                    status.last_error,
+                    "HAVEN_WDOG_FAILED" if published else "NONE",
+                )
+                replay = self.exchange(
+                    restarted_master,
+                    self.commit_payload(session),
+                )
+                self.assertEqual(replay.result, "CLAIMED")
+                self.assertEqual(replay.execution_started, "NO")
+                self.assertFalse((self.state / "test-executed").exists())
+                self.stop_responder(restarted, restarted_master)
+                os.close(master)
+                self.descriptors.remove(master)
+
     def test_watchdog_death_during_fixed_executor_reaps_and_reconciles(self):
         verifier, loader, marker = self.make_prepare_pipeline(
             "fixed-executor-watchdog",
@@ -2992,6 +3276,8 @@ class NativeResponderTest(unittest.TestCase):
         }
         for stage, published in stages.items():
             with self.subTest(stage=stage):
+                # Each subtest models a fresh recovery-kernel boot.
+                self.haven_disable.write_text("0\n", encoding="ascii")
                 self.state = self.root / f"failure-state-{stage}"
                 self.state.mkdir(mode=0o700)
                 process, master = self.start(
@@ -3047,6 +3333,8 @@ class NativeResponderTest(unittest.TestCase):
         }
         for stage, published in stages.items():
             with self.subTest(stage=stage):
+                # Each subtest models a fresh recovery-kernel boot.
+                self.haven_disable.write_text("0\n", encoding="ascii")
                 self.state = self.root / f"execute-state-{stage}"
                 self.state.mkdir(mode=0o700)
                 process, master = self.start(
@@ -3559,6 +3847,19 @@ class NativeResponderTest(unittest.TestCase):
         )
         self.assertIn("/usr/sbin/kexec", production_strings)
         self.assertIn(
+            "/sys/bus/platform/drivers/hh-watchdog",
+            production_strings,
+        )
+        self.assertIn("/dev/kmsg", production_strings)
+        self.assertIn("qcom,hh-watchdog", production_strings)
+        self.assertIn(
+            "Failed to deactivate secure wdog",
+            production_strings,
+        )
+        self.assertIn("failed disabling VDOG", production_strings)
+        self.assertIn("major(metadata.st_rdev) == 1", source)
+        self.assertIn("minor(metadata.st_rdev) == 11", source)
+        self.assertIn(
             "/usr/libexec/rog5-bundle-fetch",
             production_strings,
         )
@@ -3582,6 +3883,14 @@ class NativeResponderTest(unittest.TestCase):
         self.assertIn("OBSERVATION_ONLY", production_strings)
         self.assertNotIn("ROG5_TEST_", production_strings)
         self.assertNotIn("test-executed", production_strings)
+        handoff = source.split(
+            "static bool deactivate_haven_watchdog(void)",
+            maxsplit=1,
+        )[1].split("static void wait_with_watchdog", maxsplit=1)[0]
+        self.assertEqual(
+            handoff.count('written = write(disable, "1\\n", write_length);'),
+            1,
+        )
         refused = subprocess.run(
             [str(self.production), "--mode", "invalid"],
             text=True,

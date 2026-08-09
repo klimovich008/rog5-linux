@@ -653,6 +653,29 @@ class CandidateIntegrationTest(unittest.TestCase):
         postmortem_snapshot = runtime / "postmortem.snapshot"
         postmortem_snapshot.write_bytes(b"")
         postmortem_snapshot.chmod(0o600)
+        haven_driver = runtime / "sys/bus/platform/drivers/hh-watchdog"
+        haven_device = runtime / "sys/devices/platform/qcom_wdt_hh"
+        haven_of_node = haven_device / "of_node"
+        haven_driver.mkdir(parents=True, mode=0o755)
+        haven_device.mkdir(parents=True, mode=0o755)
+        haven_of_node.mkdir(mode=0o755)
+        (haven_driver / "qcom_wdt_hh").symlink_to(
+            haven_device,
+            target_is_directory=True,
+        )
+        (haven_device / "driver").symlink_to(
+            haven_driver,
+            target_is_directory=True,
+        )
+        compatible = haven_of_node / "compatible"
+        compatible.write_bytes(b"qcom,hh-watchdog\0")
+        compatible.chmod(0o444)
+        haven_disable = haven_device / "disable"
+        haven_disable.write_text("0\n", encoding="ascii")
+        haven_disable.chmod(0o600)
+        haven_kmsg = runtime / "kmsg"
+        haven_kmsg.write_bytes(b"")
+        haven_kmsg.chmod(0o600)
         master, slave = pty.openpty()
         self.descriptors.append(master)
         device = Path(os.ttyname(slave))
@@ -671,6 +694,8 @@ class CandidateIntegrationTest(unittest.TestCase):
                 "ROG5_TEST_FETCHER_PATH": str(fetch_wrapper),
                 "ROG5_TEST_VERIFIER_PATH": str(verify_wrapper),
                 "ROG5_TEST_KEXEC_PATH": str(kexec_wrapper),
+                "ROG5_TEST_HAVEN_DRIVER_DIR": str(haven_driver),
+                "ROG5_TEST_HAVEN_KMSG": str(haven_kmsg),
             }
         )
         process = subprocess.Popen(

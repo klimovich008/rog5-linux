@@ -141,6 +141,7 @@ LAST_ERRORS = {
     "FETCH_EXEC",
     "BUNDLE_ID_CONFLICT",
     "VERIFY_FAILED",
+    "HAVEN_WDOG_FAILED",
     "EXEC_FAILED",
     "EXEC_RETURNED",
     "LEDGER_FULL",
@@ -549,6 +550,14 @@ def encode_response(response: Response) -> bytes:
         or (
             response.state == "EXEC_FAILED"
             and response.execution_started != "YES"
+            and response.last_error != "HAVEN_WDOG_FAILED"
+        )
+        or (
+            response.last_error == "HAVEN_WDOG_FAILED"
+            and (
+                response.state != "EXEC_FAILED"
+                or response.execution_started != "NO"
+            )
         )
     ):
         raise ProtocolViolation("BAD_RESPONSE")
@@ -897,8 +906,13 @@ class RecoveryState:
         if (
             self.phase == "EXEC_FAILED"
             and not self.execution_started
+            and self.last_error != "HAVEN_WDOG_FAILED"
         ):
             raise ValueError("terminal state lacks execution marker")
+        if self.last_error == "HAVEN_WDOG_FAILED" and (
+            self.phase != "EXEC_FAILED" or self.execution_started
+        ):
+            raise ValueError("invalid Haven watchdog failure state")
         if not isinstance(self.ledger, OrderedDict):
             raise ValueError("invalid recovery ledger")
         for request, entry in self.ledger.items():
@@ -1231,6 +1245,7 @@ class RecoveryModel:
         self,
         executor: Callable[[], object],
         *,
+        haven_handoff: Callable[[], bool],
         inject: str | None = None,
     ) -> str:
         if (
@@ -1238,6 +1253,10 @@ class RecoveryModel:
             or self.state.claim_owner != self.owner
             or self.state.execution_started
         ):
+            return self.state.phase
+        if not haven_handoff():
+            self.state.phase = "EXEC_FAILED"
+            self.state.last_error = "HAVEN_WDOG_FAILED"
             return self.state.phase
         self.state.execution_started = True
         self.state.execute_calls += 1
