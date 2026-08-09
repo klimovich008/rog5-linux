@@ -13,7 +13,9 @@ candidate_verifier=$repo/scripts/device/verify-mainline-network-root-dual-cell-r
 builder=$repo/scripts/host/build-network-root-dual-cell-readonly-candidate-offline.sh
 source_root=$repo/build/linux-stable-v7.1.4-source
 work=$(mktemp -d)
+build_root=$repo/build
 lock_probe=$repo/build/.dual-cell-release-lock-test-$$
+created_build_root=0
 cleanup() {
 	find "$work" -depth -delete
 	if [[ -e $lock_probe || -L $lock_probe ]]; then
@@ -21,6 +23,9 @@ cleanup() {
 	fi
 	if [[ -e $lock_probe.lock || -L $lock_probe.lock ]]; then
 		find "$lock_probe.lock" -depth -delete
+	fi
+	if ((created_build_root)); then
+		rmdir -- "$build_root" 2>/dev/null || true
 	fi
 }
 trap cleanup EXIT HUP INT TERM
@@ -110,6 +115,12 @@ if grep -Eq '\b(fastboot|adb|sudo|pkexec)\b|/dev/(sd|nvme|ufs)|git (push|fetch)|
 	fail 'dual-cell release path contains phone, privilege, credential, or publication transport'
 fi
 
+if [[ ! -e $build_root && ! -L $build_root ]]; then
+	mkdir -- "$build_root"
+	created_build_root=1
+elif [[ ! -d $build_root || -L $build_root ]]; then
+	fail 'repository build root is not a safe directory'
+fi
 mkdir -- "$lock_probe.lock"
 if "$builder" "$work/missing-source" "$lock_probe" \
 	>"$work/lock.out" 2>"$work/lock.err"; then
