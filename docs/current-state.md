@@ -139,14 +139,17 @@ Implementation commit `eeb157b` is published with green exact-head GitHub
 Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
 closes the host-only publication gate; policy still contains no successor
 `allow` row. A distinct current write-side candidate
-`headless-netroot-early-diag-v2` now binds the single-attempt reporter
-`0b5d318e…7bc1` to a 6,011,687-byte initramfs `71537ca0…c58e`, accepted Image,
-corrected DTB, and sealed Arch root. The prior disposable-key signed tuple is
-retained only as superseded offline composition evidence; it is not the
-current candidate and confers no authority. This current state proves source
-and initramfs composition only:
-the v2 profile is offline-only, central policy remains empty, no production
-credential or phone was used, and production-bound issuance remains HOLD.
+`headless-netroot-early-diag-v2` now binds the host-port-classifying reporter
+`26249252…bafa` to the bounded 6,013,458-byte v3 initramfs
+`94edd625…cffc`, accepted Image, corrected DTB, and sealed Arch root. The
+wire-visible bundle identity remains v2 so target lineage and the fixed
+collector/control vocabulary do not change; the canonical candidate record
+is `41c23330…b9cf` and its unsigned runtime-manifest body is
+`54f53420…6efc`. The prior disposable-key signed tuple and v2 component row
+remain immutable superseded evidence. This current state proves
+authority-free source, initramfs, and runtime-bundle composition only: central
+policy remains empty, no production credential or phone was used, and
+production-bound issuance remains **HOLD**.
 Generation 12 is consumed and must never be retried; it is not pending live
 admission. Any future one-shot generation must be a new exact record consumed
 through the generic repository-owned claim consumer after exact-head CI. The

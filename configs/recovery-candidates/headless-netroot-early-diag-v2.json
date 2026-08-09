@@ -27,9 +27,9 @@
       "sha256": "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
     },
     "initramfs.cpio.gz": {
-      "path": "artifacts/early-target-diagnostic-v2/rog5-early-target-diagnostic-initramfs.cpio.gz",
-      "size": 6011687,
-      "sha256": "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
+      "path": "artifacts/early-target-diagnostic-v3/rog5-early-target-diagnostic-initramfs.cpio.gz",
+      "size": 6013458,
+      "sha256": "94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc"
     }
   }
 }

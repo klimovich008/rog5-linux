@@ -116,6 +116,7 @@ python3 - "$fixture_gate" \
 	"242ac7fc4b7d7614cf5fe8a26162255c898de2f2aeef9cf70687d0d327c149e7=$control_sha" \
 	"77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800=$fetcher_sha" \
 	"5f3a47bb7cc9294fedfda8b9a81d6f57bb06fd7bc2a202475a1c5cc21144a6e0=$verifier_sha" \
+	"2fb99ba07676d696fd3182da6bf62bd572b032b9e4bb90bff4b0d2a24544e156=54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc" \
 	"a1d19575dd21b6da3fd3cbb6c0f4ea33e312cc59ddc860889f1f54ef976e7b49=$fixture_avb_digest" <<'PY'
 from pathlib import Path
 import sys
@@ -156,7 +157,7 @@ BUNDLE_ROOT="$output_root/bundle-a" \
 BUNDLE=headless-netroot-early-diag-v2 \
 RECOVERY_SHA256="$image_sha" \
 TRUST_KEY_SHA256="$trust_sha" \
-MANIFEST_SHA256=2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7 \
+MANIFEST_SHA256=54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc \
 HOST_VERIFIER_SHA256="$host_verifier_sha" \
 	"$fixture_gate" artifact-preflight >"$test_root/artifact-preflight.out"
 grep -Fxq \

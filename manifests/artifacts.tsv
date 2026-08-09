@@ -1,5 +1,5 @@
 name	size	sha256	role	tracked
-configs/recovery-candidates/headless-netroot-early-diag-v2.json	1411	f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157	tracked single-attempt stage-75 v2 candidate contract; current write-side diagnostic identity	yes
+configs/recovery-candidates/headless-netroot-early-diag-v2.json	1411	41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf	tracked single-attempt stage-75 v2 candidate contract using the bounded host-rendezvous v3 initramfs; current write-side diagnostic identity	yes
 artifacts/early-target-diagnostic-v3/rog5-early-target-diag	67288	26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa	reproducible AArch64 host-port-classifying reporter; offline component only, no candidate or boot authority	no
 artifacts/early-target-diagnostic-v3/rog5-early-target-diagnostic-initramfs.cpio.gz	6013458	94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc	reproducible bounded host-rendezvous diagnostic initramfs; offline component only, not a candidate	no
 artifacts/early-target-diagnostic-v3/early-target-diagnostic-initramfs-rebuild.txt	992	07417f71f00be35fa17c4fced056c414a0c759dacd33bdfc3c73264dda83fa4a	qualified rootless AArch64 twin-build provenance for the v3 offline component	no

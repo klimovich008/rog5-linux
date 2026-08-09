@@ -410,7 +410,7 @@ for token in \
 	'consumed recovery guard changed by fixture rewrite' \
 	'fixture image collides with a consumed recovery guard' \
 	'fixture image is not the unique stage-75 v2 allowlist pin' \
-	'2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7' \
+	'54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc' \
 	'833899cb067a28d57e41c5a8291c7f5099c4f7fcc11316c2976d04a7b926e7de' \
 	'artifact-preflight' \
 	'full disposable-key diagnostic wrapper, twin build, native verification, and artifact-preflight fixture' \
@@ -421,7 +421,7 @@ done
 
 for token in \
 	'headless-netroot-early-diag-v2' \
-	'f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157' \
+	'41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf' \
 	'DEPLOYMENT.parse_package' \
 	'DEPLOYMENT.write_candidate' \
 	'candidate and deployment package roots differ' \
