@@ -192,6 +192,17 @@ evidence-only, and suspend, sensors, and audio remain pending. The corrected
 root is still `live-pending` with `authority=none`. See the
 [offline result](../test-results/2026-07-29-core-compatibility-oracle-offline.md).
 
+The first sensor now has a separate test-first port boundary. The
+[VCNL36866 source/port contract](vcnl36866-als-proximity.md) pins the exact
+ASUS 5.4 EVB-to-MP5 inheritance, QUPv3 SE0 `0x980000` controller, I2C address
+`0x60`, GPIO89 active-low IRQ, PM8350C L7 3.3 V rail, two-byte little-endian
+register transport, ID `0xf6`/`0x62`, and ALS/proximity data registers
+`0xf1`/`0xf4`. It also proves accepted Linux 7.1.4 has no VCNL36866 driver or
+binding and defines the future read-only IIO candidate/runtime requirements.
+Seventeen hostile and retained-source cases pass. This is `port-required`
+evidence only: no driver, overlay, kernel candidate, phone boot, or hardware
+result exists.
+
 The future `battery-charging` capability now has a hardware-free sustained
 observation gate. A read-only target collector emits one canonical
 candidate/boot/source-bound phase record with 21 samples at 30-second

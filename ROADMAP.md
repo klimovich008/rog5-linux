@@ -367,6 +367,11 @@ or losing remote reachability.
 - [ ] Verify wake behavior and idle-power impact separately under the H3
   suspend gate.
 - [ ] Verify touchscreen input independently of the desktop.
+- [x] Freeze the exact ASUS 5.4 VCNL36866 ambient-light/proximity board and
+  wire-protocol oracle, prove the device is inherited unchanged through the
+  EVB-to-MP5 overlay chain, and classify accepted Linux 7.1.4 as
+  `port-required`. The future driver/DT/runtime boundary is hostile-tested;
+  no driver has been implemented or run on hardware yet.
 - [ ] Bring up IMU, compass, ambient-light, and proximity sensors one at a
   time.
 - [ ] Add calibration controls only where physical measurements require them.

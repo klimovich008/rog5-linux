@@ -97,6 +97,15 @@ and newer-kernel rebases remain frozen until the headless core passes.
   pairs, bounded IRQ deltas, power/volume-up wake policy, resin non-wake
   policy, and unchanged USB/NFS/storage/kernel state. Its hostile fixture
   suite is hardware-free; no physical key has yet passed on the phone.
+- The first H4 sensor source oracle is now exact. The retained ASUS 5.4
+  ZS673KS chain inherits one Capella VCNL36866 on QUPv3 SE0/I2C `0x980000`,
+  address `0x60`, GPIO89 active-low IRQ, and PM8350C L7 at 3.3 V through MP5.
+  Its 8-bit-register/little-endian-16-bit protocol identifies register
+  `0xf6` as chip ID `0x62`, with raw ALS/proximity at `0xf1`/`0xf4`.
+  Accepted Linux 7.1.4 has no VCNL36866 match or binding and is classified
+  `port-required`; VCNL4040 is not treated as compatible. The future
+  read-only IIO contract is hostile-tested, but no driver, DT candidate,
+  kernel build, phone boot, or hardware acceptance exists yet.
 
 These facts do not prove the corrected candidate on the phone.
 
@@ -1066,7 +1075,9 @@ If the core runtime passes, continue in this order:
    and charger-state comparison;
 3. CPU cooling, PMIC alarm registration, and bounded thermal fallback;
 4. panel-off operation, suspend/wake, SSH continuity, and idle power;
-5. sensors, then audio, then WCN6855 enumeration and Wi-Fi client mode.
+5. implement and build the VCNL36866 ALS/proximity port under its frozen
+   contract, then inventory IMU/compass, then audio, WCN6855 enumeration, and
+   Wi-Fi client mode.
 
 See [ROADMAP.md](../ROADMAP.md) for completion gates and
 [port-status.md](port-status.md) for subsystem evidence.

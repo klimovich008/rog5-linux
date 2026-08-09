@@ -70,6 +70,16 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   state write, irreversible same-boot consumption, restoration to
   `pm_test=none`, and exact post-return UDC/interface/carrier/address/route
   classifications. This gate neither performs nor authorizes real suspend.
+- The VCNL36866 port contract hash-pins 16 retained ASUS 5.4 source/overlay
+  files, verifies the complete EVB-to-MP5 include chain and exact controller,
+  address, IRQ, rail, register width/endianness, chip-ID, and raw-data facts,
+  and proves accepted Linux 7.1.4 is still `port-required`. Its synthetic
+  future-candidate and runtime records reject partial driver/binding/DT
+  integration, vendor-compatible reuse, writable data files, control
+  surfaces, wrong topology, out-of-range values, storage access, and any
+  authority. The first candidate must power-cycle its 3.3 V rail through
+  runtime PM and deliberately defers IRQ/event support. This is the
+  test-before-port gate and grants no hardware claim.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules,
   firmware, locked accounts, key-only SSH, NetworkManager ownership,
