@@ -207,6 +207,13 @@ argument to twin-build the current verifier, sealed early-target reporter, and
 diagnostic archive. Both modes are rootless, network-disabled, no-replace, and
 publish only after exact byte acceptance.
 
+The current diagnostic-only v3 component pins reporter
+`26249252916c…bafa` (67,288 bytes) and initramfs
+`94edd6254403…cffc` (6,013,458 bytes). It repairs host-port terminal reporting
+and includes the bounded readiness rendezvous. It has no candidate contract,
+signature, recovery wrapper, policy row, or phone boot authority; v1/v2 rows
+remain immutable historical evidence.
+
 For the ASUS 5.4 stable wrapper, verify all 79,030 source entries and then
 materialize the accepted rootless source volume:
 

@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1' \
+	'reviewed_reporter_hash=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
@@ -672,6 +672,21 @@ run_host_rendezvous_case() (
 	host_port_probe_interval=0.25
 	host_port_timeout_floor_ms=900
 	watchdog_pid=4242
+	watchdog_run=$case_root/run
+	mkdir -p "$watchdog_run"
+	printf '%s\n' "$watchdog_pid" \
+		>"$watchdog_run/rog5-network-root-watchdog.pid"
+	printf '%s\n' \
+		'format=rog5-network-root-watchdog-v1' \
+		"pid=$watchdog_pid" \
+		'start_time_ticks=777' \
+		'deadline_boottime=600' \
+		>"$watchdog_run/rog5-network-root-watchdog.lease"
+	watchdog_state_before=$(
+		sha256sum \
+			"$watchdog_run/rog5-network-root-watchdog.pid" \
+			"$watchdog_run/rog5-network-root-watchdog.lease"
+	)
 	probe_calls=0
 	probe_clock_file=$case_root/probe-clock
 	printf '%s\n' 1000 >"$probe_clock_file"
@@ -790,6 +805,14 @@ run_host_rendezvous_case() (
 	}
 	[ "$watchdog_pid" -eq 4242 ] || {
 		echo "FAIL rendezvous case $case_name changed the armed watchdog" >&2
+		exit 1
+	}
+	[ "$(
+		sha256sum \
+			"$watchdog_run/rog5-network-root-watchdog.pid" \
+			"$watchdog_run/rog5-network-root-watchdog.lease"
+	)" = "$watchdog_state_before" ] || {
+		echo "FAIL rendezvous case $case_name changed watchdog attestation" >&2
 		exit 1
 	}
 )
@@ -1374,5 +1397,59 @@ deadline=$(lease_value deadline_boottime_seconds)
 case $armed:$deadline in
 	*[!0-9:]*|:*) exit 1 ;;
 esac
+
+live_watchdog_state=$(
+	sha256sum "$pid_file" "$lease_file"
+)
+live_watchdog_pid=$watchdog_pid
+live_timer_pid=$timer_pid
+live_watchdog_start=$(process_start_time_ticks "$live_watchdog_pid")
+live_timer_start=$(process_start_time_ticks "$live_timer_pid")
+
+live_case=$work/live-watchdog-rendezvous
+udc_class_dir=$live_case/sys/class/udc
+expected_udc=a600000.dwc3
+net_class_dir=$live_case/sys/class/net
+gadget=$live_case/gadget
+host_port_probe_output=$live_case/probe-output
+mkdir -p "$udc_class_dir/$expected_udc" \
+	"$net_class_dir/usb0" "$gadget"
+printf '%s\n' "$expected_udc" >"$gadget/UDC"
+printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
+diagnostic_fault=none
+host_port_probe_attempts=1
+host_port_probe_timeout=1
+host_port_timeout_floor_ms=900
+# shellcheck disable=SC1090
+. "$network_functions"
+ip() {
+	case "$*" in
+		'-4 address show dev usb0')
+			echo 'inet 169.254.77.2/30 scope global usb0'
+			;;
+		'-4 route get 169.254.77.1')
+			echo '169.254.77.1 dev usb0 src 169.254.77.2'
+			;;
+		*) return 1 ;;
+	esac
+}
+network_monotonic_ms() {
+	echo 1000
+}
+probe_host_tcp_accept() {
+	return 1
+}
+if wait_for_host_tcp_accept; then
+	echo 'FAIL hostile live-watchdog rendezvous unexpectedly passed' >&2
+	exit 1
+fi
+[ "$diagnostic_fault" = host-port-unreachable ]
+kill -0 "$live_watchdog_pid" "$live_timer_pid"
+[ "$(process_start_time_ticks "$live_watchdog_pid")" = \
+	"$live_watchdog_start" ]
+[ "$(process_start_time_ticks "$live_timer_pid")" = "$live_timer_start" ]
+[ "$(sha256sum "$pid_file" "$lease_file")" = "$live_watchdog_state" ]
+kill "$live_timer_pid" "$live_watchdog_pid" 2>/dev/null || true
+wait "$live_watchdog_pid" 2>/dev/null || true
 
 echo 'PASS network-root init keeps UFS absent, retains an exitrd, tears down overlay backing mounts, and preserves rollback'

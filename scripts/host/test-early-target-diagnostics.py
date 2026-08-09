@@ -24,6 +24,13 @@ SPEC.loader.exec_module(MODULE)
 
 CANDIDATE = "headless-netroot-early-diag-v1"
 BOOT = "12345678-1234-4abc-8def-1234567890ab"
+HOST_PORT_FAULTS = frozenset(
+    {
+        "host-port-probe-failed",
+        "host-port-unreachable",
+        "host-port-timeout",
+    }
+)
 
 
 def record(
@@ -301,6 +308,19 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
                 self.assertEqual(result.stdout, MODULE.frame_for(item))
                 stream = MODULE.DiagnosticStream(CANDIDATE)
                 self.assertEqual(stream.feed(result.stdout), [item])
+
+    def test_rendezvous_faults_reach_the_native_reporter(self):
+        for reason in sorted(HOST_PORT_FAULTS):
+            with self.subTest(reason=reason):
+                self.assertIn(reason, MODULE.FAULTS)
+                item = record(
+                    stage_code=200,
+                    last_good_code=60,
+                    fault=reason,
+                )
+                result = self.emit(item)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, MODULE.frame_for(item))
 
     def test_native_emitter_rejects_identity_and_state_mutations(self):
         canonical = record()

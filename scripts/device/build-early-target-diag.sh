@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-early-target-diag.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=20956
-expected_source_sha256=d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a
+expected_source_size=21031
+expected_source_sha256=93d09cca8ad8dc573b1aa25c2fba5cc027d1ba901adb6c9e2643f97287387f9a
 expected_output_size=67288
-expected_output_sha256=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1
+expected_output_sha256=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa
 
 fail() {
 	echo "FAIL $*" >&2
@@ -81,6 +81,7 @@ for marker in \
 		'rog5-early-target-diag-v1' \
 		'nfs-mount-returned' \
 		'route-failed' \
+		'host-port-timeout' \
 		'watchdog-pretimeout' \
 	'cannot require diagnostic peer credentials'; do
 	strings "$temporary" | grep -Fqx "$marker" ||

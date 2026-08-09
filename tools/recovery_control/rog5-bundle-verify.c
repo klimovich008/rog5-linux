@@ -1018,6 +1018,27 @@ static bool string_list_contains(const unsigned char *data, size_t length,
 	return found;
 }
 
+static bool fdt_string_equals(const unsigned char *data, size_t length,
+			      const char *expected)
+{
+	return length == strlen(expected) + 1 &&
+		memcmp(data, expected, length) == 0;
+}
+
+static bool fdt_cells_equal(const unsigned char *data, size_t length,
+			    const uint32_t *expected, size_t count)
+{
+	size_t index;
+
+	if (length != count * sizeof(uint32_t))
+		return false;
+	for (index = 0; index < count; index++) {
+		if (read_be32(data + index * sizeof(uint32_t)) != expected[index])
+			return false;
+	}
+	return true;
+}
+
 static void add_fdt_ranges(const unsigned char *data, size_t length,
 			   unsigned int address_cells,
 			   unsigned int size_cells,
@@ -1052,7 +1073,12 @@ static void add_fdt_ranges(const unsigned char *data, size_t length,
 
 static void verify_fdt(const unsigned char *blob, size_t length)
 {
+	static const uint32_t soc_ranges[] = { 0, 0, 0, 0, 0x10, 0 };
+	static const uint32_t qup_reg[] = { 0, 0x9c0000, 0, 0x6000 };
+	static const uint32_t uart_reg[] = { 0, 0x98c000, 0, 0x4000 };
+	static const uint32_t two_cells[] = { 2 };
 	struct fdt_range ranges[FDT_RANGES_MAX];
+	const char *nodes[FDT_DEPTH_MAX] = { 0 };
 	size_t range_count = 0;
 	uint32_t total;
 	uint32_t struct_offset;
@@ -1083,6 +1109,54 @@ static void verify_fdt(const unsigned char *blob, size_t length)
 	bool child_reg_seen = false;
 	bool root_seen = false;
 	bool ended = false;
+	bool seen_stdout_path = false;
+	bool valid_stdout_path = false;
+	bool seen_serial_alias = false;
+	bool valid_serial_alias = false;
+	bool seen_root_address_cells = false;
+	bool valid_root_address_cells = false;
+	bool seen_root_size_cells = false;
+	bool valid_root_size_cells = false;
+	bool seen_soc_compatible = false;
+	bool valid_soc_compatible = false;
+	bool seen_soc_address_cells = false;
+	bool valid_soc_address_cells = false;
+	bool seen_soc_size_cells = false;
+	bool valid_soc_size_cells = false;
+	bool seen_soc_ranges = false;
+	bool valid_soc_ranges = false;
+	bool seen_soc_status = false;
+	bool valid_soc_status = true;
+	bool seen_qup_compatible = false;
+	bool valid_qup_compatible = false;
+	bool seen_qup_reg = false;
+	bool valid_qup_reg = false;
+	bool seen_qup_address_cells = false;
+	bool valid_qup_address_cells = false;
+	bool seen_qup_size_cells = false;
+	bool valid_qup_size_cells = false;
+	bool seen_qup_ranges = false;
+	bool valid_qup_ranges = false;
+	bool seen_qup_status = false;
+	bool valid_qup_status = false;
+	bool seen_uart_compatible = false;
+	bool valid_uart_compatible = false;
+	bool seen_uart_reg = false;
+	bool valid_uart_reg = false;
+	bool seen_uart_status = false;
+	bool valid_uart_status = false;
+	bool seen_uart_pinctrl = false;
+	bool seen_uart_pin_phandle = false;
+	bool seen_uart_rx_pins = false;
+	bool valid_uart_rx_pins = false;
+	bool seen_uart_rx_function = false;
+	bool valid_uart_rx_function = false;
+	bool seen_uart_tx_pins = false;
+	bool valid_uart_tx_pins = false;
+	bool seen_uart_tx_function = false;
+	bool valid_uart_tx_function = false;
+	uint32_t uart_pinctrl_phandle = 0;
+	uint32_t uart_pin_phandle = 0;
 	size_t index;
 
 	if (length < 40 || read_be32(blob) != FDT_MAGIC)
@@ -1142,6 +1216,7 @@ static void verify_fdt(const unsigned char *blob, size_t length)
 					fail("invalid FDT root node");
 				root_seen = true;
 			}
+			nodes[depth] = name;
 			if (reserved_depth != 0 &&
 			    depth == reserved_depth) {
 				if (!seen_address_cells || !seen_size_cells ||
@@ -1173,6 +1248,7 @@ static void verify_fdt(const unsigned char *blob, size_t length)
 					fail("incomplete reserved-memory policy");
 				reserved_depth = 0;
 			}
+			nodes[depth - 1] = NULL;
 			depth--;
 		} else if (token == FDT_PROP) {
 			uint32_t property_length;
@@ -1197,10 +1273,203 @@ static void verify_fdt(const unsigned char *blob, size_t length)
 			name = fdt_string(strings, strings_size, name_offset);
 			if (strcmp(name, "bootargs") == 0)
 				fail("DTB contains forbidden bootargs");
+			if (depth == 2 && strcmp(nodes[1], "chosen") == 0 &&
+			    strcmp(name, "stdout-path") == 0) {
+				if (seen_stdout_path)
+					fail("duplicate latent serial property");
+				seen_stdout_path = true;
+				valid_stdout_path = fdt_string_equals(
+					data, property_length, "serial0:115200n8");
+			} else if (depth == 2 &&
+				   strcmp(nodes[1], "aliases") == 0 &&
+				   strcmp(name, "serial0") == 0) {
+				if (seen_serial_alias)
+					fail("duplicate latent serial property");
+				seen_serial_alias = true;
+				valid_serial_alias = fdt_string_equals(
+					data, property_length,
+					"/soc@0/geniqup@9c0000/serial@98c000");
+			} else if (depth == 2 &&
+				   strcmp(nodes[1], "soc@0") == 0) {
+				if (strcmp(name, "compatible") == 0) {
+					if (seen_soc_compatible)
+						fail("duplicate latent serial property");
+					seen_soc_compatible = true;
+					valid_soc_compatible = fdt_string_equals(
+						data, property_length, "simple-bus");
+				} else if (strcmp(name, "#address-cells") == 0) {
+					if (seen_soc_address_cells)
+						fail("duplicate latent serial property");
+					seen_soc_address_cells = true;
+					valid_soc_address_cells = fdt_cells_equal(
+						data, property_length, two_cells,
+						sizeof(two_cells) /
+						sizeof(two_cells[0]));
+				} else if (strcmp(name, "#size-cells") == 0) {
+					if (seen_soc_size_cells)
+						fail("duplicate latent serial property");
+					seen_soc_size_cells = true;
+					valid_soc_size_cells = fdt_cells_equal(
+						data, property_length, two_cells,
+						sizeof(two_cells) /
+						sizeof(two_cells[0]));
+				} else if (strcmp(name, "ranges") == 0) {
+					if (seen_soc_ranges)
+						fail("duplicate latent serial property");
+					seen_soc_ranges = true;
+					valid_soc_ranges = fdt_cells_equal(
+						data, property_length, soc_ranges,
+						sizeof(soc_ranges) /
+						sizeof(soc_ranges[0]));
+				} else if (strcmp(name, "status") == 0) {
+					if (seen_soc_status)
+						fail("duplicate latent serial property");
+					seen_soc_status = true;
+					valid_soc_status = fdt_string_equals(
+						data, property_length, "okay");
+				}
+			} else if (depth == 3 && strcmp(nodes[1], "soc@0") == 0 &&
+				   strcmp(nodes[2], "geniqup@9c0000") == 0) {
+				if (strcmp(name, "compatible") == 0) {
+					if (seen_qup_compatible)
+						fail("duplicate latent serial property");
+					seen_qup_compatible = true;
+					valid_qup_compatible = fdt_string_equals(
+						data, property_length,
+						"qcom,geni-se-qup");
+				} else if (strcmp(name, "reg") == 0) {
+					if (seen_qup_reg)
+						fail("duplicate latent serial property");
+					seen_qup_reg = true;
+					valid_qup_reg = fdt_cells_equal(
+						data, property_length, qup_reg,
+						sizeof(qup_reg) /
+						sizeof(qup_reg[0]));
+				} else if (strcmp(name, "#address-cells") == 0) {
+					if (seen_qup_address_cells)
+						fail("duplicate latent serial property");
+					seen_qup_address_cells = true;
+					valid_qup_address_cells = fdt_cells_equal(
+						data, property_length, two_cells,
+						sizeof(two_cells) /
+						sizeof(two_cells[0]));
+				} else if (strcmp(name, "#size-cells") == 0) {
+					if (seen_qup_size_cells)
+						fail("duplicate latent serial property");
+					seen_qup_size_cells = true;
+					valid_qup_size_cells = fdt_cells_equal(
+						data, property_length, two_cells,
+						sizeof(two_cells) /
+						sizeof(two_cells[0]));
+				} else if (strcmp(name, "ranges") == 0) {
+					if (seen_qup_ranges)
+						fail("duplicate latent serial property");
+					seen_qup_ranges = true;
+					valid_qup_ranges = property_length == 0;
+				} else if (strcmp(name, "status") == 0) {
+					if (seen_qup_status)
+						fail("duplicate latent serial property");
+					seen_qup_status = true;
+					valid_qup_status = fdt_string_equals(
+						data, property_length, "okay");
+				}
+			} else if (depth == 4 && strcmp(nodes[1], "soc@0") == 0 &&
+				   strcmp(nodes[2], "geniqup@9c0000") == 0 &&
+				   strcmp(nodes[3], "serial@98c000") == 0) {
+				if (strcmp(name, "compatible") == 0) {
+					if (seen_uart_compatible)
+						fail("duplicate latent serial property");
+					seen_uart_compatible = true;
+					valid_uart_compatible = fdt_string_equals(
+						data, property_length,
+						"qcom,geni-debug-uart");
+				} else if (strcmp(name, "reg") == 0) {
+					if (seen_uart_reg)
+						fail("duplicate latent serial property");
+					seen_uart_reg = true;
+					valid_uart_reg = fdt_cells_equal(
+						data, property_length, uart_reg,
+						sizeof(uart_reg) /
+						sizeof(uart_reg[0]));
+				} else if (strcmp(name, "status") == 0) {
+					if (seen_uart_status)
+						fail("duplicate latent serial property");
+					seen_uart_status = true;
+					valid_uart_status = fdt_string_equals(
+						data, property_length, "okay");
+				} else if (strcmp(name, "pinctrl-0") == 0) {
+					if (seen_uart_pinctrl)
+						fail("duplicate latent serial property");
+					seen_uart_pinctrl = true;
+					if (property_length == 4)
+						uart_pinctrl_phandle = read_be32(data);
+				}
+			} else if (depth == 4 && strcmp(nodes[1], "soc@0") == 0 &&
+				   strcmp(nodes[2], "pinctrl@f100000") == 0 &&
+				   strcmp(nodes[3],
+					  "qup-uart3-default-state") == 0 &&
+				   strcmp(name, "phandle") == 0) {
+				if (seen_uart_pin_phandle)
+					fail("duplicate latent serial property");
+				seen_uart_pin_phandle = true;
+				if (property_length == 4)
+					uart_pin_phandle = read_be32(data);
+			} else if (depth == 5 && strcmp(nodes[1], "soc@0") == 0 &&
+				   strcmp(nodes[2], "pinctrl@f100000") == 0 &&
+				   strcmp(nodes[3],
+					  "qup-uart3-default-state") == 0 &&
+				   strcmp(nodes[4], "rx-pins") == 0) {
+				if (strcmp(name, "pins") == 0) {
+					if (seen_uart_rx_pins)
+						fail("duplicate latent serial property");
+					seen_uart_rx_pins = true;
+					valid_uart_rx_pins = fdt_string_equals(
+						data, property_length, "gpio18");
+				} else if (strcmp(name, "function") == 0) {
+					if (seen_uart_rx_function)
+						fail("duplicate latent serial property");
+					seen_uart_rx_function = true;
+					valid_uart_rx_function = fdt_string_equals(
+						data, property_length, "qup3");
+				}
+			} else if (depth == 5 && strcmp(nodes[1], "soc@0") == 0 &&
+				   strcmp(nodes[2], "pinctrl@f100000") == 0 &&
+				   strcmp(nodes[3],
+					  "qup-uart3-default-state") == 0 &&
+				   strcmp(nodes[4], "tx-pins") == 0) {
+				if (strcmp(name, "pins") == 0) {
+					if (seen_uart_tx_pins)
+						fail("duplicate latent serial property");
+					seen_uart_tx_pins = true;
+					valid_uart_tx_pins = fdt_string_equals(
+						data, property_length, "gpio19");
+				} else if (strcmp(name, "function") == 0) {
+					if (seen_uart_tx_function)
+						fail("duplicate latent serial property");
+					seen_uart_tx_function = true;
+					valid_uart_tx_function = fdt_string_equals(
+						data, property_length, "qup3");
+				}
+			}
 			if (depth == reserved_depth &&
 			    reserved_children_started)
 				fail("reserved-memory property follows a child");
-			if (depth == 1 && strcmp(name, "compatible") == 0) {
+			if (depth == 1 && strcmp(name, "#address-cells") == 0) {
+				if (seen_root_address_cells)
+					fail("duplicate latent serial property");
+				seen_root_address_cells = true;
+				valid_root_address_cells = fdt_cells_equal(
+					data, property_length, two_cells,
+					sizeof(two_cells) / sizeof(two_cells[0]));
+			} else if (depth == 1 &&
+				   strcmp(name, "#size-cells") == 0) {
+				if (seen_root_size_cells)
+					fail("duplicate latent serial property");
+				seen_root_size_cells = true;
+				valid_root_size_cells = fdt_cells_equal(
+					data, property_length, two_cells,
+					sizeof(two_cells) / sizeof(two_cells[0]));
+			} else if (depth == 1 && strcmp(name, "compatible") == 0) {
 				if (seen_compatible)
 					fail("duplicate root compatible property");
 				seen_compatible = true;
@@ -1265,6 +1534,32 @@ static void verify_fdt(const unsigned char *blob, size_t length)
 	    !has_reserved_node || !seen_address_cells || !seen_size_cells ||
 	    !seen_ranges || !has_ramoops || range_count == 0)
 		fail("DTB lacks the fixed ROG Phone 5 contract");
+	if (!seen_stdout_path || !valid_stdout_path ||
+	    !seen_serial_alias || !valid_serial_alias ||
+	    !seen_root_address_cells || !valid_root_address_cells ||
+	    !seen_root_size_cells || !valid_root_size_cells ||
+	    !seen_soc_compatible || !valid_soc_compatible ||
+	    !seen_soc_address_cells || !valid_soc_address_cells ||
+	    !seen_soc_size_cells || !valid_soc_size_cells ||
+	    !seen_soc_ranges || !valid_soc_ranges ||
+	    !valid_soc_status ||
+	    !seen_qup_compatible || !valid_qup_compatible ||
+	    !seen_qup_reg || !valid_qup_reg ||
+	    !seen_qup_address_cells || !valid_qup_address_cells ||
+	    !seen_qup_size_cells || !valid_qup_size_cells ||
+	    !seen_qup_ranges || !valid_qup_ranges ||
+	    !seen_qup_status || !valid_qup_status ||
+	    !seen_uart_compatible || !valid_uart_compatible ||
+	    !seen_uart_reg || !valid_uart_reg ||
+	    !seen_uart_status || !valid_uart_status ||
+	    !seen_uart_pinctrl || uart_pinctrl_phandle == 0 ||
+	    !seen_uart_pin_phandle || uart_pin_phandle == 0 ||
+	    uart_pinctrl_phandle != uart_pin_phandle ||
+	    !seen_uart_rx_pins || !valid_uart_rx_pins ||
+	    !seen_uart_rx_function || !valid_uart_rx_function ||
+	    !seen_uart_tx_pins || !valid_uart_tx_pins ||
+	    !seen_uart_tx_function || !valid_uart_tx_function)
+		fail("DTB lacks the latent serial observability contract");
 	for (index = 0; index < range_count; index++) {
 		size_t other;
 		uint64_t end = ranges[index].start + ranges[index].size;

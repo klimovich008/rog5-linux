@@ -125,6 +125,9 @@ grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
 	firewall_zone=drop
 	nm_managed=yes
 	address_present=0
+	address_ready_ms=0
+	drop_ready_ms=0
+	address_before_drop_zone_seen=0
 	fixture_zone=public
 	nmcli() {
 		case "$*" in
@@ -149,6 +152,7 @@ grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
 			'address add 169.254.77.1/30 dev fixture0')
 				sleep 0.03
 				address_present=1
+				address_ready_ms=$(network_transition_time_ms)
 				;;
 			'address del 169.254.77.1/30 dev fixture0')
 				address_present=0
@@ -160,8 +164,12 @@ grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
 		case "$*" in
 			'--get-zone-of-interface=fixture0') printf '%s\n' "$fixture_zone" ;;
 			'--zone=drop --change-interface=fixture0')
+				[ "$address_present" -eq 1 ]
+				[ "$fixture_zone" = public ]
+				address_before_drop_zone_seen=1
 				sleep 0.04
 				fixture_zone=drop
+				drop_ready_ms=$(network_transition_time_ms)
 				;;
 			*) return 1 ;;
 		esac
@@ -178,6 +186,11 @@ grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
 	sleep "$network_root_poll_interval"
 	log_network_transition gadget-interface-discovered "$interface"
 	configure_target_interface "$interface"
+	[ "$address_before_drop_zone_seen" -eq 1 ]
+	[ "$address_ready_ms" -gt 0 ]
+	[ "$drop_ready_ms" -gt "$address_ready_ms" ]
+	printf 'MEASURE modeled_address_before_drop_zone_ms=%s\n' \
+		"$((drop_ready_ms - address_ready_ms))"
 	end_ms=$(network_transition_time_ms)
 	printf 'MEASURE modeled_host_readiness_total_ms=%s\n' \
 		"$((end_ms - start_ms))"
@@ -223,7 +236,79 @@ awk '
 	}
 	END { exit !seen }
 ' "$transition_output"
+modeled_address_before_drop_zone_ms=$(awk -F= '
+	$1 == "MEASURE modeled_address_before_drop_zone_ms" { print $2 }
+' "$transition_output")
+[ -n "$modeled_address_before_drop_zone_ms" ] &&
+	[ "$modeled_address_before_drop_zone_ms" -gt 0 ] || {
+	echo 'FAIL address-before-drop-zone ordering window was not measured' >&2
+	exit 1
+}
 cat "$transition_output"
+
+for unrelated_listener in \
+	'127.0.0.1:2049' \
+	'0.0.0.0:2049' \
+	'169.254.77.3:2049'
+do
+	(
+		# shellcheck disable=SC1090
+		. "$transition_functions"
+		host_ip=169.254.77.1
+		ss() {
+			printf 'LISTEN 0 64 %s 0.0.0.0:*\n' \
+				"$unrelated_listener"
+		}
+		! verify_exact_nfs_listener
+	) || {
+		echo "FAIL unrelated listener satisfied readiness: $unrelated_listener" >&2
+		exit 1
+	}
+done
+
+zone_failure_output=$transition_work/zone-failure.log
+if (
+	# shellcheck disable=SC1090
+	. "$transition_functions"
+	fail() {
+		echo "FAIL $*" >&2
+		exit 1
+	}
+	interface=fixture0
+	touched_interfaces=()
+	host_ip=169.254.77.1
+	host_cidr=169.254.77.1/30
+	firewall_zone=drop
+	nmcli() {
+		case "$*" in
+			'device set fixture0 managed no') ;;
+			'-g GENERAL.NM-MANAGED device show fixture0') echo no ;;
+			*) return 1 ;;
+		esac
+	}
+	ip() {
+		case "$*" in
+			'link set fixture0 up') ;;
+			'-4 -o address show dev fixture0')
+				echo '2: fixture0 inet 169.254.77.1/30 scope global fixture0'
+				;;
+			*) return 1 ;;
+		esac
+	}
+	firewall-cmd() {
+		case "$*" in
+			'--get-zone-of-interface=fixture0') echo public ;;
+			'--zone=drop --change-interface=fixture0') return 1 ;;
+			*) return 1 ;;
+		esac
+	}
+	configure_target_interface "$interface"
+) >"$zone_failure_output" 2>&1; then
+	echo 'FAIL failed firewall transition reached host-ready state' >&2
+	exit 1
+fi
+grep -Fq 'network-root interface did not enter the exact firewall zone' \
+	"$zone_failure_output"
 find "$transition_work" -depth -delete
 
 verify_ancestry_line=$(grep -n '^verify_deployment_export$' "$serve" |
