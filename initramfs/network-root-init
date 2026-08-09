@@ -2,6 +2,7 @@
 set -u
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export LC_ALL=C
 
 watchdog_proc=/proc
 watchdog_run=/run
@@ -29,6 +30,11 @@ usb_mode_path=/sys/bus/platform/devices/a600000.ssusb/mode
 usb_configfs_root=/sys/kernel/config
 usb_gadget_root=/sys/kernel/config/usb_gadget/rog5-network-root
 udc_poll_attempts=200
+host_port_probe_attempts=12
+host_port_probe_timeout=1
+host_port_probe_interval=0.25
+host_port_timeout_floor_ms=900
+host_port_probe_output=/run/rog5-host-port-probe.error
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -641,17 +647,83 @@ classify_network_root_transport() {
 	return 0
 }
 
+probe_host_tcp_accept() {
+	/usr/bin/nc "$@"
+}
+
+network_monotonic_ms() {
+	awk '{ printf "%.0f\n", $1 * 1000 }' /proc/uptime
+}
+
+wait_for_host_tcp_accept() {
+	attempt=0
+	last_host_port_fault=host-port-unreachable
+	while [ "$attempt" -lt "$host_port_probe_attempts" ]; do
+		classify_network_root_transport || return 1
+		probe_started=$(network_monotonic_ms) || {
+			diagnostic_fault=host-port-probe-failed
+			return 1
+		}
+		case $probe_started in *[!0-9]*|'')
+			diagnostic_fault=host-port-probe-failed
+			return 1
+			;;
+		esac
+		: >"$host_port_probe_output" || {
+			diagnostic_fault=host-port-probe-failed
+			return 1
+		}
+		if probe_host_tcp_accept -n -z -w "$host_port_probe_timeout" \
+			-s 169.254.77.2 \
+			169.254.77.1 2049 \
+			2>"$host_port_probe_output"; then
+			classify_network_root_transport || return 1
+			diagnostic_fault=none
+			return 0
+		else
+			probe_status=$?
+		fi
+		probe_finished=$(network_monotonic_ms) || {
+			diagnostic_fault=host-port-probe-failed
+			return 1
+		}
+		case $probe_finished in *[!0-9]*|'')
+			diagnostic_fault=host-port-probe-failed
+			return 1
+			;;
+		esac
+		if [ "$probe_status" -eq 126 ] || [ "$probe_status" -eq 127 ]; then
+			diagnostic_fault=host-port-probe-failed
+			return 1
+		fi
+		probe_elapsed=$((probe_finished - probe_started))
+		if [ "$probe_elapsed" -ge "$host_port_timeout_floor_ms" ]; then
+			last_host_port_fault=host-port-timeout
+		else
+			last_host_port_fault=host-port-unreachable
+		fi
+		classify_network_root_transport || return 1
+		attempt=$((attempt + 1))
+		if [ "$attempt" -lt "$host_port_probe_attempts" ]; then
+			sleep "$host_port_probe_interval"
+		fi
+	done
+	diagnostic_fault=$last_host_port_fault
+	return 1
+}
+
 mount_network_root() {
-	diagnostic_fault=nfs-mount-failed
 	network_root_ro=${network_root_ro:-/mnt/root-ro}
 	network_root_state=${network_root_state:-/mnt/state}
 	network_newroot=${network_newroot:-/newroot}
 	network_mounts=${network_mounts:-/proc/mounts}
 	mkdir -p "$network_root_ro" "$network_root_state" "$network_newroot"
 	if [ "$diagnostic_mode" -eq 1 ]; then
+		wait_for_host_tcp_accept || return 1
+		diagnostic_fault=nfs-mount-failed
 		diagnostic_emit 70 || true
 		if mount -t nfs4 \
-			-o vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1 \
+			-o vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2 \
 			169.254.77.1:/ "$network_root_ro"; then
 			mount_status=0
 		else
@@ -661,10 +733,11 @@ mount_network_root() {
 		classify_network_root_transport || return 1
 		[ "$mount_status" -eq 0 ] || return 1
 	else
+		diagnostic_fault=nfs-mount-failed
 		attempt=0
 		while [ "$attempt" -lt 30 ]; do
 			if mount -t nfs4 \
-				-o vers=4.2,proto=tcp,port=2049,ro,nolock,soft,timeo=10,retrans=1 \
+				-o vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2 \
 				169.254.77.1:/ "$network_root_ro"; then
 				mount_status=0
 			else

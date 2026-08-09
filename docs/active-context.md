@@ -109,6 +109,20 @@ and newer-kernel rebases remain frozen until the headless core passes.
 
 These facts do not prove the corrected candidate on the phone.
 
+## Critical-path HOLD
+
+The 2026-08-09
+[offline network-root readiness review](../test-results/2026-08-09-critical-network-root-readiness-review-offline.md)
+reproduced the host/target readiness race window in a hardware-free ordering
+model and added monotonic host transition evidence plus a bounded exact
+TCP/2049 rendezvous before the sole diagnostic NFS mount. It does not establish
+that this race caused Generation 12. Physical USB-NCM timing and current-cycle
+pstore survival remain unproven, so candidate admission is **HOLD**. Thermal,
+suspend, keys, battery, display, and sensor expansion remain frozen. The
+uncommitted VCNL36866 set is preserved as an
+[isolated WIP](../test-results/2026-08-09-vcnl36866-working-tree-review-offline.md),
+not integrated or candidate-ready.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

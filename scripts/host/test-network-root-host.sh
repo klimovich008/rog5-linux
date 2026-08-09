@@ -86,6 +86,146 @@ for contract in \
 	}
 done
 
+for transition in \
+	gadget-interface-discovered \
+	networkmanager-unmanaged \
+	link-up \
+	host-address-present \
+	firewall-zone-confirmed \
+	tcp-2049-listening \
+	exact-network-root-link-ready; do
+	grep -Fq "log_network_transition $transition" "$serve" || {
+		echo "FAIL network-root host transition is not timestamped: $transition" >&2
+		exit 1
+	}
+done
+grep -Fq 'GENERAL.NM-MANAGED' "$serve"
+grep -Fq 'network_root_poll_interval=1' "$serve"
+grep -Fq 'sleep "$network_root_poll_interval"' "$serve"
+
+transition_work=$(mktemp -d)
+transition_functions=$transition_work/functions.sh
+transition_output=$transition_work/transitions.log
+awk '
+	/^network_transition_time_ms\(\) \{/ { copy=1 }
+	/^echo "PASS restricted NFSv4\.2 export ready; waiting for exact USB gadget"$/ { copy=0 }
+	copy { print }
+' "$serve" >"$transition_functions"
+grep -Fq 'configure_target_interface() {' "$transition_functions"
+grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
+
+(
+	# shellcheck disable=SC1090
+	. "$transition_functions"
+	interface=fixture0
+	touched_interfaces=()
+	network_root_poll_interval=1
+	host_ip=169.254.77.1
+	host_cidr=169.254.77.1/30
+	firewall_zone=drop
+	nm_managed=yes
+	address_present=0
+	fixture_zone=public
+	nmcli() {
+		case "$*" in
+			'device set fixture0 managed no')
+				sleep 0.04
+				nm_managed=no
+				;;
+			'-g GENERAL.NM-MANAGED device show fixture0')
+				printf '%s\n' "$nm_managed"
+				;;
+			*) return 1 ;;
+		esac
+	}
+	ip() {
+		case "$*" in
+			'link set fixture0 up') sleep 0.03 ;;
+			'-4 -o address show dev fixture0')
+				[ "$address_present" -eq 0 ] ||
+					printf '%s\n' \
+						'2: fixture0 inet 169.254.77.1/30 scope global fixture0'
+				;;
+			'address add 169.254.77.1/30 dev fixture0')
+				sleep 0.03
+				address_present=1
+				;;
+			'address del 169.254.77.1/30 dev fixture0')
+				address_present=0
+				;;
+			*) return 1 ;;
+		esac
+	}
+	firewall-cmd() {
+		case "$*" in
+			'--get-zone-of-interface=fixture0') printf '%s\n' "$fixture_zone" ;;
+			'--zone=drop --change-interface=fixture0')
+				sleep 0.04
+				fixture_zone=drop
+				;;
+			*) return 1 ;;
+		esac
+	}
+	ss() {
+		[ "$*" = '-H -lnt4 sport = :2049' ] || return 1
+		sleep 0.02
+		printf '%s\n' \
+			'LISTEN 0 64 169.254.77.1:2049 0.0.0.0:*'
+	}
+	start_ms=$(network_transition_time_ms)
+	printf 'MEASURE modeled_transition=poll-start monotonic_ms=%s\n' \
+		"$start_ms"
+	sleep "$network_root_poll_interval"
+	log_network_transition gadget-interface-discovered "$interface"
+	configure_target_interface "$interface"
+	end_ms=$(network_transition_time_ms)
+	printf 'MEASURE modeled_host_readiness_total_ms=%s\n' \
+		"$((end_ms - start_ms))"
+) >"$transition_output"
+
+expected_transitions='gadget-interface-discovered networkmanager-unmanaged link-up host-address-present firewall-zone-confirmed tcp-2049-listening exact-network-root-link-ready'
+actual_transitions=$(awk '
+	$1 == "STATE" && $2 == "network-root-usb" {
+		for (i = 1; i <= NF; i++)
+			if ($i ~ /^transition=/) {
+				sub(/^transition=/, "", $i)
+				printf "%s%s", separator, $i
+				separator=" "
+			}
+	}
+	END { print "" }
+' "$transition_output")
+[ "$actual_transitions" = "$expected_transitions" ] || {
+	echo "FAIL measured network-root transitions were: $actual_transitions" >&2
+	exit 1
+}
+awk '
+	$1 == "MEASURE" && $2 == "modeled_transition=poll-start" {
+		split($3, value, "=")
+		previous=value[2]
+		initialized=1
+		next
+	}
+	$1 == "STATE" && $2 == "network-root-usb" {
+		transition=""
+		for (i = 1; i <= NF; i++)
+			if ($i ~ /^transition=/) {
+				split($i, name, "=")
+				transition=name[2]
+			} else if ($i ~ /^monotonic_ms=/) {
+				split($i, value, "=")
+				if (!initialized || value[2] < previous) exit 1
+				printf "MEASURE modeled_transition=%s delta_ms=%d\n", \
+					transition, value[2] - previous
+				previous=value[2]
+				seen=1
+			}
+	}
+	END { exit !seen }
+' "$transition_output"
+cat "$transition_output"
+find "$transition_work" -depth -delete
+
 verify_ancestry_line=$(grep -n '^verify_deployment_export$' "$serve" |
 	tail -n1 | cut -d: -f1)
 bind_line=$(grep -n '^mount --bind "\$root" "\$export_mount"$' "$serve" |
