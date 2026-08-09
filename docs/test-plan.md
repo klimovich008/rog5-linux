@@ -58,6 +58,18 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   literals and hostile DT rewires are mutation-tested. The accepted
   `qcom-spmi-temp-alarm` module and zero emergency delay do not satisfy the
   future built-in PMIC and bounded forced-fallback gates.
+- The suspend `pm_test` source oracle pins the exact `devices`-level return
+  before `suspend_enter()` and the later PSCI `SYSTEM_SUSPEND` boundary. Its
+  compile-only feature fragment enables PM debug, the exact upstream `EXPERT`
+  prerequisite, and a 15-second warning / 30-second DPM panic watchdog; the
+  effective-assignment oracle allows only the unavoidable arm64 capability
+  markers and refuses every other resolved change; in particular it pins the
+  newly exposed unrelated simple-reset driver off. Advanced PM attributes and
+  the boot-time RTC suspend test stay disabled. The one-shot
+  runtime fixture suite proves one
+  state write, irreversible same-boot consumption, restoration to
+  `pm_test=none`, and exact post-return UDC/interface/carrier/address/route
+  classifications. This gate neither performs nor authorizes real suspend.
 - `build-gpu-recovery-initramfs.sh` preserves the recovery init, adds exactly the three hash-pinned A660 payloads, and reproduces the same archive byte-for-byte.
 - `verify-staged-arch-rootfs.sh` checks the requested packages, modules,
   firmware, locked accounts, key-only SSH, NetworkManager ownership,
@@ -1402,6 +1414,9 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   power-button press traverses the switch/IRQ/input path. Driver registration
   alone does not satisfy this gate.
 - Screen-off state does not stop SSH, networking, or scheduled work.
+- Run exactly one separately authorized `pm_test=devices` pass and preserve
+  the USB/NFS/SSH boundary before validating two attended wake paths. Do not
+  write `mem` with `pm_test=none` until physical wake evidence exists.
 - At least 30 minutes of idle and load operation produce no fatal kernel warnings.
 
 ## Tier 3 — networking and services

@@ -328,6 +328,11 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
   disables the otherwise implicit DISPCC provider, changes no other DT
   property, and hostile-tests zero display platform/class/device exposure.
   This is not live OLED-off or power acceptance.
+- [x] Add a compile-only suspend-debug candidate and at-most-once target gate
+  for exactly one `pm_test=devices` callback pass. The pinned-source oracle
+  proves that level returns before platform, CPU, or PSCI entry; hostile tests
+  classify post-return UDC, interface, carrier, address, and route loss. No
+  phone execution or real suspend has occurred.
 - [ ] Verify charger detection and safe charging states.
 - [ ] Verify battery capacity, voltage, current, and temperature telemetry.
 - [ ] Prove CPU cooling response and PMIC alarm registration on the corrected
@@ -335,7 +340,9 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
 - [ ] Profile and enable a 10–30 second forced thermal shutdown fallback;
   never test critical temperature by deliberately overheating the phone.
 - [ ] Verify power-off, reboot, watchdog reboot, and bootloader reboot.
-- [ ] Verify suspend, wake, true panel-off behavior, and SSH continuity.
+- [ ] Run the devices-level `pm_test` on a separately authorized temporary
+  target, then verify attended wake sources before any real suspend; true
+  panel-off behavior and SSH continuity remain pending.
 - [ ] Measure idle, screen-off, charging, and sustained-load power.
 
 Exit: the phone can run unattended without overheating, silently discharging,
