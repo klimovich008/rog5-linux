@@ -142,6 +142,7 @@ shared_tests=(
 	scripts/host/test-steam-deck-builder-contract.sh
 	scripts/host/test-network-root-kernel-rebuild-contract.sh
 	scripts/host/test-network-root-kernel-builder-acceleration.sh
+	scripts/host/test-network-root-thermal-pmic-candidate.sh
 	scripts/host/test-reconstruct-recovery-base-v18r-contract.sh
 	scripts/host/test-reconstruct-network-root-v3-contract.sh
 	scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh

@@ -244,8 +244,8 @@ a temporary boot.
 
 ### Development output reuse
 
-The active `build-mainline.sh` remains clean-build-only by default. Its
-optional development modes are:
+The active `build-mainline.sh` and `build-mainline-network-root.sh` remain
+clean-build-only by default. Their optional development modes are:
 
 ```sh
 INCREMENTAL_BUILD=1 OUTPUT_DIR=/absolute/ignored/build-tree \
@@ -275,6 +275,23 @@ optional. Cache contents and build-state files remain ignored local data and
 are never release inputs. Reproducibility and release acceptance still
 require two distinct, initially empty output directories with both opt-ins
 disabled.
+
+The network-root builder additionally accepts one optional, canonical regular
+file through `FEATURE_FRAGMENT`. It merges that file after the base and
+network-root fragments, records its path and SHA-256 in the private exact-state
+record, and records only its SHA-256 in release metadata. Omitting it preserves
+the pre-feature release-metadata format and artifact identities. A changed,
+renamed, linked, or replaced fragment refuses incremental reuse instead of
+cleaning the output.
+
+The first compile-only use is
+`configs/kernel/rog5-thermal-pmic-critical.fragment`. It changes only
+`CONFIG_QCOM_SPMI_TEMP_ALARM=m` to `y`; it deliberately leaves
+`CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS=0`. See the
+[offline thermal-PMIC build result](../test-results/2026-08-09-network-root-thermal-pmic-candidate-offline.md).
+This feature build is not an issued candidate. Issuance still requires two
+distinct initially empty output directories, clean twin comparison, and the
+normal lifecycle review; incremental output is development evidence only.
 
 The optional real-output proof compares fresh uncached, fresh cached, and
 repeated incremental ARM64 QEMU Images:
