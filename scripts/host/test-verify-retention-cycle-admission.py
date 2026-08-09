@@ -186,7 +186,10 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.consumer.write_text(
             "def exact_record(profile):\n"
             "    return profile.encode()\n"
-            "CLAIM_PROFILES = ('historical-v1',)\n"
+            "CLAIM_PROFILES = (\n"
+            "    'headless-diagnostic-generation11-live-v1',\n"
+            "    'headless-diagnostic-generation12-live-v1',\n"
+            ")\n"
             "CLAIMS = {profile: exact_record(profile) "
             "for profile in CLAIM_PROFILES}\n"
         )
@@ -195,6 +198,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         assert isinstance(claims, dict)
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        claims["consumer_mode"] = "0755"
         self.build_fixture()
 
     def write(self, root: Path, relative: str, payload: bytes) -> Path:
@@ -210,6 +214,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         path = self.write(root, str(record["path"]), payload)
         record["size"] = len(payload)
         record["sha256"] = digest(payload)
+        record["mode"] = "0600"
         return path
 
     def set_pair(self, section: dict[str, object], key: str, root: Path, payload: bytes) -> tuple[Path, Path]:
@@ -219,6 +224,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         second = self.write(root, str(record["path_b"]), payload)
         record["size"] = len(payload)
         record["sha256"] = digest(payload)
+        record["mode"] = "0600"
         return first, second
 
     def build_fixture(self) -> None:
@@ -266,6 +272,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         )
         execution["candidate_size"] = candidate_path.stat().st_size
         execution["candidate_sha256"] = digest(candidate_path.read_bytes())
+        execution["candidate_mode"] = "0600"
 
         self.artifacts_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifacts_path.write_text(
@@ -274,16 +281,20 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             f"{execution['candidate_sha256']}\ttracked current diagnostic identity\tyes\n"
         )
         self.artifacts_path.chmod(0o600)
+        execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)
+        policy = self.profile["policy"]
+        assert isinstance(policy, dict)
+        policy["mode"] = "0600"
 
         for prefix_key in ("bundle_a", "bundle_b"):
             prefix = str(execution[prefix_key])
             for name, payload in artifact_payloads.items():
-                self.write(self.execution, f"{prefix}/{name}", payload)
+                self.write(self.execution, f"{prefix}/{name}", payload).chmod(0o400)
 
         manifest = (
             "format=rog5-recovery-bundle-v2\n"
@@ -411,7 +422,23 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             fake_avb(observer_raw),
         )
         self.refresh_observer_evidence()
+        self.refresh_root_inventories()
         self.save_profile()
+
+    def refresh_root_inventories(self) -> None:
+        inventories = self.profile["root_inventory"]
+        assert isinstance(inventories, dict)
+        for key, root in (("execution", self.execution), ("observer", self.observer)):
+            entries = []
+            for entry in root.iterdir():
+                if entry.is_file():
+                    kind = "file"
+                elif entry.is_dir():
+                    kind = "directory"
+                else:
+                    raise AssertionError(f"unsafe fixture entry: {entry}")
+                entries.append(f"{entry.name}:{kind}")
+            inventories[key] = sorted(entries)
 
     def refresh_observer_evidence(self) -> None:
         observer = self.profile["observer"]
@@ -532,7 +559,9 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution = self.profile["execution"]
         assert isinstance(execution, dict)
         bundle = self.execution / str(execution["bundle_b"]) / "board.dtb"
+        bundle.chmod(0o600)
         bundle.write_bytes(b"mutated")
+        bundle.chmod(0o400)
         self.assert_rejected("bundle B board.dtb size changed")
 
         self.reset_fixture()
@@ -544,6 +573,33 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             b"extra",
         )
         self.assert_rejected("bundle A inventory is not exact")
+
+        self.reset_fixture()
+        self.write(self.execution, "unexpected-top-level", b"extra")
+        self.assert_rejected("execution evidence-root inventory is not exact")
+
+    def test_manifest_and_signature_paths_must_belong_to_each_bundle(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        manifest = execution["runtime_manifest"]
+        signature = execution["runtime_signature"]
+        assert isinstance(manifest, dict)
+        assert isinstance(signature, dict)
+        manifest_payload = (
+            self.execution / str(manifest["path_a"])
+        ).read_bytes()
+        signature_payload = (
+            self.execution / str(signature["path_a"])
+        ).read_bytes()
+        manifest["path_a"] = "detached/manifest-a"
+        manifest["path_b"] = "detached/manifest-b"
+        signature["path_a"] = "detached/manifest-a.sig"
+        signature["path_b"] = "detached/manifest-b.sig"
+        self.set_pair(execution, "runtime_manifest", self.execution, manifest_payload)
+        self.set_pair(execution, "runtime_signature", self.execution, signature_payload)
+        self.refresh_root_inventories()
+        self.save_profile()
+        self.assert_rejected("manifest and signature paths are not bundle-owned")
 
     def test_candidate_and_manifest_fields_are_exact(self) -> None:
         execution = self.profile["execution"]
@@ -707,6 +763,31 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.refresh_observer_evidence()
         self.save_profile()
         self.assert_rejected("trailing archive member")
+
+        self.reset_fixture()
+        observer = self.profile["observer"]
+        assert isinstance(observer, dict)
+        embedded_nul = newc(
+            {
+                "init": (stat.S_IFREG | 0o755, b"init\n"),
+                "usr/libexec/rog5-recovery-control": (
+                    stat.S_IFREG | 0o755,
+                    b"control\n",
+                ),
+                "etc/rog5/recovery-mode": (
+                    stat.S_IFREG | 0o444,
+                    b"observation-only-v1\n",
+                ),
+                "usr/sbin/kexec\0hidden": (
+                    stat.S_IFREG | 0o755,
+                    b"hidden-execution-path\n",
+                ),
+            }
+        )
+        self.set_pair(observer, "recovery_initramfs", self.observer, embedded_nul)
+        self.refresh_observer_evidence()
+        self.save_profile()
+        self.assert_rejected("truncated entry name")
 
     def test_observer_is_exact_execution_free_derivation(self) -> None:
         execution = self.profile["execution"]
@@ -875,6 +956,48 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
                 path.write_bytes(expected)
                 path.chmod(0o600)
 
+        parent = self.base / "racy-parent"
+        parent.mkdir()
+        path = parent / "input"
+        path.write_bytes(expected)
+        path.chmod(0o600)
+        detached_parent = self.base / "detached-parent"
+        outside_parent = self.base / "outside-parent"
+        outside_parent.mkdir()
+        (outside_parent / "input").write_bytes(expected)
+        (outside_parent / "input").chmod(0o600)
+        with self.assertRaisesRegex(
+            ADMISSION.AdmissionError,
+            "ancestry changed during verification",
+        ):
+            with ADMISSION.verified_descriptor(
+                path,
+                "ancestor-racy input",
+                expected_size=len(expected),
+                expected_digest=digest(expected),
+                expected_mode=0o600,
+            ):
+                parent.rename(detached_parent)
+                parent.symlink_to(outside_parent, target_is_directory=True)
+
+    def test_exact_modes_and_buffer_limits_fail_closed(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        record = execution["candidate_record"]
+        assert isinstance(record, dict)
+        (self.execution / str(record["path_b"])).chmod(0o400)
+        self.assert_rejected("execution candidate record B mode changed")
+
+        oversized = self.base / "oversized-buffered-input"
+        with oversized.open("wb") as stream:
+            stream.truncate(ADMISSION.MAX_BUFFERED_INPUT_BYTES + 1)
+        oversized.chmod(0o600)
+        with self.assertRaisesRegex(
+            ADMISSION.AdmissionError,
+            "buffered input exceeds its fixed limit",
+        ):
+            ADMISSION.read_safe_file(oversized, "oversized buffered input")
+
     def test_symlink_evidence_and_preissued_consumer_fail_closed(self) -> None:
         execution = self.profile["execution"]
         assert isinstance(execution, dict)
@@ -899,7 +1022,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
         self.save_profile()
-        self.assert_rejected("already has a consumable boot claim")
+        self.assert_rejected("registry is not exact")
 
         self.reset_fixture()
         self.consumer.write_text(
@@ -911,6 +1034,40 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
         self.save_profile()
         self.assert_rejected("registry is mutated after definition")
+
+        self.reset_fixture()
+        self.consumer.write_text(
+            "def exact_record(profile):\n"
+            "    return profile.encode()\n"
+            "CLAIM_PROFILES = (\n"
+            "    'headless-diagnostic-generation11-live-v1',\n"
+            "    'headless-diagnostic-generation12-live-v1',\n"
+            ")\n"
+            "CLAIM_PROFILES += ('host-rendezvous-v3-observer-v1',)\n"
+            "CLAIMS = {profile: exact_record(profile) "
+            "for profile in CLAIM_PROFILES}\n"
+        )
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is mutated after definition")
+
+        self.reset_fixture()
+        self.consumer.write_text(
+            self.consumer.read_text().replace(
+                "    'headless-diagnostic-generation12-live-v1',\n",
+                "    'headless-diagnostic-generation12-live-v1',\n"
+                "    'unreviewed-live-v1',\n",
+            )
+        )
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is not exact")
 
     def test_observer_evidence_fields_are_exact(self) -> None:
         observer = self.profile["observer"]

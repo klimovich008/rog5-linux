@@ -15,7 +15,8 @@ import struct
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
+from contextvars import ContextVar
 from typing import Any, Iterator, NamedTuple
 
 
@@ -32,8 +33,13 @@ EXPECTED_SEQUENCE = (
     "observation-recovery",
     "postmortem-status",
 )
+EXPECTED_CLAIM_PROFILES = (
+    "headless-diagnostic-generation11-live-v1",
+    "headless-diagnostic-generation12-live-v1",
+)
 SHA256_ZERO = "0" * 64
 MAX_INITRAMFS_BYTES = 32 * 1024 * 1024
+MAX_BUFFERED_INPUT_BYTES = 32 * 1024 * 1024
 BOOT_V3_PAGE_SIZE = 4096
 BOOT_V3_HEADER_SIZE = 1580
 EXPECTED_RECOVERY_CMDLINE = (
@@ -42,6 +48,10 @@ EXPECTED_RECOVERY_CMDLINE = (
     "ramoops.record_size=0x100000 ramoops.console_size=0x300000 "
     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 "
     "rog5.recovery_timeout=180"
+)
+ACTIVE_ROOT_IDENTITIES: ContextVar[dict[Path, tuple[int, ...]]] = ContextVar(
+    "active_retention_review_roots",
+    default={},
 )
 
 
@@ -99,12 +109,14 @@ def read_json(
     *,
     expected_size: int | None = None,
     expected_digest: str | None = None,
+    expected_mode: int | None = None,
 ) -> dict[str, Any]:
     payload = read_verified_bytes(
         path,
         label,
         expected_size=expected_size,
         expected_digest=expected_digest,
+        expected_mode=expected_mode,
     )
     try:
         value = json.loads(
@@ -141,13 +153,119 @@ def stable_metadata(metadata: os.stat_result) -> tuple[int, ...]:
     )
 
 
+def stable_directory_metadata(metadata: os.stat_result) -> tuple[int, ...]:
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_uid,
+        metadata.st_gid,
+    )
+
+
 def exact_regular(metadata: os.stat_result) -> bool:
     return (
         stat.S_ISREG(metadata.st_mode)
         and metadata.st_uid == os.geteuid()
         and metadata.st_nlink == 1
-        and not stat.S_IMODE(metadata.st_mode) & 0o022
     )
+
+
+@contextmanager
+def path_descriptor(
+    path: Path,
+    label: str,
+    *,
+    directory: bool,
+) -> Iterator[int]:
+    if not path.is_absolute() or path != Path(os.path.normpath(path)):
+        fail(f"unsafe or missing {label}")
+    directory_flags = (
+        os.O_RDONLY
+        | os.O_CLOEXEC
+        | os.O_DIRECTORY
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    final_flags = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+    if directory:
+        final_flags |= os.O_DIRECTORY
+    descriptors: list[int] = []
+    ancestry: list[tuple[int, str, int, tuple[int, ...]]] = []
+    try:
+        current = os.open("/", directory_flags)
+        descriptors.append(current)
+        current_path = Path("/")
+        for part in path.parts[1:-1]:
+            child = os.open(part, directory_flags, dir_fd=current)
+            descriptors.append(child)
+            opened = os.fstat(child)
+            named = os.stat(part, dir_fd=current, follow_symlinks=False)
+            if (
+                not stat.S_ISDIR(opened.st_mode)
+                or stable_directory_metadata(opened)
+                != stable_directory_metadata(named)
+            ):
+                fail(f"unsafe or missing {label}")
+            current_path /= part
+            pinned = ACTIVE_ROOT_IDENTITIES.get().get(current_path)
+            if pinned is not None and stable_directory_metadata(opened) != pinned:
+                fail(f"{label} escaped its pinned root")
+            ancestry.append(
+                (current, part, child, stable_directory_metadata(opened))
+            )
+            current = child
+        leaf = path.parts[-1]
+        descriptor = os.open(leaf, final_flags, dir_fd=current)
+        descriptors.append(descriptor)
+        opened = os.fstat(descriptor)
+        named = os.stat(leaf, dir_fd=current, follow_symlinks=False)
+        if stable_metadata(opened) != stable_metadata(named):
+            fail(f"unsafe or missing {label}")
+        final_path = current_path / leaf
+        pinned = ACTIVE_ROOT_IDENTITIES.get().get(final_path)
+        if pinned is not None and stable_directory_metadata(opened) != pinned:
+            fail(f"{label} escaped its pinned root")
+
+        def revalidate_path() -> None:
+            for parent, name, child, expected in ancestry:
+                if (
+                    stable_directory_metadata(os.fstat(child)) != expected
+                    or stable_directory_metadata(
+                        os.stat(name, dir_fd=parent, follow_symlinks=False)
+                    )
+                    != expected
+                ):
+                    fail(f"{label} ancestry changed during verification")
+            if (
+                stable_metadata(os.fstat(descriptor))
+                != stable_metadata(opened)
+                or stable_metadata(
+                    os.stat(leaf, dir_fd=current, follow_symlinks=False)
+                )
+                != stable_metadata(opened)
+            ):
+                fail(f"{label} changed during verification")
+
+        revalidate_path()
+        yield descriptor
+        revalidate_path()
+    except OSError as error:
+        raise AdmissionError(f"unsafe or changed {label}") from error
+    finally:
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+def require_mode(value: Any, label: str) -> int:
+    mode = require_string(value, label)
+    if len(mode) != 4 or mode[0] != "0" or any(
+        character not in "01234567" for character in mode[1:]
+    ):
+        fail(f"{label} is not an exact file mode")
+    return int(mode, 8)
 
 
 @contextmanager
@@ -157,20 +275,14 @@ def verified_descriptor(
     *,
     expected_size: int | None = None,
     expected_digest: str | None = None,
+    expected_mode: int | None = None,
 ) -> Iterator[int]:
-    flags = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        descriptor = os.open(path, flags)
-    except OSError as error:
-        raise AdmissionError(f"unsafe or missing {label}") from error
-    try:
+    with path_descriptor(path, label, directory=False) as descriptor:
         opened = os.fstat(descriptor)
-        named = os.stat(path, follow_symlinks=False)
-        if (
-            not exact_regular(opened)
-            or stable_metadata(opened) != stable_metadata(named)
-        ):
+        if not exact_regular(opened):
             fail(f"unsafe or missing {label}")
+        if expected_mode is not None and stat.S_IMODE(opened.st_mode) != expected_mode:
+            fail(f"{label} mode changed")
         if expected_size is not None and opened.st_size != expected_size:
             fail(f"{label} size changed")
         first_digest = hash_descriptor(descriptor)
@@ -182,24 +294,41 @@ def verified_descriptor(
         yield descriptor
         final_digest = hash_descriptor(descriptor)
         final = os.fstat(descriptor)
-        current = os.stat(path, follow_symlinks=False)
         if (
             final_digest != first_digest
             or stable_metadata(final) != stable_metadata(opened)
-            or stable_metadata(current) != stable_metadata(opened)
         ):
             fail(f"{label} changed during verification")
-    except OSError as error:
-        raise AdmissionError(f"{label} changed during verification") from error
-    finally:
-        os.close(descriptor)
 
 
-def read_descriptor(descriptor: int) -> bytes:
+@contextmanager
+def verified_directory_descriptor(path: Path, label: str) -> Iterator[int]:
+    with path_descriptor(path, label, directory=True) as descriptor:
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(metadata.st_mode) & 0o022
+        ):
+            fail(f"unsafe or missing {label}")
+        yield descriptor
+
+
+def read_descriptor(
+    descriptor: int,
+    *,
+    maximum: int = MAX_BUFFERED_INPUT_BYTES,
+) -> bytes:
+    if os.fstat(descriptor).st_size > maximum:
+        fail("buffered input exceeds its fixed limit")
     os.lseek(descriptor, 0, os.SEEK_SET)
     blocks: list[bytes] = []
-    while block := os.read(descriptor, 1024 * 1024):
+    total = 0
+    while block := os.read(descriptor, min(1024 * 1024, maximum + 1 - total)):
         blocks.append(block)
+        total += len(block)
+        if total > maximum:
+            fail("buffered input exceeds its fixed limit")
     os.lseek(descriptor, 0, os.SEEK_SET)
     return b"".join(blocks)
 
@@ -210,12 +339,14 @@ def read_verified_bytes(
     *,
     expected_size: int | None = None,
     expected_digest: str | None = None,
+    expected_mode: int | None = None,
 ) -> bytes:
     with verified_descriptor(
         path,
         label,
         expected_size=expected_size,
         expected_digest=expected_digest,
+        expected_mode=expected_mode,
     ) as descriptor:
         return read_descriptor(descriptor)
 
@@ -225,26 +356,67 @@ def safe_file_metadata(path: Path, label: str) -> os.stat_result:
         return os.fstat(descriptor)
 
 
-def read_safe_file(path: Path, label: str) -> bytes:
-    return read_verified_bytes(path, label)
+def read_safe_file(
+    path: Path,
+    label: str,
+    *,
+    expected_mode: int | None = None,
+) -> bytes:
+    with verified_descriptor(
+        path,
+        label,
+        expected_mode=expected_mode,
+    ) as descriptor:
+        return read_descriptor(descriptor)
 
 
 def safe_root(path: Path, label: str) -> Path:
-    if not path.is_absolute():
+    if not path.is_absolute() or path != Path(os.path.normpath(path)):
         fail(f"{label} must be absolute")
-    try:
-        metadata = path.lstat()
-        resolved = path.resolve(strict=True)
-    except OSError as error:
-        raise AdmissionError(f"unsafe or missing {label}") from error
+    with verified_directory_descriptor(path, label):
+        pass
+    return path
+
+
+def directory_inventory(path: Path, label: str) -> tuple[str, ...]:
+    entries: list[str] = []
+    with verified_directory_descriptor(path, label) as descriptor:
+        try:
+            iterator = os.scandir(descriptor)
+        except OSError as error:
+            raise AdmissionError(f"{label} inventory is unavailable") from error
+        with iterator:
+            for entry in iterator:
+                try:
+                    metadata = entry.stat(follow_symlinks=False)
+                except OSError as error:
+                    raise AdmissionError(
+                        f"{label} inventory changed during verification"
+                    ) from error
+                if stat.S_ISREG(metadata.st_mode):
+                    kind = "file"
+                elif stat.S_ISDIR(metadata.st_mode):
+                    kind = "directory"
+                else:
+                    fail(f"{label} contains an unsafe object")
+                entries.append(f"{entry.name}:{kind}")
+    return tuple(sorted(entries))
+
+
+def verify_directory_inventory(
+    path: Path,
+    expected: Any,
+    label: str,
+) -> None:
     if (
-        resolved != path
-        or not stat.S_ISDIR(metadata.st_mode)
-        or metadata.st_uid != os.geteuid()
-        or stat.S_IMODE(metadata.st_mode) & 0o022
+        not isinstance(expected, list)
+        or not expected
+        or any(not isinstance(item, str) or not item for item in expected)
+        or expected != sorted(set(expected))
     ):
-        fail(f"unsafe or missing {label}")
-    return resolved
+        fail(f"{label} contract is not exact")
+    if directory_inventory(path, label) != tuple(expected):
+        fail(f"{label} is not exact")
 
 
 def relative_path(value: Any, label: str) -> PurePosixPath:
@@ -281,36 +453,34 @@ def safe_child(root: Path, value: Any, label: str) -> Path:
 
 def require_absent_child(root: Path, value: Any, label: str) -> None:
     relative = relative_path(value, label)
-    current = root
-    for part in relative.parts[:-1]:
-        current /= part
+    parent = root.joinpath(*relative.parts[:-1])
+    with verified_directory_descriptor(parent, f"{label} parent") as descriptor:
         try:
-            metadata = current.lstat()
+            os.stat(relative.parts[-1], dir_fd=descriptor, follow_symlinks=False)
         except FileNotFoundError:
             return
         except OSError as error:
-            raise AdmissionError(f"unsafe {label} ancestry") from error
-        if not stat.S_ISDIR(metadata.st_mode):
-            fail(f"unsafe {label} ancestry")
-    path = root.joinpath(*relative.parts)
-    try:
-        path.lstat()
-    except FileNotFoundError:
-        return
-    except OSError as error:
-        raise AdmissionError(f"unsafe {label}") from error
+            raise AdmissionError(f"unsafe {label}") from error
     fail(f"{label} must be absent")
 
 
-def verify_file(path: Path, size: Any, digest: Any, label: str) -> None:
+def verify_file(
+    path: Path,
+    size: Any,
+    digest: Any,
+    mode: Any,
+    label: str,
+) -> None:
     if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
         fail(f"{label} size is invalid")
     expected = require_sha256(digest, f"{label} SHA-256")
+    expected_mode = require_mode(mode, f"{label} mode")
     with verified_descriptor(
         path,
         label,
         expected_size=size,
         expected_digest=expected,
+        expected_mode=expected_mode,
     ):
         pass
 
@@ -322,35 +492,49 @@ def verify_pair(
 ) -> tuple[Path, Path, str]:
     record = require_keys(
         value,
-        {"path_a", "path_b", "size", "sha256"},
+        {"path_a", "path_b", "size", "sha256", "mode"},
         label,
     )
     first = safe_child(root, record["path_a"], f"{label} A")
     second = safe_child(root, record["path_b"], f"{label} B")
     if first == second:
         fail(f"{label} twins use one pathname")
-    verify_file(first, record["size"], record["sha256"], f"{label} A")
-    verify_file(second, record["size"], record["sha256"], f"{label} B")
+    verify_file(
+        first,
+        record["size"],
+        record["sha256"],
+        record["mode"],
+        f"{label} A",
+    )
+    verify_file(
+        second,
+        record["size"],
+        record["sha256"],
+        record["mode"],
+        f"{label} B",
+    )
     return first, second, require_sha256(record["sha256"], f"{label} SHA-256")
 
 
 def verify_single(root: Path, value: Any, label: str) -> tuple[Path, str]:
-    record = require_keys(value, {"path", "size", "sha256"}, label)
+    record = require_keys(value, {"path", "size", "sha256", "mode"}, label)
     path = safe_child(root, record["path"], label)
-    verify_file(path, record["size"], record["sha256"], label)
+    verify_file(path, record["size"], record["sha256"], record["mode"], label)
     return path, require_sha256(record["sha256"], f"{label} SHA-256")
 
 
 def expected_identity(value: Any, label: str, *, pair: bool) -> tuple[int, str]:
-    keys = {"path_a", "path_b", "size", "sha256"} if pair else {
+    keys = {"path_a", "path_b", "size", "sha256", "mode"} if pair else {
         "path",
         "size",
         "sha256",
+        "mode",
     }
     record = require_keys(value, keys, label)
     size = record["size"]
     if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
         fail(f"{label} size is invalid")
+    require_mode(record["mode"], f"{label} mode")
     return size, require_sha256(record["sha256"], f"{label} SHA-256")
 
 
@@ -409,10 +593,15 @@ def parse_newc(archive: bytes) -> dict[str, NewcEntry]:
             fail("recovery initramfs has an invalid entry name")
         name_start = offset + 110
         name_end = name_start + name_size
-        if name_end > len(payload) or payload[name_end - 1] != 0:
+        encoded_name = payload[name_start:name_end]
+        if (
+            name_end > len(payload)
+            or encoded_name[-1:] != b"\0"
+            or b"\0" in encoded_name[:-1]
+        ):
             fail("recovery initramfs has a truncated entry name")
         try:
-            name = payload[name_start : name_end - 1].decode("utf-8")
+            name = encoded_name[:-1].decode("utf-8")
         except UnicodeError as error:
             raise AdmissionError("recovery initramfs has a non-UTF-8 path") from error
         data_start = align4(name_end)
@@ -930,6 +1119,10 @@ def verify_candidate_and_bundle(
         "tracked execution candidate",
         expected_size=candidate_size,
         expected_digest=candidate_sha256,
+        expected_mode=require_mode(
+            execution["candidate_mode"],
+            "tracked execution candidate mode",
+        ),
     )
     candidate_id = require_string(execution["candidate"], "candidate identity")
     require_keys(
@@ -966,7 +1159,14 @@ def verify_candidate_and_bundle(
     ):
         fail("tracked execution candidate is not authority-free and exact")
 
-    inventory = read_safe_file(artifacts_path, "artifact inventory").decode(
+    inventory = read_safe_file(
+        artifacts_path,
+        "artifact inventory",
+        expected_mode=require_mode(
+            execution["artifact_inventory_mode"],
+            "artifact inventory mode",
+        ),
+    ).decode(
         "utf-8", errors="strict"
     )
     rows = [line.split("\t") for line in inventory.splitlines()]
@@ -1123,24 +1323,30 @@ def verify_candidate_and_bundle(
     )
     if bundle_roots[0] == bundle_roots[1]:
         fail("execution bundle roots are not distinct")
-    expected_bundle_names = {
-        "Image",
-        "board.dtb",
-        "initramfs.cpio.gz",
-        "manifest",
-        "manifest.sig",
-    }
+    if (
+        manifest_a != bundle_roots[0] / "manifest"
+        or manifest_b != bundle_roots[1] / "manifest"
+        or signature_a != bundle_roots[0] / "manifest.sig"
+        or signature_b != bundle_roots[1] / "manifest.sig"
+    ):
+        fail("execution manifest and signature paths are not bundle-owned")
+    expected_bundle_inventory = [
+        "Image:file",
+        "board.dtb:file",
+        "initramfs.cpio.gz:file",
+        "manifest.sig:file",
+        "manifest:file",
+    ]
     for bundle_root, label in zip(
         bundle_roots,
         ("execution bundle A", "execution bundle B"),
         strict=True,
     ):
-        try:
-            names = {entry.name for entry in os.scandir(bundle_root)}
-        except OSError as error:
-            raise AdmissionError(f"{label} inventory is unavailable") from error
-        if names != expected_bundle_names:
-            fail(f"{label} inventory is not exact")
+        verify_directory_inventory(
+            bundle_root,
+            expected_bundle_inventory,
+            f"{label} inventory",
+        )
     artifacts = candidate.get("artifacts")
     if not isinstance(artifacts, dict) or set(artifacts) != {
         "Image",
@@ -1166,8 +1372,20 @@ def verify_candidate_and_bundle(
             fail(f"execution manifest does not bind {name}")
         first = safe_child(bundle_roots[0], name, f"bundle A {name}")
         second = safe_child(bundle_roots[1], name, f"bundle B {name}")
-        verify_file(first, artifact["size"], artifact["sha256"], f"bundle A {name}")
-        verify_file(second, artifact["size"], artifact["sha256"], f"bundle B {name}")
+        verify_file(
+            first,
+            artifact["size"],
+            artifact["sha256"],
+            "0400",
+            f"bundle A {name}",
+        )
+        verify_file(
+            second,
+            artifact["size"],
+            artifact["sha256"],
+            "0400",
+            f"bundle B {name}",
+        )
 
     verify_signature(
         manifest_a,
@@ -1188,11 +1406,19 @@ def verify_candidate_and_bundle(
     return candidate_sha256, manifest_sha256
 
 
-def verify_policy(policy_path: Path, required_allow_rows: Any) -> int:
+def verify_policy(
+    policy_path: Path,
+    required_allow_rows: Any,
+    expected_mode: int,
+) -> int:
     if required_allow_rows != 0:
         fail("offline review must require zero temporary-boot admissions")
     try:
-        text = read_safe_file(policy_path, "temporary-boot policy").decode("utf-8")
+        text = read_safe_file(
+            policy_path,
+            "temporary-boot policy",
+            expected_mode=expected_mode,
+        ).decode("utf-8")
     except UnicodeError as error:
         raise AdmissionError("temporary-boot policy is not UTF-8") from error
     rows = [line.split("\t") for line in text.splitlines()]
@@ -1275,6 +1501,45 @@ def verify(
     repo = safe_root(repo, "repository root")
     execution_root = safe_root(execution_root, "execution evidence root")
     observer_root = safe_root(observer_root, "observer evidence root")
+    with ExitStack() as stack:
+        root_descriptors = {
+            root: stack.enter_context(verified_directory_descriptor(root, label))
+            for root, label in (
+                (repo, "repository root"),
+                (execution_root, "execution evidence root"),
+                (observer_root, "observer evidence root"),
+            )
+        }
+        token = ACTIVE_ROOT_IDENTITIES.set(
+            {
+                root: stable_directory_metadata(os.fstat(descriptor))
+                for root, descriptor in root_descriptors.items()
+            }
+        )
+        try:
+            return verify_pinned(
+                profile_path,
+                repo,
+                execution_root,
+                observer_root,
+                artifacts_path,
+                policy_path,
+                enforce_repository_layout=enforce_repository_layout,
+            )
+        finally:
+            ACTIVE_ROOT_IDENTITIES.reset(token)
+
+
+def verify_pinned(
+    profile_path: Path,
+    repo: Path,
+    execution_root: Path,
+    observer_root: Path,
+    artifacts_path: Path,
+    policy_path: Path,
+    *,
+    enforce_repository_layout: bool,
+) -> str:
     if execution_root == observer_root:
         fail("execution and observer evidence roots are not distinct")
     for child, parent in (
@@ -1315,7 +1580,11 @@ def verify(
             if result.returncode != 0:
                 fail(f"{label} is not ignored by Git")
 
-    profile = read_json(profile_path, "retention-cycle profile")
+    profile = read_json(
+        profile_path,
+        "retention-cycle profile",
+        expected_mode=0o644 if enforce_repository_layout else None,
+    )
     require_keys(
         profile,
         {
@@ -1326,8 +1595,10 @@ def verify(
             "boot_authority",
             "retention",
             "missing_pstore",
+            "evidence_owner",
             "recovery_cmdline",
             "sequence",
+            "root_inventory",
             "execution",
             "observer",
             "claims",
@@ -1343,6 +1614,7 @@ def verify(
         or profile["boot_authority"] != "none"
         or profile["retention"] != "unproven"
         or profile["missing_pstore"] != "inconclusive"
+        or profile["evidence_owner"] != "verifier-euid"
         or profile["recovery_cmdline"] != EXPECTED_RECOVERY_CMDLINE
         or tuple(profile["sequence"]) != EXPECTED_SEQUENCE
     ):
@@ -1355,6 +1627,8 @@ def verify(
             "candidate_path",
             "candidate_size",
             "candidate_sha256",
+            "candidate_mode",
+            "artifact_inventory_mode",
             "candidate",
             "candidate_record",
             "bundle_a",
@@ -1405,6 +1679,22 @@ def verify(
         or observer["claim"] != "unissued"
     ):
         fail("execution and observation roles are not fail-closed")
+
+    root_inventory = require_keys(
+        profile["root_inventory"],
+        {"execution", "observer"},
+        "evidence-root inventory",
+    )
+    verify_directory_inventory(
+        execution_root,
+        root_inventory["execution"],
+        "execution evidence-root inventory",
+    )
+    verify_directory_inventory(
+        observer_root,
+        root_inventory["observer"],
+        "observer evidence-root inventory",
+    )
 
     candidate_sha256, manifest_sha256 = verify_candidate_and_bundle(
         repo,
@@ -1594,6 +1884,7 @@ def verify(
             "consumer",
             "consumer_size",
             "consumer_sha256",
+            "consumer_mode",
             "execution",
             "observer",
             "issuance_requirement",
@@ -1626,6 +1917,10 @@ def verify(
         "generic claim consumer",
         expected_size=consumer_size,
         expected_digest=consumer_digest,
+        expected_mode=require_mode(
+            claims["consumer_mode"],
+            "generic claim consumer mode",
+        ),
     )
     try:
         consumer_tree = ast.parse(consumer_source, filename=str(consumer))
@@ -1658,9 +1953,7 @@ def verify(
     claims_expression = claims_assignments[0].value
     if (
         not isinstance(registered_profiles, tuple)
-        or not registered_profiles
-        or len(set(registered_profiles)) != len(registered_profiles)
-        or any(not isinstance(item, str) or not item for item in registered_profiles)
+        or registered_profiles != EXPECTED_CLAIM_PROFILES
         or not isinstance(claims_expression, ast.DictComp)
         or not isinstance(claims_expression.key, ast.Name)
         or claims_expression.key.id != "profile"
@@ -1679,6 +1972,20 @@ def verify(
         or claims_expression.generators[0].is_async
     ):
         fail("generic claim consumer registry is not exact")
+    canonical_assignments = {profile_assignments[0], claims_assignments[0]}
+    for node in consumer_tree.body:
+        value = getattr(node, "value", None)
+        if (
+            node not in canonical_assignments
+            and isinstance(value, ast.AST)
+            and any(
+                isinstance(child, ast.Name)
+                and child.id in {"CLAIMS", "CLAIM_PROFILES"}
+                for child in ast.walk(value)
+            )
+            and isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign))
+        ):
+            fail("generic claim consumer registry is aliased or rebound")
     for node in ast.walk(consumer_tree):
         if (
             isinstance(node, ast.Call)
@@ -1696,9 +2003,16 @@ def verify(
             targets = list(node.targets)
         for target in targets:
             if (
-                isinstance(target, ast.Subscript)
-                and isinstance(target.value, ast.Name)
-                and target.value.id == "CLAIMS"
+                (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "CLAIMS"
+                )
+                or (
+                    isinstance(target, ast.Name)
+                    and target.id in {"CLAIMS", "CLAIM_PROFILES"}
+                    and node not in canonical_assignments
+                )
             ):
                 fail("generic claim consumer registry is mutated after definition")
     if profile["profile"] in registered_profiles:
@@ -1706,13 +2020,17 @@ def verify(
 
     policy = require_keys(
         profile["policy"],
-        {"path", "required_allow_rows"},
+        {"path", "mode", "required_allow_rows"},
         "temporary-boot policy contract",
     )
     expected_policy = safe_child(repo, policy["path"], "profile policy path")
     if expected_policy != policy_path:
         fail("temporary-boot policy path is not repository-owned")
-    allow_rows = verify_policy(policy_path, policy["required_allow_rows"])
+    allow_rows = verify_policy(
+        policy_path,
+        policy["required_allow_rows"],
+        require_mode(policy["mode"], "temporary-boot policy mode"),
+    )
 
     return "\n".join(
         (
