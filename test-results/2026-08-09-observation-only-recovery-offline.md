@@ -121,13 +121,16 @@ deleted.
 
 ## Remaining boundary
 
-This checkpoint does not yet provide an outer ASUS 5.4 boot-v3/AVB wrapper
-for the observation identity and does not test physical ramoops retention.
-The next safe increment is an unsigned, clean-twin outer-wrapper composition
-using the retained source-sealed kernel `4b30cfff…9495`, followed by offline
-inspection of the exact 4 MiB ramoops reservation. Candidate admission,
-signing, and physical execution remain separate decisions. Missing pstore
-evidence must never be interpreted as proof that no crash occurred.
+This checkpoint did not yet provide an outer ASUS 5.4 boot-v3/AVB wrapper for
+the observation identity. The later
+[outer-wrapper checkpoint](2026-08-09-observation-recovery-wrapper-offline.md)
+closed that offline gap with two clean builds. Because the initramfs is
+embedded in `Image`, the historical full-recovery kernel `4b30cfff…9495`
+could not be reused; the observer required and reproduced a distinct Image.
+Physical ramoops retention is still unproven. Candidate admission, signing,
+and physical execution remain separate decisions, and missing pstore evidence
+must never be interpreted as proof that no crash occurred.
 
-The complete repository checkpoint passes. A separate wrapper/admission
-review is still required, so the recommendation remains **HOLD**.
+The complete repository checkpoint passes. The later wrapper review also
+passes offline, but a separate physical-retention admission is still required,
+so the recommendation remains **HOLD**.

@@ -214,6 +214,7 @@ shared_tests=(
 	scripts/host/test-compare-root-archives.py
 	scripts/host/test-normalize-headless-core-archive-contract.sh
 	scripts/host/test-kernel-source-seal.py
+	scripts/host/test-observation-recovery-wrapper.py
 	scripts/host/test-stable-recovery-wrapper-cache.py
 	scripts/host/test-stable-recovery-wrapper-cache-contract.sh
 	scripts/host/test-issue-stable-recovery-avb-generation.sh
