@@ -76,7 +76,8 @@ The stable recovery init preserves this fail-closed sequence:
 7. start the fixed responder, which validates and pins that status;
 8. require its canonical per-boot session file while the responder is alive;
 9. monitor responder liveness and force rollback on exit;
-10. bind the USB device controller;
+10. require one stable exact `a600000.dwc3`, revalidate it before and after
+    configfs binding, and reject every other UDC topology;
 11. configure only `169.254.77.2/30` on `usb0`.
 
 There is no DHCP, host-provided gateway, default route, SSH server,
@@ -87,7 +88,9 @@ their previous ACM shell is archive-only.
 ## Offline evidence
 
 `scripts/host/test-recovery-init-policy.py` is part of the quick repository
-suite and statically enforces the control-surface and ordering rules.
+suite. It statically enforces the control-surface and ordering rules and runs
+the production UDC-selection functions against private synthetic sysfs and
+configfs trees.
 
 `scripts/host/test-stable-recovery-initramfs.sh` is the full local integration
 test. It:
@@ -154,6 +157,14 @@ and AVB image `64537159174c8aea99d52d87a7eefc1c363b82acf61bbe664cfc69bed23eb21d`
 See
 [stable recovery review hardening](../test-results/2026-07-28-stable-recovery-review-hardening-offline.md).
 
+The current [exact-UDC checkpoint](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+removes the historical arbitrary-first-controller fallback. One exact
+`a600000.dwc3` may appear after the bounded wait, but it must remain the sole
+candidate across selection, pre-bind, and post-bind checks. Zero-at-deadline,
+wrong, renamed, multiple, and changing candidate sets fail closed. Twin
+7,602,301-byte shell-free initramfses reproduce at `afc55f96…d790`; they use a
+disposable trust input and are not wrapped or boot-authorized.
+
 The corrected headless gate now supplies one caller-owned disposable public
 key to both initramfs builds, retains the already-verified production AArch64
 responder/fetcher/verifier for artifact inspection, packages the accepted
@@ -167,9 +178,9 @@ the
 
 Before a live candidate exists:
 
-1. apply the central standing authorization to one admitted production
-   signing operation and one admitted temporary boot; do not request the same
-   consent again;
+1. obtain fresh explicit authorization separately for any production
+   credential use, candidate issuance, and phone boot; an offline checkpoint
+   grants none of these actions;
 2. keep the private key outside the repository and build tree;
 3. embed only its reviewed raw public key;
 4. build the release initramfs, wrapper kernel, raw boot image, and AVB

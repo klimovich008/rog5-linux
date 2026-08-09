@@ -195,10 +195,43 @@ for suffix in a b; do
 		"$test_tmp/rog5-recovery-control-a" \
 		"$test_tmp/rog5-bundle-fetch-a" \
 		"$test_tmp/rog5-bundle-verify-a" \
-		"$test_tmp/ephemeral-public.raw"
+		"$test_tmp/ephemeral-public.raw" exact-a600000-v1 -
 done
 cmp "$test_tmp/stable-recovery-a.cpio.gz" \
 	"$test_tmp/stable-recovery-b.cpio.gz"
+current_archive_sha256=$(
+	sha256sum "$test_tmp/stable-recovery-a.cpio.gz" | cut -d ' ' -f 1
+)
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" historical-pinned-v1 \
+	"$current_archive_sha256" \
+	>"$test_tmp/current-as-historical.log" 2>&1
+then
+	fail 'current exact-UDC archive passed the historical contract'
+fi
+grep -Fqx \
+	'FAIL historical recovery lacks its pinned UDC bind shape' \
+	"$test_tmp/current-as-historical.log"
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" \
+	"$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" unsupported-v1 - \
+	>"$test_tmp/unsupported-contract.log" 2>&1
+then
+	fail 'unsupported stable-recovery init contract passed verification'
+fi
+grep -Fqx \
+	'FAIL unsupported stable-recovery init contract: unsupported-v1' \
+	"$test_tmp/unsupported-contract.log"
 
 expect_init_rejection() {
 	name=$1
@@ -301,7 +334,7 @@ expect_archive_rejection() {
 		"$test_tmp/rog5-recovery-control-a" \
 		"$test_tmp/rog5-bundle-fetch-a" \
 		"$test_tmp/rog5-bundle-verify-a" \
-		"$test_tmp/ephemeral-public.raw" \
+		"$test_tmp/ephemeral-public.raw" exact-a600000-v1 - \
 		>"$test_tmp/$name.log" 2>&1
 	then
 		fail "unsafe stable-recovery archive passed verification: $name"

@@ -90,6 +90,13 @@ ASUS 5.4 builds reproduce kernel `4b30cfff…9495`, raw boot-v3
 integration gap only. The disposable trust input, `Algorithm: NONE`, absent
 policy/candidate record, and untested physical retention keep admission at
 **HOLD**.
+The subsequent [exact-UDC recovery hardening](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+removes stable recovery's arbitrary-controller fallback. It accepts only one
+stable exact `a600000.dwc3`, revalidates before and after binding, and produces
+byte-identical 7,602,301-byte initramfs twins `afc55f96…d790`. Wrong, renamed,
+multiple, disappearing, or changing candidates now leave rollback armed and
+fail closed. This is ignored offline evidence with no wrapper, candidate,
+policy row, credential, or boot authority; admission remains **HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

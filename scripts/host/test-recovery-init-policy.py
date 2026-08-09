@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 
 
@@ -19,6 +21,58 @@ RECOVERY_FETCH = REPO / "tools/recovery_control/rog5-bundle-fetch.c"
 class InitPolicyTest(unittest.TestCase):
     def source(self, path: Path) -> str:
         return path.read_text(encoding="utf-8")
+
+    def recovery_udc_functions(self) -> str:
+        source = self.source(RECOVERY)
+        functions = []
+        for name in (
+            "udc_candidate_count",
+            "validate_expected_udc_once",
+            "validate_expected_udc",
+            "expected_udc_is_bound",
+            "select_expected_udc",
+            "bind_expected_udc",
+        ):
+            match = re.search(
+                rf"^{name}\(\) \{{\n.*?^\}}\n",
+                source,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+            self.assertIsNotNone(match, name)
+            functions.append(match.group(0))
+        return "\n".join(functions)
+
+    def run_recovery_udc_case(
+        self,
+        candidates: tuple[str, ...],
+        body: str,
+    ) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            udc_class = root / "sys/class/udc"
+            gadget = root / "gadget"
+            udc_class.mkdir(parents=True)
+            gadget.mkdir()
+            (gadget / "UDC").write_text("", encoding="ascii")
+            for candidate in candidates:
+                (udc_class / candidate).mkdir()
+            script = (
+                "set -u\n"
+                + self.recovery_udc_functions()
+                + f"\nexpected_udc=a600000.dwc3\n"
+                + f"udc_class_dir={udc_class}\n"
+                + f"gadget={gadget}\n"
+                + "udc_poll_attempts=2\n"
+                + "sleep() { :; }\n"
+                + body
+            )
+            return subprocess.run(
+                ["/bin/sh"],
+                input=script,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
 
     def test_no_init_exposes_an_interactive_control_surface(self) -> None:
         forbidden = (
@@ -93,7 +147,7 @@ class InitPolicyTest(unittest.TestCase):
         postmortem = source.index("if ! snapshot_postmortem; then")
         control = source.index("/usr/libexec/rog5-recovery-control &")
         session = source.index("/run/rog5-control/session")
-        bind = source.index('echo "$udc" >"$gadget/UDC"')
+        bind = source.index('if ! udc=$(bind_expected_udc); then')
         self.assertLess(lease, first_isolation)
         self.assertLess(first_isolation, pre_contract)
         self.assertLess(pre_contract, second_isolation)
@@ -111,6 +165,80 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn(
             '"$expected_wrapper_physical_count"',
             source,
+        )
+
+    def test_recovery_udc_selection_accepts_only_one_exact_controller(self) -> None:
+        accepted = self.run_recovery_udc_case(
+            ("a600000.dwc3",),
+            'selected=$(bind_expected_udc) || exit 20\n'
+            '[ "$selected" = "$expected_udc" ] || exit 21\n'
+            '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 22\n',
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+        delayed = self.run_recovery_udc_case(
+            (),
+            'sleep() { mkdir -p "$udc_class_dir/$expected_udc"; }\n'
+            'selected=$(bind_expected_udc) || exit 23\n'
+            '[ "$selected" = "$expected_udc" ] || exit 24\n'
+            '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 25\n',
+        )
+        self.assertEqual(delayed.returncode, 0, delayed.stderr)
+
+        hostile = (
+            (),
+            ("wrong.dwc3",),
+            ("renamed-a600000.dwc3",),
+            ("a600000.dwc3", "wrong.dwc3"),
+        )
+        for candidates in hostile:
+            with self.subTest(candidates=candidates):
+                rejected = self.run_recovery_udc_case(
+                    candidates,
+                    'if bind_expected_udc >/dev/null; then exit 30; fi\n'
+                    '[ ! -s "$gadget/UDC" ] || exit 31\n',
+                )
+                self.assertEqual(rejected.returncode, 0, rejected.stderr)
+
+    def test_recovery_udc_selection_rejects_changing_candidates(self) -> None:
+        changed_during_selection = self.run_recovery_udc_case(
+            ("a600000.dwc3",),
+            'sleep() {\n'
+            '  rm -rf "$udc_class_dir/$expected_udc"\n'
+            '  mkdir "$udc_class_dir/wrong.dwc3"\n'
+            '}\n'
+            'if bind_expected_udc >/dev/null; then exit 40; fi\n'
+            '[ ! -s "$gadget/UDC" ] || exit 41\n',
+        )
+        self.assertEqual(
+            changed_during_selection.returncode,
+            0,
+            changed_during_selection.stderr,
+        )
+
+        changed_before_bind = self.run_recovery_udc_case(
+            ("a600000.dwc3",),
+            'select_expected_udc() { printf "%s\\n" "$expected_udc"; }\n'
+            'validate_expected_udc() { return 1; }\n'
+            'if bind_expected_udc >/dev/null; then exit 42; fi\n'
+            '[ ! -s "$gadget/UDC" ] || exit 43\n',
+        )
+        self.assertEqual(
+            changed_before_bind.returncode,
+            0,
+            changed_before_bind.stderr,
+        )
+
+        changed_after_bind = self.run_recovery_udc_case(
+            ("a600000.dwc3",),
+            'expected_udc_is_bound() { return 1; }\n'
+            'if bind_expected_udc >/dev/null; then exit 44; fi\n'
+            '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 45\n',
+        )
+        self.assertEqual(
+            changed_after_bind.returncode,
+            0,
+            changed_after_bind.stderr,
         )
 
     def test_recovery_session_width_matches_native_responder(self) -> None:
