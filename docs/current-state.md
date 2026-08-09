@@ -82,6 +82,14 @@ expected candidate/boot ID and redacts the reversible tail. This is a future
 correlation mechanism, not proof that ramoops survives target → bootloader →
 recovery; the result and candidate recommendation remain HOLD. See the
 [offline checkpoint](../test-results/2026-08-09-recovery-postmortem-lineage-offline.md).
+The complete recovery composition has since been
+[refrozen offline](../test-results/2026-08-09-recovery-postmortem-refreeze-offline.md):
+two shell-free initramfses reproduce at `c778588a…a380`, and two clean sealed
+ASUS 5.4 builds reproduce kernel `4b30cfff…9495`, raw boot-v3
+`5141f0d0…deab`, and unsigned AVB `b004e500…c218`. This closes the offline
+integration gap only. The disposable trust input, `Algorithm: NONE`, absent
+policy/candidate record, and untested physical retention keep admission at
+**HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

@@ -157,6 +157,16 @@ QEMU tests pass. This makes a future retained snapshot correlatable; it does
 not prove that the DRAM region survives the physical transition. Admission
 therefore remains **HOLD**.
 
+The follow-on
+[complete recovery refreeze](../test-results/2026-08-09-recovery-postmortem-refreeze-offline.md)
+now embeds that responder in byte-identical 7,601,886-byte initramfs twins and
+two clean sealed ASUS 5.4 wrappers. Kernel `4b30cfff…9495`, raw boot-v3
+`5141f0d0…deab`, and unsigned AVB `b004e500…c218` reproduce exactly with the
+fixed 4 MiB ramoops command line. These are ignored test artifacts with a
+disposable trust input, no policy row, no candidate record, and no boot
+authority. Physical transition retention is still unproven, so the critical
+path remains **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

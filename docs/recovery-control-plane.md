@@ -516,6 +516,16 @@ transition. That requires a separately admitted controlled live cycle. If it
 does not survive, the next oracle experiment remains the possible Qualcomm
 debug UART; no physical UART capability is currently claimed.
 
+The [offline refreeze](../test-results/2026-08-09-recovery-postmortem-refreeze-offline.md)
+subsequently integrated this exact responder into twin shell-free initramfses
+and two clean, source-sealed ASUS 5.4 wrapper builds. Config, kernel, initramfs,
+raw boot-v3, unsigned AVB, and source seals compare byte-for-byte, and the
+inspected product retains the exact 4 MiB ramoops reservation. This is complete
+composition evidence, not retention evidence or boot authority. A future live
+retention experiment must use distinct one-use execution and observation
+recovery identities; it may not replay one candidate after an ambiguous
+result.
+
 ## Test suite before re-freeze
 
 ### Parser and protocol unit tests
