@@ -68,6 +68,9 @@ strings "$temporary" | grep -qx '/proc/self/fd/%d'
 strings "$temporary" | grep -qx 'usb0'
 strings "$temporary" | grep -qx '169.254.77.1'
 strings "$temporary" | grep -qx '169.254.77.2'
+strings "$temporary" | grep -qx 'full-v1'
+strings "$temporary" | grep -qx 'observation-only-v1'
+strings "$temporary" | grep -qx 'OBSERVATION_ONLY'
 if strings "$temporary" | grep -q 'ROG5_TEST_'; then
 	echo 'FAIL production responder contains a test interface' >&2
 	exit 1

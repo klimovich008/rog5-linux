@@ -115,6 +115,11 @@ enum prepare_outcome {
 	PREPARE_OUTCOME_VERIFY_FAILED,
 };
 
+enum responder_mode {
+	RESPONDER_FULL,
+	RESPONDER_OBSERVATION_ONLY,
+};
+
 struct control_state {
 	char session[ID_LENGTH + 1];
 	enum phase phase;
@@ -181,6 +186,7 @@ static unsigned int io_timeout_ms = 2000;
 static unsigned int fetch_timeout_ms = FETCH_TIMEOUT_MS;
 static unsigned int verify_timeout_ms = VERIFY_TIMEOUT_MS;
 static unsigned int kexec_load_timeout_ms = KEXEC_LOAD_TIMEOUT_MS;
+static enum responder_mode responder_mode = RESPONDER_FULL;
 static struct postmortem_status postmortem;
 #ifdef ROG5_CONTROL_TESTING
 static bool test_kexec_configured;
@@ -2947,11 +2953,15 @@ static void handle_request(struct control_state *state,
 			       action->payload, &action->payload_length);
 		return;
 	}
-
 	if (strcmp(request->verb, "HELLO") == 0 ||
 	    strcmp(request->verb, "STATUS") == 0) {
 		build_response(state, request, "OK", action->payload,
 			       &action->payload_length);
+		return;
+	}
+	if (responder_mode == RESPONDER_OBSERVATION_ONLY) {
+		build_response(state, request, "OBSERVATION_ONLY",
+			       action->payload, &action->payload_length);
 		return;
 	}
 
@@ -3417,6 +3427,7 @@ static void parse_arguments(int argc, char **argv)
 {
 #ifdef ROG5_CONTROL_TESTING
 	int index;
+	bool mode_seen = false;
 
 	for (index = 1; index < argc; index += 2) {
 		if (index + 1 >= argc)
@@ -3431,13 +3442,30 @@ static void parse_arguments(int argc, char **argv)
 			postmortem_path = argv[index + 1];
 		else if (strcmp(argv[index], "--postmortem-snapshot") == 0)
 			postmortem_snapshot_path = argv[index + 1];
+		else if (strcmp(argv[index], "--mode") == 0) {
+			if (mode_seen)
+				fail("duplicate test responder mode");
+			mode_seen = true;
+			if (strcmp(argv[index + 1], "full-v1") == 0)
+				responder_mode = RESPONDER_FULL;
+			else if (strcmp(argv[index + 1],
+					"observation-only-v1") == 0)
+				responder_mode = RESPONDER_OBSERVATION_ONLY;
+			else
+				fail("invalid test responder mode");
+		}
 		else
 			fail("unknown test option");
 	}
 #else
-	if (argc != 1)
-		fail("production responder accepts no arguments");
-	(void)argv;
+	if (argc != 3 || strcmp(argv[1], "--mode") != 0)
+		fail("production responder requires one exact mode");
+	if (strcmp(argv[2], "full-v1") == 0)
+		responder_mode = RESPONDER_FULL;
+	else if (strcmp(argv[2], "observation-only-v1") == 0)
+		responder_mode = RESPONDER_OBSERVATION_ONLY;
+	else
+		fail("invalid production responder mode");
 #endif
 }
 
@@ -3543,6 +3571,7 @@ static void configure_test_runtime(void)
 int main(int argc, char **argv)
 {
 	struct control_state state;
+	bool fetch_decided;
 
 	umask(0077);
 	parse_arguments(argc, argv);
@@ -3554,8 +3583,14 @@ int main(int argc, char **argv)
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed at startup");
 	load_state(&state);
-	if (state.phase != PHASE_PREPARED)
+	if (responder_mode == RESPONDER_OBSERVATION_ONLY) {
+		if (state.phase != PHASE_IDLE ||
+		    strcmp(state.last_error, "NONE") != 0 ||
+		    ledger_count(&fetch_decided) != 0)
+			fail("observation-only responder state is not pristine");
+	} else if (state.phase != PHASE_PREPARED) {
 		reconcile_uncommitted_image("startup reconciliation");
+	}
 
 	while (true) {
 		int descriptor = open(device_path,

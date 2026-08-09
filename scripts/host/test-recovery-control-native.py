@@ -247,6 +247,7 @@ class NativeResponderTest(unittest.TestCase):
         ncm_progress_fd: int | None = None,
         ncm_partial_at: int | None = None,
         ncm_progress_live: bool = False,
+        responder_mode: str | None = None,
     ) -> tuple[subprocess.Popen, int]:
         master, slave = pty.openpty()
         self.descriptors.append(master)
@@ -313,21 +314,24 @@ class NativeResponderTest(unittest.TestCase):
             environment["ROG5_TEST_NCM_PROGRESS_PARTIAL_AT"] = str(
                 ncm_partial_at
             )
+        command = [
+            *self.runner,
+            str(self.binary),
+            "--device",
+            str(device),
+            "--state-dir",
+            str(self.state),
+            "--watchdog",
+            str(self.watchdog),
+            "--postmortem",
+            str(self.postmortem),
+            "--postmortem-snapshot",
+            str(self.postmortem_snapshot),
+        ]
+        if responder_mode is not None:
+            command.extend(("--mode", responder_mode))
         process = subprocess.Popen(
-            [
-                *self.runner,
-                str(self.binary),
-                "--device",
-                str(device),
-                "--state-dir",
-                str(self.state),
-                "--watchdog",
-                str(self.watchdog),
-                "--postmortem",
-                str(self.postmortem),
-                "--postmortem-snapshot",
-                str(self.postmortem_snapshot),
-            ],
+            command,
             cwd=REPO,
             env=environment,
             stdin=subprocess.DEVNULL,
@@ -350,6 +354,78 @@ class NativeResponderTest(unittest.TestCase):
         else:
             self.fail("responder did not report a configured raw TTY")
         return process, master
+
+    def test_observation_only_mode_refuses_all_mutating_requests(self):
+        verifier, loader, _marker = self.make_prepare_pipeline(
+            "observation-only"
+        )
+        fetcher = verifier.with_name("fake-fetcher")
+        process, master = self.start(
+            responder_mode="observation-only-v1",
+            fetcher_path=fetcher,
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        self.assertEqual(self.status(master, session, 2).result, "OK")
+        self.assertEqual(
+            self.prepare(master, session, number=3).result,
+            "OBSERVATION_ONLY",
+        )
+        self.assertEqual(
+            self.exchange(
+                master,
+                self.commit_payload(session, number=4, prepare_number=3),
+            ).result,
+            "OBSERVATION_ONLY",
+        )
+        self.assertEqual(
+            self.prepare(master, session, number=5).result,
+            "OBSERVATION_ONLY",
+        )
+        pipeline = self.root / "pipeline-observation-only"
+        for forbidden in (
+            "events",
+            "fetcher-runs",
+            "verifier-runs",
+            "load-marker",
+            "unload-marker",
+            "loaded-state",
+            "executor-marker",
+        ):
+            self.assertFalse((pipeline / forbidden).exists(), forbidden)
+        self.assertFalse((self.state / "prepared").exists())
+        self.assertFalse((self.state / "claim").exists())
+        self.assertFalse((self.state / "execution-started").exists())
+        self.assertEqual(list((self.state / "requests").iterdir()), [])
+        self.assertIsNone(process.poll())
+
+    def test_observation_only_mode_refuses_nonpristine_state(self):
+        stale = self.state / "last-error"
+        stale.write_text("error=FETCH_FAILED\n", encoding="ascii")
+        stale.chmod(0o600)
+        with self.assertRaisesRegex(
+            AssertionError,
+            "observation-only responder state is not pristine",
+        ):
+            self.start(responder_mode="observation-only-v1")
+
+    def test_observation_only_mode_refuses_nonempty_ledger(self):
+        requests = self.state / "requests"
+        requests.mkdir(mode=0o700)
+        record = requests / request_id(42)
+        record.write_text(
+            f"fingerprint={'1' * 64}\n"
+            "verb=COMMIT_EXEC\n"
+            "result=PREPARE_REQUIRED\n",
+            encoding="ascii",
+        )
+        record.chmod(0o600)
+        with self.assertRaisesRegex(
+            AssertionError,
+            "observation-only responder state is not pristine",
+        ):
+            self.start(responder_mode="observation-only-v1")
 
     def read_payloads(
         self,
@@ -3501,17 +3577,20 @@ class NativeResponderTest(unittest.TestCase):
         self.assertIn("usb0", production_strings)
         self.assertIn("169.254.77.1", production_strings)
         self.assertIn("169.254.77.2", production_strings)
+        self.assertIn("full-v1", production_strings)
+        self.assertIn("observation-only-v1", production_strings)
+        self.assertIn("OBSERVATION_ONLY", production_strings)
         self.assertNotIn("ROG5_TEST_", production_strings)
         self.assertNotIn("test-executed", production_strings)
         refused = subprocess.run(
-            [str(self.production), "--device", "/dev/null"],
+            [str(self.production), "--mode", "invalid"],
             text=True,
             capture_output=True,
             check=False,
         )
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn(
-            "production responder accepts no arguments",
+            "invalid production responder mode",
             refused.stderr,
         )
 

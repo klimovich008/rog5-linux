@@ -145,7 +145,9 @@ class InitPolicyTest(unittest.TestCase):
         )
         watchdog = source.index("log 'rollback timer armed'")
         postmortem = source.index("if ! snapshot_postmortem; then")
-        control = source.index("/usr/libexec/rog5-recovery-control &")
+        control = source.index(
+            '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &'
+        )
         session = source.index("/run/rog5-control/session")
         bind = source.index('if ! udc=$(bind_expected_udc); then')
         self.assertLess(lease, first_isolation)
@@ -258,6 +260,41 @@ class InitPolicyTest(unittest.TestCase):
         self.assertEqual(int(init_gate.group(1)), len(native.group(1)))
         self.assertEqual(len(native.group(1)), 32)
 
+    def test_recovery_mode_is_sealed_and_observation_only_is_fail_closed(
+        self,
+    ) -> None:
+        source = self.source(RECOVERY)
+        self.assertIn(
+            "recovery_mode_file=/etc/rog5/recovery-mode",
+            source,
+        )
+        for contract in (
+            '[ ! -f "$recovery_mode_file" ]',
+            '[ -L "$recovery_mode_file" ]',
+            'stat -c %u "$recovery_mode_file"',
+            'stat -c %a "$recovery_mode_file"',
+            'stat -c %h "$recovery_mode_file"',
+            'stat -c %s "$recovery_mode_file"',
+            'wc -l <"$recovery_mode_file"',
+            'IFS= read -r recovery_mode <"$recovery_mode_file"',
+            "full-v1)",
+            '[ "$recovery_mode_size" != 8 ]',
+            "observation-only-v1)",
+            '[ "$recovery_mode_size" != 20 ]',
+            '[ -e "$bundle_root" ] || [ -L "$bundle_root" ]',
+            '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &',
+        ):
+            self.assertIn(contract, source)
+        mode_read = source.index(
+            'IFS= read -r recovery_mode <"$recovery_mode_file"'
+        )
+        bundle_create = source.index('mkdir -p "$bundle_root"')
+        control = source.index(
+            '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &'
+        )
+        self.assertLess(mode_read, bundle_create)
+        self.assertLess(bundle_create, control)
+
     def test_recovery_creates_fetchers_exact_volatile_root(self) -> None:
         init_source = self.source(RECOVERY)
         fetch_source = self.source(RECOVERY_FETCH)
@@ -293,7 +330,10 @@ class InitPolicyTest(unittest.TestCase):
             self.assertIn(operation, init_source)
         self.assertLess(
             init_source.index('chmod 0700 "$bundle_root"'),
-            init_source.index("/usr/libexec/rog5-recovery-control &"),
+            init_source.index(
+                '/usr/libexec/rog5-recovery-control '
+                '--mode "$recovery_mode" &'
+            ),
         )
 
     def test_fetch_stage_exit_and_timeout_contracts_match(self) -> None:

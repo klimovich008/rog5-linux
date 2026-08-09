@@ -162,8 +162,20 @@ removes the historical arbitrary-first-controller fallback. One exact
 `a600000.dwc3` may appear after the bounded wait, but it must remain the sole
 candidate across selection, pre-bind, and post-bind checks. Zero-at-deadline,
 wrong, renamed, multiple, and changing candidate sets fail closed. Twin
-7,602,301-byte shell-free initramfses reproduce at `afc55f96…d790`; they use a
+7,602,307-byte shell-free initramfses reproduce at `afc55f96…d790`; they use a
 disposable trust input and are not wrapped or boot-authorized.
+
+The follow-up
+[observation-only checkpoint](../test-results/2026-08-09-observation-only-recovery-offline.md)
+derives a second explicit recovery identity from a verified current full
+archive. `observation-only-v1` serves postmortem `HELLO`/`STATUS` only,
+rejects prepare/commit before any ledger or helper mutation, and refuses to
+start from nonpristine state. The derived archive removes the fetcher,
+verifier, public key, kexec binary, and bundle root. Cross-locale twin builds
+reproduce at 5,371,780 bytes and `613d6e3e…70db`; hostile tests prove that a
+full archive cannot satisfy the observer contract and that a wrong mode or
+injected kexec binary is rejected. No outer ASUS wrapper has yet been built
+around this identity, and physical ramoops retention remains unproven.
 
 The corrected headless gate now supplies one caller-owned disposable public
 key to both initramfs builds, retains the already-verified production AArch64

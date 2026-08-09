@@ -17,12 +17,12 @@ fail() {
 	exit 1
 }
 
-for command in awk basename cmp cpio cut find grep gzip mktemp od readelf rm \
+for command in awk basename cat cmp cpio cut find grep gzip mktemp od readelf rm \
 	sed sha256sum stat tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing initramfs verifier command: $command"
 done
-for input in "$archive" "$control" "$fetcher" "$verifier" "$public_key"; do
+for input in "$archive" "$control"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 		fail "unsafe or missing verifier input: $(basename "$input")"
 done
@@ -30,12 +30,29 @@ case $contract in
 	exact-a600000-v1)
 		[ -f "$init" ] && [ -r "$init" ] && [ ! -L "$init" ] ||
 			fail 'unsafe or missing exact recovery init'
+		for input in "$fetcher" "$verifier" "$public_key"; do
+			[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
+				fail "unsafe or missing verifier input: $(basename "$input")"
+		done
 		[ "$expected_archive_sha256" = - ] ||
 			fail 'exact recovery verification does not accept an external archive identity'
+		;;
+	observation-only-a600000-v1)
+		[ -f "$init" ] && [ -r "$init" ] && [ ! -L "$init" ] ||
+			fail 'unsafe or missing exact recovery init'
+		[ "$fetcher" = - ] && [ "$verifier" = - ] &&
+			[ "$public_key" = - ] ||
+			fail 'observation-only verification rejects mutating component inputs'
+		[ "$expected_archive_sha256" = - ] ||
+			fail 'observation-only verification does not accept an external archive identity'
 		;;
 	historical-pinned-v1)
 		[ "$init" = - ] ||
 			fail 'historical verification must use its pinned embedded init'
+		for input in "$fetcher" "$verifier" "$public_key"; do
+			[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
+				fail "unsafe or missing verifier input: $(basename "$input")"
+		done
 		case $expected_archive_sha256 in
 			*[!0-9a-f]*|'')
 				fail 'historical recovery archive identity is not canonical'
@@ -62,21 +79,41 @@ awk 'NF && ($3 != "root" || $4 != "root") { exit 1 }' \
 gzip -dc "$archive" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 
-if [ "$contract" = exact-a600000-v1 ]; then
-	cmp "$stage/init" "$init"
-fi
+case $contract in
+	exact-a600000-v1|observation-only-a600000-v1)
+		cmp "$stage/init" "$init"
+		;;
+esac
 cmp "$stage/usr/libexec/rog5-recovery-control" "$control"
-cmp "$stage/usr/libexec/rog5-bundle-fetch" "$fetcher"
-cmp "$stage/usr/libexec/rog5-bundle-verify" "$verifier"
-cmp "$stage/etc/rog5/recovery-bundle-ed25519.pub" "$public_key"
 [ "$(stat -c %a "$stage/init")" = 755 ]
-[ "$(stat -c %a "$stage/etc/rog5/recovery-bundle-ed25519.pub")" = 600 ]
-[ "$(stat -c %s "$stage/etc/rog5/recovery-bundle-ed25519.pub")" -eq 32 ]
-[ "$(stat -c %h "$stage/etc/rog5/recovery-bundle-ed25519.pub")" -eq 1 ]
-[ "$(od -An -tx1 -v "$stage/etc/rog5/recovery-bundle-ed25519.pub" |
-	tr -d ' \n')" != \
-	0000000000000000000000000000000000000000000000000000000000000000 ]
-[ "$(stat -c %a "$stage/usr/sbin/kexec")" = 755 ]
+case $contract in
+	exact-a600000-v1|historical-pinned-v1)
+		cmp "$stage/usr/libexec/rog5-bundle-fetch" "$fetcher"
+		cmp "$stage/usr/libexec/rog5-bundle-verify" "$verifier"
+		cmp "$stage/etc/rog5/recovery-bundle-ed25519.pub" "$public_key"
+		[ "$(stat -c %a "$stage/etc/rog5/recovery-bundle-ed25519.pub")" = 600 ]
+		[ "$(stat -c %s "$stage/etc/rog5/recovery-bundle-ed25519.pub")" -eq 32 ]
+		[ "$(stat -c %h "$stage/etc/rog5/recovery-bundle-ed25519.pub")" -eq 1 ]
+		[ "$(od -An -tx1 -v "$stage/etc/rog5/recovery-bundle-ed25519.pub" |
+			tr -d ' \n')" != \
+			0000000000000000000000000000000000000000000000000000000000000000 ]
+		[ "$(stat -c %a "$stage/usr/sbin/kexec")" = 755 ]
+		;;
+	observation-only-a600000-v1)
+		for path in \
+			usr/libexec/rog5-bundle-fetch \
+			usr/libexec/rog5-bundle-verify \
+			etc/rog5/recovery-bundle-ed25519.pub \
+			usr/sbin/kexec
+		do
+			[ ! -e "$stage/$path" ] && [ ! -L "$stage/$path" ] ||
+				fail "observation-only recovery retains mutating path: $path"
+		done
+		[ -z "$(find "$stage" \( -type f -o -type l \) \
+			-name kexec -print -quit)" ] ||
+			fail 'observation-only recovery retains a kexec entry point'
+		;;
+esac
 [ -f "$stage/etc/shadow" ] && [ ! -L "$stage/etc/shadow" ] ||
 	fail 'unsafe or missing stable recovery shadow database'
 [ "$(stat -c %a "$stage/etc/shadow")" = 600 ] ||
@@ -97,10 +134,13 @@ legacy_entry=$(
 [ -z "$legacy_entry" ] ||
 	fail 'legacy login or DHCP entry point exists in stable recovery'
 
-for binary in \
-	usr/libexec/rog5-recovery-control \
-	usr/libexec/rog5-bundle-fetch \
-	usr/libexec/rog5-bundle-verify
+binary_list=usr/libexec/rog5-recovery-control
+case $contract in
+	exact-a600000-v1|historical-pinned-v1)
+		binary_list="$binary_list usr/libexec/rog5-bundle-fetch usr/libexec/rog5-bundle-verify"
+		;;
+esac
+for binary in $binary_list
 do
 	[ "$(stat -c %a "$stage/$binary")" = 755 ]
 	readelf -h "$stage/$binary" | grep -q 'Machine:.*AArch64'
@@ -108,8 +148,12 @@ do
 		fail "$binary has a dynamic interpreter"
 	fi
 done
-[ "$(sha256sum "$stage/usr/sbin/kexec" | cut -d ' ' -f 1)" = \
-	5e5d0a78b3f0bcf3921ff060f4dce5011cbac24b5e12fedeb8ca03ea5b40d015 ]
+case $contract in
+	exact-a600000-v1|historical-pinned-v1)
+		[ "$(sha256sum "$stage/usr/sbin/kexec" | cut -d ' ' -f 1)" = \
+			5e5d0a78b3f0bcf3921ff060f4dce5011cbac24b5e12fedeb8ca03ea5b40d015 ]
+		;;
+esac
 
 [ -z "$(find "$stage" \
 	\( -name authorized_keys -o -name 'ssh_host_*' -o -name sshd -o \
@@ -131,7 +175,6 @@ grep -Fq 'pid=%s\nstarttime=%s\n' "$stage/init"
 grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
 grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$stage/init"
 grep -Fq '/run/rog5-postmortem.status' "$stage/init"
-grep -Fq '/usr/libexec/rog5-recovery-control &' "$stage/init"
 grep -Fq "grep -Eq '^session=[0-9a-f]{32}$'" "$stage/init"
 grep -Fq 'ip address add 169.254.77.2/30 dev usb0' "$stage/init"
 grep -Fq 'bundle_root=/run/rog5-bundles' "$stage/init"
@@ -139,7 +182,30 @@ grep -Fq "mkdir -p \"\$bundle_root\"" "$stage/init"
 grep -Fq "chown 0:0 \"\$bundle_root\"" "$stage/init"
 grep -Fq "chmod 0700 \"\$bundle_root\"" "$stage/init"
 case $contract in
-	exact-a600000-v1)
+	exact-a600000-v1|observation-only-a600000-v1)
+		grep -Fxq \
+			'/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &' \
+			"$stage/init" ||
+			fail 'current recovery does not bind the responder mode'
+		grep -Fxq 'recovery_mode_file=/etc/rog5/recovery-mode' \
+			"$stage/init" ||
+			fail 'current recovery lacks its sealed mode path'
+		[ -f "$stage/etc/rog5/recovery-mode" ] &&
+			[ ! -L "$stage/etc/rog5/recovery-mode" ] &&
+			[ "$(stat -c %a "$stage/etc/rog5/recovery-mode")" = 444 ] &&
+			[ "$(stat -c %h "$stage/etc/rog5/recovery-mode")" = 1 ] ||
+			fail 'current recovery mode file has unsafe metadata'
+		case $contract in
+			exact-a600000-v1)
+				[ "$(cat "$stage/etc/rog5/recovery-mode")" = full-v1 ] ||
+					fail 'full recovery mode identity mismatch'
+				;;
+			observation-only-a600000-v1)
+				[ "$(cat "$stage/etc/rog5/recovery-mode")" = \
+					observation-only-v1 ] ||
+					fail 'observation-only recovery mode identity mismatch'
+				;;
+		esac
 		grep -Fxq 'expected_udc=a600000.dwc3' "$stage/init" ||
 			fail 'stable recovery lacks the exact expected UDC identity'
 		grep -Fxq 'udc_class_dir=/sys/class/udc' "$stage/init" ||
@@ -157,6 +223,8 @@ case $contract in
 		fi
 		;;
 	historical-pinned-v1)
+		grep -Fxq '/usr/libexec/rog5-recovery-control &' "$stage/init" ||
+			fail 'historical recovery lacks its pinned responder start shape'
 		grep -Fxq 'if ! echo "$udc" >"$gadget/UDC"; then' \
 			"$stage/init" ||
 			fail 'historical recovery lacks its pinned UDC bind shape'
@@ -183,8 +251,17 @@ post_contract_line=$(
 	grep -n 'ASUS wrapper storage topology mismatch after device-node rescan' \
 		"$stage/init" | cut -d: -f1
 )
-control_line=$(grep -n '^/usr/libexec/rog5-recovery-control &$' \
-	"$stage/init" | cut -d: -f1)
+case $contract in
+	exact-a600000-v1|observation-only-a600000-v1)
+		control_line=$(grep -n \
+			'^/usr/libexec/rog5-recovery-control --mode "\$recovery_mode" &$' \
+			"$stage/init" | cut -d: -f1)
+		;;
+	historical-pinned-v1)
+		control_line=$(grep -n '^/usr/libexec/rog5-recovery-control &$' \
+			"$stage/init" | cut -d: -f1)
+		;;
+esac
 bundle_root_line=$(grep -n '^bundle_root=/run/rog5-bundles$' \
 	"$stage/init" | cut -d: -f1)
 bundle_mode_line=$(grep -Fn "chmod 0700 \"\$bundle_root\"" \
@@ -194,7 +271,7 @@ postmortem_line=$(grep -n '^if ! snapshot_postmortem; then$' \
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
 	sed -n '1s/:.*//p')
 case $contract in
-	exact-a600000-v1)
+	exact-a600000-v1|observation-only-a600000-v1)
 		# shellcheck disable=SC2016
 		bind_line=$(grep -n '^if ! udc=\$(bind_expected_udc); then$' \
 			"$stage/init" | cut -d: -f1)
@@ -223,4 +300,4 @@ done
 [ "$control_line" -le "$session_line" ]
 [ "$session_line" -lt "$bind_line" ]
 
-echo "PASS stable recovery archive: contract=$contract; fixed responder/session before USB bind, pinned loader, public trust root only, no interactive shell or SSH"
+echo "PASS stable recovery archive: contract=$contract; fixed responder/session before USB bind, mode-bound payload surface, no interactive shell or SSH"

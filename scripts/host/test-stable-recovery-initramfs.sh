@@ -202,6 +202,41 @@ cmp "$test_tmp/stable-recovery-a.cpio.gz" \
 current_archive_sha256=$(
 	sha256sum "$test_tmp/stable-recovery-a.cpio.gz" | cut -d ' ' -f 1
 )
+for suffix in a b; do
+	case $suffix in
+		a) build_locale=C; build_timezone=UTC ;;
+		b) build_locale=en_US.utf8; build_timezone=Pacific/Kiritimati ;;
+	esac
+	LC_ALL=$build_locale TZ=$build_timezone \
+		"$repo/scripts/device/build-observation-recovery-initramfs.sh" \
+		"$test_tmp/stable-recovery-$suffix.cpio.gz" \
+		"$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" \
+		"$test_tmp/rog5-bundle-fetch-a" \
+		"$test_tmp/rog5-bundle-verify-a" \
+		"$test_tmp/ephemeral-public.raw" \
+		"$test_tmp/observation-recovery-$suffix.cpio.gz"
+	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$test_tmp/observation-recovery-$suffix.cpio.gz" \
+		"$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" - - - \
+		observation-only-a600000-v1 -
+done
+cmp "$test_tmp/observation-recovery-a.cpio.gz" \
+	"$test_tmp/observation-recovery-b.cpio.gz"
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" \
+	"$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" - - - \
+	observation-only-a600000-v1 - \
+	>"$test_tmp/full-as-observation.log" 2>&1
+then
+	fail 'full recovery archive passed the observation-only contract'
+fi
+grep -Fqx \
+	'FAIL observation-only recovery retains mutating path: usr/libexec/rog5-bundle-fetch' \
+	"$test_tmp/full-as-observation.log"
 
 if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
 	"$test_tmp/stable-recovery-a.cpio.gz" - \
@@ -215,7 +250,7 @@ then
 	fail 'current exact-UDC archive passed the historical contract'
 fi
 grep -Fqx \
-	'FAIL historical recovery lacks its pinned UDC bind shape' \
+	'FAIL historical recovery lacks its pinned responder start shape' \
 	"$test_tmp/current-as-historical.log"
 
 if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
@@ -263,7 +298,7 @@ printf '%s\n' 'udhcpc -i usb0' >>"$test_tmp/dhcp-init"
 expect_init_rejection dhcp "$test_tmp/dhcp-init" \
 	'FAIL recovery init contains a legacy shell, credential, SSH, or network override'
 
-sed '\|/usr/libexec/rog5-recovery-control &|d' \
+sed '\|/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &|d' \
 	"$repo/initramfs/recovery-init" >"$test_tmp/no-control-init"
 chmod 0755 "$test_tmp/no-control-init"
 expect_init_rejection no-control "$test_tmp/no-control-init" \
@@ -342,6 +377,45 @@ expect_archive_rejection() {
 	grep -Fqx "$expected" "$test_tmp/$name.log"
 }
 
+expect_observation_archive_rejection() {
+	name=$1
+	archive=$2
+	expected=$3
+	if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$archive" "$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" - - - \
+		observation-only-a600000-v1 - \
+		>"$test_tmp/$name.log" 2>&1
+	then
+		fail "unsafe observation-recovery archive passed: $name"
+	fi
+	grep -Fqx "$expected" "$test_tmp/$name.log"
+}
+
+observer_mode_stage=$test_tmp/observer-mode-stage
+mkdir "$observer_mode_stage"
+gzip -dc "$test_tmp/observation-recovery-a.cpio.gz" |
+	(cd "$observer_mode_stage" && cpio -idm --quiet --no-absolute-filenames)
+chmod 0600 "$observer_mode_stage/etc/rog5/recovery-mode"
+printf '%s\n' full-v1 >"$observer_mode_stage/etc/rog5/recovery-mode"
+chmod 0444 "$observer_mode_stage/etc/rog5/recovery-mode"
+repack_fixture "$observer_mode_stage" "$test_tmp/observer-wrong-mode.cpio.gz"
+expect_observation_archive_rejection observer-wrong-mode \
+	"$test_tmp/observer-wrong-mode.cpio.gz" \
+	'FAIL observation-only recovery mode identity mismatch'
+
+observer_kexec_stage=$test_tmp/observer-kexec-stage
+mkdir "$observer_kexec_stage"
+gzip -dc "$test_tmp/observation-recovery-a.cpio.gz" |
+	(cd "$observer_kexec_stage" && cpio -idm --quiet --no-absolute-filenames)
+cp "$observer_kexec_stage/bin/busybox" \
+	"$observer_kexec_stage/usr/sbin/kexec"
+chmod 0755 "$observer_kexec_stage/usr/sbin/kexec"
+repack_fixture "$observer_kexec_stage" "$test_tmp/observer-kexec.cpio.gz"
+expect_observation_archive_rejection observer-kexec \
+	"$test_tmp/observer-kexec.cpio.gz" \
+	'FAIL observation-only recovery retains mutating path: usr/sbin/kexec'
+
 credential_stage=$test_tmp/credential-stage
 mkdir "$credential_stage"
 gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
@@ -398,10 +472,13 @@ sha256sum \
 	"$test_tmp/rog5-bundle-fetch-a" \
 	"$test_tmp/rog5-bundle-verify-a" \
 	"$test_tmp/stable-recovery-a.cpio.gz" \
-	"$test_tmp/stable-recovery-b.cpio.gz"
+	"$test_tmp/stable-recovery-b.cpio.gz" \
+	"$test_tmp/observation-recovery-a.cpio.gz" \
+	"$test_tmp/observation-recovery-b.cpio.gz"
 if [[ -n $output_root ]]; then
 	mkdir -p "$output_root/components" \
-		"$output_root/initramfs-a" "$output_root/initramfs-b"
+		"$output_root/initramfs-a" "$output_root/initramfs-b" \
+		"$output_root/observer-a" "$output_root/observer-b"
 	for binary in \
 		rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
 		cp "$test_tmp/$binary-a" "$output_root/components/$binary"
@@ -411,6 +488,10 @@ if [[ -n $output_root ]]; then
 		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz"
 	cp "$test_tmp/stable-recovery-b.cpio.gz" \
 		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz"
+	cp "$test_tmp/observation-recovery-a.cpio.gz" \
+		"$output_root/observer-a/rog5-observation-recovery.cpio.gz"
+	cp "$test_tmp/observation-recovery-b.cpio.gz" \
+		"$output_root/observer-b/rog5-observation-recovery.cpio.gz"
 	cp "$test_tmp/ephemeral-public.raw" \
 		"$output_root/ephemeral-public.raw"
 	chmod 0600 "$output_root/ephemeral-public.raw"
@@ -420,7 +501,9 @@ if [[ -n $output_root ]]; then
 		"$output_root/components/rog5-bundle-verify" \
 		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz" \
 		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz" \
+		"$output_root/observer-a/rog5-observation-recovery.cpio.gz" \
+		"$output_root/observer-b/rog5-observation-recovery.cpio.gz" \
 		"$output_root/ephemeral-public.raw"
 fi
-printf 'PASS reproducible stable-recovery integration with ephemeral public-key test boundary; base_profile=%s; trust_root=%s\n' \
+printf 'PASS reproducible full and observation-only recovery integration with ephemeral public-key test boundary; base_profile=%s; trust_root=%s\n' \
 	"$base_profile" "$public_key_source"
