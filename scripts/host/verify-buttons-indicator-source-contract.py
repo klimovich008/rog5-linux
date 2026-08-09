@@ -73,6 +73,10 @@ SOURCE_FRAGMENTS = {
         '.compatible = "qcom,pmk8350-resin"',
         " .data = &pon_gen3_resin_data",
         "device_init_wakeup(&pdev->dev, wakeup);",
+        "static int pm8941_pwrkey_suspend(struct device *dev)",
+        "if (device_may_wakeup(dev)) enable_irq_wake(pwrkey->irq);",
+        "if (device_may_wakeup(dev)) disable_irq_wake(pwrkey->irq);",
+        ".pm = pm_sleep_ptr(&pm8941_pwr_key_pm_ops),",
         "module_platform_driver(pm8941_pwrkey_driver);",
     ),
     "drivers/input/misc/Kconfig": (
@@ -88,7 +92,12 @@ SOURCE_FRAGMENTS = {
         '.name = "gpio-keys"',
         "platform_driver_register(&gpio_keys_device_driver);",
         "late_initcall(gpio_keys_init);",
+        'button->wakeup = fwnode_property_read_bool(child, "wakeup-source")',
         "device_init_wakeup(dev, wakeup);",
+        "error = enable_irq_wake(bdata->irq);",
+        "error = disable_irq_wake(bdata->irq);",
+        "error = gpio_keys_enable_wakeup(ddata);",
+        ".pm = pm_sleep_ptr(&gpio_keys_pm_ops),",
     ),
     "drivers/input/keyboard/Kconfig": (
         "config KEYBOARD_GPIO",

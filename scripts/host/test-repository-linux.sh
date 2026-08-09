@@ -171,6 +171,7 @@ shared_tests=(
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh
 	scripts/host/test-buttons-indicator-source-contract.py
+	scripts/device/test-run-network-root-physical-keys.sh
 	scripts/host/test-core-compatibility-oracle.py
 	scripts/host/test-core-source-dtb-contract.py
 	scripts/device/test-collect-minimal-headless-runtime.sh

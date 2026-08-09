@@ -32,6 +32,21 @@ MODULES = (
 )
 MODULE_FIXTURE = REPO / "artifacts/buttons-indicator-v1/leds-qcom-lpg.ko"
 MANIFEST = REPO / "manifests/artifacts.tsv"
+REQUIRED_WAKE_MARKERS = {
+    "drivers/input/misc/pm8941-pwrkey.c": (
+        "static int pm8941_pwrkey_suspend(struct device *dev)",
+        "if (device_may_wakeup(dev)) enable_irq_wake(pwrkey->irq);",
+        "if (device_may_wakeup(dev)) disable_irq_wake(pwrkey->irq);",
+        ".pm = pm_sleep_ptr(&pm8941_pwr_key_pm_ops),",
+    ),
+    "drivers/input/keyboard/gpio_keys.c": (
+        "button->wakeup = fwnode_property_read_bool(child, \"wakeup-source\")",
+        "error = enable_irq_wake(bdata->irq);",
+        "error = disable_irq_wake(bdata->irq);",
+        "error = gpio_keys_enable_wakeup(ddata);",
+        ".pm = pm_sleep_ptr(&gpio_keys_pm_ops),",
+    ),
+}
 
 
 def load_verifier():
@@ -115,6 +130,16 @@ def run_integration() -> None:
 
 def main() -> int:
     verifier = load_verifier()
+    for relative, markers in REQUIRED_WAKE_MARKERS.items():
+        configured = {
+            verifier.normalize(marker)
+            for marker in verifier.SOURCE_FRAGMENTS.get(relative, ())
+        }
+        for marker in markers:
+            if verifier.normalize(marker) not in configured:
+                raise AssertionError(
+                    f"wake-path marker is not pinned: {relative}: {marker}"
+                )
     run_integration()
     require_tracked_artifact(
         CONFIG, verifier.ACCEPTED_CONFIG_SIZE, verifier.ACCEPTED_CONFIG_SHA256

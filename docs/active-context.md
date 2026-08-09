@@ -91,6 +91,12 @@ and newer-kernel rebases remain frozen until the headless core passes.
   [offline evidence only](../test-results/2026-08-09-suspend-pm-test-devices-offline.md):
   no phone boot or real suspend occurred, and missing pstore lineage is never
   proof of no crash.
+- The active minimal root no longer depends on the historical Python-only,
+  power-only input monitor for future H4 acceptance. A guarded POSIX gate now
+  covers exact power, volume-down, and volume-up identities, press/release
+  pairs, bounded IRQ deltas, power/volume-up wake policy, resin non-wake
+  policy, and unchanged USB/NFS/storage/kernel state. Its hostile fixture
+  suite is hardware-free; no physical key has yet passed on the phone.
 
 These facts do not prove the corrected candidate on the phone.
 
