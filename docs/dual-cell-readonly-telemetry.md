@@ -1,12 +1,12 @@
 # ROG Phone 5 read-only dual-cell telemetry
 
-Status: **hardware-free source, DT, fixture, and AArch64 object checks pass;
-phone execution remains HOLD**.
+Status: **hardware-free source, DT, fixture, linked-module, and clean-twin
+kernel checks pass; phone execution remains HOLD**.
 
 This increment exposes the two pack-cell voltages needed to interpret the
 ROG Phone 5's aggregate battery voltage. It does not enable charging, assess
-battery health, set a safety threshold, authorize a phone boot, or produce a
-release candidate.
+battery health, set a safety threshold, or authorize a phone boot. The local
+candidate is compile-only and carries `authority=none`.
 
 ## Protocol boundary
 
@@ -74,6 +74,7 @@ SOURCE_DIR="$PWD/build/linux-stable-v7.1.4-source" \
   scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh
 scripts/device/test-dual-cell-readonly-candidate-dtb.sh
 python3 scripts/host/test-dual-cell-readonly-snapshot.py
+scripts/host/test-network-root-dual-cell-readonly-candidate.sh
 ```
 
 Hostile fixtures cover wrong owner/opcode/property, non-exact response length,
@@ -82,8 +83,21 @@ properties and topology changes, malformed sysfs framing, linked/writable
 properties, changed supply inventory, charging controls, range violations,
 and aggregate mismatch.
 
-The patched driver compiles as an AArch64 relocatable object with the pinned
-Linux 7.1.4 config and qualified offline builder. A release remains gated on
-two clean, complete, byte-identical kernel builds through the normal candidate
-issuance path. Partial object compilation is not a linked module or boot
-authority.
+The release integration deterministically prepares commit
+`7ee91d34b5458efa0ac45d979bab82bbd2cb7ea5`, tree
+`ef7703ecc0aad3d625cfbbef296e586d861deefe`, and kernel release
+`7.1.4-00001-g7ee91d34b545` from the accepted Linux 7.1.4 source and the exact
+reviewed patch. Run its authority-free clean twin path with:
+
+```sh
+scripts/host/build-network-root-dual-cell-readonly-candidate-offline.sh
+```
+
+Two distinct initially empty, uncached build trees produced byte-identical
+`.config`, `Image`, `Image.gz`, `Module.symvers`, module archive, metadata, and
+linked `qcom_battmgr.ko`. The exact candidate DTB was also independently
+constructed twice and compared before local no-replace publication. See the
+[clean-twin result](../test-results/2026-08-09-dual-cell-readonly-clean-twin-offline.md).
+This closes the full-build reproducibility gate only: the candidate remains
+unbooted, hardware acceptance remains unproven, and no phone or lifecycle
+authority is implied.

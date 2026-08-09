@@ -1,10 +1,23 @@
 #!/bin/sh
 set -eu
 
-output_dir=${1:?usage: verify-mainline-network-root-build.sh BUILD_DIR}
+output_dir=${1:?usage: verify-mainline-network-root-build.sh BUILD_DIR [accepted|dual-cell-readonly]}
+profile=${2:-accepted}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
-expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-expected_release=7.1.4-g7a5cef0db479
+case $profile in
+	accepted)
+		expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+		expected_release=7.1.4-g7a5cef0db479
+		;;
+	dual-cell-readonly)
+		expected_commit=7ee91d34b5458efa0ac45d979bab82bbd2cb7ea5
+		expected_release=7.1.4-00001-g7ee91d34b545
+		;;
+	*)
+		echo 'FAIL network-root verifier profile must be accepted or dual-cell-readonly' >&2
+		exit 1
+		;;
+esac
 meta=$output_dir/build-meta.txt
 config=$output_dir/.config
 image=$output_dir/arch/arm64/boot/Image

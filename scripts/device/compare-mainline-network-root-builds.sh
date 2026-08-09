@@ -12,6 +12,7 @@ for file in \
 	.config \
 	arch/arm64/boot/Image \
 	arch/arm64/boot/Image.gz \
+	Module.symvers \
 	modules.tar.gz \
 	build-meta.txt; do
 	[ -f "$build_a/$file" ] && [ -f "$build_b/$file" ]

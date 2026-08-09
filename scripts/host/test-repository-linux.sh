@@ -143,6 +143,7 @@ shared_tests=(
 	scripts/host/test-network-root-kernel-rebuild-contract.sh
 	scripts/host/test-network-root-kernel-builder-acceleration.sh
 	scripts/host/test-network-root-thermal-pmic-candidate.sh
+	scripts/host/test-network-root-dual-cell-readonly-candidate.sh
 	scripts/host/test-suspend-pm-test-source-contract.py
 	scripts/host/test-network-root-suspend-pm-test-candidate.sh
 	scripts/device/test-run-network-root-suspend-pm-test-devices.py
