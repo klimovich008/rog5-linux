@@ -1,0 +1,139 @@
+{
+  "format": "rog5-retention-cycle-admission-review-v1",
+  "profile": "host-rendezvous-v3-observer-v1",
+  "state": "hold",
+  "authority": "none",
+  "boot_authority": "none",
+  "retention": "unproven",
+  "missing_pstore": "inconclusive",
+  "recovery_cmdline": "init=/init selinux=0 printk.devkmsg=on rog5linux.test=1 ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x300000 ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.recovery_timeout=180",
+  "sequence": [
+    "diagnostic-target",
+    "exact-alpine-fallback",
+    "bootloader",
+    "observation-recovery",
+    "postmortem-status"
+  ],
+  "execution": {
+    "role": "target-execution-v1",
+    "candidate_path": "configs/recovery-candidates/headless-netroot-early-diag-v2.json",
+    "candidate_size": 1411,
+    "candidate_sha256": "41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf",
+    "candidate": "headless-netroot-early-diag-v2",
+    "candidate_record": {
+      "path_a": "candidate-a.txt",
+      "path_b": "candidate-b.txt",
+      "size": 306,
+      "sha256": "c333ae15bc79832634b428de9235e1b05bb470748576feddf6b040993399569f"
+    },
+    "bundle_a": "bundle-a/headless-netroot-early-diag-v2",
+    "bundle_b": "bundle-b/headless-netroot-early-diag-v2",
+    "runtime_manifest": {
+      "path_a": "bundle-a/headless-netroot-early-diag-v2/manifest",
+      "path_b": "bundle-b/headless-netroot-early-diag-v2/manifest",
+      "size": 834,
+      "sha256": "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc"
+    },
+    "runtime_signature": {
+      "path_a": "bundle-a/headless-netroot-early-diag-v2/manifest.sig",
+      "path_b": "bundle-b/headless-netroot-early-diag-v2/manifest.sig",
+      "size": 64,
+      "sha256": "2cc14683d1d46067038e21eb4ff88b8539b9b820bf7ae521d3ad8be6b6d60b4b"
+    },
+    "trust_key": {
+      "path": "recovery/ephemeral-public.raw",
+      "size": 32,
+      "sha256": "26f50bab2ac531d3c0e0f6bbbebb725637ddd97d98ed1aeaffef15c7ebae1f4b"
+    },
+    "private_key_path": "recovery/ephemeral-private.raw",
+    "trust_class": "disposable-offline",
+    "recovery_mode": "full-v1",
+    "avb_algorithm": "NONE",
+    "recovery_initramfs": {
+      "path_a": "recovery/initramfs-a/rog5-stable-recovery.cpio.gz",
+      "path_b": "recovery/initramfs-b/rog5-stable-recovery.cpio.gz",
+      "size": 7603769,
+      "sha256": "dd224fb964d4d19c87d8107945ea835c62b97bc34c4faf50cfcc47a5255947c1"
+    },
+    "wrapper_config": {
+      "path_a": "wrapper/wrapper-a/asus-kexec-stage/.config",
+      "path_b": "wrapper/wrapper-b/asus-kexec-stage/.config",
+      "size": 185763,
+      "sha256": "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f"
+    },
+    "wrapper_image": {
+      "path_a": "wrapper/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
+      "path_b": "wrapper/wrapper-b/asus-kexec-stage/arch/arm64/boot/Image",
+      "size": 50498048,
+      "sha256": "05f702c7f9ed4ebb7f416377b769a80b7f17c8443d7c8d75b374995509899e80"
+    },
+    "raw_boot": {
+      "path_a": "wrapper/repack/stable-recovery-a.raw.img",
+      "path_b": "wrapper/repack/stable-recovery-b.raw.img",
+      "size": 58109952,
+      "sha256": "e8c010ff723a45eb17cbdf4acb9510f2cc4783caaefa70eca6d8137ee7f92e23"
+    },
+    "unsigned_avb": {
+      "path_a": "wrapper/repack/stable-recovery-a.avb.img",
+      "path_b": "wrapper/repack/stable-recovery-b.avb.img",
+      "size": 100663296,
+      "sha256": "142f44f461ab82c586bf06136358370356162826433d11639237299c107706ba"
+    },
+    "claim": "unissued"
+  },
+  "observer": {
+    "role": "observation-only-v1",
+    "host_action": "postmortem-status",
+    "recovery_mode": "observation-only-v1",
+    "avb_algorithm": "NONE",
+    "wrapper_evidence": {
+      "path": "observation-wrapper-evidence.txt",
+      "size": 823,
+      "sha256": "3d58584cc6c9e418ad7d3baa110fb2c075527fd84213f0e87d1b57de9ba85033"
+    },
+    "recovery_initramfs": {
+      "path_a": "wrapper-a/rog5-kexec-stage-initramfs.cpio.gz",
+      "path_b": "wrapper-b/rog5-kexec-stage-initramfs.cpio.gz",
+      "size": 5371780,
+      "sha256": "613d6e3e61d7818693c0d26b0b7c252479941cc25c98e897ef6aa30469e770db"
+    },
+    "wrapper_config": {
+      "path_a": "wrapper-a/asus-kexec-stage/.config",
+      "path_b": "wrapper-b/asus-kexec-stage/.config",
+      "size": 185763,
+      "sha256": "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f"
+    },
+    "wrapper_image": {
+      "path_a": "wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
+      "path_b": "wrapper-b/asus-kexec-stage/arch/arm64/boot/Image",
+      "size": 48400896,
+      "sha256": "efcc4db8a5ad6abbd27a7489bb7f9ae202ab93662e5b7953e77621671e27a6ab"
+    },
+    "raw_boot": {
+      "path_a": "repack/stable-recovery-a.raw.img",
+      "path_b": "repack/stable-recovery-b.raw.img",
+      "size": 53780480,
+      "sha256": "fdcf9b85951fe696afb56f1b3d3c9e6581ce040fdcce1e51f8ed37d23d4fa163"
+    },
+    "unsigned_avb": {
+      "path_a": "repack/stable-recovery-a.avb.img",
+      "path_b": "repack/stable-recovery-b.avb.img",
+      "size": 100663296,
+      "sha256": "63fc0a1a6827941d51edb7033fa501ae74dd8c192fad65d84f7816e3caf743b1"
+    },
+    "claim": "unissued"
+  },
+  "claims": {
+    "consumer": "scripts/host/consume-exact-boot-claim.py",
+    "consumer_size": 14436,
+    "consumer_sha256": "8f465164cccd35bfdd03d3a367bc278e30e7b23d4b0ea901991e9176f362ccec",
+    "execution": "not-defined",
+    "observer": "not-defined",
+    "issuance_requirement": "distinct-exact-records",
+    "reuse": "forbidden"
+  },
+  "policy": {
+    "path": "manifests/temporary-boot-images.tsv",
+    "required_allow_rows": 0
+  }
+}

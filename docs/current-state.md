@@ -118,6 +118,12 @@ before a later observer transition. The action cannot reboot and passed ten
 hostile fixture groups plus the existing fallback-helper suite. It has not
 been run on the phone and therefore changes neither the retention result nor
 the **HOLD** recommendation.
+The subsequent [two-identity retention review](../test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
+jointly binds the exact execution wrapper, observation-only wrapper, boot-v3
+and unsigned-AVB composition, transition order, absent new claims, and empty
+temporary-boot policy. Hostile offline tests pass, but no physical retention
+result, candidate issuance, credential, or boot authority exists. Admission
+therefore remains **HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

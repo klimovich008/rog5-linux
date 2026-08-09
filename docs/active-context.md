@@ -202,6 +202,14 @@ existing reboot-helper suite pass. The action neither requests
 reboot nor accepts reboot authority. It has not been run on the phone, so
 physical preservation and candidate admission remain **HOLD**.
 
+The follow-on [two-identity retention review](../test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
+now fails closed unless the exact full execution recovery and distinct
+observation-only recovery form one reviewed target → fallback → bootloader →
+observer sequence. It verifies their signed-bundle, initramfs, boot-v3, AVB,
+ramoops, claim-consumer, and empty-policy identities without contacting the
+phone. The two future claim records remain intentionally undefined and
+physical retention remains unproven, so the critical path remains **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a
