@@ -241,6 +241,16 @@ must satisfy all of these:
 - root model is exactly `ASUS ROG Phone 5`;
 - root compatibility contains both `asus,rog-phone5` and `qcom,sm8350`;
 - no `bootargs` property exists anywhere;
+- `/chosen/stdout-path` is exactly `serial0:115200n8`, and `/aliases/serial0`
+  resolves to `/soc@0/geniqup@9c0000/serial@98c000`;
+- the root and `/soc@0` use exact 64-bit address/size cells, `/soc@0` is an
+  enabled `simple-bus` with the accepted identity translation, and the QUP
+  wrapper has exact identity child translation, compatible, register range,
+  cells, and enabled status;
+- that UART is enabled and exactly `qcom,geni-debug-uart` at
+  `0x98c000 + 0x4000`, and its `pinctrl-0` resolves to
+  `qup-uart3-default-state`;
+- that state maps RX to GPIO18 and TX to GPIO19 using function `qup3`;
 - there is one root and one root-level `reserved-memory` node;
 - reserved-memory contains exactly one `#address-cells = <2>`, one
   `#size-cells = <2>`, and one empty `ranges` before any child;
@@ -370,10 +380,10 @@ hosts, and APK-log content are normalized in the Dockerfile.
 The current offline checkpoint produced:
 
 ```text
-source_sha256=6fc8afd4d67204b28923916041a33133fa88d2b9eef65fab872bf748ede5c6ae
-binary_sha256=ce0f2d997c0243b43e417a41fb5daadd89dfde7b2738ce3bb2e33783ba403b4c
-builder_id=e2e90f8ad3cfc4f9b7660ee8828fcae008792f05567fb9b4efd3ab0102063d8e
-builder_digest=sha256:b4946b74324785d005aa3067dd18788f90cc65215a519c8735dce03aa01d1268
+source_sha256=f41142a73d3c43ad0aad640cb1d99afa47461ef452bb522ad990a175c830760d
+binary_sha256=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
+builder_id=13d758cd4c708ddb798dd539d1b6c4e3546ea5ef9129ed309c74bd8f4e620689
+builder_digest=sha256:75f5179fe0164ffefa2f9bc5dba5a47eac47674d347311602256476aa2ee7a01
 ```
 
 These identities are checkpoint evidence, not a live allowlist. Any source

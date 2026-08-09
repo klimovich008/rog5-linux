@@ -164,8 +164,53 @@ def valid_dts() -> str:
 \t#address-cells = <2>;
 \t#size-cells = <2>;
 
+\taliases {
+\t\tserial0 = &uart2;
+\t};
+
 \tchosen {
 \t\tstdout-path = "serial0:115200n8";
+\t};
+
+\tsoc@0 {
+\t\tcompatible = "simple-bus";
+\t\t#address-cells = <2>;
+\t\t#size-cells = <2>;
+\t\tranges = <0 0 0 0 0x10 0>;
+
+\t\tgeniqup@9c0000 {
+\t\t\tcompatible = "qcom,geni-se-qup";
+\t\t\treg = <0 0x9c0000 0 0x6000>;
+\t\t\t#address-cells = <2>;
+\t\t\t#size-cells = <2>;
+\t\t\tranges;
+\t\t\tstatus = "okay";
+
+\t\t\tuart2: serial@98c000 {
+\t\t\t\tcompatible = "qcom,geni-debug-uart";
+\t\t\t\treg = <0 0x98c000 0 0x4000>;
+\t\t\t\tpinctrl-names = "default";
+\t\t\t\tpinctrl-0 = <&uart2_default>;
+\t\t\t\tstatus = "okay";
+\t\t\t};
+\t\t};
+
+\t\tpinctrl@f100000 {
+\t\t\tcompatible = "qcom,sm8350-tlmm";
+\t\t\treg = <0 0xf100000 0 0x300000>;
+
+\t\t\tuart2_default: qup-uart3-default-state {
+\t\t\t\trx-pins {
+\t\t\t\t\tpins = "gpio18";
+\t\t\t\t\tfunction = "qup3";
+\t\t\t\t};
+
+\t\t\t\ttx-pins {
+\t\t\t\t\tpins = "gpio19";
+\t\t\t\t\tfunction = "qup3";
+\t\t\t\t};
+\t\t\t};
+\t\t};
 \t};
 
 \treserved-memory {

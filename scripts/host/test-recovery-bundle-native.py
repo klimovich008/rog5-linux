@@ -20,6 +20,10 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "tools/recovery_control/rog5-bundle-verify.c"
+ACCEPTED_TARGET_DTB = (
+    REPO / "artifacts/network-root-v3/"
+    "sm8350-asus-rog-phone5-recovery.dtb"
+)
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 FILES = (
     "manifest",
@@ -614,7 +618,28 @@ class NativeBundleVerifierTest(unittest.TestCase):
         *,
         model: str = "ASUS ROG Phone 5",
         compatible: str = '"asus,rog-phone5", "qcom,sm8350"',
+        root_address_cells: str = "<2>",
+        root_size_cells: str = "<2>",
         chosen: str = 'stdout-path = "serial0:115200n8";',
+        serial_alias: str = "serial0 = &uart2;",
+        soc_status: str = "",
+        soc_address_cells: str = "<2>",
+        soc_size_cells: str = "<2>",
+        soc_ranges: str = "<0 0 0 0 0x10 0>",
+        qup_compatible: str = "qcom,geni-se-qup",
+        qup_reg: str = "<0 0x9c0000 0 0x6000>",
+        qup_address_cells: str = "<2>",
+        qup_size_cells: str = "<2>",
+        qup_ranges: str = "",
+        qup_status: str = "okay",
+        uart_compatible: str = "qcom,geni-debug-uart",
+        uart_reg: str = "<0 0x98c000 0 0x4000>",
+        uart_status: str = "okay",
+        uart_pinctrl: str = "<&uart2_default>",
+        rx_pin: str = "gpio18",
+        rx_function: str = "qup3",
+        tx_pin: str = "gpio19",
+        tx_function: str = "qup3",
         ramoops_start: str = "0x9b800000",
         ramoops_size: str = "0x400000",
         second_start: str = "0x9bc00000",
@@ -626,11 +651,57 @@ class NativeBundleVerifierTest(unittest.TestCase):
 / {{
 \tmodel = "{model}";
 \tcompatible = {compatible};
-\t#address-cells = <2>;
-\t#size-cells = <2>;
+\t#address-cells = {root_address_cells};
+\t#size-cells = {root_size_cells};
+
+\taliases {{
+\t\t{serial_alias}
+\t}};
 
 \tchosen {{
 \t\t{chosen}
+\t}};
+
+\tsoc@0 {{
+\t\tcompatible = "simple-bus";
+\t\t#address-cells = {soc_address_cells};
+\t\t#size-cells = {soc_size_cells};
+\t\tranges = {soc_ranges};
+\t\t{soc_status}
+
+\t\tgeniqup@9c0000 {{
+\t\t\tcompatible = "{qup_compatible}";
+\t\t\treg = {qup_reg};
+\t\t\t#address-cells = {qup_address_cells};
+\t\t\t#size-cells = {qup_size_cells};
+\t\t\tranges{qup_ranges};
+\t\t\tstatus = "{qup_status}";
+
+\t\t\tuart2: serial@98c000 {{
+\t\t\t\tcompatible = "{uart_compatible}";
+\t\t\t\treg = {uart_reg};
+\t\t\t\tpinctrl-names = "default";
+\t\t\t\tpinctrl-0 = {uart_pinctrl};
+\t\t\t\tstatus = "{uart_status}";
+\t\t\t}};
+\t\t}};
+
+\t\tpinctrl@f100000 {{
+\t\t\tcompatible = "qcom,sm8350-tlmm";
+\t\t\treg = <0 0xf100000 0 0x300000>;
+
+\t\t\tuart2_default: qup-uart3-default-state {{
+\t\t\t\trx-pins {{
+\t\t\t\t\tpins = "{rx_pin}";
+\t\t\t\t\tfunction = "{rx_function}";
+\t\t\t\t}};
+
+\t\t\t\ttx-pins {{
+\t\t\t\t\tpins = "{tx_pin}";
+\t\t\t\t\tfunction = "{tx_function}";
+\t\t\t\t}};
+\t\t\t}};
+\t\t}};
 \t}};
 
 \treserved-memory {{
@@ -1440,6 +1511,89 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 fixture.refresh_manifest()
                 fixture.assert_rejected(error)
 
+    def test_dtb_latent_serial_observability_contract(self) -> None:
+        cases = (
+            (
+                "stdout-path",
+                self.valid_dts(chosen='stdout-path = "serial1:115200n8";'),
+            ),
+            (
+                "serial-alias",
+                self.valid_dts(serial_alias='serial0 = "/wrong";'),
+            ),
+            (
+                "root-address-cells",
+                self.valid_dts(root_address_cells="<1>"),
+            ),
+            ("root-size-cells", self.valid_dts(root_size_cells="<1>")),
+            ("soc-disabled", self.valid_dts(soc_status='status = "disabled";')),
+            (
+                "soc-address-cells",
+                self.valid_dts(soc_address_cells="<1>"),
+            ),
+            ("soc-size-cells", self.valid_dts(soc_size_cells="<1>")),
+            ("soc-ranges", self.valid_dts(soc_ranges="<0 0 0 0 1 0>")),
+            (
+                "qup-compatible",
+                self.valid_dts(qup_compatible="qcom,geni-se"),
+            ),
+            (
+                "qup-register",
+                self.valid_dts(qup_reg="<0 0x9d0000 0 0x6000>"),
+            ),
+            (
+                "qup-address-cells",
+                self.valid_dts(qup_address_cells="<1>"),
+            ),
+            ("qup-size-cells", self.valid_dts(qup_size_cells="<1>")),
+            (
+                "qup-ranges",
+                self.valid_dts(qup_ranges=" = <0 0 0 0 0x10 0>"),
+            ),
+            ("qup-disabled", self.valid_dts(qup_status="disabled")),
+            (
+                "uart-compatible",
+                self.valid_dts(uart_compatible="qcom,geni-uart"),
+            ),
+            (
+                "uart-register",
+                self.valid_dts(uart_reg="<0 0x998000 0 0x4000>"),
+            ),
+            ("uart-disabled", self.valid_dts(uart_status="disabled")),
+            (
+                "wrong-pinctrl-phandle",
+                self.valid_dts(uart_pinctrl="<0xdeadbeef>"),
+            ),
+            ("rx-pin", self.valid_dts(rx_pin="gpio19")),
+            ("rx-function", self.valid_dts(rx_function="gpio")),
+            ("tx-pin", self.valid_dts(tx_pin="gpio18")),
+            ("tx-function", self.valid_dts(tx_function="gpio")),
+        )
+        for name, source in cases:
+            with self.subTest(case=name):
+                fixture = self.fixture(f"dtb-serial-{name}")
+                fixture.write_dtb(source)
+                fixture.refresh_manifest()
+                fixture.assert_rejected(
+                    "DTB lacks the latent serial observability contract"
+                )
+
+    def test_repository_accepted_dtb_has_serial_observability_contract(
+        self,
+    ) -> None:
+        fixture = self.fixture("accepted-serial-dtb")
+        shutil.copyfile(
+            ACCEPTED_TARGET_DTB,
+            fixture.bundle / "board.dtb",
+        )
+        fixture.refresh_manifest()
+        result = fixture.invoke()
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr.decode(errors="replace"),
+        )
+
     def test_dtb_rejects_truncated_header_and_string_list(self) -> None:
         fixture = self.fixture("dtb-header")
         dtb = bytearray((fixture.bundle / "board.dtb").read_bytes())
@@ -1466,7 +1620,7 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 path.read_bytes(),
                 "#size-cells",
                 "#address-cells",
-                1,
+                3,
             )
         )
         fixture.refresh_manifest()
@@ -1484,9 +1638,8 @@ class NativeBundleVerifierTest(unittest.TestCase):
             with self.subTest(case=name):
                 fixture = self.fixture(name)
                 source = self.valid_dts()
-                position = source.find(before)
-                if before.startswith("#"):
-                    position = source.find(before, position + 1)
+                reserved = source.index("\treserved-memory {")
+                position = source.find(before, reserved)
                 self.assertNotEqual(position, -1)
                 source = (
                     source[:position]

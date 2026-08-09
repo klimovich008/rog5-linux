@@ -29,11 +29,11 @@ deterministic command latency:
 |---|---:|---:|
 | gadget interface discovered | 1,010 ms | 1,010 ms |
 | NetworkManager unmanaged confirmed | 40 ms | 1,050 ms |
-| link up | 30 ms | 1,080 ms |
-| exact `169.254.77.1/30` present | 50 ms | 1,130 ms |
-| exact `drop` zone confirmed | 40 ms | 1,170 ms |
-| sole exact `169.254.77.1:2049` listener confirmed | 30 ms | 1,200 ms |
-| exact network-root link ready | 0 ms | 1,200 ms |
+| link up | 40 ms | 1,090 ms |
+| exact `169.254.77.1/30` present | 40 ms | 1,130 ms |
+| exact `drop` zone confirmed | 50 ms | 1,180 ms |
+| sole exact `169.254.77.1:2049` listener confirmed | 30 ms | 1,210 ms |
+| exact network-root link ready | 0 ms | 1,210 ms |
 
 These are hardware-free modeled timings, not measurements of Steam Deck USB
 enumeration. They prove the race is structurally possible and that every
@@ -42,7 +42,15 @@ showed stage 70 from 3.544 through 12.547 seconds, which is longer than this
 modeled window; the evidence therefore cannot select this race over a lower
 USB, kernel, or NFS failure.
 
-The firewall order was not changed. The server still binds only
+The firewall order was not changed. The final hostile model measured a 50 ms
+interval between exact address insertion and completion of the `public` →
+`drop` transition. This is an address-before-drop-zone ordering window in a
+deterministic injected-delay model, not a Steam Deck measurement and not a
+packet-exposure measurement. The unprivileged fixture does not exercise
+active/default-zone packet filtering during that interval. A failed zone
+transition now proves that final
+readiness is unreachable, and loopback, wildcard, and wrong-address TCP/2049
+listeners cannot satisfy the exact-listener check. The server still binds only
 `169.254.77.1:2049`, exports only to `169.254.77.2/30`, installs the narrow
 NFS allowance into the protected active-zone set, and ultimately moves the
 interface into drop-by-default `drop`. Address assignment still precedes the
@@ -76,6 +84,13 @@ not expose a stable errno distinction. Exit 126/127 or clock/output failure is
 mislabeling an unobservable immediate failure as definitely refused.
 Transport loss retains its exact UDC, interface, carrier, address, or route
 classification.
+
+A final two-axis review found that the three new host-port strings were absent
+from both the native reporter and host parser. PID 1 could therefore retain
+the right internal reason while stage 200 lost the terminal evidence. A
+fail-first round-trip rejected all three values; the fixed native/host test
+accepts them, and a clean-twin AArch64 reporter gate compares all three frames
+byte-for-byte with the host oracle.
 
 The pinned applet was executed under AArch64 user emulation: refusal returned
 status 1 with empty stderr, `nc --help` proved all four required options, and
@@ -116,6 +131,15 @@ identity, one diagnostic mount maximum, and stage 70/75/80 ordering.
   exact order;
 - `tools/qemu-network-root-nfs/init.c`: keeps the QEMU client/server probe
   option identities synchronized with production.
+- `tools/early_target_diag/rog5-early-target-diag.c` and
+  `scripts/host/early-target-diagnostics.py`: add the exact three host-port
+  terminal reasons to the native and host vocabularies;
+- reporter/initramfs builders and seals: pin clean-twin reporter
+  `26249252…bafa` and clean-twin offline diagnostic initramfs
+  `94edd625…cffc`, both with no boot authority;
+- signed-DTB verification: binds the accepted latent GENI debug-UART route,
+  including exact root cells, ancestor translation, and pinctrl, while making
+  no claim that ASUS exposed it physically.
 
 The concrete defects fixed are: carrier was accepted before host reachability;
 host setup had no transition timing/proof; diagnostic mode consumed its mount
@@ -180,10 +204,15 @@ bootloader/recovery path with unambiguous current-cycle lineage. Installed
 Alpine cannot read the target's reserved region, so the fallback alone cannot
 close this gap.
 
-Every live progress frame still depends on the USB path under diagnosis.
-`console=ttyMSM0,115200n8` is present, but there is no evidence that ASUS
-routed the Qualcomm debug UART to an accessible USB-C/debug-cable path on
-anakin. UART is therefore an assessment item, not an available channel.
+Every live progress frame still depends on the USB path under diagnosis. The
+accepted target DTB and config contain a coherent GENI debug-UART route through
+QUP SE3 to GPIO18/19, and the clean-twin bundle verifier now binds that latent
+route. There is still no evidence that ASUS exposed it through USB-C, test
+pads, or another connector on anakin. Stable recovery also lacks GENI console
+support. UART is therefore a latent assessment item, not an available channel;
+any future electrical probe must keep adapter TX disconnected because serial
+Magic SysRq remains enabled. See the
+[independent observability review](2026-08-09-independent-observability-review-offline.md).
 
 ## VCNL36866 and storage disposition
 
@@ -211,10 +240,27 @@ contract was absent and rejected the old host in 115 ms because the first
 transition was not timestamped. Before implementation, the passing target
 and host suites took 1,638 ms and 233 ms. The final focused results are:
 
-- target init/hostile rendezvous suite: PASS, 2.222 s (2.276 s inside final
-  complete CI);
-- host transition/security suite: PASS, 1.445 s;
+- target init/hostile rendezvous suite: PASS, 2.604 s. Its final hostile case
+  starts the production `arm_watchdog` path, proves both live watchdog/timer
+  PIDs and start times plus the exact eight-field lease hashes before and
+  after an unreachable-host rendezvous, and leaves both processes armed;
+- host transition/security suite: PASS, 1.358 s, including the 50 ms modeled
+  address-before-drop-zone ordering window and fail-closed zone/listener
+  cases. This is not a packet-exposure measurement: the unprivileged fixture
+  does not exercise active/default-zone packet filtering during the zone
+  transition;
 - hostile QEMU NFS contract: PASS, 11.139 s;
+- native reporter/host parser: fail-first 3/27 failures in 4.759 s; fixed
+  27/27 PASS in 4.887 s on the final focused rerun;
+- clean-twin AArch64 reporter and three fault/oracle frames: PASS, 13.508 s;
+- native bundle verifier: ancestor-bus fail-first 9 hostile failures in
+  4.147 s, root-cell fail-first 2 failures in 2.020 s, fixed 26/26 PASS in
+  4.335 s;
+- clean-twin AArch64 bundle verifier plus QEMU mutations: PASS, 69 s,
+  source `f41142a7…60d`, twin binary `33aa65c6…42ef`;
+- clean-twin diagnostic initramfs: PASS, 80.187 s;
+- runtime bundle packager: 8/8 PASS, 4.279 s;
+- recovery prepare/load/execute integration: 2/2 PASS, 5.297 s;
 - shell/C syntax and `git diff --check`: PASS;
 - VCNL source-oracle tests: 17/17 PASS, 0.701 s;
 - VCNL patch contract: 8/8 PASS, 0.973 s;
@@ -225,12 +271,17 @@ and host suites took 1,638 ms and 233 ms. The final focused results are:
   executed against pinned BusyBox and the latter was fixed with a hostile
   30-attempt test. Its UDC/interface/carrier fixture objection did not apply
   because those cases inject loss only after the mount returns;
-- complete repository Linux `ci` tier: **PASS**, 471.426 s, ending with
-  `PASS repository Linux ci tier`.
+- complete repository Linux `ci` tier: PASS, 456.488 s at the first final
+  checkpoint (the preceding pre-root-cell-review checkpoint was 454.528 s).
 
 The increased target/host focused time is the intentional hostile rendezvous
 coverage and one-second discovery-order model, not a production performance
 measurement.
+
+The final review retained three self-contained UART DTS test fixtures rather
+than introducing a shared test helper. This is deliberate isolation: each
+packager, native-verifier, and lifecycle integration suite owns its complete
+input and can detect local fixture drift without importing another suite.
 
 ## Recommendation
 

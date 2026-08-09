@@ -16,14 +16,15 @@ sh -n "$builder"
 bash -n "$host_gate"
 
 for token in \
-	'expected_source_sha256=d0fb0eae23538b53ce1cc69e9dbef1f9a1ec702b74ce5fb353040b13caa8607a' \
+	'expected_source_sha256=93d09cca8ad8dc573b1aa25c2fba5cc027d1ba901adb6c9e2643f97287387f9a' \
 	'expected_output_size=67288' \
-	'expected_output_sha256=0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1' \
+	'expected_output_sha256=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa' \
 	'[ "$(uname -m)" = aarch64 ]' \
 	'[ "$(cc -dumpfullversion)" = 15.2.0 ]' \
 	'-static -fPIE -pie -fstack-protector-strong' \
 	'-z,noexecstack,--build-id=none' \
 	'ROG5_DIAG_TEST_' \
+	'host-port-timeout' \
 	'/dev/ttyGS0'; do
 	grep -Fq -- "$token" "$builder" || {
 		echo "FAIL reporter builder contract missing: $token" >&2
@@ -36,6 +37,7 @@ for token in \
 	'run-private-arm64-binfmt.sh' \
 	'cmp "$work/reporter-a" "$work/reporter-b"' \
 	'"$runner" "$work/reporter-a" frame' \
+	'for fault in host-port-probe-failed host-port-unreachable host-port-timeout' \
 	'cmp "$work/native-frame" "$work/oracle-frame"'; do
 	grep -Fq -- "$token" "$host_gate" || {
 		echo "FAIL AArch64 reporter gate contract missing: $token" >&2

@@ -1,5 +1,8 @@
 name	size	sha256	role	tracked
 configs/recovery-candidates/headless-netroot-early-diag-v2.json	1411	f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157	tracked single-attempt stage-75 v2 candidate contract; current write-side diagnostic identity	yes
+artifacts/early-target-diagnostic-v3/rog5-early-target-diag	67288	26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa	reproducible AArch64 host-port-classifying reporter; offline component only, no candidate or boot authority	no
+artifacts/early-target-diagnostic-v3/rog5-early-target-diagnostic-initramfs.cpio.gz	6013458	94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc	reproducible bounded host-rendezvous diagnostic initramfs; offline component only, not a candidate	no
+artifacts/early-target-diagnostic-v3/early-target-diagnostic-initramfs-rebuild.txt	992	07417f71f00be35fa17c4fced056c414a0c759dacd33bdfc3c73264dda83fa4a	qualified rootless AArch64 twin-build provenance for the v3 offline component	no
 artifacts/early-target-diagnostic-v2/rog5-early-target-diag	67288	0b5d318e129e4d19c8bf2be8647fc4c3df64535c46347d4ae64e5a7cdb727bc1	reproducible AArch64 single-attempt stage-75 reporter with exact route-loss classification; ignored rebuild output	no
 artifacts/early-target-diagnostic-v2/rog5-early-target-diagnostic-initramfs.cpio.gz	6011687	71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e	reproducible single-attempt stage-75 v2 diagnostic initramfs; offline successor payload	no
 artifacts/early-target-diagnostic-v2/early-target-diagnostic-initramfs-rebuild.txt	992	cb5c3397bf6a2a13785f9328f5d3cbccbf34df3b712985e48a81ae46639bfd7a	qualified rootless AArch64 rebuild provenance for the single-attempt stage-75 v2 payload	no

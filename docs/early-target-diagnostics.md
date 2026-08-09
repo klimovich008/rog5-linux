@@ -90,11 +90,13 @@ whether it succeeded or failed. The target then verifies that the exact
 `a600000.dwc3` UDC remains bound, `usb0` and carrier remain present, the exact
 `169.254.77.2/30` address remains assigned, and the direct route to
 `169.254.77.1` remains intact. Terminal faults distinguish UDC, interface,
-carrier, address, route, and NFS failures. A 70-only stream proves no return
-was observed. Stage 80 remains the stronger proof that the one mount succeeded
-and both `mountpoint` and the read-only mount-table check passed. Normal,
-non-diagnostic network-root mode retains its bounded retry behavior without
-emitting diagnostic stages.
+carrier, address, route, host-port probe failure, immediate host-port
+unreachability, measured host-port timeout, and NFS failures. The native
+reporter and host parser share that exact vocabulary. A 70-only stream proves
+no return was observed. Stage 80 remains the stronger proof that the one mount
+succeeded and both `mountpoint` and the read-only mount-table check passed.
+Normal, non-diagnostic network-root mode retains its bounded retry behavior
+without emitting diagnostic stages.
 
 ## Failure and rollback behavior
 
@@ -380,6 +382,16 @@ from the five required files at historical source commit
 `27a270f2955c57f61e2cb8aeae0be23b31223499`. This prevents diagnostic
 changes in the shared current init source from silently redefining the normal
 candidate's historical bytes.
+
+The current offline v3 component adds the bounded TCP/2049 rendezvous fault
+vocabulary to both the native reporter and host parser. Two reporter builds
+are byte-identical at 67,288 bytes, SHA-256
+`26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa`.
+Two diagnostic initramfs builds are byte-identical at 6,013,458 bytes,
+SHA-256
+`94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc`.
+This is an offline component identity only: no new candidate contract, signed
+bundle, wrapper, policy row, or phone boot exists.
 The previous reporter `f0a9a52b…a1fd`, 6,010,870-byte archive
 `10cc407e…35c`, and stage-75 v1 archive `83240834…31d` remain immutable
 historical inputs. The distinct v2 candidate record binds the accepted Image,

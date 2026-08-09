@@ -86,6 +86,41 @@ sys.stdout.buffer.write(module.frame_for(record))
 PY
 cmp "$work/native-frame" "$work/oracle-frame"
 
+for fault in host-port-probe-failed host-port-unreachable host-port-timeout; do
+	"$runner" "$work/reporter-a" frame \
+		headless-netroot-early-diag-v1 \
+		12345678-1234-4abc-8def-1234567890ab \
+		2 500 200 60 "$fault" 600000 0 >"$work/native-$fault"
+	python3 - "$repo" "$fault" >"$work/oracle-$fault" <<'PY'
+import importlib.util
+from pathlib import Path
+import sys
+
+repo = Path(sys.argv[1])
+fault = sys.argv[2]
+source = repo / "scripts/host/early-target-diagnostics.py"
+spec = importlib.util.spec_from_file_location("early_target_diagnostics", source)
+assert spec is not None and spec.loader is not None
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+record = module.DiagnosticRecord(
+    candidate="headless-netroot-early-diag-v1",
+    boot_id="12345678-1234-4abc-8def-1234567890ab",
+    sequence=2,
+    boottime_ms=500,
+    stage_code=200,
+    stage="fault",
+    last_good_code=60,
+    fault=fault,
+    watchdog_deadline_ms=600000,
+    dropped_updates=0,
+)
+sys.stdout.buffer.write(module.frame_for(record))
+PY
+	cmp "$work/native-$fault" "$work/oracle-$fault"
+done
+
 sha256sum "$work/reporter-a" "$work/reporter-b"
 printf 'build_image_id=%s build_image_digest=%s\n' \
 	"$actual_image_id" "$actual_image_digest"

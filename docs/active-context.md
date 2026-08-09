@@ -123,6 +123,26 @@ uncommitted VCNL36866 set is preserved as an
 [isolated WIP](../test-results/2026-08-09-vcnl36866-working-tree-review-offline.md),
 not integrated or candidate-ready.
 
+The final review caught and fixed one evidence-path defect: the three new
+host-port terminal reasons were absent from both the native reporter and host
+parser. The clean-twin reporter is now `26249252…bafa`, and the clean-twin
+offline diagnostic initramfs is `94edd625…cffc`. The host model also measures
+the current 50 ms address-before-drop-zone ordering window under injected
+delay and fails closed on zone-transition or listener-scope faults. That
+number is not a packet-exposure measurement: the unprivileged fixture does
+not exercise active/default-zone packet filtering while the interface changes
+zone. These are offline components only; no new candidate contract, signed
+bundle, wrapper, policy row, or boot authority exists.
+
+The follow-up
+[independent-observability review](../test-results/2026-08-09-independent-observability-review-offline.md)
+proves a latent SoC-side GENI debug-UART route at `0x98c000` on GPIO18/19 and
+now binds that exact route in signed-DTB verification. It does **not** prove
+ASUS routed those pins to USB-C or accessible pads. Ramoops transition
+retention is likewise still unproven, stable recovery has no GENI console,
+and the target's enabled serial Magic SysRq makes any eventual electrical
+probe receive-only. No independent postmortem channel is currently claimed.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a
