@@ -526,6 +526,24 @@ retention experiment must use distinct one-use execution and observation
 recovery identities; it may not replay one candidate after an ambiguous
 result.
 
+The fallback leg now has a separate machine-enforced read-only preflight:
+
+```text
+reboot-fallback-to-fastboot.sh retention-preflight
+```
+
+It first retains the helper's exact fallback health checks, then requires the
+same seven ramoops command-line values used by the target and observer, the
+exact two-cell `0x9b800000 + 0x400000` reserved-memory tuple, no overlapping
+fixed sibling reservation, no visible ramoops-compatible or bound platform
+consumer, and no pstore entry. It cannot request a reboot and does not accept
+the reboot authorization guard. The embedded verifier disables Python
+bytecode writes and revalidates child-property, driver, and optional mount
+inventories so a path appearing during an absence check fails closed. Passing
+it proves only the fallback's observable runtime state at that point; it does
+not establish that firmware preserved the bytes. See the
+[offline result](../test-results/2026-08-09-fallback-ramoops-transition-preflight-offline.md).
+
 Stable recovery's UDC selection is now independently fail-closed. The
 [offline exact-UDC checkpoint](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
 removes the former arbitrary-first fallback and requires one stable exact

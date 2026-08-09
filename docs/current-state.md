@@ -109,6 +109,15 @@ then binds that archive into two clean, byte-identical ASUS 5.4 Images
 `63fc0a1a…43b1`. Exact pstore config and the 4 MiB ramoops command line pass,
 but physical retention is still untested. No candidate, signing, or boot
 authority exists, so admission remains **HOLD**.
+The following
+[fallback-transition preflight](../test-results/2026-08-09-fallback-ramoops-transition-preflight-offline.md)
+adds a separate read-only action to the identity-pinned fallback helper. It
+requires the same exact command-line and `0x9b800000 + 0x400000` DT reservation,
+no overlapping fixed sibling, no visible ramoops consumer, and empty pstore
+before a later observer transition. The action cannot reboot and passed ten
+hostile fixture groups plus the existing fallback-helper suite. It has not
+been run on the phone and therefore changes neither the retention result nor
+the **HOLD** recommendation.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

@@ -93,6 +93,10 @@ Status: **offline speed-amplifier boundary complete; live promotion pending**
 - [x] Build that observation identity through two clean ASUS 5.4 wrapper,
   boot-v3, and unsigned-AVB compositions and verify its exact pstore/ramoops
   contract without issuing a candidate.
+- [x] Add a distinct read-only fallback transition preflight that verifies the
+  exact `0x9b800000 + 0x400000` DT reservation and command-line tuple, no
+  overlapping fixed reservation, no bound ramoops consumer, and empty pstore
+  before a later observation-recovery boot.
 - [ ] Prove experimentally whether ramoops survives target → bootloader →
   recovery on this phone.
 - [ ] If DRAM does not survive, test the Qualcomm USB-C debug UART before
