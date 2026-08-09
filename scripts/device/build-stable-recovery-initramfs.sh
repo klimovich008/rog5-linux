@@ -86,8 +86,13 @@ if grep -Eq \
 	"$init"; then
 	fail 'recovery init contains a legacy shell, credential, SSH, or network override'
 fi
-grep -Fq '/usr/libexec/rog5-recovery-control &' "$init" ||
+grep -Fq '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &' \
+	"$init" ||
 	fail 'recovery init does not start the fixed responder'
+grep -Fxq 'recovery_mode_file=/etc/rog5/recovery-mode' "$init" ||
+	fail 'recovery init lacks the sealed mode contract'
+grep -Fq 'observation-only-v1)' "$init" ||
+	fail 'recovery init lacks its observation-only branch'
 grep -Fq '169.254.77.2/30' "$init" ||
 	fail 'recovery init lacks the fixed device address'
 for contract in \
@@ -126,6 +131,8 @@ install -D -m 0755 "$verifier" \
 	"$stage/usr/libexec/rog5-bundle-verify"
 install -D -m 0600 "$public_key" \
 	"$stage/etc/rog5/recovery-bundle-ed25519.pub"
+printf '%s\n' full-v1 >"$stage/etc/rog5/recovery-mode"
+chmod 0444 "$stage/etc/rog5/recovery-mode"
 
 rm -rf "$stage/etc/ssh" "$stage/root/.ssh" "$stage/run/sshd" \
 	"$stage/usr/lib/ssh"

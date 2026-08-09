@@ -1085,6 +1085,37 @@ class StableRecoveryControlTest(unittest.TestCase):
             MODULE.main(["prepare-commit", BUNDLE, MANIFEST])
         ready.assert_not_called()
 
+    def test_observation_only_prepare_refusal_never_arms_commit(self):
+        prepare_id = "2" * 32
+        serial = mock.MagicMock()
+        serial.exchange.return_value = MODULE.Response(
+            session=SESSION,
+            request=prepare_id,
+            verb="PREPARE",
+            result="OBSERVATION_ONLY",
+            state="IDLE",
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "connect",
+                return_value=(serial, SESSION, mock.sentinel.hello),
+            ),
+            mock.patch.object(MODULE, "request_id", return_value=prepare_id),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "recovery refused PREPARE result=OBSERVATION_ONLY",
+            ),
+        ):
+            MODULE.prepare_and_commit(
+                BUNDLE,
+                MANIFEST,
+                ledger_path=self.ledger,
+            )
+        serial.exchange.assert_called_once()
+        serial.close.assert_called_once_with()
+        self.assertFalse(self.ledger.exists())
+
     def test_network_root_handoff_guard_precedes_device_discovery(self):
         with (
             mock.patch.dict(

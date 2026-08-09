@@ -535,6 +535,29 @@ renamed, multiple, and changing candidates retain the armed rollback and
 never reach a usable control transport. This changes no protocol or boot
 authority and does not prove physical enumeration.
 
+Future postmortem inspection now has a separate fail-closed initramfs
+composition. PID 1 validates a root-owned, regular, non-symlink, single-link,
+mode-`0444` `/etc/rog5/recovery-mode` before configuring USB. `full-v1`
+retains the existing bundle root and execution protocol;
+`observation-only-v1` requires the bundle root to be absent and starts the
+same reviewed responder with an explicit observation mode. In that mode only
+`HELLO` and `STATUS` can succeed. `PREPARE` and `COMMIT_EXEC` return
+`OBSERVATION_ONLY` before state transition, ledger write, helper invocation,
+or kexec reconciliation, and startup rejects any nonpristine retained state.
+
+The observation archive further removes `/usr/libexec/rog5-bundle-fetch`,
+`/usr/libexec/rog5-bundle-verify`,
+`/etc/rog5/recovery-bundle-ed25519.pub`, and
+`/usr/sbin/kexec`. Its verifier has a distinct
+`observation-only-a600000-v1` contract; current full, current observation, and
+hash-pinned historical archives cannot be substituted for one another. This
+is defense in depth around a mode-bound responder, not a claim that one
+binary can safely infer its role from missing tools. The
+[offline result](../test-results/2026-08-09-observation-only-recovery-offline.md)
+proves reproducible initramfs composition and hostile refusal only. It does
+not provide an outer wrapper, boot authority, or evidence that ramoops
+survives a physical transition.
+
 ## Test suite before re-freeze
 
 ### Parser and protocol unit tests

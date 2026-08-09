@@ -87,6 +87,9 @@ Status: **offline speed-amplifier boundary complete; live promotion pending**
   and watchdog cases offline.
 - [x] Rebuild the postmortem-enabled initramfs, wrapper kernel, raw boot
   image, and test-only AVB image twice and prove byte identity.
+- [x] Build a distinct observation-only recovery initramfs that can report
+  postmortem status but has no fetcher, verifier, kexec binary, bundle root,
+  or protocol path capable of preparing or committing a payload.
 - [ ] Prove experimentally whether ramoops survives target → bootloader →
   recovery on this phone.
 - [ ] If DRAM does not survive, test the Qualcomm USB-C debug UART before

@@ -172,10 +172,22 @@ fallback from stable recovery. The
 [offline exact-UDC result](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
 accepts only one stable exact `a600000.dwc3`, revalidates it before and after
 configfs binding, and hostile-tests zero, delayed, wrong, renamed, multiple,
-and changing candidate sets. Twin 7,602,301-byte initramfses reproduce at
+and changing candidate sets. Twin 7,602,307-byte initramfses reproduce at
 `afc55f96…d790`. They are ignored unsigned composition evidence only; no
 wrapper, candidate, policy row, phone action, or boot authority exists. The
 critical path remains **HOLD**.
+
+The next
+[observation-only recovery checkpoint](../test-results/2026-08-09-observation-only-recovery-offline.md)
+separates future postmortem inspection from payload execution at two layers.
+A packaged root-owned, mode-`0444` marker starts the responder as
+`observation-only-v1`; that mode serves only `HELLO` and `STATUS`, refuses
+`PREPARE` and `COMMIT_EXEC` before state or ledger mutation, and rejects a
+nonpristine startup. Its byte-identical 5,371,780-byte initramfs twins
+`613d6e3e…70db` contain no bundle fetcher, verifier, public trust key, kexec
+binary, or bundle root. This is reproducible initramfs composition only: no
+ASUS wrapper, candidate, signature, policy row, credential, phone action, or
+retention result exists. Admission remains **HOLD**.
 
 ## Current observability increment
 

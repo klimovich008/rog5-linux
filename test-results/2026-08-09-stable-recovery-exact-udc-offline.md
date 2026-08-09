@@ -74,7 +74,7 @@ byte-for-byte:
 | fixed bundle fetcher | 132,824 | `77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800` |
 | native bundle verifier | 4,467,272 | `33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef` |
 | disposable public trust input | 32 | `1126cf7255c1727b049d2ad192a835375f98fde2ede4a13424e43e1554bb0ac8` |
-| stable-recovery initramfs A/B | 7,602,301 | `afc55f96157079594a4241b380f2c02a6c6d77877d6e9b3b0872c306a6c0d790` |
+| stable-recovery initramfs A/B | 7,602,307 | `afc55f96157079594a4241b380f2c02a6c6d77877d6e9b3b0872c306a6c0d790` |
 
 The ignored evidence occupies approximately 19 MiB below
 `build/recovery-exact-udc-offline-20260809-r2/`. It is test evidence only: the

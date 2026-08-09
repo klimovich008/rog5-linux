@@ -93,10 +93,18 @@ policy/candidate record, and untested physical retention keep admission at
 The subsequent [exact-UDC recovery hardening](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
 removes stable recovery's arbitrary-controller fallback. It accepts only one
 stable exact `a600000.dwc3`, revalidates before and after binding, and produces
-byte-identical 7,602,301-byte initramfs twins `afc55f96…d790`. Wrong, renamed,
+byte-identical 7,602,307-byte initramfs twins `afc55f96…d790`. Wrong, renamed,
 multiple, disappearing, or changing candidates now leave rollback armed and
 fail closed. This is ignored offline evidence with no wrapper, candidate,
 policy row, credential, or boot authority; admission remains **HOLD**.
+The subsequent
+[observation-only recovery composition](../test-results/2026-08-09-observation-only-recovery-offline.md)
+adds a packaged `observation-only-v1` identity. Its responder permits only
+`HELLO`/`STATUS`, refuses execution verbs before mutation, and starts only
+from pristine state. Twin 5,371,780-byte initramfses `613d6e3e…70db` also
+remove the fetcher, verifier, trust key, kexec binary, and bundle root. No
+wrapper or physical retention test exists, so this advances observability
+without granting candidate or boot authority; admission remains **HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot
