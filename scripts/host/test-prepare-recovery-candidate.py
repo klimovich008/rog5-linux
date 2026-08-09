@@ -412,7 +412,7 @@ class RecoveryCandidateTest(unittest.TestCase):
         candidate_path = self.original_candidate_root / f"{candidate}.json"
         self.assertEqual(
             hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
-            "f7752e3073f91e8e4c7bbb0f205a74968a202fef742c458927d28ef237629157",
+            "41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf",
         )
         self.assertEqual(record["status"], "offline")
         self.assertEqual(record["authority"], "none")
@@ -423,12 +423,12 @@ class RecoveryCandidateTest(unittest.TestCase):
             record["artifacts"]["initramfs.cpio.gz"],
             {
                 "path": (
-                    "artifacts/early-target-diagnostic-v2/"
+                    "artifacts/early-target-diagnostic-v3/"
                     "rog5-early-target-diagnostic-initramfs.cpio.gz"
                 ),
-                "size": 6011687,
+                "size": 6013458,
                 "sha256": (
-                    "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
+                    "94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc"
                 ),
             },
         )
@@ -453,8 +453,78 @@ class RecoveryCandidateTest(unittest.TestCase):
             hashlib.sha256(
                 RUNNER.PACKAGER.manifest_bytes(configuration, observed)
             ).hexdigest(),
-            "2ca802ee37d444dca71629064ccadfb81c3e8db2b83a6a4e040c1d5d5469cbe7",
+            "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
         )
+
+    def test_host_rendezvous_diagnostic_packages_as_exact_twins(self) -> None:
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        candidate = "headless-netroot-early-diag-v2"
+        second_root = self.root / "diagnostic-twin-b"
+        second_root.mkdir(mode=0o700)
+
+        record_a, manifest_a, trust_a = RUNNER.prepare(
+            candidate,
+            self.private_key,
+            self.bundle_root,
+        )
+        record_b, manifest_b, trust_b = RUNNER.prepare(
+            candidate,
+            self.private_key,
+            second_root,
+        )
+        self.assertEqual(record_a, record_b)
+        self.assertEqual(
+            manifest_a,
+            "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
+        )
+        self.assertEqual(manifest_a, manifest_b)
+        self.assertEqual(trust_a, trust_b)
+
+        first = self.bundle_root / candidate
+        second = second_root / candidate
+        self.assertEqual(
+            tuple(sorted(path.name for path in first.iterdir())),
+            tuple(sorted(RUNNER.PACKAGER.FINAL_INVENTORY)),
+        )
+        for name in RUNNER.PACKAGER.FINAL_INVENTORY:
+            with self.subTest(name=name):
+                left = first / name
+                right = second / name
+                self.assertEqual(left.read_bytes(), right.read_bytes())
+                self.assertEqual(
+                    left.stat().st_mode,
+                    right.stat().st_mode,
+                )
+
+        stale = copy.deepcopy(record_a)
+        stale["artifacts"]["initramfs.cpio.gz"] = {
+            "path": (
+                "artifacts/early-target-diagnostic-v2/"
+                "rog5-early-target-diagnostic-initramfs.cpio.gz"
+            ),
+            "size": 6011687,
+            "sha256": (
+                "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
+            ),
+        }
+        stale_path = self.root / "stale-diagnostic-candidate.json"
+        stale_payload = (json.dumps(stale, indent=2) + "\n").encode("ascii")
+        stale_path.write_bytes(stale_payload)
+        stale_path.chmod(0o444)
+        stale_root = self.root / "stale-diagnostic-bundle"
+        stale_root.mkdir(mode=0o700)
+        with self.assertRaisesRegex(
+            RUNNER.CandidateError,
+            "external candidate changed a fixed template field",
+        ):
+            RUNNER.prepare(
+                candidate,
+                self.private_key,
+                stale_root,
+                stale_path,
+                sha256(stale_payload),
+            )
 
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo

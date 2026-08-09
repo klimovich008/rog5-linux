@@ -196,8 +196,9 @@ The existing identity-pinned fallback helper now has a separate read-only
 `retention-preflight` action. In addition to normal fallback health, it
 requires the exact seven-parameter ramoops command line, exact two-cell
 `0x9b800000 + 0x400000` reserved-memory tuple, no overlapping fixed sibling,
-no visible bound ramoops consumer, and empty pstore. Nine hostile groups and
-the complete existing reboot-helper suite pass. The action neither requests
+no visible bound ramoops consumer, and empty pstore. Ten hostile groups,
+including late optional-path and exact `2^64` endpoint cases, and the complete
+existing reboot-helper suite pass. The action neither requests
 reboot nor accepts reboot authority. It has not been run on the phone, so
 physical preservation and candidate admission remain **HOLD**.
 

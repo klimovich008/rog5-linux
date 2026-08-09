@@ -214,9 +214,12 @@ publish only after exact byte acceptance.
 The current diagnostic-only v3 component pins reporter
 `26249252916c…bafa` (67,288 bytes) and initramfs
 `94edd6254403…cffc` (6,013,458 bytes). It repairs host-port terminal reporting
-and includes the bounded readiness rendezvous. It has no candidate contract,
-signature, recovery wrapper, policy row, or phone boot authority; v1/v2 rows
-remain immutable historical evidence.
+and includes the bounded readiness rendezvous. The authority-free
+`headless-netroot-early-diag-v2` candidate now references these exact bytes;
+its record is `41c23330fd95…b9cf` and its deterministic unsigned manifest body
+is `54f534203fe3…6efc`. The v2 bundle name remains the fixed wire identity,
+while the older v2 component row remains immutable historical evidence. This
+does not create a policy row, production signature, or phone boot authority.
 
 For the ASUS 5.4 stable wrapper, verify all 79,030 source entries and then
 materialize the accepted rootless source volume:

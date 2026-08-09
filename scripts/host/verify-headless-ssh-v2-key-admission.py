@@ -126,12 +126,12 @@ DIAGNOSTIC_EXPECTED_ARTIFACTS = {
     },
     "initramfs.cpio.gz": {
         "path": (
-            "artifacts/early-target-diagnostic-v2/"
+            "artifacts/early-target-diagnostic-v3/"
             "rog5-early-target-diagnostic-initramfs.cpio.gz"
         ),
-        "size": 6011687,
+        "size": 6013458,
         "sha256": (
-            "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
+            "94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc"
         ),
     },
 }

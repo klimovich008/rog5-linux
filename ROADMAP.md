@@ -781,19 +781,21 @@ Current execution order:
     checkpoint](test-results/2026-08-05-stage75-postmortem-host-integration-offline.md).
     Implementation commit `eeb157b` is published with green exact-head GitHub
     Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
-    closes the host-only publication gate. The new write-side
-    `headless-netroot-early-diag-v2` candidate binds a 6,011,687-byte
-    initramfs `71537ca0…c58e`, accepted Image, corrected DTB, and sealed Arch
-    root. The prior authority-free disposable-key wrapper tuple is retained as
-    superseded offline composition evidence only. The active candidate has no
-    signed wrapper, policy row, production credential, or boot authority. The
-    profile is offline-only and central policy remains empty. The exact
-    candidate checkpoint is reviewed and published at
+    closes the host-only publication gate. The write-side
+    `headless-netroot-early-diag-v2` wire identity now binds the corrected
+    6,013,458-byte bounded-rendezvous v3 initramfs `94edd625…cffc`, accepted
+    Image, corrected DTB, and sealed Arch root. Its canonical candidate record
+    is `41c23330…b9cf`, and the exact runtime-manifest body is
+    `54f53420…6efc`. The prior authority-free disposable-key wrapper tuple and
+    v2 component row are retained as superseded offline evidence only. The
+    active candidate has no policy row, production credential, or boot
+    authority; central policy remains empty. The preceding candidate
+    checkpoint was reviewed and published at
     `9088c8ff70e24c1c71c3b3b806f7161848dd7320` with green exact-head CI. Next,
-    preserve the now-passed clean disposable twin-build identities, bind a
-    fresh production credential, issue one new generation with distinct
-    one-shot admission, run connected preflight, and only then execute one
-    temporary lifecycle. Promote a normal SSH candidate only after that
+    retain the corrected disposable twin-build evidence, pass exact-head CI,
+    and review a distinct two-identity target/observer admission. Only a later
+    fresh authorization may bind production credentials or issue one new
+    one-shot generation. Promote a normal SSH candidate only after physical
     evidence locates and the implementation fixes the failing boundary.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
