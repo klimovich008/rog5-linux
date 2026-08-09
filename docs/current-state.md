@@ -211,11 +211,16 @@ The battery path also has a bounded
 DT-opt-in OEM PMIC GLINK read to upstream qcom_battmgr, validates the exact
 vendor-evidenced 16-byte response, and exposes only mode-`0444`
 `cell_voltages`. Hostile source, one-property DT, and sysfs-fixture gates pass,
-and the patched driver compiles as AArch64 in the pinned builder. This is an
-offline topology/ABI result only: no clean twin full kernel, phone execution,
-cell observation, battery-health classification, or charging acceptance is
-claimed. See the
-[offline result](../test-results/2026-08-09-dual-cell-readonly-candidate-offline.md).
+and the patched driver compiles as AArch64 in the pinned builder. Two complete,
+uncached builds from deterministic patched source now produce byte-identical
+kernel images, `Module.symvers`, module archives, metadata, and linked
+`qcom_battmgr.ko`; two exact candidate DTBs also compare byte-for-byte. The
+locally assembled candidate is unbooted and explicitly carries
+`authority=none`, `boot_authority=none`, and
+`hardware_acceptance=unproven`. No phone execution, cell observation,
+battery-health classification, or charging acceptance is claimed. See the
+[source/ABI result](../test-results/2026-08-09-dual-cell-readonly-candidate-offline.md)
+and [clean-twin result](../test-results/2026-08-09-dual-cell-readonly-clean-twin-offline.md).
 
 The corrected target's next live observation is now specified independently
 of the boot controller. One read-only target probe emits exactly 88 canonical

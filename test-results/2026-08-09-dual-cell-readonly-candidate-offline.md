@@ -84,6 +84,7 @@ interface, firmware loader, GPIO, nvmem access, or charging policy. The
 collector's `OBSERVED_NOT_HEALTH_ASSESSMENT` result cannot promote charging
 or battery-health acceptance.
 
-See the [contract](../docs/dual-cell-readonly-telemetry.md). The next eligible
-step is a clean twin full-kernel build and candidate assembly; any phone run
-remains a separate lifecycle decision.
+See the [contract](../docs/dual-cell-readonly-telemetry.md). The clean twin
+full-kernel successor is recorded separately in the
+[offline release result](2026-08-09-dual-cell-readonly-clean-twin-offline.md);
+any phone run remains a separate lifecycle decision.

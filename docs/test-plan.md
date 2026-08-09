@@ -1398,14 +1398,22 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   this test in the compatibility profile and the test is an exact core-CI
   entry. See the
   [battery-series contract](battery-telemetry-series.md).
-- Before admitting the dual-cell candidate to a clean full build, require
+- The dual-cell clean full-build path requires
   `test-qcom-battmgr-asus-cell-voltage-patch.sh`,
   `test-dual-cell-readonly-candidate-dtb.sh`, and
-  `test-dual-cell-readonly-snapshot.py`. These pin the exact ASUS OEM
+  `test-dual-cell-readonly-snapshot.py` before release integration, then
+  `test-network-root-dual-cell-readonly-candidate.sh` plus both semantic build
+  verifiers and the clean-twin comparator. These pin the exact ASUS OEM
   owner/opcode and response width, preserve qcom_battmgr's shared firmware
   mutex, allow only one empty DT opt-in property, require mode-`0444` sysfs,
   reject charging controls, and classify aggregate/cell consistency without
-  claiming battery health. See the
+  claiming battery health. Release integration must deterministically prepare
+  the exact patched source, disable incremental/cache reuse, start with two
+  empty output trees, compare `.config`, both Images, `Module.symvers`, module
+  archive, metadata, linked `qcom_battmgr.ko`, and exact DTB, then publish
+  locally without replacement. It constructs the pinned current telemetry DTB
+  directly; the historical helper's power-key expectation remains unchanged.
+  The completed offline candidate has no phone or boot authority. See the
   [dual-cell contract](dual-cell-readonly-telemetry.md).
 - Treat charging behavior/control, display, radio, physical input actuation,
   sustained battery-current direction, and GPU as untested despite accepted
