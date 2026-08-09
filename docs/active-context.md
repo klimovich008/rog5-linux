@@ -81,6 +81,16 @@ and newer-kernel rebases remain frozen until the headless core passes.
   post-switch-root topology, OverlayFS capability, and invocation drift.
   This remains hardware-free evidence only. See the
   [QEMU NFSv4.2 result](../test-results/2026-08-08-qemu-network-root-nfs-v42-offline.md).
+- A compile-only Linux 7.1.4 suspend diagnostic now exposes exactly the
+  `pm_test=devices` callback checkpoint with a 30-second DPM watchdog.  The
+  pinned-source oracle proves return before platform/CPU/PSCI entry; the
+  one-shot gate consumes before its sole state write, restores
+  `pm_test=none`, and classifies post-return USB/link loss exactly.  Two clean,
+  network-isolated builds are byte-identical at Image
+  `93e00f68…704e0` and modules `f650f51f…99315`.  This is
+  [offline evidence only](../test-results/2026-08-09-suspend-pm-test-devices-offline.md):
+  no phone boot or real suspend occurred, and missing pstore lineage is never
+  proof of no crash.
 
 These facts do not prove the corrected candidate on the phone.
 

@@ -473,13 +473,31 @@
       "candidate_status": "pending",
       "baseline_evidence": [],
       "required_config": {
+        "CONFIG_DPM_WATCHDOG": "y",
+        "CONFIG_EXPERT": "y",
+        "CONFIG_PM_DEBUG": "y",
         "CONFIG_PM_SLEEP": "y",
+        "CONFIG_PM_SLEEP_DEBUG": "y",
         "CONFIG_SUSPEND": "y"
       },
-      "minimum_integer_config": {},
-      "maximum_integer_config": {},
-      "forbidden_config": [],
-      "ci_gates": []
+      "minimum_integer_config": {
+        "CONFIG_DPM_WATCHDOG_TIMEOUT": 30,
+        "CONFIG_DPM_WATCHDOG_WARNING_TIMEOUT": 15
+      },
+      "maximum_integer_config": {
+        "CONFIG_DPM_WATCHDOG_TIMEOUT": 30,
+        "CONFIG_DPM_WATCHDOG_WARNING_TIMEOUT": 15
+      },
+      "forbidden_config": [
+        "CONFIG_PM_ADVANCED_DEBUG",
+        "CONFIG_PM_TEST_SUSPEND",
+        "CONFIG_RESET_SIMPLE"
+      ],
+      "ci_gates": [
+        "scripts/host/test-suspend-pm-test-source-contract.py",
+        "scripts/host/test-network-root-suspend-pm-test-candidate.sh",
+        "scripts/device/test-run-network-root-suspend-pm-test-devices.py"
+      ]
     },
     {
       "id": "sensors",
