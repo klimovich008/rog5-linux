@@ -321,6 +321,10 @@ Exit: a repeatable native Linux shell is reachable without Android or a GUI.
   unplugged, USB-online, and wireless-online phases plus a same-boot
   unplugged/USB comparison that derives current sign instead of guessing it;
   hardware execution remains pending.
+- [x] Add a compile-only, DT-opt-in ASUS dual-cell voltage read to upstream
+  qcom_battmgr without importing vendor charging controls. Exact protocol,
+  DT-delta, sysfs framing, and hostile fixture gates pass; a clean twin full
+  build and all phone observations remain pending.
 - [x] Freeze the accepted Linux 7.1.4 static thermal source/DTB topology and
   reject disabled/rewired TSENS, CPU cooling, trip, PMIC, and shutdown paths.
   This is an offline regression gate, not runtime thermal acceptance.

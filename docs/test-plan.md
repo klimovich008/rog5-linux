@@ -1398,6 +1398,15 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   this test in the compatibility profile and the test is an exact core-CI
   entry. See the
   [battery-series contract](battery-telemetry-series.md).
+- Before admitting the dual-cell candidate to a clean full build, require
+  `test-qcom-battmgr-asus-cell-voltage-patch.sh`,
+  `test-dual-cell-readonly-candidate-dtb.sh`, and
+  `test-dual-cell-readonly-snapshot.py`. These pin the exact ASUS OEM
+  owner/opcode and response width, preserve qcom_battmgr's shared firmware
+  mutex, allow only one empty DT opt-in property, require mode-`0444` sysfs,
+  reject charging controls, and classify aggregate/cell consistency without
+  claiming battery health. See the
+  [dual-cell contract](dual-cell-readonly-telemetry.md).
 - Treat charging behavior/control, display, radio, physical input actuation,
   sustained battery-current direction, and GPU as untested despite accepted
   read-only battery values and the normal headless coldplug/input gates.
