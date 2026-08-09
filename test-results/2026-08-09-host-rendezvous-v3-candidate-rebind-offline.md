@@ -10,6 +10,8 @@ composition; it does not prove that the host-readiness race caused Generation
 
 The initial implementation range is
 `12ed3bcbbfc3ad51b72175883c5810ad9ebb87ab..765be2ef8293636ddb1cdec39edef11dd200293c`.
+Independent-review and exact-pin closure ends at
+`02b28c78c0d7a9ff67a474f75a378f3edb8c22f3`.
 No phone interface, phone storage, production credential, production signing
 key, policy row, issuance record, flash, wipe, erase, slot operation,
 persistent installation, or phone boot was used.
@@ -94,13 +96,24 @@ the canonical pin to `30e6db9b…8fd4`, the focused core oracle passes 39/39 in
 0.499 seconds. This was a real active-pin defect found by the required final
 gate, not an expected failure fixture.
 
+The next complete attempt passed the core oracle, then correctly failed after
+47.239 seconds because the source/DT contract still pinned the previous whole
+compatibility-profile hash. Updating that chained pin to `167b837d…0cd3`
+restored the intended failure boundary; its focused source/DT hostile suite
+passes 77/77 in 12.988 seconds.
+
 The clean disposable twin composition passed in 2,465.364 seconds
 (`user=53.083`, `sys=59.629`). The preceding comparable v2 clean twin took
 2,332.019 seconds, so this run was 133.345 seconds (5.7%) slower. That is one
 pair of host measurements, not a performance regression conclusion; clean
 kernel LTO dominates both runs and the wrapper/recovery inputs differ.
 
-The final repository `ci` result is recorded below after it completes.
+After both exact-state corrections, the complete repository `ci` tier passes
+in 468.754 seconds (`user=150.839`, `sys=152.144`). The first final checkpoint
+in the underlying critical-readiness review took 456.488 seconds, so this run
+was 12.266 seconds (2.7%) slower. This is one host comparison with additional
+registered VCNL static tests present in the preserved working-tree island, not
+a production performance measurement.
 
 ## Independent review
 
