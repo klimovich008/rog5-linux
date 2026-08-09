@@ -149,7 +149,9 @@ is `41c23330…b9cf` and its unsigned runtime-manifest body is
 remain immutable superseded evidence. This current state proves
 authority-free source, initramfs, and runtime-bundle composition only: central
 policy remains empty, no production credential or phone was used, and
-production-bound issuance remains **HOLD**.
+production-bound issuance remains **HOLD**. The exact authority-free clean-twin
+composition is recorded in the
+[offline rebind result](../test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md).
 Generation 12 is consumed and must never be retried; it is not pending live
 admission. Any future one-shot generation must be a new exact record consumed
 through the generic repository-owned claim consumer after exact-head CI. The

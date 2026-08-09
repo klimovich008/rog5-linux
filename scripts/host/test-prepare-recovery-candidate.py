@@ -456,33 +456,26 @@ class RecoveryCandidateTest(unittest.TestCase):
             "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
         )
 
-    def test_host_rendezvous_diagnostic_packages_as_exact_twins(self) -> None:
-        RUNNER.REPO = self.original_repo
-        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
-        candidate = "headless-netroot-early-diag-v2"
+    def test_exact_twins_and_current_template_refuses_stale_v2(self) -> None:
         second_root = self.root / "diagnostic-twin-b"
         second_root.mkdir(mode=0o700)
 
         record_a, manifest_a, trust_a = RUNNER.prepare(
-            candidate,
+            "fixture",
             self.private_key,
             self.bundle_root,
         )
         record_b, manifest_b, trust_b = RUNNER.prepare(
-            candidate,
+            "fixture",
             self.private_key,
             second_root,
         )
         self.assertEqual(record_a, record_b)
-        self.assertEqual(
-            manifest_a,
-            "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
-        )
         self.assertEqual(manifest_a, manifest_b)
         self.assertEqual(trust_a, trust_b)
 
-        first = self.bundle_root / candidate
-        second = second_root / candidate
+        first = self.bundle_root / "fixture"
+        second = second_root / "fixture"
         self.assertEqual(
             tuple(sorted(path.name for path in first.iterdir())),
             tuple(sorted(RUNNER.PACKAGER.FINAL_INVENTORY)),
@@ -497,7 +490,10 @@ class RecoveryCandidateTest(unittest.TestCase):
                     right.stat().st_mode,
                 )
 
-        stale = copy.deepcopy(record_a)
+        RUNNER.REPO = self.original_repo
+        RUNNER.CANDIDATE_ROOT = self.original_candidate_root
+        candidate = "headless-netroot-early-diag-v2"
+        stale = copy.deepcopy(RUNNER.load_candidate(candidate))
         stale["artifacts"]["initramfs.cpio.gz"] = {
             "path": (
                 "artifacts/early-target-diagnostic-v2/"
@@ -508,23 +504,11 @@ class RecoveryCandidateTest(unittest.TestCase):
                 "71537ca0cfdfcf8f7dbf26cc2eb6585bac025bea08526a7e22d62df60fa0c58e"
             ),
         }
-        stale_path = self.root / "stale-diagnostic-candidate.json"
-        stale_payload = (json.dumps(stale, indent=2) + "\n").encode("ascii")
-        stale_path.write_bytes(stale_payload)
-        stale_path.chmod(0o444)
-        stale_root = self.root / "stale-diagnostic-bundle"
-        stale_root.mkdir(mode=0o700)
         with self.assertRaisesRegex(
             RUNNER.CandidateError,
             "external candidate changed a fixed template field",
         ):
-            RUNNER.prepare(
-                candidate,
-                self.private_key,
-                stale_root,
-                stale_path,
-                sha256(stale_payload),
-            )
+            RUNNER.validate_external_candidate_record(stale, candidate)
 
     def test_headless_network_candidate_matches_root_package(self) -> None:
         RUNNER.REPO = self.original_repo

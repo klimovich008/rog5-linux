@@ -770,7 +770,8 @@ Current execution order:
     `169.254.77.1:2049`-to-target TCP state/queue/current-unrecovered-RTO
     snapshots. The
     historical 67,288-byte reporter was sealed at `dc53932d…a10`. The active
-    single-attempt reporter is `0b5d318e…7bc1`. Hostile parser, collector,
+    single-attempt host-port-classifying reporter is `26249252…bafa`. Hostile
+    parser, collector,
     lifecycle, and build-contract tests pass. The fallback now captures a
     signed, read-only, 64-record/4-MiB pstore summary before strict health,
     binds it to the expected candidate/target boot ID, separates lineage and
@@ -796,7 +797,9 @@ Current execution order:
     and review a distinct two-identity target/observer admission. Only a later
     fresh authorization may bind production credentials or issue one new
     one-shot generation. Promote a normal SSH candidate only after physical
-    evidence locates and the implementation fixes the failing boundary.
+    evidence locates and the implementation fixes the failing boundary. The
+    authority-free [v3 rebind proof](test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md)
+    is retained locally with candidate admission still on hold.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 
