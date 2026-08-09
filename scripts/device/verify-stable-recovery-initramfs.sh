@@ -1,12 +1,14 @@
 #!/bin/sh
 set -eu
 
-archive=${1:?usage: verify-stable-recovery-initramfs.sh ARCHIVE INIT CONTROL FETCHER VERIFIER PUBLIC_KEY}
+archive=${1:?usage: verify-stable-recovery-initramfs.sh ARCHIVE INIT_OR_DASH CONTROL FETCHER VERIFIER PUBLIC_KEY CONTRACT EXPECTED_ARCHIVE_SHA256_OR_DASH}
 init=${2:?missing recovery init}
 control=${3:?missing recovery responder}
 fetcher=${4:?missing recovery bundle fetcher}
 verifier=${5:?missing recovery bundle verifier}
 public_key=${6:?missing raw Ed25519 public key}
+contract=${7:?missing stable-recovery init contract}
+expected_archive_sha256=${8:?missing stable-recovery archive identity}
 export LC_ALL=C
 export TZ=UTC
 
@@ -20,11 +22,35 @@ for command in awk basename cmp cpio cut find grep gzip mktemp od readelf rm \
 	command -v "$command" >/dev/null ||
 		fail "missing initramfs verifier command: $command"
 done
-for input in "$archive" "$init" "$control" "$fetcher" "$verifier" \
-	"$public_key"; do
+for input in "$archive" "$control" "$fetcher" "$verifier" "$public_key"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 		fail "unsafe or missing verifier input: $(basename "$input")"
 done
+case $contract in
+	exact-a600000-v1)
+		[ -f "$init" ] && [ -r "$init" ] && [ ! -L "$init" ] ||
+			fail 'unsafe or missing exact recovery init'
+		[ "$expected_archive_sha256" = - ] ||
+			fail 'exact recovery verification does not accept an external archive identity'
+		;;
+	historical-pinned-v1)
+		[ "$init" = - ] ||
+			fail 'historical verification must use its pinned embedded init'
+		case $expected_archive_sha256 in
+			*[!0-9a-f]*|'')
+				fail 'historical recovery archive identity is not canonical'
+				;;
+		esac
+		[ "${#expected_archive_sha256}" -eq 64 ] &&
+			[ "$expected_archive_sha256" != \
+			0000000000000000000000000000000000000000000000000000000000000000 ] ||
+			fail 'historical recovery archive identity is not canonical'
+		[ "$(sha256sum "$archive" | awk '{ print $1 }')" = \
+			"$expected_archive_sha256" ] ||
+			fail 'historical recovery archive identity mismatch'
+		;;
+	*) fail "unsupported stable-recovery init contract: $contract" ;;
+esac
 gzip -t "$archive"
 
 stage=$(mktemp -d)
@@ -36,7 +62,9 @@ awk 'NF && ($3 != "root" || $4 != "root") { exit 1 }' \
 gzip -dc "$archive" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 
-cmp "$stage/init" "$init"
+if [ "$contract" = exact-a600000-v1 ]; then
+	cmp "$stage/init" "$init"
+fi
 cmp "$stage/usr/libexec/rog5-recovery-control" "$control"
 cmp "$stage/usr/libexec/rog5-bundle-fetch" "$fetcher"
 cmp "$stage/usr/libexec/rog5-bundle-verify" "$verifier"
@@ -110,6 +138,30 @@ grep -Fq 'bundle_root=/run/rog5-bundles' "$stage/init"
 grep -Fq "mkdir -p \"\$bundle_root\"" "$stage/init"
 grep -Fq "chown 0:0 \"\$bundle_root\"" "$stage/init"
 grep -Fq "chmod 0700 \"\$bundle_root\"" "$stage/init"
+case $contract in
+	exact-a600000-v1)
+		grep -Fxq 'expected_udc=a600000.dwc3' "$stage/init" ||
+			fail 'stable recovery lacks the exact expected UDC identity'
+		grep -Fxq 'udc_class_dir=/sys/class/udc' "$stage/init" ||
+			fail 'stable recovery lacks the fixed UDC class directory'
+		for helper in udc_candidate_count validate_expected_udc_once \
+			validate_expected_udc expected_udc_is_bound \
+			select_expected_udc bind_expected_udc
+		do
+			grep -Fxq "$helper() {" "$stage/init" ||
+				fail "stable recovery lacks exact UDC helper: $helper"
+		done
+		if grep -Fq '[ -n "$udc" ] || udc=$(basename "$candidate")' \
+			"$stage/init"; then
+			fail 'stable recovery retains arbitrary UDC fallback'
+		fi
+		;;
+	historical-pinned-v1)
+		grep -Fxq 'if ! echo "$udc" >"$gadget/UDC"; then' \
+			"$stage/init" ||
+			fail 'historical recovery lacks its pinned UDC bind shape'
+		;;
+esac
 
 lease_line=$(grep -n '^watchdog_lease=/run/rog5-recovery-watchdog.lease$' \
 	"$stage/init" | cut -d: -f1)
@@ -141,9 +193,18 @@ postmortem_line=$(grep -n '^if ! snapshot_postmortem; then$' \
 	"$stage/init" | cut -d: -f1)
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
 	sed -n '1s/:.*//p')
-# shellcheck disable=SC2016
-bind_line=$(grep -n '^if ! echo "\$udc" >"\$gadget/UDC"; then$' \
-	"$stage/init" | cut -d: -f1)
+case $contract in
+	exact-a600000-v1)
+		# shellcheck disable=SC2016
+		bind_line=$(grep -n '^if ! udc=\$(bind_expected_udc); then$' \
+			"$stage/init" | cut -d: -f1)
+		;;
+	historical-pinned-v1)
+		# shellcheck disable=SC2016
+		bind_line=$(grep -n '^if ! echo "\$udc" >"\$gadget/UDC"; then$' \
+			"$stage/init" | cut -d: -f1)
+		;;
+esac
 for value in "$lease_line" "$pre_storage_line" "$pre_contract_line" \
 	"$post_storage_line" "$post_contract_line" "$control_line" \
 	"$bundle_root_line" "$bundle_mode_line" "$postmortem_line" \
@@ -162,4 +223,4 @@ done
 [ "$control_line" -le "$session_line" ]
 [ "$session_line" -lt "$bind_line" ]
 
-echo 'PASS stable recovery archive: fixed responder/session before USB bind, pinned loader, public trust root only, no interactive shell or SSH'
+echo "PASS stable recovery archive: contract=$contract; fixed responder/session before USB bind, pinned loader, public trust root only, no interactive shell or SSH"

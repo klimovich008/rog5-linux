@@ -157,6 +157,7 @@ expected_initramfs=
 expected_target_id=
 expected_bundle=
 expected_bundle_profile=network-root-v1
+initramfs_contract=
 consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
 consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
 consumed_diagnostic_recovery=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
@@ -789,6 +790,24 @@ case $profile in
 		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
+
+# Every currently accepted profile is immutable historical evidence built
+# before exact-a600000-v1. The main profile case above rejects unknown names;
+# a future profile must add an explicit current contract here.
+case $profile in
+	historical-2026-07-29 | \
+	corrected-headless-successor-2026-07-30 | \
+	headless-ssh-deployment-v3 | \
+	headless-diagnostic-deployment-v1 | \
+	headless-diagnostic-generation[3-9]-offline-v1 | \
+	headless-diagnostic-generation[3-9]-live-v1 | \
+	headless-diagnostic-generation1[0-2]-offline-v1 | \
+	headless-diagnostic-generation1[0-2]-live-v1 | \
+	headless-diagnostic-stage75-v2-superseded-offline-v1)
+		initramfs_contract=historical-pinned-v1
+		;;
+	*) fail 'profile lacks an explicit stable-recovery init contract' ;;
+esac
 [[ -z $expected_bundle || $bundle == "$expected_bundle" ]] ||
 	fail "profile requires bundle=$expected_bundle"
 # expected_image is the caller-supplied RECOVERY_SHA256 and is never
@@ -1035,8 +1054,8 @@ fi
 
 env PATH="$initramfs_path" \
 	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
-	"$source_initramfs" "$repo/initramfs/recovery-init" \
-	"$control" "$fetcher" "$verifier" "$trust_key"
+	"$source_initramfs" - "$control" "$fetcher" "$verifier" \
+	"$trust_key" "$initramfs_contract" "$expected_initramfs"
 
 verified_plan=$(
 	"$host_verifier" --bundle-root "$bundle_root" \

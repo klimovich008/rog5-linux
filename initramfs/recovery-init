@@ -8,6 +8,9 @@ expected_wrapper_physical_count=116
 empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
 bundle_root=/run/rog5-bundles
+expected_udc=a600000.dwc3
+udc_class_dir=/sys/class/udc
+udc_poll_attempts=200
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -168,6 +171,69 @@ verify_wrapper_storage_contract() {
 			;;
 		*) return 0 ;;
 	esac
+}
+
+udc_candidate_count() {
+	count=0
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+	done
+	printf '%s\n' "$count"
+}
+
+validate_expected_udc_once() {
+	count=0
+	selected=
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=$(basename "$candidate") || return 1
+	done
+	[ "$count" -eq 1 ] && [ "$selected" = "$expected_udc" ] ||
+		return 1
+	printf '%s\n' "$selected"
+}
+
+validate_expected_udc() {
+	validate_expected_udc_once
+}
+
+expected_udc_is_bound() {
+	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || return 1
+	[ "$bound_udc" = "$expected_udc" ] &&
+		[ "$(validate_expected_udc)" = "$expected_udc" ]
+}
+
+select_expected_udc() {
+	attempt=0
+	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
+		candidate_count=$(udc_candidate_count) || return 1
+		case $candidate_count in
+			0)
+				sleep 0.1
+				attempt=$((attempt + 1))
+				continue
+				;;
+			1) ;;
+			*) return 1 ;;
+		esac
+		first=$(validate_expected_udc) || return 1
+		sleep 0.1
+		second=$(validate_expected_udc) || return 1
+		[ "$first" = "$second" ] || return 1
+		printf '%s\n' "$first"
+		return 0
+	done
+	return 1
+}
+
+bind_expected_udc() {
+	selected=$(select_expected_udc) || return 1
+	[ "$(validate_expected_udc)" = "$selected" ] || return 1
+	printf '%s\n' "$selected" >"$gadget/UDC" || return 1
+	expected_udc_is_bound || return 1
+	printf '%s\n' "$selected"
 }
 
 wait_for_ufs_discovery() {
@@ -455,27 +521,9 @@ fi
 ) &
 log 'framed recovery responder ready before USB bind'
 
-udc=
-attempt=0
 log 'waiting for USB device controller'
-while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
-	for candidate in /sys/class/udc/*; do
-		[ -e "$candidate" ] || continue
-		case $(basename "$candidate") in
-			*a600000*) udc=$(basename "$candidate"); break ;;
-		esac
-		[ -n "$udc" ] || udc=$(basename "$candidate")
-	done
-	[ -n "$udc" ] || sleep 0.1
-	attempt=$((attempt + 1))
-done
-
-if [ -z "$udc" ]; then
-	log 'no USB device controller found'
-	force_rollback
-fi
-if ! echo "$udc" >"$gadget/UDC"; then
-	log 'USB device-controller bind failed'
+if ! udc=$(bind_expected_udc); then
+	log 'expected USB device controller is not uniquely stable'
 	force_rollback
 fi
 soft_connect="/sys/class/udc/$udc/soft_connect"

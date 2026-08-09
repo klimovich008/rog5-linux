@@ -526,6 +526,15 @@ retention experiment must use distinct one-use execution and observation
 recovery identities; it may not replay one candidate after an ambiguous
 result.
 
+Stable recovery's UDC selection is now independently fail-closed. The
+[offline exact-UDC checkpoint](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+removes the former arbitrary-first fallback and requires one stable exact
+`a600000.dwc3`, with revalidation immediately before and after configfs
+binding. Delayed exact enumeration remains accepted; zero-at-deadline, wrong,
+renamed, multiple, and changing candidates retain the armed rollback and
+never reach a usable control transport. This changes no protocol or boot
+authority and does not prove physical enumeration.
+
 ## Test suite before re-freeze
 
 ### Parser and protocol unit tests

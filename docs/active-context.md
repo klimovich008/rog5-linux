@@ -167,6 +167,16 @@ disposable trust input, no policy row, no candidate record, and no boot
 authority. Physical transition retention is still unproven, so the critical
 path remains **HOLD**.
 
+The next recovery-control-plane hardening removes the remaining arbitrary UDC
+fallback from stable recovery. The
+[offline exact-UDC result](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+accepts only one stable exact `a600000.dwc3`, revalidates it before and after
+configfs binding, and hostile-tests zero, delayed, wrong, renamed, multiple,
+and changing candidate sets. Twin 7,602,301-byte initramfses reproduce at
+`afc55f96…d790`. They are ignored unsigned composition evidence only; no
+wrapper, candidate, policy row, phone action, or boot authority exists. The
+critical path remains **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

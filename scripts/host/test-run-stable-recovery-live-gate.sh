@@ -3007,7 +3007,9 @@ for required in \
 	'qualified cpio path must contain only the pinned cpio' \
 	'component_layout=structured' \
 	'cmp "$image" "$twin_image"' \
+	'initramfs_contract=historical-pinned-v1' \
 	'verify-stable-recovery-initramfs.sh' \
+	'"$trust_key" "$initramfs_contract" "$expected_initramfs"' \
 	'--bundle-root "$bundle_root"' \
 	'verify_image --image "$inspection/recovery.img"' \
 	'cp --reflink=never -- "$raw" "$inspection/boot.img"' \
@@ -3019,6 +3021,18 @@ for required in \
 do
 	grep -Fq -- "$required" "$gate"
 done
+
+initramfs_hash_line=$(
+	grep -n 'check_hash "$source_initramfs" "$expected_initramfs"' "$gate" |
+		cut -d: -f1
+)
+initramfs_verify_line=$(
+	grep -n 'verify-stable-recovery-initramfs.sh' "$gate" | cut -d: -f1
+)
+[[ $initramfs_hash_line =~ ^[0-9]+$ &&
+	$initramfs_verify_line =~ ^[0-9]+$ &&
+	$initramfs_hash_line -lt $initramfs_verify_line ]] ||
+	{ echo 'FAIL historical init verification can run before exact archive identity' >&2; exit 1; }
 
 ! grep -Fq 'consume-exact-boot-claim.py' "$gate" ||
 	{ echo 'FAIL consumed generation-12 still reaches a claim-consumer path' >&2; exit 1; }
