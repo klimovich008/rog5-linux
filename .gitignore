@@ -27,6 +27,9 @@ artifacts/*
 artifacts/network-root-v3/*
 !artifacts/network-root-v3/config-7.1.4-network-root
 !artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb
+!artifacts/recovery-stage-v18/
+artifacts/recovery-stage-v18/*
+!artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery
 !artifacts/buttons-indicator-v1/
 artifacts/buttons-indicator-v1/*
 !artifacts/buttons-indicator-v1/SHA256SUMS
