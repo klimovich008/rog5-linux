@@ -3,11 +3,17 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 helper=$repo/scripts/host/reboot-fallback-to-fastboot.sh
+retention_test=$repo/scripts/host/test-fallback-ramoops-transition-preflight.py
 
 [[ -x $helper ]] || {
 	echo 'FAIL missing executable guarded fallback-to-fastboot helper' >&2
 	exit 1
 }
+[[ -x $retention_test ]] || {
+	echo 'FAIL missing fallback ramoops transition preflight test' >&2
+	exit 1
+}
+python3 "$retention_test"
 bash -n "$helper"
 python3 - "$helper" <<'PY'
 import pathlib
@@ -137,6 +143,11 @@ cat >"$stage/bin/ssh" <<'MOCK'
 #!/bin/sh
 set -eu
 case " $* " in
+	*" retention-preflight "*)
+		printf '%s\n' retention-preflight >>"$MOCK_CALLS"
+		echo 'PASS fallback ramoops transition reservation is exact, unconsumed, and empty'
+		echo 'PASS exact fallback ramoops retention preflight'
+		;;
 	*" reboot "*)
 		printf '%s\n' reboot >>"$MOCK_CALLS"
 		case "${MOCK_USB_MODE:-fastboot}" in
@@ -221,6 +232,19 @@ MOCK_FASTBOOT_READY=$ready \
 SSH_KEY=$stage/ssh-key \
 KNOWN_HOSTS=$stage/known-hosts \
 	"$helper" preflight >/dev/null
+
+fastboot_before_retention=$(grep -Fxc fastboot "$calls" || true)
+PATH="$stage/bin:$PATH" \
+MOCK_CALLS=$calls \
+MOCK_FASTBOOT_READY=$ready \
+SSH_KEY=$stage/ssh-key \
+KNOWN_HOSTS=$stage/known-hosts \
+	"$helper" retention-preflight >/dev/null
+fastboot_after_retention=$(grep -Fxc fastboot "$calls" || true)
+[[ $fastboot_after_retention == "$fastboot_before_retention" ]] || {
+	echo 'FAIL read-only fallback retention preflight invoked fastboot' >&2
+	exit 1
+}
 
 acknowledged_output=$(PATH="$stage/bin:$PATH" \
 MOCK_CALLS=$calls \
@@ -313,10 +337,12 @@ grep -Fxq \
 	<<<"$disconnect_output"
 
 preflight_calls=$(grep -Fxc preflight "$calls" || true)
+retention_calls=$(grep -Fxc retention-preflight "$calls" || true)
 reboot_calls=$(grep -Fxc reboot "$calls" || true)
 fastboot_calls=$(grep -Fxc fastboot "$calls" || true)
-[[ $preflight_calls == 1 && $reboot_calls == 6 && $fastboot_calls -ge 12 ]] || {
-	echo "FAIL call ledger: preflight=$preflight_calls reboot=$reboot_calls fastboot=$fastboot_calls" >&2
+[[ $preflight_calls == 1 && $retention_calls == 1 &&
+	$reboot_calls == 6 && $fastboot_calls -ge 12 ]] || {
+	echo "FAIL call ledger: preflight=$preflight_calls retention=$retention_calls reboot=$reboot_calls fastboot=$fastboot_calls" >&2
 	exit 1
 }
 

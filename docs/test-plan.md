@@ -714,6 +714,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   disconnect before the remote marker is accepted only when that exact
   fastboot identity independently proves the reboot. The mocked test rejects
   NVMEM, sysfs, partition, flash, and identity-bypass paths.
+- Its separate `retention-preflight` action reuses the exact fallback health
+  gate without rebooting, then requires the exact ramoops command-line and DT
+  reservation tuple, no overlapping fixed sibling, no visible bound ramoops
+  consumer, and empty pstore. Hostile fixtures mutate each field, path type,
+  overlap, unsigned endpoint, consumer surface, and pstore state. They also
+  make optional properties, the ramoops driver, and the mounted pstore path
+  appear after absence snapshots, require inventory revalidation, and pin
+  bytecode-disabled execution. This remains a prerequisite for the
+  observation-recovery experiment, not evidence that retention occurred.
 - The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
   followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
   after the root controller restores the profile on unique stable same-port

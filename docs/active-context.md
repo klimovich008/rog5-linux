@@ -189,6 +189,18 @@ binary, or bundle root. This is reproducible initramfs composition only: no
 ASUS wrapper, candidate, signature, policy row, credential, phone action, or
 retention result exists. Admission remains **HOLD**.
 
+The subsequent
+[fallback-transition preflight](../test-results/2026-08-09-fallback-ramoops-transition-preflight-offline.md)
+closes one remaining offline choreography gap without contacting the phone.
+The existing identity-pinned fallback helper now has a separate read-only
+`retention-preflight` action. In addition to normal fallback health, it
+requires the exact seven-parameter ramoops command line, exact two-cell
+`0x9b800000 + 0x400000` reserved-memory tuple, no overlapping fixed sibling,
+no visible bound ramoops consumer, and empty pstore. Nine hostile groups and
+the complete existing reboot-helper suite pass. The action neither requests
+reboot nor accepts reboot authority. It has not been run on the phone, so
+physical preservation and candidate admission remain **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

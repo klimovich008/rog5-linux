@@ -9,11 +9,14 @@ fail() {
 action=${1:-preflight}
 case $action in
 	preflight) ;;
+	retention-preflight) ;;
 	reboot)
 		[[ ${ALLOW_FALLBACK_BOOTLOADER_REBOOT:-} == 1 ]] ||
 			fail 'set ALLOW_FALLBACK_BOOTLOADER_REBOOT=1 for one guarded reboot'
 		;;
-	*) fail 'usage: reboot-fallback-to-fastboot.sh [preflight|reboot]' ;;
+	*)
+		fail 'usage: reboot-fallback-to-fastboot.sh [preflight|retention-preflight|reboot]'
+		;;
 esac
 
 ssh_key=${SSH_KEY:-}
@@ -148,7 +151,8 @@ fail() {
 	exit 1
 }
 
-[ "$action" = preflight ] || [ "$action" = reboot ] ||
+[ "$action" = preflight ] || [ "$action" = retention-preflight ] ||
+	[ "$action" = reboot ] ||
 	fail 'unexpected remote action'
 [ "$(uname -r)" = 5.4.134-qgki-perf-00001-g6c308144c23e ] ||
 	fail 'unexpected fallback kernel'
@@ -194,11 +198,391 @@ done
 [ "$thermal_max" -le 60000 ] || fail 'fallback temperature is unsafe'
 command -v python3 >/dev/null || fail 'fallback Python is unavailable'
 
+if [ "$action" = retention-preflight ]; then
+	python3 -B - / <<'PY'
+# BEGIN FALLBACK_RAMOOPS_TRANSITION_VERIFIER
+from __future__ import annotations
+
+from contextlib import contextmanager, ExitStack
+import errno
+import os
+from pathlib import Path
+import stat
+import struct
+import sys
+from typing import Iterator
+
+
+RAMOOPS_START = 0x9B800000
+RAMOOPS_SIZE = 0x400000
+RAMOOPS_END = RAMOOPS_START + RAMOOPS_SIZE
+ADDRESS_LIMIT = 1 << 64
+DIRECTORY_FLAGS = (
+    os.O_RDONLY
+    | os.O_CLOEXEC
+    | os.O_DIRECTORY
+    | getattr(os, "O_NOFOLLOW", 0)
+)
+REGULAR_FLAGS = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+RAMOOPS_TOKENS = (
+    "ramoops.mem_address=0x9b800000",
+    "ramoops.mem_size=0x400000",
+    "ramoops.record_size=0x100000",
+    "ramoops.console_size=0x300000",
+    "ramoops.pmsg_size=0",
+    "ramoops.ftrace_size=0",
+    "ramoops.dump_oops=1",
+)
+
+
+def fail(message: str) -> None:
+    print(f"FAIL {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def same_object(first: os.stat_result, second: os.stat_result) -> bool:
+    return first.st_dev == second.st_dev and first.st_ino == second.st_ino
+
+
+@contextmanager
+def opened_root(root: Path) -> Iterator[int]:
+    try:
+        descriptor = os.open(root, DIRECTORY_FLAGS)
+    except OSError:
+        fail("fallback runtime root is unsafe or absent")
+    try:
+        opened = os.fstat(descriptor)
+        pathname_before = root.stat(follow_symlinks=False)
+        if not stat.S_ISDIR(opened.st_mode) or not same_object(opened, pathname_before):
+            fail("fallback runtime root is unsafe or absent")
+        yield descriptor
+        pathname_after = root.stat(follow_symlinks=False)
+        if not stat.S_ISDIR(pathname_after.st_mode) or not same_object(
+            opened, pathname_after
+        ):
+            fail("fallback runtime root changed during verification")
+    except OSError:
+        fail("fallback runtime root changed during verification")
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
+def opened_directory(
+    parent: int,
+    name: str,
+    label: str,
+    *,
+    optional: bool = False,
+) -> Iterator[int | None]:
+    try:
+        descriptor = os.open(name, DIRECTORY_FLAGS, dir_fd=parent)
+    except OSError as error:
+        if optional and error.errno == errno.ENOENT:
+            yield None
+            return
+        fail(f"{label} is unsafe or absent")
+    try:
+        opened = os.fstat(descriptor)
+        pathname_before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if not stat.S_ISDIR(opened.st_mode) or not same_object(
+            opened, pathname_before
+        ):
+            fail(f"{label} is unsafe or absent")
+        yield descriptor
+        pathname_after = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if not stat.S_ISDIR(pathname_after.st_mode) or not same_object(
+            opened, pathname_after
+        ):
+            fail(f"{label} changed during verification")
+    except OSError:
+        fail(f"{label} changed during verification")
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
+def opened_path(
+    root: Path,
+    components: tuple[str, ...],
+    label: str,
+) -> Iterator[int]:
+    with ExitStack() as stack:
+        current = stack.enter_context(opened_root(root))
+        for component in components:
+            opened = stack.enter_context(opened_directory(current, component, label))
+            if opened is None:
+                fail(f"{label} is absent")
+            current = opened
+        yield current
+
+
+def read_regular_at(
+    directory: int,
+    name: str,
+    label: str,
+    *,
+    optional: bool = False,
+) -> bytes | None:
+    try:
+        descriptor = os.open(name, REGULAR_FLAGS, dir_fd=directory)
+    except OSError as error:
+        if optional and error.errno == errno.ENOENT:
+            return None
+        fail(f"{label} is unsafe or absent")
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            fail(f"{label} is not regular")
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(descriptor, 65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > 1024 * 1024:
+                fail(f"{label} is oversized")
+        after = os.fstat(descriptor)
+        try:
+            pathname_after = os.stat(
+                name,
+                dir_fd=directory,
+                follow_symlinks=False,
+            )
+        except OSError:
+            fail(f"{label} changed during verification")
+        if (
+            not same_object(before, after)
+            or before.st_size != after.st_size
+            or not same_object(before, pathname_after)
+            or not stat.S_ISREG(pathname_after.st_mode)
+        ):
+            fail(f"{label} changed during verification")
+        return b"".join(chunks)
+    finally:
+        os.close(descriptor)
+
+
+def directory_names(directory: int, label: str) -> tuple[str, ...]:
+    try:
+        return tuple(sorted(os.listdir(directory)))
+    except OSError:
+        fail(f"{label} changed during verification")
+
+
+def revalidate_names(
+    directory: int,
+    expected: tuple[str, ...],
+    label: str,
+) -> None:
+    if directory_names(directory, label) != expected:
+        fail(f"{label} changed during verification")
+
+
+def exact_command_line(root: Path) -> None:
+    with opened_path(root, ("proc",), "fallback procfs") as proc:
+        raw = read_regular_at(proc, "cmdline", "fallback command line")
+    if raw is None:
+        fail("fallback ramoops command line is not exact")
+    try:
+        command_line = raw.decode("ascii").strip()
+    except UnicodeDecodeError:
+        fail("fallback ramoops command line is not exact")
+    tokens = command_line.split()
+    if (
+        any(tokens.count(token) != 1 for token in RAMOOPS_TOKENS)
+        or any(
+            token.startswith("ramoops.") and token not in RAMOOPS_TOKENS
+            for token in tokens
+        )
+    ):
+        fail("fallback ramoops command line is not exact")
+
+
+def ramoops_compatible(payload: bytes | None) -> bool:
+    if payload is None:
+        return False
+    values = payload.rstrip(b"\0").split(b"\0")
+    return any(value == b"ramoops" or value.endswith(b",ramoops") for value in values)
+
+
+def inspect_reserved_child(
+    reserved: int,
+    name: str,
+) -> tuple[bool, bytes | None]:
+    with opened_directory(
+        reserved,
+        name,
+        "fallback reserved-memory child",
+    ) as child:
+        if child is None:
+            fail("fallback reserved-memory child is absent")
+        names = directory_names(child, "fallback reserved-memory child")
+        compatible = read_regular_at(
+            child,
+            "compatible",
+            "fallback reserved-memory compatible",
+            optional=True,
+        )
+        if ramoops_compatible(compatible):
+            fail("fallback ramoops consumer is present")
+        reg = read_regular_at(
+            child,
+            "reg",
+            "fallback reserved-memory reg",
+            optional=True,
+        )
+        revalidate_names(child, names, "fallback reserved-memory child")
+        return name == "memory@9b800000", reg
+
+
+def exact_reserved_memory(root: Path) -> None:
+    path = ("sys", "firmware", "devicetree", "base", "reserved-memory")
+    with opened_path(root, path, "fallback reserved-memory contract") as reserved:
+        names = directory_names(reserved, "fallback reserved-memory contract")
+        if read_regular_at(
+            reserved,
+            "#address-cells",
+            "fallback reserved-memory address cells",
+        ) != struct.pack(">I", 2):
+            fail("fallback ramoops reserved-memory contract has wrong address cells")
+        if read_regular_at(
+            reserved,
+            "#size-cells",
+            "fallback reserved-memory size cells",
+        ) != struct.pack(">I", 2):
+            fail("fallback ramoops reserved-memory contract has wrong size cells")
+        if read_regular_at(
+            reserved,
+            "ranges",
+            "fallback reserved-memory ranges",
+        ) != b"":
+            fail("fallback ramoops reserved-memory contract has nonempty ranges")
+
+        target_seen = False
+        for name in names:
+            metadata = os.stat(name, dir_fd=reserved, follow_symlinks=False)
+            if stat.S_ISLNK(metadata.st_mode):
+                fail("fallback reserved-memory child is malformed")
+            if not stat.S_ISDIR(metadata.st_mode):
+                continue
+            is_target, payload = inspect_reserved_child(reserved, name)
+            if is_target:
+                if target_seen or payload != struct.pack(
+                    ">QQ", RAMOOPS_START, RAMOOPS_SIZE
+                ):
+                    fail("fallback ramoops reserved-memory contract has the wrong tuple")
+                target_seen = True
+                continue
+            if payload is None:
+                continue
+            if not payload or len(payload) % 16:
+                fail("fallback reserved-memory child is malformed")
+            for offset in range(0, len(payload), 16):
+                start, size = struct.unpack(">QQ", payload[offset : offset + 16])
+                end = start + size
+                if size == 0 or end >= ADDRESS_LIMIT:
+                    fail("fallback reserved-memory child is malformed")
+                if start < RAMOOPS_END and end > RAMOOPS_START:
+                    fail("fallback reserved-memory node overlaps ramoops")
+        if not target_seen:
+            fail("fallback ramoops reserved-memory contract is absent")
+        revalidate_names(reserved, names, "fallback reserved-memory contract")
+
+
+def name_is_ramoops(name: str) -> bool:
+    return "ramoops" in name.lower()
+
+
+def no_ramoops_consumer(root: Path) -> None:
+    for components in (
+        ("sys", "bus", "platform", "devices"),
+        ("sys", "devices", "platform"),
+    ):
+        with opened_path(root, components, "fallback platform devices") as devices:
+            names = directory_names(devices, "fallback platform devices")
+            for name in names:
+                if name_is_ramoops(name):
+                    fail("fallback ramoops consumer is present")
+            revalidate_names(devices, names, "fallback platform devices")
+
+    drivers_path = ("sys", "bus", "platform", "drivers")
+    with opened_path(root, drivers_path, "fallback platform drivers") as drivers:
+        driver_names = directory_names(drivers, "fallback platform drivers")
+        with opened_directory(
+            drivers,
+            "ramoops",
+            "fallback ramoops driver",
+            optional=True,
+        ) as driver:
+            if driver is not None:
+                names = directory_names(driver, "fallback ramoops driver")
+                for name in names:
+                    if name not in {"bind", "unbind", "uevent", "module"}:
+                        fail("fallback ramoops consumer is present")
+                revalidate_names(driver, names, "fallback ramoops driver")
+        revalidate_names(drivers, driver_names, "fallback platform drivers")
+
+
+def empty_pstore(root: Path) -> None:
+    with opened_path(root, ("sys", "fs", "pstore"), "fallback pstore") as pstore:
+        names = directory_names(pstore, "fallback pstore")
+        if names:
+            fail("fallback pstore is not empty")
+        revalidate_names(pstore, names, "fallback pstore")
+    with opened_path(root, ("mnt",), "fallback mount root") as mount_root:
+        mount_names = directory_names(mount_root, "fallback mount root")
+        with opened_directory(
+            mount_root,
+            "pstore",
+            "fallback mounted pstore",
+            optional=True,
+        ) as mounted_pstore:
+            if mounted_pstore is not None:
+                names = directory_names(mounted_pstore, "fallback mounted pstore")
+                if names:
+                    fail("fallback pstore is not empty")
+                revalidate_names(
+                    mounted_pstore,
+                    names,
+                    "fallback mounted pstore",
+                )
+        revalidate_names(mount_root, mount_names, "fallback mount root")
+
+
+def main(arguments: list[str]) -> int:
+    if len(arguments) != 1:
+        fail("fallback ramoops verifier requires one absolute root")
+    root = Path(arguments[0])
+    if not root.is_absolute():
+        fail("fallback ramoops verifier root is not absolute")
+    exact_command_line(root)
+    exact_reserved_memory(root)
+    no_ramoops_consumer(root)
+    empty_pstore(root)
+    print(
+        "PASS fallback ramoops transition reservation is exact, "
+        "unconsumed, and empty"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
+# END FALLBACK_RAMOOPS_TRANSITION_VERIFIER
+PY
+	echo 'PASS exact fallback ramoops retention preflight'
+	exit 0
+fi
+
 if [ "$action" = preflight ]; then
 	echo 'PASS exact persistent fallback ready for guarded bootloader reboot'
 	exit 0
 fi
 
+[ "$action" = reboot ] || fail 'non-reboot action reached reboot boundary'
 echo 'PASS authenticated fallback reboot session'
 python3 - <<'PY'
 import ctypes
@@ -242,6 +626,18 @@ if [[ $action == preflight ]]; then
 		'PASS exact persistent fallback ready for guarded bootloader reboot' \
 		<<<"$output" ||
 		fail 'fallback preflight marker is absent'
+	exit 0
+fi
+
+if [[ $action == retention-preflight ]]; then
+	[[ $ssh_status == 0 ]] || fail 'fallback ramoops retention SSH failed'
+	grep -Fxq \
+		'PASS fallback ramoops transition reservation is exact, unconsumed, and empty' \
+		<<<"$output" ||
+		fail 'fallback ramoops transition marker is absent'
+	grep -Fxq 'PASS exact fallback ramoops retention preflight' \
+		<<<"$output" ||
+		fail 'fallback ramoops retention preflight marker is absent'
 	exit 0
 fi
 
