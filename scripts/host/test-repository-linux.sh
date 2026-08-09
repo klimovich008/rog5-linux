@@ -165,6 +165,8 @@ shared_tests=(
 	scripts/host/test-preflight-headless-ssh-successor-candidate.py
 	scripts/device/test-recovery-candidate-dtb-contract.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
+	scripts/device/test-headless-display-isolation-candidate-dtb.sh
+	scripts/device/test-headless-display-isolation-runtime.sh
 	scripts/host/test-buttons-indicator-source-contract.py
 	scripts/host/test-core-compatibility-oracle.py
 	scripts/host/test-core-source-dtb-contract.py
