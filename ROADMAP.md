@@ -352,6 +352,10 @@ or losing remote reachability.
 
 - [x] Encode and hostile-test the stock-evidenced power, volume-down,
   volume-up, and default-off green indicator DT/kernel contract.
+- [x] Replace the Python-only power-key monitor gap with a dependency-free,
+  hostile-tested three-key runtime gate that verifies exact input identity,
+  press/release pairs, bounded IRQ movement, wake policy, and unchanged
+  minimal-server isolation. Hardware execution remains pending.
 - [ ] Verify all three physical keys with IRQ behavior and a bounded
   userspace health indication.
 - [ ] Verify wake behavior and idle-power impact separately under the H3

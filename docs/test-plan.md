@@ -1417,6 +1417,11 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 - Run exactly one separately authorized `pm_test=devices` pass and preserve
   the USB/NFS/SSH boundary before validating two attended wake paths. Do not
   write `mem` with `pm_test=none` until physical wake evidence exists.
+- Run the dependency-free three-key gate on the normal minimal root before
+  suspend: require exact power/resin/GPIO-key identities, one physical press
+  and release each, IRQ deltas of 2–16, power and volume-up wake enabled,
+  resin wake absent, no kernel-warning drift, and unchanged NFS, USB, storage,
+  rollback, and systemd state. This does not itself prove suspend wake.
 - At least 30 minutes of idle and load operation produce no fatal kernel warnings.
 
 ## Tier 3 — networking and services

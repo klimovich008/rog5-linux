@@ -442,7 +442,8 @@
       "forbidden_config": [],
       "ci_gates": [
         "scripts/device/test-buttons-indicator-candidate-dtb.sh",
-        "scripts/host/test-buttons-indicator-source-contract.py"
+        "scripts/host/test-buttons-indicator-source-contract.py",
+        "scripts/device/test-run-network-root-physical-keys.sh"
       ]
     },
     {

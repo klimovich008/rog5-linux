@@ -5,7 +5,8 @@
 The first Linux 7.1.4 candidate is **offline-ready and live-pending**. It has
 no boot, signing, flashing, or runtime authority. It preserves the accepted
 headless DTB and adds only three physical buttons plus one default-off green
-status LED.
+status LED. A dependency-free three-key attended gate is now also available
+for the actual minimal root; it has not been run on the phone.
 
 This milestone does not claim that a physical press reaches Linux, that the
 LED is electrically correct, or that either input survives suspend. Those are
@@ -104,6 +105,14 @@ brightness, and independently clears the tri-LED enable register during
 initialization. The candidate declares `default-state = "off"` and defines no
 automatic trigger.
 
+The same source oracle now pins the real system-suspend IRQ path rather than
+stopping at registration: PMK8350 power enables and disables its IRQ as a
+wake source around suspend/resume; resin follows the same callback but stays
+non-wake-capable because neither its default data nor DT node opts in; and
+`gpio-keys` arms only the `wakeup-source` volume-up IRQ through its PM ops.
+This is static call-path evidence, not a claim that firmware or hardware wake
+works on the phone.
+
 Set `ROG5_LINUX_SOURCE` to the clean retained 7.1.4 source root and
 `ROG5_ACCEPTED_MODULES` to the retained exact module archive when running the
 repository test if full integration evidence is required:
@@ -138,6 +147,42 @@ scripts/host/verify-buttons-indicator-source-contract.py \
 scripts/host/test-buttons-indicator-source-contract.py
 ```
 
+## Dependency-free physical-key gate
+
+The historical `monitor-network-root-pwrkey.sh` remains evidence for the
+isolated v5 diagnostic, but its embedded Python reader is not executable on
+the active 152-package minimal root and it observes only the power key. It is
+not the current three-key acceptance path.
+
+`run-network-root-physical-keys.sh` uses only commands already supplied by the
+minimal Arch base. Under one exact guard it requires normal systemd mode, the
+active server inhibitor, read-only NFS plus OverlayFS, tmpfs `/run`, zero
+physical/block-backed storage, disarmed rollback, one exact `a600000.dwc3`
+UDC and unchanged USB address/direct route. It then requires exactly:
+
+- `pmic_pwrkey` / `KEY_POWER` 116 / `pm8941-pwrkey`, wake enabled;
+- `pmic_resin` / `KEY_VOLUMEDOWN` 114 / `pm8941-pwrkey`, wake absent; and
+- `gpio-keys` / `KEY_VOLUMEUP` 115 / `gpio-keys`, wake enabled.
+
+Each attended key must produce one press and one release in order. Its named
+IRQ must advance by at least two and at most sixteen counts, bounding both a
+dead path and an interrupt storm. Each evdev node is opened once before its
+`READY` line and retained across its press/release pair, so neither a quick
+first press nor a fast release can fall into an unowned/open gap. Binary
+`input_event` records are staged only in a private `/run` tmpfs
+directory and removed on every exit. The gate performs no sysfs, LED,
+power-state, block-device, boot, or persistent-storage write. It rechecks
+kernel identity, systemd, NFS, storage, rollback, UDC,
+carrier, address, direct route, fatal signatures, and the warning digest
+afterward, with distinct USB/link classifications.
+
+The fixture backend is accepted only for an unprivileged caller with an
+explicit test marker and a caller-owned mode-0700 non-linked root. Hostile
+tests cover missing authority, precondition drift, every key identity and
+wake policy, duplicate devices, malformed/reordered/repeated events, missing
+IRQ movement, IRQ storm, linked fixture input, and post-return UDC,
+interface, carrier, address, route, NFS, warning, and fatal changes.
+
 ## Runtime acceptance order
 
 The offline runtime half is now implemented by the
@@ -158,7 +203,8 @@ minimal-headless checks armed. It should then:
    device;
 2. load the exact accepted `leds-qcom-lpg.ko`, then require one default-off
    green LED class device;
-3. record press and release for each physical key without synthetic events;
+3. run the exact guarded three-key gate and record press/release plus bounded
+   IRQ movement for each physical key without synthetic events;
 4. run the helper's read-only `--probe`, then enable its bounded pulse service
    only after the minimal server reaches its accepted SSH/health state;
 5. prove key presses and LED writes do not stop SSH, alter storage isolation,
