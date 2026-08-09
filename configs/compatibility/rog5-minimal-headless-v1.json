@@ -356,7 +356,10 @@
       "minimum_integer_config": {},
       "maximum_integer_config": {},
       "forbidden_config": [],
-      "ci_gates": []
+      "ci_gates": [
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/host/test-network-root-thermal-pmic-candidate.sh"
+      ]
     },
     {
       "id": "thermal-emergency-fallback",

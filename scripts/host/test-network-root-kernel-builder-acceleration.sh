@@ -22,6 +22,7 @@ device_dir=$work/device
 fake_bin=$work/bin
 base_fragment=$work/base.fragment
 network_fragment=$work/network.fragment
+feature_fragment=$work/feature.fragment
 make_log=$fake_bin/make.log
 release=7.1.4-gfake
 mkdir -p "$source_dir/scripts/kconfig" "$device_dir" "$fake_bin"
@@ -33,6 +34,7 @@ if command -v dash >/dev/null 2>&1; then
 fi
 printf '%s\n' 'CONFIG_BASE_TEST=y' >"$base_fragment"
 printf '%s\n' 'CONFIG_NETWORK_ROOT_TEST=y' >"$network_fragment"
+printf '%s\n' 'CONFIG_FEATURE_TEST=y' >"$feature_fragment"
 
 cat >"$source_dir/scripts/setlocalversion" <<'EOF'
 #!/bin/sh
@@ -49,9 +51,18 @@ for ((index = 0; index < ${#arguments[@]}; index++)); do
 	fi
 done
 [[ -n $output ]]
-count=${#arguments[@]}
-cat -- "${arguments[$((count - 2))]}" "${arguments[$((count - 1))]}" \
-	>>"$output/.config"
+fragments=()
+for ((index = 0; index < ${#arguments[@]}; index++)); do
+	case ${arguments[$index]} in
+		-m) ;;
+		-O) index=$((index + 1)) ;;
+		*)
+			[[ ${arguments[$index]} == "$output/.config" ]] ||
+				fragments+=("${arguments[$index]}")
+			;;
+	esac
+done
+cat -- "${fragments[@]}" >>"$output/.config"
 EOF
 chmod 0755 "$source_dir/scripts/setlocalversion" \
 	"$source_dir/scripts/kconfig/merge_config.sh"
@@ -162,6 +173,16 @@ run_builder() {
 		"$device_dir/build-mainline-network-root.sh"
 }
 
+run_feature_builder() {
+	output=$1
+	shift
+	env SOURCE_DIR="$source_dir" OUTPUT_DIR="$output" \
+		BASE_FRAGMENT="$base_fragment" NETWORK_FRAGMENT="$network_fragment" \
+		FEATURE_FRAGMENT="$feature_fragment" \
+		LINUX_COMMIT="$commit" EXPECTED_RELEASE="$release" "$@" \
+		"$device_dir/build-mainline-network-root.sh"
+}
+
 clean_a=$work/clean-a
 clean_b=$work/clean-b
 cached=$work/clean-ccache
@@ -238,5 +259,60 @@ for artifact in arch/arm64/boot/Image arch/arm64/boot/Image.gz \
 done
 grep -Fq 'INFO ccache statistics' "$work/cached.out" ||
 	fail 'KBUILD_CCACHE=1 did not expose bounded cache statistics'
+if grep -q '^feature_fragment_sha256=' "$clean_a/build-meta.txt"; then
+	fail 'default release metadata changed for an unused feature fragment'
+fi
 
-echo 'PASS network-root builder dynamically proves exact reuse, invalidation, locking, ccache, and clean identities'
+feature_output=$work/feature-output
+run_feature_builder "$feature_output" JOBS=2 INCREMENTAL_BUILD=0 \
+	KBUILD_CCACHE=0 >"$work/feature-clean.out"
+grep -qx 'CONFIG_FEATURE_TEST=y' "$feature_output/.config" ||
+	fail 'optional feature fragment was not merged into the final config'
+network_line=$(grep -n '^CONFIG_NETWORK_ROOT_TEST=y$' \
+	"$feature_output/.config" | cut -d: -f1)
+feature_line=$(grep -n '^CONFIG_FEATURE_TEST=y$' \
+	"$feature_output/.config" | cut -d: -f1)
+[[ $feature_line -gt $network_line ]] ||
+	fail 'optional feature fragment was not merged after the network fragment'
+feature_sha=$(sha256sum "$feature_fragment" | cut -d' ' -f1)
+grep -Fxq "feature_fragment_path=$feature_fragment" \
+	"$feature_output/.rog5-kbuild-inputs-v1" ||
+	fail 'feature build state omits the canonical feature path'
+grep -Fxq "feature_fragment_sha256=$feature_sha" \
+	"$feature_output/.rog5-kbuild-inputs-v1" ||
+	fail 'feature build state omits the exact feature content identity'
+grep -Fxq "feature_fragment_sha256=$feature_sha" \
+	"$feature_output/build-meta.txt" ||
+	fail 'feature release metadata omits the exact feature content identity'
+
+printf '%s\n' keep >"$feature_output/reuse-marker"
+run_feature_builder "$feature_output" JOBS=3 INCREMENTAL_BUILD=1 \
+	KBUILD_CCACHE=0 >"$work/feature-incremental.out"
+[[ -f $feature_output/reuse-marker ]] ||
+	fail 'exact feature state did not permit incremental reuse'
+
+printf '%s\n' 'CONFIG_FEATURE_MUTATED=y' >>"$feature_fragment"
+if run_feature_builder "$feature_output" JOBS=2 INCREMENTAL_BUILD=1 \
+	KBUILD_CCACHE=0 >"$work/feature-mismatch.out" \
+	2>"$work/feature-mismatch.err"; then
+	fail 'changed feature fragment was accepted for incremental reuse'
+fi
+grep -Fq 'incremental output does not match current build inputs' \
+	"$work/feature-mismatch.err" ||
+	fail 'feature change returned the wrong refusal'
+sed -i '$d' "$feature_fragment"
+
+ln -s "$feature_fragment" "$work/feature-linked.fragment"
+if env SOURCE_DIR="$source_dir" OUTPUT_DIR="$work/feature-linked-output" \
+	BASE_FRAGMENT="$base_fragment" NETWORK_FRAGMENT="$network_fragment" \
+	FEATURE_FRAGMENT="$work/feature-linked.fragment" \
+	LINUX_COMMIT="$commit" EXPECTED_RELEASE="$release" JOBS=1 \
+	INCREMENTAL_BUILD=0 KBUILD_CCACHE=0 \
+	"$device_dir/build-mainline-network-root.sh" \
+	>"$work/feature-linked.out" 2>"$work/feature-linked.err"; then
+	fail 'linked optional feature fragment was accepted'
+fi
+grep -Fq 'unsafe optional feature fragment' "$work/feature-linked.err" ||
+	fail 'linked feature fragment returned the wrong refusal'
+
+echo 'PASS network-root builder dynamically proves feature layering, exact reuse, invalidation, locking, ccache, and clean identities'

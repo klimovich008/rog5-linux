@@ -63,6 +63,8 @@ for token in \
 	'JOBS must be an integer from 1 through 64' \
 	'base_fragment_sha256=%s' \
 	'network_fragment_sha256=%s' \
+	'feature_fragment_path=%s' \
+	'feature_fragment_sha256=%s' \
 	'contract_sha256=%s' \
 	'kbuild_version=%s' \
 	'cache_identity=$(rog5_kernel_cache_identity)' \
@@ -81,6 +83,8 @@ release_metadata=$(sed -n "/printf 'kernel_commit=/,/build-meta.txt/p" \
 if grep -Eq 'incremental_output=|compiler_cache=' <<<"$release_metadata"; then
 	fail 'network-root release metadata now depends on acceleration mode'
 fi
+grep -Fq 'if [ -n "$feature_fragment" ]' <<<"$release_metadata" ||
+	fail 'network-root release metadata does not conditionally identify feature input'
 
 for token in \
 	'7.1.4-g7a5cef0db479' \

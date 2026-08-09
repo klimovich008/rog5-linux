@@ -96,6 +96,23 @@ That range proves only that a bounded fallback is configured. Selecting the
 final delay requires measurement of orderly shutdown and rollback behavior.
 Neither future capability becomes accepted from a config or static DTB pass.
 
+## Built-in PMIC compile candidate
+
+The optional
+`configs/kernel/rog5-thermal-pmic-critical.fragment` now produces a complete
+Linux 7.1.4 network-root build with the PMIC temperature-alarm driver built in.
+The verifier requires the candidate config to differ from the accepted config
+by exactly `CONFIG_QCOM_SPMI_TEMP_ALARM=m` to `y`, requires the emergency delay
+to remain zero, proves the driver in `modules.builtin`, rejects a corresponding
+loadable module, and checks its probe, IRQ, and init symbols in `vmlinux`.
+
+This closes compile readiness only. PMIC probe/registration, IRQ delivery,
+critical-trip handling, orderly shutdown, forced fallback timing, and rollback
+behavior remain hardware-unproven. The capability therefore remains
+`phase=future`, `candidate_status=pending`, and `authority=none`. The exact
+build and timing evidence is in the
+[offline thermal-PMIC result](../test-results/2026-08-09-network-root-thermal-pmic-candidate-offline.md).
+
 ## Run the offline gate
 
 Metadata only:

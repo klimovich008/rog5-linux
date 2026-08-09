@@ -251,6 +251,14 @@ critical enforcement and a bounded 10–30 second forced fallback as separate
 future capabilities. No IRQ delivery, cooling response, PMIC registration,
 or shutdown behavior is accepted by this offline result.
 
+A separate compile-only network-root output now proves that the exact accepted
+7.1.4 config can change only `CONFIG_QCOM_SPMI_TEMP_ALARM=m` to `y`, produce a
+complete deterministic module archive, and expose the PMIC probe/IRQ/init
+symbols in built-in `vmlinux`. It is not a clean-twin issuance and has no boot
+authority. The emergency delay remains zero pending measured orderly-shutdown
+and rollback timing. See the
+[offline thermal-PMIC candidate result](../test-results/2026-08-09-network-root-thermal-pmic-candidate-offline.md).
+
 The first H4 input/indicator delta is now packaged without widening any other
 hardware boundary. It pins the accepted source, config, LPG module archive,
 and corrected DTB; adds power, volume-down, PM8350 GPIO6 volume-up, and only

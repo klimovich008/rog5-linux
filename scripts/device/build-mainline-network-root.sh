@@ -5,6 +5,7 @@ source_dir=${SOURCE_DIR:-/root/src/linux-7.1.4}
 output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4-network-root}
 base_fragment=${BASE_FRAGMENT:-/workspace/repo/configs/kernel/rog5-mainline.fragment}
 network_fragment=${NETWORK_FRAGMENT:-/workspace/repo/configs/kernel/rog5-network-root.fragment}
+feature_fragment=${FEATURE_FRAGMENT:-}
 expected_commit=${LINUX_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
 expected_release=${EXPECTED_RELEASE:-7.1.4-g7a5cef0db479}
 if [ -n "${JOBS+x}" ]; then
@@ -30,6 +31,7 @@ case ${ROG5_NETWORK_ROOT_CLEAN_ENV:-0} in
 			PWD="$(pwd -P)" SHLVL=0 _=/usr/bin/env \
 			SOURCE_DIR="$source_dir" OUTPUT_DIR="$output_dir" \
 			BASE_FRAGMENT="$base_fragment" NETWORK_FRAGMENT="$network_fragment" \
+			FEATURE_FRAGMENT="$feature_fragment" \
 			LINUX_COMMIT="$expected_commit" EXPECTED_RELEASE="$expected_release" \
 			JOBS="$jobs" INCREMENTAL_BUILD="${INCREMENTAL_BUILD:-0}" \
 			KBUILD_CCACHE="${KBUILD_CCACHE:-0}" \
@@ -44,6 +46,7 @@ case ${ROG5_NETWORK_ROOT_CLEAN_ENV:-0} in
 		)
 		expected_environment_names='BASE_FRAGMENT
 EXPECTED_RELEASE
+FEATURE_FRAGMENT
 HOME
 INCREMENTAL_BUILD
 JOBS
@@ -70,7 +73,7 @@ _'
 		exit 1
 		;;
 esac
-unset BASE_FRAGMENT EXPECTED_RELEASE JOBS LINUX_COMMIT NETWORK_FRAGMENT \
+unset BASE_FRAGMENT EXPECTED_RELEASE FEATURE_FRAGMENT JOBS LINUX_COMMIT NETWORK_FRAGMENT \
 	OUTPUT_DIR ROG5_NETWORK_ROOT_CLEAN_ENV SOURCE_DIR environment_names \
 	expected_environment_names
 script_dir=$(CDPATH='' cd -- "${builder_path%/*}" && pwd)
@@ -97,6 +100,20 @@ esac
 	rog5_kernel_fail 'kernel source must be a regular directory'
 source_dir=$(realpath -e -- "$source_dir")
 output_dir=$(realpath -m -- "$output_dir")
+feature_fragment_path=none
+feature_fragment_sha256=none
+if [ -n "$feature_fragment" ]; then
+	feature_lexical=$(realpath -s -m -- "$feature_fragment")
+	feature_resolved=$(realpath -e -- "$feature_fragment" 2>/dev/null) ||
+		rog5_kernel_fail 'unsafe optional feature fragment'
+	[ "$feature_lexical" = "$feature_resolved" ] &&
+		[ -f "$feature_resolved" ] && [ ! -L "$feature_resolved" ] &&
+		[ -r "$feature_resolved" ] ||
+		rog5_kernel_fail 'unsafe optional feature fragment'
+	feature_fragment=$feature_resolved
+	feature_fragment_path=$feature_fragment
+	feature_fragment_sha256=$(sha256sum "$feature_fragment" | cut -d ' ' -f 1)
+fi
 case $output_dir in
 	"$source_dir"|"$source_dir"/*)
 		rog5_kernel_fail 'kernel output must be outside the source tree'
@@ -136,6 +153,8 @@ build_state=$(
 	printf 'expected_release=%s\n' "$expected_release"
 	printf 'base_fragment_sha256=%s\n' "$base_fragment_sha256"
 	printf 'network_fragment_sha256=%s\n' "$network_fragment_sha256"
+	printf 'feature_fragment_path=%s\n' "$feature_fragment_path"
+	printf 'feature_fragment_sha256=%s\n' "$feature_fragment_sha256"
 	printf 'builder_sha256=%s\n' "$(sha256sum "$0" | cut -d ' ' -f 1)"
 	printf 'contract_sha256=%s\n' "$kernel_contract_sha256"
 	printf 'arch=arm64\nllvm=1\n'
@@ -151,8 +170,14 @@ rog5_kernel_prepare_output "$output_dir" "$build_state"
 rog5_kernel_cache_stats
 
 rog5_kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
-"$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
-	"$output_dir/.config" "$base_fragment" "$network_fragment"
+if [ -n "$feature_fragment" ]; then
+	"$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
+		"$output_dir/.config" "$base_fragment" "$network_fragment" \
+		"$feature_fragment"
+else
+	"$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
+		"$output_dir/.config" "$base_fragment" "$network_fragment"
+fi
 rog5_kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
 rog5_kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 	JOBS="$btf_jobs" Image.gz modules
@@ -182,6 +207,9 @@ rog5_kernel_cache_stats
 		"$(sha256sum "$base_fragment" | cut -d ' ' -f 1)"
 	printf 'network_fragment_sha256=%s\n' \
 		"$(sha256sum "$network_fragment" | cut -d ' ' -f 1)"
+	if [ -n "$feature_fragment" ]; then
+		printf 'feature_fragment_sha256=%s\n' "$feature_fragment_sha256"
+	fi
 	printf 'config_sha256=%s\n' \
 		"$(sha256sum "$output_dir/.config" | cut -d ' ' -f 1)"
 	printf 'image_sha256=%s\n' \
