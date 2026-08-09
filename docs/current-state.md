@@ -102,9 +102,13 @@ The subsequent
 adds a packaged `observation-only-v1` identity. Its responder permits only
 `HELLO`/`STATUS`, refuses execution verbs before mutation, and starts only
 from pristine state. Twin 5,371,780-byte initramfses `613d6e3e…70db` also
-remove the fetcher, verifier, trust key, kexec binary, and bundle root. No
-wrapper or physical retention test exists, so this advances observability
-without granting candidate or boot authority; admission remains **HOLD**.
+remove the fetcher, verifier, trust key, kexec binary, and bundle root. The
+[outer-wrapper checkpoint](../test-results/2026-08-09-observation-recovery-wrapper-offline.md)
+then binds that archive into two clean, byte-identical ASUS 5.4 Images
+`efcc4db8…a6ab`, raw boot-v3 images `fdcf9b85…a163`, and unsigned AVB images
+`63fc0a1a…43b1`. Exact pstore config and the 4 MiB ramoops command line pass,
+but physical retention is still untested. No candidate, signing, or boot
+authority exists, so admission remains **HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

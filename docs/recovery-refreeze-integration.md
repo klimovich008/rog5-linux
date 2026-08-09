@@ -174,8 +174,13 @@ start from nonpristine state. The derived archive removes the fetcher,
 verifier, public key, kexec binary, and bundle root. Cross-locale twin builds
 reproduce at 5,371,780 bytes and `613d6e3e…70db`; hostile tests prove that a
 full archive cannot satisfy the observer contract and that a wrong mode or
-injected kexec binary is rejected. No outer ASUS wrapper has yet been built
-around this identity, and physical ramoops retention remains unproven.
+injected kexec binary is rejected. The later
+[outer-wrapper checkpoint](../test-results/2026-08-09-observation-recovery-wrapper-offline.md)
+runs two fresh ASUS 5.4 builds because the initramfs is embedded in `Image`;
+reusing the full-recovery Image fails closed. The observer twins reproduce
+kernel `efcc4db8…a6ab`, raw boot-v3 `fdcf9b85…a163`, and unsigned AVB
+`63fc0a1a…43b1`, with exact built-in pstore and 4 MiB ramoops contracts.
+Physical ramoops retention remains unproven and no boot authority exists.
 
 The corrected headless gate now supplies one caller-owned disposable public
 key to both initramfs builds, retains the already-verified production AArch64
