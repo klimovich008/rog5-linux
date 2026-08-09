@@ -143,6 +143,20 @@ retention is likewise still unproven, stable recovery has no GENI console,
 and the target's enabled serial Magic SysRq makes any eventual electrical
 probe receive-only. No independent postmortem channel is currently claimed.
 
+The subsequent
+[recovery postmortem-lineage checkpoint](../test-results/2026-08-09-recovery-postmortem-lineage-offline.md)
+closes an offline integrity gap in that latent ramoops path. The native
+recovery responder now validates the complete private pstore snapshot against
+its status before opening a session, recognizes the accepted target's exact
+console and panic-dmesg printk prefixes, and exports only bounded marker hashes
+and multiplicity. A separate read-only host action compares that hash with an
+operator-supplied exact candidate/boot ID and distinguishes absent,
+ambiguous, stale, unique-match, and repeated-match evidence without emitting
+the reversible pstore tail. Clean-twin AArch64 responder builds and hostile
+QEMU tests pass. This makes a future retained snapshot correlatable; it does
+not prove that the DRAM region survives the physical transition. Admission
+therefore remains **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

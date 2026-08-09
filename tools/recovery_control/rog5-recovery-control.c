@@ -32,6 +32,8 @@
 #define STATE_FILE_MAX 8192
 #define POSTMORTEM_FILE_MAX 1400
 #define POSTMORTEM_TAIL_MAX 1024
+#define POSTMORTEM_SNAPSHOT_MAX (4194304U + 65536U)
+#define POSTMORTEM_LINEAGE_MATCH_MAX 65535U
 #define LEDGER_MAX 32
 #define ID_LENGTH 32
 #define HASH_LENGTH 64
@@ -144,6 +146,9 @@ struct postmortem_status {
 	char bytes[8];
 	char sha256[HASH_LENGTH + 1];
 	char tail_hex[POSTMORTEM_TAIL_MAX + 1];
+	char lineage_state[10];
+	char lineage_matches[6];
+	char lineage_sha256[HASH_LENGTH + 1];
 };
 
 struct verified_plan {
@@ -164,6 +169,11 @@ static const char *device_path = "/dev/ttyGS0";
 static const char *state_path = "/run/rog5-control";
 static const char *watchdog_path = "/run/rog5-recovery-watchdog.lease";
 static const char *postmortem_path = "/run/rog5-postmortem.status";
+static const char *postmortem_snapshot_path =
+	"/run/rog5-postmortem.snapshot";
+static const char postmortem_lineage_prefix[] =
+	"rog5-network-root: lineage "
+	"format=rog5-target-lineage-v1 candidate=";
 static const char *fetcher_path = "/usr/libexec/rog5-bundle-fetch";
 static const char *verifier_path = "/usr/libexec/rog5-bundle-verify";
 static const char *kexec_path = "/usr/sbin/kexec";
@@ -699,6 +709,290 @@ static int take_field(char **cursor, const char *name, char *output,
 	return 0;
 }
 
+static bool snapshot_name_byte(unsigned char byte)
+{
+	return (byte >= 'A' && byte <= 'Z') ||
+		(byte >= 'a' && byte <= 'z') ||
+		(byte >= '0' && byte <= '9') || byte == '.' || byte == '_' ||
+		byte == '-';
+}
+
+static bool lower_hex_byte(unsigned char byte)
+{
+	return (byte >= '0' && byte <= '9') ||
+		(byte >= 'a' && byte <= 'f');
+}
+
+static bool valid_boot_id_bytes(const unsigned char *value, size_t length)
+{
+	size_t index;
+
+	if (length != 36)
+		return false;
+	for (index = 0; index < length; index++) {
+		if (index == 8 || index == 13 || index == 18 || index == 23) {
+			if (value[index] != '-')
+				return false;
+		} else if (!lower_hex_byte(value[index])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+static bool valid_printk_time_prefix(const unsigned char *value, size_t length)
+{
+	const unsigned char *dot;
+	bool saw_digit = false;
+	size_t seconds_length;
+	size_t first_digit = SIZE_MAX;
+	size_t index;
+
+	if (length < 15 || value[0] != '[' || value[length - 2] != ']' ||
+	    value[length - 1] != ' ')
+		return false;
+	dot = memchr(value + 1, '.', length - 3);
+	if (dot == NULL || (size_t)(dot - value) + 9 != length)
+		return false;
+	seconds_length = (size_t)(dot - (value + 1));
+	if (seconds_length < 5)
+		return false;
+	for (index = 0; index < seconds_length; index++) {
+		unsigned char byte = value[index + 1];
+
+		if (byte >= '0' && byte <= '9') {
+			if (!saw_digit)
+				first_digit = index;
+			saw_digit = true;
+			continue;
+		}
+		if (byte != ' ' || saw_digit)
+			return false;
+	}
+	if (!saw_digit ||
+	    (seconds_length > 5 && first_digit != 0) ||
+	    (seconds_length - first_digit > 1 && value[first_digit + 1] == '0'))
+		return false;
+	for (index = 1; index <= 6; index++) {
+		if (dot[index] < '0' || dot[index] > '9')
+			return false;
+	}
+	return true;
+}
+
+static bool valid_printk_prefix(const unsigned char *value, size_t length)
+{
+	size_t offset = 0;
+	unsigned int priority = 0;
+	unsigned int digits = 0;
+
+	if (length > 0 && value[0] == '<') {
+		offset = 1;
+		while (offset < length && value[offset] >= '0' &&
+		       value[offset] <= '9' && digits < 3) {
+			priority = priority * 10 + (value[offset] - '0');
+			offset++;
+			digits++;
+		}
+		if (digits == 0 || offset >= length || value[offset] != '>' ||
+		    (digits > 1 && value[1] == '0') || priority > 191)
+			return false;
+		offset++;
+	}
+	return valid_printk_time_prefix(value + offset, length - offset);
+}
+
+static bool parse_lineage_marker(const unsigned char *start, size_t available,
+				 size_t *marker_length,
+				 char digest[HASH_LENGTH + 1])
+{
+	static const char boot_field[] = " boot_id=";
+	char candidate[BUNDLE_MAX + 1];
+	size_t candidate_length = 0;
+	size_t cursor = sizeof(postmortem_lineage_prefix) - 1;
+	size_t boot_start;
+	size_t end;
+
+	if (available < sizeof(postmortem_lineage_prefix) - 1 ||
+	    memcmp(start, postmortem_lineage_prefix,
+		   sizeof(postmortem_lineage_prefix) - 1) != 0)
+		return false;
+	while (cursor < available &&
+	       candidate_length < sizeof(candidate) - 1 &&
+	       snapshot_name_byte(start[cursor])) {
+		candidate[candidate_length++] = (char)start[cursor++];
+	}
+	candidate[candidate_length] = '\0';
+	if (!valid_bundle(candidate) ||
+	    available - cursor < sizeof(boot_field) - 1 + 36 ||
+	    memcmp(start + cursor, boot_field, sizeof(boot_field) - 1) != 0)
+		return false;
+	boot_start = cursor + sizeof(boot_field) - 1;
+	if (!valid_boot_id_bytes(start + boot_start, 36))
+		return false;
+	end = boot_start + 36;
+	if (end < available && start[end] != '\n')
+		return false;
+	*marker_length = end;
+	hash_bytes(start, end, digest);
+	return true;
+}
+
+static void scan_lineage_payload(const unsigned char *payload, size_t length,
+				 unsigned int *matches, bool *ambiguous,
+				 char digest[HASH_LENGTH + 1])
+{
+	size_t line_start = 0;
+
+	while (line_start < length) {
+		const unsigned char *newline = memchr(payload + line_start, '\n',
+			length - line_start);
+		size_t line_end = newline == NULL ? length :
+			(size_t)(newline - payload);
+		size_t search = line_start;
+
+		while (search < line_end) {
+			const unsigned char *found = memmem(payload + search,
+				line_end - search, postmortem_lineage_prefix,
+				sizeof(postmortem_lineage_prefix) - 1);
+			char marker_hash[HASH_LENGTH + 1];
+			size_t marker_length;
+			size_t position;
+
+			if (found == NULL)
+				break;
+			position = (size_t)(found - payload);
+			if ((position != line_start &&
+			     !valid_printk_prefix(payload + line_start,
+					  position - line_start)) ||
+			    !parse_lineage_marker(found, line_end - position,
+						  &marker_length, marker_hash)) {
+				*ambiguous = true;
+				search = position + 1;
+				continue;
+			}
+			if (*matches == POSTMORTEM_LINEAGE_MATCH_MAX) {
+				*ambiguous = true;
+				search = position + marker_length;
+				continue;
+			}
+			(*matches)++;
+			if (*matches == 1)
+				memcpy(digest, marker_hash, HASH_LENGTH + 1);
+			else if (strcmp(digest, marker_hash) != 0)
+				*ambiguous = true;
+			search = position + marker_length;
+		}
+		if (newline == NULL)
+			break;
+		line_start = line_end + 1;
+	}
+}
+
+static const unsigned char *snapshot_line(const unsigned char *snapshot,
+					  size_t length, size_t *offset,
+					  size_t *line_length)
+{
+	const unsigned char *line;
+	const unsigned char *newline;
+
+	if (*offset >= length)
+		fail("invalid postmortem snapshot framing");
+	line = snapshot + *offset;
+	newline = memchr(line, '\n', length - *offset);
+	if (newline == NULL)
+		fail("invalid postmortem snapshot framing");
+	*line_length = (size_t)(newline - line);
+	*offset += *line_length + 1;
+	return line;
+}
+
+static uint64_t snapshot_decimal(const unsigned char *value, size_t length)
+{
+	uint64_t parsed = 0;
+	size_t index;
+
+	if (length == 0 || length > 7 ||
+	    (length > 1 && value[0] == '0'))
+		fail("invalid postmortem snapshot size");
+	for (index = 0; index < length; index++) {
+		if (value[index] < '0' || value[index] > '9')
+			fail("invalid postmortem snapshot size");
+		parsed = parsed * 10 + (uint64_t)(value[index] - '0');
+	}
+	if (parsed == 0 || parsed > 4194304)
+		fail("invalid postmortem snapshot size");
+	return parsed;
+}
+
+static void parse_postmortem_snapshot(const unsigned char *snapshot,
+				      size_t length,
+				      unsigned int *record_count,
+				      uint64_t *payload_bytes)
+{
+	size_t offset = 0;
+	unsigned int matches = 0;
+	bool ambiguous = false;
+	char lineage_hash[HASH_LENGTH + 1] = ZERO_HASH;
+
+	*record_count = 0;
+	*payload_bytes = 0;
+	while (offset < length) {
+		const unsigned char *line;
+		const unsigned char *payload;
+		size_t line_length;
+		uint64_t record_size;
+		size_t index;
+
+		line = snapshot_line(snapshot, length, &offset, &line_length);
+		if (line_length <= sizeof("record=") - 1 ||
+		    memcmp(line, "record=", sizeof("record=") - 1) != 0 ||
+		    line_length - (sizeof("record=") - 1) > NAME_MAX)
+			fail("invalid postmortem snapshot record");
+		for (index = sizeof("record=") - 1; index < line_length;
+		     index++) {
+			if (!snapshot_name_byte(line[index]))
+				fail("invalid postmortem snapshot record");
+		}
+		line = snapshot_line(snapshot, length, &offset, &line_length);
+		if (line_length <= sizeof("size=") - 1 ||
+		    memcmp(line, "size=", sizeof("size=") - 1) != 0)
+			fail("invalid postmortem snapshot framing");
+		record_size = snapshot_decimal(
+			line + sizeof("size=") - 1,
+			line_length - (sizeof("size=") - 1));
+		if (record_size > length - offset ||
+		    record_size + 1 > length - offset)
+			fail("truncated postmortem snapshot record");
+		payload = snapshot + offset;
+		scan_lineage_payload(payload, (size_t)record_size, &matches,
+				     &ambiguous, lineage_hash);
+		offset += (size_t)record_size;
+		if (snapshot[offset++] != '\n')
+			fail("invalid postmortem snapshot delimiter");
+		(*record_count)++;
+		*payload_bytes += record_size;
+		if (*record_count > 64 || *payload_bytes > 4194304)
+			fail("postmortem snapshot exceeds bounds");
+	}
+
+	if (ambiguous) {
+		strcpy(postmortem.lineage_state, "AMBIGUOUS");
+		strcpy(postmortem.lineage_sha256, ZERO_HASH);
+	} else if (matches == 0) {
+		strcpy(postmortem.lineage_state, "NONE");
+		strcpy(postmortem.lineage_sha256, ZERO_HASH);
+	} else if (matches == 1) {
+		strcpy(postmortem.lineage_state, "UNIQUE");
+		strcpy(postmortem.lineage_sha256, lineage_hash);
+	} else {
+		strcpy(postmortem.lineage_state, "REPEATED");
+		strcpy(postmortem.lineage_sha256, lineage_hash);
+	}
+	snprintf(postmortem.lineage_matches,
+		 sizeof(postmortem.lineage_matches), "%u", matches);
+}
+
 static void load_postmortem_status(void)
 {
 	static const char empty_hash[] =
@@ -772,6 +1066,95 @@ static void load_postmortem_status(void)
 	} else {
 		fail("unknown postmortem state");
 	}
+}
+
+static void load_postmortem_snapshot(void)
+{
+	static const char digits[] = "0123456789abcdef";
+	struct stat metadata;
+	struct stat after;
+	unsigned char *snapshot;
+	unsigned char extra;
+	char actual_hash[HASH_LENGTH + 1];
+	char actual_tail[POSTMORTEM_TAIL_MAX + 1];
+	unsigned int records;
+	uint64_t payload_bytes;
+	uint64_t expected_records;
+	uint64_t expected_bytes;
+	size_t length;
+	size_t used = 0;
+	size_t tail_bytes;
+	size_t index;
+	int descriptor;
+
+	descriptor = open(postmortem_snapshot_path,
+			  O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+	if (descriptor < 0)
+		fail("cannot open postmortem snapshot: %s", strerror(errno));
+	if (fstat(descriptor, &metadata) < 0)
+		fail("cannot stat postmortem snapshot: %s", strerror(errno));
+	if (!S_ISREG(metadata.st_mode) || metadata.st_uid != geteuid() ||
+	    (metadata.st_mode & 0077) != 0 || metadata.st_nlink != 1 ||
+	    metadata.st_size < 0 ||
+	    (uintmax_t)metadata.st_size > POSTMORTEM_SNAPSHOT_MAX)
+		fail("unsafe postmortem snapshot");
+	length = (size_t)metadata.st_size;
+	snapshot = malloc(length == 0 ? 1 : length);
+	if (snapshot == NULL)
+		fail("cannot allocate postmortem snapshot");
+	while (used < length) {
+		ssize_t count = read(descriptor, snapshot + used, length - used);
+
+		if (count < 0 && errno == EINTR)
+			continue;
+		if (count <= 0)
+			fail("short postmortem snapshot read");
+		used += (size_t)count;
+	}
+	for (;;) {
+		ssize_t count = read(descriptor, &extra, 1);
+
+		if (count < 0 && errno == EINTR)
+			continue;
+		if (count != 0)
+			fail("postmortem snapshot grew during read");
+		break;
+	}
+	if (fstat(descriptor, &after) < 0 ||
+	    after.st_dev != metadata.st_dev || after.st_ino != metadata.st_ino ||
+	    after.st_mode != metadata.st_mode ||
+	    after.st_uid != metadata.st_uid || after.st_nlink != metadata.st_nlink ||
+	    after.st_size != metadata.st_size)
+		fail("postmortem snapshot changed during read");
+	if (close(descriptor) < 0)
+		fail("cannot close postmortem snapshot: %s", strerror(errno));
+
+	parse_postmortem_snapshot(snapshot, length, &records, &payload_bytes);
+	expected_records = strtoull(postmortem.records, NULL, 10);
+	expected_bytes = strtoull(postmortem.bytes, NULL, 10);
+	if (records != expected_records || payload_bytes != expected_bytes)
+		fail("postmortem snapshot metadata mismatch");
+	if (strcmp(postmortem.state, "PRESENT") == 0) {
+		if (length == 0)
+			fail("present postmortem snapshot is empty");
+		hash_bytes(snapshot, length, actual_hash);
+		if (strcmp(actual_hash, postmortem.sha256) != 0)
+			fail("postmortem snapshot hash mismatch");
+		tail_bytes = length < POSTMORTEM_TAIL_MAX / 2 ?
+			length : POSTMORTEM_TAIL_MAX / 2;
+		for (index = 0; index < tail_bytes; index++) {
+			unsigned char byte = snapshot[length - tail_bytes + index];
+
+			actual_tail[index * 2] = digits[byte >> 4];
+			actual_tail[index * 2 + 1] = digits[byte & 0xf];
+		}
+		actual_tail[tail_bytes * 2] = '\0';
+		if (strcmp(actual_tail, postmortem.tail_hex) != 0)
+			fail("postmortem snapshot tail mismatch");
+	} else if (length != 0) {
+		fail("non-present postmortem snapshot is not empty");
+	}
+	free(snapshot);
 }
 
 static const char *phase_name(enum phase phase)
@@ -1362,7 +1745,7 @@ static void build_response(const struct control_state *state,
 	const char *fingerprint = state->phase == PHASE_IDLE ||
 		state->phase == PHASE_PREPARED ?
 		ZERO_HASH : state->commit_fingerprint;
-	char body[1800];
+	char body[2048];
 	char body_hash[HASH_LENGTH + 1];
 	int body_length;
 	int length;
@@ -1384,11 +1767,16 @@ static void build_response(const struct control_state *state,
 		"postmortem_records=%s\n"
 		"postmortem_bytes=%s\n"
 		"postmortem_sha256=%s\n"
-		"postmortem_tail_hex=%s\n",
+		"postmortem_tail_hex=%s\n"
+		"postmortem_lineage_state=%s\n"
+		"postmortem_lineage_matches=%s\n"
+		"postmortem_lineage_sha256=%s\n",
 		phase_name(state->phase), bundle, manifest, prepare, commit,
 		fingerprint, state->execution_started ? "YES" : "NO",
 		state->last_error, postmortem.state, postmortem.records,
-		postmortem.bytes, postmortem.sha256, postmortem.tail_hex);
+		postmortem.bytes, postmortem.sha256, postmortem.tail_hex,
+		postmortem.lineage_state, postmortem.lineage_matches,
+		postmortem.lineage_sha256);
 	if (body_length < 0 || body_length >= (int)sizeof(body))
 		fail("response body is too large");
 	hash_bytes(body, (size_t)body_length, body_hash);
@@ -3041,6 +3429,8 @@ static void parse_arguments(int argc, char **argv)
 			watchdog_path = argv[index + 1];
 		else if (strcmp(argv[index], "--postmortem") == 0)
 			postmortem_path = argv[index + 1];
+		else if (strcmp(argv[index], "--postmortem-snapshot") == 0)
+			postmortem_snapshot_path = argv[index + 1];
 		else
 			fail("unknown test option");
 	}
@@ -3159,6 +3549,7 @@ int main(int argc, char **argv)
 	configure_test_runtime();
 	open_state_directories();
 	load_postmortem_status();
+	load_postmortem_snapshot();
 	open_watchdog_lease();
 	if (!watchdog_armed())
 		fail("rollback watchdog is not armed at startup");

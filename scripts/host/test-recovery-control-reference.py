@@ -246,8 +246,58 @@ class RecordCodecTest(unittest.TestCase):
             postmortem_bytes="5",
             postmortem_sha256=MANIFEST,
             postmortem_tail_hex="70616e6963",
+            postmortem_lineage_state="UNIQUE",
+            postmortem_lineage_matches="1",
+            postmortem_lineage_sha256=OTHER_MANIFEST,
         )
         self.assertEqual(decode_response(encode_response(detailed)), detailed)
+
+    def test_postmortem_lineage_response_combinations_are_strict(self):
+        valid = Response(
+            session=SESSION,
+            request=request_id(2),
+            verb="STATUS",
+            result="OK",
+            state="IDLE",
+            postmortem_state="PRESENT",
+            postmortem_records="1",
+            postmortem_bytes="5",
+            postmortem_sha256=MANIFEST,
+            postmortem_tail_hex="70616e6963",
+            postmortem_lineage_state="UNIQUE",
+            postmortem_lineage_matches="1",
+            postmortem_lineage_sha256=OTHER_MANIFEST,
+        )
+        invalid = (
+            replace(valid, postmortem_lineage_state="UNKNOWN"),
+            replace(valid, postmortem_lineage_matches="01"),
+            replace(valid, postmortem_lineage_matches="65536"),
+            replace(valid, postmortem_lineage_sha256="g" * 64),
+            replace(valid, postmortem_lineage_matches="2"),
+            replace(
+                valid,
+                postmortem_lineage_state="REPEATED",
+                postmortem_lineage_matches="2",
+                postmortem_lineage_sha256=ZERO_ID * 2,
+            ),
+            replace(
+                valid,
+                postmortem_state="EMPTY",
+                postmortem_records="0",
+                postmortem_bytes="0",
+                postmortem_sha256=(
+                    "e3b0c44298fc1c149afbf4c8996fb924"
+                    "27ae41e4649b934ca495991b7852b855"
+                ),
+                postmortem_tail_hex="none",
+            ),
+        )
+        for response in invalid:
+            with self.subTest(response=response):
+                with self.assertRaisesRegex(
+                    ProtocolViolation, "BAD_RESPONSE"
+                ):
+                    encode_response(response)
 
     def test_prepare_progress_round_trips_every_ordered_phase(self):
         for sequence, phase in enumerate(PREPARE_PROGRESS_PHASES, 1):

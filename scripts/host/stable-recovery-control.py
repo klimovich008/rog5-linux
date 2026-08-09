@@ -83,6 +83,15 @@ RECOVERY_ACM_IDENTITY_FIELDS = (
     "serial",
 )
 RECOVERY_ACM_DISCOVERY_PHASES = frozenset({"initial", "prepare-replay"})
+TARGET_LINEAGE_PREFIX = (
+    "rog5-network-root: lineage "
+    "format=rog5-target-lineage-v1 candidate="
+)
+CANDIDATE_ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}\Z")
+BOOT_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
+)
 
 
 class TransportLost(RuntimeError):
@@ -91,6 +100,24 @@ class TransportLost(RuntimeError):
 
 class RecoveryAcmUnavailable(RuntimeError):
     """Bounded recovery ACM discovery evidence for one named phase."""
+
+
+@dataclass(frozen=True)
+class PostmortemLineageCorrelation:
+    """Expected identity and bounded recovery snapshot classification."""
+
+    classification: str
+    recovery_session: str
+    status_request: str
+    postmortem_state: str
+    postmortem_records: str
+    postmortem_bytes: str
+    postmortem_sha256: str
+    expected_candidate: str
+    expected_boot_id: str
+    expected_lineage_sha256: str
+    observed_lineage_matches: str
+    observed_lineage_sha256: str
 
 
 def bounded_failure_summary(
@@ -796,6 +823,89 @@ def show_response(response: Response) -> None:
     )
 
 
+def expected_postmortem_lineage_sha256(
+    expected_candidate: str,
+    expected_boot_id: str,
+) -> str:
+    if (
+        not CANDIDATE_ID.fullmatch(expected_candidate)
+        or expected_candidate == "none"
+        or ".." in expected_candidate
+    ):
+        fail("invalid expected postmortem candidate")
+    if not BOOT_ID.fullmatch(expected_boot_id):
+        fail("invalid expected postmortem boot ID")
+    marker = (
+        f"{TARGET_LINEAGE_PREFIX}{expected_candidate} "
+        f"boot_id={expected_boot_id}"
+    ).encode("ascii")
+    return hashlib.sha256(marker).hexdigest()
+
+
+def correlate_postmortem_lineage(
+    response: Response,
+    expected_candidate: str,
+    expected_boot_id: str,
+) -> PostmortemLineageCorrelation:
+    expected_digest = expected_postmortem_lineage_sha256(
+        expected_candidate, expected_boot_id
+    )
+    if response.postmortem_state == "UNAVAILABLE":
+        classification = "UNAVAILABLE"
+    elif response.postmortem_state == "EMPTY":
+        classification = "NO_RECORDS"
+    elif response.postmortem_lineage_state == "NONE":
+        classification = "NO_MARKER"
+    elif response.postmortem_lineage_state == "AMBIGUOUS":
+        classification = "AMBIGUOUS"
+    elif response.postmortem_lineage_sha256 != expected_digest:
+        classification = "DIFFERENT_MARKER"
+    elif response.postmortem_lineage_state == "UNIQUE":
+        classification = "MATCH"
+    else:
+        classification = "MATCH_REPEATED"
+    return PostmortemLineageCorrelation(
+        classification=classification,
+        recovery_session=response.session,
+        status_request=response.request,
+        postmortem_state=response.postmortem_state,
+        postmortem_records=response.postmortem_records,
+        postmortem_bytes=response.postmortem_bytes,
+        postmortem_sha256=response.postmortem_sha256,
+        expected_candidate=expected_candidate,
+        expected_boot_id=expected_boot_id,
+        expected_lineage_sha256=expected_digest,
+        observed_lineage_matches=response.postmortem_lineage_matches,
+        observed_lineage_sha256=response.postmortem_lineage_sha256,
+    )
+
+
+def read_recovery_status() -> tuple[Response, Response]:
+    ensure_host_ready()
+    serial, session, hello_response = connect()
+    try:
+        identifier = request_id()
+        status = serial.exchange(
+            encode_request(
+                session=session,
+                request=identifier,
+                verb="STATUS",
+            ),
+            8,
+        )
+        assert_correlated(
+            status,
+            session=session,
+            request=identifier,
+            verb="STATUS",
+        )
+        if status.result != "OK":
+            fail(f"recovery STATUS failed: {status.result}")
+        return hello_response, status
+    finally:
+        serial.close()
+
+
 def show_intent(intent: object) -> None:
     print(
         json.dumps(asdict(intent), sort_keys=True, separators=(",", ":")),
@@ -818,31 +928,29 @@ def ensure_host_ready() -> None:
 
 def main(arguments: list[str]) -> int:
     if arguments == ["status"]:
-        ensure_host_ready()
-        serial, session, hello_response = connect()
-        try:
-            identifier = request_id()
-            status = serial.exchange(
-                encode_request(
-                    session=session,
-                    request=identifier,
-                    verb="STATUS",
-                ),
-                8,
-            )
-            assert_correlated(
-                status,
-                session=session,
-                request=identifier,
-                verb="STATUS",
-            )
-            if status.result != "OK":
-                fail(f"recovery STATUS failed: {status.result}")
-            show_response(hello_response)
-            show_response(status)
-            return 0
-        finally:
-            serial.close()
+        hello_response, status = read_recovery_status()
+        show_response(hello_response)
+        show_response(status)
+        return 0
+
+    if len(arguments) == 3 and arguments[0] == "postmortem-status":
+        expected_candidate = arguments[1]
+        expected_boot_id = arguments[2]
+        # Validate caller-supplied lineage before any host/device discovery.
+        expected_postmortem_lineage_sha256(
+            expected_candidate, expected_boot_id
+        )
+        _, status = read_recovery_status()
+        correlation = correlate_postmortem_lineage(
+            status, expected_candidate, expected_boot_id
+        )
+        print(
+            json.dumps(
+                asdict(correlation), sort_keys=True, separators=(",", ":")
+            ),
+            flush=True,
+        )
+        return 0
 
     if len(arguments) == 2 and arguments[0] == "show":
         ledger = HostIntentLedger(ledger_root())
@@ -939,7 +1047,8 @@ def main(arguments: list[str]) -> int:
         return 0
 
     fail(
-        "usage: stable-recovery-control.py status | show SESSION | "
+        "usage: stable-recovery-control.py status | "
+        "postmortem-status CANDIDATE BOOT_ID | show SESSION | "
         "resolve SESSION REQUEST OUTCOME | "
         "prepare-commit BUNDLE MANIFEST_SHA256"
     )

@@ -86,6 +86,9 @@ CONTROL_RESPONSE_FIELDS = frozenset(
         "postmortem_bytes",
         "postmortem_sha256",
         "postmortem_tail_hex",
+        "postmortem_lineage_state",
+        "postmortem_lineage_matches",
+        "postmortem_lineage_sha256",
     }
 )
 BOOT_ID = re.compile(
@@ -1291,18 +1294,33 @@ def postmortem_tuple(value: dict[str, object]) -> tuple[object, ...]:
             "postmortem_bytes",
             "postmortem_sha256",
             "postmortem_tail_hex",
+            "postmortem_lineage_state",
+            "postmortem_lineage_matches",
+            "postmortem_lineage_sha256",
         )
     )
 
 
 def valid_postmortem(value: dict[str, object]) -> bool:
-    state, records, byte_count, digest, tail = postmortem_tuple(value)
+    (
+        state,
+        records,
+        byte_count,
+        digest,
+        tail,
+        lineage_state,
+        lineage_matches,
+        lineage_digest,
+    ) = postmortem_tuple(value)
     if (
         not isinstance(state, str)
         or not isinstance(records, str)
         or not isinstance(byte_count, str)
         or not isinstance(digest, str)
         or not isinstance(tail, str)
+        or not isinstance(lineage_state, str)
+        or not isinstance(lineage_matches, str)
+        or not isinstance(lineage_digest, str)
         or state not in {"PRESENT", "EMPTY", "UNAVAILABLE"}
         or not records.isdecimal()
         or (len(records) > 1 and records.startswith("0"))
@@ -1314,7 +1332,27 @@ def valid_postmortem(value: dict[str, object]) -> bool:
         or int(byte_count) > 4194304
         or not SHA256.fullmatch(digest)
         or (tail != "none" and not POSTMORTEM_TAIL_HEX.fullmatch(tail))
+        or lineage_state not in {"NONE", "UNIQUE", "REPEATED", "AMBIGUOUS"}
+        or not lineage_matches.isdecimal()
+        or (len(lineage_matches) > 1 and lineage_matches.startswith("0"))
+        or len(lineage_matches) > 5
+        or int(lineage_matches) > 65535
+        or not SHA256.fullmatch(lineage_digest)
     ):
+        return False
+    if lineage_state == "NONE" and (
+        lineage_matches != "0" or lineage_digest != ZERO_SHA256
+    ):
+        return False
+    if lineage_state == "UNIQUE" and (
+        lineage_matches != "1" or lineage_digest == ZERO_SHA256
+    ):
+        return False
+    if lineage_state == "REPEATED" and (
+        int(lineage_matches) < 2 or lineage_digest == ZERO_SHA256
+    ):
+        return False
+    if lineage_state == "AMBIGUOUS" and lineage_digest != ZERO_SHA256:
         return False
     if state == "PRESENT":
         return (
@@ -1329,12 +1367,18 @@ def valid_postmortem(value: dict[str, object]) -> bool:
             and byte_count == "0"
             and digest == EMPTY_SHA256
             and tail == "none"
+            and lineage_state == "NONE"
+            and lineage_matches == "0"
+            and lineage_digest == ZERO_SHA256
         )
     return (
         records == "0"
         and byte_count == "0"
         and digest == ZERO_SHA256
         and tail == "none"
+        and lineage_state == "NONE"
+        and lineage_matches == "0"
+        and lineage_digest == ZERO_SHA256
     )
 
 

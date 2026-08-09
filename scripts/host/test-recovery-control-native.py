@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 import pty
@@ -50,6 +51,11 @@ from tools.recovery_control.host_progress_collector import (  # noqa: E402
 
 MANIFEST = "a" * 64
 OTHER_MANIFEST = "b" * 64
+LINEAGE = (
+    b"rog5-network-root: lineage format=rog5-target-lineage-v1 "
+    b"candidate=headless-netroot-early-diag-v3 "
+    b"boot_id=12345678-1234-1234-1234-123456789abc"
+)
 
 
 def request_id(number: int) -> str:
@@ -114,6 +120,9 @@ class NativeResponderTest(unittest.TestCase):
         self.state.mkdir(mode=0o700)
         self.watchdog = self.root / "watchdog"
         self.postmortem = self.root / "postmortem.status"
+        self.postmortem_snapshot = self.root / "postmortem.snapshot"
+        self.postmortem_snapshot.write_bytes(b"")
+        self.postmortem_snapshot.chmod(0o600)
         self.postmortem.write_text(
             "state=UNAVAILABLE\n"
             "records=0\n"
@@ -147,6 +156,51 @@ class NativeResponderTest(unittest.TestCase):
         self.watchdog.chmod(0o600)
         self.watchdog_process = process
         return process
+
+    def write_postmortem_snapshot(
+        self,
+        records: tuple[tuple[str, bytes], ...],
+    ) -> bytes:
+        snapshot = b"".join(
+            b"record="
+            + name.encode("ascii")
+            + b"\nsize="
+            + str(len(payload)).encode("ascii")
+            + b"\n"
+            + payload
+            + b"\n"
+            for name, payload in records
+        )
+        self.postmortem_snapshot.write_bytes(snapshot)
+        self.postmortem_snapshot.chmod(0o600)
+        self.write_postmortem_status(
+            state="PRESENT" if records else "EMPTY",
+            records=len(records),
+            payload_bytes=sum(len(payload) for _, payload in records),
+            snapshot=snapshot,
+        )
+        return snapshot
+
+    def write_postmortem_status(
+        self,
+        *,
+        state: str,
+        records: int,
+        payload_bytes: int,
+        snapshot: bytes,
+        digest: str | None = None,
+        tail: str | None = None,
+    ) -> None:
+        selected_tail = snapshot[-512:].hex() if records else "none"
+        self.postmortem.write_text(
+            f"state={state}\n"
+            f"records={records}\n"
+            f"bytes={payload_bytes}\n"
+            f"sha256={digest or hashlib.sha256(snapshot).hexdigest()}\n"
+            f"tail_hex={tail or selected_tail}\n",
+            encoding="ascii",
+        )
+        self.postmortem.chmod(0o600)
 
     def stop_watchdog(self) -> None:
         if self.watchdog_process.poll() is None:
@@ -271,6 +325,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.watchdog),
                 "--postmortem",
                 str(self.postmortem),
+                "--postmortem-snapshot",
+                str(self.postmortem_snapshot),
             ],
             cwd=REPO,
             env=environment,
@@ -871,6 +927,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.watchdog),
                 "--postmortem",
                 str(self.postmortem),
+                "--postmortem-snapshot",
+                str(self.postmortem_snapshot),
             ],
             cwd=REPO,
             env=environment,
@@ -909,6 +967,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.watchdog),
                 "--postmortem",
                 str(self.postmortem),
+                "--postmortem-snapshot",
+                str(self.postmortem_snapshot),
             ],
             cwd=REPO,
             env=environment,
@@ -985,6 +1045,8 @@ class NativeResponderTest(unittest.TestCase):
                 str(self.watchdog),
                 "--postmortem",
                 str(self.postmortem),
+                "--postmortem-snapshot",
+                str(self.postmortem_snapshot),
             ],
             cwd=REPO,
             env=environment,
@@ -1092,22 +1154,166 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(response.state, "IDLE")
 
     def test_status_exports_bounded_postmortem_evidence(self):
-        self.postmortem.write_text(
-            "state=PRESENT\n"
-            "records=1\n"
-            "bytes=5\n"
-            f"sha256={MANIFEST}\n"
-            "tail_hex=70616e6963\n",
-            encoding="ascii",
+        payload = (
+            b"x" * 600
+            + b"\n[    1.234567] "
+            + LINEAGE
+            + b"\nafter"
+        )
+        snapshot = self.write_postmortem_snapshot(
+            (("console-ramoops-0", payload),)
         )
         _, master = self.start()
         session = self.hello(master)
         response = self.status(master, session, 2)
         self.assertEqual(response.postmortem_state, "PRESENT")
         self.assertEqual(response.postmortem_records, "1")
-        self.assertEqual(response.postmortem_bytes, "5")
-        self.assertEqual(response.postmortem_sha256, MANIFEST)
-        self.assertEqual(bytes.fromhex(response.postmortem_tail_hex), b"panic")
+        self.assertEqual(
+            response.postmortem_bytes,
+            str(len(payload)),
+        )
+        self.assertEqual(
+            response.postmortem_sha256,
+            hashlib.sha256(snapshot).hexdigest(),
+        )
+        self.assertEqual(
+            bytes.fromhex(response.postmortem_tail_hex), snapshot[-512:]
+        )
+        self.assertEqual(response.postmortem_lineage_state, "UNIQUE")
+        self.assertEqual(response.postmortem_lineage_matches, "1")
+        self.assertEqual(
+            response.postmortem_lineage_sha256,
+            hashlib.sha256(LINEAGE).hexdigest(),
+        )
+
+    def test_postmortem_lineage_is_hash_only_and_fail_closed(self):
+        other = LINEAGE[:-1] + b"d"
+        cases = (
+            ("none", b"ordinary console", "NONE", "0", "0" * 64),
+            (
+                "printk-time",
+                b"[    1.234567] " + LINEAGE,
+                "UNIQUE",
+                "1",
+                hashlib.sha256(LINEAGE).hexdigest(),
+            ),
+            (
+                "printk-long-time",
+                b"[123456.234567] " + LINEAGE,
+                "UNIQUE",
+                "1",
+                hashlib.sha256(LINEAGE).hexdigest(),
+            ),
+            (
+                "pstore-dmesg",
+                b"<14>[    1.234567] " + LINEAGE,
+                "UNIQUE",
+                "1",
+                hashlib.sha256(LINEAGE).hexdigest(),
+            ),
+            (
+                "not-line-aligned",
+                b"ordinary prefix " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "malformed-printk-time",
+                b"[   1.234567] " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "overpadded-printk-time",
+                b"[     1.234567] " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "leading-zero-printk-time",
+                b"[00001.234567] " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "noncanonical-priority",
+                b"<014>[    1.234567] " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "out-of-range-priority",
+                b"<192>[    1.234567] " + LINEAGE,
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+            (
+                "repeated",
+                b"<14>[    2.345678] "
+                + LINEAGE
+                + b"\n[    2.345678] "
+                + LINEAGE,
+                "REPEATED",
+                "2",
+                hashlib.sha256(LINEAGE).hexdigest(),
+            ),
+            (
+                "distinct",
+                LINEAGE + b"\n" + other,
+                "AMBIGUOUS",
+                "2",
+                "0" * 64,
+            ),
+            (
+                "lookalike",
+                LINEAGE + b" trailing-field",
+                "AMBIGUOUS",
+                "0",
+                "0" * 64,
+            ),
+        )
+        for name, payload, state, matches, digest in cases:
+            with self.subTest(case=name):
+                self.write_postmortem_snapshot(
+                    ((f"console-ramoops-{name}", payload),)
+                )
+                process, master = self.start()
+                session = self.hello(master)
+                response = self.status(master, session, 2)
+                self.assertEqual(response.postmortem_lineage_state, state)
+                self.assertEqual(
+                    response.postmortem_lineage_matches, matches
+                )
+                self.assertEqual(
+                    response.postmortem_lineage_sha256, digest
+                )
+                self.assertNotIn(
+                    "headless-netroot", response.postmortem_lineage_sha256
+                )
+                self.stop_responder(process, master)
+
+        self.write_postmortem_snapshot(
+            (
+                ("console-ramoops-0", b"[    2.345678] " + LINEAGE),
+                ("dmesg-ramoops-0", b"<14>[    2.345678] " + LINEAGE),
+            )
+        )
+        process, master = self.start()
+        session = self.hello(master)
+        response = self.status(master, session, 2)
+        self.assertEqual(response.postmortem_lineage_state, "REPEATED")
+        self.assertEqual(response.postmortem_lineage_matches, "2")
+        self.assertEqual(
+            response.postmortem_lineage_sha256,
+            hashlib.sha256(LINEAGE).hexdigest(),
+        )
+        self.stop_responder(process, master)
 
     def test_inconsistent_postmortem_status_is_rejected_at_startup(self):
         self.postmortem.write_text(
@@ -1122,6 +1328,105 @@ class NativeResponderTest(unittest.TestCase):
         self.assertNotEqual(refusal.returncode, 0)
         self.assertIn("inconsistent present postmortem status", refusal.stderr)
         self.assertFalse((self.state / "session").exists())
+
+    def test_postmortem_snapshot_mismatch_is_rejected_before_session(self):
+        self.postmortem.write_text(
+            "state=EMPTY\n"
+            "records=0\n"
+            "bytes=0\n"
+            "sha256=e3b0c44298fc1c149afbf4c8996fb924"
+            "27ae41e4649b934ca495991b7852b855\n"
+            "tail_hex=none\n",
+            encoding="ascii",
+        )
+        self.postmortem_snapshot.write_bytes(b"unexpected")
+        refusal = self.run_startup_probe(self.state)
+        self.assertNotEqual(refusal.returncode, 0)
+        self.assertIn("postmortem snapshot", refusal.stderr)
+        self.assertFalse((self.state / "session").exists())
+
+    def test_hostile_postmortem_snapshot_framing_is_rejected(self):
+        oversized = (
+            b"record=full\nsize=4194304\n"
+            + b"x" * 4194304
+            + b"\nrecord=extra\nsize=1\ny\n"
+        )
+        cases = (
+            ("invalid-name", b"record=bad/name\nsize=1\nx\n"),
+            ("zero-size", b"record=p\nsize=0\n\n"),
+            ("noncanonical-size", b"record=p\nsize=01\nx\n"),
+            ("truncated", b"record=p\nsize=2\nx\n"),
+            ("bad-delimiter", b"record=p\nsize=1\nxX"),
+            (
+                "too-many-records",
+                b"".join(
+                    f"record=p-{index}\nsize=1\nx\n".encode("ascii")
+                    for index in range(65)
+                ),
+            ),
+            ("payload-total", oversized),
+        )
+        for name, snapshot in cases:
+            with self.subTest(case=name):
+                self.postmortem_snapshot.write_bytes(snapshot)
+                self.postmortem_snapshot.chmod(0o600)
+                self.write_postmortem_status(
+                    state="PRESENT",
+                    records=min(64, snapshot.count(b"record=")),
+                    payload_bytes=min(4194304, len(snapshot)),
+                    snapshot=snapshot,
+                )
+                refusal = self.run_startup_probe(self.state)
+                self.assertNotEqual(refusal.returncode, 0)
+                self.assertIn("postmortem snapshot", refusal.stderr)
+                self.assertFalse((self.state / "session").exists())
+
+    def test_postmortem_snapshot_status_mismatches_are_rejected(self):
+        snapshot = self.write_postmortem_snapshot(
+            (("console-ramoops-0", b"panic"),)
+        )
+        cases = (
+            ("records", {"records": 2}),
+            ("bytes", {"payload_bytes": 6}),
+            ("hash", {"digest": "b" * 64}),
+            ("tail", {"tail": "00"}),
+        )
+        for name, changes in cases:
+            with self.subTest(case=name):
+                values = {
+                    "state": "PRESENT",
+                    "records": 1,
+                    "payload_bytes": 5,
+                    "snapshot": snapshot,
+                }
+                values.update(changes)
+                self.write_postmortem_status(**values)
+                refusal = self.run_startup_probe(self.state)
+                self.assertNotEqual(refusal.returncode, 0)
+                self.assertIn("postmortem snapshot", refusal.stderr)
+                self.assertFalse((self.state / "session").exists())
+
+    def test_postmortem_snapshot_path_is_private_regular_and_unlinked(self):
+        outside = self.root / "outside-postmortem.snapshot"
+        for name in ("weak-mode", "symlink", "hardlink", "directory"):
+            with self.subTest(case=name):
+                self.postmortem_snapshot.unlink(missing_ok=True)
+                outside.unlink(missing_ok=True)
+                outside.write_bytes(b"")
+                outside.chmod(0o600)
+                if name == "weak-mode":
+                    self.postmortem_snapshot.write_bytes(b"")
+                    self.postmortem_snapshot.chmod(0o644)
+                elif name == "symlink":
+                    self.postmortem_snapshot.symlink_to(outside)
+                elif name == "hardlink":
+                    os.link(outside, self.postmortem_snapshot)
+                else:
+                    self.postmortem_snapshot.mkdir(mode=0o700)
+                refusal = self.run_startup_probe(self.state)
+                self.assertNotEqual(refusal.returncode, 0)
+                self.assertIn("postmortem snapshot", refusal.stderr)
+                self.assertFalse((self.state / "session").exists())
 
     def test_complete_malformed_frames_close_without_state_change(self):
         malformed = (
@@ -3185,6 +3490,11 @@ class NativeResponderTest(unittest.TestCase):
             "/usr/libexec/rog5-bundle-verify",
             production_strings,
         )
+        self.assertIn(
+            "/run/rog5-postmortem.snapshot",
+            production_strings,
+        )
+        self.assertNotIn("--postmortem-snapshot", production_strings)
         self.assertIn("--handoff-fd3", production_strings)
         self.assertIn("/proc/self/fd/%d", production_strings)
         self.assertIn("rog5-kexec", production_strings)

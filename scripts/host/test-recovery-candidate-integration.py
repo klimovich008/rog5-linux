@@ -650,6 +650,9 @@ class CandidateIntegrationTest(unittest.TestCase):
             encoding="ascii",
         )
         postmortem.chmod(0o600)
+        postmortem_snapshot = runtime / "postmortem.snapshot"
+        postmortem_snapshot.write_bytes(b"")
+        postmortem_snapshot.chmod(0o600)
         master, slave = pty.openpty()
         self.descriptors.append(master)
         device = Path(os.ttyname(slave))
@@ -681,6 +684,8 @@ class CandidateIntegrationTest(unittest.TestCase):
                 str(watchdog),
                 "--postmortem",
                 str(postmortem),
+                "--postmortem-snapshot",
+                str(postmortem_snapshot),
             ],
             cwd=REPO,
             env=environment,

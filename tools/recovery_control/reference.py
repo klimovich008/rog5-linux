@@ -156,6 +156,9 @@ RESPONSE_BODY_FIELDS = (
     "postmortem_bytes",
     "postmortem_sha256",
     "postmortem_tail_hex",
+    "postmortem_lineage_state",
+    "postmortem_lineage_matches",
+    "postmortem_lineage_sha256",
 )
 PREPARE_PROGRESS_PHASES = (
     "REQUEST_ACCEPTED",
@@ -172,6 +175,7 @@ PROGRESS_BODY_FIELDS = (
     "watchdog",
 )
 POSTMORTEM_STATES = {"UNAVAILABLE", "EMPTY", "PRESENT"}
+POSTMORTEM_LINEAGE_STATES = {"NONE", "UNIQUE", "REPEATED", "AMBIGUOUS"}
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 TAIL_HEX = re.compile(r"(?:[0-9a-f]{2}){1,512}\Z")
 
@@ -317,6 +321,9 @@ class Response:
     postmortem_bytes: str = "0"
     postmortem_sha256: str = ZERO_SHA256
     postmortem_tail_hex: str = "none"
+    postmortem_lineage_state: str = "NONE"
+    postmortem_lineage_matches: str = "0"
+    postmortem_lineage_sha256: str = ZERO_SHA256
 
 
 def encode_progress(progress: Progress) -> bytes:
@@ -402,6 +409,9 @@ def encode_response(response: Response) -> bytes:
                 response.postmortem_bytes,
                 response.postmortem_sha256,
                 response.postmortem_tail_hex,
+                response.postmortem_lineage_state,
+                response.postmortem_lineage_matches,
+                response.postmortem_lineage_sha256,
             )
         )
         or not HEX_ID.fullmatch(response.session)
@@ -450,6 +460,16 @@ def encode_response(response: Response) -> bytes:
             response.postmortem_tail_hex != "none"
             and not TAIL_HEX.fullmatch(response.postmortem_tail_hex)
         )
+        or response.postmortem_lineage_state
+        not in POSTMORTEM_LINEAGE_STATES
+        or not response.postmortem_lineage_matches.isdecimal()
+        or (
+            len(response.postmortem_lineage_matches) > 1
+            and response.postmortem_lineage_matches.startswith("0")
+        )
+        or len(response.postmortem_lineage_matches) > 5
+        or int(response.postmortem_lineage_matches) > 65535
+        or not HEX_SHA256.fullmatch(response.postmortem_lineage_sha256)
         or (
             response.postmortem_state == "PRESENT"
             and (
@@ -476,6 +496,39 @@ def encode_response(response: Response) -> bytes:
                 or response.postmortem_sha256 != ZERO_SHA256
                 or response.postmortem_tail_hex != "none"
             )
+        )
+        or (
+            response.postmortem_state != "PRESENT"
+            and (
+                response.postmortem_lineage_state != "NONE"
+                or response.postmortem_lineage_matches != "0"
+                or response.postmortem_lineage_sha256 != ZERO_SHA256
+            )
+        )
+        or (
+            response.postmortem_lineage_state == "NONE"
+            and (
+                response.postmortem_lineage_matches != "0"
+                or response.postmortem_lineage_sha256 != ZERO_SHA256
+            )
+        )
+        or (
+            response.postmortem_lineage_state == "UNIQUE"
+            and (
+                response.postmortem_lineage_matches != "1"
+                or response.postmortem_lineage_sha256 == ZERO_SHA256
+            )
+        )
+        or (
+            response.postmortem_lineage_state == "REPEATED"
+            and (
+                int(response.postmortem_lineage_matches) < 2
+                or response.postmortem_lineage_sha256 == ZERO_SHA256
+            )
+        )
+        or (
+            response.postmortem_lineage_state == "AMBIGUOUS"
+            and response.postmortem_lineage_sha256 != ZERO_SHA256
         )
         or any(prepared_values) != prepared
         or any(claimed_values) != claimed
@@ -545,6 +598,9 @@ def decode_response(payload: bytes) -> Response:
         postmortem_bytes=fields["postmortem_bytes"],
         postmortem_sha256=fields["postmortem_sha256"],
         postmortem_tail_hex=fields["postmortem_tail_hex"],
+        postmortem_lineage_state=fields["postmortem_lineage_state"],
+        postmortem_lineage_matches=fields["postmortem_lineage_matches"],
+        postmortem_lineage_sha256=fields["postmortem_lineage_sha256"],
     )
     if fields["version"] != "1" or fields["kind"] != "response":
         raise ProtocolViolation("BAD_VERSION")

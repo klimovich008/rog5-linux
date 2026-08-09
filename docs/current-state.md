@@ -73,6 +73,15 @@ SSH, profile restoration, host cleanup, Steam socket restoration, and
 recorded consumed, permanently claimed, and never reusable. The [live
 result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
 does not claim a panic without current-cycle console or postmortem lineage.
+Recovery-side postmortem transport has since been hardened offline: the native
+responder validates the full fixed pstore snapshot against canonical status
+metadata before opening its session, parses exact console-ramoops and
+dmesg-ramoops printk forms, and returns bounded lineage-marker hashes. The
+read-only `postmortem-status` host action compares those hashes with one exact
+expected candidate/boot ID and redacts the reversible tail. This is a future
+correlation mechanism, not proof that ramoops survives target → bootloader →
+recovery; the result and candidate recommendation remain HOLD. See the
+[offline checkpoint](../test-results/2026-08-09-recovery-postmortem-lineage-offline.md).
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot
