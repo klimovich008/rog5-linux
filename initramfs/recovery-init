@@ -27,6 +27,30 @@ mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run 2>/dev/null ||
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 hostname rog5-recovery
 
+ensure_kernel_log_device() {
+	if [ -L /dev/kmsg ]; then
+		return 1
+	fi
+	if [ ! -e /dev/kmsg ]; then
+		mknod -m 0600 /dev/kmsg c 1 11 || return 1
+	fi
+	[ -c /dev/kmsg ] &&
+		[ ! -L /dev/kmsg ] &&
+		[ "$(stat -c %u /dev/kmsg 2>/dev/null)" = 0 ] &&
+		[ "$(stat -c %g /dev/kmsg 2>/dev/null)" = 0 ] &&
+		[ "$(stat -c %a /dev/kmsg 2>/dev/null)" = 600 ] &&
+		[ "$(stat -c %h /dev/kmsg 2>/dev/null)" = 1 ] &&
+		[ "$(stat -c %t /dev/kmsg 2>/dev/null)" = 1 ] &&
+		[ "$(stat -c %T /dev/kmsg 2>/dev/null)" = b ]
+}
+
+if ! ensure_kernel_log_device; then
+	echo 'rog5-recovery: exact kernel-log device is unavailable; rebooting' \
+		>/dev/console 2>/dev/null || true
+	reboot -f 2>/dev/null || true
+	while :; do sleep 3600; done
+fi
+
 log() {
 	echo "rog5-recovery: $*" >/dev/kmsg
 }

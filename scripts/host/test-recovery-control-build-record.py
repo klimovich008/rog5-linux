@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 from pathlib import Path
+import stat
 import sys
 
 
 REPO = Path(__file__).resolve().parents[2]
 VERIFIER = REPO / "scripts/host/verify-retention-cycle-admission.py"
-PROFILE = REPO / "configs/retention-cycles/host-rendezvous-v3-observer-v1.json"
+RECOVERY_INIT = REPO / "initramfs/recovery-init"
+BUILD_RECORD = REPO / "configs/recovery-control/aarch64-build-v1.json"
 SPEC = importlib.util.spec_from_file_location(
     "verify_retention_cycle_admission", VERIFIER
 )
@@ -28,12 +31,21 @@ def main() -> int:
     options = parser.parse_args()
     if options.binary is not None and options.emit_build_fields:
         parser.error("--binary and --emit-build-fields are mutually exclusive")
-    profile = ADMISSION.read_json(
-        PROFILE,
-        "retention-cycle profile",
-        expected_mode=0o644,
-    )
-    recovery_inputs = profile["recovery_inputs"]
+    def current_record(path: Path) -> dict[str, object]:
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode):
+            raise RuntimeError(f"reviewed build input is not regular: {path}")
+        return {
+            "path": path.relative_to(REPO).as_posix(),
+            "size": metadata.st_size,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "mode": f"{stat.S_IMODE(metadata.st_mode):04o}",
+        }
+
+    recovery_inputs = {
+        "init": current_record(RECOVERY_INIT),
+        "control_build": current_record(BUILD_RECORD),
+    }
     (
         _init_payload,
         binary_identity,
