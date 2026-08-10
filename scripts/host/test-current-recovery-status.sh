@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'The implementation successor now requires exactly that three-name inventory, selects only `a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing entries. The v4 production candidate (`ee662ab9…6752`) booted once and proved exact recovery ACM/NCM, but the host rejected the recovery ancestry because the invocation supplied short USB name `1-1.2` instead of its full canonical physical path. No control session, payload, NFS, or target ran; the 180-second rollback returned exact Alpine. V4 is consumed. V5 (`e4ae6373…c722`) changes only the deterministic AVB generation over the unchanged clean-twin raw wrapper; its claim is unissued and it has not been booted.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V5 is consumed and must never be retried. The leading unproven cause is a post-COMMIT recovery execution failure because `CLAIMED` was returned before the Haven handoff and `kexec -e`. V6 (`43613a11…8eb0a`) preserves the exact raw wrapper and adds one bounded host STATUS request after `CLAIMED`; a returned recovery responder now exposes its terminal state and error, while actual recovery-USB departure remains the target-transition path. Its deterministic AVB generation took 1.529 seconds; the claim is unissued and it has not been booted.'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2/v3/v4 and identify the unissued v5 successor' >&2
+		echo 'FAIL current status does not consume v2/v3/v4/v5 and identify the unissued v6 successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4 and records the unissued v5 successor'
+echo 'PASS current status consumes Generation 12/v2/v3/v4/v5 and records the unissued v6 successor'

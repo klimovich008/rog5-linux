@@ -743,6 +743,100 @@ class StableRecoveryControlTest(unittest.TestCase):
         self.assertEqual(intent.manifest_sha256, MANIFEST)
         self.assertEqual(len(self.commit_requests), 1)
 
+    def test_post_claim_status_exposes_terminal_recovery_failure(self):
+        serial = mock.MagicMock()
+        committed = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="COMMIT_EXEC",
+            result="CLAIMED",
+            state="CLAIMED",
+            prepared_bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            prepare_request="1" * 32,
+            commit_request="2" * 32,
+            commit_fingerprint="3" * 64,
+            execution_started="NO",
+            watchdog="ARMED",
+        )
+        failed = replace(
+            committed,
+            request="4" * 32,
+            verb="STATUS",
+            result="OK",
+            state="EXEC_FAILED",
+            last_error="HAVEN_WDOG_FAILED",
+        )
+        serial.exchange.return_value = failed
+        with mock.patch.object(MODULE, "request_id", return_value="4" * 32):
+            observed = MODULE.observe_post_claim(serial, SESSION, committed)
+        self.assertEqual(observed, failed)
+        request = decode_request(serial.exchange.call_args.args[0])
+        self.assertEqual(request.verb, "STATUS")
+        self.assertEqual(request.session, SESSION)
+
+    def test_post_claim_transport_departure_is_expected(self):
+        serial = mock.MagicMock()
+        serial.exchange.side_effect = MODULE.TransportLost(
+            "recovery ACM departed before response"
+        )
+        committed = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="COMMIT_EXEC",
+            result="CLAIMED",
+            state="CLAIMED",
+            prepared_bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            prepare_request="1" * 32,
+            commit_request="2" * 32,
+            commit_fingerprint="3" * 64,
+            execution_started="NO",
+            watchdog="ARMED",
+        )
+        with mock.patch.object(
+            MODULE,
+            "observe_recovery_acm",
+            return_value=MODULE.RecoveryAcmObservation("absent"),
+        ):
+            self.assertIsNone(
+                MODULE.observe_post_claim(serial, SESSION, committed)
+            )
+
+    def test_post_claim_timeout_rejects_still_present_recovery(self):
+        serial = mock.MagicMock()
+        serial.exchange.side_effect = MODULE.TransportLost(
+            "timed out waiting for a framed response"
+        )
+        committed = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="COMMIT_EXEC",
+            result="CLAIMED",
+            state="CLAIMED",
+            prepared_bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            prepare_request="1" * 32,
+            commit_request="2" * 32,
+            commit_fingerprint="3" * 64,
+            execution_started="NO",
+            watchdog="ARMED",
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "observe_recovery_acm",
+                return_value=MODULE.RecoveryAcmObservation(
+                    "exact", ("/dev/ttyACM-secret", 1, "dev", "path", "serial")
+                ),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "post-claim response was absent while recovery ACM remained exact",
+            ),
+        ):
+            MODULE.observe_post_claim(serial, SESSION, committed)
+
     def test_prepare_progress_is_parsed_when_coalesced_or_fragmented(self):
         for mode in ("coalesced", "fragmented"):
             with self.subTest(mode=mode):
