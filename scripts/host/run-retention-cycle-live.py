@@ -53,6 +53,8 @@ USB_LOCATION = re.compile(r"[A-Za-z0-9._:/-]{1,512}\Z")
 SERIAL = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
 BOOT_ID = JOURNAL.BOOT_ID
 MAX_OUTPUT = 256 * 1024
+SYS_BUS_USB = Path("/sys/bus/usb/devices")
+SYS_DEVICES = Path("/sys/devices")
 
 
 class LiveCycleError(RuntimeError):
@@ -450,6 +452,60 @@ def parse_single_result(output: str, action: str) -> dict[str, str]:
     return result
 
 
+def fastboot_id_path(serial: str, expected_raw_location: str) -> str:
+    """Map one exact fastboot device's raw sysfs ancestry to udev ID_PATH."""
+
+    matches: list[Path] = []
+    try:
+        candidates = tuple(SYS_BUS_USB.iterdir())
+    except OSError as error:
+        raise LiveCycleError("USB sysfs inventory is unavailable") from error
+    for candidate in candidates:
+        try:
+            vendor = (candidate / "idVendor").read_text(encoding="ascii").strip()
+            product = (candidate / "idProduct").read_text(encoding="ascii").strip()
+            observed_serial = (candidate / "serial").read_text(
+                encoding="ascii"
+            ).strip()
+        except (OSError, UnicodeDecodeError):
+            continue
+        if (vendor, product, observed_serial) == ("0b05", "4daf", serial):
+            matches.append(candidate)
+    if len(matches) != 1:
+        fail("expected one exact fastboot USB sysfs device")
+    try:
+        resolved = matches[0].resolve(strict=True)
+        raw_location = resolved.relative_to(SYS_DEVICES.resolve(strict=True))
+    except (OSError, ValueError) as error:
+        raise LiveCycleError("fastboot USB ancestry is unavailable") from error
+    if raw_location.as_posix() != expected_raw_location:
+        fail("fastboot moved from the exact raw physical USB location")
+    output = run_process(
+        [
+            "/usr/bin/udevadm",
+            "info",
+            "--query=property",
+            f"--path={matches[0]}",
+        ],
+        environment={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+        timeout=5,
+        label="fastboot udev identity",
+    )
+    values = [
+        line.removeprefix("ID_PATH=")
+        for line in output.splitlines()
+        if line.startswith("ID_PATH=")
+    ]
+    if (
+        len(values) != 1
+        or USB_LOCATION.fullmatch(values[0]) is None
+        or values[0].startswith("/")
+        or ".." in Path(values[0]).parts
+    ):
+        fail("fastboot udev ID_PATH is not unique and canonical")
+    return values[0]
+
+
 def public_key_sha256(private_key: Path) -> str:
     output = run_process(
         ["/usr/bin/ssh-keygen", "-y", "-f", str(private_key)],
@@ -611,6 +667,12 @@ def run_live_cycle(values: dict[str, str]) -> None:
             values["FASTBOOT_SERIAL"],
         )
 
+        observer_id_path = fastboot_id_path(
+            values["FASTBOOT_SERIAL"],
+            values["ROG5_EXPECTED_USB_LOCATION"],
+        )
+        observer_environment["ROG5_EXPECTED_USB_LOCATION"] = observer_id_path
+
         journal.observer_claim_intent()
         consume_claim(
             OBSERVER_ID,
@@ -643,8 +705,7 @@ def run_live_cycle(values: dict[str, str]) -> None:
             observer.get("fastboot_serial") != values["FASTBOOT_SERIAL"]
             or observer.get("recovery_sha256") != OBSERVER_SHA256
             or observer.get("rollback_armed") != "1"
-            or observer.get("usb_location")
-            != values["ROG5_EXPECTED_USB_LOCATION"]
+            or observer.get("usb_location") != observer_id_path
         ):
             fail("observer boot result changed identity")
         journal.observer_recovery_observed(
