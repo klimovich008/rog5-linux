@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'The active successor is `headless-diagnostic-host-rendezvous-v3-live-v2`: it is authorized for one reversible RAM-only cycle after exact-head CI, but no v2 claim is issued yet.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'The active successor is `headless-diagnostic-host-rendezvous-v3-live-v3`: it is eligible for one reversible RAM-only cycle only after the verifier correction passes exact-head CI, and no v3 claim is issued yet.'*) ;;
 	*)
-		echo 'FAIL current status does not identify the authorized unissued v2 successor' >&2
+		echo 'FAIL current status does not consume v2 and identify the unissued v3 successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12 and records the authorized unissued v2 successor'
+echo 'PASS current status consumes Generation 12/v2 and records the exact-head-gated unissued v3 successor'

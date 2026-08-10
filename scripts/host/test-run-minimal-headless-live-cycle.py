@@ -2165,15 +2165,21 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 "already consumed on this host",
             ):
                 cycle.claim_temporary_boot()
-            guard = record.parent.parent / (
+            canonical_anchor = self.fixture.root / "canonical-account-home"
+            canonical_anchor.mkdir(mode=0o700)
+            self.assertNotEqual(canonical_anchor, record.parent.parent)
+            guard = canonical_anchor / (
                 ".rog5-temporary-boot-consumption."
                 f"{DIAGNOSTIC_RECOVERY_PROFILE}.entered"
             )
             guard.write_bytes(CLAIM_CONSUMER.EXPECTED)
             guard.chmod(0o600)
-            with mock.patch.dict(
-                os.environ,
-                {"ROG5_EXTERNAL_BOOT_CLAIM": "1"},
+            with mock.patch.object(
+                CYCLE.CLAIM_CONSUMER,
+                "canonical_claim_anchor",
+                return_value=canonical_anchor,
+            ), mock.patch.dict(
+                os.environ, {"ROG5_EXTERNAL_BOOT_CLAIM": "1"}
             ):
                 cycle.claim_temporary_boot()
 
