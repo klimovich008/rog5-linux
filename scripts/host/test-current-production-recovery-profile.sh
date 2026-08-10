@@ -13,8 +13,20 @@ boot_policy=$repo/manifests/temporary-boot-images.tsv
 profile=headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1
 tmp=$(mktemp -d)
 build_tmp=
+cleanup_build_tmp() {
+	local path=$build_tmp
+	[[ -n $path ]] || return 0
+	if [[ -d $path ]]; then
+		# cp -al preserves the sealed bundle's read-only directory mode. Only
+		# directories are chmodded: regular files remain hard links to retained
+		# evidence and must not have their modes changed.
+		find "$path" -type d -exec chmod u+rwx -- {} +
+		rm -rf -- "$path"
+	fi
+	build_tmp=
+}
 cleanup() {
-	[[ -z $build_tmp ]] || rm -rf -- "$build_tmp"
+	cleanup_build_tmp
 	rm -rf -- "$tmp"
 }
 trap cleanup EXIT HUP INT TERM
@@ -227,6 +239,10 @@ if [[ -d $production_root ]]; then
 		$(cat "$tmp/err") == \
 		"FAIL identity mismatch: $build_tmp/recovery/initramfs-a/rog5-stable-recovery.cpio.gz" ]] ||
 		fail 'changed initramfs did not fail first at its independent hash'
+	finished_build_tmp=$build_tmp
+	cleanup_build_tmp
+	[[ ! -e $finished_build_tmp ]] ||
+		fail 'current production profile test left its private build copy behind'
 else
 	[[ ${REQUIRE_CURRENT_PRODUCTION_ARTIFACT:-0} != 1 ]] ||
 		fail 'required current production artifact output is absent'

@@ -91,8 +91,16 @@ The final local
 `REQUIRE_CURRENT_PRODUCTION_ARTIFACT=1 scripts/host/test-repository-linux.sh ci`
 checkpoint passed in 312.509 seconds. The retained-artifact profile occupied
 10.291 seconds within that run, so the current production-byte path was not
-silently skipped. Exact-head publication is a subsequent repository-state
-check and is recorded in the checkpoint handoff.
+silently skipped. A subsequent replay in the production checkout passed every
+gate assertion but exposed a test-only cleanup defect: `cp -al` preserved the
+sealed bundles' read-only directory modes, so the EXIT trap could not unlink
+its private scratch copy. Cleanup now makes only the scratch directories
+writable; it never chmods a hard-linked regular file and asserts that the
+scratch root is gone. The retained files' content and modes were unchanged and
+their link counts were restored to one. The corrected focused test passed
+in 10.422 seconds, and a second mandatory-artifact full CI passed in 311.660
+seconds with the profile occupying 10.471 seconds. Exact-head publication is a
+subsequent repository-state check recorded in the checkpoint handoff.
 
 ## Remaining boundary
 
