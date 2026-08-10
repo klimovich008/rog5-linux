@@ -71,6 +71,14 @@ EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v3"] = (
     "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v4"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v4\n"
+    "candidate=headless-netroot-early-diag-v2\n"
+    "manifest_sha256="
+    "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def retention_claim_record(
@@ -153,7 +161,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14561,
-    "sha256": "98e0d967b87898ace054b61805b05c567bbfe5fcb1fc7e80b9a909bb9d7b45c0",
+    "sha256": "c7a5cbcf1502f8e6352b76cc531aa77f9a95a3d95ce12261bfce0a8e242ff0df",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -181,7 +189,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "98e0d967b87898ace054b61805b05c567bbfe5fcb1fc7e80b9a909bb9d7b45c0",
+    "executor_contract_sha256": "c7a5cbcf1502f8e6352b76cc531aa77f9a95a3d95ce12261bfce0a8e242ff0df",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -1908,9 +1916,10 @@ def verify_policy(
 ) -> int:
     expected_allows = {
         (
-            "build/host-rendezvous-v3-haven-production-20260810-r2/"
+            "build/host-rendezvous-v4-udc-inventory-production-20260810-r1/"
             "wrapper/repack/stable-recovery-a.avb.img",
-            "one retention-cycle execution recovery; RAM-only; externally "
+            "one UDC-inventory-corrected diagnostic execution recovery; "
+            "RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry",
         ),
         (

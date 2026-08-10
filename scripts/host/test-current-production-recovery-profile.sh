@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1
+profile=headless-diagnostic-host-rendezvous-v3-live-v4
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -33,39 +33,36 @@ trap cleanup EXIT HUP INT TERM
 
 [[ $(awk -v profile="$profile" '
 	/^# Historical profiles retain/ { contracts = 1 }
-	!contracts && index($0, "\t" profile " |") == 1 { count++ }
+	!contracts && index($0, "\t" profile ")") == 1 { count++ }
 	END { print count + 0 }
 ' "$gate") -eq 1 ]] ||
-	fail 'current production HOLD profile case is not unique'
+	fail 'current production live profile case is not unique'
 case_source=$(awk -v profile="$profile" '
-	index($0, "\t" profile " |") == 1 { capture = 1 }
+	index($0, "\t" profile ")") == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
-[[ -n $case_source ]] || fail 'current production HOLD profile is absent'
+[[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_kernel=8a600acfc6f7e01f9eb932e0a04174079d6ee68142c44fad819fe96bbd34325d \
-	expected_raw=ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517 \
-	expected_initramfs=ab0a3ee219684c994af386cb60e5280dcc4269457b196f96ca3928acce691f0b \
+	expected_boot_image=build/host-rendezvous-v4-udc-inventory-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img \
+	expected_kernel=88da6fc4ee6ec61614324678805a5af6591320bc1b2ede2b094ce6aad5bd1a1f \
+	expected_raw=73b6a892ca7066b2bbc399602ace9f8664f157e1b0e99c91d6e907da80e9f70f \
+	expected_initramfs=04c52bbd9cbaedc442faeba83fdc7eb2291be28519e54ea0dd3ade40acbd6948 \
 	expected_control=68142abd8daafed2f1d017bd0ae07407be9dcac17e57d2294a162d2b58bf2840 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_avb_salt=ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517 \
-	expected_avb_digest=9647a92d83bc1d3a71a59742d8aacd8d05b9e5105ac729c792e6577ef9af52eb \
+	expected_avb_salt=73b6a892ca7066b2bbc399602ace9f8664f157e1b0e99c91d6e907da80e9f70f \
+	expected_avb_digest=0d5fc07e0a3ea5bce7fa52c334cf9ec400b95594613bbd093972c785bc199756 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
-		fail "current production HOLD profile omits $assignment"
+		fail "current production live profile omits $assignment"
 done
 
-grep -Fq \
-	"fail 'current production HOLD profile is offline-only and not boot-authorized'" \
-	<<<"$case_source" ||
-	fail 'current production HOLD profile does not reject connected actions'
 contract_source=$(awk -v profile="$profile" '
 	/^# Historical profiles retain/ { contracts = 1 }
 	contracts && index($0, "\t" profile " |") == 1 { capture = 1 }
@@ -119,7 +116,7 @@ run_policy() {
 }
 
 exact=(
-	cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d
+	ee662ab9e057449abfdfedb7a273246fcba62c78ad159f9ac35f0ca36ceb6752
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
@@ -127,10 +124,10 @@ exact=(
 )
 fields=(recovery trust manifest host-verifier bundle)
 errors=(
-	'current production recovery image is not pinned'
-	'current production trust key is not pinned'
-	'current production runtime manifest is not pinned'
-	'current production host verifier is not pinned'
+	'UDC-inventory successor recovery image is not pinned'
+	'UDC-inventory successor trust key is not pinned'
+	'UDC-inventory successor runtime manifest is not pinned'
+	'UDC-inventory successor host verifier is not pinned'
 	'profile requires bundle=headless-netroot-early-diag-v2'
 )
 
@@ -154,40 +151,16 @@ for index in "${!fields[@]}"; do
 		fail "wrong ${fields[$index]} returned an unexpected rejection"
 done
 
-for action in preflight boot; do
-	if env -i PATH="$PATH" HOME="$HOME" \
-		ALLOW_TEMPORARY_BOOT=1 \
-		ALLOW_HEADLESS_LIVE_GATE=1 \
-		ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE=1 \
-		ROG5_STABLE_RECOVERY_PROFILE="$profile" \
-		LIVE_BUILD_ROOT="$repo/build/unused-current-live-root" \
-		RECOVERY_COMPONENT_ROOT="$repo/build/unused-current-component-root" \
-		TRUST_KEY="$repo/build/unused-current-trust-key" \
-		BUNDLE_ROOT="$repo/build/unused-current-bundle-root" \
-		BUNDLE="${exact[4]}" \
-		RECOVERY_SHA256="${exact[0]}" \
-		TRUST_KEY_SHA256="${exact[1]}" \
-		MANIFEST_SHA256="${exact[2]}" \
-		HOST_VERIFIER_SHA256="${exact[3]}" \
-		bash "$gate" "$action" >"$tmp/out" 2>"$tmp/err"
-	then
-		fail "current production HOLD profile reached $action"
-	fi
-	grep -Fq \
-		'current production HOLD profile is offline-only and not boot-authorized' \
-		"$tmp/err" || fail "current production $action returned a wrong rejection"
-	[[ ! -s $tmp/out && $(wc -l <"$tmp/err") -eq 1 &&
-		$(cat "$tmp/err") == \
-		'FAIL current production HOLD profile is offline-only and not boot-authorized' ]] ||
-		fail "current production $action emitted output before its rejection"
-done
-
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
-! grep -Fq "$profile" "$claim_consumer" ||
-	fail 'current production HOLD profile has a consumable claim'
+grep -Fq "\"$profile\":" "$claim_consumer" ||
+	fail 'current production live profile lacks an exact claim registration'
+[[ $(awk -F '\t' -v name="build/host-rendezvous-v4-udc-inventory-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img" \
+	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
+	"$boot_policy") == 1 ]] ||
+	fail 'current production live image is not uniquely admitted'
 
-production_root=$repo/build/host-rendezvous-v3-haven-production-20260810-r2
+production_root=$repo/build/host-rendezvous-v4-udc-inventory-production-20260810-r1
 if [[ -d $production_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \
@@ -249,4 +222,4 @@ else
 	echo 'SKIP current production artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS current production recovery profile is exact, authority-free, and offline-only'
+echo 'PASS current production recovery profile is exact, one-use, and artifact-verified'
