@@ -111,6 +111,17 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Critical-path HOLD
 
+The latest
+[offline fallback reset-evidence checkpoint](../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md)
+adds a signed, read-only, truly byte-bounded PMIC PON summary to future
+fallback postmortems. It selects only the last complete known FIFO cycle and
+keeps unknown, unavailable, or ambiguous data inconclusive. The retained
+ASUS 5.4.210 source proves the oracle semantics and separates the read-only
+PMIC history reader from the write-only next-boot `qcom-reboot-reason`
+notifier. It does not prove that the installed 5.4.134 fallback includes that
+reader, and no Generation-12 reset reason exists retrospectively. No phone or
+candidate action occurred; admission remains **HOLD**.
+
 The 2026-08-09
 [offline network-root readiness review](../test-results/2026-08-09-critical-network-root-readiness-review-offline.md)
 reproduced the host/target readiness race window in a hardware-free ordering

@@ -152,7 +152,20 @@ checkpoint](../test-results/2026-08-05-stage75-postmortem-host-integration-offli
 Implementation commit `eeb157b` is published with green exact-head GitHub
 Actions run `30988099391` (`qemu-system` 37s; `recovery-core` 4m03s). This
 closes the host-only publication gate; policy still contains no successor
-`allow` row. A distinct current write-side candidate
+`allow` row.
+
+The current offline successor extends that postmortem contract to v2 with a
+read-only, deadline-driven, true 4 MiB bounded PMIC PON dmesg reader. It keeps
+only a hash and normalized summary, accepts only the last complete known
+29-entry FIFO cycle, and leaves missing, unknown, or ambiguous evidence
+inconclusive. The exact retained ASUS 5.4.210 source/config proves the
+behavioral oracle and that `qcom-reboot-reason` is only a next-boot writer; it
+does not prove that the installed 5.4.134 fallback has the PMIC reader. No
+Generation-12 reset reason was retained. This is host-only offline evidence,
+so the [PMIC PON checkpoint](../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md)
+does not change **HOLD**.
+
+A distinct current write-side candidate
 `headless-netroot-early-diag-v2` now binds the host-port-classifying reporter
 `26249252…bafa` to the bounded 6,013,458-byte v3 initramfs
 `94edd625…cffc`, accepted Image, corrected DTB, and sealed Arch root. The

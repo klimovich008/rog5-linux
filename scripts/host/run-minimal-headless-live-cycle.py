@@ -174,6 +174,13 @@ FALLBACK_POSTMORTEM_FIELDS = (
     "pstore_records",
     "pstore_bytes",
     "pstore_sha256",
+    "pmic_pon_state",
+    "pmic_pon_records",
+    "pmic_pon_sha256",
+    "pmic_cycle_entries",
+    "pmic_reset_trigger",
+    "pmic_reset_type",
+    "pmic_watchdog_signal",
     "lineage_matches",
     "lineage_records",
     "fatal_tokens_total",
@@ -1650,13 +1657,14 @@ def verify_fallback_postmortem_evidence(
     if fallback_boot_id == expected_target_boot_id:
         fail("fallback retained the minimal-headless boot identity")
     if (
-        values["format"] != "rog5-fallback-postmortem-evidence-v1"
+        values["format"] != "rog5-fallback-postmortem-evidence-v2"
         or values["expected_candidate"] != expected_candidate
         or values["expected_boot_id"] != expected_target_boot_id
         or not BOOT_ID.fullmatch(expected_target_boot_id)
         or not BOOT_ID.fullmatch(fallback_boot_id)
         or values["usb_location"] != location
         or not HEX_ID.fullmatch(values["nonce"])
+        or not SHA256.fullmatch(values["pmic_pon_sha256"])
         or any(
             not SHA256.fullmatch(values[name])
             or values[name] == ZERO_SHA256
@@ -1673,6 +1681,8 @@ def verify_fallback_postmortem_evidence(
     numeric_limits = {
         "pstore_records": 64,
         "pstore_bytes": 4 * 1024 * 1024,
+        "pmic_pon_records": 64,
+        "pmic_cycle_entries": 29,
         "lineage_matches": 1_000_000,
         "lineage_records": 64,
         "fatal_tokens_total": 1_000_000,
@@ -1745,6 +1755,64 @@ def verify_fallback_postmortem_evidence(
     )
     if values["fatal_state"] != fatal_state:
         fail("fallback postmortem fatal classification is inconsistent")
+    pmic_state = values["pmic_pon_state"]
+    pmic_records = numbers["pmic_pon_records"]
+    pmic_digest = values["pmic_pon_sha256"]
+    pmic_cycle_entries = numbers["pmic_cycle_entries"]
+    pmic_trigger = values["pmic_reset_trigger"]
+    pmic_type = values["pmic_reset_type"]
+    pmic_watchdog = values["pmic_watchdog_signal"]
+    reset_triggers = {
+        "KPDPWR_N_S2",
+        "RESIN_N_S2",
+        "KPDPWR_N_AND_RESIN_N_S2",
+        "PMIC_WATCHDOG_S2",
+        "PS_HOLD",
+        "SW_RESET",
+        "RESIN_N_DEBOUNCE",
+        "KPDPWR_N_DEBOUNCE",
+        "PMIC_SID2_BCL_ALARM",
+        "PMIC_SID3_BCL_ALARM",
+        "PMIC_SID1_OCP",
+        "PMIC_SID2_OCP",
+        "PMIC_SID4_OCP",
+        "PMIC_SID5_OCP",
+    }
+    if pmic_state == "UNAVAILABLE":
+        pmic_consistent = (
+            pmic_records == pmic_cycle_entries == 0
+            and pmic_digest == ZERO_SHA256
+            and pmic_trigger == pmic_type == "NONE"
+            and pmic_watchdog == "INCONCLUSIVE"
+        )
+    elif pmic_state == "INCONCLUSIVE":
+        pmic_consistent = (
+            pmic_cycle_entries == 0
+            and (
+                pmic_records == 0
+                and pmic_digest == EMPTY_SHA256
+                or 1 <= pmic_records <= 64
+                and pmic_digest not in {ZERO_SHA256, EMPTY_SHA256}
+            )
+            and pmic_trigger == pmic_type == "NONE"
+            and pmic_watchdog == "INCONCLUSIVE"
+        )
+    elif pmic_state == "EXACT":
+        pmic_consistent = (
+            3 <= pmic_cycle_entries <= pmic_records <= 29
+            and pmic_digest not in {ZERO_SHA256, EMPTY_SHA256}
+            and pmic_trigger in reset_triggers
+            and pmic_type in {"WARM_RESET", "SHUTDOWN", "HARD_RESET"}
+            and pmic_watchdog in {"PRESENT", "ABSENT"}
+            and not (
+                pmic_trigger == "PMIC_WATCHDOG_S2"
+                and pmic_watchdog != "PRESENT"
+            )
+        )
+    else:
+        pmic_consistent = False
+    if not pmic_consistent:
+        fail("fallback PMIC PON evidence is inconsistent")
     return fallback_boot_id
 
 

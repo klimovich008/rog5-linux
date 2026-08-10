@@ -103,6 +103,13 @@ def postmortem_record(
             ("pstore_records", "0"),
             ("pstore_bytes", "0"),
             ("pstore_sha256", MODULE.EMPTY_SHA256),
+            ("pmic_pon_state", "INCONCLUSIVE"),
+            ("pmic_pon_records", "0"),
+            ("pmic_pon_sha256", MODULE.EMPTY_SHA256),
+            ("pmic_cycle_entries", "0"),
+            ("pmic_reset_trigger", "NONE"),
+            ("pmic_reset_type", "NONE"),
+            ("pmic_watchdog_signal", "INCONCLUSIVE"),
             ("expected_candidate", POSTMORTEM_CANDIDATE),
             ("expected_boot_id", POSTMORTEM_TARGET_BOOT_ID),
             ("lineage_matches", "0"),
@@ -340,6 +347,13 @@ class PostmortemFrameTest(unittest.TestCase):
             {"pstore_records": "65"},
             {"pstore_bytes": "4194305"},
             {"pstore_sha256": "g" * 64},
+            {"pmic_pon_state": "PRESENT"},
+            {"pmic_pon_records": "65"},
+            {"pmic_pon_sha256": "g" * 64},
+            {"pmic_cycle_entries": "30"},
+            {"pmic_reset_trigger": "user-controlled"},
+            {"pmic_reset_type": "REBOOT"},
+            {"pmic_watchdog_signal": "NO"},
             {"expected_candidate": "other"},
             {"expected_boot_id": "not-a-boot-id"},
             {"lineage_matches": "01"},
@@ -364,6 +378,28 @@ class PostmortemFrameTest(unittest.TestCase):
                 "lineage_matches": "1",
                 "lineage_records": "1",
                 "fatal_after_lineage": "1",
+            },
+            {
+                "pmic_pon_state": "UNAVAILABLE",
+                "pmic_pon_sha256": MODULE.EMPTY_SHA256,
+            },
+            {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "6",
+                "pmic_pon_sha256": "5" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "PMIC_WATCHDOG_S2",
+                "pmic_reset_type": "WARM_RESET",
+                "pmic_watchdog_signal": "ABSENT",
+            },
+            {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "6",
+                "pmic_pon_sha256": "5" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "UNKNOWN",
+                "pmic_reset_type": "UNKNOWN",
+                "pmic_watchdog_signal": "ABSENT",
             },
         )
         for updates in mutations:
@@ -456,10 +492,281 @@ class PostmortemFrameTest(unittest.TestCase):
                 "fatal_state=FATAL_TOKEN_AFTER_LINEAGE\n",
                 evidence,
             )
+            self.assertIn("pmic_pon_state=INCONCLUSIVE\n", evidence)
+            self.assertIn("pmic_watchdog_signal=INCONCLUSIVE\n", evidence)
             self.assertIn("result=PASS\n", evidence)
             self.assertNotIn("Kernel panic", evidence)
             with self.assertRaises(MODULE.FallbackError):
                 MODULE.write_postmortem_evidence(output, values, proof)
+
+
+class PmicPonSnapshotTest(unittest.TestCase):
+    def setUp(self) -> None:
+        tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        names = {
+            "MAX_DMESG_BYTES",
+            "PMIC_DMESG_TIMEOUT_SECONDS",
+            "MAX_PMIC_PON_RECORDS",
+            "MAX_PMIC_PON_MESSAGE_BYTES",
+            "PMIC_PON_PREFIX",
+            "PMIC_RESET_TRIGGERS",
+            "PMIC_RESET_TYPES",
+            "PMIC_WATCHDOG_TOKEN",
+            "ZERO_SHA256",
+            "EMPTY_SHA256",
+        }
+        body = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in names
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name
+                in {"classify_pmic_pon", "pmic_pon_snapshot"}
+            )
+        ]
+        self.namespace: dict[str, object] = {
+            "hashlib": hashlib,
+            "select": __import__("select"),
+            "re": __import__("re"),
+            "subprocess": subprocess,
+            "time": __import__("time"),
+            "os": os,
+        }
+        exec(
+            compile(
+                ast.Module(body=body, type_ignores=[]),
+                "fallback-pmic-pon-snapshot.py",
+                "exec",
+            ),
+            self.namespace,
+        )
+        self.classify = self.namespace["classify_pmic_pon"]
+
+    @staticmethod
+    def dmesg(*messages: str) -> bytes:
+        return b"".join(
+            f"[    0.{index:06d}] PMIC PON log: {message}\n".encode()
+            for index, message in enumerate(messages, start=1)
+        )
+
+    def test_last_complete_cycle_is_selected_and_hashed(self) -> None:
+        output = self.dmesg(
+            "Reset Trigger: SW_RESET",
+            "Reset Type: WARM_RESET",
+            "PON Trigger: PS_HOLD",
+            "PON Successful",
+            "Reset Trigger: PMIC_WATCHDOG_S2",
+            "FAULT_REASON2=FAULT_WATCHDOG",
+            "Reset Type: HARD_RESET",
+            "Begin PON Sequence",
+            "PON Trigger: PS_HOLD",
+            "PON Successful",
+        )
+        state = self.classify(output)
+        self.assertEqual(
+            state[:2],
+            ("EXACT", 10),
+        )
+        self.assertEqual(state[3:], (6, "PMIC_WATCHDOG_S2", "HARD_RESET", "PRESENT"))
+        self.assertEqual(
+            state[2],
+            hashlib.sha256(
+                b"".join(
+                    f"PMIC PON log: {message}\n".encode()
+                    for message in (
+                        "Reset Trigger: SW_RESET",
+                        "Reset Type: WARM_RESET",
+                        "PON Trigger: PS_HOLD",
+                        "PON Successful",
+                        "Reset Trigger: PMIC_WATCHDOG_S2",
+                        "FAULT_REASON2=FAULT_WATCHDOG",
+                        "Reset Type: HARD_RESET",
+                        "Begin PON Sequence",
+                        "PON Trigger: PS_HOLD",
+                        "PON Successful",
+                    )
+                )
+            ).hexdigest(),
+        )
+
+    def test_exact_nonwatchdog_cycle_reports_only_absence_of_pmic_token(
+        self,
+    ) -> None:
+        state = self.classify(
+            self.dmesg(
+                "PON Successful",
+                "Reset Trigger: SW_RESET",
+                "Reset Type: WARM_RESET",
+                "PON Trigger: PS_HOLD",
+                "PON Successful",
+            )
+        )
+        self.assertEqual(
+            state[3:],
+            (4, "SW_RESET", "WARM_RESET", "ABSENT"),
+        )
+
+    def test_missing_delimiters_ambiguous_fields_and_unknown_values(
+        self,
+    ) -> None:
+        inconclusive = (
+            "INCONCLUSIVE",
+            2,
+            mock.ANY,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+        self.assertEqual(
+            self.classify(
+                self.dmesg("Reset Trigger: SW_RESET", "PON Successful")
+            ),
+            inconclusive,
+        )
+        self.assertEqual(
+            self.classify(
+                self.dmesg(
+                    "PON Successful",
+                    "Reset Trigger: SW_RESET",
+                    "Reset Trigger: PS_HOLD",
+                    "Reset Type: WARM_RESET",
+                    "PON Successful",
+                )
+            )[0],
+            "INCONCLUSIVE",
+        )
+        unknown = self.classify(
+            self.dmesg(
+                "PON Successful",
+                "Reset Trigger: SID=0x9, PID=0x99, IRQ=0x7",
+                "Reset Type: UNKNOWN (3)",
+                "PON Successful",
+            )
+        )
+        self.assertEqual(unknown[0], "INCONCLUSIVE")
+        self.assertEqual(
+            unknown[3:],
+            (0, "NONE", "NONE", "INCONCLUSIVE"),
+        )
+
+    def test_empty_malformed_and_oversized_input_is_bounded(self) -> None:
+        self.assertEqual(
+            self.classify(b"unrelated kernel log\n"),
+            (
+                "INCONCLUSIVE",
+                0,
+                MODULE.EMPTY_SHA256,
+                0,
+                "NONE",
+                "NONE",
+                "INCONCLUSIVE",
+            ),
+        )
+        with self.assertRaisesRegex(RuntimeError, "pmic-format"):
+            self.classify(b"PMIC PON log: bad\x00message\n")
+        with self.assertRaisesRegex(RuntimeError, "pmic-bound"):
+            self.classify(
+                self.dmesg(
+                    *("PON Successful" for _ in range(65))
+                )
+            )
+        with self.assertRaisesRegex(RuntimeError, "dmesg-bound"):
+            self.classify(b"x" * (4 * 1024 * 1024 + 1))
+
+    def test_command_failure_and_timeout_are_unavailable(self) -> None:
+        unavailable = (
+            "UNAVAILABLE",
+            0,
+            MODULE.ZERO_SHA256,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+        snapshot = self.namespace["pmic_pon_snapshot"]
+        with mock.patch.object(
+            subprocess,
+            "Popen",
+            side_effect=OSError("missing"),
+        ):
+            self.assertEqual(snapshot(), unavailable)
+
+        class HangingProcess:
+            def __init__(self) -> None:
+                self.stdout = tempfile.TemporaryFile()
+                self.killed = False
+
+            def poll(self):
+                return -9 if self.killed else None
+
+            def kill(self) -> None:
+                self.killed = True
+
+            def wait(self, timeout):
+                if self.killed:
+                    return -9
+                raise subprocess.TimeoutExpired(["/bin/dmesg"], timeout)
+
+        hanging = HangingProcess()
+        with mock.patch.object(
+            subprocess,
+            "Popen",
+            return_value=hanging,
+        ):
+            self.assertEqual(snapshot(), unavailable)
+        self.assertTrue(hanging.killed)
+
+        class UnreapableProcess(HangingProcess):
+            def wait(self, timeout):
+                raise subprocess.TimeoutExpired(["/bin/dmesg"], timeout)
+
+        unreapable = UnreapableProcess()
+        with (
+            mock.patch.object(
+                subprocess,
+                "Popen",
+                return_value=unreapable,
+            ),
+            self.assertRaisesRegex(RuntimeError, "dmesg-reap"),
+        ):
+            snapshot()
+        self.assertTrue(unreapable.killed)
+
+    def test_stream_capture_refuses_before_storing_past_bound(self) -> None:
+        class OversizedProcess:
+            def __init__(self) -> None:
+                self.stdout = tempfile.TemporaryFile()
+                self.stdout.write(b"x" * (4 * 1024 * 1024 + 1))
+                self.stdout.seek(0)
+                self.killed = False
+
+            def poll(self):
+                return -9 if self.killed else None
+
+            def kill(self) -> None:
+                self.killed = True
+
+            def wait(self, timeout):
+                return -9 if self.killed else 0
+
+        process = OversizedProcess()
+        with (
+            mock.patch.object(
+                subprocess,
+                "Popen",
+                return_value=process,
+            ),
+            self.assertRaisesRegex(RuntimeError, "dmesg-bound"),
+        ):
+            self.namespace["pmic_pon_snapshot"]()
+        self.assertTrue(process.killed)
 
 
 class PostmortemRemoteSnapshotTest(unittest.TestCase):
@@ -1877,7 +2184,10 @@ class SshTransportTest(unittest.TestCase):
             run.call_args.kwargs["input"],
             MODULE.POSTMORTEM_REMOTE_SOURCE.encode("utf-8"),
         )
-        self.assertEqual(run.call_args.kwargs["timeout"], 30)
+        self.assertEqual(
+            run.call_args.kwargs["timeout"],
+            MODULE.POSTMORTEM_SSH_TIMEOUT_SECONDS,
+        )
         self.assertEqual(values["lineage_matches"], "1")
         self.assertEqual(proof["usb_location"], location)
         self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
@@ -2234,6 +2544,13 @@ class PolicyTest(unittest.TestCase):
             "lineage_matches",
             "fatal_tokens_total",
             "fatal_after_lineage",
+            "MAX_DMESG_BYTES = 4 * 1024 * 1024",
+            "MAX_PMIC_PON_RECORDS = 64",
+            'PMIC_PON_PREFIX = b"PMIC PON log: "',
+            "subprocess.Popen(",
+            "os.read(",
+            "MAX_DMESG_BYTES + 1 - len(output)",
+            "pmic_watchdog_signal",
             "ssh_host_ed25519_key",
             '"-Y"',
             '"sign"',
@@ -2262,6 +2579,7 @@ class PolicyTest(unittest.TestCase):
             "shutil",
             "sysrq-trigger",
             "input(",
+            'subprocess.run(\n            ["/bin/dmesg"]',
         ):
             self.assertNotIn(forbidden, source)
 
@@ -2343,10 +2661,128 @@ class PolicyTest(unittest.TestCase):
             constants["REBOOT_ACK_TIMEOUT_SECONDS"],
             timeouts["ssh-keygen"] + 5,
         )
+
+        postmortem_tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        postmortem_timeouts = []
+        postmortem_constants = {}
+        for node in ast.walk(postmortem_tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, int)
+            ):
+                postmortem_constants[node.targets[0].id] = node.value.value
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "run"
+            ):
+                continue
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "timeout"
+                    and isinstance(keyword.value, ast.Constant)
+                    and isinstance(keyword.value.value, int)
+                ):
+                    postmortem_timeouts.append(keyword.value.value)
+        self.assertEqual(postmortem_timeouts, [10])
+        self.assertEqual(
+            postmortem_constants["PMIC_DMESG_TIMEOUT_SECONDS"],
+            10,
+        )
+        self.assertGreaterEqual(
+            MODULE.POSTMORTEM_SSH_TIMEOUT_SECONDS,
+            8
+            + postmortem_constants["PMIC_DMESG_TIMEOUT_SECONDS"]
+            + sum(postmortem_timeouts)
+            + 5,
+        )
         self.assertLess(
             constants["POST_ACK_DEADLINE_SECONDS"],
             MODULE.REBOOT_COMMIT_TIMEOUT_SECONDS,
         )
+
+    def test_exact_recovery_oracle_config_builds_pmic_pon_reader(
+        self,
+    ) -> None:
+        config = (
+            MODULE.REPO
+            / "artifacts/recovery-stage-v18/"
+            "config-5.4.210-kexec-stage-builtin-recovery"
+        ).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(config).hexdigest(),
+            "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f",
+        )
+        for required in (
+            b"CONFIG_QTI_PMIC_PON_LOG=y\n",
+            b"CONFIG_INPUT_QPNP_POWER_ON=y\n",
+        ):
+            self.assertIn(required, config)
+
+    def test_retained_asus_source_separates_pon_history_from_reboot_writer(
+        self,
+    ) -> None:
+        source_root = Path(
+            os.environ.get(
+                "ROG5_ASUS_5_4_SOURCE",
+                "/home/deck/.local/share/containers/storage/volumes/"
+                "rog5-asus-v12a-source/_data/msm-5.4",
+            )
+        )
+        if not source_root.is_dir():
+            self.skipTest("retained ASUS 5.4 source is unavailable")
+        expected = {
+            "drivers/soc/qcom/pmic-pon-log.c": (
+                "3faf7c24591bd1df471c8f5a7d6c799b0f9256c4e25b897d843fe29fce341944"
+            ),
+            "drivers/power/reset/qcom-reboot-reason.c": (
+                "7305a60660a03bd1df2cdcb540c14dbae58c4237f85c594c6ee918f4a1487db6"
+            ),
+            "arch/arm64/boot/dts/vendor/qcom/lahaina-pmic-overlay.dtsi": (
+                "7c2884033f2f9888e3786155510bb4ac2d824cfc3ae3afce5fe79a3ba72ded32"
+            ),
+            "arch/arm64/boot/dts/vendor/qcom/pmk8350.dtsi": (
+                "8ca3a07d90ced1269ce04ca1832a1bc3f212e99967a123911de18770c75e1d2c"
+            ),
+        }
+        sources = {}
+        for relative, digest in expected.items():
+            payload = (source_root / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), digest)
+            sources[relative] = payload.decode("utf-8")
+        pon = sources["drivers/soc/qcom/pmic-pon-log.c"]
+        for required in (
+            "#define REG_PUSH_PTR",
+            "#define REG_FIFO_DATA_START",
+            "#define REG_FIFO_DATA_END",
+            "#define FIFO_MAX_ENTRY_COUNT",
+            '{0x0083, "PMIC_WATCHDOG_S2"}',
+            '"FAULT_WATCHDOG"',
+            '"PON Successful"',
+            'pr_info("PMIC PON log: %s\\n", buf)',
+            "nvmem_device_read(",
+        ):
+            self.assertIn(required, pon)
+        self.assertNotIn("nvmem_device_write(", pon)
+        reboot = sources["drivers/power/reset/qcom-reboot-reason.c"]
+        self.assertIn("register_reboot_notifier(", reboot)
+        self.assertIn("nvmem_cell_write(", reboot)
+        self.assertNotIn("nvmem_cell_read(", reboot)
+        overlay = sources[
+            "arch/arm64/boot/dts/vendor/qcom/lahaina-pmic-overlay.dtsi"
+        ]
+        self.assertIn('compatible = "qcom,pmic-pon-log";', overlay)
+        self.assertIn("nvmem = <&pmk8350_sdam_5>;", overlay)
+        self.assertIn('nvmem-names = "pon_log";', overlay)
+        self.assertIn('compatible = "qcom,reboot-reason";', overlay)
+        self.assertNotIn(
+            "qcom,reboot-reason",
+            MODULE.POSTMORTEM_REMOTE_SOURCE,
+        )
+        self.assertNotIn("restart_reason", MODULE.POSTMORTEM_REMOTE_SOURCE)
 
     def test_embedded_restart2_marshalling_preserves_unsigned_magics(
         self,

@@ -389,6 +389,20 @@ mounted across the complete snapshot. Exact lineage copies in multiple
 deduplicated backend records are `MATCH_MULTIPLE`; fatal tokens found outside
 the marker-bearing record are retained as present with unknown ordering.
 
+Postmortem v2 also makes one read-only, 10-second `/bin/dmesg` capture through
+a true 4 MiB bounded pipe and summarizes only fixed `PMIC PON log:` records.
+An exact result requires one known reset trigger/type in the segment after the
+penultimate `PON Successful` through the final success. Unknown values,
+missing/ambiguous delimiters, more records than the 29-entry ASUS FIFO, command
+failure, or no records remain unavailable/inconclusive. A
+`PMIC_WATCHDOG_S2`/`FAULT_WATCHDOG` token is PMIC evidence, not proof of the
+Haven watchdog; token absence is not proof that no reset or watchdog occurred.
+Raw dmesg does not leave the fallback. The retained 5.4.210 source/config pins
+the behavioral oracle, but the installed 5.4.134 fallback config is not
+retained, so driver availability on that kernel remains unproven until a
+future separately admitted read-only observation. See the
+[offline checkpoint](../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md).
+
 SSH does not enter the BusyBox line editor, but reading `authorized_keys`,
 the SSH host key, Python, and libraries from Alpine's writable `relatime`
 root may update inode access times. The live action therefore retains an
@@ -1007,7 +1021,8 @@ pin. The pin itself, signature bytes, and SSH host private key are never
 published.
 The postmortem record similarly retains only the expected candidate and target
 boot ID, fallback boot ID, USB location, pstore state/count/byte/digest
-summary, lineage/fatal counts and classifications, nonce, and proof hashes.
+summary, bounded PMIC PON state/count/digest and normalized reset fields,
+lineage/fatal counts and classifications, nonce, and proof hashes.
 It contains no raw pstore text and remains useful even when the following
 strict health probe rejects non-empty pstore.
 
