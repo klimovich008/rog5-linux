@@ -210,10 +210,18 @@ EOF
 
 network_functions=$stage/network-functions.sh
 awk '
+	/^host_port_probe_(attempts|timeout|interval|output)=/ { print }
+	/^host_port_timeout_floor_ms=/ { print }
 	/^udc_candidate_count\(\) \{/ { copy=1 }
 	/^if ! parse_network_root_command_line; then/ { copy=0 }
 	copy { print }
 ' "$network_init" >"$network_functions"
+for extracted_variable in host_port_probe_attempts host_port_probe_timeout \
+	host_port_probe_interval host_port_timeout_floor_ms \
+	host_port_probe_output; do
+	[[ $(grep -Ec "^${extracted_variable}=" "$network_functions") == 1 ]] ||
+		fail "production readiness variable extraction is ambiguous: $extracted_variable"
+done
 grep -Fqx 'mount_network_root() {' "$network_functions" ||
 	fail 'production network-root mount function was not extracted'
 [[ $(grep -Fxc 'mount_network_root() {' "$network_functions") == 1 ]] ||

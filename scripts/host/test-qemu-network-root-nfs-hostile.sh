@@ -80,6 +80,13 @@ expect_rejection \
 	env QEMU_NFS_RUNNER="$test_root/test-qemu-network-root-nfs.sh" "$contract"
 
 cp -- "$runner_file" "$test_root/test-qemu-network-root-nfs.sh"
+sed -i '/host_port_probe_(attempts|timeout|interval|output)/d' \
+	"$test_root/test-qemu-network-root-nfs.sh"
+expect_rejection \
+	'QEMU NFS readiness constants are not extracted from production' \
+	env QEMU_NFS_RUNNER="$test_root/test-qemu-network-root-nfs.sh" "$contract"
+
+cp -- "$runner_file" "$test_root/test-qemu-network-root-nfs.sh"
 sed -i 's|mktemp -d /dev/shm/rog5-qemu-network-root.XXXXXX|mktemp -d|' \
 	"$test_root/test-qemu-network-root-nfs.sh"
 expect_rejection \

@@ -94,6 +94,13 @@ grep -Fq 'QEMU kernel enabled unsupported $disabled_runtime_option' "$builder" |
 	fail 'minimal QEMU kernel does not verify the same resolved option list'
 grep -Fq 'QEMU kernel lost $required_runtime_option after olddefconfig' \
 	"$builder" || fail 'QEMU runtime prerequisites are not checked after resolution'
+grep -Fq '/^host_port_probe_(attempts|timeout|interval|output)=/ { print }' \
+	"$nfs_runner" ||
+	fail 'QEMU NFS readiness constants are not extracted from production'
+grep -Fq '/^host_port_timeout_floor_ms=/ { print }' "$nfs_runner" ||
+	fail 'QEMU NFS timeout floor is not extracted from production'
+grep -Fq 'production readiness variable extraction is ambiguous' "$nfs_runner" ||
+	fail 'QEMU NFS readiness extraction is not verified exactly once'
 grep -Fq -- '-M virt' "$runner"
 grep -Fq -- '-nic none' "$runner"
 grep -Fq -- '-fuse-ld=lld' "$runner"
