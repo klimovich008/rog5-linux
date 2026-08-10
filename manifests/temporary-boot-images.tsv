@@ -1,4 +1,4 @@
 name	status	basis
-build/host-rendezvous-v6-post-claim-status-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img	allow	one post-claim-status diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry
+build/host-rendezvous-v7-haven-reason-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img	allow	one exact Haven-failure-classification diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry
 build/observation-recovery-haven-offline-20260810-r1/repack/stable-recovery-a.avb.img	allow	one retention-cycle observation-only recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry
 artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img	revoked	twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash

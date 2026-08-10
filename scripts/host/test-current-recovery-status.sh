@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V5 is consumed and must never be retried. The leading unproven cause is a post-COMMIT recovery execution failure because `CLAIMED` was returned before the Haven handoff and `kexec -e`. V6 (`43613a11…8eb0a`) preserves the exact raw wrapper and adds one bounded host STATUS request after `CLAIMED`; a returned recovery responder now exposes its terminal state and error, while actual recovery-USB departure remains the target-transition path. Its deterministic AVB generation took 1.529 seconds; the claim is unissued and it has not been booted.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V6 is consumed and must never be retried. V7 (`0dc48152…28be2`) preserves fail-closed kexec ordering while distinguishing secure-watchdog, hypervisor-VDOG, and unclassified deactivation failures.'*'Its claim is unissued and it has not been booted.'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2/v3/v4/v5 and identify the unissued v6 successor' >&2
+		echo 'FAIL current status does not consume v2/v3/v4/v5/v6 and identify the unissued v7 successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4/v5 and records the unissued v6 successor'
+echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6 and records the unissued v7 successor'

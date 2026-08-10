@@ -236,11 +236,20 @@ passed. PMIC reports `PS_HOLD` / `HARD_RESET` with no watchdog signal, while
 pstore was unavailable. V5 is consumed and must never be retried. The leading
 unproven cause is a post-COMMIT recovery execution failure because `CLAIMED`
 was returned before the Haven handoff and `kexec -e`. V6
-(`43613a11…8eb0a`) preserves the exact raw wrapper and adds one bounded host
-STATUS request after `CLAIMED`; a returned recovery responder now exposes its
-terminal state and error, while actual recovery-USB departure remains the
-target-transition path. Its deterministic AVB generation took 1.529 seconds;
-the claim is unissued and it has not been booted.
+(`43613a11…8eb0a`) added one bounded host STATUS request after `CLAIMED`.
+Its sole RAM-only boot reached exact recovery ACM/NCM, transferred and
+verified the bundle, accepted PREPARE and COMMIT, then returned
+`state=EXEC_FAILED`, `execution_started=NO`, and
+`last_error=HAVEN_WDOG_FAILED`. The target kernel never started; recovery
+refused the Haven-watchdog handoff and restricted NFS was cancelled only
+after that refusal. Exact Alpine fallback and cleanup passed. V6 is consumed
+and must never be retried. V7 (`0dc48152…28be2`) preserves fail-closed kexec
+ordering while distinguishing secure-watchdog, hypervisor-VDOG, and
+unclassified deactivation failures. Its AArch64 responder, recovery
+initramfs, ASUS wrapper Image, raw boot image, and AVB wrapper reproduce at
+`b4e08b27…fe6d9e`, `373d08f6…b25546`, `feb26376…d4ae3`,
+`018e46c7…71bc1`, and `0dc48152…28be2`; the two clean wrapper builds are
+byte-identical. Its claim is unissued and it has not been booted.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

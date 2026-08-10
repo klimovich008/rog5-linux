@@ -426,9 +426,10 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
-            "build/host-rendezvous-v6-post-claim-status-production-20260810-r1/"
+            "build/host-rendezvous-v7-haven-reason-production-20260810-r1/"
             "wrapper/repack/stable-recovery-a.avb.img\tallow\t"
-            "one post-claim-status diagnostic execution recovery; "
+            "one exact Haven-failure-classification diagnostic execution "
+            "recovery; "
             "RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry\n"
             "build/observation-recovery-haven-offline-20260810-r1/"

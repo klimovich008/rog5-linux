@@ -242,6 +242,7 @@ class NativeResponderTest(unittest.TestCase):
         self,
         *,
         haven_mode: str | None = None,
+        expected_error: str = "HAVEN_WDOG_FAILED",
     ) -> str:
         process, master = self.start(
             execute="return",
@@ -258,12 +259,12 @@ class NativeResponderTest(unittest.TestCase):
             time.sleep(0.01)
         self.assertEqual(
             failure.read_text(encoding="ascii"),
-            "error=HAVEN_WDOG_FAILED\n",
+            f"error={expected_error}\n",
         )
         status = self.status(master, session, 20)
         self.assertEqual(status.state, "EXEC_FAILED")
         self.assertEqual(status.execution_started, "NO")
-        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.assertEqual(status.last_error, expected_error)
         self.assertFalse((self.state / "execution-started").exists())
         self.assertFalse((self.state / "test-executed").exists())
         replay = self.exchange(master, self.commit_payload(session))
@@ -2776,14 +2777,20 @@ class NativeResponderTest(unittest.TestCase):
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
 
     def test_new_secure_watchdog_error_blocks_execution(self):
-        self.assert_haven_handoff_refused(haven_mode="secure_error")
+        self.assert_haven_handoff_refused(
+            haven_mode="secure_error",
+            expected_error="HAVEN_SECURE_FAILED",
+        )
         self.assertIn(
             b"Failed to deactivate secure wdog",
             self.haven_kmsg.read_bytes(),
         )
 
     def test_new_hypervisor_watchdog_error_blocks_execution(self):
-        self.assert_haven_handoff_refused(haven_mode="hypervisor_error")
+        self.assert_haven_handoff_refused(
+            haven_mode="hypervisor_error",
+            expected_error="HAVEN_VDOG_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
         self.assertIn(
             b"failed disabling VDOG",
@@ -2845,7 +2852,7 @@ class NativeResponderTest(unittest.TestCase):
         status = self.status(master, session, 20)
         self.assertEqual(status.state, "EXEC_FAILED")
         self.assertEqual(status.execution_started, "NO")
-        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.assertEqual(status.last_error, "HAVEN_SECURE_FAILED")
         self.stop_responder(process, master)
 
     def test_haven_failure_publication_crashes_remain_one_use(self):
@@ -3917,7 +3924,7 @@ class NativeResponderTest(unittest.TestCase):
         self.assertNotIn("ROG5_TEST_", production_strings)
         self.assertNotIn("test-executed", production_strings)
         handoff = source.split(
-            "static bool deactivate_haven_watchdog(void)",
+            "static const char *deactivate_haven_watchdog(void)",
             maxsplit=1,
         )[1].split("static void wait_with_watchdog", maxsplit=1)[0]
         self.assertEqual(

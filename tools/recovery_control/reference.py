@@ -118,6 +118,11 @@ RESULT_STATES = {
     "OBSERVATION_ONLY": {"IDLE"},
 }
 STATES = {"IDLE", "PREPARED", "CLAIMED", "EXEC_FAILED"}
+HAVEN_FAILURES = {
+    "HAVEN_WDOG_FAILED",
+    "HAVEN_SECURE_FAILED",
+    "HAVEN_VDOG_FAILED",
+}
 LAST_ERRORS = {
     "NONE",
     "FETCH_FAILED",
@@ -142,6 +147,8 @@ LAST_ERRORS = {
     "BUNDLE_ID_CONFLICT",
     "VERIFY_FAILED",
     "HAVEN_WDOG_FAILED",
+    "HAVEN_SECURE_FAILED",
+    "HAVEN_VDOG_FAILED",
     "EXEC_FAILED",
     "EXEC_RETURNED",
     "LEDGER_FULL",
@@ -550,10 +557,10 @@ def encode_response(response: Response) -> bytes:
         or (
             response.state == "EXEC_FAILED"
             and response.execution_started != "YES"
-            and response.last_error != "HAVEN_WDOG_FAILED"
+            and response.last_error not in HAVEN_FAILURES
         )
         or (
-            response.last_error == "HAVEN_WDOG_FAILED"
+            response.last_error in HAVEN_FAILURES
             and (
                 response.state != "EXEC_FAILED"
                 or response.execution_started != "NO"
@@ -906,10 +913,10 @@ class RecoveryState:
         if (
             self.phase == "EXEC_FAILED"
             and not self.execution_started
-            and self.last_error != "HAVEN_WDOG_FAILED"
+            and self.last_error not in HAVEN_FAILURES
         ):
             raise ValueError("terminal state lacks execution marker")
-        if self.last_error == "HAVEN_WDOG_FAILED" and (
+        if self.last_error in HAVEN_FAILURES and (
             self.phase != "EXEC_FAILED" or self.execution_started
         ):
             raise ValueError("invalid Haven watchdog failure state")
