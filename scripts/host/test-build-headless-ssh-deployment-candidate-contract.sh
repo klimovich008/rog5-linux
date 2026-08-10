@@ -398,6 +398,16 @@ done
 for launcher in "$wrapper" "$diagnostic_wrapper"; do
 	grep -Fq 'refs/heads/{branch}:refs/remotes/origin/{branch}' "$launcher" ||
 		fail "deployment launcher does not refresh its exact origin branch: ${launcher#"$repo"/}"
+	for token in \
+		'CHECKPOINT_INPUTS = (' \
+		'def stage_checkpoint_inputs(' \
+		'os.O_EXCL' \
+		'os.O_NOFOLLOW' \
+		'hasher.hexdigest() != digest' \
+		'stage_inputs=not arguments.signing_input_preflight'; do
+		grep -Fq -- "$token" "$launcher" ||
+			fail "deployment launcher omits checkpoint-input gate: $token"
+	done
 done
 
 for token in \

@@ -111,6 +111,18 @@ These facts do not prove the corrected candidate on the phone.
 
 ## Critical-path HOLD
 
+The guarded production builder's detached-checkpoint boundary is now
+[corrected offline](../test-results/2026-08-10-deployment-checkpoint-input-staging-offline.md).
+The old launcher entered an exact Git worktree but omitted every fixed
+Git-ignored release input, so a synchronized source checkout still failed on
+the absent static QEMU inside the sealed builder. Both fixed launchers now
+copy only literal path/size/mode/SHA-256-pinned inputs with no-follow source
+opens, no-replace destinations, streaming identity checks, fsync, and Git
+state revalidation before credential use. Signing-input preflight remains
+copy-free and artifact-free. No signed output, claim, policy row, phone
+action, or boot authority was created; exact-head CI and a fresh production
+twin build remain next, so admission stays **HOLD**.
+
 The latest
 [retention exact-claim registry checkpoint](../test-results/2026-08-10-retention-claim-registry-offline.md)
 removes the last Generation-11/12 record-template assumption from the generic
