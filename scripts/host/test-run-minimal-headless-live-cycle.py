@@ -2165,6 +2165,17 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 "already consumed on this host",
             ):
                 cycle.claim_temporary_boot()
+            guard = record.parent.parent / (
+                ".rog5-temporary-boot-consumption."
+                f"{DIAGNOSTIC_RECOVERY_PROFILE}.entered"
+            )
+            guard.write_bytes(CLAIM_CONSUMER.EXPECTED)
+            guard.chmod(0o600)
+            with mock.patch.dict(
+                os.environ,
+                {"ROG5_EXTERNAL_BOOT_CLAIM": "1"},
+            ):
+                cycle.claim_temporary_boot()
 
     def test_key_preflight_guards_fail_before_credentials(self):
         result = self.fixture.run(

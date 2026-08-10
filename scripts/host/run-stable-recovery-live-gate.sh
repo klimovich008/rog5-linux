@@ -126,6 +126,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation12-live-v1 | \
 		headless-diagnostic-stage75-v2-superseded-offline-v1 | \
 		headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+		headless-diagnostic-host-rendezvous-v3-live-v2 | \
 		retention-host-rendezvous-v3-execution-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
@@ -795,6 +796,7 @@ case $profile in
 		requires_qualified_cpio=1
 		;;
 	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+	headless-diagnostic-host-rendezvous-v3-live-v2 | \
 	retention-host-rendezvous-v3-execution-v1)
 		if [[ $profile == \
 			headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 ]]; then
@@ -859,6 +861,7 @@ case $profile in
 		initramfs_verifier_expected=$expected_initramfs
 		;;
 	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+	headless-diagnostic-host-rendezvous-v3-live-v2 | \
 	retention-host-rendezvous-v3-execution-v1)
 		initramfs_contract=exact-a600000-v1
 		initramfs_verifier_expected=-

@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'A host-only, unissued stage-75/current-cycle-postmortem successor is the active work and has no boot authority.'*) ;;
+	*'The active successor is `headless-diagnostic-host-rendezvous-v3-live-v2`: it is authorized for one reversible RAM-only cycle after exact-head CI, but no v2 claim is issued yet.'*) ;;
 	*)
-		echo 'FAIL current status does not identify the unissued no-authority successor' >&2
+		echo 'FAIL current status does not identify the authorized unissued v2 successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12 and keeps its successor unissued without boot authority'
+echo 'PASS current status consumes Generation 12 and records the authorized unissued v2 successor'

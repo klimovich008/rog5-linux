@@ -54,6 +54,15 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "headless-diagnostic-host-rendezvous-v3-live-v2": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile="
+            b"headless-diagnostic-host-rendezvous-v3-live-v2\n"
+            b"candidate=headless-netroot-early-diag-v2\n"
+            b"manifest_sha256="
+            b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         REFERENCE.EXECUTION_CLAIM.identifier: REFERENCE.EXECUTION_CLAIM.record,
         REFERENCE.OBSERVER_CLAIM.identifier: REFERENCE.OBSERVER_CLAIM.record,
     }

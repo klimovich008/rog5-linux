@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_RECOVERY_PROFILE = (
-    "retention-host-rendezvous-v3-execution-v1"
+    "headless-diagnostic-host-rendezvous-v3-live-v2"
 )
 DIAGNOSTIC_LIVE_STATUS = "admitted"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
@@ -2440,6 +2440,19 @@ class LiveCycle:
 
     @staticmethod
     def _exact_claim_file(path: Path, expected: bytes) -> None:
+        def metadata_identity(value: os.stat_result) -> tuple[int, ...]:
+            return (
+                value.st_dev,
+                value.st_ino,
+                value.st_mode,
+                value.st_uid,
+                value.st_gid,
+                value.st_nlink,
+                value.st_size,
+                value.st_mtime_ns,
+                value.st_ctime_ns,
+            )
+
         try:
             before = path.lstat()
             payload = path.read_bytes()
@@ -2453,7 +2466,7 @@ class LiveCycle:
             or before.st_uid != os.geteuid()
             or stat.S_IMODE(before.st_mode) != 0o600
             or before.st_nlink != 1
-            or identity(before) != identity(after)
+            or metadata_identity(before) != metadata_identity(after)
             or payload != expected
         ):
             fail("externally consumed temporary-boot claim is not exact")
