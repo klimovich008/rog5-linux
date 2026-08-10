@@ -221,9 +221,13 @@ the exact UDC inventory `a600000.dwc3`, `a800000.dwc3`, and `dummy_udc.0`, while
 recovery-init rejected every total count other than one. The implementation
 successor now requires exactly that three-name inventory, selects only
 `a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing
-entries. The v4 production candidate now exists as two clean byte-identical
-ASUS wrapper builds (`ee662ab9…6752`) after a 2300.179-second build. Its claim
-is unissued and it has not been booted.
+entries. The v4 production candidate (`ee662ab9…6752`) booted once and proved
+exact recovery ACM/NCM, but the host rejected the recovery ancestry because
+the invocation supplied short USB name `1-1.2` instead of its full canonical
+physical path. No control session, payload, NFS, or target ran; the 180-second
+rollback returned exact Alpine. V4 is consumed. V5 (`e4ae6373…c722`) changes
+only the deterministic AVB generation over the unchanged clean-twin raw
+wrapper; its claim is unissued and it has not been booted.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

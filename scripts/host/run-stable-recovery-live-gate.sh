@@ -129,6 +129,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-host-rendezvous-v3-live-v2 | \
 		headless-diagnostic-host-rendezvous-v3-live-v3 | \
 		headless-diagnostic-host-rendezvous-v3-live-v4 | \
+		headless-diagnostic-host-rendezvous-v3-live-v5 | \
 		retention-host-rendezvous-v3-execution-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
@@ -882,6 +883,44 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	headless-diagnostic-host-rendezvous-v3-live-v5)
+		expected_boot_image=build/host-rendezvous-v5-usb-ancestry-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one USB-ancestry-corrected diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted USB-ancestry-corrected diagnostic execution recovery; unchanged exact ASUS wrapper inventory and bounded host rendezvous; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=88da6fc4ee6ec61614324678805a5af6591320bc1b2ede2b094ce6aad5bd1a1f
+		expected_raw=73b6a892ca7066b2bbc399602ace9f8664f157e1b0e99c91d6e907da80e9f70f
+		expected_initramfs=04c52bbd9cbaedc442faeba83fdc7eb2291be28519e54ea0dd3ade40acbd6948
+		expected_control=68142abd8daafed2f1d017bd0ae07407be9dcac17e57d2294a162d2b58bf2840
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
+		expected_target_id=headless-netroot-early-diag-v2
+		expected_bundle=headless-netroot-early-diag-v2
+		expected_bundle_profile=diagnostic-initramfs-v1
+		expected_generation_record=481c59b10a0db36277aed87dd8badfab0095e9f974bd7a97fb1405592ca87ef9
+		expected_avb_salt=eb9271e8c053ba1e774ee26c3b89ddc50f31e97baa48a916f6b3983d7e5e1542
+		expected_avb_digest=70d63810c2909150a7467ba625f75a8a4562ba8524060a90355c2f3c95d43cb1
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc ]] ||
+			fail 'USB-ancestry successor runtime manifest is not pinned'
+		[[ $expected_image == \
+			e4ae63731f3369914cd382367e6abb4371f526c5417ab9436453cd58e764c722 ]] ||
+			fail 'USB-ancestry successor recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'USB-ancestry successor trust key is not pinned'
+		[[ $expected_host_verifier == \
+			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
+			fail 'USB-ancestry successor host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
@@ -904,6 +943,7 @@ case $profile in
 	headless-diagnostic-host-rendezvous-v3-live-v2 | \
 	headless-diagnostic-host-rendezvous-v3-live-v3 | \
 	headless-diagnostic-host-rendezvous-v3-live-v4 | \
+	headless-diagnostic-host-rendezvous-v3-live-v5 | \
 	retention-host-rendezvous-v3-execution-v1)
 		initramfs_contract=exact-a600000-v1
 		initramfs_verifier_expected=-
