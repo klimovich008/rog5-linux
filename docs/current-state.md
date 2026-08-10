@@ -261,15 +261,20 @@ wrapper configuration has no devtmpfs, recovery mounted a tmpfs at `/dev`,
 and no `/dev/kmsg` existed; V8 correctly failed closed before touching the
 watchdog. V8 is consumed and must never be retried. V8 r1 was superseded
 before claim or phone contact after review found unsafe-control and
-compatible-race classification defects. V9 (`4f3bb23c…68133`) is the exact
-current unbooted one-use successor. It materializes and validates only a
-root-owned mode-`0600` character device 1:11 at `/dev/kmsg` before the
-controller starts. Its AArch64 responder, recovery initramfs, ASUS wrapper
-Image, raw boot image, and generation-6 AVB wrapper reproduce at
-`59e76973…3f31`, `d9a3fba4…98d8`, `2e5d6e17…061c`,
-`06732992…4aff`, and `4f3bb23c…68133`; the two clean wrapper builds are
-byte-identical.
-It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
+compatible-race classification defects. V9 (`4f3bb23c…68133`) materialized
+and validated only a root-owned mode-`0600` character device 1:11 at
+`/dev/kmsg` before the controller started. Its sole RAM-only cycle transferred
+and verified the exact bundle, persisted PREPARED, accepted COMMIT, disabled
+the Haven watchdog, loaded kexec, and began handoff. Target ACM/NCM never
+appeared before exact Alpine fallback returned about 23.3 seconds later; PMIC
+reported `PS_HOLD` / `HARD_RESET` with no PMIC watchdog signal, and no NFS
+attempt was observed. V9 is consumed and must never be retried. V10
+(`fb5fce1…3452`) is the exact current unbooted one-use execution successor. It
+keeps V9's byte-identical raw wrapper `06732992…4aff` and target bundle while
+using a fresh deterministic AVB generation. The separately admitted corrected
+observer (`a655d4b3…05b`) materializes `/dev/kmsg` before its first snapshot
+logger and has no payload execution path; it is also unbooted and one-use.
+The target bundle adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and
 diagnostic initramfs v1 reproduce at `dc53932d…a10` and `83240834…31d`.

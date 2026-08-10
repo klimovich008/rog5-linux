@@ -10,9 +10,9 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-observation-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=observation-host-rendezvous-v3-haven-production-hold-v1
-live_profile=retention-host-rendezvous-v3-observer-v1
-expected_avb=3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b
+profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
+live_profile=retention-host-rendezvous-v3-observer-v2
+expected_avb=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -174,7 +174,7 @@ materialize_fixture() {
 	done
 }
 
-production_root=$repo/build/observation-recovery-haven-offline-20260810-r1
+production_root=$repo/build/observation-recovery-kmsg-live-20260811-r1
 if [[ -d $production_root ]]; then
 	materialize_fixture "$production_root"
 	fixture_report=$(run_artifact "$build_tmp")
