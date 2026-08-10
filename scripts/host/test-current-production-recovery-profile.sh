@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=headless-diagnostic-host-rendezvous-v3-live-v7
+profile=headless-diagnostic-host-rendezvous-v3-live-v8
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -45,19 +45,19 @@ case_source=$(awk -v profile="$profile" '
 [[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_boot_image=build/host-rendezvous-v7-haven-reason-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img \
-	expected_kernel=feb2637696b9a7bc739c87c621aa0dbd234ba0c1bd6a769c82248727111d4ae3 \
-	expected_raw=018e46c7f416020e0afc3f42789ad4339baf9a2f5d30c1a212aae1249e341bc1 \
-	expected_initramfs=373d08f64244c0f4322eed7e3720a46f1ff56f4ec355a327153758e912b25546 \
-	expected_control=b4e08b2725980117a172ed117a1260f3940304790e857be8ee1ae4c706fe6d9e \
+	expected_boot_image=build/host-rendezvous-v8-haven-boundary-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img \
+	expected_kernel=01087419a9381ab4967dd9aad8d78873979f33e3906139865af9db049471942d \
+	expected_raw=d087aaae42699a4889341326407dc231084d1f008013f0970136883c632a94f5 \
+	expected_initramfs=9410b1a6735675023bdf18c7f02e6d9f4dde9e8c25820913e575f030922e6aa1 \
+	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_generation_record=3a272ff018ead9a81a0c00d5f477c6af984d19927ef1f4ebeae720de0365c745 \
-	expected_avb_salt=6abc5a841e8060cc5e3a02ef6cfb84f035eded57da6c19af23758d9f59235e68 \
-	expected_avb_digest=408caa4149d954b26f5225de27248bed928457581a84314b6d845a26f1ddf178 \
+	expected_generation_record=2f7ab8b62e5303d17ded1445c1dc81cb32f7c5fea9fa20f3d356afd712e75a48 \
+	expected_avb_salt=f1ca79c2e3175d6a85eab07bc3b9b2c28287a416fd9f678c429e7b8d01a99d9a \
+	expected_avb_digest=fc24d389b1224014fad131aebf484fe23eb98a2e03ec175a8262fff2f3dd0437 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -117,7 +117,7 @@ run_policy() {
 }
 
 exact=(
-	0dc48152b932b94334238a96fedaaa3dd1865eb010e747877f38ce654bd28be2
+	faf7ebd1f2638646bc169e3af79b406f11e792686949b58d43783ce08bbf034f
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
@@ -125,10 +125,10 @@ exact=(
 )
 fields=(recovery trust manifest host-verifier bundle)
 errors=(
-	'Haven-classification successor recovery image is not pinned'
-	'Haven-classification successor trust key is not pinned'
-	'Haven-classification successor runtime manifest is not pinned'
-	'Haven-classification successor host verifier is not pinned'
+	'Haven-boundary successor recovery image is not pinned'
+	'Haven-boundary successor trust key is not pinned'
+	'Haven-boundary successor runtime manifest is not pinned'
+	'Haven-boundary successor host verifier is not pinned'
 	'profile requires bundle=headless-netroot-early-diag-v2'
 )
 
@@ -156,12 +156,12 @@ done
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
-[[ $(awk -F '\t' -v name="build/host-rendezvous-v7-haven-reason-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img" \
+[[ $(awk -F '\t' -v name="build/host-rendezvous-v8-haven-boundary-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 1 ]] ||
 	fail 'current production live image is not uniquely admitted'
 
-production_root=$repo/build/host-rendezvous-v7-haven-reason-production-20260810-r1
+production_root=$repo/build/host-rendezvous-v8-haven-boundary-production-20260810-r2
 if [[ -d $production_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \

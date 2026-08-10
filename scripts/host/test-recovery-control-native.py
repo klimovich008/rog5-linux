@@ -2713,7 +2713,9 @@ class NativeResponderTest(unittest.TestCase):
 
     def test_missing_haven_watchdog_blocks_execution_before_marker(self):
         (self.haven_driver / "qcom_wdt_hh").unlink()
-        session = self.assert_haven_handoff_refused()
+        session = self.assert_haven_handoff_refused(
+            expected_error="HAVEN_DEVICE_FAILED",
+        )
         self.assertEqual(
             self.haven_disable.read_text(encoding="ascii"),
             "0\n",
@@ -2723,16 +2725,29 @@ class NativeResponderTest(unittest.TestCase):
         status = self.status(restarted_master, session, 21)
         self.assertEqual(status.state, "EXEC_FAILED")
         self.assertEqual(status.execution_started, "NO")
-        self.assertEqual(status.last_error, "HAVEN_WDOG_FAILED")
+        self.assertEqual(status.last_error, "HAVEN_DEVICE_FAILED")
         self.assertFalse((self.state / "test-executed").exists())
         self.stop_responder(restarted, restarted_master)
+
+    def test_missing_haven_driver_reports_exact_refusal(self):
+        missing = self.haven_driver.with_name("missing-hh-watchdog")
+        self.haven_driver.rename(missing)
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_DRIVER_FAILED",
+        )
+        self.assertEqual(
+            self.haven_disable.read_text(encoding="ascii"),
+            "0\n",
+        )
 
     def test_multiple_haven_watchdog_candidates_fail_closed(self):
         (self.haven_driver / "duplicate_hh_wdt").symlink_to(
             self.haven_device,
             target_is_directory=True,
         )
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_DEVICE_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
 
     def test_wrong_haven_driver_identity_fails_closed(self):
@@ -2743,7 +2758,9 @@ class NativeResponderTest(unittest.TestCase):
             wrong_driver,
             target_is_directory=True,
         )
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_BINDING_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
 
     def test_wrong_or_extended_haven_compatible_fails_closed(self):
@@ -2751,7 +2768,9 @@ class NativeResponderTest(unittest.TestCase):
         compatible.chmod(0o644)
         compatible.write_bytes(b"qcom,hh-watchdog\0qcom,other\0")
         compatible.chmod(0o444)
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_COMPAT_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
 
     def test_unsafe_haven_disable_symlink_fails_closed(self):
@@ -2760,21 +2779,56 @@ class NativeResponderTest(unittest.TestCase):
         alternate.chmod(0o600)
         self.haven_disable.unlink()
         self.haven_disable.symlink_to(alternate)
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_CONTROL_FAILED",
+        )
         self.assertEqual(alternate.read_text(encoding="ascii"), "0\n")
+
+    def test_haven_compatible_prewrite_race_is_exact(self):
+        self.assert_haven_handoff_refused(
+            haven_mode="compatible_changes_prewrite",
+            expected_error="HAVEN_COMPAT_FAILED",
+        )
+
+    def test_haven_compatible_postwrite_race_is_exact(self):
+        self.assert_haven_handoff_refused(
+            haven_mode="compatible_changes_postwrite",
+            expected_error="HAVEN_COMPAT_FAILED",
+        )
+
+    def test_haven_control_disappearance_after_precheck_fails_closed(self):
+        self.assert_haven_handoff_refused(
+            haven_mode="control_disappears",
+            expected_error="HAVEN_CONTROL_FAILED",
+        )
+        self.assertFalse(self.haven_disable.exists())
 
     def test_already_disabled_haven_watchdog_fails_closed(self):
         self.haven_disable.write_text("1\n", encoding="ascii")
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_INITIAL_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
 
     def test_short_haven_write_is_not_retried(self):
-        self.assert_haven_handoff_refused(haven_mode="short_write")
+        self.assert_haven_handoff_refused(
+            haven_mode="short_write",
+            expected_error="HAVEN_WRITE_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "1\n")
 
     def test_haven_readback_failure_blocks_execution(self):
-        self.assert_haven_handoff_refused(haven_mode="wrong_readback")
+        self.assert_haven_handoff_refused(
+            haven_mode="wrong_readback",
+            expected_error="HAVEN_READBACK_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_haven_kmsg_scan_limit_blocks_execution(self):
+        self.assert_haven_handoff_refused(
+            haven_mode="kmsg_scan_limit",
+            expected_error="HAVEN_KMSG_SCAN_FAILED",
+        )
 
     def test_new_secure_watchdog_error_blocks_execution(self):
         self.assert_haven_handoff_refused(
@@ -2808,13 +2862,28 @@ class NativeResponderTest(unittest.TestCase):
         )
 
     def test_haven_device_disappearance_after_write_fails_closed(self):
-        self.assert_haven_handoff_refused(haven_mode="device_disappears")
+        self.assert_haven_handoff_refused(
+            haven_mode="device_disappears",
+            expected_error="HAVEN_BINDING_FAILED",
+        )
         self.assertFalse((self.haven_driver / "qcom_wdt_hh").exists())
 
     def test_unsafe_haven_kernel_log_fails_before_write(self):
         self.haven_kmsg.chmod(0o644)
-        self.assert_haven_handoff_refused()
+        self.assert_haven_handoff_refused(
+            expected_error="HAVEN_KMSG_OPEN_FAILED",
+        )
         self.assertEqual(self.haven_disable.read_text(encoding="ascii"), "0\n")
+
+    def test_haven_close_failure_cannot_resume_execution(self):
+        self.assert_haven_handoff_refused(
+            haven_mode="close_failure",
+            expected_error="HAVEN_CLOSE_FAILED",
+        )
+        self.assertEqual(
+            self.haven_disable.read_text(encoding="ascii"),
+            "1\n",
+        )
 
     def test_haven_refusal_unloads_prepared_fixed_image(self):
         verifier, loader, marker = self.make_prepare_pipeline(
@@ -2900,7 +2969,7 @@ class NativeResponderTest(unittest.TestCase):
                 self.assertEqual(status.execution_started, "NO")
                 self.assertEqual(
                     status.last_error,
-                    "HAVEN_WDOG_FAILED" if published else "NONE",
+                    "HAVEN_DEVICE_FAILED" if published else "NONE",
                 )
                 replay = self.exchange(
                     restarted_master,

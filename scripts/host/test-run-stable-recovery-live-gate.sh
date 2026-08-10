@@ -66,9 +66,9 @@ awk -F '\t' '
 			exit 1
 		next
 	}
-	$1 == "build/host-rendezvous-v7-haven-reason-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/host-rendezvous-v8-haven-boundary-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact Haven-failure-classification diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
+		$3 == "one exact Haven-boundary-classification diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
 	$1 == "build/observation-recovery-haven-offline-20260810-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one retention-cycle observation-only recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
@@ -79,7 +79,7 @@ awk -F '\t' '
 	END { if (NR != 4 || execution != 1 || observer != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retention-cycle admission shape' >&2; exit 1; }
-grep -Fq '"headless-diagnostic-host-rendezvous-v3-live-v7"' "$lifecycle" ||
+grep -Fq '"headless-diagnostic-host-rendezvous-v3-live-v8"' "$lifecycle" ||
 	{ echo 'FAIL lifecycle does not select exact successor execution profile' >&2; exit 1; }
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \

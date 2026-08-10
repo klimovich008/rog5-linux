@@ -132,6 +132,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-host-rendezvous-v3-live-v5 | \
 		headless-diagnostic-host-rendezvous-v3-live-v6 | \
 		headless-diagnostic-host-rendezvous-v3-live-v7 | \
+		headless-diagnostic-host-rendezvous-v3-live-v8 | \
 		retention-host-rendezvous-v3-execution-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
@@ -999,6 +1000,44 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	headless-diagnostic-host-rendezvous-v3-live-v8)
+		expected_boot_image=build/host-rendezvous-v8-haven-boundary-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Haven-boundary-classification diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted exact Haven-boundary-classification diagnostic execution recovery; clean-twin ASUS wrapper distinguishes every reviewed fail-closed watchdog handoff boundary before kexec; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=01087419a9381ab4967dd9aad8d78873979f33e3906139865af9db049471942d
+		expected_raw=d087aaae42699a4889341326407dc231084d1f008013f0970136883c632a94f5
+		expected_initramfs=9410b1a6735675023bdf18c7f02e6d9f4dde9e8c25820913e575f030922e6aa1
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
+		expected_target_id=headless-netroot-early-diag-v2
+		expected_bundle=headless-netroot-early-diag-v2
+		expected_bundle_profile=diagnostic-initramfs-v1
+		expected_generation_record=2f7ab8b62e5303d17ded1445c1dc81cb32f7c5fea9fa20f3d356afd712e75a48
+		expected_avb_salt=f1ca79c2e3175d6a85eab07bc3b9b2c28287a416fd9f678c429e7b8d01a99d9a
+		expected_avb_digest=fc24d389b1224014fad131aebf484fe23eb98a2e03ec175a8262fff2f3dd0437
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc ]] ||
+			fail 'Haven-boundary successor runtime manifest is not pinned'
+		[[ $expected_image == \
+			faf7ebd1f2638646bc169e3af79b406f11e792686949b58d43783ce08bbf034f ]] ||
+			fail 'Haven-boundary successor recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'Haven-boundary successor trust key is not pinned'
+		[[ $expected_host_verifier == \
+			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
+			fail 'Haven-boundary successor host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
@@ -1024,6 +1063,7 @@ case $profile in
 	headless-diagnostic-host-rendezvous-v3-live-v5 | \
 	headless-diagnostic-host-rendezvous-v3-live-v6 | \
 	headless-diagnostic-host-rendezvous-v3-live-v7 | \
+	headless-diagnostic-host-rendezvous-v3-live-v8 | \
 	retention-host-rendezvous-v3-execution-v1)
 		initramfs_contract=exact-a600000-v1
 		initramfs_verifier_expected=-

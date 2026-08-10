@@ -200,9 +200,11 @@ decision without appending a response to a poisoned frame.
 All-zero request IDs and manifest hashes are reserved unset values and are
 rejected. Fixed result codes are bound to their valid verb and transaction
 state. `EXEC_FAILED` normally requires the persisted execution-started marker.
-The sole pre-execution exception is `last_error=HAVEN_WDOG_FAILED`, which
-requires `execution_started=NO` and proves that the already-consumed claim was
-refused before target execution. Successful target departure is classified
+The sole pre-execution exception is a repository-owned `HAVEN_*_FAILED`
+handoff token, which requires `execution_started=NO` and proves that the
+already-consumed claim was refused before target execution. The token names
+the exact reviewed boundary when possible; `HAVEN_WDOG_FAILED` remains a
+legacy accepted record only. Successful target departure is classified
 out of band; the last recoverable device state remains `CLAIMED` with
 `execution_started=YES`.
 
@@ -360,11 +362,11 @@ Before `COMMIT_EXEC` calls `kexec -e`, it must:
 
 The Haven handoff has no production path override, glob, retry, or alternate
 device fallback. Any missing, duplicate, rebound, unsafe, unreadable, or
-unverified control persists `HAVEN_WDOG_FAILED`, unloads the prepared image,
-and leaves the irreversible claim consumed without an execution-started
-marker. This preserves the separate userspace rollback layer and prevents the
-mainline target from inheriting the recovery kernel's actively serviced Haven
-watchdog.
+unverified boundary persists its exact repository-owned `HAVEN_*_FAILED`
+token, unloads the prepared image, and leaves the irreversible claim consumed
+without an execution-started marker. This preserves the separate userspace
+rollback layer and prevents the mainline target from inheriting the recovery
+kernel's actively serviced Haven watchdog.
 
 Immediately before calling `kexec -e`, and only after that handoff succeeds,
 the responder persists an execution-started marker. If `kexec -e` returns, the
