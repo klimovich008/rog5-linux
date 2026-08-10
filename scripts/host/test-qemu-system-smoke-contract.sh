@@ -18,6 +18,7 @@ nfs_source=${QEMU_NFS_SOURCE:-$repo/tools/qemu-network-root-nfs/init.c}
 nfs_production_harness=${QEMU_NFS_PRODUCTION_HARNESS:-$repo/tools/qemu-network-root-nfs/production-init.sh}
 nfs_config=${QEMU_NFS_CONFIG:-$repo/tools/qemu-network-root-nfs/ganesha.conf.in}
 nfs_runner=${QEMU_NFS_RUNNER:-$repo/scripts/host/test-qemu-network-root-nfs.sh}
+nfs_runtime=$repo/artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz
 systemd_runtime=$repo/artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz
 systemd_runtime_builder=$repo/scripts/host/build-qemu-systemd-runtime.sh
 systemd_runtime_verifier=$repo/scripts/host/verify-qemu-systemd-runtime.sh
@@ -25,13 +26,23 @@ workflow=$repo/.github/workflows/offline-smoke.yml
 for path in "$source_file" "$builder" "$cache_integration" "$runner" \
 	"$handoff_source" "$handoff_runner" "$systemd_runtime" \
 	"$systemd_runtime_builder" "$systemd_runtime_verifier" "$nfs_source" \
-	"$nfs_config" "$nfs_runner" "$nfs_production_harness" "$workflow"; do
+	"$nfs_config" "$nfs_runner" "$nfs_runtime" \
+	"$nfs_production_harness" "$workflow"; do
 	[[ -f $path && ! -L $path ]] || fail "missing QEMU smoke source: $path"
 done
-for command in clang ld.lld readelf strings; do
+for command in clang git ld.lld readelf sha256sum stat strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing QEMU smoke contract command: $command"
 done
+
+git -C "$repo" ls-files --error-unmatch -- \
+	"${nfs_runtime#"$repo"/}" >/dev/null 2>&1 ||
+	fail 'QEMU NFS initramfs is not available in a clean checkout'
+[[ $(stat -c %s "$nfs_runtime") == 5840728 ]] ||
+	fail 'QEMU NFS initramfs size changed'
+[[ $(sha256sum "$nfs_runtime" | cut -d ' ' -f 1) == \
+	4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac ]] ||
+	fail 'QEMU NFS initramfs hash changed'
 
 test_root=$(mktemp -d)
 trap 'find "$test_root" -depth -delete 2>/dev/null || true' EXIT HUP INT TERM
