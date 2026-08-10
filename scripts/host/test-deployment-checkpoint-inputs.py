@@ -259,6 +259,26 @@ class CheckpointInputTests(unittest.TestCase):
                 self.assertFalse((self.snapshot / relative).exists())
                 source.unlink()
 
+    def test_mkbootimg_runtime_dependency_is_in_each_fixed_profile(self) -> None:
+        expected = (
+            3082,
+            0o755,
+            "367858be999c3013d44450a91bde0067f0530857b5a95fbf5858c62477bcaf36",
+        )
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                contracts = {
+                    relative: (size, mode, digest)
+                    for relative, size, mode, digest in module.CHECKPOINT_INPUTS
+                }
+                self.assertEqual(
+                    contracts.get(
+                        "artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py"
+                    ),
+                    expected,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

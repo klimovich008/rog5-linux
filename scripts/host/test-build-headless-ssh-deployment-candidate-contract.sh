@@ -404,6 +404,7 @@ for launcher in "$wrapper" "$diagnostic_wrapper"; do
 		'os.O_EXCL' \
 		'os.O_NOFOLLOW' \
 		'hasher.hexdigest() != digest' \
+		'artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py' \
 		'stage_inputs=not arguments.signing_input_preflight'; do
 		grep -Fq -- "$token" "$launcher" ||
 			fail "deployment launcher omits checkpoint-input gate: $token"

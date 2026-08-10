@@ -41,6 +41,10 @@ for token in \
 		fail "wrapper-cache profile omits identity: $token"
 done
 
+grep -Fq \
+	'367858be999c3013d44450a91bde0067f0530857b5a95fbf5858c62477bcaf36' \
+	"$profile" || fail 'wrapper-cache profile omits the GKI helper identity'
+
 for token in \
 	'rog5-kernel-source-tree-v1' \
 	'O_NOFOLLOW' \
@@ -55,6 +59,7 @@ for token in \
 	'expected cache entry ID is not SHA-256' \
 	'ASUS source tree changed across the twin build' \
 	'cache input binding changed' \
+	'gki_certificate_sha256' \
 	'wrapper Image does not embed the initramfs exactly once' \
 	'refusing an existing materialization output'; do
 	grep -Fq "$token" "$cache_tool" ||
@@ -76,8 +81,17 @@ from pathlib import Path
 import sys
 
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
+precompile_tokens = (
+    'check_hash "$gki_certificate" "$expected_gki_certificate"',
+    'podman image exists "$builder_image"',
+    'build_wrapper a "$initramfs_a"',
+)
+precompile_positions = [text.index(token) for token in precompile_tokens]
+if precompile_positions != sorted(precompile_positions):
+    raise SystemExit("GKI helper is not verified before the wrapper build")
 tokens = (
     'seal_source >"$source_seal_before"',
+    '--gki-certificate "$gki_certificate"',
     'python3 "$cache_tool" input-key',
     'build_wrapper a "$initramfs_a"',
     'build_wrapper b "$initramfs_b"',
