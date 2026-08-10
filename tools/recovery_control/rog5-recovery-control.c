@@ -1203,6 +1203,17 @@ static void set_last_error(struct control_state *state, const char *error)
 static bool is_haven_failure(const char *error)
 {
 	return strcmp(error, "HAVEN_WDOG_FAILED") == 0 ||
+		strcmp(error, "HAVEN_DRIVER_FAILED") == 0 ||
+		strcmp(error, "HAVEN_DEVICE_FAILED") == 0 ||
+		strcmp(error, "HAVEN_BINDING_FAILED") == 0 ||
+		strcmp(error, "HAVEN_COMPAT_FAILED") == 0 ||
+		strcmp(error, "HAVEN_INITIAL_FAILED") == 0 ||
+		strcmp(error, "HAVEN_KMSG_OPEN_FAILED") == 0 ||
+		strcmp(error, "HAVEN_CONTROL_FAILED") == 0 ||
+		strcmp(error, "HAVEN_WRITE_FAILED") == 0 ||
+		strcmp(error, "HAVEN_CLOSE_FAILED") == 0 ||
+		strcmp(error, "HAVEN_READBACK_FAILED") == 0 ||
+		strcmp(error, "HAVEN_KMSG_SCAN_FAILED") == 0 ||
 		strcmp(error, "HAVEN_SECURE_FAILED") == 0 ||
 		strcmp(error, "HAVEN_VDOG_FAILED") == 0;
 }
@@ -1785,16 +1796,59 @@ static bool haven_compatible_matches(int device)
 	return valid;
 }
 
-static bool haven_disable_matches(int device, const char *expected)
+static const char *haven_disable_failure(int device, const char *expected,
+					 const char *mismatch_failure)
 {
 	unsigned char value[8];
 	size_t expected_length = strlen(expected);
-	size_t length = 0;
+	struct stat metadata;
+	const char *failure = NULL;
+	size_t used = 0;
+	int descriptor;
 
-	return read_haven_attribute(device, "disable", 0600, value,
-				    sizeof(value), &length) &&
-		length == expected_length &&
-		memcmp(value, expected, expected_length) == 0;
+	descriptor = openat(device, "disable",
+			    O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+	if (descriptor < 0)
+		return "HAVEN_CONTROL_FAILED";
+	if (fstat(descriptor, &metadata) < 0 ||
+	    !S_ISREG(metadata.st_mode) || metadata.st_uid != geteuid() ||
+	    (metadata.st_mode & 0777) != 0600 || metadata.st_nlink != 1) {
+		failure = "HAVEN_CONTROL_FAILED";
+		goto out;
+	}
+	while (used < sizeof(value)) {
+		ssize_t count = read(descriptor, value + used,
+				     sizeof(value) - used);
+
+		if (count < 0 && errno == EINTR)
+			continue;
+		if (count < 0) {
+			failure = mismatch_failure;
+			goto out;
+		}
+		if (count == 0)
+			break;
+		used += (size_t)count;
+	}
+	if (used == sizeof(value)) {
+		unsigned char extra;
+		ssize_t count;
+
+		do {
+			count = read(descriptor, &extra, 1);
+		} while (count < 0 && errno == EINTR);
+		if (count != 0) {
+			failure = mismatch_failure;
+			goto out;
+		}
+	}
+	if (used != expected_length ||
+	    memcmp(value, expected, expected_length) != 0)
+		failure = mismatch_failure;
+out:
+	if (close(descriptor) < 0)
+		return "HAVEN_CLOSE_FAILED";
+	return failure;
 }
 
 static int open_haven_kmsg(bool *allow_eof)
@@ -1848,13 +1902,13 @@ static const char *haven_kmsg_failure(int descriptor, bool allow_eof)
 		if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
 			return NULL;
 		if (count < 0)
-			return "HAVEN_WDOG_FAILED";
+			return "HAVEN_KMSG_SCAN_FAILED";
 		if (count == 0)
-			return allow_eof ? NULL : "HAVEN_WDOG_FAILED";
+			return allow_eof ? NULL : "HAVEN_KMSG_SCAN_FAILED";
 		records++;
 		total += (size_t)count;
 		if (total > HAVEN_KMSG_SCAN_MAX)
-			return "HAVEN_WDOG_FAILED";
+			return "HAVEN_KMSG_SCAN_FAILED";
 		if (memmem(record, (size_t)count, secure_failure,
 			   sizeof(secure_failure) - 1) != NULL)
 			return "HAVEN_SECURE_FAILED";
@@ -1862,7 +1916,7 @@ static const char *haven_kmsg_failure(int descriptor, bool allow_eof)
 			   sizeof(hypervisor_failure) - 1) != NULL)
 			return "HAVEN_VDOG_FAILED";
 	}
-	return "HAVEN_WDOG_FAILED";
+	return "HAVEN_KMSG_SCAN_FAILED";
 }
 
 #ifdef ROG5_CONTROL_TESTING
@@ -1871,6 +1925,65 @@ static size_t test_haven_write_length(void)
 	const char *mode = getenv("ROG5_TEST_HAVEN_MODE");
 
 	return mode != NULL && strcmp(mode, "short_write") == 0 ? 1 : 2;
+}
+
+static void inject_haven_prewrite_result(int device)
+{
+	const char *mode = getenv("ROG5_TEST_HAVEN_MODE");
+
+	if (mode != NULL && strcmp(mode, "control_disappears") == 0 &&
+	    unlinkat(device, "disable", 0) < 0)
+		fail("cannot inject Haven watchdog control disappearance");
+}
+
+static bool inject_haven_compatible_change(int device)
+{
+	static const char changed[] = "qcom,changed-watchdog\0";
+	int descriptor = -1;
+	int of_node = -1;
+	bool valid = false;
+
+	of_node = openat(device, "of_node",
+			 O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if (of_node < 0 || unlinkat(of_node, "compatible", 0) < 0)
+		goto out;
+	descriptor = openat(of_node, "compatible",
+			    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
+			    0600);
+	if (descriptor < 0)
+		goto out;
+	write_all(descriptor, changed, sizeof(changed) - 1);
+	if (fchmod(descriptor, 0444) < 0)
+		goto out;
+	valid = true;
+out:
+	if (descriptor >= 0 && close(descriptor) < 0)
+		valid = false;
+	if (of_node >= 0 && close(of_node) < 0)
+		valid = false;
+	return valid;
+}
+
+static bool inject_haven_kmsg_scan_limit(void)
+{
+	unsigned char block[4096];
+	size_t written = 0;
+	int descriptor;
+
+	memset(block, 'x', sizeof(block));
+	descriptor = open(haven_kmsg_path,
+			  O_WRONLY | O_APPEND | O_NOFOLLOW | O_CLOEXEC);
+	if (descriptor < 0)
+		return false;
+	while (written < HAVEN_KMSG_SCAN_MAX) {
+		size_t count = HAVEN_KMSG_SCAN_MAX - written;
+
+		if (count > sizeof(block))
+			count = sizeof(block);
+		write_all(descriptor, block, count);
+		written += count;
+	}
+	return close(descriptor) == 0;
 }
 
 static bool inject_haven_test_result(int driver, const char *device_name,
@@ -1913,7 +2026,22 @@ static bool inject_haven_test_result(int driver, const char *device_name,
 	}
 	if (strcmp(mode, "device_disappears") == 0)
 		return unlinkat(driver, device_name, 0) == 0;
+	if (strcmp(mode, "compatible_changes_postwrite") == 0)
+		return inject_haven_compatible_change(device);
+	if (strcmp(mode, "kmsg_scan_limit") == 0)
+		return inject_haven_kmsg_scan_limit();
+	if (strcmp(mode, "close_failure") == 0)
+		return true;
 	return false;
+}
+
+static void inject_haven_close_failure(int descriptor)
+{
+	const char *mode = getenv("ROG5_TEST_HAVEN_MODE");
+
+	if (mode != NULL && strcmp(mode, "close_failure") == 0 &&
+	    close(descriptor) < 0)
+		fail("cannot inject Haven watchdog close failure");
 }
 #endif
 
@@ -1936,10 +2064,12 @@ static const char *deactivate_haven_watchdog(void)
 		      O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 	if (driver < 0 || !safe_haven_directory(driver)) {
 		reason = "unsafe or missing hh-watchdog driver";
+		failure = "HAVEN_DRIVER_FAILED";
 		goto out;
 	}
 	if (!find_single_haven_device(driver, device_name)) {
 		reason = "expected exactly one bound hh-watchdog device";
+		failure = "HAVEN_DEVICE_FAILED";
 		goto out;
 	}
 	device = openat(driver, device_name,
@@ -1947,24 +2077,51 @@ static const char *deactivate_haven_watchdog(void)
 	if (device < 0 || !safe_haven_directory(device) ||
 	    !haven_device_still_bound(driver, device_name, device)) {
 		reason = "hh-watchdog driver identity mismatch";
+		failure = "HAVEN_BINDING_FAILED";
 		goto out;
 	}
 	if (!haven_compatible_matches(device)) {
 		reason = "hh-watchdog compatible mismatch";
+		failure = "HAVEN_COMPAT_FAILED";
 		goto out;
 	}
-	if (!haven_disable_matches(device, "0\n")) {
-		reason = "hh-watchdog disable control is not initially zero";
+	failure = haven_disable_failure(device, "0\n", "HAVEN_INITIAL_FAILED");
+	if (failure != NULL) {
+		reason = "hh-watchdog disable control is unsafe or not initially zero";
 		goto out;
 	}
 	kmsg = open_haven_kmsg(&allow_kmsg_eof);
 	if (kmsg < 0) {
 		reason = "cannot establish kernel-log boundary";
+		failure = "HAVEN_KMSG_OPEN_FAILED";
 		goto out;
 	}
-	if (!haven_device_still_bound(driver, device_name, device) ||
-	    !haven_compatible_matches(device)) {
+	if (!haven_device_still_bound(driver, device_name, device)) {
 		reason = "hh-watchdog identity changed before disable";
+		failure = "HAVEN_BINDING_FAILED";
+		goto out;
+	}
+	if (!haven_compatible_matches(device)) {
+		reason = "hh-watchdog compatible changed before disable";
+		failure = "HAVEN_COMPAT_FAILED";
+		goto out;
+	}
+#ifdef ROG5_CONTROL_TESTING
+	inject_haven_prewrite_result(device);
+	if (getenv("ROG5_TEST_HAVEN_MODE") != NULL &&
+	    strcmp(getenv("ROG5_TEST_HAVEN_MODE"),
+		   "compatible_changes_prewrite") == 0 &&
+	    !inject_haven_compatible_change(device))
+		fail("cannot inject Haven compatible change before write");
+#endif
+	if (!haven_device_still_bound(driver, device_name, device)) {
+		reason = "hh-watchdog identity changed before control write";
+		failure = "HAVEN_BINDING_FAILED";
+		goto out;
+	}
+	if (!haven_compatible_matches(device)) {
+		reason = "hh-watchdog compatible changed before control write";
+		failure = "HAVEN_COMPAT_FAILED";
 		goto out;
 	}
 	disable = openat(device, "disable",
@@ -1973,6 +2130,7 @@ static const char *deactivate_haven_watchdog(void)
 	    !S_ISREG(metadata.st_mode) || metadata.st_uid != geteuid() ||
 	    (metadata.st_mode & 0777) != 0600 || metadata.st_nlink != 1) {
 		reason = "unsafe hh-watchdog disable control";
+		failure = "HAVEN_CONTROL_FAILED";
 		goto out;
 	}
 	if (!watchdog_armed())
@@ -1983,28 +2141,37 @@ static const char *deactivate_haven_watchdog(void)
 	written = write(disable, "1\n", write_length);
 	if (written != 2) {
 		reason = "hh-watchdog disable write was not exact";
+		failure = "HAVEN_WRITE_FAILED";
 		goto out;
 	}
 	if (close(disable) < 0) {
 		disable = -1;
 		reason = "cannot close hh-watchdog disable control";
+		failure = "HAVEN_CLOSE_FAILED";
 		goto out;
 	}
 	disable = -1;
 #ifdef ROG5_CONTROL_TESTING
 	if (!inject_haven_test_result(driver, device_name, device)) {
 		reason = "invalid injected Haven watchdog result";
+		failure = "HAVEN_WDOG_FAILED";
 		goto out;
 	}
 #endif
 	if (!watchdog_armed())
 		fail("rollback watchdog disappeared during Haven handoff");
-	if (!haven_device_still_bound(driver, device_name, device) ||
-	    !haven_compatible_matches(device)) {
+	if (!haven_device_still_bound(driver, device_name, device)) {
 		reason = "hh-watchdog identity changed after disable";
+		failure = "HAVEN_BINDING_FAILED";
 		goto out;
 	}
-	if (!haven_disable_matches(device, "1\n")) {
+	if (!haven_compatible_matches(device)) {
+		reason = "hh-watchdog compatible changed after disable";
+		failure = "HAVEN_COMPAT_FAILED";
+		goto out;
+	}
+	failure = haven_disable_failure(device, "1\n", "HAVEN_READBACK_FAILED");
+	if (failure != NULL) {
 		reason = "hh-watchdog disable readback failed";
 		goto out;
 	}
@@ -2014,22 +2181,29 @@ static const char *deactivate_haven_watchdog(void)
 		goto out;
 	}
 	success = true;
+#ifdef ROG5_CONTROL_TESTING
+	inject_haven_close_failure(driver);
+#endif
 out:
 	if (disable >= 0 && close(disable) < 0) {
 		success = false;
 		reason = "cannot close hh-watchdog disable control";
+		failure = "HAVEN_CLOSE_FAILED";
 	}
 	if (kmsg >= 0 && close(kmsg) < 0) {
 		success = false;
 		reason = "cannot close kernel-log boundary";
+		failure = "HAVEN_CLOSE_FAILED";
 	}
 	if (device >= 0 && close(device) < 0) {
 		success = false;
 		reason = "cannot close hh-watchdog device";
+		failure = "HAVEN_CLOSE_FAILED";
 	}
 	if (driver >= 0 && close(driver) < 0) {
 		success = false;
 		reason = "cannot close hh-watchdog driver";
+		failure = "HAVEN_CLOSE_FAILED";
 	}
 	if (!success)
 		fprintf(stderr,

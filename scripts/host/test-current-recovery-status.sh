@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V6 is consumed and must never be retried. V7 (`0dc48152…28be2`) preserves fail-closed kexec ordering while distinguishing secure-watchdog, hypervisor-VDOG, and unclassified deactivation failures.'*'Its claim is unissued and it has not been booted.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V7 is consumed and must never be retried. V8 r2 (`faf7ebd1…f034f`) replaces only that generic refusal with exact fail-closed'*'V8 r1 was superseded before claim or phone contact'*'r2 is unbooted and is the exact current one-use successor.'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2/v3/v4/v5/v6 and identify the unissued v7 successor' >&2
+		echo 'FAIL current status does not consume v2/v3/v4/v5/v6/v7 and identify the unbooted v8 successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6 and records the unissued v7 successor'
+echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7 and records the unbooted v8 successor'

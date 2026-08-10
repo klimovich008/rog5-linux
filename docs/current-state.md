@@ -243,13 +243,23 @@ verified the bundle, accepted PREPARE and COMMIT, then returned
 `last_error=HAVEN_WDOG_FAILED`. The target kernel never started; recovery
 refused the Haven-watchdog handoff and restricted NFS was cancelled only
 after that refusal. Exact Alpine fallback and cleanup passed. V6 is consumed
-and must never be retried. V7 (`0dc48152…28be2`) preserves fail-closed kexec
-ordering while distinguishing secure-watchdog, hypervisor-VDOG, and
-unclassified deactivation failures. Its AArch64 responder, recovery
-initramfs, ASUS wrapper Image, raw boot image, and AVB wrapper reproduce at
-`b4e08b27…fe6d9e`, `373d08f6…b25546`, `feb26376…d4ae3`,
-`018e46c7…71bc1`, and `0dc48152…28be2`; the two clean wrapper builds are
-byte-identical. Its claim is unissued and it has not been booted.
+and must never be retried. V7 (`0dc48152…28be2`) preserved fail-closed kexec
+ordering while distinguishing secure-watchdog, hypervisor-VDOG, and generic
+deactivation failures. Its sole RAM-only boot reached exact recovery ACM/NCM,
+transferred and verified the 46,166,378-byte bundle, accepted PREPARE and
+COMMIT, then returned `state=EXEC_FAILED`, `execution_started=NO`, and
+`last_error=HAVEN_WDOG_FAILED`. No target kernel ran; exact Alpine fallback
+and cleanup passed. V7 is consumed and must never be retried. V8 r2
+(`faf7ebd1…f034f`) replaces only that generic refusal with exact fail-closed
+driver, device, binding, compatible, initial-state, kmsg-open, control,
+write, close, readback, kmsg-scan, secure-watchdog, and
+hypervisor-VDOG boundaries. Its AArch64 responder, recovery initramfs, ASUS
+wrapper Image, raw boot image, and generation-5 AVB wrapper reproduce at
+`59e76973…3f31`, `9410b1a6…6aa1`, `01087419…1942d`,
+`d087aaae…94f5`, and `faf7ebd1…f034f`; the two clean wrapper builds are
+byte-identical. V8 r1 was superseded before claim or phone contact after
+review found unsafe-control and compatible-race classification defects. V8
+r2 is unbooted and is the exact current one-use successor.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and
