@@ -208,9 +208,16 @@ case $contract in
 		esac
 		grep -Fxq 'expected_udc=a600000.dwc3' "$stage/init" ||
 			fail 'stable recovery lacks the exact expected UDC identity'
+		grep -Fxq 'expected_udc_companion=a800000.dwc3' "$stage/init" ||
+			fail 'stable recovery lacks the exact companion UDC identity'
+		grep -Fxq 'expected_udc_test=dummy_udc.0' "$stage/init" ||
+			fail 'stable recovery lacks the exact test UDC identity'
+		grep -Fxq 'expected_udc_inventory_count=3' "$stage/init" ||
+			fail 'stable recovery lacks the exact wrapper UDC count'
 		grep -Fxq 'udc_class_dir=/sys/class/udc' "$stage/init" ||
 			fail 'stable recovery lacks the fixed UDC class directory'
-		for helper in udc_candidate_count validate_expected_udc_once \
+		for helper in udc_candidate_count udc_candidates_are_known \
+			validate_expected_udc_once \
 			validate_expected_udc expected_udc_is_bound \
 			select_expected_udc bind_expected_udc
 		do

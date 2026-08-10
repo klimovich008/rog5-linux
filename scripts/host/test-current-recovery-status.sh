@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'The active successor is `headless-diagnostic-host-rendezvous-v3-live-v3`: it is eligible for one reversible RAM-only cycle only after the verifier correction passes exact-head CI, and no v3 claim is issued yet.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'The implementation successor now requires exactly that three-name inventory, selects only `a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing entries. No v4 candidate, claim, or phone boot exists yet.'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2 and identify the unissued v3 successor' >&2
+		echo 'FAIL current status does not consume v2/v3 and identify the unissued UDC successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2 and records the exact-head-gated unissued v3 successor'
+echo 'PASS current status consumes Generation 12/v2/v3 and records the unissued exact-UDC successor'
