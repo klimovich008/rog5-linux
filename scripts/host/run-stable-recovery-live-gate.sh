@@ -886,7 +886,7 @@ case $profile in
 	headless-diagnostic-host-rendezvous-v3-live-v5)
 		expected_boot_image=build/host-rendezvous-v5-usb-ancestry-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one USB-ancestry-corrected diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted USB-ancestry-corrected diagnostic execution recovery; unchanged exact ASUS wrapper inventory and bounded host rendezvous; one RAM-only use only; never flash'
+		expected_boot_role='unbooted USB-ancestry-corrected diagnostic execution recovery; deterministic AVB generation over the unchanged clean-twin UDC-corrected raw wrapper and bounded host rendezvous; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=88da6fc4ee6ec61614324678805a5af6591320bc1b2ede2b094ce6aad5bd1a1f
