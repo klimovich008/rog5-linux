@@ -1200,6 +1200,13 @@ static void set_last_error(struct control_state *state, const char *error)
 		fail("last-error token is too large");
 }
 
+static bool is_haven_failure(const char *error)
+{
+	return strcmp(error, "HAVEN_WDOG_FAILED") == 0 ||
+		strcmp(error, "HAVEN_SECURE_FAILED") == 0 ||
+		strcmp(error, "HAVEN_VDOG_FAILED") == 0;
+}
+
 static void load_session(struct control_state *state)
 {
 	char payload[96];
@@ -1336,7 +1343,7 @@ static void load_state(struct control_state *state)
 		    strcmp(state->last_error, "BUNDLE_ID_CONFLICT") != 0 &&
 		    strcmp(state->last_error, "VERIFY_FAILED") != 0 &&
 		    strcmp(state->last_error, "LEDGER_FULL") != 0 &&
-		    strcmp(state->last_error, "HAVEN_WDOG_FAILED") != 0 &&
+		    !is_haven_failure(state->last_error) &&
 		    strcmp(state->last_error, "EXEC_FAILED") != 0 &&
 		    strcmp(state->last_error, "EXEC_RETURNED") != 0)
 			fail("unknown last-error state");
@@ -1349,18 +1356,18 @@ static void load_state(struct control_state *state)
 		cursor = payload;
 		if (take_field(&cursor, "error", error, sizeof(error)) < 0 ||
 		    *cursor != '\0' ||
-		    (strcmp(error, "HAVEN_WDOG_FAILED") != 0 &&
+		    (!is_haven_failure(error) &&
 		     strcmp(error, "EXEC_FAILED") != 0 &&
 		     strcmp(error, "EXEC_RETURNED") != 0))
 			fail("invalid execution failure");
 		if (state->phase != PHASE_CLAIMED ||
-		    (strcmp(error, "HAVEN_WDOG_FAILED") == 0 ?
+		    (is_haven_failure(error) ?
 		     state->execution_started : !state->execution_started))
 			fail("failure has inconsistent execution state");
 		state->phase = PHASE_EXEC_FAILED;
 		memcpy(state->last_error, error, strlen(error) + 1);
 	}
-	if (strcmp(state->last_error, "HAVEN_WDOG_FAILED") == 0 &&
+	if (is_haven_failure(state->last_error) &&
 	    (state->phase != PHASE_EXEC_FAILED || state->execution_started))
 		fail("invalid Haven watchdog failure state");
 }
@@ -1823,7 +1830,7 @@ static int open_haven_kmsg(bool *allow_eof)
 	return descriptor;
 }
 
-static bool haven_kmsg_has_no_disable_failure(int descriptor, bool allow_eof)
+static const char *haven_kmsg_failure(int descriptor, bool allow_eof)
 {
 	static const char secure_failure[] =
 		"Failed to deactivate secure wdog";
@@ -1839,21 +1846,23 @@ static bool haven_kmsg_has_no_disable_failure(int descriptor, bool allow_eof)
 		if (count < 0 && errno == EINTR)
 			continue;
 		if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-			return true;
+			return NULL;
 		if (count < 0)
-			return false;
+			return "HAVEN_WDOG_FAILED";
 		if (count == 0)
-			return allow_eof;
+			return allow_eof ? NULL : "HAVEN_WDOG_FAILED";
 		records++;
 		total += (size_t)count;
-		if (total > HAVEN_KMSG_SCAN_MAX ||
-		    memmem(record, (size_t)count, secure_failure,
-			   sizeof(secure_failure) - 1) != NULL ||
-		    memmem(record, (size_t)count, hypervisor_failure,
+		if (total > HAVEN_KMSG_SCAN_MAX)
+			return "HAVEN_WDOG_FAILED";
+		if (memmem(record, (size_t)count, secure_failure,
+			   sizeof(secure_failure) - 1) != NULL)
+			return "HAVEN_SECURE_FAILED";
+		if (memmem(record, (size_t)count, hypervisor_failure,
 			   sizeof(hypervisor_failure) - 1) != NULL)
-			return false;
+			return "HAVEN_VDOG_FAILED";
 	}
-	return false;
+	return "HAVEN_WDOG_FAILED";
 }
 
 #ifdef ROG5_CONTROL_TESTING
@@ -1908,9 +1917,10 @@ static bool inject_haven_test_result(int driver, const char *device_name,
 }
 #endif
 
-static bool deactivate_haven_watchdog(void)
+static const char *deactivate_haven_watchdog(void)
 {
 	const char *reason = "unknown failure";
+	const char *failure = "HAVEN_WDOG_FAILED";
 	char device_name[NAME_MAX + 1];
 	struct stat metadata;
 	int driver = -1;
@@ -1998,7 +2008,8 @@ static bool deactivate_haven_watchdog(void)
 		reason = "hh-watchdog disable readback failed";
 		goto out;
 	}
-	if (!haven_kmsg_has_no_disable_failure(kmsg, allow_kmsg_eof)) {
+	failure = haven_kmsg_failure(kmsg, allow_kmsg_eof);
+	if (failure != NULL) {
 		reason = "Haven watchdog deactivation was not proven";
 		goto out;
 	}
@@ -2024,7 +2035,7 @@ out:
 		fprintf(stderr,
 			"rog5-recovery-control: Haven watchdog handoff refused: %s\n",
 			reason);
-	return success;
+	return success ? NULL : failure;
 }
 
 static void wait_with_watchdog(unsigned int milliseconds)
@@ -3683,10 +3694,13 @@ static void persist_failure(struct control_state *state, const char *error)
 
 static void execute_claim(struct control_state *state)
 {
+	const char *haven_failure;
+
 	if (!watchdog_armed())
 		fail("rollback watchdog disappeared before execute");
-	if (!deactivate_haven_watchdog()) {
-		persist_failure(state, "HAVEN_WDOG_FAILED");
+	haven_failure = deactivate_haven_watchdog();
+	if (haven_failure != NULL) {
+		persist_failure(state, haven_failure);
 		reconcile_uncommitted_image("failed Haven watchdog handoff");
 		return;
 	}
