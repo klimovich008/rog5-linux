@@ -13,9 +13,9 @@ usage() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 action=${1:-policy-preflight}
 profile=${ROG5_OBSERVATION_RECOVERY_PROFILE:-}
-hold_profile=observation-host-rendezvous-v3-haven-production-hold-v1
-live_profile=retention-host-rendezvous-v3-observer-v1
-expected_recovery=3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b
+hold_profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
+live_profile=retention-host-rendezvous-v3-observer-v2
+expected_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 
 case $action in
 	policy-preflight | artifact-preflight | preflight | boot) ;;
@@ -74,25 +74,25 @@ artifact_records=(
 	'2f0a29db13dd5e9b64b60bc20a20e3a4458609df8425c3366c1a34e3c267836e|88|builder-profile.txt|observer artifact identity mismatch: builder-profile.txt'
 	'b3032dd2c946df30f487fba84772b40ac902ca5b0ef2f5c3b06f9912840494f6|753|builder-qualification.txt|observer artifact identity mismatch: builder-qualification.txt'
 	'01b33d9305cd0884aab19e55d886563a75182b8c877559af21d0ff16ca767c90|63|cache-publication.txt|observer artifact identity mismatch: cache-publication.txt'
-	'116d21a57514b25fa7c43137b925bce94d9d83e9bbb7287bcceb2a0a50fd8b11|823|observation-wrapper-evidence.txt|observer evidence identity mismatch'
+	'0b1284cd1bd762fd754fbdd341facd553683994ed64bae2e7a833a1ddf066b09|823|observation-wrapper-evidence.txt|observer evidence identity mismatch'
 	'4c4958385b9d0f270c368642c484c84e4c60ea23d18f68c00e37ca67a8637344|221|source-seal-after.txt|observer artifact identity mismatch: source-seal-after.txt'
 	'4c4958385b9d0f270c368642c484c84e4c60ea23d18f68c00e37ca67a8637344|221|source-seal-before.txt|observer artifact identity mismatch: source-seal-before.txt'
-	'fa111672ebfb511b154c8a6aba19b4af18d2615f856aab0ff49b9848154bb5d6|847|inspection/avb-info.txt|observer artifact identity mismatch: inspection/avb-info.txt'
-	'6fc200de779ef1e626bee166acc2eaf6a0d1f65c597c7660fa20a2b0b4153fb1|612|inspection/boot-args.lines|observer artifact identity mismatch: inspection/boot-args.lines'
-	'eedb7deb64aa42de582245b121f4ea581d0b1e21e9eb49f3591e98df8f63ef59|48400896|inspection/unpacked/kernel|observer Image identity mismatch'
-	'b2440d8ccc2f22b9c9072a2404569d2a5843f7dab186a2ccac307a929a4941ad|5374739|inspection/unpacked/ramdisk|observer initramfs identity mismatch'
-	'3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b|100663296|repack/stable-recovery-a.avb.img|observer AVB identity mismatch'
-	'5daf0919d38c9f7b1ffde85a8c5e9aabdbba526bcafa1a528bd8c31e27dda171|53784576|repack/stable-recovery-a.raw.img|observer raw image identity mismatch'
-	'3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b|100663296|repack/stable-recovery-b.avb.img|observer AVB identity mismatch'
-	'5daf0919d38c9f7b1ffde85a8c5e9aabdbba526bcafa1a528bd8c31e27dda171|53784576|repack/stable-recovery-b.raw.img|observer raw image identity mismatch'
+	'71501e617043cc59683015271e3f76def63a317aea489cbdd4432100639a8550|847|inspection/avb-info.txt|observer artifact identity mismatch: inspection/avb-info.txt'
+	'5270f5fa012d23cb2dd95e23d277bdc595f1e33fac4c2fca206bdb957fae6ccc|604|inspection/boot-args.lines|observer artifact identity mismatch: inspection/boot-args.lines'
+	'6c1e526adb4aef29b641f1a12f51f1ff21323873ac2ba5fa947969c3767e4ef2|48400896|inspection/unpacked/kernel|observer Image identity mismatch'
+	'3af5b760508068684409ec1a390a4bc037b41b1f8cb6ac571e90a3d0b55825e0|5376371|inspection/unpacked/ramdisk|observer initramfs identity mismatch'
+	'a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b|100663296|repack/stable-recovery-a.avb.img|observer AVB identity mismatch'
+	'37d4c10beca3fd7fb2c17e46a7b150d88e1957b50ac43e0ed012feaa09e7546a|53784576|repack/stable-recovery-a.raw.img|observer raw image identity mismatch'
+	'a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b|100663296|repack/stable-recovery-b.avb.img|observer AVB identity mismatch'
+	'37d4c10beca3fd7fb2c17e46a7b150d88e1957b50ac43e0ed012feaa09e7546a|53784576|repack/stable-recovery-b.raw.img|observer raw image identity mismatch'
 	'df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f|185763|wrapper-a/asus-kexec-stage/.config|observer config identity mismatch'
-	'eedb7deb64aa42de582245b121f4ea581d0b1e21e9eb49f3591e98df8f63ef59|48400896|wrapper-a/asus-kexec-stage/arch/arm64/boot/Image|observer Image identity mismatch'
-	'c9556a8640716b59fd57885440eb1f95512361c2ea163c71f69b0573704ab3fd|491|wrapper-a/asus-kexec-stage/build-meta.txt|observer metadata identity mismatch'
-	'b2440d8ccc2f22b9c9072a2404569d2a5843f7dab186a2ccac307a929a4941ad|5374739|wrapper-a/rog5-kexec-stage-initramfs.cpio.gz|observer initramfs identity mismatch'
+	'6c1e526adb4aef29b641f1a12f51f1ff21323873ac2ba5fa947969c3767e4ef2|48400896|wrapper-a/asus-kexec-stage/arch/arm64/boot/Image|observer Image identity mismatch'
+	'b57ccf98e029118266cd776220048219da2463ef7de18a976c1a129c72d2278a|491|wrapper-a/asus-kexec-stage/build-meta.txt|observer metadata identity mismatch'
+	'3af5b760508068684409ec1a390a4bc037b41b1f8cb6ac571e90a3d0b55825e0|5376371|wrapper-a/rog5-kexec-stage-initramfs.cpio.gz|observer initramfs identity mismatch'
 	'df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f|185763|wrapper-b/asus-kexec-stage/.config|observer config identity mismatch'
-	'eedb7deb64aa42de582245b121f4ea581d0b1e21e9eb49f3591e98df8f63ef59|48400896|wrapper-b/asus-kexec-stage/arch/arm64/boot/Image|observer Image identity mismatch'
-	'c9556a8640716b59fd57885440eb1f95512361c2ea163c71f69b0573704ab3fd|491|wrapper-b/asus-kexec-stage/build-meta.txt|observer metadata identity mismatch'
-	'b2440d8ccc2f22b9c9072a2404569d2a5843f7dab186a2ccac307a929a4941ad|5374739|wrapper-b/rog5-kexec-stage-initramfs.cpio.gz|observer initramfs identity mismatch'
+	'6c1e526adb4aef29b641f1a12f51f1ff21323873ac2ba5fa947969c3767e4ef2|48400896|wrapper-b/asus-kexec-stage/arch/arm64/boot/Image|observer Image identity mismatch'
+	'b57ccf98e029118266cd776220048219da2463ef7de18a976c1a129c72d2278a|491|wrapper-b/asus-kexec-stage/build-meta.txt|observer metadata identity mismatch'
+	'3af5b760508068684409ec1a390a4bc037b41b1f8cb6ac571e90a3d0b55825e0|5376371|wrapper-b/rog5-kexec-stage-initramfs.cpio.gz|observer initramfs identity mismatch'
 )
 
 declare -A initial_state
@@ -213,7 +213,7 @@ expected_location=${ROG5_EXPECTED_USB_LOCATION:-}
 	$expected_location != /* && $expected_location != *..* ]] ||
 	fail 'expected USB location is not canonical'
 
-image_name=build/observation-recovery-haven-offline-20260810-r1/repack/stable-recovery-a.avb.img
+image_name=build/observation-recovery-kmsg-live-20260811-r1/repack/stable-recovery-a.avb.img
 policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 [[ -f $policy && ! -L $policy && -r $policy &&
@@ -222,12 +222,12 @@ inventory=$repo/manifests/artifacts.tsv
 policy_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$policy")
 [[ $policy_rows == 1 ]] || fail 'observation policy row is not unique'
 policy_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 }' "$policy")
-[[ $policy_value == $'allow\tone retention-cycle observation-only recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry' ]] ||
+[[ $policy_value == $'allow\tone corrected observation-only recovery with exact /dev/kmsg materialization; RAM-only; externally consumed exact claim required; never flash or retry after entry' ]] ||
 	fail 'observation policy row is not exact'
 inventory_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$inventory")
 [[ $inventory_rows == 1 ]] || fail 'observation artifact row is not unique'
 inventory_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 "\t" $4 "\t" $5 }' "$inventory")
-[[ $inventory_value == $'100663296\t3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b\tunbooted retention-cycle observation-only recovery; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
+[[ $inventory_value == $'100663296\ta655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b\tunbooted corrected observation-only recovery; clean-twin ASUS wrapper materializes the exact /dev/kmsg device before the first snapshot logger, then exposes retained ramoops status over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
 	fail 'observation artifact row is not exact'
 
 devices=$("$fastboot" devices 2>/dev/null) || fail 'fastboot devices failed'
@@ -265,9 +265,9 @@ fi
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 consumer_metadata=$(stat -c '%u:%g:%a:%h:%s' -- "$claim_consumer") ||
 	fail 'cannot inspect exact-record claim consumer'
-[[ $consumer_metadata == "$(id -u):$(id -g):755:1:22033" &&
+[[ $consumer_metadata == "$(id -u):$(id -g):755:1:22797" &&
 	$(sha256sum -- "$claim_consumer" | awk '{print $1}') == \
-	b565b185033b4a2912c1fc10a25cbc854a915e0dcf3700a09a2a1a2ef0ec0c3e ]] ||
+	88fd8b4f8b0a6c0899f1d5f3bce7c4e1927a87d5eaca4b2ccfef2d200f95dd68 ]] ||
 	fail 'exact-record claim consumer identity is not exact'
 claim_report=$(
 	python3 -B "$claim_consumer" --verify-entered "$profile"

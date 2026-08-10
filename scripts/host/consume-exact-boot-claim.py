@@ -93,6 +93,14 @@ CLAIMS = {
         b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "headless-diagnostic-host-rendezvous-v3-live-v10": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v10\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "retention-host-rendezvous-v3-execution-v1": (
         b"format=rog5-retention-boot-consumption-v1\n"
         b"retention_profile=host-rendezvous-v3-observer-v1\n"
@@ -120,6 +128,14 @@ CLAIMS = {
         b"3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b\n"
         b"peer_recovery_sha256="
         b"cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
+    "retention-host-rendezvous-v3-observer-v2": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=retention-host-rendezvous-v3-observer-v2\n"
         b"candidate=headless-netroot-early-diag-v2\n"
         b"manifest_sha256="
         b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"

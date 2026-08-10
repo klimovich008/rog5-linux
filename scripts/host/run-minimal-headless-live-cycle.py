@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_RECOVERY_PROFILE = (
-    "headless-diagnostic-host-rendezvous-v3-live-v9"
+    "headless-diagnostic-host-rendezvous-v3-live-v10"
 )
 DIAGNOSTIC_LIVE_STATUS = "admitted"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
