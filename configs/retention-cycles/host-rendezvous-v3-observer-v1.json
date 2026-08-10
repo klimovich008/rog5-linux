@@ -11,8 +11,8 @@
   "recovery_inputs": {
     "init": {
       "path": "initramfs/recovery-init",
-      "size": 17638,
-      "sha256": "c989f8dddb8097f6f8a16370cf3b0f565085a6b2cf1acac063dc54742a088309",
+      "size": 18309,
+      "sha256": "985388942bf1e9a5b893df2579c76aad2e99feb935646b47302b22f731c5298d",
       "mode": "0755"
     },
     "control_build": {
