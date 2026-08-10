@@ -748,6 +748,15 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `retention=unproven`, `missing_pstore=inconclusive`, and recommendation
   `HOLD`. It grants no credential, claim, policy row, phone action, or boot
   authority.
+- `test-current-production-recovery-profile.sh` binds those same production
+  bytes into one current stable-recovery gate profile. Only identity-only
+  `policy-preflight` and hardware-free `artifact-preflight` are accepted;
+  connected preflight and boot fail before host or policy inspection. The
+  artifact test proves the repository-owned current recovery init,
+  `exact-a600000-v1`, and an independent initramfs hash before archive
+  inspection. The
+  [current production gate result](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
+  adds no claim or policy row and remains `HOLD`.
 - The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
   followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
   after the root controller restores the profile on unique stable same-port

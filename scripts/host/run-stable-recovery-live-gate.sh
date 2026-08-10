@@ -124,7 +124,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation11-live-v1 | \
 		headless-diagnostic-generation12-offline-v1 | \
 		headless-diagnostic-generation12-live-v1 | \
-		headless-diagnostic-stage75-v2-superseded-offline-v1) ;;
+		headless-diagnostic-stage75-v2-superseded-offline-v1 | \
+		headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -158,6 +159,8 @@ expected_target_id=
 expected_bundle=
 expected_bundle_profile=network-root-v1
 initramfs_contract=
+initramfs_verifier_expected=
+recovery_init=-
 consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
 consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
 consumed_diagnostic_recovery=9c060a27f21f6f99ca0c00cd1ff2ed9532220d585cd726b194f8b6d04e6204ef
@@ -788,12 +791,48 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1)
+		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+			fail 'current production HOLD profile is offline-only and not boot-authorized'
+		component_layout=structured
+		expected_kernel=8a600acfc6f7e01f9eb932e0a04174079d6ee68142c44fad819fe96bbd34325d
+		expected_raw=ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517
+		expected_initramfs=ab0a3ee219684c994af386cb60e5280dcc4269457b196f96ca3928acce691f0b
+		expected_control=68142abd8daafed2f1d017bd0ae07407be9dcac17e57d2294a162d2b58bf2840
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
+		expected_target_id=headless-netroot-early-diag-v2
+		expected_bundle=headless-netroot-early-diag-v2
+		expected_bundle_profile=diagnostic-initramfs-v1
+		# The production builder deterministically uses the raw wrapper digest
+		# as the AVB salt; equality here is intentional.
+		expected_avb_salt=ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517
+		expected_avb_digest=9647a92d83bc1d3a71a59742d8aacd8d05b9e5105ac729c792e6577ef9af52eb
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc ]] ||
+			fail 'current production runtime manifest is not pinned'
+		[[ $expected_image == \
+			cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d ]] ||
+			fail 'current production recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'current production trust key is not pinned'
+		[[ $expected_host_verifier == \
+			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
+			fail 'current production host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
-# Every currently accepted profile is immutable historical evidence built
-# before exact-a600000-v1. The main profile case above rejects unknown names;
-# a future profile must add an explicit current contract here.
+# Historical profiles retain their pinned embedded init. The current HOLD
+# profile must instead prove the repository-owned init and exact UDC contract.
 case $profile in
 	historical-2026-07-29 | \
 	corrected-headless-successor-2026-07-30 | \
@@ -805,6 +844,11 @@ case $profile in
 	headless-diagnostic-generation1[0-2]-live-v1 | \
 	headless-diagnostic-stage75-v2-superseded-offline-v1)
 		initramfs_contract=historical-pinned-v1
+		initramfs_verifier_expected=$expected_initramfs
+		;;
+	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1)
+		initramfs_contract=exact-a600000-v1
+		initramfs_verifier_expected=-
 		;;
 	*) fail 'profile lacks an explicit stable-recovery init contract' ;;
 esac
@@ -1054,8 +1098,8 @@ fi
 
 env PATH="$initramfs_path" \
 	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
-	"$source_initramfs" - "$control" "$fetcher" "$verifier" \
-	"$trust_key" "$initramfs_contract" "$expected_initramfs"
+	"$source_initramfs" "$recovery_init" "$control" "$fetcher" "$verifier" \
+	"$trust_key" "$initramfs_contract" "$initramfs_verifier_expected"
 
 verified_plan=$(
 	"$host_verifier" --bundle-root "$bundle_root" \

@@ -3009,7 +3009,7 @@ for required in \
 	'cmp "$image" "$twin_image"' \
 	'initramfs_contract=historical-pinned-v1' \
 	'verify-stable-recovery-initramfs.sh' \
-	'"$trust_key" "$initramfs_contract" "$expected_initramfs"' \
+	'"$trust_key" "$initramfs_contract" "$initramfs_verifier_expected"' \
 	'--bundle-root "$bundle_root"' \
 	'verify_image --image "$inspection/recovery.img"' \
 	'cp --reflink=never -- "$raw" "$inspection/boot.img"' \
