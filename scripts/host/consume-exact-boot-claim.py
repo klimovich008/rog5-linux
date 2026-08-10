@@ -29,6 +29,14 @@ CLAIMS = {
         b"4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "headless-diagnostic-host-rendezvous-v3-live-v2": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v2\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "retention-host-rendezvous-v3-execution-v1": (
         b"format=rog5-retention-boot-consumption-v1\n"
         b"retention_profile=host-rendezvous-v3-observer-v1\n"
