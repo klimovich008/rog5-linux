@@ -165,6 +165,7 @@ shared_tests=(
 	scripts/host/test-headless-core-candidate-offline-contract.sh
 	scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh
 	scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh
+	scripts/host/test-deployment-checkpoint-inputs.py
 	scripts/host/test-stage-recovery-deployment-signing-inputs.py
 	scripts/host/test-preflight-headless-ssh-successor-candidate.py
 	scripts/device/test-recovery-candidate-dtb-contract.sh
