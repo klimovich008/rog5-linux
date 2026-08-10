@@ -1125,7 +1125,7 @@ class Fixture:
               fi
               umask 077
               printf '%s\n' \
-                'format=rog5-fallback-postmortem-evidence-v1' \
+                'format=rog5-fallback-postmortem-evidence-v2' \
                 "expected_candidate=$candidate" \
                 "expected_boot_id=$8" \
                 "fallback_boot_id=$fallback_boot_id" \
@@ -1134,6 +1134,13 @@ class Fixture:
                 "pstore_records=$records" \
                 "pstore_bytes=$bytes" \
                 "pstore_sha256=$digest" \
+                'pmic_pon_state=INCONCLUSIVE' \
+                'pmic_pon_records=0' \
+                'pmic_pon_sha256={CYCLE.EMPTY_SHA256}' \
+                'pmic_cycle_entries=0' \
+                'pmic_reset_trigger=NONE' \
+                'pmic_reset_type=NONE' \
+                'pmic_watchdog_signal=INCONCLUSIVE' \
                 "lineage_matches=$matches" \
                 "lineage_records=$lineage_records" \
                 "fatal_tokens_total=$fatal_total" \
@@ -1870,7 +1877,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             dependencies = CYCLE.Dependencies.from_environment()
 
         baseline = {
-            "format": "rog5-fallback-postmortem-evidence-v1",
+            "format": "rog5-fallback-postmortem-evidence-v2",
             "expected_candidate": CANDIDATE,
             "expected_boot_id": TARGET_BOOT_ID,
             "fallback_boot_id": FALLBACK_BOOT_ID,
@@ -1879,6 +1886,13 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "pstore_records": "0",
             "pstore_bytes": "0",
             "pstore_sha256": CYCLE.EMPTY_SHA256,
+            "pmic_pon_state": "INCONCLUSIVE",
+            "pmic_pon_records": "0",
+            "pmic_pon_sha256": CYCLE.EMPTY_SHA256,
+            "pmic_cycle_entries": "0",
+            "pmic_reset_trigger": "NONE",
+            "pmic_reset_type": "NONE",
+            "pmic_watchdog_signal": "INCONCLUSIVE",
             "lineage_matches": "0",
             "lineage_records": "0",
             "fatal_tokens_total": "0",
@@ -1936,6 +1950,18 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     "lineage_records": "1",
                     "correlation": "MATCH",
                     "fatal_state": "NO_FATAL_TOKEN_OBSERVED",
+                },
+            ),
+            (
+                "pmic-exact-watchdog",
+                {
+                    "pmic_pon_state": "EXACT",
+                    "pmic_pon_records": "8",
+                    "pmic_pon_sha256": "b" * 64,
+                    "pmic_cycle_entries": "5",
+                    "pmic_reset_trigger": "PMIC_WATCHDOG_S2",
+                    "pmic_reset_type": "HARD_RESET",
+                    "pmic_watchdog_signal": "PRESENT",
                 },
             ),
             (
@@ -2007,6 +2033,28 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             },
             "correlation": {"correlation": "MATCH"},
             "fatal": {"fatal_state": "FATAL_TOKEN_AFTER_LINEAGE"},
+            "pmic-unavailable-digest": {
+                "pmic_pon_state": "UNAVAILABLE",
+                "pmic_pon_sha256": CYCLE.EMPTY_SHA256,
+            },
+            "pmic-watchdog-contradiction": {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "8",
+                "pmic_pon_sha256": "b" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "PMIC_WATCHDOG_S2",
+                "pmic_reset_type": "HARD_RESET",
+                "pmic_watchdog_signal": "ABSENT",
+            },
+            "pmic-unknown-is-not-exact": {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "8",
+                "pmic_pon_sha256": "b" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "UNKNOWN",
+                "pmic_reset_type": "UNKNOWN",
+                "pmic_watchdog_signal": "ABSENT",
+            },
             "fatal-after-total": {
                 "pstore_state": "PRESENT",
                 "pstore_records": "1",

@@ -572,7 +572,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   control margin. It additionally verifies the strict-SSH postmortem action,
   all unavailable/empty/present lineage and fatal classifications, the
   64-record/4-MiB limits, read-only pstore source, private summary output, and
-  credential/USB/route revalidation.
+  credential/USB/route revalidation. Postmortem v2 additionally hostile-tests
+  a truly byte-bounded 10-second dmesg pipe, the 64-record parser bound and
+  29-entry exact ASUS PMIC FIFO bound, last-complete-cycle selection, known
+  trigger/type normalization, unknown/ambiguous/incomplete histories,
+  watchdog-token contradictions, and exact retained 5.4.210 source/config
+  identities. The 5.4.210 oracle is not treated as proof that the installed
+  5.4.134 fallback has the reader.
 - `test-verify-headless-ssh-v2-key-admission.py` has fourteen hostile,
   deployment-credential-free host scenarios around the boundary. It derives
   public halves only from disposable Ed25519 keys, accepts one exact
@@ -748,9 +754,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   pinned Ed25519 host key, direct `169.254.77.1/30` route, exact active
   NetworkManager profile UUID and restoration, recovery USB
   continuity, one signed nonce-bound health frame, and post-reply USB
-  revalidation. Known-target cycles first retain a bounded signed pstore
-  summary and then require the same fallback boot ID from strict health; that
-  summary cannot replace health or authorize resolution. This authenticated,
+  revalidation. Known-target cycles first retain a bounded signed pstore and
+  normalized PMIC PON summary and then require the same fallback boot ID from
+  strict health; unavailable, missing, or unknown reset data remains
+  inconclusive, and the summary cannot replace health or authorize
+  resolution. This authenticated,
   nonce-framed fallback responder is not one of the retired interactive ACM
   execution helpers.
 - `test-retired-legacy-acm-entrypoints.py` proves the superseded

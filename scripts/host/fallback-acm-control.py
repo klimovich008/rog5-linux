@@ -27,8 +27,8 @@ import zlib
 REPO = Path(__file__).resolve().parents[2]
 FORMAT = "rog5-fallback-acm-v1"
 IDENTITY_FORMAT = "rog5-fallback-identity-v2"
-POSTMORTEM_FORMAT = "rog5-fallback-postmortem-v1"
-POSTMORTEM_EVIDENCE_FORMAT = "rog5-fallback-postmortem-evidence-v1"
+POSTMORTEM_FORMAT = "rog5-fallback-postmortem-v2"
+POSTMORTEM_EVIDENCE_FORMAT = "rog5-fallback-postmortem-evidence-v2"
 HOST_ALIAS = "rog5-fallback"
 SIGN_NAMESPACE = "rog5-fallback-acm-v1"
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
@@ -61,6 +61,7 @@ PREPARED_FRAME_TIMEOUT_SECONDS = 45
 MAX_PREFLIGHT_THERMAL = 60000
 MAX_RETURN_THERMAL = 80000
 REBOOT_COMMIT_TIMEOUT_SECONDS = 30
+POSTMORTEM_SSH_TIMEOUT_SECONDS = 40
 MIN_THERMAL_ZONES = 70
 MAX_THERMAL_ZONES = 128
 MIN_VALID_THERMAL_READINGS = 29
@@ -115,6 +116,27 @@ LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}\Z")
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 TARGET_CANDIDATE = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}\Z")
+PMIC_RESET_TRIGGERS = frozenset(
+    {
+        "KPDPWR_N_S2",
+        "RESIN_N_S2",
+        "KPDPWR_N_AND_RESIN_N_S2",
+        "PMIC_WATCHDOG_S2",
+        "PS_HOLD",
+        "SW_RESET",
+        "RESIN_N_DEBOUNCE",
+        "KPDPWR_N_DEBOUNCE",
+        "PMIC_SID2_BCL_ALARM",
+        "PMIC_SID3_BCL_ALARM",
+        "PMIC_SID1_OCP",
+        "PMIC_SID2_OCP",
+        "PMIC_SID4_OCP",
+        "PMIC_SID5_OCP",
+    }
+)
+PMIC_RESET_TYPES = frozenset(
+    {"WARM_RESET", "SHUTDOWN", "HARD_RESET"}
+)
 UDEVADM = Path("/usr/bin/udevadm")
 SSH_KEYGEN = Path("/usr/bin/ssh-keygen")
 SSH = Path("/usr/bin/ssh")
@@ -181,6 +203,13 @@ POSTMORTEM_FIELDS = (
     "pstore_records",
     "pstore_bytes",
     "pstore_sha256",
+    "pmic_pon_state",
+    "pmic_pon_records",
+    "pmic_pon_sha256",
+    "pmic_cycle_entries",
+    "pmic_reset_trigger",
+    "pmic_reset_type",
+    "pmic_watchdog_signal",
     "expected_candidate",
     "expected_boot_id",
     "lineage_matches",
@@ -615,16 +644,43 @@ import os
 from pathlib import Path
 import platform
 import re
+import select
 import stat
 import subprocess
 import sys
+import time
 
-FORMAT = "rog5-fallback-postmortem-v1"
+FORMAT = "rog5-fallback-postmortem-v2"
 NAMESPACE = "rog5-fallback-acm-v1"
 KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
 HOST_KEY = Path("/etc/ssh/ssh_host_ed25519_key")
 MAX_RECORDS = 64
 MAX_BYTES = 4 * 1024 * 1024
+MAX_DMESG_BYTES = 4 * 1024 * 1024
+PMIC_DMESG_TIMEOUT_SECONDS = 10
+MAX_PMIC_PON_RECORDS = 64
+MAX_PMIC_PON_MESSAGE_BYTES = 127
+PMIC_PON_PREFIX = b"PMIC PON log: "
+PMIC_RESET_TRIGGERS = {
+    "KPDPWR_N_S2",
+    "RESIN_N_S2",
+    "KPDPWR_N_AND_RESIN_N_S2",
+    "PMIC_WATCHDOG_S2",
+    "PS_HOLD",
+    "SW_RESET",
+    "RESIN_N_DEBOUNCE",
+    "KPDPWR_N_DEBOUNCE",
+    "PMIC_SID2_BCL_ALARM",
+    "PMIC_SID3_BCL_ALARM",
+    "PMIC_SID1_OCP",
+    "PMIC_SID2_OCP",
+    "PMIC_SID4_OCP",
+    "PMIC_SID5_OCP",
+}
+PMIC_RESET_TYPES = {"WARM_RESET", "SHUTDOWN", "HARD_RESET"}
+PMIC_WATCHDOG_TOKEN = re.compile(
+    rb"(?<![A-Z0-9_])FAULT_WATCHDOG(?![A-Z0-9_])"
+)
 ZERO_SHA256 = "0" * 64
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 BOOT_ID = re.compile(
@@ -797,6 +853,155 @@ def snapshot(marker):
     )
 
 
+def classify_pmic_pon(output):
+    if len(output) > MAX_DMESG_BYTES:
+        raise RuntimeError("dmesg-bound")
+    messages = []
+    for line in output.splitlines():
+        marker = line.find(PMIC_PON_PREFIX)
+        if marker < 0:
+            continue
+        message = line[marker + len(PMIC_PON_PREFIX):]
+        if (
+            not 1 <= len(message) <= MAX_PMIC_PON_MESSAGE_BYTES
+            or any(byte < 0x20 or byte > 0x7E for byte in message)
+        ):
+            raise RuntimeError("pmic-format")
+        messages.append(message)
+        if len(messages) > MAX_PMIC_PON_RECORDS:
+            raise RuntimeError("pmic-bound")
+    aggregate = b"".join(
+        PMIC_PON_PREFIX + message + b"\n" for message in messages
+    )
+    digest = hashlib.sha256(aggregate).hexdigest()
+    inconclusive = (
+        "INCONCLUSIVE",
+        len(messages),
+        digest,
+        0,
+        "NONE",
+        "NONE",
+        "INCONCLUSIVE",
+    )
+    successes = [
+        index
+        for index, message in enumerate(messages)
+        if message == b"PON Successful"
+    ]
+    if (
+        len(messages) > 29
+        or len(successes) < 2
+        or successes[-1] != len(messages) - 1
+    ):
+        return inconclusive
+    cycle = messages[successes[-2] + 1:successes[-1] + 1]
+    trigger_values = [
+        message.removeprefix(b"Reset Trigger: ")
+        for message in cycle
+        if message.startswith(b"Reset Trigger: ")
+    ]
+    type_values = [
+        message.removeprefix(b"Reset Type: ")
+        for message in cycle
+        if message.startswith(b"Reset Type: ")
+    ]
+    if len(trigger_values) != 1 or len(type_values) != 1:
+        return inconclusive
+    raw_trigger = trigger_values[0].decode("ascii")
+    raw_type = type_values[0].decode("ascii")
+    if (
+        raw_trigger not in PMIC_RESET_TRIGGERS
+        or raw_type not in PMIC_RESET_TYPES
+    ):
+        return inconclusive
+    trigger = raw_trigger
+    reset_type = raw_type
+    watchdog = (
+        "PRESENT"
+        if trigger == "PMIC_WATCHDOG_S2"
+        or any(PMIC_WATCHDOG_TOKEN.search(message) for message in cycle)
+        else "ABSENT"
+    )
+    return (
+        "EXACT",
+        len(messages),
+        digest,
+        len(cycle),
+        trigger,
+        reset_type,
+        watchdog,
+    )
+
+
+def pmic_pon_snapshot():
+    process = None
+    try:
+        process = subprocess.Popen(
+            ["/bin/dmesg"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        if process.stdout is None:
+            raise RuntimeError("dmesg-pipe")
+        deadline = time.monotonic() + PMIC_DMESG_TIMEOUT_SECONDS
+        output = bytearray()
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            ready, _, _ = select.select(
+                [process.stdout.fileno()], [], [], remaining
+            )
+            if not ready:
+                raise TimeoutError
+            block = os.read(
+                process.stdout.fileno(),
+                min(65536, MAX_DMESG_BYTES + 1 - len(output)),
+            )
+            if not block:
+                break
+            output.extend(block)
+            if len(output) > MAX_DMESG_BYTES:
+                raise RuntimeError("dmesg-bound")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError
+        returncode = process.wait(timeout=remaining)
+    except (OSError, subprocess.TimeoutExpired, TimeoutError):
+        return (
+            "UNAVAILABLE",
+            0,
+            ZERO_SHA256,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+    finally:
+        try:
+            if process is not None and process.poll() is None:
+                process.kill()
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired as error:
+                    raise RuntimeError("dmesg-reap") from error
+        finally:
+            if process is not None and process.stdout is not None:
+                process.stdout.close()
+    if returncode != 0:
+        return (
+            "UNAVAILABLE",
+            0,
+            ZERO_SHA256,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+    return classify_pmic_pon(bytes(output))
+
+
 def sign(payload):
     metadata = HOST_KEY.lstat()
     if (
@@ -865,6 +1070,15 @@ def main():
         fatal_total,
         fatal_after,
     ) = snapshot(marker)
+    (
+        pmic_state,
+        pmic_records,
+        pmic_digest,
+        pmic_cycle_entries,
+        pmic_reset_trigger,
+        pmic_reset_type,
+        pmic_watchdog_signal,
+    ) = pmic_pon_snapshot()
     values = [
         ("format", FORMAT),
         ("nonce", nonce),
@@ -877,6 +1091,13 @@ def main():
         ("pstore_records", str(records)),
         ("pstore_bytes", str(byte_count)),
         ("pstore_sha256", digest),
+        ("pmic_pon_state", pmic_state),
+        ("pmic_pon_records", str(pmic_records)),
+        ("pmic_pon_sha256", pmic_digest),
+        ("pmic_cycle_entries", str(pmic_cycle_entries)),
+        ("pmic_reset_trigger", pmic_reset_trigger),
+        ("pmic_reset_type", pmic_reset_type),
+        ("pmic_watchdog_signal", pmic_watchdog_signal),
         ("expected_candidate", candidate),
         ("expected_boot_id", expected_boot_id),
         ("lineage_matches", str(matches)),
@@ -1952,6 +2173,7 @@ def parse_postmortem_payload(
         or any(values[key] != value for key, value in exact.items())
         or not BOOT_ID.fullmatch(values["boot_id"])
         or not SHA256.fullmatch(values["pstore_sha256"])
+        or not SHA256.fullmatch(values["pmic_pon_sha256"])
     ):
         fail("fallback postmortem identity changed")
     records = bounded_decimal(values["pstore_records"], "pstore records", 64)
@@ -1998,6 +2220,52 @@ def parse_postmortem_payload(
         or (state != "PRESENT" and fatal_total != 0)
     ):
         fail("fallback postmortem state is inconsistent")
+    pmic_records = bounded_decimal(
+        values["pmic_pon_records"], "PMIC PON records", 64
+    )
+    pmic_cycle_entries = bounded_decimal(
+        values["pmic_cycle_entries"], "PMIC cycle entries", 29
+    )
+    pmic_state = values["pmic_pon_state"]
+    pmic_digest = values["pmic_pon_sha256"]
+    pmic_trigger = values["pmic_reset_trigger"]
+    pmic_type = values["pmic_reset_type"]
+    pmic_watchdog = values["pmic_watchdog_signal"]
+    if pmic_state == "UNAVAILABLE":
+        pmic_consistent = (
+            pmic_records == pmic_cycle_entries == 0
+            and pmic_digest == ZERO_SHA256
+            and pmic_trigger == pmic_type == "NONE"
+            and pmic_watchdog == "INCONCLUSIVE"
+        )
+    elif pmic_state == "INCONCLUSIVE":
+        pmic_consistent = (
+            pmic_cycle_entries == 0
+            and (
+                pmic_records == 0
+                and pmic_digest == EMPTY_SHA256
+                or 1 <= pmic_records <= 64
+                and pmic_digest not in {ZERO_SHA256, EMPTY_SHA256}
+            )
+            and pmic_trigger == pmic_type == "NONE"
+            and pmic_watchdog == "INCONCLUSIVE"
+        )
+    elif pmic_state == "EXACT":
+        pmic_consistent = (
+            3 <= pmic_cycle_entries <= pmic_records <= 29
+            and pmic_digest not in {ZERO_SHA256, EMPTY_SHA256}
+            and pmic_trigger in PMIC_RESET_TRIGGERS
+            and pmic_type in PMIC_RESET_TYPES
+            and pmic_watchdog in {"PRESENT", "ABSENT"}
+            and not (
+                pmic_trigger == "PMIC_WATCHDOG_S2"
+                and pmic_watchdog != "PRESENT"
+            )
+        )
+    else:
+        pmic_consistent = False
+    if not pmic_consistent:
+        fail("fallback PMIC PON state is inconsistent")
     return values
 
 
@@ -2414,7 +2682,7 @@ def ssh_postmortem_probe(
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=30,
+        timeout=POSTMORTEM_SSH_TIMEOUT_SECONDS,
         env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
     )
     if (
@@ -2560,6 +2828,13 @@ def write_postmortem_evidence(
         f"pstore_records={values['pstore_records']}\n"
         f"pstore_bytes={values['pstore_bytes']}\n"
         f"pstore_sha256={values['pstore_sha256']}\n"
+        f"pmic_pon_state={values['pmic_pon_state']}\n"
+        f"pmic_pon_records={values['pmic_pon_records']}\n"
+        f"pmic_pon_sha256={values['pmic_pon_sha256']}\n"
+        f"pmic_cycle_entries={values['pmic_cycle_entries']}\n"
+        f"pmic_reset_trigger={values['pmic_reset_trigger']}\n"
+        f"pmic_reset_type={values['pmic_reset_type']}\n"
+        f"pmic_watchdog_signal={values['pmic_watchdog_signal']}\n"
         f"lineage_matches={values['lineage_matches']}\n"
         f"lineage_records={values['lineage_records']}\n"
         f"fatal_tokens_total={values['fatal_tokens_total']}\n"
