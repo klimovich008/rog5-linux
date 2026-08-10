@@ -10,32 +10,25 @@ import stat
 import sys
 
 
-MANIFEST_SHA256 = (
-    "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
-)
-
-
-def exact_record(profile: str) -> bytes:
-    return (
-        "format=rog5-temporary-boot-consumption-v1\n"
-        f"recovery_profile={profile}\n"
-        "candidate=headless-netroot-early-diag-v1\n"
-        f"manifest_sha256={MANIFEST_SHA256}\n"
-        "state=BOOT_CLAIMED\n"
-    ).encode("ascii")
-
-
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
-CLAIM_PROFILES = (
-    "headless-diagnostic-generation11-live-v1",
-    "headless-diagnostic-generation12-live-v1",
-)
-
-
 CLAIMS = {
-    profile: exact_record(profile)
-    for profile in CLAIM_PROFILES
+    "headless-diagnostic-generation11-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=headless-diagnostic-generation11-live-v1\n"
+        b"candidate=headless-netroot-early-diag-v1\n"
+        b"manifest_sha256="
+        b"4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
+    "headless-diagnostic-generation12-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=headless-diagnostic-generation12-live-v1\n"
+        b"candidate=headless-netroot-early-diag-v1\n"
+        b"manifest_sha256="
+        b"4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
 }
 
 

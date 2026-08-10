@@ -112,6 +112,17 @@ These facts do not prove the corrected candidate on the phone.
 ## Critical-path HOLD
 
 The latest
+[retention exact-claim registry checkpoint](../test-results/2026-08-10-retention-claim-registry-offline.md)
+removes the last Generation-11/12 record-template assumption from the generic
+one-use consumer. Its literal repository-owned lookup preserves both consumed
+historical records byte-for-byte and can later represent distinct execution
+and observer records without another copied consumer. No future record,
+claim, policy row, signature, candidate, or lifecycle authority was added.
+Final production artifact identities must precede two exact claim definitions,
+and a complete sequence-enforcing retention runner still does not exist, so
+admission remains **HOLD**.
+
+The latest
 [offline fallback reset-evidence checkpoint](../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md)
 adds a signed, read-only, truly byte-bounded PMIC PON summary to future
 fallback postmortems. It selects only the last complete known FIFO cycle and

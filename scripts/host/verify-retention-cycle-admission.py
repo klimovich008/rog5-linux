@@ -33,10 +33,28 @@ EXPECTED_SEQUENCE = (
     "observation-recovery",
     "postmortem-status",
 )
-EXPECTED_CLAIM_PROFILES = (
-    "headless-diagnostic-generation11-live-v1",
-    "headless-diagnostic-generation12-live-v1",
+HISTORICAL_CLAIM_MANIFEST_SHA256 = (
+    "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
 )
+
+
+def historical_claim_record(profile: str) -> bytes:
+    return (
+        "format=rog5-temporary-boot-consumption-v1\n"
+        f"recovery_profile={profile}\n"
+        "candidate=headless-netroot-early-diag-v1\n"
+        f"manifest_sha256={HISTORICAL_CLAIM_MANIFEST_SHA256}\n"
+        "state=BOOT_CLAIMED\n"
+    ).encode("ascii")
+
+
+EXPECTED_HISTORICAL_CLAIMS = {
+    profile: historical_claim_record(profile)
+    for profile in (
+        "headless-diagnostic-generation11-live-v1",
+        "headless-diagnostic-generation12-live-v1",
+    )
+}
 SHA256_ZERO = "0" * 64
 MAX_INITRAMFS_BYTES = 32 * 1024 * 1024
 MAX_BUFFERED_INPUT_BYTES = 32 * 1024 * 1024
@@ -2184,15 +2202,6 @@ def verify_pinned(
         consumer_tree = ast.parse(consumer_source, filename=str(consumer))
     except (SyntaxError, UnicodeError) as error:
         raise AdmissionError("generic claim consumer cannot be inspected") from error
-    profile_assignments = [
-        node
-        for node in consumer_tree.body
-        if isinstance(node, ast.Assign)
-        and any(
-            isinstance(target, ast.Name) and target.id == "CLAIM_PROFILES"
-            for target in node.targets
-        )
-    ]
     claims_assignments = [
         node
         for node in consumer_tree.body
@@ -2202,35 +2211,29 @@ def verify_pinned(
             for target in node.targets
         )
     ]
-    if len(profile_assignments) != 1 or len(claims_assignments) != 1:
+    if len(claims_assignments) != 1:
         fail("generic claim consumer registry is not exact")
-    try:
-        registered_profiles = ast.literal_eval(profile_assignments[0].value)
-    except (ValueError, TypeError) as error:
-        raise AdmissionError("generic claim consumer registry is not exact") from error
     claims_expression = claims_assignments[0].value
     if (
-        not isinstance(registered_profiles, tuple)
-        or registered_profiles != EXPECTED_CLAIM_PROFILES
-        or not isinstance(claims_expression, ast.DictComp)
-        or not isinstance(claims_expression.key, ast.Name)
-        or claims_expression.key.id != "profile"
-        or not isinstance(claims_expression.value, ast.Call)
-        or not isinstance(claims_expression.value.func, ast.Name)
-        or claims_expression.value.func.id != "exact_record"
-        or len(claims_expression.value.args) != 1
-        or not isinstance(claims_expression.value.args[0], ast.Name)
-        or claims_expression.value.args[0].id != "profile"
-        or len(claims_expression.generators) != 1
-        or not isinstance(claims_expression.generators[0].target, ast.Name)
-        or claims_expression.generators[0].target.id != "profile"
-        or not isinstance(claims_expression.generators[0].iter, ast.Name)
-        or claims_expression.generators[0].iter.id != "CLAIM_PROFILES"
-        or claims_expression.generators[0].ifs
-        or claims_expression.generators[0].is_async
+        not isinstance(claims_expression, ast.Dict)
+        or len(claims_expression.keys) != len(EXPECTED_HISTORICAL_CLAIMS)
     ):
         fail("generic claim consumer registry is not exact")
-    canonical_assignments = {profile_assignments[0], claims_assignments[0]}
+    try:
+        registered_claims = ast.literal_eval(claims_expression)
+        literal_profiles = [ast.literal_eval(key) for key in claims_expression.keys]
+    except (ValueError, TypeError) as error:
+        raise AdmissionError("generic claim consumer registry is not exact") from error
+    if (
+        not isinstance(registered_claims, dict)
+        or registered_claims != EXPECTED_HISTORICAL_CLAIMS
+        or any(not isinstance(key, str) for key in registered_claims)
+        or any(not isinstance(value, bytes) for value in registered_claims.values())
+        or any(not isinstance(profile_name, str) for profile_name in literal_profiles)
+        or len(set(literal_profiles)) != len(literal_profiles)
+    ):
+        fail("generic claim consumer registry is not exact")
+    canonical_assignments = {claims_assignments[0]}
     for node in consumer_tree.body:
         value = getattr(node, "value", None)
         if (
@@ -2238,7 +2241,7 @@ def verify_pinned(
             and isinstance(value, ast.AST)
             and any(
                 isinstance(child, ast.Name)
-                and child.id in {"CLAIMS", "CLAIM_PROFILES"}
+                and child.id == "CLAIMS"
                 for child in ast.walk(value)
             )
             and isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign))
@@ -2268,12 +2271,12 @@ def verify_pinned(
                 )
                 or (
                     isinstance(target, ast.Name)
-                    and target.id in {"CLAIMS", "CLAIM_PROFILES"}
+                    and target.id == "CLAIMS"
                     and node not in canonical_assignments
                 )
             ):
                 fail("generic claim consumer registry is mutated after definition")
-    if profile["profile"] in registered_profiles:
+    if profile["profile"] in registered_claims:
         fail("HOLD profile already has a consumable boot claim")
 
     policy = require_keys(
