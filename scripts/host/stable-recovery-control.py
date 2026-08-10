@@ -63,6 +63,7 @@ DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
 )
 PREPARE_DEADLINE_SECONDS = 260
 NFS_READY_TIMEOUT_SECONDS = 45
+POST_CLAIM_STATUS_TIMEOUT_SECONDS = 8
 RECOVERY_ACM_TRACE_LIMIT = 16
 RECOVERY_ACM_COUNT_LIMIT = 999
 RECOVERY_ACM_STATES = (
@@ -477,6 +478,49 @@ def assert_correlated(
         fail("recovery response does not correlate to the request")
 
 
+def observe_post_claim(
+    serial: RecoverySerial,
+    session: str,
+    committed: Response,
+) -> Response | None:
+    """Distinguish target departure from a responder that returned."""
+    identifier = request_id()
+    try:
+        status = serial.exchange(
+            encode_request(
+                session=session,
+                request=identifier,
+                verb="STATUS",
+            ),
+            POST_CLAIM_STATUS_TIMEOUT_SECONDS,
+        )
+    except TransportLost as error:
+        observation = observe_recovery_acm()
+        if observation.state not in {"absent", "product-mismatch"}:
+            fail(
+                "post-claim response was absent while recovery ACM remained "
+                f"{observation.state}: {bounded_failure_summary(error, (TransportLost,))}"
+            )
+        return None
+    assert_correlated(
+        status,
+        session=session,
+        request=identifier,
+        verb="STATUS",
+    )
+    if (
+        status.result != "OK"
+        or status.watchdog != "ARMED"
+        or status.prepared_bundle != committed.prepared_bundle
+        or status.manifest_sha256 != committed.manifest_sha256
+        or status.prepare_request != committed.prepare_request
+        or status.commit_request != committed.commit_request
+        or status.commit_fingerprint != committed.commit_fingerprint
+    ):
+        fail("post-claim recovery status is inconsistent")
+    return status
+
+
 def hello(serial: RecoverySerial) -> tuple[str, Response]:
     identifier = request_id()
     response = serial.exchange(
@@ -644,6 +688,9 @@ def prepare_and_commit(
     before_commit: Callable[[], None] | None = None,
     on_prepared: Callable[[Response], None] | None = None,
     on_progress: Callable[[Progress], None] | None = None,
+    on_committed: Callable[[Response], None] | None = None,
+    on_post_claim: Callable[[Response], None] | None = None,
+    require_post_claim_observation: bool = False,
 ) -> tuple[Response, Response, object]:
     serial, session, _hello = connect()
     prepare_deadline = time.monotonic() + PREPARE_DEADLINE_SECONDS
@@ -808,6 +855,19 @@ def prepare_and_commit(
                 or committed.watchdog != "ARMED"
             ):
                 fail("recovery returned an inconsistent CLAIMED response")
+            if on_committed is not None:
+                on_committed(committed)
+            if require_post_claim_observation:
+                post_claim = observe_post_claim(serial, session, committed)
+                if post_claim is not None:
+                    if on_post_claim is not None:
+                        on_post_claim(post_claim)
+                    fail(
+                        "claimed execution returned to recovery "
+                        f"state={post_claim.state} "
+                        f"execution_started={post_claim.execution_started} "
+                        f"last_error={post_claim.last_error}"
+                    )
             return prepared, committed, intent
         finally:
             ledger.close()
@@ -1037,8 +1097,10 @@ def main(arguments: list[str]) -> int:
             arguments[2],
             before_commit=before_commit,
             on_prepared=show_response,
+            on_committed=show_response,
+            on_post_claim=show_response,
+            require_post_claim_observation=True,
         )
-        show_response(committed)
         show_intent(intent)
         print(
             "PASS recovery accepted one commit; outcome remains UNKNOWN",

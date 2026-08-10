@@ -227,7 +227,20 @@ the invocation supplied short USB name `1-1.2` instead of its full canonical
 physical path. No control session, payload, NFS, or target ran; the 180-second
 rollback returned exact Alpine. V4 is consumed. V5 (`e4ae6373…c722`) changes
 only the deterministic AVB generation over the unchanged clean-twin raw
-wrapper; its claim is unissued and it has not been booted.
+wrapper. Its sole RAM-only boot reached exact recovery ACM/NCM, transferred
+and verified the 46,166,378-byte bundle, accepted PREPARE and COMMIT, and
+started the restricted NFS server, but target ACM never appeared. Recovery
+remained present until the 180-second userspace rollback; exact Alpine,
+strict SSH, profile restoration, host cleanup, and Steam socket restoration
+passed. PMIC reports `PS_HOLD` / `HARD_RESET` with no watchdog signal, while
+pstore was unavailable. V5 is consumed and must never be retried. The leading
+unproven cause is a post-COMMIT recovery execution failure because `CLAIMED`
+was returned before the Haven handoff and `kexec -e`. V6
+(`43613a11…8eb0a`) preserves the exact raw wrapper and adds one bounded host
+STATUS request after `CLAIMED`; a returned recovery responder now exposes its
+terminal state and error, while actual recovery-USB departure remains the
+target-transition path. Its deterministic AVB generation took 1.529 seconds;
+the claim is unissued and it has not been booted.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

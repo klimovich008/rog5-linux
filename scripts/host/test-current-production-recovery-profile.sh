@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=headless-diagnostic-host-rendezvous-v3-live-v5
+profile=headless-diagnostic-host-rendezvous-v3-live-v6
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -45,7 +45,7 @@ case_source=$(awk -v profile="$profile" '
 [[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_boot_image=build/host-rendezvous-v5-usb-ancestry-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img \
+	expected_boot_image=build/host-rendezvous-v6-post-claim-status-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img \
 	expected_kernel=88da6fc4ee6ec61614324678805a5af6591320bc1b2ede2b094ce6aad5bd1a1f \
 	expected_raw=73b6a892ca7066b2bbc399602ace9f8664f157e1b0e99c91d6e907da80e9f70f \
 	expected_initramfs=04c52bbd9cbaedc442faeba83fdc7eb2291be28519e54ea0dd3ade40acbd6948 \
@@ -55,9 +55,9 @@ for assignment in \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_generation_record=481c59b10a0db36277aed87dd8badfab0095e9f974bd7a97fb1405592ca87ef9 \
-	expected_avb_salt=eb9271e8c053ba1e774ee26c3b89ddc50f31e97baa48a916f6b3983d7e5e1542 \
-	expected_avb_digest=70d63810c2909150a7467ba625f75a8a4562ba8524060a90355c2f3c95d43cb1 \
+	expected_generation_record=fd5ff56ef6ecdccf1e71a7e0104ca92333374b20d558681f5578d4fc6548a74a \
+	expected_avb_salt=c8877b5ea58252c75fc700049784ce164c3575f829733d0c0826f1a32a42648c \
+	expected_avb_digest=1413c008c0ddbfe20a2322df6a5313b24aa44b7259e511d23e126ef1e7c75527 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -117,7 +117,7 @@ run_policy() {
 }
 
 exact=(
-	e4ae63731f3369914cd382367e6abb4371f526c5417ab9436453cd58e764c722
+	43613a11e23620787d25b4b4267a9e6922b9591d2ddcda086d9c97075fd8eb0a
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
@@ -125,10 +125,10 @@ exact=(
 )
 fields=(recovery trust manifest host-verifier bundle)
 errors=(
-	'USB-ancestry successor recovery image is not pinned'
-	'USB-ancestry successor trust key is not pinned'
-	'USB-ancestry successor runtime manifest is not pinned'
-	'USB-ancestry successor host verifier is not pinned'
+	'post-claim-status successor recovery image is not pinned'
+	'post-claim-status successor trust key is not pinned'
+	'post-claim-status successor runtime manifest is not pinned'
+	'post-claim-status successor host verifier is not pinned'
 	'profile requires bundle=headless-netroot-early-diag-v2'
 )
 
@@ -156,12 +156,12 @@ done
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
-[[ $(awk -F '\t' -v name="build/host-rendezvous-v5-usb-ancestry-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img" \
+[[ $(awk -F '\t' -v name="build/host-rendezvous-v6-post-claim-status-production-20260810-r1/wrapper/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 1 ]] ||
 	fail 'current production live image is not uniquely admitted'
 
-production_root=$repo/build/host-rendezvous-v5-usb-ancestry-production-20260810-r1
+production_root=$repo/build/host-rendezvous-v6-post-claim-status-production-20260810-r1
 if [[ -d $production_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \
