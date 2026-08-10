@@ -103,8 +103,8 @@ PROGRAM_IDENTITIES = {
         "0755",
     ),
     "scripts/host/fallback-acm-control.py": (
-        109852,
-        "685383b58e928df924fbb2472691338e99a90da5f78eb13775152437d90da83a",
+        110389,
+        "4eff0818d6a9b4efc050d24ec5aa856fa1cea251495c6bdb67b23bea953a8534",
         "0755",
     ),
     "scripts/host/run-observation-recovery-live-gate.sh": (

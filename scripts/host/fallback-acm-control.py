@@ -2001,7 +2001,11 @@ class FallbackSerial:
         expected_line: str,
         timeout_seconds: float,
         remote_nonce: str | None = None,
+        stage: str = "result",
     ) -> None:
+        if not re.fullmatch(r"[a-z0-9-]{1,32}", stage):
+            fail("fallback ACM read stage is invalid")
+        initial_bytes = len(self.output)
         deadline = time.monotonic() + timeout_seconds
         while time.monotonic() < deadline:
             if remote_nonce is not None:
@@ -2028,7 +2032,11 @@ class FallbackSerial:
             code = remote_error(bytes(self.output), remote_nonce)
             if code is not None:
                 fail(f"fallback remote probe failed: {code}")
-        fail("fallback ACM signed result timed out")
+        fail(
+            f"fallback ACM {stage} result timed out after "
+            f"{len(self.output)} total bytes and "
+            f"{len(self.output) - initial_bytes} new bytes"
+        )
 
     def wait_disconnect(
         self,
@@ -2433,13 +2441,21 @@ def probe(
     with FallbackSerial(path, location, device_number) as serial:
         reset, sync_command, shell_ready = shell_sync_transport(nonce)
         serial.write(reset + sync_command, stage="shell-sync")
-        serial.read_until(shell_ready, SHELL_READY_TIMEOUT_SECONDS)
+        serial.read_until(
+            shell_ready,
+            SHELL_READY_TIMEOUT_SECONDS,
+            stage="shell-ready",
+        )
         if sanitize(bytes(serial.output)).count(shell_ready) != 1:
             fail("fallback shell readiness marker is absent or ambiguous")
         launcher, source_chunks = remote_transport(nonce, action)
         serial.write(launcher, stage="loader-launcher")
         loader_ready = f"ROG5_FALLBACK_LOADER_READY {nonce}"
-        serial.read_until(loader_ready, LOADER_READY_TIMEOUT_SECONDS)
+        serial.read_until(
+            loader_ready,
+            LOADER_READY_TIMEOUT_SECONDS,
+            stage="loader-ready",
+        )
         if sanitize(bytes(serial.output)).count(loader_ready) != 1:
             fail("fallback loader readiness marker is absent or ambiguous")
         for index, source_chunk in enumerate(source_chunks, start=1):
@@ -2449,6 +2465,7 @@ def probe(
             end,
             PREPARED_FRAME_TIMEOUT_SECONDS,
             remote_nonce=nonce,
+            stage="prepared-frame",
         )
         if sanitize(bytes(serial.output)).count(shell_ready) != 1:
             fail("fallback shell readiness marker is absent or ambiguous")
@@ -2488,6 +2505,7 @@ def probe(
                 commit,
                 REBOOT_COMMIT_TIMEOUT_SECONDS,
                 remote_nonce=nonce,
+                stage="reboot-commit",
             )
             if sanitize(bytes(serial.output)).count(commit) != 1:
                 fail("fallback reboot commit marker is absent or ambiguous")

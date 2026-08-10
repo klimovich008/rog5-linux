@@ -1444,12 +1444,14 @@ class SerialTest(unittest.TestCase):
             expected_line: str,
             timeout_seconds: float,
             remote_nonce: str | None = None,
+            stage: str = "result",
         ) -> None:
             read_until(
                 serial,
                 expected_line,
                 timeout_seconds,
                 remote_nonce,
+                stage,
             )
             if expected_line.startswith("ROG5_FALLBACK_ACM_COMMIT"):
                 commit_consumed.set()
@@ -1838,6 +1840,23 @@ class SerialTest(unittest.TestCase):
             ),
         ):
             serial.read_until("never", 1)
+        serial.output = bytearray(b"echoed")
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 2.0],
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "shell-ready result timed out after 6 total bytes and 0 new bytes",
+            ),
+        ):
+            serial.read_until("never", 1, stage="shell-ready")
+        with self.assertRaisesRegex(
+            MODULE.FallbackError, "read stage is invalid"
+        ):
+            serial.read_until("never", 1, stage="INVALID")
 
     def test_serial_write_timeout_fails_closed(self) -> None:
         serial = MODULE.FallbackSerial("/unused", "location", 1)
