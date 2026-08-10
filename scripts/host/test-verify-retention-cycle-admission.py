@@ -73,16 +73,26 @@ def newc(entries: dict[str, tuple[int, bytes]]) -> bytes:
     return gzip.compress(bytes(archive), compresslevel=9, mtime=0)
 
 
-def recovery_archive(mode: str, *, inject_kexec: bool = False) -> bytes:
+def recovery_archive(
+    mode: str,
+    *,
+    inject_kexec: bool = False,
+    init_payload: bytes = b"init\n",
+    control_payload: bytes = b"control\n",
+) -> bytes:
     entries = {
-        "init": (stat.S_IFREG | 0o755, b"init\n"),
+        "init": (stat.S_IFREG | 0o755, init_payload),
         "usr/libexec/rog5-recovery-control": (
             stat.S_IFREG | 0o755,
-            b"control\n",
+            control_payload,
         ),
         "etc/rog5/recovery-mode": (
             stat.S_IFREG | 0o444,
             f"{mode}\n".encode("ascii"),
+        ),
+        "etc/rog5/shared-contract": (
+            stat.S_IFREG | 0o444,
+            b"shared\n",
         ),
     }
     if mode == "full-v1" or inject_kexec:
@@ -199,6 +209,64 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
         claims["consumer_mode"] = "0755"
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        init_record = recovery_inputs["init"]
+        control_build_record = recovery_inputs["control_build"]
+        assert isinstance(init_record, dict)
+        assert isinstance(control_build_record, dict)
+        init_source = self.write(
+            self.repo,
+            str(init_record["path"]),
+            b"init\n",
+        )
+        init_source.chmod(0o755)
+        init_record["size"] = init_source.stat().st_size
+        init_record["sha256"] = digest(init_source.read_bytes())
+        init_record["mode"] = "0755"
+
+        control_source = self.write(
+            self.repo,
+            ADMISSION.EXPECTED_RECOVERY_CONTROL_SOURCE,
+            b"control-source\n",
+        )
+        control_source.chmod(0o644)
+        control_builder = self.write(
+            self.repo,
+            ADMISSION.EXPECTED_RECOVERY_CONTROL_BUILDER,
+            b"builder\n",
+        )
+        control_builder.chmod(0o755)
+        self.control_build = {
+            "format": "rog5-recovery-control-build-v1",
+            "source": {
+                "path": ADMISSION.EXPECTED_RECOVERY_CONTROL_SOURCE,
+                "size": control_source.stat().st_size,
+                "sha256": digest(control_source.read_bytes()),
+                "mode": "0644",
+            },
+            "builder": {
+                "script_path": ADMISSION.EXPECTED_RECOVERY_CONTROL_BUILDER,
+                "script_size": control_builder.stat().st_size,
+                "script_sha256": digest(control_builder.read_bytes()),
+                "script_mode": "0755",
+                "image": "localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1",
+                "image_id": ADMISSION.EXPECTED_RECOVERY_CONTROL_IMAGE_ID,
+                "image_digest": (
+                    ADMISSION.EXPECTED_RECOVERY_CONTROL_IMAGE_DIGEST
+                ),
+                "architecture": "arm64",
+                "compiler_version": "15.2.0",
+                "source_date_epoch": 1681862400,
+            },
+            "output": {
+                "size": len(b"control\n"),
+                "sha256": digest(b"control\n"),
+                "mode": "0755",
+            },
+        }
+        self.control_build_path = self.repo / str(control_build_record["path"])
+        self.save_control_build()
         self.build_fixture()
 
     def write(self, root: Path, relative: str, payload: bytes) -> Path:
@@ -474,6 +542,50 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.profile_path.write_text(json.dumps(self.profile, indent=2) + "\n")
         self.profile_path.chmod(0o600)
 
+    def save_control_build(self) -> None:
+        payload = (json.dumps(self.control_build, indent=2) + "\n").encode()
+        self.write(
+            self.repo,
+            str(self.control_build_path.relative_to(self.repo)),
+            payload,
+        ).chmod(0o644)
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        record = recovery_inputs["control_build"]
+        assert isinstance(record, dict)
+        record["size"] = len(payload)
+        record["sha256"] = digest(payload)
+        record["mode"] = "0644"
+
+    def replace_recovery_archives(
+        self,
+        *,
+        init_payload: bytes = b"init\n",
+        control_payload: bytes = b"control\n",
+    ) -> None:
+        execution = self.profile["execution"]
+        observer = self.profile["observer"]
+        assert isinstance(execution, dict)
+        assert isinstance(observer, dict)
+        for section, root, mode in (
+            (execution, self.execution, "full-v1"),
+            (observer, self.observer, "observation-only-v1"),
+        ):
+            archive = recovery_archive(
+                mode,
+                init_payload=init_payload,
+                control_payload=control_payload,
+            )
+            self.set_pair(section, "recovery_initramfs", root, archive)
+            image_record = section["wrapper_image"]
+            assert isinstance(image_record, dict)
+            image = (root / str(image_record["path_a"])).read_bytes()
+            raw = fake_boot_v3(image, archive)
+            self.set_pair(section, "raw_boot", root, raw)
+            self.set_pair(section, "unsigned_avb", root, fake_avb(raw))
+        self.refresh_observer_evidence()
+        self.save_profile()
+
     def verify(self) -> str:
         return ADMISSION.verify(
             self.profile_path,
@@ -495,7 +607,168 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)
+        self.assertIn("recovery_init_sha256=", report)
+        self.assertIn("recovery_control_source_sha256=", report)
+        self.assertIn("recovery_control_binary_sha256=", report)
         self.assertIn("recommendation=HOLD", report)
+
+    def test_recovery_sources_and_embedded_control_are_exact(self) -> None:
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        init_record = recovery_inputs["init"]
+        assert isinstance(init_record, dict)
+        init_path = self.repo / str(init_record["path"])
+        init_path.write_bytes(b"inIt\n")
+        self.assert_rejected("recovery init source")
+
+        self.reset_fixture()
+        control_source_path = (
+            self.repo / ADMISSION.EXPECTED_RECOVERY_CONTROL_SOURCE
+        )
+        control_source_path.write_bytes(b"control-Source\n")
+        self.assert_rejected("recovery control source")
+
+        self.reset_fixture()
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        init_record = recovery_inputs["init"]
+        assert isinstance(init_record, dict)
+        init_payload = (
+            self.repo / str(init_record["path"])
+        ).read_bytes()
+        alternate = self.write(
+            self.repo,
+            "alternate/recovery-init",
+            init_payload,
+        )
+        init_record["path"] = str(alternate.relative_to(self.repo))
+        self.save_profile()
+        self.assert_rejected("recovery init source repository path is not exact")
+
+        self.reset_fixture()
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        build_record = recovery_inputs["control_build"]
+        assert isinstance(build_record, dict)
+        alternate = self.write(
+            self.repo,
+            "alternate/aarch64-build-v1.json",
+            self.control_build_path.read_bytes(),
+        )
+        alternate.chmod(0o644)
+        build_record["path"] = str(alternate.relative_to(self.repo))
+        self.save_profile()
+        self.assert_rejected(
+            "recovery control build record repository path is not exact"
+        )
+
+        self.reset_fixture()
+        source = self.control_build["source"]
+        assert isinstance(source, dict)
+        source["path"] = "alternate/rog5-recovery-control.c"
+        alternate = self.write(
+            self.repo,
+            str(source["path"]),
+            b"control-source\n",
+        )
+        alternate.chmod(0o644)
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected(
+            "recovery control source repository path is not exact"
+        )
+
+        self.reset_fixture()
+        self.replace_recovery_archives(init_payload=b"inIt\n")
+        self.assert_rejected(
+            "embedded recovery init does not match its repository source"
+        )
+
+        self.reset_fixture()
+        self.replace_recovery_archives(control_payload=b"contrOl\n")
+        self.assert_rejected("embedded recovery control binary identity changed")
+
+    def test_recovery_control_build_record_is_fail_closed(self) -> None:
+        self.control_build["extra"] = "rejected"
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected("recovery control build record fields are not exact")
+
+        self.reset_fixture()
+        self.control_build["format"] = "wrong-format"
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected("recovery control build record format changed")
+
+        self.reset_fixture()
+        payload = self.control_build_path.read_bytes()
+        source = self.control_build["source"]
+        assert isinstance(source, dict)
+        source_digest = str(source["sha256"])
+        digest_line = f'    "sha256": "{source_digest}",\n'.encode()
+        self.assertEqual(payload.count(digest_line), 1)
+        payload = payload.replace(digest_line, digest_line * 2, 1)
+        self.control_build_path.write_bytes(payload)
+        recovery_inputs = self.profile["recovery_inputs"]
+        assert isinstance(recovery_inputs, dict)
+        build_record = recovery_inputs["control_build"]
+        assert isinstance(build_record, dict)
+        build_record["size"] = len(payload)
+        build_record["sha256"] = digest(payload)
+        self.save_profile()
+        self.assert_rejected("JSON contains duplicate key: sha256")
+
+        self.reset_fixture()
+        builder = self.control_build["builder"]
+        assert isinstance(builder, dict)
+        builder["script_path"] = "alternate/build-recovery-control.sh"
+        alternate = self.write(
+            self.repo,
+            str(builder["script_path"]),
+            b"builder\n",
+        )
+        alternate.chmod(0o755)
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected(
+            "recovery control builder repository path is not exact"
+        )
+
+        self.reset_fixture()
+        builder_path = (
+            self.repo / ADMISSION.EXPECTED_RECOVERY_CONTROL_BUILDER
+        )
+        builder_path.write_bytes(b"buildEr\n")
+        self.assert_rejected("recovery control builder identity changed")
+
+        self.reset_fixture()
+        builder = self.control_build["builder"]
+        assert isinstance(builder, dict)
+        builder["image_id"] = "3" * 64
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected("recovery control builder identity changed")
+
+        self.reset_fixture()
+        source_path = self.repo / ADMISSION.EXPECTED_RECOVERY_CONTROL_SOURCE
+        source_path.chmod(0o600)
+        self.assert_rejected("recovery control source mode changed")
+
+        self.reset_fixture()
+        output = self.control_build["output"]
+        assert isinstance(output, dict)
+        output["size"] = True
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected("recovery control binary size is invalid")
+
+        self.reset_fixture()
+        output = self.control_build["output"]
+        assert isinstance(output, dict)
+        output["sha256"] = "not-a-digest"
+        self.save_control_build()
+        self.save_profile()
+        self.assert_rejected("recovery control binary SHA-256")
 
     def test_profile_authority_role_sequence_and_claim_mutations_fail(self) -> None:
         cases = (
@@ -798,11 +1071,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "init": (stat.S_IFREG | 0o755, b"init\n"),
             "usr/libexec/rog5-recovery-control": (
                 stat.S_IFREG | 0o755,
-                b"different-control\n",
+                b"control\n",
             ),
             "etc/rog5/recovery-mode": (
                 stat.S_IFREG | 0o444,
                 b"observation-only-v1\n",
+            ),
+            "etc/rog5/shared-contract": (
+                stat.S_IFREG | 0o444,
+                b"different-shared-contract\n",
             ),
         }
         archive = newc(entries)

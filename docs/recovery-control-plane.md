@@ -11,13 +11,15 @@ never be retried. Generation 12 corrected that host boundary, transferred and
 verified the complete bundle, accepted correlated PREPARE/COMMIT, and reached
 target stage 70 `nfs-mount-begin`; USB disconnected before stage 80. Exact
 watchdog fallback and cleanup passed. Generation 12 is consumed and absent from
-policy. The outer lifecycle's obsolete response parser is being corrected
-host-only before a more observable successor is designed.**
+policy. The outer lifecycle parser is corrected, and the shell-free responder
+now fails closed unless it proves the exact Haven watchdog handoff before
+execution. That correction is refrozen only in authority-free offline
+execution/observer twins; physical retention and reset cause remain unproven.**
 
 Artifact-local authority: **none**. Live use occurs only through the central
 standing authorization and this document's exact technical gates.
 
-Last reviewed: 2026-08-04
+Last reviewed: 2026-08-10
 
 The executable stdlib-only reference model is in
 `tools/recovery_control/reference.py`; its host test is
@@ -29,7 +31,12 @@ The native C source is
 `scripts/host/test-recovery-control-native.py`, and its pinned AArch64 builder
 is `scripts/device/build-recovery-control.sh`. The reproducibility/QEMU
 aggregate is `scripts/host/test-recovery-control-aarch64.sh`. Host and
-QEMU-backed AArch64 tests exercise the same source. The production compile has
+QEMU-backed AArch64 tests exercise the same source. The repository-owned
+`configs/recovery-control/aarch64-build-v1.json` record pins that source, the
+builder script, ARM64 image/toolchain, and resulting binary. Exact-head CI
+checks the record against repository bytes; the separate private ARM64 clean
+build proves the output digest, and retention admission requires both recovery
+roles to embed it. The production compile has
 no test backend or path override. It now invokes the privilege-separated
 fixed-host acquisition helper under the rollback watchdog, invokes the fixed
 verifier, receives the exact verified file descriptors, and performs a

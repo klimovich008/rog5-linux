@@ -10,12 +10,29 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 extractor=$repo/scripts/host/extract-qualified-qemu-aarch64-static.sh
 runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 sealed_runner=$repo/scripts/host/run-sealed-arm64-binfmt.py
+responder_test=$repo/scripts/host/test-recovery-control-aarch64.sh
 
-for script in "$extractor" "$runner" "$sealed_runner"; do
+for script in "$extractor" "$runner" "$sealed_runner" "$responder_test"; do
 	[[ -f $script && ! -L $script && -x $script ]] ||
 		fail "missing executable private ARM64 helper: ${script#"$repo"/}"
 done
-bash -n "$extractor" "$runner"
+
+for token in \
+	'run-private-arm64-binfmt.sh' \
+	'run_arm64() {' \
+	'"$arm64_runner" podman run' \
+	'test-recovery-control-build-record.py' \
+	'--emit-build-fields' \
+	"mapfile -d '' -t contract_fields"; do
+	grep -Fq -- "$token" "$responder_test" ||
+		fail "recovery responder test omits private ARM64 execution: $token"
+done
+[ "$(grep -Fc 'podman run' "$responder_test")" -eq 1 ] ||
+	fail 'recovery responder test retains an unsealed Podman execution path'
+if grep -Fq 'json.loads' "$responder_test"; then
+	fail 'recovery responder test bypasses the strict build-record parser'
+fi
+bash -n "$extractor" "$runner" "$responder_test"
 python3 -m py_compile "$sealed_runner"
 
 for token in \

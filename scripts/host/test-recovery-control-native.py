@@ -12,6 +12,7 @@ import select
 import shlex
 import shutil
 import socket
+import stat
 import subprocess
 import tempfile
 import termios
@@ -1888,7 +1889,11 @@ class NativeResponderTest(unittest.TestCase):
             [item.phase for item in records],
             list(PREPARE_PROGRESS_PHASES[:2]),
         )
-        self.assertTrue((self.state / "prepared").is_file())
+        prepared = self.state / "prepared"
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not prepared.is_file():
+            time.sleep(0.01)
+        self.assertTrue(prepared.is_file())
         self.stop_responder(process, master)
         restarted, restarted_master = self.start()
         replay = self.exchange(restarted_master, request)
@@ -1976,12 +1981,34 @@ class NativeResponderTest(unittest.TestCase):
                         "unprivileged user namespaces are disabled and sudo "
                         "is unavailable for the isolated production NCM gate"
                     )
+                binary = self.binary.absolute()
+                binary_metadata = os.lstat(binary)
+                if (
+                    not stat.S_ISREG(binary_metadata.st_mode)
+                    or binary_metadata.st_uid != os.getuid()
+                    or stat.S_IMODE(binary_metadata.st_mode) & 0o022
+                ):
+                    self.fail(
+                        "privileged production NCM gate requires an exact "
+                        "owner-only test binary"
+                    )
+                privileged_runner = "/usr/bin/qemu-aarch64-static"
+                if self.runner not in ([], [privileged_runner]):
+                    self.fail(
+                        "privileged production NCM gate refuses an "
+                        "unreviewed execution runner"
+                    )
+                privileged_environment = [
+                    "ROG5_PROGRESS_NETNS_INSIDE=1",
+                    f"ROG5_CONTROL_TEST_BINARY={binary}",
+                    f"ROG5_CONTROL_TEST_RUNNER={shlex.join(self.runner)}",
+                ]
                 result = subprocess.run(
                     [
                         sudo,
                         "-n",
                         "env",
-                        "ROG5_PROGRESS_NETNS_INSIDE=1",
+                        *privileged_environment,
                         unshare,
                         "--net",
                         sys.executable,
@@ -2036,7 +2063,13 @@ class NativeResponderTest(unittest.TestCase):
                 [nsenter, "--target", str(holder.pid), "--net", ip, *arguments],
                 check=True,
             )
-        self.runner = [nsenter, "--target", str(holder.pid), "--net"]
+        self.runner = [
+            nsenter,
+            "--target",
+            str(holder.pid),
+            "--net",
+            *self.runner,
+        ]
 
         listener = open_fixed_listener("host0")
         self.addCleanup(listener.close)

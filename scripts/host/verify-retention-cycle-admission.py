@@ -49,6 +49,22 @@ EXPECTED_RECOVERY_CMDLINE = (
     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 "
     "rog5.recovery_timeout=180"
 )
+EXPECTED_RECOVERY_INPUT_PATHS = {
+    "init": "initramfs/recovery-init",
+    "control_build": "configs/recovery-control/aarch64-build-v1.json",
+}
+EXPECTED_RECOVERY_CONTROL_SOURCE = (
+    "tools/recovery_control/rog5-recovery-control.c"
+)
+EXPECTED_RECOVERY_CONTROL_BUILDER = (
+    "scripts/device/build-recovery-control.sh"
+)
+EXPECTED_RECOVERY_CONTROL_IMAGE_ID = (
+    "a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e"
+)
+EXPECTED_RECOVERY_CONTROL_IMAGE_DIGEST = (
+    "sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa"
+)
 ACTIVE_ROOT_IDENTITIES: ContextVar[dict[Path, tuple[int, ...]]] = ContextVar(
     "active_retention_review_roots",
     default={},
@@ -536,6 +552,228 @@ def expected_identity(value: Any, label: str, *, pair: bool) -> tuple[int, str]:
         fail(f"{label} size is invalid")
     require_mode(record["mode"], f"{label} mode")
     return size, require_sha256(record["sha256"], f"{label} SHA-256")
+
+
+def verify_recovery_inputs(
+    repo: Path,
+    value: Any,
+) -> tuple[
+    bytes,
+    tuple[int, str],
+    int,
+    str,
+    str,
+    dict[str, Any],
+]:
+    inputs = require_keys(
+        value,
+        {"init", "control_build"},
+        "recovery input contract",
+    )
+    init = require_keys(
+        inputs["init"],
+        {"path", "size", "sha256", "mode"},
+        "recovery init source",
+    )
+    if init["path"] != EXPECTED_RECOVERY_INPUT_PATHS["init"]:
+        fail("recovery init source repository path is not exact")
+    init_identity = expected_identity(
+        init,
+        "recovery init source",
+        pair=False,
+    )
+    init_mode = require_mode(init["mode"], "recovery init source mode")
+    if init_mode != 0o755:
+        fail("recovery init source mode is not exact")
+    init_payload = read_verified_bytes(
+        safe_child(repo, init["path"], "recovery init source"),
+        "recovery init source",
+        expected_size=init_identity[0],
+        expected_digest=init_identity[1],
+        expected_mode=init_mode,
+    )
+
+    build_record = require_keys(
+        inputs["control_build"],
+        {"path", "size", "sha256", "mode"},
+        "recovery control build record",
+    )
+    if build_record["path"] != EXPECTED_RECOVERY_INPUT_PATHS["control_build"]:
+        fail("recovery control build record repository path is not exact")
+    build_identity = expected_identity(
+        build_record,
+        "recovery control build record",
+        pair=False,
+    )
+    build_mode = require_mode(
+        build_record["mode"],
+        "recovery control build record mode",
+    )
+    if build_mode != 0o644:
+        fail("recovery control build record mode is not exact")
+    build = require_keys(
+        read_json(
+            safe_child(
+                repo,
+                build_record["path"],
+                "recovery control build record",
+            ),
+            "recovery control build record",
+            expected_size=build_identity[0],
+            expected_digest=build_identity[1],
+            expected_mode=build_mode,
+        ),
+        {"format", "source", "builder", "output"},
+        "recovery control build record",
+    )
+    if build["format"] != "rog5-recovery-control-build-v1":
+        fail("recovery control build record format changed")
+
+    source = require_keys(
+        build["source"],
+        {"path", "size", "sha256", "mode"},
+        "recovery control source",
+    )
+    if source["path"] != EXPECTED_RECOVERY_CONTROL_SOURCE:
+        fail("recovery control source repository path is not exact")
+    source_identity = expected_identity(
+        source,
+        "recovery control source",
+        pair=False,
+    )
+    source_mode = require_mode(source["mode"], "recovery control source mode")
+    if source_mode != 0o644:
+        fail("recovery control source mode is not exact")
+    read_verified_bytes(
+        safe_child(repo, source["path"], "recovery control source"),
+        "recovery control source",
+        expected_size=source_identity[0],
+        expected_digest=source_identity[1],
+        expected_mode=source_mode,
+    )
+
+    builder = require_keys(
+        build["builder"],
+        {
+            "script_path",
+            "script_size",
+            "script_sha256",
+            "script_mode",
+            "image",
+            "image_id",
+            "image_digest",
+            "architecture",
+            "compiler_version",
+            "source_date_epoch",
+        },
+        "recovery control builder",
+    )
+    if builder["script_path"] != EXPECTED_RECOVERY_CONTROL_BUILDER:
+        fail("recovery control builder repository path is not exact")
+    script_size = builder["script_size"]
+    if (
+        not isinstance(script_size, int)
+        or isinstance(script_size, bool)
+        or script_size <= 0
+    ):
+        fail("recovery control builder size is invalid")
+    script_digest = require_sha256(
+        builder["script_sha256"],
+        "recovery control builder SHA-256",
+    )
+    script_mode = require_mode(
+        builder["script_mode"],
+        "recovery control builder mode",
+    )
+    if script_mode != 0o755:
+        fail("recovery control builder mode is not exact")
+    read_verified_bytes(
+        safe_child(repo, builder["script_path"], "recovery control builder"),
+        "recovery control builder",
+        expected_size=script_size,
+        expected_digest=script_digest,
+        expected_mode=script_mode,
+    )
+    image_id = require_sha256(
+        builder["image_id"],
+        "recovery control image ID",
+    )
+    image_digest = require_string(
+        builder["image_digest"],
+        "recovery control image digest",
+    )
+    if image_digest.startswith("sha256:"):
+        require_sha256(
+            image_digest[len("sha256:") :],
+            "recovery control image digest",
+        )
+    if (
+        builder["image"]
+        != "localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1"
+        or image_id != EXPECTED_RECOVERY_CONTROL_IMAGE_ID
+        or image_digest != EXPECTED_RECOVERY_CONTROL_IMAGE_DIGEST
+        or builder["architecture"] != "arm64"
+        or builder["compiler_version"] != "15.2.0"
+        or builder["source_date_epoch"] != 1681862400
+    ):
+        fail("recovery control builder identity changed")
+
+    binary = require_keys(
+        build["output"],
+        {"size", "sha256", "mode"},
+        "recovery control binary",
+    )
+    binary_size = binary["size"]
+    if (
+        not isinstance(binary_size, int)
+        or isinstance(binary_size, bool)
+        or binary_size <= 0
+    ):
+        fail("recovery control binary size is invalid")
+    binary_identity = (
+        binary_size,
+        require_sha256(
+            binary["sha256"],
+            "recovery control binary SHA-256",
+        ),
+    )
+    binary_mode = require_mode(binary["mode"], "recovery control binary mode")
+    if binary_mode != 0o755:
+        fail("recovery control binary mode is not exact")
+    return (
+        init_payload,
+        binary_identity,
+        binary_mode,
+        init_identity[1],
+        source_identity[1],
+        build,
+    )
+
+
+def verify_embedded_recovery_inputs(
+    entries: dict[str, NewcEntry],
+    init_payload: bytes,
+    control_identity: tuple[int, str],
+) -> None:
+    init = entries.get("init")
+    if (
+        init is None
+        or not stat.S_ISREG(init.mode)
+        or stat.S_IMODE(init.mode) != 0o755
+        or init.uid != 0
+        or init.gid != 0
+        or init.nlink != 1
+        or init.payload != init_payload
+    ):
+        fail("embedded recovery init does not match its repository source")
+    control = entries.get("usr/libexec/rog5-recovery-control")
+    expected_size, expected_digest = control_identity
+    if (
+        control is None
+        or len(control.payload) != expected_size
+        or hashlib.sha256(control.payload).hexdigest() != expected_digest
+    ):
+        fail("embedded recovery control binary identity changed")
 
 
 def parse_key_values(payload: bytes, label: str) -> dict[str, str]:
@@ -1597,6 +1835,7 @@ def verify_pinned(
             "missing_pstore",
             "evidence_owner",
             "recovery_cmdline",
+            "recovery_inputs",
             "sequence",
             "root_inventory",
             "execution",
@@ -1619,6 +1858,15 @@ def verify_pinned(
         or tuple(profile["sequence"]) != EXPECTED_SEQUENCE
     ):
         fail("retention-cycle profile weakens the HOLD boundary")
+
+    (
+        recovery_init_payload,
+        recovery_control_identity,
+        _recovery_control_mode,
+        recovery_init_sha256,
+        recovery_control_source_sha256,
+        _recovery_control_build,
+    ) = verify_recovery_inputs(repo, profile["recovery_inputs"])
 
     execution = require_keys(
         profile["execution"],
@@ -1758,6 +2006,11 @@ def verify_pinned(
         "full-v1",
         *execution_initramfs_identity,
     )
+    verify_embedded_recovery_inputs(
+        execution_entries,
+        recovery_init_payload,
+        recovery_control_identity,
+    )
     verify_boot_v3(
         execution_raw_a,
         execution_image_a,
@@ -1839,6 +2092,11 @@ def verify_pinned(
         observer_initramfs_a,
         "observation-only-v1",
         *observer_initramfs_identity,
+    )
+    verify_embedded_recovery_inputs(
+        observer_entries,
+        recovery_init_payload,
+        recovery_control_identity,
     )
     verify_boot_v3(
         observer_raw_a,
@@ -2040,6 +2298,9 @@ def verify_pinned(
             f"execution_runtime_manifest_sha256={manifest_sha256}",
             f"execution_recovery_avb_sha256={execution_avb}",
             f"observer_recovery_avb_sha256={observer_avb}",
+            f"recovery_init_sha256={recovery_init_sha256}",
+            f"recovery_control_source_sha256={recovery_control_source_sha256}",
+            f"recovery_control_binary_sha256={recovery_control_identity[1]}",
             f"temporary_boot_allow_rows={allow_rows}",
             "execution_claim=not-defined",
             "observer_claim=not-defined",
