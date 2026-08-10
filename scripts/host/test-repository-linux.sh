@@ -207,6 +207,7 @@ shared_tests=(
 	scripts/host/test-stable-recovery-control.py
 	scripts/host/test-verified-fastboot-boot.py
 	scripts/host/test-run-stable-recovery-live-gate.sh
+	scripts/host/test-current-production-recovery-profile.sh
 	scripts/host/test-recovery-bundle-native.py
 	scripts/host/test-prepare-recovery-runtime-bundle.py
 	scripts/host/test-prepare-recovery-candidate.py

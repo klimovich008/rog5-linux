@@ -128,9 +128,27 @@ repacking failed after 2,253 seconds because `mkbootimg.py` imports the omitted
 `gki/generate_gki_certificate.py`. Both deployment allowlists and the wrapper
 cache identity now bind that exact helper, and the wrapper gate rejects it
 before compilation if absent or changed. The failed build published no output
-and created no claim, policy row, phone action, or boot authority. Full CI,
-exact-head CI, and a fresh production twin build remain next, so admission
-stays **HOLD**.
+and created no claim, policy row, phone action, or boot authority. The helper
+closure fix passed full and exact-head CI at `223ac2d`; a fresh guarded build
+then completed two byte-identical production outputs in 2,270 seconds. The
+[production refreeze](../test-results/2026-08-10-production-retention-execution-refreeze-offline.md)
+binds project key `f10ca076…`, recovery initramfs `ab0a3ee2…`, wrapper Image
+`8a600acf…`, raw image `ea9e90fd…`, and unsigned AVB `cba4e6e8…` to the joint
+execution/observer HOLD profile. Commit `adef485` and exact-head run
+`31363962284` are green. Claims remain undefined, policy has zero `allow`
+rows, and no phone action occurred, so admission stays **HOLD**.
+
+The current offline increment closes the next gate-integration gap. The
+stable-recovery live gate previously recognized only historical recovery
+profiles and could not apply `exact-a600000-v1` with the repository-owned
+current init. Its new production HOLD profile accepts only identity-only
+`policy-preflight` and hardware-free `artifact-preflight`; connected preflight
+and boot fail at profile selection before host, policy, USB, credential, or
+fastboot inspection. The real retained production bytes pass, while a
+co-varied initramfs mutation fails at the independent archive hash before the
+exact-init verifier. No claim or policy row was added; the
+[offline gate result](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
+does not grant phone or boot authority.
 
 The latest
 [retention exact-claim registry checkpoint](../test-results/2026-08-10-retention-claim-registry-offline.md)

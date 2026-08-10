@@ -132,6 +132,15 @@ recovery archives are accepted. The distinct clean twins pass the joint
 authority-free review, but no physical retention result, new claim, policy
 row, production signature, or boot authority exists. Admission remains
 **HOLD**.
+The subsequent
+[production execution refreeze](../test-results/2026-08-10-production-retention-execution-refreeze-offline.md)
+replaces only that execution role with guarded project-key clean twins. The
+exact recovery initramfs is `ab0a3ee2…`, wrapper Image `8a600acf…`, raw image
+`ea9e90fd…`, and unsigned AVB image `cba4e6e8…`; the observation-only role is
+unchanged. The joint verifier still reports undefined claims, zero policy
+`allow` rows, `authority=none`, `retention=unproven`,
+`missing_pstore=inconclusive`, and recommendation **HOLD**. Commit `adef485`
+and exact-head GitHub run `31363962284` pass.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot
@@ -174,11 +183,18 @@ collector/control vocabulary do not change; the canonical candidate record
 is `41c23330…b9cf` and its unsigned runtime-manifest body is
 `54f53420…6efc`. The prior disposable-key signed tuple and v2 component row
 remain immutable superseded evidence. This current state proves
-authority-free source, initramfs, and runtime-bundle composition only: central
-policy remains empty, no production credential or phone was used, and
-production-bound issuance remains **HOLD**. The exact authority-free clean-twin
+authority-free source, initramfs, and runtime-bundle composition only. A later
+guarded offline build used the existing project key and destroyed its private
+snapshot; central policy remains empty, no claim or phone action exists, and
+hardware admission remains **HOLD**. The exact authority-free clean-twin
 composition is recorded in the
 [offline rebind result](../test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md).
+The current
+[production live-gate checkpoint](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
+now gives those exact project-key artifacts an offline-only gate profile. It
+can verify policy identities and artifact bytes, including the repository-owned
+exact-UDC init, but rejects connected preflight and boot before host or policy
+inspection. This is not issuance or admission.
 Generation 12 is consumed and must never be retried; it is not pending live
 admission. Any future one-shot generation must be a new exact record consumed
 through the generic repository-owned claim consumer after exact-head CI. The
