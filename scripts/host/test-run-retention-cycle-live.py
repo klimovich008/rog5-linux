@@ -92,7 +92,10 @@ class RetentionCycleLiveTest(unittest.TestCase):
         journal.mkdir(mode=0o700)
         environment = {
             "FASTBOOT_SERIAL": "M1AIB760D093XYZ",
-            "ROG5_EXPECTED_USB_LOCATION": "pci-0000:04:00.3-usb-0:1.2",
+            "ROG5_EXPECTED_USB_LOCATION": (
+                "pci0000:00/0000:00:08.1/0000:04:00.3/"
+                "usb1/1-1/1-1.2"
+            ),
             **{name: str(path) for name, path in paths.items()},
             "EVIDENCE_DIR": str(evidence),
             "ROG5_RETENTION_JOURNAL_ROOT": str(journal),
@@ -126,6 +129,45 @@ class RetentionCycleLiveTest(unittest.TestCase):
         self.assertEqual(parsed["rollback_armed"], "1")
         with self.assertRaisesRegex(LIVE.LiveCycleError, "no unique result"):
             LIVE.parse_single_result("", "observer-boot")
+
+    def test_fastboot_id_path_preserves_raw_physical_ancestry(self) -> None:
+        sysfs = Path(self.temporary.name) / "sys"
+        devices = sysfs / "devices"
+        raw = (
+            "pci0000:00/0000:00:08.1/0000:04:00.3/"
+            "usb1/1-1/1-1.2"
+        )
+        phone = devices / raw
+        phone.mkdir(parents=True)
+        (phone / "idVendor").write_text("0b05\n", encoding="ascii")
+        (phone / "idProduct").write_text("4daf\n", encoding="ascii")
+        (phone / "serial").write_text("M1AIB760D093XYZ\n", encoding="ascii")
+        usb = sysfs / "bus/usb/devices"
+        usb.mkdir(parents=True)
+        (usb / "1-1.2").symlink_to(phone)
+        with (
+            mock.patch.object(LIVE, "SYS_BUS_USB", usb),
+            mock.patch.object(LIVE, "SYS_DEVICES", devices),
+            mock.patch.object(
+                LIVE,
+                "run_process",
+                return_value=(
+                    "ID_VENDOR_ID=0b05\n"
+                    "ID_PATH=pci-0000:04:00.3-usb-0:1.2\n"
+                ),
+            ),
+        ):
+            self.assertEqual(
+                LIVE.fastboot_id_path("M1AIB760D093XYZ", raw),
+                "pci-0000:04:00.3-usb-0:1.2",
+            )
+            with self.assertRaisesRegex(
+                LIVE.LiveCycleError, "raw physical USB location"
+            ):
+                LIVE.fastboot_id_path(
+                    "M1AIB760D093XYZ",
+                    "pci-0000:04:00.3-usb-0:1.2",
+                )
 
 
 if __name__ == "__main__":
