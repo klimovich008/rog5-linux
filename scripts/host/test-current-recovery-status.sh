@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'The implementation successor now requires exactly that three-name inventory, selects only `a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing entries. No v4 candidate, claim, or phone boot exists yet.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'The implementation successor now requires exactly that three-name inventory, selects only `a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing entries. The v4 production candidate now exists as two clean byte-identical ASUS wrapper builds (`ee662ab9…6752`) after a 2300.179-second build. Its claim is unissued and it has not been booted.'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2/v3 and identify the unissued UDC successor' >&2
+		echo 'FAIL current status does not consume v2/v3 and identify the unissued v4 UDC successor' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3 and records the unissued exact-UDC successor'
+echo 'PASS current status consumes Generation 12/v2/v3 and records the built unissued v4 exact-UDC successor'
