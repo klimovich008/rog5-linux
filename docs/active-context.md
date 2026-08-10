@@ -150,6 +150,101 @@ exact-init verifier. No claim or policy row was added; the
 [offline gate result](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
 does not grant phone or boot authority.
 
+The distinct observation recovery now has the matching
+[offline-only HOLD gate](../test-results/2026-08-10-current-observation-recovery-live-gate-offline.md).
+It pins the current observer AVB `3c9b2820…`, all 22 verifier inputs, and the
+retained verifier report, while connected preflight and boot fail before host
+inspection. Hard-linked retained outputs are intentionally rejected; tests
+use an independent fixed-file copy-on-write snapshot. This adds no claim,
+policy row, lifecycle selector, credential, or phone action. The two exact
+consumable claims and the sequence-enforcing retention runner remain
+undefined, so admission stays **HOLD**.
+
+The follow-on
+[two-claim sequence reference](../test-results/2026-08-10-retention-sequence-reference-offline.md)
+now defines the missing transaction semantics without creating a runnable
+path. Two distinct draft record hashes bind the exact execution/observer AVBs,
+candidate, manifest, and one cycle digest, but remain absent from the generic
+consumer. A pure hostile-tested model enforces rollback-armed boots, exact
+fallback, ramoops preflight, same-port bootloader and observer handoff, one
+lineage-bound read, irreversible failure dispositions, and no retry. Its
+11,923-byte source `97075ed7…` is pinned by the HOLD profile. No claim, policy
+row, credential, device action, or live runner was added; admission remains
+**HOLD**.
+
+The next [offline transaction journal](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+turns that pure order into one private append-only, hash-chained crash record
+without adding a live entry point. It durably binds host boot ID, USB location,
+target and fallback boot IDs, both claim dispositions, the exact fastboot
+product/serial, both recovery intents, and the one observer-read budget.
+No-follow single-link events are exclusively created and file/directory
+`fsync`ed under a nonblocking cycle lock. Reopening an ambiguous action intent
+permits only an inconclusive terminal record, never action retry. The profile
+pins the 39,553-byte source `a7018537…`; 9 transaction and 22 joint-admission
+hostile groups pass. No helper consumes the journal yet, no claim is
+registered, and connected gates remain closed, so admission stays **HOLD**.
+
+The follow-on [callback adapter fixture](../test-results/2026-08-10-retention-cycle-adapter-offline.md)
+now proves six fixed helper descriptors are exposed only after the matching
+fsynced journal intent: execution claim/boot, fallback reboot, observer
+claim/boot, and the one correlated postmortem read. All six injected callback
+failures leave the intent nonretryable; hostile results, type aliases, invalid
+lineage, and callback-side journal mutation cannot advance it. The profile
+pins the corrected 10,260-byte adapter `c36b4bfa…` to journal `a7018537…`;
+fallback transition now names the accepted nonce-framed ACM helper rather than
+the legacy SSH-key helper. Seven adapter and 25 joint-admission hostile groups
+pass. The separate 14,560-byte pure executor contract `8705c7fd…` pins all six
+helper identities, fixed interpreters, a parent-independent environment,
+per-action allowlists, separate bounded output streams, deadlines, and
+process-group cleanup. Its three boot actions request the canonical
+`rog5-retention-boot-result-v1` record and carry only the reviewed fastboot
+serial/USB-location lineage. It accepts one canonical unopened fallback
+host-pin path and no private-key input. Neither module can execute, open
+credentials, or provide a CLI; both recovery gates still reject connected
+actions and draft claims/policy remain empty, so admission stays **HOLD**. See the
+[executor-contract checkpoint](../test-results/2026-08-10-retention-cycle-executor-contract-offline.md).
+
+The [pure executor-boundary checkpoint](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+now pins descriptor evidence for every program and interpreter plus one
+caller-owned public Ed25519 fallback host-pin snapshot. Eleven hostile groups
+exercise no-follow flags, descriptor/path identity, symlink-target
+revalidation, owner/mode/link/content checks, bounded process outcomes, exact
+claim output, canonical postmortem JSON, and one exact terminal boot-result
+record. The boundary now decodes all six actions only when descriptor
+attestation and every journal-required value match. The fallback helper has a
+guarded producer grounded in the actual same-port fastboot serial/product and
+the inspected public host-pin bytes. The selected execution and observer
+profiles still have no successful producer because both remain HOLD. The
+source has no process, filesystem, credential, device, CLI, or
+connected-admission surface. See the
+[boot-output checkpoint](../test-results/2026-08-10-retention-cycle-boot-output-contract-offline.md).
+
+The next [offline runtime fixture](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md)
+holds the real intent/program/interpreter and optional public-pin descriptors,
+then proves fresh empty CLOEXEC pipes, a kernel nonce, devnull/closed-FD child
+isolation, bounded streams/deadline, and process-group cleanup. Thirteen hostile
+groups include all six actions in one journal, with each preparation released
+only after one exact result event whose canonical data equals the fresh-pipe
+decoded result and whose descriptor-relative pathname still names the held
+event. The fixed writer does not invoke the held
+production descriptors, so its decoded wrapper is adapter-ineligible and
+production descriptor execution remains explicitly unproven. No host-pin
+admission, live entry point, claim, credential, policy row, recovery-gate
+wiring, or phone action was added; **HOLD** is unchanged.
+
+The [held-descriptor execution checkpoint](../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md)
+adds a separate harmless successor rather than claiming the fixed writer ran
+the real helpers. Its pinned runner `fexecve`s the held Python interpreter and
+runs the held probe as `/proc/self/fd/198`; canonical evidence proves exact
+program/interpreter identity, argv/environment, descriptor-held cwd, `0077`
+umask, devnull/FIFO plumbing, session/process group, and open FDs
+`0,1,2,198`. Nine hostile groups cover path/context mutations before and after
+exec, parent-FD leaks, timeout/descendant PID and pipe-EOF cleanup, overflow,
+nonzero exit, proof substitution,
+and malformed output. Fixture descriptor execution is proven, but all six
+production helper executions, adapter wiring, claims, credentials, policy,
+and phone authority remain absent; **HOLD** is unchanged.
+
 The latest
 [retention exact-claim registry checkpoint](../test-results/2026-08-10-retention-claim-registry-offline.md)
 removes the last Generation-11/12 record-template assumption from the generic

@@ -757,6 +757,100 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   inspection. The
   [current production gate result](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
   adds no claim or policy row and remains `HOLD`.
+- `test-current-observation-recovery-profile.sh` binds the distinct current
+  observer to one offline-only HOLD gate. It requires the exact AVB and all 22
+  fixed verifier inputs, rejects hard links and co-varied initramfs twins, and
+  proves connected preflight/boot stop before host inspection. The
+  [observer gate result](../test-results/2026-08-10-current-observation-recovery-live-gate-offline.md)
+  defines no claim or lifecycle sequence and remains `HOLD`.
+- `test-retention-cycle-sequence-reference.py` proves the future two-claim
+  transaction as a pure no-I/O state model. It binds both recovery identities,
+  exact draft bodies, candidate/manifest lineage, rollback, exact fallback,
+  ramoops preflight, same-port bootloader/observer handoff, one postmortem
+  read, and every irreversible failure disposition. The drafts remain absent
+  from the consumer and policy; the
+  [offline result](../test-results/2026-08-10-retention-sequence-reference-offline.md)
+  is a reference contract, not a runner or admission.
+- `test-retention-cycle-transaction.py` proves the hardware-free durable
+  handoff fixture. It reconstructs every crash prefix, preserves exact claim
+  dispositions, hash-chains exclusive private events, refuses concurrent or
+  replaced roots, carries target/fallback boot IDs and the same USB
+  location/fastboot serial, and claims the one observer read before it can be
+  invoked. Reopened action intents are terminal-only, missing output stays
+  inconclusive, and source inspection proves no live, credential, claim, or
+  device surface. The
+  [offline result](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+  is not a live adapter or admission.
+- `test-retention-cycle-adapter.py` proves six fixed helper descriptors can be
+  mapped onto the journal without adding an executor. Each injected callback
+  sees its matching fsynced intent as the last event. Every callback failure,
+  hostile result, Python type alias, invalid boot/port/serial lineage, and
+  callback state mutation fails without advancing; reopening the intent cannot
+  call again. Source inspection requires no CLI, subprocess, credential, or
+  device surface, and the current gates/claim registry/policy stay closed. See
+  the [offline result](../test-results/2026-08-10-retention-cycle-adapter-offline.md).
+- `test-retention-cycle-executor-contract.py` proves the adapter's six helper
+  descriptors have one exact hardware-free process contract. Eight hostile
+  groups pin repository-owned source identity and mode, fixed interpreters and
+  arguments, closed parent-independent per-action environments, canonical
+  dynamic lineage and known-hosts pathname input, devnull stdin, separately
+  bounded stdout/stderr, deadlines, process-group cleanup, and zero-only exit
+  acceptance. Source inspection rejects a subprocess, socket, CLI, inherited
+  credential, private-key, or connected-admission surface. The adapter's
+  fallback descriptor must use nonce-framed `fallback-acm-control.py`, while
+  the legacy SSH reboot path is rejected. The [offline
+  result](../test-results/2026-08-10-retention-cycle-executor-contract-offline.md)
+  remains a specification, not an executor or admission.
+- `test-retention-cycle-executor-boundary.py` proves a pure descriptor/output
+  boundary for the same six actions. Eleven hostile groups pin all program and
+  interpreter descriptors, Python symlink-target revalidation, public
+  fallback host-pin ownership/mode/content/digest evidence, exact process
+  termination and stream bounds, both claim outputs, and canonical postmortem
+  JSON. It also decodes one exact terminal boot-result record for each boot
+  action only with matching descriptor attestation and journal lineage. It
+  rejects stale/path-raced descriptors, hostile pins, malformed, duplicated,
+  marker-like echoed, or nonterminal records on either stream,
+  signals/timeouts/overflow, and
+  unbounded or non-ASCII diagnostics. The fallback producer is grounded in
+  verified location/product/serial/pin bytes; execution and observer producers
+  remain unavailable under their selected HOLD gates. Source inspection
+  rejects I/O, subprocess, CLI, credential, and connected-admission surfaces.
+  The [offline result](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+  remains HOLD and does not authorize a launcher.
+- `test-retention-cycle-runtime-closure.py` proves the next disconnected
+  runtime boundary with 13 hostile groups. It holds and revalidates the real
+  fsynced action intent, exact program/interpreter descriptors, and optional
+  public fallback pin; then creates distinct empty CLOEXEC pipes, a 256-bit
+  nonce, a devnull/closed-FD child session, bounded stream collection, and
+  TERM/KILL process-group cleanup. Cross-cycle proofs, reopened or duplicate
+  preparation, preloaded pipes, journal/path races, timeout, descendants, and
+  overflow fail closed. One regression drives all six decoded actions through
+  one journal and releases each preparation only after its exact result event
+  has canonical data equal to the result decoded from the fresh pipes. A
+  valid-but-different durable result and result-event pathname replacement
+  before marker release both fail closed.
+  The fixed offline writer does not execute `ProcessSpec.argv`; its wrapper is
+  adapter-ineligible and the profile records production descriptor execution
+  unproven. See the [offline result](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md).
+- `test-retention-cycle-descriptor-execution.py` proves the next disconnected
+  execution layer with nine hostile groups. A pinned harmless Python probe is
+  opened with the repository and interpreter, then the child uses `fchdir()`
+  on the held repository, duplicates only the probe/interpreter to fixed FDs,
+  closes unrelated descriptors, and executes the interpreter by FD with the
+  probe named as `/proc/self/fd/198`. Canonical evidence binds both digests and
+  inodes, argv/environment, cwd, `0077` umask, devnull/FIFO state,
+  session/process-group leadership, and open FDs `0,1,2,198`. Mutated process
+  context, path identities before/during/after execution, inherited FDs,
+  timeout/descendant PID and pipe-EOF behavior,
+  overflow, nonzero exit, proof substitution, and malformed output fail
+  closed. This proves only the harmless mechanism; all six production helper
+  executions and adapter wiring remain unproven. See the [offline
+  result](../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md).
+- `test-current-observation-recovery-profile.sh` additionally extracts and
+  hostile-tests the observation gate's repository-verifier identity check.
+  The gate requires the exact owner, mode, link count, 19,876-byte size, and
+  `c3c75dd5…14c2` digest before invoking that verifier; changed or symlinked
+  verifier fixtures fail closed.
 - The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
   followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
   after the root controller restores the profile on unique stable same-port

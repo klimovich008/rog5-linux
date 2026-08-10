@@ -93,6 +93,49 @@ Status: **offline speed-amplifier boundary complete; live promotion pending**
 - [x] Build that observation identity through two clean ASUS 5.4 wrapper,
   boot-v3, and unsigned-AVB compositions and verify its exact pstore/ramoops
   contract without issuing a candidate.
+- [x] Bind the current observation clean twins to an offline-only HOLD gate
+  that pins every verifier input and rejects connected actions before host
+  inspection.
+- [x] Define and hostile-test a pure two-claim sequence reference that binds
+  both recovery images, target lineage, rollback, exact fallback, same-port
+  observer handoff, and irreversible failure disposition without registering
+  a claim or adding a live runner.
+- [x] Add an offline append-only transaction journal that crash-safely carries
+  host/target/fallback identity, the durable USB port and fastboot serial, both
+  claim dispositions, and a preclaimed single observer read. Keep ambiguous
+  reopened action intents terminal-only and expose no live entry point.
+- [x] Add a hardware-free adapter fixture proving each fixed helper invocation
+  occurs only after its matching durable journal intent; keep connected paths
+  rejected until separate claim and admission review.
+- [x] Specify and hostile-test the exact executor input/environment contract
+  separately from the callback adapter. The pure contract pins six helper
+  identities, closed per-action environments, fixed interpreters, bounded
+  streams/deadlines, and process-group cleanup while exposing no executor or
+  live entry point; claims and connected admission remain absent.
+- [x] Specify fail-closed output decoding plus interpreter/program/host-pin
+  descriptor revalidation as a pure fixture. Do not add a connected launcher,
+  register claims, or open the host pin until a separate review authorizes it.
+- [x] Define one canonical machine result for all three boot transitions and
+  hostile-test exact decoding. Bind fallback reboot to its verified physical
+  location, fastboot product/serial, and public host-pin digest. Keep the
+  execution and observer producers explicitly blocked by their current HOLD
+  gates; add no launcher, claim, policy row, credential use, or phone action.
+- [x] Prove runtime descriptor collection plus fresh-intent/fresh-pipe bounded
+  process control in a pure offline fixed-writer fixture. All six action
+  results traverse distinct empty pipes created after their held fsynced
+  intent and release only after one exact result event; decoded fixture
+  results remain authority-free and adapter-ineligible.
+- [x] Add a hardware-free descriptor-execution successor that demonstrably
+  launches a pinned harmless interpreter/program through held descriptors
+  with exact argv, environment, descriptor-held cwd, umask, stdin, limits,
+  deadline, FD closure, and process-group cleanup. Keep the fixed writer as
+  historical fresh-intent/result evidence; connect neither fixture to claims,
+  credentials, either recovery gate, nor the phone.
+- [ ] Make all six production `ProcessSpec` descriptors compatible with
+  descriptor-relative invocation, including reviewed repository discovery for
+  the Bash helpers, then prove them in an inert harness. Keep production
+  descriptor execution unproven and adapter wiring absent until that exact
+  offline suite passes independent review.
 - [x] Add a distinct read-only fallback transition preflight that verifies the
   exact `0x9b800000 + 0x400000` DT reservation and command-line tuple, no
   overlapping fixed reservation, no bound ramoops consumer, and empty pstore

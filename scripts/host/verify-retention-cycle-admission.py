@@ -55,6 +55,189 @@ EXPECTED_HISTORICAL_CLAIMS = {
         "headless-diagnostic-generation12-live-v1",
     )
 }
+EXPECTED_SEQUENCE_REFERENCE = {
+    "path": "scripts/host/retention-cycle-sequence-reference.py",
+    "size": 11923,
+    "sha256": "97075ed7c09cf2c5df5566a971c922d8ea9b1d6b0e53e19f33bed3d220378e44",
+    "mode": "0755",
+    "implementation": "reference-only",
+    "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+    "execution_identifier": "retention-host-rendezvous-v3-execution-v1",
+    "execution_record_sha256": "ef0895b7e104a283c44113a67c8f51e826b0088d597b0969ed5ca774e0dc7bbd",
+    "observer_identifier": "retention-host-rendezvous-v3-observer-v1",
+    "observer_record_sha256": "f0b687163c38fe07c637c6ae863e0244d5cfb2af2d6a97632875473e3c33e345",
+}
+EXPECTED_TRANSACTION_FIXTURE = {
+    "path": "scripts/host/retention-cycle-transaction.py",
+    "size": 39553,
+    "sha256": "a7018537e2ad8aace316efc03cf4557c3871f0c777f0dc63ea1d787f242fe5ce",
+    "mode": "0644",
+    "implementation": "offline-append-only-fixture",
+    "event_format": "rog5-retention-cycle-event-v1",
+    "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+    "live_entrypoint": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+    "ambiguous_reopen": "terminal-only",
+}
+EXPECTED_ADAPTER_FIXTURE = {
+    "path": "scripts/host/retention-cycle-adapter.py",
+    "size": 10260,
+    "sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
+    "mode": "0644",
+    "implementation": "callback-only-fixture",
+    "journal_sha256": "a7018537e2ad8aace316efc03cf4557c3871f0c777f0dc63ea1d787f242fe5ce",
+    "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+    "invocation_count": 6,
+    "live_entrypoint": "none",
+    "builtin_executor": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+}
+EXPECTED_EXECUTOR_CONTRACT = {
+    "path": "scripts/host/retention-cycle-executor-contract.py",
+    "size": 14560,
+    "sha256": "8705c7fdfa9213a876128614057438565a4889087f77df7c2f41bdd9fe96be3e",
+    "mode": "0644",
+    "implementation": "pure-process-contract-v1",
+    "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
+    "invocation_count": 6,
+    "boot_result_protocol": "rog5-retention-boot-result-v1",
+    "boot_result_dynamic_inputs": ["fastboot_serial", "usb_location"],
+    "inherited_environment": "none",
+    "stdin": "devnull",
+    "stdout_stderr": "separate-bounded-pipes",
+    "timeout_seconds": [15, 300, 240, 15, 300, 90],
+    "output_limit_bytes": [4096, 131072, 131072, 4096, 131072, 16384],
+    "timeout_cleanup": "process-group",
+    "fallback_transport": "nonce-framed-acm",
+    "private_key_input": "none",
+    "host_pin_access": "unopened-path-contract-only",
+    "live_entrypoint": "none",
+    "builtin_executor": "none",
+    "credential_use": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+}
+EXPECTED_EXECUTOR_BOUNDARY = {
+    "path": "scripts/host/retention-cycle-executor-boundary.py",
+    "size": 24548,
+    "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
+    "mode": "0644",
+    "implementation": "pure-descriptor-output-boundary-v1",
+    "executor_contract_sha256": "8705c7fdfa9213a876128614057438565a4889087f77df7c2f41bdd9fe96be3e",
+    "boot_result_protocol": "rog5-retention-boot-result-v1",
+    "decoded_actions": [
+        "execution-claim",
+        "execution-boot",
+        "fallback-reboot",
+        "observer-claim",
+        "observer-boot",
+        "postmortem-read",
+    ],
+    "blocked_actions": {
+        "execution-boot": "hold-gate-no-current-success",
+        "observer-boot": "hold-gate-no-current-success",
+    },
+    "live_producer_state": {
+        "execution-boot": "hold-gate-no-current-success",
+        "fallback-reboot": "guarded-producer-defined",
+        "observer-boot": "hold-gate-no-current-success",
+    },
+    "program_open_flags": ["O_CLOEXEC", "O_NOFOLLOW", "O_RDONLY"],
+    "directory_open_flags": [
+        "O_CLOEXEC",
+        "O_DIRECTORY",
+        "O_NOFOLLOW",
+        "O_RDONLY",
+    ],
+    "python_interpreter": {
+        "logical_path": "/usr/bin/python3",
+        "resolved_path": "/usr/bin/python3.13",
+        "link_target": "python3.13",
+        "size": 14352,
+        "sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718",
+    },
+    "bash_interpreter": {
+        "logical_path": "/usr/bin/bash",
+        "resolved_path": "/usr/bin/bash",
+        "link_target": "none",
+        "size": 1162328,
+        "sha256": "66bb45cd80c82ea4c352c774c0f1577ad51707f55749e90dd6b787a9fb3022d1",
+    },
+    "fallback_host_pin": "public-ed25519-snapshot-required",
+    "fallback_host_pin_sha256": "not-defined",
+    "runtime_closure": "offline-fixture-only-production-descriptor-execution-unproven",
+    "live_entrypoint": "none",
+    "builtin_executor": "none",
+    "credential_use": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+}
+EXPECTED_EXECUTOR_RUNTIME = {
+    "path": "scripts/host/retention-cycle-runtime-closure.py",
+    "size": 38531,
+    "sha256": "2cce1d450805d4a5f43352b221d35011e43ade5868817cce37b322912f3c765b",
+    "mode": "0644",
+    "implementation": "offline-fresh-pipe-fixture-v1",
+    "executor_boundary_sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
+    "transaction_sha256": "a7018537e2ad8aace316efc03cf4557c3871f0c777f0dc63ea1d787f242fe5ce",
+    "intent_binding": "held-fsynced-event-descriptor",
+    "pipe_binding": "fresh-empty-cloexec-distinct",
+    "process_backend": "forked-fixed-writer-only",
+    "runtime_nonce": "getrandom-256-bit",
+    "single_use": "in-process-attempt-terminal",
+    "timeout_cleanup": "process-group-term-kill",
+    "result_type": "offline-wrapper-adapter-ineligible",
+    "live_entrypoint": "none",
+    "adapter_wiring": "none",
+    "production_execution": "none",
+    "production_descriptor_execution": "unproven",
+    "connected_admission": "none",
+    "credential_use": "none",
+    "result_authority": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+}
+EXPECTED_EXECUTOR_DESCRIPTOR_FIXTURE = {
+    "runner_path": "scripts/host/retention-cycle-descriptor-execution.py",
+    "runner_size": 30039,
+    "runner_sha256": "7e82e52ed44343f665f5f03f26b8540c7743415d74145c58db0eb3b935dd1d8a",
+    "runner_mode": "0644",
+    "probe_path": "scripts/host/retention-cycle-descriptor-probe.py",
+    "probe_size": 5288,
+    "probe_sha256": "afba8ae9c2bff325eadcae781895aafd7934897b238edcdc72bf73f7f38e20f5",
+    "probe_mode": "0644",
+    "implementation": "offline-held-fd-exec-v1",
+    "executor_runtime_sha256": "2cce1d450805d4a5f43352b221d35011e43ade5868817cce37b322912f3c765b",
+    "interpreter_logical_path": "/usr/bin/python3",
+    "interpreter_resolved_path": "/usr/bin/python3.13",
+    "interpreter_sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718",
+    "program_exec_fd": 198,
+    "interpreter_exec_fd": 199,
+    "interpreter_execution": "fexecve-held-descriptor",
+    "program_execution": "proc-self-fd-held-descriptor",
+    "repository_cwd": "held-directory-fchdir",
+    "environment": "closed-exact",
+    "umask": "0077",
+    "stdin": "devnull",
+    "stdout": "bounded-pipe",
+    "stderr": "bounded-pipe",
+    "modes": ["success", "timeout", "descendant", "overflow", "exit"],
+    "single_use": "in-process-attempt-terminal",
+    "timeout_cleanup": "process-group-term-kill",
+    "result_type": "offline-evidence-adapter-ineligible",
+    "fixture_descriptor_execution": "proven",
+    "production_descriptor_execution": "unproven",
+    "live_entrypoint": "none",
+    "adapter_wiring": "none",
+    "production_execution": "none",
+    "connected_admission": "none",
+    "credential_use": "none",
+    "result_authority": "none",
+    "claim_registration": "none",
+    "policy_allow_rows": 0,
+}
 SHA256_ZERO = "0" * 64
 MAX_INITRAMFS_BYTES = 32 * 1024 * 1024
 MAX_BUFFERED_INPUT_BYTES = 32 * 1024 * 1024
@@ -2163,6 +2346,13 @@ def verify_pinned(
             "consumer_mode",
             "execution",
             "observer",
+            "sequence_reference",
+            "transaction_fixture",
+            "adapter_fixture",
+            "executor_contract",
+            "executor_boundary",
+            "executor_runtime",
+            "executor_descriptor_fixture",
             "issuance_requirement",
             "reuse",
         },
@@ -2176,6 +2366,223 @@ def verify_pinned(
         or claims["reuse"] != "forbidden"
     ):
         fail("one-use claim policy is not exact")
+    sequence_reference = require_keys(
+        claims["sequence_reference"],
+        set(EXPECTED_SEQUENCE_REFERENCE),
+        "sequence reference contract",
+    )
+    if sequence_reference != EXPECTED_SEQUENCE_REFERENCE:
+        fail("sequence reference contract is not exact")
+    reference_path = safe_child(
+        repo,
+        sequence_reference["path"],
+        "sequence reference path",
+    )
+    read_verified_bytes(
+        reference_path,
+        "sequence reference",
+        expected_size=sequence_reference["size"],
+        expected_digest=require_sha256(
+            sequence_reference["sha256"],
+            "sequence reference SHA-256",
+        ),
+        expected_mode=require_mode(
+            sequence_reference["mode"],
+            "sequence reference mode",
+        ),
+    )
+    transaction_fixture = require_keys(
+        claims["transaction_fixture"],
+        set(EXPECTED_TRANSACTION_FIXTURE),
+        "transaction fixture contract",
+    )
+    if transaction_fixture != EXPECTED_TRANSACTION_FIXTURE:
+        fail("transaction fixture contract is not exact")
+    transaction_path = safe_child(
+        repo,
+        transaction_fixture["path"],
+        "transaction fixture path",
+    )
+    read_verified_bytes(
+        transaction_path,
+        "transaction fixture",
+        expected_size=transaction_fixture["size"],
+        expected_digest=require_sha256(
+            transaction_fixture["sha256"],
+            "transaction fixture SHA-256",
+        ),
+        expected_mode=require_mode(
+            transaction_fixture["mode"],
+            "transaction fixture mode",
+        ),
+    )
+    adapter_fixture = require_keys(
+        claims["adapter_fixture"],
+        set(EXPECTED_ADAPTER_FIXTURE),
+        "adapter fixture contract",
+    )
+    if (
+        adapter_fixture != EXPECTED_ADAPTER_FIXTURE
+        or adapter_fixture["journal_sha256"]
+        != transaction_fixture["sha256"]
+        or adapter_fixture["cycle_sha256"]
+        != sequence_reference["cycle_sha256"]
+    ):
+        fail("adapter fixture contract is not exact")
+    adapter_path = safe_child(
+        repo,
+        adapter_fixture["path"],
+        "adapter fixture path",
+    )
+    read_verified_bytes(
+        adapter_path,
+        "adapter fixture",
+        expected_size=adapter_fixture["size"],
+        expected_digest=require_sha256(
+            adapter_fixture["sha256"],
+            "adapter fixture SHA-256",
+        ),
+        expected_mode=require_mode(
+            adapter_fixture["mode"],
+            "adapter fixture mode",
+        ),
+    )
+    executor_contract = require_keys(
+        claims["executor_contract"],
+        set(EXPECTED_EXECUTOR_CONTRACT),
+        "executor contract",
+    )
+    if (
+        executor_contract != EXPECTED_EXECUTOR_CONTRACT
+        or executor_contract["adapter_sha256"]
+        != adapter_fixture["sha256"]
+    ):
+        fail("executor contract is not exact")
+    executor_contract_path = safe_child(
+        repo,
+        executor_contract["path"],
+        "executor contract path",
+    )
+    read_verified_bytes(
+        executor_contract_path,
+        "executor contract",
+        expected_size=executor_contract["size"],
+        expected_digest=require_sha256(
+            executor_contract["sha256"],
+            "executor contract SHA-256",
+        ),
+        expected_mode=require_mode(
+            executor_contract["mode"],
+            "executor contract mode",
+        ),
+    )
+    executor_boundary = require_keys(
+        claims["executor_boundary"],
+        set(EXPECTED_EXECUTOR_BOUNDARY),
+        "executor boundary",
+    )
+    if (
+        executor_boundary != EXPECTED_EXECUTOR_BOUNDARY
+        or executor_boundary["executor_contract_sha256"]
+        != executor_contract["sha256"]
+    ):
+        fail("executor boundary is not exact")
+    executor_boundary_path = safe_child(
+        repo,
+        executor_boundary["path"],
+        "executor boundary path",
+    )
+    read_verified_bytes(
+        executor_boundary_path,
+        "executor boundary",
+        expected_size=executor_boundary["size"],
+        expected_digest=require_sha256(
+            executor_boundary["sha256"],
+            "executor boundary SHA-256",
+        ),
+        expected_mode=require_mode(
+            executor_boundary["mode"],
+            "executor boundary mode",
+        ),
+    )
+    executor_runtime = require_keys(
+        claims["executor_runtime"],
+        set(EXPECTED_EXECUTOR_RUNTIME),
+        "executor runtime closure",
+    )
+    if (
+        executor_runtime != EXPECTED_EXECUTOR_RUNTIME
+        or executor_runtime["executor_boundary_sha256"]
+        != executor_boundary["sha256"]
+        or executor_runtime["transaction_sha256"]
+        != transaction_fixture["sha256"]
+    ):
+        fail("executor runtime closure is not exact")
+    executor_runtime_path = safe_child(
+        repo,
+        executor_runtime["path"],
+        "executor runtime closure path",
+    )
+    read_verified_bytes(
+        executor_runtime_path,
+        "executor runtime closure",
+        expected_size=executor_runtime["size"],
+        expected_digest=require_sha256(
+            executor_runtime["sha256"],
+            "executor runtime closure SHA-256",
+        ),
+        expected_mode=require_mode(
+            executor_runtime["mode"],
+            "executor runtime closure mode",
+        ),
+    )
+    descriptor_fixture = require_keys(
+        claims["executor_descriptor_fixture"],
+        set(EXPECTED_EXECUTOR_DESCRIPTOR_FIXTURE),
+        "executor descriptor fixture",
+    )
+    if (
+        descriptor_fixture != EXPECTED_EXECUTOR_DESCRIPTOR_FIXTURE
+        or descriptor_fixture["executor_runtime_sha256"]
+        != executor_runtime["sha256"]
+    ):
+        fail("executor descriptor fixture is not exact")
+    descriptor_runner_path = safe_child(
+        repo,
+        descriptor_fixture["runner_path"],
+        "executor descriptor runner path",
+    )
+    read_verified_bytes(
+        descriptor_runner_path,
+        "executor descriptor runner",
+        expected_size=descriptor_fixture["runner_size"],
+        expected_digest=require_sha256(
+            descriptor_fixture["runner_sha256"],
+            "executor descriptor runner SHA-256",
+        ),
+        expected_mode=require_mode(
+            descriptor_fixture["runner_mode"],
+            "executor descriptor runner mode",
+        ),
+    )
+    descriptor_probe_path = safe_child(
+        repo,
+        descriptor_fixture["probe_path"],
+        "executor descriptor probe path",
+    )
+    read_verified_bytes(
+        descriptor_probe_path,
+        "executor descriptor probe",
+        expected_size=descriptor_fixture["probe_size"],
+        expected_digest=require_sha256(
+            descriptor_fixture["probe_sha256"],
+            "executor descriptor probe SHA-256",
+        ),
+        expected_mode=require_mode(
+            descriptor_fixture["probe_mode"],
+            "executor descriptor probe mode",
+        ),
+    )
     consumer = safe_child(repo, claims["consumer"], "generic claim consumer")
     consumer_size = claims["consumer_size"]
     if (
@@ -2304,6 +2711,26 @@ def verify_pinned(
             f"recovery_init_sha256={recovery_init_sha256}",
             f"recovery_control_source_sha256={recovery_control_source_sha256}",
             f"recovery_control_binary_sha256={recovery_control_identity[1]}",
+            f"sequence_reference_sha256={sequence_reference['sha256']}",
+            f"transaction_fixture_sha256={transaction_fixture['sha256']}",
+            f"adapter_fixture_sha256={adapter_fixture['sha256']}",
+            f"executor_contract_sha256={executor_contract['sha256']}",
+            f"executor_boundary_sha256={executor_boundary['sha256']}",
+            f"executor_runtime_sha256={executor_runtime['sha256']}",
+            "executor_descriptor_runner_sha256="
+            f"{descriptor_fixture['runner_sha256']}",
+            "executor_descriptor_probe_sha256="
+            f"{descriptor_fixture['probe_sha256']}",
+            f"cycle_sha256={sequence_reference['cycle_sha256']}",
+            "transaction_fixture=offline-only",
+            "adapter_fixture=callback-only",
+            "executor_contract=pure-offline-only",
+            "executor_boundary=six-decodable-two-hold-gates",
+            "executor_runtime=offline-fresh-pipe-adapter-ineligible",
+            "fixture_descriptor_execution=held-fd-proven-adapter-ineligible",
+            "production_descriptor_execution=unproven",
+            "fallback_boot_result=guarded-producer-defined",
+            "draft_claims=unregistered",
             f"temporary_boot_allow_rows={allow_rows}",
             "execution_claim=not-defined",
             "observer_claim=not-defined",

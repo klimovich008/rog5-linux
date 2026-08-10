@@ -3017,10 +3017,57 @@ for required in \
 	'verified-fastboot-boot.py' \
 	'cmp -n "$raw_size" "$raw" "$image"' \
 	'find_rog5_acm ROG5_recovery' \
+	'ROG5_RETENTION_BOOT_RESULT' \
+	'ROG5_EXPECTED_USB_LOCATION' \
+	'udevadm info --query=path --name="$acm"' \
+	'ROG5_RETENTION_BOOT_RESULT_V1 action=execution-boot' \
 	'stop ModemManager'
 do
 	grep -Fq -- "$required" "$gate"
 done
+
+retention_location_function=$(
+	awk '
+		/^verify_retention_acm_location\(\) \{/ { copy=1 }
+		copy { print }
+		copy && /^}/ { exit }
+	' "$gate"
+)
+[[ $retention_location_function == verify_retention_acm_location* ]] ||
+	{ echo 'FAIL retention ACM location verifier is not extractable' >&2; exit 1; }
+run_retention_location_fixture() {
+	local observed=$1 expected=$2
+	(
+		fail() { exit 1; }
+		udevadm() { printf '%s\n' "$observed"; }
+		eval "$retention_location_function"
+		verify_retention_acm_location /dev/ttyACM0 "$expected"
+	)
+}
+retention_location='pci0000:00/0000:00:14.0/usb1/1-3'
+run_retention_location_fixture \
+	"/devices/$retention_location/1-3:1.2/tty/ttyACM0" \
+	"$retention_location"
+for hostile_pair in \
+	"/devices/pci0000:00/other/1-3:1.2/tty/ttyACM0|$retention_location" \
+	"/devices/$retention_location/1-4:1.2/tty/ttyACM0|$retention_location" \
+	"/devices/$retention_location/1-3:1.2/tty/ttyACM1|$retention_location" \
+	"/devices/$retention_location/1-3:1.2/tty/ttyACM0|pci/../usb1/1-3"
+do
+	IFS='|' read -r observed expected <<<"$hostile_pair"
+	if run_retention_location_fixture "$observed" "$expected"; then
+		echo 'FAIL retention ACM location verifier accepted hostile ancestry' >&2
+		exit 1
+	fi
+done
+
+retention_guard_line=$(grep -n -m1 '^\[\[ \$retention_boot_result == 0' "$gate" | cut -d: -f1)
+retention_location_guard_line=$(grep -n -m1 '^if \[\[ \$retention_boot_result == 1 \]\]; then' "$gate" | cut -d: -f1)
+temporary_boot_line=$(grep -n -m1 'verified-fastboot-boot.py' "$gate" | cut -d: -f1)
+[[ -n $retention_guard_line && -n $retention_location_guard_line &&
+	-n $temporary_boot_line && $retention_guard_line -lt $temporary_boot_line &&
+	$retention_location_guard_line -lt $temporary_boot_line ]] ||
+	{ echo 'FAIL retention result inputs are not validated before temporary boot' >&2; exit 1; }
 
 initramfs_hash_line=$(
 	grep -n 'check_hash "$source_initramfs" "$expected_initramfs"' "$gate" |
