@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import ast
 import importlib.util
 import os
 from pathlib import Path
@@ -87,6 +88,21 @@ class ExactClaimConsumerTest(unittest.TestCase):
                 entered.unlink()
         with self.assertRaisesRegex(CLAIMS.ClaimError, "not repository-owned"):
             CLAIMS.consume("headless-diagnostic-generation13-live-v1", self.root)
+
+    def test_repository_lookup_is_a_literal_exact_record_registry(self) -> None:
+        tree = ast.parse(CONSUMER.read_bytes(), filename=str(CONSUMER))
+        assignments = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "CLAIMS"
+                for target in node.targets
+            )
+        ]
+        self.assertEqual(len(assignments), 1)
+        self.assertIsInstance(assignments[0].value, ast.Dict)
+        self.assertNotIn("CLAIM_PROFILES", CONSUMER.read_text(encoding="utf-8"))
 
     def test_wrong_content_owner_mode_link_and_symlink_fail_closed(self) -> None:
         profile = next(iter(PROFILES))

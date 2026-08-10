@@ -21,6 +21,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 VERIFIER = REPO / "scripts/host/verify-retention-cycle-admission.py"
 PROFILE = REPO / "configs/retention-cycles/host-rendezvous-v3-observer-v1.json"
+CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 SPEC = importlib.util.spec_from_file_location(
     "verify_retention_cycle_admission", VERIFIER
 )
@@ -193,16 +194,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.policy_path = self.repo / "manifests/temporary-boot-images.tsv"
         self.consumer = self.repo / "scripts/host/consume-exact-boot-claim.py"
         self.consumer.parent.mkdir(parents=True)
-        self.consumer.write_text(
-            "def exact_record(profile):\n"
-            "    return profile.encode()\n"
-            "CLAIM_PROFILES = (\n"
-            "    'headless-diagnostic-generation11-live-v1',\n"
-            "    'headless-diagnostic-generation12-live-v1',\n"
-            ")\n"
-            "CLAIMS = {profile: exact_record(profile) "
-            "for profile in CLAIM_PROFILES}\n"
-        )
+        self.consumer.write_bytes(CONSUMER.read_bytes())
         self.consumer.chmod(0o755)
         claims = self.profile["claims"]
         assert isinstance(claims, dict)
@@ -1276,6 +1268,18 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             ADMISSION.read_safe_file(oversized, "oversized buffered input")
 
     def test_symlink_evidence_and_preissued_consumer_fail_closed(self) -> None:
+        def insert_claim(profile: str) -> None:
+            source = self.consumer.read_text(encoding="utf-8")
+            marker = "\n}\n\n\nclass ClaimError"
+            replacement = (
+                f'\n    "{profile}": b"issued",' + marker
+            )
+            self.assertIn(marker, source)
+            self.consumer.write_text(
+                source.replace(marker, replacement, 1),
+                encoding="utf-8",
+            )
+
         execution = self.profile["execution"]
         assert isinstance(execution, dict)
         record = execution["wrapper_image"]
@@ -1287,13 +1291,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.assert_rejected("unsafe or missing execution wrapper Image B")
 
         self.reset_fixture()
-        self.consumer.write_text(
-            "def exact_record(profile):\n"
-            "    return profile.encode()\n"
-            "CLAIM_PROFILES = ('host-rendezvous-v3-observer-v1',)\n"
-            "CLAIMS = {profile: exact_record(profile) "
-            "for profile in CLAIM_PROFILES}\n"
-        )
+        insert_claim("host-rendezvous-v3-observer-v1")
         claims = self.profile["claims"]
         assert isinstance(claims, dict)
         claims["consumer_size"] = self.consumer.stat().st_size
@@ -1314,31 +1312,31 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
         self.reset_fixture()
         self.consumer.write_text(
-            "def exact_record(profile):\n"
-            "    return profile.encode()\n"
-            "CLAIM_PROFILES = (\n"
-            "    'headless-diagnostic-generation11-live-v1',\n"
-            "    'headless-diagnostic-generation12-live-v1',\n"
-            ")\n"
-            "CLAIM_PROFILES += ('host-rendezvous-v3-observer-v1',)\n"
-            "CLAIMS = {profile: exact_record(profile) "
-            "for profile in CLAIM_PROFILES}\n"
+            self.consumer.read_text(encoding="utf-8").replace(
+                "\n\n\nclass ClaimError",
+                "\n\nCLAIMS_ALIAS = CLAIMS\n\nclass ClaimError",
+                1,
+            ),
+            encoding="utf-8",
         )
         claims = self.profile["claims"]
         assert isinstance(claims, dict)
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
         self.save_profile()
-        self.assert_rejected("registry is mutated after definition")
+        self.assert_rejected("registry is aliased or rebound")
 
         self.reset_fixture()
-        self.consumer.write_text(
-            self.consumer.read_text().replace(
-                "    'headless-diagnostic-generation12-live-v1',\n",
-                "    'headless-diagnostic-generation12-live-v1',\n"
-                "    'unreviewed-live-v1',\n",
-            )
-        )
+        insert_claim("unreviewed-live-v1")
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is not exact")
+
+        self.reset_fixture()
+        insert_claim("headless-diagnostic-generation11-live-v1")
         claims = self.profile["claims"]
         assert isinstance(claims, dict)
         claims["consumer_size"] = self.consumer.stat().st_size

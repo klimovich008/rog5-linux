@@ -182,8 +182,8 @@
   },
   "claims": {
     "consumer": "scripts/host/consume-exact-boot-claim.py",
-    "consumer_size": 14436,
-    "consumer_sha256": "8f465164cccd35bfdd03d3a367bc278e30e7b23d4b0ea901991e9176f362ccec",
+    "consumer_size": 14600,
+    "consumer_sha256": "b6a3cc42db948dec706352d4cac1f8304c28550e678d607318986405b26a4c4e",
     "consumer_mode": "0755",
     "execution": "not-defined",
     "observer": "not-defined",
