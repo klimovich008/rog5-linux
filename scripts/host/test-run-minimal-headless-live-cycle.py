@@ -1656,7 +1656,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         ):
             self.parse_control_records(*records)
 
-    def test_consumed_generation12_actions_fail_before_guards_or_credentials(
+    def test_live_diagnostic_actions_fail_before_credentials_without_guards(
         self,
     ):
         for action in (
@@ -1683,11 +1683,12 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(result.stdout, "")
-                self.assertEqual(
-                    result.stderr,
-                    "FAIL no diagnostic recovery lifecycle is admitted; "
-                    "Generation-12 is consumed and must not be retried\n",
+                expected = (
+                    "one-shot lifecycle requires exact fresh guards"
+                    if action == "diagnostic-run"
+                    else "deployment-key admission requires exact fresh guards"
                 )
+                self.assertIn(expected, result.stderr)
                 self.assertFalse(
                     (self.fixture.root / "poison-key").exists()
                 )
@@ -1716,7 +1717,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 1)
                 self.assertIn(
-                    "Generation-12 is consumed and must not be retried",
+                    "one-shot lifecycle requires exact fresh guards",
                     result.stderr,
                 )
 
@@ -2110,12 +2111,12 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             cycle = CYCLE.LiveCycle(
                 dependencies,
                 inputs,
-                CYCLE.DIAGNOSTIC_CYCLE_PROFILE,
+                CYCLE.LEGACY_DIAGNOSTIC_CYCLE_PROFILE,
             )
             production_cycle = CYCLE.LiveCycle(
                 replace(dependencies, offline=False),
                 inputs,
-                CYCLE.DIAGNOSTIC_CYCLE_PROFILE,
+                CYCLE.LEGACY_DIAGNOSTIC_CYCLE_PROFILE,
             )
             with mock.patch.dict(
                 os.environ,

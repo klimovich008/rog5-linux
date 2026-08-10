@@ -46,7 +46,7 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count > 1)
+		if (allow_count > 2)
 			exit 16
 		for (name in allowed)
 			if (!(name in found))
@@ -225,7 +225,7 @@ awk -F '\t' -v name="$generation12" '
 		allow_count++
 	}
 	$1 == name { generation12_count++ }
-	END { exit allow_count == 0 && generation12_count == 0 ? 0 : 1 }
+		END { exit allow_count == 2 && generation12_count == 0 ? 0 : 1 }
 ' "$policy" || fail 'temporary-boot policy retains generation-12 admission'
 awk -F '\t' -v name="$generation12" '
 	$1 == name && $2 == "100663296" &&

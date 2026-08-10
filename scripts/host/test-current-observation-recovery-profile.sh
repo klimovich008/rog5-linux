@@ -11,6 +11,7 @@ gate=$repo/scripts/host/run-observation-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 profile=observation-host-rendezvous-v3-haven-production-hold-v1
+live_profile=retention-host-rendezvous-v3-observer-v1
 expected_avb=3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b
 tmp=$(mktemp -d)
 build_tmp=
@@ -31,10 +32,10 @@ trap cleanup EXIT HUP INT TERM
 
 [[ -x $gate ]] || fail 'current observation-recovery HOLD gate is absent'
 bash -n "$gate"
-! grep -Fq fastboot "$gate" ||
-	fail 'observation-recovery HOLD gate contains a fastboot surface'
-! grep -Fq consume-exact-boot-claim.py "$gate" ||
-	fail 'observation-recovery HOLD gate can consume a boot claim'
+grep -Fq verified-fastboot-boot.py "$gate" ||
+	fail 'observation-recovery live profile has no RAM-only boot surface'
+grep -Fq -- '--verify-entered' "$gate" ||
+	fail 'observation-recovery live profile does not verify its exact claim'
 grep -Fq 'c3c75dd55167e898edd92a04e4afd2aae1c3d4cf826cd1011ac32c6e9f8214c2' "$gate" ||
 	fail 'observation-recovery HOLD gate does not pin its repository verifier'
 
@@ -70,8 +71,9 @@ fi
 
 run_policy() {
 	local identity=$1
+	local selected_profile=${2:-$profile}
 	env -i PATH="$PATH" HOME="$HOME" \
-		ROG5_OBSERVATION_RECOVERY_PROFILE="$profile" \
+		ROG5_OBSERVATION_RECOVERY_PROFILE="$selected_profile" \
 		OBSERVER_RECOVERY_SHA256="$identity" \
 		bash "$gate" policy-preflight
 }
@@ -84,6 +86,13 @@ grep -Fxq 'boot_authority=none' <<<"$policy"
 grep -Fxq 'boot_result_protocol=rog5-retention-boot-result-v1' <<<"$policy"
 grep -Fxq 'boot_result_live_producer=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
+
+live_policy=$(run_policy "$expected_avb" "$live_profile")
+grep -Fxq "recovery_profile=$live_profile" <<<"$live_policy"
+grep -Fxq 'authority=one-use' <<<"$live_policy"
+grep -Fxq 'boot_authority=ram-only' <<<"$live_policy"
+grep -Fxq 'boot_result_live_producer=exact' <<<"$live_policy"
+grep -Fxq 'result=PASS' <<<"$live_policy"
 
 if run_policy aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
 	>"$tmp/out" 2>"$tmp/err"
@@ -114,7 +123,9 @@ for action in preflight boot; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] || fail 'current temporary-boot policy is not empty'
+	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
+grep -Fq "$live_profile" "$claim_consumer" ||
+	fail 'current observation live profile has no exact claim'
 ! grep -Fq "$profile" "$claim_consumer" ||
 	fail 'current observation HOLD profile has a consumable claim'
 
@@ -204,4 +215,4 @@ else
 	echo 'SKIP current observation artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS current observation recovery profile is exact, authority-free, and offline-only'
+echo 'PASS observation recovery HOLD is offline-only and exact live admission is separate'

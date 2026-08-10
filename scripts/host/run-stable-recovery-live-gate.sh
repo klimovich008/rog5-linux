@@ -125,7 +125,8 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-generation12-offline-v1 | \
 		headless-diagnostic-generation12-live-v1 | \
 		headless-diagnostic-stage75-v2-superseded-offline-v1 | \
-		headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1) ;;
+		headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+		retention-host-rendezvous-v3-execution-v1) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -793,9 +794,18 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1)
-		[[ $action == policy-preflight || $action == artifact-preflight ]] ||
-			fail 'current production HOLD profile is offline-only and not boot-authorized'
+	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+	retention-host-rendezvous-v3-execution-v1)
+		if [[ $profile == \
+			headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 ]]; then
+			[[ $action == policy-preflight || $action == artifact-preflight ]] ||
+				fail 'current production HOLD profile is offline-only and not boot-authorized'
+		else
+			expected_boot_image=build/host-rendezvous-v3-haven-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img
+			expected_boot_basis='one retention-cycle execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+			expected_boot_role='unbooted retention-cycle execution recovery with Haven watchdog deactivation and bounded host rendezvous; one RAM-only use only; never flash'
+			expected_boot_tracked=no
+		fi
 		component_layout=structured
 		expected_kernel=8a600acfc6f7e01f9eb932e0a04174079d6ee68142c44fad819fe96bbd34325d
 		expected_raw=ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517
@@ -848,7 +858,8 @@ case $profile in
 		initramfs_contract=historical-pinned-v1
 		initramfs_verifier_expected=$expected_initramfs
 		;;
-	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1)
+	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
+	retention-host-rendezvous-v3-execution-v1)
 		initramfs_contract=exact-a600000-v1
 		initramfs_verifier_expected=-
 		;;

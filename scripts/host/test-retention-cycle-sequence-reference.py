@@ -122,10 +122,10 @@ class RetentionSequenceReferenceTest(unittest.TestCase):
         self.assertEqual(profile["boot_authority"], "none")
 
         consumer_source = CONSUMER.read_text(encoding="utf-8")
-        self.assertNotIn(
+        self.assertIn(
             REFERENCE_MODULE.EXECUTION_CLAIM.identifier, consumer_source
         )
-        self.assertNotIn(
+        self.assertIn(
             REFERENCE_MODULE.OBSERVER_CLAIM.identifier, consumer_source
         )
         rows = [
@@ -133,7 +133,7 @@ class RetentionSequenceReferenceTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
 
     def test_draft_claims_are_distinct_exact_and_pair_bound(self) -> None:
         execution = REFERENCE_MODULE.EXECUTION_CLAIM

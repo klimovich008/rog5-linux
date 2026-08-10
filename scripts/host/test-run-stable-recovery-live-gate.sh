@@ -66,28 +66,27 @@ awk -F '\t' '
 			exit 1
 		next
 	}
-	NR == 2 {
-		if ($1 != "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" ||
-			$2 != "revoked" ||
-			$3 != "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" ||
-			NF != 3)
-			exit 1
-			next
-	}
+	$1 == "build/host-rendezvous-v3-haven-production-20260810-r2/wrapper/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one retention-cycle execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
+	$1 == "build/observation-recovery-haven-offline-20260810-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one retention-cycle observation-only recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
+	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
+		$2 == "revoked" &&
+		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 2) exit 1 }
-' "$boot_policy" ||
-	{ echo 'FAIL committed temporary-boot policy is not the exact zero-admission consumed-generation-12 shape' >&2; exit 1; }
-[[ $(grep -Fxc \
-	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \
-	"$lifecycle") == 1 ]] ||
-	{ echo 'FAIL lifecycle does not select exact generation-12 live profile' >&2; exit 1; }
+	END { if (NR != 4 || execution != 1 || observer != 1 || revoked != 1) exit 1 }
+	' "$boot_policy" ||
+	{ echo 'FAIL committed temporary-boot policy is not the exact retention-cycle admission shape' >&2; exit 1; }
+grep -Fq '"retention-host-rendezvous-v3-execution-v1"' "$lifecycle" ||
+	{ echo 'FAIL lifecycle does not select exact retention execution profile' >&2; exit 1; }
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \
 	"$lifecycle_test") == 1 ]] ||
 	{ echo 'FAIL lifecycle test does not pin exact generation-12 live profile' >&2; exit 1; }
-[[ $(grep -Fxc 'DIAGNOSTIC_LIVE_STATUS = "consumed"' "$lifecycle") == 1 ]] ||
-	{ echo 'FAIL lifecycle does not fail closed on consumed generation-12' >&2; exit 1; }
+[[ $(grep -Fxc 'DIAGNOSTIC_LIVE_STATUS = "admitted"' "$lifecycle") == 1 ]] ||
+	{ echo 'FAIL lifecycle does not admit the exact retention execution profile' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle" ||
 	{ echo 'FAIL consumed generation-9 profile remains in the lifecycle' >&2; exit 1; }
 ! grep -Fq 'headless-diagnostic-generation9-' "$lifecycle_test" ||
@@ -120,8 +119,8 @@ do
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] ||
-	{ echo 'FAIL temporary-boot policy retains an allow row after generation-12 consumption' >&2; exit 1; }
+	"$boot_policy") == 2 ]] ||
+	{ echo 'FAIL temporary-boot policy does not contain exactly the retention pair' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation12_image" -v basis="$generation12_boot_basis" \
 	'$1 == name && $2 == "allow" && $3 == basis { count++ } \
 	END { print count + 0 }' "$boot_policy") == 0 ]] ||

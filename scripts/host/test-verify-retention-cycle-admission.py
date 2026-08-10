@@ -426,6 +426,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
+            "build/host-rendezvous-v3-haven-production-20260810-r2/"
+            "wrapper/repack/stable-recovery-a.avb.img\tallow\t"
+            "one retention-cycle execution recovery; RAM-only; externally "
+            "consumed exact claim required; never flash or retry after entry\n"
+            "build/observation-recovery-haven-offline-20260810-r1/"
+            "repack/stable-recovery-a.avb.img\tallow\t"
+            "one retention-cycle observation-only recovery; RAM-only; "
+            "externally consumed exact claim required; never flash or retry "
+            "after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)
@@ -677,7 +686,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=0", report)
+        self.assertIn("temporary_boot_allow_rows=2", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)
@@ -1071,7 +1080,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         for payload, message in (
             (
                 "name\tstatus\tbasis\nfuture.img\tallow\tone boot\n",
-                "grants authority during HOLD",
+                "does not contain exact retention admissions",
             ),
             (
                 "name\tstatus\tbasis\nfuture.img\tpending\tunknown\n",

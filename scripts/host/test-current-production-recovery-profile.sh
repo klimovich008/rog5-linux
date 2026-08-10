@@ -33,12 +33,12 @@ trap cleanup EXIT HUP INT TERM
 
 [[ $(awk -v profile="$profile" '
 	/^# Historical profiles retain/ { contracts = 1 }
-	!contracts && $0 == "\t" profile ")" { count++ }
+	!contracts && index($0, "\t" profile " |") == 1 { count++ }
 	END { print count + 0 }
 ' "$gate") -eq 1 ]] ||
 	fail 'current production HOLD profile case is not unique'
 case_source=$(awk -v profile="$profile" '
-	index($0, "\t" profile ")") == 1 { capture = 1 }
+	index($0, "\t" profile " |") == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
@@ -68,7 +68,7 @@ grep -Fq \
 	fail 'current production HOLD profile does not reject connected actions'
 contract_source=$(awk -v profile="$profile" '
 	/^# Historical profiles retain/ { contracts = 1 }
-	contracts && index($0, "\t" profile ")") == 1 { capture = 1 }
+	contracts && index($0, "\t" profile " |") == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
@@ -183,7 +183,7 @@ for action in preflight boot; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 0 ]] || fail 'current temporary-boot policy is not empty'
+	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 ! grep -Fq "$profile" "$claim_consumer" ||
 	fail 'current production HOLD profile has a consumable claim'
 

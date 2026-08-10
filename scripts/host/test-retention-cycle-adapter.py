@@ -376,12 +376,12 @@ class RetentionCycleAdapterTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
         consumer = CONSUMER.read_text(encoding="utf-8")
-        self.assertNotIn(
+        self.assertIn(
             REFERENCE.EXECUTION_CLAIM.identifier, consumer
         )
-        self.assertNotIn(REFERENCE.OBSERVER_CLAIM.identifier, consumer)
+        self.assertIn(REFERENCE.OBSERVER_CLAIM.identifier, consumer)
 
 
 if __name__ == "__main__":

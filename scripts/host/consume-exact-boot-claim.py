@@ -29,6 +29,38 @@ CLAIMS = {
         b"4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "retention-host-rendezvous-v3-execution-v1": (
+        b"format=rog5-retention-boot-consumption-v1\n"
+        b"retention_profile=host-rendezvous-v3-observer-v1\n"
+        b"cycle_sha256="
+        b"d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078\n"
+        b"claim_role=execution\n"
+        b"recovery_profile=retention-host-rendezvous-v3-execution-v1\n"
+        b"recovery_sha256="
+        b"cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d\n"
+        b"peer_recovery_sha256="
+        b"3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
+    "retention-host-rendezvous-v3-observer-v1": (
+        b"format=rog5-retention-boot-consumption-v1\n"
+        b"retention_profile=host-rendezvous-v3-observer-v1\n"
+        b"cycle_sha256="
+        b"d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078\n"
+        b"claim_role=observer\n"
+        b"recovery_profile=retention-host-rendezvous-v3-observer-v1\n"
+        b"recovery_sha256="
+        b"3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b\n"
+        b"peer_recovery_sha256="
+        b"cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
 }
 
 
@@ -316,6 +348,79 @@ def create_entered_record(
     return entered_fd
 
 
+def verify_entered_file(
+    name: str,
+    directory_fd: int,
+    expected: bytes,
+    label: str,
+) -> None:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as error:
+        raise ClaimError(f"{label} is unsafe or absent") from error
+    try:
+        opened = os.fstat(descriptor)
+        named = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        content = os.read(descriptor, len(expected) + 1)
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or opened.st_uid != os.geteuid()
+            or stat.S_IMODE(opened.st_mode) != 0o600
+            or opened.st_nlink != 1
+            or named.st_dev != opened.st_dev
+            or named.st_ino != opened.st_ino
+            or content != expected
+            or os.read(descriptor, 1)
+        ):
+            fail(f"{label} is not exact")
+    finally:
+        os.close(descriptor)
+
+
+def verify_entered(profile: str, root: Path | None = None) -> None:
+    expected = expected_record(profile)
+    record_name = f"{profile}.record"
+    entered_name = f"{record_name}.entered"
+    if root is None:
+        root = canonical_claim_root()
+        anchor = canonical_claim_anchor()
+    else:
+        anchor = root.parent
+    guard_name = f".rog5-temporary-boot-consumption.{profile}.entered"
+    anchor_fd, anchor_parent_fd = open_claim_anchor(anchor)
+    try:
+        directory_fd = open_claim_root(root)
+    except Exception:
+        os.close(anchor_fd)
+        os.close(anchor_parent_fd)
+        raise
+    try:
+        try:
+            os.stat(record_name, dir_fd=directory_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        except OSError as error:
+            raise ClaimError("source BOOT_CLAIMED record is unsafe") from error
+        else:
+            fail("source BOOT_CLAIMED record still exists")
+        verify_entered_file(
+            entered_name,
+            directory_fd,
+            expected,
+            "entered BOOT_CLAIMED record",
+        )
+        if not existing_guard_is_exact(guard_name, anchor_fd, expected):
+            fail("global BOOT_CLAIMED guard is absent")
+        verify_claim_root_path(root, directory_fd)
+        verify_claim_anchor_path(anchor, anchor_fd, anchor_parent_fd)
+    finally:
+        os.close(directory_fd)
+        os.close(anchor_fd)
+        os.close(anchor_parent_fd)
+
+
 def consume(profile: str, root: Path | None = None) -> None:
     expected = expected_record(profile)
     record_name = f"{profile}.record"
@@ -420,11 +525,20 @@ def consume(profile: str, root: Path | None = None) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        fail("exact-record claim consumer requires one repository-owned profile")
-    profile = sys.argv[1]
-    consume(profile)
-    print(f"PASS exact durable BOOT_CLAIMED record entered: {profile}")
+    if len(sys.argv) == 2:
+        profile = sys.argv[1]
+        consume(profile)
+        print(f"PASS exact durable BOOT_CLAIMED record entered: {profile}")
+        return 0
+    if len(sys.argv) == 3 and sys.argv[1] == "--verify-entered":
+        profile = sys.argv[2]
+        verify_entered(profile)
+        print(f"PASS exact durable BOOT_CLAIMED record verified: {profile}")
+        return 0
+    fail(
+        "exact-record claim consumer requires a repository-owned profile "
+        "or --verify-entered PROFILE"
+    )
     return 0
 
 

@@ -411,7 +411,7 @@ class RetentionCycleDescriptorExecutionTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
 
 
 if __name__ == "__main__":

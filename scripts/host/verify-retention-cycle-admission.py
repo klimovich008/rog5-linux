@@ -48,13 +48,53 @@ def historical_claim_record(profile: str) -> bytes:
     ).encode("ascii")
 
 
-EXPECTED_HISTORICAL_CLAIMS = {
+EXPECTED_CLAIMS = {
     profile: historical_claim_record(profile)
     for profile in (
         "headless-diagnostic-generation11-live-v1",
         "headless-diagnostic-generation12-live-v1",
     )
 }
+
+
+def retention_claim_record(
+    role: str,
+    identifier: str,
+    recovery_sha256: str,
+    peer_recovery_sha256: str,
+) -> bytes:
+    return (
+        "format=rog5-retention-boot-consumption-v1\n"
+        "retention_profile=host-rendezvous-v3-observer-v1\n"
+        "cycle_sha256="
+        "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078\n"
+        f"claim_role={role}\n"
+        f"recovery_profile={identifier}\n"
+        f"recovery_sha256={recovery_sha256}\n"
+        f"peer_recovery_sha256={peer_recovery_sha256}\n"
+        "candidate=headless-netroot-early-diag-v2\n"
+        "manifest_sha256="
+        "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+        "state=BOOT_CLAIMED\n"
+    ).encode("ascii")
+
+
+EXPECTED_CLAIMS.update(
+    {
+        "retention-host-rendezvous-v3-execution-v1": retention_claim_record(
+            "execution",
+            "retention-host-rendezvous-v3-execution-v1",
+            "cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d",
+            "3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b",
+        ),
+        "retention-host-rendezvous-v3-observer-v1": retention_claim_record(
+            "observer",
+            "retention-host-rendezvous-v3-observer-v1",
+            "3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b",
+            "cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d",
+        ),
+    }
+)
 EXPECTED_SEQUENCE_REFERENCE = {
     "path": "scripts/host/retention-cycle-sequence-reference.py",
     "size": 11923,
@@ -96,8 +136,8 @@ EXPECTED_ADAPTER_FIXTURE = {
 }
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
-    "size": 14560,
-    "sha256": "8705c7fdfa9213a876128614057438565a4889087f77df7c2f41bdd9fe96be3e",
+    "size": 14561,
+    "sha256": "4eec7ea7289c056db0519fea79ab736c928b6117dc0606d55c60c39f4384dcd1",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -125,7 +165,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "8705c7fdfa9213a876128614057438565a4889087f77df7c2f41bdd9fe96be3e",
+    "executor_contract_sha256": "4eec7ea7289c056db0519fea79ab736c928b6117dc0606d55c60c39f4384dcd1",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -1850,8 +1890,23 @@ def verify_policy(
     required_allow_rows: Any,
     expected_mode: int,
 ) -> int:
-    if required_allow_rows != 0:
-        fail("offline review must require zero temporary-boot admissions")
+    expected_allows = {
+        (
+            "build/host-rendezvous-v3-haven-production-20260810-r2/"
+            "wrapper/repack/stable-recovery-a.avb.img",
+            "one retention-cycle execution recovery; RAM-only; externally "
+            "consumed exact claim required; never flash or retry after entry",
+        ),
+        (
+            "build/observation-recovery-haven-offline-20260810-r1/"
+            "repack/stable-recovery-a.avb.img",
+            "one retention-cycle observation-only recovery; RAM-only; "
+            "externally consumed exact claim required; never flash or retry "
+            "after entry",
+        ),
+    }
+    if required_allow_rows != len(expected_allows):
+        fail("review must require the exact retention-cycle admissions")
     try:
         text = read_safe_file(
             policy_path,
@@ -1863,17 +1918,17 @@ def verify_policy(
     rows = [line.split("\t") for line in text.splitlines()]
     if not rows or rows[0] != ["name", "status", "basis"]:
         fail("temporary-boot policy header is not exact")
-    allow_rows = 0
+    allow_rows: list[tuple[str, str]] = []
     for row in rows[1:]:
         if len(row) != 3 or not all(row):
             fail("temporary-boot policy row is malformed")
         if row[1] == "allow":
-            allow_rows += 1
+            allow_rows.append((row[0], row[2]))
         elif row[1] not in {"deny", "revoked"}:
             fail("temporary-boot policy status is unknown")
-    if allow_rows != required_allow_rows:
-        fail("temporary-boot policy grants authority during HOLD")
-    return allow_rows
+    if len(allow_rows) != required_allow_rows or set(allow_rows) != expected_allows:
+        fail("temporary-boot policy does not contain exact retention admissions")
+    return len(allow_rows)
 
 
 def verify_observer_evidence(
@@ -2623,7 +2678,7 @@ def verify_pinned(
     claims_expression = claims_assignments[0].value
     if (
         not isinstance(claims_expression, ast.Dict)
-        or len(claims_expression.keys) != len(EXPECTED_HISTORICAL_CLAIMS)
+        or len(claims_expression.keys) != len(EXPECTED_CLAIMS)
     ):
         fail("generic claim consumer registry is not exact")
     try:
@@ -2633,7 +2688,7 @@ def verify_pinned(
         raise AdmissionError("generic claim consumer registry is not exact") from error
     if (
         not isinstance(registered_claims, dict)
-        or registered_claims != EXPECTED_HISTORICAL_CLAIMS
+        or registered_claims != EXPECTED_CLAIMS
         or any(not isinstance(key, str) for key in registered_claims)
         or any(not isinstance(value, bytes) for value in registered_claims.values())
         or any(not isinstance(profile_name, str) for profile_name in literal_profiles)
