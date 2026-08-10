@@ -169,6 +169,17 @@ class RetentionCycleLiveTest(unittest.TestCase):
                     "pci-0000:04:00.3-usb-0:1.2",
                 )
 
+    def test_observer_claim_is_behind_real_retention_preflight(self) -> None:
+        source = SOURCE.read_text(encoding="utf-8")
+        retention_call = source.index(
+            'str(REPO / "scripts/host/reboot-fallback-to-fastboot.sh")'
+        )
+        retention_event = source.index("journal.retention_preflight(")
+        observer_claim = source.index("journal.observer_claim_intent()")
+        self.assertLess(retention_call, retention_event)
+        self.assertLess(retention_event, observer_claim)
+        self.assertIn('"retention-preflight"', source[retention_call:retention_event])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

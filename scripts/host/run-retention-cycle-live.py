@@ -621,6 +621,25 @@ def run_live_cycle(values: dict[str, str]) -> None:
                 "fallback retained pstore evidence; observer boot withheld "
                 "to preserve the independent record"
             )
+        retention_environment = dict(environment)
+        retention_environment.update(
+            {
+                "SSH_KEY": values["SSH_KEY"],
+                "KNOWN_HOSTS": values["FALLBACK_KNOWN_HOSTS"],
+            }
+        )
+        run_process(
+            [
+                "/usr/bin/bash",
+                "--noprofile",
+                "--norc",
+                str(REPO / "scripts/host/reboot-fallback-to-fastboot.sh"),
+                "retention-preflight",
+            ],
+            environment=retention_environment,
+            timeout=90,
+            label="fallback retention preflight",
+        )
         journal.retention_preflight(
             fallback_boot_id,
             values["ROG5_EXPECTED_USB_LOCATION"],
