@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_RECOVERY_PROFILE = (
-    "headless-diagnostic-host-rendezvous-v3-live-v2"
+    "headless-diagnostic-host-rendezvous-v3-live-v3"
 )
 DIAGNOSTIC_LIVE_STATUS = "admitted"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
@@ -2472,7 +2472,7 @@ class LiveCycle:
             fail("externally consumed temporary-boot claim is not exact")
 
     def assert_temporary_boot_claim_entered(self) -> None:
-        root = self.validate_temporary_boot_consumption_root(create=False)
+        self.validate_temporary_boot_consumption_root(create=False)
         expected = CLAIM_CONSUMER.expected_record(
             self.profile.recovery_profile
         )
@@ -2480,7 +2480,13 @@ class LiveCycle:
         if source.exists() or source.is_symlink():
             fail("external temporary-boot claim source still exists")
         self._exact_claim_file(self.temporary_boot_entered_path(), expected)
-        guard = root.parent / (
+        try:
+            guard_anchor = CLAIM_CONSUMER.canonical_claim_anchor()
+        except CLAIM_CONSUMER.ClaimError as error:
+            raise CycleError(
+                "external temporary-boot claim anchor is unsafe or absent"
+            ) from error
+        guard = guard_anchor / (
             ".rog5-temporary-boot-consumption."
             f"{self.profile.recovery_profile}.entered"
         )

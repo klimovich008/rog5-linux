@@ -207,9 +207,13 @@ session/process-group isolation. Nine hostile groups and the expanded
 the six production helpers; `production_descriptor_execution=unproven` and
 **HOLD** remain exact.
 The complete 18-field lifecycle parser correction is published through
-`606303a` with green exact-head run `30952333022`. The active successor is
-`headless-diagnostic-host-rendezvous-v3-live-v2`: it is authorized for one
-reversible RAM-only cycle after exact-head CI, but no v2 claim is issued yet.
+`606303a` with green exact-head run `30952333022`. Successor v2 was consumed
+before any phone boot while exposing a mismatch between the generic claim
+consumer's account-home guard and the lifecycle verifier's XDG-state guard
+lookup; it must never be retried. The active successor is
+`headless-diagnostic-host-rendezvous-v3-live-v3`: it is eligible for one
+reversible RAM-only cycle only after the verifier correction passes exact-head
+CI, and no v3 claim is issued yet.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

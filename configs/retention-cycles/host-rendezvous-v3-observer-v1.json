@@ -182,8 +182,8 @@
   },
   "claims": {
     "consumer": "scripts/host/consume-exact-boot-claim.py",
-    "consumer_size": 19324,
-    "consumer_sha256": "014871620ca7224bb010899110e2edb04922dade7dfbd90edc3dd82f422741a5",
+    "consumer_size": 19711,
+    "consumer_sha256": "f49a413b78710483cc18d4ccb305ee31bbe0fbbd0032400911629b18643d830b",
     "consumer_mode": "0755",
     "execution": "not-defined",
     "observer": "not-defined",
@@ -229,7 +229,7 @@
         "executor_contract": {
             "path": "scripts/host/retention-cycle-executor-contract.py",
             "size": 14561,
-            "sha256": "e9aec88f665c749d3e5814f27f80fba72bcf44aa66a615ed0606a0dc42dac61f",
+            "sha256": "98e0d967b87898ace054b61805b05c567bbfe5fcb1fc7e80b9a909bb9d7b45c0",
             "mode": "0644",
             "implementation": "pure-process-contract-v1",
             "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -257,7 +257,7 @@
             "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
             "mode": "0644",
             "implementation": "pure-descriptor-output-boundary-v1",
-            "executor_contract_sha256": "e9aec88f665c749d3e5814f27f80fba72bcf44aa66a615ed0606a0dc42dac61f",
+            "executor_contract_sha256": "98e0d967b87898ace054b61805b05c567bbfe5fcb1fc7e80b9a909bb9d7b45c0",
             "boot_result_protocol": "rog5-retention-boot-result-v1",
             "decoded_actions": [
                 "execution-claim",
