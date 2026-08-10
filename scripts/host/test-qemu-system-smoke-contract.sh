@@ -150,6 +150,16 @@ grep -Fq 'iproute2' "$workflow" ||
 	fail 'QEMU workflow lacks the ss provider used for listener isolation'
 grep -Fq 'libc6-dev-arm64-cross' "$workflow" ||
 	fail 'QEMU workflow lacks the ARM64 static libc development package'
+ganesha_stop_line=$(grep -n \
+	'sudo systemctl stop nfs-ganesha.service' "$workflow" | cut -d: -f1 || true)
+port_proof_line=$(grep -n \
+	"ss -H -ltn 'sport = :2049'" "$workflow" | cut -d: -f1 || true)
+nfs_gate_line=$(grep -n \
+	'sudo scripts/host/test-qemu-network-root-nfs.sh' "$workflow" | cut -d: -f1 || true)
+[[ -n $ganesha_stop_line && -n $port_proof_line && -n $nfs_gate_line &&
+	$ganesha_stop_line -lt $port_proof_line &&
+	$port_proof_line -lt $nfs_gate_line ]] ||
+	fail 'QEMU workflow does not isolate TCP/2049 before the NFS gate'
 if grep -Eq 'fastboot|/dev/(sd|nvme|ufs)|mount[[:space:]].*root=' \
 	"$runner" "$handoff_runner" "$nfs_runner"; then
 	fail 'board-neutral QEMU smoke contains a phone or storage action'

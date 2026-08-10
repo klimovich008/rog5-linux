@@ -179,6 +179,13 @@ jobs:
         with:
           path: build/qemu-smoke-kernel/arch/arm64/boot/Image
           key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
+      - name: Isolate TCP 2049 from the package service
+        run: |
+          sudo systemctl stop nfs-ganesha.service
+          if ss -H -ltn 'sport = :2049' | grep -q .; then
+            echo 'FAIL TCP port 2049 remains occupied after stopping the package service' >&2
+            exit 1
+          fi
       - name: Boot kernel and initramfs under QEMU
         run: |
           scripts/host/test-qemu-system-smoke.sh \
