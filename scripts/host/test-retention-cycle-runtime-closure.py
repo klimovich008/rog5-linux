@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import stat
 from unittest import mock
 import tempfile
 import time
@@ -54,6 +55,47 @@ PIN_PAYLOAD = (
 PIN_SHA256 = hashlib.sha256(PIN_PAYLOAD).hexdigest()
 
 
+def pinned_interpreters_available() -> bool:
+    """Return true only on the exact deployment host runtime."""
+
+    try:
+        for identity in BOUNDARY.INTERPRETERS.values():
+            logical = Path(identity.logical_path)
+            resolved = Path(identity.resolved_path)
+            logical_metadata = logical.lstat()
+            if identity.link_target == "none":
+                if logical != resolved or not stat.S_ISREG(
+                    logical_metadata.st_mode
+                ):
+                    return False
+            elif (
+                not stat.S_ISLNK(logical_metadata.st_mode)
+                or logical_metadata.st_uid != 0
+                or logical_metadata.st_gid != 0
+                or os.readlink(logical) != identity.link_target
+            ):
+                return False
+            resolved_metadata = resolved.stat(follow_symlinks=False)
+            if (
+                not stat.S_ISREG(resolved_metadata.st_mode)
+                or resolved_metadata.st_uid != 0
+                or resolved_metadata.st_gid != 0
+                or resolved_metadata.st_nlink != 1
+                or stat.S_IMODE(resolved_metadata.st_mode) != 0o755
+                or resolved_metadata.st_size != identity.size
+                or hashlib.sha256(resolved.read_bytes()).hexdigest()
+                != identity.sha256
+            ):
+                return False
+    except OSError:
+        return False
+    return True
+
+
+@unittest.skipUnless(
+    pinned_interpreters_available(),
+    "requires the exact pinned deployment-host interpreters",
+)
 class RetentionCycleRuntimeClosureTest(unittest.TestCase):
     def make_journal(self, host_boot_id: str = HOST_BOOT_ID):
         temporary = tempfile.TemporaryDirectory(prefix="rog5-runtime-")
