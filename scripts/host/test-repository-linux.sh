@@ -200,6 +200,13 @@ shared_tests=(
 	scripts/host/test-consume-generation11-boot-claim.py
 	scripts/host/test-consume-generation12-boot-claim.py
 	scripts/host/test-consume-exact-boot-claim.py
+	scripts/host/test-retention-cycle-sequence-reference.py
+	scripts/host/test-retention-cycle-transaction.py
+	scripts/host/test-retention-cycle-adapter.py
+	scripts/host/test-retention-cycle-executor-contract.py
+	scripts/host/test-retention-cycle-executor-boundary.py
+	scripts/host/test-retention-cycle-runtime-closure.py
+	scripts/host/test-retention-cycle-descriptor-execution.py
 	scripts/host/test-recovery-control-reference.py
 	scripts/host/test-recovery-control-native.py
 	scripts/host/test-recovery-progress-collector.py
@@ -208,6 +215,7 @@ shared_tests=(
 	scripts/host/test-verified-fastboot-boot.py
 	scripts/host/test-run-stable-recovery-live-gate.sh
 	scripts/host/test-current-production-recovery-profile.sh
+	scripts/host/test-current-observation-recovery-profile.sh
 	scripts/host/test-recovery-bundle-native.py
 	scripts/host/test-prepare-recovery-runtime-bundle.py
 	scripts/host/test-prepare-recovery-candidate.py

@@ -115,6 +115,7 @@ BOOT_ID = re.compile(
 LOCATION = re.compile(r"[A-Za-z0-9._:/+-]{1,512}\Z")
 CSI = re.compile(rb"\x1b\[[0-9;?]*[ -/]*[@-~]")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+FASTBOOT_SERIAL = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
 TARGET_CANDIDATE = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}\Z")
 PMIC_RESET_TRIGGERS = frozenset(
     {
@@ -2954,8 +2955,16 @@ def fail_fastboot_timeout(
     fail("a non-fastboot USB mode was observed at the anchored port")
 
 
-def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
+def wait_fastboot(
+    location: str,
+    timeout_seconds: int = 45,
+    expected_serial: str | None = None,
+) -> tuple[str, str]:
     fixed_binary(FASTBOOT)
+    if expected_serial is not None and not FASTBOOT_SERIAL.fullmatch(
+        expected_serial
+    ):
+        fail("expected fastboot serial is not canonical")
     deadline = time.monotonic() + timeout_seconds
     initial_identity = anchored_usb_identity(location)
     fallback_identity = (USB_VENDOR, USB_PRODUCT)
@@ -2992,6 +3001,8 @@ def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
             serial, state = devices[0]
             if state != "fastboot":
                 fail("USB device reached an unexpected fastboot state")
+            if expected_serial is not None and serial != expected_serial:
+                fail("fastboot serial differs from the retention contract")
             require_fastboot_usb(location, serial)
             product = subprocess.run(
                 [str(FASTBOOT), "-s", serial, "getvar", "product"],
@@ -3010,7 +3021,7 @@ def wait_fastboot(location: str, timeout_seconds: int = 45) -> None:
             if product.returncode != 0 or values != ["lahaina"]:
                 fail("fastboot product is not exactly lahaina")
             require_fastboot_usb(location, serial)
-            return
+            return serial, f"{FASTBOOT_VENDOR}:{FASTBOOT_PRODUCT}"
         time.sleep(0.25)
     fail_fastboot_timeout(location, saw_disconnect, reenumerated)
 
@@ -3174,6 +3185,23 @@ def main(arguments: list[str]) -> int:
     }
     if len(arguments) != expected_arguments[action]:
         fail(f"invalid arguments for fallback {action}")
+    result_mode = "0"
+    expected_location: str | None = None
+    expected_serial: str | None = None
+    if action == "reboot":
+        result_mode = os.environ.get("ROG5_RETENTION_BOOT_RESULT", "0")
+        if result_mode not in {"0", "1"}:
+            fail("ROG5_RETENTION_BOOT_RESULT must be exactly 0 or 1")
+        if result_mode == "1":
+            expected_location = os.environ.get(
+                "ROG5_EXPECTED_USB_LOCATION", ""
+            )
+            validate_location(expected_location)
+            expected_serial = os.environ.get(
+                "ROG5_EXPECTED_FASTBOOT_SERIAL", ""
+            )
+            if not FASTBOOT_SERIAL.fullmatch(expected_serial):
+                fail("expected fastboot serial is not canonical")
     fixed_binary(UDEVADM)
     fixed_binary(SSH_KEYGEN)
     if action in {
@@ -3238,9 +3266,24 @@ def main(arguments: list[str]) -> int:
         return 0
     if action == "reboot":
         require_fastboot_absent()
-        _, location, _ = probe(known_hosts, action="reboot")
-        wait_fastboot(location)
+        _, location, _ = probe(
+            known_hosts,
+            action="reboot",
+            expected_location=expected_location,
+        )
+        serial, product = wait_fastboot(
+            location,
+            expected_serial=expected_serial,
+        )
         print("PASS pinned Alpine fallback reached exact fastboot device")
+        if result_mode == "1":
+            print(
+                "ROG5_RETENTION_BOOT_RESULT_V1 action=fallback-reboot "
+                f"fastboot_serial={serial} "
+                "host_pin_sha256="
+                f"{hashlib.sha256(known_hosts).hexdigest()} "
+                f"product={product} usb_location={location}"
+            )
         return 0
     if action == "capture-ssh-postmortem":
         if output is None:

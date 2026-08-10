@@ -151,6 +151,8 @@ early_artifact_manifest_snapshot=
 fastboot=/usr/bin/fastboot
 fastboot_serial=${FASTBOOT_SERIAL:-}
 acm_timeout=${ACM_TIMEOUT:-90}
+retention_boot_result=${ROG5_RETENTION_BOOT_RESULT:-0}
+expected_usb_location=${ROG5_EXPECTED_USB_LOCATION:-}
 component_layout=
 expected_kernel=
 expected_raw=
@@ -1224,6 +1226,32 @@ find_rog5_acm() {
 	done
 }
 
+verify_retention_acm_location() {
+	local acm=$1 expected=$2 sysfs_path expected_prefix suffix leaf
+	[[ $expected =~ ^[A-Za-z0-9._:/-]{1,512}$ &&
+		$expected != /* && $expected != *..* ]] ||
+		fail 'retention USB location is not canonical'
+	sysfs_path=$(udevadm info --query=path --name="$acm" 2>/dev/null) ||
+		fail 'cannot resolve recovery ACM sysfs location'
+	[[ $sysfs_path =~ ^/devices/[A-Za-z0-9._:/-]+$ ]] ||
+		fail 'recovery ACM sysfs location is not canonical'
+	expected_prefix=/devices/$expected/
+	[[ $sysfs_path == "$expected_prefix"* ]] ||
+		fail 'recovery ACM enumerated on a different physical USB port'
+	suffix=${sysfs_path#"$expected_prefix"}
+	leaf=${expected##*/}
+	[[ $suffix == "$leaf:"*"/tty/${acm##*/}" ]] ||
+		fail 'recovery ACM sysfs ancestry is not exact'
+}
+
+[[ $retention_boot_result == 0 || $retention_boot_result == 1 ]] ||
+	fail 'ROG5_RETENTION_BOOT_RESULT must be exactly 0 or 1'
+if [[ $retention_boot_result == 1 ]]; then
+	[[ $expected_usb_location =~ ^[A-Za-z0-9._:/-]{1,512}$ &&
+		$expected_usb_location != /* && $expected_usb_location != *..* ]] ||
+		fail 'retention USB location is not canonical'
+fi
+
 [[ -z $(find_rog5_acm ROG5_recovery) ]] ||
 	fail 'recovery ACM already exists before temporary boot'
 python3 "$repo/scripts/host/verified-fastboot-boot.py" \
@@ -1240,3 +1268,8 @@ done
 	fail 'exact recovery ACM did not enumerate uniquely'
 echo "PASS temporary stable recovery ready at $acm"
 echo "INFO profile=$profile; no payload has been committed; rollback remains armed"
+if [[ $retention_boot_result == 1 ]]; then
+	verify_retention_acm_location "$acm" "$expected_usb_location"
+	printf 'ROG5_RETENTION_BOOT_RESULT_V1 action=execution-boot recovery_sha256=%s rollback_armed=1 usb_location=%s\n' \
+		"$expected_image" "$expected_usb_location"
+fi

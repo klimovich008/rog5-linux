@@ -141,6 +141,71 @@ unchanged. The joint verifier still reports undefined claims, zero policy
 `allow` rows, `authority=none`, `retention=unproven`,
 `missing_pstore=inconclusive`, and recommendation **HOLD**. Commit `adef485`
 and exact-head GitHub run `31363962284` pass.
+The observer side now has a separate
+[offline-only current HOLD gate](../test-results/2026-08-10-current-observation-recovery-live-gate-offline.md).
+It pins observation initramfs `b2440d8c…`, Image `eedb7deb…`, raw image
+`5daf0919…`, unsigned AVB `3c9b2820…`, and all retained verification inputs;
+connected actions fail before host inspection. Hard-linked retained trees are
+not admissible inputs. No claim, policy row, sequence runner, credential, or
+phone action was added, so the result remains **HOLD**.
+The next [offline sequence reference](../test-results/2026-08-10-retention-sequence-reference-offline.md)
+binds two distinct, still-unregistered draft claim bodies and models every
+irreversible boundary from execution preflight through one observer read. It
+rejects wrong order, duplicate operations, missing rollback, wrong port or
+serial, weak lineage, and retries; absent or ambiguous pstore remains
+inconclusive. The current gates still reject connected actions and no runner,
+claim, policy row, credential, or phone action exists, so **HOLD** is
+unchanged.
+The follow-on [offline transaction journal](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+provides the missing crash-synced handoff record. Its append-only canonical
+events bind one host boot, physical USB location, distinct target/fallback boot
+IDs, exact claim dispositions, same-port fastboot serial, both rollback-armed
+boot intents, and a preclaimed one-read postmortem budget. Ambiguous intent on
+process reopen is terminal and inconclusive, not retryable. The journal has no
+CLI, process, credential, or device surface and no existing live helper calls
+it; claims and policy remain empty and **HOLD** is unchanged.
+The [offline callback adapter](../test-results/2026-08-10-retention-cycle-adapter-offline.md)
+then binds six exact repository helper descriptors to those durable intents.
+Injected fixture callbacks can run only after the journal event is visible and
+fsynced; failure or malformed output leaves that intent terminal-only on
+reopen. Its fallback descriptor now uses the accepted nonce-framed ACM reboot
+helper, not the legacy SSH-key path. A separate
+[pure executor contract](../test-results/2026-08-10-retention-cycle-executor-contract-offline.md)
+pins the exact helper bytes, arguments, interpreters, closed environments,
+stream bounds, deadlines, and cleanup semantics without adding a launcher.
+The adapter and contract have no built-in executor or CLI and cannot open the
+canonical host-pin path they carry. The real gate profiles still reject boot,
+so ordering is proved without connected authority. Claims and policy remain
+empty and **HOLD** is unchanged.
+The [pure executor boundary](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+adds exact program/interpreter descriptor revalidation, public fallback
+host-pin snapshot validation, and fail-closed decoding without opening a path
+or launching a process. The follow-on
+[boot-output checkpoint](../test-results/2026-08-10-retention-cycle-boot-output-contract-offline.md)
+defines one exact terminal `rog5-retention-boot-result-v1` record and decodes
+all six action results only with matching descriptor attestation and journal
+lineage. Fallback reboot now reports its actually verified physical location,
+fastboot product/serial, and digest of the inspected public host pin. The
+selected production and observation recovery gates still cannot emit a
+successful record because both are HOLD; this is decoder/schema readiness,
+not execution readiness.
+The [offline runtime-closure fixture](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md)
+now holds those real descriptors and one fresh fsynced intent while proving
+new empty pipes, bounded fixed-writer process control, cross-cycle proof
+refusal, and exact six-action result-event release. Its decoded wrapper is
+explicitly adapter-ineligible. It does not execute the held production
+program/interpreter, so production descriptor execution, a live entry point,
+host-pin admission, claims, policy, and connected authority remain unproven or
+absent; **HOLD** remains mandatory.
+The [held-descriptor execution successor](../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md)
+now proves the missing exec mechanism with a pinned harmless probe. It executes
+the held interpreter by FD and the held program through `/proc/self/fd/198`,
+while independently reporting exact descriptor identities, closed process
+context, `0077` umask, devnull/bounded-pipe state, FD closure, and
+session/process-group isolation. Nine hostile groups and the expanded
+27-test admission suite pass. It is still adapter-ineligible and does not run
+the six production helpers; `production_descriptor_execution=unproven` and
+**HOLD** remain exact.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot

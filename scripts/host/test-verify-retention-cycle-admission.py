@@ -22,6 +22,24 @@ REPO = Path(__file__).resolve().parents[2]
 VERIFIER = REPO / "scripts/host/verify-retention-cycle-admission.py"
 PROFILE = REPO / "configs/retention-cycles/host-rendezvous-v3-observer-v1.json"
 CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
+SEQUENCE_REFERENCE = REPO / "scripts/host/retention-cycle-sequence-reference.py"
+TRANSACTION_FIXTURE = REPO / "scripts/host/retention-cycle-transaction.py"
+ADAPTER_FIXTURE = REPO / "scripts/host/retention-cycle-adapter.py"
+EXECUTOR_CONTRACT = (
+    REPO / "scripts/host/retention-cycle-executor-contract.py"
+)
+EXECUTOR_BOUNDARY = (
+    REPO / "scripts/host/retention-cycle-executor-boundary.py"
+)
+EXECUTOR_RUNTIME = (
+    REPO / "scripts/host/retention-cycle-runtime-closure.py"
+)
+EXECUTOR_DESCRIPTOR_RUNNER = (
+    REPO / "scripts/host/retention-cycle-descriptor-execution.py"
+)
+EXECUTOR_DESCRIPTOR_PROBE = (
+    REPO / "scripts/host/retention-cycle-descriptor-probe.py"
+)
 SPEC = importlib.util.spec_from_file_location(
     "verify_retention_cycle_admission", VERIFIER
 )
@@ -196,6 +214,70 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.consumer.parent.mkdir(parents=True)
         self.consumer.write_bytes(CONSUMER.read_bytes())
         self.consumer.chmod(0o755)
+        sequence_reference_record = self.profile["claims"]["sequence_reference"]
+        assert isinstance(sequence_reference_record, dict)
+        self.sequence_reference = self.repo / str(
+            sequence_reference_record["path"]
+        )
+        self.sequence_reference.parent.mkdir(parents=True, exist_ok=True)
+        self.sequence_reference.write_bytes(SEQUENCE_REFERENCE.read_bytes())
+        self.sequence_reference.chmod(0o755)
+        transaction_record = self.profile["claims"]["transaction_fixture"]
+        assert isinstance(transaction_record, dict)
+        self.transaction_fixture = self.repo / str(
+            transaction_record["path"]
+        )
+        self.transaction_fixture.parent.mkdir(parents=True, exist_ok=True)
+        self.transaction_fixture.write_bytes(TRANSACTION_FIXTURE.read_bytes())
+        self.transaction_fixture.chmod(0o644)
+        adapter_record = self.profile["claims"]["adapter_fixture"]
+        assert isinstance(adapter_record, dict)
+        self.adapter_fixture = self.repo / str(adapter_record["path"])
+        self.adapter_fixture.parent.mkdir(parents=True, exist_ok=True)
+        self.adapter_fixture.write_bytes(ADAPTER_FIXTURE.read_bytes())
+        self.adapter_fixture.chmod(0o644)
+        executor_record = self.profile["claims"]["executor_contract"]
+        assert isinstance(executor_record, dict)
+        self.executor_contract = self.repo / str(executor_record["path"])
+        self.executor_contract.parent.mkdir(parents=True, exist_ok=True)
+        self.executor_contract.write_bytes(EXECUTOR_CONTRACT.read_bytes())
+        self.executor_contract.chmod(0o644)
+        boundary_record = self.profile["claims"]["executor_boundary"]
+        assert isinstance(boundary_record, dict)
+        self.executor_boundary = self.repo / str(boundary_record["path"])
+        self.executor_boundary.parent.mkdir(parents=True, exist_ok=True)
+        self.executor_boundary.write_bytes(EXECUTOR_BOUNDARY.read_bytes())
+        self.executor_boundary.chmod(0o644)
+        runtime_record = self.profile["claims"]["executor_runtime"]
+        assert isinstance(runtime_record, dict)
+        self.executor_runtime = self.repo / str(runtime_record["path"])
+        self.executor_runtime.parent.mkdir(parents=True, exist_ok=True)
+        self.executor_runtime.write_bytes(EXECUTOR_RUNTIME.read_bytes())
+        self.executor_runtime.chmod(0o644)
+        descriptor_record = self.profile["claims"][
+            "executor_descriptor_fixture"
+        ]
+        assert isinstance(descriptor_record, dict)
+        self.executor_descriptor_runner = self.repo / str(
+            descriptor_record["runner_path"]
+        )
+        self.executor_descriptor_runner.parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        self.executor_descriptor_runner.write_bytes(
+            EXECUTOR_DESCRIPTOR_RUNNER.read_bytes()
+        )
+        self.executor_descriptor_runner.chmod(0o644)
+        self.executor_descriptor_probe = self.repo / str(
+            descriptor_record["probe_path"]
+        )
+        self.executor_descriptor_probe.parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        self.executor_descriptor_probe.write_bytes(
+            EXECUTOR_DESCRIPTOR_PROBE.read_bytes()
+        )
+        self.executor_descriptor_probe.chmod(0o644)
         claims = self.profile["claims"]
         assert isinstance(claims, dict)
         claims["consumer_size"] = self.consumer.stat().st_size
@@ -602,6 +684,31 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.assertIn("recovery_init_sha256=", report)
         self.assertIn("recovery_control_source_sha256=", report)
         self.assertIn("recovery_control_binary_sha256=", report)
+        self.assertIn("sequence_reference_sha256=", report)
+        self.assertIn("transaction_fixture_sha256=", report)
+        self.assertIn("transaction_fixture=offline-only", report)
+        self.assertIn("adapter_fixture_sha256=", report)
+        self.assertIn("adapter_fixture=callback-only", report)
+        self.assertIn("executor_contract_sha256=", report)
+        self.assertIn("executor_contract=pure-offline-only", report)
+        self.assertIn("executor_boundary_sha256=", report)
+        self.assertIn(
+            "executor_boundary=six-decodable-two-hold-gates", report
+        )
+        self.assertIn("executor_runtime_sha256=", report)
+        self.assertIn(
+            "executor_runtime=offline-fresh-pipe-adapter-ineligible",
+            report,
+        )
+        self.assertIn("executor_descriptor_runner_sha256=", report)
+        self.assertIn("executor_descriptor_probe_sha256=", report)
+        self.assertIn(
+            "fixture_descriptor_execution=held-fd-proven-adapter-ineligible",
+            report,
+        )
+        self.assertIn("production_descriptor_execution=unproven", report)
+        self.assertIn("fallback_boot_result=guarded-producer-defined", report)
+        self.assertIn("draft_claims=unregistered", report)
         self.assertIn("recommendation=HOLD", report)
 
     def test_execution_requires_the_project_trust_class(self) -> None:
@@ -781,6 +888,41 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             ("observer.role", "target-execution-v1", "roles are not fail-closed"),
             ("claims.execution", "issued", "claim policy is not exact"),
             ("claims.reuse", "allowed", "claim policy is not exact"),
+            (
+                "claims.sequence_reference.execution_identifier",
+                "replacement",
+                "sequence reference contract is not exact",
+            ),
+            (
+                "claims.transaction_fixture.live_entrypoint",
+                "run",
+                "transaction fixture contract is not exact",
+            ),
+            (
+                "claims.adapter_fixture.builtin_executor",
+                "subprocess",
+                "adapter fixture contract is not exact",
+            ),
+            (
+                "claims.executor_contract.builtin_executor",
+                "subprocess",
+                "executor contract is not exact",
+            ),
+            (
+                "claims.executor_boundary.live_entrypoint",
+                "run",
+                "executor boundary is not exact",
+            ),
+            (
+                "claims.executor_runtime.adapter_wiring",
+                "live",
+                "executor runtime closure is not exact",
+            ),
+            (
+                "claims.executor_descriptor_fixture.adapter_wiring",
+                "live",
+                "executor descriptor fixture is not exact",
+            ),
         )
         baseline = copy.deepcopy(self.profile)
         for dotted, value, message in cases:
@@ -795,6 +937,135 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
                 target[parts[-1]] = value
                 self.save_profile()
                 self.assert_rejected(message)
+
+    def test_sequence_reference_is_exact_and_nonconsumable(self) -> None:
+        self.sequence_reference.write_bytes(
+            self.sequence_reference.read_bytes().replace(
+                b"reference-only", b"reference-ONLY", 1
+            )
+        )
+        self.assert_rejected("sequence reference")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        reference = claims["sequence_reference"]
+        assert isinstance(reference, dict)
+        reference["size"] = True
+        self.save_profile()
+        self.assert_rejected("sequence reference contract is not exact")
+
+    def test_transaction_fixture_is_exact_and_offline_only(self) -> None:
+        self.transaction_fixture.write_bytes(
+            self.transaction_fixture.read_bytes().replace(
+                b"append-only", b"append_ONLY", 1
+            )
+        )
+        self.assert_rejected("transaction fixture")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        fixture = claims["transaction_fixture"]
+        assert isinstance(fixture, dict)
+        fixture["policy_allow_rows"] = 1
+        self.save_profile()
+        self.assert_rejected("transaction fixture contract is not exact")
+
+    def test_adapter_fixture_is_exact_and_callback_only(self) -> None:
+        self.adapter_fixture.write_bytes(
+            self.adapter_fixture.read_bytes().replace(
+                b"Callback-only", b"Callback_ONLY", 1
+            )
+        )
+        self.assert_rejected("adapter fixture")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        fixture = claims["adapter_fixture"]
+        assert isinstance(fixture, dict)
+        fixture["journal_sha256"] = "f" * 64
+        self.save_profile()
+        self.assert_rejected("adapter fixture contract is not exact")
+
+    def test_executor_contract_is_exact_and_has_no_executor(self) -> None:
+        self.executor_contract.write_bytes(
+            self.executor_contract.read_bytes().replace(
+                b"Pure process", b"PURE process", 1
+            )
+        )
+        self.assert_rejected("executor contract")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        contract = claims["executor_contract"]
+        assert isinstance(contract, dict)
+        contract["adapter_sha256"] = "f" * 64
+        self.save_profile()
+        self.assert_rejected("executor contract is not exact")
+
+    def test_executor_boundary_is_exact_and_tracks_live_producers(self) -> None:
+        self.executor_boundary.write_bytes(
+            self.executor_boundary.read_bytes().replace(
+                b"guarded-producer-defined", b"guarded-producer-defineD", 1
+            )
+        )
+        self.assert_rejected("executor boundary")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        boundary = claims["executor_boundary"]
+        assert isinstance(boundary, dict)
+        producers = boundary["live_producer_state"]
+        assert isinstance(producers, dict)
+        producers["fallback-reboot"] = "unreviewed"
+        self.save_profile()
+        self.assert_rejected("executor boundary is not exact")
+
+    def test_executor_runtime_is_exact_and_adapter_ineligible(self) -> None:
+        self.executor_runtime.write_bytes(
+            self.executor_runtime.read_bytes().replace(
+                b"fresh-intent/fresh-pipe", b"fresh-intent/fresh_pipe", 1
+            )
+        )
+        self.assert_rejected("executor runtime closure")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        runtime = claims["executor_runtime"]
+        assert isinstance(runtime, dict)
+        runtime["transaction_sha256"] = "f" * 64
+        self.save_profile()
+        self.assert_rejected("executor runtime closure is not exact")
+
+    def test_executor_descriptor_fixture_is_exact_and_offline_only(self) -> None:
+        self.executor_descriptor_runner.write_bytes(
+            self.executor_descriptor_runner.read_bytes().replace(
+                b"held file descriptors", b"held file descriptorS", 1
+            )
+        )
+        self.assert_rejected("executor descriptor runner")
+
+        self.reset_fixture()
+        self.executor_descriptor_probe.write_bytes(
+            self.executor_descriptor_probe.read_bytes().replace(
+                b"Harmless child probe", b"Harmless child probE", 1
+            )
+        )
+        self.assert_rejected("executor descriptor probe")
+
+        self.reset_fixture()
+        claims = self.profile["claims"]
+        assert isinstance(claims, dict)
+        descriptor = claims["executor_descriptor_fixture"]
+        assert isinstance(descriptor, dict)
+        descriptor["production_descriptor_execution"] = "proven"
+        self.save_profile()
+        self.assert_rejected("executor descriptor fixture is not exact")
 
     def test_policy_allow_or_malformed_row_fails_closed(self) -> None:
         for payload, message in (
@@ -1374,8 +1645,11 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.assertTrue(VERIFIER.is_file())
         self.assertTrue(PROFILE.is_file())
         source = VERIFIER.read_text(encoding="utf-8")
-        self.assertNotIn("fastboot", source.lower())
         self.assertNotIn("ALLOW_TEMPORARY_BOOT", source)
+        self.assertNotIn("/usr/bin/fastboot", source)
+        self.assertNotIn("subprocess.Popen", source)
+        self.assertNotIn("shell=True", source)
+        self.assertNotIn("os.exec", source)
         self.assertNotIn("generation13", source.lower())
 
 

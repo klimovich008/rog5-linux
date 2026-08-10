@@ -553,6 +553,89 @@ retention experiment must use distinct one-use execution and observation
 recovery identities; it may not replay one candidate after an ambiguous
 result.
 
+The exact transaction is now specified by a pure
+[two-claim sequence reference](../test-results/2026-08-10-retention-sequence-reference-offline.md).
+Its two unregistered draft records bind one cycle digest, both recovery AVBs,
+the candidate, and runtime manifest. The state model places the execution
+claim before its rollback-armed recovery, then requires correlated target and
+fallback evidence, the read-only ramoops transition preflight, and same-port
+bootloader proof before the observer claim can be entered. Observer boot must
+retain that port/serial lineage and rollback, and exactly one candidate/boot-ID
+postmortem read terminates the model. Failures preserve the exact already
+consumed claim set and never authorize retry. The model has no filesystem,
+credential, process, or device surface; its draft records remain absent from
+the generic consumer, so it is not a live runner or boot authority.
+
+The separate [offline transaction journal](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+defines the crash-safe handoff that the future runner must consume. It uses
+one cycle-digest directory and append-only, no-follow, single-link canonical
+events with a SHA-256 predecessor chain, file and directory `fsync`, pathname
+revalidation, and a nonblocking writer lock. The initial event fixes the host
+boot ID and USB location; later events bind distinct target/fallback boot IDs,
+both claim states, exact fastboot product/serial, both recovery intents, and a
+single preclaimed `postmortem-status` read. A reopened ambiguous intent is
+terminal-only. This module has no live entry point and does not call any
+existing helper or claim consumer; it therefore does not grant authority.
+
+The [callback adapter fixture](../test-results/2026-08-10-retention-cycle-adapter-offline.md)
+adds the exact helper-to-intent map without implementing an executor. Its six
+descriptors cover the two generic claim-consumer calls, production recovery
+boot gate, nonce-framed ACM fallback `RESTART2` helper, observation gate, and
+candidate/boot-ID postmortem read. Tests inject callbacks and prove the
+corresponding event is already the last fsynced journal record. Callback
+failure or invalid output cannot advance the transaction, and a reopened
+intent cannot be called again. The separate
+[executor contract](../test-results/2026-08-10-retention-cycle-executor-contract-offline.md)
+is also pure data: it pins all helper bytes and modes, `/usr/bin/python3 -B`
+or `/usr/bin/bash --noprofile --norc`, exact parent-independent environments,
+devnull stdin, separate bounded stdout/stderr, deadlines, process-group
+cleanup, and exit-code/protocol labels. It carries one canonical unopened
+known-hosts path for ACM fallback and no private-key input. Neither module
+launches a process or opens credentials, so current HOLD gates and empty
+claim/policy state remain authoritative.
+
+The [pure descriptor/output boundary](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+models what a later launcher would have to prove, but performs no I/O. Every
+program is a single-link repository-owner-owned regular file opened no-follow and matched
+to its contract hash. `/usr/bin/python3` additionally binds and revalidates
+its `python3.13` symlink target; Bash is pinned directly. The fallback host pin
+must be one caller-owned mode-`0600` public Ed25519 record beneath a
+caller-owned mode-`0700` directory, with descriptor/path identity preserved.
+The exact claim and postmortem outputs are decodable. The follow-on boot-result
+contract accepts one canonical final record for each boot transition only when
+it exactly matches the journal inputs and validated descriptor evidence.
+Fallback ACM reboot now binds the verified physical location, exact
+`0b05:4daf` fastboot product/serial, and the digest of the inspected public
+host-pin snapshot. The execution and observation schemas are testable, but
+their selected gates remain HOLD and have no current successful producer.
+The boundary still supplies no executor, credential access, or authority.
+
+The follow-on [offline runtime fixture](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md)
+now binds those pure objects to an actual, disconnected child lifecycle. It
+holds and revalidates the fsynced intent plus exact program, interpreter, and
+optional public-pin descriptors; creates distinct empty CLOEXEC pipes only
+after that intent; generates a kernel nonce; and bounds output, deadline,
+process-group termination, and unrelated descriptor closure. One hostile test
+walks all six actions through a single journal and permits the next action only
+after one exact result event is durable, its canonical data equals the result
+decoded from the fresh pipes, and its descriptor-relative pathname is
+revalidated immediately before marker release. Its fixed writer never invokes the
+reviewed `ProcessSpec.argv`, so the decoded wrapper remains authority-free and
+adapter-ineligible. Production descriptor execution is explicitly unproven,
+and there is still no launcher, claim, credential, recovery-gate wiring, or
+phone authority.
+
+The separate [held-descriptor execution fixture](../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md)
+now crosses the next process boundary without touching those helpers. It
+`fexecve`s the pinned Python interpreter, names an exact harmless probe through
+held descriptor 198, enters the held repository with `fchdir()`, and proves a
+closed environment, `0077` umask, devnull/FIFO plumbing, new session/process
+group, and exact open-FD inventory. Timeout, descendant, overflow, nonzero
+exit, path replacement, process-context mutation, and proof substitution fail
+closed. This is mechanism evidence only: production helper execution remains
+unproven, and no adapter, credential, claim, recovery gate, or phone authority
+was added.
+
 The fallback leg now has a separate machine-enforced read-only preflight:
 
 ```text

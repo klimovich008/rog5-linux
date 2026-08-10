@@ -9,6 +9,7 @@ from collections import OrderedDict
 import ctypes
 import errno
 import hashlib
+import io
 import importlib.util
 import os
 from pathlib import Path
@@ -3389,7 +3390,177 @@ class PolicyTest(unittest.TestCase):
                     side_effect=[devices, product],
                 ),
             ):
-                MODULE.wait_fastboot(location, timeout_seconds=1)
+                self.assertEqual(
+                    MODULE.wait_fastboot(
+                        location,
+                        timeout_seconds=1,
+                        expected_serial="test-device",
+                    ),
+                    ("test-device", "0b05:4daf"),
+                )
+
+            with (
+                mock.patch.object(MODULE, "SYS_DEVICES", root),
+                mock.patch.object(MODULE, "SYS_BUS_USB", bus),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=devices,
+                ),
+                self.assertRaisesRegex(
+                    MODULE.FallbackError,
+                    "fastboot serial differs from the retention contract",
+                ),
+            ):
+                MODULE.wait_fastboot(
+                    location,
+                    timeout_seconds=1,
+                    expected_serial="other-device",
+                )
+
+    def test_reboot_emits_one_grounded_retention_result(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        serial = "test-device"
+        pin = b"exact-public-pin\n"
+        known_hosts = Path("/private/fallback-known-hosts")
+        environment = {
+            "ROG5_RETENTION_BOOT_RESULT": "1",
+            "ROG5_EXPECTED_USB_LOCATION": location,
+            "ROG5_EXPECTED_FASTBOOT_SERIAL": serial,
+        }
+        with (
+            mock.patch.dict(os.environ, environment, clear=True),
+            mock.patch.object(MODULE, "require_guards"),
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(MODULE, "require_modem_manager_inactive"),
+            mock.patch.object(
+                MODULE,
+                "canonical_private_file",
+                return_value=known_hosts,
+            ),
+            mock.patch.object(
+                MODULE, "verify_known_hosts", return_value=pin
+            ),
+            mock.patch.object(MODULE, "require_fastboot_absent"),
+            mock.patch.object(
+                MODULE,
+                "probe",
+                return_value=({}, location, {}),
+            ) as probe,
+            mock.patch.object(
+                MODULE,
+                "wait_fastboot",
+                return_value=(serial, "0b05:4daf"),
+            ) as wait_fastboot,
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            self.assertEqual(
+                MODULE.main(["reboot", str(known_hosts)]),
+                0,
+            )
+        probe.assert_called_once_with(
+            pin,
+            action="reboot",
+            expected_location=location,
+        )
+        wait_fastboot.assert_called_once_with(
+            location,
+            expected_serial=serial,
+        )
+        self.assertEqual(
+            output.getvalue(),
+            "PASS pinned Alpine fallback reached exact fastboot device\n"
+            "ROG5_RETENTION_BOOT_RESULT_V1 action=fallback-reboot "
+            f"fastboot_serial={serial} "
+            f"host_pin_sha256={hashlib.sha256(pin).hexdigest()} "
+            f"product=0b05:4daf usb_location={location}\n",
+        )
+
+        for hostile in (
+            {"ROG5_RETENTION_BOOT_RESULT": "2"},
+            {
+                "ROG5_RETENTION_BOOT_RESULT": "1",
+                "ROG5_EXPECTED_USB_LOCATION": "",
+                "ROG5_EXPECTED_FASTBOOT_SERIAL": serial,
+            },
+            {
+                "ROG5_RETENTION_BOOT_RESULT": "1",
+                "ROG5_EXPECTED_USB_LOCATION": location,
+                "ROG5_EXPECTED_FASTBOOT_SERIAL": "bad serial",
+            },
+        ):
+            with (
+                self.subTest(hostile=hostile),
+                mock.patch.dict(os.environ, hostile, clear=True),
+                mock.patch.object(MODULE, "require_guards"),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE, "require_modem_manager_inactive"
+                ),
+                mock.patch.object(
+                    MODULE, "canonical_private_file"
+                ) as blocked_pin,
+                mock.patch.object(MODULE, "verify_known_hosts"),
+                mock.patch.object(
+                    MODULE, "require_fastboot_absent"
+                ) as blocked_inventory,
+                mock.patch.object(MODULE, "probe") as blocked_probe,
+                self.assertRaises(MODULE.FallbackError),
+            ):
+                MODULE.main(["reboot", str(known_hosts)])
+            blocked_pin.assert_not_called()
+            blocked_inventory.assert_not_called()
+            blocked_probe.assert_not_called()
+
+    def test_reboot_without_result_mode_preserves_existing_output(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        serial = "test-device"
+        pin = b"exact-public-pin\n"
+        known_hosts = Path("/private/fallback-known-hosts")
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch.object(MODULE, "require_guards"),
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(MODULE, "require_modem_manager_inactive"),
+            mock.patch.object(
+                MODULE,
+                "canonical_private_file",
+                return_value=known_hosts,
+            ),
+            mock.patch.object(
+                MODULE, "verify_known_hosts", return_value=pin
+            ),
+            mock.patch.object(MODULE, "require_fastboot_absent"),
+            mock.patch.object(
+                MODULE,
+                "probe",
+                return_value=({}, location, {}),
+            ) as probe,
+            mock.patch.object(
+                MODULE,
+                "wait_fastboot",
+                return_value=(serial, "0b05:4daf"),
+            ) as wait_fastboot,
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            self.assertEqual(
+                MODULE.main(["reboot", str(known_hosts)]),
+                0,
+            )
+        probe.assert_called_once_with(
+            pin,
+            action="reboot",
+            expected_location=None,
+        )
+        wait_fastboot.assert_called_once_with(
+            location,
+            expected_serial=None,
+        )
+        self.assertEqual(
+            output.getvalue(),
+            "PASS pinned Alpine fallback reached exact fastboot device\n",
+        )
 
     def test_fastboot_rejects_wrong_port_product_state_and_inventory(
         self,
