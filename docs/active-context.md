@@ -210,6 +210,16 @@ ramoops, claim-consumer, and empty-policy identities without contacting the
 phone. The two future claim records remain intentionally undefined and
 physical retention remains unproven, so the critical path remains **HOLD**.
 
+That review has since been
+[refrozen with the Haven-aware responder](../test-results/2026-08-10-haven-retention-observer-refreeze-offline.md).
+The profile now pins the repository init and a reproducible AArch64 responder
+build record through exact source, builder script, image/toolchain, and output
+identities, then proves that both the execution and observation archives embed
+those bytes. Distinct clean-twin ASUS wrappers pass the joint verifier with
+zero policy rows and no claim records. This closes an offline stale-responder
+gap only; physical ramoops retention and reset cause remain unproven, so the
+critical path remains **HOLD**.
+
 ## Current observability increment
 
 Generation 10 is consumed after ACM exposed only `REQUEST_ACCEPTED` despite a

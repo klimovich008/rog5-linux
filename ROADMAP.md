@@ -801,7 +801,13 @@ Current execution order:
     a normal SSH candidate only after physical evidence locates and the
     implementation fixes the failing boundary. The
     authority-free [v3 rebind proof](test-results/2026-08-09-host-rendezvous-v3-candidate-rebind-offline.md)
-    is retained locally with candidate admission still on hold.
+    is retained locally with candidate admission still on hold. The shell-free
+    Haven-watchdog correction is now source/builder/output-bound into a new
+    [execution/observer refreeze](test-results/2026-08-10-haven-retention-observer-refreeze-offline.md).
+    Both roles have distinct clean-twin ASUS wrappers and pass the joint
+    authority-free verifier; no physical retention result, claim, policy row,
+    production signature, or boot authority exists. Admission remains
+    **HOLD**.
 31. If H2 passes, continue physical keys/indicator, then H3
     power/charging/thermal/suspend and H4 sensors.
 

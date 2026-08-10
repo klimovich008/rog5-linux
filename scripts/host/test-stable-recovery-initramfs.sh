@@ -34,7 +34,7 @@ supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
 public_key_source=generated
 
 for command in chmod cmp cp cpio cut find findmnt git grep gzip head id locale \
-	mkdir mktemp openssl podman realpath rm sed sha256sum sort stat tail touch; do
+	mkdir mktemp openssl podman python3 realpath rm sed sha256sum sort stat tail touch; do
 	command -v "$command" >/dev/null ||
 		fail "missing stable-recovery test command: $command"
 done
@@ -154,6 +154,8 @@ done
 for binary in rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
 	cmp "$test_tmp/$binary-a" "$test_tmp/$binary-b"
 done
+python3 "$repo/scripts/host/test-recovery-control-build-record.py" \
+	--binary "$test_tmp/rog5-recovery-control-a"
 
 if [[ -n $supplied_public_key ]]; then
 	public_key_source=supplied

@@ -124,6 +124,14 @@ and unsigned-AVB composition, transition order, absent new claims, and empty
 temporary-boot policy. Hostile offline tests pass, but no physical retention
 result, candidate issuance, credential, or boot authority exists. Admission
 therefore remains **HOLD**.
+The [Haven-aware retention refreeze](../test-results/2026-08-10-haven-retention-observer-refreeze-offline.md)
+supersedes the retained execution/observer bytes without changing authority.
+Its repository-owned build record binds the exact recovery responder source,
+builder, pinned ARM64 image/toolchain, and reproducible output before both
+recovery archives are accepted. The distinct clean twins pass the joint
+authority-free review, but no physical retention result, new claim, policy
+row, production signature, or boot authority exists. Admission remains
+**HOLD**.
 The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. A host-only, unissued
 stage-75/current-cycle-postmortem successor is the active work and has no boot
