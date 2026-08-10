@@ -27,6 +27,7 @@ class InitPolicyTest(unittest.TestCase):
         functions = []
         for name in (
             "udc_candidate_count",
+            "udc_candidates_are_known",
             "validate_expected_udc_once",
             "validate_expected_udc",
             "expected_udc_is_bound",
@@ -60,6 +61,9 @@ class InitPolicyTest(unittest.TestCase):
                 "set -u\n"
                 + self.recovery_udc_functions()
                 + f"\nexpected_udc=a600000.dwc3\n"
+                + "expected_udc_companion=a800000.dwc3\n"
+                + "expected_udc_test=dummy_udc.0\n"
+                + "expected_udc_inventory_count=3\n"
                 + f"udc_class_dir={udc_class}\n"
                 + f"gadget={gadget}\n"
                 + "udc_poll_attempts=2\n"
@@ -169,9 +173,9 @@ class InitPolicyTest(unittest.TestCase):
             source,
         )
 
-    def test_recovery_udc_selection_accepts_only_one_exact_controller(self) -> None:
+    def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
         accepted = self.run_recovery_udc_case(
-            ("a600000.dwc3",),
+            ("a600000.dwc3", "a800000.dwc3", "dummy_udc.0"),
             'selected=$(bind_expected_udc) || exit 20\n'
             '[ "$selected" = "$expected_udc" ] || exit 21\n'
             '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 22\n',
@@ -180,7 +184,9 @@ class InitPolicyTest(unittest.TestCase):
 
         delayed = self.run_recovery_udc_case(
             (),
-            'sleep() { mkdir -p "$udc_class_dir/$expected_udc"; }\n'
+            'sleep() { mkdir -p "$udc_class_dir/$expected_udc" '
+            '"$udc_class_dir/a800000.dwc3" '
+            '"$udc_class_dir/dummy_udc.0"; }\n'
             'selected=$(bind_expected_udc) || exit 23\n'
             '[ "$selected" = "$expected_udc" ] || exit 24\n'
             '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 25\n',
@@ -190,8 +196,21 @@ class InitPolicyTest(unittest.TestCase):
         hostile = (
             (),
             ("wrong.dwc3",),
-            ("renamed-a600000.dwc3",),
+            (
+                "renamed-a600000.dwc3",
+                "a800000.dwc3",
+                "dummy_udc.0",
+            ),
             ("a600000.dwc3", "wrong.dwc3"),
+            ("a600000.dwc3",),
+            ("a600000.dwc3", "a800000.dwc3"),
+            ("a600000.dwc3", "dummy_udc.0"),
+            (
+                "a600000.dwc3",
+                "a800000.dwc3",
+                "dummy_udc.0",
+                "wrong.dwc3",
+            ),
         )
         for candidates in hostile:
             with self.subTest(candidates=candidates):
@@ -204,7 +223,7 @@ class InitPolicyTest(unittest.TestCase):
 
     def test_recovery_udc_selection_rejects_changing_candidates(self) -> None:
         changed_during_selection = self.run_recovery_udc_case(
-            ("a600000.dwc3",),
+            ("a600000.dwc3", "a800000.dwc3", "dummy_udc.0"),
             'sleep() {\n'
             '  rm -rf "$udc_class_dir/$expected_udc"\n'
             '  mkdir "$udc_class_dir/wrong.dwc3"\n'
@@ -219,7 +238,7 @@ class InitPolicyTest(unittest.TestCase):
         )
 
         changed_before_bind = self.run_recovery_udc_case(
-            ("a600000.dwc3",),
+            ("a600000.dwc3", "a800000.dwc3", "dummy_udc.0"),
             'select_expected_udc() { printf "%s\\n" "$expected_udc"; }\n'
             'validate_expected_udc() { return 1; }\n'
             'if bind_expected_udc >/dev/null; then exit 42; fi\n'
@@ -232,7 +251,7 @@ class InitPolicyTest(unittest.TestCase):
         )
 
         changed_after_bind = self.run_recovery_udc_case(
-            ("a600000.dwc3",),
+            ("a600000.dwc3", "a800000.dwc3", "dummy_udc.0"),
             'expected_udc_is_bound() { return 1; }\n'
             'if bind_expected_udc >/dev/null; then exit 44; fi\n'
             '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || exit 45\n',

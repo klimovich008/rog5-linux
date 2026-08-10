@@ -210,10 +210,18 @@ The complete 18-field lifecycle parser correction is published through
 `606303a` with green exact-head run `30952333022`. Successor v2 was consumed
 before any phone boot while exposing a mismatch between the generic claim
 consumer's account-home guard and the lifecycle verifier's XDG-state guard
-lookup; it must never be retried. The active successor is
-`headless-diagnostic-host-rendezvous-v3-live-v3`: it is eligible for one
-reversible RAM-only cycle only after the verifier correction passes exact-head
-CI, and no v3 claim is issued yet.
+lookup; it must never be retried. Successor v3 was then consumed once after
+exact-head run `31395428663`: fastboot accepted the sealed recovery image, but
+no recovery ACM ever enumerated and the exact Alpine fallback returned on the
+same USB port about 21.4 seconds after fastboot disconnected. Bounded fallback
+evidence reports `PS_HOLD` / `HARD_RESET`, no PMIC-watchdog signal, and empty
+temporarily mounted pstore; the empty result remains inconclusive because no
+retained marker had first been proven. The physical ASUS 5.4 wrapper exposes
+the exact UDC inventory `a600000.dwc3`, `a800000.dwc3`, and `dummy_udc.0`, while
+recovery-init rejected every total count other than one. The implementation
+successor now requires exactly that three-name inventory, selects only
+`a600000.dwc3`, and rejects unknown, missing, renamed, extra, or changing
+entries. No v4 candidate, claim, or phone boot exists yet.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

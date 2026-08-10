@@ -10,6 +10,9 @@ zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
 bundle_root=/run/rog5-bundles
 recovery_mode_file=/etc/rog5/recovery-mode
 expected_udc=a600000.dwc3
+expected_udc_companion=a800000.dwc3
+expected_udc_test=dummy_udc.0
+expected_udc_inventory_count=3
 udc_class_dir=/sys/class/udc
 udc_poll_attempts=200
 
@@ -215,16 +218,28 @@ udc_candidate_count() {
 	printf '%s\n' "$count"
 }
 
-validate_expected_udc_once() {
-	count=0
-	selected=
+udc_candidates_are_known() {
 	for candidate in "$udc_class_dir"/*; do
 		[ -e "$candidate" ] || continue
-		count=$((count + 1))
-		selected=$(basename "$candidate") || return 1
+		name=$(basename "$candidate") || return 1
+		case $name in
+			"$expected_udc"|"$expected_udc_companion"|"$expected_udc_test") ;;
+			*) return 1 ;;
+		esac
 	done
-	[ "$count" -eq 1 ] && [ "$selected" = "$expected_udc" ] ||
-		return 1
+}
+
+validate_expected_udc_once() {
+	count=$(udc_candidate_count) || return 1
+	[ "$count" -eq "$expected_udc_inventory_count" ] || return 1
+	udc_candidates_are_known || return 1
+	for required in \
+		"$expected_udc" "$expected_udc_companion" "$expected_udc_test"
+	do
+		[ -e "$udc_class_dir/$required" ] || return 1
+	done
+	selected=$(basename "$udc_class_dir/$expected_udc") || return 1
+	[ "$selected" = "$expected_udc" ] || return 1
 	printf '%s\n' "$selected"
 }
 
@@ -242,15 +257,15 @@ select_expected_udc() {
 	attempt=0
 	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
 		candidate_count=$(udc_candidate_count) || return 1
-		case $candidate_count in
-			0)
-				sleep 0.1
-				attempt=$((attempt + 1))
-				continue
-				;;
-			1) ;;
-			*) return 1 ;;
-		esac
+		if [ "$candidate_count" -lt "$expected_udc_inventory_count" ]; then
+			udc_candidates_are_known || return 1
+			sleep 0.1
+			attempt=$((attempt + 1))
+			continue
+		fi
+		[ "$candidate_count" -eq "$expected_udc_inventory_count" ] ||
+			return 1
+		udc_candidates_are_known || return 1
 		first=$(validate_expected_udc) || return 1
 		sleep 0.1
 		second=$(validate_expected_udc) || return 1
