@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import resource
 import signal
+import stat
 import time
 from unittest import mock
 import unittest
@@ -38,6 +39,37 @@ def load_module(name: str, path: Path):
 EXECUTION = load_module("rog5_retention_descriptor_execution", SOURCE)
 
 
+def pinned_interpreter_available() -> bool:
+    """Return true only on the exact deployment host runtime."""
+
+    try:
+        logical = EXECUTION.INTERPRETER_LOGICAL.lstat()
+        resolved = EXECUTION.INTERPRETER_RESOLVED.stat(follow_symlinks=False)
+        return (
+            stat.S_ISLNK(logical.st_mode)
+            and logical.st_uid == 0
+            and logical.st_gid == 0
+            and os.readlink(EXECUTION.INTERPRETER_LOGICAL)
+            == EXECUTION.INTERPRETER_LINK_TARGET
+            and stat.S_ISREG(resolved.st_mode)
+            and resolved.st_uid == 0
+            and resolved.st_gid == 0
+            and resolved.st_nlink == 1
+            and stat.S_IMODE(resolved.st_mode) == EXECUTION.INTERPRETER_MODE
+            and resolved.st_size == EXECUTION.INTERPRETER_SIZE
+            and hashlib.sha256(
+                EXECUTION.INTERPRETER_RESOLVED.read_bytes()
+            ).hexdigest()
+            == EXECUTION.INTERPRETER_SHA256
+        )
+    except OSError:
+        return False
+
+
+@unittest.skipUnless(
+    pinned_interpreter_available(),
+    "requires the exact pinned deployment-host interpreter",
+)
 class RetentionCycleDescriptorExecutionTest(unittest.TestCase):
     def prepare(self, mode: str = "success"):
         prepared = EXECUTION.prepare_fixture(mode)
