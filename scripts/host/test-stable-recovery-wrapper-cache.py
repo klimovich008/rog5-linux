@@ -37,6 +37,7 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
             "repack_script": b"#!/bin/sh\nexit 0\n",
             "boot_template": b"boot-template\n",
             "mkbootimg": b"mkbootimg\n",
+            "gki_certificate": b"gki-certificate\n",
             "unpack_bootimg": b"unpack-bootimg\n",
             "avbtool": b"avbtool\n",
             "source_tree_tool": b"source-tree-tool\n",
@@ -72,6 +73,9 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
             "repack_script_sha256": digest(self.data["repack_script"]),
             "boot_template_sha256": digest(self.data["boot_template"]),
             "mkbootimg_sha256": digest(self.data["mkbootimg"]),
+            "gki_certificate_sha256": digest(
+                self.data["gki_certificate"]
+            ),
             "unpack_bootimg_sha256": digest(self.data["unpack_bootimg"]),
             "avbtool_sha256": digest(self.data["avbtool"]),
             "partition_size": len(self.avb),
@@ -163,6 +167,8 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
             str(self.inputs / "boot_template"),
             "--mkbootimg",
             str(self.inputs / "mkbootimg"),
+            "--gki-certificate",
+            str(self.inputs / "gki_certificate"),
             "--unpack-bootimg",
             str(self.inputs / "unpack_bootimg"),
             "--avbtool",
@@ -266,6 +272,10 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
         (self.inputs / "build_script").write_bytes(b"changed\n")
         self.assertNotEqual(self.publish(check=False).returncode, 0)
 
+        (self.inputs / "build_script").write_bytes(self.data["build_script"])
+        (self.inputs / "gki_certificate").write_bytes(b"changed\n")
+        self.assertNotEqual(self.publish(check=False).returncode, 0)
+
     def test_noncanonical_or_duplicate_profile_is_rejected(self) -> None:
         profile = self.profile_path.read_text(encoding="ascii")
         self.profile_path.write_text(profile.rstrip() + " \n", encoding="ascii")
@@ -279,6 +289,17 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
             encoding="ascii",
         )
         self.assertNotEqual(self.publish(check=False).returncode, 0)
+
+    def test_legacy_profile_without_gki_dependency_is_rejected(self) -> None:
+        legacy = dict(self.profile)
+        del legacy["gki_certificate_sha256"]
+        self.profile_path.write_text(
+            json.dumps(legacy, indent=2) + "\n",
+            encoding="ascii",
+        )
+        result = self.publish(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("profile fields or ordering changed", result.stderr)
 
     def test_wrong_expected_entry_and_input_drift_cannot_materialize(self) -> None:
         entry_id = self.entry_id()

@@ -119,9 +119,18 @@ the absent static QEMU inside the sealed builder. Both fixed launchers now
 copy only literal path/size/mode/SHA-256-pinned inputs with no-follow source
 opens, no-replace destinations, streaming identity checks, fsync, and Git
 state revalidation before credential use. Signing-input preflight remains
-copy-free and artifact-free. No signed output, claim, policy row, phone
-action, or boot authority was created; exact-head CI and a fresh production
-twin build remain next, so admission stays **HOLD**.
+copy-free and artifact-free. Exact-head CI passed at `05c58459`.
+
+The subsequent authorized offline production build exposed a narrower
+[Android boot-tool closure defect](../test-results/2026-08-10-deployment-boot-tools-closure-offline.md):
+both clean ASUS wrapper builds completed byte-identically, but release
+repacking failed after 2,253 seconds because `mkbootimg.py` imports the omitted
+`gki/generate_gki_certificate.py`. Both deployment allowlists and the wrapper
+cache identity now bind that exact helper, and the wrapper gate rejects it
+before compilation if absent or changed. The failed build published no output
+and created no claim, policy row, phone action, or boot authority. Full CI,
+exact-head CI, and a fresh production twin build remain next, so admission
+stays **HOLD**.
 
 The latest
 [retention exact-claim registry checkpoint](../test-results/2026-08-10-retention-claim-registry-offline.md)

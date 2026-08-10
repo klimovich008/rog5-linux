@@ -43,6 +43,7 @@ PROFILE_KEYS = (
     "repack_script_sha256",
     "boot_template_sha256",
     "mkbootimg_sha256",
+    "gki_certificate_sha256",
     "unpack_bootimg_sha256",
     "avbtool_sha256",
     "partition_size",
@@ -65,6 +66,7 @@ INPUT_FILE_FIELDS = (
     ("repack_script", "repack_script_sha256"),
     ("boot_template", "boot_template_sha256"),
     ("mkbootimg", "mkbootimg_sha256"),
+    ("gki_certificate", "gki_certificate_sha256"),
     ("unpack_bootimg", "unpack_bootimg_sha256"),
     ("avbtool", "avbtool_sha256"),
 )
@@ -214,6 +216,7 @@ def load_profile(path: Path) -> tuple[dict[str, object], str]:
         "repack_script_sha256",
         "boot_template_sha256",
         "mkbootimg_sha256",
+        "gki_certificate_sha256",
         "unpack_bootimg_sha256",
         "avbtool_sha256",
     ):
@@ -908,6 +911,7 @@ def add_inputs(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repack-script", required=True)
     parser.add_argument("--boot-template", required=True)
     parser.add_argument("--mkbootimg", required=True)
+    parser.add_argument("--gki-certificate", required=True)
     parser.add_argument("--unpack-bootimg", required=True)
     parser.add_argument("--avbtool", required=True)
 

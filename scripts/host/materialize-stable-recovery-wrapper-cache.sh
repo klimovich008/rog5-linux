@@ -22,6 +22,7 @@ builder_image=localhost/rog5-kernel-builder:ubuntu-24.04
 reference_config=$repo/../work/linux-server/kernel-33.0210.0210.200/config-5.4.210-qgki-perf
 template=$repo/artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.raw.img
 mkbootimg=$repo/../work/linux-server/mkbootimg/mkbootimg.py
+gki_certificate=$repo/artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py
 unpack_bootimg=$repo/../work/linux-server/mkbootimg/unpack_bootimg.py
 avbtool=$repo/../work/linux-server/avb/avbtool.py
 expected_builder_id=c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c9cec
@@ -33,7 +34,7 @@ for command in git podman python3 realpath; do
 done
 for path in "$initramfs" "$profile" "$cache_tool" "$source_tree_tool" \
 	"$build_script" "$repack_script" "$reference_config" "$template" \
-	"$mkbootimg" "$unpack_bootimg" "$avbtool"; do
+	"$mkbootimg" "$gki_certificate" "$unpack_bootimg" "$avbtool"; do
 	[[ -f $path && ! -L $path ]] ||
 		fail "missing regular nonsymlink wrapper-cache input: $path"
 done
@@ -95,6 +96,7 @@ podman run --rm --network=none --security-opt label=disable \
 		--repack-script "$repack_script" \
 		--boot-template "$template" \
 		--mkbootimg "$mkbootimg" \
+		--gki-certificate "$gki_certificate" \
 		--unpack-bootimg "$unpack_bootimg" \
 		--avbtool "$avbtool" \
 		--cache-root "$cache_root" \

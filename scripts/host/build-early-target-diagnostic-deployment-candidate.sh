@@ -81,6 +81,12 @@ CHECKPOINT_INPUTS = (
         "d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a6845a",
     ),
     (
+        "artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py",
+        3082,
+        0o755,
+        "367858be999c3013d44450a91bde0067f0530857b5a95fbf5858c62477bcaf36",
+    ),
+    (
         "artifacts/android-boot-tools-v1/unpack_bootimg.py",
         23786,
         0o755,

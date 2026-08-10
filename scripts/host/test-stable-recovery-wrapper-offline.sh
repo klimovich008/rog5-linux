@@ -23,6 +23,7 @@ builder_profile=${ROG5_WRAPPER_BUILDER_PROFILE:-historical-2026-07-29}
 reference_config=${REFERENCE_CONFIG:-}
 template=${BOOT_TEMPLATE:-}
 mkbootimg_dir=${MKBOOTIMG_DIR:-$repo/artifacts/android-boot-tools-v1}
+gki_certificate=$mkbootimg_dir/gki/generate_gki_certificate.py
 avbtool=${AVBTOOL:-$mkbootimg_dir/avbtool.py}
 cache_root=${STABLE_RECOVERY_WRAPPER_CACHE_ROOT:-$repo/build/stable-recovery-wrapper-cache}
 jobs=${JOBS:-1}
@@ -32,6 +33,7 @@ expected_source=3bfe58a00bfdd3839f9b626c2d34f0cc6778945458f1eef93cbfdea90bf2e5a8
 expected_reference_config=
 expected_template=
 expected_mkbootimg=d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a6845a
+expected_gki_certificate=367858be999c3013d44450a91bde0067f0530857b5a95fbf5858c62477bcaf36
 expected_unpack=7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef
 expected_avbtool=6418646bb5bf3c57c3c702bfd1e157917e59f9ce25c3c81bcce79d85655e56ff
 expected_builder_id=c5b80647ddd7fb29464b4735abbe27012ee4dc89be559b44b25c9b1ff59c9cec
@@ -83,7 +85,8 @@ grep -Fqx 'set -f' "$repack_script" ||
 	fail 'boot repacker does not disable pathname expansion'
 
 for input in "$initramfs_a" "$initramfs_b" "$reference_config" "$template" \
-	"$mkbootimg_dir/mkbootimg.py" "$mkbootimg_dir/unpack_bootimg.py" "$avbtool" \
+	"$mkbootimg_dir/mkbootimg.py" "$gki_certificate" \
+	"$mkbootimg_dir/unpack_bootimg.py" "$avbtool" \
 	"$source_tree_tool" "$build_script" "$repack_script"; do
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing regular nonsymlink input: $input"
@@ -103,6 +106,7 @@ initramfs_b=$(realpath "$initramfs_b")
 reference_config=$(realpath "$reference_config")
 template=$(realpath "$template")
 mkbootimg_dir=$(realpath "$mkbootimg_dir")
+gki_certificate=$(realpath "$gki_certificate")
 avbtool=$(realpath "$avbtool")
 output_root=$(realpath -m "$output_root")
 cache_root=$(realpath -m "$cache_root")
@@ -141,6 +145,7 @@ check_hash() {
 check_hash "$reference_config" "$expected_reference_config"
 check_hash "$template" "$expected_template"
 check_hash "$mkbootimg_dir/mkbootimg.py" "$expected_mkbootimg"
+check_hash "$gki_certificate" "$expected_gki_certificate"
 check_hash "$mkbootimg_dir/unpack_bootimg.py" "$expected_unpack"
 check_hash "$avbtool" "$expected_avbtool"
 cmp "$initramfs_a" "$initramfs_b" ||
@@ -208,6 +213,7 @@ if [[ $cache_enabled == 1 ]]; then
 		--repack-script "$repack_script"
 		--boot-template "$template"
 		--mkbootimg "$mkbootimg_dir/mkbootimg.py"
+		--gki-certificate "$gki_certificate"
 		--unpack-bootimg "$mkbootimg_dir/unpack_bootimg.py"
 		--avbtool "$avbtool"
 	)
