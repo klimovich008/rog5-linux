@@ -426,9 +426,9 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
-            "build/host-rendezvous-v4-udc-inventory-production-20260810-r1/"
+            "build/host-rendezvous-v5-usb-ancestry-production-20260810-r1/"
             "wrapper/repack/stable-recovery-a.avb.img\tallow\t"
-            "one UDC-inventory-corrected diagnostic execution recovery; "
+            "one USB-ancestry-corrected diagnostic execution recovery; "
             "RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry\n"
             "build/observation-recovery-haven-offline-20260810-r1/"
