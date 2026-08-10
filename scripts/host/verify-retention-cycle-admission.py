@@ -1934,7 +1934,7 @@ def verify_pinned(
     )
     if (
         execution["role"] != "target-execution-v1"
-        or execution["trust_class"] != "disposable-offline"
+        or execution["trust_class"] != "production-project"
         or execution["recovery_mode"] != "full-v1"
         or execution["avb_algorithm"] != "NONE"
         or execution["claim"] != "unissued"
