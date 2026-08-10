@@ -604,6 +604,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         self.assertIn("recovery_control_binary_sha256=", report)
         self.assertIn("recommendation=HOLD", report)
 
+    def test_execution_requires_the_project_trust_class(self) -> None:
+        execution = self.profile["execution"]
+        assert isinstance(execution, dict)
+        self.assertEqual(execution["trust_class"], "production-project")
+
+        execution["trust_class"] = "disposable-offline"
+        self.save_profile()
+        self.assert_rejected("execution and observation roles are not fail-closed")
+
     def test_recovery_sources_and_embedded_control_are_exact(self) -> None:
         recovery_inputs = self.profile["recovery_inputs"]
         assert isinstance(recovery_inputs, dict)

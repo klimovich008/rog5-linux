@@ -737,6 +737,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   rows. It rejects aliasing, races, malformed archives, mismatched derivation,
   preissued claims, and late claim mutation. Passing it grants no credential,
   claim, policy row, phone action, or boot authority.
+- The current HOLD profile additionally binds the execution role to artifacts
+  signed with the existing project key in a guarded offline build and to the
+  exact clean-twin recovery/wrapper bytes. The temporary private-key snapshot
+  was destroyed, and the separately built observation-only identity is
+  unchanged. The dependency-incomplete 2,253-second build is superseded and
+  is not an admissible input. The
+  [production execution refreeze](../test-results/2026-08-10-production-retention-execution-refreeze-offline.md)
+  reports undefined claims, zero policy `allow` rows, `authority=none`,
+  `retention=unproven`, `missing_pstore=inconclusive`, and recommendation
+  `HOLD`. It grants no credential, claim, policy row, phone action, or boot
+  authority.
 - The active lifecycle uses `fallback-acm-control.py capture-ssh-postmortem`
   followed by `wait-ssh-preflight` over the exact fallback USB-NCM product
   after the root controller restores the profile on unique stable same-port

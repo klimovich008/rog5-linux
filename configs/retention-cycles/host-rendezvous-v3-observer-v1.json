@@ -66,7 +66,7 @@
       "path_a": "candidate-a.txt",
       "path_b": "candidate-b.txt",
       "size": 306,
-      "sha256": "ba371375c256a464e27c4a5c837a044db77a1a5f2c6310e231cfcfb3c2605aa5",
+      "sha256": "8082c10bde22d728696feb81b723505d35d08a790059f436d8714ffa7c8cf108",
       "mode": "0644"
     },
     "bundle_a": "bundle-a/headless-netroot-early-diag-v2",
@@ -82,24 +82,24 @@
       "path_a": "bundle-a/headless-netroot-early-diag-v2/manifest.sig",
       "path_b": "bundle-b/headless-netroot-early-diag-v2/manifest.sig",
       "size": 64,
-      "sha256": "cf4b87b385e1af6d8f529180347abebfc6d72b12f415a4b776d287a733a52c9d",
+      "sha256": "0d1647bc485f6d7a0bd0c8945d17db6d79d7c14bc1acab62a580a5b8b7b40e88",
       "mode": "0400"
     },
     "trust_key": {
       "path": "recovery/ephemeral-public.raw",
       "size": 32,
-      "sha256": "72294eb72181c448ddc55d45f95dadd9aae334b99a52d7489c2e380fd2f96031",
+      "sha256": "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b",
       "mode": "0600"
     },
     "private_key_path": "recovery/ephemeral-private.raw",
-    "trust_class": "disposable-offline",
+    "trust_class": "production-project",
     "recovery_mode": "full-v1",
     "avb_algorithm": "NONE",
     "recovery_initramfs": {
       "path_a": "recovery/initramfs-a/rog5-stable-recovery.cpio.gz",
       "path_b": "recovery/initramfs-b/rog5-stable-recovery.cpio.gz",
-      "size": 7605172,
-      "sha256": "11c40b76cff9918e2e38a7e86ed70ddea4ed05104e3b84aec2f52886c650cab6",
+      "size": 7605169,
+      "sha256": "ab0a3ee219684c994af386cb60e5280dcc4269457b196f96ca3928acce691f0b",
       "mode": "0600"
     },
     "wrapper_config": {
@@ -113,21 +113,21 @@
       "path_a": "wrapper/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
       "path_b": "wrapper/wrapper-b/asus-kexec-stage/arch/arm64/boot/Image",
       "size": 50498048,
-      "sha256": "e4172f5211e1fb935ceb4ff3e91012a34e90bfa9f8d724a439bbf02aa590e2b7",
+      "sha256": "8a600acfc6f7e01f9eb932e0a04174079d6ee68142c44fad819fe96bbd34325d",
       "mode": "0755"
     },
     "raw_boot": {
       "path_a": "wrapper/repack/stable-recovery-a.raw.img",
       "path_b": "wrapper/repack/stable-recovery-b.raw.img",
       "size": 58109952,
-      "sha256": "7512c97b424473be7c5271901414591f29436cad40c58c43bfa31db18da5a84f",
+      "sha256": "ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517",
       "mode": "0644"
     },
     "unsigned_avb": {
       "path_a": "wrapper/repack/stable-recovery-a.avb.img",
       "path_b": "wrapper/repack/stable-recovery-b.avb.img",
       "size": 100663296,
-      "sha256": "139071a197768a00b01c8b46ce1233ad953e5bd0372a3d66f104bcd20d5fe9f5",
+      "sha256": "cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d",
       "mode": "0644"
     },
     "claim": "unissued"
