@@ -9,6 +9,7 @@ import importlib.util
 import os
 from pathlib import Path
 import stat
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -17,7 +18,9 @@ from unittest import mock
 REPO = Path(__file__).resolve().parents[2]
 CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 GATE = REPO / "scripts/host/run-stable-recovery-live-gate.sh"
-PROFILES = {
+OBSERVER_GATE = REPO / "scripts/host/run-observation-recovery-live-gate.sh"
+REFERENCE_PATH = REPO / "scripts/host/retention-cycle-sequence-reference.py"
+HISTORICAL_MANIFESTS = {
     "headless-diagnostic-generation11-live-v1": (
         "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
     ),
@@ -31,6 +34,30 @@ if SPEC is None or SPEC.loader is None:
     raise RuntimeError("cannot load generic exact-record claim consumer")
 CLAIMS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CLAIMS)
+REFERENCE_SPEC = importlib.util.spec_from_file_location(
+    "retention_sequence_for_claim_test", REFERENCE_PATH
+)
+if REFERENCE_SPEC is None or REFERENCE_SPEC.loader is None:
+    raise RuntimeError("cannot load retention-cycle claim reference")
+REFERENCE = importlib.util.module_from_spec(REFERENCE_SPEC)
+sys.modules[REFERENCE_SPEC.name] = REFERENCE
+REFERENCE_SPEC.loader.exec_module(REFERENCE)
+PROFILES = {
+    profile: (
+        "format=rog5-temporary-boot-consumption-v1\n"
+        f"recovery_profile={profile}\n"
+        "candidate=headless-netroot-early-diag-v1\n"
+        f"manifest_sha256={manifest}\n"
+        "state=BOOT_CLAIMED\n"
+    ).encode("ascii")
+    for profile, manifest in HISTORICAL_MANIFESTS.items()
+}
+PROFILES.update(
+    {
+        REFERENCE.EXECUTION_CLAIM.identifier: REFERENCE.EXECUTION_CLAIM.record,
+        REFERENCE.OBSERVER_CLAIM.identifier: REFERENCE.OBSERVER_CLAIM.record,
+    }
+)
 REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (
     CLAIMS.anchor_parent_is_replace_protected
 )
@@ -52,13 +79,7 @@ class ExactClaimConsumerTest(unittest.TestCase):
         self.addCleanup(anchor_protection.stop)
 
     def expected(self, profile: str) -> bytes:
-        return (
-            "format=rog5-temporary-boot-consumption-v1\n"
-            f"recovery_profile={profile}\n"
-            "candidate=headless-netroot-early-diag-v1\n"
-            f"manifest_sha256={PROFILES[profile]}\n"
-            "state=BOOT_CLAIMED\n"
-        ).encode("ascii")
+        return PROFILES[profile]
 
     def paths(self, profile: str) -> tuple[Path, Path]:
         record = self.root / f"{profile}.record"
@@ -75,7 +96,7 @@ class ExactClaimConsumerTest(unittest.TestCase):
         record.chmod(0o600)
         return record
 
-    def test_repository_lookup_admits_only_historical_exact_records(self) -> None:
+    def test_repository_lookup_admits_only_reviewed_exact_records(self) -> None:
         self.assertEqual(set(CLAIMS.CLAIMS), set(PROFILES))
         self.assertNotIn("generation13", CONSUMER.read_text(encoding="utf-8"))
         for profile in PROFILES:
@@ -356,11 +377,33 @@ class ExactClaimConsumerTest(unittest.TestCase):
         _record, entered = self.paths(profile)
         self.assertEqual(entered.read_bytes(), self.expected(profile))
 
+    def test_entered_verifier_requires_source_absent_and_two_exact_records(
+        self,
+    ) -> None:
+        profile = REFERENCE.OBSERVER_CLAIM.identifier
+        self.write_record(profile)
+        with self.assertRaisesRegex(CLAIMS.ClaimError, "source.*exists"):
+            CLAIMS.verify_entered(profile, self.root)
+        CLAIMS.consume(profile, self.root)
+        CLAIMS.verify_entered(profile, self.root)
+        _record, entered = self.paths(profile)
+        for path in (entered, self.guard(profile)):
+            with self.subTest(path=path.name):
+                exact = path.read_bytes()
+                path.write_bytes(exact + b"x")
+                with self.assertRaises(CLAIMS.ClaimError):
+                    CLAIMS.verify_entered(profile, self.root)
+                path.write_bytes(exact)
+                path.chmod(0o600)
+
     def test_generic_consumer_replaces_future_copying_and_retains_history(
         self,
     ) -> None:
         source = GATE.read_text(encoding="utf-8")
+        observer_source = OBSERVER_GATE.read_text(encoding="utf-8")
         self.assertNotIn("consume-exact-boot-claim.py", source)
+        self.assertIn("consume-exact-boot-claim.py", observer_source)
+        self.assertIn("--verify-entered", observer_source)
         self.assertNotIn("claim_consumer=$repo/scripts/host/consume-generation12", source)
         self.assertTrue(CONSUMER.is_file())
         self.assertTrue(os.access(CONSUMER, os.X_OK))

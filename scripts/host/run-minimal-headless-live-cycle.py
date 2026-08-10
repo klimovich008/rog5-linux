@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -24,12 +25,14 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
-DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"
-DIAGNOSTIC_LIVE_STATUS = "consumed"
-DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v1"
-DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v1"
+DIAGNOSTIC_RECOVERY_PROFILE = (
+    "retention-host-rendezvous-v3-execution-v1"
+)
+DIAGNOSTIC_LIVE_STATUS = "admitted"
+DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
+DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v2"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
-DIAGNOSTIC_ADMISSION_PROFILE = "early-target-diagnostic-v1"
+DIAGNOSTIC_ADMISSION_PROFILE = "early-target-diagnostic-v2"
 DIAGNOSTIC_COLLECTOR_READY = (
     "READY receive-only early-target diagnostic collector"
 )
@@ -138,9 +141,21 @@ PASSTHROUGH_ENVIRONMENT = (
     "FASTBOOT_SERIAL",
     "ACM_TIMEOUT",
     "ROG5_NFS_TIMEOUT",
+    "ROG5_EXPECTED_USB_LOCATION",
+    "ROG5_RETENTION_BOOT_RESULT",
     "ROG5_LIVE_CYCLE_OFFLINE_TEST",
     "ROG5_LIVE_CYCLE_TEST_ROOT",
 )
+
+CLAIM_CONSUMER_PATH = REPO / "scripts/host/consume-exact-boot-claim.py"
+_CLAIM_SPEC = importlib.util.spec_from_file_location(
+    "rog5_live_cycle_claim_consumer", CLAIM_CONSUMER_PATH
+)
+if _CLAIM_SPEC is None or _CLAIM_SPEC.loader is None:
+    raise RuntimeError("exact boot-claim consumer is unavailable")
+CLAIM_CONSUMER = importlib.util.module_from_spec(_CLAIM_SPEC)
+sys.modules[_CLAIM_SPEC.name] = CLAIM_CONSUMER
+_CLAIM_SPEC.loader.exec_module(CLAIM_CONSUMER)
 OUTPUT_NAMES = (
     "stable-recovery-boot.log",
     "recovery-usb-anchor.log",
@@ -386,9 +401,18 @@ DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
     candidate=DIAGNOSTIC_CANDIDATE,
     bundle=DIAGNOSTIC_BUNDLE,
     bundle_profile=DIAGNOSTIC_PROFILE,
-    target_id="headless-netroot-early-diag",
+    target_id="headless-netroot-early-diag-v2",
     admission_profile=DIAGNOSTIC_ADMISSION_PROFILE,
     recovery_profile=DIAGNOSTIC_RECOVERY_PROFILE,
+    diagnostic=True,
+)
+LEGACY_DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
+    candidate="headless-netroot-early-diag-v1",
+    bundle="headless-netroot-early-diag-v1",
+    bundle_profile=DIAGNOSTIC_PROFILE,
+    target_id="headless-netroot-early-diag",
+    admission_profile="early-target-diagnostic-v1",
+    recovery_profile="headless-diagnostic-generation12-live-v1",
     diagnostic=True,
 )
 
@@ -2414,7 +2438,48 @@ class LiveCycle:
                 "host"
             )
 
+    @staticmethod
+    def _exact_claim_file(path: Path, expected: bytes) -> None:
+        try:
+            before = path.lstat()
+            payload = path.read_bytes()
+            after = path.lstat()
+        except OSError as error:
+            raise CycleError(
+                "externally consumed temporary-boot claim is absent"
+            ) from error
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or stat.S_IMODE(before.st_mode) != 0o600
+            or before.st_nlink != 1
+            or identity(before) != identity(after)
+            or payload != expected
+        ):
+            fail("externally consumed temporary-boot claim is not exact")
+
+    def assert_temporary_boot_claim_entered(self) -> None:
+        root = self.validate_temporary_boot_consumption_root(create=False)
+        expected = CLAIM_CONSUMER.expected_record(
+            self.profile.recovery_profile
+        )
+        source = self.temporary_boot_consumption_path()
+        if source.exists() or source.is_symlink():
+            fail("external temporary-boot claim source still exists")
+        self._exact_claim_file(self.temporary_boot_entered_path(), expected)
+        guard = root.parent / (
+            ".rog5-temporary-boot-consumption."
+            f"{self.profile.recovery_profile}.entered"
+        )
+        self._exact_claim_file(guard, expected)
+
     def claim_temporary_boot(self) -> None:
+        external = os.environ.get("ROG5_EXTERNAL_BOOT_CLAIM", "0")
+        if external not in {"0", "1"}:
+            fail("ROG5_EXTERNAL_BOOT_CLAIM must be exactly 0 or 1")
+        if external == "1":
+            self.assert_temporary_boot_claim_entered()
+            return
         self.validate_temporary_boot_consumption_root(create=True)
         path = self.temporary_boot_consumption_path()
         entered = self.temporary_boot_entered_path()
@@ -4008,12 +4073,18 @@ def main(arguments: list[str]) -> int:
     # strictly, rejects root execution, and routes every executable and
     # mutable host path into the fixture. These markers only select that
     # fail-closed harness; they do not themselves claim isolation.
-    if requested.startswith("diagnostic-") and not offline_harness_requested:
+    if (
+        requested.startswith("diagnostic-")
+        and not offline_harness_requested
+        and DIAGNOSTIC_LIVE_STATUS != "admitted"
+    ):
         fail(
             "no diagnostic recovery lifecycle is admitted; Generation-12 "
             f"is {DIAGNOSTIC_LIVE_STATUS} and must not be retried"
         )
     action, profile = actions[requested]
+    if requested.startswith("diagnostic-") and offline_harness_requested:
+        profile = LEGACY_DIAGNOSTIC_CYCLE_PROFILE
     if action == "run":
         require_guards()
     else:
@@ -4033,7 +4104,10 @@ def main(arguments: list[str]) -> int:
     inputs = parse_inputs(admission, admitted)
     cycle = LiveCycle(dependencies, inputs, profile)
     if action == "run":
-        cycle.assert_temporary_boot_unconsumed()
+        if os.environ.get("ROG5_EXTERNAL_BOOT_CLAIM", "0") == "1":
+            cycle.assert_temporary_boot_claim_entered()
+        else:
+            cycle.assert_temporary_boot_unconsumed()
     cycle.preflight()
     if action == "preflight":
         print(

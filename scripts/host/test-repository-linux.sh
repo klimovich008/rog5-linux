@@ -203,6 +203,7 @@ shared_tests=(
 	scripts/host/test-retention-cycle-sequence-reference.py
 	scripts/host/test-retention-cycle-transaction.py
 	scripts/host/test-retention-cycle-adapter.py
+	scripts/host/test-run-retention-cycle-live.py
 	scripts/host/test-retention-cycle-executor-contract.py
 	scripts/host/test-retention-cycle-executor-boundary.py
 	scripts/host/test-retention-cycle-runtime-closure.py

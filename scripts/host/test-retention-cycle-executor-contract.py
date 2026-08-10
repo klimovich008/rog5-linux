@@ -239,20 +239,20 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
         by_program = {item.program: item for item in self.specs()}
         expected = {
             "scripts/host/consume-exact-boot-claim.py": (
-                14600,
-                "b6a3cc42db948dec706352d4cac1f8304c28550e678d607318986405b26a4c4e",
+                18937,
+                "d39cd77df7dbbd29a9ef9579be10e25b9f81304dacf7d9adacd0471d6cc52e76",
             ),
             "scripts/host/run-stable-recovery-live-gate.sh": (
-                64136,
-                "2ca017c152a2ad60e6dad3475bce4986c8853e7d5f8da8680f330d36c4e6498e",
+                64851,
+                "96961d1de3399a9d556e53d4403f0a643ae42a119820784951f2e4778ea7f145",
             ),
             "scripts/host/fallback-acm-control.py": (
                 109852,
                 "685383b58e928df924fbb2472691338e99a90da5f78eb13775152437d90da83a",
             ),
             "scripts/host/run-observation-recovery-live-gate.sh": (
-                9531,
-                "cd154ad0c75e49c222bc2ca64ebe7453d3e9486a8dda19a240e5d88dd868eb9d",
+                15926,
+                "a7f5fca2ef7f4c77e4e00c618753e4b07a130e9b03f23647a44bbec571661ba6",
             ),
             "scripts/host/stable-recovery-control.py": (
                 35934,
@@ -339,12 +339,12 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
         consumer = CONSUMER.read_text(encoding="utf-8")
-        self.assertNotIn(
+        self.assertIn(
             "retention-host-rendezvous-v3-execution-v1", consumer
         )
-        self.assertNotIn(
+        self.assertIn(
             "retention-host-rendezvous-v3-observer-v1", consumer
         )
 
