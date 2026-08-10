@@ -98,6 +98,37 @@ class InitPolicyTest(unittest.TestCase):
         ):
             self.assertIsNone(re.search(pattern, recovery))
 
+    def test_recovery_materializes_exact_kmsg_before_first_log(self) -> None:
+        source = self.source(RECOVERY)
+        helper = re.search(
+            r"^ensure_kernel_log_device\(\) \{\n.*?^\}\n",
+            source,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(helper)
+        body = helper.group(0)
+        self.assertIn(
+            "mknod -m 0600 /dev/kmsg c 1 11",
+            body,
+        )
+        for contract in (
+            "[ -c /dev/kmsg ]",
+            "[ ! -L /dev/kmsg ]",
+            '"$(stat -c %u /dev/kmsg 2>/dev/null)" = 0',
+            '"$(stat -c %g /dev/kmsg 2>/dev/null)" = 0',
+            '"$(stat -c %a /dev/kmsg 2>/dev/null)" = 600',
+            '"$(stat -c %h /dev/kmsg 2>/dev/null)" = 1',
+            '"$(stat -c %t /dev/kmsg 2>/dev/null)" = 1',
+            '"$(stat -c %T /dev/kmsg 2>/dev/null)" = b',
+        ):
+            self.assertIn(contract, body)
+        self.assertEqual(source.count("if ! ensure_kernel_log_device; then"), 1)
+        mount = source.index("mount -t devtmpfs devtmpfs /dev")
+        ensure = source.index("if ! ensure_kernel_log_device; then")
+        first_log = source.index("log() {")
+        self.assertLess(mount, ensure)
+        self.assertLess(ensure, first_log)
+
     def test_target_payload_transports_are_profile_bounded(self) -> None:
         persistent = self.source(PERSISTENT_ROOT)
         self.assertIn("functions/ncm.usb0", persistent)

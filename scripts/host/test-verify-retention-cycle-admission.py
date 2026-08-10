@@ -426,9 +426,9 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
-            "build/host-rendezvous-v8-haven-boundary-production-20260810-r2/"
+            "build/host-rendezvous-v9-kmsg-device-production-20260810-r1/"
             "wrapper/repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact Haven-boundary-classification diagnostic execution "
+            "one exact recovery-kmsg-device diagnostic execution "
             "recovery; "
             "RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry\n"

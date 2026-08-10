@@ -265,9 +265,9 @@ fi
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 consumer_metadata=$(stat -c '%u:%g:%a:%h:%s' -- "$claim_consumer") ||
 	fail 'cannot inspect exact-record claim consumer'
-[[ $consumer_metadata == "$(id -u):$(id -g):755:1:21646" &&
+[[ $consumer_metadata == "$(id -u):$(id -g):755:1:22033" &&
 	$(sha256sum -- "$claim_consumer" | awk '{print $1}') == \
-	c6862f2956e35f0534f5171913202b5d5ad041584f33dd82f875f9aa6439f497 ]] ||
+	b565b185033b4a2912c1fc10a25cbc854a915e0dcf3700a09a2a1a2ef0ec0c3e ]] ||
 	fail 'exact-record claim consumer identity is not exact'
 claim_report=$(
 	python3 -B "$claim_consumer" --verify-entered "$profile"

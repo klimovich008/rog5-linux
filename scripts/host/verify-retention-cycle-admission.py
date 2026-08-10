@@ -111,6 +111,14 @@ EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v8"] = (
     "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v9"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v9\n"
+    "candidate=headless-netroot-early-diag-v2\n"
+    "manifest_sha256="
+    "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def retention_claim_record(
@@ -193,7 +201,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14561,
-    "sha256": "80bd313c962410c6fcdcc50b7648a31ab13a57c7d72c418111ea0ac7ed605201",
+    "sha256": "8346c35dc7f6bc5351e0764ab3764af196f456e9f54d5ea10d84bf6f9bf48e46",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -221,7 +229,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "80bd313c962410c6fcdcc50b7648a31ab13a57c7d72c418111ea0ac7ed605201",
+    "executor_contract_sha256": "8346c35dc7f6bc5351e0764ab3764af196f456e9f54d5ea10d84bf6f9bf48e46",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -1948,9 +1956,9 @@ def verify_policy(
 ) -> int:
     expected_allows = {
         (
-            "build/host-rendezvous-v8-haven-boundary-production-20260810-r2/"
+            "build/host-rendezvous-v9-kmsg-device-production-20260810-r1/"
             "wrapper/repack/stable-recovery-a.avb.img",
-            "one exact Haven-boundary-classification diagnostic execution "
+            "one exact recovery-kmsg-device diagnostic execution "
             "recovery; "
             "RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry",

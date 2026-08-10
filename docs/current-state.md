@@ -250,16 +250,25 @@ transferred and verified the 46,166,378-byte bundle, accepted PREPARE and
 COMMIT, then returned `state=EXEC_FAILED`, `execution_started=NO`, and
 `last_error=HAVEN_WDOG_FAILED`. No target kernel ran; exact Alpine fallback
 and cleanup passed. V7 is consumed and must never be retried. V8 r2
-(`faf7ebd1…f034f`) replaces only that generic refusal with exact fail-closed
-driver, device, binding, compatible, initial-state, kmsg-open, control,
-write, close, readback, kmsg-scan, secure-watchdog, and
-hypervisor-VDOG boundaries. Its AArch64 responder, recovery initramfs, ASUS
-wrapper Image, raw boot image, and generation-5 AVB wrapper reproduce at
-`59e76973…3f31`, `9410b1a6…6aa1`, `01087419…1942d`,
-`d087aaae…94f5`, and `faf7ebd1…f034f`; the two clean wrapper builds are
-byte-identical. V8 r1 was superseded before claim or phone contact after
-review found unsafe-control and compatible-race classification defects. V8
-r2 is unbooted and is the exact current one-use successor.
+(`faf7ebd1…f034f`) added exact fail-closed driver, device, binding,
+compatible, initial-state, kmsg-open, control, write, close, readback,
+kmsg-scan, secure-watchdog, and hypervisor-VDOG boundaries. Its sole RAM-only
+cycle reached recovery, transferred and verified the exact bundle, accepted
+PREPARE and COMMIT, then returned `state=EXEC_FAILED`,
+`execution_started=NO`, and `last_error=HAVEN_KMSG_OPEN_FAILED`. The target
+kernel never ran. Exact Alpine fallback and cleanup passed. The retained
+wrapper configuration has no devtmpfs, recovery mounted a tmpfs at `/dev`,
+and no `/dev/kmsg` existed; V8 correctly failed closed before touching the
+watchdog. V8 is consumed and must never be retried. V8 r1 was superseded
+before claim or phone contact after review found unsafe-control and
+compatible-race classification defects. V9 (`4f3bb23c…68133`) is the exact
+current unbooted one-use successor. It materializes and validates only a
+root-owned mode-`0600` character device 1:11 at `/dev/kmsg` before the
+controller starts. Its AArch64 responder, recovery initramfs, ASUS wrapper
+Image, raw boot image, and generation-6 AVB wrapper reproduce at
+`59e76973…3f31`, `d9a3fba4…98d8`, `2e5d6e17…061c`,
+`06732992…4aff`, and `4f3bb23c…68133`; the two clean wrapper builds are
+byte-identical.
 It adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and
