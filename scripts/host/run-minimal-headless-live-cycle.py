@@ -2123,6 +2123,14 @@ def verify_diagnostic_evidence(
             or not record["fault"]
         ):
             fail("diagnostic evidence record text is invalid")
+    if not any(
+        frame["record"].get("stage_code") == 150
+        and frame["record"].get("stage") == "ssh-key-accepted"
+        and frame["record"].get("last_good_code") == 150
+        and frame["record"].get("fault") == "none"
+        for frame in frames
+    ):
+        fail("diagnostic evidence lacks strict SSH acceptance milestone")
     for event in usb_events:
         if (
             not isinstance(event, dict)
@@ -2325,6 +2333,7 @@ class LiveCycle:
         self.profile = profile
         self.poll = 0.02 if dependencies.offline else 0.25
         self.short_timeout = 4 if dependencies.offline else 120
+        self.target_key_timeout = 4 if dependencies.offline else 450
         self.bundle_timeout = (
             5 if dependencies.offline else BUNDLE_TIMEOUT_SECONDS
         )
@@ -3774,6 +3783,50 @@ class LiveCycle:
                 f"correlation={progress.correlation} authority=NONE"
             )
 
+            run_logged(
+                [
+                    str(self.dependencies.host_key),
+                    "pin-target",
+                    str(anchor),
+                    str(target_known_hosts),
+                ],
+                target_key_log,
+                environment=child_environment(
+                    ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+                ),
+                timeout=self.target_key_timeout,
+            )
+            runtime_profile = (
+                DIAGNOSTIC_PROFILE
+                if self.profile.diagnostic
+                else RECOVERY_PROFILE
+            )
+            run_logged(
+                [
+                    str(self.dependencies.runtime_acceptance),
+                    runtime_profile,
+                    str(self.inputs.candidate_record),
+                    self.inputs.candidate_sha256,
+                ],
+                self.output("runtime-acceptance.log"),
+                environment=child_environment(
+                    ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
+                    SSH_KEY=str(self.inputs.ssh_key),
+                    TARGET_KNOWN_HOSTS=str(target_known_hosts),
+                    EVIDENCE_DIR=str(self.inputs.evidence_dir),
+                ),
+                timeout=self.short_timeout,
+            )
+            runtime_values = parse_record(runtime_record)
+            target_boot_id = runtime_values.get("boot_id")
+            if (
+                runtime_values.get("result") != "PASS"
+                or target_boot_id is None
+                or not BOOT_ID.fullmatch(target_boot_id)
+            ):
+                fail("minimal-headless runtime record is not accepted")
+            target_accepted = True
+
             if self.profile.diagnostic:
                 if collector_process is None:
                     fail("diagnostic collector was not started")
@@ -3791,50 +3844,15 @@ class LiveCycle:
                     diagnostic_log,
                     ("PASS receive-only early-target diagnostic capture ",),
                 )
-                target_boot_id = verify_diagnostic_evidence(
+                diagnostic_boot_id = verify_diagnostic_evidence(
                     diagnostic_record,
                     anchor,
                     self.profile.candidate,
                 )
-            else:
-                run_logged(
-                    [
-                        str(self.dependencies.host_key),
-                        "pin-target",
-                        str(anchor),
-                        str(target_known_hosts),
-                    ],
-                    target_key_log,
-                    environment=child_environment(
-                        ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
-                    ),
-                    timeout=self.short_timeout,
-                )
-                run_logged(
-                    [
-                        str(self.dependencies.runtime_acceptance),
-                        RECOVERY_PROFILE,
-                        str(self.inputs.candidate_record),
-                        self.inputs.candidate_sha256,
-                    ],
-                    self.output("runtime-acceptance.log"),
-                    environment=child_environment(
-                        ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
-                        SSH_KEY=str(self.inputs.ssh_key),
-                        TARGET_KNOWN_HOSTS=str(target_known_hosts),
-                        EVIDENCE_DIR=str(self.inputs.evidence_dir),
-                    ),
-                    timeout=self.short_timeout,
-                )
-                runtime_values = parse_record(runtime_record)
-                target_boot_id = runtime_values.get("boot_id")
-                if (
-                    runtime_values.get("result") != "PASS"
-                    or target_boot_id is None
-                    or not BOOT_ID.fullmatch(target_boot_id)
-                ):
-                    fail("minimal-headless runtime record is not accepted")
-                target_accepted = True
+                if diagnostic_boot_id != target_boot_id:
+                    fail(
+                        "strict SSH and diagnostic stream boot identities differ"
+                    )
 
             network_status = wait_network_process(
                 network_process,

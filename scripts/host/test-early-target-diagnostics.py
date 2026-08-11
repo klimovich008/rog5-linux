@@ -48,7 +48,7 @@ def record(
     if boottime_ms is None:
         boottime_ms = sequence * 250
     if last_good_code is None:
-        last_good_code = stage_code if stage_code <= 140 else 10
+        last_good_code = stage_code if stage_code <= 150 else 10
     return MODULE.DiagnosticRecord(
         candidate=candidate,
         boot_id=boot_id,
@@ -78,7 +78,7 @@ class EarlyTargetDiagnosticTest(unittest.TestCase):
             [item.stage_code for item in accepted],
             sorted(MODULE.PROGRESS_CODES),
         )
-        self.assertEqual(stream.maximum_progress, 140)
+        self.assertEqual(stream.maximum_progress, 150)
 
     def test_every_fault_reason_round_trips(self):
         for reason in sorted(MODULE.FAULTS - {"none"}):

@@ -26,7 +26,7 @@ ALLOWED_CANDIDATE_IDS = (
 )
 EXACT_CANDIDATE_SHA256 = {
     DIAGNOSTIC_CANDIDATE_ID: (
-        "d4d86e8d79e4612ec747cfc6e81e84c058d4e01fd735639fdcc595766fa553c4"
+        "f23626d6ad0b15a660835bd8419cde40a8f8c3c79f83b6feca5cb57952f7b1ab"
     ),
 }
 GIT = Path("/usr/bin/git")

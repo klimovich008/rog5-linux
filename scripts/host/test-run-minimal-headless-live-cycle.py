@@ -165,7 +165,7 @@ class Fixture:
             "ended_unix_ns": 300,
             "end_reason": "disconnected",
             "format": "rog5-early-target-evidence-v2",
-            "frame_count": 1,
+            "frame_count": 2,
             "frames": [
                 {
                     "host_monotonic_ns": 200,
@@ -182,7 +182,23 @@ class Fixture:
                         "stage_code": 10,
                         "watchdog_deadline_ms": 600000,
                     },
-                }
+                },
+                {
+                    "host_monotonic_ns": 250,
+                    "host_unix_ns": 250,
+                    "record": {
+                        "boot_id": TARGET_BOOT_ID,
+                        "boottime_ms": 200,
+                        "candidate": DIAGNOSTIC_CANDIDATE,
+                        "dropped_updates": 0,
+                        "fault": "none",
+                        "last_good_code": 150,
+                        "sequence": 2,
+                        "stage": "ssh-key-accepted",
+                        "stage_code": 150,
+                        "watchdog_deadline_ms": 600000,
+                    },
+                },
             ],
             "host_boot_id": TARGET_BOOT_ID,
             "started_unix_ns": 100,
@@ -936,7 +952,10 @@ class Fixture:
             f"""\
             #!/bin/sh
             set -eu
-            [ "$1" = "{RECOVERY_PROFILE}" ]
+            case $1 in
+              {RECOVERY_PROFILE}|{DIAGNOSTIC_PROFILE}) ;;
+              *) exit 1 ;;
+            esac
             [ "$2" = "{self.candidate}" ]
             [ "$3" = "{CANDIDATE_SHA256}" ]
             [ "$#" = 3 ]
@@ -954,6 +973,7 @@ class Fixture:
               'boot_id={TARGET_BOOT_ID}' \
               'result=PASS' \
               >"$EVIDENCE_DIR/minimal-headless-runtime.record"
+            : >"$MOCK_ROOT/runtime-accepted"
             : >"$MOCK_ROOT/target-departed"
             echo 'PASS runtime'
             """,
@@ -1003,6 +1023,9 @@ class Fixture:
             while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
               sleep 0.01
             done
+            while [ ! -e "$MOCK_ROOT/runtime-accepted" ]; do
+              sleep 0.01
+            done
             umask 077
             printf '%s\n' '{self.diagnostic_evidence_payload}' >"$2"
             printf 'collector:capture\n' >>"$MOCK_CALLS"
@@ -1011,7 +1034,7 @@ class Fixture:
               echo 'FAIL early-target diagnostic capture: invalid-stream' >&2
               exit 1
             fi
-            echo 'PASS receive-only early-target diagnostic capture frames=4 last=140:ssh-active end=disconnect'
+            echo 'PASS receive-only early-target diagnostic capture frames=5 last=150:ssh-key-accepted end=disconnect'
             """,
         )
         self.executable(
@@ -2629,8 +2652,12 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertEqual(calls.count("collector:capture"), 1)
-        self.assertNotIn("host-key:pin", calls)
-        self.assertNotIn("runtime:start", calls)
+        self.assertIn("host-key:pin", calls)
+        self.assertIn("runtime:start", calls)
+        self.assertLess(
+            calls.index("runtime:start"),
+            calls.index("collector:capture"),
+        )
         self.assertEqual(
             calls.count("control:resolve:FALLBACK_RETURNED"),
             1,
@@ -2723,7 +2750,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "target-boot": top("target_boot_id", FALLBACK_BOOT_ID),
             "target-product": top("target_product", "wrong product"),
             "end-reason": top("end_reason", "rejected"),
-            "frame-count": top("frame_count", 2),
+            "frame-count": top("frame_count", 3),
             "transport-count": top("transport_snapshot_count", 2),
             "transport-dropped": top("dropped_transport_snapshots", 1),
             "transport-location": lambda document: document[
@@ -2777,6 +2804,15 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "frame-boot": lambda document: document["frames"][0][
                 "record"
             ].__setitem__("boot_id", FALLBACK_BOOT_ID),
+            "missing-ssh-acceptance": lambda document: document["frames"][
+                1
+            ]["record"].update(
+                {
+                    "stage_code": 140,
+                    "stage": "sshd-active",
+                    "last_good_code": 140,
+                }
+            ),
         }
         for name, mutate in mutations.items():
             with self.subTest(name=name):
@@ -2796,13 +2832,13 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             MOCK_COLLECTOR_FAIL="1",
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("resolved as FALLBACK_RETURNED", result.stderr)
+        self.assertIn("resolved as TARGET_ACCEPTED", result.stderr)
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("collector:ready"), 1)
         self.assertEqual(calls.count("collector:capture"), 1)
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertEqual(
-            calls.count("control:resolve:FALLBACK_RETURNED"),
+            calls.count("control:resolve:TARGET_ACCEPTED"),
             1,
         )
         self.assertTrue(

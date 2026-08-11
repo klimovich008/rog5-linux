@@ -39,10 +39,10 @@ CHECKPOINT_INPUTS = (
         "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf",
     ),
     (
-        "artifacts/early-target-diagnostic-v6/rog5-early-target-diagnostic-initramfs.cpio.gz",
-        6015241,
+        "artifacts/early-target-diagnostic-v7/rog5-early-target-diagnostic-initramfs.cpio.gz",
+        6014751,
         0o644,
-        "2efd30e6f5a8796734dda00145af2e839c26b262a480396fb25017384d91acf4",
+        "635e641c62f894d4bc150cd3fec9ae965f0f9a769ff7b856ad5ca2432530ed2b",
     ),
     (
         "artifacts/recovery-inputs-v18r/rog5-recovery-base-v18r.cpio.gz",

@@ -11,21 +11,29 @@ deployment_profile=historical-headless-network-root-v1
 candidate_record=
 candidate_sha256=
 runtime_candidate=headless-network-root-v1
+diagnostic_profile=0
 case $# in
 	0) ;;
 	3)
 		deployment_profile=$1
 		candidate_record=$2
 		candidate_sha256=$3
-		[[ $deployment_profile == headless-ssh-deployment-v3 ]] ||
-			fail 'unsupported runtime deployment profile'
+		case $deployment_profile in
+			headless-ssh-deployment-v3)
+				runtime_candidate=headless-ssh-network-root-v3
+				;;
+			diagnostic-initramfs-v1)
+				runtime_candidate=headless-netroot-early-diag-v2
+				diagnostic_profile=1
+				;;
+			*) fail 'unsupported runtime deployment profile' ;;
+		esac
 		[[ $candidate_sha256 =~ ^[0-9a-f]{64}$ &&
 			$candidate_sha256 != \
 			0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'deployment candidate identity is invalid'
-		runtime_candidate=headless-ssh-network-root-v3
 		;;
-	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
+	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3|diagnostic-initramfs-v1 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
 esac
 
 [[ ${ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE:-} == 1 ]] ||
@@ -49,7 +57,7 @@ git -C "$repo" fetch --no-tags --prune origin \
 	$(git -C "$repo" rev-parse "$upstream") ]] ||
 	fail 'local and remote-tracking checkpoints differ'
 
-if [[ $deployment_profile == headless-ssh-deployment-v3 ]]; then
+if [[ $deployment_profile != historical-headless-network-root-v1 ]]; then
 	[[ $candidate_record == /* && ! -L $candidate_record ]] ||
 		fail 'deployment candidate path must be absolute and canonical'
 	candidate_lexical=$candidate_record
@@ -129,6 +137,12 @@ ssh_options=(
 )
 remote_directory=/run/rog5-minimal-headless-runtime-control
 remote_probe=$remote_directory/collect-minimal-headless-runtime.sh
+remote_exec=exec
+diagnostic_completion=
+if [[ $diagnostic_profile == 1 ]]; then
+	remote_exec=
+	diagnostic_completion='/run/initramfs/sbin/rog5-early-target-diag emit 150'
+fi
 
 remote_stage_verify_and_collect="
 set -eu
@@ -150,8 +164,9 @@ chmod 0500 \"\$file\"
 [ -f \"\$file\" ] && [ ! -L \"\$file\" ]
 [ \"\$(stat -c '%u:%g:%a' \"\$file\")\" = 0:0:500 ]
 [ \"\$(sha256sum \"\$file\" | cut -d ' ' -f 1)\" = $probe_hash ]
-exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+$remote_exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	ROG5_RUNTIME_CANDIDATE='$runtime_candidate' \"\$file\"
+$diagnostic_completion
 "
 
 umask 077
@@ -186,7 +201,7 @@ verifier_arguments=(
 	--record "$record"
 	--expected-boot-id "$boot_id"
 )
-if [[ $deployment_profile == headless-ssh-deployment-v3 ]]; then
+if [[ $deployment_profile != historical-headless-network-root-v1 ]]; then
 	verifier_arguments+=(
 		--deployment-profile "$deployment_profile"
 		--candidate-record "$candidate_record"
