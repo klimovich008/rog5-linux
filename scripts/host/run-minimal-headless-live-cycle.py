@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_RECOVERY_PROFILE = (
-    "headless-diagnostic-ssh-acceptance-v13-live-v1"
+    "headless-diagnostic-ssh-bootstrap-v14-live-v1"
 )
 DIAGNOSTIC_LIVE_STATUS = "admitted"
 DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
@@ -41,6 +41,8 @@ FALLBACK_CONTROL_MARGIN_SECONDS = 120
 FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
 FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 BUNDLE_HOST_ADDRESS = "169.254.77.1"
+TARGET_PRODUCT = "ROG5 network root"
+DIAGNOSTIC_TARGET_PRODUCT = "ROG5 diagnostic network root"
 ROG5_NCM_MODELS = frozenset(
     {
         "ROG5_recovery",
@@ -3789,6 +3791,11 @@ class LiveCycle:
                     "pin-target",
                     str(anchor),
                     str(target_known_hosts),
+                    (
+                        DIAGNOSTIC_TARGET_PRODUCT
+                        if self.profile.diagnostic
+                        else TARGET_PRODUCT
+                    ),
                 ],
                 target_key_log,
                 environment=child_environment(

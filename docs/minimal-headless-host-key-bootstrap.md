@@ -20,8 +20,10 @@ standing authorization and its exact technical gates.
    writes its physical sysfs location into a private anchor.
 2. `pin-target` requires the same current host boot, an anchor no older than
    600 seconds both before discovery and immediately before publication,
-   exactly one bus-inventoried raw `ROG5 network root` product
-   (`ROG5_network_root` after udev normalization) on the same physical port,
+   exactly one bus-inventoried raw product selected from the fixed reviewed
+   set: `ROG5 network root` for the standard path or
+   `ROG5 diagnostic network root` for the diagnostic path, on the same
+   physical port,
    the `cdc_ncm` driver, and an exact direct route from `169.254.77.1/30` to
    `169.254.77.2`.
 
@@ -77,7 +79,8 @@ ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP=1 \
   scripts/host/pin-minimal-headless-host-key.py \
   pin-target \
   /private/evidence/recovery-usb.anchor \
-  /private/evidence/target-known-hosts
+  /private/evidence/target-known-hosts \
+  'ROG5 diagnostic network root'
 ```
 
 The full live-cycle controller must still preserve the at-most-once recovery

@@ -78,8 +78,13 @@ class HostKeyFixture:
             f"{product}\n", encoding="ascii"
         )
 
-    def install_target(self, *, driver: str = "cdc_ncm") -> None:
-        self.set_product(MODULE.TARGET_PRODUCT)
+    def install_target(
+        self,
+        *,
+        driver: str = "cdc_ncm",
+        product: str | None = None,
+    ) -> None:
+        self.set_product(product or MODULE.TARGET_PRODUCT)
         (self.sys_tty / "ttyACM0").unlink(missing_ok=True)
         net_device = self.interface / "netdev"
         net_device.mkdir(exist_ok=True)
@@ -171,13 +176,45 @@ class HostKeyBootstrapTest(unittest.TestCase):
         target = TARGET_INIT.read_text()
         self.assertEqual(MODULE.RECOVERY_PRODUCT, "ROG5 recovery")
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 network root")
+        self.assertEqual(
+            MODULE.DIAGNOSTIC_TARGET_PRODUCT,
+            "ROG5 diagnostic network root",
+        )
         for source, product in (
             (recovery, MODULE.RECOVERY_PRODUCT),
             (target, MODULE.TARGET_PRODUCT),
+            (target, MODULE.DIAGNOSTIC_TARGET_PRODUCT),
         ):
             self.assertIn("echo 0x1d6b", source)
             self.assertIn("echo 0x0104", source)
             self.assertIn(f"echo '{product}'", source)
+
+    def test_diagnostic_product_is_observed_only_when_selected(self) -> None:
+        self.fixture.install_target(product="ROG5 diagnostic network root")
+        with self.fixture.patches():
+            self.assertEqual(
+                MODULE.target_observation(MODULE.DIAGNOSTIC_TARGET_PRODUCT),
+                ("enxrog5", "pci0000:00/usb1/1-2"),
+            )
+            with self.assertRaisesRegex(
+                MODULE.BootstrapError,
+                "raw ROG5 network root",
+            ):
+                MODULE.target_observation(MODULE.TARGET_PRODUCT)
+
+    def test_unreviewed_target_product_is_rejected_before_observation(
+        self,
+    ) -> None:
+        with (
+            self.fixture.patches(),
+            mock.patch.object(MODULE, "exact_product_location") as observe,
+        ):
+            with self.assertRaisesRegex(
+                MODULE.BootstrapError,
+                "target USB product is not reviewed",
+            ):
+                MODULE.target_observation("attacker-selected product")
+        observe.assert_not_called()
 
     def test_recovery_and_target_must_be_unique_exact_usb_devices(self) -> None:
         with self.fixture.patches():

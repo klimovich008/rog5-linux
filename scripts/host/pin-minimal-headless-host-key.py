@@ -30,6 +30,8 @@ SSH_KEYSCAN = Path("/usr/bin/ssh-keyscan")
 FORMAT = "rog5-minimal-headless-usb-anchor-v1"
 RECOVERY_PRODUCT = "ROG5 recovery"
 TARGET_PRODUCT = "ROG5 network root"
+DIAGNOSTIC_TARGET_PRODUCT = "ROG5 diagnostic network root"
+TARGET_PRODUCTS = frozenset((TARGET_PRODUCT, DIAGNOSTIC_TARGET_PRODUCT))
 USB_VENDOR = "1d6b"
 USB_PRODUCT = "0104"
 TARGET_ADDRESS = "169.254.77.2"
@@ -427,8 +429,12 @@ def recovery_observation() -> str:
     return locations[0]
 
 
-def target_observation() -> tuple[str, str]:
-    product_location = exact_product_location(TARGET_PRODUCT)
+def target_observation(
+    expected_product: str = TARGET_PRODUCT,
+) -> tuple[str, str]:
+    if expected_product not in TARGET_PRODUCTS:
+        fail("target USB product is not reviewed")
+    product_location = exact_product_location(expected_product)
     matches: list[tuple[str, str]] = []
     for entry in sorted(SYS_CLASS_NET.iterdir()):
         observed = usb_ancestor(entry)
@@ -438,7 +444,7 @@ def target_observation() -> tuple[str, str]:
         if (
             vendor != USB_VENDOR
             or product_id != USB_PRODUCT
-            or product != TARGET_PRODUCT
+            or product != expected_product
         ):
             continue
         driver = entry / "device" / "driver"
@@ -482,13 +488,16 @@ def wait_for_recovery() -> str:
     fail("stable-recovery USB location did not remain stable")
 
 
-def wait_for_target(expected_location: str) -> tuple[str, str]:
+def wait_for_target(
+    expected_location: str,
+    expected_product: str = TARGET_PRODUCT,
+) -> tuple[str, str]:
     deadline = time.monotonic() + TARGET_WAIT_SECONDS
     previous: tuple[str, str] | None = None
     stable_since = 0.0
     while time.monotonic() < deadline:
         try:
-            current = target_observation()
+            current = target_observation(expected_product)
         except BootstrapError:
             previous = None
             stable_since = 0.0
@@ -658,14 +667,23 @@ def capture_recovery(output: Path) -> str:
     return location
 
 
-def pin_target(anchor_path: Path, output: Path) -> str:
+def pin_target(
+    anchor_path: Path,
+    output: Path,
+    expected_product: str = TARGET_PRODUCT,
+) -> str:
+    if expected_product not in TARGET_PRODUCTS:
+        fail("target USB product is not reviewed")
     destination = safe_new_output(output)
     anchor = read_anchor(anchor_path)
     expected_location = anchor["usb_location"]
     deadline = time.monotonic() + TARGET_WAIT_SECONDS
     last_not_ready: HostKeyNotReady | None = None
     while time.monotonic() < deadline:
-        interface, location = wait_for_target(expected_location)
+        interface, location = wait_for_target(
+            expected_location,
+            expected_product,
+        )
         exact_route(interface)
         try:
             record, fingerprint = scan_target_key()
@@ -673,7 +691,7 @@ def pin_target(anchor_path: Path, output: Path) -> str:
             last_not_ready = error
             time.sleep(0.25)
             continue
-        if target_observation() != (interface, location):
+        if target_observation(expected_product) != (interface, location):
             fail("target USB identity changed during host-key scan")
         exact_route(interface)
         require_fresh_anchor(anchor)
@@ -699,8 +717,12 @@ def main(arguments: list[str]) -> int:
             f"location={location}"
         )
         return 0
-    if len(arguments) == 3 and arguments[0] == "pin-target":
-        fingerprint = pin_target(Path(arguments[1]), Path(arguments[2]))
+    if len(arguments) == 4 and arguments[0] == "pin-target":
+        fingerprint = pin_target(
+            Path(arguments[1]),
+            Path(arguments[2]),
+            arguments[3],
+        )
         print(
             "PASS pinned one volatile minimal-headless Ed25519 host key "
             f"fingerprint={fingerprint}"
@@ -708,7 +730,8 @@ def main(arguments: list[str]) -> int:
         return 0
     fail(
         "usage: pin-minimal-headless-host-key.py "
-        "capture-recovery OUTPUT | pin-target ANCHOR KNOWN_HOSTS"
+        "capture-recovery OUTPUT | "
+        "pin-target ANCHOR KNOWN_HOSTS EXPECTED_PRODUCT"
     )
 
 

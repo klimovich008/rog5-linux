@@ -135,7 +135,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-host-rendezvous-v3-live-v8 | \
 		headless-diagnostic-host-rendezvous-v3-live-v9 | \
 		headless-diagnostic-host-rendezvous-v3-live-v10 | \
-		headless-diagnostic-ssh-acceptance-v13-live-v1 | \
+		headless-diagnostic-ssh-bootstrap-v14-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1195,10 +1195,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-diagnostic-ssh-acceptance-v13-live-v1)
-		expected_boot_image=build/ssh-acceptance-v7-production-20260811-r1/wrapper/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact stage-150 SSH-acceptance diagnostic recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted stage-150 SSH-acceptance diagnostic recovery; clean-twin ASUS wrapper and signed exact runtime manifest; one RAM-only use only; never flash'
+	headless-diagnostic-ssh-bootstrap-v14-live-v1)
+		expected_boot_image=build/ssh-acceptance-v14-host-key-product-fix-20260811-r1/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact host-key-product-corrected SSH diagnostic recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted host-key-product-corrected SSH diagnostic recovery; byte-distinct AVB generation over the proven clean-twin raw wrapper and exact runtime manifest; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
@@ -1210,14 +1210,15 @@ case $profile in
 		expected_target_id=headless-netroot-early-diag-v2
 		expected_bundle=headless-netroot-early-diag-v2
 		expected_bundle_profile=diagnostic-initramfs-v1
-		expected_avb_salt=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff
-		expected_avb_digest=99f7a593e7e9fcaddf4d47d4a1f4f5232dbb1bf950845ae0881c6ed6ee2b0ecc
+		expected_avb_salt=ac4cd6f30090b3a714cd35fc4860c81c651832dc2aa19f5eebb2f18bc772210f
+		expected_avb_digest=9549e71ca4b881e0aa627fd7e49fad65771f8927b9656da820c9e15af764cd0c
+		expected_generation_record=9c6fca76d1e763fcfac53427e8082039e477834164661cb947a7ccb2a3307a8f
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
 			98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d ]] ||
 			fail 'SSH-acceptance runtime manifest is not pinned'
 		[[ $expected_image == \
-			640250dd2b8d7608a6ab547eff93dc23288c17ebb6fd9f40425689243093f3eb ]] ||
+			cc2d324198a5c90de03f357a1200f6d829392e70b25fe7ac4d67caed6aabe4ae ]] ||
 			fail 'SSH-acceptance recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1260,7 +1261,7 @@ case $profile in
 	headless-diagnostic-host-rendezvous-v3-live-v8 | \
 	headless-diagnostic-host-rendezvous-v3-live-v9 | \
 	headless-diagnostic-host-rendezvous-v3-live-v10 | \
-	headless-diagnostic-ssh-acceptance-v13-live-v1 | \
+	headless-diagnostic-ssh-bootstrap-v14-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)
