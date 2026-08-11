@@ -200,7 +200,7 @@ printf '%s\n' /etc/ssh/ssh_host_ed25519_key \
 	>"$root/run/mock-ssh-host-key"
 printf '%s\n' '2: usb0    inet 169.254.77.2/30 scope global usb0' \
 	>"$root/run/mock-ip-addresses"
-printf '%s\n' \
+printf '%s \n' \
 	'169.254.77.0/30 dev usb0 proto kernel scope link src 169.254.77.2' \
 	>"$root/run/mock-ip-routes"
 : >"$root/run/mock-ip-default-routes"
@@ -569,6 +569,10 @@ printf '%s\n' \
 	>"$root/run/mock-ip-routes"
 expect_failure 'changed USB connected route'
 printf '%s\n' \
+	'169.254.77.0/30 dev usb0 proto kernel scope link src 169.254.77.2 metric 100' \
+	>"$root/run/mock-ip-routes"
+expect_failure 'additional connected-route attribute'
+printf '%s \n' \
 	'169.254.77.0/30 dev usb0 proto kernel scope link src 169.254.77.2' \
 	>"$root/run/mock-ip-routes"
 
