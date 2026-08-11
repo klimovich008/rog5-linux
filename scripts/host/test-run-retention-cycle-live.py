@@ -44,15 +44,15 @@ class RetentionCycleLiveTest(unittest.TestCase):
     def test_current_contract_and_build_roots_are_exact(self) -> None:
         self.assertEqual(
             LIVE.JOURNAL.PROFILE,
-            "host-rendezvous-v11-mainline-udc-observer-v1",
+            "host-rendezvous-v11-mainline-udc-observer-v2",
         )
         self.assertEqual(
             LIVE.EXECUTION_SHA256,
-            "df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958",
+            "2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb",
         )
         self.assertEqual(
             LIVE.OBSERVER_SHA256,
-            "243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3",
+            "c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e",
         )
         for identifier in (LIVE.EXECUTION_ID, LIVE.OBSERVER_ID):
             self.assertEqual(
@@ -66,7 +66,7 @@ class RetentionCycleLiveTest(unittest.TestCase):
         environment = LIVE.closed_live_environment({})
         self.assertTrue(
             environment["LIVE_BUILD_ROOT"].endswith(
-                "/build/mainline-udc-v11-generation8-wrapper-20260811-r1"
+                "/build/mainline-udc-v11-generation9-wrapper-20260811-r1"
             )
         )
         self.assertEqual(

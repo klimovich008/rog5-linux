@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=retention-host-rendezvous-v11-mainline-udc-execution-v1
+profile=retention-host-rendezvous-v11-mainline-udc-execution-v2
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -45,7 +45,7 @@ case_source=$(awk -v profile="$profile" '
 [[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_boot_image=build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img \
+	expected_boot_image=build/mainline-udc-v11-generation9-wrapper-20260811-r1/repack/stable-recovery-a.avb.img \
 	expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c \
 	expected_raw=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff \
 	expected_initramfs=d9a3fba43abf0c3e456feb2e7f9da5e043df1e7cdef2e33112e0313358ae98d8 \
@@ -55,9 +55,9 @@ for assignment in \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_generation_record=5b4b477dfcefae07ab625246de31c65212405440d4c90c84a5074146d6faa6f2 \
-	expected_avb_salt=726c5775ef84db9245a6ca957b80597de089f110f3043d136f0e66157ac24e21 \
-	expected_avb_digest=11cb115b0f707bcbe7aa973829ec793284fe5abf7e14c66bcd515b9319479474 \
+	expected_generation_record=05363adb23eb0b542e6958d1743370bbbcf2fa3223b0d91e27dde4667de49548 \
+	expected_avb_salt=b83baa48af9b34ef6c351b8f33ee87302e22ad1c3f4fec6f2ffea671199190dd \
+	expected_avb_digest=61a852924d7cdef76695e6ce90f6f00ed1cc0461c3e6bfa8d6d58893505fa7a3 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -117,7 +117,7 @@ run_policy() {
 }
 
 exact=(
-	df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958
+	2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
@@ -156,13 +156,13 @@ done
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
-[[ $(awk -F '\t' -v name="build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" \
+[[ $(awk -F '\t' -v name="build/mainline-udc-v11-generation9-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 1 ]] ||
 	fail 'current production live image is not uniquely admitted'
 
 production_root=$repo/build/mainline-udc-v11-production-20260811-r1
-generation_root=$repo/build/mainline-udc-v11-generation8-wrapper-20260811-r1
+generation_root=$repo/build/mainline-udc-v11-generation9-wrapper-20260811-r1
 if [[ -d $production_root && -d $generation_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \

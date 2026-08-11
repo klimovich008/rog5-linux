@@ -66,10 +66,10 @@ awk -F '\t' '
 			exit 1
 		next
 	}
-	$1 == "build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/mainline-udc-v11-generation9-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact mainline-UDC-corrected retention execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
-	$1 == "build/observation-recovery-mainline-udc-v11-generation8-20260811-r1/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/observation-recovery-mainline-udc-v11-generation9-20260811-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact mainline-UDC retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
@@ -79,7 +79,7 @@ awk -F '\t' '
 	END { if (NR != 4 || execution != 1 || observer != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retention-cycle admission shape' >&2; exit 1; }
-grep -Fq '"retention-host-rendezvous-v11-mainline-udc-execution-v1"' "$lifecycle" ||
+grep -Fq '"retention-host-rendezvous-v11-mainline-udc-execution-v2"' "$lifecycle" ||
 	{ echo 'FAIL lifecycle does not select exact successor execution profile' >&2; exit 1; }
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \
@@ -2861,12 +2861,12 @@ for required in \
 	'headless-diagnostic-generation12-offline-v1' \
 	'headless-diagnostic-generation12-live-v1' \
 	'headless-diagnostic-stage75-v2-superseded-offline-v1' \
-	'retention-host-rendezvous-v11-mainline-udc-execution-v1' \
-	'expected_boot_image=build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img' \
-	'df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958' \
-	'expected_generation_record=5b4b477dfcefae07ab625246de31c65212405440d4c90c84a5074146d6faa6f2' \
-	'expected_avb_salt=726c5775ef84db9245a6ca957b80597de089f110f3043d136f0e66157ac24e21' \
-	'expected_avb_digest=11cb115b0f707bcbe7aa973829ec793284fe5abf7e14c66bcd515b9319479474' \
+	'retention-host-rendezvous-v11-mainline-udc-execution-v2' \
+	'expected_boot_image=build/mainline-udc-v11-generation9-wrapper-20260811-r1/repack/stable-recovery-a.avb.img' \
+	'2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb' \
+	'expected_generation_record=05363adb23eb0b542e6958d1743370bbbcf2fa3223b0d91e27dde4667de49548' \
+	'expected_avb_salt=b83baa48af9b34ef6c351b8f33ee87302e22ad1c3f4fec6f2ffea671199190dd' \
+	'expected_avb_digest=61a852924d7cdef76695e6ce90f6f00ed1cc0461c3e6bfa8d6d58893505fa7a3' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \

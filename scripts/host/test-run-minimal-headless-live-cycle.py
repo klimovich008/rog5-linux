@@ -3691,7 +3691,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.assertIn(token, runner)
         for token in (
             "fallback-acm-control.py",
-            '"retention-host-rendezvous-v11-mainline-udc-execution-v1"',
+            '"retention-host-rendezvous-v11-mainline-udc-execution-v2"',
             "ALLOW_FALLBACK_SSH_CONTROL",
             "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
             "wait-ssh-preflight",

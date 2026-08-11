@@ -8,22 +8,22 @@ import hashlib
 import re
 
 
-RETENTION_PROFILE = "host-rendezvous-v11-mainline-udc-observer-v1"
+RETENTION_PROFILE = "host-rendezvous-v11-mainline-udc-observer-v2"
 CANDIDATE = "headless-netroot-early-diag-v2"
 MANIFEST_SHA256 = (
     "ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034"
 )
 EXECUTION_RECOVERY_PROFILE = (
-    "retention-host-rendezvous-v11-mainline-udc-execution-v1"
+    "retention-host-rendezvous-v11-mainline-udc-execution-v2"
 )
 OBSERVER_RECOVERY_PROFILE = (
-    "retention-host-rendezvous-v11-mainline-udc-observer-v1"
+    "retention-host-rendezvous-v11-mainline-udc-observer-v2"
 )
 EXECUTION_RECOVERY_SHA256 = (
-    "df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958"
+    "2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb"
 )
 OBSERVER_RECOVERY_SHA256 = (
-    "243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3"
+    "c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e"
 )
 POSTMORTEM_CLASSIFICATIONS = frozenset(
     {

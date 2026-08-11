@@ -185,9 +185,9 @@ def mainline_udc_claim_record(
 ) -> bytes:
     return (
         "format=rog5-retention-boot-consumption-v1\n"
-        "retention_profile=host-rendezvous-v11-mainline-udc-observer-v1\n"
+        "retention_profile=host-rendezvous-v11-mainline-udc-observer-v2\n"
         "cycle_sha256="
-        "8d553f58d35923e9897c8f98f0d16630571ac2863a0f714940cc4cd2d4ddd710\n"
+        "c8f21939d83777ed7cc56782441f1a2f35261dd3746b9aa41d07ce5e1f99e405\n"
         f"claim_role={role}\n"
         f"recovery_profile={identifier}\n"
         f"recovery_sha256={recovery_sha256}\n"
@@ -201,20 +201,20 @@ def mainline_udc_claim_record(
 
 EXPECTED_CLAIMS.update(
     {
-        "retention-host-rendezvous-v11-mainline-udc-execution-v1": (
+        "retention-host-rendezvous-v11-mainline-udc-execution-v2": (
             mainline_udc_claim_record(
                 "execution",
-                "retention-host-rendezvous-v11-mainline-udc-execution-v1",
-                "df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958",
-                "243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3",
+                "retention-host-rendezvous-v11-mainline-udc-execution-v2",
+                "2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb",
+                "c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e",
             )
         ),
-        "retention-host-rendezvous-v11-mainline-udc-observer-v1": (
+        "retention-host-rendezvous-v11-mainline-udc-observer-v2": (
             mainline_udc_claim_record(
                 "observer",
-                "retention-host-rendezvous-v11-mainline-udc-observer-v1",
-                "243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3",
-                "df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958",
+                "retention-host-rendezvous-v11-mainline-udc-observer-v2",
+                "c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e",
+                "2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb",
             )
         ),
     }
@@ -234,7 +234,7 @@ EXPECTED_SEQUENCE_REFERENCE = {
 EXPECTED_TRANSACTION_FIXTURE = {
     "path": "scripts/host/retention-cycle-transaction.py",
     "size": 40084,
-    "sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+    "sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
     "mode": "0644",
     "implementation": "offline-append-only-fixture",
     "event_format": "rog5-retention-cycle-event-v1",
@@ -250,7 +250,7 @@ EXPECTED_ADAPTER_FIXTURE = {
     "sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
     "mode": "0644",
     "implementation": "callback-only-fixture",
-    "journal_sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+    "journal_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
     "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
     "invocation_count": 6,
     "live_entrypoint": "none",
@@ -261,7 +261,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14561,
-    "sha256": "63c22d196ce4282d7ad9e079d78812bfbd517d5bcef94620eef28b0c6bac1fbe",
+    "sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -289,7 +289,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "63c22d196ce4282d7ad9e079d78812bfbd517d5bcef94620eef28b0c6bac1fbe",
+    "executor_contract_sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -345,7 +345,7 @@ EXPECTED_EXECUTOR_RUNTIME = {
     "mode": "0644",
     "implementation": "offline-fresh-pipe-fixture-v1",
     "executor_boundary_sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
-    "transaction_sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+    "transaction_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
     "intent_binding": "held-fsynced-event-descriptor",
     "pipe_binding": "fresh-empty-cloexec-distinct",
     "process_backend": "forked-fixed-writer-only",

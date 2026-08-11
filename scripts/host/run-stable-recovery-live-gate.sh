@@ -136,7 +136,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-host-rendezvous-v3-live-v9 | \
 		headless-diagnostic-host-rendezvous-v3-live-v10 | \
 		retention-host-rendezvous-v3-execution-v1 | \
-		retention-host-rendezvous-v11-mainline-udc-execution-v1) ;;
+		retention-host-rendezvous-v11-mainline-udc-execution-v2) ;;
 		*) fail 'policy preflight requires a fully pinned diagnostic profile' ;;
 	esac
 fi
@@ -1117,10 +1117,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	retention-host-rendezvous-v11-mainline-udc-execution-v1)
-		expected_boot_image=build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img
+	retention-host-rendezvous-v11-mainline-udc-execution-v2)
+		expected_boot_image=build/mainline-udc-v11-generation9-wrapper-20260811-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact mainline-UDC-corrected retention execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted mainline-UDC-corrected retention execution recovery; clean-twin ASUS wrapper with a fresh deterministic AVB generation; one RAM-only use only; never flash'
+		expected_boot_role='unbooted mainline-UDC-corrected retention execution recovery successor; clean-twin ASUS wrapper with a fresh deterministic AVB generation; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
@@ -1132,15 +1132,15 @@ case $profile in
 		expected_target_id=headless-netroot-early-diag-v2
 		expected_bundle=headless-netroot-early-diag-v2
 		expected_bundle_profile=diagnostic-initramfs-v1
-		expected_generation_record=5b4b477dfcefae07ab625246de31c65212405440d4c90c84a5074146d6faa6f2
-		expected_avb_salt=726c5775ef84db9245a6ca957b80597de089f110f3043d136f0e66157ac24e21
-		expected_avb_digest=11cb115b0f707bcbe7aa973829ec793284fe5abf7e14c66bcd515b9319479474
+		expected_generation_record=05363adb23eb0b542e6958d1743370bbbcf2fa3223b0d91e27dde4667de49548
+		expected_avb_salt=b83baa48af9b34ef6c351b8f33ee87302e22ad1c3f4fec6f2ffea671199190dd
+		expected_avb_digest=61a852924d7cdef76695e6ce90f6f00ed1cc0461c3e6bfa8d6d58893505fa7a3
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
 			ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034 ]] ||
 			fail 'mainline-UDC retention manifest is not pinned'
 		[[ $expected_image == \
-			df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958 ]] ||
+			2fa17df6ac83daa767bbe35220ff48062c43cdbc6f3945e7c2d0018608130ffb ]] ||
 			fail 'mainline-UDC retention recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1184,7 +1184,7 @@ case $profile in
 	headless-diagnostic-host-rendezvous-v3-live-v9 | \
 	headless-diagnostic-host-rendezvous-v3-live-v10 | \
 	retention-host-rendezvous-v3-execution-v1 | \
-	retention-host-rendezvous-v11-mainline-udc-execution-v1)
+	retention-host-rendezvous-v11-mainline-udc-execution-v2)
 		initramfs_contract=exact-a600000-v1
 		initramfs_verifier_expected=-
 		;;

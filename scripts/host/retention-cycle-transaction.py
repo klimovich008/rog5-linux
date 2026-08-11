@@ -21,7 +21,7 @@ REFERENCE_FILES = {
     "host-rendezvous-v3-observer-v1": (
         "retention-cycle-sequence-reference.py"
     ),
-    "host-rendezvous-v11-mainline-udc-observer-v1": (
+    "host-rendezvous-v11-mainline-udc-observer-v2": (
         "retention-cycle-mainline-udc-v11.py"
     ),
 }

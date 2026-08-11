@@ -24,7 +24,7 @@ MODULES = {
     "claims": "consume-exact-boot-claim.py",
 }
 CURRENT_RETENTION_SEQUENCE = (
-    "host-rendezvous-v11-mainline-udc-observer-v1"
+    "host-rendezvous-v11-mainline-udc-observer-v2"
 )
 
 
@@ -180,7 +180,7 @@ def require_inputs() -> dict[str, str]:
 
 def closed_live_environment(values: dict[str, str]) -> dict[str, str]:
     build = REPO / "build/mainline-udc-v11-production-20260811-r1"
-    wrapper = REPO / "build/mainline-udc-v11-generation8-wrapper-20260811-r1"
+    wrapper = REPO / "build/mainline-udc-v11-generation9-wrapper-20260811-r1"
     environment = {
         "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
         "LC_ALL": "C",
@@ -608,7 +608,7 @@ def run_live_cycle(values: dict[str, str]) -> None:
                 "ROG5_OBSERVATION_RECOVERY_PROFILE": OBSERVER_ID,
                 "OBSERVER_BUILD_ROOT": str(
                     REPO
-                    / "build/observation-recovery-mainline-udc-v11-generation8-20260811-r1"
+                    / "build/observation-recovery-mainline-udc-v11-generation9-20260811-r1"
                 ),
                 "OBSERVER_SOURCE_BUILD_ROOT": str(
                     REPO
