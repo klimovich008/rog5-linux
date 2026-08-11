@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa' \
+	'reviewed_reporter_hash=6a87ffa7bcbef1dcef9353d2ada3b34888f6bcb881fe38d417c3ae97e6767d01' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \

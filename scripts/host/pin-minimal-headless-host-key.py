@@ -37,7 +37,10 @@ HOST_ADDRESS = "169.254.77.1"
 HOST_CIDR = f"{HOST_ADDRESS}/30"
 HOST_ALIAS = "rog5-minimal-headless-v1"
 ANCHOR_MAX_AGE_SECONDS = 600
-TARGET_WAIT_SECONDS = 45
+# A cold NFS-root handoff on the physical phone took 368.5 seconds to reach
+# sshd.  Start this bounded wait immediately after COMMIT and keep it below
+# the 600-second recovery-anchor lifetime.
+TARGET_WAIT_SECONDS = 420
 LOCATION = re.compile(r"[A-Za-z0-9._:+/-]{1,512}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"

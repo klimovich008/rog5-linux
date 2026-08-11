@@ -127,11 +127,29 @@ CAPABILITIES = (
 )
 HISTORICAL_PROFILE = "historical-headless-network-root-v1"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
+DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 HISTORICAL_CANDIDATE = "headless-network-root-v1"
 DEPLOYMENT_CANDIDATE = "headless-ssh-network-root-v3"
 DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3-r2"
 DEPLOYMENT_TARGET = "headless-ssh-network-root"
+DIAGNOSTIC_CANDIDATE = "headless-netroot-early-diag-v2"
+DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v2"
+DIAGNOSTIC_TARGET = "headless-netroot-early-diag-v2"
 DEPLOYMENT_RELEASE = "7.1.4-g7a5cef0db479"
+EXTERNAL_PROFILES = {
+    DEPLOYMENT_PROFILE: {
+        "candidate": DEPLOYMENT_CANDIDATE,
+        "bundle": DEPLOYMENT_BUNDLE,
+        "profile": "network-root-v1",
+        "target": DEPLOYMENT_TARGET,
+    },
+    DIAGNOSTIC_PROFILE: {
+        "candidate": DIAGNOSTIC_CANDIDATE,
+        "bundle": DIAGNOSTIC_BUNDLE,
+        "profile": DIAGNOSTIC_PROFILE,
+        "target": DIAGNOSTIC_TARGET,
+    },
+}
 FIXTURE_TREE_SHA256 = (
     "6f8a8f11bfb581bb52ca7d590141ce46"
     "5b8d48d8f9f4577a076b7a37604a2fd5"
@@ -493,7 +511,11 @@ def load_deployment_candidate(
     repo: Path,
     path: Path | None,
     expected_sha256: str,
+    deployment_profile: str = DEPLOYMENT_PROFILE,
 ) -> dict[str, object]:
+    expected = EXTERNAL_PROFILES.get(deployment_profile)
+    if expected is None:
+        fail("runtime deployment profile is unsupported")
     if path is None:
         fail("deployment candidate record is required")
     require_sha256(expected_sha256, "deployment candidate identity")
@@ -505,7 +527,7 @@ def load_deployment_candidate(
     try:
         candidate = candidate_module.load_candidate_path(
             candidate_path,
-            DEPLOYMENT_CANDIDATE,
+            expected["candidate"],
         )
     except candidate_module.CandidateError as error:
         raise RuntimeAcceptanceError(
@@ -515,12 +537,12 @@ def load_deployment_candidate(
     if before != after:
         fail("deployment candidate changed during validation")
     if (
-        candidate.get("candidate") != DEPLOYMENT_CANDIDATE
-        or candidate.get("bundle") != DEPLOYMENT_BUNDLE
+        candidate.get("candidate") != expected["candidate"]
+        or candidate.get("bundle") != expected["bundle"]
         or candidate.get("status") != "offline"
         or candidate.get("authority") != "none"
-        or candidate.get("profile") != "network-root-v1"
-        or candidate.get("target_id") != DEPLOYMENT_TARGET
+        or candidate.get("profile") != expected["profile"]
+        or candidate.get("target_id") != expected["target"]
         or candidate.get("target_release") != DEPLOYMENT_RELEASE
         or candidate.get("rollback_timeout") != "600"
         or candidate.get("target_timeout") != "480"
@@ -549,13 +571,15 @@ def select_candidate(
             HISTORICAL_CANDIDATE,
             load_historical_candidate(repo, oracle_module, profile),
         )
-    if deployment_profile == DEPLOYMENT_PROFILE:
+    if deployment_profile in EXTERNAL_PROFILES:
+        expected = EXTERNAL_PROFILES[deployment_profile]
         return (
-            DEPLOYMENT_CANDIDATE,
+            expected["candidate"],
             load_deployment_candidate(
                 repo,
                 candidate_record,
                 candidate_sha256,
+                deployment_profile,
             ),
         )
     fail("runtime deployment profile is unsupported")
@@ -697,7 +721,11 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--deployment-profile",
         default=HISTORICAL_PROFILE,
-        choices=(HISTORICAL_PROFILE, DEPLOYMENT_PROFILE),
+        choices=(
+            HISTORICAL_PROFILE,
+            DEPLOYMENT_PROFILE,
+            DIAGNOSTIC_PROFILE,
+        ),
     )
     parser.add_argument("--candidate-record", type=Path)
     parser.add_argument("--candidate-sha256", default="")

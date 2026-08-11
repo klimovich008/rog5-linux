@@ -12,7 +12,7 @@ runtime_root=${ROG5_RUNTIME_ROOT:-}
 test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
 runtime_candidate=${ROG5_RUNTIME_CANDIDATE:-headless-network-root-v1}
 case $runtime_candidate in
-	headless-network-root-v1|headless-ssh-network-root-v3) ;;
+	headless-network-root-v1|headless-ssh-network-root-v3|headless-netroot-early-diag-v2) ;;
 	*) fail 'runtime candidate identity is unsupported' ;;
 esac
 case $test_mode:$runtime_root in

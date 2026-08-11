@@ -16,7 +16,7 @@ legacy_verifier_sha=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4
 verifier_size=
 verifier_sha=
 reporter_size=67288
-reporter_sha=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa
+reporter_sha=6a87ffa7bcbef1dcef9353d2ada3b34888f6bcb881fe38d417c3ae97e6767d01
 profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
 profile_sha=780d564013d30c278b709939db6402347243eb2866065c6cbbe1788a946b842f
 builder_verifier=$repo/scripts/host/verify-steam-deck-recovery-builders.sh
@@ -51,12 +51,12 @@ case $mode in
 	diagnostic)
 		verifier_size=327968
 		verifier_sha=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
-		output_root=${2:-$repo/artifacts/early-target-diagnostic-v6}
+		output_root=${2:-$repo/artifacts/early-target-diagnostic-v7}
 		output_name=rog5-early-target-diagnostic-initramfs.cpio.gz
-		output_size=6015241
-		output_sha=2efd30e6f5a8796734dda00145af2e839c26b262a480396fb25017384d91acf4
+		output_size=6014751
+		output_sha=635e641c62f894d4bc150cd3fec9ae965f0f9a769ff7b856ad5ca2432530ed2b
 		report_name=early-target-diagnostic-initramfs-rebuild.txt
-		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v6
+		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v7
 		report_state=exact-pinned-bytes-reproduced
 		reproducibility=twin-verifier-reporter-and-twin-initramfs-builds
 		;;

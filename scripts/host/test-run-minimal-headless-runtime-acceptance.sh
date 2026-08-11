@@ -35,6 +35,9 @@ for token in \
 	'historical-headless-network-root-v1' \
 	'headless-ssh-deployment-v3' \
 	'headless-ssh-network-root-v3' \
+	'diagnostic-initramfs-v1' \
+	'headless-netroot-early-diag-v2' \
+	'/run/initramfs/sbin/rog5-early-target-diag emit 150' \
 	'--deployment-profile' \
 	'--candidate-record' \
 	'--candidate-sha256' \
@@ -285,6 +288,45 @@ grep -Fq 'rollback watchdog remains armed' <<<"$deployment_output"
 [[ $(wc -l <"$calls") == 1 ]]
 cmp "$deployment_record" \
 	"$stage/evidence-v3/minimal-headless-runtime.record"
+
+diagnostic_candidate=$stage/headless-netroot-early-diag-v2.json
+sed \
+	-e 's/f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087/4444444444444444444444444444444444444444444444444444444444444444/' \
+	-e 's/42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a/5555555555555555555555555555555555555555555555555555555555555555/' \
+	-e 's/"root_tree_entries": "37735"/"root_tree_entries": "37736"/' \
+	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json" \
+	>"$diagnostic_candidate"
+chmod 0400 "$diagnostic_candidate"
+diagnostic_candidate_sha256=$(
+	sha256sum "$diagnostic_candidate" | cut -d ' ' -f 1
+)
+diagnostic_record=$stage/diagnostic-golden.record
+sed \
+	-e 's/candidate=headless-network-root-v1/candidate=headless-netroot-early-diag-v2/' \
+	-e 's/7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb/4444444444444444444444444444444444444444444444444444444444444444/' \
+	-e 's/6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896/5555555555555555555555555555555555555555555555555555555555555555/g' \
+	-e 's/root_tree_entries=37669/root_tree_entries=37736/' \
+	"$record" >"$diagnostic_record"
+install -d -m 0700 "$stage/evidence-diagnostic"
+: >"$calls"
+diagnostic_output=$(
+	PATH="$stage/bin:$PATH" \
+	MOCK_CALLS="$calls" \
+	MOCK_RECORD="$diagnostic_record" \
+	MOCK_PROBE_HASH="$probe_hash" \
+	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+	SSH_KEY="$stage/ssh-key" \
+	TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+	EVIDENCE_DIR="$stage/evidence-diagnostic" \
+		"$runner" diagnostic-initramfs-v1 \
+		"$diagnostic_candidate" "$diagnostic_candidate_sha256"
+)
+grep -Fq 'PASS minimal headless runtime acceptance' \
+	<<<"$diagnostic_output"
+grep -Fq 'rollback watchdog remains armed' <<<"$diagnostic_output"
+[[ $(grep -Fxc collect "$calls") == 1 ]]
+cmp "$diagnostic_record" \
+	"$stage/evidence-diagnostic/minimal-headless-runtime.record"
 
 install -d -m 0700 "$stage/evidence-transfer-failure"
 : >"$calls"

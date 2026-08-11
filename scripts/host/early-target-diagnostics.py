@@ -45,6 +45,7 @@ STAGES = {
     120: "switch-root-exec",
     130: "new-init-up",
     140: "sshd-active",
+    150: "ssh-key-accepted",
     200: "fault",
     210: "watchdog-pretimeout",
 }
@@ -188,7 +189,7 @@ def parse_payload(
         values["last_good_code"],
         "last-good code",
         minimum=10,
-        maximum=140,
+        maximum=150,
     )
     if last_good not in PROGRESS_CODES:
         fail("diagnostic last-good code is invalid")

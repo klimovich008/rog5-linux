@@ -87,6 +87,7 @@ code. The host classifies by the greatest valid code observed for one boot.
 | 120 | `switch-root-exec` | all moves passed and PID 1 will next invoke `switch_root` |
 | 130 | `new-init-up` | diagnostic-only early systemd unit ran |
 | 140 | `sshd-active` | diagnostic-only post-sshd unit ran |
+| 150 | `ssh-key-accepted` | the host completed strict key-only SSH runtime acceptance for this boot |
 | 200 | `fault` | a fixed reason code terminated progress |
 | 210 | `watchdog-pretimeout` | rollback deadline is imminent |
 
@@ -136,6 +137,11 @@ Both invoke the same static helper from the retained exitrd and send one
 nonblocking datagram. They do not alter the sealed NFS lower. The reporter
 holds its abstract socket and ACM descriptor open across the handoff and
 requires no path lookup after startup.
+
+Stage 150 is not produced by another boot unit. After strict key-only SSH
+acceptance succeeds, the fixed host acceptance runner invokes the retained
+write-only helper once so the diagnostic stream records the same accepted
+boot identity.
 
 ## Host capture
 

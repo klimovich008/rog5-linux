@@ -62,6 +62,7 @@ static const struct stage stages[] = {
 	{ 120, "switch-root-exec" },
 	{ 130, "new-init-up" },
 	{ 140, "sshd-active" },
+	{ 150, "ssh-key-accepted" },
 	{ 200, "fault" },
 	{ 210, "watchdog-pretimeout" },
 };
@@ -286,7 +287,7 @@ static void emit_frame(int argc, char **argv)
 		fail("usage: frame CANDIDATE BOOT_ID SEQUENCE BOOTTIME_MS "
 		     "STAGE_CODE LAST_GOOD_CODE FAULT DEADLINE_MS DROPPED");
 	stage_code = number(argv[6], 10, 210, "invalid stage code");
-	last_good = number(argv[7], 10, 140, "invalid last-good code");
+	last_good = number(argv[7], 10, 150, "invalid last-good code");
 	if (stage_code > UINT_MAX || last_good > UINT_MAX)
 		fail("stage code overflow");
 	record = (struct diagnostic_record) {

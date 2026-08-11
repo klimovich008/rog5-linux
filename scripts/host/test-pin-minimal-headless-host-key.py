@@ -126,6 +126,13 @@ class HostKeyFixture:
 
 
 class HostKeyBootstrapTest(unittest.TestCase):
+    def test_cold_nfs_boot_budget_fits_inside_anchor_lifetime(self) -> None:
+        self.assertGreaterEqual(MODULE.TARGET_WAIT_SECONDS, 369)
+        self.assertLess(
+            MODULE.TARGET_WAIT_SECONDS,
+            MODULE.ANCHOR_MAX_AGE_SECONDS,
+        )
+
     def setUp(self) -> None:
         self.fixture = HostKeyFixture()
 
