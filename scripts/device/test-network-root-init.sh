@@ -20,10 +20,11 @@ for text in \
 	'build-persistent-root-verifier-static.sh' \
 	'NETWORK_ROOT_VERIFIER' \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
-	'reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58' \
+	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
 	'reviewed_reporter_hash=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
+	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
 	'accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac'; do
@@ -78,6 +79,7 @@ for text in \
 	'rog5.root_tree_entries=' \
 	'rog5.root_subtree=' \
 	'/sbin/persistent-root-verify' \
+	'--nfs4-xattr-projection "$xattr_projection"' \
 	'verify_network_root_identity || return 1' \
 	'format=rog5-network-root-identity-v1' \
 	'publish_network_root_identity' \
@@ -110,7 +112,7 @@ for text in \
 		'trap switch_root_failure EXIT' \
 		'trap - EXIT' \
 		'exec switch_root "$handoff_newroot" /sbin/init'; do
-	grep -Fq "$text" "$init" || {
+	grep -Fq -- "$text" "$init" || {
 		echo "FAIL network-root init contract missing: $text" >&2
 		exit 1
 	}
@@ -979,9 +981,12 @@ done
 
 substitution_root=$work/substitution-root
 mkdir -p "$substitution_root/sbin" "$substitution_root/etc/ssh" \
-	"$substitution_root/root/.ssh"
+	"$substitution_root/etc/rog5" "$substitution_root/root/.ssh"
 cp "$init" "$substitution_root/init"
 cp "$shutdown" "$substitution_root/shutdown"
+install -m 0444 \
+	"$repo/configs/network-roots/rog5-nfs4-xattr-projection-v1" \
+	"$substitution_root/etc/rog5/nfs4-xattr-projection"
 cp "$substitute_elf" \
 	"$substitution_root/sbin/persistent-root-verify"
 for path in \

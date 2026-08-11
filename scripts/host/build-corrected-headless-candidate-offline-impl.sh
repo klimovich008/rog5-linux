@@ -100,8 +100,8 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_manifest=4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76 ;;
 	headless-netroot-early-diag-v2:86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46:headless-netroot-early-diag-v2)
 		expected_profile=diagnostic-initramfs-v1
-		expected_candidate_sha=d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b
-		expected_manifest=ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034 ;;
+		expected_candidate_sha=d4d86e8d79e4612ec747cfc6e81e84c058d4e01fd735639fdcc595766fa553c4
+		expected_manifest=325aa8fb76444b5c01bc517a22ad2483c016837cc1fcb46c203ab5288b916854 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then

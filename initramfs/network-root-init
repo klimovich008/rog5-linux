@@ -136,10 +136,14 @@ verify_no_phone_storage() {
 verify_network_root_identity() {
 	seal=/mnt/root-ro/.rog5-persistent-seal
 	command_manifest=/mnt/root-ro/etc/rog5/a660-command-manifest
+	xattr_projection=/etc/rog5/nfs4-xattr-projection
 	[ -x /sbin/persistent-root-verify ] || return 1
+	[ -f "$xattr_projection" ] && [ ! -L "$xattr_projection" ] ||
+		return 1
 	root_report=$(
 		/sbin/persistent-root-verify \
-			/mnt/root-ro "$seal" "$root_seal_sha256"
+			/mnt/root-ro "$seal" "$root_seal_sha256" \
+			--nfs4-xattr-projection "$xattr_projection"
 	) || return 1
 	[ "$root_report" = \
 		"PASS persistent root matches anchored seal entries=$root_tree_entries tree_sha256=$root_tree_sha256" ] ||

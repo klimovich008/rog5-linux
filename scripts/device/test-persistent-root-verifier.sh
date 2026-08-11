@@ -73,6 +73,77 @@ make_fixture pristine
 "$verifier" "$root" "$seal" "$seal_hash" |
 	grep -Eq '^PASS persistent root matches anchored seal entries=[1-9][0-9]* tree_sha256=[0-9a-f]{64}$'
 
+projection=$work/nfs4-xattr-projection
+write_projection() {
+	first_value=${1:-707265736572766564}
+	second_value=${2:-$first_value}
+	{
+		printf '%s\n' 'format=rog5-nfs4-xattr-projection-v1'
+		printf 'usr/lib/rog5/payload\tuser.rog5\t%s\n' \
+			"$first_value"
+		printf 'usr/lib/rog5/payload-hardlink\tuser.rog5\t%s\n' \
+			"$second_value"
+	} >"$projection"
+	chmod 0444 "$projection"
+}
+
+write_projection
+"$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection" |
+	grep -Eq '^PASS persistent root matches anchored seal entries=[1-9][0-9]* tree_sha256=[0-9a-f]{64}$'
+python3 - "$root/usr/lib/rog5/payload" <<'PY'
+import os
+import sys
+
+os.removexattr(sys.argv[1], b"user.rog5")
+PY
+expect_fail projection-absent-without-mode \
+	"$verifier" "$root" "$seal" "$seal_hash"
+"$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection" |
+	grep -Eq '^PASS persistent root matches anchored seal entries=[1-9][0-9]* tree_sha256=[0-9a-f]{64}$'
+
+chmod 0644 "$projection"
+write_projection 6368616e676564
+expect_fail projection-changed "$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection"
+chmod 0644 "$projection"
+{
+	printf '%s\n' 'format=rog5-nfs4-xattr-projection-v1'
+	printf 'usr/lib/rog5/payload-hardlink\tuser.rog5\t%s\n' \
+		707265736572766564
+	printf 'usr/lib/rog5/payload\tuser.rog5\t%s\n' \
+		707265736572766564
+} >"$projection"
+chmod 0444 "$projection"
+expect_fail projection-unsorted "$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection"
+chmod 0644 "$projection"
+{
+	printf '%s\n' 'format=rog5-nfs4-xattr-projection-v1'
+	printf 'usr/lib/rog5/missing\tuser.rog5\t%s\n' \
+		707265736572766564
+} >"$projection"
+chmod 0444 "$projection"
+expect_fail projection-missing-path \
+	"$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection"
+chmod 0644 "$projection"
+python3 - "$projection" <<'PY'
+import sys
+
+with open(sys.argv[1], "wb") as descriptor:
+    descriptor.write(b"format=rog5-nfs4-xattr-projection-v1\n")
+    descriptor.write(
+        b"usr/lib/rog5/payload\0-hidden\tuser.rog5\t"
+        b"707265736572766564\n"
+    )
+PY
+chmod 0444 "$projection"
+expect_fail projection-null-identity \
+	"$verifier" "$root" "$seal" "$seal_hash" \
+	--nfs4-xattr-projection "$projection"
+
 expect_fail wrong-seal-anchor "$verifier" "$root" "$seal" \
 	1111111111111111111111111111111111111111111111111111111111111111
 

@@ -24,6 +24,10 @@ extern ssize_t lgetxattr(const char *path, const char *name, void *value,
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 #define SEAL_NAME ".rog5-persistent-seal"
+#define NFS4_ACL_XATTR "system.nfs4_acl"
+#define PROJECTION_FORMAT "format=rog5-nfs4-xattr-projection-v1"
+#define PROJECTION_MAX_SIZE (64 * 1024)
+#define PROJECTION_MAX_ENTRIES 64
 
 struct sha256 {
 	uint32_t state[8];
@@ -48,6 +52,19 @@ struct expected_tree {
 
 struct string_list {
 	char **items;
+	size_t count;
+};
+
+struct projected_xattr {
+	char *path;
+	char *name;
+	unsigned char *value;
+	size_t value_length;
+	bool used;
+};
+
+struct xattr_projection {
+	struct projected_xattr *items;
 	size_t count;
 };
 
@@ -81,6 +98,198 @@ static char *duplicate_bytes(const char *data, size_t length)
 	memcpy(result, data, length);
 	result[length] = '\0';
 	return result;
+}
+
+static unsigned char decode_hex_digit(char value)
+{
+	if (value >= '0' && value <= '9')
+		return (unsigned char)(value - '0');
+	if (value >= 'a' && value <= 'f')
+		return (unsigned char)(value - 'a' + 10);
+	fail("xattr projection contains non-lowercase hex");
+	return 0;
+}
+
+static bool valid_relative_path(const char *path)
+{
+	const char *component = path;
+	const char *cursor;
+
+	if (!*path || *path == '/')
+		return false;
+	for (cursor = path;; cursor++) {
+		if (*cursor != '/' && *cursor != '\0')
+			continue;
+		if (cursor == component ||
+		    (cursor - component == 1 && component[0] == '.') ||
+		    (cursor - component == 2 && component[0] == '.' &&
+		     component[1] == '.'))
+			return false;
+		if (!*cursor)
+			return true;
+		component = cursor + 1;
+	}
+}
+
+static bool valid_xattr_name(const char *name)
+{
+	const unsigned char *cursor = (const unsigned char *)name;
+
+	if (strncmp(name, "user.", 5) &&
+	    strcmp(name, "security.capability"))
+		return false;
+	for (; *cursor; cursor++) {
+		if ((*cursor >= 'a' && *cursor <= 'z') ||
+		    (*cursor >= '0' && *cursor <= '9') ||
+		    *cursor == '.' || *cursor == '_' || *cursor == '-')
+			continue;
+		return false;
+	}
+	return true;
+}
+
+static int compare_projected_xattrs(const struct projected_xattr *left,
+				    const struct projected_xattr *right)
+{
+	int order;
+
+	order = strcmp(left->path, right->path);
+	if (order)
+		return order;
+	return strcmp(left->name, right->name);
+}
+
+static char *read_small_regular(const char *path, size_t *length)
+{
+	struct stat before;
+	struct stat after;
+	char *result;
+	size_t offset = 0;
+	ssize_t amount;
+	int descriptor;
+
+	descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+	if (descriptor < 0)
+		fail("cannot open xattr projection");
+	if (fstat(descriptor, &before) < 0)
+		fail("cannot stat xattr projection");
+	if (!S_ISREG(before.st_mode) || (before.st_mode & 07777) != 0444 ||
+	    before.st_size <= 0 || before.st_size > PROJECTION_MAX_SIZE)
+		fail("xattr projection type, mode, or size changed");
+	result = allocate((size_t)before.st_size + 1);
+	while (offset < (size_t)before.st_size) {
+		amount = read(descriptor, result + offset,
+			      (size_t)before.st_size - offset);
+		if (amount > 0) {
+			offset += (size_t)amount;
+			continue;
+		}
+		if (amount < 0 && errno == EINTR)
+			continue;
+		fail("cannot read xattr projection");
+	}
+	if (fstat(descriptor, &after) < 0)
+		fail("cannot restat xattr projection");
+	if (close(descriptor) < 0)
+		fail("cannot close xattr projection");
+	if (before.st_dev != after.st_dev || before.st_ino != after.st_ino ||
+	    before.st_mode != after.st_mode || before.st_size != after.st_size ||
+	    before.st_mtim.tv_sec != after.st_mtim.tv_sec ||
+	    before.st_mtim.tv_nsec != after.st_mtim.tv_nsec)
+		fail("xattr projection changed while being read");
+	result[offset] = '\0';
+	*length = offset;
+	return result;
+}
+
+static struct xattr_projection read_projection(const char *path)
+{
+	struct xattr_projection result = { 0 };
+	char *payload;
+	char *cursor;
+	char *end;
+	size_t length;
+
+	payload = read_small_regular(path, &length);
+	cursor = payload;
+	end = payload + length;
+	if (length <= strlen(PROJECTION_FORMAT) ||
+	    memcmp(cursor, PROJECTION_FORMAT, strlen(PROJECTION_FORMAT)) ||
+	    cursor[strlen(PROJECTION_FORMAT)] != '\n')
+		fail("xattr projection format changed");
+	cursor += strlen(PROJECTION_FORMAT) + 1;
+	while (cursor < end) {
+		struct projected_xattr item = { 0 };
+		struct projected_xattr *resized;
+		char *newline;
+		char *first;
+		char *second;
+		size_t hex_length;
+		size_t index;
+		size_t name_length;
+		size_t path_length;
+
+		if (result.count == PROJECTION_MAX_ENTRIES)
+			fail("xattr projection has too many entries");
+		newline = memchr(cursor, '\n', (size_t)(end - cursor));
+		if (!newline)
+			fail("xattr projection lacks a final newline");
+		first = memchr(cursor, '\t', (size_t)(newline - cursor));
+		if (!first)
+			fail("xattr projection entry is malformed");
+		second = memchr(first + 1, '\t',
+				(size_t)(newline - first - 1));
+		if (!second || memchr(second + 1, '\t',
+					(size_t)(newline - second - 1)))
+			fail("xattr projection entry is malformed");
+		path_length = (size_t)(first - cursor);
+		name_length = (size_t)(second - first - 1);
+		item.path = duplicate_bytes(cursor, path_length);
+		item.name = duplicate_bytes(first + 1, name_length);
+		if (strlen(item.path) != path_length ||
+		    strlen(item.name) != name_length)
+			fail("xattr projection identity contains a null byte");
+		if (!valid_relative_path(item.path) ||
+		    !valid_xattr_name(item.name))
+			fail("xattr projection identity is invalid");
+		hex_length = (size_t)(newline - second - 1);
+		if (!hex_length || hex_length % 2 || hex_length > 16384)
+			fail("xattr projection value size is invalid");
+		item.value_length = hex_length / 2;
+		item.value = allocate(item.value_length);
+		for (index = 0; index < item.value_length; index++)
+			item.value[index] =
+				(decode_hex_digit(second[1 + index * 2]) << 4) |
+				decode_hex_digit(second[2 + index * 2]);
+		if (result.count &&
+		    compare_projected_xattrs(&result.items[result.count - 1],
+					     &item) >= 0)
+			fail("xattr projection entries are not uniquely sorted");
+		resized = realloc(result.items,
+				  (result.count + 1) * sizeof(*result.items));
+		if (!resized)
+			fail("out of memory");
+		result.items = resized;
+		result.items[result.count++] = item;
+		cursor = newline + 1;
+	}
+	free(payload);
+	if (!result.count)
+		fail("xattr projection is empty");
+	return result;
+}
+
+static void free_projection(struct xattr_projection *projection)
+{
+	size_t index;
+
+	for (index = 0; index < projection->count; index++) {
+		free(projection->items[index].path);
+		free(projection->items[index].name);
+		free(projection->items[index].value);
+	}
+	free(projection->items);
+	*projection = (struct xattr_projection){ 0 };
 }
 
 static uint32_t rotate_right(uint32_t value, unsigned int bits)
@@ -424,7 +633,7 @@ static void free_string_list(struct string_list *list)
 	*list = (struct string_list){ 0 };
 }
 
-static struct string_list list_xattrs(const char *path)
+static struct string_list list_xattrs(const char *path, bool nfs4_projection)
 {
 	struct string_list result = { 0 };
 	ssize_t required;
@@ -459,6 +668,12 @@ static struct string_list list_xattrs(const char *path)
 		if (!resized)
 			fail("out of memory");
 		result.items = resized;
+		if (nfs4_projection &&
+		    length == strlen(NFS4_ACL_XATTR) &&
+		    !memcmp(cursor, NFS4_ACL_XATTR, length)) {
+			cursor += length + 1;
+			continue;
+		}
 		result.items[result.count++] = duplicate_bytes(cursor, length);
 		cursor += length + 1;
 	}
@@ -486,6 +701,20 @@ static unsigned char *read_xattr(const char *path, const char *name,
 	return value;
 }
 
+static size_t projection_start(const struct xattr_projection *projection,
+			       const char *relative)
+{
+	size_t index;
+
+	for (index = 0; index < projection->count; index++) {
+		int order = strcmp(projection->items[index].path, relative);
+
+		if (order >= 0)
+			return index;
+	}
+	return projection->count;
+}
+
 static void put_field(struct sha256 *digest, const void *value, size_t length)
 {
 	unsigned char encoded_length[8];
@@ -497,6 +726,13 @@ static void put_field(struct sha256 *digest, const void *value, size_t length)
 			(unsigned char)(size >> (index * 8));
 	sha256_update(digest, encoded_length, sizeof(encoded_length));
 	sha256_update(digest, value, length);
+}
+
+static void hash_xattr(struct sha256 *digest, const char *name,
+		       const unsigned char *value, size_t value_length)
+{
+	put_field(digest, name, strlen(name));
+	put_field(digest, value, value_length);
 }
 
 static void put_unsigned(struct sha256 *digest, uint64_t value)
@@ -560,7 +796,8 @@ static char *join_relative(const char *parent, const char *child)
 
 static void verify_entry(const char *path, const char *relative,
 			 dev_t root_device, struct sha256 *digest,
-			 struct counters *counters)
+			 struct counters *counters,
+			 struct xattr_projection *projection)
 {
 	static const unsigned char empty[] = "";
 	unsigned char content_hash[32];
@@ -599,37 +836,101 @@ static void verify_entry(const char *path, const char *relative,
 		fail("tree contains an unsupported entry: %s", relative);
 	}
 
-	xattrs = list_xattrs(path);
-	if (xattrs.count > UINT64_MAX - counters->xattrs)
-		fail("xattr count overflow");
-	counters->xattrs += xattrs.count;
-	counters->entries++;
+	xattrs = list_xattrs(path, projection->count != 0);
+	{
+		size_t actual_index = 0;
+		size_t projected_index = projection_start(projection, relative);
+		size_t projected_count = 0;
+		size_t merged_count;
 
-	put_field(digest, relative, strlen(relative));
-	put_field(digest, kind, strlen(kind));
-	put_unsigned(digest, metadata.st_mode & 07777);
-	put_unsigned(digest, metadata.st_uid);
-	put_unsigned(digest, metadata.st_gid);
-	if (metadata.st_size < 0)
-		fail("negative tree-entry size: %s", relative);
-	put_unsigned(digest, (uint64_t)metadata.st_size);
-	put_signed(digest, mtime_nanoseconds(&metadata));
-	put_unsigned(digest, metadata.st_nlink);
-	put_field(digest, content, content_length);
-	put_field(digest,
-		  link_target ? (const void *)link_target :
-				(const void *)empty,
-		  link_length);
-	put_unsigned(digest, xattrs.count);
-	for (index = 0; index < xattrs.count; index++) {
-		unsigned char *value;
-		size_t value_length;
+		while (projected_index + projected_count < projection->count &&
+		       !strcmp(projection->items[
+			       projected_index + projected_count].path, relative))
+			projected_count++;
+		if (projected_count && !S_ISREG(metadata.st_mode))
+			fail("xattr projection targets a non-regular file: %s",
+			     relative);
+		if (projected_count > SIZE_MAX - xattrs.count)
+			fail("xattr count overflow");
+		merged_count = xattrs.count + projected_count;
+		for (index = 0; index < xattrs.count; index++) {
+			size_t projection_index;
 
-		value = read_xattr(path, xattrs.items[index], &value_length);
-		put_field(digest, xattrs.items[index],
-			  strlen(xattrs.items[index]));
-		put_field(digest, value, value_length);
-		free(value);
+			for (projection_index = projected_index;
+			     projection_index < projected_index + projected_count;
+			     projection_index++) {
+				if (!strcmp(xattrs.items[index],
+					    projection->items[
+						    projection_index].name)) {
+					merged_count--;
+					break;
+				}
+			}
+		}
+		if (merged_count > UINT64_MAX - counters->xattrs)
+			fail("xattr count overflow");
+		counters->xattrs += merged_count;
+		counters->entries++;
+
+		put_field(digest, relative, strlen(relative));
+		put_field(digest, kind, strlen(kind));
+		put_unsigned(digest, metadata.st_mode & 07777);
+		put_unsigned(digest, metadata.st_uid);
+		put_unsigned(digest, metadata.st_gid);
+		if (metadata.st_size < 0)
+			fail("negative tree-entry size: %s", relative);
+		put_unsigned(digest, (uint64_t)metadata.st_size);
+		put_signed(digest, mtime_nanoseconds(&metadata));
+		put_unsigned(digest, metadata.st_nlink);
+		put_field(digest, content, content_length);
+		put_field(digest,
+			  link_target ? (const void *)link_target :
+					(const void *)empty,
+			  link_length);
+		put_unsigned(digest, merged_count);
+
+		index = 0;
+		while (actual_index < xattrs.count ||
+		       index < projected_count) {
+			struct projected_xattr *projected =
+				index < projected_count ?
+				&projection->items[projected_index + index] : NULL;
+			const char *actual = actual_index < xattrs.count ?
+				xattrs.items[actual_index] : NULL;
+			int order = actual && projected ?
+				strcmp(actual, projected->name) :
+				(actual ? -1 : 1);
+
+			if (order < 0) {
+				unsigned char *value;
+				size_t value_length;
+
+				value = read_xattr(path, actual, &value_length);
+				hash_xattr(digest, actual, value, value_length);
+				free(value);
+				actual_index++;
+			} else if (order > 0) {
+				hash_xattr(digest, projected->name,
+					   projected->value,
+					   projected->value_length);
+				projected->used = true;
+				index++;
+			} else {
+				unsigned char *value;
+				size_t value_length;
+
+				value = read_xattr(path, actual, &value_length);
+				if (value_length != projected->value_length ||
+				    memcmp(value, projected->value, value_length))
+					fail("projected xattr changed: %s on %s",
+					     actual, relative);
+				hash_xattr(digest, actual, value, value_length);
+				free(value);
+				projected->used = true;
+				actual_index++;
+				index++;
+			}
+		}
 	}
 	free(link_target);
 	free_string_list(&xattrs);
@@ -650,7 +951,7 @@ static void verify_entry(const char *path, const char *relative,
 			if (!child_relative)
 				fail("out of memory");
 			verify_entry(child_path, child_relative, root_device,
-				     digest, counters);
+				     digest, counters, projection);
 			free(child_relative);
 			free(child_path);
 		}
@@ -820,15 +1121,22 @@ int main(int argument_count, char **arguments)
 	struct counters actual = { 0 };
 	struct sha256 digest;
 	struct stat root_metadata;
+	struct xattr_projection projection = { 0 };
 	char *seal_data;
 	char *root;
 	size_t seal_length;
 
-	if (argument_count != 4) {
+	if (argument_count != 4 && argument_count != 6) {
 		fprintf(stderr,
-			"usage: %s ROOT SEAL EXPECTED_SEAL_SHA256\n",
+			"usage: %s ROOT SEAL EXPECTED_SEAL_SHA256 "
+			"[--nfs4-xattr-projection FILE]\n",
 			arguments[0]);
 		return EXIT_FAILURE;
+	}
+	if (argument_count == 6) {
+		if (strcmp(arguments[4], "--nfs4-xattr-projection"))
+			fail("unknown persistent-root verifier option");
+		projection = read_projection(arguments[5]);
 	}
 	if (lstat(arguments[1], &root_metadata) < 0 ||
 	    !S_ISDIR(root_metadata.st_mode) ||
@@ -845,7 +1153,13 @@ int main(int argument_count, char **arguments)
 
 	sha256_init(&digest);
 	sha256_update(&digest, prefix, sizeof(prefix));
-	verify_entry(root, ".", root_metadata.st_dev, &digest, &actual);
+	verify_entry(root, ".", root_metadata.st_dev, &digest, &actual,
+		     &projection);
+	for (size_t index = 0; index < projection.count; index++) {
+		if (!projection.items[index].used)
+			fail("xattr projection path was not verified: %s",
+			     projection.items[index].path);
+	}
 	sha256_final(&digest, tree_digest);
 	bytes_to_hex(tree_digest, sizeof(tree_digest), tree_hash);
 	compare_tree(&actual, &expected, tree_hash);
@@ -853,6 +1167,7 @@ int main(int argument_count, char **arguments)
 	printf("PASS persistent root matches anchored seal entries=%" PRIu64
 	       " tree_sha256=%s\n",
 	       actual.entries, tree_hash);
+	free_projection(&projection);
 	free(root);
 	return EXIT_SUCCESS;
 }
