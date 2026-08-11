@@ -376,7 +376,7 @@ class RetentionCycleAdapterTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         consumer = CONSUMER.read_text(encoding="utf-8")
         self.assertIn(
             REFERENCE.EXECUTION_CLAIM.identifier, consumer

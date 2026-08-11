@@ -29,6 +29,15 @@ and newer-kernel rebases remain frozen until the headless core passes.
 
 ## Proven boundary
 
+- **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
+  2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
+  4.930 s, verified the sealed root at 350.038 s, reached systemd at
+  359.043 s and sshd at 372.046 s, and passed strict key-only SSH/runtime
+  acceptance at 379.548 s. Its reporter stayed fault-free until the intended
+  watchdog rollback, then exact Alpine fallback, cleanup, and Steam socket
+  restoration passed. Generation 20 is consumed, absent from boot policy, and
+  never reusable. See the [live result](../test-results/2026-08-12-generation-20-arch-ssh-mvp-live.md).
+
 - The shell-free framed recovery protocol, signed runtime bundle, one-shot
   controller, rollback, and fallback cleanup pass hardware-free tests.
 - The accepted Linux 7.1.4 source, corrected DTB, and minimal Kconfig pass the
