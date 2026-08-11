@@ -46,7 +46,7 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count > 2)
+		if (allow_count > 1)
 			exit 16
 		for (name in allowed)
 			if (!(name in found))
@@ -225,7 +225,7 @@ awk -F '\t' -v name="$generation12" '
 		allow_count++
 	}
 	$1 == name { generation12_count++ }
-		END { exit allow_count == 2 && generation12_count == 0 ? 0 : 1 }
+		END { exit allow_count == 1 && generation12_count == 0 ? 0 : 1 }
 ' "$policy" || fail 'temporary-boot policy retains generation-12 admission'
 awk -F '\t' -v name="$generation12" '
 	$1 == name && $2 == "100663296" &&
@@ -246,6 +246,21 @@ awk -F '\t' -v name="$generation11" '
 	$5 == "no" { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$manifest" || fail 'generation-11 consumed artifact inventory is not exact'
+generation20='build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img'
+awk -F '\t' -v name="$generation20" '
+	$1 == name { count++ }
+	END { exit count == 0 ? 0 : 1 }
+' "$policy" || fail 'consumed Generation 20 recovery remains boot-allowlisted'
+awk -F '\t' -v name="$generation20" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "cacd0164d7d1d581f6fa4cb8926d7fea655be92e333c84635de953dd7d816b39" &&
+	$4 ~ /^consumed token-delimited-fatal-filter SSH recovery/ &&
+	$4 ~ /NFSv4\.2 at target boot 4\.930s/ &&
+	$4 ~ /strict key-only SSH and runtime acceptance at 379\.548s/ &&
+	$4 ~ /pstore was unavailable and remains inconclusive/ &&
+	$4 ~ /never retry or flash$/ && $5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$manifest" || fail 'Generation 20 consumed artifact inventory is not exact'
 
 if grep -Eq \
 	'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|mkfs|parted|sgdisk' \

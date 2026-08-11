@@ -153,13 +153,24 @@ for index in "${!fields[@]}"; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
+	"$boot_policy") == 1 ]] || fail 'post-v20 temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
 [[ $(awk -F '\t' -v name="build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 1 ]] ||
-	fail 'current production live image is not uniquely admitted'
+	"$boot_policy") == 0 ]] ||
+	fail 'consumed Generation 20 remains admitted'
+awk -F '\t' '
+	$1 == "build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" &&
+	$2 == "100663296" &&
+	$3 == "cacd0164d7d1d581f6fa4cb8926d7fea655be92e333c84635de953dd7d816b39" &&
+	$4 ~ /^consumed token-delimited-fatal-filter SSH recovery/ &&
+	$4 ~ /strict key-only SSH and runtime acceptance/ &&
+	$4 ~ /FALLBACK_RETURNED intent resolution passed/ &&
+	$4 ~ /never retry or flash$/ && $5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$repo/manifests/artifacts.tsv" ||
+	fail 'consumed Generation 20 inventory is not exact'
 
 production_root=$repo/build/ssh-acceptance-v7-production-20260811-r1
 generation_root=$repo/build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper
@@ -226,4 +237,4 @@ else
 	echo 'SKIP current production artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS current production recovery profile is exact, one-use, and artifact-verified'
+echo 'PASS Generation 20 profile remains exact and artifact-verified while policy and inventory permanently refuse reuse'

@@ -133,7 +133,7 @@ class RetentionSequenceReferenceTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
 
     def test_draft_claims_are_distinct_exact_and_pair_bound(self) -> None:
         execution = REFERENCE_MODULE.EXECUTION_CLAIM

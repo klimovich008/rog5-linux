@@ -22,6 +22,17 @@ design is in [recovery-control-plane.md](recovery-control-plane.md).
 The installed fallback is intentionally left available after every temporary
 cycle.
 
+## 2026-08-12 headless MVP milestone
+
+Generation 20 completed the real temporary Linux 7.1.4 path through stable USB
+NCM, read-only NFSv4.2, sealed-root verification, OverlayFS, systemd, OpenSSH,
+and strict key-only runtime acceptance. The target remained fault-free until
+the intentional rollback watchdog boundary, then returned to exact Alpine
+fallback with strict SSH and host cleanup. Generation 20 is consumed, removed
+from temporary-boot policy, and must never be retried.
+Pstore was unavailable after fallback and remains inconclusive. See the
+[live result](../test-results/2026-08-12-generation-20-arch-ssh-mvp-live.md).
+
 ## What works on the vendor-derived baseline
 
 The 5.4.210 temporary baseline has passed:

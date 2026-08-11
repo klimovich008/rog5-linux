@@ -74,7 +74,14 @@ active mainline target.
 
 ## A0 — Shorten the development loop
 
-Status: **offline speed-amplifier boundary complete; live promotion pending**
+Status: **temporary Arch Linux + key-only SSH MVP passed on hardware; begin
+headless core mechanics**
+
+Generation 20 completed USB NCM, read-only NFSv4.2, sealed-root verification,
+OverlayFS/systemd, and strict key-only SSH on the phone, then returned through
+the intended watchdog rollback to exact Alpine fallback. Generation 20 is
+consumed and removed from boot policy. See the
+[live result](test-results/2026-08-12-generation-20-arch-ssh-mvp-live.md).
 
 ### A0.1 Postmortem outcome oracle
 

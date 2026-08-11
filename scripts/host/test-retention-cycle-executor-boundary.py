@@ -639,7 +639,7 @@ class RetentionCycleExecutorBoundaryTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 2)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         consumer = CONSUMER.read_text(encoding="utf-8")
         self.assertIn(
             "retention-host-rendezvous-v3-execution-v1", consumer

@@ -69,14 +69,11 @@ awk -F '\t' '
 	$1 == "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact NFS-xattr retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
-	$1 == "build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact token-delimited-fatal-filter SSH recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 4 || execution != 1 || observer != 1 || revoked != 1) exit 1 }
+	END { if (NR != 3 || observer != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retention-cycle admission shape' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -119,8 +116,22 @@ do
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 2 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly the retention pair' >&2; exit 1; }
+	"$boot_policy") == 1 ]] ||
+	{ echo 'FAIL temporary-boot policy does not contain exactly the unconsumed observer' >&2; exit 1; }
+v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
+[[ $(awk -F '\t' -v name="$v20_image" \
+	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
+	{ echo 'FAIL consumed Generation 20 remains boot-allowlisted' >&2; exit 1; }
+awk -F '\t' -v name="$v20_image" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "cacd0164d7d1d581f6fa4cb8926d7fea655be92e333c84635de953dd7d816b39" &&
+	$4 ~ /^consumed token-delimited-fatal-filter SSH recovery/ &&
+	$4 ~ /strict key-only SSH and runtime acceptance/ &&
+	$4 ~ /FALLBACK_RETURNED intent resolution passed/ &&
+	$4 ~ /never retry or flash$/ && $5 == "no" { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$artifact_manifest" ||
+	{ echo 'FAIL consumed Generation 20 artifact inventory is not exact' >&2; exit 1; }
 [[ $(awk -F '\t' -v name="$generation12_image" -v basis="$generation12_boot_basis" \
 	'$1 == name && $2 == "allow" && $3 == basis { count++ } \
 	END { print count + 0 }' "$boot_policy") == 0 ]] ||

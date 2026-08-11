@@ -52,4 +52,27 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7/v8/v9/v10 and the observer, and records the corrected mainline UDC'
+case $normalized_status in
+	*'Generation 20 is consumed, removed from temporary-boot policy, and must never be retried.'*) ;;
+	*)
+		echo 'FAIL current status does not permanently consume Generation 20' >&2
+		exit 1
+		;;
+esac
+case $normalized_active in
+	*'Generation 20 is consumed, absent from boot policy, and'*'never reusable.'*) ;;
+	*)
+		echo 'FAIL active context does not permanently consume Generation 20' >&2
+		exit 1
+		;;
+esac
+normalized_roadmap=$(tr '\n' ' ' <"$roadmap")
+case $normalized_roadmap in
+	*'Generation 20 is consumed and removed from boot policy.'*) ;;
+	*)
+		echo 'FAIL roadmap does not record Generation 20 policy removal' >&2
+		exit 1
+		;;
+esac
+
+echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7/v8/v9/v10/v20 and the observer, and records the corrected mainline UDC'
