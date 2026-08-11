@@ -20,14 +20,14 @@ action=${1:-policy-preflight}
 profile=${ROG5_OBSERVATION_RECOVERY_PROFILE:-}
 hold_profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
 consumed_profile=retention-host-rendezvous-v3-observer-v2
-live_profile=retention-host-rendezvous-v11-mainline-udc-observer-v1
+live_profile=retention-host-rendezvous-v11-mainline-udc-observer-v2
 source_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 case $profile in
 	"$hold_profile" | "$consumed_profile")
 		expected_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 		;;
 	"$live_profile")
-		expected_recovery=243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3
+		expected_recovery=c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e
 		;;
 	*) fail 'current observation recovery profile is not pinned' ;;
 esac
@@ -278,16 +278,16 @@ if [[ $profile == "$live_profile" ]]; then
 			awk '{print $1}') == "$expected_recovery" ]] ||
 		fail 'observation generation AVB identity is not exact'
 	[[ $(sha256sum -- "$boot_root/avb-generation.txt" | awk '{print $1}') == \
-		4f0a716fcbe0a8d3a1e70d32acc2784cbdb66b307af964c703a0765efe257aa4 ]] ||
+		7a833929f5dd476f15a7dd7c14dd0a1c20999635108e94bd672d670e26698d1a ]] ||
 		fail 'observation generation record identity is not exact'
 	for record in \
 		'format=rog5-stable-recovery-avb-generation-v1' \
-		'generation=8' \
+		'generation=9' \
 		'raw_sha256=37d4c10beca3fd7fb2c17e46a7b150d88e1957b50ac43e0ed012feaa09e7546a' \
 		'source_avb_sha256=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b' \
-		'salt=8d148b4ce0ef801e08c19d671f21fc69115fd63574c5ba3a37cbaa01dc7b047d' \
-		'digest=bac0646f7ed9d116ce6206ae632a0bbfee14bbb5aa8e44283fc36221b3688e49' \
-		'output_avb_sha256=243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3' \
+		'salt=71dbdffc1c7dba911e9166ed0f5852c25f38a518249396e1df96563d41e4400e' \
+		'digest=d794b411da3327767e44ac0d4ad6a483e9736778643269fbacee200b4ee19a9a' \
+		'output_avb_sha256=c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e' \
 		'partition_size=100663296' \
 		'authority=none'
 	do
@@ -340,7 +340,7 @@ policy_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 
 inventory_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$inventory")
 [[ $inventory_rows == 1 ]] || fail 'observation artifact row is not unique'
 inventory_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 "\t" $4 "\t" $5 }' "$inventory")
-[[ $inventory_value == $'100663296\t243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3\tunbooted mainline-UDC retention observation recovery; clean-twin source wrapper with fresh deterministic AVB generation exposes retained ramoops over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
+[[ $inventory_value == $'100663296\tc416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e\tunbooted mainline-UDC retention observation recovery successor; clean-twin source wrapper with fresh deterministic AVB generation exposes retained ramoops over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
 	fail 'observation artifact row is not exact'
 
 devices=$("$fastboot" devices 2>/dev/null) || fail 'fastboot devices failed'
@@ -380,7 +380,7 @@ consumer_metadata=$(stat -c '%u:%g:%a:%h:%s' -- "$claim_consumer") ||
 	fail 'cannot inspect exact-record claim consumer'
 [[ $consumer_metadata == "$(id -u):$(id -g):755:1:24488" &&
 	$(sha256sum -- "$claim_consumer" | awk '{print $1}') == \
-	c2227bfca6c7fc8c104972937e6b388b9ca1a859de45ae2b1309f22df1e3dd6d ]] ||
+	e46ceb9e3f6e42b67546633194f2b1324c5cc8f8044cf41dced937645d512d4d ]] ||
 	fail 'exact-record claim consumer identity is not exact'
 claim_report=$(
 	python3 -B "$claim_consumer" --verify-entered "$profile"

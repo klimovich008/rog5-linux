@@ -183,7 +183,7 @@
   "claims": {
     "consumer": "scripts/host/consume-exact-boot-claim.py",
     "consumer_size": 24488,
-    "consumer_sha256": "c2227bfca6c7fc8c104972937e6b388b9ca1a859de45ae2b1309f22df1e3dd6d",
+    "consumer_sha256": "e46ceb9e3f6e42b67546633194f2b1324c5cc8f8044cf41dced937645d512d4d",
     "consumer_mode": "0755",
     "execution": "not-defined",
     "observer": "not-defined",
@@ -202,7 +202,7 @@
         "transaction_fixture": {
             "path": "scripts/host/retention-cycle-transaction.py",
             "size": 40084,
-            "sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+            "sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
             "mode": "0644",
             "implementation": "offline-append-only-fixture",
             "event_format": "rog5-retention-cycle-event-v1",
@@ -218,7 +218,7 @@
             "sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
             "mode": "0644",
             "implementation": "callback-only-fixture",
-            "journal_sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+            "journal_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
             "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
             "invocation_count": 6,
             "live_entrypoint": "none",
@@ -229,7 +229,7 @@
         "executor_contract": {
             "path": "scripts/host/retention-cycle-executor-contract.py",
             "size": 14561,
-            "sha256": "63c22d196ce4282d7ad9e079d78812bfbd517d5bcef94620eef28b0c6bac1fbe",
+            "sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
             "mode": "0644",
             "implementation": "pure-process-contract-v1",
             "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -257,7 +257,7 @@
             "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
             "mode": "0644",
             "implementation": "pure-descriptor-output-boundary-v1",
-            "executor_contract_sha256": "63c22d196ce4282d7ad9e079d78812bfbd517d5bcef94620eef28b0c6bac1fbe",
+            "executor_contract_sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
             "boot_result_protocol": "rog5-retention-boot-result-v1",
             "decoded_actions": [
                 "execution-claim",
@@ -308,7 +308,7 @@
             "mode": "0644",
             "implementation": "offline-fresh-pipe-fixture-v1",
             "executor_boundary_sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
-            "transaction_sha256": "4a3e29483867f481f05c507f7f4ff3de072b624cb970ca43028f932c95eebe46",
+            "transaction_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
             "intent_binding": "held-fsynced-event-descriptor",
             "pipe_binding": "fresh-empty-cloexec-distinct",
             "process_backend": "forked-fixed-writer-only",
