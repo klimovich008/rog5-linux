@@ -67,6 +67,10 @@ class HostKeyNotReady(BootstrapError):
     """The exact target exists but SSH has not exposed its host key yet."""
 
 
+class HostNetworkNotReady(BootstrapError):
+    """The exact target exists before its host-side address is installed."""
+
+
 def fail(message: str) -> NoReturn:
     raise BootstrapError(message)
 
@@ -548,7 +552,13 @@ def exact_route(interface: str) -> None:
         for fields in address_lines
         if len(fields) > 3 and fields[2] == "inet"
     ]
-    if address.returncode != 0 or cidrs != [HOST_CIDR]:
+    if address.returncode != 0:
+        fail("cannot inspect the exact target interface address")
+    if not cidrs:
+        raise HostNetworkNotReady(
+            "target interface does not yet have the host /30 address"
+        )
+    if cidrs != [HOST_CIDR]:
         fail("target interface does not have the exact host /30 address")
     route = subprocess.run(
         [str(IP), "-4", "route", "get", TARGET_ADDRESS],
@@ -684,7 +694,11 @@ def pin_target(
             expected_location,
             expected_product,
         )
-        exact_route(interface)
+        try:
+            exact_route(interface)
+        except HostNetworkNotReady:
+            time.sleep(0.25)
+            continue
         try:
             record, fingerprint = scan_target_key()
         except HostKeyNotReady as error:
