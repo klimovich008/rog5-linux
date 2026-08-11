@@ -3737,7 +3737,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.assertIn(token, runner)
         for token in (
             "fallback-acm-control.py",
-            '"headless-diagnostic-ssh-gadget-contract-v17-live-v1"',
+            '"headless-diagnostic-ssh-configfs-link-v18-live-v1"',
             "ALLOW_FALLBACK_SSH_CONTROL",
             "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
             "wait-ssh-preflight",

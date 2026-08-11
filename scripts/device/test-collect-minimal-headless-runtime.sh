@@ -87,7 +87,7 @@ printf '%s\n' Linux >"$gadget/strings/0x409/manufacturer"
 printf '%s\n' 'ROG5 network root' >"$gadget/strings/0x409/product"
 printf '%s\n' 'NFS root over NCM' \
 	>"$gadget/configs/c.1/strings/0x409/configuration"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/ncm.usb0 \
 	"$gadget/configs/c.1/ncm.usb0"
 printf '%s\n' high-speed \
 	>"$root/sys/class/udc/a600000.usb/current_speed"
@@ -527,11 +527,19 @@ expect_failure 'additional USB gadget function'
 rmdir "$gadget/functions/acm.usb0"
 
 rm "$gadget/configs/c.1/ncm.usb0"
+ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
+	"$gadget/configs/c.1/ncm.usb0"
+expect_failure 'noncanonical userspace USB gadget link spelling'
+rm "$gadget/configs/c.1/ncm.usb0"
+ln -s ../../../../usb_gadget/rog5-network-root/functions/ncm.usb0 \
+	"$gadget/configs/c.1/ncm.usb0"
+
+rm "$gadget/configs/c.1/ncm.usb0"
 ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
 	"$gadget/configs/c.1/ncm.usb0"
 expect_failure 'changed USB gadget configuration link'
 rm "$gadget/configs/c.1/ncm.usb0"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/ncm.usb0 \
 	"$gadget/configs/c.1/ncm.usb0"
 
 printf '%s\n' a800000.dwc3 >"$gadget/UDC"
@@ -665,7 +673,7 @@ printf '%s\n' 'ROG5 diagnostic network root' \
 printf '%s\n' 'Diagnostic NFS root over NCM and ACM' \
 	>"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir "$gadget/functions/acm.usb0"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/acm.usb0 \
 	"$gadget/configs/c.1/acm.usb0"
 
 diagnostic_record=$stage/diagnostic-runtime.record
@@ -695,19 +703,19 @@ rmdir "$gadget/functions/acm.usb0"
 expect_failure_candidate 'missing diagnostic ACM function' \
 	headless-netroot-early-diag-v2
 mkdir "$gadget/functions/acm.usb0"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/ncm.usb0 \
 	"$gadget/configs/c.1/acm.usb0"
 expect_failure_candidate 'wrong diagnostic ACM configuration link' \
 	headless-netroot-early-diag-v2
 rm "$gadget/configs/c.1/acm.usb0"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/acm.usb0 \
 	"$gadget/configs/c.1/acm.usb0"
 
 mkdir "$gadget/functions/ecm.usb0"
 expect_failure_candidate 'additional diagnostic USB function' \
 	headless-netroot-early-diag-v2
 rmdir "$gadget/functions/ecm.usb0"
-ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+ln -s ../../../../usb_gadget/rog5-network-root/functions/acm.usb0 \
 	"$gadget/configs/c.1/extra.usb0"
 expect_failure_candidate 'additional diagnostic USB configuration link' \
 	headless-netroot-early-diag-v2
