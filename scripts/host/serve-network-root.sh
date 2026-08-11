@@ -627,6 +627,13 @@ log_network_transition() {
 	echo "STATE network-root-usb transition=$transition monotonic_ms=$timestamp interface=$interface"
 }
 
+network_root_model_is_exact() {
+	case $1 in
+		ROG5_network_root | ROG5_diagnostic_network_root) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
 verify_exact_nfs_listener() {
 	local -a listeners
 
@@ -638,7 +645,7 @@ verify_exact_nfs_listener() {
 }
 
 find_target_interface() {
-	local interface properties
+	local interface model properties
 	for path in /sys/class/net/*; do
 		[[ -e $path ]] || continue
 		interface=${path##*/}
@@ -646,7 +653,9 @@ find_target_interface() {
 			true)
 		grep -qx 'ID_VENDOR_ID=1d6b' <<<"$properties" || continue
 		grep -qx 'ID_MODEL_ID=0104' <<<"$properties" || continue
-		grep -qx 'ID_MODEL=ROG5_network_root' <<<"$properties" || continue
+		model=$(awk -F= '$1 == "ID_MODEL" { print substr($0, index($0, "=") + 1) }' \
+			<<<"$properties")
+		network_root_model_is_exact "$model" || continue
 		grep -qx 'ID_NET_DRIVER=cdc_ncm' <<<"$properties" || continue
 		printf '%s\n' "$interface"
 		return
