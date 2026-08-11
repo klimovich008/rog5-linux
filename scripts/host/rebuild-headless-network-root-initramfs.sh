@@ -44,12 +44,12 @@ case $mode in
 		legacy_source_tree=56668d6b44907ffb3644c04d6d9ff3a7c1f49b95
 		;;
 	diagnostic)
-		output_root=${2:-$repo/artifacts/early-target-diagnostic-v3}
+		output_root=${2:-$repo/artifacts/early-target-diagnostic-v4}
 		output_name=rog5-early-target-diagnostic-initramfs.cpio.gz
-		output_size=6013458
-		output_sha=94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc
+		output_size=6013387
+		output_sha=23022b9627f5b8253226db6fe71e94d6196c8129cc50afae3b2ca1b8fdb182d4
 		report_name=early-target-diagnostic-initramfs-rebuild.txt
-		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v3
+		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v4
 		report_state=exact-pinned-bytes-reproduced
 		reproducibility=twin-verifier-reporter-and-twin-initramfs-builds
 		;;

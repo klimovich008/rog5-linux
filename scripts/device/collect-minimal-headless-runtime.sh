@@ -479,7 +479,7 @@ usb_config_link_count=$(
 usb_udc=$(cat "$gadget/UDC")
 case $usb_udc in
 	''|*[!A-Za-z0-9._:-]*) fail 'USB UDC name is noncanonical' ;;
-	a600000.*) ;;
+	a600000.usb) ;;
 	*) fail 'USB gadget is not bound to the primary controller' ;;
 esac
 usb_current_speed=$(

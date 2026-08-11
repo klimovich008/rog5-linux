@@ -28,7 +28,7 @@ mkdir -p "$mock_bin" \
 	"$root/sys/class/rpmb" \
 	"$root/sys/class/scsi_host" \
 	"$root/sys/class/thermal" \
-	"$root/sys/class/udc/a600000.dwc3" \
+	"$root/sys/class/udc/a600000.usb" \
 	"$root/sys/devices/system/cpu/cpufreq/policy0" \
 	"$root/sys/devices/system/cpu/cpufreq/policy4" \
 	"$root/sys/devices/system/cpu/cpufreq/policy7" \
@@ -53,7 +53,7 @@ printf '%s\n' 0x0104 >"$gadget/idProduct"
 printf '%s\n' 0xef >"$gadget/bDeviceClass"
 printf '%s\n' 0x02 >"$gadget/bDeviceSubClass"
 printf '%s\n' 0x01 >"$gadget/bDeviceProtocol"
-printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+printf '%s\n' a600000.usb >"$gadget/UDC"
 printf '%s\n' Linux >"$gadget/strings/0x409/manufacturer"
 printf '%s\n' 'ROG5 network root' >"$gadget/strings/0x409/product"
 printf '%s\n' 'NFS root over NCM' \
@@ -61,7 +61,7 @@ printf '%s\n' 'NFS root over NCM' \
 ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
 	"$gadget/configs/c.1/ncm.usb0"
 printf '%s\n' high-speed \
-	>"$root/sys/class/udc/a600000.dwc3/current_speed"
+	>"$root/sys/class/udc/a600000.usb/current_speed"
 
 printf '%s\n' systemd >"$root/proc/1/comm"
 printf '%s\n' 7d9a6f34-0e4a-4d4e-9d24-0b1f6c7215a8 \
@@ -476,17 +476,17 @@ ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
 
 printf '%s\n' a800000.dwc3 >"$gadget/UDC"
 expect_failure 'changed USB gadget controller'
-printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+printf '%s\n' a600000.usb >"$gadget/UDC"
 
-printf '%s\n' evil-a600000.dwc3 >"$gadget/UDC"
-expect_failure 'noncanonical primary USB controller name'
 printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+expect_failure 'downstream wrapper USB controller name'
+printf '%s\n' a600000.usb >"$gadget/UDC"
 
 printf '%s\n' full-speed \
-	>"$root/sys/class/udc/a600000.dwc3/current_speed"
+	>"$root/sys/class/udc/a600000.usb/current_speed"
 expect_failure 'changed USB gadget speed'
 printf '%s\n' high-speed \
-	>"$root/sys/class/udc/a600000.dwc3/current_speed"
+	>"$root/sys/class/udc/a600000.usb/current_speed"
 
 printf '%s\n' down >"$root/sys/class/net/usb0/operstate"
 expect_failure 'down USB network interface'

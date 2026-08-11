@@ -150,6 +150,7 @@ class InitPolicyTest(unittest.TestCase):
         )
         guarded_acm = re.search(
             r'if \[ "\$diagnostic_mode" -eq 1 \]; then\n'
+            r'\s*usb_step=acm-function\n'
             r'\s*mkdir -p "\$gadget/functions/acm\.usb0".*?\n\s*fi',
             network,
             flags=re.DOTALL,

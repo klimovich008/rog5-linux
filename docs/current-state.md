@@ -269,11 +269,16 @@ the Haven watchdog, loaded kexec, and began handoff. Target ACM/NCM never
 appeared before exact Alpine fallback returned about 23.3 seconds later; PMIC
 reported `PS_HOLD` / `HARD_RESET` with no PMIC watchdog signal, and no NFS
 attempt was observed. V9 is consumed and must never be retried. V10
-(`fb5fce1…3452`) is the exact current unbooted one-use execution successor. It
-keeps V9's byte-identical raw wrapper `06732992…4aff` and target bundle while
-using a fresh deterministic AVB generation. The separately admitted corrected
-observer (`a655d4b3…05b`) materializes `/dev/kmsg` before its first snapshot
-logger and has no payload execution path; it is also unbooted and one-use.
+(`fb5fce1…3452`) is consumed and must never be retried. Its sole RAM-only
+cycle kept V9's byte-identical raw wrapper `06732992…4aff`, disabled Haven,
+entered the mainline target, and returned to exact Alpine fallback. The
+separately admitted corrected observer (`a655d4b3…05b`) is also consumed and
+must never be retried. It exposed retained ramoops proving that target
+userspace armed rollback, rejected USB transport before NFS, and requested a
+reboot. The fixed target had required the downstream recovery UDC name
+`a600000.dwc3`; the mainline DT platform device and UDC are named
+`a600000.usb`. The current offline successor corrects that exact target-only
+selector while preserving the recovery wrapper's `.dwc3` contract.
 The target bundle adds stage 75 `nfs-mount-returned`, a target boot-ID lineage line,
 and private same-port NCM, NFS-RPC, and exact target-specific TCP
 state/queue/current-unrecovered-RTO snapshots. Its historical reporter and

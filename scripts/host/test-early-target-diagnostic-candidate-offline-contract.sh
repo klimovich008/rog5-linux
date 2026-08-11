@@ -8,7 +8,7 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 artifact_manifest=$repo/manifests/artifacts.tsv
-rebuild_provenance=$repo/artifacts/early-target-diagnostic-v3/early-target-diagnostic-initramfs-rebuild.txt
+rebuild_provenance=$repo/artifacts/early-target-diagnostic-v4/early-target-diagnostic-initramfs-rebuild.txt
 legacy_candidate=$repo/configs/recovery-candidates/headless-netroot-early-diag-v1.json
 candidate=$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json
 adapter=$repo/scripts/host/prepare-recovery-candidate.py
@@ -38,9 +38,9 @@ for token in \
 	'"rollback_timeout": "600"' \
 	'"target_timeout": "480"' \
 	'"a660_command_manifest_sha256": "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2"' \
-	'"path": "artifacts/early-target-diagnostic-v3/rog5-early-target-diagnostic-initramfs.cpio.gz"' \
-	'"size": 6013458' \
-	'"sha256": "94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc"'; do
+	'"path": "artifacts/early-target-diagnostic-v4/rog5-early-target-diagnostic-initramfs.cpio.gz"' \
+	'"size": 6013387' \
+	'"sha256": "23022b9627f5b8253226db6fe71e94d6196c8129cc50afae3b2ca1b8fdb182d4"'; do
 	grep -Fq -- "$token" "$candidate" ||
 		fail "diagnostic candidate omits fixed token: $token"
 done
@@ -54,8 +54,8 @@ done
 for token in \
 	'headless-netroot-early-diag-v2:' \
 	'expected_profile=diagnostic-initramfs-v1' \
-	'expected_candidate_sha=41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf' \
-	'expected_manifest=54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc' \
+	'expected_candidate_sha=d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b' \
+	'expected_manifest=ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034' \
 	'offline candidate record identity changed' \
 	'offline candidate manifest identity changed' \
 	'grep -Fxq "profile=$expected_profile"'; do

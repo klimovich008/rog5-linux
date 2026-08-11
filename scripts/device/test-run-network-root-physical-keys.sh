@@ -38,8 +38,8 @@ make_fixture() {
 	write_field "$root" pre/block_mounts 0
 	write_field "$root" pre/watchdog_pid 0
 	write_field "$root" pre/watchdog_disarmed 1
-	write_field "$root" pre/udcs a600000.dwc3
-	write_field "$root" pre/bound_udc a600000.dwc3
+	write_field "$root" pre/udcs a600000.usb
+	write_field "$root" pre/bound_udc a600000.usb
 	write_field "$root" pre/usb0_present 1
 	write_field "$root" pre/carrier 1
 	write_field "$root" pre/addresses 169.254.77.2/30

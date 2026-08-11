@@ -18,7 +18,7 @@ from typing import Any
 
 GUARD = "rog5-suspend-pm-test-devices-v1"
 EXPECTED_KERNEL = "7.1.4-g7a5cef0db479"
-EXPECTED_UDC = "a600000.dwc3"
+EXPECTED_UDC = "a600000.usb"
 EXPECTED_ADDRESS = "169.254.77.2/30"
 HOST_ADDRESS = "169.254.77.1"
 PM_MARKER = "suspend debug: Waiting for 5 second(s)."

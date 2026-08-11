@@ -3,7 +3,7 @@ set -eu
 
 guard=rog5-physical-keys-v1
 expected_kernel=7.1.4-g7a5cef0db479
-expected_udc=a600000.dwc3
+expected_udc=a600000.usb
 expected_address=169.254.77.2/30
 host_address=169.254.77.1
 fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'

@@ -23,7 +23,8 @@ diagnostic_candidate=headless-netroot-early-diag-v2
 diagnostic_mode=0
 diagnostic_pid=
 diagnostic_fault=none
-expected_udc=a600000.dwc3
+usb_step=not-started
+expected_udc=a600000.usb
 udc_class_dir=/sys/class/udc
 net_class_dir=/sys/class/net
 usb_mode_path=/sys/bus/platform/devices/a600000.ssusb/mode
@@ -517,13 +518,17 @@ select_expected_udc() {
 
 configure_usb() {
 	diagnostic_fault=gadget-config-failed
+	usb_step=mode
 	usb_mode=$usb_mode_path
 	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
+	usb_step=configfs-mount
 	mount -t configfs configfs "$usb_configfs_root" || return 1
 
+	usb_step=gadget-directories
 	gadget=$usb_gadget_root
 	mkdir -p "$gadget/strings/0x409" \
 		"$gadget/configs/c.1/strings/0x409" || return 1
+	usb_step=gadget-descriptors
 	echo 0x1d6b >"$gadget/idVendor" || return 1
 	echo 0x0104 >"$gadget/idProduct" || return 1
 	echo 0xef >"$gadget/bDeviceClass" || return 1
@@ -541,38 +546,49 @@ configure_usb() {
 		echo 'NFS root over NCM' \
 			>"$gadget/configs/c.1/strings/0x409/configuration" || return 1
 	fi
+	usb_step=ncm-function
 	mkdir -p "$gadget/functions/ncm.usb0" || return 1
 	ln -s "$gadget/functions/ncm.usb0" \
 		"$gadget/configs/c.1/ncm.usb0" || return 1
 	if [ "$diagnostic_mode" -eq 1 ]; then
+		usb_step=acm-function
 		mkdir -p "$gadget/functions/acm.usb0" || return 1
 		ln -s "$gadget/functions/acm.usb0" \
 			"$gadget/configs/c.1/acm.usb0" || return 1
 	fi
+	usb_step=device-node-rescan
 	mdev -s || return 1
 	diagnostic_emit 20 || true
 
 	diagnostic_fault=udc-bind-failed
+	usb_step=udc-select
 	udc=$(select_expected_udc) || return 1
+	usb_step=udc-revalidate
 	[ "$(validate_expected_udc)" = "$udc" ] || return 1
+	usb_step=udc-bind
 	echo "$udc" >"$gadget/UDC" || return 1
+	usb_step=udc-bound-verify
 	expected_udc_is_bound || return 1
 	diagnostic_emit 30 || true
 
 	diagnostic_fault=ncm-interface-failed
+	usb_step=ncm-interface-wait
 	attempt=0
 	while [ "$attempt" -lt 100 ] && [ ! -e "$net_class_dir/usb0" ]; do
 		sleep 0.1
 		attempt=$((attempt + 1))
 	done
 	[ -e "$net_class_dir/usb0" ] || return 1
+	usb_step=ncm-link-up
 	ip link set usb0 up || return 1
 	diagnostic_emit 40 || true
 	diagnostic_fault=address-failed
+	usb_step=address-add
 	ip address add 169.254.77.2/30 dev usb0 || return 1
 	diagnostic_emit 50 || true
 
 	diagnostic_fault=carrier-timeout
+	usb_step=carrier-wait
 	attempt=0
 	while [ "$attempt" -lt 100 ]; do
 		if [ "$(cat "$net_class_dir/usb0/carrier" 2>/dev/null || echo 0)" = 1 ]; then
@@ -581,6 +597,7 @@ configure_usb() {
 				return 1
 			}
 			diagnostic_emit 60 || true
+			usb_step=complete
 			return 0
 		fi
 		sleep 0.1
@@ -985,7 +1002,7 @@ fi
 configure_usb
 usb_status=$?
 if [ "$usb_status" -ne 0 ]; then
-	log 'USB network-root transport failed; rebooting'
+	log "USB network-root transport failed; step=$usb_step fault=$diagnostic_fault; rebooting"
 	diagnostic_rollback "$diagnostic_fault"
 fi
 

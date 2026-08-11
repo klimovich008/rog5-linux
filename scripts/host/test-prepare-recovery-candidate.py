@@ -412,7 +412,7 @@ class RecoveryCandidateTest(unittest.TestCase):
         candidate_path = self.original_candidate_root / f"{candidate}.json"
         self.assertEqual(
             hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
-            "41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf",
+            "d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b",
         )
         self.assertEqual(record["status"], "offline")
         self.assertEqual(record["authority"], "none")
@@ -423,12 +423,12 @@ class RecoveryCandidateTest(unittest.TestCase):
             record["artifacts"]["initramfs.cpio.gz"],
             {
                 "path": (
-                    "artifacts/early-target-diagnostic-v3/"
+                    "artifacts/early-target-diagnostic-v4/"
                     "rog5-early-target-diagnostic-initramfs.cpio.gz"
                 ),
-                "size": 6013458,
+                "size": 6013387,
                 "sha256": (
-                    "94edd6254403759db423970e8cd313e4edde2e744f042f87f9f59815f8bbcffc"
+                    "23022b9627f5b8253226db6fe71e94d6196c8129cc50afae3b2ca1b8fdb182d4"
                 ),
             },
         )
@@ -453,7 +453,7 @@ class RecoveryCandidateTest(unittest.TestCase):
             hashlib.sha256(
                 RUNNER.PACKAGER.manifest_bytes(configuration, observed)
             ).hexdigest(),
-            "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
+            "ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034",
         )
 
     def test_exact_twins_and_current_template_refuses_stale_v2(self) -> None:
