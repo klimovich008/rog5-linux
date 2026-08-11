@@ -13,6 +13,15 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "headless-diagnostic-ssh-acceptance-v13-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile="
+        b"headless-diagnostic-ssh-acceptance-v13-live-v1\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "headless-diagnostic-generation11-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=headless-diagnostic-generation11-live-v1\n"
