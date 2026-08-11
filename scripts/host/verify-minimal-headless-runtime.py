@@ -150,6 +150,23 @@ EXTERNAL_PROFILES = {
         "target": DIAGNOSTIC_TARGET,
     },
 }
+USB_GADGET_CONTRACTS = {
+    HISTORICAL_PROFILE: {
+        "usb_product": "ROG5 network root",
+        "usb_configuration": "NFS root over NCM",
+        "usb_function": "ncm.usb0",
+    },
+    DEPLOYMENT_PROFILE: {
+        "usb_product": "ROG5 network root",
+        "usb_configuration": "NFS root over NCM",
+        "usb_function": "ncm.usb0",
+    },
+    DIAGNOSTIC_PROFILE: {
+        "usb_product": "ROG5 diagnostic network root",
+        "usb_configuration": "Diagnostic NFS root over NCM and ACM",
+        "usb_function": "acm.usb0,ncm.usb0",
+    },
+}
 FIXTURE_TREE_SHA256 = (
     "6f8a8f11bfb581bb52ca7d590141ce46"
     "5b8d48d8f9f4577a076b7a37604a2fd5"
@@ -196,9 +213,6 @@ EXACT_VALUES = {
     "block_backed_mounts": "0",
     "usb_gadget": "rog5-network-root",
     "usb_vid_pid": "1d6b:0104",
-    "usb_product": "ROG5 network root",
-    "usb_configuration": "NFS root over NCM",
-    "usb_function": "ncm.usb0",
     "usb_udc_controller": "a600000",
     "usb_current_speed": "high-speed",
     "usb_interface": "usb0",
@@ -611,6 +625,12 @@ def verify_record(
         candidate_record,
         candidate_sha256,
     )
+    gadget_contract = USB_GADGET_CONTRACTS.get(deployment_profile)
+    if gadget_contract is None:
+        fail("runtime USB gadget profile is unsupported")
+    for key, expected in gadget_contract.items():
+        if values[key] != expected:
+            fail(f"runtime USB gadget value changed: {key}")
     if values["candidate"] != expected_candidate:
         fail("runtime candidate does not match the deployment profile")
     probe = repo / PROBE_PATH
