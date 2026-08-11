@@ -9,6 +9,24 @@ probe=$repo/scripts/device/collect-minimal-headless-runtime.sh
 }
 sh -n "$probe"
 
+target_config=$repo/artifacts/network-root-v3/config-7.1.4-network-root
+[ -f "$target_config" ] || {
+	echo 'FAIL missing pinned network-root kernel configuration' >&2
+	exit 1
+}
+grep -Fxq 'CONFIG_BLK_DEV_LOOP=y' "$target_config" || {
+	echo 'FAIL pinned network-root kernel does not build the loop driver in' >&2
+	exit 1
+}
+grep -Fxq 'CONFIG_BLK_DEV_LOOP_MIN_COUNT=8' "$target_config" || {
+	echo 'FAIL pinned network-root loop-device inventory changed' >&2
+	exit 1
+}
+grep -Fxq 'CONFIG_ZRAM=y' "$target_config" || {
+	echo 'FAIL pinned network-root kernel does not build zram in' >&2
+	exit 1
+}
+
 stage=$(mktemp -d)
 trap 'rm -rf -- "$stage"' EXIT
 root=$stage/root
@@ -29,6 +47,7 @@ mkdir -p "$mock_bin" \
 	"$root/sys/class/scsi_host" \
 	"$root/sys/class/thermal" \
 	"$root/sys/class/udc/a600000.usb" \
+	"$root/sys/devices/virtual/block/zram0" \
 	"$root/sys/devices/system/cpu/cpufreq/policy0" \
 	"$root/sys/devices/system/cpu/cpufreq/policy4" \
 	"$root/sys/devices/system/cpu/cpufreq/policy7" \
@@ -38,6 +57,16 @@ mkdir -p "$mock_bin" \
 	"$root/sys/kernel/config/usb_gadget/rog5-network-root/strings/0x409" \
 	"$root/.rog5/root-ro/etc/rog5" \
 	"$root/.rog5/state"
+
+loop_index=0
+while [ "$loop_index" -lt 8 ]; do
+	mkdir -p "$root/sys/devices/virtual/block/loop$loop_index"
+	ln -s "../../devices/virtual/block/loop$loop_index" \
+		"$root/sys/class/block/loop$loop_index"
+	loop_index=$((loop_index + 1))
+done
+ln -s ../../devices/virtual/block/zram0 "$root/sys/class/block/zram0"
+printf '%s\n' 0 >"$root/sys/devices/virtual/block/zram0/disksize"
 
 install -m 0600 "$repo/configs/ssh/rog5-headless-build-fixture.pub" \
 	"$root/root/.ssh/authorized_keys"
@@ -325,7 +354,7 @@ grep -Fxq 'overlay_workdir=/mnt/state/work' "$record"
 grep -Fxq 'lower_fstype=nfs4' "$record"
 grep -Fxq 'lower_nfs_version=4.2' "$record"
 grep -Fxq 'lower_transport=tcp' "$record"
-grep -Fxq 'block_device_count=0' "$record"
+grep -Fxq 'block_device_count=9' "$record"
 grep -Fxq 'physical_block_devices=0' "$record"
 grep -Fxq 'scsi_host_count=0' "$record"
 grep -Fxq 'rpmb_device_count=0' "$record"
@@ -405,6 +434,30 @@ mkdir -p "$root/sys/devices/fake-block/device"
 ln -s ../../devices/fake-block "$root/sys/class/block/sda"
 expect_failure 'physical block topology'
 rm -f "$root/sys/class/block/sda"
+
+mkdir "$root/sys/devices/virtual/block/loop8"
+ln -s ../../devices/virtual/block/loop8 "$root/sys/class/block/loop8"
+expect_failure 'additional inert loop device'
+rm -f "$root/sys/class/block/loop8"
+rmdir "$root/sys/devices/virtual/block/loop8"
+
+rm "$root/sys/class/block/loop7"
+expect_failure 'missing inert loop device'
+ln -s ../../devices/virtual/block/loop7 "$root/sys/class/block/loop7"
+
+rm "$root/sys/class/block/loop0"
+ln -s ../../devices/virtual/block/loop1 "$root/sys/class/block/loop0"
+expect_failure 'loop device alias'
+rm "$root/sys/class/block/loop0"
+ln -s ../../devices/virtual/block/loop0 "$root/sys/class/block/loop0"
+
+mkdir "$root/sys/devices/virtual/block/loop0/loop"
+expect_failure 'active loop device'
+rmdir "$root/sys/devices/virtual/block/loop0/loop"
+
+printf '%s\n' 4096 >"$root/sys/devices/virtual/block/zram0/disksize"
+expect_failure 'active zram device'
+printf '%s\n' 0 >"$root/sys/devices/virtual/block/zram0/disksize"
 
 mv "$root/sys/class/block" "$root/sys/class/block.absent"
 expect_failure 'absent block topology source'
@@ -609,4 +662,4 @@ set -e
 grep -Fxq 'FAIL runtime candidate identity is unsupported' \
 	"$stage/unsupported-error"
 
-echo 'PASS minimal-headless runtime probe emits one canonical read-only observation, selects only fixed candidate identities, and rejects forty-seven core mutations'
+echo 'PASS minimal-headless runtime probe emits one canonical read-only observation, selects only fixed candidate identities, and rejects fifty-two core mutations'
