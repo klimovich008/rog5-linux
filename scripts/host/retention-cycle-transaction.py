@@ -24,6 +24,9 @@ REFERENCE_FILES = {
     "host-rendezvous-v11-mainline-udc-observer-v2": (
         "retention-cycle-mainline-udc-v11.py"
     ),
+    "host-rendezvous-v12-nfs-xattr-observer-v1": (
+        "retention-cycle-nfs-xattr-v12.py"
+    ),
 }
 try:
     reference_file = REFERENCE_FILES[REFERENCE_SELECTOR]

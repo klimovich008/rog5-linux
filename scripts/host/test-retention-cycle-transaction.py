@@ -54,7 +54,7 @@ class RetentionCycleTransactionTest(unittest.TestCase):
             os.environ,
             {
                 "ROG5_RETENTION_SEQUENCE":
-                    "host-rendezvous-v11-mainline-udc-observer-v2"
+                    "host-rendezvous-v12-nfs-xattr-observer-v1"
             },
         ):
             current = load_module(
@@ -62,7 +62,7 @@ class RetentionCycleTransactionTest(unittest.TestCase):
             )
         self.assertEqual(
             current.PROFILE,
-            "host-rendezvous-v11-mainline-udc-observer-v2",
+            "host-rendezvous-v12-nfs-xattr-observer-v1",
         )
         with (
             mock.patch.dict(

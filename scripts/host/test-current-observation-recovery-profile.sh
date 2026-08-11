@@ -11,9 +11,9 @@ gate=$repo/scripts/host/run-observation-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
-live_profile=retention-host-rendezvous-v11-mainline-udc-observer-v2
+live_profile=retention-host-rendezvous-v12-nfs-xattr-observer-v1
 expected_avb=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
-live_avb=c416e39445495bb99a8da50da6e5f59d8297779b69f5eada37983f12c735a47e
+live_avb=9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -247,7 +247,7 @@ else
 fi
 
 live_source_root=$repo/build/observation-recovery-mainline-udc-v11-source-20260811-r1
-live_generation_root=$repo/build/observation-recovery-mainline-udc-v11-generation9-20260811-r1
+live_generation_root=$repo/build/observation-recovery-mainline-udc-v11-generation10-20260811-r1
 if [[ -d $live_source_root && -d $live_generation_root ]]; then
 	live_artifact_report=$(
 		env -i PATH="$PATH" HOME="$HOME" \
