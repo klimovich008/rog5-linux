@@ -44,6 +44,7 @@ for contract in \
 	'169.254.77.1' \
 	'169.254.77.2' \
 	'ROG5_network_root' \
+	'ROG5_diagnostic_network_root' \
 	'ID_NET_DRIVER=cdc_ncm' \
 	'--host "$host_ip"' \
 	'--no-nfs-version 3' \
@@ -113,6 +114,29 @@ awk '
 ' "$serve" >"$transition_functions"
 grep -Fq 'configure_target_interface() {' "$transition_functions"
 grep -Fq 'verify_exact_nfs_listener() {' "$transition_functions"
+
+(
+	# shellcheck disable=SC1090
+	. "$transition_functions"
+	for model in ROG5_network_root ROG5_diagnostic_network_root; do
+		network_root_model_is_exact "$model" || {
+			echo "FAIL exact network-root model was rejected: $model" >&2
+			exit 1
+		}
+	done
+	for model in \
+		'' \
+		ROG5_recovery \
+		ROG_Phone_5_Linux_Server \
+		ROG5_network_root_extra \
+		ROG5_diagnostic_network_root_extra \
+		$'ROG5_network_root\nROG5_diagnostic_network_root'; do
+		if network_root_model_is_exact "$model"; then
+			echo "FAIL hostile network-root model was accepted: $model" >&2
+			exit 1
+		fi
+	done
+)
 
 (
 	# shellcheck disable=SC1090
