@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=headless-diagnostic-ssh-iproute-whitespace-v19-live-v1
+profile=headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -45,7 +45,7 @@ case_source=$(awk -v profile="$profile" '
 [[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_boot_image=build/ssh-acceptance-v19-iproute-trailing-space-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img \
+	expected_boot_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img \
 	expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c \
 	expected_raw=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff \
 	expected_initramfs=d9a3fba43abf0c3e456feb2e7f9da5e043df1e7cdef2e33112e0313358ae98d8 \
@@ -55,9 +55,9 @@ for assignment in \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_avb_salt=e4d2f04345b6437640ea796f4789d35efd18a024c6f54b74b3e46e96dc076e85 \
-	expected_avb_digest=6c20b8ad64c713ad7fbde16cbfc866d3b39e97e998497fddce889ec36a716286 \
-	expected_generation_record=e9b3fc6fd473266e667c45eaff43cb057ef0c0cee0eac63a5bbe4e4beb420b1b \
+	expected_avb_salt=c217cfc83602e447e40009ee0f557b341ffef08a2101fe6548f3fde913fc0356 \
+	expected_avb_digest=e2052a33ce42c179d4ef255d766dd66a466d0de62a76e82b617571afa2195bf0 \
+	expected_generation_record=8bbc5ba59c550c58f1fd6fc1143adae6fed9552b31031bd8290562877e10b808 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -117,7 +117,7 @@ run_policy() {
 }
 
 exact=(
-	5f769fcf3355b7a03a894daa61da3adca7b01a97b2a2c0362a9c59108a5a83fb
+	cacd0164d7d1d581f6fa4cb8926d7fea655be92e333c84635de953dd7d816b39
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
@@ -156,13 +156,13 @@ done
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
-[[ $(awk -F '\t' -v name="build/ssh-acceptance-v19-iproute-trailing-space-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" \
+[[ $(awk -F '\t' -v name="build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 1 ]] ||
 	fail 'current production live image is not uniquely admitted'
 
 production_root=$repo/build/ssh-acceptance-v7-production-20260811-r1
-generation_root=$repo/build/ssh-acceptance-v19-iproute-trailing-space-fix-20260812-r1/wrapper
+generation_root=$repo/build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper
 if [[ -d $production_root && -d $generation_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \

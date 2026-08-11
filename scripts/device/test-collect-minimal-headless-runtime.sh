@@ -212,6 +212,7 @@ EOF
 printf '%s\n' \
 	'0 0 169.254.77.2:22 169.254.77.1:49152' \
 	>"$root/run/mock-ss-sessions"
+: >"$root/run/mock-dmesg"
 
 cat >"$mock_bin/uname" <<'EOF'
 #!/bin/sh
@@ -296,7 +297,7 @@ echo "hostkey $(cat "$MOCK_ROOT/run/mock-ssh-host-key")"
 EOF
 cat >"$mock_bin/dmesg" <<'EOF'
 #!/bin/sh
-:
+cat "$MOCK_ROOT/run/mock-dmesg"
 EOF
 chmod 0755 "$mock_bin"/*
 
@@ -392,6 +393,29 @@ grep -Fxq 'watchdog_state=armed' "$record"
 grep -Fxq 'watchdog_remaining_seconds=500' "$record"
 grep -Fxq 'workload=none' "$record"
 [ "$(tail -n 1 "$record")" = result=PASS ]
+
+printf '%s\n' \
+	'dynamic_debug: Ignore empty _ddebug table' \
+	'evtlog_status: enable:11, panic:1, dump:2' \
+	>"$root/run/mock-dmesg"
+run_probe >"$stage/benign-kernel-log.record"
+grep -Fxq 'fatal_kernel_signatures=0' \
+	"$stage/benign-kernel-log.record"
+
+for fatal_line in \
+	'Kernel panic - not syncing' \
+	'Oops: fatal exception' \
+	'BUG: unable to handle page fault' \
+	'watchdog bite detected' \
+	'Kernel fault at address 0' \
+	'Unable to handle kernel paging request' \
+	'Synchronous External Abort'; do
+	printf '%s\n' "$fatal_line" >"$root/run/mock-dmesg"
+	expect_failure "fatal kernel signature: $fatal_line"
+	grep -Fxq 'FAIL fatal kernel signature is present' \
+		"$stage/rejected-error"
+done
+: >"$root/run/mock-dmesg"
 
 printf '%s\n' rw,nodev,nosuid >"$root/run/mock-lower-options"
 expect_failure 'writable NFS lower'
