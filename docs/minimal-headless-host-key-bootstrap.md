@@ -26,6 +26,10 @@ standing authorization and its exact technical gates.
    physical port,
    the `cdc_ncm` driver, and an exact direct route from `169.254.77.1/30` to
    `169.254.77.2`.
+   Target USB enumeration may precede host address installation; only the
+   absence of any IPv4 address is retried inside the existing bounded wait.
+   A wrong address, route, source address, product, driver, or physical port
+   still fails closed.
 
 Only then does it run the fixed root-owned `/usr/bin/ssh-keyscan` for
 Ed25519. It accepts one canonical nonzero Ed25519 wire key, rechecks the USB

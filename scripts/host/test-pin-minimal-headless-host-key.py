@@ -498,6 +498,67 @@ class HostKeyBootstrapTest(unittest.TestCase):
             )
         )
 
+    def test_pin_waits_for_host_address_after_target_enumerates(self) -> None:
+        anchor = self.fixture.anchor()
+        output = self.fixture.private / "known-hosts"
+        address_absent = subprocess.CompletedProcess([], 0, "", "")
+        address_ready = subprocess.CompletedProcess(
+            [],
+            0,
+            "7: enxrog5 inet 169.254.77.1/30 scope global\n",
+            "",
+        )
+        route_ready = subprocess.CompletedProcess(
+            [],
+            0,
+            (
+                "169.254.77.2 dev enxrog5 src 169.254.77.1 "
+                "uid 1000\n    cache\n"
+            ),
+            "",
+        )
+        with (
+            self.fixture.patches(),
+            mock.patch.object(MODULE.time, "time", return_value=self.fixture.now),
+            mock.patch.object(
+                MODULE,
+                "wait_for_target",
+                return_value=("enxrog5", "pci0000:00/usb1/1-2"),
+            ) as wait_for_target,
+            mock.patch.object(
+                MODULE,
+                "target_observation",
+                return_value=("enxrog5", "pci0000:00/usb1/1-2"),
+            ),
+            mock.patch.object(MODULE, "require_fixed_binary"),
+            mock.patch.object(
+                MODULE.subprocess,
+                "run",
+                side_effect=(
+                    address_absent,
+                    address_ready,
+                    route_ready,
+                    address_ready,
+                    route_ready,
+                ),
+            ),
+            mock.patch.object(
+                MODULE,
+                "scan_target_key",
+                return_value=(
+                    f"{MODULE.HOST_ALIAS} ssh-ed25519 "
+                    f"{base64.b64encode(ed25519_blob()).decode()}\n",
+                    "SHA256:test",
+                ),
+            ),
+            mock.patch.object(MODULE.time, "sleep") as sleep,
+        ):
+            fingerprint = MODULE.pin_target(anchor, output)
+        self.assertEqual(fingerprint, "SHA256:test")
+        self.assertEqual(wait_for_target.call_count, 2)
+        sleep.assert_called_once_with(0.25)
+        self.assertTrue(output.exists())
+
     def test_pin_rechecks_anchor_freshness_before_publication(self) -> None:
         anchor = self.fixture.anchor()
         output = self.fixture.private / "known-hosts"
