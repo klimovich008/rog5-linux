@@ -31,7 +31,7 @@ runtime_path() {
 	printf '%s%s' "$runtime_root" "$1"
 }
 
-for command in awk cat dmesg find findmnt grep id ip nproc readlink sed \
+for command in awk cat dmesg find findmnt grep id ip nproc readlink sed sort \
 	sha256sum ss ssh-keygen sshd stat systemctl tr uname wc; do
 	command -v "$command" >/dev/null ||
 		fail "missing runtime probe command: $command"
@@ -362,12 +362,42 @@ printf '%s\n' "$state_options" | tr ',' '\n' | grep -qx nosuid ||
 block_class=$(runtime_path /sys/class/block)
 [ -d "$block_class" ] && [ ! -L "$block_class" ] ||
 	fail 'block device class is absent or linked'
-block_device_count=$(
-	find "$block_class" -mindepth 1 -maxdepth 1 -print |
-		awk 'NF { count++ } END { print count + 0 }'
-)
-[ "$block_device_count" -eq 0 ] ||
-	fail 'block device is present'
+block_device_names=$(
+	find "$block_class" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort
+) || fail 'block device inventory is unreadable'
+expected_block_device_names='loop0
+loop1
+loop2
+loop3
+loop4
+loop5
+loop6
+loop7
+zram0'
+[ "$block_device_names" = "$expected_block_device_names" ] ||
+	fail 'virtual block device inventory is not exact'
+block_device_count=9
+loop_index=0
+while [ "$loop_index" -lt 8 ]; do
+	loop_path=$block_class/loop$loop_index
+	[ -L "$loop_path" ] || fail 'inert loop device is not a class link'
+	[ "$(readlink -f "$loop_path")" = \
+		"$(runtime_path "/sys/devices/virtual/block/loop$loop_index")" ] ||
+		fail 'inert loop device escaped the virtual block topology'
+	[ ! -e "$loop_path/device" ] && [ ! -e "$loop_path/partition" ] &&
+		[ ! -e "$loop_path/loop" ] ||
+		fail 'loop device is active or physically backed'
+	loop_index=$((loop_index + 1))
+done
+zram_path=$block_class/zram0
+[ -L "$zram_path" ] || fail 'inert zram device is not a class link'
+[ "$(readlink -f "$zram_path")" = \
+	"$(runtime_path /sys/devices/virtual/block/zram0)" ] ||
+	fail 'inert zram device escaped the virtual block topology'
+[ ! -e "$zram_path/device" ] && [ ! -e "$zram_path/partition" ] ||
+	fail 'zram device is physically backed'
+[ "$(cat "$zram_path/disksize")" = 0 ] ||
+	fail 'zram device is active'
 block_listing=$(
 	find "$block_class" -mindepth 1 -maxdepth 1 \
 		-type l -exec test -e {}/device \; -print

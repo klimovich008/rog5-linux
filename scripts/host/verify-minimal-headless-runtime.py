@@ -188,7 +188,7 @@ EXACT_VALUES = {
     "state_fstype": "tmpfs",
     "state_nodev": "1",
     "state_nosuid": "1",
-    "block_device_count": "0",
+    "block_device_count": "9",
     "physical_block_devices": "0",
     "scsi_host_count": "0",
     "rpmb_device_count": "0",

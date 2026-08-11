@@ -151,6 +151,14 @@ EXPECTED_CLAIMS["headless-diagnostic-ssh-network-ready-v15-live-v1"] = (
     "98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["headless-diagnostic-ssh-inert-block-v16-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=headless-diagnostic-ssh-inert-block-v16-live-v1\n"
+    "candidate=headless-netroot-early-diag-v2\n"
+    "manifest_sha256="
+    "98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["retention-host-rendezvous-v3-observer-v2"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=retention-host-rendezvous-v3-observer-v2\n"
@@ -329,7 +337,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14561,
-    "sha256": "48df2a69acb7cd073660c9f96f569c35d0dc5b98edba7d5aa71e5cb19668bfbc",
+    "sha256": "154b253bf730934f1feeca07f03a4486a4bb1869d6296f0c3f07a0aea2667374",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -357,7 +365,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "48df2a69acb7cd073660c9f96f569c35d0dc5b98edba7d5aa71e5cb19668bfbc",
+    "executor_contract_sha256": "154b253bf730934f1feeca07f03a4486a4bb1869d6296f0c3f07a0aea2667374",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
