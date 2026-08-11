@@ -14,9 +14,24 @@ import sys
 from typing import Any, NoReturn
 
 
-REFERENCE_PATH = Path(__file__).with_name(
-    "retention-cycle-sequence-reference.py"
+REFERENCE_SELECTOR = os.environ.get(
+    "ROG5_RETENTION_SEQUENCE", "host-rendezvous-v3-observer-v1"
 )
+REFERENCE_FILES = {
+    "host-rendezvous-v3-observer-v1": (
+        "retention-cycle-sequence-reference.py"
+    ),
+    "host-rendezvous-v11-mainline-udc-observer-v1": (
+        "retention-cycle-mainline-udc-v11.py"
+    ),
+}
+try:
+    reference_file = REFERENCE_FILES[REFERENCE_SELECTOR]
+except KeyError as error:
+    raise RuntimeError(
+        "retention sequence selector is not repository-owned"
+    ) from error
+REFERENCE_PATH = Path(__file__).with_name(reference_file)
 _SPEC = importlib.util.spec_from_file_location(
     "rog5_retention_cycle_sequence_for_transaction", REFERENCE_PATH
 )
@@ -29,6 +44,7 @@ _SPEC.loader.exec_module(REFERENCE)
 CYCLE_SHA256 = REFERENCE.CYCLE_SHA256
 PROFILE = REFERENCE.RETENTION_PROFILE
 CANDIDATE = REFERENCE.CANDIDATE
+MANIFEST_SHA256 = REFERENCE.MANIFEST_SHA256
 EXECUTION_RECOVERY_SHA256 = REFERENCE.EXECUTION_RECOVERY_SHA256
 OBSERVER_RECOVERY_SHA256 = REFERENCE.OBSERVER_RECOVERY_SHA256
 EXECUTION_CLAIM_IDENTIFIER = REFERENCE.EXECUTION_CLAIM.identifier

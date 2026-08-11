@@ -20,6 +20,9 @@ CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 GATE = REPO / "scripts/host/run-stable-recovery-live-gate.sh"
 OBSERVER_GATE = REPO / "scripts/host/run-observation-recovery-live-gate.sh"
 REFERENCE_PATH = REPO / "scripts/host/retention-cycle-sequence-reference.py"
+CURRENT_REFERENCE_PATH = (
+    REPO / "scripts/host/retention-cycle-mainline-udc-v11.py"
+)
 HISTORICAL_MANIFESTS = {
     "headless-diagnostic-generation11-live-v1": (
         "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
@@ -42,6 +45,14 @@ if REFERENCE_SPEC is None or REFERENCE_SPEC.loader is None:
 REFERENCE = importlib.util.module_from_spec(REFERENCE_SPEC)
 sys.modules[REFERENCE_SPEC.name] = REFERENCE
 REFERENCE_SPEC.loader.exec_module(REFERENCE)
+CURRENT_REFERENCE_SPEC = importlib.util.spec_from_file_location(
+    "current_retention_sequence_for_claim_test", CURRENT_REFERENCE_PATH
+)
+if CURRENT_REFERENCE_SPEC is None or CURRENT_REFERENCE_SPEC.loader is None:
+    raise RuntimeError("cannot load current retention-cycle claim reference")
+CURRENT_REFERENCE = importlib.util.module_from_spec(CURRENT_REFERENCE_SPEC)
+sys.modules[CURRENT_REFERENCE_SPEC.name] = CURRENT_REFERENCE
+CURRENT_REFERENCE_SPEC.loader.exec_module(CURRENT_REFERENCE)
 PROFILES = {
     profile: (
         "format=rog5-temporary-boot-consumption-v1\n"
@@ -145,6 +156,12 @@ PROFILES.update(
         ),
         REFERENCE.EXECUTION_CLAIM.identifier: REFERENCE.EXECUTION_CLAIM.record,
         REFERENCE.OBSERVER_CLAIM.identifier: REFERENCE.OBSERVER_CLAIM.record,
+        CURRENT_REFERENCE.EXECUTION_CLAIM.identifier: (
+            CURRENT_REFERENCE.EXECUTION_CLAIM.record
+        ),
+        CURRENT_REFERENCE.OBSERVER_CLAIM.identifier: (
+            CURRENT_REFERENCE.OBSERVER_CLAIM.record
+        ),
     }
 )
 REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (

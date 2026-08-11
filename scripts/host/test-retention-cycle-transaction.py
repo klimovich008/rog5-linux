@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -47,6 +48,32 @@ class RetentionCycleTransactionTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def test_sequence_selector_is_repository_owned_and_fail_closed(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "ROG5_RETENTION_SEQUENCE":
+                    "host-rendezvous-v11-mainline-udc-observer-v1"
+            },
+        ):
+            current = load_module(
+                "rog5_retention_cycle_transaction_current", SOURCE
+            )
+        self.assertEqual(
+            current.PROFILE,
+            "host-rendezvous-v11-mainline-udc-observer-v1",
+        )
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"ROG5_RETENTION_SEQUENCE": "../../hostile"},
+            ),
+            self.assertRaisesRegex(
+                RuntimeError, "selector is not repository-owned"
+            ),
+        ):
+            load_module("rog5_retention_cycle_transaction_hostile", SOURCE)
 
     def root(self, name: str = "state") -> Path:
         root = self.base / name

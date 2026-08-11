@@ -11,8 +11,9 @@ gate=$repo/scripts/host/run-observation-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
-live_profile=retention-host-rendezvous-v3-observer-v2
+live_profile=retention-host-rendezvous-v11-mainline-udc-observer-v1
 expected_avb=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
+live_avb=243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -116,8 +117,9 @@ grep -Fxq 'boot_result_protocol=rog5-retention-boot-result-v1' <<<"$policy"
 grep -Fxq 'boot_result_live_producer=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
-live_policy=$(run_policy "$expected_avb" "$live_profile")
+live_policy=$(run_policy "$live_avb" "$live_profile")
 grep -Fxq "recovery_profile=$live_profile" <<<"$live_policy"
+grep -Fxq "recovery_sha256=$live_avb" <<<"$live_policy"
 grep -Fxq 'authority=one-use' <<<"$live_policy"
 grep -Fxq 'boot_authority=ram-only' <<<"$live_policy"
 grep -Fxq 'boot_result_live_producer=exact' <<<"$live_policy"
@@ -242,6 +244,25 @@ else
 	[[ ${REQUIRE_CURRENT_OBSERVATION_ARTIFACT:-0} != 1 ]] ||
 		fail 'required current observation artifact output is absent'
 	echo 'SKIP current observation artifact preflight: ignored clean-twin output absent' >&2
+fi
+
+live_source_root=$repo/build/observation-recovery-mainline-udc-v11-source-20260811-r1
+live_generation_root=$repo/build/observation-recovery-mainline-udc-v11-generation8-20260811-r1
+if [[ -d $live_source_root && -d $live_generation_root ]]; then
+	live_artifact_report=$(
+		env -i PATH="$PATH" HOME="$HOME" \
+			ROG5_OBSERVATION_RECOVERY_PROFILE="$live_profile" \
+			OBSERVER_SOURCE_BUILD_ROOT="$live_source_root" \
+			OBSERVER_BUILD_ROOT="$live_generation_root" \
+			OBSERVER_RECOVERY_SHA256="$live_avb" \
+			bash "$gate" artifact-preflight
+	)
+	grep -Fxq \
+		"PASS observation-recovery artifact preflight profile=$live_profile image_sha256=$live_avb" \
+		<<<"$live_artifact_report" ||
+		fail 'current observation generation did not pass artifact preflight'
+else
+	echo 'SKIP current observation generation preflight: ignored build output absent' >&2
 fi
 
 echo 'PASS observation recovery HOLD is offline-only and exact live admission is separate'

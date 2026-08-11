@@ -66,12 +66,12 @@ awk -F '\t' '
 			exit 1
 		next
 	}
-	$1 == "build/host-rendezvous-v10-observer-production-20260811-r1/wrapper/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact retention-observed diagnostic execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
-	$1 == "build/observation-recovery-kmsg-live-20260811-r1/repack/stable-recovery-a.avb.img" &&
+		$3 == "one exact mainline-UDC-corrected retention execution recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { execution++ ; next }
+	$1 == "build/observation-recovery-mainline-udc-v11-generation8-20260811-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one corrected observation-only recovery with exact /dev/kmsg materialization; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
+		$3 == "one exact mainline-UDC retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -2861,6 +2861,12 @@ for required in \
 	'headless-diagnostic-generation12-offline-v1' \
 	'headless-diagnostic-generation12-live-v1' \
 	'headless-diagnostic-stage75-v2-superseded-offline-v1' \
+	'retention-host-rendezvous-v11-mainline-udc-execution-v1' \
+	'expected_boot_image=build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img' \
+	'df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958' \
+	'expected_generation_record=5b4b477dfcefae07ab625246de31c65212405440d4c90c84a5074146d6faa6f2' \
+	'expected_avb_salt=726c5775ef84db9245a6ca957b80597de089f110f3043d136f0e66157ac24e21' \
+	'expected_avb_digest=11cb115b0f707bcbe7aa973829ec793284fe5abf7e14c66bcd515b9319479474' \
 	'historical diagnostic profile is offline-only and consumed' \
 	'generation-3 diagnostic profile is offline-only and not boot-authorized' \
 	'generation-3 boot requires the one-shot lifecycle controller' \
