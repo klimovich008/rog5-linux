@@ -723,7 +723,7 @@ done
 [ "$thermal_zone_count" -gt 0 ] ||
 	fail 'no readable thermal zones are present'
 
-fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|watchdog[[:space:]_-]+bite|Kernel fault|Unable to handle kernel|Synchronous External Abort)([^[:alnum:]_]|$)'
 fatal_kernel_signatures=$(
 	dmesg | grep -Eic "$fatal_pattern" || true
 )
