@@ -219,6 +219,50 @@ EXPECTED_CLAIMS.update(
         ),
     }
 )
+
+
+def nfs_xattr_claim_record(
+    role: str,
+    identifier: str,
+    recovery_sha256: str,
+    peer_recovery_sha256: str,
+) -> bytes:
+    return (
+        "format=rog5-retention-boot-consumption-v1\n"
+        "retention_profile=host-rendezvous-v12-nfs-xattr-observer-v1\n"
+        "cycle_sha256="
+        "e8195fccf25370f1fa28f015b66f08786df4b7d3f2e0758363c12e396750e53c\n"
+        f"claim_role={role}\n"
+        f"recovery_profile={identifier}\n"
+        f"recovery_sha256={recovery_sha256}\n"
+        f"peer_recovery_sha256={peer_recovery_sha256}\n"
+        "candidate=headless-netroot-early-diag-v2\n"
+        "manifest_sha256="
+        "325aa8fb76444b5c01bc517a22ad2483c016837cc1fcb46c203ab5288b916854\n"
+        "state=BOOT_CLAIMED\n"
+    ).encode("ascii")
+
+
+EXPECTED_CLAIMS.update(
+    {
+        "retention-host-rendezvous-v12-nfs-xattr-execution-v1": (
+            nfs_xattr_claim_record(
+                "execution",
+                "retention-host-rendezvous-v12-nfs-xattr-execution-v1",
+                "f53418cbca5c79c65f63ca24e838ec299eb47ee0d5593286bbbebdb98529bab2",
+                "9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69",
+            )
+        ),
+        "retention-host-rendezvous-v12-nfs-xattr-observer-v1": (
+            nfs_xattr_claim_record(
+                "observer",
+                "retention-host-rendezvous-v12-nfs-xattr-observer-v1",
+                "9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69",
+                "f53418cbca5c79c65f63ca24e838ec299eb47ee0d5593286bbbebdb98529bab2",
+            )
+        ),
+    }
+)
 EXPECTED_SEQUENCE_REFERENCE = {
     "path": "scripts/host/retention-cycle-sequence-reference.py",
     "size": 11923,
@@ -233,8 +277,8 @@ EXPECTED_SEQUENCE_REFERENCE = {
 }
 EXPECTED_TRANSACTION_FIXTURE = {
     "path": "scripts/host/retention-cycle-transaction.py",
-    "size": 40084,
-    "sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
+    "size": 40185,
+    "sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
     "mode": "0644",
     "implementation": "offline-append-only-fixture",
     "event_format": "rog5-retention-cycle-event-v1",
@@ -250,7 +294,7 @@ EXPECTED_ADAPTER_FIXTURE = {
     "sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
     "mode": "0644",
     "implementation": "callback-only-fixture",
-    "journal_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
+    "journal_sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
     "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
     "invocation_count": 6,
     "live_entrypoint": "none",
@@ -261,7 +305,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14561,
-    "sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
+    "sha256": "ff1417f673945f010a5bdb0eece0809466b59221d3f5e1cc2b10ad1c0b3362a4",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -289,7 +333,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "41c7ec0aa2641c5363897f316d6854e4c15243fec6e3b6025c45f9536b31ed42",
+    "executor_contract_sha256": "ff1417f673945f010a5bdb0eece0809466b59221d3f5e1cc2b10ad1c0b3362a4",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -345,7 +389,7 @@ EXPECTED_EXECUTOR_RUNTIME = {
     "mode": "0644",
     "implementation": "offline-fresh-pipe-fixture-v1",
     "executor_boundary_sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
-    "transaction_sha256": "7826e0b611e815e027c038e64011aab29499a9410219243b074815dfdcb53d21",
+    "transaction_sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
     "intent_binding": "held-fsynced-event-descriptor",
     "pipe_binding": "fresh-empty-cloexec-distinct",
     "process_backend": "forked-fixed-writer-only",

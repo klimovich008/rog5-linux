@@ -23,6 +23,9 @@ REFERENCE_PATH = REPO / "scripts/host/retention-cycle-sequence-reference.py"
 CURRENT_REFERENCE_PATH = (
     REPO / "scripts/host/retention-cycle-mainline-udc-v11.py"
 )
+CURRENT_XATTR_REFERENCE_PATH = (
+    REPO / "scripts/host/retention-cycle-nfs-xattr-v12.py"
+)
 HISTORICAL_MANIFESTS = {
     "headless-diagnostic-generation11-live-v1": (
         "4eacb90f08a80af1bdfed704c4a5e0d8eff600e94191c18c066b23b1228f7e76"
@@ -53,6 +56,20 @@ if CURRENT_REFERENCE_SPEC is None or CURRENT_REFERENCE_SPEC.loader is None:
 CURRENT_REFERENCE = importlib.util.module_from_spec(CURRENT_REFERENCE_SPEC)
 sys.modules[CURRENT_REFERENCE_SPEC.name] = CURRENT_REFERENCE
 CURRENT_REFERENCE_SPEC.loader.exec_module(CURRENT_REFERENCE)
+CURRENT_XATTR_REFERENCE_SPEC = importlib.util.spec_from_file_location(
+    "current_xattr_retention_sequence_for_claim_test",
+    CURRENT_XATTR_REFERENCE_PATH,
+)
+if (
+    CURRENT_XATTR_REFERENCE_SPEC is None
+    or CURRENT_XATTR_REFERENCE_SPEC.loader is None
+):
+    raise RuntimeError("cannot load current xattr retention-cycle claim reference")
+CURRENT_XATTR_REFERENCE = importlib.util.module_from_spec(
+    CURRENT_XATTR_REFERENCE_SPEC
+)
+sys.modules[CURRENT_XATTR_REFERENCE_SPEC.name] = CURRENT_XATTR_REFERENCE
+CURRENT_XATTR_REFERENCE_SPEC.loader.exec_module(CURRENT_XATTR_REFERENCE)
 PROFILES = {
     profile: (
         "format=rog5-temporary-boot-consumption-v1\n"
@@ -161,6 +178,12 @@ PROFILES.update(
         ),
         CURRENT_REFERENCE.OBSERVER_CLAIM.identifier: (
             CURRENT_REFERENCE.OBSERVER_CLAIM.record
+        ),
+        CURRENT_XATTR_REFERENCE.EXECUTION_CLAIM.identifier: (
+            CURRENT_XATTR_REFERENCE.EXECUTION_CLAIM.record
+        ),
+        CURRENT_XATTR_REFERENCE.OBSERVER_CLAIM.identifier: (
+            CURRENT_XATTR_REFERENCE.OBSERVER_CLAIM.record
         ),
     }
 )

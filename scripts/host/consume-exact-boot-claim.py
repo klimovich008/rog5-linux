@@ -175,6 +175,40 @@ CLAIMS = {
         b"ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "retention-host-rendezvous-v12-nfs-xattr-execution-v1": (
+        b"format=rog5-retention-boot-consumption-v1\n"
+        b"retention_profile=host-rendezvous-v12-nfs-xattr-observer-v1\n"
+        b"cycle_sha256="
+        b"e8195fccf25370f1fa28f015b66f08786df4b7d3f2e0758363c12e396750e53c\n"
+        b"claim_role=execution\n"
+        b"recovery_profile="
+        b"retention-host-rendezvous-v12-nfs-xattr-execution-v1\n"
+        b"recovery_sha256="
+        b"f53418cbca5c79c65f63ca24e838ec299eb47ee0d5593286bbbebdb98529bab2\n"
+        b"peer_recovery_sha256="
+        b"9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"325aa8fb76444b5c01bc517a22ad2483c016837cc1fcb46c203ab5288b916854\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
+    "retention-host-rendezvous-v12-nfs-xattr-observer-v1": (
+        b"format=rog5-retention-boot-consumption-v1\n"
+        b"retention_profile=host-rendezvous-v12-nfs-xattr-observer-v1\n"
+        b"cycle_sha256="
+        b"e8195fccf25370f1fa28f015b66f08786df4b7d3f2e0758363c12e396750e53c\n"
+        b"claim_role=observer\n"
+        b"recovery_profile="
+        b"retention-host-rendezvous-v12-nfs-xattr-observer-v1\n"
+        b"recovery_sha256="
+        b"9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69\n"
+        b"peer_recovery_sha256="
+        b"f53418cbca5c79c65f63ca24e838ec299eb47ee0d5593286bbbebdb98529bab2\n"
+        b"candidate=headless-netroot-early-diag-v2\n"
+        b"manifest_sha256="
+        b"325aa8fb76444b5c01bc517a22ad2483c016837cc1fcb46c203ab5288b916854\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
 }
 
 
