@@ -176,7 +176,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-for command in chmod cmp cut env find git grep id mkdir mktemp mv openssl podman \
+for command in chmod cmp cut env find git grep id mkdir mktemp mv openssl \
 	python3 realpath rm sed sha256sum stat tail; do
 	command -v "$command" >/dev/null ||
 		fail "missing corrected-candidate command: $command"
@@ -302,6 +302,9 @@ if [[ $deployment_input_preflight == 1 ]]; then
 	echo 'PASS guarded deployment signing inputs staged, validated, scrubbed from the child environment, and destroyed without signing'
 	exit 0
 fi
+
+command -v podman >/dev/null ||
+	fail 'missing corrected-candidate command: podman'
 
 mkdir -p "$output_root"
 "$builder_verifier" "$builder_image" \
