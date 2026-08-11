@@ -520,11 +520,11 @@ usb_config_link_count=$(
 )
 [ "$usb_config_link_count" -eq "$expected_usb_function_count" ] &&
 	[ "$(readlink "$usb_config/ncm.usb0")" = \
-	/sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 ] ||
+	../../../../usb_gadget/rog5-network-root/functions/ncm.usb0 ] ||
 	fail 'USB gadget NCM configuration link is not exact'
 if [ "$runtime_candidate" = headless-netroot-early-diag-v2 ]; then
 	[ "$(readlink "$usb_config/acm.usb0")" = \
-	/sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 ] ||
+	../../../../usb_gadget/rog5-network-root/functions/acm.usb0 ] ||
 		fail 'USB gadget ACM configuration link is not exact'
 fi
 usb_udc=$(cat "$gadget/UDC")

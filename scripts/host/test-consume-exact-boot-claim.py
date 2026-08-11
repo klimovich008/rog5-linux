@@ -82,6 +82,15 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "headless-diagnostic-ssh-configfs-link-v18-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile="
+            b"headless-diagnostic-ssh-configfs-link-v18-live-v1\n"
+            b"candidate=headless-netroot-early-diag-v2\n"
+            b"manifest_sha256="
+            b"98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "headless-diagnostic-ssh-gadget-contract-v17-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile="
