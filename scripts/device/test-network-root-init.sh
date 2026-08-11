@@ -59,6 +59,7 @@ done
 
 for text in \
 	'rog5.netroot=1' \
+	'expected_udc=a600000.usb' \
 	'169.254.77.2/30' \
 	'169.254.77.1:/' \
 	'rog5-network-root-watchdog.pid' \
@@ -114,6 +115,10 @@ for text in \
 		exit 1
 	}
 done
+if grep -Fq 'expected_udc=a600000.dwc3' "$init"; then
+	echo 'FAIL mainline target retains the downstream ASUS wrapper UDC name' >&2
+	exit 1
+fi
 
 if grep -Eq '(^|,)nolock(,|$)' "$init"; then
 	echo 'FAIL NFSv4 network-root options still force obsolete NLM behavior' >&2
@@ -293,24 +298,24 @@ run_udc_selection_case() (
 	case_name=$1
 	expected_status=$2
 	udc_class_dir=$work/udc-$case_name
-	expected_udc=a600000.dwc3
+	expected_udc=a600000.usb
 	mkdir -p "$udc_class_dir"
 	case $case_name in
-		exact) mkdir "$udc_class_dir/a600000.dwc3" ;;
+		exact) mkdir "$udc_class_dir/a600000.usb" ;;
 		zero) ;;
 		multiple)
-			mkdir "$udc_class_dir/a600000.dwc3" \
+			mkdir "$udc_class_dir/a600000.usb" \
 				"$udc_class_dir/a800000.dwc3"
 			;;
 		wrong) mkdir "$udc_class_dir/a800000.dwc3" ;;
-		renamed) mkdir "$udc_class_dir/evil-a600000.dwc3" ;;
-		changing) mkdir "$udc_class_dir/a600000.dwc3" ;;
+		renamed) mkdir "$udc_class_dir/evil-a600000.usb" ;;
+		changing) mkdir "$udc_class_dir/a600000.usb" ;;
 	esac
 	udc_poll_attempts=2
 	change_done=0
 	sleep() {
 		if [ "$case_name" = changing ] && [ "$change_done" -eq 0 ]; then
-			rmdir "$udc_class_dir/a600000.dwc3"
+			rmdir "$udc_class_dir/a600000.usb"
 			mkdir "$udc_class_dir/a800000.dwc3"
 			change_done=1
 		fi
@@ -319,7 +324,7 @@ run_udc_selection_case() (
 	. "$network_functions"
 	if selected=$(select_expected_udc); then
 		actual_status=0
-		[ "$selected" = a600000.dwc3 ]
+		[ "$selected" = a600000.usb ]
 	else
 		actual_status=$?
 	fi
@@ -337,23 +342,26 @@ done
 run_configure_usb_case() (
 	case_name=$1
 	expected_status=$2
+	expected_step=${3:-}
 	case_root=$work/configure-$case_name
 	udc_class_dir=$case_root/udc
 	net_class_dir=$case_root/net
 	usb_mode_path=$case_root/absent-mode
 	usb_configfs_root=$case_root/configfs
 	usb_gadget_root=$usb_configfs_root/usb_gadget/rog5-network-root
-	expected_udc=a600000.dwc3
+	expected_udc=a600000.usb
 	udc_poll_attempts=1
 	diagnostic_mode=0
 	diagnostic_fault=none
-	mkdir -p "$udc_class_dir/a600000.dwc3" \
+	mkdir -p "$udc_class_dir/a600000.usb" \
 		"$net_class_dir/usb0" "$usb_gadget_root"
 	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
 	: >"$usb_gadget_root/UDC"
 	validation_count=$case_root/validation-count
 	printf '%s\n' 0 >"$validation_count"
-	mount() { return 0; }
+	mount() {
+		[ "$case_name" != configfs-mount-failure ]
+	}
 	mdev() { return 0; }
 	ip() { return 0; }
 	sleep() { return 0; }
@@ -368,16 +376,16 @@ run_configure_usb_case() (
 			[ "$case_name" = multiple-before-bind ]; } &&
 			[ "$count" -eq 3 ]; then
 			if [ "$case_name" = before-bind ]; then
-				rmdir "$udc_class_dir/a600000.dwc3"
+				rmdir "$udc_class_dir/a600000.usb"
 				mkdir "$udc_class_dir/a800000.dwc3"
 			else
 				mkdir "$udc_class_dir/a800000.dwc3"
 			fi
 		elif [ "$case_name" = after-bind ] && [ "$count" -eq 4 ]; then
-			rmdir "$udc_class_dir/a600000.dwc3"
+			rmdir "$udc_class_dir/a600000.usb"
 			mkdir "$udc_class_dir/a800000.dwc3"
 		elif [ "$case_name" = late-change ] && [ "$count" -eq 5 ]; then
-			rmdir "$udc_class_dir/a600000.dwc3"
+			rmdir "$udc_class_dir/a600000.usb"
 			mkdir "$udc_class_dir/a800000.dwc3"
 		fi
 		validate_expected_udc_once
@@ -391,23 +399,30 @@ run_configure_usb_case() (
 		echo "FAIL configure_usb case $case_name returned $actual_status, expected $expected_status" >&2
 		exit 1
 	}
+	if [ -n "$expected_step" ]; then
+		[ "$usb_step" = "$expected_step" ] || {
+			echo "FAIL configure_usb case $case_name stopped at $usb_step, expected $expected_step" >&2
+			exit 1
+		}
+	fi
 	bound=$(cat "$usb_gadget_root/UDC")
 	case $bound in
-		''|a600000.dwc3) ;;
+		''|a600000.usb) ;;
 		*)
 			echo "FAIL configure_usb case $case_name wrote arbitrary UDC $bound" >&2
 			exit 1
 			;;
 	esac
 	if [ "$case_name" = exact ]; then
-		[ "$bound" = a600000.dwc3 ]
+		[ "$bound" = a600000.usb ]
 	elif [ "$case_name" != after-bind ] &&
 		[ "$case_name" != late-change ]; then
 		[ -z "$bound" ]
 	fi
 )
 
-run_configure_usb_case exact 0
+run_configure_usb_case exact 0 complete
+run_configure_usb_case configfs-mount-failure 1 configfs-mount
 for hostile_bind in before-bind multiple-before-bind after-bind late-change; do
 	run_configure_usb_case "$hostile_bind" 1
 done
@@ -423,7 +438,7 @@ run_diagnostic_mount_case() (
 	fi
 	case_root=$work/mount-$case_name
 	udc_class_dir=$case_root/sys/class/udc
-	expected_udc=a600000.dwc3
+	expected_udc=a600000.usb
 	net_class_dir=$case_root/sys/class/net
 	gadget=$case_root/gadget
 	network_root_ro=$case_root/root-ro
@@ -435,9 +450,9 @@ run_diagnostic_mount_case() (
 	host_port_probe_interval=0.25
 	host_port_timeout_floor_ms=900
 	host_port_probe_output=$case_root/probe-output
-	mkdir -p "$udc_class_dir/a600000.dwc3" \
+	mkdir -p "$udc_class_dir/a600000.usb" \
 		"$net_class_dir/usb0" "$gadget" "$network_root_ro"
-	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' a600000.usb >"$gadget/UDC"
 	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
 	: >"$network_mounts"
 	diagnostic_mode=1
@@ -536,7 +551,7 @@ run_mount_completion_case() (
 	expected_stages=$3
 	case_root=$work/completion-$case_name
 	udc_class_dir=$case_root/sys/class/udc
-	expected_udc=a600000.dwc3
+	expected_udc=a600000.usb
 	net_class_dir=$case_root/sys/class/net
 	gadget=$case_root/gadget
 	network_root_ro=$case_root/root-ro
@@ -548,9 +563,9 @@ run_mount_completion_case() (
 	host_port_probe_interval=0.25
 	host_port_timeout_floor_ms=900
 	host_port_probe_output=$case_root/probe-output
-	mkdir -p "$udc_class_dir/a600000.dwc3" \
+	mkdir -p "$udc_class_dir/a600000.usb" \
 		"$net_class_dir/usb0" "$gadget" "$network_newroot/sbin"
-	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' a600000.usb >"$gadget/UDC"
 	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
 	printf '#!/bin/sh\n' >"$network_newroot/sbin/init"
 	chmod 0755 "$network_newroot/sbin/init"
@@ -649,7 +664,7 @@ run_host_rendezvous_case() (
 	expected_mounts=$5
 	case_root=$work/rendezvous-$case_name
 	udc_class_dir=$case_root/sys/class/udc
-	expected_udc=a600000.dwc3
+	expected_udc=a600000.usb
 	net_class_dir=$case_root/sys/class/net
 	gadget=$case_root/gadget
 	network_root_ro=$case_root/root-ro
@@ -657,9 +672,9 @@ run_host_rendezvous_case() (
 	network_newroot=$case_root/newroot
 	network_mounts=$case_root/mounts
 	host_port_probe_output=$case_root/probe-output
-	mkdir -p "$udc_class_dir/a600000.dwc3" \
+	mkdir -p "$udc_class_dir/a600000.usb" \
 		"$net_class_dir/usb0" "$gadget" "$network_newroot/sbin"
-	printf '%s\n' a600000.dwc3 >"$gadget/UDC"
+	printf '%s\n' a600000.usb >"$gadget/UDC"
 	printf '%s\n' 1 >"$net_class_dir/usb0/carrier"
 	printf '#!/bin/sh\n' >"$network_newroot/sbin/init"
 	chmod 0755 "$network_newroot/sbin/init"
@@ -1408,7 +1423,7 @@ live_timer_start=$(process_start_time_ticks "$live_timer_pid")
 
 live_case=$work/live-watchdog-rendezvous
 udc_class_dir=$live_case/sys/class/udc
-expected_udc=a600000.dwc3
+expected_udc=a600000.usb
 net_class_dir=$live_case/sys/class/net
 gadget=$live_case/gadget
 host_port_probe_output=$live_case/probe-output

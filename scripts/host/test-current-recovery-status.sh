@@ -29,9 +29,9 @@ case $normalized_status in
 		;;
 esac
 case $normalized_status in
-	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V8 is consumed and must never be retried.'*'V8 r1 was superseded before claim or phone contact'*'V9 is consumed and must never be retried.'*'V10 (`fb5fce1…3452`) is the exact current unbooted one-use execution successor.'*'corrected observer (`a655d4b3…05b`)'*'it is also unbooted and one-use.'*) ;;
+	*'Successor v2 was consumed before any phone boot'*'Successor v3 was then consumed once after exact-head run `31395428663`'*'V8 is consumed and must never be retried.'*'V8 r1 was superseded before claim or phone contact'*'V9 is consumed and must never be retried.'*'V10 (`fb5fce1…3452`) is consumed and must never be retried.'*'corrected observer (`a655d4b3…05b`) is also consumed and must never be retried.'*'mainline DT platform device and UDC are named'*'`a600000.usb`'*) ;;
 	*)
-		echo 'FAIL current status does not consume v2/v3/v4/v5/v6/v7/v8/v9 and identify the unbooted v10/observer successors' >&2
+		echo 'FAIL current status does not consume v2/v3/v4/v5/v6/v7/v8/v9/v10 and the observer or record the corrected mainline UDC' >&2
 		exit 1
 		;;
 esac
@@ -52,4 +52,4 @@ case $normalized_active in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7/v8/v9 and records the unbooted v10/observer successors'
+echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7/v8/v9/v10 and the observer, and records the corrected mainline UDC'

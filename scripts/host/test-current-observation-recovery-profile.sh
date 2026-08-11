@@ -39,6 +39,35 @@ grep -Fq -- '--verify-entered' "$gate" ||
 grep -Fq 'c3c75dd55167e898edd92a04e4afd2aae1c3d4cf826cd1011ac32c6e9f8214c2' "$gate" ||
 	fail 'observation-recovery HOLD gate does not pin its repository verifier'
 
+location_function=$(
+	awk '
+		/^observation_acm_matches_expected_location\(\) \{/ { copy=1 }
+		copy { print }
+		copy && /^}/ { exit }
+	' "$gate"
+)
+[[ $location_function == observation_acm_matches_expected_location* ]] ||
+	fail 'observation ACM physical-location matcher is not extractable'
+run_location_fixture() (
+	eval "$location_function"
+	observation_acm_matches_expected_location "$1" "$2"
+)
+expected_location=pci-0000:04:00.3-usb-0:1.2
+run_location_fixture "$expected_location:1.2" "$expected_location" ||
+	fail 'observer gate rejected the exact ACM interface on the pinned USB device'
+for hostile_location in \
+	"$expected_location" \
+	"$expected_location:1.1" \
+	"$expected_location:1.3" \
+	"$expected_location:1.2:1.2" \
+	pci-0000:03:00.3-usb-0:1.2:1.2 \
+	pci-0000:04:00.3-usb-0:1.3:1.2
+do
+	if run_location_fixture "$hostile_location" "$expected_location"; then
+		fail "observer gate accepted hostile ACM location: $hostile_location"
+	fi
+done
+
 verifier_function=$(
 	awk '
 		/^verify_repository_verifier\(\) \{/ { copy=1 }

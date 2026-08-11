@@ -432,7 +432,7 @@ done
 
 for token in \
 	'headless-netroot-early-diag-v2' \
-	'41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf' \
+	'd4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b' \
 	'DEPLOYMENT.parse_package' \
 	'DEPLOYMENT.write_candidate' \
 	'candidate and deployment package roots differ' \

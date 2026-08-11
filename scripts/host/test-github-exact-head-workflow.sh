@@ -26,7 +26,7 @@ for token in \
 	'ref: ${{ needs.head-exact.outputs.head_sha }}' \
 	'test "$actual" = "${{ needs.head-exact.outputs.head_sha }}"' \
 	'test "${{ needs.head-exact.outputs.head_sha }}" = "${{ github.event.pull_request.head.sha }}"' \
-	'test "$candidate_sha" = 41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf' \
+	'test "$candidate_sha" = d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b' \
 	'format=rog5-reviewed-candidate-publication-v1' \
 	'candidate_sha256=%s' \
 	'authority=none' \

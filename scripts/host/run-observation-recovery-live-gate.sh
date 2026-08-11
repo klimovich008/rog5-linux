@@ -6,6 +6,11 @@ fail() {
 	exit 1
 }
 
+observation_acm_matches_expected_location() {
+	local observed=$1 expected=$2
+	[[ $observed == "$expected:1.2" ]]
+}
+
 usage() {
 	fail 'usage: run-observation-recovery-live-gate.sh {policy-preflight|artifact-preflight|preflight|boot}'
 }
@@ -305,7 +310,7 @@ done
 properties=$(udevadm info --query=property --name="$acm" 2>/dev/null) ||
 	fail 'cannot inspect observation recovery ACM'
 location=$(sed -n 's/^ID_PATH=//p' <<<"$properties")
-[[ $location == "$expected_location" ]] ||
+observation_acm_matches_expected_location "$location" "$expected_location" ||
 	fail 'observation recovery USB location changed'
 echo "PASS temporary observation recovery ready at $acm"
 printf 'ROG5_RETENTION_BOOT_RESULT_V1 action=observer-boot fastboot_serial=%s recovery_sha256=%s rollback_armed=1 usb_location=%s\n' \

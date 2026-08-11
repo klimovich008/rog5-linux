@@ -251,8 +251,8 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
                 "4eff0818d6a9b4efc050d24ec5aa856fa1cea251495c6bdb67b23bea953a8534",
             ),
             "scripts/host/run-observation-recovery-live-gate.sh": (
-                16091,
-                "48d890ce8eed7fe00cd59669e86169f1df4623cff0223cb09cf980e085df52ba",
+                16242,
+                "4fdf488fc6eb856d3c2a4ce5ca101dca2b3cef9908383382bdcd6ffc9b995c51",
             ),
             "scripts/host/stable-recovery-control.py": (
                 38326,

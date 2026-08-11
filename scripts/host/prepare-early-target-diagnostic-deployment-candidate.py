@@ -17,7 +17,7 @@ DEPLOYMENT_PATH = (
 )
 CANDIDATE_ID = "headless-netroot-early-diag-v2"
 EXPECTED_SHA256 = (
-    "41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf"
+    "d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b"
 )
 
 
