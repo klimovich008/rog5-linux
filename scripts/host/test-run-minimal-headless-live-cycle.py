@@ -938,7 +938,14 @@ class Fixture:
               pin-target)
                 [ "${ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP:-}" = 1 ]
                 [ -z "${ALLOW_TEMPORARY_BOOT+x}" ]
-                printf 'host-key:pin\n' >>"$MOCK_CALLS"
+                [ "$#" = 4 ]
+                case "$BUNDLE" in
+                  headless-netroot-early-diag-*)
+                    [ "$4" = 'ROG5 diagnostic network root' ]
+                    ;;
+                  *) [ "$4" = 'ROG5 network root' ] ;;
+                esac
+                printf 'host-key:pin:%s\n' "$4" >>"$MOCK_CALLS"
                 umask 077
                 printf 'rog5-minimal-headless-v1 ssh-ed25519 offline\n' >"$3"
                 echo 'PASS pinned key'
@@ -2652,7 +2659,10 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertEqual(calls.count("collector:capture"), 1)
-        self.assertIn("host-key:pin", calls)
+        self.assertIn(
+            "host-key:pin:ROG5 diagnostic network root",
+            calls,
+        )
         self.assertIn("runtime:start", calls)
         self.assertLess(
             calls.index("runtime:start"),
@@ -3727,7 +3737,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.assertIn(token, runner)
         for token in (
             "fallback-acm-control.py",
-            '"headless-diagnostic-ssh-acceptance-v13-live-v1"',
+            '"headless-diagnostic-ssh-bootstrap-v14-live-v1"',
             "ALLOW_FALLBACK_SSH_CONTROL",
             "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
             "wait-ssh-preflight",

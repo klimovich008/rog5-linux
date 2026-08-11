@@ -4,7 +4,7 @@
   "status": "offline",
   "authority": "none",
   "artifact_manifest": "manifests/artifacts.tsv",
-  "artifact_manifest_sha256": "c3c8431ed145129933fe107c9c8e3cb468c32230d058aa28671ef776209e6aaf",
+  "artifact_manifest_sha256": "cf4d8a1ab0b1e3a96fbeab0b38c841accbeb4272b29953f3898cbcadd9083b96",
   "baseline": {
     "vendor_release": "5.4.210-qgki-perf",
     "accepted_target_release": "7.1.4-g7a5cef0db479",
