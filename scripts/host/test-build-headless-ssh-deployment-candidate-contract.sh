@@ -206,6 +206,13 @@ grep -Fq 'unrecognized arguments: --signing-key' \
 	"$test_root/diagnostic-builder.err" ||
 	fail 'credential-free builder did not reject the signing-key option'
 
+preflight_exit_line=$(grep -nF 'if [[ $deployment_input_preflight == 1 ]]' \
+	"$builder_impl" | cut -d: -f1)
+podman_gate_line=$(grep -n '^command -v podman ' "$builder_impl" | cut -d: -f1)
+[[ $preflight_exit_line =~ ^[0-9]+$ && $podman_gate_line =~ ^[0-9]+$ &&
+	$podman_gate_line -gt $preflight_exit_line ]] ||
+	fail 'signing-input preflight incorrectly requires the container runtime'
+
 integration_root=$(realpath -e "$test_root")/integration
 integration_repo=$integration_root/repository
 integration_remote=$integration_root/remote.git
