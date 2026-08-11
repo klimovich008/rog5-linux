@@ -79,7 +79,7 @@ awk -F '\t' '
 	END { if (NR != 4 || execution != 1 || observer != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retention-cycle admission shape' >&2; exit 1; }
-grep -Fq '"headless-diagnostic-host-rendezvous-v3-live-v10"' "$lifecycle" ||
+grep -Fq '"retention-host-rendezvous-v11-mainline-udc-execution-v1"' "$lifecycle" ||
 	{ echo 'FAIL lifecycle does not select exact successor execution profile' >&2; exit 1; }
 [[ $(grep -Fxc \
 	'DIAGNOSTIC_RECOVERY_PROFILE = "headless-diagnostic-generation12-live-v1"' \

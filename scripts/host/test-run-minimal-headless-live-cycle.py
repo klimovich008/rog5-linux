@@ -3691,6 +3691,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             self.assertIn(token, runner)
         for token in (
             "fallback-acm-control.py",
+            '"retention-host-rendezvous-v11-mainline-udc-execution-v1"',
             "ALLOW_FALLBACK_SSH_CONTROL",
             "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
             "wait-ssh-preflight",
@@ -3702,6 +3703,9 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "FALLBACK_CONTROL_MARGIN_SECONDS = 120",
         ):
             self.assertIn(token, runner)
+        self.assertNotIn(
+            '"headless-diagnostic-host-rendezvous-v3-live-v10"', runner
+        )
         self.assertLess(
             runner.index("control_attempted = True"),
             runner.index("control_process = start_logged"),
