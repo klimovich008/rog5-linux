@@ -561,8 +561,13 @@ usb_ipv4_route_count=$(
 [ "$usb_ipv4_route_count" -eq 1 ] ||
 	fail 'USB network route count is not exact'
 printf '%s\n' "$usb_ipv4_routes" |
-	grep -Fxq \
-	'169.254.77.0/30 dev usb0 proto kernel scope link src 169.254.77.2' ||
+	awk 'NF == 9 &&
+		$1 == "169.254.77.0/30" &&
+		$2 == "dev" && $3 == "usb0" &&
+		$4 == "proto" && $5 == "kernel" &&
+		$6 == "scope" && $7 == "link" &&
+		$8 == "src" && $9 == "169.254.77.2" { exact++ }
+		END { exit exact != 1 }' ||
 	fail 'USB network route is not exact'
 usb_default_route_count=$(
 	ip -4 -o route show table all default |
