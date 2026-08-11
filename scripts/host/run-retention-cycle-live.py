@@ -23,6 +23,9 @@ MODULES = {
     "adapter": "retention-cycle-adapter.py",
     "claims": "consume-exact-boot-claim.py",
 }
+CURRENT_RETENTION_SEQUENCE = (
+    "host-rendezvous-v11-mainline-udc-observer-v1"
+)
 
 
 def load_module(name: str, filename: str):
@@ -38,17 +41,23 @@ def load_module(name: str, filename: str):
     return module
 
 
-JOURNAL = load_module("journal", MODULES["journal"])
-ADAPTER = load_module("adapter", MODULES["adapter"])
+previous_sequence = os.environ.get("ROG5_RETENTION_SEQUENCE")
+os.environ["ROG5_RETENTION_SEQUENCE"] = CURRENT_RETENTION_SEQUENCE
+try:
+    JOURNAL = load_module("journal", MODULES["journal"])
+    ADAPTER = load_module("adapter", MODULES["adapter"])
+finally:
+    if previous_sequence is None:
+        os.environ.pop("ROG5_RETENTION_SEQUENCE", None)
+    else:
+        os.environ["ROG5_RETENTION_SEQUENCE"] = previous_sequence
 CLAIMS = load_module("claims", MODULES["claims"])
 
 EXECUTION_ID = JOURNAL.EXECUTION_CLAIM_IDENTIFIER
 OBSERVER_ID = JOURNAL.OBSERVER_CLAIM_IDENTIFIER
 EXECUTION_SHA256 = JOURNAL.EXECUTION_RECOVERY_SHA256
 OBSERVER_SHA256 = JOURNAL.OBSERVER_RECOVERY_SHA256
-MANIFEST_SHA256 = (
-    "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc"
-)
+MANIFEST_SHA256 = JOURNAL.MANIFEST_SHA256
 USB_LOCATION = re.compile(r"[A-Za-z0-9._:/-]{1,512}\Z")
 SERIAL = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
 BOOT_ID = JOURNAL.BOOT_ID
@@ -170,7 +179,8 @@ def require_inputs() -> dict[str, str]:
 
 
 def closed_live_environment(values: dict[str, str]) -> dict[str, str]:
-    build = REPO / "build/host-rendezvous-v3-haven-production-20260810-r2"
+    build = REPO / "build/mainline-udc-v11-production-20260811-r1"
+    wrapper = REPO / "build/mainline-udc-v11-generation8-wrapper-20260811-r1"
     environment = {
         "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
         "LC_ALL": "C",
@@ -194,7 +204,7 @@ def closed_live_environment(values: dict[str, str]) -> dict[str, str]:
         "ROG5_EXTERNAL_BOOT_CLAIM": "1",
         "ROG5_RETENTION_BOOT_RESULT": "1",
         "ROG5_STABLE_RECOVERY_PROFILE": EXECUTION_ID,
-        "LIVE_BUILD_ROOT": str(build / "wrapper"),
+        "LIVE_BUILD_ROOT": str(wrapper),
         "RECOVERY_COMPONENT_ROOT": str(build / "recovery"),
         "TRUST_KEY": str(build / "recovery/ephemeral-public.raw"),
         "BUNDLE_ROOT": "/var/lib/rog5-recovery-bundles",
@@ -598,7 +608,11 @@ def run_live_cycle(values: dict[str, str]) -> None:
                 "ROG5_OBSERVATION_RECOVERY_PROFILE": OBSERVER_ID,
                 "OBSERVER_BUILD_ROOT": str(
                     REPO
-                    / "build/observation-recovery-haven-live-20260810-r1"
+                    / "build/observation-recovery-mainline-udc-v11-generation8-20260811-r1"
+                ),
+                "OBSERVER_SOURCE_BUILD_ROOT": str(
+                    REPO
+                    / "build/observation-recovery-mainline-udc-v11-source-20260811-r1"
                 ),
                 "OBSERVER_RECOVERY_SHA256": OBSERVER_SHA256,
             }

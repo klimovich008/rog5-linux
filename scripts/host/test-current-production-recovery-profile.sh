@@ -10,7 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
-profile=headless-diagnostic-host-rendezvous-v3-live-v10
+profile=retention-host-rendezvous-v11-mainline-udc-execution-v1
 tmp=$(mktemp -d)
 build_tmp=
 cleanup_build_tmp() {
@@ -45,7 +45,7 @@ case_source=$(awk -v profile="$profile" '
 [[ -n $case_source ]] || fail 'current production live profile is absent'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 for assignment in \
-	expected_boot_image=build/host-rendezvous-v10-observer-production-20260811-r1/wrapper/repack/stable-recovery-a.avb.img \
+	expected_boot_image=build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img \
 	expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c \
 	expected_raw=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff \
 	expected_initramfs=d9a3fba43abf0c3e456feb2e7f9da5e043df1e7cdef2e33112e0313358ae98d8 \
@@ -55,9 +55,9 @@ for assignment in \
 	expected_target_id=headless-netroot-early-diag-v2 \
 	expected_bundle=headless-netroot-early-diag-v2 \
 	expected_bundle_profile=diagnostic-initramfs-v1 \
-	expected_generation_record=13821062e2d3d83100b125d853197e56cbe2240d34881917c234f151524038ed \
-	expected_avb_salt=983545d63d606b6cf2965127139a4f43944fd8161f3667895d0544d49ee96af3 \
-	expected_avb_digest=da72637ff12a53fcd6bc2db9963e94506cd1f68f002bd30e6e51afe97145ab97 \
+	expected_generation_record=5b4b477dfcefae07ab625246de31c65212405440d4c90c84a5074146d6faa6f2 \
+	expected_avb_salt=726c5775ef84db9245a6ca957b80597de089f110f3043d136f0e66157ac24e21 \
+	expected_avb_digest=11cb115b0f707bcbe7aa973829ec793284fe5abf7e14c66bcd515b9319479474 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -66,7 +66,7 @@ done
 
 contract_source=$(awk -v profile="$profile" '
 	/^# Historical profiles retain/ { contracts = 1 }
-	contracts && index($0, "\t" profile " |") == 1 { capture = 1 }
+	contracts && index($0, "\t" profile) == 1 { capture = 1 }
 	capture { print }
 	capture && /^[[:space:]]*;;$/ { exit }
 ' "$gate")
@@ -117,18 +117,18 @@ run_policy() {
 }
 
 exact=(
-	fb5fce1a8cd7849b70ea52052caf8dc524708f94eb2d5756b29abb2074523452
+	df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc
+	ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
 	headless-netroot-early-diag-v2
 )
 fields=(recovery trust manifest host-verifier bundle)
 errors=(
-	'retention-observed successor recovery image is not pinned'
-	'retention-observed successor trust key is not pinned'
-	'retention-observed successor runtime manifest is not pinned'
-	'retention-observed successor host verifier is not pinned'
+	'mainline-UDC retention recovery image is not pinned'
+	'mainline-UDC retention trust key is not pinned'
+	'mainline-UDC retention manifest is not pinned'
+	'mainline-UDC retention host verifier is not pinned'
 	'profile requires bundle=headless-netroot-early-diag-v2'
 )
 
@@ -156,17 +156,18 @@ done
 	"$boot_policy") == 2 ]] || fail 'current temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
-[[ $(awk -F '\t' -v name="build/host-rendezvous-v10-observer-production-20260811-r1/wrapper/repack/stable-recovery-a.avb.img" \
+[[ $(awk -F '\t' -v name="build/mainline-udc-v11-generation8-wrapper-20260811-r1/repack/stable-recovery-a.avb.img" \
 	'$1 == name && $2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 1 ]] ||
 	fail 'current production live image is not uniquely admitted'
 
-production_root=$repo/build/host-rendezvous-v10-observer-production-20260811-r1
-if [[ -d $production_root ]]; then
+production_root=$repo/build/mainline-udc-v11-production-20260811-r1
+generation_root=$repo/build/mainline-udc-v11-generation8-wrapper-20260811-r1
+if [[ -d $production_root && -d $generation_root ]]; then
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \
 			ROG5_STABLE_RECOVERY_PROFILE="$profile" \
-			LIVE_BUILD_ROOT="$production_root/wrapper" \
+			LIVE_BUILD_ROOT="$generation_root" \
 			RECOVERY_COMPONENT_ROOT="$production_root/recovery" \
 			TRUST_KEY="$production_root/recovery/ephemeral-public.raw" \
 			BUNDLE_ROOT="$production_root/bundle-a" \
@@ -182,12 +183,14 @@ if [[ -d $production_root ]]; then
 		<<<"$artifact" || fail 'current production artifact preflight did not pass'
 
 	build_tmp=$(mktemp -d "$repo/build/current-production-profile-test.XXXXXX")
-	cp -al -- "$production_root"/. "$build_tmp"/
+	mkdir -- "$build_tmp/source" "$build_tmp/generation"
+	cp -al -- "$production_root"/. "$build_tmp/source"/
+	cp -al -- "$generation_root"/. "$build_tmp/generation"/
 	for relative in \
-		wrapper/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz \
-		wrapper/wrapper-b/rog5-kexec-stage-initramfs.cpio.gz \
-		recovery/initramfs-a/rog5-stable-recovery.cpio.gz \
-		recovery/initramfs-b/rog5-stable-recovery.cpio.gz
+		generation/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz \
+		generation/wrapper-b/rog5-kexec-stage-initramfs.cpio.gz \
+		source/recovery/initramfs-a/rog5-stable-recovery.cpio.gz \
+		source/recovery/initramfs-b/rog5-stable-recovery.cpio.gz
 	do
 		cp --reflink=never -- "$build_tmp/$relative" "$build_tmp/$relative.mutated"
 		printf X >>"$build_tmp/$relative.mutated"
@@ -196,10 +199,10 @@ if [[ -d $production_root ]]; then
 	done
 	if env -i PATH="$PATH" HOME="$HOME" \
 		ROG5_STABLE_RECOVERY_PROFILE="$profile" \
-		LIVE_BUILD_ROOT="$build_tmp/wrapper" \
-		RECOVERY_COMPONENT_ROOT="$build_tmp/recovery" \
-		TRUST_KEY="$build_tmp/recovery/ephemeral-public.raw" \
-		BUNDLE_ROOT="$build_tmp/bundle-a" \
+		LIVE_BUILD_ROOT="$build_tmp/generation" \
+		RECOVERY_COMPONENT_ROOT="$build_tmp/source/recovery" \
+		TRUST_KEY="$build_tmp/source/recovery/ephemeral-public.raw" \
+		BUNDLE_ROOT="$build_tmp/source/bundle-a" \
 		BUNDLE="${exact[4]}" \
 		RECOVERY_SHA256="${exact[0]}" \
 		TRUST_KEY_SHA256="${exact[1]}" \
@@ -211,7 +214,7 @@ if [[ -d $production_root ]]; then
 	fi
 	[[ ! -s $tmp/out && $(wc -l <"$tmp/err") -eq 1 &&
 		$(cat "$tmp/err") == \
-		"FAIL identity mismatch: $build_tmp/recovery/initramfs-a/rog5-stable-recovery.cpio.gz" ]] ||
+		"FAIL identity mismatch: $build_tmp/source/recovery/initramfs-a/rog5-stable-recovery.cpio.gz" ]] ||
 		fail 'changed initramfs did not fail first at its independent hash'
 	finished_build_tmp=$build_tmp
 	cleanup_build_tmp

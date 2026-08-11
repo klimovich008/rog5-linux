@@ -19,16 +19,23 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 action=${1:-policy-preflight}
 profile=${ROG5_OBSERVATION_RECOVERY_PROFILE:-}
 hold_profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
-live_profile=retention-host-rendezvous-v3-observer-v2
-expected_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
+consumed_profile=retention-host-rendezvous-v3-observer-v2
+live_profile=retention-host-rendezvous-v11-mainline-udc-observer-v1
+source_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
+case $profile in
+	"$hold_profile" | "$consumed_profile")
+		expected_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
+		;;
+	"$live_profile")
+		expected_recovery=243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3
+		;;
+	*) fail 'current observation recovery profile is not pinned' ;;
+esac
 
 case $action in
 	policy-preflight | artifact-preflight | preflight | boot) ;;
 	*) usage ;;
 esac
-
-[[ $profile == "$hold_profile" || $profile == "$live_profile" ]] ||
-	fail 'current observation recovery profile is not pinned'
 
 recovery_identity=${OBSERVER_RECOVERY_SHA256:-}
 [[ $recovery_identity =~ ^[0-9a-f]{64}$ &&
@@ -53,7 +60,7 @@ case $action in
 		;;
 esac
 
-for command_name in realpath stat sha256sum python3; do
+for command_name in cmp realpath stat sha256sum python3; do
 	command -v "$command_name" >/dev/null 2>&1 ||
 		fail "required command is unavailable: $command_name"
 done
@@ -61,6 +68,12 @@ done
 build_root=$(realpath -e -- "$repo/build") ||
 	fail 'repository build root is unavailable'
 requested_root=${OBSERVER_BUILD_ROOT:-}
+if [[ $profile == "$live_profile" ]]; then
+	requested_source_root=${OBSERVER_SOURCE_BUILD_ROOT:-}
+	[[ -n $requested_source_root ]] ||
+		fail 'observation source build root is missing'
+	requested_root=$requested_source_root
+fi
 [[ -n $requested_root && ! -L $requested_root ]] ||
 	fail 'observation build root is missing or unsafe'
 observation_root=$(realpath -e -- "$requested_root") ||
@@ -75,6 +88,27 @@ IFS=: read -r root_uid root_gid root_mode _ <<<"$root_metadata"
 	$root_mode == 700 ]] ||
 	fail 'observation build root owner or mode is unsafe'
 
+boot_root=$observation_root
+if [[ $profile == "$live_profile" ]]; then
+	requested_boot_root=${OBSERVER_BUILD_ROOT:-}
+	[[ -n $requested_boot_root && ! -L $requested_boot_root ]] ||
+		fail 'observation generation root is missing or unsafe'
+	boot_root=$(realpath -e -- "$requested_boot_root") ||
+		fail 'observation generation root is missing or unsafe'
+	[[ -d $boot_root && $boot_root == "$build_root/"* ]] ||
+		fail 'observation generation root is outside the build directory'
+	boot_metadata=$(stat -c '%u:%g:%a:%d:%i' -- "$boot_root") ||
+		fail 'cannot inspect observation generation root'
+	IFS=: read -r boot_uid boot_gid boot_mode _ <<<"$boot_metadata"
+	[[ $boot_uid == "$(id -u)" && $boot_gid == "$(id -g)" &&
+		$boot_mode == 700 ]] ||
+		fail 'observation generation root owner or mode is unsafe'
+fi
+
+boot_args_record='5270f5fa012d23cb2dd95e23d277bdc595f1e33fac4c2fca206bdb957fae6ccc|604|inspection/boot-args.lines|observer artifact identity mismatch: inspection/boot-args.lines'
+if [[ $profile == "$live_profile" ]]; then
+	boot_args_record='431e340b3b7d90a6ebd5d278082eb3072dfb4497f5a0d74627dc201b8141072a|632|inspection/boot-args.lines|observer artifact identity mismatch: inspection/boot-args.lines'
+fi
 artifact_records=(
 	'2f0a29db13dd5e9b64b60bc20a20e3a4458609df8425c3366c1a34e3c267836e|88|builder-profile.txt|observer artifact identity mismatch: builder-profile.txt'
 	'b3032dd2c946df30f487fba84772b40ac902ca5b0ef2f5c3b06f9912840494f6|753|builder-qualification.txt|observer artifact identity mismatch: builder-qualification.txt'
@@ -83,7 +117,7 @@ artifact_records=(
 	'4c4958385b9d0f270c368642c484c84e4c60ea23d18f68c00e37ca67a8637344|221|source-seal-after.txt|observer artifact identity mismatch: source-seal-after.txt'
 	'4c4958385b9d0f270c368642c484c84e4c60ea23d18f68c00e37ca67a8637344|221|source-seal-before.txt|observer artifact identity mismatch: source-seal-before.txt'
 	'71501e617043cc59683015271e3f76def63a317aea489cbdd4432100639a8550|847|inspection/avb-info.txt|observer artifact identity mismatch: inspection/avb-info.txt'
-	'5270f5fa012d23cb2dd95e23d277bdc595f1e33fac4c2fca206bdb957fae6ccc|604|inspection/boot-args.lines|observer artifact identity mismatch: inspection/boot-args.lines'
+	"$boot_args_record"
 	'6c1e526adb4aef29b641f1a12f51f1ff21323873ac2ba5fa947969c3767e4ef2|48400896|inspection/unpacked/kernel|observer Image identity mismatch'
 	'3af5b760508068684409ec1a390a4bc037b41b1f8cb6ac571e90a3d0b55825e0|5376371|inspection/unpacked/ramdisk|observer initramfs identity mismatch'
 	'a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b|100663296|repack/stable-recovery-a.avb.img|observer AVB identity mismatch'
@@ -172,7 +206,7 @@ fi
 retained_report=$(<"$observation_root/observation-wrapper-evidence.txt")
 [[ $report == "$retained_report" ]] ||
 	fail 'observer verifier report differs from retained evidence'
-grep -Fxq "unsigned_avb_sha256=$expected_recovery" <<<"$report" ||
+grep -Fxq "unsigned_avb_sha256=$source_recovery" <<<"$report" ||
 	fail 'observer verifier did not attest the pinned AVB image'
 grep -Fxq 'authority=none' <<<"$report" ||
 	fail 'observer verifier did not preserve authority-free state'
@@ -192,6 +226,78 @@ final_root_metadata=$(stat -c '%u:%g:%a:%d:%i' -- "$observation_root") ||
 	fail 'cannot revalidate observation build root'
 [[ $final_root_metadata == "$root_metadata" ]] ||
 	fail 'observation build root changed during verification'
+
+if [[ $profile == "$live_profile" ]]; then
+	generation_files=(
+		avb-generation.txt
+		repack/stable-recovery-a.avb.img
+		repack/stable-recovery-a.raw.img
+		repack/stable-recovery-b.avb.img
+		repack/stable-recovery-b.raw.img
+		wrapper-a/asus-kexec-stage/.config
+		wrapper-a/asus-kexec-stage/arch/arm64/boot/Image
+		wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
+		wrapper-b/asus-kexec-stage/.config
+		wrapper-b/asus-kexec-stage/arch/arm64/boot/Image
+		wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
+	)
+	for relative in "${generation_files[@]}"; do
+		path=$boot_root/$relative
+		[[ -f $path && ! -L $path && $(realpath -e -- "$path") == "$path" ]] ||
+			fail "unsafe observation generation artifact: $relative"
+		metadata=$(stat -c '%u:%g:%a:%h' -- "$path") ||
+			fail "cannot inspect observation generation artifact: $relative"
+		IFS=: read -r uid gid mode links <<<"$metadata"
+		[[ $uid == "$(id -u)" && $gid == "$(id -g)" && $links == 1 ]] ||
+			fail "unsafe observation generation artifact: $relative"
+		(( (8#$mode & 8#022) == 0 )) ||
+			fail "writable observation generation artifact: $relative"
+	done
+	for relative in \
+		repack/stable-recovery-a.raw.img \
+		repack/stable-recovery-b.raw.img \
+		wrapper-a/asus-kexec-stage/.config \
+		wrapper-a/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-a/rog5-kexec-stage-initramfs.cpio.gz \
+		wrapper-b/asus-kexec-stage/.config \
+		wrapper-b/asus-kexec-stage/arch/arm64/boot/Image \
+		wrapper-b/rog5-kexec-stage-initramfs.cpio.gz
+	do
+		cmp "$boot_root/$relative" "$observation_root/$relative" ||
+			fail "observation generation changed the source payload: $relative"
+	done
+	cmp "$boot_root/repack/stable-recovery-a.avb.img" \
+		"$boot_root/repack/stable-recovery-b.avb.img" ||
+		fail 'observation generation twins differ'
+	! cmp -s "$boot_root/repack/stable-recovery-a.avb.img" \
+		"$observation_root/repack/stable-recovery-a.avb.img" ||
+		fail 'observation generation reused the consumed source AVB'
+	[[ $(stat -c %s -- "$boot_root/repack/stable-recovery-a.avb.img") == \
+		100663296 &&
+		$(sha256sum -- "$boot_root/repack/stable-recovery-a.avb.img" |
+			awk '{print $1}') == "$expected_recovery" ]] ||
+		fail 'observation generation AVB identity is not exact'
+	[[ $(sha256sum -- "$boot_root/avb-generation.txt" | awk '{print $1}') == \
+		4f0a716fcbe0a8d3a1e70d32acc2784cbdb66b307af964c703a0765efe257aa4 ]] ||
+		fail 'observation generation record identity is not exact'
+	for record in \
+		'format=rog5-stable-recovery-avb-generation-v1' \
+		'generation=8' \
+		'raw_sha256=37d4c10beca3fd7fb2c17e46a7b150d88e1957b50ac43e0ed012feaa09e7546a' \
+		'source_avb_sha256=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b' \
+		'salt=8d148b4ce0ef801e08c19d671f21fc69115fd63574c5ba3a37cbaa01dc7b047d' \
+		'digest=bac0646f7ed9d116ce6206ae632a0bbfee14bbb5aa8e44283fc36221b3688e49' \
+		'output_avb_sha256=243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3' \
+		'partition_size=100663296' \
+		'authority=none'
+	do
+		grep -Fxq "$record" "$boot_root/avb-generation.txt" ||
+			fail 'observation generation record is not exact'
+	done
+	[[ $(stat -c '%u:%g:%a:%d:%i' -- "$boot_root") == \
+		"$boot_metadata" ]] ||
+		fail 'observation generation root changed during verification'
+fi
 
 printf '%s\n' \
 	"PASS observation-recovery artifact preflight profile=$profile image_sha256=$recovery_identity"
@@ -218,7 +324,9 @@ expected_location=${ROG5_EXPECTED_USB_LOCATION:-}
 	$expected_location != /* && $expected_location != *..* ]] ||
 	fail 'expected USB location is not canonical'
 
-image_name=build/observation-recovery-kmsg-live-20260811-r1/repack/stable-recovery-a.avb.img
+image_name=${boot_root#"$repo"/}/repack/stable-recovery-a.avb.img
+[[ $image_name != "$boot_root/repack/stable-recovery-a.avb.img" ]] ||
+	fail 'observation boot image must remain below the repository'
 policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 [[ -f $policy && ! -L $policy && -r $policy &&
@@ -227,12 +335,12 @@ inventory=$repo/manifests/artifacts.tsv
 policy_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$policy")
 [[ $policy_rows == 1 ]] || fail 'observation policy row is not unique'
 policy_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 }' "$policy")
-[[ $policy_value == $'allow\tone corrected observation-only recovery with exact /dev/kmsg materialization; RAM-only; externally consumed exact claim required; never flash or retry after entry' ]] ||
+[[ $policy_value == $'allow\tone exact mainline-UDC retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry' ]] ||
 	fail 'observation policy row is not exact'
 inventory_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$inventory")
 [[ $inventory_rows == 1 ]] || fail 'observation artifact row is not unique'
 inventory_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 "\t" $4 "\t" $5 }' "$inventory")
-[[ $inventory_value == $'100663296\ta655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b\tunbooted corrected observation-only recovery; clean-twin ASUS wrapper materializes the exact /dev/kmsg device before the first snapshot logger, then exposes retained ramoops status over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
+[[ $inventory_value == $'100663296\t243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3\tunbooted mainline-UDC retention observation recovery; clean-twin source wrapper with fresh deterministic AVB generation exposes retained ramoops over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
 	fail 'observation artifact row is not exact'
 
 devices=$("$fastboot" devices 2>/dev/null) || fail 'fastboot devices failed'
@@ -270,9 +378,9 @@ fi
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 consumer_metadata=$(stat -c '%u:%g:%a:%h:%s' -- "$claim_consumer") ||
 	fail 'cannot inspect exact-record claim consumer'
-[[ $consumer_metadata == "$(id -u):$(id -g):755:1:22797" &&
+[[ $consumer_metadata == "$(id -u):$(id -g):755:1:24488" &&
 	$(sha256sum -- "$claim_consumer" | awk '{print $1}') == \
-	88fd8b4f8b0a6c0899f1d5f3bce7c4e1927a87d5eaca4b2ccfef2d200f95dd68 ]] ||
+	c2227bfca6c7fc8c104972937e6b388b9ca1a859de45ae2b1309f22df1e3dd6d ]] ||
 	fail 'exact-record claim consumer identity is not exact'
 claim_report=$(
 	python3 -B "$claim_consumer" --verify-entered "$profile"
@@ -295,7 +403,7 @@ find_rog5_acm() {
 
 [[ -z $(find_rog5_acm) ]] || fail 'recovery ACM already exists before observer boot'
 python3 "$repo/scripts/host/verified-fastboot-boot.py" \
-	"$observation_root/repack/stable-recovery-a.avb.img" \
+	"$boot_root/repack/stable-recovery-a.avb.img" \
 	"$expected_recovery" "$fastboot_serial"
 
 deadline=$(( $(date +%s) + 90 ))

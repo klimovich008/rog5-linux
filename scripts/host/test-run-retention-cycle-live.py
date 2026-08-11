@@ -41,6 +41,38 @@ class RetentionCycleLiveTest(unittest.TestCase):
             / f".rog5-temporary-boot-consumption.{identifier}.entered",
         )
 
+    def test_current_contract_and_build_roots_are_exact(self) -> None:
+        self.assertEqual(
+            LIVE.JOURNAL.PROFILE,
+            "host-rendezvous-v11-mainline-udc-observer-v1",
+        )
+        self.assertEqual(
+            LIVE.EXECUTION_SHA256,
+            "df357bef00b5646fb6780a962112eea0a37deed45142fa55b6a69d68c3426958",
+        )
+        self.assertEqual(
+            LIVE.OBSERVER_SHA256,
+            "243513677170924da0b1560295d493ff461e6c0512286e2a6c7409f388f8f7d3",
+        )
+        for identifier in (LIVE.EXECUTION_ID, LIVE.OBSERVER_ID):
+            self.assertEqual(
+                LIVE.CLAIMS.expected_record(identifier),
+                (
+                    LIVE.JOURNAL.REFERENCE.EXECUTION_CLAIM.record
+                    if identifier == LIVE.EXECUTION_ID
+                    else LIVE.JOURNAL.REFERENCE.OBSERVER_CLAIM.record
+                ),
+            )
+        environment = LIVE.closed_live_environment({})
+        self.assertTrue(
+            environment["LIVE_BUILD_ROOT"].endswith(
+                "/build/mainline-udc-v11-generation8-wrapper-20260811-r1"
+            )
+        )
+        self.assertEqual(
+            environment["MANIFEST_SHA256"], LIVE.MANIFEST_SHA256
+        )
+
     def test_prepare_is_all_or_none_before_first_publication(self) -> None:
         self.root.mkdir(parents=True, mode=0o700)
         observer_source, _entered, _guard = self.claim_paths(LIVE.OBSERVER_ID)
