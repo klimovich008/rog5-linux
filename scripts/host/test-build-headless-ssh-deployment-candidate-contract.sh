@@ -115,16 +115,85 @@ grep -Fq 'set ROG5_RUN_FULL_DISPOSABLE_DIAGNOSTIC=1' \
 	"$test_root/full-path.err" ||
 	fail 'full disposable diagnostic path did not enforce its first guard'
 
-if ROG5_DEPLOYMENT_BUILD=1 \
+ROG5_DEPLOYMENT_BUILD=1 \
 	ROG5_DEPLOYMENT_CANDIDATE_RECORD="$test_root/candidate" \
 	ROG5_DEPLOYMENT_SIGNING_KEY="$test_root/key" \
-	"$builder" "$test_root/rejected-deployment-inputs" \
-	>"$test_root/offline.out" 2>"$test_root/offline.err"; then
-	fail 'offline builder accepted deployment credential inputs'
-fi
-grep -Fq 'output root must be below the ignored repository build directory' \
-	"$test_root/offline.err" ||
-	fail 'offline builder did not clear deployment environment inputs'
+	/usr/bin/python3 -I -S - "$builder" \
+		"$test_root/rejected-deployment-inputs" <<'PY'
+from __future__ import annotations
+
+import argparse
+import importlib.machinery
+import importlib.util
+from pathlib import Path
+import sys
+
+launcher = Path(sys.argv[1])
+output_root = sys.argv[2]
+loader = importlib.machinery.SourceFileLoader("rog5_offline_launcher_test", str(launcher))
+specification = importlib.util.spec_from_loader(loader.name, loader)
+if specification is None:
+    raise SystemExit("cannot load offline builder launcher")
+module = importlib.util.module_from_spec(specification)
+loader.exec_module(module)
+
+module.parse_arguments = lambda: argparse.Namespace(
+    output_root=output_root,
+    candidate="headless-network-root-v1",
+    expected_dtb=module.DEFAULT_DTB,
+    expected_target="headless-network-root",
+    wrapper_jobs="8",
+)
+captured: dict[str, object] = {}
+
+
+class ExecveCaptured(Exception):
+    pass
+
+
+def capture_execve(
+    executable: str, arguments: list[str], environment: dict[str, str]
+) -> None:
+    captured["executable"] = executable
+    captured["arguments"] = arguments
+    captured["environment"] = environment
+    raise ExecveCaptured
+
+
+module.os.execve = capture_execve
+try:
+    module.main()
+except ExecveCaptured:
+    pass
+else:
+    raise SystemExit("offline launcher did not execute its fixed implementation")
+
+implementation = launcher.with_name(
+    "build-corrected-headless-candidate-offline-impl.sh"
+)
+expected_arguments = [
+    "/usr/bin/bash",
+    "--noprofile",
+    "--norc",
+    str(implementation),
+    output_root,
+]
+expected_environment = {
+    "PATH": "/usr/bin:/bin",
+    "LC_ALL": "C",
+    "ROG5_DEPLOYMENT_BUILD": "0",
+    "ROG5_OFFLINE_CANDIDATE": "headless-network-root-v1",
+    "ROG5_OFFLINE_EXPECTED_DTB": module.DEFAULT_DTB,
+    "ROG5_OFFLINE_EXPECTED_TARGET": "headless-network-root",
+    "ROG5_OFFLINE_WRAPPER_JOBS": "8",
+}
+if captured != {
+    "executable": "/usr/bin/bash",
+    "arguments": expected_arguments,
+    "environment": expected_environment,
+}:
+    raise SystemExit("offline launcher exec contract or scrubbed environment changed")
+PY
 
 if "$builder" \
 	--signing-key "$test_root/key" \
