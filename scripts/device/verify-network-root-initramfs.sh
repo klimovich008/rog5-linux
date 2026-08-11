@@ -5,7 +5,7 @@ archive=${1:?usage: verify-network-root-initramfs.sh INITRAMFS}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
-reviewed_verifier_hash=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 reviewed_reporter_size=67288
 reviewed_reporter_hash=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa
@@ -78,6 +78,9 @@ gzip -dc "$archive" |
 [ -x "$stage/init" ] && [ -x "$stage/shutdown" ]
 cmp "$stage/init" "$repo/initramfs/network-root-init"
 cmp "$stage/shutdown" "$repo/initramfs/network-root-shutdown"
+cmp "$stage/etc/rog5/nfs4-xattr-projection" \
+	"$repo/configs/network-roots/rog5-nfs4-xattr-projection-v1"
+[ "$(stat -c %a "$stage/etc/rog5/nfs4-xattr-projection")" = 444 ]
 sh -n "$stage/init"
 sh -n "$stage/shutdown"
 

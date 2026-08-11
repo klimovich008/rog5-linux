@@ -11,8 +11,10 @@ base=${1:-$repo/artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz}
 mode=${3:-normal}
 base_size=5840728
 base_sha=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
-verifier_size=326920
-verifier_sha=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+legacy_verifier_size=326920
+legacy_verifier_sha=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+verifier_size=
+verifier_sha=
 reporter_size=67288
 reporter_sha=26249252916cf0f2cfba1547a845ef15caa07f6abc77c5149f1662f0a168bafa
 profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
@@ -30,8 +32,11 @@ publisher=$repo/scripts/host/publish-noreplace.py
 cpio_path=$repo/scripts/host/qualified-cpio-path
 active_builder=$builder
 active_archive_verifier=$archive_verifier
+verifier_workspace=$repo
 case $mode in
 	normal)
+		verifier_size=$legacy_verifier_size
+		verifier_sha=$legacy_verifier_sha
 		output_root=${2:-$repo/artifacts/headless-network-root-v1}
 		output_name=rog5-headless-network-root-initramfs.cpio.gz
 		output_size=5978369
@@ -44,12 +49,14 @@ case $mode in
 		legacy_source_tree=56668d6b44907ffb3644c04d6d9ff3a7c1f49b95
 		;;
 	diagnostic)
-		output_root=${2:-$repo/artifacts/early-target-diagnostic-v4}
+		verifier_size=327968
+		verifier_sha=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
+		output_root=${2:-$repo/artifacts/early-target-diagnostic-v6}
 		output_name=rog5-early-target-diagnostic-initramfs.cpio.gz
-		output_size=6013387
-		output_sha=23022b9627f5b8253226db6fe71e94d6196c8129cc50afae3b2ca1b8fdb182d4
+		output_size=6015241
+		output_sha=2efd30e6f5a8796734dda00145af2e839c26b262a480396fb25017384d91acf4
 		report_name=early-target-diagnostic-initramfs-rebuild.txt
-		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v4
+		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v6
 		report_state=exact-pinned-bytes-reproduced
 		reproducibility=twin-verifier-reporter-and-twin-initramfs-builds
 		;;
@@ -139,10 +146,12 @@ else
 		initramfs/network-root-shutdown \
 		scripts/device/build-network-root-initramfs.sh \
 		scripts/device/build-persistent-root-verifier-static.sh \
-		scripts/device/verify-network-root-initramfs.sh |
+		scripts/device/verify-network-root-initramfs.sh \
+		tools/persistent-root-verify.c |
 		tar -x -C "$work/legacy-source"
 	active_builder=$work/legacy-source/scripts/device/build-network-root-initramfs.sh
 	active_archive_verifier=$work/legacy-source/scripts/device/verify-network-root-initramfs.sh
+	verifier_workspace=$work/legacy-source
 	[[ -x $active_builder && -x $active_archive_verifier ]] ||
 		fail 'historical normal-initramfs source lost executable mode'
 fi
@@ -162,7 +171,7 @@ build_verifier() {
 	local destination=$1
 	"$runner" podman run --rm --pull=never --network=none \
 		--platform linux/arm64 --security-opt label=disable \
-		-v "$repo:/workspace:ro" \
+		-v "$verifier_workspace:/workspace:ro" \
 		-v "$destination:/output" \
 		--workdir /workspace --env CC=gcc \
 		"$builder_image" \

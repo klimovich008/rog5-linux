@@ -38,9 +38,9 @@ for token in \
 	'"rollback_timeout": "600"' \
 	'"target_timeout": "480"' \
 	'"a660_command_manifest_sha256": "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2"' \
-	'"path": "artifacts/early-target-diagnostic-v4/rog5-early-target-diagnostic-initramfs.cpio.gz"' \
-	'"size": 6013387' \
-	'"sha256": "23022b9627f5b8253226db6fe71e94d6196c8129cc50afae3b2ca1b8fdb182d4"'; do
+	'"path": "artifacts/early-target-diagnostic-v6/rog5-early-target-diagnostic-initramfs.cpio.gz"' \
+	'"size": 6015241' \
+	'"sha256": "2efd30e6f5a8796734dda00145af2e839c26b262a480396fb25017384d91acf4"'; do
 	grep -Fq -- "$token" "$candidate" ||
 		fail "diagnostic candidate omits fixed token: $token"
 done
@@ -54,8 +54,8 @@ done
 for token in \
 	'headless-netroot-early-diag-v2:' \
 	'expected_profile=diagnostic-initramfs-v1' \
-	'expected_candidate_sha=d4877ceea4af5f8ffc491520f722a8cbe41e45a32714f78e7b316f0630f8a90b' \
-	'expected_manifest=ddccf8025190097219f5a7bd8ef32f2b8ad9feed024ae00ecd07e0f446520034' \
+	'expected_candidate_sha=d4d86e8d79e4612ec747cfc6e81e84c058d4e01fd735639fdcc595766fa553c4' \
+	'expected_manifest=325aa8fb76444b5c01bc517a22ad2483c016837cc1fcb46c203ab5288b916854' \
 	'offline candidate record identity changed' \
 	'offline candidate manifest identity changed' \
 	'grep -Fxq "profile=$expected_profile"'; do
