@@ -12,7 +12,18 @@ runtime_root=${ROG5_RUNTIME_ROOT:-}
 test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
 runtime_candidate=${ROG5_RUNTIME_CANDIDATE:-headless-network-root-v1}
 case $runtime_candidate in
-	headless-network-root-v1|headless-ssh-network-root-v3|headless-netroot-early-diag-v2) ;;
+	headless-network-root-v1|headless-ssh-network-root-v3)
+		expected_usb_product='ROG5 network root'
+		expected_usb_configuration='NFS root over NCM'
+		expected_usb_function_count=1
+		expected_usb_functions='ncm.usb0'
+		;;
+	headless-netroot-early-diag-v2)
+		expected_usb_product='ROG5 diagnostic network root'
+		expected_usb_configuration='Diagnostic NFS root over NCM and ACM'
+		expected_usb_function_count=2
+		expected_usb_functions='acm.usb0,ncm.usb0'
+		;;
 	*) fail 'runtime candidate identity is unsupported' ;;
 esac
 case $test_mode:$runtime_root in
@@ -486,26 +497,36 @@ usb_config_string_language_count=$(
 	[ "$usb_config_string_language_count" -eq 1 ] ||
 	fail 'USB gadget configuration or language inventory is not exact'
 [ "$(cat "$usb_strings/manufacturer")" = Linux ] &&
-	[ "$(cat "$usb_strings/product")" = 'ROG5 network root' ] &&
+	[ "$(cat "$usb_strings/product")" = "$expected_usb_product" ] &&
 	[ "$(cat "$usb_config/strings/0x409/configuration")" = \
-	'NFS root over NCM' ] ||
+	"$expected_usb_configuration" ] ||
 	fail 'USB gadget string identity changed'
 usb_function_count=$(
 	find "$gadget/functions" -mindepth 1 -maxdepth 1 -type d -print |
 		awk 'NF { count++ } END { print count + 0 }'
 )
-[ "$usb_function_count" -eq 1 ] &&
+[ "$usb_function_count" -eq "$expected_usb_function_count" ] &&
 	[ -d "$gadget/functions/ncm.usb0" ] &&
 	[ ! -L "$gadget/functions/ncm.usb0" ] ||
 	fail 'USB gadget function inventory is not exact'
+if [ "$runtime_candidate" = headless-netroot-early-diag-v2 ]; then
+	[ -d "$gadget/functions/acm.usb0" ] &&
+		[ ! -L "$gadget/functions/acm.usb0" ] ||
+		fail 'USB gadget function inventory is not exact'
+fi
 usb_config_link_count=$(
 	find "$usb_config" -mindepth 1 -maxdepth 1 -type l -print |
 		awk 'NF { count++ } END { print count + 0 }'
 )
-[ "$usb_config_link_count" -eq 1 ] &&
+[ "$usb_config_link_count" -eq "$expected_usb_function_count" ] &&
 	[ "$(readlink "$usb_config/ncm.usb0")" = \
 	/sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 ] ||
 	fail 'USB gadget NCM configuration link is not exact'
+if [ "$runtime_candidate" = headless-netroot-early-diag-v2 ]; then
+	[ "$(readlink "$usb_config/acm.usb0")" = \
+	/sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 ] ||
+		fail 'USB gadget ACM configuration link is not exact'
+fi
 usb_udc=$(cat "$gadget/UDC")
 case $usb_udc in
 	''|*[!A-Za-z0-9._:-]*) fail 'USB UDC name is noncanonical' ;;
@@ -806,9 +827,9 @@ printf 'ufs_platform_device_count=%s\n' "$ufs_platform_device_count"
 printf 'block_backed_mounts=%s\n' "$block_backed_mounts"
 printf 'usb_gadget=rog5-network-root\n'
 printf 'usb_vid_pid=1d6b:0104\n'
-printf 'usb_product=ROG5 network root\n'
-printf 'usb_configuration=NFS root over NCM\n'
-printf 'usb_function=ncm.usb0\n'
+printf 'usb_product=%s\n' "$expected_usb_product"
+printf 'usb_configuration=%s\n' "$expected_usb_configuration"
+printf 'usb_function=%s\n' "$expected_usb_functions"
 printf 'usb_udc_controller=a600000\n'
 printf 'usb_current_speed=%s\n' "$usb_current_speed"
 printf 'usb_interface=usb0\n'

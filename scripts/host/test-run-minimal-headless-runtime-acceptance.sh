@@ -306,6 +306,9 @@ sed \
 	-e 's/7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb/4444444444444444444444444444444444444444444444444444444444444444/' \
 	-e 's/6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896/5555555555555555555555555555555555555555555555555555555555555555/g' \
 	-e 's/root_tree_entries=37669/root_tree_entries=37736/' \
+	-e 's/usb_product=ROG5 network root/usb_product=ROG5 diagnostic network root/' \
+	-e 's/usb_configuration=NFS root over NCM/usb_configuration=Diagnostic NFS root over NCM and ACM/' \
+	-e 's/usb_function=ncm.usb0/usb_function=acm.usb0,ncm.usb0/' \
 	"$record" >"$diagnostic_record"
 install -d -m 0700 "$stage/evidence-diagnostic"
 : >"$calls"

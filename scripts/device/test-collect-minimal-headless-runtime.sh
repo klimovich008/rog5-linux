@@ -312,8 +312,15 @@ run_probe() {
 
 expect_failure() {
 	label=$1
+	expect_failure_candidate "$label" headless-network-root-v1
+}
+
+expect_failure_candidate() {
+	label=$1
+	runtime_candidate=$2
 	set +e
-	run_probe >"$stage/rejected-record" 2>"$stage/rejected-error"
+	run_probe "$runtime_candidate" >"$stage/rejected-record" \
+		2>"$stage/rejected-error"
 	status=$?
 	set -e
 	[ "$status" -ne 0 ] || {
@@ -653,6 +660,65 @@ deployment_record=$stage/deployment-runtime.record
 run_probe headless-ssh-network-root-v3 >"$deployment_record"
 grep -Fxq 'candidate=headless-ssh-network-root-v3' "$deployment_record"
 
+printf '%s\n' 'ROG5 diagnostic network root' \
+	>"$gadget/strings/0x409/product"
+printf '%s\n' 'Diagnostic NFS root over NCM and ACM' \
+	>"$gadget/configs/c.1/strings/0x409/configuration"
+mkdir "$gadget/functions/acm.usb0"
+ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+	"$gadget/configs/c.1/acm.usb0"
+
+diagnostic_record=$stage/diagnostic-runtime.record
+run_probe headless-netroot-early-diag-v2 >"$diagnostic_record"
+grep -Fxq 'candidate=headless-netroot-early-diag-v2' "$diagnostic_record"
+grep -Fxq 'usb_product=ROG5 diagnostic network root' "$diagnostic_record"
+grep -Fxq \
+	'usb_configuration=Diagnostic NFS root over NCM and ACM' \
+	"$diagnostic_record"
+grep -Fxq 'usb_function=acm.usb0,ncm.usb0' "$diagnostic_record"
+
+printf '%s\n' 'ROG5 diagnostic root' >"$gadget/strings/0x409/product"
+expect_failure_candidate 'changed diagnostic USB product' \
+	headless-netroot-early-diag-v2
+printf '%s\n' 'ROG5 diagnostic network root' \
+	>"$gadget/strings/0x409/product"
+
+printf '%s\n' 'Diagnostic NFS root over NCM' \
+	>"$gadget/configs/c.1/strings/0x409/configuration"
+expect_failure_candidate 'changed diagnostic USB configuration string' \
+	headless-netroot-early-diag-v2
+printf '%s\n' 'Diagnostic NFS root over NCM and ACM' \
+	>"$gadget/configs/c.1/strings/0x409/configuration"
+
+rm "$gadget/configs/c.1/acm.usb0"
+rmdir "$gadget/functions/acm.usb0"
+expect_failure_candidate 'missing diagnostic ACM function' \
+	headless-netroot-early-diag-v2
+mkdir "$gadget/functions/acm.usb0"
+ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/ncm.usb0 \
+	"$gadget/configs/c.1/acm.usb0"
+expect_failure_candidate 'wrong diagnostic ACM configuration link' \
+	headless-netroot-early-diag-v2
+rm "$gadget/configs/c.1/acm.usb0"
+ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+	"$gadget/configs/c.1/acm.usb0"
+
+mkdir "$gadget/functions/ecm.usb0"
+expect_failure_candidate 'additional diagnostic USB function' \
+	headless-netroot-early-diag-v2
+rmdir "$gadget/functions/ecm.usb0"
+ln -s /sys/kernel/config/usb_gadget/rog5-network-root/functions/acm.usb0 \
+	"$gadget/configs/c.1/extra.usb0"
+expect_failure_candidate 'additional diagnostic USB configuration link' \
+	headless-netroot-early-diag-v2
+rm "$gadget/configs/c.1/extra.usb0"
+
+rm "$gadget/configs/c.1/acm.usb0"
+rmdir "$gadget/functions/acm.usb0"
+printf '%s\n' 'ROG5 network root' >"$gadget/strings/0x409/product"
+printf '%s\n' 'NFS root over NCM' \
+	>"$gadget/configs/c.1/strings/0x409/configuration"
+
 set +e
 run_probe unsupported-candidate >"$stage/unsupported-record" \
 	2>"$stage/unsupported-error"
@@ -662,4 +728,4 @@ set -e
 grep -Fxq 'FAIL runtime candidate identity is unsupported' \
 	"$stage/unsupported-error"
 
-echo 'PASS minimal-headless runtime probe emits one canonical read-only observation, selects only fixed candidate identities, and rejects fifty-two core mutations'
+echo 'PASS minimal-headless runtime probe emits exact standard and diagnostic USB observations, selects only fixed candidate identities, and rejects hostile core mutations'

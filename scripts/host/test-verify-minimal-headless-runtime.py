@@ -32,6 +32,9 @@ SPEC.loader.exec_module(VERIFIER)
 def golden_values() -> dict[str, str]:
     values = dict(VERIFIER.EXACT_VALUES)
     values.update(
+        VERIFIER.USB_GADGET_CONTRACTS[VERIFIER.HISTORICAL_PROFILE]
+    )
+    values.update(
         {
             "probe_sha256": hashlib.sha256(PROBE.read_bytes()).hexdigest(),
             "candidate": VERIFIER.HISTORICAL_CANDIDATE,
@@ -200,6 +203,74 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
             VERIFIER.DEPLOYMENT_CANDIDATE,
         )
 
+    def test_diagnostic_record_requires_exact_ncm_acm_gadget(self) -> None:
+        candidate_path = self.directory / "diagnostic-candidate.json"
+        candidate = json.loads(
+            (
+                REPO
+                / "configs/recovery-candidates/"
+                "headless-netroot-early-diag-v2.json"
+            ).read_text(encoding="ascii")
+        )
+        candidate["root_tree_sha256"] = "4" * 64
+        candidate["root_seal_sha256"] = "5" * 64
+        candidate["root_tree_entries"] = "37736"
+        candidate_path.write_text(
+            json.dumps(candidate, indent=2) + "\n",
+            encoding="ascii",
+        )
+        candidate_path.chmod(0o400)
+        candidate_sha256 = hashlib.sha256(candidate_path.read_bytes()).hexdigest()
+        values = deepcopy(self.values)
+        values.update(
+            {
+                "candidate": VERIFIER.DIAGNOSTIC_CANDIDATE,
+                "kernel_release": candidate["target_release"],
+                "watchdog_timeout_seconds": candidate["rollback_timeout"],
+                "root_generation": candidate["root_generation"],
+                "root_tree_sha256": candidate["root_tree_sha256"],
+                "root_seal_sha256": candidate["root_seal_sha256"],
+                "root_seal_file_sha256": candidate["root_seal_sha256"],
+                "root_tree_entries": candidate["root_tree_entries"],
+                "root_subtree": candidate["root_subtree"],
+                "command_manifest_sha256": candidate[
+                    "a660_command_manifest_sha256"
+                ],
+            }
+        )
+        values.update(
+            VERIFIER.USB_GADGET_CONTRACTS[VERIFIER.DIAGNOSTIC_PROFILE]
+        )
+        self.write(values)
+        digest, verified = VERIFIER.verify_record(
+            REPO,
+            self.record,
+            BOOT_ID,
+            VERIFIER.DIAGNOSTIC_PROFILE,
+            candidate_path,
+            candidate_sha256,
+        )
+        self.assertEqual(digest, hashlib.sha256(render(values)).hexdigest())
+        self.assertEqual(
+            verified["usb_function"],
+            "acm.usb0,ncm.usb0",
+        )
+
+        values["usb_function"] = "ncm.usb0"
+        self.write(values)
+        with self.assertRaisesRegex(
+            VERIFIER.RuntimeAcceptanceError,
+            "runtime USB gadget value changed: usb_function",
+        ):
+            VERIFIER.verify_record(
+                REPO,
+                self.record,
+                BOOT_ID,
+                VERIFIER.DIAGNOSTIC_PROFILE,
+                candidate_path,
+                candidate_sha256,
+            )
+
     def test_deployment_profile_never_falls_back_to_historical(self) -> None:
         self.write(self.deployment_values())
         with self.assertRaisesRegex(
@@ -320,6 +391,17 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
                     "runtime acceptance value changed"
                     if field != "probe_sha256"
                     else "runtime acceptance value changed",
+                )
+
+    def test_every_standard_usb_gadget_value_is_fail_closed(self) -> None:
+        for field in VERIFIER.USB_GADGET_CONTRACTS[
+            VERIFIER.HISTORICAL_PROFILE
+        ]:
+            with self.subTest(field=field):
+                self.assert_mutation_fails(
+                    field,
+                    "changed",
+                    f"runtime USB gadget value changed: {field}",
                 )
 
     def test_test_fixture_record_cannot_be_promoted(self) -> None:
