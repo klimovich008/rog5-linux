@@ -362,6 +362,14 @@ EXPECTED_CLAIMS["persistent-root-qmp-regulator-stage-v14-live-v1"] = (
     "03e49b58a082826c1d88ab328c82d6c903c9130e56522fb645eaa3be31eb69a7\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-qmp-mmio-stage-v15-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-qmp-mmio-stage-v15-live-v1\n"
+    "candidate=persistent-root-qmp-mmio-stage-v15\n"
+    "manifest_sha256="
+    "d81ff27520337a91e556018109173d4d14d9c38d0846639f2d056150fa39886d\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -492,7 +500,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "a4f97118fff083d7044bf17df890d9d01967a519b6ce9e61640853a5049a2886",
+    "sha256": "4e9706c0f262e2cc7b7cce9c487a90383e625dd58fd47568fbace190985cd4b5",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -520,7 +528,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "a4f97118fff083d7044bf17df890d9d01967a519b6ce9e61640853a5049a2886",
+    "executor_contract_sha256": "4e9706c0f262e2cc7b7cce9c487a90383e625dd58fd47568fbace190985cd4b5",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2261,9 +2269,9 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-qmp-regulator-stage-v14-generation35-20260812-r1/"
+            "build/persistent-root-qmp-mmio-stage-v15-generation36-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact SM8350 QMP-UFS clock-and-regulator-stage discriminator; "
+            "one exact SM8350 QMP-UFS DT/MMIO-stage discriminator; "
             "RAM-only; externally consumed exact claim required; never flash "
             "or retry after entry",
         ),

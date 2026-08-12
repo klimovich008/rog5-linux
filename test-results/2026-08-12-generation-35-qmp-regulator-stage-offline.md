@@ -1,6 +1,6 @@
 # Generation 35 QMP-UFS clock/regulator-stage discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **consumed; live control passed; never retry or flash**.
 
 Generation 35 uses the exact Generation 34 kernel Image and the UFS-enabled
 DTB. Its patched QMP-UFS module binds only the exact SM8350 compatible,
@@ -35,3 +35,8 @@ Bundle, initramfs, module, and issuance twins are byte-identical. Success means
 clock/regulator acquisition and reviewed regulator loads do not reproduce the
 loss; failure at the Generation 33 timing requires a clock-versus-regulator
 split. The known-good Alpine fallback is unchanged.
+
+The sole live cycle reached stable target NCM in 60.106 seconds, preserved the
+same anchored interface for the full 12.002-second post-module control window,
+and returned to exact Alpine. See the
+[live result](2026-08-12-generation-35-qmp-regulator-stage-live.md).

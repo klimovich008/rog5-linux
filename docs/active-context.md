@@ -143,10 +143,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   platform binding or probe. See the
   [live result](../test-results/2026-08-12-generation-34-qmp-module-load-control-live.md).
 
-- **Generation 35 is the active QMP-UFS probe-stage discriminator.** Its exact
-  SM8350-only diagnostic module binds, acquires clock and regulator handles,
-  applies the driver's existing reviewed regulator loads, then returns before
-  DT/MMIO parsing, clock-provider registration, PHY creation, or provider
+- **Generation 35 is consumed and cleared clock/regulator acquisition.** Its
+  exact SM8350-only diagnostic module bound, acquired clocks and regulators,
+  applied the driver's existing reviewed loads, preserved target NCM for
+  12.002 seconds, and returned to exact Alpine. No UFS enumeration or storage
+  access occurred. See the
+  [live result](../test-results/2026-08-12-generation-35-qmp-regulator-stage-live.md).
+
+- **Generation 36 is the active QMP-UFS probe-stage discriminator.** It reuses
+  the exact Generation 35 Image and UFS-enabled DTB. Its diagnostic module
+  advances through the driver's DT binding selection and MMIO resource mapping,
+  then returns before clock-provider registration, PHY creation, or provider
   registration. UFS core, platform, and host modules remain absent, so this
   RAM-only cycle cannot enumerate or access phone storage.
 

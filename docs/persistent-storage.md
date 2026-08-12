@@ -309,14 +309,19 @@ exact Alpine returned. The module therefore relocated and registered safely;
 the Generation 33 failure boundary is active platform binding or probe.
 Generation 34 is consumed and must never be retried.
 
-Generation 35 is the next bounded binary-search step inside `qmp_ufs_probe`.
-Its diagnostic-only SM8350 branch acquires clocks and regulators, including
-the existing 91,600 and 19,000 microamp regulator loads, then returns before
-DT/MMIO parsing, clock-provider registration, PHY creation, or provider
-registration. UFS core, platform, and host modules are absent. The cycle can
-therefore test the first probe resources without enumerating or accessing
-phone storage. A passing control window clears clock/regulator acquisition;
-an equivalent early loss requires a narrower clock-versus-regulator split.
+Generation 35 advanced through clock and regulator acquisition, including the
+existing 91,600 and 19,000 microamp regulator loads. It preserved target NCM
+for the full 12.002-second control window and exact Alpine returned. This
+clears the probe path through the reviewed regulator loads. Generation 35 is
+consumed and must never be retried.
+
+Generation 36 reuses the exact Generation 35 Image and UFS-enabled DTB. Its
+diagnostic-only SM8350 branch advances through the legacy-binding decision and
+`qmp_ufs_parse_dt`, which maps the PHY MMIO resources, then returns before
+clock-provider registration, PHY creation, or provider registration. UFS core,
+platform, and host modules remain absent, so the cycle cannot enumerate or
+access storage. A passing control window clears DT binding selection and MMIO
+resource mapping; an equivalent early loss isolates that newly added boundary.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
