@@ -324,12 +324,21 @@ the full 12.294-second control window and returned to exact Alpine, clearing DT
 binding selection and MMIO resource mapping. Generation 36 is consumed and
 must never be retried.
 
-Generation 37 advances the same diagnostic-only SM8350 branch through
-`qmp_ufs_register_clocks`, then returns before `devm_phy_create`, PHY private
-data setup, or OF PHY provider registration. UFS core, platform, and host
-modules remain absent, so the cycle cannot enumerate or access storage. A
-passing control window clears QMP-UFS clock-provider registration; an early
-loss isolates that newly added boundary.
+Generation 37 advanced the same diagnostic-only SM8350 branch through
+`qmp_ufs_register_clocks`, then returned before `devm_phy_create`, PHY private
+data setup, or OF PHY provider registration. Target NCM disappeared 11.275
+seconds after enumeration, then exact Alpine returned. This localizes the
+failure to the function's three fixed-rate symbol-clock registrations, OF
+provider publication, or cleanup-action registration. UFS core, platform, and
+host modules remained absent; no storage access occurred. Generation 37 is
+consumed and must never be retried.
+
+Generation 38 stops inside `qmp_ufs_register_clocks` after registering all
+three fixed-rate symbol-clock hardware objects but before
+`of_clk_add_hw_provider` or `devm_add_action_or_reset`. A passing NCM control
+window clears the passive clock registrations and isolates Generation 37's
+loss to provider publication or its cleanup action. UFS core, platform, and
+host modules remain absent, so the cycle cannot enumerate or access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

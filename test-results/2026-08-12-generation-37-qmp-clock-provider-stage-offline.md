@@ -1,6 +1,7 @@
 # Generation 37 QMP-UFS clock-provider-stage discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **offline checkpoint subsequently consumed; target NCM disappeared;
+never retry or flash**.
 
 Generation 37 uses the exact Generation 36 kernel Image and UFS-enabled DTB.
 Its patched QMP-UFS module binds only the exact SM8350 compatible, performs the
@@ -38,3 +39,9 @@ recovery payload
 exactly. Success clears clock-provider registration; failure at the Generation
 33 timing isolates that newly added boundary. The known-good Alpine fallback is
 unchanged.
+
+The sole live cycle subsequently lost target NCM 11.275 seconds after product
+enumeration, then returned to exact Alpine. This localizes the failure to
+`qmp_ufs_register_clocks()` but does not distinguish fixed-rate symbol-clock
+registration from OF provider publication. See the
+[live result](2026-08-12-generation-37-qmp-clock-provider-stage-live.md).
