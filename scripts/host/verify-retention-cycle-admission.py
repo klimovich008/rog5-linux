@@ -330,6 +330,14 @@ EXPECTED_CLAIMS["persistent-root-deferred-ufs-v10-live-v1"] = (
     "dc22fde250d88f75859d544737d3703f9a3cf09ca2987eaf213dd744204cd8f7\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-deferred-qmp-ufs-v11-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-deferred-qmp-ufs-v11-live-v1\n"
+    "candidate=persistent-root-deferred-qmp-ufs-v11\n"
+    "manifest_sha256="
+    "e40da74acb705843b0f29c485ca922209e44073f7baab144cbac17c5b285500e\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -460,7 +468,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "87674468003e5f6814dfe0967c54ceffc54e26e580289cc2fa50132115ca326c",
+    "sha256": "ce2ee061fa41ee094d155b482413604d1f189146222c39ac32c7abca2a0fad7c",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -488,7 +496,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "87674468003e5f6814dfe0967c54ceffc54e26e580289cc2fa50132115ca326c",
+    "executor_contract_sha256": "ce2ee061fa41ee094d155b482413604d1f189146222c39ac32c7abca2a0fad7c",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2229,9 +2237,9 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-deferred-ufs-v10-generation31-20260812-r1/"
+            "build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact deferred Qualcomm UFS-probe discriminator after stable "
+            "one exact deferred QMP-UFS PHY discriminator after stable "
             "USB NCM; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
         ),

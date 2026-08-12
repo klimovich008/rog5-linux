@@ -383,17 +383,23 @@ wait_for_deferred_ufs_rendezvous() {
 
 load_deferred_ufs_modules() {
 	module_dir=/rog5-ufs-modules
+	phy=$module_dir/phy-qcom-qmp-ufs.ko
 	core=$module_dir/ufshcd-core.ko
 	platform=$module_dir/ufshcd-pltfrm.ko
 	qcom=$module_dir/ufs-qcom.ko
-	[ -f "$core" ] && [ ! -L "$core" ] &&
+	[ -f "$phy" ] && [ ! -L "$phy" ] &&
+		[ -f "$core" ] && [ ! -L "$core" ] &&
 		[ -f "$platform" ] && [ ! -L "$platform" ] &&
 		[ -f "$qcom" ] && [ ! -L "$qcom" ] || return 1
-	[ "$(find "$module_dir" -mindepth 1 -maxdepth 1 -type f |
-		wc -l)" -eq 3 ] || return 1
-	if grep -Eq '^(ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' /proc/modules; then
+	[ "$(find "$module_dir" -mindepth 1 -maxdepth 1 -print |
+		wc -l)" -eq 4 ] || return 1
+	if grep -Eq '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules; then
 		return 1
 	fi
+	log 'deferred Qualcomm UFS PHY probe begin'
+	insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko || return 1
+	log 'deferred Qualcomm UFS PHY probe returned'
 	log 'deferred UFS core load begin'
 	insmod /rog5-ufs-modules/ufshcd-core.ko || return 1
 	log 'deferred UFS platform load begin'
@@ -587,9 +593,9 @@ if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 	fail_stage 'running kernel release changed' kernel-release-identity 25
 fi
 if deferred_ufs_modules_present; then
-	log 'waiting for deferred UFS host rendezvous'
+	log 'waiting for deferred UFS probe rendezvous'
 	if ! wait_for_deferred_ufs_rendezvous; then
-		fail_stage 'deferred UFS host rendezvous failed' ufs-rendezvous 15
+		fail_stage 'deferred UFS probe rendezvous failed' ufs-rendezvous 15
 	fi
 	if ! load_deferred_ufs_modules; then
 		fail_stage 'deferred UFS module load returned an error' ufs-module 20

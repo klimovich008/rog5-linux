@@ -52,7 +52,8 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$output_dir/.config"; then
 	for symbol in \
 		CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y \
 		CONFIG_SCSI_UFSHCD_PLATFORM=m \
-		CONFIG_SCSI_UFS_QCOM=m; do
+		CONFIG_SCSI_UFS_QCOM=m \
+		CONFIG_PHY_QCOM_QMP_UFS=m; do
 		grep -qx "$symbol" "$output_dir/.config" || {
 			echo "FAIL incomplete deferred UFS configuration: $symbol" >&2
 			exit 1
@@ -60,20 +61,29 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$output_dir/.config"; then
 	done
 	make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 		JOBS="$btf_jobs" \
+		drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko \
 		drivers/ufs/core/ufshcd-core.ko \
 		drivers/ufs/host/ufshcd-pltfrm.ko \
 		drivers/ufs/host/ufs-qcom.ko
 
 	deferred_module_dir=$output_dir/deferred-ufs-modules
 	mkdir -m 0755 "$deferred_module_dir"
+	install -m 0644 \
+		"$output_dir/drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko" \
+		"$deferred_module_dir/phy-qcom-qmp-ufs.ko"
 	install -m 0644 "$output_dir/drivers/ufs/core/ufshcd-core.ko" \
 		"$deferred_module_dir/ufshcd-core.ko"
 	install -m 0644 "$output_dir/drivers/ufs/host/ufshcd-pltfrm.ko" \
 		"$deferred_module_dir/ufshcd-pltfrm.ko"
 	install -m 0644 "$output_dir/drivers/ufs/host/ufs-qcom.ko" \
 		"$deferred_module_dir/ufs-qcom.ko"
-	for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
+		ufs-qcom.ko; do
 		case $module in
+			phy-qcom-qmp-ufs.ko)
+				expected_name=phy_qcom_qmp_ufs
+				expected_depends=
+				;;
 			ufshcd-core.ko)
 				expected_name=ufshcd_core
 				expected_depends=
@@ -111,6 +121,7 @@ fi
 		"$output_dir/arch/arm64/boot/Image.gz"
 	if [ -n "$deferred_module_dir" ]; then
 		sha256sum \
+			"$deferred_module_dir/phy-qcom-qmp-ufs.ko" \
 			"$deferred_module_dir/ufshcd-core.ko" \
 			"$deferred_module_dir/ufshcd-pltfrm.ko" \
 			"$deferred_module_dir/ufs-qcom.ko"

@@ -49,13 +49,14 @@ if [ -n "$ufs_modules" ]; then
 		exit 1
 	}
 	module_inventory=$(find "$ufs_modules" -mindepth 1 -maxdepth 1 \
-		-type f -printf '%f\n' | sort | tr '\n' ' ')
+		-printf '%f\n' | sort | tr '\n' ' ')
 	[ "$module_inventory" = \
-		'ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ] || {
+		'phy-qcom-qmp-ufs.ko ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ] || {
 		echo 'FAIL deferred UFS module inventory changed' >&2
 		exit 1
 	}
-	for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
+		ufs-qcom.ko; do
 		path=$ufs_modules/$module
 		[ -f "$path" ] && [ ! -L "$path" ] || {
 			echo "FAIL unsafe deferred UFS module: $module" >&2
@@ -91,7 +92,8 @@ install -m 0755 "$verifier" \
 rm -rf -- "$stage/rog5-ufs-modules"
 if [ -n "$ufs_modules" ]; then
 	mkdir -m 0755 "$stage/rog5-ufs-modules"
-	for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
+		ufs-qcom.ko; do
 		install -m 0644 "$ufs_modules/$module" \
 			"$stage/rog5-ufs-modules/$module"
 	done

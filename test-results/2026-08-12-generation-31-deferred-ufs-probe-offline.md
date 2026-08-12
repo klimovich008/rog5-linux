@@ -1,6 +1,6 @@
 # Generation 31 deferred Qualcomm UFS-probe discriminator
 
-Status: **offline ready; unbooted; one RAM-only use; never flash**.
+Status: **offline checkpoint passed; subsequently consumed; never retry or flash**.
 
 Generation 30 reproduced the early target loss with the accepted UFS-capable
 Image and enabled UFS DTB: no target USB identity appeared before exact Alpine
@@ -43,9 +43,11 @@ twins completed in two seconds and are byte-identical at
 | unchanged raw recovery payload | `90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6` |
 | AVB generation record | `861df55c9119b3134acdeec8f43aa1eee00fec658655312eddd6425e68bfa56b` |
 
-The signed bundle twins and AVB wrapper twins are byte-identical. The exact
-claim remains unentered. No phone was contacted, no target storage was read or
-written, and no boot occurred during this checkpoint.
+The signed bundle twins and AVB wrapper twins are byte-identical. At this
+offline checkpoint the exact claim was unentered; no phone was contacted and
+no target storage was read or written. The later sole live cycle is recorded
+separately in the
+[Generation 31 live result](2026-08-12-generation-31-deferred-ufs-probe-live.md).
 
 Focused tests passed: eight storage/UDC/rendezvous tests in 0.84 seconds,
 real-module deterministic initramfs plus hostile inventory tests in 4.42

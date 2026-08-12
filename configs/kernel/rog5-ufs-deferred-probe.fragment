@@ -1,5 +1,5 @@
-# Bring up USB from the initramfs before the Qualcomm UFS platform probe.
-# The three UFS layers are copied outside /lib/modules and loaded explicitly.
+# Bring up USB before either Qualcomm UFS PHY or host probing begins.
+# The exact four-module chain stays outside /lib/modules and loads explicitly.
 CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y
 CONFIG_SCSI=y
 CONFIG_SCSI_UFSHCD=m
@@ -8,9 +8,9 @@ CONFIG_SCSI_UFS_QCOM=m
 CONFIG_BLK_DEV_SD=y
 CONFIG_EFI_PARTITION=y
 
-# Keep every provider needed by the later module probe built in.
+# Keep the providers needed before the explicit PHY/host module chain built in.
 CONFIG_PHY_QCOM_QMP=y
-CONFIG_PHY_QCOM_QMP_UFS=y
+CONFIG_PHY_QCOM_QMP_UFS=m
 # CONFIG_PHY_QCOM_QMP_COMBO is not set
 # CONFIG_PHY_QCOM_QMP_PCIE is not set
 # CONFIG_PHY_QCOM_QMP_PCIE_8996 is not set
