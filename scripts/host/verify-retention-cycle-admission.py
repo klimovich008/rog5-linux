@@ -290,6 +290,14 @@ EXPECTED_CLAIMS["persistent-root-storage-read-v5-live-v1"] = (
     "1d64161dd213ced57b6761086629351ba116b30f894aa36afba9480873b4e3ab\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-usb-control-v6-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-usb-control-v6-live-v1\n"
+    "candidate=persistent-root-usb-control-v6\n"
+    "manifest_sha256="
+    "33715e0c566a5fc7e771f6b89ca81fd1fe0bb6325b926995a0ba5c5f81a44a5b\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -420,7 +428,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14550,
-    "sha256": "9c2d51b847b69c47a8fe441d5dadff070aebb25dc5802a9c99a72cc7afe53e3b",
+    "sha256": "8906eeef042430b09815abb0fbbc11272292b11917e4fd426d229439eb529f53",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -448,7 +456,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "9c2d51b847b69c47a8fe441d5dadff070aebb25dc5802a9c99a72cc7afe53e3b",
+    "executor_contract_sha256": "8906eeef042430b09815abb0fbbc11272292b11917e4fd426d229439eb529f53",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2189,10 +2197,10 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-storage-read-v5-generation26-20260812-r1/"
+            "build/persistent-root-usb-control-v6-generation27-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact RMTFS-reserved read-only UFS discriminator with "
-            "persistent ramoops omitted; RAM-only; externally "
+            "one exact Generation 20 kernel/DTB USB-control discriminator "
+            "that stops before UFS; RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry",
         ),
     }

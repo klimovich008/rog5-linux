@@ -79,16 +79,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live](../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
   results.
 
-- **Generation 26 is the current storage discriminator under clean-twin
-  construction.** The UFS DTB had disabled the historical 4 MiB
-  `qcom,rmtfs-mem` reservation while the persistent command line reassigned
-  the same range to ramoops. Generation 20 proves that this overlap model is
-  not sufficient by itself to explain target loss, because its successful
-  network-root boot used the same disabled node and ramoops command line.
-  Generation 26 is therefore a narrow UFS-specific memory-ownership test, not
-  a claimed fix: it restores the exact RMTFS reservation and omits ramoops only
-  for the persistent-root profile while retaining the Generation-25 Image,
-  initramfs, read-only storage behavior, and fallback.
+- **Generation 26 is consumed and never reusable.** Its sole cycle restored
+  the RMTFS reservation and omitted ramoops, but no target USB appeared before
+  exact Alpine returned after 25.333 seconds. No UFS inventory was obtained
+  and no phone-storage write occurred.
+
+- **Generation 27 is the current pre-UFS discriminator.** It uses the exact
+  Generation 20 Image and DTB that reached NCM carrier at 3.680 seconds, plus
+  the byte-identical Generation 26 persistent initramfs. That initramfs expects
+  the UFS kernel's different release, so a successful USB bind must enumerate
+  `ROG5 persistent root` and then roll back at the release-identity gate before
+  any userspace UFS discovery or storage access. Failure to enumerate instead
+  implicates the persistent initramfs/configfs path or a residual kexec state
+  shared independently of the target Image/DTB.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

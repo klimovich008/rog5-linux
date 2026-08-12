@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "persistent-root-usb-control-v6-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-root-usb-control-v6-live-v1\n"
+        b"candidate=persistent-root-usb-control-v6\n"
+        b"manifest_sha256="
+        b"33715e0c566a5fc7e771f6b89ca81fd1fe0bb6325b926995a0ba5c5f81a44a5b\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-storage-read-v5-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-storage-read-v5-live-v1\n"
