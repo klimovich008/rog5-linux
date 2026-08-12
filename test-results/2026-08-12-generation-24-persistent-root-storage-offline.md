@@ -11,7 +11,7 @@ either target-identity check and before every userspace UFS operation.
 A fail-first ordering test rejected the Generation-23 source in 0.390 seconds.
 After the correction, the hostile storage/UDC suite passed in 0.391 seconds and
 the deterministic initramfs contract passed. The initramfs clean twins built
-in 0.866 and 0.890 seconds and are byte-identical: 6,121,343 bytes, SHA-256
+in 0.866 and 0.890 seconds and are byte-identical: 6,121,179 bytes, SHA-256
 `908f18f752962fae798249060aa8ee4c45673d8795571fbb8883ac4ed8d9e19e`.
 
 The Image remains `854397a7…b4a13`; the DTB remains
