@@ -107,14 +107,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   UFS-enabled DTB, and rebuilt Image work independently; the early regression
   requires active UFS binding or probing with that Image.
 
-- **Generation 30 is the current read-only local-Arch candidate.** It replaces
-  the non-reproducing rebuilt UFS Image with the retained exact clean-twin
-  persistent-root Image `832757fc…c76469f`, while keeping the current
-  UFS-enabled DTB and USB-first persistent initramfs. The cycle remains
-  RAM-only and forces all physical nodes read-only, mounts exact userdata
-  `ro,noload`, uses the sealed Arch tree only as an OverlayFS lower, and must
-  reach strict key-only SSH before returning to exact Alpine. It cannot create
-  the planned local filesystem image or write phone storage.
+- **Generation 30 is consumed and reproduced the active-UFS early failure.**
+  The retained accepted persistent-root Image plus the enabled UFS DTB never
+  exposed the target USB identity before exact Alpine returned. This confirms
+  that the failure is not peculiar to the reconstructed Generations 25/26
+  Image. No target-side storage access was observed.
+
+- **Generation 31 is the active discriminator.** It keeps USB built in but
+  moves only UFS core, platform glue, and the Qualcomm host driver to three
+  sealed modules outside automatic module lookup. Initramfs first exposes NCM,
+  waits for a bounded host-observation rendezvous, then loads the exact module
+  chain explicitly. The goal is to identify the Qualcomm probe boundary before
+  any filesystem or local-root work.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

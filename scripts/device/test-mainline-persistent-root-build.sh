@@ -3,15 +3,30 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 fragment=$repo/configs/kernel/rog5-persistent-root.fragment
+deferred_fragment=$repo/configs/kernel/rog5-ufs-deferred-probe.fragment
 builder=$repo/scripts/device/build-mainline-persistent-root.sh
 verifier=$repo/scripts/device/verify-mainline-persistent-root-build.sh
 meta_verifier=$repo/scripts/device/verify-build-meta-hash.sh
 
-for path in "$fragment" "$builder" "$verifier" "$meta_verifier"; do
+for path in "$fragment" "$deferred_fragment" "$builder" "$verifier" \
+	"$meta_verifier"; do
 	[ -f "$path" ] || {
 		echo "FAIL missing P2 kernel build input: $path" >&2
 		exit 1
 	}
+done
+
+for symbol in \
+	CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y \
+	CONFIG_SCSI_UFSHCD=m \
+	CONFIG_SCSI_UFSHCD_PLATFORM=m \
+	CONFIG_SCSI_UFS_QCOM=m \
+	'# CONFIG_PHY_QCOM_QMP_COMBO is not set' \
+	'# CONFIG_PHY_QCOM_QMP_PCIE is not set' \
+	'# CONFIG_PHY_QCOM_QMP_PCIE_8996 is not set' \
+	'# CONFIG_PHY_QCOM_QMP_USB is not set' \
+	'# CONFIG_PHY_QCOM_QMP_USB_LEGACY is not set'; do
+	grep -qx "$symbol" "$deferred_fragment"
 done
 [ -x "$builder" ] && [ -x "$verifier" ] && [ -x "$meta_verifier" ]
 sh -n "$builder"
@@ -35,6 +50,10 @@ grep -Fq 'expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a' \
 	"$builder"
 grep -Fq 'CONFIG_OVERLAY_FS=y' "$verifier"
 grep -Fq 'verify-mainline-discovery-build.sh' "$verifier"
+grep -Fq 'drivers/ufs/core/ufshcd-core.ko' "$builder"
+grep -Fq 'drivers/ufs/host/ufshcd-pltfrm.ko' "$builder"
+grep -Fq 'drivers/ufs/host/ufs-qcom.ko' "$builder"
+grep -Fq 'deferred-ufs-modules' "$builder"
 
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM

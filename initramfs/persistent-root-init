@@ -42,7 +42,7 @@ fail_stage() {
 	case "$stage:$delay" in
 		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
 ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
-usb:15) ;;
+usb:15|ufs-rendezvous:15|ufs-module:20) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -356,6 +356,54 @@ configure_usb() {
 	return 0
 }
 
+deferred_ufs_modules_present() {
+	[ -d /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ]
+}
+
+wait_for_deferred_ufs_rendezvous() {
+	attempt=0
+	stable=0
+	while [ "$attempt" -lt 150 ]; do
+		if [ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" = 1 ]; then
+			stable=$((stable + 1))
+		else
+			stable=0
+		fi
+		if [ "$stable" -ge 10 ]; then
+			# Leave the host enough time to record the stable target identity
+			# before the deliberately observed Qualcomm probe begins.
+			sleep 3
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	return 1
+}
+
+load_deferred_ufs_modules() {
+	module_dir=/rog5-ufs-modules
+	core=$module_dir/ufshcd-core.ko
+	platform=$module_dir/ufshcd-pltfrm.ko
+	qcom=$module_dir/ufs-qcom.ko
+	[ -f "$core" ] && [ ! -L "$core" ] &&
+		[ -f "$platform" ] && [ ! -L "$platform" ] &&
+		[ -f "$qcom" ] && [ ! -L "$qcom" ] || return 1
+	[ "$(find "$module_dir" -mindepth 1 -maxdepth 1 -type f |
+		wc -l)" -eq 3 ] || return 1
+	if grep -Eq '^(ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' /proc/modules; then
+		return 1
+	fi
+	log 'deferred UFS core load begin'
+	insmod /rog5-ufs-modules/ufshcd-core.ko || return 1
+	log 'deferred UFS platform load begin'
+	insmod /rog5-ufs-modules/ufshcd-pltfrm.ko || return 1
+	log 'deferred Qualcomm UFS probe begin'
+	insmod /rog5-ufs-modules/ufs-qcom.ko || return 1
+	log 'deferred Qualcomm UFS probe returned'
+	return 0
+}
+
 verify_only_userdata_mount() {
 	count=0
 	userdata_name=${userdata##*/}
@@ -537,6 +585,15 @@ if ! IFS= read -r running_kernel_release <"$release_file"; then
 fi
 if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 	fail_stage 'running kernel release changed' kernel-release-identity 25
+fi
+if deferred_ufs_modules_present; then
+	log 'waiting for deferred UFS host rendezvous'
+	if ! wait_for_deferred_ufs_rendezvous; then
+		fail_stage 'deferred UFS host rendezvous failed' ufs-rendezvous 15
+	fi
+	if ! load_deferred_ufs_modules; then
+		fail_stage 'deferred UFS module load returned an error' ufs-module 20
+	fi
 fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then

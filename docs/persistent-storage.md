@@ -272,10 +272,18 @@ the retained P2 stage as `832757fc…c76469f`. Reconstructed builds with the
 same source tree and config do not reproduce that Image: the previous
 persistent-root twins are `854397a7…b4a13`, while a fresh historical-recipe
 UFS-discovery build produced `805a68b3…e923b` instead of the accepted
-`bdc72155…9ac8c`. Generation 30 therefore uses the retained accepted
+`bdc72155…9ac8c`. Generation 30 therefore used the retained accepted
 persistent-root Image directly with the current UFS-enabled DTB and USB-first
-initramfs. This is the shortest physical discriminator and preserves the
-read-only storage contract.
+initramfs. Its sole cycle never exposed target USB before exact Alpine
+returned, reproducing the active-UFS early failure with the accepted Image.
+Generation 30 is consumed and must never be retried.
+
+Generation 31 defers the probe without changing the accepted UFS source or DTB.
+USB remains built in; only UFS core, platform glue, and the Qualcomm host are
+sealed as an explicit three-module chain outside `/lib/modules`. Initramfs
+establishes NCM and a bounded host-observation window before loading those
+modules in dependency order. This isolates the exact probe transition while
+retaining the read-only UFS command guards.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
