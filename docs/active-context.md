@@ -135,12 +135,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   [live result](../test-results/2026-08-12-generation-33-qmp-ufs-phy-control-live.md)
   records the exact timing and observation-race correction.
 
-- **Generation 34 is the active no-bind discriminator.** It reuses the exact
-  Generation 33 Image, modules, and initramfs, but its one-property overlay
-  disables only `&ufs_mem_phy`. Loading the same QMP-UFS module can therefore
-  register the driver without binding or probing the platform device. The UFS
-  host remains enabled but its module is absent. The cycle performs no UFS
-  enumeration or storage access.
+- **Generation 34 is consumed and cleared QMP-UFS relocation and driver
+  registration.** Loading the exact module with only `&ufs_mem_phy` disabled
+  preserved target NCM for the full 12.008-second control window, then exact
+  Alpine fallback returned. No UFS enumeration or storage access occurred.
+  The failure reproduced by Generation 33 is therefore inside active QMP-UFS
+  platform binding or probe. See the
+  [live result](../test-results/2026-08-12-generation-34-qmp-module-load-control-live.md).
+
+- **Generation 35 is the active QMP-UFS probe-stage discriminator.** Its exact
+  SM8350-only diagnostic module binds, acquires clock and regulator handles,
+  applies the driver's existing reviewed regulator loads, then returns before
+  DT/MMIO parsing, clock-provider registration, PHY creation, or provider
+  registration. UFS core, platform, and host modules remain absent, so this
+  RAM-only cycle cannot enumerate or access phone storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

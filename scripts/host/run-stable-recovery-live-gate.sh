@@ -144,6 +144,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-core-deployment-v1-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
+		persistent-root-qmp-regulator-stage-v14-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1549,6 +1550,45 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-qmp-regulator-stage-v14-live-v1)
+		expected_boot_image=build/persistent-root-qmp-regulator-stage-v14-generation35-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact SM8350 QMP-UFS clock-and-regulator-stage discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 35 SM8350 QMP-UFS clock-and-regulator-stage discriminator; patched module returns before MMIO parsing or provider creation; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6
+		expected_initramfs=3495070782746936065a314337732028d41bed29f85e888cfaf730828557bb5d
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-qmp-regulator-stage-v14
+		expected_bundle=persistent-root-qmp-regulator-stage-v14
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gcfd385a1c754
+		expected_avb_salt=03beecfa691cbc239e8d93f64cc8f465fd5953b0882c3d0e11936fb30e01e99e
+		expected_avb_digest=2a2e01c487ce2927c6cc72742fd1dd89f99861de1e5c464844d01bc0516cd7d9
+		expected_generation_record=e237fcbddcc7a9f35cf314b5d73c056107963244b54322e6e5a8828e272c53da
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			03e49b58a082826c1d88ab328c82d6c903c9130e56522fb645eaa3be31eb69a7 ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			734a7d0a3632df5f5d04d6faa2ecca82e72e4945daf5bd46db100e062d4e9d6e ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
@@ -1586,6 +1626,7 @@ case $profile in
 	headless-core-deployment-v1-live-v1 | \
 	persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 	persistent-root-qmp-module-load-control-v13-live-v1 | \
+	persistent-root-qmp-regulator-stage-v14-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)
