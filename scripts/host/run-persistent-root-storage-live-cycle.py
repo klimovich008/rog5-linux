@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-storage-read-v3-live-v1"
-BUNDLE = "persistent-root-storage-read-v3"
+PROFILE_ID = "persistent-root-storage-read-v4-live-v1"
+BUNDLE = "persistent-root-storage-read-v4"
 MANIFEST_SHA256 = (
-    "3bc4b40f7e230945249db08be19b5791c176e08aeb8b5cfca059f48db5b8ed73"
+    "5d835b0986587c7ce174e66ccf03f82bb8c9e581e83384ce93c0ed455d053baa"
 )
 RECOVERY_SHA256 = (
-    "6850d79af138717190ab58e171a6f7f1d9874510026c9f10bf57d35a3e9f6bca"
+    "0947cde461c495cd889e6c4de9cbafe1fe9bc3ceb977844a7c8ec2a5590a3a8c"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -54,10 +54,9 @@ TARGET_RELEASE = "7.1.4-gcfd385a1c754"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
-FALLBACK_UDEV_MODEL = "ROG_Phone_5_Linux_Server"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-storage-read-v3-generation24-20260812-r1"
+    / "build/persistent-root-storage-read-v4-generation25-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/headless-core-v21-production-20260812-r1/recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +74,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-storage-read-v3",
+    admission_profile="persistent-root-storage-read-v4",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-storage-read-v3",
-    build_profile="persistent-root-storage-read-v3",
+    runtime_profile="persistent-root-storage-read-v4",
+    build_profile="persistent-root-storage-read-v4",
     diagnostic=False,
 )
 
@@ -279,16 +278,8 @@ def wait_post_commit_host_cleanup(cycle: CYCLE.LiveCycle) -> None:
     cycle.wait_host_clean()
 
 
-def alpine_fallback_is_present(cycle: CYCLE.LiveCycle) -> bool:
-    snapshots = cycle.rog5_ncm_interfaces()
-    fallback = [
-        snapshot
-        for snapshot in snapshots
-        if snapshot.product == FALLBACK_UDEV_MODEL
-    ]
-    if len(fallback) > 1 or (fallback and len(snapshots) != 1):
-        fail("fallback USB identity is ambiguous during target transition")
-    return len(fallback) == 1
+def alpine_fallback_is_present(expected_location: str) -> bool:
+    return PIN.fallback_returned(expected_location)
 
 
 def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
@@ -302,7 +293,7 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
         try:
             observed_interface, location = PIN.target_observation(TARGET_PRODUCT)
         except PIN.BootstrapError as error:
-            if alpine_fallback_is_present(cycle):
+            if alpine_fallback_is_present(expected_location):
                 fail(
                     "Alpine fallback returned before persistent-root "
                     "target USB appeared"

@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		persistent-root-storage-read-v3-live-v1 | \
+		persistent-root-storage-read-v4-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1470,10 +1470,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-storage-read-v3-live-v1)
-		expected_boot_image=build/persistent-root-storage-read-v3-generation24-20260812-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact precheck-USB-observable read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted precheck-USB-observable read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 24 AVB wrapper; one RAM-only use only; never flash'
+	persistent-root-storage-read-v4-live-v1)
+		expected_boot_image=build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact UFS-only-Image control for read-only persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 25 UFS-only-Image control; exact accepted source, config, release and read-only guards; clean-twin signed bundle and byte-distinct AVB wrapper; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
@@ -1482,19 +1482,19 @@ case $profile in
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
 		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
-		expected_target_id=persistent-root-storage-read-v3
-		expected_bundle=persistent-root-storage-read-v3
+		expected_target_id=persistent-root-storage-read-v4
+		expected_bundle=persistent-root-storage-read-v4
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gcfd385a1c754
-		expected_avb_salt=ee656e98fa1e7345f8684aa9553a9ce5f008ed7e7b0c4d42a33dde6bc288d4bd
-		expected_avb_digest=e6820b4f03ad6a422c255093019be6b2df09f2b135d07d16e3bbc290df566c10
-		expected_generation_record=ed213bacc14e6c2c88a380595c0b4a9b6aa8b6cea31b0119fd87043a152fb46d
+		expected_avb_salt=d28bdb6de434efb37f5e32d3bbd325be1cca595e82cd134d7dc958cd3b1c8235
+		expected_avb_digest=a28ab17557deeb9c50f6d41f8dd245d3c5ae72255f59c69772c0050e5f3106bd
+		expected_generation_record=013aca00153e3d91fe4283a7c1156e1f80ade66d5dd16f96d467956d95820075
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			3bc4b40f7e230945249db08be19b5791c176e08aeb8b5cfca059f48db5b8ed73 ]] ||
+			5d835b0986587c7ce174e66ccf03f82bb8c9e581e83384ce93c0ed455d053baa ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			6850d79af138717190ab58e171a6f7f1d9874510026c9f10bf57d35a3e9f6bca ]] ||
+			0947cde461c495cd889e6c4de9cbafe1fe9bc3ceb977844a7c8ec2a5590a3a8c ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1544,7 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	persistent-root-storage-read-v3-live-v1 | \
+	persistent-root-storage-read-v4-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)

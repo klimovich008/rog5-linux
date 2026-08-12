@@ -436,12 +436,11 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "one exact headless-core Arch SSH recovery with power-key "
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry\n"
-            "build/persistent-root-storage-read-v3-generation24-20260812-r1/"
+            "build/persistent-root-storage-read-v4-generation25-20260812-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact precheck-USB-observable read-only UFS persistent Arch "
-            "recovery; RAM-only; "
-            "externally consumed exact claim required; never flash or retry "
-            "after entry\n"
+            "one exact UFS-only-Image control for read-only persistent Arch "
+            "recovery; RAM-only; externally consumed exact claim required; "
+            "never flash or retry after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)

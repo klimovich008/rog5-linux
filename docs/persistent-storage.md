@@ -184,7 +184,7 @@ publication, and an independent post-publication whole-tree verification.
 archive was removed after verification. Alpine remained online and no root
 was selected or booted.
 
-### Gate P2 — UFS read-only Arch boot (Generation 24 offline-ready)
+### Gate P2 — UFS read-only Arch boot
 
 The 2026-08-12 Generation-22 cycle completed signed recovery transfer and
 COMMIT, but the target never exposed its `ROG5 persistent root` USB identity.
@@ -202,12 +202,22 @@ was 18.162 seconds; the roughly 7.168-second delta strongly fits the
 five-second invalid-command-line branch plus startup, without proving it.
 Generation 23 is consumed and absent from boot policy.
 
-Generation 24 keeps the exact current Image and UFS DTB while moving rollback
-arming and NCM setup before target command-line/release validation and every
-userspace UFS operation. A target USB appearance will prove current-kernel
-entry into `/init`; another absent product will narrow the fault to kernel,
-DT, init execution, or USB setup. It does not write the phone or create the
-bounded local image.
+Generation 24 moved rollback arming and NCM setup before target command-line/
+release validation and every userspace UFS operation. Its sole cycle still
+showed no target USB before exact Alpine returned after 25.567 seconds, so the
+earlier command-line-ordering explanation is disproven. Generation 24 is
+consumed and absent from boot policy.
+
+Generation 25 is the next discriminator. The reconstructed historical
+Clang-18 environment reproduces the live-passing read-only UFS source, config,
+release, and compiled guards; compared with the failing persistent-root
+config, the only functional Kconfig delta is `CONFIG_OVERLAY_FS=m` versus `y`.
+Its clean twins have a new binary identity rather than the pruned historical
+Image hash. Generation 24's DTB, initramfs, USB identity, and read-only storage
+behavior remain unchanged; one-use bundle/AVB identity fields necessarily
+rotate. This cycle can prove whether the failing boundary follows the Image
+before any local-image write is attempted. See the
+[offline result](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md).
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

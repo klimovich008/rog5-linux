@@ -62,13 +62,23 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   intended precheck observation. No phone storage write occurred. See the
   [live result](../test-results/2026-08-12-generation-23-persistent-root-storage-live.md).
 
-- **Generation 24 is the current unbooted storage successor.** It keeps the
-  exact Generation-23 Image, UFS DTB, USB identity, and read-only storage
-  contract, but arms rollback and starts exact NCM before command-line and
-  release validation. Its sole purpose is to distinguish a failure before
-  `/init`/USB from a later target-identity or storage gate. It remains RAM-only
-  and performs no local-image or phone-storage write. See the
-  [offline result](../test-results/2026-08-12-generation-24-persistent-root-storage-offline.md).
+- **Generation 24 is consumed and never reusable.** Its sole RAM-only cycle
+  reached signed transfer and correlated COMMIT, but no target USB appeared
+  before exact Alpine returned after 25.567 seconds. Because rollback and NCM
+  setup preceded command-line/release checks and all userspace UFS work, this
+  disproves the Generation-23 ordering explanation and narrows the failure to
+  kernel/initramfs entry or USB setup before successful binding. No phone-
+  storage write occurred. See the [live result](../test-results/2026-08-12-generation-24-persistent-root-storage-live.md).
+
+- **Generation 25 is the current unbooted storage discriminator.** Exact
+  Clang-18 reconstruction shows the historically live-passing UFS config
+  differs from the failing persistent-root config only by
+  `CONFIG_OVERLAY_FS=m` versus `y`. Clean twins reproduce a new exact Image
+  identity from the accepted source/config/release and guards; they do not
+  reproduce the pruned historical binary hash. Generation 25 keeps Generation
+  24's DTB, initramfs, USB behavior, and read-only storage contract. Only the
+  payload Image changes functionally; one-use bundle/AVB identifiers
+  necessarily rotate. See the [offline result](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
