@@ -150,10 +150,15 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   access occurred. See the
   [live result](../test-results/2026-08-12-generation-35-qmp-regulator-stage-live.md).
 
-- **Generation 36 is the active QMP-UFS probe-stage discriminator.** It reuses
-  the exact Generation 35 Image and UFS-enabled DTB. Its diagnostic module
-  advances through the driver's DT binding selection and MMIO resource mapping,
-  then returns before clock-provider registration, PHY creation, or provider
+- **Generation 36 is consumed and cleared DT binding selection plus MMIO
+  mapping.** Its exact SM8350-only diagnostic module preserved target NCM for
+  12.294 seconds after completing `qmp_ufs_parse_dt`, then exact Alpine fallback
+  returned. No UFS enumeration or storage access occurred. See the
+  [live result](../test-results/2026-08-12-generation-36-qmp-mmio-stage-live.md).
+
+- **Generation 37 is the active QMP-UFS clock-provider discriminator.** It
+  advances the same narrow diagnostic branch through
+  `qmp_ufs_register_clocks`, then returns before PHY creation or provider
   registration. UFS core, platform, and host modules remain absent, so this
   RAM-only cycle cannot enumerate or access phone storage.
 

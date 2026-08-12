@@ -1,6 +1,6 @@
 # Generation 36 QMP-UFS DT/MMIO-stage discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **PASS; consumed; never retry or flash**.
 
 Generation 36 uses the exact Generation 35 kernel Image and UFS-enabled DTB.
 Its patched QMP-UFS module binds only the exact SM8350 compatible, performs the
@@ -37,3 +37,8 @@ recovery payload
 exactly. Success clears DT binding selection and MMIO resource mapping; failure
 at the Generation 33 timing isolates that newly added boundary. The known-good
 Alpine fallback is unchanged.
+
+The sole live cycle reached stable target NCM in 58.860 seconds, preserved the
+same anchored interface for the full 12.294-second post-module control window,
+and returned to exact Alpine. See the
+[live result](2026-08-12-generation-36-qmp-mmio-stage-live.md).
