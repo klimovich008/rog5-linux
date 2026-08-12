@@ -174,6 +174,7 @@ shared_tests=(
 	scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-clock-provider-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-fixed-clocks-stage-patch.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh

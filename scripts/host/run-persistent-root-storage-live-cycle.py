@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-clock-provider-stage-v16-live-v1"
-BUNDLE = "persistent-root-qmp-clock-provider-stage-v16"
+PROFILE_ID = "persistent-root-qmp-fixed-clocks-stage-v17-live-v1"
+BUNDLE = "persistent-root-qmp-fixed-clocks-stage-v17"
 MANIFEST_SHA256 = (
-    "dd832a7655e4a1130b69f07188907f80853004f5e05c150e827a0aee4e1c6447"
+    "abd615f73576c798505464c07a3816da470eee5eeb9c26bc2f8f201f85b44ba4"
 )
 RECOVERY_SHA256 = (
-    "bf223a9de39e0822493fa6769fcc4db94eada697eb1b12ae1a1a5197e88e0f8b"
+    "e5fe136dc95e7380b144d2f6bd64480e35464ae4523b17712aa695807e1b7f18"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,7 +57,7 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-clock-provider-stage-v16-generation37-20260812-r1"
+    / "build/persistent-root-qmp-fixed-clocks-stage-v17-generation38-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -76,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-clock-provider-stage-v16",
+    admission_profile="persistent-root-qmp-fixed-clocks-stage-v17",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-clock-provider-stage-v16",
-    build_profile="persistent-root-qmp-clock-provider-stage-v16",
+    runtime_profile="persistent-root-qmp-fixed-clocks-stage-v17",
+    build_profile="persistent-root-qmp-fixed-clocks-stage-v17",
     diagnostic=False,
 )
 
@@ -648,7 +648,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
                     ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
-                    ("expected_next_gate", "qmp-ufs-phy-creation"),
+                    ("expected_next_gate", "qmp-ufs-of-clock-provider-publication"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -682,7 +682,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS QMP-UFS probe completed clock-provider registration and kept NCM stable in "
+                "PASS QMP-UFS probe completed fixed-rate symbol-clock registration and kept NCM stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )

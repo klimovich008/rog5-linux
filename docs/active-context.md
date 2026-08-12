@@ -156,11 +156,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   returned. No UFS enumeration or storage access occurred. See the
   [live result](../test-results/2026-08-12-generation-36-qmp-mmio-stage-live.md).
 
-- **Generation 37 is the active QMP-UFS clock-provider discriminator.** It
-  advances the same narrow diagnostic branch through
-  `qmp_ufs_register_clocks`, then returns before PHY creation or provider
-  registration. UFS core, platform, and host modules remain absent, so this
-  RAM-only cycle cannot enumerate or access phone storage.
+- **Generation 37 is consumed and localizes target loss to
+  `qmp_ufs_register_clocks()`.** Target NCM disappeared 11.275 seconds after
+  enumeration, then exact Alpine fallback returned. The function registers
+  three fixed-rate symbol clocks, publishes an OF clock provider, and records
+  its cleanup action; the retained evidence cannot yet distinguish those
+  internal boundaries. No UFS enumeration or storage access occurred. See the
+  [live result](../test-results/2026-08-12-generation-37-qmp-clock-provider-stage-live.md).
+
+- **Generation 38 is the active fixed-rate-symbol-clocks discriminator.** It
+  registers the three passive symbol-clock hardware objects and returns before
+  OF clock-provider publication, cleanup-action registration, PHY creation, or
+  PHY-provider registration. UFS core, platform, and host modules remain
+  absent, so this RAM-only cycle cannot enumerate or access phone storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

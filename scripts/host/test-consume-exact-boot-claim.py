@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-fixed-clocks-stage-v17-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-fixed-clocks-stage-v17-live-v1\n"
+            b"candidate=persistent-root-qmp-fixed-clocks-stage-v17\n"
+            b"manifest_sha256="
+            b"abd615f73576c798505464c07a3816da470eee5eeb9c26bc2f8f201f85b44ba4\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-qmp-clock-provider-stage-v16-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-qmp-clock-provider-stage-v16-live-v1\n"
