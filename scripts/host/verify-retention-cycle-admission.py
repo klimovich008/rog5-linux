@@ -306,6 +306,14 @@ EXPECTED_CLAIMS["persistent-root-dtb-control-v7-live-v1"] = (
     "c4cef9e256708d219c7c77f792dbff43336c5d446d0721048ff471b7c05969ee\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-image-control-v8-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-image-control-v8-live-v1\n"
+    "candidate=persistent-root-image-control-v8\n"
+    "manifest_sha256="
+    "c3cab07c75012941b103a9100e69298ef69de7aa4d73893d6d02ea4602f66f56\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -436,7 +444,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14550,
-    "sha256": "1b040f3839d2c2d573674ab5ec04c6e4b1f6e563aa42b8c22e87fa04e4b246c3",
+    "sha256": "bcb1a867d1adbf7e0902d649468ae8a0b91d44e9b7158b146861926c133ef80a",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -464,7 +472,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "1b040f3839d2c2d573674ab5ec04c6e4b1f6e563aa42b8c22e87fa04e4b246c3",
+    "executor_contract_sha256": "bcb1a867d1adbf7e0902d649468ae8a0b91d44e9b7158b146861926c133ef80a",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2205,10 +2213,10 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-dtb-control-v7-generation28-20260812-r1/"
+            "build/persistent-root-image-control-v8-generation29-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact Generation 20 Image plus UFS-enabled DTB control "
-            "that stops before UFS; RAM-only; externally "
+            "one exact UFS Image plus UFS-disabled DTB control with no "
+            "storage probe; RAM-only; externally "
             "consumed exact claim required; never flash or retry after entry",
         ),
     }
