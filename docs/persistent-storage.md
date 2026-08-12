@@ -288,9 +288,17 @@ observed.
 Generation 32 moves the one remaining UFS-specific built-in layer,
 `CONFIG_PHY_QCOM_QMP_UFS`, to a fourth sealed module. Initramfs establishes NCM
 and the bounded host-observation window before loading the exact QMP-UFS PHY,
-UFS core, platform glue, and Qualcomm host chain. The one-symbol config delta
-tests whether the PHY probe is the pre-init failure boundary while retaining
-the read-only UFS command guards.
+UFS core, platform glue, and Qualcomm host chain. Its sole cycle reached stable
+target NCM in 60.616 seconds, proving that the built-in QMP-UFS PHY path was
+inside the previous pre-init boundary. Target USB disappeared 11.276 seconds
+after enumeration, before the retained evidence could classify a specific
+module transition. Generation 32 is consumed and must never be retried.
+
+Generation 33 reuses the exact Generation 32 kernel, DTB, and modules. It loads
+only `phy-qcom-qmp-ufs.ko`, verifies that the UFS core/platform/host remain
+absent, and holds NCM for 15 seconds. The host requires 12 seconds of exact
+post-load NCM survival. The cycle deliberately returns to Alpine and performs
+no UFS enumeration or phone-storage access.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

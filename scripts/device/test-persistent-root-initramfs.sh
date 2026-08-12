@@ -77,7 +77,8 @@ for timing_marker in \
 	'inventory:95' \
 	'usb:15' \
 	'ufs-rendezvous:15' \
-	'ufs-module:20'; do
+	'ufs-module:20' \
+	'ufs-phy-control:5'; do
 	grep -Fq "$timing_marker" "$init"
 done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"

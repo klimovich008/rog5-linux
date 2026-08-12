@@ -466,10 +466,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "consumed by the sole Generation 31 RAM-only cycle; no target USB "
             "appeared before exact Alpine fallback; never retry or flash\n"
             "build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1/"
+            "repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 32 RAM-only cycle; stable target "
+            "NCM appeared before the module chain and exact Alpine fallback; "
+            "never retry or flash\n"
+            "build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact deferred QMP-UFS PHY discriminator after stable "
-            "USB NCM; RAM-only; externally consumed exact claim required; "
-            "never flash or retry after entry\n"
+            "one exact QMP-UFS PHY return-and-NCM-survival discriminator; "
+            "RAM-only; externally consumed exact claim required; never flash "
+            "or retry after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)

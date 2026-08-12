@@ -42,7 +42,7 @@ fail_stage() {
 	case "$stage:$delay" in
 		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
 ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
-usb:15|ufs-rendezvous:15|ufs-module:20) ;;
+usb:15|ufs-rendezvous:15|ufs-module:20|ufs-phy-control:5) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -400,14 +400,22 @@ load_deferred_ufs_modules() {
 	log 'deferred Qualcomm UFS PHY probe begin'
 	insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko || return 1
 	log 'deferred Qualcomm UFS PHY probe returned'
-	log 'deferred UFS core load begin'
-	insmod /rog5-ufs-modules/ufshcd-core.ko || return 1
-	log 'deferred UFS platform load begin'
-	insmod /rog5-ufs-modules/ufshcd-pltfrm.ko || return 1
-	log 'deferred Qualcomm UFS probe begin'
-	insmod /rog5-ufs-modules/ufs-qcom.ko || return 1
-	log 'deferred Qualcomm UFS probe returned'
-	return 0
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -Eq '^(ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' /proc/modules &&
+		return 1
+
+	# Generation 33 isolates the QMP-UFS PHY registration.  Keep the already
+	# proven NCM identity alive long enough for the host to prove that insmod
+	# returned; do not load the UFS core or host in this discriminator.
+	attempt=0
+	while [ "$attempt" -lt 150 ]; do
+		expected_udc_is_bound || return 1
+		[ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" = 1 ] ||
+			return 1
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	return 2
 }
 
 verify_only_userdata_mount() {
@@ -597,9 +605,16 @@ if deferred_ufs_modules_present; then
 	if ! wait_for_deferred_ufs_rendezvous; then
 		fail_stage 'deferred UFS probe rendezvous failed' ufs-rendezvous 15
 	fi
-	if ! load_deferred_ufs_modules; then
-		fail_stage 'deferred UFS module load returned an error' ufs-module 20
-	fi
+	load_deferred_ufs_modules
+	module_status=$?
+	case $module_status in
+		2)
+			fail_stage 'deferred QMP-UFS PHY returned and NCM survived the control window' \
+				ufs-phy-control 5
+			;;
+		0) ;;
+		*) fail_stage 'deferred UFS module load returned an error' ufs-module 20 ;;
+	esac
 fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then

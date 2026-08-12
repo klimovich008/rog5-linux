@@ -120,11 +120,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   [live result](../test-results/2026-08-12-generation-31-deferred-ufs-probe-live.md)
   leaves the QMP-UFS PHY as the remaining built-in UFS-specific layer.
 
-- **Generation 32 is the active discriminator.** It changes only
-  `CONFIG_PHY_QCOM_QMP_UFS=y` to `m`, seals that module with the existing three
-  UFS modules, and loads the exact four-module chain after stable target NCM.
-  This tests whether the QMP-UFS PHY's built-in probe is the pre-init boundary;
-  it still permits no filesystem or local-root work before exact UFS identity.
+- **Generation 32 is consumed and cleared the pre-init USB boundary.** Moving
+  `CONFIG_PHY_QCOM_QMP_UFS` from built-in to a sealed module exposed stable
+  target NCM in 60.616 seconds. Target USB remained enumerated for 11.276
+  seconds, then disappeared before exact Alpine returned. This proves the
+  built-in QMP-UFS PHY registration/probe was inside the earlier failure
+  boundary, but the four-module cycle did not identify the final transition.
+  [Live result](../test-results/2026-08-12-generation-32-deferred-qmp-ufs-phy-live.md).
+
+- **Generation 33 is the active discriminator.** It reuses the exact Generation
+  32 kernel, DTB, and four packaged modules, inserts only the QMP-UFS PHY, then
+  holds the exact NCM identity for 15 target seconds. The host independently
+  requires 12 seconds of unchanged USB identity, route, address, NetworkManager
+  ownership, and firewall state. It does not enumerate or access storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

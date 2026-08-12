@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-deferred-qmp-ufs-v11-live-v1
-image_name=build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1/repack/stable-recovery-a.avb.img
-basis='one exact deferred QMP-UFS PHY discriminator after stable USB NCM; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 32 USB-first deferred QMP-UFS PHY discriminator; clean-twin Image, explicit four-module chain, and signed bundle; one RAM-only use only; never flash'
+profile=persistent-root-qmp-ufs-phy-control-v12-live-v1
+image_name=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
+basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 33 QMP-UFS PHY-only return-and-NCM-survival discriminator; Generation 32 kernel/modules, clean-twin initramfs, signed bundle; one RAM-only use only; never flash'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -34,13 +34,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-deferred-qmp-ufs-v11 \
-	expected_bundle=persistent-root-deferred-qmp-ufs-v11 \
+	expected_target_id=persistent-root-qmp-ufs-phy-control-v12 \
+	expected_bundle=persistent-root-qmp-ufs-phy-control-v12 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gcfd385a1c754 \
-	expected_avb_salt=f5c6975dc692e497e41541fb091d976ec79b628197eec30c2064e25fd4c8c944 \
-	expected_avb_digest=a88f1092fed8ecf89a18081549dbefe7d9d4748a3ced7c4163f7eb562ff2ddb4 \
-	expected_generation_record=8404821af49fd49a4e6ded7227f3917582694ba45e9298d5b12ecdae7ceee4ee \
+	expected_avb_salt=0e3ded143370a1b9eb6d39a08b823c2c61d80d83f7b9ba8c2789b39a05291342 \
+	expected_avb_digest=07710a05e2c16f4d5e40a7b5a6e60fd3d1415e0df78f417efe958964f0e95f88 \
+	expected_generation_record=57f7e45003571d8606114b15b5b9970d755d629b0b276327d3d90b0fdae8e671 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -59,11 +59,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	e527793af5fa25024519fee864a5174a373079441501f1d58b671b7251e5457f
+	56dc47f1ead79a66cfd6d66a293ced84a120f3b980cd5a12685a164938d8f3de
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	e40da74acb705843b0f29c485ca922209e44073f7baab144cbac17c5b285500e
+	330f33a533f8f65e1d32b9e9c90bce10b4301983d7dced88fddfcd8f49e9f294
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-deferred-qmp-ufs-v11
+	persistent-root-qmp-ufs-phy-control-v12
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -74,7 +74,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-deferred-qmp-ufs-v11' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-qmp-ufs-phy-control-v12' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -84,7 +84,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-deferred-qmp-ufs-v11'
+	'profile requires bundle=persistent-root-qmp-ufs-phy-control-v12'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -106,7 +106,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "e527793af5fa25024519fee864a5174a373079441501f1d58b671b7251e5457f" &&
+	$3 == "56dc47f1ead79a66cfd6d66a293ced84a120f3b980cd5a12685a164938d8f3de" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -116,8 +116,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-deferred-qmp-ufs-v11-production-20260812-r1
-generation_root=$repo/build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1
+production_root=$repo/build/persistent-root-qmp-ufs-phy-control-v12-production-20260812-r1
+generation_root=$repo/build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1
 recovery_root=$repo/build/generation26-rmtfs-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -143,4 +143,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 32 deferred-QMP-UFS profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 33 QMP-UFS PHY control profile, exact claim, artifact, and admission are pinned'

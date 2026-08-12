@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-deferred-qmp-ufs-v11-live-v1"
-BUNDLE = "persistent-root-deferred-qmp-ufs-v11"
+PROFILE_ID = "persistent-root-qmp-ufs-phy-control-v12-live-v1"
+BUNDLE = "persistent-root-qmp-ufs-phy-control-v12"
 MANIFEST_SHA256 = (
-    "e40da74acb705843b0f29c485ca922209e44073f7baab144cbac17c5b285500e"
+    "330f33a533f8f65e1d32b9e9c90bce10b4301983d7dced88fddfcd8f49e9f294"
 )
 RECOVERY_SHA256 = (
-    "e527793af5fa25024519fee864a5174a373079441501f1d58b671b7251e5457f"
+    "56dc47f1ead79a66cfd6d66a293ced84a120f3b980cd5a12685a164938d8f3de"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,13 +57,14 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1"
+    / "build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
+POST_PHY_NCM_SECONDS = 12.0
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -75,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-deferred-qmp-ufs-v11",
+    admission_profile="persistent-root-qmp-ufs-phy-control-v12",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-deferred-qmp-ufs-v11",
-    build_profile="persistent-root-deferred-qmp-ufs-v11",
+    runtime_profile="persistent-root-qmp-ufs-phy-control-v12",
+    build_profile="persistent-root-qmp-ufs-phy-control-v12",
     diagnostic=False,
 )
 
@@ -350,6 +351,43 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     fail(f"persistent-root host network did not stabilize: {last_error}")
 
 
+def require_post_phy_ncm(
+    cycle: CYCLE.LiveCycle,
+    anchor: Path,
+    interface: str,
+    *,
+    duration: float = POST_PHY_NCM_SECONDS,
+    clock=time,
+) -> float:
+    expected_location = CYCLE.read_recovery_anchor_location(
+        anchor, cycle.dependencies
+    )
+    started = clock.monotonic()
+    deadline = started + duration
+    while clock.monotonic() < deadline:
+        try:
+            observed = PIN.target_observation(TARGET_PRODUCT)
+            PIN.exact_route(interface)
+        except PIN.BootstrapError as error:
+            fail(f"target NCM vanished during the PHY control window: {error}")
+        if observed != (interface, expected_location):
+            fail("target USB identity changed during the PHY control window")
+        snapshots = [
+            value
+            for value in cycle.rog5_ncm_interfaces()
+            if value.name == interface and value.product == TARGET_UDEV_MODEL
+        ]
+        if (
+            len(snapshots) != 1
+            or snapshots[0].addresses != ("169.254.77.1/30",)
+            or snapshots[0].network_manager_managed != "yes"
+            or snapshots[0].firewall_zone == "drop"
+        ):
+            fail("target host network changed during the PHY control window")
+        clock.sleep(cycle.poll)
+    return clock.monotonic() - started
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -589,6 +627,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         interface = activate_target_network(cycle, anchor)
         if USB_CONTROL_ONLY:
             elapsed = time.monotonic() - boot_started
+            control_seconds = require_post_phy_ncm(cycle, anchor, interface)
             CYCLE.write_record(
                 cycle.output("persistent-root-usb-control.record"),
                 (
@@ -596,7 +635,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("target_release", TARGET_RELEASE),
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
-                    ("expected_next_gate", "qmp-ufs-phy-module-probe"),
+                    ("post_phy_ncm_seconds", f"{control_seconds:.3f}"),
+                    ("expected_next_gate", "ufs-core-platform-host-modules"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -630,9 +670,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS deferred-UFS target reached stable NCM in "
-                f"{elapsed:.3f}s before the explicit Qualcomm module probe "
-                "and exact Alpine fallback"
+                "PASS QMP-UFS PHY returned with stable target NCM in "
+                f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
+                "before exact Alpine fallback"
             )
             return
         CYCLE.run_logged(

@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		persistent-root-deferred-qmp-ufs-v11-live-v1 | \
+		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1470,10 +1470,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-deferred-qmp-ufs-v11-live-v1)
-		expected_boot_image=build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact deferred QMP-UFS PHY discriminator after stable USB NCM; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 32 USB-first deferred QMP-UFS PHY discriminator; clean-twin Image, explicit four-module chain, and signed bundle; one RAM-only use only; never flash'
+	persistent-root-qmp-ufs-phy-control-v12-live-v1)
+		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 33 QMP-UFS PHY-only return-and-NCM-survival discriminator; Generation 32 kernel/modules, clean-twin initramfs, signed bundle; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -1482,19 +1482,19 @@ case $profile in
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
 		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
-		expected_target_id=persistent-root-deferred-qmp-ufs-v11
-		expected_bundle=persistent-root-deferred-qmp-ufs-v11
+		expected_target_id=persistent-root-qmp-ufs-phy-control-v12
+		expected_bundle=persistent-root-qmp-ufs-phy-control-v12
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gcfd385a1c754
-		expected_avb_salt=f5c6975dc692e497e41541fb091d976ec79b628197eec30c2064e25fd4c8c944
-		expected_avb_digest=a88f1092fed8ecf89a18081549dbefe7d9d4748a3ced7c4163f7eb562ff2ddb4
-		expected_generation_record=8404821af49fd49a4e6ded7227f3917582694ba45e9298d5b12ecdae7ceee4ee
+		expected_avb_salt=0e3ded143370a1b9eb6d39a08b823c2c61d80d83f7b9ba8c2789b39a05291342
+		expected_avb_digest=07710a05e2c16f4d5e40a7b5a6e60fd3d1415e0df78f417efe958964f0e95f88
+		expected_generation_record=57f7e45003571d8606114b15b5b9970d755d629b0b276327d3d90b0fdae8e671
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			e40da74acb705843b0f29c485ca922209e44073f7baab144cbac17c5b285500e ]] ||
+			330f33a533f8f65e1d32b9e9c90bce10b4301983d7dced88fddfcd8f49e9f294 ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			e527793af5fa25024519fee864a5174a373079441501f1d58b671b7251e5457f ]] ||
+			56dc47f1ead79a66cfd6d66a293ced84a120f3b980cd5a12685a164938d8f3de ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1544,7 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	persistent-root-deferred-qmp-ufs-v11-live-v1 | \
+	persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)
