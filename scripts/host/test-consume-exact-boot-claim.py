@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-storage-read-v2-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-storage-read-v2-live-v1\n"
+            b"candidate=persistent-root-storage-read-v2\n"
+            b"manifest_sha256="
+            b"4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-storage-read-v1-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-storage-read-v1-live-v1\n"

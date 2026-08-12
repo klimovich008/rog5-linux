@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-storage-read-v1-live-v1"
-BUNDLE = "persistent-root-storage-read-v1"
+PROFILE_ID = "persistent-root-storage-read-v2-live-v1"
+BUNDLE = "persistent-root-storage-read-v2"
 MANIFEST_SHA256 = (
-    "f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753"
+    "4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567"
 )
 RECOVERY_SHA256 = (
-    "9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649"
+    "ac508ef9bb4c04274da77d853b51705f41800256969ca6f578288cefaa754502"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -54,9 +54,10 @@ TARGET_RELEASE = "7.1.4-gcfd385a1c754"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
+FALLBACK_UDEV_MODEL = "ROG_Phone_5_Linux_Server"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-storage-read-v1-generation22-20260812-r1"
+    / "build/persistent-root-storage-read-v2-generation23-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/headless-core-v21-production-20260812-r1/recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -74,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-storage-read-v1",
+    admission_profile="persistent-root-storage-read-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-storage-read-v1",
-    build_profile="persistent-root-storage-read-v1",
+    runtime_profile="persistent-root-storage-read-v2",
+    build_profile="persistent-root-storage-read-v2",
     diagnostic=False,
 )
 
@@ -270,6 +271,26 @@ def privileged_nmcli(arguments: list[str]) -> None:
     fail("cannot activate the exact persistent-root host profile: " + " | ".join(diagnostics))
 
 
+def wait_post_commit_host_cleanup(cycle: CYCLE.LiveCycle) -> None:
+    # COMMIT_EXEC is allowed to replace recovery USB immediately.  The host
+    # cleanup contract must therefore prove listener, firewall, address, NFS,
+    # and snapshot restoration without requiring the old USB product to
+    # survive the transition.
+    cycle.wait_host_clean()
+
+
+def alpine_fallback_is_present(cycle: CYCLE.LiveCycle) -> bool:
+    snapshots = cycle.rog5_ncm_interfaces()
+    fallback = [
+        snapshot
+        for snapshot in snapshots
+        if snapshot.product == FALLBACK_UDEV_MODEL
+    ]
+    if len(fallback) > 1 or (fallback and len(snapshots) != 1):
+        fail("fallback USB identity is ambiguous during target transition")
+    return len(fallback) == 1
+
+
 def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     expected_location = CYCLE.read_recovery_anchor_location(
         anchor, cycle.dependencies
@@ -281,6 +302,11 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
         try:
             observed_interface, location = PIN.target_observation(TARGET_PRODUCT)
         except PIN.BootstrapError as error:
+            if alpine_fallback_is_present(cycle):
+                fail(
+                    "Alpine fallback returned before persistent-root "
+                    "target USB appeared"
+                )
             last_error = str(error)
             time.sleep(cycle.poll)
             continue
@@ -517,7 +543,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             ),
             timeout=120,
         )
-        recovery_ncm = cycle.wait_recovery_ncm()
+        cycle.wait_recovery_ncm()
 
         bundle_process = CYCLE.start_logged(
             "persistent-root recovery bundle server",
@@ -554,7 +580,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         )
         cycle.wait_bundle(bundle_process, control_process)
         bundle_process = None
-        cycle.wait_host_clean(recovery_ncm=recovery_ncm)
+        wait_post_commit_host_cleanup(cycle)
         status = CYCLE.wait_process(control_process, cycle.control_timeout)
         control_process = None
         if status != 0:

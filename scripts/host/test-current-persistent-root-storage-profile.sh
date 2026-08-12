@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-storage-read-v1-live-v1
-image_name=build/persistent-root-storage-read-v1-generation22-20260812-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 22 AVB wrapper; one RAM-only use only; never flash'
+profile=persistent-root-storage-read-v2-live-v1
+image_name=build/persistent-root-storage-read-v2-generation23-20260812-r1/repack/stable-recovery-a.avb.img
+basis='one exact early-USB-observable read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted early-USB-observable read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 23 AVB wrapper; one RAM-only use only; never flash'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -34,13 +34,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef \
-	expected_target_id=persistent-root-storage-read-v1 \
-	expected_bundle=persistent-root-storage-read-v1 \
+	expected_target_id=persistent-root-storage-read-v2 \
+	expected_bundle=persistent-root-storage-read-v2 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gcfd385a1c754 \
-	expected_avb_salt=32162608c697fa48491b41662fac24c7364e5518811b68bb324a43f0f1db3df7 \
-	expected_avb_digest=600dd1871a75d5a887153153e8ca6dad30350283cc006f8306a15079a07ee650 \
-	expected_generation_record=7d060b39de11e6fe8ea7b8591ce895ef9cd9c31610b16536883111cc1e53bf81 \
+	expected_avb_salt=7aacf7b3e20e4ae0662848721421695c3c209e1aa3526c37c199b351479f1a7a \
+	expected_avb_digest=d1cd8479582f1b79130e4082bd48dbf47269c4a3a66efbf696f5ef19381009c3 \
+	expected_generation_record=6330b2d443d8cfcba3df10ef1dc8ee73db2abf45855eed26248e11b44a5d5344 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -59,11 +59,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649
+	ac508ef9bb4c04274da77d853b51705f41800256969ca6f578288cefaa754502
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753
+	4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567
 	03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0
-	persistent-root-storage-read-v1
+	persistent-root-storage-read-v2
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -74,7 +74,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-storage-read-v1' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-storage-read-v2' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -84,7 +84,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-storage-read-v1'
+	'profile requires bundle=persistent-root-storage-read-v2'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -106,7 +106,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649" &&
+	$3 == "ac508ef9bb4c04274da77d853b51705f41800256969ca6f578288cefaa754502" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -116,8 +116,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-storage-read-v1-production-20260812-r1
-generation_root=$repo/build/persistent-root-storage-read-v1-generation22-20260812-r1
+production_root=$repo/build/persistent-root-storage-read-v2-production-20260812-r1
+generation_root=$repo/build/persistent-root-storage-read-v2-generation23-20260812-r1
 recovery_root=$repo/build/headless-core-v21-production-20260812-r1/recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -143,4 +143,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 22 read-only UFS persistent-root profile, exact claim, and admission are pinned'
+echo 'PASS Generation 23 early-USB-observable read-only UFS persistent-root profile, exact claim, and admission are pinned'

@@ -74,7 +74,7 @@ for timing_marker in \
 	'storage-lock:65' \
 	'userdata:80' \
 	'inventory:95' \
-	'usb:110'; do
+	'usb:15'; do
 	grep -Fq "$timing_marker" "$init"
 done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
@@ -96,10 +96,10 @@ switch_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" |
 	cut -d: -f1)
 [ "$release_read_line" -lt "$release_line" ]
 [ "$release_line" -lt "$watchdog_line" ]
-[ "$watchdog_line" -lt "$wait_line" ]
+[ "$watchdog_line" -lt "$usb_line" ]
+[ "$usb_line" -lt "$wait_line" ]
 [ "$wait_line" -lt "$lock_line" ]
-[ "$lock_line" -lt "$usb_line" ]
-[ "$usb_line" -lt "$mount_line" ]
+[ "$lock_line" -lt "$mount_line" ]
 [ "$mount_line" -lt "$verify_line" ]
 [ "$verify_line" -lt "$switch_line" ]
 

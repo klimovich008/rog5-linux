@@ -42,7 +42,7 @@ fail_stage() {
 	case "$stage:$delay" in
 		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
 ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
-usb:110) ;;
+usb:15) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -534,6 +534,9 @@ if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 fi
 
 arm_watchdog
+if ! configure_usb; then
+	fail_stage 'USB recovery transport failed' usb 15
+fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then
 	fail_stage 'UFS discovery failed' ufs-discovery 35
@@ -554,9 +557,6 @@ chmod 0444 /run/rog5-p2-userdata-device ||
 	fail_stage 'userdata identity mode failed' userdata 80
 if ! write_ufs_inventory; then
 	fail_stage 'UFS inventory failed' inventory 95
-fi
-if ! configure_usb; then
-	fail_stage 'USB recovery transport failed' usb 110
 fi
 if ! verify_physical_storage_read_only ||
 	! verify_ufs_power_containment; then

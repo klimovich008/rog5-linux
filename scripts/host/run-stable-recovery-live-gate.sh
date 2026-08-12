@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		persistent-root-storage-read-v1-live-v1 | \
+		persistent-root-storage-read-v2-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1470,10 +1470,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-storage-read-v1-live-v1)
-		expected_boot_image=build/persistent-root-storage-read-v1-generation22-20260812-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 22 AVB wrapper; one RAM-only use only; never flash'
+	persistent-root-storage-read-v2-live-v1)
+		expected_boot_image=build/persistent-root-storage-read-v2-generation23-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact early-USB-observable read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted early-USB-observable read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 23 AVB wrapper; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
@@ -1482,19 +1482,19 @@ case $profile in
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
 		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
-		expected_target_id=persistent-root-storage-read-v1
-		expected_bundle=persistent-root-storage-read-v1
+		expected_target_id=persistent-root-storage-read-v2
+		expected_bundle=persistent-root-storage-read-v2
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gcfd385a1c754
-		expected_avb_salt=32162608c697fa48491b41662fac24c7364e5518811b68bb324a43f0f1db3df7
-		expected_avb_digest=600dd1871a75d5a887153153e8ca6dad30350283cc006f8306a15079a07ee650
-		expected_generation_record=7d060b39de11e6fe8ea7b8591ce895ef9cd9c31610b16536883111cc1e53bf81
+		expected_avb_salt=7aacf7b3e20e4ae0662848721421695c3c209e1aa3526c37c199b351479f1a7a
+		expected_avb_digest=d1cd8479582f1b79130e4082bd48dbf47269c4a3a66efbf696f5ef19381009c3
+		expected_generation_record=6330b2d443d8cfcba3df10ef1dc8ee73db2abf45855eed26248e11b44a5d5344
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753 ]] ||
+			4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567 ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649 ]] ||
+			ac508ef9bb4c04274da77d853b51705f41800256969ca6f578288cefaa754502 ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1544,7 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	persistent-root-storage-read-v1-live-v1 | \
+	persistent-root-storage-read-v2-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)

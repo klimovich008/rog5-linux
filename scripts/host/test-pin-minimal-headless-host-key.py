@@ -297,6 +297,24 @@ class HostKeyBootstrapTest(unittest.TestCase):
             ):
                 MODULE.wait_for_target("pci0000:00/usb1/1-2")
 
+    def test_wait_for_target_stops_when_exact_fallback_returns(self) -> None:
+        self.fixture.install_target(product="ROG Phone 5 Linux Server")
+        with (
+            self.fixture.patches(),
+            mock.patch.object(MODULE, "TARGET_WAIT_SECONDS", 1),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.1, 2.0),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+        ):
+            with self.assertRaisesRegex(
+                MODULE.BootstrapError,
+                "Alpine fallback returned before target SSH",
+            ):
+                MODULE.wait_for_target("pci0000:00/usb1/1-2")
+
     def test_anchor_rejects_stale_boot_wrong_order_and_unsafe_metadata(
         self,
     ) -> None:

@@ -184,7 +184,21 @@ publication, and an independent post-publication whole-tree verification.
 archive was removed after verification. Alpine remained online and no root
 was selected or booted.
 
-### Gate P2 — UFS read-only Arch boot (offline-ready; live rejected/HOLD)
+### Gate P2 — UFS read-only Arch boot (Generation 23 offline-ready)
+
+The 2026-08-12 Generation-22 cycle completed signed recovery transfer and
+COMMIT, but the target never exposed its `ROG5 persistent root` USB identity.
+Exact Alpine returned after a 25.255-second USB blackout. This proves neither
+that UFS failed nor that the target kernel panicked; a temporary pstore mount
+was empty and therefore inconclusive. Generation 22 is consumed and absent
+from boot policy.
+
+Generation 23 keeps the same Linux 7.1.4 Image, UFS DTB, read-only storage
+contract, 600-second rollback, and sealed Arch root. Its initramfs binds exact
+NCM immediately after arming rollback and before UFS discovery. The next
+RAM-only run can therefore distinguish failure before initramfs USB setup from
+a later UFS power, topology, lock, userdata, inventory, mount, seal, or systemd
+gate. It does not write the phone and does not create the bounded local image.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
