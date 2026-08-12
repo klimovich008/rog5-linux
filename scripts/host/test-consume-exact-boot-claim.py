@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "headless-core-deployment-v1-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=headless-core-deployment-v1-live-v1\n"
+            b"candidate=headless-core-network-root-v2\n"
+            b"manifest_sha256="
+            b"f3884e6554f3d2c1bb437c45484f658817c006185d6c84a5ac4ef452b01bc02f\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile="

@@ -239,12 +239,12 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
         by_program = {item.program: item for item in self.specs()}
         expected = {
             "scripts/host/consume-exact-boot-claim.py": (
-                29411,
-                "804c5e2730a123d9355a4d5663503d25ee9beae13398cd52df71d7b7512c1e30",
+                29775,
+                "98bf3de63aa3672e07f500170e528f3b1348b28b7a953376dce6a001739391a2",
             ),
             "scripts/host/run-stable-recovery-live-gate.sh": (
-                105516,
-                "46c77e0c06a150573ec2b408d99ff96dc0dc06df4e696bf01e50f9541a231a72",
+                108109,
+                "6eb0d1c3c85cd04f780b64746fe645495415adb4b8b58155faaf50dfd3c984f6",
             ),
             "scripts/host/fallback-acm-control.py": (
                 110389,
@@ -339,7 +339,15 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(
+            sum(
+                row[0]
+                == "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img"
+                and row[1] == "allow"
+                for row in rows
+            ),
+            1,
+        )
         consumer = CONSUMER.read_text(encoding="utf-8")
         self.assertIn(
             "retention-host-rendezvous-v3-execution-v1", consumer

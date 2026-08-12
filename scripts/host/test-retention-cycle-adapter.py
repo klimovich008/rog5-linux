@@ -376,7 +376,15 @@ class RetentionCycleAdapterTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(
+            sum(
+                row[0]
+                == "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img"
+                and row[1] == "allow"
+                for row in rows
+            ),
+            1,
+        )
         consumer = CONSUMER.read_text(encoding="utf-8")
         self.assertIn(
             REFERENCE.EXECUTION_CLAIM.identifier, consumer

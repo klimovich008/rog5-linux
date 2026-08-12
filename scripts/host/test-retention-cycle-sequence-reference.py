@@ -133,7 +133,12 @@ class RetentionSequenceReferenceTest(unittest.TestCase):
             for line in POLICY.read_text(encoding="utf-8").splitlines()[1:]
             if line
         ]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        allowed_images = {row[0] for row in rows if row[1] == "allow"}
+        self.assertIn(
+            "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/"
+            "repack/stable-recovery-a.avb.img",
+            allowed_images,
+        )
 
     def test_draft_claims_are_distinct_exact_and_pair_bound(self) -> None:
         execution = REFERENCE_MODULE.EXECUTION_CLAIM

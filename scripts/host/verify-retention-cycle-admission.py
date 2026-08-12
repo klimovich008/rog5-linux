@@ -55,6 +55,14 @@ EXPECTED_CLAIMS = {
         "headless-diagnostic-generation12-live-v1",
     )
 }
+EXPECTED_CLAIMS["headless-core-deployment-v1-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=headless-core-deployment-v1-live-v1\n"
+    "candidate=headless-core-network-root-v2\n"
+    "manifest_sha256="
+    "f3884e6554f3d2c1bb437c45484f658817c006185d6c84a5ac4ef452b01bc02f\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v2"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v2\n"
@@ -372,7 +380,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "26844046e74bf1f6361a149c042a5f46c4451ca1dec45bb0ef260833ac3834b7",
+    "sha256": "5aa6a8bb2d098de048fb069933d8dc229631af2655d3ca78c8efebe99e8a2e85",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -400,7 +408,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "26844046e74bf1f6361a149c042a5f46c4451ca1dec45bb0ef260833ac3834b7",
+    "executor_contract_sha256": "5aa6a8bb2d098de048fb069933d8dc229631af2655d3ca78c8efebe99e8a2e85",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
