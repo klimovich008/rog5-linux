@@ -15,6 +15,7 @@ import sys
 import tempfile
 import textwrap
 import time
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -1818,6 +1819,38 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     MOCK_UDEV_MODEL=model,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_networkmanager_classification_gap_is_retryable(self):
+        dependencies = SimpleNamespace(
+            sys_class_net=self.fixture.sys_class_net,
+            udevadm=Path("/usr/bin/udevadm"),
+            ip=Path("/usr/bin/ip"),
+            firewall=Path("/usr/bin/firewall-cmd"),
+            nmcli=Path("/usr/bin/nmcli"),
+        )
+        cycle = object.__new__(CYCLE.LiveCycle)
+        cycle.dependencies = dependencies
+        results = (
+            subprocess.CompletedProcess(
+                (),
+                0,
+                "ID_VENDOR_ID=1d6b\nID_MODEL_ID=0104\n"
+                "ID_NET_DRIVER=cdc_ncm\nID_MODEL=ROG_Phone_5_Linux_Server\n",
+                "",
+            ),
+            subprocess.CompletedProcess(
+                (),
+                0,
+                "9: usbmock0 inet 169.254.77.1/30 scope global usbmock0\n",
+                "",
+            ),
+            subprocess.CompletedProcess((), 0, "trusted\n", ""),
+            subprocess.CompletedProcess((), 10, "", ""),
+            subprocess.CompletedProcess((), 10, "", ""),
+        )
+        with mock.patch.object(CYCLE, "run_capture", side_effect=results):
+            with self.assertRaises(CYCLE.HostIdentityObservationError):
+                cycle.rog5_ncm_interfaces(deadline=time.monotonic() + 5)
 
     def test_production_cleanup_uses_privileged_export_proof(self):
         with mock.patch.dict(

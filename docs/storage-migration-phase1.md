@@ -130,6 +130,11 @@ offset, and re-parsed all headers, CRCs, GUIDs, and 109 entries. All seven
 passed. This proves backup consistency and GPT placement logic; it is not a
 phone restore and does not authorize one.
 
+The authoritative v3 inventory and all retained backup objects were
+re-verified again before Generation 26 work: 14 GPT ranges, 107 partition
+images, and 4,601,434,112 bytes passed in 6.600 seconds, including all seven
+offline GPT restoration rehearsals.
+
 A future restore must:
 
 1. enter the verified recovery path and collect a fresh read-only inventory;

@@ -169,6 +169,7 @@ shared_tests=(
 	scripts/host/test-stage-recovery-deployment-signing-inputs.py
 	scripts/host/test-preflight-headless-ssh-successor-candidate.py
 	scripts/device/test-recovery-candidate-dtb-contract.sh
+	scripts/device/test-ufs-rmtfs-reserved-candidate-dtb.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh

@@ -208,16 +208,24 @@ showed no target USB before exact Alpine returned after 25.567 seconds, so the
 earlier command-line-ordering explanation is disproven. Generation 24 is
 consumed and absent from boot policy.
 
-Generation 25 is the next discriminator. The reconstructed historical
-Clang-18 environment reproduces the live-passing read-only UFS source, config,
-release, and compiled guards; compared with the failing persistent-root
-config, the only functional Kconfig delta is `CONFIG_OVERLAY_FS=m` versus `y`.
-Its clean twins have a new binary identity rather than the pruned historical
-Image hash. Generation 24's DTB, initramfs, USB identity, and read-only storage
-behavior remain unchanged; one-use bundle/AVB identity fields necessarily
-rotate. This cycle can prove whether the failing boundary follows the Image
-before any local-image write is attempted. See the
-[offline result](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md).
+Generation 25 substituted the reconstructed historically accepted UFS Image
+while retaining Generation 24's DTB, initramfs, USB identity, and read-only
+storage behavior. Its sole cycle still produced no target USB and exact Alpine
+returned after 25.038 seconds. It obtained no UFS inventory and performed no
+authorized storage write. Generation 25 is consumed and absent from active
+boot policy. See the [offline](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md)
+and [live](../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
+results.
+
+Generation 26 tests one coherent UFS-specific memory-ownership difference.
+The retained historically live-passing UFS DTB reserves the 4 MiB
+`qcom,rmtfs-mem` range at `0x9b800000`; the failing persistent DTB disables
+that node while its command line assigns the same range to ramoops. A one-
+property DT transform restores the reservation, and the persistent-only
+verified command line omits ramoops. Network-root profiles retain ramoops.
+Generation 20's successful boot used the disabled node plus ramoops, so the
+overlap is not a proven general root cause; this remains a bounded
+discriminator before any local-image write is attempted.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
