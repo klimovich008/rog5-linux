@@ -111,6 +111,77 @@ class CheckpointInputTests(unittest.TestCase):
                 self.assertNotEqual(source.stat().st_ino, destination.stat().st_ino)
                 destination.unlink()
 
+    def test_exact_tracked_input_is_verified_in_place(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"reviewed tracked release input\n"
+                relative = f"artifacts/fixture/{launcher.stem}.dtb"
+                self.source(relative, payload)
+                destination = self.snapshot / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+                destination.chmod(0o644)
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "-c",
+                        "user.name=ROG5 Test",
+                        "-c",
+                        "user.email=rog5-test@example.invalid",
+                        "add",
+                        "-f",
+                        relative,
+                    ],
+                    check=True,
+                )
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "-c",
+                        "user.name=ROG5 Test",
+                        "-c",
+                        "user.email=rog5-test@example.invalid",
+                        "commit",
+                        "-q",
+                        "-m",
+                        "tracked fixture",
+                    ],
+                    check=True,
+                )
+                inode = destination.stat().st_ino
+                module.stage_checkpoint_inputs(
+                    self.repository,
+                    self.snapshot,
+                    (self.contract(relative, payload),),
+                )
+                self.assertEqual(destination.stat().st_ino, inode)
+                self.assertEqual(destination.read_bytes(), payload)
+                destination.write_bytes(b"wrong tracked bytes\n")
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository,
+                        self.snapshot,
+                        (self.contract(relative, payload),),
+                    )
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "checkout",
+                        "--",
+                        relative,
+                    ],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
     def test_missing_symlink_wrong_mode_hash_and_occupied_output_fail(self) -> None:
         for launcher in LAUNCHERS:
             with self.subTest(launcher=launcher.name):
