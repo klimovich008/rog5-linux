@@ -319,9 +319,17 @@ Generation 36 reuses the exact Generation 35 Image and UFS-enabled DTB. Its
 diagnostic-only SM8350 branch advances through the legacy-binding decision and
 `qmp_ufs_parse_dt`, which maps the PHY MMIO resources, then returns before
 clock-provider registration, PHY creation, or provider registration. UFS core,
-platform, and host modules remain absent, so the cycle cannot enumerate or
-access storage. A passing control window clears DT binding selection and MMIO
-resource mapping; an equivalent early loss isolates that newly added boundary.
+platform, and host modules remained absent. Its sole cycle preserved NCM for
+the full 12.294-second control window and returned to exact Alpine, clearing DT
+binding selection and MMIO resource mapping. Generation 36 is consumed and
+must never be retried.
+
+Generation 37 advances the same diagnostic-only SM8350 branch through
+`qmp_ufs_register_clocks`, then returns before `devm_phy_create`, PHY private
+data setup, or OF PHY provider registration. UFS core, platform, and host
+modules remain absent, so the cycle cannot enumerate or access storage. A
+passing control window clears QMP-UFS clock-provider registration; an early
+loss isolates that newly added boundary.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
