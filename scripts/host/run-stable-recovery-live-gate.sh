@@ -142,6 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
+		persistent-root-storage-read-v1-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -179,6 +180,8 @@ expected_initramfs=
 expected_target_id=
 expected_bundle=
 expected_bundle_profile=network-root-v1
+expected_target_release=7.1.4-g7a5cef0db479
+expected_target_timeout=480
 initramfs_contract=
 initramfs_verifier_expected=
 recovery_init=-
@@ -1467,6 +1470,45 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-storage-read-v1-live-v1)
+		expected_boot_image=build/persistent-root-storage-read-v1-generation22-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted read-only UFS persistent Arch recovery; clean-twin signed bundle and byte-distinct Generation 22 AVB wrapper; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
+		expected_raw=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff
+		expected_initramfs=d9a3fba43abf0c3e456feb2e7f9da5e043df1e7cdef2e33112e0313358ae98d8
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
+		expected_target_id=persistent-root-storage-read-v1
+		expected_bundle=persistent-root-storage-read-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gcfd385a1c754
+		expected_avb_salt=32162608c697fa48491b41662fac24c7364e5518811b68bb324a43f0f1db3df7
+		expected_avb_digest=600dd1871a75d5a887153153e8ca6dad30350283cc006f8306a15079a07ee650
+		expected_generation_record=7d060b39de11e6fe8ea7b8591ce895ef9cd9c31610b16536883111cc1e53bf81
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753 ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649 ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
@@ -1502,6 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
+	persistent-root-storage-read-v1-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)
@@ -1767,8 +1810,8 @@ grep -Fxq "bundle=$bundle" <<<"$verified_plan"
 grep -Fxq "manifest_sha256=$expected_manifest" <<<"$verified_plan"
 grep -Fxq "profile=$expected_bundle_profile" <<<"$verified_plan"
 grep -Fxq "target_id=$expected_target_id" <<<"$verified_plan"
-grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$verified_plan"
-grep -Fxq 'target_timeout=480' <<<"$verified_plan"
+grep -Fxq "target_release=$expected_target_release" <<<"$verified_plan"
+grep -Fxq "target_timeout=$expected_target_timeout" <<<"$verified_plan"
 
 check_hash "$avbtool" \
 	6418646bb5bf3c57c3c702bfd1e157917e59f9ce25c3c81bcce79d85655e56ff

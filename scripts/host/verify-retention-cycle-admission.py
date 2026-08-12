@@ -63,6 +63,14 @@ EXPECTED_CLAIMS["headless-core-deployment-v1-live-v1"] = (
     "f3884e6554f3d2c1bb437c45484f658817c006185d6c84a5ac4ef452b01bc02f\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-storage-read-v1-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-storage-read-v1-live-v1\n"
+    "candidate=persistent-root-storage-read-v1\n"
+    "manifest_sha256="
+    "f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v2"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v2\n"
@@ -380,7 +388,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "5aa6a8bb2d098de048fb069933d8dc229631af2655d3ca78c8efebe99e8a2e85",
+    "sha256": "b2f9705bf313a2ddc1ce5a0be1bfac2050da998e501f622abf5edcec455a0786",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -408,7 +416,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "5aa6a8bb2d098de048fb069933d8dc229631af2655d3ca78c8efebe99e8a2e85",
+    "executor_contract_sha256": "b2f9705bf313a2ddc1ce5a0be1bfac2050da998e501f622abf5edcec455a0786",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2135,20 +2143,25 @@ def verify_policy(
 ) -> int:
     expected_allows = {
         (
-            "build/host-rendezvous-v10-observer-production-20260811-r1/"
-            "wrapper/repack/stable-recovery-a.avb.img",
-            "one exact retention-observed diagnostic execution "
-            "recovery; "
-            "RAM-only; externally "
-            "consumed exact claim required; never flash or retry after entry",
-        ),
-        (
-            "build/observation-recovery-kmsg-live-20260811-r1/"
-            "repack/stable-recovery-a.avb.img",
-            "one corrected observation-only recovery with exact /dev/kmsg "
-            "materialization; RAM-only; "
+            "build/observation-recovery-mainline-udc-v11-generation10-"
+            "20260811-r1/repack/stable-recovery-a.avb.img",
+            "one exact NFS-xattr retention observation recovery; RAM-only; "
             "externally consumed exact claim required; never flash or retry "
             "after entry",
+        ),
+        (
+            "build/headless-core-v21-generation21-20260812-r1/repack/"
+            "stable-recovery-a.avb.img",
+            "one exact headless-core Arch SSH recovery with power-key "
+            "indicator; RAM-only; externally consumed exact claim required; "
+            "never flash or retry after entry",
+        ),
+        (
+            "build/persistent-root-storage-read-v1-generation22-20260812-r1/"
+            "repack/stable-recovery-a.avb.img",
+            "one exact read-only UFS persistent Arch recovery; RAM-only; "
+            "externally "
+            "consumed exact claim required; never flash or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

@@ -8,8 +8,8 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown
-expected_base=df1d0cdb95513d7ef6d772a3a6165d37b3b226682d92e30a2143409341bbefb1
-expected_verifier=6a67a4e0d228efab0d0e47ee4c5d6947af3df157e8110c6bf9c7444c1b4e71dd
+expected_base=819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5
+expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 epoch=1681862400
 
 for path in "$init" "$attest" "$shutdown"; do
@@ -33,16 +33,20 @@ done
 }
 
 readelf -h "$verifier" | grep -q 'Machine:.*AArch64'
-[ "$(readelf -d "$verifier" |
-	sed -n 's/.*Shared library: \[\(.*\)\]/\1/p')" = \
-	libc.musl-aarch64.so.1 ]
-readelf -l "$verifier" |
-	grep -Fq '[Requesting program interpreter: /lib/ld-musl-aarch64.so.1]'
+! readelf -d "$verifier" | grep -q '(NEEDED)'
+! readelf -l "$verifier" | grep -q 'Requesting program interpreter'
 
 stage=$(mktemp -d)
 trap 'rm -rf -- "$stage"' EXIT HUP INT TERM
 gzip -dc "$base" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
+[ -x "$stage/sbin/persistent-root-verify" ] &&
+	[ "$(sha256sum "$stage/sbin/persistent-root-verify" | cut -d ' ' -f 1)" = \
+		"$expected_verifier" ] &&
+	cmp "$stage/sbin/persistent-root-verify" "$verifier" || {
+	echo 'FAIL base and selected persistent-root verifier differ' >&2
+	exit 1
+}
 install -m 0755 "$init" "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$attest" \

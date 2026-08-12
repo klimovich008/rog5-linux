@@ -1,0 +1,732 @@
+#!/usr/bin/env python3
+"""Run one RAM-only, read-only-UFS persistent Arch lifecycle."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
+import time
+
+
+REPO = Path(__file__).resolve().parents[2]
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+CYCLE = load_module(
+    "rog5_shared_live_cycle",
+    REPO / "scripts/host/run-minimal-headless-live-cycle.py",
+)
+PIN = load_module(
+    "rog5_shared_host_key_pin",
+    REPO / "scripts/host/pin-minimal-headless-host-key.py",
+)
+
+PROFILE_ID = "persistent-root-storage-read-v1-live-v1"
+BUNDLE = "persistent-root-storage-read-v1"
+MANIFEST_SHA256 = (
+    "f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753"
+)
+RECOVERY_SHA256 = (
+    "9a7c97dd087f52585d69071b13632c195c5da47505f2b3f910faccbc324c9649"
+)
+TRUST_KEY_SHA256 = (
+    "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
+)
+HOST_VERIFIER_SHA256 = (
+    "03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0"
+)
+TARGET_RELEASE = "7.1.4-gcfd385a1c754"
+TARGET_PRODUCT = "ROG5 persistent root"
+TARGET_UDEV_MODEL = "ROG5_persistent_root"
+HOST_PROFILE = "rog5-fallback-usb-ssh"
+LIVE_ROOT = (
+    REPO
+    / "build/persistent-root-storage-read-v1-generation22-20260812-r1"
+)
+COMPONENT_ROOT = REPO / "build/headless-core-v21-production-20260812-r1/recovery"
+TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
+BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
+TARGET_WAIT_SECONDS = 450
+FALLBACK_TIMEOUT_SECONDS = 900
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+BOOT_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
+)
+
+PROFILE = CYCLE.CycleProfile(
+    candidate=BUNDLE,
+    bundle=BUNDLE,
+    bundle_profile="persistent-root-ro-v1",
+    target_id=BUNDLE,
+    admission_profile="persistent-root-storage-read-v1",
+    recovery_profile=PROFILE_ID,
+    runtime_profile="persistent-root-storage-read-v1",
+    build_profile="persistent-root-storage-read-v1",
+    diagnostic=False,
+)
+
+RUNTIME_COMMAND = r"""
+set -eu
+i=0
+while [ ! -f /run/rog5-p2-ready ] && [ "$i" -lt 300 ]; do
+    i=$((i + 1))
+    sleep 0.5
+done
+[ -f /run/rog5-p2-ready ]
+printf '%s\n' 'format=rog5-persistent-root-live-evidence-v1'
+printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
+printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
+cat /run/rog5-p2-ready
+printf 'userdata_device='; cat /run/rog5-p2-userdata-device
+printf '%s\n' 'result=PASS'
+""".strip()
+
+DIAGNOSTIC_COMMAND = r"""
+set -eu
+printf '%s\n' '=== ready ==='
+cat /run/rog5-p2-ready
+printf '%s\n' '=== userdata ==='
+cat /run/rog5-p2-userdata-device
+printf '%s\n' '=== mounts ==='
+cat /proc/mounts
+printf '%s\n' '=== UFS inventory ==='
+cat /run/rog5-p2-ufs-inventory.tsv
+printf '%s\n' '=== initramfs verification ==='
+cat /run/rog5-p2-root-verification.txt
+printf '%s\n' '=== dmesg ==='
+dmesg
+""".strip()
+
+FALLBACK_DIAGNOSTIC_COMMAND = r"""
+set -eu
+printf '%s\n' '=== fallback dmesg tail ==='
+dmesg | tail -n 400
+printf '%s\n' '=== pstore ==='
+for root in /sys/fs/pstore /mnt/pstore; do
+    [ -d "$root" ] || continue
+    find "$root" -maxdepth 1 -type f -size -4194305c -print \
+        -exec sha256sum {} \; -exec sed -n '1,4000p' {} \;
+done
+printf '%s\n' '=== PMIC PON ==='
+for path in /sys/kernel/debug/pmic_pon/log \
+    /sys/kernel/debug/spmi/spmi-0/0-00/pon_reason; do
+    [ -f "$path" ] && { echo "$path"; cat "$path"; }
+done
+""".strip()
+
+
+class PersistentCycleError(RuntimeError):
+    """One bounded local-root lifecycle failed."""
+
+
+def fail(message: str) -> None:
+    raise PersistentCycleError(message)
+
+
+def exact_environment() -> dict[str, str]:
+    required = {
+        "FASTBOOT_SERIAL": os.environ.get("FASTBOOT_SERIAL", ""),
+        "ROG5_EXPECTED_USB_LOCATION": os.environ.get(
+            "ROG5_EXPECTED_USB_LOCATION", ""
+        ),
+    }
+    for name, value in required.items():
+        if not value:
+            fail(f"set {name} for the exact connected phone")
+    return CYCLE.child_environment(
+        LIVE_BUILD_ROOT=str(LIVE_ROOT),
+        RECOVERY_COMPONENT_ROOT=str(COMPONENT_ROOT),
+        TRUST_KEY=str(TRUST_KEY),
+        BUNDLE_ROOT=str(BUNDLE_ROOT),
+        BUNDLE=BUNDLE,
+        RECOVERY_SHA256=RECOVERY_SHA256,
+        TRUST_KEY_SHA256=TRUST_KEY_SHA256,
+        MANIFEST_SHA256=MANIFEST_SHA256,
+        HOST_VERIFIER_SHA256=HOST_VERIFIER_SHA256,
+        ROG5_STABLE_RECOVERY_PROFILE=PROFILE_ID,
+        FASTBOOT_SERIAL=required["FASTBOOT_SERIAL"],
+        ROG5_EXPECTED_USB_LOCATION=required["ROG5_EXPECTED_USB_LOCATION"],
+    )
+
+
+def exact_inputs() -> CYCLE.Inputs:
+    ssh_key = CYCLE.caller_file(os.environ.get("SSH_KEY", ""), "SSH_KEY")
+    known_hosts = CYCLE.caller_file(
+        os.environ.get("FALLBACK_KNOWN_HOSTS", ""),
+        "FALLBACK_KNOWN_HOSTS",
+    )
+    evidence = CYCLE.caller_directory(os.environ.get("EVIDENCE_DIR", ""))
+    public_hash = os.environ.get("SSH_PUBLIC_KEY_SHA256", "")
+    if not SHA256.fullmatch(public_hash) or public_hash == "0" * 64:
+        fail("SSH_PUBLIC_KEY_SHA256 must be one nonzero lowercase SHA-256")
+    CYCLE.outside_repository(ssh_key, "SSH_KEY")
+    CYCLE.outside_repository(known_hosts, "FALLBACK_KNOWN_HOSTS")
+    CYCLE.outside_repository(evidence, "EVIDENCE_DIR")
+    if any(evidence.iterdir()):
+        fail("EVIDENCE_DIR must be empty for one exact lifecycle")
+    return CYCLE.Inputs(
+        manifest_sha256=MANIFEST_SHA256,
+        ssh_key=ssh_key,
+        ssh_public_key_sha256=public_hash,
+        root_package_sha256=MANIFEST_SHA256,
+        candidate_record=BUNDLE_ROOT / BUNDLE / "manifest",
+        candidate_sha256=RECOVERY_SHA256,
+        fallback_known_hosts=known_hosts,
+        evidence_dir=evidence,
+        fallback_timeout=FALLBACK_TIMEOUT_SECONDS,
+    )
+
+
+def require_file(path: Path, *, owner: int, modes: set[int]) -> None:
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise PersistentCycleError(f"required artifact is absent: {path}") from error
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or metadata.st_uid != owner
+        or stat.S_IMODE(metadata.st_mode) not in modes
+        or metadata.st_nlink != 1
+    ):
+        fail(f"required artifact metadata is unsafe: {path}")
+
+
+def verify_static_artifacts(inputs: CYCLE.Inputs) -> None:
+    for path in (LIVE_ROOT, COMPONENT_ROOT):
+        if not path.is_dir() or path.is_symlink():
+            fail(f"required ignored build root is absent: {path}")
+    require_file(TRUST_KEY, owner=os.geteuid(), modes={0o400, 0o444})
+    if hashlib.sha256(TRUST_KEY.read_bytes()).hexdigest() != TRUST_KEY_SHA256:
+        fail("recovery trust key identity changed")
+    require_file(
+        inputs.candidate_record,
+        owner=os.geteuid(),
+        modes={0o400},
+    )
+    if hashlib.sha256(inputs.candidate_record.read_bytes()).hexdigest() != (
+        MANIFEST_SHA256
+    ):
+        fail("installed persistent-root manifest identity changed")
+
+
+def ssh_arguments(inputs: CYCLE.Inputs, known_hosts: Path) -> list[str]:
+    return [
+        "/usr/bin/ssh",
+        "-i",
+        str(inputs.ssh_key),
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "PasswordAuthentication=no",
+        "-o",
+        "KbdInteractiveAuthentication=no",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        f"UserKnownHostsFile={known_hosts}",
+        "-o",
+        f"HostKeyAlias={PIN.HOST_ALIAS}",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=5",
+        "-o",
+        "ServerAliveCountMax=3",
+        f"root@{PIN.TARGET_ADDRESS}",
+    ]
+
+
+def privileged_nmcli(arguments: list[str]) -> None:
+    attempts = (["/usr/bin/nmcli", *arguments], ["/usr/bin/sudo", "-n", "/usr/bin/nmcli", *arguments])
+    diagnostics: list[str] = []
+    for command in attempts:
+        result = CYCLE.run_capture(command, timeout=30, check=False)
+        if result.returncode == 0:
+            return
+        final = next(
+            (line for line in reversed(result.stdout.splitlines()) if line.strip()),
+            f"status {result.returncode}",
+        )
+        diagnostics.append(final[:200])
+    fail("cannot activate the exact persistent-root host profile: " + " | ".join(diagnostics))
+
+
+def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
+    expected_location = CYCLE.read_recovery_anchor_location(
+        anchor, cycle.dependencies
+    )
+    deadline = time.monotonic() + TARGET_WAIT_SECONDS
+    last_error = "target gadget absent"
+    interface = ""
+    while time.monotonic() < deadline:
+        try:
+            observed_interface, location = PIN.target_observation(TARGET_PRODUCT)
+        except PIN.BootstrapError as error:
+            last_error = str(error)
+            time.sleep(cycle.poll)
+            continue
+        if location != expected_location:
+            fail("persistent-root target appeared on a different physical USB port")
+        interface = observed_interface
+        break
+    if not interface:
+        fail(f"persistent-root target NCM did not appear: {last_error}")
+
+    privileged_nmcli(["device", "set", interface, "managed", "yes"])
+    privileged_nmcli(
+        ["connection", "up", "id", HOST_PROFILE, "ifname", interface]
+    )
+
+    stable_since: float | None = None
+    while time.monotonic() < deadline:
+        if PIN.target_observation(TARGET_PRODUCT) != (
+            interface,
+            expected_location,
+        ):
+            fail("persistent-root USB identity changed after profile activation")
+        try:
+            PIN.exact_route(interface)
+        except PIN.BootstrapError as error:
+            last_error = str(error)
+            stable_since = None
+            time.sleep(cycle.poll)
+            continue
+        snapshots = [
+            value
+            for value in cycle.rog5_ncm_interfaces()
+            if value.name == interface and value.product == TARGET_UDEV_MODEL
+        ]
+        if (
+            len(snapshots) == 1
+            and snapshots[0].addresses == ("169.254.77.1/30",)
+            and snapshots[0].network_manager_managed == "yes"
+            and snapshots[0].firewall_zone != "drop"
+        ):
+            now = time.monotonic()
+            if stable_since is None:
+                stable_since = now
+            elif now - stable_since >= 1.0:
+                return interface
+        else:
+            stable_since = None
+        time.sleep(cycle.poll)
+    fail(f"persistent-root host network did not stabilize: {last_error}")
+
+
+def parse_runtime_evidence(path: Path) -> str:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("runtime evidence is unreadable") from error
+    required = {
+        "format=rog5-persistent-root-live-evidence-v1",
+        f"kernel={TARGET_RELEASE}",
+        "status=PASS",
+        "physical_blocks=116",
+        "block_backed_mounts=1",
+        "userdata_mount=ro-noload",
+        "root=overlay-tmpfs",
+        "blocked_device_queries=0",
+        "blocked_scsi_commands=0",
+        "journal_recovery_events=0",
+        "ufs_error_events=0",
+        "ssh=strict-key-only",
+        "result=PASS",
+    }
+    for marker in required:
+        if lines.count(marker) != 1:
+            fail(f"runtime evidence lacks one exact marker: {marker}")
+    boot_ids = [line.removeprefix("boot_id=") for line in lines if line.startswith("boot_id=")]
+    if len(boot_ids) != 1 or not BOOT_ID.fullmatch(boot_ids[0]):
+        fail("runtime evidence has no unique target boot identity")
+    userdata = [
+        line.removeprefix("userdata_device=")
+        for line in lines
+        if line.startswith("userdata_device=")
+    ]
+    if len(userdata) != 1 or not re.fullmatch(r"/dev/sd[a-z]23", userdata[0]):
+        fail("runtime evidence has no exact dynamic userdata identity")
+    return boot_ids[0]
+
+
+def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
+    descriptor = CYCLE.open_exclusive(path)
+    try:
+        result = subprocess.run(
+            arguments,
+            env=CYCLE.child_environment(),
+            stdin=subprocess.DEVNULL,
+            stdout=descriptor,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=timeout,
+        )
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    return result.returncode
+
+
+def preflight(
+    cycle: CYCLE.LiveCycle,
+    inputs: CYCLE.Inputs,
+    gate_environment: dict[str, str],
+) -> None:
+    CYCLE.verify_repository_checkpoint(cycle.dependencies.git)
+    for path in (
+        cycle.dependencies.git,
+        cycle.dependencies.ss,
+        cycle.dependencies.ip,
+        cycle.dependencies.nmcli,
+        cycle.dependencies.udevadm,
+        cycle.dependencies.firewall,
+        cycle.dependencies.live_gate,
+        cycle.dependencies.bundle_server,
+        cycle.dependencies.recovery_control,
+        cycle.dependencies.host_key,
+        cycle.dependencies.fallback,
+        REPO / "scripts/host/consume-exact-boot-claim.py",
+        Path("/usr/bin/ssh"),
+    ):
+        CYCLE.fixed_executable(path, offline=False)
+    verify_static_artifacts(inputs)
+    cycle.verify_host_clean()
+    CYCLE.run_capture(
+        [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],
+        timeout=60,
+    )
+    CYCLE.run_capture(
+        [str(cycle.dependencies.live_gate), "preflight"],
+        environment=gate_environment,
+        timeout=300,
+    )
+    CYCLE.run_capture(
+        [
+            str(cycle.dependencies.fallback),
+            "ssh-host-preflight",
+            str(inputs.fallback_known_hosts),
+            str(inputs.ssh_key),
+            inputs.ssh_public_key_sha256,
+            str(inputs.fallback_timeout),
+            str(CYCLE.FALLBACK_CONTACT_START_BUDGET_SECONDS),
+        ],
+        environment=CYCLE.child_environment(
+            ALLOW_FALLBACK_SSH_CONTROL="1",
+            ALLOW_PHONE_CREDENTIAL_USE="1",
+        ),
+        timeout=60,
+    )
+
+
+def capture_postmortem(
+    cycle: CYCLE.LiveCycle,
+    inputs: CYCLE.Inputs,
+    target_boot_id: str,
+) -> None:
+    postmortem = cycle.output("fallback-postmortem.record")
+    CYCLE.run_logged(
+        [
+            str(cycle.dependencies.fallback),
+            "capture-ssh-postmortem",
+            str(inputs.fallback_known_hosts),
+            str(inputs.ssh_key),
+            inputs.ssh_public_key_sha256,
+            str(cycle.output("recovery-usb.anchor")),
+            "300",
+            BUNDLE,
+            target_boot_id,
+            str(postmortem),
+        ],
+        cycle.output("fallback-postmortem.log"),
+        environment=CYCLE.child_environment(
+            ALLOW_FALLBACK_SSH_CONTROL="1",
+            ALLOW_FALLBACK_SSH_ATIME_EFFECTS="1",
+            ALLOW_PHONE_CREDENTIAL_USE="1",
+        ),
+        timeout=420,
+    )
+    CYCLE.verify_fallback_postmortem_evidence(
+        postmortem,
+        cycle.output("recovery-usb.anchor"),
+        BUNDLE,
+        target_boot_id,
+        cycle.dependencies,
+    )
+
+
+def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str, str]) -> None:
+    anchor = cycle.output("recovery-usb.anchor")
+    target_known_hosts = cycle.output("target-known-hosts")
+    bundle_process = None
+    control_process = None
+    intent = None
+    ledger_before: set[str] = set()
+    target_boot_id: str | None = None
+    target_accepted = False
+    fallback_attempted = False
+    resolved = False
+    control_attempted = False
+    boot_started = time.monotonic()
+
+    cycle.claim_temporary_boot()
+    CYCLE.run_logged(
+        [
+            str(REPO / "scripts/host/consume-exact-boot-claim.py"),
+            PROFILE_ID,
+        ],
+        cycle.output("boot-claim.log"),
+        timeout=30,
+    )
+    cycle.assert_temporary_boot_claim_entered()
+    try:
+        CYCLE.run_logged(
+            [str(cycle.dependencies.live_gate), "boot"],
+            cycle.output("stable-recovery-boot.log"),
+            environment={
+                **gate_environment,
+                "ALLOW_TEMPORARY_BOOT": "1",
+                "ALLOW_HEADLESS_LIVE_GATE": "1",
+                "ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE": "1",
+            },
+            timeout=300,
+        )
+        CYCLE.run_logged(
+            [str(cycle.dependencies.host_key), "capture-recovery", str(anchor)],
+            cycle.output("recovery-usb-anchor.log"),
+            environment=CYCLE.child_environment(
+                ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+            ),
+            timeout=120,
+        )
+        recovery_ncm = cycle.wait_recovery_ncm()
+
+        bundle_process = CYCLE.start_logged(
+            "persistent-root recovery bundle server",
+            [
+                str(cycle.dependencies.bundle_server),
+                "serve-progress-deferred",
+                BUNDLE,
+                MANIFEST_SHA256,
+                str(inputs.evidence_dir),
+            ],
+            cycle.output("bundle-server.log"),
+        )
+        CYCLE.wait_log_marker(
+            bundle_process,
+            "PASS recovery bundle server ready on 169.254.77.1:8080",
+            timeout=120,
+            poll=cycle.poll,
+        )
+        ledger_before = cycle.ledger_inventory()
+        control_attempted = True
+        control_process = CYCLE.start_logged(
+            "persistent-root recovery control",
+            [
+                str(cycle.dependencies.recovery_control),
+                "prepare-commit",
+                BUNDLE,
+                MANIFEST_SHA256,
+            ],
+            cycle.output("recovery-control.log"),
+            environment=CYCLE.child_environment(
+                ALLOW_STABLE_RECOVERY_CONTROL="1",
+                ALLOW_ATTENDED_KEXEC="1",
+            ),
+        )
+        cycle.wait_bundle(bundle_process, control_process)
+        bundle_process = None
+        cycle.wait_host_clean(recovery_ncm=recovery_ncm)
+        status = CYCLE.wait_process(control_process, cycle.control_timeout)
+        control_process = None
+        if status != 0:
+            intent = cycle.discover_unknown_intent(
+                cycle.output("recovery-control.log"), ledger_before
+            )
+            fail("stable recovery control rejected the persistent-root commit")
+        intent, _prepare_request = CYCLE.parse_control_log(
+            cycle.output("recovery-control.log"), MANIFEST_SHA256, BUNDLE
+        )
+        if cycle.new_ledger_intent(ledger_before) != intent:
+            fail("persistent-root control output lacks its durable intent")
+
+        interface = activate_target_network(cycle, anchor)
+        CYCLE.run_logged(
+            [
+                str(cycle.dependencies.host_key),
+                "pin-target",
+                str(anchor),
+                str(target_known_hosts),
+                TARGET_PRODUCT,
+            ],
+            cycle.output("target-host-key.log"),
+            environment=CYCLE.child_environment(
+                ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+            ),
+            timeout=TARGET_WAIT_SECONDS,
+        )
+        target_ssh = ssh_arguments(inputs, target_known_hosts)
+        CYCLE.run_logged(
+            [*target_ssh, RUNTIME_COMMAND],
+            cycle.output("persistent-root-runtime.log"),
+            timeout=180,
+        )
+        target_boot_id = parse_runtime_evidence(
+            cycle.output("persistent-root-runtime.log")
+        )
+        target_accepted = True
+        CYCLE.run_logged(
+            [*target_ssh, DIAGNOSTIC_COMMAND],
+            cycle.output("persistent-root-diagnostics.log"),
+            timeout=180,
+        )
+        elapsed = time.monotonic() - boot_started
+        CYCLE.write_record(
+            cycle.output("persistent-root-timing.record"),
+            (
+                ("format", "rog5-persistent-root-timing-v1"),
+                ("target_release", TARGET_RELEASE),
+                ("interface", interface),
+                ("seconds_to_accepted_ssh", f"{elapsed:.3f}"),
+                ("generation20_reference_seconds", "380"),
+                ("result", "PASS"),
+            ),
+        )
+
+        reboot_status = run_optional_logged(
+            [*target_ssh, "/usr/bin/systemctl reboot"],
+            cycle.output("persistent-root-reboot.log"),
+            60,
+        )
+        if reboot_status not in {0, 255}:
+            fail(f"target reboot returned unexpected status {reboot_status}")
+
+        fallback_attempted = True
+        fallback_boot_id = cycle.wait_fallback(None)
+        if fallback_boot_id == target_boot_id:
+            fail("fallback retained the persistent-root boot identity")
+        try:
+            capture_postmortem(cycle, inputs, target_boot_id)
+        except Exception as error:
+            print(f"WARN formal fallback postmortem was inconclusive: {error}")
+        run_optional_logged(
+            [
+                "/usr/bin/ssh",
+                "-i",
+                str(inputs.ssh_key),
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "IdentitiesOnly=yes",
+                "-o",
+                "PasswordAuthentication=no",
+                "-o",
+                "StrictHostKeyChecking=yes",
+                "-o",
+                f"UserKnownHostsFile={inputs.fallback_known_hosts}",
+                "-o",
+                "HostKeyAlias=rog5-fallback",
+                f"root@{PIN.TARGET_ADDRESS}",
+                FALLBACK_DIAGNOSTIC_COMMAND,
+            ],
+            cycle.output("fallback-raw-diagnostics.log"),
+            180,
+        )
+        cycle.wait_host_clean(final=True)
+        cycle.resolve_intent(intent, "TARGET_ACCEPTED")
+        resolved = True
+        print(
+            "PASS one RAM-only persistent-root cycle reached read-only UFS, "
+            f"local Arch, strict SSH in {elapsed:.3f}s, then exact Alpine fallback"
+        )
+    except BaseException as original:
+        if control_process is not None and control_process.process.poll() is not None and intent is None:
+            intent = cycle.discover_unknown_intent(
+                cycle.output("recovery-control.log"), ledger_before
+            )
+        CYCLE.terminate(control_process)
+        CYCLE.terminate(bundle_process)
+        recovery_note = ""
+        if anchor.exists() and not fallback_attempted:
+            try:
+                fallback_attempted = True
+                cycle.wait_fallback(None)
+                cycle.wait_host_clean(final=True)
+                recovery_note = "; exact Alpine fallback and host cleanup passed"
+            except BaseException as recovery_error:
+                recovery_note = f"; fallback proof failed: {recovery_error}"
+        if intent is None and control_attempted:
+            intent = cycle.discover_unknown_intent(
+                cycle.output("recovery-control.log"), ledger_before
+            )
+        if intent is not None and not resolved and fallback_attempted:
+            try:
+                cycle.resolve_intent(
+                    intent,
+                    "TARGET_ACCEPTED" if target_accepted else "FALLBACK_RETURNED",
+                )
+                resolved = True
+            except BaseException as resolve_error:
+                recovery_note += f"; intent resolution failed: {resolve_error}"
+        if isinstance(original, KeyboardInterrupt):
+            raise
+        raise PersistentCycleError(f"{original}{recovery_note}") from original
+    finally:
+        CYCLE.terminate(control_process)
+        CYCLE.terminate(bundle_process)
+        cycle.output("recovery-progress.stop").unlink(missing_ok=True)
+
+
+def main(arguments: list[str]) -> int:
+    if arguments not in (["preflight"], ["run"]):
+        fail("usage: run-persistent-root-storage-live-cycle.py preflight | run")
+    if arguments == ["run"] and os.environ.get(
+        "ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE"
+    ) != "1":
+        fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
+    dependencies = CYCLE.Dependencies.from_environment()
+    inputs = exact_inputs()
+    gate_environment = exact_environment()
+    cycle = CYCLE.LiveCycle(dependencies, inputs, PROFILE)
+    preflight(cycle, inputs, gate_environment)
+    if arguments == ["preflight"]:
+        print(
+            "PASS persistent-root storage lifecycle preflight; no claim was "
+            "created and no phone boot occurred"
+        )
+        return 0
+    run(cycle, inputs, gate_environment)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main(sys.argv[1:]))
+    except (
+        CYCLE.CycleError,
+        PIN.BootstrapError,
+        PersistentCycleError,
+        OSError,
+        subprocess.SubprocessError,
+        ValueError,
+    ) as error:
+        print(f"FAIL {error}", file=sys.stderr)
+        raise SystemExit(1)

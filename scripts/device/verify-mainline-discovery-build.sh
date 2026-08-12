@@ -10,6 +10,7 @@ meta=$output_dir/build-meta.txt
 config=$output_dir/.config
 image=$output_dir/arch/arm64/boot/Image
 image_gz=$output_dir/arch/arm64/boot/Image.gz
+verify_meta=$repo/scripts/device/verify-build-meta-hash.sh
 
 for file in "$meta" "$config" "$image" "$image_gz"; do
 	[ -s "$file" ] || { echo "FAIL missing $file" >&2; exit 1; }
@@ -20,20 +21,13 @@ grep -qx "patched_tree=$expected_tree" "$meta"
 grep -qx 'python_hash_seed=0' "$meta"
 grep -qx 'pahole_jobs=1' "$meta"
 
-check_recorded_hash() {
-	recorded_path=$1
-	actual_path=$2
-	expected=$(awk -v path="$recorded_path" '$2 == path { print $1 }' "$meta")
-	[ "$(printf '%s\n' "$expected" | awk 'NF { count++ } END { print count + 0 }')" -eq 1 ]
-	[ "$(sha256sum "$actual_path" | cut -d ' ' -f 1)" = "$expected" ]
-}
-check_recorded_hash /repo/configs/kernel/rog5-mainline.fragment \
+"$verify_meta" "$meta" /configs/kernel/rog5-mainline.fragment \
 	"$repo/configs/kernel/rog5-mainline.fragment"
-check_recorded_hash /repo/configs/kernel/rog5-ufs-discovery.fragment \
+"$verify_meta" "$meta" /configs/kernel/rog5-ufs-discovery.fragment \
 	"$repo/configs/kernel/rog5-ufs-discovery.fragment"
-check_recorded_hash /root/build/output/.config "$config"
-check_recorded_hash /root/build/output/arch/arm64/boot/Image "$image"
-check_recorded_hash /root/build/output/arch/arm64/boot/Image.gz "$image_gz"
+"$verify_meta" "$meta" /.config "$config"
+"$verify_meta" "$meta" /arch/arm64/boot/Image "$image"
+"$verify_meta" "$meta" /arch/arm64/boot/Image.gz "$image_gz"
 
 gzip -t "$image_gz"
 gzip -dc "$image_gz" | cmp - "$image"
