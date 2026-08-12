@@ -91,11 +91,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   This clears the persistent initramfs/configfs path and a payload-independent
   residual kexec state; the failure boundary is the changed target Image/DTB.
 
-- **Generation 28 is the current pre-UFS cross-pair.** It retains the
-  live-proven Generation 20 Image but substitutes Generation 25's UFS-enabled
-  persistent DTB. The same deliberate release mismatch keeps UFS unreachable.
-  Target NCM success isolates the UFS Image/config lineage; failure before NCM
-  implicates the DTB or one of its newly enabled hardware nodes.
+- **Generation 28 is consumed and passed its DTB cross-pair.** The live-proven
+  Generation 20 Image plus Generation 25's UFS-enabled DTB reached stable
+  target NCM in 59.723 seconds from lifecycle start. The deliberate release
+  mismatch then returned exact Alpine. No UFS or phone-storage access occurred.
+  Together with Generation 27, this clears the persistent DTB and its enabled
+  nodes when no UFS driver can bind; the remaining early regression follows
+  the UFS Image/config lineage.
+
+- **Generation 29 is the current no-storage Image control.** It combines the
+  rebuilt UFS Image from Generations 25/26 with Generation 20's live-proven
+  UFS-disabled DTB and the identical persistent initramfs. UFS cannot probe or
+  expose storage. Stable NCM means the failure requires active UFS probing;
+  another pre-NCM failure proves the rebuilt Image fails independently of UFS
+  hardware activation.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

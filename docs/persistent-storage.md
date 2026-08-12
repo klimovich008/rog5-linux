@@ -252,6 +252,21 @@ Image/config lineage rather than the persistent DTB. If NCM does not appear,
 the UFS-enabled DTB or one of its enabled hardware nodes is the discriminated
 boundary. Neither outcome permits userspace UFS access.
 
+Its sole live cycle reached stable target NCM in 59.723 seconds from lifecycle
+start, then the deliberate release mismatch returned exact Alpine. Generation
+28 is consumed and absent from active policy. The result exonerates the DTB
+and enabled-node description when paired with a kernel that has no UFS driver;
+it does not prove that active UFS probing is safe.
+
+Generation 29 completes the missing no-storage matrix cell. It uses the rebuilt
+UFS Image from Generations 25/26 with Generation 20's exact UFS-disabled DTB
+and the identical persistent initramfs. The Image release now matches the
+initramfs, but the disabled controller and PHY make UFS discovery impossible.
+Stable target NCM localizes the failure to interaction between the UFS Image
+and active UFS nodes. A pre-NCM failure instead proves that the rebuilt Image
+fails even when no UFS device can probe. Neither outcome mounts, reads, or
+writes phone storage.
+
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
 

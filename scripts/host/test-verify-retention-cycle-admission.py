@@ -450,10 +450,14 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "consumed by the sole Generation 27 RAM-only cycle; stable target "
             "NCM passed before exact Alpine fallback; never retry or flash\n"
             "build/persistent-root-dtb-control-v7-generation28-20260812-r1/"
+            "repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 28 RAM-only cycle; stable target "
+            "NCM passed before exact Alpine fallback; never retry or flash\n"
+            "build/persistent-root-image-control-v8-generation29-20260812-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact Generation 20 Image plus UFS-enabled DTB control "
-            "that stops before UFS; RAM-only; externally consumed exact "
-            "claim required; never flash or retry after entry\n"
+            "one exact UFS Image plus UFS-disabled DTB control with no storage "
+            "probe; RAM-only; externally consumed exact claim required; never "
+            "flash or retry after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)

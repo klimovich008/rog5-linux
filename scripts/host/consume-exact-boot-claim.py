@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "persistent-root-image-control-v8-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-root-image-control-v8-live-v1\n"
+        b"candidate=persistent-root-image-control-v8\n"
+        b"manifest_sha256="
+        b"c3cab07c75012941b103a9100e69298ef69de7aa4d73893d6d02ea4602f66f56\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-dtb-control-v7-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-dtb-control-v7-live-v1\n"
