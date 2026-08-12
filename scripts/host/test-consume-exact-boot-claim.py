@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-mmio-stage-v15-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-mmio-stage-v15-live-v1\n"
+            b"candidate=persistent-root-qmp-mmio-stage-v15\n"
+            b"manifest_sha256="
+            b"d81ff27520337a91e556018109173d4d14d9c38d0846639f2d056150fa39886d\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-qmp-regulator-stage-v14-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-qmp-regulator-stage-v14-live-v1\n"

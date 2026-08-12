@@ -172,6 +172,7 @@ shared_tests=(
 	scripts/device/test-ufs-rmtfs-reserved-candidate-dtb.sh
 	scripts/device/test-ufs-phy-disabled-control-dtb.sh
 	scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh
