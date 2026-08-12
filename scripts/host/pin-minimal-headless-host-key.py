@@ -32,6 +32,7 @@ RECOVERY_PRODUCT = "ROG5 recovery"
 TARGET_PRODUCT = "ROG5 network root"
 DIAGNOSTIC_TARGET_PRODUCT = "ROG5 diagnostic network root"
 PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"
+FALLBACK_PRODUCT = "ROG Phone 5 Linux Server"
 TARGET_PRODUCTS = frozenset(
     (TARGET_PRODUCT, DIAGNOSTIC_TARGET_PRODUCT, PERSISTENT_TARGET_PRODUCT)
 )
@@ -474,6 +475,16 @@ def target_observation(
     return matches[0]
 
 
+def fallback_returned(expected_location: str) -> bool:
+    try:
+        location = exact_product_location(FALLBACK_PRODUCT)
+    except BootstrapError:
+        return False
+    if location != expected_location:
+        fail("Alpine fallback appeared on a different physical USB port")
+    return True
+
+
 def wait_for_recovery() -> str:
     deadline = time.monotonic() + 5
     previous: str | None = None
@@ -506,6 +517,8 @@ def wait_for_target(
         try:
             current = target_observation(expected_product)
         except BootstrapError:
+            if fallback_returned(expected_location):
+                fail("Alpine fallback returned before target SSH was ready")
             previous = None
             stable_since = 0.0
         else:

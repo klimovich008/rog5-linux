@@ -44,6 +44,22 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   entries. UFS `sd*` names changed across boots and are forbidden as stable
   identity. See [storage migration Phase 1](storage-migration-phase1.md).
 
+- **Generation 22 is consumed and never reusable.** Its signed bundle and
+  correlated COMMIT completed, recovery USB disconnected, no `ROG5 persistent
+  root` USB product ever enumerated, and exact Alpine returned 25.255 seconds
+  later. The lifecycle then mislabeled that rapid return as a deferred-profile
+  cleanup failure. A temporary pstore mount contained no records; that remains
+  inconclusive. No target storage write occurred. See the
+  [live result](../test-results/2026-08-12-generation-22-persistent-root-storage-live.md).
+
+- **Generation 23 is the current unbooted storage successor.** It reuses the
+  unchanged clean-twin Linux 7.1.4 Image and UFS DTB, moves exact NCM setup to
+  immediately after the rollback watchdog and before UFS discovery, allows
+  post-COMMIT USB re-enumeration during host cleanup, and stops host-key waits
+  as soon as exact Alpine returns. It remains RAM-only and mounts physical
+  storage only `ro,noload`; no local image write is part of this cycle. See the
+  [offline result](../test-results/2026-08-12-generation-23-persistent-root-storage-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at
@@ -131,9 +147,9 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   read-only IIO contract is hostile-tested, but no driver, DT candidate,
   kernel build, phone boot, or hardware acceptance exists yet.
 
-These facts do not prove the corrected candidate on the phone.
+These facts do not prove the Generation-23 successor on the phone.
 
-## Critical-path HOLD
+## Critical-path history
 
 The guarded production builder's detached-checkpoint boundary is now
 [corrected offline](../test-results/2026-08-10-deployment-checkpoint-input-staging-offline.md).

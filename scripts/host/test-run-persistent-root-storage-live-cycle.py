@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-storage-read-v1-live-v1",
+            "persistent-root-storage-read-v2-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -133,6 +133,32 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             runner.call_args_list[1].args[0][:3],
             ["/usr/bin/sudo", "-n", "/usr/bin/nmcli"],
         )
+
+    def test_post_commit_cleanup_allows_recovery_usb_to_reenumerate(self) -> None:
+        cycle = SimpleNamespace(wait_host_clean=mock.Mock())
+        MODULE.wait_post_commit_host_cleanup(cycle)
+        cycle.wait_host_clean.assert_called_once_with()
+
+    def test_fallback_transition_is_classified_without_full_target_wait(self) -> None:
+        cycle = SimpleNamespace(
+            rog5_ncm_interfaces=mock.Mock(
+                return_value=(
+                    SimpleNamespace(product="ROG_Phone_5_Linux_Server"),
+                )
+            )
+        )
+        self.assertTrue(MODULE.alpine_fallback_is_present(cycle))
+
+    def test_ambiguous_fallback_transition_fails_closed(self) -> None:
+        fallback = SimpleNamespace(product="ROG_Phone_5_Linux_Server")
+        cycle = SimpleNamespace(
+            rog5_ncm_interfaces=mock.Mock(return_value=(fallback, fallback))
+        )
+        with self.assertRaisesRegex(
+            MODULE.PersistentCycleError,
+            "fallback USB identity is ambiguous",
+        ):
+            MODULE.alpine_fallback_is_present(cycle)
 
     def test_runner_contains_no_phone_storage_mutation_surface(self) -> None:
         source = MODULE_PATH.read_text()
