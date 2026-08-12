@@ -105,11 +105,13 @@ IDENTITY_FORMATS = {
     "rog5-headless-network-root-identity-v1": IDENTITY_KEYS_V1,
     "rog5-headless-network-root-identity-v2": IDENTITY_KEYS_V2,
     "rog5-headless-network-root-identity-v3": IDENTITY_KEYS_V3,
+    "rog5-headless-network-root-identity-v4": IDENTITY_KEYS_V3,
 }
 PACKAGE_FORMATS = {
     "rog5-headless-network-root-package-v1": PACKAGE_KEYS_V1,
     "rog5-headless-network-root-package-v2": PACKAGE_KEYS_V2,
     "rog5-headless-network-root-package-v3": PACKAGE_KEYS_V3,
+    "rog5-headless-network-root-package-v4": PACKAGE_KEYS_V3,
 }
 BUILD_FIELDS = {
     "headless-ssh-v1": (
@@ -135,6 +137,16 @@ BUILD_FIELDS = {
         "modules_sha256",
         "kernel_release",
         "authorized_key_fingerprint",
+    ),
+    "headless-core-v3": (
+        "profile",
+        "project_commit",
+        "rootfs_sha256",
+        "modules_sha256",
+        "kernel_release",
+        "authorized_key_fingerprint",
+        "indicator_sha256",
+        "indicator_policy",
     ),
 }
 COMMAND_FIELDS = OrderedDict(
@@ -566,11 +578,11 @@ def validate_build(
         fail("headless build identity changed")
     validate_hash(fields["rootfs_sha256"], "base rootfs hash")
     validate_hash(fields["modules_sha256"], "module archive hash")
-    if expected_profile == "headless-core-v2":
+    if expected_profile in ("headless-core-v2", "headless-core-v3"):
         validate_hash(fields["indicator_sha256"], "indicator hash")
         if fields["indicator_policy"] != "power-key-green-status-pulse-v1":
             fail("headless indicator policy changed")
-    elif expected_profile == "headless-ssh-v2":
+    if expected_profile in ("headless-ssh-v2", "headless-core-v3"):
         fingerprint = fields["authorized_key_fingerprint"]
         if (
             not SSH_SHA256.fullmatch(fingerprint)
@@ -636,6 +648,9 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
     elif format_name == "rog5-headless-network-root-identity-v3":
         expected_keys = IDENTITY_KEYS_V3
         expected_build_profile = "headless-ssh-v2"
+    elif format_name == "rog5-headless-network-root-identity-v4":
+        expected_keys = IDENTITY_KEYS_V3
+        expected_build_profile = "headless-core-v3"
     else:
         fail("headless network-root identity format changed")
     if (
@@ -648,6 +663,7 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
             in (
                 "rog5-headless-network-root-identity-v2",
                 "rog5-headless-network-root-identity-v3",
+                "rog5-headless-network-root-identity-v4",
             )
             and values["build_profile"] != expected_build_profile
         )
@@ -662,7 +678,10 @@ def validate_identity(values: OrderedDict[str, str]) -> None:
         "root_seal_sha256",
     ):
         validate_hash(values[name], name)
-    if format_name == "rog5-headless-network-root-identity-v3":
+    if format_name in (
+        "rog5-headless-network-root-identity-v3",
+        "rog5-headless-network-root-identity-v4",
+    ):
         if not SSH_SHA256.fullmatch(values["authorized_key_fingerprint"]):
             fail("authorized key fingerprint changed")
 
@@ -752,12 +771,17 @@ def prepare(
         "headless-ssh-v1": "rog5-headless-network-root-identity-v1",
         "headless-core-v2": "rog5-headless-network-root-identity-v2",
         "headless-ssh-v2": "rog5-headless-network-root-identity-v3",
+        "headless-core-v3": "rog5-headless-network-root-identity-v4",
     }
     values["format"] = formats[build_profile]
     values["profile"] = "network-root-v1"
-    if build_profile in ("headless-core-v2", "headless-ssh-v2"):
+    if build_profile in (
+        "headless-core-v2",
+        "headless-ssh-v2",
+        "headless-core-v3",
+    ):
         values["build_profile"] = build_profile
-    if build_profile == "headless-ssh-v2":
+    if build_profile in ("headless-ssh-v2", "headless-core-v3"):
         values["authorized_key_fingerprint"] = build[
             "authorized_key_fingerprint"
         ]
@@ -860,6 +884,9 @@ def validate_package(values: OrderedDict[str, str]) -> None:
     elif format_name == "rog5-headless-network-root-package-v3":
         expected_keys = PACKAGE_KEYS_V3
         expected_build_profile = "headless-ssh-v2"
+    elif format_name == "rog5-headless-network-root-package-v4":
+        expected_keys = PACKAGE_KEYS_V3
+        expected_build_profile = "headless-core-v3"
     else:
         fail("headless network-root package format changed")
     if (
@@ -872,6 +899,7 @@ def validate_package(values: OrderedDict[str, str]) -> None:
             in (
                 "rog5-headless-network-root-package-v2",
                 "rog5-headless-network-root-package-v3",
+                "rog5-headless-network-root-package-v4",
             )
             and values["build_profile"] != expected_build_profile
         )
@@ -891,7 +919,10 @@ def validate_package(values: OrderedDict[str, str]) -> None:
         "root_seal_sha256",
     ):
         validate_hash(values[name], name)
-    if format_name == "rog5-headless-network-root-package-v3":
+    if format_name in (
+        "rog5-headless-network-root-package-v3",
+        "rog5-headless-network-root-package-v4",
+    ):
         if not SSH_SHA256.fullmatch(values["authorized_key_fingerprint"]):
             fail("authorized key fingerprint changed")
 
@@ -933,7 +964,7 @@ def verify_root(
     build_profile = values.get("build_profile", "headless-ssh-v1")
     build = validate_build(root, owner, build_profile)
     if (
-        build_profile == "headless-ssh-v2"
+        build_profile in ("headless-ssh-v2", "headless-core-v3")
         and values["authorized_key_fingerprint"]
         != build["authorized_key_fingerprint"]
     ):

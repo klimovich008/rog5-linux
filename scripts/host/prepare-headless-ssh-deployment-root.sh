@@ -25,6 +25,15 @@ fixture_source=2abe8c533179da598c37939ff8ebb4667a243bd8140c2d497237e41fbea72e6a
 fixture_sealed=60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b
 fixture_tree=6f8a8f11bfb581bb52ca7d590141ce465b8d48d8f9f4577a076b7a37604a2fd5
 fixture_seal=f443a47c456b33d670e6efd4a2e20cff2bc72061e7661472694acfbba45c8d5a
+core_fixture_source=86e2b3bfdd057e9b7bb98963eb419c839641b63d8d21ec8d3bd84c5c1b8d18f1
+core_fixture_sealed=f8ec3bd739ab96b8559f20da4e971e4c01fadaec86f8610036c084cd78019f64
+core_fixture_tree=c00fbf419f64b41690aa66c9c5b627e78990b367be320f13b04ff1cf5e7af17d
+core_fixture_seal=96c9ff3584d65e21c0307cd065ca28babf8f9c3ad708034965c85e3788de1e22
+build_profile=${ROG5_DEPLOYMENT_BUILD_PROFILE:-headless-ssh-v2}
+case $build_profile in
+	headless-ssh-v2|headless-core-v3) ;;
+	*) fail 'deployment-root build profile is unsupported' ;;
+esac
 
 for command in bsdtar cmp cut dirname find git grep id install mktemp \
 	podman python3 realpath rm sed sha256sum stat; do
@@ -135,7 +144,7 @@ podman run --rm --network none \
 	python3 /workspace/repo/scripts/host/headless-network-root.py prepare \
 	/stage/root "$source_size" "$source_sha256" \
 	/workspace/repo/packaging/arch/rog5-headless-command-manifest \
-	/output/root.identity --build-profile headless-ssh-v2
+	/output/root.identity --build-profile "$build_profile"
 
 podman run --rm --network none \
 	--mount "type=volume,source=$stage_volume,target=/stage,readonly" \
@@ -157,7 +166,11 @@ for fixture in \
 	"$fixture_source" \
 	"$fixture_sealed" \
 	"$fixture_tree" \
-	"$fixture_seal"; do
+	"$fixture_seal" \
+	"$core_fixture_source" \
+	"$core_fixture_sealed" \
+	"$core_fixture_tree" \
+	"$core_fixture_seal"; do
 	! grep -Fq "$fixture" "$work/manifest" ||
 		fail 'deployment package retained a fixture identity'
 done
@@ -186,6 +199,7 @@ python3 "$publisher" --stage "$stage" --output "$output" \
 succeeded=1
 
 printf 'format=rog5-headless-ssh-deployment-root-v1\n'
+printf 'build_profile=%s\n' "$build_profile"
 printf 'source_archive_size=%s\n' "$source_size"
 printf 'source_archive_sha256=%s\n' "$source_sha256"
 sed -n \

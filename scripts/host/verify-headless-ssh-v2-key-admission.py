@@ -135,6 +135,34 @@ DIAGNOSTIC_EXPECTED_ARTIFACTS = {
         ),
     },
 }
+CORE_EXPECTED_ARTIFACTS = {
+    "Image": EXPECTED_ARTIFACTS["Image"],
+    "board.dtb": {
+        "path": (
+            "artifacts/buttons-indicator-v1/"
+            "sm8350-asus-rog-phone5-buttons-indicator.dtb"
+        ),
+        "size": 103554,
+        "sha256": (
+            "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d"
+        ),
+    },
+    "initramfs.cpio.gz": EXPECTED_ARTIFACTS["initramfs.cpio.gz"],
+}
+CORE_FIXTURE_IDENTITIES = {
+    "source_archive_sha256": (
+        "86e2b3bfdd057e9b7bb98963eb419c839641b63d8d21ec8d3bd84c5c1b8d18f1"
+    ),
+    "sealed_archive_sha256": (
+        "f8ec3bd739ab96b8559f20da4e971e4c01fadaec86f8610036c084cd78019f64"
+    ),
+    "root_tree_sha256": (
+        "c00fbf419f64b41690aa66c9c5b627e78990b367be320f13b04ff1cf5e7af17d"
+    ),
+    "root_seal_sha256": (
+        "96c9ff3584d65e21c0307cd065ca28babf8f9c3ad708034965c85e3788de1e22"
+    ),
+}
 MANIFEST_KEYS = (
     "format",
     "bundle",
@@ -249,6 +277,17 @@ DIAGNOSTIC_ADMISSION_PROFILE = AdmissionProfile(
     target_release=TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(DIAGNOSTIC_EXPECTED_ARTIFACTS),
 )
+CORE_ADMISSION_PROFILE = AdmissionProfile(
+    name="headless-core-live-v1",
+    candidate_id="headless-core-network-root-v2",
+    bundle_id="headless-core-network-root-v2-live-v1",
+    bundle_profile=PROFILE,
+    package_profile=PROFILE,
+    build_profile="headless-core-v3",
+    target_id="headless-core-network-root",
+    target_release=TARGET_RELEASE,
+    expected_artifacts=immutable_artifacts(CORE_EXPECTED_ARTIFACTS),
+)
 ADMISSION_PROFILES = MappingProxyType(
     {
         profile.name: profile
@@ -256,6 +295,7 @@ ADMISSION_PROFILES = MappingProxyType(
             DEPLOYMENT_ADMISSION_PROFILE,
             LEGACY_DIAGNOSTIC_ADMISSION_PROFILE,
             DIAGNOSTIC_ADMISSION_PROFILE,
+            CORE_ADMISSION_PROFILE,
         )
     }
 )
@@ -561,7 +601,11 @@ def verify(
 
     if (
         package["format"]
-        != "rog5-headless-network-root-package-v3"
+        != (
+            "rog5-headless-network-root-package-v4"
+            if profile is CORE_ADMISSION_PROFILE
+            else "rog5-headless-network-root-package-v3"
+        )
         or package["profile"] != profile.package_profile
         or package["build_profile"] != profile.build_profile
         or package["authorized_key_fingerprint"] != fingerprint
@@ -572,6 +616,10 @@ def verify(
         or package["sealed_archive_sha256"] == FIXTURE_SEALED_SHA256
         or package["root_tree_sha256"] == FIXTURE_TREE_SHA256
         or package["root_seal_sha256"] == FIXTURE_SEAL_SHA256
+        or any(
+            package[name] == value
+            for name, value in CORE_FIXTURE_IDENTITIES.items()
+        )
     ):
         fail("root package still carries a tracked fixture identity")
 

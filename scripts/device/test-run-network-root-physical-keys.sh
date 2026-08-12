@@ -97,6 +97,17 @@ run_gate() {
 		"$gate" "$@"
 }
 
+run_gate_armed() {
+	fixture=$1
+	shift
+	ALLOW_ROG5_PHYSICAL_KEYS=rog5-physical-keys-v1 \
+		ALLOW_ROG5_PHYSICAL_KEYS_ARMED_ROLLBACK=rog5-physical-keys-armed-rollback-v1 \
+		ROG5_PHYSICAL_KEYS_ROLLBACK_CONTRACT=armed-v1 \
+		ROG5_PHYSICAL_KEYS_TESTING=1 \
+		ROG5_PHYSICAL_KEYS_FIXTURE_ROOT=$fixture \
+		"$gate" "$@"
+}
+
 expect_failure() {
 	fixture=$1
 	expected=$2
@@ -116,6 +127,15 @@ grep -Fq 'exec 7<"$current_event"' "$gate" ||
 	fail 'target reader does not keep one evdev descriptor across press/release'
 grep -Fq '<&7' "$gate" ||
 	fail 'target reader does not consume the retained evdev descriptor'
+grep -Fq "fatal_pattern='(^|[^[:alnum:]_])" "$gate" ||
+	fail 'physical-key fatal matching is not token-delimited'
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog[[:space:]_-]+bite)([^[:alnum:]_]|$)'
+[ "$(printf '%s\n' 'dyndbg="file drivers/usb/* +p"' 'debug: enabled' |
+	grep -Ec "$fatal_pattern" || true)" = 0 ] ||
+	fail 'benign debug text matched a fatal token'
+[ "$(printf '%s\n' 'kernel: BUG: unable to continue' |
+	grep -Ec "$fatal_pattern" || true)" = 1 ] ||
+	fail 'real BUG token escaped fatal matching'
 if grep -Fq 'if="$current_event"' "$gate"; then
 	fail 'target reader reopens evdev between press and release'
 fi
@@ -166,8 +186,16 @@ baseline=$work/baseline
 make_fixture "$baseline"
 run_gate "$baseline" 180 >"$work/pass.log"
 grep -Fqx \
-	'PASS physical keys events=power:1/1,volume-down:1/1,volume-up:1/1 irq_deltas=2,2,2 wake_sources=power,volume-up resin_wake=off writes=0 suspend=0 backend=fixture' \
+	'PASS physical keys events=power:1/1,volume-down:1/1,volume-up:1/1 irq_deltas=2,2,2 wake_sources=power,volume-up resin_wake=off writes=0 suspend=0 rollback=disarmed-v1 backend=fixture' \
 	"$work/pass.log"
+
+armed=$work/armed
+cp -a -- "$baseline" "$armed"
+write_field "$armed" pre/watchdog_pid 1
+write_field "$armed" pre/watchdog_disarmed 0
+run_gate_armed "$armed" 45 >"$work/armed.log"
+grep -Fq 'rollback=armed-v1 backend=fixture' "$work/armed.log" ||
+	fail 'armed rollback physical-key contract did not pass'
 
 if ROG5_PHYSICAL_KEYS_TESTING=1 \
 	ROG5_PHYSICAL_KEYS_FIXTURE_ROOT=$baseline \

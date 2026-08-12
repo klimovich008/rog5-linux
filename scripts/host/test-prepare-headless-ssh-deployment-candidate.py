@@ -158,6 +158,23 @@ class DeploymentCandidateTest(unittest.TestCase):
         ):
             TOOL.candidate_record(self.values, "headless-ssh-unknown")
 
+    def test_core_v3_package_binds_the_fixed_core_successor(self) -> None:
+        self.values["format"] = "rog5-headless-network-root-package-v4"
+        self.values["build_profile"] = "headless-core-v3"
+        self.write_package()
+        record, output = TOOL.prepare(
+            self.package,
+            self.output,
+            TOOL.CORE_BUNDLE_ID,
+            TOOL.CORE_PROFILE,
+        )
+        self.assertEqual(output, self.output)
+        self.assertEqual(record["candidate"], TOOL.CORE_CANDIDATE_ID)
+        self.assertEqual(record["bundle"], TOOL.CORE_BUNDLE_ID)
+        self.assertEqual(record["target_id"], "headless-core-network-root")
+        for field in TOOL.ROOT_FIELDS:
+            self.assertEqual(str(record[field]), self.values[field])
+
     def test_successor_produces_a_distinct_signed_manifest(self) -> None:
         self.select_accepted_predecessor_root()
         repository, candidate_root = self.synthetic_candidate_repository()

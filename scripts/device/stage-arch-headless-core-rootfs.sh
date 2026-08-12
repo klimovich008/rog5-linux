@@ -4,6 +4,7 @@ trap 'echo "FAIL headless-core stage line=$LINENO command=$BASH_COMMAND" >&2' ER
 
 repo=${REPO:-/workspace/repo}
 indicator=${INDICATOR_BINARY:-/input/rog5-key-indicatord}
+core_profile=${HEADLESS_BUILD_PROFILE:-headless-core-v2}
 : "${INDICATOR_SHA256:?missing INDICATOR_SHA256}"
 : "${TARGET_KERNEL_RELEASE:?missing TARGET_KERNEL_RELEASE}"
 
@@ -11,7 +12,13 @@ indicator=${INDICATOR_BINARY:-/input/rog5-key-indicatord}
 [[ $(stat -c %s "$indicator") == 67520 ]]
 [[ $(sha256sum "$indicator" | cut -d' ' -f1) == "$INDICATOR_SHA256" ]]
 
-HEADLESS_BUILD_PROFILE=headless-ssh-v1 \
+case $core_profile in
+	headless-core-v2) base_profile=headless-ssh-v1 ;;
+	headless-core-v3) base_profile=headless-ssh-v2 ;;
+	*) echo "FAIL unsupported headless-core profile: $core_profile" >&2; exit 1 ;;
+esac
+
+HEADLESS_BUILD_PROFILE=$base_profile \
 	/bin/bash "$repo/scripts/device/stage-arch-headless-rootfs.sh"
 
 install -Dm0755 "$indicator" \
@@ -22,15 +29,15 @@ install -Dm0644 "$repo/packaging/arch/rog5-status-led.modules.conf" \
 	/etc/modules-load.d/rog5-status-led.conf
 systemctl enable rog5-key-indicator.service
 
-sed -i 's/^profile=headless-ssh-v1$/profile=headless-core-v2/' \
+sed -i "s/^profile=$base_profile$/profile=$core_profile/" \
 	/etc/rog5/build
-grep -Fqx 'profile=headless-core-v2' /etc/rog5/build
+grep -Fqx "profile=$core_profile" /etc/rog5/build
 cat >>/etc/rog5/build <<EOF
 indicator_sha256=$INDICATOR_SHA256
 indicator_policy=power-key-green-status-pulse-v1
 EOF
 
-EXPECTED_HEADLESS_PROFILE=headless-core-v2 \
+EXPECTED_HEADLESS_PROFILE=$core_profile \
 INDICATOR_SHA256=$INDICATOR_SHA256 \
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-headless-core-rootfs.sh"

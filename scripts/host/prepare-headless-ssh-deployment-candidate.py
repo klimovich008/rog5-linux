@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind one private v3 root package to an authority-free candidate record."""
+"""Bind one private deployment root package to an authority-free candidate."""
 
 from __future__ import annotations
 
@@ -20,10 +20,32 @@ CANDIDATE_PATH = REPO / "scripts/host/prepare-recovery-candidate.py"
 FIXTURE_PACKAGE_PATH = (
     REPO / "configs/network-roots/headless-ssh-network-root-v3.package"
 )
+CORE_FIXTURE_PACKAGE_PATH = (
+    REPO / "configs/network-roots/headless-core-network-root-v2.package"
+)
 CANDIDATE_ID = "headless-ssh-network-root-v3"
 BASE_BUNDLE_ID = "headless-ssh-network-root-v3"
 SUCCESSOR_BUNDLE_ID = "headless-ssh-network-root-v3-r2"
 ALLOWED_BUNDLES = {BASE_BUNDLE_ID, SUCCESSOR_BUNDLE_ID}
+CORE_CANDIDATE_ID = "headless-core-network-root-v2"
+CORE_BUNDLE_ID = "headless-core-network-root-v2-live-v1"
+CORE_PROFILE = "headless-core-live-v1"
+PROFILE_SPECS = {
+    "headless-ssh-r2": {
+        "candidate": CANDIDATE_ID,
+        "bundles": ALLOWED_BUNDLES,
+        "format": "rog5-headless-network-root-package-v3",
+        "build_profile": "headless-ssh-v2",
+        "fixture": FIXTURE_PACKAGE_PATH,
+    },
+    CORE_PROFILE: {
+        "candidate": CORE_CANDIDATE_ID,
+        "bundles": {CORE_BUNDLE_ID},
+        "format": "rog5-headless-network-root-package-v4",
+        "build_profile": "headless-core-v3",
+        "fixture": CORE_FIXTURE_PACKAGE_PATH,
+    },
+}
 ROOT_FIELDS = (
     "a660_command_manifest_sha256",
     "root_generation",
@@ -140,7 +162,17 @@ def readonly_input(path: Path, label: str) -> Path:
     return resolved
 
 
-def parse_package(path: Path) -> dict[str, str]:
+def resolve_profile(name: str) -> dict[str, Any]:
+    if name not in PROFILE_SPECS:
+        fail("deployment candidate profile is unsupported")
+    return PROFILE_SPECS[name]
+
+
+def parse_package(
+    path: Path,
+    profile_name: str = "headless-ssh-r2",
+) -> dict[str, str]:
+    profile = resolve_profile(profile_name)
     package_path = readonly_input(path, "deployment package")
     values = HEADLESS.parse_canonical_variant(
         package_path,
@@ -150,19 +182,19 @@ def parse_package(path: Path) -> dict[str, str]:
     )
     HEADLESS.validate_package(values)
     if (
-        values["format"] != "rog5-headless-network-root-package-v3"
+        values["format"] != profile["format"]
         or values["profile"] != "network-root-v1"
-        or values["build_profile"] != "headless-ssh-v2"
+        or values["build_profile"] != profile["build_profile"]
     ):
         fail("deployment package tuple is unsupported")
     fixture = HEADLESS.parse_canonical_variant(
-        FIXTURE_PACKAGE_PATH,
+        profile["fixture"],
         HEADLESS.PACKAGE_FORMATS,
-        owner=FIXTURE_PACKAGE_PATH.stat().st_uid,
-        mode=stat.S_IMODE(FIXTURE_PACKAGE_PATH.stat().st_mode),
+        owner=profile["fixture"].stat().st_uid,
+        mode=stat.S_IMODE(profile["fixture"].stat().st_mode),
     )
     for field in FIXTURE_FIELDS:
-        if values[field] == fixture[field]:
+        if field in fixture and values[field] == fixture[field]:
             fail("deployment package still carries a fixture identity")
     return dict(values)
 
@@ -170,21 +202,24 @@ def parse_package(path: Path) -> dict[str, str]:
 def candidate_record(
     package: dict[str, str],
     bundle: str = BASE_BUNDLE_ID,
+    profile_name: str = "headless-ssh-r2",
 ) -> dict[str, Any]:
-    if bundle not in ALLOWED_BUNDLES:
+    profile = resolve_profile(profile_name)
+    if bundle not in profile["bundles"]:
         fail("deployment bundle identity is unsupported")
-    template = CANDIDATE.load_candidate(CANDIDATE_ID)
+    candidate_id = profile["candidate"]
+    template = CANDIDATE.load_candidate(candidate_id)
     record = copy.deepcopy(template)
     record["bundle"] = bundle
     for field in ROOT_FIELDS:
         record[field] = package[field]
     validated = CANDIDATE.validate_candidate_record(
         record,
-        CANDIDATE_ID,
+        candidate_id,
     )
     return CANDIDATE.validate_external_candidate_record(
         validated,
-        CANDIDATE_ID,
+        candidate_id,
     )
 
 
@@ -254,9 +289,10 @@ def prepare(
     package_path: Path,
     output_path: Path,
     bundle: str = BASE_BUNDLE_ID,
+    profile_name: str = "headless-ssh-r2",
 ) -> tuple[dict[str, Any], Path]:
-    package = parse_package(package_path)
-    record = candidate_record(package, bundle)
+    package = parse_package(package_path, profile_name)
+    record = candidate_record(package, bundle, profile_name)
     output = write_candidate(output_path, canonical_payload(record))
     return record, output
 
@@ -267,8 +303,12 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
         "--bundle",
-        choices=sorted(ALLOWED_BUNDLES),
         required=True,
+    )
+    parser.add_argument(
+        "--deployment-profile",
+        choices=tuple(PROFILE_SPECS),
+        default="headless-ssh-r2",
     )
     return parser.parse_args(arguments)
 
@@ -283,6 +323,7 @@ def main(arguments: list[str] | None = None) -> int:
             options.package,
             options.output,
             options.bundle,
+            options.deployment_profile,
         )
     except (
         DeploymentCandidateError,

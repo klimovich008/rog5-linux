@@ -466,6 +466,9 @@ for token in \
 	'"ROG5_INTERNAL_REPOSITORY_COMMIT"' \
 	'"ROG5_DEPLOYMENT_BUILD": "1"' \
 	'headless-ssh-network-root-v3' \
+	'headless-core-network-root-v2' \
+	'headless-core-live-v1' \
+	'artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb' \
 	'headless-ssh-network-root'; do
 	grep -Fq -- "$token" "$wrapper" ||
 		fail "deployment-candidate wrapper omits token: $token"

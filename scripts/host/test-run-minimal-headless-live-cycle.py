@@ -1291,6 +1291,49 @@ class Fixture:
 
 
 class MinimalHeadlessLiveCycleTest(unittest.TestCase):
+    def test_core_profile_is_distinct_and_requires_core_v3_key_binding(self) -> None:
+        profile = CYCLE.CORE_CYCLE_PROFILE
+        self.assertEqual(profile.candidate, "headless-core-network-root-v2")
+        self.assertEqual(profile.bundle, "headless-core-network-root-v2-live-v1")
+        self.assertEqual(profile.build_profile, "headless-core-v3")
+        self.assertEqual(profile.runtime_profile, "headless-core-deployment-v1")
+        values = {
+            "format": "rog5-headless-ssh-v2-key-admission-v1",
+            "candidate": profile.candidate,
+            "bundle": profile.bundle,
+            "profile": profile.bundle_profile,
+            "build_profile": profile.build_profile,
+            "target_id": profile.target_id,
+            "authorized_key_fingerprint": "SHA256:" + "A" * 43,
+            "public_key_sha256": "1" * 64,
+            "package_sha256": "2" * 64,
+            "candidate_sha256": "3" * 64,
+            "manifest_sha256": "4" * 64,
+            "root_tree_sha256": "5" * 64,
+            "root_seal_sha256": "6" * 64,
+            "root_tree_entries": "37740",
+            "authority": "none",
+        }
+        payload = "".join(
+            f"{name}={values[name]}\n" for name in CYCLE.KEY_ADMISSION_FIELDS
+        )
+        parsed = CYCLE.parse_key_admission_record(
+            payload,
+            values["manifest_sha256"],
+            profile,
+        )
+        self.assertEqual(parsed["build_profile"], "headless-core-v3")
+        values["build_profile"] = "headless-ssh-v2"
+        payload = "".join(
+            f"{name}={values[name]}\n" for name in CYCLE.KEY_ADMISSION_FIELDS
+        )
+        with self.assertRaises(CYCLE.CycleError):
+            CYCLE.parse_key_admission_record(
+                payload,
+                values["manifest_sha256"],
+                profile,
+            )
+
     def setUp(self) -> None:
         self.fixture = Fixture()
 

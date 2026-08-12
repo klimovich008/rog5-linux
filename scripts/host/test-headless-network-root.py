@@ -121,6 +121,20 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             encoding="ascii",
         )
 
+    def write_core_v3_build(self) -> None:
+        self.write_ssh_v2_build()
+        path = self.root / "etc/rog5/build"
+        payload = path.read_text(encoding="ascii").replace(
+            "profile=headless-ssh-v2\n",
+            "profile=headless-core-v3\n",
+        )
+        path.write_text(
+            payload
+            + f"indicator_sha256={'d' * 64}\n"
+            + "indicator_policy=power-key-green-status-pulse-v1\n",
+            encoding="ascii",
+        )
+
     @staticmethod
     def write_fixed(path: Path, payload: bytes) -> None:
         if path.exists():
@@ -231,6 +245,40 @@ class HeadlessNetworkRootTest(unittest.TestCase):
             (self.root / TOOL.AUTHORIZED_KEYS_PATH).read_bytes(),
             FIXTURE_KEY,
         )
+
+    def test_headless_core_v3_binds_key_and_indicator_profile(self) -> None:
+        self.write_core_v3_build()
+        self.prepare_package("headless-core-v3")
+        values = TOOL.verify(
+            self.root,
+            self.archive,
+            self.package,
+            COMMAND,
+        )
+        self.assertEqual(
+            values["format"],
+            "rog5-headless-network-root-package-v4",
+        )
+        self.assertEqual(values["build_profile"], "headless-core-v3")
+        self.assertEqual(
+            values["authorized_key_fingerprint"],
+            FIXTURE_FINGERPRINT,
+        )
+        build = self.root / "etc/rog5/build"
+        payload = build.read_text(encoding="ascii")
+        build.write_text(
+            payload.replace(
+                "indicator_policy=power-key-green-status-pulse-v1",
+                "indicator_policy=changed",
+            ),
+            encoding="ascii",
+        )
+        with self.assertRaises(TOOL.HeadlessRootError):
+            TOOL.validate_build(
+                self.root,
+                self.root.stat().st_uid,
+                "headless-core-v3",
+            )
 
     def test_ssh_v2_rejects_key_build_and_package_mismatches(self) -> None:
         other_key = ed25519_key(0x5A)

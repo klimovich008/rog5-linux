@@ -46,6 +46,16 @@ case $generation in
 		indicator_required=1
 		expected_headless_profile=headless-core-v2
 		;;
+	headless-v3)
+		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
+		device_stage=scripts/device/stage-arch-headless-core-rootfs.sh
+		rootfs_verifier=/workspace/repo/scripts/device/verify-staged-arch-headless-core-rootfs.sh
+		default_output=$repo/artifacts/arch/rog5-arch-headless-core-v3-7.1.4.tar.gz
+		firmware_required=0
+		indicator_required=1
+		headless_build_profile=headless-core-v3
+		expected_headless_profile=headless-core-v3
+		;;
 	headless-ssh-v2)
 		stage_runner=/workspace/repo/scripts/device/run-arch-rootfs-stage.sh
 		device_stage=scripts/device/stage-arch-headless-rootfs.sh

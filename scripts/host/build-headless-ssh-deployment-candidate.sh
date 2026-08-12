@@ -33,6 +33,12 @@ IMPLEMENTATION_REPOSITORY_PATH = (
 )
 CHECKPOINT_INPUTS = (
     (
+        "artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb",
+        103554,
+        0o644,
+        "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d",
+    ),
+    (
         "artifacts/network-root-v1/Image-7.1.4-network-root",
         40049152,
         0o755,
@@ -531,6 +537,11 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--authorize-recovery-deployment-build", action="store_true")
     parser.add_argument("--authorize-phone-credential-use", action="store_true")
     parser.add_argument("--candidate-record", required=True)
+    parser.add_argument(
+        "--deployment-profile",
+        choices=("headless-ssh-r2", "headless-core-live-v1"),
+        default="headless-ssh-r2",
+    )
     parser.add_argument("--signing-key", required=True)
     parser.add_argument("--signing-input-preflight", action="store_true")
     parser.add_argument("output_root")
@@ -549,6 +560,18 @@ def main() -> None:
     repository, snapshot, checkpoint, implementation_fd = verified_implementation(
         stage_inputs=not arguments.signing_input_preflight,
     )
+    profile = {
+        "headless-ssh-r2": (
+            "headless-ssh-network-root-v3",
+            "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46",
+            "headless-ssh-network-root",
+        ),
+        "headless-core-live-v1": (
+            "headless-core-network-root-v2",
+            "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d",
+            "headless-core-network-root",
+        ),
+    }[arguments.deployment_profile]
     environment = {
         "PATH": "/usr/bin:/bin",
         "LC_ALL": "C",
@@ -564,11 +587,9 @@ def main() -> None:
         "ROG5_DEPLOYMENT_SIGNING_INPUT_PREFLIGHT": (
             "1" if arguments.signing_input_preflight else "0"
         ),
-        "ROG5_OFFLINE_CANDIDATE": "headless-ssh-network-root-v3",
-        "ROG5_OFFLINE_EXPECTED_DTB": (
-            "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
-        ),
-        "ROG5_OFFLINE_EXPECTED_TARGET": "headless-ssh-network-root",
+        "ROG5_OFFLINE_CANDIDATE": profile[0],
+        "ROG5_OFFLINE_EXPECTED_DTB": profile[1],
+        "ROG5_OFFLINE_EXPECTED_TARGET": profile[2],
     }
     try:
         os.execve(

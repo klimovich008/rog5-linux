@@ -25,6 +25,7 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
+CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"
 DIAGNOSTIC_RECOVERY_PROFILE = (
     "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"
 )
@@ -387,6 +388,8 @@ class CycleProfile:
     target_id: str
     admission_profile: str
     recovery_profile: str
+    runtime_profile: str
+    build_profile: str
     diagnostic: bool
 
 
@@ -397,6 +400,8 @@ STANDARD_CYCLE_PROFILE = CycleProfile(
     target_id="headless-ssh-network-root",
     admission_profile="headless-ssh-r2",
     recovery_profile=RECOVERY_PROFILE,
+    runtime_profile=RECOVERY_PROFILE,
+    build_profile="headless-ssh-v2",
     diagnostic=False,
 )
 DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
@@ -406,6 +411,8 @@ DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
     target_id="headless-netroot-early-diag-v2",
     admission_profile=DIAGNOSTIC_ADMISSION_PROFILE,
     recovery_profile=DIAGNOSTIC_RECOVERY_PROFILE,
+    runtime_profile=DIAGNOSTIC_PROFILE,
+    build_profile="headless-ssh-v2",
     diagnostic=True,
 )
 LEGACY_DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
@@ -415,7 +422,20 @@ LEGACY_DIAGNOSTIC_CYCLE_PROFILE = CycleProfile(
     target_id="headless-netroot-early-diag",
     admission_profile="early-target-diagnostic-v1",
     recovery_profile="headless-diagnostic-generation12-live-v1",
+    runtime_profile=DIAGNOSTIC_PROFILE,
+    build_profile="headless-ssh-v2",
     diagnostic=True,
+)
+CORE_CYCLE_PROFILE = CycleProfile(
+    candidate="headless-core-network-root-v2",
+    bundle="headless-core-network-root-v2-live-v1",
+    bundle_profile="network-root-v1",
+    target_id="headless-core-network-root",
+    admission_profile="headless-core-live-v1",
+    recovery_profile=CORE_RECOVERY_PROFILE,
+    runtime_profile="headless-core-deployment-v1",
+    build_profile="headless-core-v3",
+    diagnostic=False,
 )
 
 
@@ -808,7 +828,7 @@ def parse_key_admission_record(
         or values["candidate"] != profile.candidate
         or values["bundle"] != profile.bundle
         or values["profile"] != profile.bundle_profile
-        or values["build_profile"] != "headless-ssh-v2"
+        or values["build_profile"] != profile.build_profile
         or values["target_id"] != profile.target_id
         or values["manifest_sha256"] != expected_manifest_sha256
         or values["authority"] != "none"
@@ -3803,11 +3823,7 @@ class LiveCycle:
                 ),
                 timeout=self.target_key_timeout,
             )
-            runtime_profile = (
-                DIAGNOSTIC_PROFILE
-                if self.profile.diagnostic
-                else RECOVERY_PROFILE
-            )
+            runtime_profile = self.profile.runtime_profile
             run_logged(
                 [
                     str(self.dependencies.runtime_acceptance),
@@ -4099,6 +4115,9 @@ def main(arguments: list[str]) -> int:
         ),
         "diagnostic-preflight": ("preflight", DIAGNOSTIC_CYCLE_PROFILE),
         "diagnostic-run": ("run", DIAGNOSTIC_CYCLE_PROFILE),
+        "core-key-preflight": ("key-preflight", CORE_CYCLE_PROFILE),
+        "core-preflight": ("preflight", CORE_CYCLE_PROFILE),
+        "core-run": ("run", CORE_CYCLE_PROFILE),
     }
     if requested not in actions:
         fail(

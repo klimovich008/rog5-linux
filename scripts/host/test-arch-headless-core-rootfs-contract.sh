@@ -57,6 +57,7 @@ awk -F '\t' -v hash="$expected_hash" '
 ' "$manifest" || fail 'headless-core artifact manifest entry is not exact'
 
 grep -Fq 'headless-v2)' "$host"
+grep -Fq 'headless-v3)' "$host"
 grep -Fq 'scripts/device/stage-arch-headless-core-rootfs.sh)' "$runner"
 grep -Fq 'stage-arch-headless-core-rootfs.sh' "$host"
 grep -Fq 'verify-staged-arch-headless-core-rootfs.sh' "$host"
@@ -71,7 +72,8 @@ grep -Fq 'ProtectKernelTunables=yes' "$unit"
 if grep -q '^ConditionPathExists=' "$unit"; then
 	fail 'headless-core indicator can silently skip before LPG probe'
 fi
-grep -Fq 'profile=headless-core-v2' "$stage" "$verify"
+grep -Fq 'headless-core-v2' "$stage" "$verify"
+grep -Fq 'headless-core-v3' "$host" "$stage" "$verify"
 grep -Fq 'EXPECTED_HEADLESS_PROFILE:-headless-ssh-v1' "$base_verify"
 grep -Fq 'find "/lib/modules/$TARGET_KERNEL_RELEASE"' "$verify"
 grep -Fq "python python3 startplasma-wayland" "$verify"
