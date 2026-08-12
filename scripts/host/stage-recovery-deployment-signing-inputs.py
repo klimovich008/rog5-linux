@@ -19,9 +19,11 @@ from typing import Any, NoReturn
 SOURCE_REPO = Path(__file__).resolve().parents[2]
 CANDIDATE_PATH = SOURCE_REPO / "scripts/host/prepare-recovery-candidate.py"
 DEFAULT_CANDIDATE_ID = "headless-ssh-network-root-v3"
+CORE_CANDIDATE_ID = "headless-core-network-root-v2"
 DIAGNOSTIC_CANDIDATE_ID = "headless-netroot-early-diag-v2"
 ALLOWED_CANDIDATE_IDS = (
     DEFAULT_CANDIDATE_ID,
+    CORE_CANDIDATE_ID,
     DIAGNOSTIC_CANDIDATE_ID,
 )
 EXACT_CANDIDATE_SHA256 = {
