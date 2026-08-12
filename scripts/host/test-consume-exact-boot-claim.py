@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-accepted-image-v9-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-accepted-image-v9-live-v1\n"
+            b"candidate=persistent-root-accepted-image-v9\n"
+            b"manifest_sha256="
+            b"90c3cd03ab749003d46f039b31d6bffd51b98d2ea18e858eaddf59cb64c0efbd\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-image-control-v8-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-image-control-v8-live-v1\n"

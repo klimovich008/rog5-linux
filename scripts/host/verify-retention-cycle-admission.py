@@ -314,6 +314,14 @@ EXPECTED_CLAIMS["persistent-root-image-control-v8-live-v1"] = (
     "c3cab07c75012941b103a9100e69298ef69de7aa4d73893d6d02ea4602f66f56\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-accepted-image-v9-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-accepted-image-v9-live-v1\n"
+    "candidate=persistent-root-accepted-image-v9\n"
+    "manifest_sha256="
+    "90c3cd03ab749003d46f039b31d6bffd51b98d2ea18e858eaddf59cb64c0efbd\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -444,7 +452,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14550,
-    "sha256": "bcb1a867d1adbf7e0902d649468ae8a0b91d44e9b7158b146861926c133ef80a",
+    "sha256": "fb93998822fb46a634b8b9fa10684582ba32c7ba317091d6bd4eb35068520ec3",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -472,7 +480,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "bcb1a867d1adbf7e0902d649468ae8a0b91d44e9b7158b146861926c133ef80a",
+    "executor_contract_sha256": "fb93998822fb46a634b8b9fa10684582ba32c7ba317091d6bd4eb35068520ec3",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2213,11 +2221,11 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-image-control-v8-generation29-20260812-r1/"
+            "build/persistent-root-accepted-image-v9-generation30-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact UFS Image plus UFS-disabled DTB control with no "
-            "storage probe; RAM-only; externally "
-            "consumed exact claim required; never flash or retry after entry",
+            "one exact accepted persistent-root Image plus current UFS-enabled "
+            "DTB read-only Arch cycle; RAM-only; externally consumed exact "
+            "claim required; never flash or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

@@ -99,12 +99,22 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   nodes when no UFS driver can bind; the remaining early regression follows
   the UFS Image/config lineage.
 
-- **Generation 29 is the current no-storage Image control.** It combines the
-  rebuilt UFS Image from Generations 25/26 with Generation 20's live-proven
-  UFS-disabled DTB and the identical persistent initramfs. UFS cannot probe or
-  expose storage. Stable NCM means the failure requires active UFS probing;
-  another pre-NCM failure proves the rebuilt Image fails independently of UFS
-  hardware activation.
+- **Generation 29 is consumed and passed its no-storage Image control.** The
+  rebuilt UFS Image from Generations 25/26 plus Generation 20's live-proven
+  UFS-disabled DTB reached stable target NCM in 58.780 seconds. The expected
+  no-UFS rollback then returned exact Alpine. No UFS or phone-storage access
+  occurred. Together, Generations 27–29 prove the persistent initramfs,
+  UFS-enabled DTB, and rebuilt Image work independently; the early regression
+  requires active UFS binding or probing with that Image.
+
+- **Generation 30 is the current read-only local-Arch candidate.** It replaces
+  the non-reproducing rebuilt UFS Image with the retained exact clean-twin
+  persistent-root Image `832757fc…c76469f`, while keeping the current
+  UFS-enabled DTB and USB-first persistent initramfs. The cycle remains
+  RAM-only and forces all physical nodes read-only, mounts exact userdata
+  `ro,noload`, uses the sealed Arch tree only as an OverlayFS lower, and must
+  reach strict key-only SSH before returning to exact Alpine. It cannot create
+  the planned local filesystem image or write phone storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
