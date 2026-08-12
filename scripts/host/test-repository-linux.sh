@@ -247,6 +247,7 @@ shared_tests=(
 	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-collect-readonly-storage-inventory.py
 	scripts/device/test-persistent-root-storage-resolution.py
+	scripts/device/test-mainline-persistent-root-build.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/device/test-network-root-init.sh
 	scripts/device/test-kernel-build-contract.sh

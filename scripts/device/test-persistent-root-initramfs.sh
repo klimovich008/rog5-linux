@@ -9,6 +9,7 @@ builder=$repo/scripts/device/build-persistent-root-initramfs.sh
 base=${1:-$repo/artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz}
 verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-verify}
 config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
+ufs_modules=${4:-}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -74,11 +75,21 @@ for timing_marker in \
 	'storage-lock:65' \
 	'userdata:80' \
 	'inventory:95' \
-	'usb:15'; do
+	'usb:15' \
+	'ufs-rendezvous:15' \
+	'ufs-module:20'; do
 	grep -Fq "$timing_marker" "$init"
 done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
 grep -Fq 'sleep "$delay"' "$init"
+grep -Fq 'ufs_modules=${4:-}' "$builder"
+for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	grep -Fq "$module" "$builder"
+done
+grep -Fq 'modinfo -F vermagic' "$builder"
+grep -Fq 'rog5-ufs-modules' "$builder"
+! grep -Fq 'stage/lib/modules' "$builder" ||
+	fail 'deferred UFS modules must remain outside automatic module lookup'
 
 release_read_line=$(grep -Fn "$release_read" "$init" | cut -d: -f1)
 release_line=$(grep -Fn "$release_check" "$init" | cut -d: -f1)
@@ -136,8 +147,15 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
-"$builder" "$base" "$verifier" "$work/a.cpio.gz" >/dev/null
-"$builder" "$base" "$verifier" "$work/b.cpio.gz" >/dev/null
+if [ -n "$ufs_modules" ]; then
+	"$builder" "$base" "$verifier" "$work/a.cpio.gz" \
+		"$ufs_modules" >/dev/null
+	"$builder" "$base" "$verifier" "$work/b.cpio.gz" \
+		"$ufs_modules" >/dev/null
+else
+	"$builder" "$base" "$verifier" "$work/a.cpio.gz" >/dev/null
+	"$builder" "$base" "$verifier" "$work/b.cpio.gz" >/dev/null
+fi
 cmp "$work/a.cpio.gz" "$work/b.cpio.gz"
 
 mkdir "$work/root"
@@ -147,6 +165,35 @@ cmp "$work/root/init" "$init"
 cmp "$work/root/shutdown" "$shutdown"
 cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
+
+if [ -n "$ufs_modules" ]; then
+	module_inventory=$(find "$work/root/rog5-ufs-modules" \
+		-mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort |
+		tr '\n' ' ')
+	[ "$module_inventory" = \
+		'ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ] ||
+		fail 'built initramfs has the wrong deferred UFS module inventory'
+	for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+		cmp "$work/root/rog5-ufs-modules/$module" \
+			"$ufs_modules/$module"
+	done
+	[ ! -e "$work/root/lib/modules" ] ||
+		fail 'deferred UFS modules entered automatic module lookup'
+
+	cp -a -- "$ufs_modules" "$work/modules-extra"
+	: >"$work/modules-extra/unexpected.ko"
+	if "$builder" "$base" "$verifier" "$work/extra.cpio.gz" \
+		"$work/modules-extra" >/dev/null 2>&1; then
+		fail 'builder accepted an extra deferred UFS module'
+	fi
+	cp -a -- "$ufs_modules" "$work/modules-symlink"
+	rm -- "$work/modules-symlink/ufs-qcom.ko"
+	ln -s /dev/null "$work/modules-symlink/ufs-qcom.ko"
+	if "$builder" "$base" "$verifier" "$work/symlink.cpio.gz" \
+		"$work/modules-symlink" >/dev/null 2>&1; then
+		fail 'builder accepted a symlinked deferred UFS module'
+	fi
+fi
 
 [ ! -e "$work/root/root/.ssh/authorized_keys" ]
 [ -z "$(find "$work/root/etc/ssh" -maxdepth 1 -type f \

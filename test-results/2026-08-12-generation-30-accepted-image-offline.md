@@ -1,6 +1,14 @@
 # Generation 30 accepted persistent-root Image
 
-Status: **offline pass; unbooted; one RAM-only use; never flash**.
+Status: **offline pass; live cycle consumed; never retry or flash**.
+
+The sole live cycle committed the exact target, but no target USB identity
+appeared before exact Alpine fallback returned. COMMIT evidence was recorded
+at 15:51:47.852 +0200, fallback networking at 15:52:15.456, and strict
+fallback identity at 15:52:17.734. This reproduces the early failure with the
+accepted UFS-capable Image and enabled UFS DTB. No target-side storage access
+was observed. See the
+[live result](2026-08-12-generation-30-accepted-image-live.md).
 
 Generation 29 proved that the rebuilt UFS Image reaches stable target NCM
 when UFS is disabled, localizing the remaining loss to active UFS binding or

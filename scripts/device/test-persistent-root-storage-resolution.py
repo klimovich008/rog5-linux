@@ -39,6 +39,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 "select_expected_udc",
             )
         )
+        cls.rendezvous = function(cls.source, "wait_for_deferred_ufs_rendezvous")
 
     def add_disk(
         self,
@@ -191,13 +192,67 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         release = self.source.index(
             '\nif ! IFS= read -r running_kernel_release '
         )
+        rendezvous = self.source.index(
+            "\nif deferred_ufs_modules_present; then\n"
+        )
+        module_load = self.source.index(
+            "\n\tif ! load_deferred_ufs_modules; then\n"
+        )
         discovery = self.source.index(
             "\nlog 'waiting for stable UFS discovery'\n"
         )
         self.assertLess(watchdog, usb)
         self.assertLess(usb, command_line)
         self.assertLess(command_line, release)
-        self.assertLess(usb, discovery)
+        self.assertLess(release, rendezvous)
+        self.assertLess(rendezvous, module_load)
+        self.assertLess(module_load, discovery)
+
+    def test_deferred_ufs_probe_uses_one_fixed_module_chain(self) -> None:
+        loader = function(self.source, "load_deferred_ufs_modules")
+        self.assertIn("/rog5-ufs-modules/ufshcd-core.ko", loader)
+        self.assertIn("/rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
+        self.assertIn("/rog5-ufs-modules/ufs-qcom.ko", loader)
+        self.assertEqual(loader.count("insmod "), 3)
+        self.assertNotIn("modprobe", loader)
+        self.assertNotIn("*", loader)
+
+    def run_rendezvous(
+        self, carrier: str
+    ) -> tuple[subprocess.CompletedProcess[str], str, list[str]]:
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = Path(tmp) / "calls"
+            sleeps = Path(tmp) / "sleeps"
+            script = (
+                "set -u\n"
+                + self.rendezvous
+                + '\ncall_log="$1"\nsleep_log="$2"\ncarrier="$3"\n'
+                + 'cat() { printf x >>"$call_log"; printf "%s\\n" "$carrier"; }\n'
+                + 'sleep() { printf "%s\\n" "$1" >>"$sleep_log"; }\n'
+                + "wait_for_deferred_ufs_rendezvous\n"
+            )
+            result = subprocess.run(
+                ["sh", "-c", script, "sh", str(calls), str(sleeps), carrier],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            return (
+                result,
+                calls.read_text() if calls.exists() else "",
+                sleeps.read_text().splitlines() if sleeps.exists() else [],
+            )
+
+    def test_deferred_ufs_rendezvous_is_stable_and_bounded(self) -> None:
+        ready, calls, sleeps = self.run_rendezvous("1")
+        self.assertEqual(ready.returncode, 0, ready.stderr)
+        self.assertEqual(len(calls), 10)
+        self.assertEqual(sleeps, ["0.1"] * 9 + ["3"])
+
+        absent, calls, sleeps = self.run_rendezvous("0")
+        self.assertNotEqual(absent.returncode, 0)
+        self.assertEqual(len(calls), 150)
+        self.assertEqual(sleeps, ["0.1"] * 150)
 
 
 if __name__ == "__main__":
