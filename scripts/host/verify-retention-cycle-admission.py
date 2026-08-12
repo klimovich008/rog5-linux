@@ -394,6 +394,14 @@ EXPECTED_CLAIMS["persistent-root-qmp-first-fixed-clock-stage-v18-live-v1"] = (
     "f047d1c0ca676afa62a8a4f30d7b68306622b2eee5fc8dfb8b94e9d71450d3c5\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-qmp-allocation-stage-v19-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-qmp-allocation-stage-v19-live-v1\n"
+    "candidate=persistent-root-qmp-allocation-stage-v19\n"
+    "manifest_sha256="
+    "82f38e524cc9f8c65bd5ae225bbb4d0acf4a7ef20021d61af313880c98731835\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -524,7 +532,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "bcc1c4e149b81ee5fce1856e98c3cd4cb7228836ffa4d8181b8ec261b3b799c8",
+    "sha256": "536c8941e6876d31f398aa7b3480473a1ce1ecba946287a3304933a0fb29cc81",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -552,7 +560,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "bcc1c4e149b81ee5fce1856e98c3cd4cb7228836ffa4d8181b8ec261b3b799c8",
+    "executor_contract_sha256": "536c8941e6876d31f398aa7b3480473a1ce1ecba946287a3304933a0fb29cc81",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2293,9 +2301,9 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-qmp-first-fixed-clock-stage-v18-generation39-20260813-r1/"
+            "build/persistent-root-qmp-allocation-stage-v19-generation40-20260813-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact SM8350 QMP-UFS first-fixed-clock discriminator; "
+            "one exact SM8350 QMP-UFS allocation-stage discriminator; "
             "RAM-only; externally consumed exact claim required; never flash "
             "or retry after entry",
         ),

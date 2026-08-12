@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-allocation-stage-v19-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-allocation-stage-v19-live-v1\n"
+            b"candidate=persistent-root-qmp-allocation-stage-v19\n"
+            b"manifest_sha256="
+            b"82f38e524cc9f8c65bd5ae225bbb4d0acf4a7ef20021d61af313880c98731835\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-qmp-first-fixed-clock-stage-v18-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-qmp-first-fixed-clock-stage-v18-live-v1\n"

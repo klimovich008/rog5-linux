@@ -341,12 +341,18 @@ provider publication and cleanup-action registration from the failure set and
 narrows it to allocation or one of the three fixed-rate clock registrations.
 Generation 38 is consumed and must never be retried.
 
-Generation 39 performs the same allocation and only the first
-`devm_clk_hw_register_fixed_rate()` call for `rx_symbol_0`, then returns before
-the remaining clocks or provider publication. A passing NCM window clears
-allocation plus the first clock; an early loss narrows the next split to the
-allocation and that one call. UFS core, platform, and host modules remain
-absent, so the cycle cannot enumerate or access storage.
+Generation 39 performed the same allocation and only the first
+`devm_clk_hw_register_fixed_rate()` call for `rx_symbol_0`, then returned before
+the remaining clocks or provider publication. Target NCM disappeared 11.273
+seconds after enumeration, then exact Alpine returned. This narrows the
+failure to clock-data allocation/metadata setup or the first clock
+registration. Generation 39 is consumed and must never be retried.
+
+Generation 40 performs only the clock-data allocation and sets its three-entry
+count, then returns before naming or registering `rx_symbol_0`. A passing NCM
+window isolates the fault to the first registration; an early loss isolates
+allocation/metadata setup. UFS core, platform, and host modules remain absent,
+so the cycle cannot enumerate or access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
