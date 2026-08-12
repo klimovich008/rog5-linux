@@ -23,17 +23,19 @@ build outputs.
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
+| Storage migration | Phase-1 read-only inventory found 7 UFS LUNs and 109 CRC-valid GPT entries; private source/host hash-matched backups cover 14 GPT ranges and all 107 non-`super`, non-`userdata` partitions, and all seven GPT layouts pass offline restoration rehearsal. Secondary subsystems are frozen while stable mainline UFS and a bounded 16 GiB local Arch image are developed |
 | Mainline userspace | Native Arch/systemd/NFS/OverlayFS/NCM/SSH passed twice on Linux 7.1.4. Diagnostic generations 0–12 are consumed, absent from boot policy, and never reusable. The sole Generation-12 lifecycle transferred the exact signed bundle, accepted correlated PREPARE/COMMIT, and produced 40 lossless target frames through stage 70 `nfs-mount-begin`; USB disconnected before stage 80 `nfs-mount-ok`. The watchdog returned exact Alpine fallback and resolved the intent `FALLBACK_RETURNED`. |
 | Next recovery increment | The [Generation-12 live result](test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md) isolates failure to the first NFS mount or a lower kernel/USB/network boundary without claiming an unproven panic. Generation 12 is consumed and never reusable. The active unissued stage-75/current-cycle-postmortem successor makes one diagnostic NFS attempt and distinguishes UDC, interface, carrier, address, route, and NFS failure. Its reporter and initramfs reproduce offline; the prior disposable-key wrapper remains superseded evidence only. The candidate is `authority=none`, offline-only, absent from boot policy, and not usable for a phone boot. |
 | Battery/charging | One historical Linux 7.1 battery-only PMIC GLINK snapshot remains accepted as read-only diagnostic evidence. Fixed 10-minute phase records remain ready, and an opt-in compile-only qcom_battmgr extension now exposes the vendor-evidenced two-cell voltage response through one read-only attribute; source, exact-DT-delta, and hostile sysfs fixtures pass. No new phone observation, charging control, battery-health result, or charging-safety acceptance is claimed |
-| Persistent Arch root | Staged and sealed offline; P2 and entry-v1 live attempts were rejected and consumed |
+| Persistent Arch root | A 5.97 GB sealed Arch tree is staged in the 243.77 GB Linux `userdata` ext4 filesystem; 195.85 GB is free. Next: RAM-boot from a bounded local ext4 image, then propose dedicated Linux partitioning |
 | GPU | Accepted A660 ancestry is frozen while headless core mechanics are completed |
 | Wi-Fi | WCN6855/PCIe package passes offline tests; hardware cycle remains on HOLD |
 | VPN hotspot | IPv4/IPv6 and real WireGuard fail-closed tests pass offline; radio/provider live gate remains |
 | Operator authorization | [Standing project authorization](docs/operator-standing-authorization.md) covers in-scope credentials, host setup, connected preflights, reboots, and admitted temporary boots without repeated prompts; technical gates and the no-flash boundary remain mandatory |
 
-Nothing in this table grants permission to flash or repeat a consumed live
-gate.
+Nothing in this table grants permission to flash, repartition, or repeat a
+consumed live gate. Raw storage changes require the documented Phase-3 layout
+and final confirmation of the exact destructive commands.
 
 ## Start here
 
@@ -73,6 +75,9 @@ gate.
 - Treat every live diagnostic payload as single-use.
 - Do not retry an execute action after an ambiguous disconnect.
 - Keep credentials and private evidence outside the repository.
+- During Phase 2, constrain persistent payload writes to the reviewed bounded
+  image inside `userdata`. Preserve both GPT copies, firmware, identity,
+  modem/EFS, calibration, and the verified Alpine recovery route.
 
 `manifests/artifacts.tsv` is an inventory, not boot authority.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
