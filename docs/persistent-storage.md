@@ -278,12 +278,19 @@ initramfs. Its sole cycle never exposed target USB before exact Alpine
 returned, reproducing the active-UFS early failure with the accepted Image.
 Generation 30 is consumed and must never be retried.
 
-Generation 31 defers the probe without changing the accepted UFS source or DTB.
-USB remains built in; only UFS core, platform glue, and the Qualcomm host are
-sealed as an explicit three-module chain outside `/lib/modules`. Initramfs
-establishes NCM and a bounded host-observation window before loading those
-modules in dependency order. This isolates the exact probe transition while
-retaining the read-only UFS command guards.
+Generation 31 deferred the host probe without changing the accepted UFS source
+or DTB. USB remained built in; UFS core, platform glue, and the Qualcomm host
+were sealed as an explicit three-module chain outside `/lib/modules`. Its sole
+cycle still exposed no target USB before exact Alpine returned, so Generation
+31 is consumed and must never be retried. No target-side storage access was
+observed.
+
+Generation 32 moves the one remaining UFS-specific built-in layer,
+`CONFIG_PHY_QCOM_QMP_UFS`, to a fourth sealed module. Initramfs establishes NCM
+and the bounded host-observation window before loading the exact QMP-UFS PHY,
+UFS core, platform glue, and Qualcomm host chain. The one-symbol config delta
+tests whether the PHY probe is the pre-init failure boundary while retaining
+the read-only UFS command guards.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-deferred-ufs-v10-live-v1"
-BUNDLE = "persistent-root-deferred-ufs-v10"
+PROFILE_ID = "persistent-root-deferred-qmp-ufs-v11-live-v1"
+BUNDLE = "persistent-root-deferred-qmp-ufs-v11"
 MANIFEST_SHA256 = (
-    "dc22fde250d88f75859d544737d3703f9a3cf09ca2987eaf213dd744204cd8f7"
+    "e40da74acb705843b0f29c485ca922209e44073f7baab144cbac17c5b285500e"
 )
 RECOVERY_SHA256 = (
-    "218bd8f60e4b88f91981334fa40431dd7a7a47886f68d9bd93e4b9614783fce1"
+    "e527793af5fa25024519fee864a5174a373079441501f1d58b671b7251e5457f"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,7 +57,7 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-deferred-ufs-v10-generation31-20260812-r1"
+    / "build/persistent-root-deferred-qmp-ufs-v11-generation32-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-deferred-ufs-v10",
+    admission_profile="persistent-root-deferred-qmp-ufs-v11",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-deferred-ufs-v10",
-    build_profile="persistent-root-deferred-ufs-v10",
+    runtime_profile="persistent-root-deferred-qmp-ufs-v11",
+    build_profile="persistent-root-deferred-qmp-ufs-v11",
     diagnostic=False,
 )
 
@@ -596,7 +596,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("target_release", TARGET_RELEASE),
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
-                    ("expected_next_gate", "qualcomm-ufs-module-probe"),
+                    ("expected_next_gate", "qmp-ufs-phy-module-probe"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),

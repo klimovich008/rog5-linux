@@ -83,7 +83,8 @@ done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
 grep -Fq 'sleep "$delay"' "$init"
 grep -Fq 'ufs_modules=${4:-}' "$builder"
-for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
+	ufs-qcom.ko; do
 	grep -Fq "$module" "$builder"
 done
 grep -Fq 'modinfo -F vermagic' "$builder"
@@ -168,12 +169,13 @@ cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
 
 if [ -n "$ufs_modules" ]; then
 	module_inventory=$(find "$work/root/rog5-ufs-modules" \
-		-mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort |
+		-mindepth 1 -maxdepth 1 -printf '%f\n' | sort |
 		tr '\n' ' ')
 	[ "$module_inventory" = \
-		'ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ] ||
+		'phy-qcom-qmp-ufs.ko ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ] ||
 		fail 'built initramfs has the wrong deferred UFS module inventory'
-	for module in ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
+		ufs-qcom.ko; do
 		cmp "$work/root/rog5-ufs-modules/$module" \
 			"$ufs_modules/$module"
 	done
@@ -185,6 +187,12 @@ if [ -n "$ufs_modules" ]; then
 	if "$builder" "$base" "$verifier" "$work/extra.cpio.gz" \
 		"$work/modules-extra" >/dev/null 2>&1; then
 		fail 'builder accepted an extra deferred UFS module'
+	fi
+	cp -a -- "$ufs_modules" "$work/modules-extra-symlink"
+	ln -s /dev/null "$work/modules-extra-symlink/unexpected.ko"
+	if "$builder" "$base" "$verifier" "$work/extra-symlink.cpio.gz" \
+		"$work/modules-extra-symlink" >/dev/null 2>&1; then
+		fail 'builder accepted an extra symlink in the deferred module inventory'
 	fi
 	cp -a -- "$ufs_modules" "$work/modules-symlink"
 	rm -- "$work/modules-symlink/ufs-qcom.ko"

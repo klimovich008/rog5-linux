@@ -113,12 +113,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   that the failure is not peculiar to the reconstructed Generations 25/26
   Image. No target-side storage access was observed.
 
-- **Generation 31 is the active discriminator.** It keeps USB built in but
-  moves only UFS core, platform glue, and the Qualcomm host driver to three
-  sealed modules outside automatic module lookup. Initramfs first exposes NCM,
-  waits for a bounded host-observation rendezvous, then loads the exact module
-  chain explicitly. The goal is to identify the Qualcomm probe boundary before
-  any filesystem or local-root work.
+- **Generation 31 is consumed and reproduced the pre-USB failure.** Moving UFS
+  core, platform glue, and the Qualcomm host driver to three sealed modules did
+  not expose target NCM before exact Alpine returned. No target-side storage
+  access was observed. The
+  [live result](../test-results/2026-08-12-generation-31-deferred-ufs-probe-live.md)
+  leaves the QMP-UFS PHY as the remaining built-in UFS-specific layer.
+
+- **Generation 32 is the active discriminator.** It changes only
+  `CONFIG_PHY_QCOM_QMP_UFS=y` to `m`, seals that module with the existing three
+  UFS modules, and loads the exact four-module chain after stable target NCM.
+  This tests whether the QMP-UFS PHY's built-in probe is the pre-init boundary;
+  it still permits no filesystem or local-root work before exact UFS identity.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

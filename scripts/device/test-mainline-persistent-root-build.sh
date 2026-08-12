@@ -21,6 +21,7 @@ for symbol in \
 	CONFIG_SCSI_UFSHCD=m \
 	CONFIG_SCSI_UFSHCD_PLATFORM=m \
 	CONFIG_SCSI_UFS_QCOM=m \
+	CONFIG_PHY_QCOM_QMP_UFS=m \
 	'# CONFIG_PHY_QCOM_QMP_COMBO is not set' \
 	'# CONFIG_PHY_QCOM_QMP_PCIE is not set' \
 	'# CONFIG_PHY_QCOM_QMP_PCIE_8996 is not set' \
@@ -50,9 +51,12 @@ grep -Fq 'expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a' \
 	"$builder"
 grep -Fq 'CONFIG_OVERLAY_FS=y' "$verifier"
 grep -Fq 'verify-mainline-discovery-build.sh' "$verifier"
+grep -Fq 'rog5-ufs-deferred-probe.fragment' "$verifier"
+grep -Fq 'CONFIG_SCSI_UFSHCD=m' "$verifier"
 grep -Fq 'drivers/ufs/core/ufshcd-core.ko' "$builder"
 grep -Fq 'drivers/ufs/host/ufshcd-pltfrm.ko' "$builder"
 grep -Fq 'drivers/ufs/host/ufs-qcom.ko' "$builder"
+grep -Fq 'drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko' "$builder"
 grep -Fq 'deferred-ufs-modules' "$builder"
 
 tmp=$(mktemp -d)
@@ -91,6 +95,14 @@ case $# in
 		"$verifier" "$2"
 		"$repo/scripts/device/compare-mainline-discovery-builds.sh" \
 			"$1" "$2"
+		for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko \
+			ufshcd-pltfrm.ko ufs-qcom.ko; do
+			cmp "$1/deferred-ufs-modules/$module" \
+				"$2/deferred-ufs-modules/$module" || {
+				echo "FAIL clean-build module mismatch: $module" >&2
+				exit 1
+			}
+		done
 		;;
 	*)
 		echo 'usage: test-mainline-persistent-root-build.sh [BUILD_A BUILD_B]' >&2

@@ -210,12 +210,20 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
 
     def test_deferred_ufs_probe_uses_one_fixed_module_chain(self) -> None:
         loader = function(self.source, "load_deferred_ufs_modules")
+        self.assertIn("/rog5-ufs-modules/phy-qcom-qmp-ufs.ko", loader)
         self.assertIn("/rog5-ufs-modules/ufshcd-core.ko", loader)
         self.assertIn("/rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
         self.assertIn("/rog5-ufs-modules/ufs-qcom.ko", loader)
-        self.assertEqual(loader.count("insmod "), 3)
+        self.assertEqual(loader.count("insmod "), 4)
         self.assertNotIn("modprobe", loader)
         self.assertNotIn("*", loader)
+        ordered = [
+            loader.index("insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko"),
+            loader.index("insmod /rog5-ufs-modules/ufshcd-core.ko"),
+            loader.index("insmod /rog5-ufs-modules/ufshcd-pltfrm.ko"),
+            loader.index("insmod /rog5-ufs-modules/ufs-qcom.ko"),
+        ]
+        self.assertEqual(ordered, sorted(ordered))
 
     def run_rendezvous(
         self, carrier: str
