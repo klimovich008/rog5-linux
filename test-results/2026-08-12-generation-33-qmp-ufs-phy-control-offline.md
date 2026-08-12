@@ -1,6 +1,6 @@
 # Generation 33 QMP-UFS PHY control discriminator
 
-Status: **offline checkpoint passed; unbooted; one RAM-only use only; never flash**.
+Status: **offline checkpoint passed; consumed by one RAM-only cycle; never retry or flash**.
 
 Generation 32 proved that deferring the QMP-UFS PHY registration clears the
 pre-init USB failure boundary, but its four-module sequence did not identify
@@ -54,7 +54,8 @@ were rebuilt.
 
 Initramfs twins completed in one second, signed bundle twins in one second,
 and the AVB generation twins in two seconds. No phone was contacted while
-building or validating this checkpoint, and no claim has yet been entered.
+building or validating this checkpoint. The subsequent sole claim is consumed;
+see the [live result](2026-08-12-generation-33-qmp-ufs-phy-control-live.md).
 
 The coherent repository baseline for this change is
 `23a574611331d39a46c83b0df516da06314b96e3`. The final repository CI timing

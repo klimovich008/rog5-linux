@@ -128,11 +128,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   boundary, but the four-module cycle did not identify the final transition.
   [Live result](../test-results/2026-08-12-generation-32-deferred-qmp-ufs-phy-live.md).
 
-- **Generation 33 is the active discriminator.** It reuses the exact Generation
-  32 kernel, DTB, and four packaged modules, inserts only the QMP-UFS PHY, then
-  holds the exact NCM identity for 15 target seconds. The host independently
-  requires 12 seconds of unchanged USB identity, route, address, NetworkManager
-  ownership, and firewall state. It does not enumerate or access storage.
+- **Generation 33 is consumed and narrowed the failure to QMP-UFS PHY module
+  insertion or platform binding.** Target NCM disappeared 11.419 seconds after
+  enumeration, before its 15-second control window completed. No UFS core,
+  platform, or host module was loaded and no storage access occurred. The
+  [live result](../test-results/2026-08-12-generation-33-qmp-ufs-phy-control-live.md)
+  records the exact timing and observation-race correction.
+
+- **Generation 34 is the active no-bind discriminator.** It reuses the exact
+  Generation 33 Image, modules, and initramfs, but its one-property overlay
+  disables only `&ufs_mem_phy`. Loading the same QMP-UFS module can therefore
+  register the driver without binding or probing the platform device. The UFS
+  host remains enabled but its module is absent. The cycle performs no UFS
+  enumeration or storage access.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

@@ -97,13 +97,16 @@ awk -F '\t' '
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 32 RAM-only cycle; stable target NCM appeared before the module chain and exact Alpine fallback; never retry or flash" && NF == 3 { generation32++ ; next }
 	$1 == "build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 33 RAM-only cycle; target NCM disappeared during the PHY-only control window; never retry or flash" && NF == 3 { generation33++ ; next }
+	$1 == "build/persistent-root-qmp-module-load-control-v13-generation34-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
+		$3 == "one exact QMP-UFS no-bind module-load discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 13 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || persistent != 1 || revoked != 1) exit 1 }
+	END { if (NR != 14 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || persistent != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact observer/core/persistent admission shape' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||

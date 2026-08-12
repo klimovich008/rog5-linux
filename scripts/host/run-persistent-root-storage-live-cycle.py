@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-ufs-phy-control-v12-live-v1"
-BUNDLE = "persistent-root-qmp-ufs-phy-control-v12"
+PROFILE_ID = "persistent-root-qmp-module-load-control-v13-live-v1"
+BUNDLE = "persistent-root-qmp-module-load-control-v13"
 MANIFEST_SHA256 = (
-    "330f33a533f8f65e1d32b9e9c90bce10b4301983d7dced88fddfcd8f49e9f294"
+    "30fb6c355aa8e34097592cf4b33fe7ae4c4193a4c85ae36744c90778f1818cb7"
 )
 RECOVERY_SHA256 = (
-    "56dc47f1ead79a66cfd6d66a293ced84a120f3b980cd5a12685a164938d8f3de"
+    "d314b940d8dbecf63334a8f425719200852d25af364838db24f9e8aebecffadd"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,14 +57,14 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1"
+    / "build/persistent-root-qmp-module-load-control-v13-generation34-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
-POST_PHY_NCM_SECONDS = 12.0
+POST_MODULE_NCM_SECONDS = 12.0
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -76,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-ufs-phy-control-v12",
+    admission_profile="persistent-root-qmp-module-load-control-v13",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-ufs-phy-control-v12",
-    build_profile="persistent-root-qmp-ufs-phy-control-v12",
+    runtime_profile="persistent-root-qmp-module-load-control-v13",
+    build_profile="persistent-root-qmp-module-load-control-v13",
     diagnostic=False,
 )
 
@@ -351,12 +351,12 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     fail(f"persistent-root host network did not stabilize: {last_error}")
 
 
-def require_post_phy_ncm(
+def require_post_module_ncm(
     cycle: CYCLE.LiveCycle,
     anchor: Path,
     interface: str,
     *,
-    duration: float = POST_PHY_NCM_SECONDS,
+    duration: float = POST_MODULE_NCM_SECONDS,
     clock=time,
 ) -> float:
     expected_location = CYCLE.read_recovery_anchor_location(
@@ -369,21 +369,33 @@ def require_post_phy_ncm(
             observed = PIN.target_observation(TARGET_PRODUCT)
             PIN.exact_route(interface)
         except PIN.BootstrapError as error:
-            fail(f"target NCM vanished during the PHY control window: {error}")
+            fail(f"target NCM vanished during the module-load control window: {error}")
         if observed != (interface, expected_location):
-            fail("target USB identity changed during the PHY control window")
-        snapshots = [
-            value
-            for value in cycle.rog5_ncm_interfaces()
-            if value.name == interface and value.product == TARGET_UDEV_MODEL
-        ]
+            fail("target USB identity changed during the module-load control window")
+        try:
+            snapshots = [
+                value
+                for value in cycle.rog5_ncm_interfaces()
+                if value.name == interface and value.product == TARGET_UDEV_MODEL
+            ]
+        except CYCLE.CycleError as error:
+            try:
+                observed = PIN.target_observation(TARGET_PRODUCT)
+            except PIN.BootstrapError as identity_error:
+                fail(
+                    "target NCM vanished during the module-load control window: "
+                    f"{identity_error}"
+                )
+            if observed != (interface, expected_location):
+                fail("target USB identity changed during the module-load control window")
+            fail(f"cannot inspect target host network during control window: {error}")
         if (
             len(snapshots) != 1
             or snapshots[0].addresses != ("169.254.77.1/30",)
             or snapshots[0].network_manager_managed != "yes"
             or snapshots[0].firewall_zone == "drop"
         ):
-            fail("target host network changed during the PHY control window")
+            fail("target host network changed during the module-load control window")
         clock.sleep(cycle.poll)
     return clock.monotonic() - started
 
@@ -627,7 +639,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         interface = activate_target_network(cycle, anchor)
         if USB_CONTROL_ONLY:
             elapsed = time.monotonic() - boot_started
-            control_seconds = require_post_phy_ncm(cycle, anchor, interface)
+            control_seconds = require_post_module_ncm(cycle, anchor, interface)
             CYCLE.write_record(
                 cycle.output("persistent-root-usb-control.record"),
                 (
@@ -635,8 +647,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("target_release", TARGET_RELEASE),
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
-                    ("post_phy_ncm_seconds", f"{control_seconds:.3f}"),
-                    ("expected_next_gate", "ufs-core-platform-host-modules"),
+                    ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
+                    ("expected_next_gate", "qmp-ufs-platform-probe"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -670,7 +682,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS QMP-UFS PHY returned with stable target NCM in "
+                "PASS QMP-UFS module loaded without binding and kept NCM stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )

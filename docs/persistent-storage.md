@@ -294,11 +294,22 @@ inside the previous pre-init boundary. Target USB disappeared 11.276 seconds
 after enumeration, before the retained evidence could classify a specific
 module transition. Generation 32 is consumed and must never be retried.
 
-Generation 33 reuses the exact Generation 32 kernel, DTB, and modules. It loads
-only `phy-qcom-qmp-ufs.ko`, verifies that the UFS core/platform/host remain
-absent, and holds NCM for 15 seconds. The host requires 12 seconds of exact
-post-load NCM survival. The cycle deliberately returns to Alpine and performs
-no UFS enumeration or phone-storage access.
+Generation 33 reused the exact Generation 32 kernel, DTB, and modules. It
+loaded only `phy-qcom-qmp-ufs.ko`; target NCM disappeared 11.419 seconds after
+enumeration, before the 15-second control window completed. UFS core,
+platform, and host modules remained absent, and no UFS enumeration or storage
+access occurred. The result narrows the failure boundary to QMP-UFS module
+load/driver registration, platform bind/probe, or a shared fixed-time reset.
+Generation 33 is consumed and must never be retried.
+
+Generation 34 keeps the exact Generation 33 Image, module, and initramfs but
+disables only `&ufs_mem_phy` through a tested one-property overlay. The UFS
+host node remains enabled while its module remains absent. Inserting the exact
+QMP-UFS module therefore exercises relocation and driver registration without
+creating a matching active platform device. Surviving the bounded NCM window
+will place the next discriminator inside `qmp_ufs_probe`; repeating the same
+loss will instead implicate module load/registration or an independent fixed
+timer. This cycle cannot enumerate or access UFS storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
