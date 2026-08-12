@@ -1,6 +1,6 @@
 # Generation 32 deferred QMP-UFS PHY discriminator
 
-Status: **offline ready; unbooted; one RAM-only use; never flash**.
+Status: **offline checkpoint passed; subsequently consumed; never retry or flash**.
 
 Generation 31 deferred UFS core, platform glue, and the Qualcomm host driver,
 but still produced no target USB before exact Alpine returned. Its kernel left
@@ -72,7 +72,9 @@ The bundle and AVB twins are byte-identical. The first AVB issuance attempt
 correctly failed closed when given an already generation-tagged predecessor;
 the accepted output was derived from the exact canonical generation-zero
 wrapper. No phone was contacted, no claim was entered, and no target storage
-was read or written during this checkpoint.
+was read or written during this checkpoint. The later sole cycle is recorded
+in the
+[Generation 32 live result](2026-08-12-generation-32-deferred-qmp-ufs-phy-live.md).
 
 ## Final local checkpoint
 

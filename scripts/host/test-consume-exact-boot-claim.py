@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-ufs-phy-control-v12-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-ufs-phy-control-v12-live-v1\n"
+            b"candidate=persistent-root-qmp-ufs-phy-control-v12\n"
+            b"manifest_sha256="
+            b"330f33a533f8f65e1d32b9e9c90bce10b4301983d7dced88fddfcd8f49e9f294\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-deferred-qmp-ufs-v11-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-deferred-qmp-ufs-v11-live-v1\n"

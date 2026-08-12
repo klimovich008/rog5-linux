@@ -196,7 +196,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             "\nif deferred_ufs_modules_present; then\n"
         )
         module_load = self.source.index(
-            "\n\tif ! load_deferred_ufs_modules; then\n"
+            "\n\tload_deferred_ufs_modules\n"
         )
         discovery = self.source.index(
             "\nlog 'waiting for stable UFS discovery'\n"
@@ -208,22 +208,75 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertLess(rendezvous, module_load)
         self.assertLess(module_load, discovery)
 
-    def test_deferred_ufs_probe_uses_one_fixed_module_chain(self) -> None:
+    def test_deferred_ufs_phy_control_loads_only_the_phy(self) -> None:
         loader = function(self.source, "load_deferred_ufs_modules")
         self.assertIn("/rog5-ufs-modules/phy-qcom-qmp-ufs.ko", loader)
-        self.assertIn("/rog5-ufs-modules/ufshcd-core.ko", loader)
-        self.assertIn("/rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
-        self.assertIn("/rog5-ufs-modules/ufs-qcom.ko", loader)
-        self.assertEqual(loader.count("insmod "), 4)
+        self.assertEqual(loader.count("insmod "), 1)
+        self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-core.ko", loader)
+        self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
+        self.assertNotIn("insmod /rog5-ufs-modules/ufs-qcom.ko", loader)
         self.assertNotIn("modprobe", loader)
         self.assertNotIn("*", loader)
-        ordered = [
-            loader.index("insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko"),
-            loader.index("insmod /rog5-ufs-modules/ufshcd-core.ko"),
-            loader.index("insmod /rog5-ufs-modules/ufshcd-pltfrm.ko"),
-            loader.index("insmod /rog5-ufs-modules/ufs-qcom.ko"),
-        ]
-        self.assertEqual(ordered, sorted(ordered))
+        self.assertIn("return 2", loader)
+
+    def test_deferred_ufs_phy_control_proves_return_and_holds_ncm(self) -> None:
+        loader = function(self.source, "load_deferred_ufs_modules")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            module_dir = root / "modules"
+            module_dir.mkdir()
+            for name in (
+                "phy-qcom-qmp-ufs.ko",
+                "ufshcd-core.ko",
+                "ufshcd-pltfrm.ko",
+                "ufs-qcom.ko",
+            ):
+                (module_dir / name).touch()
+            modules = root / "proc-modules"
+            modules.write_text("")
+            carrier = root / "carrier"
+            carrier.write_text("1\n")
+            calls = root / "calls"
+            sleeps = root / "sleeps"
+            fixture = loader.replace(
+                "module_dir=/rog5-ufs-modules", 'module_dir="$1"'
+            ).replace("/proc/modules", '"$modules_file"').replace(
+                "/sys/class/net/usb0/carrier", '"$carrier_file"'
+            )
+            script = (
+                "set -u\n"
+                + fixture
+                + '\nmodules_file="$2"\ncarrier_file="$3"\n'
+                + 'call_log="$4"\nsleep_log="$5"\n'
+                + 'insmod() { printf "%s\\n" "$1" >>"$call_log"; '
+                + 'printf "%s\\n" "phy_qcom_qmp_ufs 1 0 - Live 0x0" '
+                + '>"$modules_file"; }\n'
+                + "expected_udc_is_bound() { return 0; }\n"
+                + 'sleep() { printf "%s\\n" "$1" >>"$sleep_log"; }\n'
+                + 'load_deferred_ufs_modules "$@"\n'
+            )
+            result = subprocess.run(
+                [
+                    "sh",
+                    "-c",
+                    script,
+                    "sh",
+                    str(module_dir),
+                    str(modules),
+                    str(carrier),
+                    str(calls),
+                    str(sleeps),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(
+                calls.read_text().splitlines(),
+                ["/rog5-ufs-modules/phy-qcom-qmp-ufs.ko"],
+            )
+            self.assertEqual(sleeps.read_text().splitlines(), ["0.1"] * 150)
 
     def run_rendezvous(
         self, carrier: str

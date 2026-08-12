@@ -20,11 +20,22 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+
+
 class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-deferred-qmp-ufs-v11-live-v1",
+            "persistent-root-qmp-ufs-phy-control-v12-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -150,6 +161,70 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 MODULE.alpine_fallback_is_present("pci0000:00/usb1/1-1")
             )
         fallback.assert_called_once_with("pci0000:00/usb1/1-1")
+
+    def test_post_phy_control_requires_exact_ncm_for_the_whole_window(self) -> None:
+        snapshot = MODULE.CYCLE.InterfaceSnapshot(
+            name="enxrog5",
+            product=MODULE.TARGET_UDEV_MODEL,
+            addresses=("169.254.77.1/30",),
+            firewall_zone="trusted",
+            network_manager_managed="yes",
+        )
+        cycle = SimpleNamespace(
+            dependencies=object(),
+            poll=0.25,
+            rog5_ncm_interfaces=mock.Mock(return_value=(snapshot,)),
+        )
+        clock = FakeClock()
+        with (
+            mock.patch.object(
+                MODULE.CYCLE,
+                "read_recovery_anchor_location",
+                return_value="pci0000:00/usb1/1-1",
+            ),
+            mock.patch.object(
+                MODULE.PIN,
+                "target_observation",
+                return_value=("enxrog5", "pci0000:00/usb1/1-1"),
+            ),
+            mock.patch.object(MODULE.PIN, "exact_route"),
+        ):
+            elapsed = MODULE.require_post_phy_ncm(
+                cycle,
+                Path("/private/anchor"),
+                "enxrog5",
+                duration=1.0,
+                clock=clock,
+            )
+        self.assertEqual(elapsed, 1.0)
+        self.assertEqual(cycle.rog5_ncm_interfaces.call_count, 4)
+
+    def test_post_phy_control_rejects_early_usb_loss(self) -> None:
+        cycle = SimpleNamespace(
+            dependencies=object(),
+            poll=0.25,
+            rog5_ncm_interfaces=mock.Mock(return_value=()),
+        )
+        with (
+            mock.patch.object(
+                MODULE.CYCLE,
+                "read_recovery_anchor_location",
+                return_value="pci0000:00/usb1/1-1",
+            ),
+            mock.patch.object(
+                MODULE.PIN,
+                "target_observation",
+                side_effect=MODULE.PIN.BootstrapError("gone"),
+            ),
+            self.assertRaises(MODULE.PersistentCycleError),
+        ):
+            MODULE.require_post_phy_ncm(
+                cycle,
+                Path("/private/anchor"),
+                "enxrog5",
+                duration=1.0,
+                clock=FakeClock(),
+            )
 
     def test_runner_contains_no_phone_storage_mutation_surface(self) -> None:
         source = MODULE_PATH.read_text()
