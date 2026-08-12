@@ -1,6 +1,6 @@
 # Generation 34 QMP-UFS no-bind module-load control
 
-Status: **offline checkpoint passed; unbooted; one RAM-only use only; never flash**.
+Status: **consumed; live control passed; never retry or flash**.
 
 Generation 34 is the smallest discriminator after Generation 33. It reuses
 the exact Image, QMP-UFS module, other packaged modules, and initramfs. A tested
@@ -29,3 +29,8 @@ NetworkManager query.
 Clean bundle twins and AVB generation twins are byte-identical. The cycle is
 RAM-only, keeps the known-good fallback unchanged, and cannot access phone
 storage.
+
+The sole live cycle reached stable target NCM in 58.894 seconds, preserved the
+same anchored interface for the complete 12.008-second post-module control
+window, and returned to exact Alpine. See the
+[live result](2026-08-12-generation-34-qmp-module-load-control-live.md).

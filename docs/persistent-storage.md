@@ -302,14 +302,21 @@ access occurred. The result narrows the failure boundary to QMP-UFS module
 load/driver registration, platform bind/probe, or a shared fixed-time reset.
 Generation 33 is consumed and must never be retried.
 
-Generation 34 keeps the exact Generation 33 Image, module, and initramfs but
-disables only `&ufs_mem_phy` through a tested one-property overlay. The UFS
-host node remains enabled while its module remains absent. Inserting the exact
-QMP-UFS module therefore exercises relocation and driver registration without
-creating a matching active platform device. Surviving the bounded NCM window
-will place the next discriminator inside `qmp_ufs_probe`; repeating the same
-loss will instead implicate module load/registration or an independent fixed
-timer. This cycle cannot enumerate or access UFS storage.
+Generation 34 kept the exact Generation 33 Image, module, and initramfs but
+disabled only `&ufs_mem_phy` through a tested one-property overlay. Inserting
+the module preserved target NCM for the full 12.008-second control window and
+exact Alpine returned. The module therefore relocated and registered safely;
+the Generation 33 failure boundary is active platform binding or probe.
+Generation 34 is consumed and must never be retried.
+
+Generation 35 is the next bounded binary-search step inside `qmp_ufs_probe`.
+Its diagnostic-only SM8350 branch acquires clocks and regulators, including
+the existing 91,600 and 19,000 microamp regulator loads, then returns before
+DT/MMIO parsing, clock-provider registration, PHY creation, or provider
+registration. UFS core, platform, and host modules are absent. The cycle can
+therefore test the first probe resources without enumerating or accessing
+phone storage. A passing control window clears clock/regulator acquisition;
+an equivalent early loss requires a narrower clock-versus-regulator split.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
