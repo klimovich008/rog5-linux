@@ -72,9 +72,9 @@ awk -F '\t' '
 	$1 == "build/headless-core-v21-generation21-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { core++ ; next }
-	$1 == "build/persistent-root-storage-read-v2-generation23-20260812-r1/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/persistent-root-storage-read-v3-generation24-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact early-USB-observable read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
+		$3 == "one exact precheck-USB-observable read-only UFS persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }

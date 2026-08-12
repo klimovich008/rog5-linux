@@ -520,6 +520,12 @@ case $recovery_timeout in *[!0-9]*|'') recovery_timeout=600 ;; esac
 if [ "$recovery_timeout" -lt 300 ] || [ "$recovery_timeout" -gt 900 ]; then
 	recovery_timeout=600
 fi
+
+arm_watchdog
+if ! configure_usb; then
+	fail_stage 'USB recovery transport failed' usb 15
+fi
+
 if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
 	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
 	fail_stage 'invalid persistent-root command line' cmdline 5
@@ -531,11 +537,6 @@ if ! IFS= read -r running_kernel_release <"$release_file"; then
 fi
 if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 	fail_stage 'running kernel release changed' kernel-release-identity 25
-fi
-
-arm_watchdog
-if ! configure_usb; then
-	fail_stage 'USB recovery transport failed' usb 15
 fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then

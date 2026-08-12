@@ -266,6 +266,14 @@ EXPECTED_CLAIMS["persistent-root-storage-read-v2-live-v1"] = (
     "4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-storage-read-v3-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-storage-read-v3-live-v1\n"
+    "candidate=persistent-root-storage-read-v3\n"
+    "manifest_sha256="
+    "3bc4b40f7e230945249db08be19b5791c176e08aeb8b5cfca059f48db5b8ed73\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -396,7 +404,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "040db9f2f946636b924bbf0fabe40fc45fdecdb1d8fd21aaaee18feb627dc3c0",
+    "sha256": "bda95fc6033c3cc09054f9ad714375fc29643eebe8a03223d3468220d06d5076",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -424,7 +432,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "040db9f2f946636b924bbf0fabe40fc45fdecdb1d8fd21aaaee18feb627dc3c0",
+    "executor_contract_sha256": "bda95fc6033c3cc09054f9ad714375fc29643eebe8a03223d3468220d06d5076",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2165,9 +2173,9 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-storage-read-v2-generation23-20260812-r1/"
+            "build/persistent-root-storage-read-v3-generation24-20260812-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact early-USB-observable read-only UFS persistent Arch "
+            "one exact precheck-USB-observable read-only UFS persistent Arch "
             "recovery; RAM-only; "
             "externally "
             "consumed exact claim required; never flash or retry after entry",

@@ -182,13 +182,21 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertNotIn("[ \"$found\" = sda23 ]", self.source)
         self.assertGreaterEqual(self.source.count("expected_udc_is_bound"), 3)
 
-    def test_usb_observability_precedes_ufs_discovery(self) -> None:
+    def test_usb_observability_precedes_target_identity_and_ufs(self) -> None:
         watchdog = self.source.index("\narm_watchdog\n")
         usb = self.source.index("\nif ! configure_usb; then\n")
+        command_line = self.source.index(
+            '\nif [ "$persistent_count" -ne 1 ] || '
+        )
+        release = self.source.index(
+            '\nif ! IFS= read -r running_kernel_release '
+        )
         discovery = self.source.index(
             "\nlog 'waiting for stable UFS discovery'\n"
         )
         self.assertLess(watchdog, usb)
+        self.assertLess(usb, command_line)
+        self.assertLess(command_line, release)
         self.assertLess(usb, discovery)
 
 

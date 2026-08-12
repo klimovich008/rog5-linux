@@ -52,13 +52,23 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   inconclusive. No target storage write occurred. See the
   [live result](../test-results/2026-08-12-generation-22-persistent-root-storage-live.md).
 
-- **Generation 23 is the current unbooted storage successor.** It reuses the
-  unchanged clean-twin Linux 7.1.4 Image and UFS DTB, moves exact NCM setup to
-  immediately after the rollback watchdog and before UFS discovery, allows
-  post-COMMIT USB re-enumeration during host cleanup, and stops host-key waits
-  as soon as exact Alpine returns. It remains RAM-only and mounts physical
-  storage only `ro,noload`; no local image write is part of this cycle. See the
-  [offline result](../test-results/2026-08-12-generation-23-persistent-root-storage-offline.md).
+- **Generation 23 is consumed and never reusable.** Its sole RAM-only cycle
+  completed signed transfer and COMMIT, but no target USB appeared before
+  exact Alpine returned after 25.330 seconds. A measured forced-Alpine reboot
+  took 18.162 seconds from disconnect to USB, leaving about 7.168 seconds for
+  the mainline leg. That strongly matches the five-second invalid-command-line
+  branch plus startup, but does not prove the branch. Generation 23 configured
+  USB only after command-line and release checks, so it did not provide the
+  intended precheck observation. No phone storage write occurred. See the
+  [live result](../test-results/2026-08-12-generation-23-persistent-root-storage-live.md).
+
+- **Generation 24 is the current unbooted storage successor.** It keeps the
+  exact Generation-23 Image, UFS DTB, USB identity, and read-only storage
+  contract, but arms rollback and starts exact NCM before command-line and
+  release validation. Its sole purpose is to distinguish a failure before
+  `/init`/USB from a later target-identity or storage gate. It remains RAM-only
+  and performs no local-image or phone-storage write. See the
+  [offline result](../test-results/2026-08-12-generation-24-persistent-root-storage-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
@@ -147,7 +157,7 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   read-only IIO contract is hostile-tested, but no driver, DT candidate,
   kernel build, phone boot, or hardware acceptance exists yet.
 
-These facts do not prove the Generation-23 successor on the phone.
+These facts do not prove the Generation-24 successor on the phone.
 
 ## Critical-path history
 
