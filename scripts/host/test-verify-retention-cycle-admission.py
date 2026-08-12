@@ -437,10 +437,14 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry\n"
             "build/persistent-root-storage-read-v4-generation25-20260812-r1/"
+            "repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 25 RAM-only cycle; exact Alpine "
+            "fallback returned; never retry or flash\n"
+            "build/persistent-root-storage-read-v5-generation26-20260812-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact UFS-only-Image control for read-only persistent Arch "
-            "recovery; RAM-only; externally consumed exact claim required; "
-            "never flash or retry after entry\n"
+            "one exact RMTFS-reserved read-only UFS discriminator with "
+            "persistent ramoops omitted; RAM-only; externally consumed exact "
+            "claim required; never flash or retry after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)

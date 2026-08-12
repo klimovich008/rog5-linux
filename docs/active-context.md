@@ -70,15 +70,25 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   kernel/initramfs entry or USB setup before successful binding. No phone-
   storage write occurred. See the [live result](../test-results/2026-08-12-generation-24-persistent-root-storage-live.md).
 
-- **Generation 25 is the current unbooted storage discriminator.** Exact
-  Clang-18 reconstruction shows the historically live-passing UFS config
-  differs from the failing persistent-root config only by
-  `CONFIG_OVERLAY_FS=m` versus `y`. Clean twins reproduce a new exact Image
-  identity from the accepted source/config/release and guards; they do not
-  reproduce the pruned historical binary hash. Generation 25 keeps Generation
-  24's DTB, initramfs, USB behavior, and read-only storage contract. Only the
-  payload Image changes functionally; one-use bundle/AVB identifiers
-  necessarily rotate. See the [offline result](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md).
+- **Generation 25 is consumed and never reusable.** Its sole RAM-only cycle
+  completed signed transfer and COMMIT, but no target USB appeared before
+  exact Alpine returned after 25.038 seconds. It obtained no UFS inventory and
+  performed no authorized phone-storage write. The result rejects the payload
+  Image as the sole explanation but does not distinguish kernel entry from
+  failure before target USB setup. See the [offline](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md)
+  and [live](../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
+  results.
+
+- **Generation 26 is the current storage discriminator under clean-twin
+  construction.** The UFS DTB had disabled the historical 4 MiB
+  `qcom,rmtfs-mem` reservation while the persistent command line reassigned
+  the same range to ramoops. Generation 20 proves that this overlap model is
+  not sufficient by itself to explain target loss, because its successful
+  network-root boot used the same disabled node and ramoops command line.
+  Generation 26 is therefore a narrow UFS-specific memory-ownership test, not
+  a claimed fix: it restores the exact RMTFS reservation and omits ramoops only
+  for the persistent-root profile while retaining the Generation-25 Image,
+  initramfs, read-only storage behavior, and fallback.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

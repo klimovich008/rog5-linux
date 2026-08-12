@@ -57,6 +57,7 @@ struct profile_policy {
 	uint64_t minimum_rollback;
 	bool binds_a660_root;
 	bool requires_early_target_reporter;
+	bool requires_ramoops;
 };
 
 struct bundle_manifest {
@@ -128,6 +129,7 @@ static const struct profile_policy profile_policies[] = {
 		.minimum_rollback = 60,
 		.binds_a660_root = true,
 		.requires_early_target_reporter = true,
+		.requires_ramoops = true,
 	},
 	{
 		.name = "network-root-v1",
@@ -135,6 +137,7 @@ static const struct profile_policy profile_policies[] = {
 		.minimum_rollback = 60,
 		.binds_a660_root = true,
 		.requires_early_target_reporter = false,
+		.requires_ramoops = true,
 	},
 	{
 		.name = "persistent-root-ro-v1",
@@ -143,6 +146,7 @@ static const struct profile_policy profile_policies[] = {
 		.minimum_rollback = 300,
 		.binds_a660_root = false,
 		.requires_early_target_reporter = false,
+		.requires_ramoops = false,
 	},
 };
 
@@ -1583,7 +1587,7 @@ static void build_cmdline(const struct bundle_manifest *manifest,
 		"oops=panic loglevel=8 ignore_loglevel "
 		"printk.always_kmsg_dump=Y";
 	static const char ramoops[] =
-		"ramoops.mem_address=0x9b800000 "
+		" ramoops.mem_address=0x9b800000 "
 		"ramoops.mem_size=0x400000 "
 		"ramoops.record_size=0x100000 "
 		"ramoops.console_size=0x300000 "
@@ -1612,9 +1616,11 @@ static void build_cmdline(const struct bundle_manifest *manifest,
 	}
 	length = snprintf(
 		output, CMDLINE_MAX,
-		"%s %s %s rog5.bundle=%s rog5.target_timeout=%" PRIu64
+		"%s %s%s rog5.bundle=%s rog5.target_timeout=%" PRIu64
 		" rog5.recovery_timeout=%" PRIu64 "%s",
-		base, manifest->policy->command_line, ramoops, manifest->bundle,
+		base, manifest->policy->command_line,
+		manifest->policy->requires_ramoops ? ramoops : "",
+		manifest->bundle,
 		manifest->target_timeout, manifest->rollback_timeout,
 		root_trust);
 	if (length < 0 || length >= CMDLINE_MAX)

@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		persistent-root-storage-read-v4-live-v1 | \
+		persistent-root-storage-read-v5-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1470,37 +1470,37 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-storage-read-v4-live-v1)
-		expected_boot_image=build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact UFS-only-Image control for read-only persistent Arch recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 25 UFS-only-Image control; exact accepted source, config, release and read-only guards; clean-twin signed bundle and byte-distinct AVB wrapper; one RAM-only use only; never flash'
+	persistent-root-storage-read-v5-live-v1)
+		expected_boot_image=build/persistent-root-storage-read-v5-generation26-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact RMTFS-reserved read-only UFS discriminator with persistent ramoops omitted; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 26 RMTFS-reserved read-only UFS discriminator; persistent ramoops omitted; exact clean-twin bundle and byte-distinct AVB wrapper; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
-		expected_kernel=2e5d6e1766aab790dd1d1718125244886d376ffb73aa6b761571b12820b3061c
-		expected_raw=067329920cc479714cac10ce001112c9029a3b986ac44269b8e7185a396c4aff
-		expected_initramfs=d9a3fba43abf0c3e456feb2e7f9da5e043df1e7cdef2e33112e0313358ae98d8
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6
+		expected_initramfs=3495070782746936065a314337732028d41bed29f85e888cfaf730828557bb5d
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
-		expected_verifier=33aa65c6438c11a577854dcf95482759c8a3e703bd2cd2ed14d8c22775e442ef
-		expected_target_id=persistent-root-storage-read-v4
-		expected_bundle=persistent-root-storage-read-v4
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-storage-read-v5
+		expected_bundle=persistent-root-storage-read-v5
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gcfd385a1c754
-		expected_avb_salt=d28bdb6de434efb37f5e32d3bbd325be1cca595e82cd134d7dc958cd3b1c8235
-		expected_avb_digest=a28ab17557deeb9c50f6d41f8dd245d3c5ae72255f59c69772c0050e5f3106bd
-		expected_generation_record=013aca00153e3d91fe4283a7c1156e1f80ade66d5dd16f96d467956d95820075
+		expected_avb_salt=6990191c179fbb7c702c8d48f35f4e5d9c55ab56b3dcaaec13a339b5d43faaac
+		expected_avb_digest=0fff4d9b8dd9b4cf7e61609c9213b425f9c7d8e29c6f488366ef4f10ae9ee7ce
+		expected_generation_record=be2ee72b733ad00447c884c5308dd1c06e4bbf35cea93cca513932a7d1b50d6c
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			5d835b0986587c7ce174e66ccf03f82bb8c9e581e83384ce93c0ed455d053baa ]] ||
+			1d64161dd213ced57b6761086629351ba116b30f894aa36afba9480873b4e3ab ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			0947cde461c495cd889e6c4de9cbafe1fe9bc3ceb977844a7c8ec2a5590a3a8c ]] ||
+			1a0c13d5af49820932666a3801a577de92d579ede265ef83f4b1e8f17c56d07e ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
 			fail 'persistent-root trust key is not pinned'
 		[[ $expected_host_verifier == \
-			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
 			fail 'persistent-root host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
@@ -1544,7 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	persistent-root-storage-read-v4-live-v1 | \
+	persistent-root-storage-read-v5-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)

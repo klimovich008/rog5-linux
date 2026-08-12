@@ -750,17 +750,21 @@ class NativeBundleVerifierTest(unittest.TestCase):
                     result.stderr.decode(errors="replace"),
                 )
                 output = result.stdout.decode("ascii")
+                ramoops = (
+                    " ramoops.mem_address=0x9b800000"
+                    " ramoops.mem_size=0x400000"
+                    " ramoops.record_size=0x100000"
+                    " ramoops.console_size=0x300000"
+                    " ramoops.pmsg_size=0 ramoops.ftrace_size=0"
+                    " ramoops.dump_oops=1"
+                    if profile != "persistent-root-ro-v1"
+                    else ""
+                )
                 command_line = (
                     "console=ttyMSM0,115200n8 rdinit=/init panic=10 "
                     "oops=panic loglevel=8 ignore_loglevel "
                     "printk.always_kmsg_dump=Y "
-                    f"{token} "
-                    "ramoops.mem_address=0x9b800000 "
-                    "ramoops.mem_size=0x400000 "
-                    "ramoops.record_size=0x100000 "
-                    "ramoops.console_size=0x300000 "
-                    "ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
-                    "ramoops.dump_oops=1 "
+                    f"{token}{ramoops} "
                     f"rog5.bundle=accepted-{index} "
                     "rog5.target_timeout=90 "
                     f"rog5.recovery_timeout="

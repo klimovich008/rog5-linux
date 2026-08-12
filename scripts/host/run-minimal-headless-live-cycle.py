@@ -2864,7 +2864,9 @@ class LiveCycle:
                 )
                 managed = managed_result.stdout.strip()
             if managed_result.returncode != 0 or managed not in {"yes", "no"}:
-                fail("cannot inspect NetworkManager ownership of ROG5 link")
+                raise HostIdentityObservationError(
+                    "cannot inspect NetworkManager ownership of ROG5 link"
+                )
             snapshots.append(
                 InterfaceSnapshot(
                     name=name,

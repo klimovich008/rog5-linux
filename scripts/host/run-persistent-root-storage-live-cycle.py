@@ -36,19 +36,19 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-storage-read-v4-live-v1"
-BUNDLE = "persistent-root-storage-read-v4"
+PROFILE_ID = "persistent-root-storage-read-v5-live-v1"
+BUNDLE = "persistent-root-storage-read-v5"
 MANIFEST_SHA256 = (
-    "5d835b0986587c7ce174e66ccf03f82bb8c9e581e83384ce93c0ed455d053baa"
+    "1d64161dd213ced57b6761086629351ba116b30f894aa36afba9480873b4e3ab"
 )
 RECOVERY_SHA256 = (
-    "0947cde461c495cd889e6c4de9cbafe1fe9bc3ceb977844a7c8ec2a5590a3a8c"
+    "1a0c13d5af49820932666a3801a577de92d579ede265ef83f4b1e8f17c56d07e"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
 )
 HOST_VERIFIER_SHA256 = (
-    "03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0"
+    "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
 TARGET_RELEASE = "7.1.4-gcfd385a1c754"
 TARGET_PRODUCT = "ROG5 persistent root"
@@ -56,9 +56,9 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-storage-read-v4-generation25-20260812-r1"
+    / "build/persistent-root-storage-read-v5-generation26-20260812-r1"
 )
-COMPONENT_ROOT = REPO / "build/headless-core-v21-production-20260812-r1/recovery"
+COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
@@ -74,10 +74,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-storage-read-v4",
+    admission_profile="persistent-root-storage-read-v5",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-storage-read-v4",
-    build_profile="persistent-root-storage-read-v4",
+    runtime_profile="persistent-root-storage-read-v5",
+    build_profile="persistent-root-storage-read-v5",
     diagnostic=False,
 )
 
