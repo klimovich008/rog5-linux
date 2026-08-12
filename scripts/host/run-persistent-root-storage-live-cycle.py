@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-usb-control-v6-live-v1"
-BUNDLE = "persistent-root-usb-control-v6"
+PROFILE_ID = "persistent-root-dtb-control-v7-live-v1"
+BUNDLE = "persistent-root-dtb-control-v7"
 MANIFEST_SHA256 = (
-    "33715e0c566a5fc7e771f6b89ca81fd1fe0bb6325b926995a0ba5c5f81a44a5b"
+    "c4cef9e256708d219c7c77f792dbff43336c5d446d0721048ff471b7c05969ee"
 )
 RECOVERY_SHA256 = (
-    "765e45af3d4ced2c87e15adf5ba6141ce5824d75334afc2ddedb4a28db18d88f"
+    "5047cfae9fbbeb0b76b59175792fc7e671e5ac94625bb81304d5422dd85024ee"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,7 +57,7 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-usb-control-v6-generation27-20260812-r1"
+    / "build/persistent-root-dtb-control-v7-generation28-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-usb-control-v6",
+    admission_profile="persistent-root-dtb-control-v7",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-usb-control-v6",
-    build_profile="persistent-root-usb-control-v6",
+    runtime_profile="persistent-root-dtb-control-v7",
+    build_profile="persistent-root-dtb-control-v7",
     diagnostic=False,
 )
 
@@ -630,7 +630,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS exact Generation 20 kernel/DTB reached stable target "
+                "PASS exact Generation 20 Image plus UFS-enabled DTB "
+                "reached stable target "
                 f"NCM in {elapsed:.3f}s before the deliberate pre-UFS "
                 "release mismatch and exact Alpine fallback"
             )
