@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-qmp-ufs-phy-control-v12-live-v1",
+            "persistent-root-qmp-module-load-control-v13-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -162,7 +162,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             )
         fallback.assert_called_once_with("pci0000:00/usb1/1-1")
 
-    def test_post_phy_control_requires_exact_ncm_for_the_whole_window(self) -> None:
+    def test_module_load_control_requires_exact_ncm_for_the_whole_window(self) -> None:
         snapshot = MODULE.CYCLE.InterfaceSnapshot(
             name="enxrog5",
             product=MODULE.TARGET_UDEV_MODEL,
@@ -189,7 +189,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             ),
             mock.patch.object(MODULE.PIN, "exact_route"),
         ):
-            elapsed = MODULE.require_post_phy_ncm(
+            elapsed = MODULE.require_post_module_ncm(
                 cycle,
                 Path("/private/anchor"),
                 "enxrog5",
@@ -199,7 +199,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(elapsed, 1.0)
         self.assertEqual(cycle.rog5_ncm_interfaces.call_count, 4)
 
-    def test_post_phy_control_rejects_early_usb_loss(self) -> None:
+    def test_module_load_control_rejects_early_usb_loss(self) -> None:
         cycle = SimpleNamespace(
             dependencies=object(),
             poll=0.25,
@@ -218,7 +218,45 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             ),
             self.assertRaises(MODULE.PersistentCycleError),
         ):
-            MODULE.require_post_phy_ncm(
+            MODULE.require_post_module_ncm(
+                cycle,
+                Path("/private/anchor"),
+                "enxrog5",
+                duration=1.0,
+                clock=FakeClock(),
+            )
+
+    def test_network_inspection_race_reclassifies_disappeared_usb(self) -> None:
+        cycle = SimpleNamespace(
+            dependencies=object(),
+            poll=0.25,
+            rog5_ncm_interfaces=mock.Mock(
+                side_effect=MODULE.CYCLE.CycleError(
+                    "cannot inspect NetworkManager ownership of ROG5 link"
+                )
+            ),
+        )
+        with (
+            mock.patch.object(
+                MODULE.CYCLE,
+                "read_recovery_anchor_location",
+                return_value="pci0000:00/usb1/1-1",
+            ),
+            mock.patch.object(
+                MODULE.PIN,
+                "target_observation",
+                side_effect=[
+                    ("enxrog5", "pci0000:00/usb1/1-1"),
+                    MODULE.PIN.BootstrapError("gone"),
+                ],
+            ),
+            mock.patch.object(MODULE.PIN, "exact_route"),
+            self.assertRaisesRegex(
+                MODULE.PersistentCycleError,
+                "target NCM vanished during the module-load control window",
+            ),
+        ):
+            MODULE.require_post_module_ncm(
                 cycle,
                 Path("/private/anchor"),
                 "enxrog5",
