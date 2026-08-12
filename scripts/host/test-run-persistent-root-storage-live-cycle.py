@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-image-control-v8-live-v1",
+            "persistent-root-accepted-image-v9-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -33,7 +33,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertFalse(MODULE.PROFILE.diagnostic)
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
-        self.assertTrue(MODULE.USB_CONTROL_ONLY)
+        self.assertFalse(MODULE.USB_CONTROL_ONLY)
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,

@@ -258,14 +258,24 @@ start, then the deliberate release mismatch returned exact Alpine. Generation
 and enabled-node description when paired with a kernel that has no UFS driver;
 it does not prove that active UFS probing is safe.
 
-Generation 29 completes the missing no-storage matrix cell. It uses the rebuilt
-UFS Image from Generations 25/26 with Generation 20's exact UFS-disabled DTB
-and the identical persistent initramfs. The Image release now matches the
-initramfs, but the disabled controller and PHY make UFS discovery impossible.
-Stable target NCM localizes the failure to interaction between the UFS Image
-and active UFS nodes. A pre-NCM failure instead proves that the rebuilt Image
-fails even when no UFS device can probe. Neither outcome mounts, reads, or
-writes phone storage.
+Generation 29 completed the missing no-storage matrix cell. The rebuilt UFS
+Image from Generations 25/26, Generation 20's exact UFS-disabled DTB, and the
+identical persistent initramfs reached stable target NCM in 58.780 seconds.
+The expected no-UFS rollback then returned exact Alpine. No UFS inventory,
+filesystem operation, or phone-storage access occurred. The result localizes
+the remaining early regression to interaction between the rebuilt Image and
+active UFS binding or probing. Generation 29 is consumed and must never be
+retried.
+
+The exact original persistent-root clean-twin Image remains recoverable from
+the retained P2 stage as `832757fc…c76469f`. Reconstructed builds with the
+same source tree and config do not reproduce that Image: the previous
+persistent-root twins are `854397a7…b4a13`, while a fresh historical-recipe
+UFS-discovery build produced `805a68b3…e923b` instead of the accepted
+`bdc72155…9ac8c`. Generation 30 therefore uses the retained accepted
+persistent-root Image directly with the current UFS-enabled DTB and USB-first
+initramfs. This is the shortest physical discriminator and preserves the
+read-only storage contract.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

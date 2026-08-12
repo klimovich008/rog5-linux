@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-image-control-v8-live-v1"
-BUNDLE = "persistent-root-image-control-v8"
+PROFILE_ID = "persistent-root-accepted-image-v9-live-v1"
+BUNDLE = "persistent-root-accepted-image-v9"
 MANIFEST_SHA256 = (
-    "c3cab07c75012941b103a9100e69298ef69de7aa4d73893d6d02ea4602f66f56"
+    "90c3cd03ab749003d46f039b31d6bffd51b98d2ea18e858eaddf59cb64c0efbd"
 )
 RECOVERY_SHA256 = (
-    "0fa7d7511b0acce2427dccbc1c02dfdda6ee95b48040c6e66acb6ff77396f2ec"
+    "7e6185bc40778c74d4528d54c22ae249997132ff0c57f64eb47ce7ba854a9ec4"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -54,10 +54,10 @@ TARGET_RELEASE = "7.1.4-gcfd385a1c754"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
-USB_CONTROL_ONLY = True
+USB_CONTROL_ONLY = False
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-image-control-v8-generation29-20260812-r1"
+    / "build/persistent-root-accepted-image-v9-generation30-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-image-control-v8",
+    admission_profile="persistent-root-accepted-image-v9",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-image-control-v8",
-    build_profile="persistent-root-image-control-v8",
+    runtime_profile="persistent-root-accepted-image-v9",
+    build_profile="persistent-root-accepted-image-v9",
     diagnostic=False,
 )
 
