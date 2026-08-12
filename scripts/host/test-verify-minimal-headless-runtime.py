@@ -203,6 +203,41 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
             VERIFIER.DEPLOYMENT_CANDIDATE,
         )
 
+    def test_core_record_is_bound_to_exact_external_candidate(self) -> None:
+        path = self.directory / "core-candidate.json"
+        candidate = json.loads(
+            (REPO / "configs/recovery-candidates/headless-core-network-root-v2.json").read_text(encoding="ascii")
+        )
+        candidate["bundle"] = VERIFIER.CORE_BUNDLE
+        candidate["root_tree_sha256"] = "7" * 64
+        candidate["root_seal_sha256"] = "8" * 64
+        candidate["root_tree_entries"] = "37740"
+        path.write_text(json.dumps(candidate, indent=2) + "\n", encoding="ascii")
+        path.chmod(0o400)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        values = self.deployment_values()
+        values["candidate"] = VERIFIER.CORE_CANDIDATE
+        for name in (
+            "root_generation",
+            "root_tree_sha256",
+            "root_seal_sha256",
+            "root_tree_entries",
+            "root_subtree",
+        ):
+            values[name] = candidate[name]
+        values["root_seal_file_sha256"] = candidate["root_seal_sha256"]
+        self.write(values)
+        verified_digest, verified = VERIFIER.verify_record(
+            REPO,
+            self.record,
+            BOOT_ID,
+            VERIFIER.CORE_PROFILE,
+            path,
+            digest,
+        )
+        self.assertEqual(verified_digest, hashlib.sha256(render(values)).hexdigest())
+        self.assertEqual(verified["candidate"], VERIFIER.CORE_CANDIDATE)
+
     def test_diagnostic_record_requires_exact_ncm_acm_gadget(self) -> None:
         candidate_path = self.directory / "diagnostic-candidate.json"
         candidate = json.loads(

@@ -12,7 +12,13 @@ fail() {
 	exit 1
 }
 
-EXPECTED_HEADLESS_PROFILE=headless-core-v2 \
+core_profile=${EXPECTED_HEADLESS_PROFILE:-headless-core-v2}
+case $core_profile in
+	headless-core-v2|headless-core-v3) ;;
+	*) fail "unsupported headless-core profile: $core_profile" ;;
+esac
+
+EXPECTED_HEADLESS_PROFILE=$core_profile \
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
 	/bin/bash "$repo/scripts/device/verify-staged-arch-headless-rootfs.sh"
 

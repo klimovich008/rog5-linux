@@ -133,6 +133,7 @@ if [[ $deployment_build == 1 ]]; then
 		fail 'set ALLOW_PHONE_CREDENTIAL_USE=1 before using the signing key'
 	case "$candidate:$expected_target" in
 		headless-ssh-network-root-v3:headless-ssh-network-root | \
+		headless-core-network-root-v2:headless-core-network-root | \
 		headless-netroot-early-diag-v2:headless-netroot-early-diag-v2) ;;
 		*) fail 'credentialed build is limited to one fixed deployment candidate' ;;
 	esac

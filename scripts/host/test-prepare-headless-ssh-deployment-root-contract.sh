@@ -32,6 +32,8 @@ for token in \
 	'fetch --no-tags --prune origin' \
 	'refs/heads/$branch:refs/remotes/origin/$branch' \
 	'headless-ssh-v2' \
+	'headless-core-v3' \
+	'ROG5_DEPLOYMENT_BUILD_PROFILE' \
 	'--network none' \
 	'find root -xdev -print0 >/tmp/root-files.unsorted' \
 	'LC_ALL=C sort -z /tmp/root-files.unsorted' \

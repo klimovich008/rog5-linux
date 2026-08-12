@@ -324,6 +324,42 @@ class KeyAdmissionTest(unittest.TestCase):
                 profile.name,
             )
 
+    def test_exact_headless_core_v3_chain_passes(self) -> None:
+        profile = ADMISSION.CORE_ADMISSION_PROFILE
+        expected_artifacts = ADMISSION.artifact_map(profile)
+        self.package["format"] = "rog5-headless-network-root-package-v4"
+        self.package["build_profile"] = profile.build_profile
+        self.candidate.update(
+            {
+                "candidate": profile.candidate_id,
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "target_id": profile.target_id,
+                "artifacts": copy.deepcopy(expected_artifacts),
+            }
+        )
+        self.manifest.update(
+            {
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "dtb_size": str(expected_artifacts["board.dtb"]["size"]),
+                "dtb_sha256": expected_artifacts["board.dtb"]["sha256"],
+                "target_id": profile.target_id,
+            }
+        )
+        manifest_sha256 = self.write_records()
+        result = ADMISSION.verify(
+            self.private_key,
+            self.package_path,
+            self.candidate_path,
+            self.manifest_path,
+            manifest_sha256,
+            profile.name,
+        )
+        self.assertEqual(result["candidate"], profile.candidate_id)
+        self.assertEqual(result["bundle"], profile.bundle_id)
+        self.assertEqual(result["build_profile"], "headless-core-v3")
+
     def test_admission_policy_cannot_be_supplied_or_mutated(self) -> None:
         custom = ADMISSION.AdmissionProfile(
             name="caller-policy",

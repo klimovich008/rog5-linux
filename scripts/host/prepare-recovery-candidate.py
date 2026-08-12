@@ -57,6 +57,10 @@ EXTERNAL_BUNDLE_SUCCESSORS = {
         "headless-ssh-network-root-v3",
         "headless-ssh-network-root-v3-r2",
     },
+    "headless-core-network-root-v2": {
+        "headless-core-network-root-v2",
+        "headless-core-network-root-v2-live-v1",
+    },
 }
 EXTERNAL_SUCCESSOR_ROOT_FIELDS = {
     "headless-ssh-network-root-v3-r2": {

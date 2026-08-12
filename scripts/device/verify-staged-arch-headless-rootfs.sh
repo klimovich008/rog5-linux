@@ -23,6 +23,10 @@ case $expected_profile in
 		expected_build_lines=7
 		sshd_policy=$repo/packaging/arch/10-rog5-sshd.conf
 		;;
+	headless-core-v3)
+		expected_build_lines=8
+		sshd_policy=$repo/packaging/arch/10-rog5-sshd-v2.conf
+		;;
 	headless-ssh-v2)
 		expected_build_lines=6
 		sshd_policy=$repo/packaging/arch/10-rog5-sshd-v2.conf
@@ -79,7 +83,8 @@ done
 [[ $(stat -c %U:%G:%a /root/.ssh) == root:root:700 ]]
 [[ $(stat -c %U:%G:%a:%h /root/.ssh/authorized_keys) == \
 	root:root:600:1 ]]
-if [[ $expected_profile == headless-ssh-v2 ]]; then
+if [[ $expected_profile == headless-ssh-v2 ||
+	$expected_profile == headless-core-v3 ]]; then
 	[[ $(awk 'END { print NR+0 }' /root/.ssh/authorized_keys) == 1 ]]
 	grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}$' \
 		/root/.ssh/authorized_keys
@@ -125,7 +130,8 @@ grep -Fixq 'kbdinteractiveauthentication no' \
 grep -Eqi '^permitrootlogin (without-password|prohibit-password)$' \
 	/run/rog5-sshd-effective.conf
 grep -Fixq 'pubkeyauthentication yes' /run/rog5-sshd-effective.conf
-if [[ $expected_profile == headless-ssh-v2 ]]; then
+if [[ $expected_profile == headless-ssh-v2 ||
+	$expected_profile == headless-core-v3 ]]; then
 	grep -Fixq 'authorizedkeysfile /root/.ssh/authorized_keys' \
 		/run/rog5-sshd-effective.conf
 fi

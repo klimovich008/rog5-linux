@@ -6,7 +6,7 @@ expected_kernel=7.1.4-g7a5cef0db479
 expected_udc=a600000.usb
 expected_address=169.254.77.2/30
 host_address=169.254.77.1
-fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+fatal_pattern='(^|[^[:alnum:]_])(Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog[[:space:]_-]+bite)([^[:alnum:]_]|$)'
 
 fail() {
 	echo "FAIL $*" >&2
@@ -15,6 +15,16 @@ fail() {
 
 [ "${ALLOW_ROG5_PHYSICAL_KEYS:-}" = "$guard" ] ||
 	fail 'set the exact physical-key execution guard'
+rollback_contract=${ROG5_PHYSICAL_KEYS_ROLLBACK_CONTRACT:-disarmed-v1}
+case $rollback_contract in
+	disarmed-v1) ;;
+	armed-v1)
+		[ "${ALLOW_ROG5_PHYSICAL_KEYS_ARMED_ROLLBACK:-}" = \
+			rog5-physical-keys-armed-rollback-v1 ] ||
+			fail 'set the exact armed-rollback physical-key guard'
+		;;
+	*) fail 'unsupported physical-key rollback contract' ;;
+esac
 
 monitor_timeout=${1:-180}
 case $monitor_timeout in
@@ -228,10 +238,17 @@ check_preconditions() {
 	[ "$(field pre physical_blocks)" = 0 ] ||
 		fail 'physical block device is present'
 	[ "$(field pre block_mounts)" = 0 ] || fail 'block-backed mount is present'
-	[ "$(field pre watchdog_pid)" = 0 ] ||
-		fail 'network-root rollback watchdog is still armed'
-	[ "$(field pre watchdog_disarmed)" = 1 ] ||
-		fail 'network-root rollback has no disarm marker'
+	if [ "$rollback_contract" = armed-v1 ]; then
+		[ "$(field pre watchdog_pid)" = 1 ] ||
+			fail 'network-root rollback watchdog is not armed'
+		[ "$(field pre watchdog_disarmed)" = 0 ] ||
+			fail 'network-root rollback has a premature disarm marker'
+	else
+		[ "$(field pre watchdog_pid)" = 0 ] ||
+			fail 'network-root rollback watchdog is still armed'
+		[ "$(field pre watchdog_disarmed)" = 1 ] ||
+			fail 'network-root rollback has no disarm marker'
+	fi
 	[ "$(field pre fatal_count)" = 0 ] ||
 		fail 'fatal kernel signature is present before the key test'
 	check_link pre
@@ -505,10 +522,17 @@ check_postconditions() {
 		fail 'physical block device appeared during the key test'
 	[ "$(field post block_mounts)" = 0 ] ||
 		fail 'block-backed mount appeared during the key test'
-	[ "$(field post watchdog_pid)" = 0 ] ||
-		fail 'rollback watchdog rearmed during the key test'
-	[ "$(field post watchdog_disarmed)" = 1 ] ||
-		fail 'rollback disarm evidence disappeared during the key test'
+	if [ "$rollback_contract" = armed-v1 ]; then
+		[ "$(field post watchdog_pid)" = 1 ] ||
+			fail 'rollback watchdog disappeared during the key test'
+		[ "$(field post watchdog_disarmed)" = 0 ] ||
+			fail 'rollback watchdog was disarmed during the key test'
+	else
+		[ "$(field post watchdog_pid)" = 0 ] ||
+			fail 'rollback watchdog rearmed during the key test'
+		[ "$(field post watchdog_disarmed)" = 1 ] ||
+			fail 'rollback disarm evidence disappeared during the key test'
+	fi
 	[ "$(field post fatal_count)" = 0 ] ||
 		fail 'fatal kernel signature appeared during the key test'
 	[ "$(field post warning_digest)" = "$warning_before" ] ||
@@ -558,4 +582,4 @@ done
 
 check_postconditions
 
-echo "PASS physical keys events=power:1/1,volume-down:1/1,volume-up:1/1 irq_deltas=$power_irq_delta,$volume_down_irq_delta,$volume_up_irq_delta wake_sources=power,volume-up resin_wake=off writes=0 suspend=0 backend=$backend"
+echo "PASS physical keys events=power:1/1,volume-down:1/1,volume-up:1/1 irq_deltas=$power_irq_delta,$volume_down_irq_delta,$volume_up_irq_delta wake_sources=power,volume-up resin_wake=off writes=0 suspend=0 rollback=$rollback_contract backend=$backend"
