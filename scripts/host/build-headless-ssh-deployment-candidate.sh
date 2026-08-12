@@ -229,6 +229,71 @@ def metadata_identity(metadata: os.stat_result) -> tuple[int, ...]:
     )
 
 
+def checkpoint_path_is_tracked(snapshot: Path, relative: Path) -> bool:
+    result = subprocess.run(
+        [
+            "/usr/bin/git",
+            "-c",
+            "core.fsmonitor=false",
+            "-C",
+            str(snapshot),
+            "ls-files",
+            "--error-unmatch",
+            "--",
+            relative.as_posix(),
+        ],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=GIT_ENV,
+        timeout=15,
+        check=False,
+    )
+    if result.returncode not in (0, 1):
+        raise SystemExit("FAIL cannot classify deployment checkpoint input")
+    return result.returncode == 0
+
+
+def verify_checkpoint_path(
+    path: Path,
+    size: int,
+    mode: int,
+    digest: str,
+    label: str,
+) -> None:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise SystemExit(f"FAIL deployment checkpoint {label} is unavailable") from error
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != os.geteuid()
+            or before.st_gid != os.getegid()
+            or before.st_nlink != 1
+            or stat.S_IMODE(before.st_mode) != mode
+            or before.st_size != size
+        ):
+            raise SystemExit(f"FAIL deployment checkpoint {label} is unsafe")
+        hasher = hashlib.sha256()
+        while True:
+            block = os.read(descriptor, 1024 * 1024)
+            if not block:
+                break
+            hasher.update(block)
+        after = os.fstat(descriptor)
+        if metadata_identity(before) != metadata_identity(after):
+            raise SystemExit(f"FAIL deployment checkpoint {label} changed")
+        if hasher.hexdigest() != digest:
+            raise SystemExit(f"FAIL deployment checkpoint {label} bytes changed")
+    finally:
+        os.close(descriptor)
+
+
 def stage_checkpoint_inputs(
     repository: Path,
     snapshot: Path,
@@ -297,6 +362,16 @@ def stage_checkpoint_inputs(
                 raise SystemExit(
                     "FAIL deployment checkpoint input parent is unsafe"
                 )
+        if checkpoint_path_is_tracked(snapshot, relative):
+            verify_checkpoint_path(source, size, mode, digest, "tracked source")
+            verify_checkpoint_path(
+                destination,
+                size,
+                mode,
+                digest,
+                "tracked snapshot input",
+            )
+            continue
         git_output(snapshot, "check-ignore", "-q", str(destination))
 
         source_flags = os.O_RDONLY | os.O_CLOEXEC
