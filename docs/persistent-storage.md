@@ -217,15 +217,26 @@ boot policy. See the [offline](../test-results/2026-08-12-generation-25-ufs-imag
 and [live](../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
 results.
 
-Generation 26 tests one coherent UFS-specific memory-ownership difference.
+Generation 26 tested one coherent UFS-specific memory-ownership difference.
 The retained historically live-passing UFS DTB reserves the 4 MiB
 `qcom,rmtfs-mem` range at `0x9b800000`; the failing persistent DTB disables
 that node while its command line assigns the same range to ramoops. A one-
 property DT transform restores the reservation, and the persistent-only
 verified command line omits ramoops. Network-root profiles retain ramoops.
 Generation 20's successful boot used the disabled node plus ramoops, so the
-overlap is not a proven general root cause; this remains a bounded
-discriminator before any local-image write is attempted.
+overlap is not a proven general root cause. Its sole cycle still exposed no
+target USB before exact Alpine returned after 25.333 seconds, so Generation 26
+is consumed and absent from active policy.
+
+Generation 27 is a smaller pre-UFS discriminator. It combines the exact
+Generation 20 Image and DTB that reached NCM carrier on this phone with the
+byte-identical Generation 26 persistent initramfs. The initramfs deliberately
+expects the UFS kernel's different release: after USB succeeds it must stop at
+the release-identity gate, 25 seconds before any UFS discovery. A target NCM
+appearance therefore proves the persistent USB path and points to a
+Generation 22–26 kernel/DTB regression; another no-target-USB result points
+instead to initramfs/configfs or residual kexec state. Neither outcome accesses
+phone storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

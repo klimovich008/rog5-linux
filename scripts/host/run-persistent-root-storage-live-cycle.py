@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one RAM-only, read-only-UFS persistent Arch lifecycle."""
+"""Run one RAM-only persistent-root critical-path lifecycle."""
 
 from __future__ import annotations
 
@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-storage-read-v5-live-v1"
-BUNDLE = "persistent-root-storage-read-v5"
+PROFILE_ID = "persistent-root-usb-control-v6-live-v1"
+BUNDLE = "persistent-root-usb-control-v6"
 MANIFEST_SHA256 = (
-    "1d64161dd213ced57b6761086629351ba116b30f894aa36afba9480873b4e3ab"
+    "33715e0c566a5fc7e771f6b89ca81fd1fe0bb6325b926995a0ba5c5f81a44a5b"
 )
 RECOVERY_SHA256 = (
-    "1a0c13d5af49820932666a3801a577de92d579ede265ef83f4b1e8f17c56d07e"
+    "765e45af3d4ced2c87e15adf5ba6141ce5824d75334afc2ddedb4a28db18d88f"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -50,13 +50,14 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gcfd385a1c754"
+TARGET_RELEASE = "7.1.4-g7a5cef0db479"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
+USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-storage-read-v5-generation26-20260812-r1"
+    / "build/persistent-root-usb-control-v6-generation27-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -74,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-storage-read-v5",
+    admission_profile="persistent-root-usb-control-v6",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-storage-read-v5",
-    build_profile="persistent-root-storage-read-v5",
+    runtime_profile="persistent-root-usb-control-v6",
+    build_profile="persistent-root-usb-control-v6",
     diagnostic=False,
 )
 
@@ -586,6 +587,54 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             fail("persistent-root control output lacks its durable intent")
 
         interface = activate_target_network(cycle, anchor)
+        if USB_CONTROL_ONLY:
+            elapsed = time.monotonic() - boot_started
+            CYCLE.write_record(
+                cycle.output("persistent-root-usb-control.record"),
+                (
+                    ("format", "rog5-persistent-root-usb-control-v1"),
+                    ("target_release", TARGET_RELEASE),
+                    ("interface", interface),
+                    ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
+                    ("expected_next_gate", "kernel-release-identity"),
+                    ("phone_storage_access", "none"),
+                    ("result", "PASS"),
+                ),
+            )
+            fallback_attempted = True
+            cycle.wait_fallback(None)
+            run_optional_logged(
+                [
+                    "/usr/bin/ssh",
+                    "-i",
+                    str(inputs.ssh_key),
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "IdentitiesOnly=yes",
+                    "-o",
+                    "PasswordAuthentication=no",
+                    "-o",
+                    "StrictHostKeyChecking=yes",
+                    "-o",
+                    f"UserKnownHostsFile={inputs.fallback_known_hosts}",
+                    "-o",
+                    "HostKeyAlias=rog5-fallback",
+                    f"root@{PIN.TARGET_ADDRESS}",
+                    FALLBACK_DIAGNOSTIC_COMMAND,
+                ],
+                cycle.output("fallback-raw-diagnostics.log"),
+                180,
+            )
+            cycle.wait_host_clean(final=True)
+            cycle.resolve_intent(intent, "FALLBACK_RETURNED")
+            resolved = True
+            print(
+                "PASS exact Generation 20 kernel/DTB reached stable target "
+                f"NCM in {elapsed:.3f}s before the deliberate pre-UFS "
+                "release mismatch and exact Alpine fallback"
+            )
+            return
         CYCLE.run_logged(
             [
                 str(cycle.dependencies.host_key),
