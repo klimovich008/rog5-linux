@@ -84,14 +84,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   exact Alpine returned after 25.333 seconds. No UFS inventory was obtained
   and no phone-storage write occurred.
 
-- **Generation 27 is the current pre-UFS discriminator.** It uses the exact
-  Generation 20 Image and DTB that reached NCM carrier at 3.680 seconds, plus
-  the byte-identical Generation 26 persistent initramfs. That initramfs expects
-  the UFS kernel's different release, so a successful USB bind must enumerate
-  `ROG5 persistent root` and then roll back at the release-identity gate before
-  any userspace UFS discovery or storage access. Failure to enumerate instead
-  implicates the persistent initramfs/configfs path or a residual kexec state
-  shared independently of the target Image/DTB.
+- **Generation 27 is consumed and passed its pre-UFS discriminator.** The exact
+  Generation 20 Image/DTB plus the persistent initramfs reached stable
+  `ROG5 persistent root` NCM in 65.057 seconds, then the deliberate release
+  mismatch returned exact Alpine. No UFS or phone-storage access occurred.
+  This clears the persistent initramfs/configfs path and a payload-independent
+  residual kexec state; the failure boundary is the changed target Image/DTB.
+
+- **Generation 28 is the current pre-UFS cross-pair.** It retains the
+  live-proven Generation 20 Image but substitutes Generation 25's UFS-enabled
+  persistent DTB. The same deliberate release mismatch keeps UFS unreachable.
+  Target NCM success isolates the UFS Image/config lineage; failure before NCM
+  implicates the DTB or one of its newly enabled hardware nodes.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

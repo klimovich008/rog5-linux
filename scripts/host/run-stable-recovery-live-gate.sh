@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		persistent-root-usb-control-v6-live-v1 | \
+		persistent-root-dtb-control-v7-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1470,10 +1470,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-usb-control-v6-live-v1)
-		expected_boot_image=build/persistent-root-usb-control-v6-generation27-20260812-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 20 kernel/DTB USB-control discriminator that stops before UFS; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 27 exact Generation 20 kernel/DTB USB-control discriminator; persistent initramfs must stop at the deliberate pre-UFS release mismatch; twin signed bundle and byte-distinct AVB wrapper; one RAM-only use only; never flash'
+	persistent-root-dtb-control-v7-live-v1)
+		expected_boot_image=build/persistent-root-dtb-control-v7-generation28-20260812-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 20 Image plus UFS-enabled DTB control that stops before UFS; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 28 exact Generation 20 Image plus Generation 25 UFS-enabled DTB control; persistent initramfs must stop at the deliberate pre-UFS release mismatch; twin signed bundle and byte-distinct AVB wrapper; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -1482,19 +1482,19 @@ case $profile in
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
 		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
-		expected_target_id=persistent-root-usb-control-v6
-		expected_bundle=persistent-root-usb-control-v6
+		expected_target_id=persistent-root-dtb-control-v7
+		expected_bundle=persistent-root-dtb-control-v7
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-g7a5cef0db479
-		expected_avb_salt=bf7f7d708fbf0c03e001da2ee9da9b634b45d523ef4ae53051f6d949ba4cc04e
-		expected_avb_digest=7ded981c6fca8b8ded552c084078301f098a570238a212ea878b06be2c93dc6c
-		expected_generation_record=e9678e7179ea4fd788e5795e026932e2875d5a752b87f095e5ff3651882ca1c7
+		expected_avb_salt=fd3be4f55b1fd7910206ab73f999ca3c273992147e2ad2a819d805b198724ece
+		expected_avb_digest=f2147c99989c453b0f7c09b4b6f18531536908773bf7532aef2573a78234c32c
+		expected_generation_record=efd2a3b079e69e9af44cb47750e852088c2e07cb4a3790d573de09887248f76f
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			33715e0c566a5fc7e771f6b89ca81fd1fe0bb6325b926995a0ba5c5f81a44a5b ]] ||
+			c4cef9e256708d219c7c77f792dbff43336c5d446d0721048ff471b7c05969ee ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			765e45af3d4ced2c87e15adf5ba6141ce5824d75334afc2ddedb4a28db18d88f ]] ||
+			5047cfae9fbbeb0b76b59175792fc7e671e5ac94625bb81304d5422dd85024ee ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -1544,7 +1544,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	persistent-root-usb-control-v6-live-v1 | \
+	persistent-root-dtb-control-v7-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)

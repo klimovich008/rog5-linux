@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-dtb-control-v7-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-dtb-control-v7-live-v1\n"
+            b"candidate=persistent-root-dtb-control-v7\n"
+            b"manifest_sha256="
+            b"c4cef9e256708d219c7c77f792dbff43336c5d446d0721048ff471b7c05969ee\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-usb-control-v6-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-usb-control-v6-live-v1\n"

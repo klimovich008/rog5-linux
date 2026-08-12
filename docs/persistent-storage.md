@@ -238,6 +238,20 @@ Generation 22–26 kernel/DTB regression; another no-target-USB result points
 instead to initramfs/configfs or residual kexec state. Neither outcome accesses
 phone storage.
 
+Its sole live cycle passed: the target product appeared on the exact USB port,
+NCM stabilized at 65.057 seconds from lifecycle start, and the deliberate
+release mismatch returned exact Alpine. This disproves the persistent
+initramfs/configfs path and payload-independent residual kexec state as the
+cause of Generations 22–26 failing before target USB. Generation 27 is
+consumed and absent from active policy.
+
+Generation 28 cross-pairs the same live-proven Generation 20 Image with the
+UFS-enabled Generation 25 DTB, while retaining the byte-identical initramfs
+and pre-UFS release mismatch. If NCM appears, the failure is in the UFS target
+Image/config lineage rather than the persistent DTB. If NCM does not appear,
+the UFS-enabled DTB or one of its enabled hardware nodes is the discriminated
+boundary. Neither outcome permits userspace UFS access.
+
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
 
