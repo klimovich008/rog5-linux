@@ -782,6 +782,15 @@ class Fixture:
               echo 'PASS bounded recovery progress capture completed'
               echo 'PASS bounded recovery progress collection concluded authority=NONE'
             fi
+            if [ "${MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP:-0}" = 1 ]; then
+              while [ ! -e "$MOCK_ROOT/control-exited" ]; do
+                sleep 0.01
+              done
+              if [ "${MOCK_BUNDLE_CLEANUP_HANG:-0}" = 1 ]; then
+                while :; do sleep 1; done
+              fi
+              sleep 0.05
+            fi
             echo 'PASS one recovery bundle transfer completed'
             echo 'INFO recovery bundle host network state removed'
             echo 'INFO fallback NetworkManager profile restoration deferred'
@@ -867,9 +876,11 @@ class Fixture:
                 fi
                 printf '{{"commit_fingerprint":"{CYCLE.ZERO_SHA256}","commit_request":"{CYCLE.ZERO_ID}","execution_started":"NO","last_error":"NONE","manifest_sha256":"{MANIFEST}","postmortem_bytes":"0","postmortem_lineage_matches":"0","postmortem_lineage_sha256":"{CYCLE.ZERO_SHA256}","postmortem_lineage_state":"NONE","postmortem_records":"0","postmortem_sha256":"{CYCLE.EMPTY_SHA256}","postmortem_state":"EMPTY","postmortem_tail_hex":"none","prepare_request":"{PREPARE}","prepared_bundle":"%s","request":"{PREPARE}","result":"PREPARED","session":"{SESSION}","state":"PREPARED","verb":"PREPARE","watchdog":"ARMED"}}\n' \
                   "$BUNDLE"
-                while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
-                  sleep 0.01
-                done
+                if [ "${{MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP:-0}}" != 1 ]; then
+                  while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
+                    sleep 0.01
+                  done
+                fi
                 if [ "${{MOCK_CONTROL_FAIL:-0}}" = 1 ]; then
                   echo 'FAIL injected control failure'
                   exit 1
@@ -899,6 +910,9 @@ class Fixture:
                   "$BUNDLE" \
                   "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
+                if [ "${{MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP:-0}}" = 1 ]; then
+                  : >"$MOCK_ROOT/control-exited"
+                fi
                 ;;
               show)
                 printf 'control:show\n' >>"$MOCK_CALLS"
@@ -2556,6 +2570,34 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertIn("capture_result=PARTIAL\n", progress)
         self.assertIn("correlation=UNAVAILABLE\n", progress)
         self.assertIn("authority=NONE\n", progress)
+
+    def test_successful_control_exit_may_precede_bounded_bundle_cleanup(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("bundle:clean"), 1)
+        self.assertLess(calls.index("bundle:clean"), calls.index("nfs:start"))
+
+    def test_successful_control_exit_does_not_hide_stalled_bundle_cleanup(self):
+        result = self.fixture.run(
+            "run",
+            MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP="1",
+            MOCK_BUNDLE_CLEANUP_HANG="1",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "did not finish cleanup within 5 seconds of successful recovery "
+            "control",
+            result.stderr,
+        )
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertNotIn("bundle:clean", calls)
+        self.assertNotIn("nfs:start", calls)
 
     def test_postmortem_match_and_fatal_classifications_are_retained(self):
         cases = (

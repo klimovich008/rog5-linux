@@ -1,6 +1,7 @@
 # Generation 38 QMP-UFS fixed-rate-symbol-clocks discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **offline checkpoint subsequently consumed; target NCM disappeared;
+never retry or flash**.
 
 Generation 37 localized target NCM loss to `qmp_ufs_register_clocks()`. The
 Generation 38 diagnostic branch executes the function through allocation and
@@ -43,3 +44,9 @@ Generation 37 remains consumed and revoked; the known-good Alpine fallback is
 unchanged.
 
 The final repository `ci` checkpoint passed in approximately 355 seconds.
+
+The sole live cycle subsequently lost target NCM 11.276 seconds after product
+enumeration, then returned to exact Alpine. Because this branch never reached
+OF clock-provider publication, the result narrows the failure to allocation or
+one of the three fixed-rate symbol-clock registrations. See the
+[live result](2026-08-12-generation-38-qmp-fixed-clocks-stage-live.md).

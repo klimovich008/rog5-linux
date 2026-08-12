@@ -164,11 +164,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   internal boundaries. No UFS enumeration or storage access occurred. See the
   [live result](../test-results/2026-08-12-generation-37-qmp-clock-provider-stage-live.md).
 
-- **Generation 38 is the active fixed-rate-symbol-clocks discriminator.** It
-  registers the three passive symbol-clock hardware objects and returns before
-  OF clock-provider publication, cleanup-action registration, PHY creation, or
-  PHY-provider registration. UFS core, platform, and host modules remain
-  absent, so this RAM-only cycle cannot enumerate or access phone storage.
+- **Generation 38 is consumed and localizes target loss to allocation or one
+  of the three fixed-rate symbol-clock registrations.** Target NCM disappeared
+  11.276 seconds after enumeration, essentially matching Generation 37, then
+  exact Alpine fallback returned. Because this branch returned before OF
+  clock-provider publication, that later boundary is cleared from the current
+  failure set. The lifecycle separately hit a bounded host-cleanup race after
+  successful transfer and COMMIT; fallback and final cleanup still passed. See
+  the [live result](../test-results/2026-08-12-generation-38-qmp-fixed-clocks-stage-live.md).
+
+- **Generation 39 is the active first-fixed-clock discriminator.** It performs
+  the allocation and registers only `rx_symbol_0`, then returns before the
+  second and third clocks, OF clock-provider publication, PHY creation, or
+  provider registration. UFS core, platform, and host modules remain absent,
+  so this RAM-only cycle cannot enumerate or access phone storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

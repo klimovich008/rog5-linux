@@ -333,12 +333,20 @@ provider publication, or cleanup-action registration. UFS core, platform, and
 host modules remained absent; no storage access occurred. Generation 37 is
 consumed and must never be retried.
 
-Generation 38 stops inside `qmp_ufs_register_clocks` after registering all
-three fixed-rate symbol-clock hardware objects but before
-`of_clk_add_hw_provider` or `devm_add_action_or_reset`. A passing NCM control
-window clears the passive clock registrations and isolates Generation 37's
-loss to provider publication or its cleanup action. UFS core, platform, and
-host modules remain absent, so the cycle cannot enumerate or access storage.
+Generation 38 stopped inside `qmp_ufs_register_clocks` after allocation and all
+three fixed-rate symbol-clock registrations but before
+`of_clk_add_hw_provider` or `devm_add_action_or_reset`. Target NCM disappeared
+11.276 seconds after enumeration, then exact Alpine returned. This clears OF
+provider publication and cleanup-action registration from the failure set and
+narrows it to allocation or one of the three fixed-rate clock registrations.
+Generation 38 is consumed and must never be retried.
+
+Generation 39 performs the same allocation and only the first
+`devm_clk_hw_register_fixed_rate()` call for `rx_symbol_0`, then returns before
+the remaining clocks or provider publication. A passing NCM window clears
+allocation plus the first clock; an early loss narrows the next split to the
+allocation and that one call. UFS core, platform, and host modules remain
+absent, so the cycle cannot enumerate or access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

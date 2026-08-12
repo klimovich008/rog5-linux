@@ -3277,6 +3277,7 @@ class LiveCycle:
         observer: ManagedProcess | None = None,
     ) -> None:
         deadline = time.monotonic() + self.bundle_timeout
+        control_success_deadline: float | None = None
         progress_stop = self.output("recovery-progress.stop")
         progress_stop_created = False
         while time.monotonic() < deadline:
@@ -3324,12 +3325,30 @@ class LiveCycle:
                 return
             control_status = control.process.poll()
             if control_status is not None:
-                fail(
-                    "recovery control exited before the one-transfer bundle "
-                    f"server cleaned up; inspect {control.log}"
-                )
+                if control_status != 0:
+                    fail(
+                        "recovery control exited before the one-transfer "
+                        f"bundle server cleaned up; inspect {control.log}"
+                    )
+                if control_success_deadline is None:
+                    control_success_deadline = min(
+                        deadline,
+                        time.monotonic() + 5.0,
+                    )
+                elif time.monotonic() >= control_success_deadline:
+                    fail(
+                        "one-transfer bundle server did not finish cleanup "
+                        "within 5 seconds of successful recovery control; "
+                        f"inspect {bundle.log}"
+                    )
             time.sleep(self.poll)
         terminate(bundle)
+        if control_success_deadline is not None:
+            fail(
+                "one-transfer bundle server did not finish cleanup within "
+                "5 seconds of successful recovery control; inspect "
+                f"{bundle.log}"
+            )
         fail("one-transfer bundle server exceeded its bounded window")
 
     def require_fallback_contact_budget(
