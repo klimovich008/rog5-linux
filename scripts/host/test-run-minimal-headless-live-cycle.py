@@ -1802,6 +1802,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     "ROG5_recovery",
                     "ROG5_network_root",
                     "ROG5_diagnostic_network_root",
+                    "ROG5_persistent_root",
                     "ROG_Phone_5_Linux_Server",
                 }
             ),
@@ -3577,6 +3578,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "ROG5_recovery_extra",
             "ROG5_network_root_extra",
             "ROG5_diagnostic_network_root_extra",
+            "ROG5_persistent_root_extra",
             "ROG_Phone_5_Linux_Server_extra",
             "ROG5_recovery_ROG5_network_root",
             " ROG5_recovery",

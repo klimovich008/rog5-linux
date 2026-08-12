@@ -426,16 +426,19 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         execution["artifact_inventory_mode"] = "0600"
         self.policy_path.write_text(
             "name\tstatus\tbasis\n"
-            "build/host-rendezvous-v10-observer-production-20260811-r1/"
-            "wrapper/repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact retention-observed diagnostic execution "
-            "recovery; "
-            "RAM-only; externally "
-            "consumed exact claim required; never flash or retry after entry\n"
-            "build/observation-recovery-kmsg-live-20260811-r1/"
+            "build/observation-recovery-mainline-udc-v11-generation10-"
+            "20260811-r1/repack/stable-recovery-a.avb.img\tallow\t"
+            "one exact NFS-xattr retention observation recovery; RAM-only; "
+            "externally consumed exact claim required; never flash or retry "
+            "after entry\n"
+            "build/headless-core-v21-generation21-20260812-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one corrected observation-only recovery with exact /dev/kmsg "
-            "materialization; RAM-only; "
+            "one exact headless-core Arch SSH recovery with power-key "
+            "indicator; RAM-only; externally consumed exact claim required; "
+            "never flash or retry after entry\n"
+            "build/persistent-root-storage-read-v1-generation22-20260812-r1/"
+            "repack/stable-recovery-a.avb.img\tallow\t"
+            "one exact read-only UFS persistent Arch recovery; RAM-only; "
             "externally consumed exact claim required; never flash or retry "
             "after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
@@ -689,7 +692,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=2", report)
+        self.assertIn("temporary_boot_allow_rows=3", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)

@@ -17,8 +17,11 @@ expected_physical_count=116
 expected_kernel_release=7.1.4-gcfd385a1c754
 expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff
 expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c
-userdata=/dev/sda23
+userdata=
 release_file=/proc/sys/kernel/osrelease
+expected_udc=a600000.usb
+udc_class_dir=/sys/class/udc
+udc_poll_attempts=200
 
 log() {
 	echo "rog5-persistent-root: $*" >/dev/kmsg
@@ -189,28 +192,40 @@ verify_physical_storage_read_only() {
 }
 
 find_exact_userdata() {
-	count=0
+	[ "$#" -eq 2 ] || return 1
+	sys_block_root=$1
+	dev_root=$2
+	userdata_count=0
+	exact_count=0
 	found=
-	for sys_block in /sys/class/block/*; do
-		[ -e "$sys_block/partition" ] || continue
-		partition_name=$(sed -n 's/^PARTNAME=//p' "$sys_block/uevent" |
-			sed -n '1p')
-		[ "$partition_name" = userdata ] || continue
-		count=$((count + 1))
-		found=$(basename "$sys_block")
+	for sys_disk in "$sys_block_root"/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk") || return 1
+		case $disk in sd[a-z]) ;; *) continue ;; esac
+		for sys_block in "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/partition" ] || continue
+			partition_name=$(sed -n 's/^PARTNAME=//p' \
+				"$sys_block/uevent" | sed -n '1p')
+			[ "$partition_name" = userdata ] || continue
+			userdata_count=$((userdata_count + 1))
+			name=$(basename "$sys_block") || return 1
+			[ "$name" = "${disk}23" ] || continue
+			[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+			[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] ||
+				continue
+			[ "$(cat "$sys_block/partition")" = 23 ] || continue
+			[ "$(cat "$sys_block/start")" = 18821440 ] || continue
+			[ "$(cat "$sys_block/size")" = 476106392 ] || continue
+			[ "$(sed -n 's/^DEVNAME=//p' "$sys_block/uevent")" = \
+				"$name" ] || continue
+			[ "$(cat "$sys_block/ro")" = 1 ] || continue
+			exact_count=$((exact_count + 1))
+			found=$name
+		done
 	done
-	[ "$count" -eq 1 ] && [ "$found" = sda23 ] || return 1
-	[ "$(cat /sys/class/block/sda/size)" = 494927872 ] || return 1
-	[ "$(cat /sys/class/block/sda23/partition)" = 23 ] || return 1
-	[ "$(cat /sys/class/block/sda23/start)" = 18821440 ] || return 1
-	[ "$(cat /sys/class/block/sda23/size)" = 476106392 ] || return 1
-	[ "$(sed -n 's/^DEVNAME=//p' /sys/class/block/sda23/uevent)" = \
-		sda23 ] || return 1
-	[ "$(sed -n 's/^PARTNAME=//p' /sys/class/block/sda23/uevent)" = \
-		userdata ] || return 1
-	[ "$(cat /sys/class/block/sda23/ro)" = 1 ] || return 1
-	[ -b "$userdata" ] || return 1
-	return 0
+	[ "$userdata_count" -eq 1 ] && [ "$exact_count" -eq 1 ] || return 1
+	printf '%s/%s\n' "$dev_root" "$found"
 }
 
 write_ufs_inventory() {
@@ -250,6 +265,60 @@ write_ufs_inventory() {
 	[ "$(wc -l <"$inventory")" -eq $((expected_physical_count + 1)) ]
 }
 
+udc_candidate_count() {
+	count=0
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+	done
+	printf '%s\n' "$count"
+}
+
+validate_expected_udc_once() {
+	count=0
+	selected=
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=$(basename "$candidate") || return 1
+	done
+	[ "$count" -eq 1 ] && [ "$selected" = "$expected_udc" ] || return 1
+	printf '%s\n' "$selected"
+}
+
+validate_expected_udc() {
+	validate_expected_udc_once
+}
+
+expected_udc_is_bound() {
+	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || return 1
+	[ "$bound_udc" = "$expected_udc" ] &&
+		[ "$(validate_expected_udc)" = "$expected_udc" ]
+}
+
+select_expected_udc() {
+	attempt=0
+	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
+		candidate_count=$(udc_candidate_count) || return 1
+		case $candidate_count in
+			0)
+				sleep 0.1
+				attempt=$((attempt + 1))
+				continue
+				;;
+			1) ;;
+			*) return 1 ;;
+		esac
+		first=$(validate_expected_udc) || return 1
+		sleep 0.1
+		second=$(validate_expected_udc) || return 1
+		[ "$first" = "$second" ] || return 1
+		printf '%s\n' "$first"
+		return 0
+	done
+	return 1
+}
+
 configure_usb() {
 	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
@@ -270,21 +339,10 @@ configure_usb() {
 	ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
 	mdev -s || return 1
 
-	udc=
-	attempt=0
-	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
-		for candidate in /sys/class/udc/*; do
-			[ -e "$candidate" ] || continue
-			case $(basename "$candidate") in
-				*a600000*) udc=$(basename "$candidate"); break ;;
-			esac
-			[ -n "$udc" ] || udc=$(basename "$candidate")
-		done
-		[ -n "$udc" ] || sleep 0.1
-		attempt=$((attempt + 1))
-	done
-	[ -n "$udc" ] || return 1
+	udc=$(select_expected_udc) || return 1
+	[ "$(validate_expected_udc)" = "$udc" ] || return 1
 	echo "$udc" >"$gadget/UDC" || return 1
+	expected_udc_is_bound || return 1
 
 	attempt=0
 	while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
@@ -294,12 +352,14 @@ configure_usb() {
 	[ -e /sys/class/net/usb0 ] || return 1
 	ip link set usb0 up || return 1
 	ip address add 169.254.77.2/30 dev usb0 || return 1
+	expected_udc_is_bound || return 1
 	return 0
 }
 
 verify_only_userdata_mount() {
 	count=0
-	expected_device=$(cat /sys/class/block/sda23/dev)
+	userdata_name=${userdata##*/}
+	expected_device=$(cat "/sys/class/block/$userdata_name/dev") || return 1
 	while read -r _ _ device _ mountpoint _ rest; do
 		[ -e "/sys/dev/block/$device" ] || continue
 		count=$((count + 1))
@@ -313,7 +373,7 @@ mount_persistent_root() {
 	mkdir -p /mnt/userdata /mnt/state /newroot
 	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
 	mountpoint -q /mnt/userdata || return 1
-	awk '$1 == "/dev/sda23" && $2 == "/mnt/userdata" &&
+	awk -v userdata="$userdata" '$1 == userdata && $2 == "/mnt/userdata" &&
 		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
 		END { exit found != 1 }' /proc/mounts || return 1
 	verify_only_userdata_mount || return 1
@@ -485,9 +545,13 @@ fi
 if ! lock_physical_storage; then
 	fail_stage 'physical storage lock failed' storage-lock 65
 fi
-if ! find_exact_userdata; then
+userdata=$(find_exact_userdata /sys/class/block /dev) ||
 	fail_stage 'exact userdata identity failed' userdata 80
-fi
+[ -b "$userdata" ] || fail_stage 'exact userdata node is absent' userdata 80
+printf '%s\n' "$userdata" >/run/rog5-p2-userdata-device ||
+	fail_stage 'userdata identity publication failed' userdata 80
+chmod 0444 /run/rog5-p2-userdata-device ||
+	fail_stage 'userdata identity mode failed' userdata 80
 if ! write_ufs_inventory; then
 	fail_stage 'UFS inventory failed' inventory 95
 fi

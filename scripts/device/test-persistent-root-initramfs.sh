@@ -50,6 +50,13 @@ grep -Fq 'expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91
 grep -Fq 'expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c' \
 	"$init"
 grep -Fq 'mount -t ext4 -o ro,noload "$userdata" /mnt/userdata' "$init"
+grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"
+grep -Fq 'userdata_record=/run/rog5-p2-userdata-device' "$attest"
+! grep -Fq '/dev/sda23' "$init" "$attest"
+! grep -Fq '/sys/class/block/sda23' "$init" "$attest"
+grep -Fq 'expected_udc=a600000.usb' "$init"
+grep -Fq 'select_expected_udc' "$init"
+! grep -Fq '*a600000*' "$init"
 grep -Fq 'lowerdir=/mnt/userdata/rog5/roots/arch-a' "$init"
 grep -Fq 'upperdir=/mnt/state/upper,workdir=/mnt/state/work' "$init"
 grep -Fq '/usr/local/sbin/persistent-root-verify' "$init"
@@ -143,5 +150,9 @@ cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
 	-name 'ssh_host_*' -print -quit 2>/dev/null)" ]
 ! find "$work/root" -type f -exec grep -Il 'BEGIN .*PRIVATE KEY' {} + |
 	grep -q .
+! readelf -d "$work/root/usr/local/sbin/persistent-root-verify" |
+	grep -q '(NEEDED)'
+! readelf -l "$work/root/usr/local/sbin/persistent-root-verify" |
+	grep -q 'Requesting program interpreter'
 
 echo 'PASS deterministic credential-free P2 initramfs pins exact running-kernel release, read-only UFS, exact userdata/root seal, tmpfs OverlayFS, and SysRq rollback'

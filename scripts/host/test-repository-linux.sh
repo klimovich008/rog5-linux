@@ -194,6 +194,7 @@ shared_tests=(
 	scripts/host/test-fallback-acm-control.py
 	scripts/host/test-retired-legacy-acm-entrypoints.py
 	scripts/host/test-run-minimal-headless-live-cycle.py
+	scripts/host/test-run-persistent-root-storage-live-cycle.py
 	scripts/host/test-early-target-diagnostics.py
 	scripts/host/test-collect-early-target-diagnostics.py
 	scripts/host/test-recovery-linux.sh
@@ -217,6 +218,7 @@ shared_tests=(
 	scripts/host/test-run-stable-recovery-live-gate.sh
 	scripts/host/test-current-production-recovery-profile.sh
 	scripts/host/test-current-core-recovery-profile.sh
+	scripts/host/test-current-persistent-root-storage-profile.sh
 	scripts/host/test-current-observation-recovery-profile.sh
 	scripts/host/test-recovery-bundle-native.py
 	scripts/host/test-prepare-recovery-runtime-bundle.py
@@ -243,6 +245,7 @@ shared_tests=(
 	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-collect-readonly-storage-inventory.py
+	scripts/device/test-persistent-root-storage-resolution.py
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/device/test-network-root-init.sh
 	scripts/device/test-kernel-build-contract.sh
