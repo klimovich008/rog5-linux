@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-storage-read-v2-live-v1"
-BUNDLE = "persistent-root-storage-read-v2"
+PROFILE_ID = "persistent-root-storage-read-v3-live-v1"
+BUNDLE = "persistent-root-storage-read-v3"
 MANIFEST_SHA256 = (
-    "4b56111b2f40157b5173a24adfedf53341cb243a661fc744410673b1ab7aa567"
+    "3bc4b40f7e230945249db08be19b5791c176e08aeb8b5cfca059f48db5b8ed73"
 )
 RECOVERY_SHA256 = (
-    "ac508ef9bb4c04274da77d853b51705f41800256969ca6f578288cefaa754502"
+    "6850d79af138717190ab58e171a6f7f1d9874510026c9f10bf57d35a3e9f6bca"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,7 +57,7 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 FALLBACK_UDEV_MODEL = "ROG_Phone_5_Linux_Server"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-storage-read-v2-generation23-20260812-r1"
+    / "build/persistent-root-storage-read-v3-generation24-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/headless-core-v21-production-20260812-r1/recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-storage-read-v2",
+    admission_profile="persistent-root-storage-read-v3",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-storage-read-v2",
-    build_profile="persistent-root-storage-read-v2",
+    runtime_profile="persistent-root-storage-read-v3",
+    build_profile="persistent-root-storage-read-v3",
     diagnostic=False,
 )
 

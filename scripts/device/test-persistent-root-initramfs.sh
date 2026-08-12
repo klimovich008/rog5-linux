@@ -82,6 +82,8 @@ grep -Fq 'sleep "$delay"' "$init"
 
 release_read_line=$(grep -Fn "$release_read" "$init" | cut -d: -f1)
 release_line=$(grep -Fn "$release_check" "$init" | cut -d: -f1)
+cmdline_line=$(grep -n '^if \[ "$persistent_count" -ne 1 \]' "$init" |
+	cut -d: -f1)
 watchdog_line=$(grep -n '^arm_watchdog$' "$init" | cut -d: -f1)
 wait_line=$(grep -n "log 'waiting for stable UFS discovery'" "$init" |
 	cut -d: -f1)
@@ -94,9 +96,10 @@ verify_line=$(grep -n '^if ! verify_persistent_root; then$' "$init" |
 	cut -d: -f1)
 switch_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" |
 	cut -d: -f1)
-[ "$release_read_line" -lt "$release_line" ]
-[ "$release_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$usb_line" ]
+[ "$usb_line" -lt "$cmdline_line" ]
+[ "$cmdline_line" -lt "$release_read_line" ]
+[ "$release_read_line" -lt "$release_line" ]
 [ "$usb_line" -lt "$wait_line" ]
 [ "$wait_line" -lt "$lock_line" ]
 [ "$lock_line" -lt "$mount_line" ]
