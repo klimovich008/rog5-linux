@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-deferred-ufs-v10-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-deferred-ufs-v10-live-v1\n"
+            b"candidate=persistent-root-deferred-ufs-v10\n"
+            b"manifest_sha256="
+            b"dc22fde250d88f75859d544737d3703f9a3cf09ca2987eaf213dd744204cd8f7\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-accepted-image-v9-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-accepted-image-v9-live-v1\n"

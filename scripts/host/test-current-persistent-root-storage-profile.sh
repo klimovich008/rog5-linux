@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-accepted-image-v9-live-v1
-image_name=build/persistent-root-accepted-image-v9-generation30-20260812-r1/repack/stable-recovery-a.avb.img
-basis='one exact accepted persistent-root Image plus current UFS-enabled DTB read-only Arch cycle; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 30 accepted persistent-root Image plus current UFS-enabled DTB; exact USB-first read-only initramfs and clean-twin signed bundle; one RAM-only use only; never flash'
+profile=persistent-root-deferred-ufs-v10-live-v1
+image_name=build/persistent-root-deferred-ufs-v10-generation31-20260812-r1/repack/stable-recovery-a.avb.img
+basis='one exact deferred Qualcomm UFS-probe discriminator after stable USB NCM; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 31 USB-first deferred Qualcomm UFS-probe discriminator; clean-twin Image, explicit three-module chain, and signed bundle; one RAM-only use only; never flash'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -34,13 +34,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-accepted-image-v9 \
-	expected_bundle=persistent-root-accepted-image-v9 \
+	expected_target_id=persistent-root-deferred-ufs-v10 \
+	expected_bundle=persistent-root-deferred-ufs-v10 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gcfd385a1c754 \
-	expected_avb_salt=483588af8ce58260b89a0db60780fcf1921d46a1cc28a2ad5136a8c2ac8689a1 \
-	expected_avb_digest=6ab8418c6a32779670684f7d1f256a0f2ad60b5d6aee56442e59c0a4f8c42ea9 \
-	expected_generation_record=611cd93a6d6abaf7fc0a358ecf9957806423dacc912b35eabb19bb11358604d4 \
+	expected_avb_salt=2ef14b1c4416e114edf34a1762685dc8718a491b1dabbe8b365aa8e7b38a14ea \
+	expected_avb_digest=1d3c272d61deb518e70ac601ef858ad6079ab44a47bcc68d19403b502ef14120 \
+	expected_generation_record=861df55c9119b3134acdeec8f43aa1eee00fec658655312eddd6425e68bfa56b \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -59,11 +59,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	7e6185bc40778c74d4528d54c22ae249997132ff0c57f64eb47ce7ba854a9ec4
+	218bd8f60e4b88f91981334fa40431dd7a7a47886f68d9bd93e4b9614783fce1
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	90c3cd03ab749003d46f039b31d6bffd51b98d2ea18e858eaddf59cb64c0efbd
+	dc22fde250d88f75859d544737d3703f9a3cf09ca2987eaf213dd744204cd8f7
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-accepted-image-v9
+	persistent-root-deferred-ufs-v10
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -74,7 +74,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-accepted-image-v9' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-deferred-ufs-v10' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -84,7 +84,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-accepted-image-v9'
+	'profile requires bundle=persistent-root-deferred-ufs-v10'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -106,7 +106,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "7e6185bc40778c74d4528d54c22ae249997132ff0c57f64eb47ce7ba854a9ec4" &&
+	$3 == "218bd8f60e4b88f91981334fa40431dd7a7a47886f68d9bd93e4b9614783fce1" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -116,8 +116,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-accepted-image-v9-production-20260812-r1
-generation_root=$repo/build/persistent-root-accepted-image-v9-generation30-20260812-r1
+production_root=$repo/build/persistent-root-deferred-ufs-v10-production-20260812-r1
+generation_root=$repo/build/persistent-root-deferred-ufs-v10-generation31-20260812-r1
 recovery_root=$repo/build/generation26-rmtfs-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -143,4 +143,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 30 accepted-Image read-only Arch profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 31 deferred-UFS profile, exact claim, artifact, and admission are pinned'

@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-accepted-image-v9-live-v1"
-BUNDLE = "persistent-root-accepted-image-v9"
+PROFILE_ID = "persistent-root-deferred-ufs-v10-live-v1"
+BUNDLE = "persistent-root-deferred-ufs-v10"
 MANIFEST_SHA256 = (
-    "90c3cd03ab749003d46f039b31d6bffd51b98d2ea18e858eaddf59cb64c0efbd"
+    "dc22fde250d88f75859d544737d3703f9a3cf09ca2987eaf213dd744204cd8f7"
 )
 RECOVERY_SHA256 = (
-    "7e6185bc40778c74d4528d54c22ae249997132ff0c57f64eb47ce7ba854a9ec4"
+    "218bd8f60e4b88f91981334fa40431dd7a7a47886f68d9bd93e4b9614783fce1"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -54,10 +54,10 @@ TARGET_RELEASE = "7.1.4-gcfd385a1c754"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
-USB_CONTROL_ONLY = False
+USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-accepted-image-v9-generation30-20260812-r1"
+    / "build/persistent-root-deferred-ufs-v10-generation31-20260812-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -75,10 +75,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-accepted-image-v9",
+    admission_profile="persistent-root-deferred-ufs-v10",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-accepted-image-v9",
-    build_profile="persistent-root-accepted-image-v9",
+    runtime_profile="persistent-root-deferred-ufs-v10",
+    build_profile="persistent-root-deferred-ufs-v10",
     diagnostic=False,
 )
 
@@ -596,7 +596,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("target_release", TARGET_RELEASE),
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
-                    ("expected_next_gate", "ufs-discovery-disabled"),
+                    ("expected_next_gate", "qualcomm-ufs-module-probe"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -630,9 +630,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS exact UFS Image plus UFS-disabled DTB reached stable "
-                f"target NCM in {elapsed:.3f}s before the expected no-UFS "
-                "rollback and exact Alpine fallback"
+                "PASS deferred-UFS target reached stable NCM in "
+                f"{elapsed:.3f}s before the explicit Qualcomm module probe "
+                "and exact Alpine fallback"
             )
             return
         CYCLE.run_logged(
