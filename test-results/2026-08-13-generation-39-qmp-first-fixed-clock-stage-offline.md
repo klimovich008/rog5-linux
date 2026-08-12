@@ -1,6 +1,7 @@
 # Generation 39 QMP-UFS first-fixed-clock discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **offline checkpoint subsequently consumed; target NCM disappeared;
+never retry or flash**.
 
 Generation 38 localized target NCM loss to allocation or one of three
 fixed-rate symbol-clock registrations. Generation 39 performs the allocation
@@ -46,3 +47,9 @@ unchanged.
 The final repository `ci` checkpoint passed in 360 seconds, including the
 bounded successful-controller/late-bundle-cleanup regression and its stalled
 cleanup refusal.
+
+The sole live cycle subsequently lost target NCM 11.273 seconds after product
+enumeration, then returned to exact Alpine. This narrows the failure to
+clock-data allocation/metadata setup or the first fixed-rate clock
+registration. See the
+[live result](2026-08-13-generation-39-qmp-first-fixed-clock-stage-live.md).

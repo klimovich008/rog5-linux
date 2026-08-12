@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-qmp-first-fixed-clock-stage-v18-live-v1
-image_name=build/persistent-root-qmp-first-fixed-clock-stage-v18-generation39-20260813-r1/repack/stable-recovery-a.avb.img
-basis='one exact SM8350 QMP-UFS first-fixed-clock discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 39 SM8350 QMP-UFS first-fixed-clock discriminator; patched module returns before the second clock, OF clock-provider publication, PHY creation, or provider registration; one RAM-only use only; never flash'
+profile=persistent-root-qmp-allocation-stage-v19-live-v1
+image_name=build/persistent-root-qmp-allocation-stage-v19-generation40-20260813-r1/repack/stable-recovery-a.avb.img
+basis='one exact SM8350 QMP-UFS allocation-stage discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 40 SM8350 QMP-UFS allocation-stage discriminator; patched module returns before the first clock, OF clock-provider publication, PHY creation, or provider registration; one RAM-only use only; never flash'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -34,13 +34,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-qmp-first-fixed-clock-stage-v18 \
-	expected_bundle=persistent-root-qmp-first-fixed-clock-stage-v18 \
+	expected_target_id=persistent-root-qmp-allocation-stage-v19 \
+	expected_bundle=persistent-root-qmp-allocation-stage-v19 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gcfd385a1c754 \
-	expected_avb_salt=04cff56d428149c3c54b44580842730d7c6e8b85d8633c67b933e3ff5d7ee1c7 \
-	expected_avb_digest=1475b6bd506abe5500b65a37ec39c7308cdd3ec7e4896f6008b30720f77d9234 \
-	expected_generation_record=eed09e1837725e26416ff38365bcc5260bdc3fa2c4016cbdbfcfc3decdd41018 \
+	expected_avb_salt=b4ffa58de47b1a48d2b877fa94865a9e95342c714264a48531c2d0a7e692a628 \
+	expected_avb_digest=7633816778871f84ba86bbc7d72fe67bd9b57dcaf0f56e66518ade4bfac22dfc \
+	expected_generation_record=40000ccf9ad9e84736c3516eaff8cb2056da9568012fa355cb9256674cd0b382 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -59,11 +59,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	fbaee0cd105ba7d02e76ef5f1b13a4cb43bc0c4e03e14f0c9a0e9406c5513b7a
+	39051935dda192ac24983a91b0508eaa6f74788a77ce14a12f570ea2cad40280
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	f047d1c0ca676afa62a8a4f30d7b68306622b2eee5fc8dfb8b94e9d71450d3c5
+	82f38e524cc9f8c65bd5ae225bbb4d0acf4a7ef20021d61af313880c98731835
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-qmp-first-fixed-clock-stage-v18
+	persistent-root-qmp-allocation-stage-v19
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -74,7 +74,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-qmp-first-fixed-clock-stage-v18' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-qmp-allocation-stage-v19' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -84,7 +84,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-qmp-first-fixed-clock-stage-v18'
+	'profile requires bundle=persistent-root-qmp-allocation-stage-v19'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -106,7 +106,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "fbaee0cd105ba7d02e76ef5f1b13a4cb43bc0c4e03e14f0c9a0e9406c5513b7a" &&
+	$3 == "39051935dda192ac24983a91b0508eaa6f74788a77ce14a12f570ea2cad40280" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -116,8 +116,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-qmp-first-fixed-clock-stage-v18-production-20260813-r1
-generation_root=$repo/build/persistent-root-qmp-first-fixed-clock-stage-v18-generation39-20260813-r1
+production_root=$repo/build/persistent-root-qmp-allocation-stage-v19-production-20260813-r1
+generation_root=$repo/build/persistent-root-qmp-allocation-stage-v19-generation40-20260813-r1
 recovery_root=$repo/build/generation26-rmtfs-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -143,4 +143,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 39 QMP-UFS first-fixed-clock profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 40 QMP-UFS allocation-stage profile, exact claim, artifact, and admission are pinned'
