@@ -101,6 +101,10 @@ The standing authorization covers:
 - deletion of reproducible project-only build caches or disposable artifacts
   selected by an exact reviewed cleanup plan;
 - connected ADB, fastboot, recovery, ACM, NCM, and SSH preflights;
+- read-only UFS/GPT/partition discovery, private hash-verified backups, and
+  host-only restoration rehearsals;
+- one bounded filesystem-image experiment inside the existing Linux
+  `userdata` filesystem after its reviewed UFS prerequisites pass;
 - rebooting the development host or phone to execute or verify one of these
   action classes;
 - one-shot temporary `fastboot boot` executions admitted by an exact reviewed
@@ -117,11 +121,15 @@ artifact verification, review, CI, preflight, evidence, or cleanup gates.
 
 This standing authorization does not:
 
-- permit flashing, erasing, formatting, slot changes, factory reset, or a
-  persistent Linux installation while the active roadmap remains
-  temporary-boot-only;
-- permit mounting or writing phone storage outside the bounded fallback
-  history/atime effects above;
+- permit reclaiming, formatting, or repartitioning raw phone partitions before
+  the exact map, protected-data backups, restoration procedure, proposed
+  layout, and destructive commands are reviewed and receive final operator
+  confirmation;
+- permit writes outside the reviewed bounded `userdata` image experiment and
+  its exact parent scaffolding during Phase 2;
+- permit overwriting bootloader, GPT backup information, modem/EFS, persist,
+  calibration, RPMB-related state, firmware dependencies, device identity, or
+  the verified recovery route without specific evidence and final approval;
 - permit reuse of a consumed candidate, retry of an ambiguous execute, or
   removal of the independent rollback watchdog;
 - permit publishing a password, private key, token, personal record, private

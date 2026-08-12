@@ -1,8 +1,13 @@
 # Persistent native-Linux storage and rollback design
 
-## Decision
+## Current decision
 
-Do not repartition the phone.
+Use no repartitioning during the current read-only discovery and bounded-image
+phases. This is no longer a permanent “never repartition” decision. The phone
+is becoming a dedicated Linux server, and a reviewed native Linux layout may
+replace Android payload in Phase 3 after exact backups, restoration rehearsal,
+and final operator confirmation of the destructive commands. See the
+[current storage migration checkpoint](storage-migration-phase1.md).
 
 The installed Alpine fallback already occupies the large `userdata`
 partition and provides a proven USB/SSH recovery path. Arch will be staged as
@@ -11,8 +16,10 @@ will enter through kexec from Alpine, mount `userdata` read-only, and use a
 tmpfs OverlayFS upper. This reaches a native Linux kernel and normal Arch PID
 1; it is not Linux inside Android or a container.
 
-No boot, vendor-boot, vbmeta, super, metadata, calibration, or modem
-partition is part of this design.
+No boot, vendor-boot, vbmeta, super, metadata, calibration, or modem partition
+is part of the Phase-2 bounded-image write experiment. `super` and Android
+`metadata` are future reclaim candidates; firmware, identity, calibration,
+both GPT copies, and the verified recovery route remain protected.
 
 ## Measured storage contract
 
@@ -22,12 +29,15 @@ The read-only live inspector passes on the installed fallback:
 PASS persistent layout mode=live slot=_b protected_slot=_b root=/dev/sda23 filesystem=ext4 userdata_bytes=243766472704 free_kib=197263136 plan=no-repartition
 ```
 
-The relevant measured topology is:
+The following table is historical evidence from one boot, not a reusable
+device-node mapping. A later Phase-1 inventory proved that UFS `sd*` letters
+change across boots. New code must use freshly matched disk/partition GUID,
+label, offset, and size. The relevant historical topology was:
 
 | Node | GPT name | Start sector | Sectors | Role |
 |---|---|---:|---:|---|
-| `sda19` | `super` | 4,108,352 | 14,680,064 | Android dynamic partitions; never use |
-| `sda22` | `metadata` | 18,788,672 | 32,768 | Android metadata; never use |
+| `sda19` | `super` | 4,108,352 | 14,680,064 | Android dynamic partitions; preserve in Phase 2, Phase-3 reclaim candidate |
+| `sda22` | `metadata` | 18,788,672 | 32,768 | Android metadata; preserve in Phase 2, Phase-3 reclaim candidate |
 | `sda23` | `userdata` | 18,821,440 | 476,106,392 | current Alpine ext4 root and future `/rog5` store |
 | `sde11` | `boot_a` | 688,176 | 196,608 | boot-critical; never use during kexec development |
 | `sde14` | `vbmeta_a` | 885,200 | 128 | boot-critical; never use during kexec development |
@@ -268,7 +278,12 @@ the fixed thermal gate cooled. The target reset path remains unclassified.
 Entry-v1 is consumed. P3 remains blocked until a separate offline-reproduced
 marker channel can classify target entry even when USB enumeration fails.
 
-### Gate P3 — bounded UFS write probe (pending)
+### Historical Gate P3 — bounded directory write probe (superseded)
+
+The current plan replaces this older loose-directory probe with the bounded
+filesystem-image experiment in
+[storage-migration-phase1.md](storage-migration-phase1.md). The text below is
+retained as historical design evidence, not the active write target.
 
 Only after P2 passes, build a normal-UFS kernel and a separate one-cycle
 write oracle. Stop Alpine services, sync, and make its root clean before
@@ -303,5 +318,5 @@ At every pre-release gate:
 - a failed target is never retried automatically;
 - host artifacts remain sufficient for `fastboot boot` recovery without
   flashing; and
-- persistent writes, credential deployment, and any partition change require
-  separate explicit authorization.
+- the reviewed bounded Phase-2 image write uses standing authorization; any
+  raw partition change still requires final confirmation of the exact action.

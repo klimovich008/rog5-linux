@@ -5,10 +5,10 @@
 Build a stable, observable, maintainable native Linux system for the ASUS ROG
 Phone 5 (`anakin`), headless-first.
 
-Long-term success means the phone can run unattended as a minimal native-Linux
-ARM server with repeatable builds, bounded recovery, key-only remote access,
-screen-off operation, and measured power and thermal behavior. A newer kernel,
-GPU, desktop, or persistent install is not a substitute for that foundation.
+Long-term success means the phone runs unattended as a persistent standalone
+Arch Linux ARM server with repeatable builds, bounded recovery, key-only remote
+access, screen-off operation, and measured power and thermal behavior. Android
+usability is no longer a requirement.
 
 The active target is a minimal server that boots repeatably, preserves
 postmortem evidence, exposes key-only SSH, keeps physical storage safe during
@@ -17,10 +17,34 @@ and wireless behavior. Basic display, GPU acceleration, Plasma/GNOME, remote
 GUI, refresh-rate tuning, VPN hotspot, and AI workloads resume only after the
 headless core passes its reliability gate.
 
-Normal operation must eventually stop depending on Android, an interactive
-recovery shell, or an attended temporary boot. Development remains
-temporary-boot-only until a persistent path is separately designed, tested,
-and approved.
+Normal operation must stop depending on Android, the Steam Deck/NFS server, an
+interactive recovery shell, or an attended temporary boot. The active path is
+read-only storage discovery, stable mainline UFS, a bounded local-root image,
+and then a reviewed dedicated Linux layout.
+
+## S0 — Current storage critical path
+
+Status: **Phase-1 inventory and backup passed; mainline UFS/local image next**
+
+- [x] Preserve the Generation-21 buttons/indicator checkpoint and freeze
+  secondary subsystem expansion.
+- [x] Inventory seven UFS LUNs, both GPT copies, all 109 partitions,
+  filesystems, mounts, slots, AVB, firmware, identity data, and fallback use.
+- [x] Hash-back up all 107 non-`super`, non-`userdata` partitions plus 14 GPT
+  ranges and rehearse all seven GPT restorations offline.
+- [x] Classify Android `super`/`metadata` as future reclaim candidates and
+  preserve bootloader, firmware, modem/EFS, calibration, identity, and the
+  slot-B/Alpine recovery path.
+- [ ] Enable stable normal mainline UFS and prove repeated read-only reads.
+- [ ] Create one 16 GiB ext4 image inside `userdata`; keep payload writes
+  inside that bounded object and verify it after fallback.
+- [ ] RAM-boot Arch from the local image, retain NFS/Alpine recovery, and beat
+  Generation 20's 379.548-second strict-SSH baseline.
+- [ ] After repeated local-root success, propose a dedicated Linux partition
+  layout and obtain final confirmation of the exact destructive operation.
+
+The detailed evidence and next experiment are in
+[storage-migration-phase1.md](docs/storage-migration-phase1.md).
 
 ## What “incremental” means
 
@@ -56,17 +80,17 @@ active mainline target.
 ## Safety rules
 
 1. Tests and rollback contracts precede hardware execution.
-2. No experimental partition flash; use only an explicitly allowed attended
-   `fastboot boot`.
-3. Keep the installed fallback configuration and authorization untouched.
-   The standing operator authorization covers only the already-bounded
-   fallback ACM shell-history and read-induced atime effects.
+2. Phase 1 and Phase 2 use RAM-only kernels/recovery. Raw partition formatting,
+   reclaim, or repartitioning requires the reviewed Phase-3 map and final
+   confirmation of the exact commands.
+3. Keep the installed fallback route and authorization intact. Standing
+   authorization covers the bounded Phase-2 image experiment, fallback ACM
+   shell-history, and read-induced atime effects—not raw repartitioning.
 4. One live diagnostic payload gets at most one execute attempt.
 5. Transport loss is `UNKNOWN`; it never authorizes a retry.
 6. Accepted evidence is immutable and inherited by hash.
-7. Outside the standing-authorized fallback history/atime effects, physical
-   storage stays read-only until a bounded persistent-root write contract is
-   explicitly added to project scope.
+7. The bounded `userdata` image experiment is in scope after stable mainline
+   UFS reads. No write may escape that image and its exact parent scaffolding.
 8. Credentials, personal data, and private evidence remain outside Git.
 9. A kernel version bump does not replace subsystem bring-up.
 10. No desktop, GPU, or automation dependency may enter the active headless

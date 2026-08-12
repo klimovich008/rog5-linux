@@ -242,6 +242,8 @@ shared_tests=(
 	scripts/host/test-github-exact-head-workflow.sh
 	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-repository-linux-runner-contract.sh
+	scripts/device/test-collect-readonly-storage-inventory.py
+	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/device/test-network-root-init.sh
 	scripts/device/test-kernel-build-contract.sh
 	scripts/device/test-asus-kexec-stage-slim-build-contract.sh

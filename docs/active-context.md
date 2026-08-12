@@ -5,11 +5,17 @@ contracts and evidence instead of repeating their history.
 
 ## Objective
 
-Reach a repeatable native Linux 7.1.4 minimal server on the ASUS ROG Phone 5:
-read-only network root, USB NCM, key-only SSH, bounded rollback, and private
-postmortem evidence. Keep installed Alpine configuration and authorization
-unchanged; any shell-history or read-induced atime effect requires a separate
-action-scoped guard. Use temporary `fastboot boot` only.
+Turn the ASUS ROG Phone 5 into a dedicated, persistent Arch Linux server.
+The temporary Linux 7.1.4/NFS/USB-NCM/key-only-SSH path is proven. The current
+critical path is stable mainline UFS, a faster local Arch root inside one
+bounded `userdata` image, and eventual dedicated Linux partitioning after
+verified backups, restoration rehearsal, and final confirmation of the exact
+destructive operation. Android usability is no longer a requirement.
+
+Buttons/indicator, sensors, audio, suspend, GPU, display, desktop, and browser
+automation are frozen at their current checkpoints while storage and local
+boot are advanced. Kernel and recovery remain RAM-only through the bounded
+image phase; NFS and exact Alpine remain recovery paths.
 
 The operator's [standing authorization](operator-standing-authorization.md)
 permits the agent to satisfy those action-scoped guards, use the admitted
@@ -19,15 +25,24 @@ is reached. The operator reaffirmed this no-reprompt instruction on 2026-08-04:
 routine authorization gates may be satisfied from the standing directive and
 must not cause another consent pause. This latest directive supersedes stale
 goal or historical gate wording that requests fresh consent; it does not relax
-artifact admission, rollback, evidence, cleanup, or the
-no-flash/no-phone-storage-write boundary. The operator reaffirmed the same
-directive again on 2026-08-05; the standing-authorization record is the
+artifact admission, rollback, evidence, cleanup, protected-partition, or
+Phase-3 final-confirmation boundaries. The bounded Phase-2 image write is now
+explicitly in scope; raw storage changes are not. The operator reaffirmed the
+same directive again on 2026-08-05; the standing-authorization record is the
 canonical wording.
 
-GPU, display, desktop, browser automation, hotspot, persistent installation,
-and newer-kernel rebases remain frozen until the headless core passes.
+GPU, display, desktop, browser automation, hotspot, and unrelated subsystem
+expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
 
 ## Proven boundary
+
+- **Storage Phase 1 passed on 2026-08-12.** A fresh read-only inventory found
+  seven UFS LUNs and 109 partitions with valid primary/backup GPT CRCs and
+  exact sysfs geometry. All 14 GPT metadata ranges and all 107 non-`super`,
+  non-`userdata` partitions have source/host hash-matched private backups; an
+  offline sparse restoration rehearsal recovered all seven GPTs and 109
+  entries. UFS `sd*` names changed across boots and are forbidden as stable
+  identity. See [storage migration Phase 1](storage-migration-phase1.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

@@ -1,0 +1,187 @@
+# Storage migration Phase 1
+
+## Current decision
+
+The phone is becoming a dedicated Arch Linux server. Preserving Android is no
+longer an objective. Development remains RAM-booted while storage is proved,
+but the end state is a persistent, standalone Linux installation that no
+longer depends on the Steam Deck or NFS.
+
+Buttons, the indicator, sensors, audio, and suspend are frozen at the
+Generation-21 checkpoint. Generation 21 is preserved, unbooted, and is not a
+storage candidate. Storage and local-root boot are the current critical path.
+
+No raw partition is expendable merely because Android is no longer required.
+Phase 1 distinguishes Android payload from boot firmware, calibration,
+identity, security state, and the Alpine recovery route. Phase 2 uses one
+bounded image in the existing `userdata` filesystem. Repartitioning remains a
+separate Phase-3 action requiring the operator's final confirmation of the
+exact commands.
+
+## Read-only inventory result
+
+The 2026-08-12 collector ran from a temporary RAM boot of the exact backed-up
+Alpine `boot_b` image. It opens block devices with `O_RDONLY | O_CLOEXEC |
+O_NOFOLLOW`, disables the `blkid` cache, and performs no mount, format,
+partition, flash, erase, or block write.
+
+The canonical private JSON records every per-device disk/partition GUID,
+filesystem UUID, offset, and dependency. Those identifiers and raw images are
+not committed to this public repository. The redacted hardware result is:
+
+| UFS LUN | Bytes | Logical block | GPT entries | Principal role |
+|---|---:|---:|---:|---|
+| LUN 0 | 253,403,070,464 | 4,096 | 23 | OEM data, Android `super`, metadata, Linux/Alpine `userdata` |
+| LUN 1 | 33,554,432 | 4,096 | 6 | modem/EFS state |
+| LUN 2 | 8,388,608 | 4,096 | 2 | XBL A |
+| LUN 3 | 8,388,608 | 4,096 | 2 | XBL B |
+| LUN 4 | 33,554,432 | 4,096 | 7 | ASUS keys and system configuration |
+| LUN 5 | 8,388,608 | 4,096 | 3 | DDR/CDT calibration |
+| LUN 6 | 2,415,919,104 | 4,096 | 66 | A/B bootloader, firmware, boot, AVB, diagnostics |
+
+All seven primary and backup GPT headers pass CRC validation. All seven entry
+tables pass CRC validation, all primary/backup header pairs cross-check, and
+all 109 GPT entries match their sysfs offsets and sizes. The device exposes 13
+ext4 and seven FAT filesystem signatures. No normal RPMB device is exposed;
+the boot command line also reports `androidboot.fused.norpmb=1`. This absence
+does not prove that the platform has no inaccessible secure state.
+
+UFS `sd*` names changed between consecutive boots. For example, `boot_b`
+moved between different LUN letters while its GPT label, unique GUID, offset,
+and size remained stable. Every future reader or writer must resolve the exact
+disk and partition from freshly validated GPT identity and geometry. A fixed
+`/dev/sdX` path is never an identity.
+
+The current fallback contract is:
+
+- bootloader slot `b`, with both A and B reported successful and bootable;
+- unlocked bootloader with secure bootloader mode still reported;
+- Alpine root on the 243,766,472,704-byte ext4 `userdata` partition;
+- 195,854,397,440 bytes available at the final read-only checkpoint; and
+- a sealed Arch tree at `/rog5/roots/arch-a`, occupying 5,969,854,464 bytes.
+
+Both boot slots, both vendor-boot images, both top-level vbmeta images, both
+system vbmeta images, and both DTBO images were inventoried and backed up.
+Private `avbtool info_image` output records the algorithms, rollback indexes,
+footers, and original image sizes. The known-good Alpine recovery route is
+slot-B firmware plus `boot_b` and the current `userdata` filesystem; it is not
+reclaimable during Phase 2.
+
+## Android dynamic partitions
+
+Only the first and last 16 MiB of `super` were copied read-only. The source and
+host hashes match. Current AOSP `lpdump` rejects the vendor geometry checksum;
+the raw bytes are retained unchanged, and only a disposable sparse host copy
+had its two geometry checksums recomputed for parsing. The primary metadata
+headers and tables for all three metadata slots independently pass SHA-256.
+Vendor backup metadata reports a non-AOSP major/minor version, so its rejection
+is not treated as proof of corruption.
+
+The valid primary metadata describes:
+
+| Metadata view | Logical payload |
+|---|---|
+| A | `system_a` 3,702,759,424; `system_ext_a` 240,635,904; `product_a` 1,600,753,664; `vendor_a` 1,305,767,936; `odm_a` 1,105,920 bytes |
+| B | `system_b` 3,668,914,176; `system_ext_b` 240,930,816; `product_b` 1,979,990,016; `vendor_b` 1,344,622,592; `odm_b` 1,110,016; `system_b-cow` 278,429,696 bytes |
+
+The third primary metadata slot matches the A view. `super` is therefore an
+Android OS container, not a firmware store. It and the separate 16 MiB
+`metadata` partition are Phase-3 reclaim candidates after local Linux and the
+recovery route no longer depend on Android metadata. They are not needed for
+the first local-image experiment and are not authorized for modification now.
+
+## Preservation classification
+
+| Class | Partitions | Current disposition |
+|---|---|---|
+| Boot chain and firmware | XBL/XBL-config, AOP, TZ, HYP, ABL, devcfg, qupfw, keymaster, UEFI apps/image, SHRM, VM boot system, CPUCP, modem, Bluetooth, DSP, and associated A/B firmware | Preserve both slots |
+| Identity, radio, security, calibration | `modemst1/2`, `fsg`, `fsgCA`, `fsc`, `persist`, `factory`, `batinfo`, DDR/CDT, ASUS keys, `sysconf`, `devinfo`, security stores and OEM calibration/data | Preserve; no reclaim claim |
+| Verified recovery | Slot-B boot/DTBO/vendor-boot/vbmeta plus the Alpine files in `userdata` | Preserve through Phase 2 and Phase 3 layout review |
+| Inactive slot | Slot-A boot/DTBO/vendor-boot/vbmeta and firmware | Backed up but still preserve; “inactive” is not “expendable” |
+| Android payload | `super` logical system/system_ext/product/vendor/odm/COW and separate `metadata` | Evidence-supported future reclaim candidates |
+| Linux data | `userdata`, ext4 label `rog5-linux` | Keep; host the bounded Phase-2 image |
+| OEM/diagnostic unknowns | `ftm`, `rtice`, `logfs`, `logdump`, `vm-data`, `mdcompress`, `APD`, `ADF`, `asusfw_*`, `xrom_*`, and similar small stores | Preserve until a role/dependency review makes their small capacity worth reclaiming |
+
+This classification intentionally favors reclaiming the large proven Android
+payload and avoids risking small device-specific partitions whose storage
+benefit is negligible.
+
+## Backup and restoration checkpoint
+
+The private backup contains:
+
+- 14 exact primary/backup GPT metadata ranges;
+- all 107 GPT partitions except the large `super` and `userdata` payloads;
+- 4,601,434,112 backed-up bytes;
+- the exact active `boot_b` image and read-only storage inventory;
+- both 16 MiB `super` metadata edges;
+- fastboot slot variables and offline AVB reports; and
+- one private 148-file evidence manifest covering 4,735,963,709 bytes.
+
+Every partition was hashed on the phone before transfer and again on the host.
+Every pair matches. An interrupted transfer after record 83 was resumed only
+after all 83 accepted images and all 14 GPT ranges were revalidated as the
+exact contiguous manifest prefix. The completed offline verifier re-hashed all
+121 backup objects in 5.231 seconds.
+
+The restoration rehearsal created seven sparse host disks at their exact UFS
+LUN sizes, placed each backed-up primary and backup GPT range at its recorded
+offset, and re-parsed all headers, CRCs, GUIDs, and 109 entries. All seven
+passed. This proves backup consistency and GPT placement logic; it is not a
+phone restore and does not authorize one.
+
+A future restore must:
+
+1. enter the verified recovery path and collect a fresh read-only inventory;
+2. match each LUN by disk GUID and exact size, then each partition by unique
+   GUID, label, offset, and size—never by `sd*` name;
+3. re-run `verify-readonly-storage-backup.py` and require a complete manifest;
+4. produce an exact dry-run map from each image to one current partition;
+5. preserve both GPT copies and the known-good recovery route; and
+6. present the exact write commands for final operator confirmation.
+
+No raw restore command is implemented or authorized at this checkpoint.
+
+## First local-image experiment
+
+The first Phase-2 writable object should be one 16 GiB preallocated ext4 image:
+
+```text
+/rog5/images/arch-local-a.ext4.partial
+  -> verify filesystem and copied root
+  -> atomic rename to /rog5/images/arch-local-a.ext4
+```
+
+The bounded experiment is:
+
+1. first prove repeated mainline UFS enumeration and read-only reads without
+   UFS error recovery, USB loss, or rollback loss;
+2. create and format only the image file from Alpine, with a unique filesystem
+   UUID and `ROG5_ARCH_A` label;
+3. copy the existing sealed `/rog5/roots/arch-a` tree into the loop-mounted
+   image with ownership, hard links, ACLs, xattrs, capabilities, and timestamps;
+4. unmount, run read-only `e2fsck`, hash the image, and atomically publish it;
+5. RAM-boot the mainline kernel, resolve `userdata` by fresh GPT identity,
+   mount the outer ext4 read-only, attach the image read-only, and use a tmpfs
+   OverlayFS upper for the first local-root boots;
+6. retain NFS and Alpine as independent recovery paths; and
+7. timestamp UFS discovery, outer mount, image verification, inner mount,
+   systemd, sshd, and strict key-only SSH acceptance.
+
+The baseline to beat is Generation 20: NFS mounted at 4.930 seconds, sealed
+root verification completed at 350.038 seconds, systemd began at 359.043
+seconds, sshd began at 372.046 seconds, and strict SSH passed at 379.548
+seconds. No raw partition layout change is needed for this experiment.
+
+## Reproduction commands
+
+```sh
+scripts/device/test-collect-readonly-storage-inventory.py
+scripts/host/test-backup-readonly-storage-inventory.py
+scripts/host/verify-readonly-storage-backup.py \
+  --inventory "$PRIVATE_INVENTORY" \
+  --backup "$PRIVATE_BACKUP"
+```
+
+The collector output and backup arguments are deliberately private and
+outside Git.
