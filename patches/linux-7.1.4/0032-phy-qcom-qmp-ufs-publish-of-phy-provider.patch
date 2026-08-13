@@ -1,0 +1,49 @@
+From ae717d919f87b47ea9ed2173ea96660186b62a66 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Thu, 13 Aug 2026 14:31:28 +0200
+Subject: [PATCH] phy: qcom: qmp-ufs: publish OF PHY provider
+
+Generation 47 proved devm PHY creation while target USB/NCM stayed
+stable. Advance the SM8350 RAM-only discriminator through PHY drvdata
+assignment and successful OF PHY-provider registration. UFS core and host
+remain absent, so this diagnostic cannot enumerate or access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+index 9bb5527d7..01ee3a2b3 100644
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2244,19 +2244,18 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 		goto err_node_put;
+ 	}
+ 
+-	if (of_device_is_compatible(dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy")) {
+-		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: PHY creation stage complete\n");
+-		of_node_put(np);
+-		return 0;
+-	}
+-
+ 	phy_set_drvdata(qmp->phy, qmp);
+ 
+ 	of_node_put(np);
+ 
+ 	phy_provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
++	if (of_device_is_compatible(dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy") &&
++	    !IS_ERR(phy_provider)) {
++		dev_notice(dev,
++			   "ROG5 QMP-UFS diagnostic: OF PHY provider registration stage complete\n");
++		return 0;
++	}
+ 
+ 	return PTR_ERR_OR_ZERO(phy_provider);
+ 
+-- 
+2.50.1
+

@@ -233,10 +233,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   UFS core/host module or phone storage was accessed. See the
   [live result](../test-results/2026-08-13-generation-46-qmp-clock-provider-cleanup-live.md).
 
-- **Generation 47 is the unbooted PHY-creation successor.** It advances only
-  through `devm_phy_create()` and returns before `phy_set_drvdata()` or OF
-  PHY-provider registration. UFS core and host remain unloaded. Its
-  [offline checkpoint](../test-results/2026-08-13-generation-47-qmp-ufs-phy-creation-offline.md)
+- **Generation 47 is consumed and clears QMP-UFS PHY creation.** The exact
+  target proof arrived from release `7.1.4-g3a0a28dcbbc3`; target NCM became
+  stable in 59.365 seconds and remained exact for another 12.261 seconds.
+  Exact Alpine fallback and intent resolution passed, and no UFS core/host
+  module or phone storage was accessed. See the
+  [live result](../test-results/2026-08-13-generation-47-qmp-ufs-phy-creation-live.md).
+
+- **Generation 48 is the unbooted OF PHY-provider successor.** It sets the
+  QMP-UFS PHY drvdata, publishes the exact OF PHY provider, and returns before
+  any UFS consumer probes. UFS core and host remain unloaded. Its
+  [offline checkpoint](../test-results/2026-08-13-generation-48-qmp-ufs-phy-provider-offline.md)
   grants no flash or persistent-storage authority.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
