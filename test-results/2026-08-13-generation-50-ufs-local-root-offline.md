@@ -1,7 +1,8 @@
 # Generation 50 read-only local-root offline checkpoint
 
-Status: **unbooted RAM-only candidate; read-only local root only; never
-flash**.
+Historical status: this was the **offline checkpoint before the sole RAM-only
+cycle**. Generation 50 is now consumed and must never be retried or flashed;
+see the [live result](2026-08-13-generation-50-ufs-local-root-live.md).
 
 Generation 50 reuses Generation 49's exact clean-twin Linux 7.1.4 Image, DTB,
 and four UFS modules. Its sealed initramfs removes only the deliberate

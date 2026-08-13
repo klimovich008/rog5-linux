@@ -254,12 +254,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   the control window and exact Alpine fallback returned. See the
   [live result](../test-results/2026-08-13-generation-49-ufs-readonly-enumeration-live.md).
 
-- **Generation 50 is the unbooted read-only local-root successor.** It reuses
-  the same clean-twin kernel, DTB, and modules, removes only Generation 49's
-  deliberate pre-mount terminal, and advances through exact userdata
-  `ro,noload`, sealed-tree verification, tmpfs OverlayFS, Arch systemd, and
-  key-only SSH. It contains no persistent-write path. See the
-  [offline checkpoint](../test-results/2026-08-13-generation-50-ufs-local-root-offline.md).
+- **Generation 50 is consumed; stable NCM did not reach SSH.** The exact target
+  gadget remained present for approximately 599 seconds, but the strict target
+  host key never appeared. The bounded target reset returned exact Alpine. No
+  stage-level evidence existed, so the earliest local-root failure remains
+  unknown and empty pstore is inconclusive. Never retry Generation 50. See the
+  [live result](../test-results/2026-08-13-generation-50-ufs-local-root-live.md).
+
+- **Generation 51 is the unbooted read-only stage successor.** It keeps the
+  same kernel, DTB, UFS modules, storage locks, and local-root path, and adds a
+  fixed outbound-only volatile heartbeat that identifies each mount, seal,
+  overlay, runtime, and switch-root boundary while the host waits for strict
+  SSH. It contains no phone-storage write or inbound command surface.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

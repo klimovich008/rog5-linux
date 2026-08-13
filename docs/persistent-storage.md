@@ -404,11 +404,15 @@ Generation 48 proved PHY drvdata assignment and OF PHY-provider publication.
 Generation 49 then loaded the UFS core/platform/QCOM consumer chain on real
 hardware, required and locked the exact 116-node topology read-only, and
 returned exact evidence with zero mounts and writes before Alpine fallback.
-Generation 49 is consumed and must never be retried. Generation 50 reuses
-the byte-identical clean-twin kernel, DTB, and modules and advances only the
-sealed initramfs through exact userdata `ro,noload`, complete root-seal
-verification, tmpfs OverlayFS, Arch systemd, and key-only SSH. It is the
-current unbooted hardware gate and has no persistent-write path.
+Generation 49 is consumed and must never be retried. Generation 50 reused the
+byte-identical clean-twin kernel, DTB, and modules and held stable target NCM
+for approximately 599 seconds, but strict SSH never appeared before bounded
+rollback returned exact Alpine. Because Generation 50 had no local-root stage
+telemetry, its earliest failure is unknown; it is consumed and must never be
+retried. Generation 51 is the current unbooted hardware gate. It retains the
+same read-only storage path and adds only fixed outbound volatile stage
+heartbeats while the host waits for strict SSH. It has no persistent-write
+path or inbound target command channel.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

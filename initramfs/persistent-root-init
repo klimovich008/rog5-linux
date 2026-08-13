@@ -22,9 +22,68 @@ release_file=/proc/sys/kernel/osrelease
 expected_udc=a600000.usb
 udc_class_dir=/sys/class/udc
 udc_poll_attempts=200
+stage_sequence=0
+stage_record=/run/rog5-persistent-root-stage.record
+stage_reporter_pid=
 
 log() {
 	echo "rog5-persistent-root: $*" >/dev/kmsg
+}
+
+publish_stage() {
+	stage_name=$1
+	stage_state=$2
+	case $stage_name in
+		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
+userdata-mount|root-verify|ufs-health|overlay|runtime|final-storage|\
+switch-root) ;;
+		*) return 1 ;;
+	esac
+	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
+	stage_sequence=$((stage_sequence + 1))
+	stage_boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	stage_next=$stage_record.next
+	printf '%s\n' \
+		'format=rog5-persistent-root-stage-v1' \
+		"target_release=$running_kernel_release" \
+		"boot_id=$stage_boot_id" \
+		"sequence=$stage_sequence" \
+		"stage=$stage_name" \
+		"state=$stage_state" >"$stage_next" || return 1
+	chmod 0444 "$stage_next" || return 1
+	mv -f "$stage_next" "$stage_record" || return 1
+	log "stage sequence=$stage_sequence stage=$stage_name state=$stage_state"
+}
+
+start_stage_reporter() {
+	(
+		while :; do
+			if [ -s "$stage_record" ]; then
+				nc -n -w 1 -s 169.254.77.2 \
+					169.254.77.1 8079 <"$stage_record" \
+					>/dev/null 2>&1 || true
+			fi
+			sleep 1
+		done
+	) &
+	stage_reporter_pid=$!
+	printf '%s\n' "$stage_reporter_pid" >/run/rog5-stage-reporter.pid
+}
+
+publish_or_rollback() {
+	publish_stage "$1" "$2" || {
+		log 'volatile stage publication failed'
+		force_rollback
+	}
+}
+
+fail_local_stage() {
+	publish_stage "$1" FAIL || true
+	log "$2"
+	# Give the receive-only heartbeat one bounded chance to export the
+	# terminal stage before the storage-quiescent reset.
+	sleep 2
+	force_rollback
 }
 
 force_rollback() {
@@ -608,6 +667,9 @@ fi
 if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 	fail_stage 'running kernel release changed' kernel-release-identity 25
 fi
+publish_or_rollback kernel-verified PASS
+start_stage_reporter
+publish_or_rollback ufs-ready ENTER
 if deferred_ufs_modules_present; then
 	log 'waiting for deferred UFS probe rendezvous'
 	if ! wait_for_deferred_ufs_rendezvous; then
@@ -617,65 +679,99 @@ if deferred_ufs_modules_present; then
 	module_status=$?
 	case $module_status in
 		0) ;;
-		*) fail_stage 'deferred UFS module load returned an error' ufs-module 20 ;;
+		*)
+			publish_stage ufs-ready FAIL || true
+			fail_stage 'deferred UFS module load returned an error' ufs-module 20
+			;;
 	esac
 fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then
+	publish_stage ufs-ready FAIL || true
 	fail_stage 'UFS discovery failed' ufs-discovery 35
 fi
 if ! verify_ufs_power_containment; then
+	publish_stage ufs-ready FAIL || true
 	fail_stage 'UFS power containment failed before storage lock' \
 		ufs-power 50
 fi
+publish_or_rollback ufs-ready PASS
+publish_or_rollback storage-locked ENTER
 if ! lock_physical_storage; then
+	publish_stage storage-locked FAIL || true
 	fail_stage 'physical storage lock failed' storage-lock 65
 fi
+publish_or_rollback storage-locked PASS
+publish_or_rollback userdata-resolved ENTER
 userdata=$(find_exact_userdata /sys/class/block /dev) ||
-	fail_stage 'exact userdata identity failed' userdata 80
-[ -b "$userdata" ] || fail_stage 'exact userdata node is absent' userdata 80
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'exact userdata identity failed' userdata 80
+	}
+[ -b "$userdata" ] || {
+	publish_stage userdata-resolved FAIL || true
+	fail_stage 'exact userdata node is absent' userdata 80
+}
 printf '%s\n' "$userdata" >/run/rog5-p2-userdata-device ||
-	fail_stage 'userdata identity publication failed' userdata 80
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'userdata identity publication failed' userdata 80
+	}
 chmod 0444 /run/rog5-p2-userdata-device ||
-	fail_stage 'userdata identity mode failed' userdata 80
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'userdata identity mode failed' userdata 80
+	}
 if ! write_ufs_inventory; then
+	publish_stage userdata-resolved FAIL || true
 	fail_stage 'UFS inventory failed' inventory 95
 fi
 if ! verify_physical_storage_read_only ||
 	! verify_ufs_power_containment; then
-	log 'storage containment failed after USB rescan'
-	force_rollback
+	fail_local_stage userdata-resolved \
+		'storage containment failed after USB rescan'
 fi
+publish_or_rollback userdata-resolved PASS
+publish_or_rollback userdata-mount ENTER
 if ! mount_persistent_root; then
-	log 'read-only noload userdata mount failed'
-	force_rollback
+	fail_local_stage userdata-mount 'read-only noload userdata mount failed'
 fi
+publish_or_rollback userdata-mount PASS
+publish_or_rollback root-verify ENTER
 if ! verify_persistent_root; then
-	log 'anchored persistent-root verification failed'
-	force_rollback
+	fail_local_stage root-verify 'anchored persistent-root verification failed'
 fi
+publish_or_rollback root-verify PASS
+publish_or_rollback ufs-health ENTER
 if ! verify_ufs_health; then
-	log 'UFS or ext4 read-only health gate failed'
-	force_rollback
+	fail_local_stage ufs-health 'UFS or ext4 read-only health gate failed'
 fi
+publish_or_rollback ufs-health PASS
+publish_or_rollback overlay ENTER
 if ! mount_overlay_root; then
-	log 'tmpfs OverlayFS root failed'
-	force_rollback
+	fail_local_stage overlay 'tmpfs OverlayFS root failed'
 fi
+publish_or_rollback overlay PASS
+publish_or_rollback runtime ENTER
 if ! prepare_runtime; then
-	log 'volatile runtime preparation failed'
-	force_rollback
+	fail_local_stage runtime 'volatile runtime preparation failed'
 fi
+publish_or_rollback runtime PASS
+publish_or_rollback final-storage ENTER
 if ! verify_physical_storage_read_only ||
 	! verify_only_userdata_mount ||
 	! verify_ufs_health; then
-	log 'final read-only storage gate failed'
-	force_rollback
+	fail_local_stage final-storage 'final read-only storage gate failed'
 fi
+publish_or_rollback final-storage PASS
 
 mkdir -p /newroot/.rog5/userdata-ro /newroot/.rog5/state \
 	/newroot/dev /newroot/proc /newroot/sys /newroot/run
 touch /run/rog5-p2-root-mounted
+publish_or_rollback switch-root ENTER
+# The reporter and its record live on /run.  Give the final volatile record
+# one bounded heartbeat interval before moving /run into the new root.
+sleep 2
 mount --move /mnt/userdata /newroot/.rog5/userdata-ro
 mount --move /mnt/state /newroot/.rog5/state
 mount --move /dev /newroot/dev
