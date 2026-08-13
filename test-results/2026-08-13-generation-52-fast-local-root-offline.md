@@ -1,6 +1,7 @@
 # Generation 52 fast local-root admission checkpoint
 
-Status: **unbooted RAM-only candidate; read-only storage only; never flash**.
+Status: **consumed RAM-only candidate; read-only storage only; never retry or
+flash**. See the [live result](2026-08-13-generation-52-fast-local-root-live.md).
 
 Generation 52 preserves Generation 51's Linux Image, DTB, four UFS modules,
 physical read-only locks, exact userdata `ro,noload` mount, tmpfs OverlayFS,
@@ -28,5 +29,5 @@ Exact identities:
 The clean-twin initramfs builds took 1.128 and 1.136 seconds and were
 byte-identical. Deterministic AVB generation took 1.950 seconds. Focused
 storage-resolution, exact-claim, live-runner, current-profile, admission, and
-stable-gate tests pass. No candidate has been claimed, issued to recovery, or
-booted by this checkpoint.
+stable-gate tests passed at this checkpoint. The later sole live cycle consumed
+the candidate and returned to exact Alpine fallback.

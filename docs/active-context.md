@@ -268,13 +268,26 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   600-second rollback. Exact Alpine fallback returned. Never retry Generation
   51. See the [live result](../test-results/2026-08-13-generation-51-local-root-stage-live.md).
 
-- **Generation 52 is the unbooted fast-admission successor.** It changes no
-  kernel, DTB, UFS module, storage lock, mount, overlay, SSH, or rollback
-  behavior. It replaces only the every-boot recursive tree rehash with exact
-  owner, mode, size, link, content, and configuration checks for the existing
-  seal, systemd, sshd, authorized key, and SSH policy. The outer userdata
-  filesystem remains `ro,noload`; full-tree integrity remains a staging audit
-  until the bounded local image can use a scalable integrity mechanism.
+- **Generation 52 is consumed and isolates the next boundary to the local-root
+  handoff or early userspace.** It reached read-only UFS, exact userdata,
+  `ro,noload` outer mount, bounded root admission, and `switch-root ENTER` in
+  11.069 seconds while NCM remained alive, but no SSH host key appeared.
+  Exact Alpine fallback passed. Its unchecked mount moves could not distinguish
+  handoff failure from systemd/sshd failure; the successor now checks and rolls
+  back every move and a returned `switch_root`. See the
+  [live result](../test-results/2026-08-13-generation-52-fast-local-root-live.md).
+
+- **The bounded local-image successor passes its offline clean-twin checkpoint
+  and is not yet admitted.** It
+  selects the deployment-key-bound 37,735-entry headless Arch root instead of
+  the historical 181,242-entry Plasma root, attaches one fixed 16 GiB ext4
+  image read-only, verifies its UUID, label, prior full seal, and boot-critical
+  identities, and retains read-only userdata, tmpfs OverlayFS, NCM, SSH, and
+  rollback. Its exact AArch64 extractor runtime is self-contained, and the
+  seven-mount handoff now fails closed and rolls back. See the
+  [offline result](../test-results/2026-08-13-local-image-v32-offline.md).
+  Phone staging is paused at the exact recoverable cleanup recorded in the
+  [staging note](../test-results/2026-08-13-local-image-staging-paused.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
