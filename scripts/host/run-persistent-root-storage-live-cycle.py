@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-first-clock-name-stage-v20-live-v1"
-BUNDLE = "persistent-root-qmp-first-clock-name-stage-v20"
+PROFILE_ID = "persistent-root-qmp-first-clock-runtime-pm-stage-v21-live-v1"
+BUNDLE = "persistent-root-qmp-first-clock-runtime-pm-stage-v21"
 MANIFEST_SHA256 = (
-    "86c8262c080b0b7254a9175bc8487f464db7a4304ba7879b450a74504a23f713"
+    "782756493f38d5ea9a634678043214926e9b49ef1ca01ce35e9e41e37169fd4b"
 )
 RECOVERY_SHA256 = (
-    "6f2a17b3d282a96fb491fc371b29f2fefc4ab274ffefa7904d97bd6dcacc98d4"
+    "1b0ec7c7c9b9abb1cbf71c252292203869e853717f4a41cfbc3a03936b5597a1"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -50,14 +50,14 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gcfd385a1c754"
+TARGET_RELEASE = "7.1.4-gcdf38b1ddebb"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-first-clock-name-stage-v20-generation41-20260813-r1"
+    / "build/persistent-root-qmp-first-clock-runtime-pm-stage-v21-generation42-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -76,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-first-clock-name-stage-v20",
+    admission_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-first-clock-name-stage-v20",
-    build_profile="persistent-root-qmp-first-clock-name-stage-v20",
+    runtime_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
+    build_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
     diagnostic=False,
 )
 
@@ -648,7 +648,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
                     ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
-                    ("expected_next_gate", "qmp-ufs-first-fixed-clock-registration"),
+                    ("expected_next_gate", "qmp-ufs-second-fixed-clock-registration"),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -682,7 +682,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS QMP-UFS probe completed first symbol-clock name construction and kept NCM stable in "
+                "PASS QMP-UFS probe completed the first fixed-rate clock registration with runtime-PM protection and kept NCM stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )

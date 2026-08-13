@@ -512,10 +512,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "allocation completed, stable target NCM passed, and exact Alpine "
             "returned; no phone-storage access; never retry or flash\n"
             "build/persistent-root-qmp-first-clock-name-stage-v20-generation41-20260813-r1/"
+            "repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 41 RAM-only cycle; first-symbol-clock "
+            "name construction and stable NCM passed before exact Alpine fallback; "
+            "no phone-storage access; never retry or flash\n"
+            "build/persistent-root-qmp-first-clock-runtime-pm-stage-v21-generation42-20260813-r1/"
             "repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact SM8350 QMP-UFS first-symbol-clock-name discriminator; "
-            "RAM-only; externally consumed exact claim required; never flash "
-            "or retry after entry\n"
+            "one exact SM8350 QMP-UFS first fixed-rate clock registration with "
+            "generic CCF runtime-PM correction; RAM-only; externally consumed "
+            "exact claim required; never flash or retry after entry\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)

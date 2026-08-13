@@ -354,16 +354,23 @@ stable target NCM in 59.680 seconds, preserved it for 12.173 seconds, and
 returned to exact Alpine. This clears allocation and metadata setup. Generation
 40 is consumed and must never be retried.
 
-Generation 41 repeats the cleared allocation and constructs the first dynamic
-`rx_symbol_0` name using `dev_name()` and `snprintf()`, then returns before
-`devm_clk_hw_register_fixed_rate()`. A passing NCM window isolates the fault to
-the first common-clock registration; an early loss isolates name construction.
-Its DTB restores the exact 4 MiB RMTFS reservation: the prior disabled node was
-skipped by reserved-memory scanning while ramoops still mapped the same valid
-RAM pages, creating an allocator-aliasing hazard. The RMTFS driver remains a
-module absent from the initramfs, so the one-property correction reserves RAM
-without activating RMTFS. UFS core, platform, and host modules remain absent,
-so the cycle cannot enumerate or access storage.
+Generation 41 repeated the cleared allocation and constructed the first
+dynamic `rx_symbol_0` name using `dev_name()` and `snprintf()`, then returned
+before `devm_clk_hw_register_fixed_rate()`. It reached stable target NCM in
+60.001 seconds, preserved it for 12.359 seconds, and returned to exact Alpine.
+This clears name construction and isolates the earliest remaining boundary to
+the first common-clock registration. Generation 41 is consumed and must never
+be retried.
+
+Generation 42 applies a generic CCF runtime-PM correction before crossing that
+boundary. Clock registration and OF provider publication now resume every
+registered runtime-PM clock provider outside `prepare_lock`, run orphan
+reparenting with balanced references, and release those references after
+unlocking. Its SM8350-only diagnostic branch returns after exactly the first
+fixed-rate clock registration, before the second and third clocks, OF provider
+publication, PHY creation, or provider registration. The exact 4 MiB RMTFS
+reservation remains restored. UFS core, platform, and host modules remain
+absent, so the cycle cannot enumerate or access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Thu, 13 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: cross first clock with PM fix
+
+Generation 41 proved that clock-data allocation and construction of the
+first symbol-clock name preserve target USB/NCM.  Advance the SM8350
+RAM-only discriminator through exactly one fixed-rate clock registration
+while the CCF orphan walk uses balanced all-provider runtime-PM references,
+then return
+before the second registration or OF provider publication.
+
+The UFS core and host remain absent, so this diagnostic cannot enumerate or
+access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2089,16 +2089,16 @@ static int qmp_ufs_register_clocks(struct qmp_ufs *qmp, struct device_node *np)
+ 	clk_data->num = UFS_SYMBOL_CLOCKS;
+ 
+ 	snprintf(name, sizeof(name), "%s::rx_symbol_0", dev_name(qmp->dev));
+-	if (of_device_is_compatible(qmp->dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy"))
+-		return 0;
+-
+ 	hw = devm_clk_hw_register_fixed_rate(qmp->dev, name, NULL, 0, 0);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+ 
+ 	clk_data->hws[0] = hw;
+ 
++	if (of_device_is_compatible(qmp->dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy"))
++		return 0;
++
+ 	snprintf(name, sizeof(name), "%s::rx_symbol_1", dev_name(qmp->dev));
+ 	hw = devm_clk_hw_register_fixed_rate(qmp->dev, name, NULL, 0, 0);
+ 	if (IS_ERR(hw))
+@@ -2244,7 +2244,7 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (of_device_is_compatible(dev->of_node,
+ 				    "qcom,sm8350-qmp-ufs-phy")) {
+ 		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: first symbol-clock name stage complete\n");
++			   "ROG5 QMP-UFS diagnostic: first clock with runtime-PM stage complete\n");
+ 		of_node_put(np);
+ 		return 0;
+ 	}
+-- 
+2.50.1
