@@ -597,6 +597,20 @@ def capture_postmortem(
     )
 
 
+def stop_recovery_host(
+    cycle: CYCLE.LiveCycle,
+    control_process: CYCLE.ManagedProcess | None,
+    bundle_process: CYCLE.ManagedProcess | None,
+    recovery_ncm: tuple[CYCLE.InterfaceSnapshot, ...] | None,
+) -> None:
+    CYCLE.terminate(control_process)
+    CYCLE.terminate(bundle_process)
+    if recovery_ncm is None:
+        cycle.wait_host_clean()
+    else:
+        cycle.wait_host_clean(recovery_ncm=recovery_ncm)
+
+
 def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str, str]) -> None:
     anchor = cycle.output("recovery-usb.anchor")
     target_known_hosts = cycle.output("target-known-hosts")
@@ -609,6 +623,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
     fallback_attempted = False
     resolved = False
     control_attempted = False
+    recovery_ncm = None
     boot_started = time.monotonic()
 
     cycle.claim_temporary_boot()
@@ -641,7 +656,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             ),
             timeout=120,
         )
-        cycle.wait_recovery_ncm()
+        recovery_ncm = cycle.wait_recovery_ncm()
 
         bundle_process = CYCLE.start_logged(
             "persistent-root recovery bundle server",
@@ -837,9 +852,22 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             intent = cycle.discover_unknown_intent(
                 cycle.output("recovery-control.log"), ledger_before
             )
-        CYCLE.terminate(control_process)
-        CYCLE.terminate(bundle_process)
         recovery_note = ""
+        cleanup_note = ""
+        cleanup_base_error: BaseException | None = None
+        try:
+            stop_recovery_host(
+                cycle,
+                control_process,
+                bundle_process,
+                recovery_ncm,
+            )
+        except BaseException as cleanup_error:
+            cleanup_note = f"; pre-fallback host cleanup failed: {cleanup_error}"
+            if not isinstance(cleanup_error, Exception):
+                cleanup_base_error = cleanup_error
+        control_process = None
+        bundle_process = None
         if anchor.exists() and not fallback_attempted:
             try:
                 fallback_attempted = True
@@ -863,7 +891,11 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                 recovery_note += f"; intent resolution failed: {resolve_error}"
         if isinstance(original, KeyboardInterrupt):
             raise
-        raise PersistentCycleError(f"{original}{recovery_note}") from original
+        if cleanup_base_error is not None:
+            raise cleanup_base_error
+        raise PersistentCycleError(
+            f"{original}{recovery_note}{cleanup_note}"
+        ) from original
     finally:
         CYCLE.terminate(control_process)
         CYCLE.terminate(bundle_process)

@@ -80,6 +80,7 @@ for forbidden in \
 	'--interface' \
 	'--port' \
 	'--timeout-ms' \
+	'--connect-timeout-ms' \
 	'--worker-uid' \
 	'--worker-gid' \
 	'--skip-device-bind' \

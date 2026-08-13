@@ -37,6 +37,7 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         stable = source("scripts/host/stable-recovery-control.py")
 
         worker_ms = integer_constant(fetch, "FETCH_TIMEOUT_MS")
+        connect_ms = integer_constant(fetch, "CONNECT_TIMEOUT_MS")
         supervisor_ms = integer_constant(control, "FETCH_TIMEOUT_MS")
         kexec_ms = integer_constant(control, "KEXEC_LOAD_TIMEOUT_MS")
         transfer = integer_constant(server, "TRANSFER_TIMEOUT_SECONDS")
@@ -64,6 +65,8 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         control_total = integer_constant(lifecycle, "CONTROL_TIMEOUT_SECONDS")
 
         self.assertEqual(worker_ms, 180_000)
+        self.assertEqual(connect_ms, 15_000)
+        self.assertLess(connect_ms, worker_ms)
         self.assertEqual(supervisor_ms, 190_000)
         self.assertEqual(kexec_ms, 15_000)
         self.assertGreaterEqual(supervisor_ms - worker_ms, 10_000)

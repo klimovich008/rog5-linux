@@ -159,6 +159,38 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         MODULE.wait_post_commit_host_cleanup(cycle)
         cycle.wait_host_clean.assert_called_once_with()
 
+    def test_failure_cleanup_stops_both_clients_before_host_proof(self) -> None:
+        parent = mock.Mock()
+        cycle = SimpleNamespace(wait_host_clean=parent.wait_host_clean)
+        control = object()
+        bundle = object()
+        recovery_ncm = (object(),)
+        with mock.patch.object(
+            MODULE.CYCLE,
+            "terminate",
+            side_effect=parent.terminate,
+        ):
+            MODULE.stop_recovery_host(
+                cycle,
+                control,
+                bundle,
+                recovery_ncm,
+            )
+        self.assertEqual(
+            parent.mock_calls,
+            [
+                mock.call.terminate(control),
+                mock.call.terminate(bundle),
+                mock.call.wait_host_clean(recovery_ncm=recovery_ncm),
+            ],
+        )
+
+    def test_failure_cleanup_without_ncm_uses_unpinned_host_proof(self) -> None:
+        cycle = SimpleNamespace(wait_host_clean=mock.Mock())
+        with mock.patch.object(MODULE.CYCLE, "terminate"):
+            MODULE.stop_recovery_host(cycle, None, None, None)
+        cycle.wait_host_clean.assert_called_once_with()
+
     def test_fallback_transition_uses_usb_identity_not_nm_state(self) -> None:
         with mock.patch.object(
             MODULE.PIN,

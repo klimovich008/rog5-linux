@@ -10,6 +10,7 @@ import signal
 import socket
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -52,6 +53,13 @@ class BrokerFixture:
                 "  awk '/^SigBlk:/ { print \"sigblk \" $2 }' /proc/self/status\n"
                 "fi\n"
                 "if [ \"${1:-}\" = signal-forward-v1 ]; then\n"
+                "  sleep 30 &\n"
+                "  printf '%s\\n' \"$!\" >\"${MOCK_CALLS}.grandchild-pid\"\n"
+                "  : >\"${MOCK_CALLS}.signal-ready\"\n"
+                "  wait\n"
+                "fi\n"
+                "if [ \"${1:-}\" = signal-ignore-v1 ]; then\n"
+                "  trap '' TERM\n"
                 "  sleep 30 &\n"
                 "  printf '%s\\n' \"$!\" >\"${MOCK_CALLS}.grandchild-pid\"\n"
                 "  : >\"${MOCK_CALLS}.signal-ready\"\n"
@@ -418,6 +426,113 @@ class RecoveryHostSocketTest(unittest.TestCase):
             time.sleep(0.01)
         else:
             self.fail("watchdog-like grandchild survived broker TERM")
+
+    def test_client_exit_cancels_its_privileged_controller(self):
+        socket_path = self.fixture.root / "broker-peer.sock"
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        listener.bind(str(socket_path))
+        listener.listen(1)
+        client_ready = self.fixture.root / "client-ready"
+        payload = f"bundle signal-ignore-v1 {DIGEST}\n"
+        client = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import pathlib,socket,sys,time; "
+                    "channel=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); "
+                    "channel.connect(sys.argv[1]); "
+                    "channel.sendall(sys.argv[2].encode('ascii')); "
+                    "channel.shutdown(socket.SHUT_WR); "
+                    "pathlib.Path(sys.argv[3]).touch(); time.sleep(30)"
+                ),
+                str(socket_path),
+                payload,
+                str(client_ready),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        def stop_client() -> None:
+            if client.poll() is None:
+                client.kill()
+            client.wait(timeout=2)
+
+        self.addCleanup(stop_client)
+        connection, _address = listener.accept()
+        listener.close()
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "ROG5_BROKER_OFFLINE_TEST": "1",
+                "ROG5_TEST_BROKER_CONFIG": str(self.fixture.config),
+                "ROG5_TEST_BROKER_CONTROLLER": str(
+                    self.fixture.controller
+                ),
+                "ROG5_TEST_BROKER_NETWORK_SERVER": str(
+                    self.fixture.network
+                ),
+                "ROG5_TEST_BROKER_NFS_EXPORTS": str(
+                    self.fixture.nfs_exports
+                ),
+                "ROG5_TEST_BROKER_BOOT_ID": str(
+                    self.fixture.host_boot_id
+                ),
+                "MOCK_CALLS": str(self.fixture.calls),
+            }
+        )
+        broker = subprocess.Popen(
+            [str(BROKER)],
+            stdin=connection,
+            stdout=connection,
+            stderr=connection,
+            env=environment,
+            close_fds=True,
+        )
+
+        def stop_broker() -> None:
+            if broker.poll() is None:
+                broker.kill()
+            broker.wait(timeout=2)
+
+        self.addCleanup(stop_broker)
+        connection.close()
+
+        ready = Path(f"{self.fixture.calls}.signal-ready")
+        grandchild_record = Path(
+            f"{self.fixture.calls}.grandchild-pid"
+        )
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and not ready.exists():
+            if broker.poll() is not None:
+                self.fail("broker exited before controller became active")
+            time.sleep(0.01)
+        self.assertTrue(client_ready.exists())
+        self.assertTrue(ready.exists())
+        grandchild = int(grandchild_record.read_text(encoding="ascii"))
+        os.kill(grandchild, 0)
+
+        started = time.monotonic()
+        client.terminate()
+        client.wait(timeout=2)
+        broker.wait(timeout=6)
+        self.assertLess(time.monotonic() - started, 5)
+        for _attempt in range(200):
+            try:
+                os.kill(grandchild, 0)
+            except ProcessLookupError:
+                break
+            state = Path(f"/proc/{grandchild}/status")
+            if state.exists() and "State:\tZ" in state.read_text(
+                encoding="ascii"
+            ):
+                break
+            time.sleep(0.01)
+        else:
+            os.kill(grandchild, signal.SIGKILL)
+            self.fail("controller descendant survived client exit")
 
     def test_child_cannot_collide_with_status_framing(self):
         status, response = self.fixture.run(

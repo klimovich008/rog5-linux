@@ -157,7 +157,7 @@ else
 fi
 export PATH
 
-for command in awk firewall-cmd flock getent grep id ip kill nmcli \
+for command in awk firewall-cmd flock getent grep id ip kill nmcli ping \
 	python3 realpath rm setpriv sha256sum sleep sort ss stat systemctl timeout \
 	udevadm; do
 	command -v "$command" >/dev/null ||
@@ -912,6 +912,21 @@ if [[ $action == serve-progress-deferred ]]; then
 	fi
 fi
 
+peer_ready=0
+for _attempt in {1..5}; do
+	if ! kill -0 "$server_pid" 2>/dev/null; then
+		fail 'recovery bundle server exited before the peer probe completed'
+	fi
+	if timeout 2s ping -4 -n -c 1 -W 1 -I "$interface" "$phone_ip" \
+		>/dev/null 2>&1; then
+		peer_ready=1
+		break
+	fi
+	sleep 0.1
+done
+((peer_ready == 1)) ||
+	fail 'recovery NCM peer did not answer the bounded exact-link probe'
+
 controller_pid=$$
 if [[ $offline_test == 1 ]]; then
 	/usr/bin/python3 -I -S -B -c \
@@ -932,6 +947,7 @@ if [[ $test_die_after_watchdog == 1 ]]; then
 fi
 
 echo "PASS recovery bundle server ready on $host_ip:$host_port via $interface"
+echo "PASS exact recovery NCM peer reachable at $phone_ip via $interface"
 if [[ $action == serve-progress-deferred && $progress_listener_ready == 1 ]]; then
 	echo "PASS recovery progress listener ready on $host_ip:$progress_port via $interface"
 fi

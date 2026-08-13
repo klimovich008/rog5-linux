@@ -13,6 +13,7 @@ The testing build is expected to accept this CLI:
         --source-ip 127.0.0.1 \
         --port PORT \
         --timeout-ms MILLISECONDS \
+        --connect-timeout-ms MILLISECONDS \
         --worker-uid UID \
         --worker-gid GID \
         --skip-device-bind \
@@ -496,6 +497,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         bundle: str | None = None,
         expected_hash: str | None = None,
         timeout_ms: int = 700,
+        connect_timeout_ms: int | None = None,
         extra: Iterable[str] = (),
     ) -> list[str]:
         return [
@@ -511,6 +513,14 @@ class NativeRecoveryFetchTest(unittest.TestCase):
             str(port),
             "--timeout-ms",
             str(timeout_ms),
+            *(
+                (
+                    "--connect-timeout-ms",
+                    str(connect_timeout_ms),
+                )
+                if connect_timeout_ms is not None
+                else ()
+            ),
             "--worker-uid",
             str(self.worker_uid),
             "--worker-gid",
@@ -732,6 +742,35 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         self.assertEqual(server.request_payload, expected_request)
         self.assertEqual(server.request_frame, frame(expected_request))
         self.assert_published(root)
+
+    def test_blackholed_connect_uses_its_shorter_deadline(self) -> None:
+        root = self.new_root("blackholed-connect")
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+        listener.listen(1)
+        blockers = [
+            socket.create_connection(("127.0.0.1", port), timeout=1)
+            for _attempt in range(2)
+        ]
+        started = time.monotonic()
+        try:
+            result = self.invoke(
+                root,
+                port,
+                timeout_ms=2_000,
+                connect_timeout_ms=300,
+            )
+        finally:
+            for blocker in blockers:
+                blocker.close()
+            listener.close()
+        elapsed = time.monotonic() - started
+        self.assertEqual(result.returncode, 45, result.stderr)
+        self.assertGreaterEqual(elapsed, 0.25)
+        self.assertLess(elapsed, 1.0)
+        self.assert_root_empty(root)
 
     def test_real_host_server_and_fetcher_transfer_generation4_scale(self):
         kernel = b"K" * 40_049_152
