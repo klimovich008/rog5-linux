@@ -37,13 +37,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1"
-BUNDLE = "persistent-root-qmp-clock-provider-cleanup-stage-v25"
+PROFILE_ID = "persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1"
+BUNDLE = "persistent-root-qmp-ufs-phy-creation-stage-v26"
 MANIFEST_SHA256 = (
-    "14f9b93e9951d664e036ef189526bef59a167572dd7a23c052ba56aed9fd44cf"
+    "7f05c55c553e057b418f2adc23f284a907dd9ca693d532228372ad9dfe3e57c4"
 )
 RECOVERY_SHA256 = (
-    "d7088753846b5190c18123cea07c81fac82372f03dd677ba8cb4a997ffcb631d"
+    "3443002bbb82c1880d347d891c469c138b1ef10f3c2f26470da53bf89128aeaf"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -51,16 +51,16 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-g07858678c59c"
+TARGET_RELEASE = "7.1.4-g3a0a28dcbbc3"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
-QMP_COMPLETED_GATE = "OF clock-provider publication and cleanup registration"
-QMP_NEXT_GATE = "qmp-ufs-phy-creation"
+QMP_COMPLETED_GATE = "QMP-UFS PHY creation"
+QMP_NEXT_GATE = "qmp-ufs-phy-drvdata"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-clock-provider-cleanup-stage-v25-generation46-20260813-r1"
+    / "build/persistent-root-qmp-ufs-phy-creation-stage-v26-generation47-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -80,10 +80,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
+    admission_profile="persistent-root-qmp-ufs-phy-creation-stage-v26",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
-    build_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
+    runtime_profile="persistent-root-qmp-ufs-phy-creation-stage-v26",
+    build_profile="persistent-root-qmp-ufs-phy-creation-stage-v26",
     diagnostic=False,
 )
 

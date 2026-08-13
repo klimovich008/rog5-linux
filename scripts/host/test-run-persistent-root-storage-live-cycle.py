@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1",
+            "persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -47,11 +47,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertTrue(MODULE.USB_CONTROL_ONLY)
         self.assertEqual(
             MODULE.QMP_COMPLETED_GATE,
-            "OF clock-provider publication and cleanup registration",
+            "QMP-UFS PHY creation",
         )
         self.assertEqual(
             MODULE.QMP_NEXT_GATE,
-            "qmp-ufs-phy-creation",
+            "qmp-ufs-phy-drvdata",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,

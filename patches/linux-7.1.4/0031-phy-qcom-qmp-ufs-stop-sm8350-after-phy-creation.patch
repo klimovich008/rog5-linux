@@ -1,0 +1,53 @@
+From 3a0a28dcbbc377a4160eaf0bbe80122931c34b05 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Thu, 13 Aug 2026 13:45:00 +0200
+Subject: [PATCH] phy: qcom: qmp-ufs: cross PHY creation boundary
+
+Generation 46 proved OF clock-provider publication and its paired devm cleanup
+while target USB/NCM stayed stable. Advance the SM8350 RAM-only discriminator
+through devm_phy_create(), then return before phy_set_drvdata() and OF
+PHY-provider registration. The UFS core and host remain absent, so this
+diagnostic cannot enumerate or access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+index 32357eaf3..9bb5527d7 100644
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2237,14 +2237,6 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto err_node_put;
+ 
+-	if (of_device_is_compatible(dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy")) {
+-		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: OF clock provider with cleanup stage complete\n");
+-		of_node_put(np);
+-		return 0;
+-	}
+-
+ 	qmp->phy = devm_phy_create(dev, np, &qcom_qmp_ufs_phy_ops);
+ 	if (IS_ERR(qmp->phy)) {
+ 		ret = PTR_ERR(qmp->phy);
+@@ -2252,6 +2244,14 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 		goto err_node_put;
+ 	}
+ 
++	if (of_device_is_compatible(dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy")) {
++		dev_notice(dev,
++			   "ROG5 QMP-UFS diagnostic: PHY creation stage complete\n");
++		of_node_put(np);
++		return 0;
++	}
++
+ 	phy_set_drvdata(qmp->phy, qmp);
+ 
+ 	of_node_put(np);
+-- 
+2.50.1
+
