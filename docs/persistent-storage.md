@@ -398,9 +398,10 @@ failed at `FETCH_CONNECT`, so the target bundle was never transferred or
 committed and no phone storage was exposed. Generation 46 retained that exact
 target behind the corrected bounded transport and proved
 `of_clk_add_hw_provider()` plus its paired devm cleanup action. Stable NCM and
-exact Alpine fallback passed; no storage was exposed. Generation 47 advances
-only through `devm_phy_create()` and returns before `phy_set_drvdata()` or OF
-PHY-provider registration. UFS core and host remain unloaded.
+exact Alpine fallback passed; no storage was exposed. Generation 47 then
+proved `devm_phy_create()` with stable NCM and exact Alpine fallback.
+Generation 48 sets the PHY drvdata, publishes the OF PHY provider, and returns
+before any UFS consumer probes. UFS core and host remain unloaded.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

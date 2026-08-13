@@ -458,6 +458,14 @@ EXPECTED_CLAIMS["persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1"] = (
     "7f05c55c553e057b418f2adc23f284a907dd9ca693d532228372ad9dfe3e57c4\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1\n"
+    "candidate=persistent-root-qmp-ufs-phy-provider-stage-v27\n"
+    "manifest_sha256="
+    "734bd5af4c2f7db1af87e08d0a6c1de0e6d0b013be4901110b892fd065e7656c\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -588,7 +596,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "7fdbc6d0bd8ed9a5bbba9018b6049f0983a319e828a0a8e9d15604185cf8ae5d",
+    "sha256": "032bf5adcc7f6a49388ec812d10a1340b12cc62d74d07f4e22c8c20195a908a9",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -616,7 +624,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "7fdbc6d0bd8ed9a5bbba9018b6049f0983a319e828a0a8e9d15604185cf8ae5d",
+    "executor_contract_sha256": "032bf5adcc7f6a49388ec812d10a1340b12cc62d74d07f4e22c8c20195a908a9",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2357,9 +2365,9 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-qmp-ufs-phy-creation-stage-v26-generation47-20260813-r1/"
+            "build/persistent-root-qmp-ufs-phy-provider-stage-v27-generation48-20260813-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact SM8350 QMP-UFS PHY creation discriminator with bounded "
+            "one exact SM8350 QMP-UFS OF PHY-provider registration discriminator with bounded "
             "recovery transfer and exact "
             "target-originated post-insmod proof; "
             "RAM-only; externally consumed exact claim required; never flash "
