@@ -37,13 +37,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1"
-BUNDLE = "persistent-root-qmp-third-clock-runtime-pm-stage-v23"
+PROFILE_ID = "persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1"
+BUNDLE = "persistent-root-qmp-clock-provider-cleanup-stage-v24"
 MANIFEST_SHA256 = (
-    "6d8195d2e384558b9ff79a42966fd6841837b38d4b41e83dd745bf554be14dc6"
+    "1bc07a9e0b0acf874f542a84f1d7d8c12505504790bc4da433eb22989b76839b"
 )
 RECOVERY_SHA256 = (
-    "2a8c210db1b846df4886c7803d337a4edf4fe1787537d1582529196a82734fd9"
+    "06fdc98669a72d02795c4fdeabb73875832a673b6d7d8190502ef5841682425f"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -51,16 +51,16 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gc732b0b41d8d"
+TARGET_RELEASE = "7.1.4-g07858678c59c"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
-QMP_COMPLETED_GATE = "second and third fixed-rate clock registrations"
-QMP_NEXT_GATE = "qmp-ufs-of-clock-provider-publication"
+QMP_COMPLETED_GATE = "OF clock-provider publication and cleanup registration"
+QMP_NEXT_GATE = "qmp-ufs-phy-creation"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-third-clock-runtime-pm-stage-v23-generation44-20260813-r1"
+    / "build/persistent-root-qmp-clock-provider-cleanup-stage-v24-generation45-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -80,10 +80,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
+    admission_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
-    build_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
+    runtime_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
+    build_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
     diagnostic=False,
 )
 

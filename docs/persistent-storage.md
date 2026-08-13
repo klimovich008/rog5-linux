@@ -386,13 +386,19 @@ control window. It crosses the unresolved second and third fixed-rate clocks
 and returns before OF clock-provider publication and every provider/PHY
 boundary.
 
-That successor is Generation 44. Its clean kernel, initramfs, signed runtime
-bundle, and RAM-only wrapper twins are byte-identical. The QMP-UFS module
-returns immediately after `tx_symbol_0`; UFS core, platform, and host modules
-remain outside the automatic load path. The host accepts the post-module proof
-only on `169.254.77.1:8079`, from exact peer `169.254.77.2`, with the exact
-release/module/result record. It is an offline candidate until coherent local
-and exact-head CI pass.
+Generation 44's sole live cycle delivered the exact target-originated
+post-`insmod` proof after all three fixed-rate symbol-clock registrations,
+reached stable target NCM in 62.793 seconds, preserved it for another 12.488
+seconds, and returned to exact Alpine. UFS core, platform, and host modules
+remained outside the load path, so no storage was enumerated or accessed.
+Generation 44 is consumed and must never be retried.
+
+Generation 45 removes only the diagnostic return before
+`of_clk_add_hw_provider()`. It publishes the OF clock provider and immediately
+registers the paired devm cleanup action, then the SM8350 diagnostic returns
+before `devm_phy_create()`. Its config remains byte-identical to Generation
+44, and UFS core and host remain unloaded. This is the next offline
+discriminator toward stable mainline UFS.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
