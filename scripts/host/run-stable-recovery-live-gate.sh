@@ -1882,8 +1882,8 @@ case $profile in
 		;;
 	persistent-root-local-image-v32-live-v1)
 		expected_boot_image=build/persistent-root-local-image-v32-generation53-20260813-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only SM8350 UFS local-image Arch boot with exact userdata and image identities, two ro,noload ext4 mounts, tmpfs OverlayFS, systemd, key-only SSH, receive-only stage records, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 53 read-only local-image Arch successor; exact UFS lock, userdata and 16 GiB image identity, two ro,noload ext4 mounts, boot-critical root admission, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, receive-only stage records, and one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 53 RAM-only cycle; local-image Arch reached strict key-only SSH at target uptime 298.62 seconds with both ext4 layers ro,noload, tmpfs OverlayFS, clean UFS checks, normal systemd reboot, and exact Alpine fallback; host parser rejected only a stale root marker after success; never retry or flash'
+		expected_boot_role='consumed Generation 53 read-only local-image Arch cycle; exact UFS lock, userdata and 16 GiB image identity, two ro,noload ext4 mounts, tmpfs OverlayFS, systemd, strict key-only SSH at target uptime 298.62 seconds, normal reboot, and exact Alpine fallback passed; retain offline only; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455

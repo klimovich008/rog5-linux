@@ -519,7 +519,7 @@ def parse_runtime_evidence(path: Path) -> str:
         "block_backed_mounts=2",
         "userdata_mount=ro-noload",
         "local_image_mount=ro-noload",
-        "root=overlay-tmpfs",
+        "root=local-ext4-overlay-tmpfs",
         "blocked_device_queries=0",
         "blocked_scsi_commands=0",
         "journal_recovery_events=0",

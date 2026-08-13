@@ -575,12 +575,12 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 			"SSH did not appear, and exact Alpine fallback returned; never retry or "
 			"flash\n"
 			"build/persistent-root-local-image-v32-generation53-20260813-r1/"
-			"repack/stable-recovery-a.avb.img\tallow\t"
-			"one exact read-only SM8350 UFS local-image Arch boot with exact userdata "
-			"and image identities, two ro,noload ext4 mounts, tmpfs OverlayFS, systemd, "
-			"key-only SSH, receive-only stage records, and bounded rollback; RAM-only "
-			"kernel/recovery; externally consumed exact claim required; never flash or "
-			"retry after entry\n"
+			"repack/stable-recovery-a.avb.img\trevoked\t"
+			"consumed by the sole Generation 53 RAM-only cycle; local-image Arch reached "
+			"strict key-only SSH at target uptime 298.62 seconds with both ext4 layers "
+			"ro,noload, tmpfs OverlayFS, clean UFS checks, normal systemd reboot, and exact "
+			"Alpine fallback; host parser rejected only a stale root marker after success; "
+			"never retry or flash\n"
             "historical/recovery.img\trevoked\thistorical only\n"
         )
         self.policy_path.chmod(0o600)
@@ -832,7 +832,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=3", report)
+        self.assertIn("temporary_boot_allow_rows=2", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)
