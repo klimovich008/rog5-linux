@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1",
+            "persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -47,11 +47,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertTrue(MODULE.USB_CONTROL_ONLY)
         self.assertEqual(
             MODULE.QMP_COMPLETED_GATE,
-            "second fixed-rate clock registration",
+            "second and third fixed-rate clock registrations",
         )
         self.assertEqual(
             MODULE.QMP_NEXT_GATE,
-            "qmp-ufs-third-fixed-clock-registration",
+            "qmp-ufs-of-clock-provider-publication",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -206,6 +206,87 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             )
         self.assertEqual(elapsed, 1.0)
         self.assertEqual(cycle.rog5_ncm_interfaces.call_count, 4)
+
+    def test_module_proof_requires_exact_target_record_and_addresses(self) -> None:
+        expected = (
+            "format=rog5-deferred-ufs-module-proof-v1\n"
+            f"target_release={MODULE.TARGET_RELEASE}\n"
+            "module=phy_qcom_qmp_ufs\n"
+            "result=PASS\n"
+        ).encode()
+
+        class Connection:
+            def __init__(self, payload: bytes) -> None:
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def settimeout(self, _timeout: float) -> None:
+                return None
+
+            def recv(self, _size: int) -> bytes:
+                payload, self.payload = self.payload, b""
+                return payload
+
+            def getsockname(self):
+                return ("169.254.77.1", MODULE.MODULE_PROOF_PORT)
+
+        class Listener:
+            def __init__(self, payload: bytes, peer: str) -> None:
+                self.payload = payload
+                self.peer = peer
+
+            def settimeout(self, _timeout: float) -> None:
+                return None
+
+            def bind(self, address) -> None:
+                self.bound = address
+
+            def listen(self, _backlog: int) -> None:
+                return None
+
+            def accept(self):
+                return Connection(self.payload), (self.peer, 40000)
+
+            def close(self) -> None:
+                return None
+
+        class SocketModule:
+            AF_INET = 2
+            SOCK_STREAM = 1
+
+            def __init__(self, payload: bytes, peer="169.254.77.2") -> None:
+                self.listener = Listener(payload, peer)
+
+            def socket(self, *_args):
+                return self.listener
+
+        with tempfile.TemporaryDirectory() as temporary:
+            cycle = SimpleNamespace(
+                output=lambda name: Path(temporary) / name,
+            )
+            with mock.patch.object(MODULE.CYCLE, "write_record") as writer:
+                MODULE.receive_module_proof(
+                    cycle,
+                    "enxrog5",
+                    socket_module=SocketModule(expected),
+                )
+            writer.assert_called_once()
+            for payload, peer in (
+                (expected.replace(b"result=PASS", b"result=FAIL"), "169.254.77.2"),
+                (expected, "169.254.77.3"),
+            ):
+                with self.subTest(peer=peer, payload=payload[-12:]):
+                    with self.assertRaises(MODULE.PersistentCycleError):
+                        MODULE.receive_module_proof(
+                            cycle,
+                            "enxrog5",
+                            socket_module=SocketModule(payload, peer),
+                        )
 
     def test_module_load_control_rejects_early_usb_loss(self) -> None:
         cycle = SimpleNamespace(

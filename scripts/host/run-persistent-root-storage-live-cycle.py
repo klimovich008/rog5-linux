@@ -8,6 +8,7 @@ import importlib.util
 import os
 from pathlib import Path
 import re
+import socket
 import stat
 import subprocess
 import sys
@@ -36,13 +37,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1"
-BUNDLE = "persistent-root-qmp-second-clock-runtime-pm-stage-v22"
+PROFILE_ID = "persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1"
+BUNDLE = "persistent-root-qmp-third-clock-runtime-pm-stage-v23"
 MANIFEST_SHA256 = (
-    "052d462cbd7820de331c446598f69224128eced8175665acd703428efb75b371"
+    "6d8195d2e384558b9ff79a42966fd6841837b38d4b41e83dd745bf554be14dc6"
 )
 RECOVERY_SHA256 = (
-    "505e2c0ec00f8b5582cb18e648674737667b7c8d7b9cc5638b6c89c34fad9ec0"
+    "2a8c210db1b846df4886c7803d337a4edf4fe1787537d1582529196a82734fd9"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -50,16 +51,16 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gad56d4021003"
+TARGET_RELEASE = "7.1.4-gc732b0b41d8d"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
-QMP_COMPLETED_GATE = "second fixed-rate clock registration"
-QMP_NEXT_GATE = "qmp-ufs-third-fixed-clock-registration"
+QMP_COMPLETED_GATE = "second and third fixed-rate clock registrations"
+QMP_NEXT_GATE = "qmp-ufs-of-clock-provider-publication"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1"
+    / "build/persistent-root-qmp-third-clock-runtime-pm-stage-v23-generation44-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -67,6 +68,7 @@ BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
 POST_MODULE_NCM_SECONDS = 12.0
+MODULE_PROOF_PORT = 8079
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -78,10 +80,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
+    admission_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
-    build_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
+    runtime_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
+    build_profile="persistent-root-qmp-third-clock-runtime-pm-stage-v23",
     diagnostic=False,
 )
 
@@ -402,6 +404,58 @@ def require_post_module_ncm(
     return clock.monotonic() - started
 
 
+def receive_module_proof(
+    cycle: CYCLE.LiveCycle,
+    interface: str,
+    *,
+    timeout: float = 15.0,
+    socket_module=socket,
+) -> None:
+    expected = (
+        "format=rog5-deferred-ufs-module-proof-v1\n"
+        f"target_release={TARGET_RELEASE}\n"
+        "module=phy_qcom_qmp_ufs\n"
+        "result=PASS\n"
+    ).encode("ascii")
+    listener = socket_module.socket(
+        socket_module.AF_INET,
+        socket_module.SOCK_STREAM,
+    )
+    try:
+        listener.settimeout(timeout)
+        listener.bind(("169.254.77.1", MODULE_PROOF_PORT))
+        listener.listen(1)
+        connection, peer = listener.accept()
+        with connection:
+            connection.settimeout(2.0)
+            payload = bytearray()
+            while len(payload) <= len(expected):
+                part = connection.recv(len(expected) + 1 - len(payload))
+                if not part:
+                    break
+                payload.extend(part)
+            local = connection.getsockname()
+    except (OSError, TimeoutError) as error:
+        fail(f"exact target module proof was not received: {error}")
+    finally:
+        listener.close()
+    if peer[0] != "169.254.77.2" or local[0] != "169.254.77.1":
+        fail("target module proof used the wrong source or host address")
+    if bytes(payload) != expected:
+        fail("target module proof content is not exact")
+    CYCLE.write_record(
+        cycle.output("deferred-ufs-module-proof.record"),
+        (
+            ("format", "rog5-deferred-ufs-module-proof-v1"),
+            ("target_release", TARGET_RELEASE),
+            ("module", "phy_qcom_qmp_ufs"),
+            ("interface", interface),
+            ("source_address", peer[0]),
+            ("result", "PASS"),
+        ),
+    )
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -641,6 +695,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         interface = activate_target_network(cycle, anchor)
         if USB_CONTROL_ONLY:
             elapsed = time.monotonic() - boot_started
+            receive_module_proof(cycle, interface)
             control_seconds = require_post_module_ncm(cycle, anchor, interface)
             CYCLE.write_record(
                 cycle.output("persistent-root-usb-control.record"),

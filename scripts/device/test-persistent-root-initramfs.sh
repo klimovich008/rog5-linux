@@ -39,7 +39,7 @@ for script in "$init" "$attest" "$shutdown" "$builder"; do
 done
 
 grep -Fq 'rog5.persistent_ro=1' "$init"
-grep -Fq 'expected_kernel_release=7.1.4-gcdf38b1ddebb' \
+grep -Fq 'expected_kernel_release=@EXPECTED_KERNEL_RELEASE@' \
 	"$init"
 grep -Fq 'release_file=/proc/sys/kernel/osrelease' "$init"
 release_read='IFS= read -r running_kernel_release <"$release_file"'
@@ -95,6 +95,18 @@ for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
 done
 grep -Fq 'modinfo -F vermagic' "$builder"
 grep -Fq 'rog5-ufs-modules' "$builder"
+grep -Fq 's/@EXPECTED_KERNEL_RELEASE@/$expected_release/' "$builder"
+grep -Fq 'format=rog5-deferred-ufs-module-proof-v1' "$init"
+grep -Fq 'target_release=$running_kernel_release' "$init"
+grep -Fq 'module=phy_qcom_qmp_ufs' "$init"
+grep -Fq 'nc -n -w 1 -s 169.254.77.2 169.254.77.1 8079' "$init"
+proof_line=$(grep -nF 'probe_record=$(printf' "$init" | cut -d: -f1)
+insmod_line=$(grep -nF 'insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko' "$init" |
+	cut -d: -f1)
+control_line=$(grep -nF '# Keep the already proven NCM identity alive long enough' \
+	"$init" | cut -d: -f1)
+[ "$insmod_line" -lt "$proof_line" ]
+[ "$proof_line" -lt "$control_line" ]
 ! grep -Fq 'stage/lib/modules' "$builder" ||
 	fail 'deferred UFS modules must remain outside automatic module lookup'
 
@@ -168,10 +180,15 @@ cmp "$work/a.cpio.gz" "$work/b.cpio.gz"
 mkdir "$work/root"
 gzip -dc "$work/a.cpio.gz" |
 	(cd "$work/root" && cpio -idm --quiet --no-absolute-filenames)
-cmp "$work/root/init" "$init"
+sed "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
+	"$init" >"$work/expected-init"
+cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
 cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
+grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
+	"$work/root/init"
+! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$work/root/init"
 
 if [ -n "$ufs_modules" ]; then
 	module_inventory=$(find "$work/root/rog5-ufs-modules" \

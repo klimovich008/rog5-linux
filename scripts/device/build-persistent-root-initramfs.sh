@@ -15,6 +15,12 @@ expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 epoch=1681862400
 
+printf '%s\n' "$expected_release" |
+	grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
+	echo 'FAIL invalid expected persistent-root kernel release' >&2
+	exit 1
+}
+
 for path in "$init" "$attest" "$shutdown"; do
 	[ -x "$path" ] || {
 		echo "FAIL missing executable P2 initramfs source: $path" >&2
@@ -84,6 +90,13 @@ gzip -dc "$base" |
 	exit 1
 }
 install -m 0755 "$init" "$stage/init"
+[ "$(grep -Fc '@EXPECTED_KERNEL_RELEASE@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique release placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_KERNEL_RELEASE@/$expected_release/" "$stage/init"
+grep -Fqx "expected_kernel_release=$expected_release" "$stage/init"
+! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$attest" \
 	"$stage/usr/local/sbin/rog5-p2-attest"

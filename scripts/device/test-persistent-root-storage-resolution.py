@@ -211,7 +211,13 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
     def test_deferred_ufs_phy_control_loads_only_the_phy(self) -> None:
         loader = function(self.source, "load_deferred_ufs_modules")
         self.assertIn("/rog5-ufs-modules/phy-qcom-qmp-ufs.ko", loader)
-        self.assertEqual(loader.count("insmod "), 1)
+        self.assertEqual(
+            sum(
+                line.strip().startswith("insmod ")
+                for line in loader.splitlines()
+            ),
+            1,
+        )
         self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-core.ko", loader)
         self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
         self.assertNotIn("insmod /rog5-ufs-modules/ufs-qcom.ko", loader)
@@ -238,6 +244,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             carrier.write_text("1\n")
             calls = root / "calls"
             sleeps = root / "sleeps"
+            proof = root / "proof"
             fixture = loader.replace(
                 "module_dir=/rog5-ufs-modules", 'module_dir="$1"'
             ).replace("/proc/modules", '"$modules_file"').replace(
@@ -247,10 +254,13 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 "set -u\n"
                 + fixture
                 + '\nmodules_file="$2"\ncarrier_file="$3"\n'
-                + 'call_log="$4"\nsleep_log="$5"\n'
+                + 'call_log="$4"\nsleep_log="$5"\nproof_file="$6"\n'
+                + 'running_kernel_release=7.1.4-gc732b0b41d8d\n'
+                + "log() { :; }\n"
                 + 'insmod() { printf "%s\\n" "$1" >>"$call_log"; '
                 + 'printf "%s\\n" "phy_qcom_qmp_ufs 1 0 - Live 0x0" '
                 + '>"$modules_file"; }\n'
+                + 'nc() { cat >"$proof_file"; }\n'
                 + "expected_udc_is_bound() { return 0; }\n"
                 + 'sleep() { printf "%s\\n" "$1" >>"$sleep_log"; }\n'
                 + 'load_deferred_ufs_modules "$@"\n'
@@ -266,6 +276,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                     str(carrier),
                     str(calls),
                     str(sleeps),
+                    str(proof),
                 ],
                 text=True,
                 capture_output=True,
@@ -277,6 +288,13 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 ["/rog5-ufs-modules/phy-qcom-qmp-ufs.ko"],
             )
             self.assertEqual(sleeps.read_text().splitlines(), ["0.1"] * 150)
+            self.assertEqual(
+                proof.read_text(),
+                "format=rog5-deferred-ufs-module-proof-v1\n"
+                "target_release=7.1.4-gc732b0b41d8d\n"
+                "module=phy_qcom_qmp_ufs\n"
+                "result=PASS\n",
+            )
 
     def run_rendezvous(
         self, carrier: str
