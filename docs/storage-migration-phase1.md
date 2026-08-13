@@ -188,8 +188,11 @@ The bounded experiment is:
 
 The [local-image v32 offline checkpoint](../test-results/2026-08-13-local-image-v32-offline.md)
 proves two independent ext4 materializations produce the same canonical tree
-and seal, and pins a self-contained volatile AArch64 extraction runtime. No
-phone image exists yet.
+and seal, and pins a self-contained volatile AArch64 extraction runtime. The
+[phone staging result](../test-results/2026-08-13-generation-53-local-image-staged.md)
+then created the exact 16 GiB image in 34.718 seconds and independently
+reverified its full hash, ext4 identity, complete seal, and read-only mount
+behavior with no loop or mount residue.
 
 The baseline to beat is Generation 20: NFS mounted at 4.930 seconds, sealed
 root verification completed at 350.038 seconds, systemd began at 359.043

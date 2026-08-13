@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-local-image-v32-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-local-image-v32-live-v1\n"
+            b"candidate=persistent-root-local-image-v32\n"
+            b"manifest_sha256="
+            b"ae1069eb2f85e1b93c24f831e440a54303ca80934864f7fca07afcf34adfaca1\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-ufs-fast-admission-v31-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-ufs-fast-admission-v31-live-v1\n"
