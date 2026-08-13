@@ -157,6 +157,8 @@ STAGES = {
     "storage-locked",
     "userdata-resolved",
     "userdata-mount",
+    "image-resolved",
+    "image-mount",
     "root-verify",
     "ufs-health",
     "overlay",

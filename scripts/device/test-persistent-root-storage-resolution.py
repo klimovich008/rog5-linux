@@ -184,11 +184,13 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertNotIn("[ \"$found\" = sda23 ]", self.source)
         self.assertGreaterEqual(self.source.count("expected_udc_is_bound"), 3)
         self.assertIn(
-            "PASS previously sealed root matches exact boot-critical identities",
+            "PASS sealed local image matches exact boot-critical identities",
             attest,
         )
+        self.assertIn("loop_record=/run/rog5-p2-root-loop-device", attest)
+        self.assertIn("local_image_mount=ro-noload", attest)
         self.assertNotIn(
-            "PASS persistent root matches anchored seal entries=181242",
+            "PASS previously sealed root matches exact boot-critical identities",
             attest,
         )
 
@@ -373,15 +375,20 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
 
     def test_local_root_stages_are_fixed_receive_only_heartbeats(self) -> None:
         reporter = function(self.source, "start_stage_reporter")
+        sender = function(self.source, "send_stage_record")
+        one_shot = function(self.source, "report_current_stage_once")
         publisher = function(self.source, "publish_stage")
-        self.assertIn("nc -n -w 1 -s 169.254.77.2", reporter)
-        self.assertIn("169.254.77.1 8079", reporter)
+        self.assertIn("send_stage_record", reporter)
+        self.assertIn("nc -n -w 1 -s 169.254.77.2", sender)
+        self.assertIn("169.254.77.1 8079", sender)
+        self.assertIn('send_stage_record <"$stage_record"', one_shot)
         self.assertIn('sleep 1', reporter)
         self.assertIn('format=rog5-persistent-root-stage-v1', publisher)
         self.assertIn('"sequence=$stage_sequence"', publisher)
-        self.assertNotIn("-l", reporter)
-        self.assertNotIn("sh -c", reporter)
-        self.assertNotIn("eval", reporter)
+        for transport in (reporter, sender, one_shot):
+            self.assertNotIn("-l", transport)
+            self.assertNotIn("sh -c", transport)
+            self.assertNotIn("eval", transport)
 
         ordered = (
             "kernel-verified",
@@ -389,6 +396,8 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             "storage-locked",
             "userdata-resolved",
             "userdata-mount",
+            "image-resolved",
+            "image-mount",
             "root-verify",
             "ufs-health",
             "overlay",
@@ -398,16 +407,11 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         )
         positions = []
         for stage in ordered:
-            candidates = [
-                position
-                for position in (
-                    self.source.find(f"publish_stage {stage} "),
-                    self.source.find(f"publish_or_rollback {stage} "),
-                )
-                if position >= 0
-            ]
-            self.assertTrue(candidates, stage)
-            positions.append(min(candidates))
+            position = self.source.find(f"publish_or_rollback {stage} ")
+            if position < 0:
+                position = self.source.find(f"publish_stage {stage} ")
+            self.assertGreaterEqual(position, 0, stage)
+            positions.append(position)
         self.assertEqual(positions, sorted(positions))
         self.assertIn("publish_or_rollback root-verify ENTER", self.source)
         self.assertIn("publish_or_rollback root-verify PASS", self.source)
@@ -418,9 +422,9 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         final_publish = self.source.index(
             "publish_or_rollback switch-root ENTER"
         )
-        run_move = self.source.index("mount --move /run /newroot/run")
-        self.assertLess(final_publish, run_move)
-        self.assertIn("sleep 2", self.source[final_publish:run_move])
+        handoff = self.source.index("if ! handoff_persistent_root; then")
+        self.assertLess(final_publish, handoff)
+        self.assertIn("sleep 2", self.source[final_publish:handoff])
 
     def run_rendezvous(
         self, carrier: str

@@ -173,15 +173,23 @@ The bounded experiment is:
    legacy full-tree rehash exceeded its rollback window;
 2. create and format only the image file from Alpine, with a unique filesystem
    UUID and `ROG5_ARCH_A` label;
-3. copy the existing sealed `/rog5/roots/arch-a` tree into the loop-mounted
-   image with ownership, hard links, ACLs, xattrs, capabilities, and timestamps;
-4. unmount, run read-only `e2fsck`, hash the image, and atomically publish it;
+3. copy the sealed deployment-key-bound headless Arch archive into the
+   loop-mounted image with ownership, hard links, ACLs, xattrs, capabilities,
+   and timestamps; this intentionally replaces the historical Plasma tree for
+   the server path;
+4. verify the complete 37,735-entry tree seal, unmount, run read-only `e2fsck`,
+   hash the image, and atomically publish it;
 5. RAM-boot the mainline kernel, resolve `userdata` by fresh GPT identity,
    mount the outer ext4 read-only, attach the image read-only, and use a tmpfs
    OverlayFS upper for the first local-root boots;
 6. retain NFS and Alpine as independent recovery paths; and
 7. timestamp UFS discovery, outer mount, image verification, inner mount,
    systemd, sshd, and strict key-only SSH acceptance.
+
+The [local-image v32 offline checkpoint](../test-results/2026-08-13-local-image-v32-offline.md)
+proves two independent ext4 materializations produce the same canonical tree
+and seal, and pins a self-contained volatile AArch64 extraction runtime. No
+phone image exists yet.
 
 The baseline to beat is Generation 20: NFS mounted at 4.930 seconds, sealed
 root verification completed at 350.038 seconds, systemd began at 359.043

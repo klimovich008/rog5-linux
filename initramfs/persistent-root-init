@@ -15,9 +15,15 @@ mdev -s
 
 expected_physical_count=116
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
-expected_seal_sha256=e201955dead61a04ca0e70d67fcea18750940330421334c91cfe2c760e7fb3ff
-expected_tree_sha256=b71eccbe5275f8d125a6d3251fff166b57f196c23984b845e31666ecaaea9a8c
+expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
+expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
+expected_image_bytes=17179869184
+expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
+expected_image_label=ROG5_ARCH_A
 userdata=
+root_image=
+root_loop=
 release_file=/proc/sys/kernel/osrelease
 expected_udc=a600000.usb
 udc_class_dir=/sys/class/udc
@@ -25,9 +31,15 @@ udc_poll_attempts=200
 stage_sequence=0
 stage_record=/run/rog5-persistent-root-stage.record
 stage_reporter_pid=
+target_boot_id=
 
 log() {
-	echo "rog5-persistent-root: $*" >/dev/kmsg
+	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
+		[ -c "$kmsg" ] || continue
+		echo "rog5-persistent-root: $*" >"$kmsg" 2>/dev/null || true
+		break
+	done
+	return 0
 }
 
 publish_stage() {
@@ -35,18 +47,18 @@ publish_stage() {
 	stage_state=$2
 	case $stage_name in
 		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
-userdata-mount|root-verify|ufs-health|overlay|runtime|final-storage|\
-switch-root) ;;
+userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
+overlay|runtime|final-storage|switch-root) ;;
 		*) return 1 ;;
 	esac
 	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
 	stage_sequence=$((stage_sequence + 1))
-	stage_boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	[ -n "$target_boot_id" ] || return 1
 	stage_next=$stage_record.next
 	printf '%s\n' \
 		'format=rog5-persistent-root-stage-v1' \
 		"target_release=$running_kernel_release" \
-		"boot_id=$stage_boot_id" \
+		"boot_id=$target_boot_id" \
 		"sequence=$stage_sequence" \
 		"stage=$stage_name" \
 		"state=$stage_state" >"$stage_next" || return 1
@@ -55,13 +67,21 @@ switch-root) ;;
 	log "stage sequence=$stage_sequence stage=$stage_name state=$stage_state"
 }
 
+send_stage_record() {
+	nc -n -w 1 -s 169.254.77.2 \
+		169.254.77.1 8079 >/dev/null 2>&1
+}
+
+report_current_stage_once() {
+	[ -s "$stage_record" ] || return 1
+	send_stage_record <"$stage_record"
+}
+
 start_stage_reporter() {
 	(
 		while :; do
 			if [ -s "$stage_record" ]; then
-				nc -n -w 1 -s 169.254.77.2 \
-					169.254.77.1 8079 <"$stage_record" \
-					>/dev/null 2>&1 || true
+				send_stage_record <"$stage_record" || true
 			fi
 			sleep 1
 		done
@@ -498,8 +518,30 @@ verify_only_userdata_mount() {
 	[ "$count" -eq 1 ]
 }
 
+verify_userdata_and_image_mounts() {
+	count=0
+	userdata_name=${userdata##*/}
+	loop_name=${root_loop##*/}
+	expected_userdata=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+	expected_loop=$(cat "/sys/class/block/$loop_name/dev") || return 1
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		if [ "$device" = "$expected_userdata" ] &&
+			[ "$mountpoint" = /mnt/userdata ]; then
+			continue
+		fi
+		if [ "$device" = "$expected_loop" ] &&
+			[ "$mountpoint" = /mnt/root-ro ]; then
+			continue
+		fi
+		return 1
+	done </proc/self/mountinfo
+	[ "$count" -eq 2 ]
+}
+
 mount_persistent_root() {
-	mkdir -p /mnt/userdata /mnt/state /newroot
+	mkdir -p /mnt/userdata /mnt/root-ro /mnt/state /newroot
 	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
 	mountpoint -q /mnt/userdata || return 1
 	awk -v userdata="$userdata" '$1 == userdata && $2 == "/mnt/userdata" &&
@@ -508,15 +550,57 @@ mount_persistent_root() {
 	verify_only_userdata_mount || return 1
 	verify_physical_storage_read_only || return 1
 
-	for path in \
-		/mnt/userdata/rog5 \
-		/mnt/userdata/rog5/roots \
-		/mnt/userdata/rog5/roots/arch-a; do
+	for path in /mnt/userdata/rog5 /mnt/userdata/rog5/images; do
 		[ -d "$path" ] && [ ! -L "$path" ] || return 1
 	done
 	[ ! -e /mnt/userdata/rog5/state/good ] || return 1
 	[ ! -e /mnt/userdata/rog5/state/next ] || return 1
-	[ -x /mnt/userdata/rog5/roots/arch-a/sbin/init ] || return 1
+	return 0
+}
+
+resolve_local_root_image() {
+	root_image=/mnt/userdata/rog5/images/arch-local-a.ext4
+	[ -f "$root_image" ] && [ ! -L "$root_image" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$root_image")" = \
+		"0:0:600:$expected_image_bytes:1" ] || return 1
+	return 0
+}
+
+mount_local_root_image() {
+	root_loop=$(losetup -f) || return 1
+	case $root_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	loop_name=${root_loop##*/}
+	[ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name" ] || return 1
+	losetup -r "$root_loop" "$root_image" || return 1
+	[ "$(blockdev --getro "$root_loop")" = 1 ] || return 1
+	[ "$(blockdev --getsize64 "$root_loop")" = "$expected_image_bytes" ] ||
+		return 1
+	[ "$(cat "/sys/class/block/$loop_name/ro")" = 1 ] || return 1
+	backing_file=$(cat "/sys/class/block/$loop_name/loop/backing_file") ||
+		return 1
+	case $backing_file in
+		/mnt/userdata/rog5/images/arch-local-a.ext4|\
+		mnt/userdata/rog5/images/arch-local-a.ext4) ;;
+		*) return 1 ;;
+	esac
+	blkid_record=$(blkid "$root_loop") || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq " UUID=\"$expected_image_uuid\"" || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq " LABEL=\"$expected_image_label\"" || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq ' TYPE="ext4"' || return 1
+	mount -t ext4 -o ro,noload,nodev,nosuid,noatime \
+		"$root_loop" /mnt/root-ro || return 1
+	awk -v loop="$root_loop" '$1 == loop && $2 == "/mnt/root-ro" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
+		$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ {
+			found++
+		}
+		END { exit found != 1 }' /proc/mounts || return 1
+	verify_userdata_and_image_mounts || return 1
+	printf '%s\n' "$root_loop" >/run/rog5-p2-root-loop-device || return 1
+	chmod 0444 /run/rog5-p2-root-loop-device || return 1
 	return 0
 }
 
@@ -556,38 +640,43 @@ verify_exact_regular() {
 }
 
 verify_persistent_root() {
-	root=/mnt/userdata/rog5/roots/arch-a
+	root=/mnt/root-ro
 	seal=$root/.rog5-persistent-seal
-	verify_exact_regular "$seal" 0 0 444 435 "$expected_seal_sha256" ||
+	verify_exact_regular "$seal" 0 0 444 430 "$expected_seal_sha256" ||
 		return 1
 	[ "$(wc -l <"$seal")" -eq 13 ] || return 1
 	grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" || return 1
 	grep -Fxq 'generation=arch-a' "$seal" || return 1
 	grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
-	grep -Fxq 'tree_entries=181242' "$seal" || return 1
+	grep -Fxq 'source_archive_size=536746495' "$seal" || return 1
+	grep -Fxq 'source_archive_sha256=4d120a4b3a10be098cea47ba8536969bbaa931b47b31cc37fc3474fea045b324' \
+		"$seal" || return 1
+	grep -Fxq 'tree_entries=37736' "$seal" || return 1
 	grep -Fxq "tree_sha256=$expected_tree_sha256" "$seal" || return 1
+	verify_exact_regular "$root/.rog5-source-seal" 0 0 444 430 \
+		"$expected_source_seal_sha256" || return 1
 
 	[ -L "$root/sbin/init" ] &&
 		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] ||
 		return 1
-	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 200904 \
-		9b86f7c8cbadc9f8586128b49c15d14b2a37783bafc7dc5716bd5dd17c1eb271 ||
+	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 198968 \
+		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 ||
 		return 1
-	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 658112 \
-		76c6ed96a30da9801f763f50a17ab0a11854f013b958ddb410faa3ec15e741c5 ||
+	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ||
 		return 1
 
 	authorized=$root/root/.ssh/authorized_keys
-	verify_exact_regular "$authorized" 0 0 600 102 \
-		e07317bd058a219160d2d98a143cf40f69272621890184967e3cdf8f0a5e6905 ||
+	verify_exact_regular "$authorized" 0 0 600 81 \
+		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 ||
 		return 1
 	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
 		"$authorized" || return 1
 	awk 'NF { count++ } END { exit count != 1 }' "$authorized" ||
 		return 1
 	verify_exact_regular \
-		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" 0 0 644 155 \
-		2130cfd46966075ec8e8137cab3da9c2d7a2a728a69e28f54dadb518a35247c8 ||
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" 0 0 644 201 \
+		c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693 ||
 		return 1
 	grep -Fqx 'PasswordAuthentication no' \
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
@@ -596,7 +685,7 @@ verify_persistent_root() {
 	grep -Fqx 'PubkeyAuthentication yes' \
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
 	printf '%s\n' \
-		'PASS previously sealed root matches exact boot-critical identities' \
+		'PASS sealed local image matches exact boot-critical identities' \
 		>/run/rog5-p2-root-verification.txt || return 1
 	return 0
 }
@@ -606,7 +695,7 @@ mount_overlay_root() {
 		tmpfs /mnt/state || return 1
 	mkdir -p /mnt/state/upper /mnt/state/work
 	mount -t overlay overlay \
-		-o lowerdir=/mnt/userdata/rog5/roots/arch-a,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
+		-o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
 		/newroot || return 1
 	awk '$1 == "overlay" && $2 == "/newroot" && $3 == "overlay" &&
 		$4 ~ /(^|,)rw(,|$)/ { found++ }
@@ -660,6 +749,103 @@ EOF
 	return 0
 }
 
+move_handoff_mount() {
+	mount --move "$1" "$2"
+}
+
+rollback_handoff_mounts() {
+	rollback_status=0
+
+	[ "$handoff_moved_run" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/run" "$handoff_run" ||
+		rollback_status=1
+	[ "$handoff_moved_proc" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/proc" "$handoff_proc" ||
+		rollback_status=1
+	[ "$handoff_moved_sys" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/sys" "$handoff_sys" ||
+		rollback_status=1
+	[ "$handoff_moved_dev" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/dev" "$handoff_dev" ||
+		rollback_status=1
+	[ "$handoff_moved_state" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/state" \
+			"$handoff_state" || rollback_status=1
+	[ "$handoff_moved_root" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/root-ro" \
+			"$handoff_root" || rollback_status=1
+	[ "$handoff_moved_userdata" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/userdata-ro" \
+			"$handoff_userdata" || rollback_status=1
+	return "$rollback_status"
+}
+
+handoff_persistent_root() {
+	handoff_moved_userdata=0
+	handoff_moved_root=0
+	handoff_moved_state=0
+	handoff_moved_dev=0
+	handoff_moved_sys=0
+	handoff_moved_proc=0
+	handoff_moved_run=0
+
+	mkdir -p "$handoff_newroot/.rog5/userdata-ro" \
+		"$handoff_newroot/.rog5/root-ro" \
+		"$handoff_newroot/.rog5/state" "$handoff_newroot/dev" \
+		"$handoff_newroot/proc" "$handoff_newroot/sys" \
+		"$handoff_newroot/run" || return 1
+	touch "$handoff_run/rog5-p2-root-mounted" || return 1
+
+	if ! move_handoff_mount "$handoff_userdata" \
+		"$handoff_newroot/.rog5/userdata-ro"; then
+		return 1
+	fi
+	handoff_moved_userdata=1
+	if ! move_handoff_mount "$handoff_root" \
+		"$handoff_newroot/.rog5/root-ro"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_root=1
+	if ! move_handoff_mount "$handoff_state" \
+		"$handoff_newroot/.rog5/state"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_state=1
+	if ! move_handoff_mount "$handoff_dev" "$handoff_newroot/dev"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_dev=1
+	if ! move_handoff_mount "$handoff_sys" "$handoff_newroot/sys"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_sys=1
+	if ! move_handoff_mount "$handoff_proc" "$handoff_newroot/proc"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_proc=1
+	if ! move_handoff_mount "$handoff_run" "$handoff_newroot/run"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_run=1
+	return 0
+}
+
+switch_root_failure() {
+	trap - EXIT
+	rollback_handoff_mounts || true
+	stage_record=/run/rog5-persistent-root-stage.record
+	publish_stage switch-root FAIL || true
+	log 'switch_root returned after a complete persistent-root handoff'
+	sleep 2
+	force_rollback
+}
+
 recovery_timeout=600
 persistent_count=0
 persistent_invalid=0
@@ -696,6 +882,11 @@ fi
 if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 	fail_stage 'running kernel release changed' kernel-release-identity 25
 fi
+target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
+	fail_stage 'target boot identity is unavailable' kernel-release-file 20
+printf '%s\n' "$target_boot_id" |
+	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+	fail_stage 'target boot identity is invalid' kernel-release-file 20
 publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
@@ -766,6 +957,16 @@ if ! mount_persistent_root; then
 	fail_local_stage userdata-mount 'read-only noload userdata mount failed'
 fi
 publish_or_rollback userdata-mount PASS
+publish_or_rollback image-resolved ENTER
+if ! resolve_local_root_image; then
+	fail_local_stage image-resolved 'exact local root image identity failed'
+fi
+publish_or_rollback image-resolved PASS
+publish_or_rollback image-mount ENTER
+if ! mount_local_root_image; then
+	fail_local_stage image-mount 'read-only noload local root image mount failed'
+fi
+publish_or_rollback image-mount PASS
 publish_or_rollback root-verify ENTER
 if ! verify_persistent_root; then
 	fail_local_stage root-verify 'anchored persistent-root verification failed'
@@ -788,24 +989,34 @@ fi
 publish_or_rollback runtime PASS
 publish_or_rollback final-storage ENTER
 if ! verify_physical_storage_read_only ||
-	! verify_only_userdata_mount ||
+	! verify_userdata_and_image_mounts ||
 	! verify_ufs_health; then
 	fail_local_stage final-storage 'final read-only storage gate failed'
 fi
 publish_or_rollback final-storage PASS
 
-mkdir -p /newroot/.rog5/userdata-ro /newroot/.rog5/state \
-	/newroot/dev /newroot/proc /newroot/sys /newroot/run
-touch /run/rog5-p2-root-mounted
+handoff_newroot=/newroot
+handoff_userdata=/mnt/userdata
+handoff_root=/mnt/root-ro
+handoff_state=/mnt/state
+handoff_dev=/dev
+handoff_proc=/proc
+handoff_sys=/sys
+handoff_run=/run
 publish_or_rollback switch-root ENTER
 # The reporter and its record live on /run.  Give the final volatile record
 # one bounded heartbeat interval before moving /run into the new root.
 sleep 2
-mount --move /mnt/userdata /newroot/.rog5/userdata-ro
-mount --move /mnt/state /newroot/.rog5/state
-mount --move /dev /newroot/dev
-mount --move /proc /newroot/proc
-mount --move /sys /newroot/sys
-mount --move /run /newroot/run
+if ! handoff_persistent_root; then
+	fail_local_stage switch-root 'persistent-root mount handoff failed'
+fi
+stage_record=$handoff_newroot/run/rog5-persistent-root-stage.record
+if ! publish_stage switch-root PASS; then
+	rollback_handoff_mounts || true
+	stage_record=/run/rog5-persistent-root-stage.record
+	fail_local_stage switch-root 'post-handoff stage publication failed'
+fi
+report_current_stage_once || true
 
+trap switch_root_failure EXIT
 exec switch_root /newroot /sbin/init
