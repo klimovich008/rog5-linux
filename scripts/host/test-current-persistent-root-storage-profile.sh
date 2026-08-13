@@ -13,10 +13,10 @@ boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 profile=persistent-root-ufs-fast-admission-v31-live-v1
 image_name=build/persistent-root-ufs-fast-admission-v31-generation52-20260813-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS local-root boot with bounded boot-critical identity admission, runtime block locks, exact userdata ro,noload mount, tmpfs OverlayFS, systemd, key-only SSH, receive-only stage heartbeats, and bounded rollback; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 52 read-only local-root fast-admission successor; exact UFS lock and userdata identity, ro,noload outer mount, prior full seal plus exact boot-critical identity admission, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, receive-only stage heartbeats, and one RAM-only use only; never flash'
-[[ $role == unbooted\ * ]] ||
-	fail 'current persistent-root artifact role must remain live-gate eligible'
+basis='consumed by the sole Generation 52 RAM-only cycle; read-only UFS, exact userdata, bounded root admission, and switch-root entry passed, key-only SSH did not appear, and exact Alpine fallback returned; never retry or flash'
+role='consumed Generation 52 read-only local-root fast-admission cycle; exact UFS lock, userdata ro,noload mount, bounded root admission, and switch-root entry passed, key-only SSH did not appear, and exact Alpine fallback returned; retain offline only; never retry or flash'
+[[ $role == consumed\ * ]] ||
+	fail 'Generation 52 artifact role must remain consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -103,9 +103,9 @@ for index in "${!fields[@]}"; do
 done
 
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
+' "$boot_policy" || fail 'consumed Generation 52 image is not uniquely revoked'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "0d0683e3404e890522630808700e6915eb86d83fd3d8ddc8fc5ed716a7e9303f" &&
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 52 read-only local-root fast-admission profile, exact claim, artifact, and admission are pinned'
+echo 'PASS consumed Generation 52 profile, exact claim, artifact, and revocation are pinned'
