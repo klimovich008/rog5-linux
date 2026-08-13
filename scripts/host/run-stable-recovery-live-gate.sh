@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-ufs-local-root-stage-v30-live-v1 | \
 		persistent-root-ufs-local-root-v29-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
@@ -1877,10 +1878,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-ufs-local-root-v29-live-v1)
-		expected_boot_image=build/persistent-root-ufs-local-root-v29-generation50-20260813-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only SM8350 UFS local-root boot with bounded recovery transfer, runtime block locks, exact userdata ro,noload mount, sealed root verification, tmpfs OverlayFS, systemd, and key-only SSH; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 50 read-only local Arch root; exact UFS lock and userdata identity, ro,noload outer mount, complete sealed-tree verification, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, and one RAM-only use only; never flash'
+	persistent-root-ufs-local-root-stage-v30-live-v1)
+		expected_boot_image=build/persistent-root-ufs-local-root-stage-v30-generation51-20260813-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only SM8350 UFS local-root stage-discrimination boot with bounded recovery transfer, runtime block locks, exact userdata ro,noload mount, sealed root verification, tmpfs OverlayFS, systemd, key-only SSH, and receive-only volatile stage heartbeats; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 51 read-only local-root stage discriminator; exact UFS lock and userdata identity, ro,noload outer mount, complete sealed-tree verification, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, receive-only volatile stage heartbeats, and one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -1889,19 +1890,19 @@ case $profile in
 		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
 		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
 		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
-		expected_target_id=persistent-root-ufs-local-root-v29
-		expected_bundle=persistent-root-ufs-local-root-v29
+		expected_target_id=persistent-root-ufs-local-root-stage-v30
+		expected_bundle=persistent-root-ufs-local-root-stage-v30
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gae717d919f87
-		expected_avb_salt=4e9f2860a79b396933e64bd9d5ab4b558267c9c1777b41e4ea37b5901f64ab7e
-		expected_avb_digest=2f6ce96b8f597b7469f222baf822b08f4068bfc78ad49c8296fda8005df04dc3
-		expected_generation_record=0d4ec27a5559df88b0888efeffd07fa93a9ed2db57f109480c6900483191bc3c
+		expected_avb_salt=aa854eb8fbe8aea885c9b1360a7ec3b9d57a2e31af3b78c8733cc8e0449164fb
+		expected_avb_digest=70c39f67b952e24a7cb4efb34e41ae58ae507d38ca936f974cbe40669e798bd2
+		expected_generation_record=6c266ffda3bb2f18e308d74ef7a737b3ac1f1bd309abb93b478c365db4f46260
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			ae22914906d63accc893157b51c683f24a3a7e933bba84e13661e664764b9cc6 ]] ||
+			53afa65bb7134e7d5acccc2126aa8764fd3918c7cab02c61417f4be1572aad27 ]] ||
 			fail 'persistent-root runtime manifest is not pinned'
 		[[ $expected_image == \
-			26d2d9b7a230268d9bd3e82497aab3e8126aefcf951b2e1fcf0a4c7fc5d6df28 ]] ||
+			3fbcf296b054460a4a5a48092e55e4df080c6e308430177cf999d42ff6ef39cc ]] ||
 			fail 'persistent-root recovery image is not pinned'
 		[[ $expected_trust == \
 			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
@@ -2241,6 +2242,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-ufs-local-root-stage-v30-live-v1 | \
 	persistent-root-ufs-local-root-v29-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \

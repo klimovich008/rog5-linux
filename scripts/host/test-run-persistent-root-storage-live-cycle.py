@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-ufs-local-root-v29-live-v1",
+            "persistent-root-ufs-local-root-stage-v30-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -33,7 +33,10 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertFalse(MODULE.PROFILE.diagnostic)
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
-        self.assertEqual(MODULE.BUNDLE, "persistent-root-ufs-local-root-v29")
+        self.assertEqual(
+            MODULE.BUNDLE,
+            "persistent-root-ufs-local-root-stage-v30",
+        )
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,
@@ -171,6 +174,64 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         with mock.patch.object(MODULE.CYCLE, "terminate"):
             MODULE.stop_recovery_host(cycle, None, None, None)
         cycle.wait_host_clean.assert_called_once_with()
+
+    def test_failure_cleanup_defers_host_proof_after_target_activation(self) -> None:
+        cycle = SimpleNamespace(wait_host_clean=mock.Mock())
+        with mock.patch.object(MODULE.CYCLE, "terminate"):
+            MODULE.stop_recovery_host(
+                cycle,
+                None,
+                None,
+                (object(),),
+                target_network_active=True,
+            )
+        cycle.wait_host_clean.assert_not_called()
+
+    def test_stage_records_are_exact_monotonic_and_bounded(self) -> None:
+        boot_id = "11111111-2222-3333-4444-555555555555"
+        first = (
+            "format=rog5-persistent-root-stage-v1\n"
+            f"target_release={MODULE.TARGET_RELEASE}\n"
+            f"boot_id={boot_id}\n"
+            "sequence=6\n"
+            "stage=root-verify\n"
+            "state=ENTER\n"
+        ).encode()
+        parsed = MODULE.parse_stage_record(first)
+        self.assertEqual(parsed.sequence, 6)
+        self.assertEqual(parsed.stage, "root-verify")
+        self.assertEqual(parsed.state, "ENTER")
+
+        second = first.replace(b"sequence=6", b"sequence=7").replace(
+            b"state=ENTER", b"state=PASS"
+        )
+        later = MODULE.parse_stage_record(second)
+        MODULE.require_stage_successor(parsed, later)
+        for hostile in (
+            first.rstrip(b"\n"),
+            first + b"extra=1\n",
+            first.replace(b"root-verify", b"unknown"),
+            first.replace(b"state=ENTER", b"state=UNKNOWN"),
+            first.replace(b"target_release=", b"target_release=wrong-"),
+            b"x" * (MODULE.STAGE_RECORD_MAX_BYTES + 1),
+        ):
+            with self.subTest(payload=hostile[-24:]):
+                with self.assertRaises(MODULE.PersistentCycleError):
+                    MODULE.parse_stage_record(hostile)
+
+        duplicate = MODULE.parse_stage_record(first)
+        MODULE.require_stage_successor(parsed, duplicate)
+        with self.assertRaises(MODULE.PersistentCycleError):
+            MODULE.require_stage_successor(later, parsed)
+        changed_duplicate = MODULE.StageRecord(
+            boot_id=parsed.boot_id,
+            sequence=parsed.sequence,
+            stage="overlay",
+            state=parsed.state,
+            payload=parsed.payload,
+        )
+        with self.assertRaises(MODULE.PersistentCycleError):
+            MODULE.require_stage_successor(parsed, changed_duplicate)
 
     def test_fallback_transition_uses_usb_identity_not_nm_state(self) -> None:
         with mock.patch.object(

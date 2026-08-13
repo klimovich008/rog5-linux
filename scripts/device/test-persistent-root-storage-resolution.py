@@ -302,6 +302,57 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn("verify_only_userdata_mount", mount_function)
         self.assertIn("verify_physical_storage_read_only", mount_function)
 
+    def test_local_root_stages_are_fixed_receive_only_heartbeats(self) -> None:
+        reporter = function(self.source, "start_stage_reporter")
+        publisher = function(self.source, "publish_stage")
+        self.assertIn("nc -n -w 1 -s 169.254.77.2", reporter)
+        self.assertIn("169.254.77.1 8079", reporter)
+        self.assertIn('sleep 1', reporter)
+        self.assertIn('format=rog5-persistent-root-stage-v1', publisher)
+        self.assertIn('"sequence=$stage_sequence"', publisher)
+        self.assertNotIn("-l", reporter)
+        self.assertNotIn("sh -c", reporter)
+        self.assertNotIn("eval", reporter)
+
+        ordered = (
+            "kernel-verified",
+            "ufs-ready",
+            "storage-locked",
+            "userdata-resolved",
+            "userdata-mount",
+            "root-verify",
+            "ufs-health",
+            "overlay",
+            "runtime",
+            "final-storage",
+            "switch-root",
+        )
+        positions = []
+        for stage in ordered:
+            candidates = [
+                position
+                for position in (
+                    self.source.find(f"publish_stage {stage} "),
+                    self.source.find(f"publish_or_rollback {stage} "),
+                )
+                if position >= 0
+            ]
+            self.assertTrue(candidates, stage)
+            positions.append(min(candidates))
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("publish_or_rollback root-verify ENTER", self.source)
+        self.assertIn("publish_or_rollback root-verify PASS", self.source)
+        fail_local = function(self.source, "fail_local_stage")
+        self.assertIn('publish_stage "$1" FAIL', fail_local)
+        self.assertIn("fail_local_stage root-verify", self.source)
+
+        final_publish = self.source.index(
+            "publish_or_rollback switch-root ENTER"
+        )
+        run_move = self.source.index("mount --move /run /newroot/run")
+        self.assertLess(final_publish, run_move)
+        self.assertIn("sleep 2", self.source[final_publish:run_move])
+
     def run_rendezvous(
         self, carrier: str
     ) -> tuple[subprocess.CompletedProcess[str], str, list[str]]:

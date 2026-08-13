@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-ufs-local-root-stage-v30-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-ufs-local-root-stage-v30-live-v1\n"
+            b"candidate=persistent-root-ufs-local-root-stage-v30\n"
+            b"manifest_sha256="
+            b"53afa65bb7134e7d5acccc2126aa8764fd3918c7cab02c61417f4be1572aad27\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-ufs-local-root-v29-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-ufs-local-root-v29-live-v1\n"

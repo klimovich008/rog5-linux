@@ -167,7 +167,9 @@ The bounded experiment is:
 
 1. first prove repeated mainline UFS enumeration and read-only reads without
    UFS error recovery, USB loss, or rollback loss; Generation 49 supplies the
-   first exact enumeration and Generation 50 is the read-only mount/root gate;
+   first exact enumeration, consumed Generation 50 proved a stable target
+   gadget but did not reach SSH, and Generation 51 adds exact read-only
+   mount/root stage discrimination;
 2. create and format only the image file from Alpine, with a unique filesystem
    UUID and `ROG5_ARCH_A` label;
 3. copy the existing sealed `/rog5/roots/arch-a` tree into the loop-mounted

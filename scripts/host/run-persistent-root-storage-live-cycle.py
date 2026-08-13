@@ -8,10 +8,12 @@ import importlib.util
 import os
 from pathlib import Path
 import re
+import socket
 import stat
 import subprocess
 import sys
 import time
+from typing import NamedTuple
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -36,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-ufs-local-root-v29-live-v1"
-BUNDLE = "persistent-root-ufs-local-root-v29"
+PROFILE_ID = "persistent-root-ufs-local-root-stage-v30-live-v1"
+BUNDLE = "persistent-root-ufs-local-root-stage-v30"
 MANIFEST_SHA256 = (
-    "ae22914906d63accc893157b51c683f24a3a7e933bba84e13661e664764b9cc6"
+    "53afa65bb7134e7d5acccc2126aa8764fd3918c7cab02c61417f4be1572aad27"
 )
 RECOVERY_SHA256 = (
-    "26d2d9b7a230268d9bd3e82497aab3e8126aefcf951b2e1fcf0a4c7fc5d6df28"
+    "3fbcf296b054460a4a5a48092e55e4df080c6e308430177cf999d42ff6ef39cc"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -56,13 +58,15 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-ufs-local-root-v29-generation50-20260813-r1"
+    / "build/persistent-root-ufs-local-root-stage-v30-generation51-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
+STAGE_PORT = 8079
+STAGE_RECORD_MAX_BYTES = 512
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -74,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-ufs-local-root-v29",
+    admission_profile="persistent-root-ufs-local-root-stage-v30",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-ufs-local-root-v29",
-    build_profile="persistent-root-ufs-local-root-v29",
+    runtime_profile="persistent-root-ufs-local-root-stage-v30",
+    build_profile="persistent-root-ufs-local-root-stage-v30",
     diagnostic=False,
 )
 
@@ -137,6 +141,78 @@ class PersistentCycleError(RuntimeError):
 
 def fail(message: str) -> None:
     raise PersistentCycleError(message)
+
+
+class StageRecord(NamedTuple):
+    boot_id: str
+    sequence: int
+    stage: str
+    state: str
+    payload: bytes
+
+
+STAGES = {
+    "kernel-verified",
+    "ufs-ready",
+    "storage-locked",
+    "userdata-resolved",
+    "userdata-mount",
+    "root-verify",
+    "ufs-health",
+    "overlay",
+    "runtime",
+    "final-storage",
+    "switch-root",
+}
+STAGE_STATES = {"ENTER", "PASS", "FAIL"}
+
+
+def parse_stage_record(payload: bytes) -> StageRecord:
+    if len(payload) > STAGE_RECORD_MAX_BYTES:
+        fail("target stage record exceeds its fixed bound")
+    try:
+        text = payload.decode("ascii")
+    except UnicodeDecodeError as error:
+        raise PersistentCycleError("target stage record is not ASCII") from error
+    if not text.endswith("\n") or "\r" in text or "\x00" in text:
+        fail("target stage record framing is not exact")
+    lines = text.splitlines()
+    if len(lines) != 6:
+        fail("target stage record has the wrong field count")
+    if lines[0] != "format=rog5-persistent-root-stage-v1":
+        fail("target stage record format changed")
+    if lines[1] != f"target_release={TARGET_RELEASE}":
+        fail("target stage record release changed")
+    boot_id = lines[2].removeprefix("boot_id=")
+    if lines[2] != f"boot_id={boot_id}" or not BOOT_ID.fullmatch(boot_id):
+        fail("target stage record boot identity is invalid")
+    sequence_text = lines[3].removeprefix("sequence=")
+    if not re.fullmatch(r"[1-9][0-9]{0,2}", sequence_text):
+        fail("target stage record sequence is invalid")
+    stage = lines[4].removeprefix("stage=")
+    state = lines[5].removeprefix("state=")
+    if lines[4] != f"stage={stage}" or stage not in STAGES:
+        fail("target stage record stage is invalid")
+    if lines[5] != f"state={state}" or state not in STAGE_STATES:
+        fail("target stage record state is invalid")
+    return StageRecord(
+        boot_id=boot_id,
+        sequence=int(sequence_text),
+        stage=stage,
+        state=state,
+        payload=payload,
+    )
+
+
+def require_stage_successor(previous: StageRecord, current: StageRecord) -> None:
+    if current.boot_id != previous.boot_id:
+        fail("target stage record boot identity changed")
+    if current.sequence == previous.sequence:
+        if current != previous:
+            fail("target stage record changed within one sequence")
+        return
+    if current.sequence < previous.sequence:
+        fail("target stage record sequence regressed")
 
 
 def exact_environment() -> dict[str, str]:
@@ -349,6 +425,85 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     fail(f"persistent-root host network did not stabilize: {last_error}")
 
 
+def receive_stage_record(listener: socket.socket) -> StageRecord:
+    connection, peer = listener.accept()
+    with connection:
+        connection.settimeout(2.0)
+        payload = bytearray()
+        while len(payload) <= STAGE_RECORD_MAX_BYTES:
+            part = connection.recv(STAGE_RECORD_MAX_BYTES + 1 - len(payload))
+            if not part:
+                break
+            payload.extend(part)
+        local = connection.getsockname()
+    if peer[0] != "169.254.77.2" or local[0] != "169.254.77.1":
+        fail("target stage record used the wrong source or host address")
+    return parse_stage_record(bytes(payload))
+
+
+def wait_for_target_host_key(
+    cycle: CYCLE.LiveCycle,
+    anchor: Path,
+    target_known_hosts: Path,
+) -> StageRecord:
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.settimeout(0.5)
+    listener.bind(("169.254.77.1", STAGE_PORT))
+    listener.listen(4)
+    stage_log = CYCLE.open_exclusive(cycle.output("persistent-root-stages.log"))
+    process = CYCLE.start_logged(
+        "persistent-root target host-key pin",
+        [
+            str(cycle.dependencies.host_key),
+            "pin-target",
+            str(anchor),
+            str(target_known_hosts),
+            TARGET_PRODUCT,
+        ],
+        cycle.output("target-host-key.log"),
+        environment=CYCLE.child_environment(
+            ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+        ),
+    )
+    previous: StageRecord | None = None
+    deadline = time.monotonic() + TARGET_WAIT_SECONDS + 30
+    try:
+        while process.process.poll() is None:
+            if time.monotonic() >= deadline:
+                fail("target host-key pin escaped its fixed deadline")
+            try:
+                current = receive_stage_record(listener)
+            except (TimeoutError, socket.timeout):
+                continue
+            if previous is not None:
+                require_stage_successor(previous, current)
+                if current == previous:
+                    continue
+            os.write(
+                stage_log,
+                f"received_monotonic={time.monotonic():.6f}\n".encode("ascii")
+                + current.payload,
+            )
+            os.fsync(stage_log)
+            previous = current
+        status = CYCLE.wait_process(process, 5)
+        process = None
+    finally:
+        CYCLE.terminate(process)
+        os.close(stage_log)
+        listener.close()
+    if previous is None:
+        fail("target emitted no exact local-root stage record")
+    if status != 0:
+        fail(
+            "target host key was not ready; last exact stage "
+            f"sequence={previous.sequence} stage={previous.stage} "
+            f"state={previous.state}"
+        )
+    return previous
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -495,9 +650,13 @@ def stop_recovery_host(
     control_process: CYCLE.ManagedProcess | None,
     bundle_process: CYCLE.ManagedProcess | None,
     recovery_ncm: tuple[CYCLE.InterfaceSnapshot, ...] | None,
+    *,
+    target_network_active: bool = False,
 ) -> None:
     CYCLE.terminate(control_process)
     CYCLE.terminate(bundle_process)
+    if target_network_active:
+        return
     if recovery_ncm is None:
         cycle.wait_host_clean()
     else:
@@ -517,6 +676,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
     resolved = False
     control_attempted = False
     recovery_ncm = None
+    target_network_active = False
     boot_started = time.monotonic()
 
     cycle.claim_temporary_boot()
@@ -601,20 +761,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             fail("persistent-root control output lacks its durable intent")
 
         interface = activate_target_network(cycle, anchor)
-        CYCLE.run_logged(
-            [
-                str(cycle.dependencies.host_key),
-                "pin-target",
-                str(anchor),
-                str(target_known_hosts),
-                TARGET_PRODUCT,
-            ],
-            cycle.output("target-host-key.log"),
-            environment=CYCLE.child_environment(
-                ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
-            ),
-            timeout=TARGET_WAIT_SECONDS,
-        )
+        target_network_active = True
+        wait_for_target_host_key(cycle, anchor, target_known_hosts)
         target_ssh = ssh_arguments(inputs, target_known_hosts)
         CYCLE.run_logged(
             [*target_ssh, RUNTIME_COMMAND],
@@ -703,6 +851,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                 control_process,
                 bundle_process,
                 recovery_ncm,
+                target_network_active=target_network_active,
             )
         except BaseException as cleanup_error:
             cleanup_note = f"; pre-fallback host cleanup failed: {cleanup_error}"
