@@ -277,8 +277,8 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   back every move and a returned `switch_root`. See the
   [live result](../test-results/2026-08-13-generation-52-fast-local-root-live.md).
 
-- **The bounded local-image successor passes its offline clean-twin checkpoint
-  and is not yet admitted.** It
+- **Generation 53 is consumed and proves the local-image Arch + SSH path on
+  real hardware.** It
   selects the deployment-key-bound 37,735-entry headless Arch root instead of
   the historical 181,242-entry Plasma root, attaches one fixed 16 GiB ext4
   image read-only, verifies its UUID, label, prior full seal, and boot-critical
@@ -293,8 +293,16 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   loop mount, complete seal verification, and residue check passed. See the
   [candidate checkpoint](../test-results/2026-08-13-generation-53-local-image-offline.md)
   and [phone staging result](../test-results/2026-08-13-generation-53-local-image-staged.md).
-  Generation 53 is the new one-use RAM-only local-image admission; it is not
-  yet claimed or booted and must never be flashed or retried after entry.
+  Its sole RAM-only cycle kept userdata and the image `ro,noload`, passed the
+  exact UFS/storage checks, entered `switch_root` at 23.247 seconds and passed
+  it at 25.494 seconds, reached systemd and strict key-only SSH, and emitted a
+  clean runtime record at target uptime 298.62 seconds. A stale host parser
+  marker rejected only `root=local-ext4-overlay-tmpfs` after that success;
+  read-only diagnostics were captured and a normal systemd reboot returned
+  exact Alpine. PMIC reported `PS_HOLD`/`HARD_RESET`, with no watchdog or fatal
+  token. See the
+  [live result](../test-results/2026-08-14-generation-53-local-image-live.md).
+  Generation 53 is revoked and must never be retried or flashed.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

@@ -636,7 +636,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "9f01a6a1ddacc02fe49831b234d189837bc1deb5a41522003d8301b2c8046536",
+    "sha256": "9a854bdb668897fbeb08633c796813af689ac6bbc6bd4d716fb654d2ffa03865",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -664,7 +664,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "9f01a6a1ddacc02fe49831b234d189837bc1deb5a41522003d8301b2c8046536",
+    "executor_contract_sha256": "9a854bdb668897fbeb08633c796813af689ac6bbc6bd4d716fb654d2ffa03865",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2403,15 +2403,6 @@ def verify_policy(
             "one exact headless-core Arch SSH recovery with power-key "
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
-        ),
-        (
-            "build/persistent-root-local-image-v32-generation53-20260813-r1/"
-            "repack/stable-recovery-a.avb.img",
-            "one exact read-only SM8350 UFS local-image Arch boot with exact "
-            "userdata and image identities, two ro,noload ext4 mounts, tmpfs "
-            "OverlayFS, systemd, key-only SSH, receive-only stage records, and "
-            "bounded rollback; RAM-only kernel/recovery; externally consumed "
-            "exact claim required; never flash or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

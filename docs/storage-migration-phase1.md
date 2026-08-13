@@ -194,10 +194,24 @@ then created the exact 16 GiB image in 34.718 seconds and independently
 reverified its full hash, ext4 identity, complete seal, and read-only mount
 behavior with no loop or mount residue.
 
+The [Generation 53 live result](../test-results/2026-08-14-generation-53-local-image-live.md)
+then proved the staged image on hardware. Mainline resolved and locked UFS,
+mounted both userdata and the image `ro,noload`, passed the local-image seal
+and UFS-health checks, switched into the tmpfs-overlay Arch root at target
+uptime 25.494 seconds, and completed strict key-only SSH/runtime acceptance at
+target uptime 298.62 seconds. The host pinned the SSH key approximately
+332.186 seconds after the one-use claim record was created. Exact Alpine
+fallback followed a normal systemd reboot. Generation 53 is consumed and
+revoked.
+
 The baseline to beat is Generation 20: NFS mounted at 4.930 seconds, sealed
 root verification completed at 350.038 seconds, systemd began at 359.043
 seconds, sshd began at 372.046 seconds, and strict SSH passed at 379.548
 seconds. No raw partition layout change is needed for this experiment.
+On the directly comparable target-uptime acceptance marker, Generation 53 was
+80.928 seconds faster than Generation 20. The next optimization target is the
+approximately 256.6 seconds between successful `switch_root` and completion
+of the boot-critical root attestation, not UFS discovery or image mounting.
 
 ## Reproduction commands
 
