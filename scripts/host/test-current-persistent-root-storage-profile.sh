@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-ufs-readonly-enumeration-v28-live-v1
-image_name=build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS consumer enumeration with bounded recovery transfer, compile-time command guards, runtime block locks, and exact target proof before any mount; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 49 read-only SM8350 UFS consumer enumeration; exact four-module load order, compile-time UFS command guards, 116-node runtime read-only lock, zero block-backed mounts, exact target proof, bounded rollback, and one RAM-only use only; never flash'
+profile=persistent-root-ufs-local-root-v29-live-v1
+image_name=build/persistent-root-ufs-local-root-v29-generation50-20260813-r1/repack/stable-recovery-a.avb.img
+basis='one exact read-only SM8350 UFS local-root boot with bounded recovery transfer, runtime block locks, exact userdata ro,noload mount, sealed root verification, tmpfs OverlayFS, systemd, and key-only SSH; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 50 read-only local Arch root; exact UFS lock and userdata identity, ro,noload outer mount, complete sealed-tree verification, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, and one RAM-only use only; never flash'
 [[ $role == unbooted\ * ]] ||
 	fail 'current persistent-root artifact role must remain live-gate eligible'
 tmp=$(mktemp -d)
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-ufs-readonly-enumeration-v28 \
-	expected_bundle=persistent-root-ufs-readonly-enumeration-v28 \
+	expected_target_id=persistent-root-ufs-local-root-v29 \
+	expected_bundle=persistent-root-ufs-local-root-v29 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=9901532ce6956506f5451b2f873873480f92d129fbf8b4f8d4867e8e73453c66 \
-	expected_avb_digest=8275db0d58696cf176bf8cfc27f08bd4cafa7d97cf4ff6c9eaba865a56028cf6 \
-	expected_generation_record=858e1ddf372c77e3180360127367cef4e8290048309a3792092b95b62414ad3e \
+	expected_avb_salt=4e9f2860a79b396933e64bd9d5ab4b558267c9c1777b41e4ea37b5901f64ab7e \
+	expected_avb_digest=2f6ce96b8f597b7469f222baf822b08f4068bfc78ad49c8296fda8005df04dc3 \
+	expected_generation_record=0d4ec27a5559df88b0888efeffd07fa93a9ed2db57f109480c6900483191bc3c \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	7bd5cbae17f82d2496af0967534a53d8853f06d4eb6610a55641f7461e067399
+	26d2d9b7a230268d9bd3e82497aab3e8126aefcf951b2e1fcf0a4c7fc5d6df28
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	9ea343f70b9dfa3658a13d4b1e4dfd2cb841881ec21ce0444cd4422899434045
+	ae22914906d63accc893157b51c683f24a3a7e933bba84e13661e664764b9cc6
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-ufs-readonly-enumeration-v28
+	persistent-root-ufs-local-root-v29
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-ufs-readonly-enumeration-v28' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-ufs-local-root-v29' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-ufs-readonly-enumeration-v28'
+	'profile requires bundle=persistent-root-ufs-local-root-v29'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -108,7 +108,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "7bd5cbae17f82d2496af0967534a53d8853f06d4eb6610a55641f7461e067399" &&
+	$3 == "26d2d9b7a230268d9bd3e82497aab3e8126aefcf951b2e1fcf0a4c7fc5d6df28" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-ufs-readonly-enumeration-v28-production-20260813-r1
-generation_root=$repo/build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1
+production_root=$repo/build/persistent-root-ufs-local-root-v29-production-20260813-r1
+generation_root=$repo/build/persistent-root-ufs-local-root-v29-generation50-20260813-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 49 read-only UFS enumeration profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 50 read-only local-root profile, exact claim, artifact, and admission are pinned'

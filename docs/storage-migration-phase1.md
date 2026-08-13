@@ -135,6 +135,12 @@ re-verified again before Generation 26 work: 14 GPT ranges, 107 partition
 images, and 4,601,434,112 bytes passed in 6.600 seconds, including all seven
 offline GPT restoration rehearsals.
 
+After Generation 49 proved mainline enumeration of all 116 physical disk and
+partition nodes, the same authoritative v3 backup was re-verified again. All
+14 GPT ranges, 107 partition images, 4,601,434,112 bytes, and seven sparse GPT
+restoration rehearsals passed in 8.045 seconds. The separate 148-file private
+evidence manifest passed in 4.080 seconds.
+
 A future restore must:
 
 1. enter the verified recovery path and collect a fresh read-only inventory;
@@ -160,7 +166,8 @@ The first Phase-2 writable object should be one 16 GiB preallocated ext4 image:
 The bounded experiment is:
 
 1. first prove repeated mainline UFS enumeration and read-only reads without
-   UFS error recovery, USB loss, or rollback loss;
+   UFS error recovery, USB loss, or rollback loss; Generation 49 supplies the
+   first exact enumeration and Generation 50 is the read-only mount/root gate;
 2. create and format only the image file from Alpine, with a unique filesystem
    UUID and `ROG5_ARCH_A` label;
 3. copy the existing sealed `/rog5/roots/arch-a` tree into the loop-mounted

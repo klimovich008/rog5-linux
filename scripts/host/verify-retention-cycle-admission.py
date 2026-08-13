@@ -474,6 +474,14 @@ EXPECTED_CLAIMS["persistent-root-ufs-readonly-enumeration-v28-live-v1"] = (
     "9ea343f70b9dfa3658a13d4b1e4dfd2cb841881ec21ce0444cd4422899434045\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-ufs-local-root-v29-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-ufs-local-root-v29-live-v1\n"
+    "candidate=persistent-root-ufs-local-root-v29\n"
+    "manifest_sha256="
+    "ae22914906d63accc893157b51c683f24a3a7e933bba84e13661e664764b9cc6\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -604,7 +612,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "28b265215e503bee11bd087eff2c24b389f76a28d29bb521403ebb22a5b19030",
+    "sha256": "f2f9db72b74f71445e498c5ffd4248ec9299621fce9692394f6b2320cc309561",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -632,7 +640,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "28b265215e503bee11bd087eff2c24b389f76a28d29bb521403ebb22a5b19030",
+    "executor_contract_sha256": "f2f9db72b74f71445e498c5ffd4248ec9299621fce9692394f6b2320cc309561",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2373,11 +2381,11 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1/"
+            "build/persistent-root-ufs-local-root-v29-generation50-20260813-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact read-only SM8350 UFS consumer enumeration with bounded "
-            "recovery transfer, compile-time command guards, runtime block locks, "
-            "and exact target proof before any mount; "
+            "one exact read-only SM8350 UFS local-root boot with bounded recovery "
+            "transfer, runtime block locks, exact userdata ro,noload mount, sealed "
+            "root verification, tmpfs OverlayFS, systemd, and key-only SSH; "
             "RAM-only; externally consumed exact claim required; never flash "
             "or retry after entry",
         ),
