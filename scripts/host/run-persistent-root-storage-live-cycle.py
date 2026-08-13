@@ -37,13 +37,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1"
-BUNDLE = "persistent-root-qmp-clock-provider-cleanup-stage-v24"
+PROFILE_ID = "persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1"
+BUNDLE = "persistent-root-qmp-clock-provider-cleanup-stage-v25"
 MANIFEST_SHA256 = (
-    "1bc07a9e0b0acf874f542a84f1d7d8c12505504790bc4da433eb22989b76839b"
+    "14f9b93e9951d664e036ef189526bef59a167572dd7a23c052ba56aed9fd44cf"
 )
 RECOVERY_SHA256 = (
-    "06fdc98669a72d02795c4fdeabb73875832a673b6d7d8190502ef5841682425f"
+    "d7088753846b5190c18123cea07c81fac82372f03dd677ba8cb4a997ffcb631d"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -60,9 +60,9 @@ QMP_COMPLETED_GATE = "OF clock-provider publication and cleanup registration"
 QMP_NEXT_GATE = "qmp-ufs-phy-creation"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-clock-provider-cleanup-stage-v24-generation45-20260813-r1"
+    / "build/persistent-root-qmp-clock-provider-cleanup-stage-v25-generation46-20260813-r1"
 )
-COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
+COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
@@ -80,10 +80,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
+    admission_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
-    build_profile="persistent-root-qmp-clock-provider-cleanup-stage-v24",
+    runtime_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
+    build_profile="persistent-root-qmp-clock-provider-cleanup-stage-v25",
     diagnostic=False,
 )
 

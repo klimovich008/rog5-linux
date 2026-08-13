@@ -442,6 +442,14 @@ EXPECTED_CLAIMS["persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1"] 
     "1bc07a9e0b0acf874f542a84f1d7d8c12505504790bc4da433eb22989b76839b\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1\n"
+    "candidate=persistent-root-qmp-clock-provider-cleanup-stage-v25\n"
+    "manifest_sha256="
+    "14f9b93e9951d664e036ef189526bef59a167572dd7a23c052ba56aed9fd44cf\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -572,7 +580,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "00b56361c27587e2e8e3263a9eaafe7db8c0d6019681db11ebd4695578d46712",
+    "sha256": "91e9c26761566dc2666dc39319f3e7bcdc69186cd35a8ea709dbfd27f29ff408",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -600,7 +608,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "00b56361c27587e2e8e3263a9eaafe7db8c0d6019681db11ebd4695578d46712",
+    "executor_contract_sha256": "91e9c26761566dc2666dc39319f3e7bcdc69186cd35a8ea709dbfd27f29ff408",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2341,10 +2349,11 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-qmp-clock-provider-cleanup-stage-v24-generation45-20260813-r1/"
+            "build/persistent-root-qmp-clock-provider-cleanup-stage-v25-generation46-20260813-r1/"
             "repack/stable-recovery-a.avb.img",
             "one exact SM8350 QMP-UFS OF clock-provider publication and "
-            "cleanup discriminator with exact target-originated post-insmod proof; "
+            "cleanup discriminator with bounded recovery transfer and exact "
+            "target-originated post-insmod proof; "
             "RAM-only; externally consumed exact claim required; never flash "
             "or retry after entry",
         ),
