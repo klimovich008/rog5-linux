@@ -28,3 +28,12 @@ exact-head/merge-compat/QEMU CI at `1174e92`. The complete Generation 46
 repository CI checkpoint passed in 426.34 seconds. Generation 46 still requires
 exact-head/merge-compat/QEMU CI for its final committed identity before the one
 temporary boot.
+
+The first connected preflight at `4383d75` refused before claim creation or
+boot because the inventory role began `unissued`, while the generic live gate
+accepts only an `unbooted` role. The corrected terminology preserves the same
+artifact bytes and authority, adds a direct live-eligibility regression, and
+passes the focused current-profile, stable-gate, retention-contract,
+descriptor-boundary, and admission suites. No phone operation was consumed by
+the refusal. The corrected complete repository CI checkpoint passed in 425.54
+seconds.

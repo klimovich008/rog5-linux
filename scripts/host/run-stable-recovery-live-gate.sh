@@ -1876,7 +1876,7 @@ case $profile in
 	persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1)
 		expected_boot_image=build/persistent-root-qmp-clock-provider-cleanup-stage-v25-generation46-20260813-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact SM8350 QMP-UFS OF clock-provider publication and cleanup discriminator with bounded recovery transfer and exact target-originated post-insmod proof; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unissued Generation 46 SM8350 QMP-UFS OF clock-provider publication and paired devm cleanup discriminator with bounded recovery connect and host cleanup; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; UFS core and host remain unloaded; patched QMP module returns before PHY creation and provider registration; one RAM-only use only; never flash'
+		expected_boot_role='unbooted Generation 46 SM8350 QMP-UFS OF clock-provider publication and paired devm cleanup discriminator with bounded recovery connect and host cleanup; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; UFS core and host remain unloaded; patched QMP module returns before PHY creation and provider registration; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455

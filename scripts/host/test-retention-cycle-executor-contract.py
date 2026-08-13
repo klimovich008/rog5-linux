@@ -244,7 +244,7 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
             ),
             "scripts/host/run-stable-recovery-live-gate.sh": (
                 148493,
-                "c55d25584b1c1e1b6b6fd8695321f113fbf95ac008619833607de0622f7b62ff",
+                "ea172074f733295e4ae2ff055c755fed898354c31d8fc453ed6e1ae45b74d6cd",
             ),
             "scripts/host/fallback-acm-control.py": (
                 110389,

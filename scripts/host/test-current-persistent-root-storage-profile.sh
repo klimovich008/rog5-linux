@@ -14,7 +14,9 @@ inventory=$repo/manifests/artifacts.tsv
 profile=persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1
 image_name=build/persistent-root-qmp-clock-provider-cleanup-stage-v25-generation46-20260813-r1/repack/stable-recovery-a.avb.img
 basis='one exact SM8350 QMP-UFS OF clock-provider publication and cleanup discriminator with bounded recovery transfer and exact target-originated post-insmod proof; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unissued Generation 46 SM8350 QMP-UFS OF clock-provider publication and paired devm cleanup discriminator with bounded recovery connect and host cleanup; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; UFS core and host remain unloaded; patched QMP module returns before PHY creation and provider registration; one RAM-only use only; never flash'
+role='unbooted Generation 46 SM8350 QMP-UFS OF clock-provider publication and paired devm cleanup discriminator with bounded recovery connect and host cleanup; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; UFS core and host remain unloaded; patched QMP module returns before PHY creation and provider registration; one RAM-only use only; never flash'
+[[ $role == unbooted\ * ]] ||
+	fail 'current persistent-root artifact role must remain live-gate eligible'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
