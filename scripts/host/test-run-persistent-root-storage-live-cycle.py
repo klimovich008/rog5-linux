@@ -45,6 +45,14 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertTrue(MODULE.USB_CONTROL_ONLY)
+        self.assertEqual(
+            MODULE.QMP_COMPLETED_GATE,
+            "second fixed-rate clock registration",
+        )
+        self.assertEqual(
+            MODULE.QMP_NEXT_GATE,
+            "qmp-ufs-third-fixed-clock-registration",
+        )
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,
