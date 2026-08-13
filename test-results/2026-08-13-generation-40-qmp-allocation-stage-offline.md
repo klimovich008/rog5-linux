@@ -1,6 +1,7 @@
 # Generation 40 QMP-UFS allocation-stage discriminator
 
-Status: **offline checkpoint; unbooted; one RAM-only use only; never flash**.
+Status: **offline checkpoint subsequently consumed; allocation stage passed;
+never retry or flash**.
 
 Generation 39 localized target NCM loss to clock-data allocation/metadata
 setup or the first fixed-rate symbol-clock registration. Generation 40
@@ -47,3 +48,10 @@ executor identity contract, retention admission, live-cycle runner, current
 profile, stable-recovery gate, compatibility oracle, and source/DT contract.
 The complete local `scripts/host/test-repository-linux.sh ci` checkpoint passed
 in 398.091 seconds.
+
+The sole live cycle subsequently reached stable target NCM in 59.680 seconds,
+preserved it for the complete 12.173-second control window, and returned to
+exact Alpine. This clears allocation/metadata setup and leaves dynamic first
+clock-name construction or the first fixed-rate clock registration as the
+remaining boundary. See the
+[live result](2026-08-13-generation-40-qmp-allocation-stage-live.md).

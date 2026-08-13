@@ -180,11 +180,21 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   the necessary-trigger set. See the
   [live result](../test-results/2026-08-13-generation-39-qmp-first-fixed-clock-stage-live.md).
 
-- **Generation 40 is the active allocation-stage discriminator.** It allocates
-  and initializes the three-entry clock-data table, then returns before the
-  first fixed-rate clock registration, OF provider publication, PHY creation,
-  or provider registration. UFS core, platform, and host modules remain
-  absent, so this RAM-only cycle cannot enumerate or access phone storage.
+- **Generation 40 is consumed and clears clock-data allocation.** It completed
+  allocation and initialization of the three-entry clock-data table, reached
+  stable target NCM in 59.680 seconds, preserved it for the exact 12.173-second
+  control window, and returned to exact Alpine. No UFS enumeration or storage
+  access occurred. The remaining boundary is dynamic construction of the
+  `rx_symbol_0` name or its first fixed-rate clock registration. See the
+  [live result](../test-results/2026-08-13-generation-40-qmp-allocation-stage-live.md).
+
+- **Generation 41 is the active first-symbol-clock-name discriminator.** It
+  performs the cleared allocation, constructs the `rx_symbol_0` name using
+  `dev_name()` and `snprintf()`, then returns before entering the common clock
+  framework. Its DTB also restores the exact 4 MiB RMTFS reservation so the
+  ramoops command line cannot alias allocator-owned RAM. UFS core, platform,
+  and host modules remain absent, so this RAM-only cycle cannot enumerate or
+  access phone storage.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
