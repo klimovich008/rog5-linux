@@ -194,6 +194,34 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             attest,
         )
 
+    def test_post_handoff_storage_sweep_uses_static_runtime_tool(self) -> None:
+        attest = ATTEST.read_text(encoding="utf-8")
+        start = attest.index("\nphysical_count=0\n")
+        end = attest.index("\nblocked_query_count=", start)
+        sweep = attest[start:end]
+        self.assertIn(
+            "runtime_busybox=/run/initramfs/bin/busybox", attest
+        )
+        self.assertIn("disk=${sys_disk##*/}", sweep)
+        self.assertIn('IFS= read -r readonly <"$sys_block/ro"', sweep)
+        self.assertIn(
+            '"$runtime_busybox" blockdev --getro "$device"', sweep
+        )
+        self.assertNotIn("basename", sweep)
+        self.assertNotIn("cat ", sweep)
+        self.assertEqual(sweep.count("blockdev --getro"), 1)
+        markers = (
+            "progress start",
+            "progress mounts-pass",
+            "progress physical-readonly-pass",
+            "progress ufs-health-pass",
+            "progress ssh-policy-pass",
+        )
+        self.assertEqual(
+            [attest.index(marker) for marker in markers],
+            sorted(attest.index(marker) for marker in markers),
+        )
+
     def test_usb_observability_precedes_target_identity_and_ufs(self) -> None:
         watchdog = self.source.index("\narm_watchdog\n")
         usb = self.source.index("\nif ! configure_usb; then\n")

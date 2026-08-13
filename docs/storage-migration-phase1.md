@@ -212,6 +212,11 @@ On the directly comparable target-uptime acceptance marker, Generation 53 was
 80.928 seconds faster than Generation 20. The next optimization target is the
 approximately 256.6 seconds between successful `switch_root` and completion
 of the boot-critical root attestation, not UFS discovery or image mounting.
+The [Generation 54 offline checkpoint](../test-results/2026-08-14-generation-54-fast-attestation-offline.md)
+targets that interval without weakening the read-only sweep: it replaces the
+per-device dynamic helper launches with shell builtins and the retained static
+initramfs BusyBox, and adds five timestamped attestation boundaries. Its live
+speedup is not assumed; the one-use hardware cycle will measure it directly.
 
 ## Reproduction commands
 
