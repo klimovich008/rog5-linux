@@ -37,13 +37,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1"
-BUNDLE = "persistent-root-qmp-ufs-phy-provider-stage-v27"
+PROFILE_ID = "persistent-root-ufs-readonly-enumeration-v28-live-v1"
+BUNDLE = "persistent-root-ufs-readonly-enumeration-v28"
 MANIFEST_SHA256 = (
-    "734bd5af4c2f7db1af87e08d0a6c1de0e6d0b013be4901110b892fd065e7656c"
+    "9ea343f70b9dfa3658a13d4b1e4dfd2cb841881ec21ce0444cd4422899434045"
 )
 RECOVERY_SHA256 = (
-    "2e0f347a48ac9cd11c3e73ed795b4a42a5f920ebe98a7177bfedba6491be52b8"
+    "7bd5cbae17f82d2496af0967534a53d8853f06d4eb6610a55641f7461e067399"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -56,11 +56,11 @@ TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
-QMP_COMPLETED_GATE = "QMP-UFS OF PHY provider registration"
-QMP_NEXT_GATE = "qmp-ufs-read-only-consumer"
+QMP_COMPLETED_GATE = "read-only UFS consumer enumeration"
+QMP_NEXT_GATE = "ufs-readonly-inventory-backup"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-ufs-phy-provider-stage-v27-generation48-20260813-r1"
+    / "build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -80,10 +80,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-ufs-phy-provider-stage-v27",
+    admission_profile="persistent-root-ufs-readonly-enumeration-v28",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-ufs-phy-provider-stage-v27",
-    build_profile="persistent-root-qmp-ufs-phy-provider-stage-v27",
+    runtime_profile="persistent-root-ufs-readonly-enumeration-v28",
+    build_profile="persistent-root-ufs-readonly-enumeration-v28",
     diagnostic=False,
 )
 
@@ -404,19 +404,14 @@ def require_post_module_ncm(
     return clock.monotonic() - started
 
 
-def receive_module_proof(
+def receive_readonly_ufs_proof(
     cycle: CYCLE.LiveCycle,
     interface: str,
     *,
-    timeout: float = 15.0,
+    timeout: float = 90.0,
     socket_module=socket,
-) -> None:
-    expected = (
-        "format=rog5-deferred-ufs-module-proof-v1\n"
-        f"target_release={TARGET_RELEASE}\n"
-        "module=phy_qcom_qmp_ufs\n"
-        "result=PASS\n"
-    ).encode("ascii")
+) -> str:
+    maximum_payload = 768
     listener = socket_module.socket(
         socket_module.AF_INET,
         socket_module.SOCK_STREAM,
@@ -429,31 +424,71 @@ def receive_module_proof(
         with connection:
             connection.settimeout(2.0)
             payload = bytearray()
-            while len(payload) <= len(expected):
-                part = connection.recv(len(expected) + 1 - len(payload))
+            while len(payload) <= maximum_payload:
+                part = connection.recv(maximum_payload + 1 - len(payload))
                 if not part:
                     break
                 payload.extend(part)
             local = connection.getsockname()
     except (OSError, TimeoutError) as error:
-        fail(f"exact target module proof was not received: {error}")
+        fail(f"exact target read-only UFS proof was not received: {error}")
     finally:
         listener.close()
     if peer[0] != "169.254.77.2" or local[0] != "169.254.77.1":
-        fail("target module proof used the wrong source or host address")
-    if bytes(payload) != expected:
-        fail("target module proof content is not exact")
+        fail("target read-only UFS proof used the wrong source or host address")
+    try:
+        text = bytes(payload).decode("ascii")
+    except UnicodeDecodeError as error:
+        raise PersistentCycleError("target read-only UFS proof is not ASCII") from error
+    if not text.endswith("\n") or "\r" in text or "\x00" in text:
+        fail("target read-only UFS proof framing is not exact")
+    lines = text.splitlines()
+    if len(lines) != 12:
+        fail("target read-only UFS proof has the wrong field count")
+    expected = (
+        "format=rog5-readonly-ufs-enumeration-proof-v1",
+        f"target_release={TARGET_RELEASE}",
+        "modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom",
+        "physical_blocks=116",
+        None,
+        "all_physical_read_only=1",
+        "block_backed_mounts=0",
+        "blocked_device_queries=0",
+        "blocked_scsi_commands=0",
+        "phone_storage_mounts=0",
+        "phone_storage_writes=0",
+        "result=PASS",
+    )
+    for actual, required in zip(lines, expected, strict=True):
+        if required is not None and actual != required:
+            fail("target read-only UFS proof content is not exact")
+    userdata = lines[4].removeprefix("userdata_device=")
+    if not re.fullmatch(r"/dev/sd[a-z]23", userdata):
+        fail("target read-only UFS proof has no exact dynamic userdata identity")
+    exact = [userdata if required is None else required for required in expected]
+    exact[4] = f"userdata_device={userdata}"
+    if text != "\n".join(exact) + "\n":
+        fail("target read-only UFS proof content is not exact")
     CYCLE.write_record(
-        cycle.output("deferred-ufs-module-proof.record"),
+        cycle.output("readonly-ufs-enumeration-proof.record"),
         (
-            ("format", "rog5-deferred-ufs-module-proof-v1"),
+            ("format", "rog5-readonly-ufs-enumeration-proof-v1"),
             ("target_release", TARGET_RELEASE),
-            ("module", "phy_qcom_qmp_ufs"),
+            ("modules", "phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom"),
+            ("physical_blocks", "116"),
+            ("userdata_device", userdata),
+            ("all_physical_read_only", "1"),
+            ("block_backed_mounts", "0"),
+            ("blocked_device_queries", "0"),
+            ("blocked_scsi_commands", "0"),
+            ("phone_storage_mounts", "0"),
+            ("phone_storage_writes", "0"),
             ("interface", interface),
             ("source_address", peer[0]),
             ("result", "PASS"),
         ),
     )
+    return userdata
 
 
 def parse_runtime_evidence(path: Path) -> str:
@@ -710,7 +745,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         interface = activate_target_network(cycle, anchor)
         if USB_CONTROL_ONLY:
             elapsed = time.monotonic() - boot_started
-            receive_module_proof(cycle, interface)
+            userdata = receive_readonly_ufs_proof(cycle, interface)
             control_seconds = require_post_module_ncm(cycle, anchor, interface)
             CYCLE.write_record(
                 cycle.output("persistent-root-usb-control.record"),
@@ -721,7 +756,11 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
                     ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
                     ("expected_next_gate", QMP_NEXT_GATE),
-                    ("phone_storage_access", "none"),
+                    ("physical_blocks", "116"),
+                    ("userdata_device", userdata),
+                    ("phone_storage_access", "read-only-enumeration"),
+                    ("phone_storage_mounts", "0"),
+                    ("phone_storage_writes", "0"),
                     ("result", "PASS"),
                 ),
             )
@@ -754,7 +793,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                f"PASS QMP-UFS probe completed the {QMP_COMPLETED_GATE} with runtime-PM protection and kept NCM stable in "
+                f"PASS {QMP_COMPLETED_GATE} completed with compile-time and runtime read-only containment; NCM stayed stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )

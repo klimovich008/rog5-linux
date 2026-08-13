@@ -42,7 +42,7 @@ fail_stage() {
 	case "$stage:$delay" in
 		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
 ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
-usb:15|ufs-rendezvous:15|ufs-module:20|ufs-phy-control:5) ;;
+usb:15|ufs-rendezvous:15|ufs-module:20|ufs-readonly-control:5) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -403,16 +403,61 @@ load_deferred_ufs_modules() {
 	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
 	grep -Eq '^(ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' /proc/modules &&
 		return 1
-	probe_record=$(printf '%s\n' \
-		'format=rog5-deferred-ufs-module-proof-v1' \
+
+	insmod /rog5-ufs-modules/ufshcd-core.ko || return 1
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -q '^ufshcd_core ' /proc/modules || return 1
+	grep -Eq '^(ufshcd_pltfrm|ufs_qcom) ' /proc/modules && return 1
+
+	insmod /rog5-ufs-modules/ufshcd-pltfrm.ko || return 1
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -q '^ufshcd_core ' /proc/modules || return 1
+	grep -q '^ufshcd_pltfrm ' /proc/modules || return 1
+	grep -q '^ufs_qcom ' /proc/modules && return 1
+
+	log 'deferred Qualcomm UFS host probe begin'
+	insmod /rog5-ufs-modules/ufs-qcom.ko || return 1
+	for loaded in phy_qcom_qmp_ufs ufshcd_core ufshcd_pltfrm ufs_qcom; do
+		grep -q "^$loaded " /proc/modules || return 1
+	done
+	[ "$(grep -Ec '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules)" -eq 4 ] || return 1
+	log 'deferred Qualcomm UFS host probe returned'
+	return 0
+}
+
+deliver_readonly_ufs_proof() {
+	physical_blocks=$(cat /run/rog5-physical-block-count) || return 1
+	[ "$physical_blocks" -eq "$expected_physical_count" ] || return 1
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	verify_physical_storage_read_only || return 1
+	verify_ufs_power_containment || return 1
+	has_block_backed_mount && return 1
+	blocked_device_queries=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_commands=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	[ "$blocked_device_queries" -eq 0 ] || return 1
+	[ "$blocked_scsi_commands" -eq 0 ] || return 1
+
+	readonly_record=$(printf '%s\n' \
+		'format=rog5-readonly-ufs-enumeration-proof-v1' \
 		"target_release=$running_kernel_release" \
-		'module=phy_qcom_qmp_ufs' \
+		'modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom' \
+		"physical_blocks=$physical_blocks" \
+		"userdata_device=$userdata" \
+		'all_physical_read_only=1' \
+		'block_backed_mounts=0' \
+		"blocked_device_queries=$blocked_device_queries" \
+		"blocked_scsi_commands=$blocked_scsi_commands" \
+		'phone_storage_mounts=0' \
+		'phone_storage_writes=0' \
 		'result=PASS')
 	attempt=0
 	while [ "$attempt" -lt 100 ]; do
-		if printf '%s\n' "$probe_record" |
+		if printf '%s\n' "$readonly_record" |
 			nc -n -w 1 -s 169.254.77.2 169.254.77.1 8079; then
-			log 'deferred Qualcomm UFS PHY proof delivered'
+			log 'read-only UFS enumeration proof delivered'
 			break
 		fi
 		attempt=$((attempt + 1))
@@ -420,9 +465,8 @@ load_deferred_ufs_modules() {
 	done
 	[ "$attempt" -lt 100 ] || return 1
 
-	# Keep the already proven NCM identity alive long enough for the host to
-	# verify the target-originated post-insmod record; do not load the UFS core
-	# or host in this discriminator.
+	# Keep the read-only enumeration identity alive long enough for the host
+	# to verify the target-originated record before deliberate rollback.
 	attempt=0
 	while [ "$attempt" -lt 150 ]; do
 		expected_udc_is_bound || return 1
@@ -431,7 +475,7 @@ load_deferred_ufs_modules() {
 		attempt=$((attempt + 1))
 		sleep 0.1
 	done
-	return 2
+	return 0
 }
 
 verify_only_userdata_mount() {
@@ -624,10 +668,6 @@ if deferred_ufs_modules_present; then
 	load_deferred_ufs_modules
 	module_status=$?
 	case $module_status in
-		2)
-			fail_stage 'deferred QMP-UFS PHY returned and NCM survived the control window' \
-				ufs-phy-control 5
-			;;
 		0) ;;
 		*) fail_stage 'deferred UFS module load returned an error' ufs-module 20 ;;
 	esac
@@ -658,6 +698,11 @@ if ! verify_physical_storage_read_only ||
 	log 'storage containment failed after USB rescan'
 	force_rollback
 fi
+if ! deliver_readonly_ufs_proof; then
+	force_rollback
+fi
+fail_stage 'read-only UFS enumeration completed and NCM survived the control window' \
+	ufs-readonly-control 5
 if ! mount_persistent_root; then
 	log 'read-only noload userdata mount failed'
 	force_rollback

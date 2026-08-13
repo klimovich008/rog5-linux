@@ -83,7 +83,7 @@ for timing_marker in \
 	'usb:15' \
 	'ufs-rendezvous:15' \
 	'ufs-module:20' \
-	'ufs-phy-control:5'; do
+	'ufs-readonly-control:5'; do
 	grep -Fq "$timing_marker" "$init"
 done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
@@ -96,14 +96,19 @@ done
 grep -Fq 'modinfo -F vermagic' "$builder"
 grep -Fq 'rog5-ufs-modules' "$builder"
 grep -Fq 's/@EXPECTED_KERNEL_RELEASE@/$expected_release/' "$builder"
-grep -Fq 'format=rog5-deferred-ufs-module-proof-v1' "$init"
+grep -Fq 'format=rog5-readonly-ufs-enumeration-proof-v1' "$init"
 grep -Fq 'target_release=$running_kernel_release' "$init"
-grep -Fq 'module=phy_qcom_qmp_ufs' "$init"
+grep -Fq 'modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom' "$init"
+grep -Fq 'physical_blocks=$physical_blocks' "$init"
+grep -Fq 'all_physical_read_only=1' "$init"
+grep -Fq 'block_backed_mounts=0' "$init"
+grep -Fq 'phone_storage_mounts=0' "$init"
+grep -Fq 'phone_storage_writes=0' "$init"
 grep -Fq 'nc -n -w 1 -s 169.254.77.2 169.254.77.1 8079' "$init"
-proof_line=$(grep -nF 'probe_record=$(printf' "$init" | cut -d: -f1)
-insmod_line=$(grep -nF 'insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko' "$init" |
+proof_line=$(grep -nF 'readonly_record=$(printf' "$init" | cut -d: -f1)
+insmod_line=$(grep -nF 'insmod /rog5-ufs-modules/ufs-qcom.ko' "$init" |
 	cut -d: -f1)
-control_line=$(grep -nF '# Keep the already proven NCM identity alive long enough' \
+control_line=$(grep -nF '# Keep the read-only enumeration identity alive long enough' \
 	"$init" | cut -d: -f1)
 [ "$insmod_line" -lt "$proof_line" ]
 [ "$proof_line" -lt "$control_line" ]
