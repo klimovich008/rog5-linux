@@ -416,13 +416,13 @@ resolution, and the `ro,noload` userdata mount. Its final record was the
 remained stable. Exact Alpine fallback returned, so Generation 51 is consumed
 and must never be retried.
 
-Generation 52 is the current unbooted hardware gate. It preserves the exact
-read-only storage and rollback path but replaces the every-boot recursive hash
-with fixed checks of the previously created seal and the files required to
-reach strict SSH: systemd, sshd, the authorized key, and SSH policy. These
-checks bind owner, group, mode, size, link shape, content hash, and required
-configuration. This is a boot-time admission optimization, not complete
-ongoing filesystem integrity; the full verifier remains a staging/audit tool.
+Generation 52 is consumed. It preserved the exact read-only storage and
+rollback path while replacing the every-boot recursive hash with fixed checks
+of the previously created seal and the files required to reach strict SSH.
+It reached `switch-root ENTER`, but key-only SSH did not appear before exact
+Alpine fallback. Never retry it. The unadmitted local-image successor replaces
+the large historical lower tree with a bounded 16 GiB ext4 image containing
+the minimal deployment-key-bound Arch root and checks every handoff move.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

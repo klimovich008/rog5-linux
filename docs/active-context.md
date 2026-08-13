@@ -286,6 +286,10 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   rollback. Its exact AArch64 extractor runtime is self-contained, and the
   seven-mount handoff now fails closed and rolls back. See the
   [offline result](../test-results/2026-08-13-local-image-v32-offline.md).
+  Production-key signed bundle twins and an authority-free Generation 53 AVB
+  wrapper now reproduce offline; neither is present in temporary boot policy.
+  See the
+  [candidate checkpoint](../test-results/2026-08-13-generation-53-local-image-offline.md).
   Phone staging is paused at the exact recoverable cleanup recorded in the
   [staging note](../test-results/2026-08-13-local-image-staging-paused.md).
 
