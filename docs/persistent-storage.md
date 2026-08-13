@@ -348,10 +348,21 @@ seconds after enumeration, then exact Alpine returned. This narrows the
 failure to clock-data allocation/metadata setup or the first clock
 registration. Generation 39 is consumed and must never be retried.
 
-Generation 40 performs only the clock-data allocation and sets its three-entry
-count, then returns before naming or registering `rx_symbol_0`. A passing NCM
-window isolates the fault to the first registration; an early loss isolates
-allocation/metadata setup. UFS core, platform, and host modules remain absent,
+Generation 40 performed only the clock-data allocation and set its three-entry
+count, then returned before naming or registering `rx_symbol_0`. It reached
+stable target NCM in 59.680 seconds, preserved it for 12.173 seconds, and
+returned to exact Alpine. This clears allocation and metadata setup. Generation
+40 is consumed and must never be retried.
+
+Generation 41 repeats the cleared allocation and constructs the first dynamic
+`rx_symbol_0` name using `dev_name()` and `snprintf()`, then returns before
+`devm_clk_hw_register_fixed_rate()`. A passing NCM window isolates the fault to
+the first common-clock registration; an early loss isolates name construction.
+Its DTB restores the exact 4 MiB RMTFS reservation: the prior disabled node was
+skipped by reserved-memory scanning while ramoops still mapped the same valid
+RAM pages, creating an allocator-aliasing hazard. The RMTFS driver remains a
+module absent from the initramfs, so the one-property correction reserves RAM
+without activating RMTFS. UFS core, platform, and host modules remain absent,
 so the cycle cannot enumerate or access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target

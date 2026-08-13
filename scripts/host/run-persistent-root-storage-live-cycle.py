@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-allocation-stage-v19-live-v1"
-BUNDLE = "persistent-root-qmp-allocation-stage-v19"
+PROFILE_ID = "persistent-root-qmp-first-clock-name-stage-v20-live-v1"
+BUNDLE = "persistent-root-qmp-first-clock-name-stage-v20"
 MANIFEST_SHA256 = (
-    "82f38e524cc9f8c65bd5ae225bbb4d0acf4a7ef20021d61af313880c98731835"
+    "86c8262c080b0b7254a9175bc8487f464db7a4304ba7879b450a74504a23f713"
 )
 RECOVERY_SHA256 = (
-    "39051935dda192ac24983a91b0508eaa6f74788a77ce14a12f570ea2cad40280"
+    "6f2a17b3d282a96fb491fc371b29f2fefc4ab274ffefa7904d97bd6dcacc98d4"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -57,7 +57,7 @@ HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-allocation-stage-v19-generation40-20260813-r1"
+    / "build/persistent-root-qmp-first-clock-name-stage-v20-generation41-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -76,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-allocation-stage-v19",
+    admission_profile="persistent-root-qmp-first-clock-name-stage-v20",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-allocation-stage-v19",
-    build_profile="persistent-root-qmp-allocation-stage-v19",
+    runtime_profile="persistent-root-qmp-first-clock-name-stage-v20",
+    build_profile="persistent-root-qmp-first-clock-name-stage-v20",
     diagnostic=False,
 )
 
@@ -682,7 +682,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS QMP-UFS probe completed clock-data allocation and kept NCM stable in "
+                "PASS QMP-UFS probe completed first symbol-clock name construction and kept NCM stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )

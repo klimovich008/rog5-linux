@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Thu, 13 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: isolate first symbol-clock name
+
+Generation 40 proved that clock-data allocation and metadata setup preserve
+the target USB/NCM path. Advance the RAM-only SM8350 discriminator through
+construction of the first dynamic symbol-clock name, then stop before entering
+the common clock framework.
+
+The UFS core and host remain absent, so this diagnostic cannot enumerate or
+access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2088,11 +2088,11 @@ static int qmp_ufs_register_clocks(struct qmp_ufs *qmp, struct device_node *np)
+ 
+ 	clk_data->num = UFS_SYMBOL_CLOCKS;
+ 
++	snprintf(name, sizeof(name), "%s::rx_symbol_0", dev_name(qmp->dev));
+ 	if (of_device_is_compatible(qmp->dev->of_node,
+ 				    "qcom,sm8350-qmp-ufs-phy"))
+ 		return 0;
+ 
+-	snprintf(name, sizeof(name), "%s::rx_symbol_0", dev_name(qmp->dev));
+ 	hw = devm_clk_hw_register_fixed_rate(qmp->dev, name, NULL, 0, 0);
+ 	if (IS_ERR(hw))
+ 		return PTR_ERR(hw);
+@@ -2244,7 +2244,7 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (of_device_is_compatible(dev->of_node,
+ 				    "qcom,sm8350-qmp-ufs-phy")) {
+ 		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: clock-data allocation stage complete\n");
++			   "ROG5 QMP-UFS diagnostic: first symbol-clock name stage complete\n");
+ 		of_node_put(np);
+ 		return 0;
+ 	}
+-- 
+2.50.1
