@@ -1,6 +1,6 @@
 # Generation 45 QMP-UFS clock-provider/cleanup offline checkpoint
 
-Status: **offline RAM-only candidate; no phone-storage access; never flash**.
+Status: **consumed before mainline execution; no phone-storage access; never retry or flash**.
 
 Generation 44 proved all three fixed-rate symbol-clock registrations with an
 exact target-originated post-`insmod` record and stable NCM. Generation 45
@@ -36,6 +36,11 @@ twins took 0.191 and 0.177 seconds. AVB issuance took 1.793 seconds. All
 released twins are byte-identical, and the raw recovery wrapper remains exact
 SHA-256 `90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6`.
 
-Offline build success is not hardware admission. The exact live profile must
-pass focused tests, full local CI, and exact-head GitHub CI before one
-temporary boot.
+Focused tests, full local CI, and exact-head GitHub CI passed before the sole
+temporary boot; those offline results did not establish target execution.
+
+The sole live cycle later failed recovery PREPARE with `FETCH_CONNECT` before
+bundle transfer or COMMIT. The target kernel did not execute, and this
+checkpoint therefore contains no evidence about clock-provider publication.
+Generation 45 remains consumed and non-retryable; Generation 46 carries the
+same target payload behind the corrected bounded recovery transport.

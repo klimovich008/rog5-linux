@@ -213,11 +213,25 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   Exact target-originated post-`insmod` proof arrived from release
   `7.1.4-gc732b0b41d8d`; target NCM became stable in 62.793 seconds and remained
   exact for another 12.488 seconds before exact Alpine fallback. UFS core and
-  host were absent, so no storage was enumerated or accessed. Generation 45
-  advances through OF clock-provider publication and its paired devm cleanup,
-  then returns before PHY creation. See the
+  host were absent, so no storage was enumerated or accessed. See the
   [live result](../test-results/2026-08-13-generation-44-qmp-third-clock-runtime-pm-live.md)
   and [Generation 45 offline checkpoint](../test-results/2026-08-13-generation-45-qmp-clock-provider-cleanup-offline.md).
+
+- **Generation 45 is consumed before mainline execution.** Recovery and its
+  NCM/ACM gadget remained present, but PREPARE ended with `FETCH_CONNECT`
+  before bundle transfer or COMMIT. The old host cleanup then left its
+  privileged controller alive until it was terminated by exact identity;
+  exact Alpine and strict key-only SSH were subsequently proved. No target
+  kernel ran and no phone storage was exposed. The bounded-connect,
+  peer-rendezvous, and pidfd cleanup correction is published at `1174e92`.
+  See the [live result](../test-results/2026-08-13-generation-45-recovery-fetch-live.md).
+
+- **Generation 46 is the unissued transport-corrected successor.** It retains
+  Generation 45's exact target Image, DTB, initramfs, and UFS discriminator,
+  while the recovery fetcher has one bounded 15-second connect and the host
+  proves its exact recovery peer before declaring service readiness. Its
+  [offline checkpoint](../test-results/2026-08-13-generation-46-recovery-transport-offline.md)
+  grants no flash or persistent-storage authority.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

@@ -393,12 +393,15 @@ seconds, and returned to exact Alpine. UFS core, platform, and host modules
 remained outside the load path, so no storage was enumerated or accessed.
 Generation 44 is consumed and must never be retried.
 
-Generation 45 removes only the diagnostic return before
-`of_clk_add_hw_provider()`. It publishes the OF clock provider and immediately
-registers the paired devm cleanup action, then the SM8350 diagnostic returns
-before `devm_phy_create()`. Its config remains byte-identical to Generation
-44, and UFS core and host remain unloaded. This is the next offline
-discriminator toward stable mainline UFS.
+Generation 45 was consumed before mainline execution: its recovery PREPARE
+failed at `FETCH_CONNECT`, so the target bundle was never transferred or
+committed and no phone storage was exposed. Generation 46 keeps the exact
+Generation 45 target payload but corrects the recovery transport boundary with
+one bounded connect, an exact peer rendezvous before host readiness, and
+pidfd-backed host cleanup. Once transferred, it removes only the diagnostic
+return before `of_clk_add_hw_provider()`, publishes the OF clock provider,
+registers the paired devm cleanup action, and returns before
+`devm_phy_create()`. UFS core and host remain unloaded.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
