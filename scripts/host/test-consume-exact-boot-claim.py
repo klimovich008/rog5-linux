@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1\n"
+            b"candidate=persistent-root-qmp-clock-provider-cleanup-stage-v24\n"
+            b"manifest_sha256="
+            b"1bc07a9e0b0acf874f542a84f1d7d8c12505504790bc4da433eb22989b76839b\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1\n"

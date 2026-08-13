@@ -209,15 +209,15 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   both unresolved clocks before provider publication. See the corrected
   [live result](../test-results/2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).
 
-- **Generation 44 is the unbooted UFS critical-path successor.** Its generated
-  initramfs embeds exact release `7.1.4-gc732b0b41d8d` and sends an exact
-  target-originated record only after the deferred QMP-UFS module returns and
-  is present in `/proc/modules`. The SM8350-only diagnostic branch crosses the
-  unresolved second and third fixed-rate clocks, then returns before OF clock
-  provider publication, PHY creation, or provider registration. UFS core and
-  host remain unloaded, so this cycle still cannot enumerate or access phone
-  storage. See the
-  [offline checkpoint](../test-results/2026-08-13-generation-44-qmp-third-clock-runtime-pm-offline.md).
+- **Generation 44 is consumed and clears all three fixed-rate symbol clocks.**
+  Exact target-originated post-`insmod` proof arrived from release
+  `7.1.4-gc732b0b41d8d`; target NCM became stable in 62.793 seconds and remained
+  exact for another 12.488 seconds before exact Alpine fallback. UFS core and
+  host were absent, so no storage was enumerated or accessed. Generation 45
+  advances through OF clock-provider publication and its paired devm cleanup,
+  then returns before PHY creation. See the
+  [live result](../test-results/2026-08-13-generation-44-qmp-third-clock-runtime-pm-live.md)
+  and [Generation 45 offline checkpoint](../test-results/2026-08-13-generation-45-qmp-clock-provider-cleanup-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

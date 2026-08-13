@@ -183,6 +183,7 @@ shared_tests=(
 	scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-second-clock-runtime-pm-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-third-clock-runtime-pm-stage-patch.sh
+	scripts/device/test-qmp-ufs-clock-provider-cleanup-stage-patch.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh

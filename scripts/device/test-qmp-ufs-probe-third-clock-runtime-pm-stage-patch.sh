@@ -36,9 +36,14 @@ fi
 	fail 'retained Generation 44 source is unsafe'
 [[ $(git -C "$source_root" rev-parse --is-inside-work-tree) == true ]] ||
 	fail 'retained Generation 44 source is not a Git worktree'
-[[ $(git -C "$source_root" rev-parse HEAD) == "$expected_source" ]] ||
-	fail 'retained Generation 44 source commit changed'
-[[ $(git -C "$source_root" rev-parse HEAD^) == "$expected_parent" ]] ||
+if [[ -n $explicit_source ]]; then
+	[[ $(git -C "$source_root" rev-parse HEAD) == "$expected_source" ]] ||
+		fail 'explicit Generation 44 source is not exact'
+else
+	git -C "$source_root" merge-base --is-ancestor "$expected_source" HEAD ||
+		fail 'current retained source does not descend from Generation 44'
+fi
+[[ $(git -C "$source_root" rev-parse "$expected_source^") == "$expected_parent" ]] ||
 	fail 'retained Generation 44 source parent changed'
 [[ -z $(git -C "$source_root" status --porcelain) ]] ||
 	fail 'retained Generation 44 source is dirty'

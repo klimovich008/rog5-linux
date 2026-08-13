@@ -154,6 +154,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-first-clock-runtime-pm-stage-v21-live-v1 | \
 		persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1 | \
 		persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1 | \
+		persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1 | \
 		retention-host-rendezvous-v3-execution-v1 | \
 		retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 		retention-host-rendezvous-v12-nfs-xattr-execution-v1) ;;
@@ -1871,6 +1872,45 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1)
+		expected_boot_image=build/persistent-root-qmp-clock-provider-cleanup-stage-v24-generation45-20260813-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact SM8350 QMP-UFS OF clock-provider publication and cleanup discriminator with exact target-originated post-insmod proof; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 45 SM8350 QMP-UFS OF clock-provider publication and paired devm cleanup discriminator; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; UFS core and host remain unloaded; patched QMP module returns before PHY creation and provider registration; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6
+		expected_initramfs=3495070782746936065a314337732028d41bed29f85e888cfaf730828557bb5d
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-qmp-clock-provider-cleanup-stage-v24
+		expected_bundle=persistent-root-qmp-clock-provider-cleanup-stage-v24
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g07858678c59c
+		expected_avb_salt=52c215cb5e8a379cccf6a4ce04245302bb40edcb791efc768d84f624fd4e502b
+		expected_avb_digest=5108fb7ddaa3162facaf071f13776c2a2f2b60aeaa0b66bc08b7d7f360e74a87
+		expected_generation_record=d0ef34f8c1cdab3fa553a2a1a46efa64c7d0354c5ac8a868d682e3369c0dbc89
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			1bc07a9e0b0acf874f542a84f1d7d8c12505504790bc4da433eb22989b76839b ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			06fdc98669a72d02795c4fdeabb73875832a673b6d7d8190502ef5841682425f ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1)
 		expected_boot_image=build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact SM8350 QMP-UFS second fixed-rate clock registration with generic CCF runtime-PM correction; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -1996,6 +2036,7 @@ case $profile in
 	persistent-root-qmp-first-clock-runtime-pm-stage-v21-live-v1 | \
 	persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1 | \
 	persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1 | \
+	persistent-root-qmp-clock-provider-cleanup-stage-v24-live-v1 | \
 	retention-host-rendezvous-v3-execution-v1 | \
 	retention-host-rendezvous-v11-mainline-udc-execution-v2 | \
 	retention-host-rendezvous-v12-nfs-xattr-execution-v1)
