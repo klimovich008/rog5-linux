@@ -5,6 +5,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 patch=$repo/patches/linux-7.1.4/0027-phy-qcom-qmp-ufs-stop-sm8350-after-first-clock-with-runtime-pm.patch
 source_root=${ROG5_LINUX_SOURCE:-/home/deck/.local/state/rog5-qmp-ufs-first-clock-name-stage-20260813-r1/linux-source}
 expected_source=d327b6f0251129e0c80f32fe9309f8278e800db7
+explicit_source=${ROG5_LINUX_SOURCE:+1}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -24,8 +25,14 @@ for forbidden in \
 		fail "QMP-UFS patch adds a forbidden later operation: $forbidden"
 done
 
+if [[ ! -d $source_root ]]; then
+	[[ -z $explicit_source ]] || fail 'explicit retained source is unavailable'
+	echo 'SKIP retained Generation 41 source integration; committed patch contract passed' >&2
+	exit 0
+fi
+
 [[ -d $source_root && ! -L $source_root && ! -L $source_root/.git ]] ||
-	fail 'retained Generation 41 source is unavailable'
+	fail 'retained Generation 41 source is unsafe'
 [[ $(git -C "$source_root" rev-parse --is-inside-work-tree) == true ]] ||
 	fail 'retained Generation 41 source is not a Git worktree'
 [[ $(git -C "$source_root" rev-parse HEAD) == "$expected_source" ]] ||
