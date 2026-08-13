@@ -400,8 +400,12 @@ target behind the corrected bounded transport and proved
 `of_clk_add_hw_provider()` plus its paired devm cleanup action. Stable NCM and
 exact Alpine fallback passed; no storage was exposed. Generation 47 then
 proved `devm_phy_create()` with stable NCM and exact Alpine fallback.
-Generation 48 sets the PHY drvdata, publishes the OF PHY provider, and returns
-before any UFS consumer probes. UFS core and host remain unloaded.
+Generation 48 proved PHY drvdata assignment and OF PHY-provider publication
+with stable NCM and exact Alpine fallback; it is consumed and must never be
+retried. Generation 49 reuses that exact kernel and advances only the sealed
+initramfs: it loads the UFS core/platform/QCOM consumer chain, requires and
+locks the exact 116-node topology read-only, emits a target-originated proof,
+and rolls back before any mount. It is the current unbooted hardware gate.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

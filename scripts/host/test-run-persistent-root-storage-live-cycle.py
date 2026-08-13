@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1",
+            "persistent-root-ufs-readonly-enumeration-v28-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -47,11 +47,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertTrue(MODULE.USB_CONTROL_ONLY)
         self.assertEqual(
             MODULE.QMP_COMPLETED_GATE,
-            "QMP-UFS OF PHY provider registration",
+            "read-only UFS consumer enumeration",
         )
         self.assertEqual(
             MODULE.QMP_NEXT_GATE,
-            "qmp-ufs-read-only-consumer",
+            "ufs-readonly-inventory-backup",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -239,11 +239,19 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(elapsed, 1.0)
         self.assertEqual(cycle.rog5_ncm_interfaces.call_count, 4)
 
-    def test_module_proof_requires_exact_target_record_and_addresses(self) -> None:
+    def test_readonly_ufs_proof_requires_exact_target_record_and_addresses(self) -> None:
         expected = (
-            "format=rog5-deferred-ufs-module-proof-v1\n"
+            "format=rog5-readonly-ufs-enumeration-proof-v1\n"
             f"target_release={MODULE.TARGET_RELEASE}\n"
-            "module=phy_qcom_qmp_ufs\n"
+            "modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom\n"
+            "physical_blocks=116\n"
+            "userdata_device=/dev/sda23\n"
+            "all_physical_read_only=1\n"
+            "block_backed_mounts=0\n"
+            "blocked_device_queries=0\n"
+            "blocked_scsi_commands=0\n"
+            "phone_storage_mounts=0\n"
+            "phone_storage_writes=0\n"
             "result=PASS\n"
         ).encode()
 
@@ -302,7 +310,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 output=lambda name: Path(temporary) / name,
             )
             with mock.patch.object(MODULE.CYCLE, "write_record") as writer:
-                MODULE.receive_module_proof(
+                MODULE.receive_readonly_ufs_proof(
                     cycle,
                     "enxrog5",
                     socket_module=SocketModule(expected),
@@ -310,11 +318,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             writer.assert_called_once()
             for payload, peer in (
                 (expected.replace(b"result=PASS", b"result=FAIL"), "169.254.77.2"),
+                (expected.rstrip(b"\n"), "169.254.77.2"),
                 (expected, "169.254.77.3"),
             ):
                 with self.subTest(peer=peer, payload=payload[-12:]):
                     with self.assertRaises(MODULE.PersistentCycleError):
-                        MODULE.receive_module_proof(
+                        MODULE.receive_readonly_ufs_proof(
                             cycle,
                             "enxrog5",
                             socket_module=SocketModule(payload, peer),

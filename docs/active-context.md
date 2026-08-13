@@ -240,11 +240,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   module or phone storage was accessed. See the
   [live result](../test-results/2026-08-13-generation-47-qmp-ufs-phy-creation-live.md).
 
-- **Generation 48 is the unbooted OF PHY-provider successor.** It sets the
-  QMP-UFS PHY drvdata, publishes the exact OF PHY provider, and returns before
-  any UFS consumer probes. UFS core and host remain unloaded. Its
-  [offline checkpoint](../test-results/2026-08-13-generation-48-qmp-ufs-phy-provider-offline.md)
-  grants no flash or persistent-storage authority.
+- **Generation 48 is consumed and clears OF PHY-provider publication.** The
+  exact target proof arrived from release `7.1.4-gae717d919f87`; target NCM
+  became stable in 59.575 seconds and remained exact for another 12.024
+  seconds. Exact Alpine fallback and intent resolution passed, and no UFS
+  consumer or phone storage was accessed. See the
+  [live result](../test-results/2026-08-13-generation-48-qmp-ufs-phy-provider-live.md).
+
+- **Generation 49 is the unbooted read-only UFS consumer successor.** It loads
+  the exact four-module chain, requires the measured 116-node topology, locks
+  every node read-only, proves zero mounts and writes, emits an exact target
+  record, and rolls back before the first mount call. Its
+  [offline checkpoint](../test-results/2026-08-13-generation-49-ufs-readonly-enumeration-offline.md)
+  grants no flash or persistent-write authority.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

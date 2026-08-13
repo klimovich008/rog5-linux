@@ -208,24 +208,26 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertLess(rendezvous, module_load)
         self.assertLess(module_load, discovery)
 
-    def test_deferred_ufs_phy_control_loads_only_the_phy(self) -> None:
+    def test_deferred_ufs_consumer_loads_exact_module_chain(self) -> None:
         loader = function(self.source, "load_deferred_ufs_modules")
-        self.assertIn("/rog5-ufs-modules/phy-qcom-qmp-ufs.ko", loader)
         self.assertEqual(
-            sum(
-                line.strip().startswith("insmod ")
+            [
+                line.strip().removeprefix("insmod ").split()[0]
                 for line in loader.splitlines()
-            ),
-            1,
+                if line.strip().startswith("insmod ")
+            ],
+            [
+                "/rog5-ufs-modules/phy-qcom-qmp-ufs.ko",
+                "/rog5-ufs-modules/ufshcd-core.ko",
+                "/rog5-ufs-modules/ufshcd-pltfrm.ko",
+                "/rog5-ufs-modules/ufs-qcom.ko",
+            ],
         )
-        self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-core.ko", loader)
-        self.assertNotIn("insmod /rog5-ufs-modules/ufshcd-pltfrm.ko", loader)
-        self.assertNotIn("insmod /rog5-ufs-modules/ufs-qcom.ko", loader)
         self.assertNotIn("modprobe", loader)
         self.assertNotIn("*", loader)
-        self.assertIn("return 2", loader)
+        self.assertNotIn("return 2", loader)
 
-    def test_deferred_ufs_phy_control_proves_return_and_holds_ncm(self) -> None:
+    def test_deferred_ufs_consumer_loads_and_proves_each_exact_module(self) -> None:
         loader = function(self.source, "load_deferred_ufs_modules")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -240,29 +242,22 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 (module_dir / name).touch()
             modules = root / "proc-modules"
             modules.write_text("")
-            carrier = root / "carrier"
-            carrier.write_text("1\n")
             calls = root / "calls"
-            sleeps = root / "sleeps"
-            proof = root / "proof"
             fixture = loader.replace(
                 "module_dir=/rog5-ufs-modules", 'module_dir="$1"'
-            ).replace("/proc/modules", '"$modules_file"').replace(
-                "/sys/class/net/usb0/carrier", '"$carrier_file"'
-            )
+            ).replace("/proc/modules", '"$modules_file"')
             script = (
                 "set -u\n"
                 + fixture
-                + '\nmodules_file="$2"\ncarrier_file="$3"\n'
-                + 'call_log="$4"\nsleep_log="$5"\nproof_file="$6"\n'
-                + 'running_kernel_release=7.1.4-gc732b0b41d8d\n'
+                + '\nmodules_file="$2"\ncall_log="$3"\n'
                 + "log() { :; }\n"
                 + 'insmod() { printf "%s\\n" "$1" >>"$call_log"; '
-                + 'printf "%s\\n" "phy_qcom_qmp_ufs 1 0 - Live 0x0" '
-                + '>"$modules_file"; }\n'
-                + 'nc() { cat >"$proof_file"; }\n'
-                + "expected_udc_is_bound() { return 0; }\n"
-                + 'sleep() { printf "%s\\n" "$1" >>"$sleep_log"; }\n'
+                + 'case "$1" in '
+                + '*phy-qcom-qmp-ufs.ko) name=phy_qcom_qmp_ufs ;; '
+                + '*ufshcd-core.ko) name=ufshcd_core ;; '
+                + '*ufshcd-pltfrm.ko) name=ufshcd_pltfrm ;; '
+                + '*ufs-qcom.ko) name=ufs_qcom ;; esac; '
+                + 'printf "%s 1 0 - Live 0x0\\n" "$name" >>"$modules_file"; }\n'
                 + 'load_deferred_ufs_modules "$@"\n'
             )
             result = subprocess.run(
@@ -273,28 +268,43 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                     "sh",
                     str(module_dir),
                     str(modules),
-                    str(carrier),
                     str(calls),
-                    str(sleeps),
-                    str(proof),
                 ],
                 text=True,
                 capture_output=True,
                 check=False,
             )
-            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(
                 calls.read_text().splitlines(),
-                ["/rog5-ufs-modules/phy-qcom-qmp-ufs.ko"],
+                [
+                    "/rog5-ufs-modules/phy-qcom-qmp-ufs.ko",
+                    "/rog5-ufs-modules/ufshcd-core.ko",
+                    "/rog5-ufs-modules/ufshcd-pltfrm.ko",
+                    "/rog5-ufs-modules/ufs-qcom.ko",
+                ],
             )
-            self.assertEqual(sleeps.read_text().splitlines(), ["0.1"] * 150)
-            self.assertEqual(
-                proof.read_text(),
-                "format=rog5-deferred-ufs-module-proof-v1\n"
-                "target_release=7.1.4-gc732b0b41d8d\n"
-                "module=phy_qcom_qmp_ufs\n"
-                "result=PASS\n",
-            )
+
+    def test_readonly_control_proof_precedes_any_storage_mount(self) -> None:
+        proof = function(self.source, "deliver_readonly_ufs_proof")
+        self.assertIn("format=rog5-readonly-ufs-enumeration-proof-v1", proof)
+        self.assertIn("physical_blocks=$physical_blocks", proof)
+        self.assertIn("userdata_device=$userdata", proof)
+        self.assertIn("all_physical_read_only=1", proof)
+        self.assertIn("block_backed_mounts=0", proof)
+        self.assertIn("phone_storage_mounts=0", proof)
+        self.assertIn("phone_storage_writes=0", proof)
+        self.assertIn("verify_physical_storage_read_only", proof)
+        self.assertIn("verify_ufs_power_containment", proof)
+        self.assertIn("has_block_backed_mount && return 1", proof)
+
+        inventory = self.source.index("\nif ! write_ufs_inventory; then\n")
+        deliver = self.source.index("\nif ! deliver_readonly_ufs_proof; then\n")
+        terminal = self.source.index("\nfail_stage 'read-only UFS enumeration")
+        mount = self.source.index("\nif ! mount_persistent_root; then\n")
+        self.assertLess(inventory, deliver)
+        self.assertLess(deliver, terminal)
+        self.assertLess(terminal, mount)
 
     def run_rendezvous(
         self, carrier: str
