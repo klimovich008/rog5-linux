@@ -145,13 +145,16 @@ awk -F '\t' '
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 48 RAM-only cycle; QMP-UFS OF PHY-provider registration completed, stable target NCM passed, exact Alpine fallback returned, and no phone-storage access occurred; never retry or flash" && NF == 3 { generation48++ ; next }
 	$1 == "build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 49 RAM-only cycle; exact 116-node read-only UFS enumeration, stable NCM, and exact Alpine fallback passed with zero mounts and writes; never retry or flash" && NF == 3 { generation49++ ; next }
+	$1 == "build/persistent-root-ufs-local-root-v29-generation50-20260813-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact read-only SM8350 UFS consumer enumeration with bounded recovery transfer, compile-time command guards, runtime block locks, and exact target proof before any mount; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
+		$3 == "one exact read-only SM8350 UFS local-root boot with bounded recovery transfer, runtime block locks, exact userdata ro,noload mount, sealed root verification, tmpfs OverlayFS, systemd, and key-only SSH; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { persistent++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 29 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || persistent != 1 || revoked != 1) exit 1 }
+	END { if (NR != 30 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || persistent != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact observer/core/persistent admission shape' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||

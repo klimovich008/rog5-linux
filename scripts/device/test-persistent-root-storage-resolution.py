@@ -285,26 +285,22 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 ],
             )
 
-    def test_readonly_control_proof_precedes_any_storage_mount(self) -> None:
-        proof = function(self.source, "deliver_readonly_ufs_proof")
-        self.assertIn("format=rog5-readonly-ufs-enumeration-proof-v1", proof)
-        self.assertIn("physical_blocks=$physical_blocks", proof)
-        self.assertIn("userdata_device=$userdata", proof)
-        self.assertIn("all_physical_read_only=1", proof)
-        self.assertIn("block_backed_mounts=0", proof)
-        self.assertIn("phone_storage_mounts=0", proof)
-        self.assertIn("phone_storage_writes=0", proof)
-        self.assertIn("verify_physical_storage_read_only", proof)
-        self.assertIn("verify_ufs_power_containment", proof)
-        self.assertIn("has_block_backed_mount && return 1", proof)
-
+    def test_readonly_inventory_advances_directly_to_the_local_root(self) -> None:
         inventory = self.source.index("\nif ! write_ufs_inventory; then\n")
-        deliver = self.source.index("\nif ! deliver_readonly_ufs_proof; then\n")
-        terminal = self.source.index("\nfail_stage 'read-only UFS enumeration")
         mount = self.source.index("\nif ! mount_persistent_root; then\n")
-        self.assertLess(inventory, deliver)
-        self.assertLess(deliver, terminal)
-        self.assertLess(terminal, mount)
+        verify = self.source.index("\nif ! verify_persistent_root; then\n")
+        self.assertLess(inventory, mount)
+        self.assertLess(mount, verify)
+        between = self.source[inventory:mount]
+        self.assertNotIn("deliver_readonly_ufs_proof", between)
+        self.assertNotIn("ufs-readonly-control", between)
+        self.assertNotIn("read-only UFS enumeration completed", between)
+        self.assertIn("verify_physical_storage_read_only", between)
+        self.assertIn("verify_ufs_power_containment", between)
+        mount_function = function(self.source, "mount_persistent_root")
+        self.assertIn('mount -t ext4 -o ro,noload "$userdata" /mnt/userdata', mount_function)
+        self.assertIn("verify_only_userdata_mount", mount_function)
+        self.assertIn("verify_physical_storage_read_only", mount_function)
 
     def run_rendezvous(
         self, carrier: str

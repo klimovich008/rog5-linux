@@ -20,22 +20,11 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-class FakeClock:
-    def __init__(self) -> None:
-        self.now = 0.0
-
-    def monotonic(self) -> float:
-        return self.now
-
-    def sleep(self, seconds: float) -> None:
-        self.now += seconds
-
-
 class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-ufs-readonly-enumeration-v28-live-v1",
+            "persistent-root-ufs-local-root-v29-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -44,15 +33,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertFalse(MODULE.PROFILE.diagnostic)
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
-        self.assertTrue(MODULE.USB_CONTROL_ONLY)
-        self.assertEqual(
-            MODULE.QMP_COMPLETED_GATE,
-            "read-only UFS consumer enumeration",
-        )
-        self.assertEqual(
-            MODULE.QMP_NEXT_GATE,
-            "ufs-readonly-inventory-backup",
-        )
+        self.assertEqual(MODULE.BUNDLE, "persistent-root-ufs-local-root-v29")
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,
@@ -201,198 +182,6 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 MODULE.alpine_fallback_is_present("pci0000:00/usb1/1-1")
             )
         fallback.assert_called_once_with("pci0000:00/usb1/1-1")
-
-    def test_module_load_control_requires_exact_ncm_for_the_whole_window(self) -> None:
-        snapshot = MODULE.CYCLE.InterfaceSnapshot(
-            name="enxrog5",
-            product=MODULE.TARGET_UDEV_MODEL,
-            addresses=("169.254.77.1/30",),
-            firewall_zone="trusted",
-            network_manager_managed="yes",
-        )
-        cycle = SimpleNamespace(
-            dependencies=object(),
-            poll=0.25,
-            rog5_ncm_interfaces=mock.Mock(return_value=(snapshot,)),
-        )
-        clock = FakeClock()
-        with (
-            mock.patch.object(
-                MODULE.CYCLE,
-                "read_recovery_anchor_location",
-                return_value="pci0000:00/usb1/1-1",
-            ),
-            mock.patch.object(
-                MODULE.PIN,
-                "target_observation",
-                return_value=("enxrog5", "pci0000:00/usb1/1-1"),
-            ),
-            mock.patch.object(MODULE.PIN, "exact_route"),
-        ):
-            elapsed = MODULE.require_post_module_ncm(
-                cycle,
-                Path("/private/anchor"),
-                "enxrog5",
-                duration=1.0,
-                clock=clock,
-            )
-        self.assertEqual(elapsed, 1.0)
-        self.assertEqual(cycle.rog5_ncm_interfaces.call_count, 4)
-
-    def test_readonly_ufs_proof_requires_exact_target_record_and_addresses(self) -> None:
-        expected = (
-            "format=rog5-readonly-ufs-enumeration-proof-v1\n"
-            f"target_release={MODULE.TARGET_RELEASE}\n"
-            "modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom\n"
-            "physical_blocks=116\n"
-            "userdata_device=/dev/sda23\n"
-            "all_physical_read_only=1\n"
-            "block_backed_mounts=0\n"
-            "blocked_device_queries=0\n"
-            "blocked_scsi_commands=0\n"
-            "phone_storage_mounts=0\n"
-            "phone_storage_writes=0\n"
-            "result=PASS\n"
-        ).encode()
-
-        class Connection:
-            def __init__(self, payload: bytes) -> None:
-                self.payload = payload
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_args):
-                return None
-
-            def settimeout(self, _timeout: float) -> None:
-                return None
-
-            def recv(self, _size: int) -> bytes:
-                payload, self.payload = self.payload, b""
-                return payload
-
-            def getsockname(self):
-                return ("169.254.77.1", MODULE.MODULE_PROOF_PORT)
-
-        class Listener:
-            def __init__(self, payload: bytes, peer: str) -> None:
-                self.payload = payload
-                self.peer = peer
-
-            def settimeout(self, _timeout: float) -> None:
-                return None
-
-            def bind(self, address) -> None:
-                self.bound = address
-
-            def listen(self, _backlog: int) -> None:
-                return None
-
-            def accept(self):
-                return Connection(self.payload), (self.peer, 40000)
-
-            def close(self) -> None:
-                return None
-
-        class SocketModule:
-            AF_INET = 2
-            SOCK_STREAM = 1
-
-            def __init__(self, payload: bytes, peer="169.254.77.2") -> None:
-                self.listener = Listener(payload, peer)
-
-            def socket(self, *_args):
-                return self.listener
-
-        with tempfile.TemporaryDirectory() as temporary:
-            cycle = SimpleNamespace(
-                output=lambda name: Path(temporary) / name,
-            )
-            with mock.patch.object(MODULE.CYCLE, "write_record") as writer:
-                MODULE.receive_readonly_ufs_proof(
-                    cycle,
-                    "enxrog5",
-                    socket_module=SocketModule(expected),
-                )
-            writer.assert_called_once()
-            for payload, peer in (
-                (expected.replace(b"result=PASS", b"result=FAIL"), "169.254.77.2"),
-                (expected.rstrip(b"\n"), "169.254.77.2"),
-                (expected, "169.254.77.3"),
-            ):
-                with self.subTest(peer=peer, payload=payload[-12:]):
-                    with self.assertRaises(MODULE.PersistentCycleError):
-                        MODULE.receive_readonly_ufs_proof(
-                            cycle,
-                            "enxrog5",
-                            socket_module=SocketModule(payload, peer),
-                        )
-
-    def test_module_load_control_rejects_early_usb_loss(self) -> None:
-        cycle = SimpleNamespace(
-            dependencies=object(),
-            poll=0.25,
-            rog5_ncm_interfaces=mock.Mock(return_value=()),
-        )
-        with (
-            mock.patch.object(
-                MODULE.CYCLE,
-                "read_recovery_anchor_location",
-                return_value="pci0000:00/usb1/1-1",
-            ),
-            mock.patch.object(
-                MODULE.PIN,
-                "target_observation",
-                side_effect=MODULE.PIN.BootstrapError("gone"),
-            ),
-            self.assertRaises(MODULE.PersistentCycleError),
-        ):
-            MODULE.require_post_module_ncm(
-                cycle,
-                Path("/private/anchor"),
-                "enxrog5",
-                duration=1.0,
-                clock=FakeClock(),
-            )
-
-    def test_network_inspection_race_reclassifies_disappeared_usb(self) -> None:
-        cycle = SimpleNamespace(
-            dependencies=object(),
-            poll=0.25,
-            rog5_ncm_interfaces=mock.Mock(
-                side_effect=MODULE.CYCLE.CycleError(
-                    "cannot inspect NetworkManager ownership of ROG5 link"
-                )
-            ),
-        )
-        with (
-            mock.patch.object(
-                MODULE.CYCLE,
-                "read_recovery_anchor_location",
-                return_value="pci0000:00/usb1/1-1",
-            ),
-            mock.patch.object(
-                MODULE.PIN,
-                "target_observation",
-                side_effect=[
-                    ("enxrog5", "pci0000:00/usb1/1-1"),
-                    MODULE.PIN.BootstrapError("gone"),
-                ],
-            ),
-            mock.patch.object(MODULE.PIN, "exact_route"),
-            self.assertRaisesRegex(
-                MODULE.PersistentCycleError,
-                "target NCM vanished during the module-load control window",
-            ),
-        ):
-            MODULE.require_post_module_ncm(
-                cycle,
-                Path("/private/anchor"),
-                "enxrog5",
-                duration=1.0,
-                clock=FakeClock(),
-            )
 
     def test_runner_contains_no_phone_storage_mutation_surface(self) -> None:
         source = MODULE_PATH.read_text()

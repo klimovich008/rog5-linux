@@ -8,7 +8,6 @@ import importlib.util
 import os
 from pathlib import Path
 import re
-import socket
 import stat
 import subprocess
 import sys
@@ -37,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-ufs-readonly-enumeration-v28-live-v1"
-BUNDLE = "persistent-root-ufs-readonly-enumeration-v28"
+PROFILE_ID = "persistent-root-ufs-local-root-v29-live-v1"
+BUNDLE = "persistent-root-ufs-local-root-v29"
 MANIFEST_SHA256 = (
-    "9ea343f70b9dfa3658a13d4b1e4dfd2cb841881ec21ce0444cd4422899434045"
+    "ae22914906d63accc893157b51c683f24a3a7e933bba84e13661e664764b9cc6"
 )
 RECOVERY_SHA256 = (
-    "7bd5cbae17f82d2496af0967534a53d8853f06d4eb6610a55641f7461e067399"
+    "26d2d9b7a230268d9bd3e82497aab3e8126aefcf951b2e1fcf0a4c7fc5d6df28"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -55,20 +54,15 @@ TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
-USB_CONTROL_ONLY = True
-QMP_COMPLETED_GATE = "read-only UFS consumer enumeration"
-QMP_NEXT_GATE = "ufs-readonly-inventory-backup"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-ufs-readonly-enumeration-v28-generation49-20260813-r1"
+    / "build/persistent-root-ufs-local-root-v29-generation50-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
-POST_MODULE_NCM_SECONDS = 12.0
-MODULE_PROOF_PORT = 8079
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -80,10 +74,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-ufs-readonly-enumeration-v28",
+    admission_profile="persistent-root-ufs-local-root-v29",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-ufs-readonly-enumeration-v28",
-    build_profile="persistent-root-ufs-readonly-enumeration-v28",
+    runtime_profile="persistent-root-ufs-local-root-v29",
+    build_profile="persistent-root-ufs-local-root-v29",
     diagnostic=False,
 )
 
@@ -355,142 +349,6 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     fail(f"persistent-root host network did not stabilize: {last_error}")
 
 
-def require_post_module_ncm(
-    cycle: CYCLE.LiveCycle,
-    anchor: Path,
-    interface: str,
-    *,
-    duration: float = POST_MODULE_NCM_SECONDS,
-    clock=time,
-) -> float:
-    expected_location = CYCLE.read_recovery_anchor_location(
-        anchor, cycle.dependencies
-    )
-    started = clock.monotonic()
-    deadline = started + duration
-    while clock.monotonic() < deadline:
-        try:
-            observed = PIN.target_observation(TARGET_PRODUCT)
-            PIN.exact_route(interface)
-        except PIN.BootstrapError as error:
-            fail(f"target NCM vanished during the module-load control window: {error}")
-        if observed != (interface, expected_location):
-            fail("target USB identity changed during the module-load control window")
-        try:
-            snapshots = [
-                value
-                for value in cycle.rog5_ncm_interfaces()
-                if value.name == interface and value.product == TARGET_UDEV_MODEL
-            ]
-        except CYCLE.CycleError as error:
-            try:
-                observed = PIN.target_observation(TARGET_PRODUCT)
-            except PIN.BootstrapError as identity_error:
-                fail(
-                    "target NCM vanished during the module-load control window: "
-                    f"{identity_error}"
-                )
-            if observed != (interface, expected_location):
-                fail("target USB identity changed during the module-load control window")
-            fail(f"cannot inspect target host network during control window: {error}")
-        if (
-            len(snapshots) != 1
-            or snapshots[0].addresses != ("169.254.77.1/30",)
-            or snapshots[0].network_manager_managed != "yes"
-            or snapshots[0].firewall_zone == "drop"
-        ):
-            fail("target host network changed during the module-load control window")
-        clock.sleep(cycle.poll)
-    return clock.monotonic() - started
-
-
-def receive_readonly_ufs_proof(
-    cycle: CYCLE.LiveCycle,
-    interface: str,
-    *,
-    timeout: float = 90.0,
-    socket_module=socket,
-) -> str:
-    maximum_payload = 768
-    listener = socket_module.socket(
-        socket_module.AF_INET,
-        socket_module.SOCK_STREAM,
-    )
-    try:
-        listener.settimeout(timeout)
-        listener.bind(("169.254.77.1", MODULE_PROOF_PORT))
-        listener.listen(1)
-        connection, peer = listener.accept()
-        with connection:
-            connection.settimeout(2.0)
-            payload = bytearray()
-            while len(payload) <= maximum_payload:
-                part = connection.recv(maximum_payload + 1 - len(payload))
-                if not part:
-                    break
-                payload.extend(part)
-            local = connection.getsockname()
-    except (OSError, TimeoutError) as error:
-        fail(f"exact target read-only UFS proof was not received: {error}")
-    finally:
-        listener.close()
-    if peer[0] != "169.254.77.2" or local[0] != "169.254.77.1":
-        fail("target read-only UFS proof used the wrong source or host address")
-    try:
-        text = bytes(payload).decode("ascii")
-    except UnicodeDecodeError as error:
-        raise PersistentCycleError("target read-only UFS proof is not ASCII") from error
-    if not text.endswith("\n") or "\r" in text or "\x00" in text:
-        fail("target read-only UFS proof framing is not exact")
-    lines = text.splitlines()
-    if len(lines) != 12:
-        fail("target read-only UFS proof has the wrong field count")
-    expected = (
-        "format=rog5-readonly-ufs-enumeration-proof-v1",
-        f"target_release={TARGET_RELEASE}",
-        "modules=phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom",
-        "physical_blocks=116",
-        None,
-        "all_physical_read_only=1",
-        "block_backed_mounts=0",
-        "blocked_device_queries=0",
-        "blocked_scsi_commands=0",
-        "phone_storage_mounts=0",
-        "phone_storage_writes=0",
-        "result=PASS",
-    )
-    for actual, required in zip(lines, expected, strict=True):
-        if required is not None and actual != required:
-            fail("target read-only UFS proof content is not exact")
-    userdata = lines[4].removeprefix("userdata_device=")
-    if not re.fullmatch(r"/dev/sd[a-z]23", userdata):
-        fail("target read-only UFS proof has no exact dynamic userdata identity")
-    exact = [userdata if required is None else required for required in expected]
-    exact[4] = f"userdata_device={userdata}"
-    if text != "\n".join(exact) + "\n":
-        fail("target read-only UFS proof content is not exact")
-    CYCLE.write_record(
-        cycle.output("readonly-ufs-enumeration-proof.record"),
-        (
-            ("format", "rog5-readonly-ufs-enumeration-proof-v1"),
-            ("target_release", TARGET_RELEASE),
-            ("modules", "phy_qcom_qmp_ufs,ufshcd_core,ufshcd_pltfrm,ufs_qcom"),
-            ("physical_blocks", "116"),
-            ("userdata_device", userdata),
-            ("all_physical_read_only", "1"),
-            ("block_backed_mounts", "0"),
-            ("blocked_device_queries", "0"),
-            ("blocked_scsi_commands", "0"),
-            ("phone_storage_mounts", "0"),
-            ("phone_storage_writes", "0"),
-            ("interface", interface),
-            ("source_address", peer[0]),
-            ("result", "PASS"),
-        ),
-    )
-    return userdata
-
-
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -743,61 +601,6 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             fail("persistent-root control output lacks its durable intent")
 
         interface = activate_target_network(cycle, anchor)
-        if USB_CONTROL_ONLY:
-            elapsed = time.monotonic() - boot_started
-            userdata = receive_readonly_ufs_proof(cycle, interface)
-            control_seconds = require_post_module_ncm(cycle, anchor, interface)
-            CYCLE.write_record(
-                cycle.output("persistent-root-usb-control.record"),
-                (
-                    ("format", "rog5-persistent-root-usb-control-v1"),
-                    ("target_release", TARGET_RELEASE),
-                    ("interface", interface),
-                    ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
-                    ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
-                    ("expected_next_gate", QMP_NEXT_GATE),
-                    ("physical_blocks", "116"),
-                    ("userdata_device", userdata),
-                    ("phone_storage_access", "read-only-enumeration"),
-                    ("phone_storage_mounts", "0"),
-                    ("phone_storage_writes", "0"),
-                    ("result", "PASS"),
-                ),
-            )
-            fallback_attempted = True
-            cycle.wait_fallback(None)
-            run_optional_logged(
-                [
-                    "/usr/bin/ssh",
-                    "-i",
-                    str(inputs.ssh_key),
-                    "-o",
-                    "BatchMode=yes",
-                    "-o",
-                    "IdentitiesOnly=yes",
-                    "-o",
-                    "PasswordAuthentication=no",
-                    "-o",
-                    "StrictHostKeyChecking=yes",
-                    "-o",
-                    f"UserKnownHostsFile={inputs.fallback_known_hosts}",
-                    "-o",
-                    "HostKeyAlias=rog5-fallback",
-                    f"root@{PIN.TARGET_ADDRESS}",
-                    FALLBACK_DIAGNOSTIC_COMMAND,
-                ],
-                cycle.output("fallback-raw-diagnostics.log"),
-                180,
-            )
-            cycle.wait_host_clean(final=True)
-            cycle.resolve_intent(intent, "FALLBACK_RETURNED")
-            resolved = True
-            print(
-                f"PASS {QMP_COMPLETED_GATE} completed with compile-time and runtime read-only containment; NCM stayed stable in "
-                f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
-                "before exact Alpine fallback"
-            )
-            return
         CYCLE.run_logged(
             [
                 str(cycle.dependencies.host_key),

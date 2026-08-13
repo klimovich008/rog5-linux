@@ -247,12 +247,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   consumer or phone storage was accessed. See the
   [live result](../test-results/2026-08-13-generation-48-qmp-ufs-phy-provider-live.md).
 
-- **Generation 49 is the unbooted read-only UFS consumer successor.** It loads
-  the exact four-module chain, requires the measured 116-node topology, locks
-  every node read-only, proves zero mounts and writes, emits an exact target
-  record, and rolls back before the first mount call. Its
-  [offline checkpoint](../test-results/2026-08-13-generation-49-ufs-readonly-enumeration-offline.md)
-  grants no flash or persistent-write authority.
+- **Generation 49 is consumed and proves read-only mainline UFS.** The exact
+  four-module chain exposed the measured 116-node topology, resolved userdata
+  as `/dev/sda23` for that boot, locked every physical node read-only, and
+  reported zero mounts, blocked commands, and writes. NCM remained exact for
+  the control window and exact Alpine fallback returned. See the
+  [live result](../test-results/2026-08-13-generation-49-ufs-readonly-enumeration-live.md).
+
+- **Generation 50 is the unbooted read-only local-root successor.** It reuses
+  the same clean-twin kernel, DTB, and modules, removes only Generation 49's
+  deliberate pre-mount terminal, and advances through exact userdata
+  `ro,noload`, sealed-tree verification, tmpfs OverlayFS, Arch systemd, and
+  key-only SSH. It contains no persistent-write path. See the
+  [offline checkpoint](../test-results/2026-08-13-generation-50-ufs-local-root-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
