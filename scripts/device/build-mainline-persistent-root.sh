@@ -6,9 +6,10 @@ output_dir=${OUTPUT_DIR:-/root/build/rog5-linux-7.1.4-persistent-root}
 base_fragment=${BASE_FRAGMENT:-/root/rog5-build/rog5-mainline.fragment}
 discovery_fragment=${DISCOVERY_FRAGMENT:-/root/rog5-build/rog5-ufs-discovery.fragment}
 root_fragment=${ROOT_FRAGMENT:-/root/rog5-build/rog5-persistent-root.fragment}
-expected_base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a
-expected_release=7.1.4-gcfd385a1c754
+expected_base=${LINUX_BASE_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
+expected_commit=${LINUX_COMMIT:-cfd385a1c754684dd28b63a4559e04baa5e902b1}
+expected_tree=${LINUX_TREE:-d2f03d2055227b8b72ab41be949847a066924c5a}
+expected_release=${EXPECTED_RELEASE:-7.1.4-gcfd385a1c754}
 jobs=${JOBS:-1}
 btf_jobs=1
 
@@ -22,8 +23,10 @@ for fragment in "$base_fragment" "$discovery_fragment" "$root_fragment"; do
 		exit 1
 	}
 done
-[ "$(git -C "$source_dir" rev-parse HEAD^)" = "$expected_base" ]
+[ "$(git -C "$source_dir" rev-parse HEAD)" = "$expected_commit" ]
 [ "$(git -C "$source_dir" rev-parse 'HEAD^{tree}')" = "$expected_tree" ]
+git -C "$source_dir" merge-base --is-ancestor "$expected_base" \
+	"$expected_commit"
 [ -z "$(git -C "$source_dir" status --porcelain)" ]
 [ ! -d "$output_dir" ] ||
 	[ -z "$(find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit)" ] || {
@@ -38,13 +41,32 @@ KBUILD_BUILD_TIMESTAMP=$(git -C "$source_dir" show -s \
 	--format=%cD "$expected_base")
 export PYTHONHASHSEED=0
 
+kernel_make() {
+	case ${KBUILD_CCACHE:-0} in
+		0) make "$@" ;;
+		1)
+			command -v ccache >/dev/null || {
+				echo 'FAIL KBUILD_CCACHE=1 but ccache is unavailable' >&2
+				exit 1
+			}
+			CCACHE_COMPILERCHECK=content CCACHE_CONFIGPATH=/dev/null \
+				make "$@" 'CC=ccache clang' 'HOSTCC=ccache clang' \
+				'HOSTCXX=ccache clang++'
+			;;
+		*)
+			echo 'FAIL KBUILD_CCACHE must be 0 or 1' >&2
+			exit 1
+			;;
+	esac
+}
+
 mkdir -p "$output_dir"
-make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
+kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
 "$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
 	"$output_dir/.config" "$base_fragment" "$discovery_fragment" \
 	"$root_fragment"
-make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
-make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
+kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
+kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 	JOBS="$btf_jobs" Image.gz
 
 deferred_module_dir=
@@ -59,7 +81,7 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$output_dir/.config"; then
 			exit 1
 		}
 	done
-	make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
+	kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 		JOBS="$btf_jobs" \
 		drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko \
 		drivers/ufs/core/ufshcd-core.ko \
@@ -110,7 +132,7 @@ fi
 
 {
 	printf 'base_commit=%s\n' "$expected_base"
-	printf 'patched_commit=%s\n' "$(git -C "$source_dir" rev-parse HEAD)"
+	printf 'patched_commit=%s\n' "$expected_commit"
 	printf 'patched_tree=%s\n' "$expected_tree"
 	printf 'compiler=%s\n' "$(clang --version | head -1)"
 	printf 'python_hash_seed=%s\n' "$PYTHONHASHSEED"

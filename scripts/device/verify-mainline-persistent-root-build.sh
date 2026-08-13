@@ -10,6 +10,10 @@ image_gz=$output_dir/arch/arm64/boot/Image.gz
 root_fragment=$repo/configs/kernel/rog5-persistent-root.fragment
 deferred_fragment=$repo/configs/kernel/rog5-ufs-deferred-probe.fragment
 verify_meta=$repo/scripts/device/verify-build-meta-hash.sh
+expected_base=${LINUX_BASE_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
+expected_commit=${LINUX_COMMIT:-cfd385a1c754684dd28b63a4559e04baa5e902b1}
+expected_tree=${LINUX_TREE:-d2f03d2055227b8b72ab41be949847a066924c5a}
+expected_release=${EXPECTED_RELEASE:-7.1.4-gcfd385a1c754}
 
 if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 	for file in "$meta" "$config" "$image" "$image_gz"; do
@@ -19,9 +23,9 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 		}
 	done
 	for record in \
-		'base_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40' \
-		'patched_commit=cfd385a1c754684dd28b63a4559e04baa5e902b1' \
-		'patched_tree=d2f03d2055227b8b72ab41be949847a066924c5a' \
+		"base_commit=$expected_base" \
+		"patched_commit=$expected_commit" \
+		"patched_tree=$expected_tree" \
 		'python_hash_seed=0' \
 		'pahole_jobs=1'; do
 		grep -qx "$record" "$meta"
@@ -113,7 +117,7 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 		[ "$(modinfo -F name "$path")" = "$expected_name" ] &&
 			[ "$(modinfo -F depends "$path")" = "$expected_depends" ] &&
 			[ "$(modinfo -F vermagic "$path" | awk '{ print $1 }')" = \
-				7.1.4-gcfd385a1c754 ] || {
+				"$expected_release" ] || {
 			echo "FAIL deferred-UFS module metadata changed: $module" >&2
 			exit 1
 		}

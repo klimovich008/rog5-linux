@@ -178,6 +178,9 @@ shared_tests=(
 	scripts/device/test-qmp-ufs-probe-first-fixed-clock-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-allocation-stage-patch.sh
 	scripts/device/test-qmp-ufs-probe-first-clock-name-stage-patch.sh
+	scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh
+	scripts/device/test-clk-orphan-runtime-pm-lock-model.py
+	scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh

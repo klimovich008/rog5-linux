@@ -47,8 +47,15 @@ done
 grep -Fq 'rog5-mainline.fragment' "$builder"
 grep -Fq 'rog5-ufs-discovery.fragment' "$builder"
 grep -Fq 'rog5-persistent-root.fragment' "$builder"
-grep -Fq 'expected_tree=d2f03d2055227b8b72ab41be949847a066924c5a' \
+grep -Fq 'LINUX_TREE:-d2f03d2055227b8b72ab41be949847a066924c5a' \
 	"$builder"
+for override in LINUX_BASE_COMMIT LINUX_COMMIT LINUX_TREE EXPECTED_RELEASE \
+	KBUILD_CCACHE; do
+	grep -Fq "$override" "$builder"
+done
+for override in LINUX_BASE_COMMIT LINUX_COMMIT LINUX_TREE EXPECTED_RELEASE; do
+	grep -Fq "$override" "$verifier"
+done
 grep -Fq 'CONFIG_OVERLAY_FS=y' "$verifier"
 grep -Fq 'verify-mainline-discovery-build.sh' "$verifier"
 grep -Fq 'rog5-ufs-deferred-probe.fragment' "$verifier"

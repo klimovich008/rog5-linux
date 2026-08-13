@@ -188,11 +188,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   `rx_symbol_0` name or its first fixed-rate clock registration. See the
   [live result](../test-results/2026-08-13-generation-40-qmp-allocation-stage-live.md).
 
-- **Generation 41 is the active first-symbol-clock-name discriminator.** It
-  performs the cleared allocation, constructs the `rx_symbol_0` name using
-  `dev_name()` and `snprintf()`, then returns before entering the common clock
-  framework. Its DTB also restores the exact 4 MiB RMTFS reservation so the
-  ramoops command line cannot alias allocator-owned RAM. UFS core, platform,
+- **Generation 41 is consumed and clears first-clock name construction.** It
+  reached stable target NCM in 60.001 seconds, preserved it for 12.359 seconds,
+  and returned to exact Alpine. This isolates the earliest remaining boundary
+  to the first fixed-rate CCF clock registration. See the
+  [live result](../test-results/2026-08-13-generation-41-qmp-first-clock-name-stage-live.md).
+
+- **Generation 42 is the active first-clock runtime-PM discriminator.** It
+  applies the generic CCF fix that resumes all registered runtime-PM clock
+  providers before taking `prepare_lock`, then advances the SM8350 QMP-UFS
+  probe through exactly one fixed-rate clock registration. It returns before
+  the second and third clocks or provider publication. UFS core, platform,
   and host modules remain absent, so this RAM-only cycle cannot enumerate or
   access phone storage.
 

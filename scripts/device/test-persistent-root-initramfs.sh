@@ -25,16 +25,21 @@ for path in "$init" "$attest" "$shutdown" "$builder"; do
 done
 [ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ] ||
 	fail 'missing P2 initramfs binary input'
-[ "$(sha256sum "$config" | cut -d ' ' -f 1)" = \
-	8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ] ||
-	fail 'P2 input does not match the pinned target config'
+config_sha256=$(sha256sum "$config" | cut -d ' ' -f 1)
+if [ -n "$ufs_modules" ]; then
+	[ "$config_sha256" = \
+		b959774825e2bca7c634e55cd00e838121fde8d95fd214ffeead732ce92e35e6 ]
+else
+	[ "$config_sha256" = \
+		8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ]
+fi || fail 'P2 input does not match the pinned target config'
 
 for script in "$init" "$attest" "$shutdown" "$builder"; do
 	sh -n "$script"
 done
 
 grep -Fq 'rog5.persistent_ro=1' "$init"
-grep -Fq 'expected_kernel_release=7.1.4-gcfd385a1c754' \
+grep -Fq 'expected_kernel_release=7.1.4-gcdf38b1ddebb' \
 	"$init"
 grep -Fq 'release_file=/proc/sys/kernel/osrelease' "$init"
 release_read='IFS= read -r running_kernel_release <"$release_file"'
