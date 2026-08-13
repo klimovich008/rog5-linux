@@ -370,14 +370,29 @@ unlocking. Its sole live cycle completed exactly the first fixed-rate clock
 registration, preserved stable NCM, and returned to exact Alpine. Generation
 42 is consumed and must never be retried.
 
-Generation 43 retained the same correction and advanced the SM8350-only branch
-through the second fixed-rate clock registration. Its sole live cycle reached
-stable target NCM in 60.264 seconds, held it for 12.014 seconds, and returned
-to exact Alpine. The exact 4 MiB RMTFS reservation remained restored. UFS
-core, platform, and host modules were absent, so no storage was enumerated or
-accessed. Generation 43 is consumed and must never be retried. The next
-discriminator crosses the third fixed-rate `tx_symbol_0` clock and returns
-before OF clock-provider publication and every provider/PHY boundary.
+Generation 43 retained the same correction and was intended to advance through
+the second fixed-rate clock. Its sole live cycle reached stable target NCM in
+60.264 seconds, held it for 12.014 seconds, and returned to exact Alpine. An
+exact-input review then found that its initramfs expected the Generation 42
+kernel release and necessarily stopped before loading the QMP-UFS module. The
+cycle proves stable NCM and fallback but not the second clock. The exact 4 MiB
+RMTFS reservation remained restored; UFS core and host modules were absent, so
+no storage was enumerated or accessed. Generation 43 is consumed and must
+never be retried.
+
+The successor binds its exact kernel release into the generated initramfs and
+requires an exact target-originated post-`insmod` record before the host NCM
+control window. It crosses the unresolved second and third fixed-rate clocks
+and returns before OF clock-provider publication and every provider/PHY
+boundary.
+
+That successor is Generation 44. Its clean kernel, initramfs, signed runtime
+bundle, and RAM-only wrapper twins are byte-identical. The QMP-UFS module
+returns immediately after `tx_symbol_0`; UFS core, platform, and host modules
+remain outside the automatic load path. The host accepts the post-module proof
+only on `169.254.77.1:8079`, from exact peer `169.254.77.2`, with the exact
+release/module/result record. It is an offline candidate until coherent local
+and exact-head CI pass.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1\n"
+        b"candidate=persistent-root-qmp-third-clock-runtime-pm-stage-v23\n"
+        b"manifest_sha256="
+        b"6d8195d2e384558b9ff79a42966fd6841837b38d4b41e83dd745bf554be14dc6\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1\n"

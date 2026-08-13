@@ -200,13 +200,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   UFS enumeration or storage access occurred. See the
   [live result](../test-results/2026-08-13-generation-42-qmp-first-clock-runtime-pm-live.md).
 
-- **Generation 43 is consumed and clears the second fixed-rate clock with the
-  generic CCF runtime-PM correction.** It reached stable target NCM in 60.264
-  seconds, preserved it for 12.014 seconds, and returned to exact Alpine. No
-  UFS enumeration or storage access occurred. The next discriminator is the
-  third fixed-rate `tx_symbol_0` clock, still before provider publication and
-  every PHY boundary. See the
+- **Generation 43 is consumed, but its second-clock proof is invalidated.** It
+  reached stable target NCM in 60.264 seconds, preserved it for 12.014 seconds,
+  and returned to exact Alpine, but its initramfs expected the Generation 42
+  kernel release and therefore stopped before loading the QMP-UFS module. No
+  UFS enumeration or storage access occurred. The successor binds the exact
+  release and requires a target-originated post-`insmod` record while crossing
+  both unresolved clocks before provider publication. See the corrected
   [live result](../test-results/2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).
+
+- **Generation 44 is the unbooted UFS critical-path successor.** Its generated
+  initramfs embeds exact release `7.1.4-gc732b0b41d8d` and sends an exact
+  target-originated record only after the deferred QMP-UFS module returns and
+  is present in `/proc/modules`. The SM8350-only diagnostic branch crosses the
+  unresolved second and third fixed-rate clocks, then returns before OF clock
+  provider publication, PHY creation, or provider registration. UFS core and
+  host remain unloaded, so this cycle still cannot enumerate or access phone
+  storage. See the
+  [offline checkpoint](../test-results/2026-08-13-generation-44-qmp-third-clock-runtime-pm-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

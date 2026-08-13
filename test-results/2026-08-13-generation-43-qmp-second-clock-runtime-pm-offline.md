@@ -37,7 +37,10 @@ took 1.133 and 1.163 seconds. AVB issuance took 2.000 seconds. All released
 twins are byte-identical. The raw recovery payload remains exact SHA-256
 `90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6`.
 
-Generation 43's exact clean-twin candidate was subsequently booted once. It
-completed the second fixed-rate clock, preserved stable NCM, and returned to
-exact Alpine without storage access. Its claim is irreversibly consumed; see
-the [live result](2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).
+Generation 43's exact clean-twin candidate was subsequently booted once. A
+post-cycle exact-input review found that the generated initramfs retained the
+Generation 42 kernel-release identity, so its release check stopped execution
+before the QMP-UFS module load. The cycle preserved stable NCM and returned to
+exact Alpine without storage access, but did not prove the second clock. Its
+claim is irreversibly consumed; see the corrected
+[live result](2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).

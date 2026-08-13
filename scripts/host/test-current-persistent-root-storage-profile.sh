@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1
-image_name=build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1/repack/stable-recovery-a.avb.img
-basis='one exact SM8350 QMP-UFS second fixed-rate clock registration with generic CCF runtime-PM correction; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 43 SM8350 QMP-UFS second fixed-rate clock discriminator; exact 4 MiB RMTFS/ramoops range is reserved; CCF resumes all runtime-PM clock providers outside prepare_lock while orphan reparenting runs; patched QMP module returns after the second clock registration but before the third clock, OF clock-provider publication, PHY creation, or provider registration; one RAM-only use only; never flash'
+profile=persistent-root-qmp-third-clock-runtime-pm-stage-v23-live-v1
+image_name=build/persistent-root-qmp-third-clock-runtime-pm-stage-v23-generation44-20260813-r1/repack/stable-recovery-a.avb.img
+basis='one exact SM8350 QMP-UFS second-and-third fixed-rate clock discriminator with exact target-originated post-insmod proof; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 44 SM8350 QMP-UFS second-and-third fixed-rate clock discriminator; exact kernel release is embedded and exact target-originated post-insmod proof is required; exact 4 MiB RMTFS/ramoops range is reserved; CCF resumes all runtime-PM clock providers outside prepare_lock while orphan reparenting runs; patched QMP module returns after the third clock but before OF clock-provider publication, PHY creation, or provider registration; UFS core and host remain unloaded; one RAM-only use only; never flash'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -34,13 +34,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=77eff28d60d6997a1f3ebfd641cfa458f6fdedbcc05feb49d003d6d4f7afe800 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-qmp-second-clock-runtime-pm-stage-v22 \
-	expected_bundle=persistent-root-qmp-second-clock-runtime-pm-stage-v22 \
+	expected_target_id=persistent-root-qmp-third-clock-runtime-pm-stage-v23 \
+	expected_bundle=persistent-root-qmp-third-clock-runtime-pm-stage-v23 \
 	expected_bundle_profile=persistent-root-ro-v1 \
-	expected_target_release=7.1.4-gad56d4021003 \
-	expected_avb_salt=1a081108245ba02632a2dbdabd4f7ff75f811f4a13e2ee91b32b2c7b3ad36c2b \
-	expected_avb_digest=ecbfb6fddfea40e8c8af9b0d9e27d56467b3d7c1edcfacc6c43ef6e2a0bad959 \
-	expected_generation_record=0b0832039db5d0fda9955fc99978b7fd197c2d481abaf09260eefef594060485 \
+	expected_target_release=7.1.4-gc732b0b41d8d \
+	expected_avb_salt=e9bf9a3b3723ea6d70365379f63533359eb780b880312b139fcdb3ac13428e44 \
+	expected_avb_digest=039f3d74802391e894d2c6e24bd7e0eab40880e4abc26d3b834e75ab1a9ab713 \
+	expected_generation_record=5bf1e8489b0fed50a091d950a2ec2d80b4684ff018e4a6d4a5ef36d2dd9fd55b \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -59,11 +59,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	505e2c0ec00f8b5582cb18e648674737667b7c8d7b9cc5638b6c89c34fad9ec0
+	2a8c210db1b846df4886c7803d337a4edf4fe1787537d1582529196a82734fd9
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	052d462cbd7820de331c446598f69224128eced8175665acd703428efb75b371
+	6d8195d2e384558b9ff79a42966fd6841837b38d4b41e83dd745bf554be14dc6
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-qmp-second-clock-runtime-pm-stage-v22
+	persistent-root-qmp-third-clock-runtime-pm-stage-v23
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -74,7 +74,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-qmp-second-clock-runtime-pm-stage-v22' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-qmp-third-clock-runtime-pm-stage-v23' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -84,7 +84,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-qmp-second-clock-runtime-pm-stage-v22'
+	'profile requires bundle=persistent-root-qmp-third-clock-runtime-pm-stage-v23'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -106,7 +106,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "505e2c0ec00f8b5582cb18e648674737667b7c8d7b9cc5638b6c89c34fad9ec0" &&
+	$3 == "2a8c210db1b846df4886c7803d337a4edf4fe1787537d1582529196a82734fd9" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -116,8 +116,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-production-20260813-r1
-generation_root=$repo/build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1
+production_root=$repo/build/persistent-root-qmp-third-clock-runtime-pm-stage-v23-production-20260813-r1
+generation_root=$repo/build/persistent-root-qmp-third-clock-runtime-pm-stage-v23-generation44-20260813-r1
 recovery_root=$repo/build/generation26-rmtfs-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -143,4 +143,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 43 QMP-UFS second fixed-rate clock runtime-PM profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 44 QMP-UFS second-and-third fixed-rate clock runtime-PM profile, exact claim, artifact, and admission are pinned'
