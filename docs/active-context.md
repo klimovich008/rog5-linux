@@ -304,6 +304,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   [live result](../test-results/2026-08-14-generation-53-local-image-live.md).
   Generation 53 is revoked and must never be retried or flashed.
 
+- **Generation 54 is the admitted fast-attestation successor.** It keeps the
+  exact Generation 53 kernel, DTB, read-only storage identities, mount
+  semantics, systemd/SSH policy, and rollback. Only the post-handoff storage
+  attestor changes: its 116-node sweep uses the retained static initramfs
+  BusyBox plus shell builtins instead of repeatedly starting dynamic Arch
+  helpers, and five uptime markers isolate any remaining delay. Clean target
+  twins, production-key signed bundle twins, native recovery verification,
+  deterministic AVB generation, exact claim registration, and focused
+  admission tests pass offline. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-54-fast-attestation-offline.md).
+  It is eligible for one temporary RAM-only cycle after exact-head CI; it has
+  not yet been booted and must never be flashed.
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at

@@ -8,6 +8,12 @@ fail() {
 	exit 1
 }
 
+progress() {
+	uptime=unknown
+	IFS=' ' read -r uptime _ </proc/uptime || true
+	echo "rog5-p2-attest: PROGRESS $* uptime=$uptime" >/dev/kmsg
+}
+
 expected_physical_count=116
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -18,6 +24,11 @@ lower=/.rog5/root-ro
 image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
 loop_record=/run/rog5-p2-root-loop-device
+runtime_busybox=/run/initramfs/bin/busybox
+
+[ -f "$runtime_busybox" ] && [ ! -L "$runtime_busybox" ] &&
+	[ -x "$runtime_busybox" ] || fail 'static runtime tool is absent'
+progress start
 
 [ -f "$userdata_record" ] && [ ! -L "$userdata_record" ] &&
 	[ "$(stat -c %a "$userdata_record")" = 444 ] ||
@@ -37,8 +48,9 @@ case $root_loop in /dev/loop[0-9]*) ;; *) fail 'resolved loop node is unsafe' ;;
 loop_name=${root_loop##*/}
 [ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name/loop" ] ||
 	fail 'resolved local-image loop disappeared'
-[ "$(blockdev --getro "$root_loop")" = 1 ] &&
-	[ "$(blockdev --getsize64 "$root_loop")" = "$expected_image_bytes" ] ||
+[ "$("$runtime_busybox" blockdev --getro "$root_loop")" = 1 ] &&
+	[ "$("$runtime_busybox" blockdev --getsize64 "$root_loop")" = \
+	"$expected_image_bytes" ] ||
 	fail 'local-image loop is not exact and read-only'
 [ -f "$image" ] && [ ! -L "$image" ] &&
 	[ "$(stat -c '%u:%g:%a:%s:%h' "$image")" = \
@@ -88,8 +100,8 @@ awk '$1 == "tmpfs" && $2 == "/.rog5/state" && $3 == "tmpfs" &&
 	fail 'overlay state is not writable tmpfs'
 
 block_mounts=0
-expected_device=$(cat "/sys/class/block/$userdata_name/dev")
-expected_loop=$(cat "/sys/class/block/$loop_name/dev")
+IFS= read -r expected_device <"/sys/class/block/$userdata_name/dev"
+IFS= read -r expected_loop <"/sys/class/block/$loop_name/dev"
 while read -r _ _ device _ mountpoint _ rest; do
 	[ -e "/sys/dev/block/$device" ] || continue
 	block_mounts=$((block_mounts + 1))
@@ -105,27 +117,31 @@ while read -r _ _ device _ mountpoint _ rest; do
 done </proc/self/mountinfo
 [ "$block_mounts" -eq 2 ] ||
 	fail 'physical block-backed mount count changed'
+progress mounts-pass
 
 physical_count=0
 for sys_disk in /sys/class/block/*; do
 	[ -e "$sys_disk/device" ] || continue
 	[ ! -e "$sys_disk/partition" ] || continue
-	disk=$(basename "$sys_disk")
+	disk=${sys_disk##*/}
 	for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 		[ -e "$sys_block/dev" ] || continue
 		[ "$sys_block" = "$sys_disk" ] ||
 			[ -e "$sys_block/partition" ] || continue
-		device=/dev/$(basename "$sys_block")
+		device=/dev/${sys_block##*/}
 		[ -b "$device" ] || fail "missing block node: $device"
-		[ "$(cat "$sys_block/ro")" = 1 ] ||
+		IFS= read -r readonly <"$sys_block/ro" ||
+			fail "unreadable sysfs block state: $device"
+		[ "$readonly" = 1 ] ||
 			fail "writable sysfs block state: $device"
-		[ "$(blockdev --getro "$device")" = 1 ] ||
+		[ "$("$runtime_busybox" blockdev --getro "$device")" = 1 ] ||
 			fail "writable block ioctl state: $device"
 		physical_count=$((physical_count + 1))
 	done
 done
 [ "$physical_count" -eq "$expected_physical_count" ] ||
 	fail 'physical topology count changed'
+progress physical-readonly-pass
 
 blocked_query_count=$(dmesg |
 	grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
@@ -145,6 +161,7 @@ ufs_error_count=$(dmesg |
 	fail 'ext4 journal recovery appeared'
 [ "$ufs_error_count" -eq 0 ] ||
 	fail 'UFS or SCSI error appeared'
+progress ufs-health-pass
 
 ip -o -4 address show dev usb0 |
 	grep -Fq '169.254.77.2/30' ||
@@ -160,6 +177,7 @@ sshd -T | grep -Fqx 'pubkeyauthentication yes' ||
 [ -s /etc/ssh/ssh_host_ed25519_key ] &&
 	[ "$(stat -c %a /etc/ssh/ssh_host_ed25519_key)" = 600 ] ||
 	fail 'volatile SSH host identity is absent'
+progress ssh-policy-pass
 
 backlight_count=0
 for brightness in /sys/class/backlight/*/brightness; do
