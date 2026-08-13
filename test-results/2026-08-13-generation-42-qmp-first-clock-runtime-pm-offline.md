@@ -1,6 +1,6 @@
 # Generation 42 QMP-UFS first-clock runtime-PM offline checkpoint
 
-Status: **offline clean twins passed; unbooted; no phone-storage access**.
+Status: **historical offline checkpoint; live cycle consumed; no phone-storage access**.
 
 Generation 41 proved clock-data allocation and construction of the dynamic
 `rx_symbol_0` name while preserving target NCM. Generation 42 addresses the
@@ -42,6 +42,7 @@ generation took 1.801 seconds and preserved the exact stable-recovery raw
 payload SHA-256
 `90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6`.
 
-This checkpoint does not claim that CCF caused the Generation 39 loss. One
-RAM-only physical cycle is required to test that hypothesis. Generation 42
-remains single-use and must never be flashed.
+The sole RAM-only physical cycle subsequently crossed the first fixed-rate
+clock registration while preserving NCM and exact Alpine fallback. See the
+[live result](2026-08-13-generation-42-qmp-first-clock-runtime-pm-live.md).
+Generation 42 is consumed and must never be retried or flashed.
