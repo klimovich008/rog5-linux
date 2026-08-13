@@ -261,11 +261,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   unknown and empty pstore is inconclusive. Never retry Generation 50. See the
   [live result](../test-results/2026-08-13-generation-50-ufs-local-root-live.md).
 
-- **Generation 51 is the unbooted read-only stage successor.** It keeps the
-  same kernel, DTB, UFS modules, storage locks, and local-root path, and adds a
-  fixed outbound-only volatile heartbeat that identifies each mount, seal,
-  overlay, runtime, and switch-root boundary while the host waits for strict
-  SSH. It contains no phone-storage write or inbound command surface.
+- **Generation 51 is consumed and isolates the local-root delay.** Mainline
+  reached exact UFS readiness, dynamically resolved userdata, mounted it
+  `ro,noload`, and entered root verification while NCM remained stable. The
+  complete 181,242-entry, 5,594,331,332-byte rehash did not finish before the
+  600-second rollback. Exact Alpine fallback returned. Never retry Generation
+  51. See the [live result](../test-results/2026-08-13-generation-51-local-root-stage-live.md).
+
+- **Generation 52 is the unbooted fast-admission successor.** It changes no
+  kernel, DTB, UFS module, storage lock, mount, overlay, SSH, or rollback
+  behavior. It replaces only the every-boot recursive tree rehash with exact
+  owner, mode, size, link, content, and configuration checks for the existing
+  seal, systemd, sshd, authorized key, and SSH policy. The outer userdata
+  filesystem remains `ro,noload`; full-tree integrity remains a staging audit
+  until the bounded local image can use a scalable integrity mechanism.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

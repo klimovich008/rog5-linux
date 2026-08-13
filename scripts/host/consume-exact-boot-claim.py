@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "persistent-root-ufs-fast-admission-v31-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-root-ufs-fast-admission-v31-live-v1\n"
+        b"candidate=persistent-root-ufs-fast-admission-v31\n"
+        b"manifest_sha256="
+        b"3cee4b788a2005e90b4c901955a3b1df392cad8b332ea7252580fe1621af1f89\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-ufs-local-root-stage-v30-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-ufs-local-root-stage-v30-live-v1\n"

@@ -11,6 +11,7 @@ attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown
 expected_base=819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5
 expected_current_base=908f18f752962fae798249060aa8ee4c45673d8795571fbb8883ac4ed8d9e19e
+expected_stage_base=2f8fb42078cc9c827953cd0ad5a67042aae8a8989f60b4056319c25f3dccc280
 expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 epoch=1681862400
@@ -33,7 +34,7 @@ done
 }
 base_sha256=$(sha256sum "$base" | cut -d ' ' -f 1)
 case $base_sha256 in
-	"$expected_base"|"$expected_current_base") ;;
+	"$expected_base"|"$expected_current_base"|"$expected_stage_base") ;;
 	*)
 		echo 'FAIL accepted persistent-root initramfs base hash changed' >&2
 		exit 1

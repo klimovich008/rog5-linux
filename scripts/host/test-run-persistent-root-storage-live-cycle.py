@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-ufs-local-root-stage-v30-live-v1",
+            "persistent-root-ufs-fast-admission-v31-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-ufs-local-root-stage-v30",
+            "persistent-root-ufs-fast-admission-v31",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,

@@ -409,10 +409,20 @@ byte-identical clean-twin kernel, DTB, and modules and held stable target NCM
 for approximately 599 seconds, but strict SSH never appeared before bounded
 rollback returned exact Alpine. Because Generation 50 had no local-root stage
 telemetry, its earliest failure is unknown; it is consumed and must never be
-retried. Generation 51 is the current unbooted hardware gate. It retains the
-same read-only storage path and adds only fixed outbound volatile stage
-heartbeats while the host waits for strict SSH. It has no persistent-write
-path or inbound target command channel.
+retried. Generation 51 then proved exact UFS readiness, dynamic userdata
+resolution, and the `ro,noload` userdata mount. Its final record was the
+`root-verify` entry boundary; the complete 181,242-entry,
+5,594,331,332-byte rehash exceeded the 600-second rollback window while NCM
+remained stable. Exact Alpine fallback returned, so Generation 51 is consumed
+and must never be retried.
+
+Generation 52 is the current unbooted hardware gate. It preserves the exact
+read-only storage and rollback path but replaces the every-boot recursive hash
+with fixed checks of the previously created seal and the files required to
+reach strict SSH: systemd, sshd, the authorized key, and SSH policy. These
+checks bind owner, group, mode, size, link shape, content hash, and required
+configuration. This is a boot-time admission optimization, not complete
+ongoing filesystem integrity; the full verifier remains a staging/audit tool.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
@@ -420,7 +430,7 @@ must:
 1. force every physical block node read-only;
 2. locate exactly one `userdata` partition by the measured contract;
 3. mount it `ro,noload`;
-4. verify the selected Arch tree and boot-candidate seals;
+4. verify the selected Arch seal and exact boot-critical identities;
 5. use that tree only as an OverlayFS lower with tmpfs upper/work;
 6. boot systemd and strict SSH with screen off;
 7. report zero blocked UFS command, error-handler, journal-replay, physical

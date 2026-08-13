@@ -40,6 +40,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             )
         )
         cls.rendezvous = function(cls.source, "wait_for_deferred_ufs_rendezvous")
+        cls.exact_regular = function(cls.source, "verify_exact_regular")
 
     def add_disk(
         self,
@@ -182,6 +183,14 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertNotIn("userdata=/dev/sda23", self.source)
         self.assertNotIn("[ \"$found\" = sda23 ]", self.source)
         self.assertGreaterEqual(self.source.count("expected_udc_is_bound"), 3)
+        self.assertIn(
+            "PASS previously sealed root matches exact boot-critical identities",
+            attest,
+        )
+        self.assertNotIn(
+            "PASS persistent root matches anchored seal entries=181242",
+            attest,
+        )
 
     def test_usb_observability_precedes_target_identity_and_ufs(self) -> None:
         watchdog = self.source.index("\narm_watchdog\n")
@@ -301,6 +310,66 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn('mount -t ext4 -o ro,noload "$userdata" /mnt/userdata', mount_function)
         self.assertIn("verify_only_userdata_mount", mount_function)
         self.assertIn("verify_physical_storage_read_only", mount_function)
+
+    def test_boot_verification_is_bounded_to_exact_critical_files(self) -> None:
+        verifier = function(self.source, "verify_persistent_root")
+        self.assertNotIn("persistent-root-verify", verifier)
+        self.assertNotIn("find ", verifier)
+        self.assertNotIn("for ", verifier)
+        for identity in (
+            ".rog5-persistent-seal",
+            "usr/lib/systemd/systemd",
+            "usr/bin/sshd",
+            "root/.ssh/authorized_keys",
+            "etc/ssh/sshd_config.d/10-rog5-server.conf",
+        ):
+            self.assertIn(identity, verifier)
+
+    def test_exact_regular_rejects_content_metadata_and_links(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "critical"
+            path.write_bytes(b"critical\n")
+            path.chmod(0o600)
+            script = (
+                "set -u\n"
+                + self.exact_regular
+                + '\nverify_exact_regular "$1" "$(id -u)" "$(id -g)" 600 9 '
+                + "f8fe9deaf27e9f2bf3ab8d995936047da665b94e17170807ea0d77bc130816d0\n"
+            )
+            pristine = subprocess.run(
+                ["sh", "-c", script, "sh", str(path)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(pristine.returncode, 0, pristine.stderr)
+
+            path.write_bytes(b"mutation\n")
+            self.assertNotEqual(
+                subprocess.run(
+                    ["sh", "-c", script, "sh", str(path)],
+                    check=False,
+                ).returncode,
+                0,
+            )
+            path.write_bytes(b"critical\n")
+            path.chmod(0o644)
+            self.assertNotEqual(
+                subprocess.run(
+                    ["sh", "-c", script, "sh", str(path)],
+                    check=False,
+                ).returncode,
+                0,
+            )
+            path.unlink()
+            path.symlink_to("elsewhere")
+            self.assertNotEqual(
+                subprocess.run(
+                    ["sh", "-c", script, "sh", str(path)],
+                    check=False,
+                ).returncode,
+                0,
+            )
 
     def test_local_root_stages_are_fixed_receive_only_heartbeats(self) -> None:
         reporter = function(self.source, "start_stage_reporter")
