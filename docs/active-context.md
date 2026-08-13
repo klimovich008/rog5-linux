@@ -287,11 +287,14 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   seven-mount handoff now fails closed and rolls back. See the
   [offline result](../test-results/2026-08-13-local-image-v32-offline.md).
   Production-key signed bundle twins and an authority-free Generation 53 AVB
-  wrapper now reproduce offline; neither is present in temporary boot policy.
-  See the
-  [candidate checkpoint](../test-results/2026-08-13-generation-53-local-image-offline.md).
-  Phone staging is paused at the exact recoverable cleanup recorded in the
-  [staging note](../test-results/2026-08-13-local-image-staging-paused.md).
+  wrapper reproduce offline. The exact unexpected `/root/usr` subtree was
+  revalidated and removed path-by-path, then the bounded 16 GiB image was
+  staged in 34.718 seconds. A second full hash, read-only `e2fsck`, `ro,noload`
+  loop mount, complete seal verification, and residue check passed. See the
+  [candidate checkpoint](../test-results/2026-08-13-generation-53-local-image-offline.md)
+  and [phone staging result](../test-results/2026-08-13-generation-53-local-image-staged.md).
+  Generation 53 is the new one-use RAM-only local-image admission; it is not
+  yet claimed or booted and must never be flashed or retried after entry.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

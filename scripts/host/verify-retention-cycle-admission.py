@@ -498,6 +498,14 @@ EXPECTED_CLAIMS["persistent-root-ufs-fast-admission-v31-live-v1"] = (
     "3cee4b788a2005e90b4c901955a3b1df392cad8b332ea7252580fe1621af1f89\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-local-image-v32-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-v32-live-v1\n"
+    "candidate=persistent-root-local-image-v32\n"
+    "manifest_sha256="
+    "ae1069eb2f85e1b93c24f831e440a54303ca80934864f7fca07afcf34adfaca1\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -628,7 +636,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "502b05185628c6840173e0041463e957fe897d376c29bc992d5fdb9f8dfa941a",
+    "sha256": "9f01a6a1ddacc02fe49831b234d189837bc1deb5a41522003d8301b2c8046536",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -656,7 +664,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "502b05185628c6840173e0041463e957fe897d376c29bc992d5fdb9f8dfa941a",
+    "executor_contract_sha256": "9f01a6a1ddacc02fe49831b234d189837bc1deb5a41522003d8301b2c8046536",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2397,14 +2405,13 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-ufs-fast-admission-v31-generation52-20260813-r1/"
+            "build/persistent-root-local-image-v32-generation53-20260813-r1/"
             "repack/stable-recovery-a.avb.img",
-            "one exact read-only SM8350 UFS local-root boot with bounded "
-            "boot-critical identity admission, runtime block locks, exact "
-            "userdata ro,noload mount, tmpfs OverlayFS, systemd, key-only SSH, "
-            "receive-only stage heartbeats, and bounded rollback; "
-            "RAM-only; externally consumed exact claim required; never flash "
-            "or retry after entry",
+            "one exact read-only SM8350 UFS local-image Arch boot with exact "
+            "userdata and image identities, two ro,noload ext4 mounts, tmpfs "
+            "OverlayFS, systemd, key-only SSH, receive-only stage records, and "
+            "bounded rollback; RAM-only kernel/recovery; externally consumed "
+            "exact claim required; never flash or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):
