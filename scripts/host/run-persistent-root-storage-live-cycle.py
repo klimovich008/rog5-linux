@@ -36,13 +36,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-qmp-first-clock-runtime-pm-stage-v21-live-v1"
-BUNDLE = "persistent-root-qmp-first-clock-runtime-pm-stage-v21"
+PROFILE_ID = "persistent-root-qmp-second-clock-runtime-pm-stage-v22-live-v1"
+BUNDLE = "persistent-root-qmp-second-clock-runtime-pm-stage-v22"
 MANIFEST_SHA256 = (
-    "782756493f38d5ea9a634678043214926e9b49ef1ca01ce35e9e41e37169fd4b"
+    "052d462cbd7820de331c446598f69224128eced8175665acd703428efb75b371"
 )
 RECOVERY_SHA256 = (
-    "1b0ec7c7c9b9abb1cbf71c252292203869e853717f4a41cfbc3a03936b5597a1"
+    "505e2c0ec00f8b5582cb18e648674737667b7c8d7b9cc5638b6c89c34fad9ec0"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -50,14 +50,14 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gcdf38b1ddebb"
+TARGET_RELEASE = "7.1.4-gad56d4021003"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-qmp-first-clock-runtime-pm-stage-v21-generation42-20260813-r1"
+    / "build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation26-rmtfs-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -76,10 +76,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
+    admission_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
-    build_profile="persistent-root-qmp-first-clock-runtime-pm-stage-v21",
+    runtime_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
+    build_profile="persistent-root-qmp-second-clock-runtime-pm-stage-v22",
     diagnostic=False,
 )
 

@@ -362,15 +362,20 @@ This clears name construction and isolates the earliest remaining boundary to
 the first common-clock registration. Generation 41 is consumed and must never
 be retried.
 
-Generation 42 applies a generic CCF runtime-PM correction before crossing that
-boundary. Clock registration and OF provider publication now resume every
+Generation 42 applied the generic CCF runtime-PM correction before crossing
+that boundary. Clock registration and OF provider publication now resume every
 registered runtime-PM clock provider outside `prepare_lock`, run orphan
 reparenting with balanced references, and release those references after
-unlocking. Its SM8350-only diagnostic branch returns after exactly the first
-fixed-rate clock registration, before the second and third clocks, OF provider
-publication, PHY creation, or provider registration. The exact 4 MiB RMTFS
-reservation remains restored. UFS core, platform, and host modules remain
-absent, so the cycle cannot enumerate or access storage.
+unlocking. Its sole live cycle completed exactly the first fixed-rate clock
+registration, preserved stable NCM, and returned to exact Alpine. Generation
+42 is consumed and must never be retried.
+
+Generation 43 retains the same correction and advances the SM8350-only branch
+through the second fixed-rate clock registration, then returns before the
+third clock, OF clock-provider publication, PHY creation, or provider
+registration. The exact 4 MiB RMTFS reservation remains restored. UFS core,
+platform, and host modules remain absent, so this cycle cannot enumerate or
+access storage.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:
