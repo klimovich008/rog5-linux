@@ -1,6 +1,6 @@
 # Generation 43 QMP-UFS second-clock runtime-PM offline checkpoint
 
-Status: **offline clean twins passed; unbooted; no phone-storage access**.
+Status: **historical offline checkpoint; live cycle consumed; never retry or flash**.
 
 Generation 42 proved the first fixed-rate QMP-UFS symbol-clock registration
 with the generic CCF runtime-PM correction. Generation 43 preserves that
@@ -37,5 +37,7 @@ took 1.133 and 1.163 seconds. AVB issuance took 2.000 seconds. All released
 twins are byte-identical. The raw recovery payload remains exact SHA-256
 `90c61adbbe9792efd71c19e12ea8f3caa1a9e1469b1fba44e5ef2a687b85daa6`.
 
-Generation 43 is a single-use RAM-only discriminator and must never be flashed
-or retried after claim entry.
+Generation 43's exact clean-twin candidate was subsequently booted once. It
+completed the second fixed-rate clock, preserved stable NCM, and returned to
+exact Alpine without storage access. Its claim is irreversibly consumed; see
+the [live result](2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).
