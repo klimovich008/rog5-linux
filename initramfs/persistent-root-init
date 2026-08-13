@@ -542,26 +542,52 @@ verify_ufs_health() {
 		[ "$ufs_error_count" -eq 0 ]
 }
 
+verify_exact_regular() {
+	path=$1
+	owner=$2
+	group=$3
+	mode=$4
+	size=$5
+	hash=$6
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = \
+		"$owner:$group:$mode:$size:1" ] || return 1
+	[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$hash" ]
+}
+
 verify_persistent_root() {
 	root=/mnt/userdata/rog5/roots/arch-a
 	seal=$root/.rog5-persistent-seal
-	[ -f "$seal" ] && [ ! -L "$seal" ] &&
-		[ "$(stat -c %a "$seal")" = 444 ] || return 1
-	[ "$(sha256sum "$seal" | cut -d ' ' -f 1)" = \
-		"$expected_seal_sha256" ] || return 1
-	/usr/local/sbin/persistent-root-verify \
-		"$root" "$seal" "$expected_seal_sha256" \
-		>/run/rog5-p2-root-verification.txt || return 1
-	grep -Fxq \
-		"PASS persistent root matches anchored seal entries=181242 tree_sha256=$expected_tree_sha256" \
-		/run/rog5-p2-root-verification.txt || return 1
+	verify_exact_regular "$seal" 0 0 444 435 "$expected_seal_sha256" ||
+		return 1
+	[ "$(wc -l <"$seal")" -eq 13 ] || return 1
+	grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" || return 1
+	grep -Fxq 'generation=arch-a' "$seal" || return 1
+	grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
+	grep -Fxq 'tree_entries=181242' "$seal" || return 1
+	grep -Fxq "tree_sha256=$expected_tree_sha256" "$seal" || return 1
+
+	[ -L "$root/sbin/init" ] &&
+		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] ||
+		return 1
+	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 200904 \
+		9b86f7c8cbadc9f8586128b49c15d14b2a37783bafc7dc5716bd5dd17c1eb271 ||
+		return 1
+	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 658112 \
+		76c6ed96a30da9801f763f50a17ab0a11854f013b958ddb410faa3ec15e741c5 ||
+		return 1
 
 	authorized=$root/root/.ssh/authorized_keys
-	[ -f "$authorized" ] && [ ! -L "$authorized" ] &&
-		[ "$(stat -c %a "$authorized")" = 600 ] || return 1
+	verify_exact_regular "$authorized" 0 0 600 102 \
+		e07317bd058a219160d2d98a143cf40f69272621890184967e3cdf8f0a5e6905 ||
+		return 1
 	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
 		"$authorized" || return 1
 	awk 'NF { count++ } END { exit count != 1 }' "$authorized" ||
+		return 1
+	verify_exact_regular \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" 0 0 644 155 \
+		2130cfd46966075ec8e8137cab3da9c2d7a2a728a69e28f54dadb518a35247c8 ||
 		return 1
 	grep -Fqx 'PasswordAuthentication no' \
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
@@ -569,6 +595,9 @@ verify_persistent_root() {
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
 	grep -Fqx 'PubkeyAuthentication yes' \
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	printf '%s\n' \
+		'PASS previously sealed root matches exact boot-critical identities' \
+		>/run/rog5-p2-root-verification.txt || return 1
 	return 0
 }
 

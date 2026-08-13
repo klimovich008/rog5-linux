@@ -65,7 +65,10 @@ grep -Fq 'select_expected_udc' "$init"
 ! grep -Fq '*a600000*' "$init"
 grep -Fq 'lowerdir=/mnt/userdata/rog5/roots/arch-a' "$init"
 grep -Fq 'upperdir=/mnt/state/upper,workdir=/mnt/state/work' "$init"
-grep -Fq '/usr/local/sbin/persistent-root-verify' "$init"
+! grep -Fq '/usr/local/sbin/persistent-root-verify' "$init"
+grep -Fq \
+	'PASS previously sealed root matches exact boot-critical identities' \
+	"$init" "$attest"
 grep -Fq 'mount --move /mnt/userdata /newroot/.rog5/userdata-ro' "$init"
 grep -Fq 'mount --move /mnt/state /newroot/.rog5/state' "$init"
 grep -Fq 'exec switch_root /newroot /sbin/init' "$init"

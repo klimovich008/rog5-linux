@@ -1,6 +1,6 @@
 # Generation 51 local-root stage checkpoint
 
-Status: **unbooted RAM-only candidate; read-only storage only; never flash**.
+Status: **offline checkpoint superseded by the sole consumed live cycle; never retry or flash**.
 
 Generation 51 preserves Generation 50's exact Linux Image, DTB, four deferred
 UFS modules, physical read-only locks, exact userdata `ro,noload` mount,
@@ -22,3 +22,6 @@ The initramfs twins built in 1.111 and 1.126 seconds; deterministic AVB
 generation took 1.836 seconds. Focused target, runner, claim, current-profile,
 admission, and stable-gate tests pass. This checkpoint authorizes no flash or
 persistent phone write.
+
+The later sole live cycle is recorded separately in
+[Generation 51 local-root stage live result](2026-08-13-generation-51-local-root-stage-live.md).

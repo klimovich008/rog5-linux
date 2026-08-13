@@ -11,10 +11,10 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-ufs-local-root-stage-v30-live-v1
-image_name=build/persistent-root-ufs-local-root-stage-v30-generation51-20260813-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS local-root stage-discrimination boot with bounded recovery transfer, runtime block locks, exact userdata ro,noload mount, sealed root verification, tmpfs OverlayFS, systemd, key-only SSH, and receive-only volatile stage heartbeats; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 51 read-only local-root stage discriminator; exact UFS lock and userdata identity, ro,noload outer mount, complete sealed-tree verification, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, receive-only volatile stage heartbeats, and one RAM-only use only; never flash'
+profile=persistent-root-ufs-fast-admission-v31-live-v1
+image_name=build/persistent-root-ufs-fast-admission-v31-generation52-20260813-r1/repack/stable-recovery-a.avb.img
+basis='one exact read-only SM8350 UFS local-root boot with bounded boot-critical identity admission, runtime block locks, exact userdata ro,noload mount, tmpfs OverlayFS, systemd, key-only SSH, receive-only stage heartbeats, and bounded rollback; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 52 read-only local-root fast-admission successor; exact UFS lock and userdata identity, ro,noload outer mount, prior full seal plus exact boot-critical identity admission, tmpfs OverlayFS, systemd, key-only SSH, bounded rollback, receive-only stage heartbeats, and one RAM-only use only; never flash'
 [[ $role == unbooted\ * ]] ||
 	fail 'current persistent-root artifact role must remain live-gate eligible'
 tmp=$(mktemp -d)
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-ufs-local-root-stage-v30 \
-	expected_bundle=persistent-root-ufs-local-root-stage-v30 \
+	expected_target_id=persistent-root-ufs-fast-admission-v31 \
+	expected_bundle=persistent-root-ufs-fast-admission-v31 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=aa854eb8fbe8aea885c9b1360a7ec3b9d57a2e31af3b78c8733cc8e0449164fb \
-	expected_avb_digest=70c39f67b952e24a7cb4efb34e41ae58ae507d38ca936f974cbe40669e798bd2 \
-	expected_generation_record=6c266ffda3bb2f18e308d74ef7a737b3ac1f1bd309abb93b478c365db4f46260 \
+	expected_avb_salt=ce6211048c1822c1ebc20988a1d5c88d531de48add1ed161c3353d96bd9b7645 \
+	expected_avb_digest=c4d857e2f21769d2ecc2a483f2261302c34901a04e86229794492487b791888a \
+	expected_generation_record=0dd094c5119c4317e0057cba97418c43d994f760a7e983f273cf09f3c0f15a31 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	3fbcf296b054460a4a5a48092e55e4df080c6e308430177cf999d42ff6ef39cc
+	0d0683e3404e890522630808700e6915eb86d83fd3d8ddc8fc5ed716a7e9303f
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	53afa65bb7134e7d5acccc2126aa8764fd3918c7cab02c61417f4be1572aad27
+	3cee4b788a2005e90b4c901955a3b1df392cad8b332ea7252580fe1621af1f89
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-ufs-local-root-stage-v30
+	persistent-root-ufs-fast-admission-v31
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-ufs-local-root-stage-v30' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-ufs-fast-admission-v31' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-ufs-local-root-stage-v30'
+	'profile requires bundle=persistent-root-ufs-fast-admission-v31'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -108,7 +108,7 @@ awk -F '\t' -v name="$image_name" -v basis="$basis" '
 ' "$boot_policy" || fail 'persistent-root image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "3fbcf296b054460a4a5a48092e55e4df080c6e308430177cf999d42ff6ef39cc" &&
+	$3 == "0d0683e3404e890522630808700e6915eb86d83fd3d8ddc8fc5ed716a7e9303f" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-ufs-local-root-stage-v30-production-20260813-r1
-generation_root=$repo/build/persistent-root-ufs-local-root-stage-v30-generation51-20260813-r1
+production_root=$repo/build/persistent-root-ufs-fast-admission-v31-production-20260813-r1
+generation_root=$repo/build/persistent-root-ufs-fast-admission-v31-generation52-20260813-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 51 read-only local-root stage profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 52 read-only local-root fast-admission profile, exact claim, artifact, and admission are pinned'
