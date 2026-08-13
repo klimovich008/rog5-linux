@@ -436,6 +436,7 @@ class InitPolicyTest(unittest.TestCase):
                 macro(control, control_name),
             )
         self.assertEqual(macro(fetch, "FETCH_TIMEOUT_MS"), 180000)
+        self.assertEqual(macro(fetch, "CONNECT_TIMEOUT_MS"), 15000)
         self.assertEqual(macro(control, "FETCH_TIMEOUT_MS"), 190000)
 
     def test_recovery_snapshots_pstore_without_clearing_it(self) -> None:

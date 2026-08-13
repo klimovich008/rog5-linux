@@ -64,6 +64,7 @@ class ControllerFixture:
         self.pid = self.root / "server.pid"
         self.progress_pid = self.root / "progress.pid"
         self.progress_ss_count = self.root / "progress-ss.count"
+        self.ping_count = self.root / "ping.count"
         self.progress_eof = self.root / "progress.eof"
         self.progress_output = self.root / "progress-output"
         self.progress_output.mkdir(mode=0o700)
@@ -268,6 +269,22 @@ esac
 """,
         )
         self.write_executable(
+            "ping",
+            """#!/bin/sh
+printf 'ping %s\n' "$*" >>"$MOCK_CALLS"
+if [ "${MOCK_PING_SLEEP:-0}" != 0 ]; then
+  sleep "$MOCK_PING_SLEEP"
+fi
+count=0
+if [ -f "$MOCK_PING_COUNT" ]; then
+  count=$(sed -n '1p' "$MOCK_PING_COUNT")
+fi
+count=$((count + 1))
+printf '%s\n' "$count" >"$MOCK_PING_COUNT"
+[ "$count" -gt "${MOCK_PING_FAILS:-0}" ]
+""",
+        )
+        self.write_executable(
             "ss",
             """#!/bin/sh
 printf 'ss %s\n' "$*" >>"$MOCK_CALLS"
@@ -423,6 +440,7 @@ exec "$@"
                 "MOCK_SERVER_PID": str(self.pid),
                 "MOCK_PROGRESS_PID": str(self.progress_pid),
                 "MOCK_PROGRESS_SS_COUNT": str(self.progress_ss_count),
+                "MOCK_PING_COUNT": str(self.ping_count),
                 "MOCK_CONNECTION_STATE": str(self.connection_state),
                 "MOCK_AUTOCONNECT_STATE": str(self.autoconnect_state),
                 "MOCK_MANAGED_STATE": str(self.managed_state),
@@ -595,6 +613,7 @@ class RecoveryHostControllerTest(unittest.TestCase):
             MANIFEST_HASH,
             str(self.fixture.progress_output),
             MOCK_PROGRESS_NO_LISTENER="1",
+            MOCK_SERVER_SLEEP="3",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("progress listener unavailable", result.stdout)
@@ -615,6 +634,7 @@ class RecoveryHostControllerTest(unittest.TestCase):
             MANIFEST_HASH,
             str(self.fixture.progress_output),
             MOCK_PROGRESS_LISTENER_DELAY_CALLS="3",
+            MOCK_SERVER_SLEEP="1",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("progress listener ready", result.stdout)
@@ -1012,6 +1032,62 @@ class RecoveryHostControllerTest(unittest.TestCase):
         calls = self.fixture.call_log()
         self.assertNotIn("--zone=drop --remove-forward", calls)
         self.assertNotIn("--zone=drop --add-forward", calls)
+
+    def test_server_ready_requires_bounded_exact_peer_reachability(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_PING_FAILS="2",
+            MOCK_SERVER_SLEEP="2",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "PASS exact recovery NCM peer reachable at "
+            "169.254.77.2 via usbtest0",
+            result.stdout,
+        )
+        self.assertEqual(
+            self.fixture.ping_count.read_text(encoding="ascii"),
+            "3\n",
+        )
+        self.assertIn(
+            "ping -4 -n -c 1 -W 1 -I usbtest0 169.254.77.2",
+            self.fixture.call_log(),
+        )
+
+    def test_unreachable_peer_fails_before_server_ready_and_cleans(self):
+        started = time.monotonic()
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_PING_FAILS="9",
+            MOCK_SERVER_SLEEP="2",
+        )
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "recovery NCM peer did not answer the bounded exact-link probe",
+            result.stderr,
+        )
+        self.assertNotIn("recovery bundle server ready", result.stdout)
+        self.assertIn("recovery bundle host network state removed", result.stdout)
+        self.assertLess(elapsed, 2.0)
+
+    def test_server_exit_during_peer_probe_is_classified_exactly(self):
+        result = self.fixture.run(
+            BUNDLE,
+            MANIFEST_HASH,
+            MOCK_PING_FAILS="9",
+            MOCK_PING_SLEEP="0.1",
+            MOCK_SERVER_SLEEP="0.05",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "recovery bundle server exited before the peer probe completed",
+            result.stderr,
+        )
+        self.assertNotIn("peer did not answer", result.stderr)
+        self.assertIn("recovery bundle host network state removed", result.stdout)
 
     def test_legacy_networkmanager_managed_field_is_supported(self):
         result = self.fixture.run(

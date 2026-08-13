@@ -6,12 +6,14 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
+import select
 import signal
 import socket
 import stat
 import struct
 import subprocess
 import sys
+import threading
 import time
 
 
@@ -33,6 +35,7 @@ BOOT_ID = re.compile(
     r"[0-9a-f]{4}-[0-9a-f]{12}"
 )
 CONTACT_START_MAX_AGE_SECONDS = 3600
+PEER_CANCEL_GRACE_SECONDS = 3
 ANCHOR_FIELDS = (
     "format",
     "host_boot_id",
@@ -506,6 +509,7 @@ def execute(
     channel: socket.socket,
     argv: list[str],
     operator_uid: int,
+    peer_pidfd: int,
     *,
     offline: bool,
 ) -> int:
@@ -530,6 +534,8 @@ def execute(
     )
     child: subprocess.Popen[bytes] | None = None
     pending_signals: list[int] = []
+    peer_monitor: threading.Thread | None = None
+    stop_peer_monitor = threading.Event()
 
     def forward(signum: int, _frame: object) -> None:
         if child is None:
@@ -571,6 +577,25 @@ def execute(
         raise
     for signum in pending_signals:
         forward(signum, None)
+
+    def watch_peer() -> None:
+        poller = select.poll()
+        poller.register(peer_pidfd, select.POLLIN)
+        while not stop_peer_monitor.is_set():
+            if poller.poll(100):
+                forward(signal.SIGTERM, None)
+                if not stop_peer_monitor.wait(
+                    PEER_CANCEL_GRACE_SECONDS
+                ):
+                    forward(signal.SIGKILL, None)
+                return
+
+    peer_monitor = threading.Thread(
+        target=watch_peer,
+        name="rog5-host-control-peer",
+        daemon=True,
+    )
+    peer_monitor.start()
     try:
         assert child.stdout is not None
         with child.stdout:
@@ -603,6 +628,9 @@ def execute(
             child.wait()
         raise
     finally:
+        stop_peer_monitor.set()
+        if peer_monitor is not None:
+            peer_monitor.join()
         signal.pthread_sigmask(signal.SIG_BLOCK, managed_signals)
         for signum, handler in previous.items():
             signal.signal(signum, handler)
@@ -615,6 +643,7 @@ def execute(
 def run() -> int:
     channel = socket.socket(fileno=os.dup(0))
     authorized = False
+    peer_pidfd = -1
     try:
         (
             operator_uid,
@@ -634,6 +663,12 @@ def run() -> int:
                 pass
             fail("host-control socket peer is not the configured operator")
         authorized = True
+        try:
+            peer_pidfd = os.pidfd_open(peer_pid)
+        except OSError as error:
+            raise BrokerError(
+                "cannot pin the host-control client process"
+            ) from error
         arguments = read_request(channel)
         verify_executable_hashes(
             controller,
@@ -667,7 +702,13 @@ def run() -> int:
                 peer_gid,
                 offline=offline,
             )
-            status = execute(channel, argv, operator_uid, offline=offline)
+            status = execute(
+                channel,
+                argv,
+                operator_uid,
+                peer_pidfd,
+                offline=offline,
+            )
         send(channel, STATUS_PREFIX + str(status).encode("ascii") + b"\n")
         return 0
     except (BrokerError, KeyError, OSError, UnicodeError) as error:
@@ -682,6 +723,8 @@ def run() -> int:
                 pass
         return 1
     finally:
+        if peer_pidfd >= 0:
+            os.close(peer_pidfd)
         channel.close()
 
 

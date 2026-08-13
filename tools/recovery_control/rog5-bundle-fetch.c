@@ -101,6 +101,7 @@ _Static_assert(sizeof(struct rog5_cap_header) == 8 &&
 #define TARGET_MAX 64
 #define RELEASE_MAX 96
 #define FETCH_TIMEOUT_MS 180000
+#define CONNECT_TIMEOUT_MS 15000
 #define WORKER_UID 65534
 #define WORKER_GID 65534
 #define WORKER_EXIT_SETUP 120
@@ -177,6 +178,9 @@ static const char *source_ip = "169.254.77.2";
 static const char *network_interface = "usb0";
 static uint16_t server_port = 8080;
 static unsigned int fetch_timeout_ms = FETCH_TIMEOUT_MS;
+#ifdef ROG5_FETCH_TESTING
+static unsigned int connect_timeout_ms = CONNECT_TIMEOUT_MS;
+#endif
 static uid_t worker_uid = WORKER_UID;
 static gid_t worker_gid = WORKER_GID;
 #ifdef ROG5_FETCH_TESTING
@@ -1573,7 +1577,17 @@ static int connect_fixed(int64_t deadline)
 	};
 	int descriptor;
 	int error;
+	int64_t connect_deadline;
 	socklen_t error_length = sizeof(error);
+
+	connect_deadline = monotonic_milliseconds() +
+#ifdef ROG5_FETCH_TESTING
+		connect_timeout_ms;
+#else
+		CONNECT_TIMEOUT_MS;
+#endif
+	if (connect_deadline > deadline)
+		connect_deadline = deadline;
 
 	if (inet_pton(AF_INET, source_ip, &source.sin_addr) != 1 ||
 	    inet_pton(AF_INET, server_ip, &server.sin_addr) != 1)
@@ -1604,7 +1618,7 @@ static int connect_fixed(int64_t deadline)
 	if (connect(descriptor, (struct sockaddr *)&server,
 		    sizeof(server)) < 0) {
 		if (errno != EINPROGRESS ||
-		    !wait_descriptor(descriptor, POLLOUT, deadline) ||
+		    !wait_descriptor(descriptor, POLLOUT, connect_deadline) ||
 		    getsockopt(descriptor, SOL_SOCKET, SO_ERROR, &error,
 			       &error_length) < 0 ||
 		    error_length != sizeof(error) || error != 0) {
@@ -1826,6 +1840,11 @@ static int parse_arguments(int argc, char **argv)
 					    &parsed) || parsed < 50)
 				return -1;
 			fetch_timeout_ms = (unsigned int)parsed;
+		} else if (strcmp(argv[index], "--connect-timeout-ms") == 0) {
+			if (!parse_unsigned(argv[index + 1], 600000,
+					    &parsed) || parsed < 50)
+				return -1;
+			connect_timeout_ms = (unsigned int)parsed;
 		} else if (strcmp(argv[index], "--worker-uid") == 0) {
 			if (!parse_unsigned(argv[index + 1], UINT_MAX,
 					    &parsed))
