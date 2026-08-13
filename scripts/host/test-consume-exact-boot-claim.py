@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1\n"
+            b"candidate=persistent-root-qmp-ufs-phy-creation-stage-v26\n"
+            b"manifest_sha256="
+            b"7f05c55c553e057b418f2adc23f284a907dd9ca693d532228372ad9dfe3e57c4\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-qmp-clock-provider-cleanup-stage-v25-live-v1\n"

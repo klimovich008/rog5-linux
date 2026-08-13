@@ -226,11 +226,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   peer-rendezvous, and pidfd cleanup correction is published at `1174e92`.
   See the [live result](../test-results/2026-08-13-generation-45-recovery-fetch-live.md).
 
-- **Generation 46 is the unissued transport-corrected successor.** It retains
-  Generation 45's exact target Image, DTB, initramfs, and UFS discriminator,
-  while the recovery fetcher has one bounded 15-second connect and the host
-  proves its exact recovery peer before declaring service readiness. Its
-  [offline checkpoint](../test-results/2026-08-13-generation-46-recovery-transport-offline.md)
+- **Generation 46 is consumed and clears OF clock-provider publication plus
+  cleanup.** Exact target proof arrived from release `7.1.4-g07858678c59c`;
+  target NCM became stable in 59.609 seconds and remained exact for another
+  12.391 seconds. Exact Alpine fallback and intent resolution passed, and no
+  UFS core/host module or phone storage was accessed. See the
+  [live result](../test-results/2026-08-13-generation-46-qmp-clock-provider-cleanup-live.md).
+
+- **Generation 47 is the unbooted PHY-creation successor.** It advances only
+  through `devm_phy_create()` and returns before `phy_set_drvdata()` or OF
+  PHY-provider registration. UFS core and host remain unloaded. Its
+  [offline checkpoint](../test-results/2026-08-13-generation-47-qmp-ufs-phy-creation-offline.md)
   grants no flash or persistent-storage authority.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on

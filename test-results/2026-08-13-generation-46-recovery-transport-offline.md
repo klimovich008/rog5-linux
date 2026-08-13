@@ -1,6 +1,7 @@
 # Generation 46 bounded recovery-transport checkpoint
 
-Status: **unissued RAM-only candidate; no phone-storage access; never flash**.
+Status: **consumed after successful target execution; no phone-storage access;
+never retry or flash**.
 
 Generation 46 retains Generation 45's exact target behavior:
 
@@ -25,9 +26,9 @@ Signed bundle twins reproduce manifest
 Focused claim, lifecycle, stable-gate, admission, and exact artifact tests pass.
 The predecessor transport correction passed full local CI in 430 seconds and
 exact-head/merge-compat/QEMU CI at `1174e92`. The complete Generation 46
-repository CI checkpoint passed in 426.34 seconds. Generation 46 still requires
-exact-head/merge-compat/QEMU CI for its final committed identity before the one
-temporary boot.
+repository CI checkpoint passed in 426.34 seconds. The final role-only fix then
+passed local CI in 425.54 seconds and exact-head/merge-compat/QEMU run
+`31695782784` before the sole temporary boot.
 
 The first connected preflight at `4383d75` refused before claim creation or
 boot because the inventory role began `unissued`, while the generic live gate
@@ -37,3 +38,7 @@ passes the focused current-profile, stable-gate, retention-contract,
 descriptor-boundary, and admission suites. No phone operation was consumed by
 the refusal. The corrected complete repository CI checkpoint passed in 425.54
 seconds.
+
+The sole live cycle then transferred and verified the exact bundle, executed
+the target, and proved OF clock-provider publication plus paired cleanup. See
+the [live result](2026-08-13-generation-46-qmp-clock-provider-cleanup-live.md).
