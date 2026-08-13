@@ -55,6 +55,8 @@ TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 USB_CONTROL_ONLY = True
+QMP_COMPLETED_GATE = "second fixed-rate clock registration"
+QMP_NEXT_GATE = "qmp-ufs-third-fixed-clock-registration"
 LIVE_ROOT = (
     REPO
     / "build/persistent-root-qmp-second-clock-runtime-pm-stage-v22-generation43-20260813-r1"
@@ -648,7 +650,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     ("interface", interface),
                     ("seconds_to_stable_target_ncm", f"{elapsed:.3f}"),
                     ("post_module_ncm_seconds", f"{control_seconds:.3f}"),
-                    ("expected_next_gate", "qmp-ufs-second-fixed-clock-registration"),
+                    ("expected_next_gate", QMP_NEXT_GATE),
                     ("phone_storage_access", "none"),
                     ("result", "PASS"),
                 ),
@@ -682,7 +684,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             cycle.resolve_intent(intent, "FALLBACK_RETURNED")
             resolved = True
             print(
-                "PASS QMP-UFS probe completed the first fixed-rate clock registration with runtime-PM protection and kept NCM stable in "
+                f"PASS QMP-UFS probe completed the {QMP_COMPLETED_GATE} with runtime-PM protection and kept NCM stable in "
                 f"{elapsed:.3f}s plus a {control_seconds:.3f}s control window "
                 "before exact Alpine fallback"
             )
