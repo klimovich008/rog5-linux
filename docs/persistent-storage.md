@@ -370,12 +370,14 @@ unlocking. Its sole live cycle completed exactly the first fixed-rate clock
 registration, preserved stable NCM, and returned to exact Alpine. Generation
 42 is consumed and must never be retried.
 
-Generation 43 retains the same correction and advances the SM8350-only branch
-through the second fixed-rate clock registration, then returns before the
-third clock, OF clock-provider publication, PHY creation, or provider
-registration. The exact 4 MiB RMTFS reservation remains restored. UFS core,
-platform, and host modules remain absent, so this cycle cannot enumerate or
-access storage.
+Generation 43 retained the same correction and advanced the SM8350-only branch
+through the second fixed-rate clock registration. Its sole live cycle reached
+stable target NCM in 60.264 seconds, held it for 12.014 seconds, and returned
+to exact Alpine. The exact 4 MiB RMTFS reservation remained restored. UFS
+core, platform, and host modules were absent, so no storage was enumerated or
+accessed. Generation 43 is consumed and must never be retried. The next
+discriminator crosses the third fixed-rate `tx_symbol_0` clock and returns
+before OF clock-provider publication and every provider/PHY boundary.
 
 Use the accepted UFS discovery kernel boundary with ext4 built in. The target
 must:

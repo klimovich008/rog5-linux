@@ -200,13 +200,13 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   UFS enumeration or storage access occurred. See the
   [live result](../test-results/2026-08-13-generation-42-qmp-first-clock-runtime-pm-live.md).
 
-- **Generation 43 is the active second-clock runtime-PM discriminator.** It
-  retains the generic CCF correction and advances the SM8350 QMP-UFS probe
-  through `rx_symbol_0` and `rx_symbol_1`, then returns before the third clock,
-  provider publication, PHY creation, or provider registration. UFS core,
-  platform, and host modules remain absent, so this RAM-only cycle cannot
-  enumerate or access phone storage. See the
-  [offline checkpoint](../test-results/2026-08-13-generation-43-qmp-second-clock-runtime-pm-offline.md).
+- **Generation 43 is consumed and clears the second fixed-rate clock with the
+  generic CCF runtime-PM correction.** It reached stable target NCM in 60.264
+  seconds, preserved it for 12.014 seconds, and returned to exact Alpine. No
+  UFS enumeration or storage access occurred. The next discriminator is the
+  third fixed-rate `tx_symbol_0` clock, still before provider publication and
+  every PHY boundary. See the
+  [live result](../test-results/2026-08-13-generation-43-qmp-second-clock-runtime-pm-live.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
