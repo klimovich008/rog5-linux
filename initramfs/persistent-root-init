@@ -21,7 +21,9 @@ expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a
 expected_image_bytes=17179869184
 expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
+expected_probe_bytes=132
 userdata=
+userdata_disk=
 root_image=
 root_loop=
 release_file=/proc/sys/kernel/osrelease
@@ -48,6 +50,7 @@ publish_stage() {
 	case $stage_name in
 		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
 userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
+image-write|\
 overlay|runtime|final-storage|switch-root) ;;
 		*) return 1 ;;
 	esac
@@ -566,6 +569,204 @@ resolve_local_root_image() {
 	return 0
 }
 
+verify_exact_userdata_write_window() {
+	count=0
+	writable=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			expected_ro=1
+			case $device in
+				"$userdata_disk"|"$userdata")
+					expected_ro=0
+					writable=$((writable + 1))
+					;;
+			esac
+			[ "$(blockdev --getro "$device")" = "$expected_ro" ] ||
+				return 1
+			[ "$(cat "$sys_block/ro")" = "$expected_ro" ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
+}
+
+open_exact_userdata_write_window() {
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	userdata_disk=${userdata%23}
+	disk_name=${userdata_disk##*/}
+	userdata_name=${userdata##*/}
+	[ -b "$userdata_disk" ] && [ -b "$userdata" ] || return 1
+	[ -e "/sys/class/block/$disk_name/device" ] &&
+		[ ! -e "/sys/class/block/$disk_name/partition" ] &&
+		[ -e "/sys/class/block/$userdata_name/partition" ] || return 1
+	[ "$(cat "/sys/class/block/$userdata_name/partition")" = 23 ] ||
+		return 1
+	[ "$(sed -n 's/^PARTNAME=//p' \
+		"/sys/class/block/$userdata_name/uevent" | sed -n '1p')" = userdata ] ||
+		return 1
+	verify_physical_storage_read_only || return 1
+	# Keep the parent disk read-only until the exact partition flag is ready.
+	blockdev --setrw "$userdata" || return 1
+	blockdev --setrw "$userdata_disk" || {
+		blockdev --setro "$userdata" || true
+		return 1
+	}
+	verify_exact_userdata_write_window
+}
+
+close_exact_userdata_write_window() {
+	close_status=0
+	case $userdata_disk in /dev/sd[a-z]) ;; *) return 1 ;; esac
+	case $userdata in "$userdata_disk"23) ;; *) return 1 ;; esac
+	# Closing the parent first immediately blocks raw-disk and partition writes.
+	blockdev --setro "$userdata_disk" || close_status=1
+	blockdev --setro "$userdata" || close_status=1
+	verify_physical_storage_read_only || close_status=1
+	[ "$close_status" -eq 0 ]
+}
+
+verify_exact_local_image_probe() {
+	probe_root=$1
+	case $probe_root in
+		/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;
+		*) return 1 ;;
+	esac
+	probe_dir=$probe_root/var/lib/rog5
+	probe_path=$probe_dir/local-image-write-probe-v1
+	for path in "$probe_root/var" "$probe_root/var/lib" "$probe_dir"; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	[ -f "$probe_path" ] && [ ! -L "$probe_path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$probe_path")" = \
+		"0:0:444:$expected_probe_bytes:1" ] || return 1
+	[ "$(wc -l <"$probe_path")" -eq 3 ] || return 1
+	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" ||
+		return 1
+	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" || return 1
+	grep -Fxq "boot_id=$target_boot_id" "$probe_path" || return 1
+}
+
+write_exact_local_image_probe() {
+	probe_root=/mnt/probe-root
+	probe_dir=$probe_root/var/lib/rog5
+	probe_path=$probe_dir/local-image-write-probe-v1
+	probe_next=$probe_path.next
+	for path in "$probe_root/var" "$probe_root/var/lib"; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	[ ! -e "$probe_dir" ] && [ ! -L "$probe_dir" ] || return 1
+	mkdir -m 0700 "$probe_dir" || return 1
+	if ! (umask 077 && printf '%s\n' \
+		'format=rog5-local-image-write-probe-v1' \
+		"image_uuid=$expected_image_uuid" \
+		"boot_id=$target_boot_id" >"$probe_next" &&
+		chmod 0444 "$probe_next" &&
+		mv "$probe_next" "$probe_path"); then
+		rm -f "$probe_next" "$probe_path" || true
+		rmdir "$probe_dir" || true
+		return 1
+	fi
+	verify_exact_local_image_probe "$probe_root"
+}
+
+run_local_image_write_probe() {
+	probe_status=0
+	probe_loop=
+	probe_loop_attached=0
+	probe_mounted=0
+	userdata_mounted=0
+
+	umount /mnt/userdata || return 1
+	open_exact_userdata_write_window || {
+		close_exact_userdata_write_window || true
+		return 1
+	}
+	if mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$userdata" /mnt/userdata; then
+		userdata_mounted=1
+	else
+		probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		mountpoint -q /mnt/userdata || probe_status=1
+		verify_only_userdata_mount || probe_status=1
+		verify_exact_userdata_write_window || probe_status=1
+		resolve_local_root_image || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		probe_loop=$(losetup -f) || probe_status=1
+		case $probe_loop in /dev/loop[0-9]*) ;; *) probe_status=1 ;; esac
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		probe_loop_name=${probe_loop##*/}
+		[ -b "$probe_loop" ] &&
+			[ -d "/sys/class/block/$probe_loop_name" ] || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		if losetup "$probe_loop" "$root_image"; then
+			probe_loop_attached=1
+		else
+			probe_status=1
+		fi
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		[ "$(blockdev --getro "$probe_loop")" = 0 ] || probe_status=1
+		[ "$(blockdev --getsize64 "$probe_loop")" = \
+			"$expected_image_bytes" ] || probe_status=1
+		probe_backing=$(cat \
+			"/sys/class/block/$probe_loop_name/loop/backing_file") ||
+			probe_status=1
+		case $probe_backing in
+			/mnt/userdata/rog5/images/arch-local-a.ext4|\
+			mnt/userdata/rog5/images/arch-local-a.ext4) ;;
+			*) probe_status=1 ;;
+		esac
+		probe_blkid=$(blkid "$probe_loop") || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq " UUID=\"$expected_image_uuid\"" || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq " LABEL=\"$expected_image_label\"" || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq ' TYPE="ext4"' || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ] &&
+		mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$probe_loop" /mnt/probe-root; then
+		probe_mounted=1
+	else
+		probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		write_exact_local_image_probe || probe_status=1
+	fi
+	sync || probe_status=1
+
+	if [ "$probe_mounted" -eq 1 ]; then
+		umount /mnt/probe-root || probe_status=1
+	fi
+	if [ "$probe_loop_attached" -eq 1 ]; then
+		losetup -d "$probe_loop" || probe_status=1
+	fi
+	if [ "$userdata_mounted" -eq 1 ]; then
+		umount /mnt/userdata || probe_status=1
+	fi
+	close_exact_userdata_write_window || probe_status=1
+	[ "$probe_status" -eq 0 ] || return 1
+
+	# Resume the established immutable runtime only after every UFS node is RO.
+	mount_persistent_root || return 1
+	resolve_local_root_image || return 1
+	return 0
+}
+
 mount_local_root_image() {
 	root_loop=$(losetup -f) || return 1
 	case $root_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
@@ -655,6 +856,7 @@ verify_persistent_root() {
 	grep -Fxq "tree_sha256=$expected_tree_sha256" "$seal" || return 1
 	verify_exact_regular "$root/.rog5-source-seal" 0 0 444 430 \
 		"$expected_source_seal_sha256" || return 1
+	verify_exact_local_image_probe "$root" || return 1
 
 	[ -L "$root/sbin/init" ] &&
 		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] ||
@@ -1069,6 +1271,11 @@ if ! resolve_local_root_image; then
 	fail_local_stage image-resolved 'exact local root image identity failed'
 fi
 publish_or_rollback image-resolved PASS
+publish_or_rollback image-write ENTER
+if ! run_local_image_write_probe; then
+	fail_local_stage image-write 'bounded local-image write probe failed'
+fi
+publish_or_rollback image-write PASS
 publish_or_rollback image-mount ENTER
 if ! mount_local_root_image; then
 	fail_local_stage image-mount 'read-only noload local root image mount failed'

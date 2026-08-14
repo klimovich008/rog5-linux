@@ -546,6 +546,14 @@ EXPECTED_CLAIMS["persistent-root-local-image-ed25519-v36-live-v1"] = (
     "cc41176df74def7a8953dfcd8621e1d1ad2457eb98a7822a0d40ce50ab8c2be0\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-local-image-write-v37-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-write-v37-live-v1\n"
+    "candidate=persistent-root-local-image-write-v37\n"
+    "manifest_sha256="
+    "5033263fbdb28f795fe92b74a850d3e33119f2d440f9e3999b3ebff3804ef259\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -676,7 +684,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "9fbc5432e4f3ff25dcd4b02dbc86841ba551d4e27f975a259c1dca385c79f9a5",
+    "sha256": "29590099e16b562751e3a54a768ad6dd606666fc8c2f1da3bee03762ae550846",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -704,7 +712,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "9fbc5432e4f3ff25dcd4b02dbc86841ba551d4e27f975a259c1dca385c79f9a5",
+    "executor_contract_sha256": "29590099e16b562751e3a54a768ad6dd606666fc8c2f1da3bee03762ae550846",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2443,6 +2451,17 @@ def verify_policy(
             "one exact headless-core Arch SSH recovery with power-key "
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
+        ),
+        (
+            "build/persistent-root-local-image-write-v37-generation59-"
+            "20260814-r1/repack/stable-recovery-a.avb.img",
+            "one exact bounded SM8350 UFS local-image write probe: dynamically "
+            "resolve userdata, open only its exact partition and parent disk, "
+            "write one fixed marker inside the existing 16 GiB image, sync, "
+            "unmount, relock all 116 physical nodes, then boot the established "
+            "read-only local Arch runtime with strict key-only SSH and bounded "
+            "rollback; RAM-only kernel/recovery; externally consumed exact "
+            "claim required; never flash or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

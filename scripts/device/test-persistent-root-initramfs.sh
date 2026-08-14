@@ -72,6 +72,14 @@ grep -Fq 'select_expected_udc' "$init"
 grep -Fq 'root_image=/mnt/userdata/rog5/images/arch-local-a.ext4' "$init"
 grep -Fq 'losetup -r "$root_loop" "$root_image"' "$init"
 grep -Fq 'mount -t ext4 -o ro,noload,nodev,nosuid,noatime' "$init"
+grep -Fq 'blockdev --setrw "$userdata"' "$init"
+grep -Fq 'blockdev --setrw "$userdata_disk"' "$init"
+[ "$(grep -Fc 'blockdev --setrw' "$init")" -eq 2 ]
+grep -Fq 'blockdev --setro "$userdata_disk"' "$init"
+grep -Fq 'blockdev --setro "$userdata"' "$init"
+grep -Fq 'format=rog5-local-image-write-probe-v1' "$init" "$attest"
+grep -Fq 'expected_probe_bytes=132' "$init" "$attest"
+[ "$(grep -Ec '^[[:space:]]*sync \|\| probe_status=1$' "$init")" -eq 1 ]
 grep -Fq 'lowerdir=/mnt/root-ro' "$init"
 grep -Fq 'upperdir=/mnt/state/upper,workdir=/mnt/state/work' "$init"
 ! grep -Fq '/usr/local/sbin/persistent-root-verify' "$init"
@@ -176,10 +184,10 @@ grep -Fq '/oldsys/state' "$shutdown"
 grep -Fq 'losetup -d "$loop_device"' "$shutdown"
 
 if grep -Eq \
-	'(^|[[:space:]])(sync|fsck|e2fsck|tune2fs|mkfs|blkdiscard|reboot|poweroff|halt)([[:space:]]|$)|mount[[:space:]].*-o[[:space:]]+rw.*(/dev/|userdata)' \
+	'(^|[[:space:]])(fsck|e2fsck|tune2fs|mkfs|blkdiscard|reboot|poweroff|halt)([[:space:]]|$)|mount[[:space:]].*-o[[:space:]]+rw.*(/dev/|userdata)' \
 	"$init" "$attest" "$shutdown"
 then
-	fail 'P2 target exposes a physical-write, repair, selector, or orderly-shutdown path'
+	fail 'P2 target exposes an unreviewed repair, selector, or shutdown path'
 fi
 if grep -Eq \
 	'(touch|install|mv|cp|ln|mkdir|printf|echo).*state/(good|next)|>[[:space:]]*[^[:space:]]*state/(good|next)' \
@@ -344,4 +352,4 @@ fi
 printf 'rollback\nfailed\nforced\n' >"$work/expected-switch-root-failure"
 cmp "$switch_root_failure_log" "$work/expected-switch-root-failure"
 
-echo 'PASS deterministic credential-free P2 initramfs pins exact running-kernel release, read-only UFS, exact userdata/root seal, tmpfs OverlayFS, and SysRq rollback'
+echo 'PASS deterministic credential-free P2 initramfs pins exact UFS, one bounded image write, read-only runtime, tmpfs OverlayFS, and SysRq rollback'

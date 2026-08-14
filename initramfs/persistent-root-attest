@@ -20,6 +20,7 @@ expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a
 expected_image_bytes=17179869184
 expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
+expected_probe_bytes=132
 lower=/.rog5/root-ro
 image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
@@ -71,6 +72,23 @@ printf '%s\n' "$blkid_record" | grep -Fq " LABEL=\"$expected_image_label\"" ||
 	fail 'local-image label changed'
 printf '%s\n' "$blkid_record" | grep -Fq ' TYPE="ext4"' ||
 	fail 'local-image filesystem type changed'
+
+probe_dir=$lower/var/lib/rog5
+probe_path=$probe_dir/local-image-write-probe-v1
+for path in "$lower/var" "$lower/var/lib" "$probe_dir"; do
+	[ -d "$path" ] && [ ! -L "$path" ] ||
+		fail 'local-image write-probe ancestry changed'
+done
+[ -f "$probe_path" ] && [ ! -L "$probe_path" ] &&
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$probe_path")" = \
+	"0:0:444:$expected_probe_bytes:1" ] ||
+	fail 'local-image write-probe metadata changed'
+[ "$(wc -l <"$probe_path")" -eq 3 ] &&
+	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" &&
+	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" &&
+	grep -Fxq "boot_id=$(cat /proc/sys/kernel/random/boot_id)" "$probe_path" ||
+	fail 'local-image write-probe content changed'
+progress local-image-write-pass
 
 [ -e /run/rog5-p2-root-mounted ] ||
 	fail 'initramfs handoff marker is absent'
@@ -204,6 +222,7 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 	printf '%s\n' 'block_backed_mounts=2'
 	printf '%s\n' 'userdata_mount=ro-noload'
 	printf '%s\n' 'local_image_mount=ro-noload'
+	printf '%s\n' 'local_image_write_probe=PASS'
 	printf '%s\n' 'root=local-ext4-overlay-tmpfs'
 	printf '%s\n' "blocked_device_queries=$blocked_query_count"
 	printf '%s\n' "blocked_scsi_commands=$blocked_scsi_count"
@@ -216,4 +235,4 @@ chmod 0444 "$temporary"
 mv -T -- "$temporary" /run/rog5-p2-ready
 trap - EXIT HUP INT TERM
 
-echo 'rog5-p2-attest: PASS read-only persistent Arch root ready' >/dev/kmsg
+echo 'rog5-p2-attest: PASS bounded-write persistent Arch root ready' >/dev/kmsg

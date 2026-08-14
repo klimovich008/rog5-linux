@@ -151,4 +151,4 @@ mkdir -p "$(dirname "$output")"
 mv -T -- "$output.tmp" "$output"
 gzip -t "$output"
 sha256sum "$output"
-echo 'PASS deterministic credential-free P2 read-only persistent-root initramfs'
+echo 'PASS deterministic credential-free P2 bounded-write/read-only-runtime persistent-root initramfs'

@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-ed25519-v36-live-v1"
-BUNDLE = "persistent-root-local-image-ed25519-v36"
+PROFILE_ID = "persistent-root-local-image-write-v37-live-v1"
+BUNDLE = "persistent-root-local-image-write-v37"
 MANIFEST_SHA256 = (
-    "cc41176df74def7a8953dfcd8621e1d1ad2457eb98a7822a0d40ce50ab8c2be0"
+    "5033263fbdb28f795fe92b74a850d3e33119f2d440f9e3999b3ebff3804ef259"
 )
 RECOVERY_SHA256 = (
-    "38bc065959a88f4f51f13cc3443a8bd02dda61d8813150821d561239bd02a4f0"
+    "b349d27e41ba2ad1bda9e06e681e3eb8faae9d1f8b32a13943476e63eb997578"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1"
+    / "build/persistent-root-local-image-write-v37-generation59-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-ed25519-v36",
+    admission_profile="persistent-root-local-image-write-v37",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-ed25519-v36",
-    build_profile="persistent-root-local-image-ed25519-v36",
+    runtime_profile="persistent-root-local-image-write-v37",
+    build_profile="persistent-root-local-image-write-v37",
     diagnostic=False,
 )
 
@@ -174,6 +174,7 @@ STAGES = {
     "userdata-resolved",
     "userdata-mount",
     "image-resolved",
+    "image-write",
     "image-mount",
     "root-verify",
     "ufs-health",
@@ -535,6 +536,7 @@ def parse_runtime_evidence(path: Path) -> str:
         "block_backed_mounts=2",
         "userdata_mount=ro-noload",
         "local_image_mount=ro-noload",
+        "local_image_write_probe=PASS",
         "root=local-ext4-overlay-tmpfs",
         "blocked_device_queries=0",
         "blocked_scsi_commands=0",

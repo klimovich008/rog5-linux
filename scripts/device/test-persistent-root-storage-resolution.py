@@ -45,6 +45,12 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         cls.volatile_state = function(
             cls.source, "prepare_volatile_systemd_state"
         )
+        cls.write_probe = function(
+            cls.source, "write_exact_local_image_probe"
+        )
+        cls.verify_write_probe = function(
+            cls.source, "verify_exact_local_image_probe"
+        )
 
     def add_disk(
         self,
@@ -350,6 +356,115 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn('mount -t ext4 -o ro,noload "$userdata" /mnt/userdata', mount_function)
         self.assertIn("verify_only_userdata_mount", mount_function)
         self.assertIn("verify_physical_storage_read_only", mount_function)
+
+    def test_local_image_write_probe_is_exact_and_one_shot(self) -> None:
+        write_probe = self.write_probe.replace(
+            "probe_root=/mnt/probe-root", 'probe_root=$1'
+        )
+        verify_write_probe = self.verify_write_probe.replace(
+            "\tcase $probe_root in\n"
+            "\t\t/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;\n"
+            "\t\t*) return 1 ;;\n"
+            "\tesac\n",
+            "",
+        ).replace(
+            '"0:0:444:$expected_probe_bytes:1"',
+            '"$(id -u):$(id -g):444:$expected_probe_bytes:1"',
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "var/lib").mkdir(parents=True)
+            script = (
+                "set -u\n"
+                + write_probe
+                + verify_write_probe
+                + '\nrunning_kernel_release=7.1.4-gae717d919f87\n'
+                + 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n'
+                + 'expected_probe_bytes=132\n'
+                + 'target_boot_id=11111111-2222-3333-4444-555555555555\n'
+                + 'write_exact_local_image_probe "$1" || exit 1\n'
+                + 'verify_exact_local_image_probe "$1"\n'
+            )
+            first = subprocess.run(
+                ["sh", "-c", script, "sh", str(root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(first.returncode, 0, first.stderr)
+            marker = root / "var/lib/rog5/local-image-write-probe-v1"
+            self.assertEqual(
+                marker.read_text(),
+                "format=rog5-local-image-write-probe-v1\n"
+                "image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n"
+                "boot_id=11111111-2222-3333-4444-555555555555\n",
+            )
+            self.assertEqual(marker.stat().st_mode & 0o777, 0o444)
+            repeated = subprocess.run(
+                ["sh", "-c", script, "sh", str(root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(repeated.returncode, 0)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "var/lib").mkdir(parents=True)
+            (root / "var/lib/rog5").symlink_to("elsewhere")
+            linked = subprocess.run(
+                ["sh", "-c", script, "sh", str(root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(linked.returncode, 0)
+
+    def test_write_window_relocks_every_physical_node_before_boot(self) -> None:
+        open_window = function(self.source, "open_exact_userdata_write_window")
+        close_window = function(self.source, "close_exact_userdata_write_window")
+        write_cycle = function(self.source, "run_local_image_write_probe")
+        self.assertEqual(open_window.count("blockdev --setrw"), 2)
+        self.assertIn('blockdev --setrw "$userdata_disk"', open_window)
+        self.assertIn('blockdev --setrw "$userdata"', open_window)
+        self.assertNotIn("/sys/class/block/*", open_window)
+        self.assertNotIn("blockdev --setrw /dev/", open_window)
+        self.assertIn("verify_exact_userdata_write_window", open_window)
+        self.assertIn('blockdev --setro "$userdata"', close_window)
+        self.assertIn('blockdev --setro "$userdata_disk"', close_window)
+        self.assertIn("verify_physical_storage_read_only", close_window)
+        self.assertIn(
+            'mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \\\n'
+            '\t\t"$userdata" /mnt/userdata',
+            write_cycle,
+        )
+        self.assertIn('losetup "$probe_loop" "$root_image"', write_cycle)
+        self.assertIn("arch-local-a.ext4", write_cycle)
+        self.assertIn('blkid "$probe_loop"', write_cycle)
+        self.assertIn("$expected_image_uuid", write_cycle)
+        self.assertIn("$expected_image_label", write_cycle)
+        self.assertIn(
+            'mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \\\n'
+            '\t\t"$probe_loop" /mnt/probe-root',
+            write_cycle,
+        )
+        self.assertIn("write_exact_local_image_probe || probe_status=1", write_cycle)
+        self.assertIn("sync", write_cycle)
+        self.assertIn("close_exact_userdata_write_window", write_cycle)
+        for forbidden in ("mkfs", "dd ", "blkdiscard", "sgdisk", "parted"):
+            self.assertNotIn(forbidden, write_cycle)
+
+        write_stage = self.source.index(
+            "publish_or_rollback image-write ENTER"
+        )
+        read_mount = self.source.index("if ! mount_local_root_image; then")
+        self.assertLess(write_stage, read_mount)
+        self.assertIn("publish_or_rollback image-write PASS", self.source)
+        self.assertIn("fail_local_stage image-write", self.source)
+        self.assertIn(
+            "verify_exact_local_image_probe \"$root\"",
+            function(self.source, "verify_persistent_root"),
+        )
 
     def test_boot_verification_is_bounded_to_exact_critical_files(self) -> None:
         verifier = function(self.source, "verify_persistent_root")
@@ -677,6 +792,7 @@ chmod() {
             "userdata-resolved",
             "userdata-mount",
             "image-resolved",
+            "image-write",
             "image-mount",
             "root-verify",
             "ufs-health",
