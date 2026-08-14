@@ -363,13 +363,17 @@ the successful target path. The next reversible work is local-root startup
 reduction and a separately bounded persistent-write experiment inside the
 existing image; no partition-table change is authorized by this result.
 
-Generation 67 is the unbooted startup-reduction successor. It keeps the exact
-Generation 66 storage path and moves only strict Ed25519 SSH and storage
-attestation to `sysinit.target`, before the unrelated general Arch
-`basic.target` transaction. The stock sshd units are masked only in volatile
-`/run`; the local image remains mounted `ro,noload`. Clean twins and focused
-offline tests pass. Generation 67 remains one-use, RAM-only, and unbooted.
-See the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md).
+Generation 67 consumed its sole RAM-only cycle and proved the startup reduction.
+The exact read-only UFS/local-image path passed, early strict SSH was active at
+approximately 94.147 seconds target uptime, and full storage attestation passed
+at 130.057 seconds. Recovery ACM closed after the COMMIT claim but before its
+post-claim response reached the host, so the formal lifecycle did not accept
+the target; the same running boot was salvaged without retry, then normal
+reboot, exact Alpine fallback, and host restoration passed. Generation 67 is
+revoked and must never be retried or flashed. The next work is the narrow
+post-COMMIT control-channel fix while preserving the proven target path. See
+the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
+and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
 
 ## Reproduction commands
 

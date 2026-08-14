@@ -99,7 +99,7 @@ for index in "${!fields[@]}"; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] || fail 'observer/core/Generation59 temporary-boot policy is not exact'
+	"$boot_policy") == 2 ]] || fail 'observer/core temporary-boot policy is not exact'
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }

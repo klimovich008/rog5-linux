@@ -420,17 +420,16 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and the Generation 66 [offline checkpoint](../test-results/2026-08-14-generation-66-ufs-modules-detail-offline.md)
   and [live result](../test-results/2026-08-14-generation-66-ufs-modules-detail-live.md).
 
-- **Generation 67 is the unbooted early-SSH successor.** The v45 initramfs
-  preserves Generation 66's accepted Image, DTB, four-module UFS chain,
-  exact read-only userdata and 16 GiB image identity, two `ro,noload` ext4
-  mounts, persisted Generation 64 marker, tmpfs OverlayFS, and rollback. It
-  masks only the stock sshd units in volatile `/run`, generates one Ed25519
-  host key, and starts strict SSH plus the unchanged storage attestation from
-  `sysinit.target` before the slow general `basic.target` transaction. Clean
-  twins are byte-identical and focused tests pass. Generation 67 has not been
-  booted; it remains one-use, RAM-only, and must never be flashed or retried
-  after claim entry. See the
-  [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md).
+- **Generation 67 proved early SSH and is consumed.** The sole v45 RAM-only
+  cycle preserved Generation 66's exact read-only UFS and local-image path.
+  Early strict Ed25519 SSH was active at approximately 94.147 seconds target
+  uptime and complete storage attestation passed at 130.057 seconds. Recovery
+  ACM closed after the COMMIT claim but before the post-claim response reached
+  the host, so formal lifecycle acceptance failed; the same already-running
+  target was salvaged without a retry. Normal reboot, exact Alpine fallback,
+  and host restoration passed. Generation 67 is revoked and must never be
+  retried or flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
+  and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
