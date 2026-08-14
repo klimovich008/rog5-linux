@@ -86,7 +86,10 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             "usr/sbin/partprobe",
             '/usr/bin/sgdisk -v "$disk"',
             '/sbin/e2fsck -fn "$userdata"',
+            '/usr/sbin/dumpe2fs -h "$userdata"',
             '/usr/sbin/resize2fs -P "$userdata"',
+            "filesystem_requires_recovery",
+            "needs_recovery|orphan_present",
             "ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING",
             "ROG5_STORAGE_PREFLIGHT_V2 status=FAIL",
             "ROG5_STORAGE_PREFLIGHT_V2 status=PASS",
@@ -94,6 +97,10 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
         self.assertIn("cmp \"$stage/init\" \"$init\"", source)
+        self.assertLess(
+            source.index('/usr/sbin/dumpe2fs -h "$userdata"'),
+            source.index('/usr/sbin/resize2fs -P "$userdata"'),
+        )
 
     def test_storage_reporter_configures_target_tty_raw_before_first_report(self) -> None:
         init = (REPO / "initramfs/recovery-init").read_text(encoding="utf-8")
@@ -126,6 +133,9 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             "guest /sbin/e2fsck -fn /run/fixtures/ext4.img",
             "guest /usr/sbin/resize2fs -P /run/fixtures/ext4.img",
             "guest /usr/sbin/dumpe2fs -h /run/fixtures/ext4.img",
+            "dirty-snapshot.img",
+            "needs_recovery",
+            "resize2fs unexpectedly accepted journal-pending read-only input",
             "guest /sbin/mkfs.ext4 -V",
             "guest /usr/sbin/partprobe --help",
             "/bin/stty -F /dev/tty raw -echo -echonl -opost clocal cread",

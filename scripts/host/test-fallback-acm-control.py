@@ -2846,6 +2846,121 @@ class PolicyTest(unittest.TestCase):
         )
         self.assertEqual(captured[4].value, b"bootloader")
 
+    def test_embedded_reboot_quiesces_exact_userdata_before_commit(self) -> None:
+        source = MODULE.REMOTE_SOURCE
+        self.assertIn("def quiesce_root_read_only(nonce):", source)
+        self.assertIn('["/bin/sync"]', source)
+        self.assertIn(
+            '["/bin/mount", "-o", "remount,ro", "/"]',
+            source,
+        )
+        self.assertIn(
+            '["/usr/sbin/dumpe2fs", "-h", "/dev/sda23"]',
+            source,
+        )
+        self.assertIn("needs_recovery", source)
+        self.assertIn("orphan_present", source)
+        main = source[source.index("def main():") : source.index("def restart_bootloader():")]
+        self.assertEqual(main.count("quiesce_root_read_only(nonce)"), 1)
+        self.assertLess(
+            main.index("quiesce_root_read_only(nonce)"),
+            main.index('"ROG5_FALLBACK_ACM_COMMIT"'),
+        )
+        self.assertLess(
+            main.index('"ROG5_FALLBACK_ACM_COMMIT"'),
+            main.index("restart_bootloader()"),
+        )
+
+    def test_embedded_root_quiesce_rejects_dirty_or_changed_storage(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        functions = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {"root_mount_fields", "quiesce_root_read_only"}
+        ]
+        rw = "/dev/sda23 / ext4 rw,relatime 0 0\n"
+        ro = "/dev/sda23 / ext4 ro,relatime 0 0\n"
+        clean = (
+            b"Filesystem features: has_journal extent 64bit metadata_csum\n"
+            b"Filesystem state: clean\n"
+        )
+
+        def run_case(
+            mounts: list[str],
+            results: list[subprocess.CompletedProcess[bytes]],
+        ) -> tuple[object, mock.Mock]:
+            reads = iter(mounts)
+
+            class FakePath:
+                def __init__(self, _value: str):
+                    pass
+
+                def read_text(self) -> str:
+                    return next(reads)
+
+            runner = mock.Mock(side_effect=results)
+            embedded_subprocess = mock.Mock(
+                DEVNULL=subprocess.DEVNULL,
+                PIPE=subprocess.PIPE,
+            )
+            embedded_subprocess.run = runner
+
+            def stop(_nonce: str, code: str) -> None:
+                raise RuntimeError(code)
+
+            namespace = {
+                "Path": FakePath,
+                "subprocess": embedded_subprocess,
+                "stop": stop,
+            }
+            exec(
+                compile(
+                    ast.Module(body=functions, type_ignores=[]),
+                    "embedded-root-quiesce.py",
+                    "exec",
+                ),
+                namespace,
+            )
+            return namespace["quiesce_root_read_only"], runner
+
+        success = [
+            subprocess.CompletedProcess([], 0, b"", b""),
+            subprocess.CompletedProcess([], 0, b"", b""),
+            subprocess.CompletedProcess([], 0, clean, b""),
+        ]
+        quiesce, runner = run_case([rw, ro], success)
+        quiesce("a" * 32)
+        self.assertEqual(runner.call_count, 3)
+
+        quiesce, runner = run_case([rw], [
+            subprocess.CompletedProcess([], 1, b"", b"injected")
+        ])
+        with self.assertRaisesRegex(RuntimeError, "root-remount"):
+            quiesce("b" * 32)
+        self.assertEqual(runner.call_count, 1)
+
+        dirty = clean.replace(
+            b"metadata_csum\n",
+            b"metadata_csum needs_recovery orphan_present\n",
+        )
+        quiesce, runner = run_case(
+            [rw, ro],
+            [
+                subprocess.CompletedProcess([], 0, b"", b""),
+                subprocess.CompletedProcess([], 0, b"", b""),
+                subprocess.CompletedProcess([], 0, dirty, b""),
+            ],
+        )
+        with self.assertRaisesRegex(RuntimeError, "root-recovery-pending"):
+            quiesce("c" * 32)
+        self.assertEqual(runner.call_count, 3)
+
+        quiesce, runner = run_case([rw, rw], success)
+        with self.assertRaisesRegex(RuntimeError, "root-mount-after"):
+            quiesce("d" * 32)
+        self.assertEqual(runner.call_count, 2)
+
     def test_embedded_reboot_ack_wait_is_bounded(self) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
         function = next(
@@ -2871,6 +2986,7 @@ class PolicyTest(unittest.TestCase):
             "select": mock.Mock(),
             "print": mock.Mock(),
             "stop": stop,
+            "quiesce_root_read_only": mock.Mock(),
             "restart_bootloader": restart,
             "REBOOT_ACK_TIMEOUT_SECONDS": 30,
             "POST_ACK_DEADLINE_SECONDS": 25,

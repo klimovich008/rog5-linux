@@ -42,8 +42,8 @@ for absent in \
 done
 for path in usr/bin/sgdisk lib/ld-musl-aarch64.so.1 \
 	usr/lib/libuuid.so.1 usr/lib/libpopt.so.0 usr/lib/libstdc++.so.6 \
-	usr/lib/libgcc_s.so.1 sbin/e2fsck usr/sbin/resize2fs \
-	usr/sbin/dumpe2fs sbin/mkfs.ext4; do
+	usr/lib/libgcc_s.so.1 sbin/e2fsck usr/sbin/dumpe2fs \
+	usr/sbin/resize2fs sbin/mkfs.ext4; do
 	[ -e "$stage/$path" ] || fail "storage-preflight archive lacks $path"
 done
 [ -L "$stage/usr/sbin/partprobe" ] &&
@@ -58,7 +58,10 @@ readelf -h "$stage/usr/bin/sgdisk" | grep -q 'Machine:.*AArch64' ||
 for contract in \
 	'/usr/bin/sgdisk -v "$disk"' \
 	'/sbin/e2fsck -fn "$userdata"' \
+	'/usr/sbin/dumpe2fs -h "$userdata"' \
 	'/usr/sbin/resize2fs -P "$userdata"' \
+	'filesystem_requires_recovery' \
+	'needs_recovery|orphan_present' \
 	'/sbin/mkfs.ext4 -V' \
 	'/usr/sbin/partprobe --help' \
 	'stty -F /dev/ttyGS0 raw -echo -echonl -opost clocal cread' \

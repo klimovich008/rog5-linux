@@ -404,6 +404,7 @@ class InitPolicyTest(unittest.TestCase):
             "missing_partprobe",
             "gpt_verify_failed",
             "e2fsck_failed",
+            "filesystem_requires_recovery",
             "resize2fs_failed",
             "minimum_invalid",
             "minimum_too_large",
@@ -417,6 +418,14 @@ class InitPolicyTest(unittest.TestCase):
             "partprobe_failed",
         ):
             self.assertEqual(body.count(failure), 1)
+        self.assertLess(
+            body.index('/usr/sbin/dumpe2fs -h "$userdata"'),
+            body.index('/usr/sbin/resize2fs -P "$userdata"'),
+        )
+        self.assertIn(
+            "needs_recovery|orphan_present",
+            body,
+        )
         first_isolation = source.index("if ! isolate_storage; then")
         configfs = source.index("mount -t configfs configfs /sys/kernel/config")
         reporter = source.index("serve_storage_preflight_report &")

@@ -331,19 +331,6 @@ class CandidateTests(unittest.TestCase):
         values = canonical_manifest(MANIFEST_V3)
         self.assertEqual(values, EXPECTED_V3)
         self.assertEqual(digest(MANIFEST_V3), MANIFEST_V3_SHA256)
-        for name, path in (
-            ("recovery_init_sha256", REPO / "initramfs/recovery-init"),
-            (
-                "collector_sha256",
-                REPO / "scripts/host/collect-storage-preflight-report.py",
-            ),
-            (
-                "runtime_verifier_sha256",
-                REPO / "scripts/device/verify-storage-preflight-arm64-runtime.sh",
-            ),
-            ("layout_sha256", REPO / "configs/storage/rog5-dedicated-linux-v1.json"),
-        ):
-            self.assertEqual(digest(path), values[name])
         fields = next(
             line.split("\t")
             for line in POLICY.read_text(encoding="ascii").splitlines()[1:]
@@ -353,14 +340,17 @@ class CandidateTests(unittest.TestCase):
             fields[:6],
             [
                 PROFILE_V3,
-                "allow",
+                "revoked",
                 MANIFEST_V3_SHA256,
                 values["image_path"],
                 values["image_size"],
                 values["image_sha256"],
             ],
         )
-        self.assertIn("raw persistent receive-only ACM reporting", fields[6])
+        self.assertIn("consumed 2026-08-15", fields[6])
+        self.assertIn("journal-pending userdata", fields[6])
+        self.assertIn("no storage mount or write", fields[6])
+        self.assertIn("never retry", fields[6])
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"
             f"recovery_profile={PROFILE_V3}\n"

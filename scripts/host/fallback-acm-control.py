@@ -365,6 +365,72 @@ def mount_type():
     return ""
 
 
+def root_mount_fields():
+    matches = []
+    for line in Path("/proc/mounts").read_text().splitlines():
+        fields = line.split()
+        if len(fields) == 6 and fields[1] == "/":
+            matches.append(fields)
+    if len(matches) != 1:
+        return []
+    return matches[0]
+
+
+def quiesce_root_read_only(nonce):
+    before = root_mount_fields()
+    if (
+        not before
+        or before[0] != "/dev/sda23"
+        or before[2] != "ext4"
+        or "rw" not in before[3].split(",")
+        or "ro" in before[3].split(",")
+    ):
+        stop(nonce, "root-mount-before")
+    for command in (
+        ["/bin/sync"],
+        ["/bin/mount", "-o", "remount,ro", "/"],
+    ):
+        result = subprocess.run(
+            command,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15,
+        )
+        if result.returncode != 0 or result.stdout or result.stderr:
+            stop(nonce, "root-remount")
+    after = root_mount_fields()
+    if (
+        not after
+        or after[0] != "/dev/sda23"
+        or after[2] != "ext4"
+        or "ro" not in after[3].split(",")
+        or "rw" in after[3].split(",")
+    ):
+        stop(nonce, "root-mount-after")
+    superblock = subprocess.run(
+        ["/usr/sbin/dumpe2fs", "-h", "/dev/sda23"],
+        check=False,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        timeout=15,
+    )
+    if superblock.returncode != 0 or len(superblock.stdout) > 65536:
+        stop(nonce, "root-superblock")
+    lines = superblock.stdout.decode("ascii", errors="strict").splitlines()
+    state = [line.split(":", 1)[1].strip() for line in lines if line.startswith("Filesystem state:")]
+    features = [line.split(":", 1)[1].split() for line in lines if line.startswith("Filesystem features:")]
+    if (
+        state != ["clean"]
+        or len(features) != 1
+        or "needs_recovery" in features[0]
+        or "orphan_present" in features[0]
+    ):
+        stop(nonce, "root-recovery-pending")
+
+
 def pstore_count():
     available = 0
     paths = set()
@@ -603,6 +669,9 @@ def main():
     current = collect(nonce, action)
     if dict(current)["boot_id"] != expected_boot_id:
         stop(nonce, "boot-id-changed")
+    if time.monotonic() >= post_ack_deadline:
+        stop(nonce, "post-ack-timeout")
+    quiesce_root_read_only(nonce)
     if time.monotonic() >= post_ack_deadline:
         stop(nonce, "post-ack-timeout")
     print(

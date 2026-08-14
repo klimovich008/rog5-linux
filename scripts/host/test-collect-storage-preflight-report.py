@@ -68,6 +68,10 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(failed["reason"], "gpt_verify_failed")
 
     def test_every_terminal_failure_has_one_exact_classification(self) -> None:
+        self.assertEqual(
+            MODULE.FAILURE_STAGE_REASONS["filesystem_requires_recovery"],
+            "S41_EXT4_SUPERBLOCK",
+        )
         for reason, stage in MODULE.FAILURE_STAGE_REASONS.items():
             read_only = (
                 "0"

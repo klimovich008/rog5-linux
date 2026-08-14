@@ -486,8 +486,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   passed, and two sealed read-only storage-preflight initramfs builds were
   byte-identical. See the [reviewed public geometry](dedicated-linux-layout-v1.md)
   and [offline result](../test-results/2026-08-14-dedicated-linux-layout-v1-offline.md).
-  Next run the authorized RAM-only read-only preflight on hardware. Final
-  confirmation is still required before any phone partition mutation.
+  Generation 73 then proved exact UFS topology, read-only block locking, GPT
+  validation, and `e2fsck -fn`, but `resize2fs -P` refused the journal-pending
+  filesystem left by the direct fallback `RESTART2` transition. The same
+  sequence reproduces with the sealed ARM64 tools: read-only `e2fsck` skips
+  journal recovery and returns zero, while `resize2fs` requires a forced
+  check. Exact Alpine fallback returned with no storage mount or write.
+  Generation 73 is revoked and must never be retried. The successor checks
+  superblock recovery flags before estimating, and its guarded fallback
+  transition remounts exact `/dev/sda23` read-only and verifies the clean
+  superblock before `RESTART2`. See the
+  [Generation 73 live result](../test-results/2026-08-15-generation-73-storage-preflight-live.md).
+  Final confirmation is still required before any phone partition mutation.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
