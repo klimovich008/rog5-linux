@@ -3786,7 +3786,11 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         elapsed = time.monotonic() - started
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("intent remains UNKNOWN", result.stderr)
-        self.assertLess(elapsed, 2.0)
+        # The whole fixture includes fallback and cleanup setup before the
+        # mocked udev child sleeps for five seconds. Staying below four
+        # seconds proves the shared 0.5-second cleanup deadline interrupted
+        # that child while tolerating scheduling delay on shared CI runners.
+        self.assertLess(elapsed, 4.0)
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("control:prepare-commit"), 1)
         self.assertEqual(calls.count("fallback:ssh-preflight"), 1)
