@@ -363,18 +363,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
-- **Generation 60 is consumed; Generation 61 is the write-window
-  discriminator.** Generation 60 reached exact UFS, `userdata`, and read-only
-  image resolution, then failed at `image-write-window` before the outer
-  userdata RW mount. Read-only fallback inspection found a clean image with
-  mount count one and no marker ancestry; exact PS_HOLD Alpine fallback and
-  host cleanup passed. It must never be retried. The v39 successor preserves
-  the same two-node write surface, fixed marker, all-node relock, and rollback,
-  but separately reports userdata unmount, read-only precheck, partition and
-  parent-disk `BLKROSET`, blockdev/sysfs verification, count, outer/inner
-  mounts, marker, and relock boundaries. See the
-  [Generation 60 live result](../test-results/2026-08-14-generation-60-local-image-write-window-live.md)
-  and [Generation 61 offline checkpoint](../test-results/2026-08-14-generation-61-local-image-write-window-offline.md).
+- **Generation 61 is consumed; Generation 62 identifies the effective
+  read-only mismatch class.** Generation 61 passed exact UFS, `userdata`,
+  image resolution, userdata unmount, the all-node read-only precheck, and
+  both selected-partition and parent-disk `BLKROSET` calls. It then reported
+  `write-window-blockdev: FAIL` before sysfs/count verification, any RW mount,
+  loop attachment, marker, or persistent write. Read-only fallback inspection
+  found the image clean with mount count one and no marker ancestry. Exact
+  Alpine fallback and host cleanup passed; Generation 61 must never be
+  retried. The v40 successor performs the same checks and mutation but reports
+  a fixed selected/unrelated disk/partition and blockdev/sysfs mismatch class.
+  See the [Generation 61 live result](../test-results/2026-08-14-generation-61-local-image-write-window-live.md)
+  and [Generation 62 offline checkpoint](../test-results/2026-08-14-generation-62-local-image-readonly-class-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

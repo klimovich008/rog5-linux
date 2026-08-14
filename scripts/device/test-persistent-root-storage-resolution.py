@@ -463,8 +463,6 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             "write-window-precheck",
             "userdata-partition-rw",
             "userdata-disk-rw",
-            "write-window-blockdev",
-            "write-window-sysfs",
             "write-window-count",
             "userdata-rw",
             "image-loop-rw",
@@ -491,6 +489,21 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             "verify_exact_local_image_probe \"$root\"",
             function(self.source, "verify_persistent_root"),
         )
+
+    def test_write_window_classifies_effective_readonly_mismatch(self) -> None:
+        verifier = function(self.source, "verify_exact_userdata_write_window")
+        for device_class in (
+            "selected-disk",
+            "selected-part",
+            "other-disk",
+            "other-part",
+        ):
+            self.assertIn(
+                f"write-window-{device_class}-blockdev", verifier
+            )
+            self.assertIn(f"write-window-{device_class}-sysfs", verifier)
+        self.assertNotIn("write-window-blockdev", verifier)
+        self.assertNotIn("write-window-sysfs", verifier)
 
     def test_boot_verification_is_bounded_to_exact_critical_files(self) -> None:
         verifier = function(self.source, "verify_persistent_root")

@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-local-image-write-roclass-v40-live-v1 | \
 		persistent-root-local-image-write-window-v39-live-v1 | \
 		persistent-root-local-image-write-diag-v38-live-v1 | \
 		persistent-root-local-image-write-v37-live-v1 | \
@@ -1888,10 +1889,49 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-write-roclass-v40-live-v1)
+		expected_boot_image=build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact bounded SM8350 UFS local-image effective-readonly discriminator with fixed selected/unrelated disk/partition and blockdev/sysfs terminal classes; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 62 effective-readonly discriminator; Generation 61 write surface plus fixed selected/unrelated disk/partition and blockdev/sysfs mismatch classes; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=5ad4a42c97c01ecae711cb6051b1ae320f7b189c022aa0668552efe4f00d602b
+		expected_initramfs=14dd9901fc3d0385e126930633a9e58b5195bafc63388d3e7341d0c9eb851946
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-local-image-write-roclass-v40
+		expected_bundle=persistent-root-local-image-write-roclass-v40
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_avb_salt=065c8bbf741c20313eb78464e922370fd1a2da1a6063925f8f1f3cfc4af8e4df
+		expected_avb_digest=57d19cf69690e2e2ded485408ae7349b2d3c3aa09a091cd2569e9f3f59e29144
+		expected_generation_record=7bebeb697cd04caa9336648fb2811cbf301e24521f38ff6bb5db7c2ae0cb5398
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			1e19474e2536305f4845346d800e054959408a8ecd5e7dd0ba4cb43272a96ef8 ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-write-window-v39-live-v1)
 		expected_boot_image=build/persistent-root-local-image-write-window-v39-generation61-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact bounded SM8350 UFS local-image write-window discriminator with fixed terminal classification of userdata unmount, read-only precheck, userdata-partition BLKROSET, parent-disk BLKROSET, blockdev/sysfs state, count, outer userdata-RW, loop-RW, image-filesystem-RW, marker, and relock failures; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 61 write-window discriminator; Generation 60 write surface plus fixed terminal classification for userdata unmount, read-only precheck, partition/disk BLKROSET, blockdev/sysfs effective state, count, outer/inner mounts, marker and relock; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 61 RAM-only cycle; UFS, exact userdata and image resolution, userdata unmount, read-only precheck, and both partition and parent-disk BLKROSET calls passed, then effective blockdev read-only-state verification failed before sysfs/count verification, any RW mount, loop attachment, marker, or persistent write; the image remained clean with mount count one and no marker ancestry; exact Alpine fallback and host cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 61 write-window discriminator; UFS, exact userdata and image, userdata unmount, read-only precheck, and both BLKROSET calls passed; effective blockdev read-only-state verification failed before any RW mount, loop, marker, or persistent write; image remained clean with mount count one and no marker ancestry; exact Alpine fallback and host cleanup passed; retain offline only; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -2642,6 +2682,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-write-roclass-v40-live-v1 | \
 	persistent-root-local-image-write-window-v39-live-v1 | \
 	persistent-root-local-image-write-diag-v38-live-v1 | \
 	persistent-root-local-image-write-v37-live-v1 | \

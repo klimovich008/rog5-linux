@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-write-window-v39-live-v1"
-BUNDLE = "persistent-root-local-image-write-window-v39"
+PROFILE_ID = "persistent-root-local-image-write-roclass-v40-live-v1"
+BUNDLE = "persistent-root-local-image-write-roclass-v40"
 MANIFEST_SHA256 = (
-    "35cdc621f44873e42b1b8f2619e383d1a6ed2236f49790fdf36c7435e7883824"
+    "c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b"
 )
 RECOVERY_SHA256 = (
-    "8215928fc9c68414e90f50401238a4539b3f0f101c7834f3fce242b71ee3606d"
+    "1e19474e2536305f4845346d800e054959408a8ecd5e7dd0ba4cb43272a96ef8"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-write-window-v39-generation61-20260814-r1"
+    / "build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-write-window-v39",
+    admission_profile="persistent-root-local-image-write-roclass-v40",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-write-window-v39",
-    build_profile="persistent-root-local-image-write-window-v39",
+    runtime_profile="persistent-root-local-image-write-roclass-v40",
+    build_profile="persistent-root-local-image-write-roclass-v40",
     diagnostic=False,
 )
 
@@ -180,8 +180,14 @@ STAGES = {
     "write-window-precheck",
     "userdata-partition-rw",
     "userdata-disk-rw",
-    "write-window-blockdev",
-    "write-window-sysfs",
+    "write-window-selected-disk-blockdev",
+    "write-window-selected-disk-sysfs",
+    "write-window-selected-part-blockdev",
+    "write-window-selected-part-sysfs",
+    "write-window-other-disk-blockdev",
+    "write-window-other-disk-sysfs",
+    "write-window-other-part-blockdev",
+    "write-window-other-part-sysfs",
     "write-window-count",
     "userdata-rw",
     "image-loop-rw",

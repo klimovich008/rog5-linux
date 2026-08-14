@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-local-image-write-roclass-v40-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-local-image-write-roclass-v40-live-v1\n"
+            b"candidate=persistent-root-local-image-write-roclass-v40\n"
+            b"manifest_sha256="
+            b"c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-local-image-write-window-v39-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-local-image-write-window-v39-live-v1\n"

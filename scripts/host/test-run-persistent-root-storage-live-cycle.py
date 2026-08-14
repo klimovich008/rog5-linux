@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-write-window-v39-live-v1",
+            "persistent-root-local-image-write-roclass-v40-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-write-window-v39",
+            "persistent-root-local-image-write-roclass-v40",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -234,8 +234,14 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "write-window-precheck",
             "userdata-partition-rw",
             "userdata-disk-rw",
-            "write-window-blockdev",
-            "write-window-sysfs",
+            "write-window-selected-disk-blockdev",
+            "write-window-selected-disk-sysfs",
+            "write-window-selected-part-blockdev",
+            "write-window-selected-part-sysfs",
+            "write-window-other-disk-blockdev",
+            "write-window-other-disk-sysfs",
+            "write-window-other-part-blockdev",
+            "write-window-other-part-sysfs",
             "write-window-count",
             "userdata-rw",
             "image-loop-rw",
