@@ -2,8 +2,8 @@
 
 Date: 2026-08-14
 
-Status: **offline candidate complete; publication and live validation pending;
-one RAM-only use only, never flash.**
+Status: **offline checkpoint passed; the sole live cycle is now consumed and
+must never be retried or flashed.**
 
 Generation 57 addresses the measured Generation 56 userspace critical path
 without changing the accepted kernel, DTB, UFS implementation, local image,
@@ -68,5 +68,6 @@ digest
 and generation-record SHA-256
 `2872690a6163d6842249a778b5bbfc3c1257edfa30133980fdf8cf490a363e63`.
 
-Generation 56 is revoked and cannot be consumed again. Generation 57 remains
-RAM-only, single-use, and read-only with respect to phone storage.
+Generation 56 is revoked and cannot be consumed again. Generation 57's sole
+RAM-only cycle subsequently passed in 305.928 seconds and is now permanently
+revoked. See the [live result](2026-08-14-generation-57-volatile-systemd-live.md).

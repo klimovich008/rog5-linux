@@ -232,7 +232,12 @@ fallback in 362.241 seconds. It identified `ldconfig.service` (148.089
 seconds) and the unused headless virtual-console setup (76.694 seconds) as
 the next critical-path targets. Generation 57 changes only volatile boot
 state to skip those two costs while leaving both physical ext4 layers
-`ro,noload`.
+`ro,noload`. Its
+[live cycle](../test-results/2026-08-14-generation-57-volatile-systemd-live.md)
+passed strict SSH in 305.928 seconds. Userspace fell by 54.862 seconds, and
+neither `ldconfig` nor vconsole remained in the timing report. The next
+measured targets are early userspace/udev and SSH key generation; device-unit
+blame must be separated from the actual critical chain before another change.
 
 ## Reproduction commands
 
