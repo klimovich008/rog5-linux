@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-volatile-v35-live-v1",
+            "persistent-root-local-image-ed25519-v36-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-volatile-v35",
+            "persistent-root-local-image-ed25519-v36",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -53,6 +53,16 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("systemd-analyze blame --no-pager", diagnostic)
         self.assertIn("sed -n '1,80p'", diagnostic)
         self.assertIn("systemd-analyze critical-chain --no-pager", diagnostic)
+        self.assertIn(
+            "systemd-analyze critical-chain --no-pager sshd.service",
+            diagnostic,
+        )
+        self.assertIn(
+            "rog5-sshd-ed25519-key.service",
+            diagnostic,
+        )
+        self.assertIn("sshdgenkeys.service", diagnostic)
+        self.assertIn("ssh_host_*_key*", diagnostic)
 
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(

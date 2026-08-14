@@ -238,6 +238,12 @@ passed strict SSH in 305.928 seconds. Userspace fell by 54.862 seconds, and
 neither `ldconfig` nor vconsole remained in the timing report. The next
 measured targets are early userspace/udev and SSH key generation; device-unit
 blame must be separated from the actual critical chain before another change.
+Generation 58 targets only the measured 38.212-second SSH host-key step. Its
+initramfs leaves both ext4 layers `ro,noload`, masks the stock three-algorithm
+generator in tmpfs, and requires one per-boot volatile Ed25519 key before sshd.
+The [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md)
+passed clean-twin and exact one-use admission checks; live timing remains to be
+measured.
 
 ## Reproduction commands
 

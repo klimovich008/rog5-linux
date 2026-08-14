@@ -538,6 +538,14 @@ EXPECTED_CLAIMS["persistent-root-local-image-volatile-v35-live-v1"] = (
     "1def5f276c7d07668ccb90a9ca3ed966660e0af359e49e2f847371b058291e30\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-local-image-ed25519-v36-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-ed25519-v36-live-v1\n"
+    "candidate=persistent-root-local-image-ed25519-v36\n"
+    "manifest_sha256="
+    "cc41176df74def7a8953dfcd8621e1d1ad2457eb98a7822a0d40ce50ab8c2be0\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -668,7 +676,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "11ce84c9ff89c709457ccc6b3ca77a09512c6324a8664c196b166d2766c1f93c",
+    "sha256": "8de8d07bb42a25376b79a6fc3b36aa255ad7b8993f540aa973cb6e1908df6cb7",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -696,7 +704,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "11ce84c9ff89c709457ccc6b3ca77a09512c6324a8664c196b166d2766c1f93c",
+    "executor_contract_sha256": "8de8d07bb42a25376b79a6fc3b36aa255ad7b8993f540aa973cb6e1908df6cb7",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",

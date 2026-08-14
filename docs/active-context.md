@@ -348,6 +348,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-57-volatile-systemd-live.md).
   Generation 57 is revoked and must never be retried or flashed.
 
+- **Generation 58 is the unbooted Ed25519-only successor.** Generation 57's
+  evidence showed 38.212 seconds in stock `sshdgenkeys.service`, which
+  generated three host-key algorithms although the exact sshd configuration
+  uses only Ed25519. The v36 initramfs verifies the sealed key generator,
+  service, sshd setting, and absence of host keys; masks the stock generator
+  only in tmpfs; and adds one exact volatile Ed25519-key oneshot required by
+  sshd. Clean initramfs and signed-bundle twins are byte-identical, focused
+  tests pass, and the one-use Generation 58 wrapper is admitted but unbooted.
+  See the
+  [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at
