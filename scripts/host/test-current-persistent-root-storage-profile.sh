@@ -11,12 +11,12 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-basis='one exact bounded SM8350 UFS local-image effective-readonly discriminator with fixed selected/unrelated disk/partition and blockdev/sysfs terminal classes; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-profile=persistent-root-local-image-write-roclass-v40-live-v1
-image_name=build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1/repack/stable-recovery-a.avb.img
-role='unbooted Generation 62 effective-readonly discriminator; Generation 61 write surface plus fixed selected/unrelated disk/partition and blockdev/sysfs mismatch classes; one RAM-only use only; never flash'
+basis='one exact bounded SM8350 UFS local-image contained-write attempt; the kernel retains UFS query, optional-management, link-power, and runtime-PM containment while the sealed initramfs locks all 116 physical nodes and opens only the exact userdata partition and parent for one fixed marker inside the existing 16 GiB image, then relocks all nodes before read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+profile=persistent-root-local-image-write-contained-v41-live-v1
+image_name=build/persistent-root-local-image-write-contained-v41-generation63-20260814-r1/repack/stable-recovery-a.avb.img
+role='unbooted Generation 63 contained-write local-image successor; one exact marker inside the existing 16 GiB image under the sealed userdata partition-and-parent window; one RAM-only use only; never flash'
 [[ $role == unbooted\ * ]] ||
-	fail 'Generation 62 artifact role must remain unbooted before entry'
+	fail 'Generation 63 artifact role must remain unbooted before entry'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-local-image-write-roclass-v40 \
-	expected_bundle=persistent-root-local-image-write-roclass-v40 \
+	expected_target_id=persistent-root-local-image-write-contained-v41 \
+	expected_bundle=persistent-root-local-image-write-contained-v41 \
 	expected_bundle_profile=persistent-root-ro-v1 \
-	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=065c8bbf741c20313eb78464e922370fd1a2da1a6063925f8f1f3cfc4af8e4df \
-	expected_avb_digest=57d19cf69690e2e2ded485408ae7349b2d3c3aa09a091cd2569e9f3f59e29144 \
-	expected_generation_record=7bebeb697cd04caa9336648fb2811cbf301e24521f38ff6bb5db7c2ae0cb5398 \
+	expected_target_release=7.1.4-g359318de534f \
+	expected_avb_salt=1db67bc08d7b9685512178f3233c9ff47c50e30c2eb5f53b944a62c507625eb9 \
+	expected_avb_digest=b70134efcd6bb79d78c09b5b362bf36a1e9d609b12d1a7c080cd827c25927c83 \
+	expected_generation_record=a1f33c5a546a500dde19b800005ab306e468e99e5f03c46bd6fd3dd2ce441179 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	1e19474e2536305f4845346d800e054959408a8ecd5e7dd0ba4cb43272a96ef8
+	159bf683100ad25aa9512a21ed2d24f91625b25597563eebe4d13bc42223b55a
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b
+	5125eddd0aeeb394eea7f24b427b04c1c001276c5b8b2e9dbf544a49c4af0646
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-local-image-write-roclass-v40
+	persistent-root-local-image-write-contained-v41
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-local-image-write-roclass-v40' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-local-image-write-contained-v41' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-local-image-write-roclass-v40'
+	'profile requires bundle=persistent-root-local-image-write-contained-v41'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -105,10 +105,10 @@ done
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 62 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 63 image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "1e19474e2536305f4845346d800e054959408a8ecd5e7dd0ba4cb43272a96ef8" &&
+	$3 == "159bf683100ad25aa9512a21ed2d24f91625b25597563eebe4d13bc42223b55a" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-local-image-write-roclass-v40-production-20260814-r1
-generation_root=$repo/build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1
+production_root=$repo/build/persistent-root-local-image-write-contained-v41-production-20260814-r1
+generation_root=$repo/build/persistent-root-local-image-write-contained-v41-generation63-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 62 effective-readonly discriminator profile, exact claim, artifact, and one-use admission are pinned'
+echo 'PASS Generation 63 contained-write profile, exact claim, artifact, and one-use admission are pinned'

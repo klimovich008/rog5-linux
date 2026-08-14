@@ -10,6 +10,7 @@ base=${1:-$repo/artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz}
 verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-verify}
 config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
 ufs_modules=${4:-}
+storage_mode=${UFS_STORAGE_MODE:-read-only}
 
 fail() {
 	echo "FAIL $*" >&2
@@ -50,6 +51,16 @@ grep -Fqx "$release_check" "$init"
 	fail 'P2 target must read the kernel release directly from procfs'
 ! grep -Fq '/proc/config.gz' "$init" ||
 	fail 'P2 target must not depend on procfs IKCONFIG during live boot'
+grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$init" ||
+	fail 'P2 target lacks the sealed UFS storage-mode placeholder'
+grep -Fq '[ "$expected_ufs_storage_mode" = local-write ]' "$init" ||
+	fail 'P2 target lacks the local-write UFS policy branch'
+grep -Fq "'ROG5 UFS discovery: forced read-only before registration'" "$init" ||
+	fail 'local-write policy does not reject the discovery-only disk guard'
+grep -Fq 'UFS_STORAGE_MODE must be read-only or local-write' "$builder" ||
+	fail 'P2 builder does not fail closed on the storage mode'
+grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
+	fail 'P2 builder does not seal the selected storage mode'
 grep -Fq 'expected_physical_count=116' "$init"
 grep -Fq 'expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876' \
 	"$init"
@@ -198,13 +209,23 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+if UFS_STORAGE_MODE=invalid "$builder" "$base" "$verifier" \
+	"$work/invalid.cpio.gz" >"$work/invalid.out" 2>"$work/invalid.err"; then
+	fail 'P2 builder accepted an invalid UFS storage mode'
+fi
+grep -Fxq 'FAIL UFS_STORAGE_MODE must be read-only or local-write' \
+	"$work/invalid.err"
 if [ -n "$ufs_modules" ]; then
+	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/a.cpio.gz" \
 		"$ufs_modules" >/dev/null
+	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/b.cpio.gz" \
 		"$ufs_modules" >/dev/null
 else
+	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/a.cpio.gz" >/dev/null
+	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/b.cpio.gz" >/dev/null
 fi
 cmp "$work/a.cpio.gz" "$work/b.cpio.gz"
@@ -212,7 +233,8 @@ cmp "$work/a.cpio.gz" "$work/b.cpio.gz"
 mkdir "$work/root"
 gzip -dc "$work/a.cpio.gz" |
 	(cd "$work/root" && cpio -idm --quiet --no-absolute-filenames)
-sed "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
+sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
+	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
@@ -232,6 +254,8 @@ fi
 grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
 	"$work/root/init"
 ! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$work/root/init"
+grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$work/root/init"
+! grep -Fq '@EXPECTED_UFS_STORAGE_MODE@' "$work/root/init"
 
 if [ -n "$ufs_modules" ]; then
 	module_inventory=$(find "$work/root/rog5-ufs-modules" \

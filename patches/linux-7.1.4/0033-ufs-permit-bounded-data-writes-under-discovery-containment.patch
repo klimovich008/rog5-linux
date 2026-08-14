@@ -1,0 +1,76 @@
+From 359318de534f196c1281de7195fbf5868c6f7333 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Fri, 14 Aug 2026 11:39:44 +0200
+Subject: [PATCH] ufs: permit bounded data writes under discovery containment
+
+---
+ drivers/scsi/sd.c         |  6 ++++--
+ drivers/ufs/core/Kconfig  | 16 ++++++++++++++++
+ drivers/ufs/core/ufshcd.c |  3 ++-
+ 3 files changed, 22 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
+index c732281c8..1885e8796 100644
+--- a/drivers/scsi/sd.c
++++ b/drivers/scsi/sd.c
+@@ -3042,7 +3042,8 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
+ 	struct scsi_mode_data data;
+ 	int old_wp = sdkp->write_prot;
+ 
+-	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++	    !IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE)) {
+ 		sdkp->write_prot = 1;
+ 		set_disk_ro(sdkp->disk, true);
+ 		sd_first_printk(KERN_NOTICE, sdkp,
+@@ -4086,7 +4087,8 @@ static int sd_probe(struct scsi_device *sdp)
+ 	sdkp->capacity = 0;
+ 	sdkp->media_present = 1;
+ 	sdkp->write_prot =
+-		IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY);
++		IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++		!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE);
+ 	set_disk_ro(gd, sdkp->write_prot);
+ 	sdkp->cache_override = 0;
+ 	sdkp->WCE = 0;
+diff --git a/drivers/ufs/core/Kconfig b/drivers/ufs/core/Kconfig
+index a1dd8ceb9..a22b42ea9 100644
+--- a/drivers/ufs/core/Kconfig
++++ b/drivers/ufs/core/Kconfig
+@@ -46,6 +46,22 @@ config SCSI_UFS_DISCOVERY_READ_ONLY
+ 
+ 	  If unsure, say N.
+ 
++config SCSI_UFS_DISCOVERY_DATA_WRITE
++	bool "Allow SCSI data writes under UFS discovery containment"
++	depends on SCSI_UFS_DISCOVERY_READ_ONLY
++	help
++	  Keep the discovery-only UFS device-management, link-power and runtime-PM
++	  containment, but permit SCSI data commands and register SCSI disks as
++	  writable. This is intended only for a sealed initramfs that first marks
++	  every physical block device read-only and then opens one exact bounded
++	  filesystem write window.
++
++	  UFS query writes remain restricted to the mandatory fDeviceInit
++	  handshake. Optional device-management writes, WriteBooster, RTC updates,
++	  high-speed gear changes and power transitions remain disabled.
++
++	  If unsure, say N.
++
+ config SCSI_UFS_CRYPTO
+ 	bool "UFS Crypto Engine Support"
+ 	depends on BLK_INLINE_ENCRYPTION
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+index 6fdc30b53..7d6c3f21c 100644
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -175,7 +175,8 @@ static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn, u8 index,
+ 
+ static bool ufshcd_discovery_scsi_allowed(const struct scsi_cmnd *cmd)
+ {
+-	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) ||
++	    IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE))
+ 		return true;
+ 
+ 	if (cmd->sc_data_direction == DMA_TO_DEVICE ||

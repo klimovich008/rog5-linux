@@ -363,18 +363,34 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
-- **Generation 61 is consumed; Generation 62 identifies the effective
-  read-only mismatch class.** Generation 61 passed exact UFS, `userdata`,
+- **Generations 61 and 62 are consumed; Generation 62 proved the kernel-level
+  read-only cause.** Generation 61 passed exact UFS, `userdata`,
   image resolution, userdata unmount, the all-node read-only precheck, and
   both selected-partition and parent-disk `BLKROSET` calls. It then reported
   `write-window-blockdev: FAIL` before sysfs/count verification, any RW mount,
   loop attachment, marker, or persistent write. Read-only fallback inspection
   found the image clean with mount count one and no marker ancestry. Exact
   Alpine fallback and host cleanup passed; Generation 61 must never be
-  retried. The v40 successor performs the same checks and mutation but reports
-  a fixed selected/unrelated disk/partition and blockdev/sysfs mismatch class.
+  retried. Generation 62 performed the same bounded checks and reported
+  `write-window-selected-disk-blockdev: FAIL`: both reviewed `BLKROSET` calls
+  returned success, but the selected parent disk remained effectively
+  read-only. No RW mount, loop attachment, marker, or persistent write
+  occurred; fallback inspection again found the 16 GiB ext4 image clean and
+  marker-free. Source audit then proved that
+  `CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y` both marks SCSI disks hardware
+  read-only in `sd.c` and rejects UFS write commands in `ufshcd.c`, so a
+  userspace write window cannot work in the discovery profile. Generation 62
+  must never be retried. The next candidate uses a separate local-write kernel
+  profile that retains discovery query, link-power, runtime-PM, and optional
+  device-write containment while lifting only the SCSI data-command and disk
+  hardware-read-only gates. Generation 63 now carries that exact contained-write
+  profile in clean-twin kernel, initramfs, signed-bundle, and stable-recovery
+  outputs. It is unbooted; its sole RAM-only claim has not been created. The
+  read-only discovery profile remains unchanged.
   See the [Generation 61 live result](../test-results/2026-08-14-generation-61-local-image-write-window-live.md)
-  and [Generation 62 offline checkpoint](../test-results/2026-08-14-generation-62-local-image-readonly-class-offline.md).
+  and the Generation 62 [offline checkpoint](../test-results/2026-08-14-generation-62-local-image-readonly-class-offline.md)
+  and [live result](../test-results/2026-08-14-generation-62-local-image-readonly-class-live.md),
+  plus the [Generation 63 offline checkpoint](../test-results/2026-08-14-generation-63-contained-write-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

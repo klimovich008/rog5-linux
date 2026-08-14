@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-local-image-write-contained-v41-live-v1 | \
 		persistent-root-local-image-write-roclass-v40-live-v1 | \
 		persistent-root-local-image-write-window-v39-live-v1 | \
 		persistent-root-local-image-write-diag-v38-live-v1 | \
@@ -1889,10 +1890,49 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-write-contained-v41-live-v1)
+		expected_boot_image=build/persistent-root-local-image-write-contained-v41-generation63-20260814-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact bounded SM8350 UFS local-image contained-write attempt; the kernel retains UFS query, optional-management, link-power, and runtime-PM containment while the sealed initramfs locks all 116 physical nodes and opens only the exact userdata partition and parent for one fixed marker inside the existing 16 GiB image, then relocks all nodes before read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 63 contained-write local-image successor; one exact marker inside the existing 16 GiB image under the sealed userdata partition-and-parent window; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=5ad4a42c97c01ecae711cb6051b1ae320f7b189c022aa0668552efe4f00d602b
+		expected_initramfs=14dd9901fc3d0385e126930633a9e58b5195bafc63388d3e7341d0c9eb851946
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-local-image-write-contained-v41
+		expected_bundle=persistent-root-local-image-write-contained-v41
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_avb_salt=1db67bc08d7b9685512178f3233c9ff47c50e30c2eb5f53b944a62c507625eb9
+		expected_avb_digest=b70134efcd6bb79d78c09b5b362bf36a1e9d609b12d1a7c080cd827c25927c83
+		expected_generation_record=a1f33c5a546a500dde19b800005ab306e468e99e5f03c46bd6fd3dd2ce441179
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			5125eddd0aeeb394eea7f24b427b04c1c001276c5b8b2e9dbf544a49c4af0646 ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			159bf683100ad25aa9512a21ed2d24f91625b25597563eebe4d13bc42223b55a ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-write-roclass-v40-live-v1)
 		expected_boot_image=build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact bounded SM8350 UFS local-image effective-readonly discriminator with fixed selected/unrelated disk/partition and blockdev/sysfs terminal classes; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 62 effective-readonly discriminator; Generation 61 write surface plus fixed selected/unrelated disk/partition and blockdev/sysfs mismatch classes; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 62 RAM-only cycle; both BLKROSET calls returned success but the selected parent remained effectively read-only, so no RW mount, loop, marker, or persistent write occurred; exact Alpine fallback and clean marker-free image postcheck passed; never retry or flash'
+		expected_boot_role='consumed Generation 62 effective-readonly discriminator; parent disk remained effectively read-only after both BLKROSET calls; no RW mount, loop, marker, or persistent write; exact Alpine fallback and clean marker-free image passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -2682,6 +2722,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-write-contained-v41-live-v1 | \
 	persistent-root-local-image-write-roclass-v40-live-v1 | \
 	persistent-root-local-image-write-window-v39-live-v1 | \
 	persistent-root-local-image-write-diag-v38-live-v1 | \

@@ -302,11 +302,35 @@ write. Read-only fallback inspection found the image clean, at mount count
 one, and without marker ancestry. Generation 61 is revoked and must never be
 retried.
 
-Generation 62 keeps the same bounded mutation and adds only fixed
-selected/unrelated disk/partition and blockdev/sysfs terminal classes to the
-existing verification loop. It remains RAM-only and one-use; GPT, partition
-geometry, firmware, calibration, device identity, and the Alpine recovery
-route remain outside its write surface.
+Generation 62 consumed its sole RAM-only cycle. It reported
+`write-window-selected-disk-blockdev: FAIL` after both reviewed `BLKROSET`
+calls returned success: the selected parent disk still reported effective
+read-only state. No RW mount, loop attachment, marker, or persistent write
+occurred. Read-only fallback inspection found the 16 GiB ext4 image clean and
+marker-free, and exact Alpine fallback passed. Generation 62 is revoked and
+must never be retried.
+
+The failure is a kernel-profile mismatch, not another userspace window bug.
+`CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y` sets the SCSI disk's hardware
+read-only state and independently blocks SCSI data writes. The first local
+write successor therefore adds `CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y` while
+retaining the discovery option. Device-query writes, optional UFS management
+writes, high-speed gear switching, link-power changes, and runtime PM remain
+contained. Its sealed initramfs still locks every physical block node
+read-only before opening the exact two-node userdata window. The read-only
+discovery build remains available and unchanged; GPT, partition geometry,
+firmware, calibration, device identity, and Alpine recovery remain outside the
+write surface.
+
+Generation 63 is the unbooted successor. Its kernel keeps
+`CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y` and adds the separate
+`CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y` policy. Clean-twin builds verified an
+identical kernel, compat vDSO, and four deferred UFS modules. The sealed
+initramfs records `local-write`, requires the retained containment markers,
+locks all 116 physical block nodes before opening the exact userdata
+partition-and-parent window, and relocks every node before the read-only Arch
+runtime. The one-use claim remains uncreated until immediately before a live
+cycle.
 
 ## Reproduction commands
 

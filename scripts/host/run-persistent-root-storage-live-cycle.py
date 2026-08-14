@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-write-roclass-v40-live-v1"
-BUNDLE = "persistent-root-local-image-write-roclass-v40"
+PROFILE_ID = "persistent-root-local-image-write-contained-v41-live-v1"
+BUNDLE = "persistent-root-local-image-write-contained-v41"
 MANIFEST_SHA256 = (
-    "c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b"
+    "5125eddd0aeeb394eea7f24b427b04c1c001276c5b8b2e9dbf544a49c4af0646"
 )
 RECOVERY_SHA256 = (
-    "1e19474e2536305f4845346d800e054959408a8ecd5e7dd0ba4cb43272a96ef8"
+    "159bf683100ad25aa9512a21ed2d24f91625b25597563eebe4d13bc42223b55a"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -52,13 +52,13 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-gae717d919f87"
+TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1"
+    / "build/persistent-root-local-image-write-contained-v41-generation63-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-write-roclass-v40",
+    admission_profile="persistent-root-local-image-write-contained-v41",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-write-roclass-v40",
-    build_profile="persistent-root-local-image-write-roclass-v40",
+    runtime_profile="persistent-root-local-image-write-contained-v41",
+    build_profile="persistent-root-local-image-write-contained-v41",
     diagnostic=False,
 )
 

@@ -15,7 +15,16 @@ expected_stage_base=2f8fb42078cc9c827953cd0ad5a67042aae8a8989f60b4056319c25f3dcc
 expected_fast_base=e6836d2173341a200b2d728d4ade97a09233de1936621073ad32ae32402f9883
 expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
+storage_mode=${UFS_STORAGE_MODE:-read-only}
 epoch=1681862400
+
+case $storage_mode in
+	read-only | local-write) ;;
+	*)
+		echo 'FAIL UFS_STORAGE_MODE must be read-only or local-write' >&2
+		exit 1
+		;;
+esac
 
 printf '%s\n' "$expected_release" |
 	grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
@@ -118,6 +127,13 @@ install -m 0755 "$init" "$stage/init"
 sed -i "s/@EXPECTED_KERNEL_RELEASE@/$expected_release/" "$stage/init"
 grep -Fqx "expected_kernel_release=$expected_release" "$stage/init"
 ! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$stage/init"
+[ "$(grep -Fc '@EXPECTED_UFS_STORAGE_MODE@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique UFS storage-mode placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" "$stage/init"
+grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$stage/init"
+! grep -Fq '@EXPECTED_UFS_STORAGE_MODE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$attest" \
 	"$stage/usr/local/sbin/rog5-p2-attest"
@@ -151,4 +167,4 @@ mkdir -p "$(dirname "$output")"
 mv -T -- "$output.tmp" "$output"
 gzip -t "$output"
 sha256sum "$output"
-echo 'PASS deterministic credential-free P2 bounded-write/read-only-runtime persistent-root initramfs'
+echo "PASS deterministic credential-free P2 $storage_mode bounded-write/read-only-runtime persistent-root initramfs"

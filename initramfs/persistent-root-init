@@ -15,6 +15,7 @@ mdev -s
 
 expected_physical_count=116
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
+expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -199,6 +200,39 @@ verify_ufs_power_containment() {
 	auto_marker='ROG5 UFS discovery: auto-hibern8 disabled; link remains active'
 	host_marker='ROG5 UFS discovery: host runtime PM forbidden; active reference retained'
 	wlun_marker='ROG5 UFS discovery: WLUN runtime PM forbidden'
+	if [ "$expected_ufs_storage_mode" = local-write ]; then
+		attempt=0
+		auto_count=0
+		host_count=0
+		wlun_count=0
+		optional_count=0
+		while [ "$attempt" -lt 100 ]; do
+			auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
+			host_count=$(dmesg | grep -F -c "$host_marker" || true)
+			wlun_count=$(dmesg | grep -F -c "$wlun_marker" || true)
+			optional_count=$(dmesg | grep -F -c \
+				'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled' || true)
+			if [ "$auto_count" -gt 0 ] && [ "$host_count" -gt 0 ] &&
+				[ "$wlun_count" -gt 0 ] && [ "$optional_count" -gt 0 ]; then
+				break
+			fi
+			attempt=$((attempt + 1))
+			sleep 0.1
+		done
+		[ "$auto_count" -gt 0 ] && [ "$host_count" -gt 0 ] &&
+			[ "$wlun_count" -gt 0 ] && [ "$optional_count" -gt 0 ] ||
+			return 1
+		[ "$(dmesg | grep -F -c \
+			'ROG5 UFS discovery: forced read-only before registration' || true)" \
+			-eq 0 ] || return 1
+		blocked_query_count=$(dmesg |
+			grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+		blocked_scsi_count=$(dmesg |
+			grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+		[ "$blocked_query_count" -eq 0 ] &&
+			[ "$blocked_scsi_count" -eq 0 ]
+		return
+	fi
 	attempt=0
 	auto_count=0
 	host_count=0
@@ -1237,6 +1271,10 @@ if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 fi
 target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
 	fail_stage 'target boot identity is unavailable' kernel-release-file 20
+case $expected_ufs_storage_mode in
+	read-only | local-write) ;;
+	*) fail_stage 'target UFS storage mode is invalid' kernel-release-file 20 ;;
+esac
 printf '%s\n' "$target_boot_id" |
 	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
 	fail_stage 'target boot identity is invalid' kernel-release-file 20
