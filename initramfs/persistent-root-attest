@@ -212,7 +212,7 @@ progress ufs-health-pass
 ip -o -4 address show dev usb0 |
 	grep -Fq '169.254.77.2/30' ||
 	fail 'USB management address is absent'
-systemctl is-active --quiet sshd.service ||
+systemctl is-active --quiet rog5-early-sshd.service ||
 	fail 'strict SSH service is not active'
 sshd -T | grep -Fqx 'passwordauthentication no' ||
 	fail 'SSH password authentication is enabled'

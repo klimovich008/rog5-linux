@@ -363,6 +363,14 @@ the successful target path. The next reversible work is local-root startup
 reduction and a separately bounded persistent-write experiment inside the
 existing image; no partition-table change is authorized by this result.
 
+Generation 67 is the unbooted startup-reduction successor. It keeps the exact
+Generation 66 storage path and moves only strict Ed25519 SSH and storage
+attestation to `sysinit.target`, before the unrelated general Arch
+`basic.target` transaction. The stock sshd units are masked only in volatile
+`/run`; the local image remains mounted `ro,noload`. Clean twins and focused
+offline tests pass. Generation 67 remains one-use, RAM-only, and unbooted.
+See the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md).
+
 ## Reproduction commands
 
 ```sh

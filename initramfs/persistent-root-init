@@ -1077,39 +1077,61 @@ prepare_volatile_systemd_state() {
 		[ "$(readlink "$vconsole_mask")" = /dev/null ] || return 1
 
 	sshdgenkeys_mask=$runtime/systemd/system/sshdgenkeys.service
+	stock_sshd_mask=$runtime/systemd/system/sshd.service
 	ed25519_unit=$runtime/systemd/system/rog5-sshd-ed25519-key.service
-	sshd_dropin_dir=$runtime/systemd/system/sshd.service.d
-	sshd_dropin=$sshd_dropin_dir/10-rog5-ed25519-only.conf
-	for path in "$sshdgenkeys_mask" "$ed25519_unit" \
-		"$sshd_dropin_dir" "$sshd_dropin"; do
+	early_sshd_unit=$runtime/systemd/system/rog5-early-sshd.service
+	early_sshd_wants=$runtime/systemd/system/sysinit.target.wants/rog5-early-sshd.service
+	for path in "$sshdgenkeys_mask" "$stock_sshd_mask" "$ed25519_unit" \
+		"$early_sshd_unit" "$early_sshd_wants"; do
 		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
 	done
 	ln -s /dev/null "$sshdgenkeys_mask" || return 1
 	[ -L "$sshdgenkeys_mask" ] &&
 		[ "$(readlink "$sshdgenkeys_mask")" = /dev/null ] || return 1
-	mkdir -m 0755 "$sshd_dropin_dir" || return 1
+	ln -s /dev/null "$stock_sshd_mask" || return 1
+	[ -L "$stock_sshd_mask" ] &&
+		[ "$(readlink "$stock_sshd_mask")" = /dev/null ] || return 1
 	cat >"$ed25519_unit" <<'EOF'
 [Unit]
 Description=Generate one volatile Ed25519 SSH host key
-Before=sshd.service
+DefaultDependencies=no
+Before=rog5-early-sshd.service
 ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
 EOF
-	cat >"$sshd_dropin" <<'EOF'
+	cat >"$early_sshd_unit" <<'EOF'
 [Unit]
+Description=Start strict SSH before the general Arch boot transaction
+DefaultDependencies=no
 Requires=rog5-sshd-ed25519-key.service
 After=rog5-sshd-ed25519-key.service
+Before=basic.target
+
+[Service]
+ExecStart=/usr/bin/sshd -D
+KillMode=process
+Restart=on-failure
+RestartSec=2s
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=sysinit.target
 EOF
-	chown 0:0 "$ed25519_unit" "$sshd_dropin" || return 1
-	chmod 0644 "$ed25519_unit" "$sshd_dropin" || return 1
-	verify_exact_regular "$ed25519_unit" 0 0 644 240 \
-		6c6bd9be19e1d5b24129d2a86e4f66d4fd4459fe9d209426de974d59e7349a11 ||
+	ln -s ../rog5-early-sshd.service "$early_sshd_wants" || return 1
+	[ -L "$early_sshd_wants" ] &&
+		[ "$(readlink "$early_sshd_wants")" = \
+		../rog5-early-sshd.service ] || return 1
+	chown 0:0 "$ed25519_unit" "$early_sshd_unit" || return 1
+	chmod 0644 "$ed25519_unit" "$early_sshd_unit" || return 1
+	verify_exact_regular "$ed25519_unit" 0 0 644 274 \
+		99390fa5afe975b46a4f62f7f532c3062acfa69e85970d5a7aeb28a7ccfadd09 ||
 		return 1
-	verify_exact_regular "$sshd_dropin" 0 0 644 82 \
-		0b346662894067a89194ef09da6a136e668f4f08bda4967f1db6babdcea2519b ||
+	verify_exact_regular "$early_sshd_unit" 0 0 644 366 \
+		a9b6c3b487755dcb9e0726773b5f6376cadfa192244d8f7c24d9fd3837661359 ||
 		return 1
 	return 0
 }
@@ -1131,7 +1153,7 @@ prepare_runtime() {
 	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
 		return 1
 	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
-		/run/systemd/system/multi-user.target.wants
+		/run/systemd/system/sysinit.target.wants
 	cat >/run/NetworkManager/conf.d/10-rog5-p2.conf <<'EOF'
 [keyfile]
 unmanaged-devices=interface-name:usb0
@@ -1142,8 +1164,10 @@ EOF
 	cat >/run/systemd/system/rog5-p2-ready.service <<'EOF'
 [Unit]
 Description=Verify the read-only persistent-root P2 gate
-After=sshd.service network.target
-Wants=sshd.service
+DefaultDependencies=no
+Requires=rog5-early-sshd.service
+After=rog5-early-sshd.service
+Before=basic.target
 
 [Service]
 Type=oneshot
@@ -1151,10 +1175,10 @@ ExecStart=/run/rog5-p2-attest
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-p2-ready.service \
-		/run/systemd/system/multi-user.target.wants/rog5-p2-ready.service
+		/run/systemd/system/sysinit.target.wants/rog5-p2-ready.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	prepare_volatile_systemd_state \
 		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
