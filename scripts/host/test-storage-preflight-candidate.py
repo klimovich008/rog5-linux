@@ -14,10 +14,15 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 MANIFEST = REPO / "manifests/storage-preflight-v1-generation71.manifest"
+MANIFEST_V2 = REPO / "manifests/storage-preflight-v2-generation72.manifest"
 POLICY = REPO / "manifests/storage-preflight-temporary-boot-v1.tsv"
 CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 PROFILE = "storage-preflight-v1-generation71-live-v1"
 MANIFEST_SHA256 = "a14872f8ca4db705015586f4e199e5bdf607f947f96949eecd35e42a137d19c5"
+PROFILE_V2 = "storage-preflight-v2-generation72-live-v1"
+MANIFEST_V2_SHA256 = (
+    "7a436a3716d56536326040fd626c3dc8b760c2ef94ee2d0695e536d2ee779935"
+)
 
 EXPECTED = OrderedDict(
     (
@@ -70,6 +75,63 @@ EXPECTED = OrderedDict(
     )
 )
 
+EXPECTED_V2 = OrderedDict(
+    (
+        ("format", "rog5-storage-preflight-candidate-v2"),
+        ("profile", PROFILE_V2),
+        ("candidate", "storage-preflight-v2"),
+        ("source_checkpoint", "81b7b7c9f67e8303487cac6ad014b5345086df26"),
+        (
+            "image_path",
+            "build/storage-preflight-wrapper-v2-generation72-20260814-r1/"
+            "repack/stable-recovery-a.avb.img",
+        ),
+        ("image_size", "100663296"),
+        (
+            "image_sha256",
+            "5e55d2fd6ad6e838e99aadd62398027a6eab5667efa8fe5a58d76562d31e4497",
+        ),
+        (
+            "raw_sha256",
+            "d834309806ff3406fd11614513914694b3af60c5728dcabda2c7a4ced30cdfea",
+        ),
+        (
+            "kernel_sha256",
+            "8dc38de4063d4b6d83f7f5cadd1c2d138bfc33677287fa054c9735939bd802ae",
+        ),
+        (
+            "wrapper_config_sha256",
+            "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f",
+        ),
+        (
+            "initramfs_sha256",
+            "fddeb2a6eae0712d53c7fdd5c024f4c0ba0795e76de9a3ab63f82dd996ee91be",
+        ),
+        (
+            "recovery_init_sha256",
+            "c82704a691adb71c8b653d09789115973dcedf94802e4c66f642103fd397e083",
+        ),
+        (
+            "collector_sha256",
+            "883b0f6c495059edc00f74b5857e6cecd270fb70a3416e2a1fff1ba47aa664e4",
+        ),
+        (
+            "runtime_verifier_sha256",
+            "f4c0b7b06910a0e4aa9dd08d2a8c4951b8b3e655e8379af1937a5266e66c174a",
+        ),
+        (
+            "layout_sha256",
+            "0a12212eefdf2594b8ee74757eeacb168c825ffff481cb6044b8871e19382fb1",
+        ),
+        ("boot_mode", "temporary-ram-only"),
+        ("storage_mode", "read-only-no-mounts"),
+        ("report_mode", "receive-only-acm-terminal-v2"),
+        ("failure_visibility_seconds", "10"),
+        ("fallback", "verified-alpine"),
+        ("reuse", "forbidden-after-claim-entry"),
+    )
+)
+
 SPEC = importlib.util.spec_from_file_location("storage_claim_consumer", CONSUMER)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("cannot load generic claim consumer")
@@ -85,11 +147,11 @@ def digest(path: Path) -> str:
     return value.hexdigest()
 
 
-def canonical_manifest() -> OrderedDict[str, str]:
-    metadata = MANIFEST.lstat()
+def canonical_manifest(path: Path = MANIFEST) -> OrderedDict[str, str]:
+    metadata = path.lstat()
     if not stat.S_ISREG(metadata.st_mode) or metadata.st_mode & 0o022:
         raise AssertionError("candidate manifest metadata is unsafe")
-    payload = MANIFEST.read_bytes()
+    payload = path.read_bytes()
     if not payload.endswith(b"\n"):
         raise AssertionError("candidate manifest lacks canonical newline")
     values: OrderedDict[str, str] = OrderedDict()
@@ -114,8 +176,10 @@ class CandidateTests(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 2)
-        fields = lines[1].split("\t")
+        self.assertEqual(len(lines), 3)
+        fields = next(
+            line.split("\t") for line in lines[1:] if line.startswith(PROFILE + "\t")
+        )
         self.assertEqual(fields[:6], [
             PROFILE,
             "revoked",
@@ -137,6 +201,74 @@ class CandidateTests(unittest.TestCase):
             "state=BOOT_CLAIMED\n"
         ).encode("ascii")
         self.assertEqual(CLAIMS.expected_record(PROFILE), expected_claim)
+
+    def test_generation72_candidate_policy_sources_and_claim_are_exact(self) -> None:
+        values = canonical_manifest(MANIFEST_V2)
+        self.assertEqual(values, EXPECTED_V2)
+        self.assertEqual(digest(MANIFEST_V2), MANIFEST_V2_SHA256)
+        for name, path in (
+            ("recovery_init_sha256", REPO / "initramfs/recovery-init"),
+            (
+                "collector_sha256",
+                REPO / "scripts/host/collect-storage-preflight-report.py",
+            ),
+            (
+                "runtime_verifier_sha256",
+                REPO / "scripts/device/verify-storage-preflight-arm64-runtime.sh",
+            ),
+            ("layout_sha256", REPO / "configs/storage/rog5-dedicated-linux-v1.json"),
+        ):
+            self.assertEqual(digest(path), values[name])
+        lines = POLICY.read_text(encoding="ascii").splitlines()
+        fields = next(
+            line.split("\t")
+            for line in lines[1:]
+            if line.startswith(PROFILE_V2 + "\t")
+        )
+        self.assertEqual(
+            fields[:6],
+            [
+                PROFILE_V2,
+                "allow",
+                MANIFEST_V2_SHA256,
+                values["image_path"],
+                values["image_size"],
+                values["image_sha256"],
+            ],
+        )
+        self.assertIn("receive-only ACM stage and terminal failure", fields[6])
+        expected_claim = (
+            "format=rog5-temporary-boot-consumption-v1\n"
+            f"recovery_profile={PROFILE_V2}\n"
+            "candidate=storage-preflight-v2\n"
+            f"manifest_sha256={MANIFEST_V2_SHA256}\n"
+            "state=BOOT_CLAIMED\n"
+        ).encode("ascii")
+        self.assertEqual(CLAIMS.expected_record(PROFILE_V2), expected_claim)
+
+    def test_generation72_local_twin_artifact_when_present(self) -> None:
+        values = canonical_manifest(MANIFEST_V2)
+        image = REPO / values["image_path"]
+        if not image.exists():
+            self.skipTest("ignored Generation 72 twin artifact is not present")
+        root = image.parents[1]
+        paths = {
+            "image_sha256": image,
+            "raw_sha256": root / "repack/stable-recovery-a.raw.img",
+            "kernel_sha256": root
+            / "wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
+            "wrapper_config_sha256": root / "wrapper-a/asus-kexec-stage/.config",
+            "initramfs_sha256": root
+            / "wrapper-a/rog5-kexec-stage-initramfs.cpio.gz",
+        }
+        self.assertEqual(image.stat().st_size, int(values["image_size"]))
+        for name, path in paths.items():
+            with self.subTest(name=name):
+                self.assertEqual(digest(path), values[name])
+        self.assertEqual(
+            image.read_bytes(),
+            (root / "repack/stable-recovery-b.avb.img").read_bytes(),
+        )
 
     def test_local_clean_twin_artifact_when_present(self) -> None:
         values = canonical_manifest()
