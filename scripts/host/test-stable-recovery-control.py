@@ -803,6 +803,86 @@ class StableRecoveryControlTest(unittest.TestCase):
                 MODULE.observe_post_claim(serial, SESSION, committed)
             )
 
+    def test_post_claim_inspection_race_settles_to_departure(self):
+        serial = mock.MagicMock()
+        serial.exchange.side_effect = MODULE.TransportLost(
+            "recovery ACM closed before response"
+        )
+        committed = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="COMMIT_EXEC",
+            result="CLAIMED",
+            state="CLAIMED",
+            prepared_bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            prepare_request="1" * 32,
+            commit_request="2" * 32,
+            commit_fingerprint="3" * 64,
+            execution_started="NO",
+            watchdog="ARMED",
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "observe_recovery_acm",
+                side_effect=(
+                    MODULE.RecoveryAcmObservation("inspect-error"),
+                    MODULE.RecoveryAcmObservation("absent"),
+                ),
+            ) as observe,
+            mock.patch.object(MODULE.time, "sleep") as sleep,
+        ):
+            self.assertIsNone(
+                MODULE.observe_post_claim(serial, SESSION, committed)
+            )
+        self.assertEqual(observe.call_count, 2)
+        sleep.assert_called_once_with(
+            MODULE.POST_CLAIM_DEPARTURE_POLL_SECONDS
+        )
+
+    def test_post_claim_inspection_race_is_bounded(self):
+        serial = mock.MagicMock()
+        serial.exchange.side_effect = MODULE.TransportLost(
+            "recovery ACM closed before response"
+        )
+        committed = MODULE.Response(
+            session=SESSION,
+            request="2" * 32,
+            verb="COMMIT_EXEC",
+            result="CLAIMED",
+            state="CLAIMED",
+            prepared_bundle=BUNDLE,
+            manifest_sha256=MANIFEST,
+            prepare_request="1" * 32,
+            commit_request="2" * 32,
+            commit_fingerprint="3" * 64,
+            execution_started="NO",
+            watchdog="ARMED",
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "observe_recovery_acm",
+                return_value=MODULE.RecoveryAcmObservation("inspect-error"),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 2.0),
+            ),
+            mock.patch.object(MODULE.time, "sleep") as sleep,
+            self.assertRaisesRegex(
+                RuntimeError,
+                "post-claim response was absent while recovery ACM remained "
+                "inspect-error",
+            ),
+        ):
+            MODULE.observe_post_claim(serial, SESSION, committed)
+        sleep.assert_called_once_with(
+            MODULE.POST_CLAIM_DEPARTURE_POLL_SECONDS
+        )
+
     def test_post_claim_timeout_rejects_still_present_recovery(self):
         serial = mock.MagicMock()
         serial.exchange.side_effect = MODULE.TransportLost(

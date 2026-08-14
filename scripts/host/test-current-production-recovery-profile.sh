@@ -153,7 +153,7 @@ for index in "${!fields[@]}"; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 2 ]] || fail 'post-v20 observer/core temporary-boot policy is not exact'
+	"$boot_policy") == 3 ]] || fail 'post-v20 observer/core/Generation-68 temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
 [[ $(awk -F '\t' -v name="build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" \

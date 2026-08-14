@@ -64,6 +64,8 @@ DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
 PREPARE_DEADLINE_SECONDS = 260
 NFS_READY_TIMEOUT_SECONDS = 45
 POST_CLAIM_STATUS_TIMEOUT_SECONDS = 8
+POST_CLAIM_DEPARTURE_TIMEOUT_SECONDS = 2.0
+POST_CLAIM_DEPARTURE_POLL_SECONDS = 0.1
 RECOVERY_ACM_TRACE_LIMIT = 16
 RECOVERY_ACM_COUNT_LIMIT = 999
 RECOVERY_ACM_STATES = (
@@ -495,13 +497,21 @@ def observe_post_claim(
             POST_CLAIM_STATUS_TIMEOUT_SECONDS,
         )
     except TransportLost as error:
-        observation = observe_recovery_acm()
-        if observation.state not in {"absent", "product-mismatch"}:
-            fail(
-                "post-claim response was absent while recovery ACM remained "
-                f"{observation.state}: {bounded_failure_summary(error, (TransportLost,))}"
-            )
-        return None
+        deadline = time.monotonic() + POST_CLAIM_DEPARTURE_TIMEOUT_SECONDS
+        while True:
+            observation = observe_recovery_acm()
+            if observation.state in {"absent", "product-mismatch"}:
+                return None
+            if (
+                observation.state != "inspect-error"
+                or time.monotonic() >= deadline
+            ):
+                fail(
+                    "post-claim response was absent while recovery ACM "
+                    f"remained {observation.state}: "
+                    f"{bounded_failure_summary(error, (TransportLost,))}"
+                )
+            time.sleep(POST_CLAIM_DEPARTURE_POLL_SECONDS)
     assert_correlated(
         status,
         session=session,

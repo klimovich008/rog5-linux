@@ -610,6 +610,16 @@ EXPECTED_CLAIMS["persistent-root-local-image-early-ssh-v45-live-v1"] = (
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS[
+    "persistent-root-local-image-early-ssh-v45-generation68-live-v1"
+] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-early-ssh-v45-generation68-live-v1\n"
+    "candidate=persistent-root-local-image-early-ssh-v45\n"
+    "manifest_sha256="
+    "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["persistent-root-local-image-write-mountpoint-v42-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=persistent-root-local-image-write-mountpoint-v42-live-v1\n"
@@ -748,7 +758,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "190a4dcc90ed8ade238b29d2921fc5d2304468ce812c330501e3fbb22e34eeae",
+    "sha256": "bb58ec190d20e969986dbe58fb4f03f0910905e8ca849e6c72766a20fe16130c",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -776,7 +786,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "190a4dcc90ed8ade238b29d2921fc5d2304468ce812c330501e3fbb22e34eeae",
+    "executor_contract_sha256": "bb58ec190d20e969986dbe58fb4f03f0910905e8ca849e6c72766a20fe16130c",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2515,6 +2525,17 @@ def verify_policy(
             "one exact headless-core Arch SSH recovery with power-key "
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
+        ),
+        (
+            "build/persistent-root-local-image-early-ssh-v45-generation68-"
+            "20260814-r1/repack/stable-recovery-a.avb.img",
+            "one exact read-only local-image Arch repeat proving bounded "
+            "post-CLAIMED recovery ACM departure classification; same accepted "
+            "v45 target bundle, four-module UFS, two ro,noload ext4 layers, "
+            "persisted Generation 64 marker, early strict Ed25519 SSH, storage "
+            "attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; "
+            "externally consumed exact claim required; never flash or retry "
+            "after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

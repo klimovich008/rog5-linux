@@ -424,12 +424,23 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   cycle preserved Generation 66's exact read-only UFS and local-image path.
   Early strict Ed25519 SSH was active at approximately 94.147 seconds target
   uptime and complete storage attestation passed at 130.057 seconds. Recovery
-  ACM closed after the COMMIT claim but before the post-claim response reached
-  the host, so formal lifecycle acceptance failed; the same already-running
+  returned the canonical `CLAIMED` response, then ACM closed before the
+  follow-up STATUS response; a single transient `inspect-error` sample made
+  formal lifecycle acceptance fail. The same already-running
   target was salvaged without a retry. Normal reboot, exact Alpine fallback,
   and host restoration passed. Generation 67 is revoked and must never be
   retried or flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
   and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
+
+- **Generation 68 is the current unbooted one-use successor.** It keeps the
+  exact Generation 67 v45 signed target bundle, raw recovery, kernel, DTB,
+  initramfs, UFS path, local image, and early-SSH behavior. Its fresh
+  deterministic AVB wrapper is admitted only to verify the host correction:
+  after canonical `CLAIMED`, a lost follow-up STATUS may resample only a
+  transient ACM `inspect-error` for at most two seconds. Exact presence and
+  every other non-departure state still fail immediately; `COMMIT_EXEC` is
+  never resent. Generation 68 remains unbooted and requires exact-head CI
+  before its sole RAM-only cycle. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

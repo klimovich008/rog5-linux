@@ -366,14 +366,23 @@ existing image; no partition-table change is authorized by this result.
 Generation 67 consumed its sole RAM-only cycle and proved the startup reduction.
 The exact read-only UFS/local-image path passed, early strict SSH was active at
 approximately 94.147 seconds target uptime, and full storage attestation passed
-at 130.057 seconds. Recovery ACM closed after the COMMIT claim but before its
-post-claim response reached the host, so the formal lifecycle did not accept
+at 130.057 seconds. Recovery returned canonical `CLAIMED`, then ACM closed
+before the follow-up STATUS response; a transient `inspect-error` sample made
+the formal lifecycle refuse
 the target; the same running boot was salvaged without retry, then normal
 reboot, exact Alpine fallback, and host restoration passed. Generation 67 is
-revoked and must never be retried or flashed. The next work is the narrow
-post-COMMIT control-channel fix while preserving the proven target path. See
+revoked and must never be retried or flashed. The narrow host fix now retries
+only that indeterminate departure observation for two seconds while preserving
+immediate rejection of an exact present responder. See
 the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
 and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
+
+Generation 68 is the unbooted successor and changes no target-side storage or
+startup bytes. It uses a fresh deterministic AVB wrapper around the unchanged
+v45 signed bundle and limits the host fix to a two-second resample window for
+the transient ACM `inspect-error` observed after canonical `CLAIMED`. It never
+resends `COMMIT_EXEC`, and exact recovery presence still fails immediately.
+See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md).
 
 ## Reproduction commands
 
