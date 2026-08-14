@@ -444,6 +444,24 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         elif mutation == "upper-marker":
             (upper / "etc").mkdir()
             (upper / "etc" / ".updated").touch()
+        elif mutation == "keygen-mask":
+            (
+                runtime
+                / "systemd"
+                / "system"
+                / "sshdgenkeys.service"
+            ).symlink_to("/dev/null")
+        elif mutation == "ed25519-unit":
+            (
+                runtime
+                / "systemd"
+                / "system"
+                / "rog5-sshd-ed25519-key.service"
+            ).touch()
+        elif mutation == "sshd-dropin":
+            dropin = runtime / "systemd" / "system" / "sshd.service.d"
+            dropin.mkdir()
+            (dropin / "10-rog5-ed25519-only.conf").touch()
 
         cache_hash = hashlib.sha256(b"cache\n").hexdigest()
         helper = self.volatile_state.replace(
@@ -530,6 +548,29 @@ chmod() {
         self.assertIn('touch -r "$root/usr" "$merged_marker"', helper)
         self.assertIn("systemd-vconsole-setup.service", helper)
         self.assertIn('ln -s /dev/null "$vconsole_mask"', helper)
+        self.assertIn("sshdgenkeys.service", helper)
+        self.assertIn('ln -s /dev/null "$sshdgenkeys_mask"', helper)
+        self.assertIn("rog5-sshd-ed25519-key.service", helper)
+        self.assertIn(
+            "sshd_dropin=$sshd_dropin_dir/10-rog5-ed25519-only.conf", helper
+        )
+        self.assertIn(
+            'ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" '
+            "-f /etc/ssh/ssh_host_ed25519_key",
+            helper,
+        )
+        verification = function(self.source, "verify_persistent_root")
+        self.assertIn(
+            'verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688',
+            verification,
+        )
+        self.assertIn(
+            "e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e",
+            verification,
+        )
+        self.assertIn(
+            "HostKey /etc/ssh/ssh_host_ed25519_key", verification
+        )
         runtime = function(self.source, "prepare_runtime")
         self.assertIn("prepare_volatile_systemd_state", runtime)
         self.assertIn("/newroot /mnt/root-ro /mnt/state/upper /run", runtime)
@@ -557,6 +598,46 @@ chmod() {
         )
         self.assertTrue(mask.is_symlink())
         self.assertEqual(mask.readlink(), Path("/dev/null"))
+        keygen_mask = (
+            base / "run" / "systemd" / "system" / "sshdgenkeys.service"
+        )
+        self.assertTrue(keygen_mask.is_symlink())
+        self.assertEqual(keygen_mask.readlink(), Path("/dev/null"))
+        key_unit = (
+            base
+            / "run"
+            / "systemd"
+            / "system"
+            / "rog5-sshd-ed25519-key.service"
+        )
+        self.assertEqual(
+            key_unit.read_text(),
+            "[Unit]\n"
+            "Description=Generate one volatile Ed25519 SSH host key\n"
+            "Before=sshd.service\n"
+            "ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key\n"
+            "\n"
+            "[Service]\n"
+            "Type=oneshot\n"
+            'ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" '
+            "-f /etc/ssh/ssh_host_ed25519_key\n",
+        )
+        sshd_dropin = (
+            base
+            / "run"
+            / "systemd"
+            / "system"
+            / "sshd.service.d"
+            / "10-rog5-ed25519-only.conf"
+        )
+        self.assertEqual(
+            sshd_dropin.read_text(),
+            "[Unit]\n"
+            "Requires=rog5-sshd-ed25519-key.service\n"
+            "After=rog5-sshd-ed25519-key.service\n",
+        )
+        self.assertEqual(key_unit.stat().st_mode & 0o777, 0o644)
+        self.assertEqual(sshd_dropin.stat().st_mode & 0o777, 0o644)
 
     def test_volatile_systemd_state_rejects_hostile_inputs(self) -> None:
         for mutation in (
@@ -564,6 +645,9 @@ chmod() {
             "linked-cache",
             "lower-marker",
             "upper-marker",
+            "keygen-mask",
+            "ed25519-unit",
+            "sshd-dropin",
         ):
             with self.subTest(mutation=mutation):
                 result, _base = self.run_volatile_state(mutation)

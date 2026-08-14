@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-volatile-v35-live-v1"
-BUNDLE = "persistent-root-local-image-volatile-v35"
+PROFILE_ID = "persistent-root-local-image-ed25519-v36-live-v1"
+BUNDLE = "persistent-root-local-image-ed25519-v36"
 MANIFEST_SHA256 = (
-    "1def5f276c7d07668ccb90a9ca3ed966660e0af359e49e2f847371b058291e30"
+    "cc41176df74def7a8953dfcd8621e1d1ad2457eb98a7822a0d40ce50ab8c2be0"
 )
 RECOVERY_SHA256 = (
-    "425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f"
+    "38bc065959a88f4f51f13cc3443a8bd02dda61d8813150821d561239bd02a4f0"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-volatile-v35-generation57-20260814-r1"
+    / "build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-volatile-v35",
+    admission_profile="persistent-root-local-image-ed25519-v36",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-volatile-v35",
-    build_profile="persistent-root-local-image-volatile-v35",
+    runtime_profile="persistent-root-local-image-ed25519-v36",
+    build_profile="persistent-root-local-image-ed25519-v36",
     diagnostic=False,
 )
 
@@ -119,6 +119,16 @@ printf '%s\n' '=== systemd blame ==='
 systemd-analyze blame --no-pager | sed -n '1,80p'
 printf '%s\n' '=== systemd critical chain ==='
 systemd-analyze critical-chain --no-pager
+printf '%s\n' '=== sshd critical chain ==='
+systemd-analyze critical-chain --no-pager sshd.service
+printf '%s\n' '=== Ed25519 key critical chain ==='
+systemd-analyze critical-chain --no-pager rog5-sshd-ed25519-key.service
+printf '%s\n' '=== ssh host-key services ==='
+systemctl show --no-pager -p LoadState -p ActiveState -p SubState \
+    sshdgenkeys.service rog5-sshd-ed25519-key.service sshd.service
+printf '%s\n' '=== ssh host-key inventory ==='
+find /etc/ssh -maxdepth 1 -type f -name 'ssh_host_*_key*' \
+    -printf '%f %m\n' | sort
 printf '%s\n' '=== dmesg ==='
 dmesg
 """.strip()

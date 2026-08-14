@@ -171,11 +171,14 @@ awk -F '\t' '
 	$1 == "build/persistent-root-local-image-volatile-v35-generation57-20260814-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 57 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, volatile systemd markers, retained-loader attestation, and strict key-only SSH passed in 305.928 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash" && NF == 3 { generation57++ ; next }
+	$1 == "build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one exact read-only SM8350 UFS local-image Arch boot with volatile Ed25519-only host-key generation, verified volatile systemd state, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation58++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 37 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 38 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact observer/core admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -218,8 +221,8 @@ do
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 2 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly the observer and core successors' >&2; exit 1; }
+	"$boot_policy") == 3 ]] ||
+	{ echo 'FAIL temporary-boot policy does not contain exactly the observer, core, and Generation 58 successors' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||

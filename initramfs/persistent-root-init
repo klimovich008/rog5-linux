@@ -665,6 +665,13 @@ verify_persistent_root() {
 	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
 		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ||
 		return 1
+	verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688 \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ||
+		return 1
+	verify_exact_regular \
+		"$root/usr/lib/systemd/system/sshdgenkeys.service" 0 0 644 445 \
+		e4dbff8e04a363a557c19d150e7e3a4317126a0371375771ae800bddf26860a7 ||
+		return 1
 
 	authorized=$root/root/.ssh/authorized_keys
 	verify_exact_regular "$authorized" 0 0 600 81 \
@@ -684,6 +691,20 @@ verify_persistent_root() {
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
 	grep -Fqx 'PubkeyAuthentication yes' \
 		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ecdsa_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ecdsa_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ecdsa_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ecdsa_key.pub" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ed25519_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ed25519_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ed25519_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ed25519_key.pub" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_rsa_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_rsa_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_rsa_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_rsa_key.pub" ] || return 1
 	printf '%s\n' \
 		'PASS sealed local image matches exact boot-critical identities' \
 		>/run/rog5-p2-root-verification.txt || return 1
@@ -749,6 +770,42 @@ prepare_volatile_systemd_state() {
 	ln -s /dev/null "$vconsole_mask" || return 1
 	[ -L "$vconsole_mask" ] &&
 		[ "$(readlink "$vconsole_mask")" = /dev/null ] || return 1
+
+	sshdgenkeys_mask=$runtime/systemd/system/sshdgenkeys.service
+	ed25519_unit=$runtime/systemd/system/rog5-sshd-ed25519-key.service
+	sshd_dropin_dir=$runtime/systemd/system/sshd.service.d
+	sshd_dropin=$sshd_dropin_dir/10-rog5-ed25519-only.conf
+	for path in "$sshdgenkeys_mask" "$ed25519_unit" \
+		"$sshd_dropin_dir" "$sshd_dropin"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	ln -s /dev/null "$sshdgenkeys_mask" || return 1
+	[ -L "$sshdgenkeys_mask" ] &&
+		[ "$(readlink "$sshdgenkeys_mask")" = /dev/null ] || return 1
+	mkdir -m 0755 "$sshd_dropin_dir" || return 1
+	cat >"$ed25519_unit" <<'EOF'
+[Unit]
+Description=Generate one volatile Ed25519 SSH host key
+Before=sshd.service
+ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+EOF
+	cat >"$sshd_dropin" <<'EOF'
+[Unit]
+Requires=rog5-sshd-ed25519-key.service
+After=rog5-sshd-ed25519-key.service
+EOF
+	chown 0:0 "$ed25519_unit" "$sshd_dropin" || return 1
+	chmod 0644 "$ed25519_unit" "$sshd_dropin" || return 1
+	verify_exact_regular "$ed25519_unit" 0 0 644 240 \
+		6c6bd9be19e1d5b24129d2a86e4f66d4fd4459fe9d209426de974d59e7349a11 ||
+		return 1
+	verify_exact_regular "$sshd_dropin" 0 0 644 82 \
+		0b346662894067a89194ef09da6a136e668f4f08bda4967f1db6babdcea2519b ||
+		return 1
 	return 0
 }
 

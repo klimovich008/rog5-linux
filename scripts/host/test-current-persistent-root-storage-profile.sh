@@ -11,12 +11,12 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-local-image-volatile-v35-live-v1
-image_name=build/persistent-root-local-image-volatile-v35-generation57-20260814-r1/repack/stable-recovery-a.avb.img
-basis='consumed by the sole Generation 57 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, volatile systemd markers, retained-loader attestation, and strict key-only SSH passed in 305.928 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
-role='consumed Generation 57 volatile-systemd local-image cycle; exact UFS, userdata and 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, verified volatile update markers, headless vconsole mask, retained musl-loader attestation, strict key-only SSH, systemd timing, normal reboot, and exact Alpine fallback passed in 305.928 seconds; retain offline only; never retry or flash'
-[[ $role == consumed\ * ]] ||
-	fail 'Generation 57 artifact role must remain permanently consumed'
+profile=persistent-root-local-image-ed25519-v36-live-v1
+image_name=build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1/repack/stable-recovery-a.avb.img
+basis='one exact read-only SM8350 UFS local-image Arch boot with volatile Ed25519-only host-key generation, verified volatile systemd state, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 58 Ed25519-only local-image successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact per-boot Ed25519 host key, stock all-key generator masked in volatile runtime, retained musl-loader attestation, key-only SSH, bounded rollback, and systemd timing capture; one RAM-only use only; never flash'
+[[ $role == unbooted\ * ]] ||
+	fail 'Generation 58 artifact role must remain unbooted before its sole cycle'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-local-image-volatile-v35 \
-	expected_bundle=persistent-root-local-image-volatile-v35 \
+	expected_target_id=persistent-root-local-image-ed25519-v36 \
+	expected_bundle=persistent-root-local-image-ed25519-v36 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=4c2e1b77db4f30ddf17689f6871ee0abebd51544c3e47271ba2bba33c581e690 \
-	expected_avb_digest=01b82565207da961c4a4bf84fe472768e413562093d055e0bff2a72dc99f2508 \
-	expected_generation_record=2872690a6163d6842249a778b5bbfc3c1257edfa30133980fdf8cf490a363e63 \
+	expected_avb_salt=c3f2b88d54e3a4260d28e69d7796643cc50e3df8b3c37c55690ac92acb5b553d \
+	expected_avb_digest=22328e06887d643547fa04153d868eb1ec78428210d4b637b6066c8a956d0de7 \
+	expected_generation_record=1fa76a89ca2f0952be3a401ded4bc53bf0044c42b94577f4a8c74b7675d9390a \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f
+	38bc065959a88f4f51f13cc3443a8bd02dda61d8813150821d561239bd02a4f0
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	1def5f276c7d07668ccb90a9ca3ed966660e0af359e49e2f847371b058291e30
+	cc41176df74def7a8953dfcd8621e1d1ad2457eb98a7822a0d40ce50ab8c2be0
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-local-image-volatile-v35
+	persistent-root-local-image-ed25519-v36
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-local-image-volatile-v35' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-local-image-ed25519-v36' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-local-image-volatile-v35'
+	'profile requires bundle=persistent-root-local-image-ed25519-v36'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -103,12 +103,12 @@ for index in "${!fields[@]}"; do
 done
 
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
-	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
+	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 57 image is not uniquely consumed'
+' "$boot_policy" || fail 'Generation 58 image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f" &&
+	$3 == "38bc065959a88f4f51f13cc3443a8bd02dda61d8813150821d561239bd02a4f0" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-local-image-volatile-v35-production-20260814-r1
-generation_root=$repo/build/persistent-root-local-image-volatile-v35-generation57-20260814-r1
+production_root=$repo/build/persistent-root-local-image-ed25519-v36-production-20260814-r1
+generation_root=$repo/build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 57 volatile-systemd local-image profile, exact claim, artifact, and consumed state are pinned'
+echo 'PASS Generation 58 Ed25519-only local-image profile, exact claim, artifact, and unbooted state are pinned'
