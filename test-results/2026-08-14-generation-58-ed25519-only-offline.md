@@ -5,6 +5,9 @@ Date: 2026-08-14
 Status: **offline checkpoint passed; Generation 58 is unbooted and has one
 RAM-only use available.**
 
+The later one-use hardware result is recorded separately in the
+[Generation 58 live report](2026-08-14-generation-58-ed25519-only-live.md).
+
 Generation 57 proved that the local Arch image, read-only UFS, tmpfs
 OverlayFS, systemd, NCM, and strict key-only SSH work together, but its
 critical-path evidence showed that stock `sshdgenkeys.service` spent 38.212

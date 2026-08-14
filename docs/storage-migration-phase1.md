@@ -242,8 +242,14 @@ Generation 58 targets only the measured 38.212-second SSH host-key step. Its
 initramfs leaves both ext4 layers `ro,noload`, masks the stock three-algorithm
 generator in tmpfs, and requires one per-boot volatile Ed25519 key before sshd.
 The [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md)
-passed clean-twin and exact one-use admission checks; live timing remains to be
-measured.
+passed clean-twin and exact one-use admission checks. The
+[live cycle](../test-results/2026-08-14-generation-58-ed25519-only-live.md)
+proved the intended key path: the replacement service took 28 ms, stock
+`sshdgenkeys.service` was masked, only Ed25519 private/public key paths existed,
+and sshd began about 18 seconds earlier. End-to-end acceptance was 333.446
+seconds, 27.518 seconds slower than Generation 57 because other measured work
+grew; therefore the key optimization is accepted, but the run is not evidence
+of an overall speedup. Generation 58 is consumed and revoked.
 
 ## Reproduction commands
 
