@@ -6,16 +6,16 @@ contracts and evidence instead of repeating their history.
 ## Objective
 
 Turn the ASUS ROG Phone 5 into a dedicated, persistent Arch Linux server.
-The temporary Linux 7.1.4/NFS/USB-NCM/key-only-SSH path is proven. The current
-critical path is stable mainline UFS, a faster local Arch root inside one
-bounded `userdata` image, and eventual dedicated Linux partitioning after
-verified backups, restoration rehearsal, and final confirmation of the exact
-destructive operation. Android usability is no longer a requirement.
+The temporary Linux 7.1.4/USB-NCM/key-only-SSH path and the local Arch image are
+proven. The current critical path is a native Arch root partition and eventual
+standalone boot after verified backups, restoration rehearsal, and final
+confirmation of the exact destructive operation. Android usability is no
+longer a requirement.
 
 Buttons/indicator, sensors, audio, suspend, GPU, display, desktop, and browser
 automation are frozen at their current checkpoints while storage and local
-boot are advanced. Kernel and recovery remain RAM-only through the bounded
-image phase; NFS and exact Alpine remain recovery paths.
+boot are advanced. Kernel and recovery remain RAM-only until the native-root
+path passes; NFS and exact Alpine remain recovery paths.
 
 The operator's [standing authorization](operator-standing-authorization.md)
 permits the agent to satisfy those action-scoped guards, use the admitted
@@ -473,6 +473,21 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   target root path, and Generation 70 completed formal SSH plus fallback. The
   next storage step is a reviewed dedicated-Linux layout, not another identical
   one-use repeat.
+
+- **Dedicated Linux layout v1 is proposed but has not modified storage.** A
+  fresh backup verification passed all 14 GPT ranges, 107 protected partition
+  images, and seven restoration rehearsals in 5.636 seconds. Strict pinned
+  fallback SSH measured a clean 4-KiB ext4 `userdata`, 59,513,299 current
+  blocks, and an estimated minimum of 11,695,396 blocks. The proposal preserves
+  partitions 1–22, shrinks only partition 23's tail to 51,124,696 blocks, and
+  creates aligned entry 24 as a 34,359,717,888-byte native `arch_root_a` ext4
+  partition. Its pre-shrink point retains 161,499,561,984 bytes of measured
+  headroom. The exact disposable 4-KiB-sector GPT transaction and restoration
+  passed, and two sealed read-only storage-preflight initramfs builds were
+  byte-identical. See the [reviewed public geometry](dedicated-linux-layout-v1.md)
+  and [offline result](../test-results/2026-08-14-dedicated-linux-layout-v1-offline.md).
+  Next run the authorized RAM-only read-only preflight on hardware. Final
+  confirmation is still required before any phone partition mutation.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
