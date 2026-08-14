@@ -363,21 +363,17 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
-- **Generation 59 is the unbooted bounded local-image write successor.** The
-  v37 initramfs preserves the accepted Linux 7.1.4 Image, DTB, UFS identity
-  policy, volatile systemd optimization, Ed25519-only host-key path, and
-  rollback. After dynamically resolving exact `userdata`, it opens a write
-  window only for that partition and its parent UFS LUN, verifies every other
-  physical node remains read-only, mounts the exact 16 GiB image read-write,
-  writes one fixed boot-ID marker, syncs and unmounts, then relocks all 116
-  physical nodes before the established two-`ro,noload` Arch boot. It refuses
-  a pre-existing marker and is one-use even before lifecycle claim
-  consumption. The image's historical full-tree seal remains source
-  provenance after this first controlled mutation; current-state acceptance
-  separately verifies the exact marker and boot-critical files. No GPT,
-  partition, firmware, calibration, identity, Alpine fallback, or other raw
-  storage is modified. See the
-  [offline checkpoint](../test-results/2026-08-14-generation-59-local-image-write-offline.md).
+- **Generation 59 is consumed; Generation 60 is the bounded-write
+  discriminator.** Generation 59 reached exact UFS, `userdata`, and read-only
+  image resolution, then failed at `image-write` before the image filesystem
+  was mounted read-write. The read-only fallback check found no marker
+  directory, marker, or temporary file; the image remained clean, and exact
+  Alpine fallback plus host cleanup passed. It must never be retried. The v38
+  successor preserves the same fixed write surface and rollback but reports
+  one exact terminal class: write-window, userdata-RW, loop-RW,
+  image-filesystem-RW, marker, or relock. See the
+  [Generation 59 live result](../test-results/2026-08-14-generation-59-local-image-write-live.md)
+  and [Generation 60 offline checkpoint](../test-results/2026-08-14-generation-60-local-image-write-discriminator-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

@@ -279,10 +279,19 @@ exact boot-critical-file checks. A later persistent-root design must define a
 new mutable-state/seal boundary; it must not silently reuse the old full-tree
 claim.
 
-Generation 59 is unbooted at this checkpoint. Its recovery remains RAM-only,
-its claim is one-use, and GPT, partition geometry, firmware, calibration,
-device identity, and the Alpine recovery route remain outside its write
-surface.
+Generation 59 consumed its sole RAM-only cycle. It reached UFS, exact
+`userdata`, the initial `ro,noload` mount, and exact image resolution, then
+reported `image-write: FAIL`. Read-only fallback inspection proved that the
+image filesystem was never mounted read-write: its mount count did not
+advance and `/var/lib/rog5`, the marker, and the temporary marker were all
+absent. Exact Alpine fallback and host cleanup passed. Generation 59 is
+revoked and must never be retried.
+
+Generation 60 keeps the exact same bounded mutation and adds only terminal
+failure classification for the write window, outer userdata RW mount, loop
+identity, inner image RW mount, marker creation, and storage relock. It remains
+RAM-only and one-use; GPT, partition geometry, firmware, calibration, device
+identity, and the Alpine recovery route remain outside its write surface.
 
 ## Reproduction commands
 
