@@ -181,13 +181,16 @@ awk -F '\t' '
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 60 RAM-only cycle; exact UFS, userdata, and read-only image resolution passed, then image-write-window failed before outer userdata RW; the image remained clean with mount count one and no marker ancestry; exact PS_HOLD Alpine fallback and host cleanup passed; never retry or flash" && NF == 3 { generation60++ ; next }
 	$1 == "build/persistent-root-local-image-write-window-v39-generation61-20260814-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 61 RAM-only cycle; UFS, exact userdata and image resolution, userdata unmount, read-only precheck, and both partition and parent-disk BLKROSET calls passed, then effective blockdev read-only-state verification failed before sysfs/count verification, any RW mount, loop attachment, marker, or persistent write; the image remained clean with mount count one and no marker ancestry; exact Alpine fallback and host cleanup passed; never retry or flash" && NF == 3 { generation61++ ; next }
+	$1 == "build/persistent-root-local-image-write-roclass-v40-generation62-20260814-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact bounded SM8350 UFS local-image write-window discriminator with fixed terminal classification of userdata unmount, read-only precheck, userdata-partition BLKROSET, parent-disk BLKROSET, blockdev/sysfs state, count, outer userdata-RW, loop-RW, image-filesystem-RW, marker, and relock failures; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation61++ ; next }
+		$3 == "one exact bounded SM8350 UFS local-image effective-readonly discriminator with fixed selected/unrelated disk/partition and blockdev/sysfs terminal classes; the mutation remains one fixed marker inside the existing 16 GiB image followed by all-116-node relock and read-only Arch SSH; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation62++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 41 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 42 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact observer/core admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -231,7 +234,7 @@ do
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
 	"$boot_policy") == 3 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly observer, core, and Generation 61' >&2; exit 1; }
+	{ echo 'FAIL temporary-boot policy does not contain exactly observer, core, and Generation 62' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||

@@ -570,6 +570,14 @@ EXPECTED_CLAIMS["persistent-root-local-image-write-window-v39-live-v1"] = (
     "35cdc621f44873e42b1b8f2619e383d1a6ed2236f49790fdf36c7435e7883824\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-local-image-write-roclass-v40-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-write-roclass-v40-live-v1\n"
+    "candidate=persistent-root-local-image-write-roclass-v40\n"
+    "manifest_sha256="
+    "c284330d2e37cda85d125c098c6acece877ae5e5b69be66edcae326e57ee0f4b\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -700,7 +708,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "0622d89cf006476d86009e7cf2fa8f7178be830050e24c461d4fc455ba94f7b4",
+    "sha256": "261be35c94c6c0c57d39a9d41067bc11eb67139ebdff3bdb803d267511a877e8",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -728,7 +736,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "0622d89cf006476d86009e7cf2fa8f7178be830050e24c461d4fc455ba94f7b4",
+    "executor_contract_sha256": "261be35c94c6c0c57d39a9d41067bc11eb67139ebdff3bdb803d267511a877e8",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2469,13 +2477,11 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-local-image-write-window-v39-generation61-"
+            "build/persistent-root-local-image-write-roclass-v40-generation62-"
             "20260814-r1/repack/stable-recovery-a.avb.img",
-            "one exact bounded SM8350 UFS local-image write-window discriminator "
-            "with fixed terminal classification of userdata unmount, read-only "
-            "precheck, userdata-partition BLKROSET, parent-disk BLKROSET, "
-            "blockdev/sysfs state, count, outer userdata-RW, loop-RW, "
-            "image-filesystem-RW, marker, and relock failures; the mutation "
+            "one exact bounded SM8350 UFS local-image effective-readonly "
+            "discriminator with fixed selected/unrelated disk/partition and "
+            "blockdev/sysfs terminal classes; the mutation "
             "remains one fixed marker inside the existing 16 GiB image followed "
             "by all-116-node relock and read-only Arch SSH; RAM-only kernel/"
             "recovery; externally consumed exact claim required; never flash or "

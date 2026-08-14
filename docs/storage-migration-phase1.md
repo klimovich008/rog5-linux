@@ -294,11 +294,17 @@ fallback inspection found a clean image with mount count one and no marker
 ancestry. Exact PS_HOLD Alpine fallback and host cleanup passed. Generation 60
 is revoked and must never be retried.
 
-Generation 61 keeps the exact same bounded mutation and adds only terminal
-failure classification for userdata unmount, the read-only precheck,
-partition and parent-disk `BLKROSET`, effective blockdev/sysfs state, node
-count, outer userdata RW mount, loop identity, inner image RW mount, marker
-creation, and storage relock. It remains RAM-only and one-use; GPT, partition
+Generation 61 consumed its sole RAM-only cycle. It passed userdata unmount,
+the all-node read-only precheck, and both selected-partition and parent-disk
+`BLKROSET` calls, then failed effective `blockdev --getro` verification before
+sysfs/count verification, any RW mount, loop attachment, marker, or persistent
+write. Read-only fallback inspection found the image clean, at mount count
+one, and without marker ancestry. Generation 61 is revoked and must never be
+retried.
+
+Generation 62 keeps the same bounded mutation and adds only fixed
+selected/unrelated disk/partition and blockdev/sysfs terminal classes to the
+existing verification loop. It remains RAM-only and one-use; GPT, partition
 geometry, firmware, calibration, device identity, and the Alpine recovery
 route remain outside its write surface.
 
