@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 import tempfile
 import unittest
@@ -24,7 +25,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-early-ssh-v45-generation68-live-v1",
+            "persistent-root-local-image-early-ssh-v45-generation69-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -142,6 +143,63 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("StrictHostKeyChecking=yes", joined)
         self.assertIn("HostKeyAlias=rog5-minimal-headless-v1", joined)
         self.assertNotIn("StrictHostKeyChecking=no", joined)
+
+    def test_authenticated_ssh_rendezvous_retries_cold_session_startup(self) -> None:
+        failures = (
+            subprocess.CompletedProcess([], 255, "connection timed out\n"),
+            subprocess.TimeoutExpired("ssh", 20),
+            subprocess.CompletedProcess(
+                [], 0, f"{MODULE.AUTHENTICATED_SSH_READY_MARKER}\n"
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            MODULE.CYCLE, "run_capture", side_effect=failures
+        ) as runner, mock.patch.object(
+            MODULE.time, "monotonic", side_effect=(0.0, 0.0, 1.0, 2.0, 3.0)
+        ), mock.patch.object(MODULE.time, "sleep") as sleep:
+            attempts, elapsed = MODULE.wait_for_authenticated_ssh(
+                ["ssh", "root@169.254.77.2"],
+                Path(temporary) / "readiness.log",
+            )
+        self.assertEqual(attempts, 3)
+        self.assertEqual(elapsed, 3.0)
+        self.assertEqual(runner.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        for call in runner.call_args_list:
+            self.assertEqual(call.args[0][-1], MODULE.AUTHENTICATED_SSH_COMMAND)
+
+    def test_authenticated_ssh_rendezvous_is_bounded(self) -> None:
+        unavailable = subprocess.CompletedProcess([], 255, "unavailable\n")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            MODULE.CYCLE, "run_capture", return_value=unavailable
+        ) as runner, mock.patch.object(
+            MODULE.time, "monotonic", side_effect=(0.0, 0.0, 151.0)
+        ), mock.patch.object(MODULE.time, "sleep"):
+            with self.assertRaisesRegex(
+                MODULE.PersistentCycleError,
+                "authenticated SSH did not become ready",
+            ):
+                MODULE.wait_for_authenticated_ssh(
+                    ["ssh", "root@169.254.77.2"],
+                    Path(temporary) / "readiness.log",
+                )
+        self.assertEqual(runner.call_count, 1)
+
+    def test_authenticated_ssh_rendezvous_rejects_wrong_success_output(self) -> None:
+        wrong = subprocess.CompletedProcess([], 0, "wrong target\n")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            MODULE.CYCLE, "run_capture", return_value=wrong
+        ), mock.patch.object(
+            MODULE.time, "monotonic", side_effect=(0.0, 0.0)
+        ):
+            with self.assertRaisesRegex(
+                MODULE.PersistentCycleError,
+                "unexpected authenticated SSH readiness output",
+            ):
+                MODULE.wait_for_authenticated_ssh(
+                    ["ssh", "root@169.254.77.2"],
+                    Path(temporary) / "readiness.log",
+                )
 
     def test_nmcli_has_one_unprivileged_then_noninteractive_sudo_path(self) -> None:
         results = (

@@ -432,15 +432,25 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   retried or flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
   and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
 
-- **Generation 68 is the current unbooted one-use successor.** It keeps the
-  exact Generation 67 v45 signed target bundle, raw recovery, kernel, DTB,
-  initramfs, UFS path, local image, and early-SSH behavior. Its fresh
-  deterministic AVB wrapper is admitted only to verify the host correction:
-  after canonical `CLAIMED`, a lost follow-up STATUS may resample only a
-  transient ACM `inspect-error` for at most two seconds. Exact presence and
-  every other non-departure state still fail immediately; `COMMIT_EXEC` is
-  never resent. Generation 68 remains unbooted and requires exact-head CI
-  before its sole RAM-only cycle. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md).
+- **Generation 68 proved the corrected recovery departure and is consumed.**
+  The sole RAM-only cycle passed canonical `CLAIMED`, bounded post-claim ACM
+  departure, exact UFS/local-image stages, tmpfs OverlayFS, P2 storage
+  attestation, and early key-only `sshd`. The runner's first authenticated SSH
+  session exceeded its 10-second connection deadline while the target remained
+  pingable and `sshd` stayed active with zero restarts. A later connection to
+  the same boot passed exact runtime and diagnostics at 474.59 seconds uptime.
+  Normal reboot, PS_HOLD/HARD_RESET lineage, exact Alpine fallback, and host
+  restoration passed. Generation 68 is revoked and must never be retried or
+  flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md)
+  and [live result](../test-results/2026-08-14-generation-68-host-departure-live.md).
+
+- **Generation 69 is the current unbooted one-use successor.** It preserves
+  the exact v45 signed target bundle, raw recovery, kernel, DTB, initramfs,
+  UFS path, local image, and target services. The host now waits up to 150
+  seconds for one harmless strict-key authenticated marker, records bounded
+  attempts, and only then invokes the exact runtime evidence command once.
+  Two independent deterministic wrappers are byte-identical. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
