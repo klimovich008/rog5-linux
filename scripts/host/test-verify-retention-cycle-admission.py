@@ -437,13 +437,12 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry\n"
             "build/persistent-root-local-image-ufs-detail-v44-generation66-"
-            "20260814-r1/repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact read-only local-image Arch cycle restoring the accepted "
-            "four deferred UFS modules omitted from Generation 65; UFS failures "
-            "report bounded stage detail, both ext4 layers remain ro,noload, no "
-            "write window is entered, and the persisted Generation 64 marker "
-            "remains pinned; RAM-only kernel/recovery; externally consumed exact "
-            "claim required; never flash or retry after entry\n"
+            "20260814-r1/repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 66 RAM-only cycle; exact four-module "
+            "UFS, read-only userdata and 16 GiB local image, persisted Generation "
+            "64 marker, tmpfs OverlayFS, systemd, NCM, and strict key-only SSH "
+            "passed in 328.363 seconds; normal reboot, exact Alpine fallback, and "
+            "host cleanup passed; never retry or flash\n"
             "build/persistent-root-storage-read-v4-generation25-20260812-r1/"
             "repack/stable-recovery-a.avb.img\trevoked\t"
             "consumed by the sole Generation 25 RAM-only cycle; exact Alpine "
@@ -840,7 +839,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=3", report)
+        self.assertIn("temporary_boot_allow_rows=2", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)

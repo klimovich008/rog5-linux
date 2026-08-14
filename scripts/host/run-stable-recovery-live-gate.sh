@@ -1895,8 +1895,8 @@ case $profile in
 		;;
 	persistent-root-local-image-ufs-detail-v44-live-v1)
 		expected_boot_image=build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only local-image Arch cycle restoring the accepted four deferred UFS modules omitted from Generation 65; UFS failures report bounded stage detail, both ext4 layers remain ro,noload, no write window is entered, and the persisted Generation 64 marker remains pinned; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 66 module-restored UFS-detail successor; exact accepted four-module UFS inventory, bounded stage-detail diagnostics, two ro,noload ext4 layers, pinned Generation 64 marker lineage, volatile overlay, and key-only SSH; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 66 RAM-only cycle; exact four-module UFS, read-only userdata and 16 GiB local image, persisted Generation 64 marker, tmpfs OverlayFS, systemd, NCM, and strict key-only SSH passed in 328.363 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 66 module-restored local-image Arch cycle; exact UFS, two ro,noload ext4 layers, persisted marker, volatile overlay, strict key-only SSH, normal reboot, and exact Alpine fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455

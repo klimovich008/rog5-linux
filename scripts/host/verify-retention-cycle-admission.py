@@ -2508,16 +2508,6 @@ def verify_policy(
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
         ),
-        (
-            "build/persistent-root-local-image-ufs-detail-v44-generation66-"
-            "20260814-r1/repack/stable-recovery-a.avb.img",
-            "one exact read-only local-image Arch cycle restoring the accepted "
-            "four deferred UFS modules omitted from Generation 65; UFS failures "
-            "report bounded stage detail, both ext4 layers remain ro,noload, no "
-            "write window is entered, and the persisted Generation 64 marker "
-            "remains pinned; RAM-only kernel/recovery; externally consumed exact "
-            "claim required; never flash or retry after entry",
-        ),
     }
     if required_allow_rows != len(expected_allows):
         fail("review must require the exact retention-cycle admissions")
