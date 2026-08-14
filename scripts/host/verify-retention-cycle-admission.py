@@ -2526,17 +2526,6 @@ def verify_policy(
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry",
         ),
-        (
-            "build/persistent-root-local-image-early-ssh-v45-generation70-"
-            "20260814-r1/repack/stable-recovery-a.avb.img",
-            "one exact read-only local-image Arch repeat accepting one bounded "
-            "startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted "
-            "v45 target bundle, four-module UFS, two ro,noload ext4 layers, "
-            "persisted Generation 64 marker, early strict Ed25519 SSH, storage "
-            "attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; "
-            "externally consumed exact claim required; never flash or retry "
-            "after entry",
-        ),
     }
     if required_allow_rows != len(expected_allows):
         fail("review must require the exact retention-cycle admissions")

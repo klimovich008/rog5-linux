@@ -154,7 +154,7 @@ for action in preflight boot; do
 done
 
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] || fail 'current observer/core/Generation-68 temporary-boot policy is not exact'
+	"$boot_policy") == 2 ]] || fail 'current observer/core temporary-boot policy is not exact'
 grep -Fq "$live_profile" "$claim_consumer" ||
 	fail 'current observation live profile has no exact claim'
 ! grep -Fq "$profile" "$claim_consumer" ||
