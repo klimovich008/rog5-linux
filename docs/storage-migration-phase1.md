@@ -217,9 +217,16 @@ proved that UFS and local-root handoff remain fast, but also proved the
 retained BusyBox is musl-dynamic rather than static. Direct execution after
 `switch_root` failed because its interpreter was retained below
 `/run/initramfs`, not the Arch `/lib`. The
-[Generation 55 checkpoint](../test-results/2026-08-14-generation-55-retained-loader-offline.md)
-keeps the read-only sweep and invokes BusyBox through that exact retained
-loader; its one-use hardware cycle will measure the corrected attestation.
+[Generation 55 live cycle](../test-results/2026-08-14-generation-55-retained-loader-live.md)
+proved the corrected retained-loader execution: attestation passed at target
+uptime 274.44 seconds and strict key-only SSH accepted at uptime 291.33
+seconds, or 344.676 seconds after lifecycle start. This is 35.324 seconds
+(9.3%) faster than the approximately 380-second Generation 20 NFS baseline.
+Both ext4 layers remained `ro,noload`, OverlayFS remained tmpfs-backed, and
+exact Alpine fallback passed after a normal reboot. Generation 55 is consumed.
+The [Generation 56 repeat checkpoint](../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md)
+keeps the target byte-identical and adds bounded read-only `systemd-analyze`
+capture to prove repeatability and identify the remaining post-handoff delay.
 
 ## Reproduction commands
 
