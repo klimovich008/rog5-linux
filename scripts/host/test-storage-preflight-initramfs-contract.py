@@ -11,6 +11,9 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 BUILDER = REPO / "scripts/device/build-storage-preflight-initramfs.sh"
 VERIFIER = REPO / "scripts/device/verify-storage-preflight-initramfs.sh"
+RUNTIME_VERIFIER = (
+    REPO / "scripts/device/verify-storage-preflight-arm64-runtime.sh"
+)
 
 
 class StoragePreflightInitramfsContractTest(unittest.TestCase):
@@ -38,7 +41,7 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             "cpio --null -o --quiet --format=newc --owner=0:0 --reproducible",
             "gzip -n",
             "mv -T -- \"$temporary\" \"$output\"",
-            "printf '%s\\n' storage-preflight-v1",
+            "printf '%s\\n' storage-preflight-v2",
             "chmod 0444 \"$stage/etc/rog5/recovery-mode\"",
         ):
             self.assertIn(contract, source)
@@ -74,7 +77,7 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
     def test_verifier_requires_exact_mode_tools_and_read_only_commands(self) -> None:
         source = self.source(VERIFIER)
         for contract in (
-            "storage-preflight-v1",
+            "storage-preflight-v2",
             "usr/bin/sgdisk",
             "sbin/e2fsck",
             "usr/sbin/resize2fs",
@@ -84,10 +87,28 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             '/usr/bin/sgdisk -v "$disk"',
             '/sbin/e2fsck -fn "$userdata"',
             '/usr/sbin/resize2fs -P "$userdata"',
+            "ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING",
+            "ROG5_STORAGE_PREFLIGHT_V2 status=FAIL",
+            "ROG5_STORAGE_PREFLIGHT_V2 status=PASS",
             "all_read_only=1 block_mounts=0",
         ):
             self.assertIn(contract, source)
         self.assertIn("cmp \"$stage/init\" \"$init\"", source)
+
+    def test_arm64_runtime_verifier_executes_every_sealed_tool(self) -> None:
+        source = self.source(RUNTIME_VERIFIER)
+        for contract in (
+            '"$(id -u)" -eq 0',
+            'chroot "$stage" /usr/bin/qemu-aarch64-static',
+            "sgdisk --clear --new=1:2048:0 --typecode=1:8300",
+            "guest /usr/bin/sgdisk -v /run/fixtures/disk.img",
+            "guest /sbin/e2fsck -fn /run/fixtures/ext4.img",
+            "guest /usr/sbin/resize2fs -P /run/fixtures/ext4.img",
+            "guest /usr/sbin/dumpe2fs -h /run/fixtures/ext4.img",
+            "guest /sbin/mkfs.ext4 -V",
+            "guest /usr/sbin/partprobe --help",
+        ):
+            self.assertIn(contract, source)
 
 
 if __name__ == "__main__":

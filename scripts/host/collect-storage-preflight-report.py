@@ -25,8 +25,8 @@ CORE = importlib.util.module_from_spec(CORE_SPEC)
 sys.modules[CORE_SPEC.name] = CORE
 CORE_SPEC.loader.exec_module(CORE)
 
-FORMAT = "rog5-storage-preflight-evidence-v1"
-PREFIX = "ROG5_STORAGE_PREFLIGHT_V1"
+FORMAT = "rog5-storage-preflight-evidence-v2"
+PREFIX = "ROG5_STORAGE_PREFLIGHT_V2"
 RECOVERY_PRODUCT = "ROG5 recovery"
 USB_INTERFACE = "02"
 MAX_REPORT_BYTES = 2048
@@ -34,9 +34,11 @@ ENUMERATION_TIMEOUT_SECONDS = 120
 CAPTURE_TIMEOUT_SECONDS = 30
 STABLE_ENUMERATION_SECONDS = 0.5
 
-EXPECTED_FIELDS: OrderedDict[str, str | None] = OrderedDict(
+PASS_FIELDS: OrderedDict[str, str | None] = OrderedDict(
     (
         ("status", "PASS"),
+        ("stage", "S99_COMPLETE"),
+        ("reason", "none"),
         ("logical_block_bytes", "4096"),
         ("lun_bytes", "253403070464"),
         ("gpt_entries", "32"),
@@ -55,6 +57,57 @@ EXPECTED_FIELDS: OrderedDict[str, str | None] = OrderedDict(
     )
 )
 
+SHORT_FIELDS: OrderedDict[str, str | None] = OrderedDict(
+    (
+        ("status", None),
+        ("stage", None),
+        ("reason", None),
+        ("all_read_only", None),
+        ("block_mounts", "0"),
+    )
+)
+
+RUNNING_STAGES = frozenset(
+    (
+        "S00_USB_READY",
+        "S10_TOPOLOGY",
+        "S11_DISK_READ_ONLY",
+        "S12_USERDATA_READ_ONLY",
+        "S20_TOOLSET",
+        "S30_GPT_VERIFY",
+        "S40_EXT4_CHECK",
+        "S41_EXT4_MINIMUM",
+        "S42_EXT4_SUPERBLOCK",
+        "S50_GPT_HEADER",
+        "S60_TOOL_VERSIONS",
+    )
+)
+
+FAILURE_STAGE_REASONS = {
+    "topology_identity": "S10_TOPOLOGY",
+    "disk_not_read_only": "S11_DISK_READ_ONLY",
+    "userdata_not_read_only": "S12_USERDATA_READ_ONLY",
+    "missing_sgdisk": "S20_TOOLSET",
+    "missing_e2fsck": "S20_TOOLSET",
+    "missing_resize2fs": "S20_TOOLSET",
+    "missing_dumpe2fs": "S20_TOOLSET",
+    "missing_mkfs_ext4": "S20_TOOLSET",
+    "missing_partprobe": "S20_TOOLSET",
+    "gpt_verify_failed": "S30_GPT_VERIFY",
+    "e2fsck_failed": "S40_EXT4_CHECK",
+    "resize2fs_failed": "S41_EXT4_MINIMUM",
+    "minimum_invalid": "S41_EXT4_MINIMUM",
+    "minimum_too_large": "S41_EXT4_MINIMUM",
+    "dumpe2fs_failed": "S42_EXT4_SUPERBLOCK",
+    "block_count_changed": "S42_EXT4_SUPERBLOCK",
+    "block_size_changed": "S42_EXT4_SUPERBLOCK",
+    "filesystem_not_clean": "S42_EXT4_SUPERBLOCK",
+    "gpt_entry_count_changed": "S50_GPT_HEADER",
+    "sgdisk_version_changed": "S60_TOOL_VERSIONS",
+    "mkfs_version_failed": "S60_TOOL_VERSIONS",
+    "partprobe_failed": "S60_TOOL_VERSIONS",
+}
+
 
 class PreflightError(RuntimeError):
     """The exact storage-preflight report cannot be trusted."""
@@ -62,6 +115,23 @@ class PreflightError(RuntimeError):
 
 def fail(message: str) -> NoReturn:
     raise PreflightError(message)
+
+
+def parse_fields(
+    tokens: list[str], expected_fields: OrderedDict[str, str | None]
+) -> OrderedDict[str, str]:
+    if len(tokens) != len(expected_fields):
+        fail("storage-preflight report shape is not exact")
+    observed: OrderedDict[str, str] = OrderedDict()
+    for expected_name, token in zip(expected_fields, tokens, strict=True):
+        name, separator, value = token.partition("=")
+        if separator != "=" or name != expected_name or not value:
+            fail("storage-preflight report field order changed")
+        expected = expected_fields[name]
+        if expected is not None and value != expected:
+            fail(f"storage-preflight {name} identity changed")
+        observed[name] = value
+    return observed
 
 
 def parse_report(payload: bytes) -> OrderedDict[str, str]:
@@ -72,30 +142,46 @@ def parse_report(payload: bytes) -> OrderedDict[str, str]:
     except UnicodeDecodeError as error:
         raise PreflightError("storage-preflight report is not ASCII") from error
     tokens = line.split(" ")
-    if (
-        not tokens
-        or tokens[0] != PREFIX
-        or "" in tokens
-        or len(tokens) != len(EXPECTED_FIELDS) + 1
-    ):
+    if not tokens or tokens[0] != PREFIX or "" in tokens:
         fail("storage-preflight report shape is not exact")
-    observed: OrderedDict[str, str] = OrderedDict()
-    for expected_name, token in zip(EXPECTED_FIELDS, tokens[1:], strict=True):
-        name, separator, value = token.partition("=")
-        if separator != "=" or name != expected_name or not value:
-            fail("storage-preflight report field order changed")
-        expected = EXPECTED_FIELDS[name]
-        if expected is not None and value != expected:
-            fail(f"storage-preflight {name} identity changed")
-        observed[name] = value
-    minimum = observed["ext4_minimum_blocks"]
-    if (
-        not minimum.isascii()
-        or not minimum.isdecimal()
-        or minimum.startswith("0")
-        or not 1 <= int(minimum) <= 51_124_000
-    ):
-        fail("storage-preflight ext4 minimum is outside policy")
+    status_token = tokens[1] if len(tokens) > 1 else ""
+    if status_token == "status=PASS":
+        observed = parse_fields(tokens[1:], PASS_FIELDS)
+    elif status_token in ("status=RUNNING", "status=FAIL"):
+        observed = parse_fields(tokens[1:], SHORT_FIELDS)
+    else:
+        fail("storage-preflight status is invalid")
+
+    status = observed["status"]
+    stage = observed["stage"]
+    reason = observed["reason"]
+    if status == "RUNNING":
+        if stage not in RUNNING_STAGES or reason != "none":
+            fail("storage-preflight running stage/reason is invalid")
+        if observed["all_read_only"] != "1":
+            fail("storage-preflight running read-only state changed")
+    elif status == "FAIL":
+        if FAILURE_STAGE_REASONS.get(reason) != stage:
+            fail("storage-preflight failure stage/reason is invalid")
+        expected_read_only = (
+            "0"
+            if reason in ("disk_not_read_only", "userdata_not_read_only")
+            else "1"
+        )
+        if observed["all_read_only"] != expected_read_only:
+            fail("storage-preflight failure read-only state is invalid")
+    else:
+        if stage != "S99_COMPLETE" or reason != "none":
+            fail("storage-preflight pass stage/reason is invalid")
+    if status == "PASS":
+        minimum = observed["ext4_minimum_blocks"]
+        if (
+            not minimum.isascii()
+            or not minimum.isdecimal()
+            or minimum.startswith("0")
+            or not 1 <= int(minimum) <= 51_124_000
+        ):
+            fail("storage-preflight ext4 minimum is outside policy")
     canonical = PREFIX + " " + " ".join(
         f"{name}={value}" for name, value in observed.items()
     )
@@ -212,22 +298,23 @@ def capture_report(
             last_validation = now
         chunk = serial.read(min(0.25, max(0.0, deadline - now)))
         if chunk == b"":
-            fail("storage-preflight ACM disconnected before one report")
+            fail("storage-preflight ACM disconnected before one terminal report")
         if chunk is None:
             continue
         buffer.extend(chunk)
         if len(buffer) > MAX_REPORT_BYTES:
             fail("storage-preflight report exceeded its byte bound")
-        newline = buffer.find(b"\n")
-        if newline < 0:
-            continue
-        payload = bytes(buffer[: newline + 1])
-        if buffer[newline + 1 :]:
-            fail("storage-preflight ACM delivered trailing data")
-        values = parse_report(payload)
-        revalidate_storage_acm(identity)
-        return payload, values
-    fail("storage-preflight report did not arrive before its deadline")
+        while (newline := buffer.find(b"\n")) >= 0:
+            payload = bytes(buffer[: newline + 1])
+            del buffer[: newline + 1]
+            values = parse_report(payload)
+            if values["status"] == "RUNNING":
+                continue
+            if buffer:
+                fail("storage-preflight ACM delivered trailing data")
+            revalidate_storage_acm(identity)
+            return payload, values
+    fail("storage-preflight terminal report did not arrive before its deadline")
 
 
 def canonical_timeout(value: str, maximum: int) -> int:
@@ -280,10 +367,16 @@ def main(arguments: list[str]) -> int:
         document, sort_keys=True, separators=(",", ":"), ensure_ascii=True
     ).encode("ascii") + b"\n"
     CORE.write_evidence(output_path, encoded)
-    print(
-        "PASS exact read-only storage preflight report captured "
-        f"ext4_minimum_blocks={values['ext4_minimum_blocks']}"
-    )
+    if values["status"] == "PASS":
+        print(
+            "PASS exact read-only storage preflight report captured "
+            f"ext4_minimum_blocks={values['ext4_minimum_blocks']}"
+        )
+    else:
+        print(
+            "FAIL exact read-only storage preflight failure captured "
+            f"stage={values['stage']} reason={values['reason']}"
+        )
     return 0
 
 

@@ -165,7 +165,7 @@ case $recovery_mode in
 			force_rollback
 		fi
 		;;
-	storage-preflight-v1)
+	storage-preflight-v2)
 		if [ "$recovery_mode_size" != 21 ]; then
 			log 'storage-preflight recovery mode contract has trailing data; rebooting'
 			force_rollback
@@ -417,12 +417,40 @@ write_ufs_inventory() {
 	[ "$(wc -l <"$inventory")" -gt 1 ]
 }
 
-run_storage_preflight() {
+publish_storage_preflight_report() {
 	report=/run/rog5-storage-preflight.report
 	report_tmp=/run/.rog5-storage-preflight.report.$$
+	umask 077
+	if ! printf '%s\n' "$1" >"$report_tmp" ||
+		! chmod 0600 "$report_tmp" ||
+		! mv -f "$report_tmp" "$report"; then
+		rm -f "$report_tmp"
+		return 1
+	fi
+}
+
+storage_preflight_stage() {
+	publish_storage_preflight_report \
+		"ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING stage=$1 reason=none all_read_only=1 block_mounts=0"
+}
+
+storage_preflight_fail() {
+	stage=$1
+	reason=$2
+	all_read_only=${3:-1}
+	if ! publish_storage_preflight_report \
+		"ROG5_STORAGE_PREFLIGHT_V2 status=FAIL stage=$stage reason=$reason all_read_only=$all_read_only block_mounts=0"; then
+		log "cannot publish storage-preflight failure; stage=$stage reason=$reason"
+	fi
+	log "storage preflight failed; stage=$stage reason=$reason"
+	return 1
+}
+
+run_storage_preflight() {
 	disk_count=0
 	disk=
 	userdata=
+	storage_preflight_stage S10_TOPOLOGY || return 1
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
@@ -449,40 +477,90 @@ run_storage_preflight() {
 		userdata=$candidate_userdata
 		disk_count=$((disk_count + 1))
 	done
-	[ "$disk_count" -eq 1 ] || return 1
-	[ "$(blockdev --getro "$disk")" = 1 ] || return 1
-	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+	if [ "$disk_count" -ne 1 ]; then
+		storage_preflight_fail S10_TOPOLOGY topology_identity
+		return 1
+	fi
+	storage_preflight_stage S11_DISK_READ_ONLY || return 1
+	if [ "$(blockdev --getro "$disk")" != 1 ]; then
+		storage_preflight_fail S11_DISK_READ_ONLY disk_not_read_only 0
+		return 1
+	fi
+	storage_preflight_stage S12_USERDATA_READ_ONLY || return 1
+	if [ "$(blockdev --getro "$userdata")" != 1 ]; then
+		storage_preflight_fail S12_USERDATA_READ_ONLY userdata_not_read_only 0
+		return 1
+	fi
 
-	for tool in /usr/bin/sgdisk /sbin/e2fsck /usr/sbin/resize2fs \
-		/usr/sbin/dumpe2fs
-	do
-		[ -f "$tool" ] && [ ! -L "$tool" ] && [ -x "$tool" ] || return 1
-	done
-	[ -L /sbin/mkfs.ext4 ] && [ "$(readlink /sbin/mkfs.ext4)" = mke2fs ] &&
-		[ -x /sbin/mkfs.ext4 ] || return 1
-	[ -L /usr/sbin/partprobe ] &&
-		[ "$(readlink /usr/sbin/partprobe)" = /bin/busybox ] &&
-		[ -x /usr/sbin/partprobe ] || return 1
+	storage_preflight_stage S20_TOOLSET || return 1
+	if [ ! -f /usr/bin/sgdisk ] || [ -L /usr/bin/sgdisk ] ||
+		[ ! -x /usr/bin/sgdisk ]; then
+		storage_preflight_fail S20_TOOLSET missing_sgdisk
+		return 1
+	fi
+	if [ ! -f /sbin/e2fsck ] || [ -L /sbin/e2fsck ] ||
+		[ ! -x /sbin/e2fsck ]; then
+		storage_preflight_fail S20_TOOLSET missing_e2fsck
+		return 1
+	fi
+	if [ ! -f /usr/sbin/resize2fs ] || [ -L /usr/sbin/resize2fs ] ||
+		[ ! -x /usr/sbin/resize2fs ]; then
+		storage_preflight_fail S20_TOOLSET missing_resize2fs
+		return 1
+	fi
+	if [ ! -f /usr/sbin/dumpe2fs ] || [ -L /usr/sbin/dumpe2fs ] ||
+		[ ! -x /usr/sbin/dumpe2fs ]; then
+		storage_preflight_fail S20_TOOLSET missing_dumpe2fs
+		return 1
+	fi
+	if [ ! -L /sbin/mkfs.ext4 ] ||
+		[ "$(readlink /sbin/mkfs.ext4)" != mke2fs ] ||
+		[ ! -x /sbin/mkfs.ext4 ]; then
+		storage_preflight_fail S20_TOOLSET missing_mkfs_ext4
+		return 1
+	fi
+	if [ ! -L /usr/sbin/partprobe ] ||
+		[ "$(readlink /usr/sbin/partprobe)" != /bin/busybox ] ||
+		[ ! -x /usr/sbin/partprobe ]; then
+		storage_preflight_fail S20_TOOLSET missing_partprobe
+		return 1
+	fi
 
+	storage_preflight_stage S30_GPT_VERIFY || return 1
 	if ! /usr/bin/sgdisk -v "$disk" >/run/rog5-sgdisk-verify.log 2>&1 ||
 		! grep -Fq 'No problems found.' /run/rog5-sgdisk-verify.log; then
+		storage_preflight_fail S30_GPT_VERIFY gpt_verify_failed
 		return 1
 	fi
+	storage_preflight_stage S40_EXT4_CHECK || return 1
 	if ! /sbin/e2fsck -fn "$userdata" >/run/rog5-e2fsck-readonly.log 2>&1; then
+		storage_preflight_fail S40_EXT4_CHECK e2fsck_failed
 		return 1
 	fi
+	storage_preflight_stage S41_EXT4_MINIMUM || return 1
 	if ! /usr/sbin/resize2fs -P "$userdata" \
 		>/run/rog5-resize-minimum.log 2>&1; then
+		storage_preflight_fail S41_EXT4_MINIMUM resize2fs_failed
 		return 1
 	fi
 	minimum_blocks=$(sed -n \
 		's/^Estimated minimum size of the filesystem: \([0-9][0-9]*\)$/\1/p' \
 		/run/rog5-resize-minimum.log)
-	case $minimum_blocks in ''|*[!0-9]*) return 1 ;; esac
-	[ "$minimum_blocks" -le 51124000 ] || return 1
+	case $minimum_blocks in
+		''|*[!0-9]*)
+			storage_preflight_fail S41_EXT4_MINIMUM minimum_invalid
+			return 1
+			;;
+	esac
+	if [ "$minimum_blocks" -gt 51124000 ]; then
+		storage_preflight_fail S41_EXT4_MINIMUM minimum_too_large
+		return 1
+	fi
 
+	storage_preflight_stage S42_EXT4_SUPERBLOCK || return 1
 	if ! /usr/sbin/dumpe2fs -h "$userdata" \
 		>/run/rog5-ext4-superblock.log 2>&1; then
+		storage_preflight_fail S42_EXT4_SUPERBLOCK dumpe2fs_failed
 		return 1
 	fi
 	ext4_blocks=$(sed -n 's/^Block count:[[:space:]]*//p' \
@@ -491,26 +569,44 @@ run_storage_preflight() {
 		/run/rog5-ext4-superblock.log | sed -n '1p')
 	ext4_state=$(sed -n 's/^Filesystem state:[[:space:]]*//p' \
 		/run/rog5-ext4-superblock.log | sed -n '1p')
-	[ "$ext4_blocks" = 59513299 ] || return 1
-	[ "$ext4_block_size" = 4096 ] || return 1
-	[ "$ext4_state" = clean ] || return 1
+	if [ "$ext4_blocks" != 59513299 ]; then
+		storage_preflight_fail S42_EXT4_SUPERBLOCK block_count_changed
+		return 1
+	fi
+	if [ "$ext4_block_size" != 4096 ]; then
+		storage_preflight_fail S42_EXT4_SUPERBLOCK block_size_changed
+		return 1
+	fi
+	if [ "$ext4_state" != clean ]; then
+		storage_preflight_fail S42_EXT4_SUPERBLOCK filesystem_not_clean
+		return 1
+	fi
 
+	storage_preflight_stage S50_GPT_HEADER || return 1
 	gpt_entries=$(dd if="$disk" bs=1 skip=4176 count=4 2>/dev/null |
 		od -An -tu4 -v | tr -d ' \n')
-	[ "$gpt_entries" = 32 ] || return 1
+	if [ "$gpt_entries" != 32 ]; then
+		storage_preflight_fail S50_GPT_HEADER gpt_entry_count_changed
+		return 1
+	fi
+	storage_preflight_stage S60_TOOL_VERSIONS || return 1
 	sgdisk_version=$(/usr/bin/sgdisk --version 2>/dev/null |
 		sed -n 's/^GPT fdisk (sgdisk) version //p' | sed -n '1p')
-	[ "$sgdisk_version" = 1.0.10 ] || return 1
-	/sbin/mkfs.ext4 -V >/run/rog5-mkfs-version.log 2>&1 || return 1
-	/usr/sbin/partprobe --help >/run/rog5-partprobe-help.log 2>&1 || return 1
+	if [ "$sgdisk_version" != 1.0.10 ]; then
+		storage_preflight_fail S60_TOOL_VERSIONS sgdisk_version_changed
+		return 1
+	fi
+	if ! /sbin/mkfs.ext4 -V >/run/rog5-mkfs-version.log 2>&1; then
+		storage_preflight_fail S60_TOOL_VERSIONS mkfs_version_failed
+		return 1
+	fi
+	if ! /usr/sbin/partprobe --help >/run/rog5-partprobe-help.log 2>&1; then
+		storage_preflight_fail S60_TOOL_VERSIONS partprobe_failed
+		return 1
+	fi
 
-	umask 077
-	if ! printf '%s\n' \
-		"ROG5_STORAGE_PREFLIGHT_V1 status=PASS logical_block_bytes=4096 lun_bytes=253403070464 gpt_entries=32 userdata_first_lba=2352680 userdata_last_lba=61865978 userdata_blocks=59513299 ext4_blocks=$ext4_blocks ext4_minimum_blocks=$minimum_blocks proposed_userdata_last_lba=53477375 proposed_root_first_lba=53477376 proposed_root_last_lba=61865978 sgdisk=$sgdisk_version e2fsprogs=1.47.4 all_read_only=1 block_mounts=0" \
-		>"$report_tmp" ||
-		! chmod 0600 "$report_tmp" ||
-		! mv -f "$report_tmp" "$report"; then
-		rm -f "$report_tmp"
+	if ! publish_storage_preflight_report \
+		"ROG5_STORAGE_PREFLIGHT_V2 status=PASS stage=S99_COMPLETE reason=none logical_block_bytes=4096 lun_bytes=253403070464 gpt_entries=32 userdata_first_lba=2352680 userdata_last_lba=61865978 userdata_blocks=59513299 ext4_blocks=$ext4_blocks ext4_minimum_blocks=$minimum_blocks proposed_userdata_last_lba=53477375 proposed_root_first_lba=53477376 proposed_root_last_lba=61865978 sgdisk=$sgdisk_version e2fsprogs=1.47.4 all_read_only=1 block_mounts=0"; then
 		return 1
 	fi
 	log "storage preflight passed; ext4 minimum blocks=$minimum_blocks"
@@ -629,12 +725,6 @@ if ! verify_wrapper_storage_contract; then
 	log 'ASUS wrapper storage topology mismatch before USB configuration'
 	force_rollback
 fi
-if [ "$recovery_mode" = storage-preflight-v1 ]; then
-	if ! run_storage_preflight; then
-		log 'storage preflight failed; rebooting'
-		force_rollback
-	fi
-fi
 if [ "$ufs_discovery" = 1 ]; then
 	[ "$(cat /run/rog5-physical-block-count)" -gt 0 ] || {
 		log 'UFS discovery did not enumerate a physical disk'
@@ -691,7 +781,11 @@ if [ "$ufs_discovery" = 1 ] &&
 	force_rollback
 fi
 
-if [ "$recovery_mode" = storage-preflight-v1 ]; then
+if [ "$recovery_mode" = storage-preflight-v2 ]; then
+	if ! storage_preflight_stage S00_USB_READY; then
+		log 'cannot publish initial storage-preflight state; rebooting'
+		force_rollback
+	fi
 	serve_storage_preflight_report &
 	reporter_pid=$!
 	printf '%s\n' "$reporter_pid" >/run/rog5-storage-preflight-reporter.pid
@@ -764,5 +858,13 @@ while [ "$attempt" -lt 100 ]; do
 	attempt=$((attempt + 1))
 done
 log "fixed recovery control ready; state=$udc_state carrier=$carrier"
+
+if [ "$recovery_mode" = storage-preflight-v2 ]; then
+	if ! run_storage_preflight; then
+		log 'terminal storage-preflight failure visible for 10 seconds before rollback'
+		sleep 10
+		force_rollback
+	fi
+fi
 
 while :; do sleep 3600; done

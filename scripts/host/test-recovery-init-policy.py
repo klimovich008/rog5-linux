@@ -332,7 +332,7 @@ class InitPolicyTest(unittest.TestCase):
             '[ "$recovery_mode_size" != 8 ]',
             "observation-only-v1)",
             '[ "$recovery_mode_size" != 20 ]',
-            "storage-preflight-v1)",
+            "storage-preflight-v2)",
             '[ "$recovery_mode_size" != 21 ]',
             '[ -e "$bundle_root" ] || [ -L "$bundle_root" ]',
             '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &',
@@ -348,7 +348,7 @@ class InitPolicyTest(unittest.TestCase):
         self.assertLess(mode_read, bundle_create)
         self.assertLess(bundle_create, control)
 
-    def test_storage_preflight_is_exact_read_only_and_precedes_usb(self) -> None:
+    def test_storage_preflight_v2_is_exact_read_only_and_reported_after_usb(self) -> None:
         source = self.source(RECOVERY)
         match = re.search(
             r"^run_storage_preflight\(\) \{\n.*?^\}\n",
@@ -360,17 +360,19 @@ class InitPolicyTest(unittest.TestCase):
         for contract in (
             'blockdev --getsize64 "$device"',
             'blockdev --getss "$device"',
-            '[ "$disk_count" -eq 1 ]',
-            '[ "$(blockdev --getro "$disk")" = 1 ]',
-            '[ "$(blockdev --getro "$userdata")" = 1 ]',
+            'if [ "$disk_count" -ne 1 ]; then',
+            'if [ "$(blockdev --getro "$disk")" != 1 ]; then',
+            'if [ "$(blockdev --getro "$userdata")" != 1 ]; then',
             '/usr/bin/sgdisk -v "$disk"',
             '/sbin/e2fsck -fn "$userdata"',
             '/usr/sbin/resize2fs -P "$userdata"',
             '/usr/sbin/dumpe2fs -h "$userdata"',
             '/sbin/mkfs.ext4 -V',
             '/usr/sbin/partprobe --help',
-            "ROG5_STORAGE_PREFLIGHT_V1 status=PASS",
+            "ROG5_STORAGE_PREFLIGHT_V2 status=PASS",
             "all_read_only=1 block_mounts=0",
+            'storage_preflight_stage S30_GPT_VERIFY',
+            'storage_preflight_fail S30_GPT_VERIFY gpt_verify_failed',
         ):
             self.assertIn(contract, body)
         for command in (
@@ -390,15 +392,48 @@ class InitPolicyTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, body)
 
+        for failure in (
+            "topology_identity",
+            "disk_not_read_only",
+            "userdata_not_read_only",
+            "missing_sgdisk",
+            "missing_e2fsck",
+            "missing_resize2fs",
+            "missing_dumpe2fs",
+            "missing_mkfs_ext4",
+            "missing_partprobe",
+            "gpt_verify_failed",
+            "e2fsck_failed",
+            "resize2fs_failed",
+            "minimum_invalid",
+            "minimum_too_large",
+            "dumpe2fs_failed",
+            "block_count_changed",
+            "block_size_changed",
+            "filesystem_not_clean",
+            "gpt_entry_count_changed",
+            "sgdisk_version_changed",
+            "mkfs_version_failed",
+            "partprobe_failed",
+        ):
+            self.assertEqual(body.count(failure), 1)
         first_isolation = source.index("if ! isolate_storage; then")
-        preflight = source.index("if ! run_storage_preflight; then")
         configfs = source.index("mount -t configfs configfs /sys/kernel/config")
         reporter = source.index("serve_storage_preflight_report &")
         bind = source.index("if ! udc=$(bind_expected_udc); then")
-        self.assertLess(first_isolation, preflight)
-        self.assertLess(preflight, configfs)
+        ready = source.index('log "fixed recovery control ready;')
+        preflight = source.index("if ! run_storage_preflight; then")
+        self.assertLess(first_isolation, configfs)
         self.assertLess(configfs, reporter)
         self.assertLess(reporter, bind)
+        self.assertLess(bind, ready)
+        self.assertLess(ready, preflight)
+        failure = re.search(
+            r'if ! run_storage_preflight; then\n.*?sleep 10\n.*?force_rollback\n\tfi',
+            source,
+            flags=re.DOTALL,
+        )
+        self.assertIsNotNone(failure)
 
     def test_recovery_creates_fetchers_exact_volatile_root(self) -> None:
         init_source = self.source(RECOVERY)
