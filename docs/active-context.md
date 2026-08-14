@@ -444,13 +444,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md)
   and [live result](../test-results/2026-08-14-generation-68-host-departure-live.md).
 
-- **Generation 69 is the current unbooted one-use successor.** It preserves
-  the exact v45 signed target bundle, raw recovery, kernel, DTB, initramfs,
-  UFS path, local image, and target services. The host now waits up to 150
-  seconds for one harmless strict-key authenticated marker, records bounded
-  attempts, and only then invokes the exact runtime evidence command once.
-  Two independent deterministic wrappers are byte-identical. See the
-  [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md).
+- **Generation 69 proved the bounded authenticated-SSH rendezvous and is
+  consumed.** Exact UFS, both `ro,noload` ext4 layers, tmpfs OverlayFS, P2
+  storage attestation, and key-only `sshd` passed. One rendezvous attempt
+  returned status zero within the 150-second deadline, but the old host
+  parser rejected extra startup output before invoking the runtime command.
+  The same boot later passed exact runtime at 378.07 seconds and diagnostics,
+  then normal reboot, exact Alpine fallback, PS_HOLD/HARD_RESET lineage, and
+  host restoration passed. Generation 69 is revoked and must never be retried
+  or flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
+  and [live result](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
+
+- **Generation 70 is the current unbooted one-use successor.** It changes no
+  target-side bytes. The host accepts one bounded SSH startup-output stream
+  only when it contains exactly one authenticated marker line, rejects NUL,
+  duplicate-marker, missing-marker, and over-4096-byte output, and still runs
+  the exact runtime evidence command only once. The unchanged v45 target
+  bundle and raw recovery are wrapped by byte-identical twin issuances. See
+  the [offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
