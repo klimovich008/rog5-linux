@@ -55,7 +55,10 @@ for contract in \
 	'cat "$report" >&3' \
 	'/usr/bin/sgdisk -v "$disk"' \
 	'/sbin/e2fsck -fn "$userdata"' \
+	'/usr/sbin/dumpe2fs -h "$userdata"' \
 	'/usr/sbin/resize2fs -P "$userdata"' \
+	'filesystem_requires_recovery' \
+	'needs_recovery|orphan_present' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=FAIL' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=PASS'
@@ -138,7 +141,7 @@ for library in libuuid.so.1 libpopt.so.0 libstdc++.so.6 libgcc_s.so.1 \
 done
 for path in lib/ld-musl-aarch64.so.1 usr/lib/libuuid.so.1 \
 	usr/lib/libpopt.so.0 usr/lib/libstdc++.so.6 usr/lib/libgcc_s.so.1 \
-	sbin/e2fsck usr/sbin/resize2fs usr/sbin/dumpe2fs sbin/mkfs.ext4; do
+	sbin/e2fsck usr/sbin/dumpe2fs usr/sbin/resize2fs sbin/mkfs.ext4; do
 	[ -e "$stage/$path" ] || fail "initramfs lacks storage tool path $path"
 done
 [ -L "$stage/usr/sbin/partprobe" ] &&

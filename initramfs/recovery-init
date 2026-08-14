@@ -537,30 +537,10 @@ run_storage_preflight() {
 		storage_preflight_fail S40_EXT4_CHECK e2fsck_failed
 		return 1
 	fi
-	storage_preflight_stage S41_EXT4_MINIMUM || return 1
-	if ! /usr/sbin/resize2fs -P "$userdata" \
-		>/run/rog5-resize-minimum.log 2>&1; then
-		storage_preflight_fail S41_EXT4_MINIMUM resize2fs_failed
-		return 1
-	fi
-	minimum_blocks=$(sed -n \
-		's/^Estimated minimum size of the filesystem: \([0-9][0-9]*\)$/\1/p' \
-		/run/rog5-resize-minimum.log)
-	case $minimum_blocks in
-		''|*[!0-9]*)
-			storage_preflight_fail S41_EXT4_MINIMUM minimum_invalid
-			return 1
-			;;
-	esac
-	if [ "$minimum_blocks" -gt 51124000 ]; then
-		storage_preflight_fail S41_EXT4_MINIMUM minimum_too_large
-		return 1
-	fi
-
-	storage_preflight_stage S42_EXT4_SUPERBLOCK || return 1
+	storage_preflight_stage S41_EXT4_SUPERBLOCK || return 1
 	if ! /usr/sbin/dumpe2fs -h "$userdata" \
 		>/run/rog5-ext4-superblock.log 2>&1; then
-		storage_preflight_fail S42_EXT4_SUPERBLOCK dumpe2fs_failed
+		storage_preflight_fail S41_EXT4_SUPERBLOCK dumpe2fs_failed
 		return 1
 	fi
 	ext4_blocks=$(sed -n 's/^Block count:[[:space:]]*//p' \
@@ -569,16 +549,43 @@ run_storage_preflight() {
 		/run/rog5-ext4-superblock.log | sed -n '1p')
 	ext4_state=$(sed -n 's/^Filesystem state:[[:space:]]*//p' \
 		/run/rog5-ext4-superblock.log | sed -n '1p')
+	ext4_features=$(sed -n 's/^Filesystem features:[[:space:]]*//p' \
+		/run/rog5-ext4-superblock.log | sed -n '1p')
 	if [ "$ext4_blocks" != 59513299 ]; then
-		storage_preflight_fail S42_EXT4_SUPERBLOCK block_count_changed
+		storage_preflight_fail S41_EXT4_SUPERBLOCK block_count_changed
 		return 1
 	fi
 	if [ "$ext4_block_size" != 4096 ]; then
-		storage_preflight_fail S42_EXT4_SUPERBLOCK block_size_changed
+		storage_preflight_fail S41_EXT4_SUPERBLOCK block_size_changed
 		return 1
 	fi
 	if [ "$ext4_state" != clean ]; then
-		storage_preflight_fail S42_EXT4_SUPERBLOCK filesystem_not_clean
+		storage_preflight_fail S41_EXT4_SUPERBLOCK filesystem_not_clean
+		return 1
+	fi
+	if printf '%s\n' "$ext4_features" |
+		grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'; then
+		storage_preflight_fail S41_EXT4_SUPERBLOCK filesystem_requires_recovery
+		return 1
+	fi
+
+	storage_preflight_stage S42_EXT4_MINIMUM || return 1
+	if ! /usr/sbin/resize2fs -P "$userdata" \
+		>/run/rog5-resize-minimum.log 2>&1; then
+		storage_preflight_fail S42_EXT4_MINIMUM resize2fs_failed
+		return 1
+	fi
+	minimum_blocks=$(sed -n \
+		's/^Estimated minimum size of the filesystem: \([0-9][0-9]*\)$/\1/p' \
+		/run/rog5-resize-minimum.log)
+	case $minimum_blocks in
+		''|*[!0-9]*)
+			storage_preflight_fail S42_EXT4_MINIMUM minimum_invalid
+			return 1
+			;;
+	esac
+	if [ "$minimum_blocks" -gt 51124000 ]; then
+		storage_preflight_fail S42_EXT4_MINIMUM minimum_too_large
 		return 1
 	fi
 
