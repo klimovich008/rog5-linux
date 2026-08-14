@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-ufs-detail-v44-live-v1"
-BUNDLE = "persistent-root-local-image-ufs-detail-v44"
+PROFILE_ID = "persistent-root-local-image-early-ssh-v45-live-v1"
+BUNDLE = "persistent-root-local-image-early-ssh-v45"
 MANIFEST_SHA256 = (
-    "07e7f72c7c88ea4c081d77e3e561c36278ef0a0273dee6b831ca691f6518ee2e"
+    "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949"
 )
 RECOVERY_SHA256 = (
-    "d4d95e010810e09a209f0cde8f82e3d36e28c20dfa1b5aa899b5873c1ee36412"
+    "0bd1b6b8fddc27a5b4860036a13406f5cf4897c0ae84761a835868c0db086953"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1"
+    / "build/persistent-root-local-image-early-ssh-v45-generation67-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-ufs-detail-v44",
+    admission_profile="persistent-root-local-image-early-ssh-v45",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-ufs-detail-v44",
-    build_profile="persistent-root-local-image-ufs-detail-v44",
+    runtime_profile="persistent-root-local-image-early-ssh-v45",
+    build_profile="persistent-root-local-image-early-ssh-v45",
     diagnostic=False,
 )
 
@@ -120,12 +120,13 @@ systemd-analyze blame --no-pager | sed -n '1,80p'
 printf '%s\n' '=== systemd critical chain ==='
 systemd-analyze critical-chain --no-pager
 printf '%s\n' '=== sshd critical chain ==='
-systemd-analyze critical-chain --no-pager sshd.service
+systemd-analyze critical-chain --no-pager rog5-early-sshd.service
 printf '%s\n' '=== Ed25519 key critical chain ==='
 systemd-analyze critical-chain --no-pager rog5-sshd-ed25519-key.service
 printf '%s\n' '=== ssh host-key services ==='
 systemctl show --no-pager -p LoadState -p ActiveState -p SubState \
-    sshdgenkeys.service rog5-sshd-ed25519-key.service sshd.service
+	sshdgenkeys.service rog5-sshd-ed25519-key.service \
+	rog5-early-sshd.service sshd.service
 printf '%s\n' '=== ssh host-key inventory ==='
 find /etc/ssh -maxdepth 1 -type f -name 'ssh_host_*_key*' \
     -printf '%f %m\n' | sort

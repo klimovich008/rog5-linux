@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-ufs-detail-v44-live-v1",
+            "persistent-root-local-image-early-ssh-v45-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-ufs-detail-v44",
+            "persistent-root-local-image-early-ssh-v45",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -54,7 +54,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("sed -n '1,80p'", diagnostic)
         self.assertIn("systemd-analyze critical-chain --no-pager", diagnostic)
         self.assertIn(
-            "systemd-analyze critical-chain --no-pager sshd.service",
+            "systemd-analyze critical-chain --no-pager rog5-early-sshd.service",
             diagnostic,
         )
         self.assertIn(
@@ -62,6 +62,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             diagnostic,
         )
         self.assertIn("sshdgenkeys.service", diagnostic)
+        self.assertIn("rog5-early-sshd.service", diagnostic)
         self.assertIn("ssh_host_*_key*", diagnostic)
 
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:

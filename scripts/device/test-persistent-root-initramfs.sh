@@ -147,7 +147,10 @@ grep -Fq 'exec switch_root /newroot /sbin/init' "$init"
 [ "$(grep -Ec '^[[:space:]]*mount --move ' "$init")" -eq 1 ] ||
 	fail 'persistent-root handoff has a direct or missing mount move'
 grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
-grep -Fq 'WantedBy=multi-user.target' "$init"
+grep -Fq 'WantedBy=sysinit.target' "$init"
+grep -Fq 'DefaultDependencies=no' "$init"
+grep -Fq 'Requires=rog5-early-sshd.service' "$init"
+grep -Fq 'sysinit.target.wants/rog5-p2-ready.service' "$init"
 for timing_marker in \
 	'cmdline:5' \
 	'kernel-release-file:20' \
@@ -217,7 +220,7 @@ grep -Fq '/.rog5/root-ro' "$attest"
 grep -Fq '/.rog5/state' "$attest"
 grep -Fq 'findmnt' "$attest" ||
 	grep -Fq '/proc/self/mountinfo' "$attest"
-grep -Fq 'systemctl is-active --quiet sshd.service' "$attest"
+grep -Fq 'systemctl is-active --quiet rog5-early-sshd.service' "$attest"
 grep -Fq '169.254.77.2/30' "$attest"
 grep -Fq 'rog5-p2-ready' "$attest"
 grep -Fq 'blocked device query' "$attest"

@@ -420,6 +420,18 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and the Generation 66 [offline checkpoint](../test-results/2026-08-14-generation-66-ufs-modules-detail-offline.md)
   and [live result](../test-results/2026-08-14-generation-66-ufs-modules-detail-live.md).
 
+- **Generation 67 is the unbooted early-SSH successor.** The v45 initramfs
+  preserves Generation 66's accepted Image, DTB, four-module UFS chain,
+  exact read-only userdata and 16 GiB image identity, two `ro,noload` ext4
+  mounts, persisted Generation 64 marker, tmpfs OverlayFS, and rollback. It
+  masks only the stock sshd units in volatile `/run`, generates one Ed25519
+  host key, and starts strict SSH plus the unchanged storage attestation from
+  `sysinit.target` before the slow general `basic.target` transaction. Clean
+  twins are byte-identical and focused tests pass. Generation 67 has not been
+  booted; it remains one-use, RAM-only, and must never be flashed or retried
+  after claim entry. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at

@@ -653,6 +653,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             lower / "var",
             upper,
             runtime / "systemd" / "system",
+            runtime / "systemd" / "system" / "sysinit.target.wants",
         ):
             directory.mkdir(parents=True, exist_ok=True)
         cache = root / "etc" / "ld.so.cache"
@@ -682,10 +683,22 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 / "system"
                 / "rog5-sshd-ed25519-key.service"
             ).touch()
-        elif mutation == "sshd-dropin":
-            dropin = runtime / "systemd" / "system" / "sshd.service.d"
-            dropin.mkdir()
-            (dropin / "10-rog5-ed25519-only.conf").touch()
+        elif mutation == "stock-sshd-mask":
+            (runtime / "systemd" / "system" / "sshd.service").symlink_to(
+                "/dev/null"
+            )
+        elif mutation == "early-sshd-unit":
+            (
+                runtime / "systemd" / "system" / "rog5-early-sshd.service"
+            ).touch()
+        elif mutation == "early-sshd-wants":
+            (
+                runtime
+                / "systemd"
+                / "system"
+                / "sysinit.target.wants"
+                / "rog5-early-sshd.service"
+            ).symlink_to("../wrong.service")
 
         cache_hash = hashlib.sha256(b"cache\n").hexdigest()
         helper = self.volatile_state.replace(
@@ -774,9 +787,11 @@ chmod() {
         self.assertIn('ln -s /dev/null "$vconsole_mask"', helper)
         self.assertIn("sshdgenkeys.service", helper)
         self.assertIn('ln -s /dev/null "$sshdgenkeys_mask"', helper)
+        self.assertIn('ln -s /dev/null "$stock_sshd_mask"', helper)
         self.assertIn("rog5-sshd-ed25519-key.service", helper)
         self.assertIn(
-            "sshd_dropin=$sshd_dropin_dir/10-rog5-ed25519-only.conf", helper
+            "early_sshd_unit=$runtime/systemd/system/rog5-early-sshd.service",
+            helper,
         )
         self.assertIn(
             'ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" '
@@ -798,6 +813,10 @@ chmod() {
         runtime = function(self.source, "prepare_runtime")
         self.assertIn("prepare_volatile_systemd_state", runtime)
         self.assertIn("/newroot /mnt/root-ro /mnt/state/upper /run", runtime)
+        self.assertIn("DefaultDependencies=no", runtime)
+        self.assertIn("Requires=rog5-early-sshd.service", runtime)
+        self.assertIn("WantedBy=sysinit.target", runtime)
+        self.assertIn("sysinit.target.wants/rog5-p2-ready.service", runtime)
 
         result, base = self.run_volatile_state()
         assert base is not None
@@ -827,6 +846,11 @@ chmod() {
         )
         self.assertTrue(keygen_mask.is_symlink())
         self.assertEqual(keygen_mask.readlink(), Path("/dev/null"))
+        stock_sshd_mask = (
+            base / "run" / "systemd" / "system" / "sshd.service"
+        )
+        self.assertTrue(stock_sshd_mask.is_symlink())
+        self.assertEqual(stock_sshd_mask.readlink(), Path("/dev/null"))
         key_unit = (
             base
             / "run"
@@ -838,7 +862,8 @@ chmod() {
             key_unit.read_text(),
             "[Unit]\n"
             "Description=Generate one volatile Ed25519 SSH host key\n"
-            "Before=sshd.service\n"
+            "DefaultDependencies=no\n"
+            "Before=rog5-early-sshd.service\n"
             "ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key\n"
             "\n"
             "[Service]\n"
@@ -846,22 +871,41 @@ chmod() {
             'ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" '
             "-f /etc/ssh/ssh_host_ed25519_key\n",
         )
-        sshd_dropin = (
+        early_sshd = (
+            base / "run" / "systemd" / "system" / "rog5-early-sshd.service"
+        )
+        self.assertEqual(
+            early_sshd.read_text(),
+            "[Unit]\n"
+            "Description=Start strict SSH before the general Arch boot transaction\n"
+            "DefaultDependencies=no\n"
+            "Requires=rog5-sshd-ed25519-key.service\n"
+            "After=rog5-sshd-ed25519-key.service\n"
+            "Before=basic.target\n"
+            "\n"
+            "[Service]\n"
+            "ExecStart=/usr/bin/sshd -D\n"
+            "KillMode=process\n"
+            "Restart=on-failure\n"
+            "RestartSec=2s\n"
+            "RuntimeDirectory=sshd\n"
+            "RuntimeDirectoryMode=0755\n"
+            "\n"
+            "[Install]\n"
+            "WantedBy=sysinit.target\n",
+        )
+        early_wants = (
             base
             / "run"
             / "systemd"
             / "system"
-            / "sshd.service.d"
-            / "10-rog5-ed25519-only.conf"
+            / "sysinit.target.wants"
+            / "rog5-early-sshd.service"
         )
-        self.assertEqual(
-            sshd_dropin.read_text(),
-            "[Unit]\n"
-            "Requires=rog5-sshd-ed25519-key.service\n"
-            "After=rog5-sshd-ed25519-key.service\n",
-        )
+        self.assertTrue(early_wants.is_symlink())
+        self.assertEqual(early_wants.readlink(), Path("../rog5-early-sshd.service"))
         self.assertEqual(key_unit.stat().st_mode & 0o777, 0o644)
-        self.assertEqual(sshd_dropin.stat().st_mode & 0o777, 0o644)
+        self.assertEqual(early_sshd.stat().st_mode & 0o777, 0o644)
 
     def test_volatile_systemd_state_rejects_hostile_inputs(self) -> None:
         for mutation in (
@@ -871,7 +915,9 @@ chmod() {
             "upper-marker",
             "keygen-mask",
             "ed25519-unit",
-            "sshd-dropin",
+            "stock-sshd-mask",
+            "early-sshd-unit",
+            "early-sshd-wants",
         ):
             with self.subTest(mutation=mutation):
                 result, _base = self.run_volatile_state(mutation)
