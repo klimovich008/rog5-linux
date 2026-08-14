@@ -416,6 +416,15 @@ local-image candidate is admitted. The next step is a dedicated-Linux layout
 proposal and exact destructive-operation review; partitioning still requires
 final operator confirmation.
 
+The first [dedicated Linux layout proposal](dedicated-linux-layout-v1.md) now
+keeps partitions 1–22 unchanged, shrinks only the tail of `userdata` from about
+228 GiB to about 195 GiB, and assigns the aligned final 32 GiB to one native
+`arch_root_a` ext4 partition. A fresh strict-SSH checkpoint measured more than
+150 GiB of ext4 headroom at the proposed pre-shrink size. The proposal and its
+offline geometry verifier do not perform any phone write; a tool-bearing
+RAM-only recovery and disposable 4-KiB-sector GPT rehearsal now pass offline.
+One read-only physical preflight comes before the required final confirmation.
+
 ## Reproduction commands
 
 ```sh

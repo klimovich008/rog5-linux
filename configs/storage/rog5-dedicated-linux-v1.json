@@ -1,0 +1,71 @@
+{
+  "format": "rog5-dedicated-linux-layout-v1",
+  "source_checkpoint": {
+    "captured_date": "2026-08-14",
+    "lun_bytes": 253403070464,
+    "logical_block_bytes": 4096,
+    "gpt_entry_count": 32,
+    "first_usable_lba": 6,
+    "last_usable_lba": 61865978,
+    "backup_header_lba": 61865983,
+    "preserved_prefix_last_lba": 2352679,
+    "userdata": {
+      "number": 23,
+      "name": "userdata",
+      "first_lba": 2352680,
+      "last_lba": 61865978,
+      "size_lba": 59513299
+    }
+  },
+  "ext4_checkpoint": {
+    "block_size": 4096,
+    "block_count": 59513299,
+    "estimated_minimum_blocks": 11695396,
+    "state": "clean"
+  },
+  "proposal": {
+    "unchanged_partition_numbers": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22
+    ],
+    "userdata": {
+      "number": 23,
+      "name": "userdata",
+      "first_lba": 2352680,
+      "last_lba": 53477375,
+      "size_lba": 51124696,
+      "pre_shrink_filesystem_blocks": 51124000
+    },
+    "arch_root_a": {
+      "number": 24,
+      "name": "arch_root_a",
+      "type_guid": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+      "filesystem": "ext4",
+      "filesystem_label": "ROG5_ARCH_A",
+      "first_lba": 53477376,
+      "last_lba": 61865978,
+      "size_lba": 8388603
+    },
+    "swap": "zram-only"
+  }
+}

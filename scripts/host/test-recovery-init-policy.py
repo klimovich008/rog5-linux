@@ -332,6 +332,8 @@ class InitPolicyTest(unittest.TestCase):
             '[ "$recovery_mode_size" != 8 ]',
             "observation-only-v1)",
             '[ "$recovery_mode_size" != 20 ]',
+            "storage-preflight-v1)",
+            '[ "$recovery_mode_size" != 21 ]',
             '[ -e "$bundle_root" ] || [ -L "$bundle_root" ]',
             '/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &',
         ):
@@ -345,6 +347,58 @@ class InitPolicyTest(unittest.TestCase):
         )
         self.assertLess(mode_read, bundle_create)
         self.assertLess(bundle_create, control)
+
+    def test_storage_preflight_is_exact_read_only_and_precedes_usb(self) -> None:
+        source = self.source(RECOVERY)
+        match = re.search(
+            r"^run_storage_preflight\(\) \{\n.*?^\}\n",
+            source,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        body = match.group(0)
+        for contract in (
+            'blockdev --getsize64 "$device"',
+            'blockdev --getss "$device"',
+            '[ "$disk_count" -eq 1 ]',
+            '[ "$(blockdev --getro "$disk")" = 1 ]',
+            '[ "$(blockdev --getro "$userdata")" = 1 ]',
+            '/usr/bin/sgdisk -v "$disk"',
+            '/sbin/e2fsck -fn "$userdata"',
+            '/usr/sbin/resize2fs -P "$userdata"',
+            '/usr/sbin/dumpe2fs -h "$userdata"',
+            '/sbin/mkfs.ext4 -V',
+            '/usr/sbin/partprobe --help',
+            "ROG5_STORAGE_PREFLIGHT_V1 status=PASS",
+            "all_read_only=1 block_mounts=0",
+        ):
+            self.assertIn(contract, body)
+        for command in (
+            '/usr/bin/sgdisk -v "$disk"',
+            '/sbin/e2fsck -fn "$userdata"',
+            '/usr/sbin/resize2fs -P "$userdata"',
+            '/usr/sbin/dumpe2fs -h "$userdata"',
+        ):
+            self.assertEqual(body.count(command), 1)
+        for forbidden in (
+            "--new",
+            "--delete",
+            "--zap",
+            "--setrw",
+            "mkfs.ext4 $userdata",
+            "mount ",
+        ):
+            self.assertNotIn(forbidden, body)
+
+        first_isolation = source.index("if ! isolate_storage; then")
+        preflight = source.index("if ! run_storage_preflight; then")
+        configfs = source.index("mount -t configfs configfs /sys/kernel/config")
+        reporter = source.index("serve_storage_preflight_report &")
+        bind = source.index("if ! udc=$(bind_expected_udc); then")
+        self.assertLess(first_isolation, preflight)
+        self.assertLess(preflight, configfs)
+        self.assertLess(configfs, reporter)
+        self.assertLess(reporter, bind)
 
     def test_recovery_creates_fetchers_exact_volatile_root(self) -> None:
         init_source = self.source(RECOVERY)
