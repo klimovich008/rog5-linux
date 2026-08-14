@@ -451,8 +451,21 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn("write_exact_local_image_probe || probe_status=1", write_cycle)
         self.assertIn("sync", write_cycle)
         self.assertIn("close_exact_userdata_write_window", write_cycle)
+        write_surface = "\n".join(
+            (
+                write_cycle,
+                function(self.source, "open_exact_userdata_write_window"),
+                function(self.source, "verify_exact_userdata_write_window"),
+            )
+        )
         for failure_stage in (
-            "image-write-window",
+            "userdata-unmount",
+            "write-window-precheck",
+            "userdata-partition-rw",
+            "userdata-disk-rw",
+            "write-window-blockdev",
+            "write-window-sysfs",
+            "write-window-count",
             "userdata-rw",
             "image-loop-rw",
             "image-fs-rw",
@@ -460,7 +473,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             "storage-relock",
         ):
             self.assertIn(
-                f"image_write_failure_stage={failure_stage}", write_cycle
+                f"image_write_failure_stage={failure_stage}", write_surface
             )
         for forbidden in ("mkfs", "dd ", "blkdiscard", "sgdisk", "parted"):
             self.assertNotIn(forbidden, write_cycle)
