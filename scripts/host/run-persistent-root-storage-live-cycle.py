@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-loader-v34-live-v1"
+PROFILE_ID = "persistent-root-local-image-loader-v34-repeat-live-v1"
 BUNDLE = "persistent-root-local-image-loader-v34"
 MANIFEST_SHA256 = (
     "8f2d0d8382a4bf8fd8a18669575af00ec0bfa717c8512db3b59771e4ddce1d79"
 )
 RECOVERY_SHA256 = (
-    "c3cd5d584c959b8d78eab54e4b1547a6c24e06677d8c9a827275bc7cfc5b06da"
+    "b095064285f764c86e3818b392d12383e4fb9f839ec32b1ad7937172a0684546"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-loader-v34-generation55-20260814-r1"
+    / "build/persistent-root-local-image-loader-v34-generation56-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -113,6 +113,12 @@ printf '%s\n' '=== UFS inventory ==='
 cat /run/rog5-p2-ufs-inventory.tsv
 printf '%s\n' '=== initramfs verification ==='
 cat /run/rog5-p2-root-verification.txt
+printf '%s\n' '=== systemd time ==='
+systemd-analyze time
+printf '%s\n' '=== systemd blame ==='
+systemd-analyze blame --no-pager | sed -n '1,80p'
+printf '%s\n' '=== systemd critical chain ==='
+systemd-analyze critical-chain --no-pager
 printf '%s\n' '=== dmesg ==='
 dmesg
 """.strip()

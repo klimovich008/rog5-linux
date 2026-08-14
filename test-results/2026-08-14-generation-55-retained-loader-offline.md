@@ -2,8 +2,8 @@
 
 Date: 2026-08-14
 
-Status: **offline checks pass; one Generation 55 RAM-only admission is
-prepared. The successor has not been booted and must never be flashed.**
+Status: **historical offline checkpoint. Generation 55 subsequently passed
+its sole RAM-only cycle, is consumed, and must never be retried or flashed.**
 
 Generation 55 changes only the post-handoff attestor proven defective by the
 [Generation 54 live cycle](2026-08-14-generation-54-fast-attestation-live.md).
@@ -46,5 +46,7 @@ and generation-record SHA-256
 Focused tests pass for the 14 storage-resolution cases, 12 live-runner cases,
 14 generic claim-consumer cases, 27 retention-admission cases, the current
 persistent-root artifact/profile gate, and the stable recovery gate. Full local
-CI passed in 458.655 seconds. Exact-head GitHub CI remains the publication
-checkpoint before a live cycle.
+CI passed in 458.655 seconds. Exact-head GitHub CI passed in
+[run 31758402475](https://github.com/klimovich008/rog5-linux/actions/runs/31758402475).
+The [live result](2026-08-14-generation-55-retained-loader-live.md) records the
+successful hardware cycle and exact Alpine fallback.

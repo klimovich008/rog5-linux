@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-loader-v34-live-v1",
+            "persistent-root-local-image-loader-v34-repeat-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -45,6 +45,14 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertRegex(digest, r"^[0-9a-f]{64}$")
             self.assertNotEqual(digest, "0" * 64)
+
+    def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
+        diagnostic = MODULE.DIAGNOSTIC_COMMAND
+        self.assertIn("=== systemd time ===", diagnostic)
+        self.assertIn("systemd-analyze time", diagnostic)
+        self.assertIn("systemd-analyze blame --no-pager", diagnostic)
+        self.assertIn("sed -n '1,80p'", diagnostic)
+        self.assertIn("systemd-analyze critical-chain --no-pager", diagnostic)
 
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
