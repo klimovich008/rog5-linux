@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-early-ssh-v45-live-v1"
+PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation68-live-v1"
 BUNDLE = "persistent-root-local-image-early-ssh-v45"
 MANIFEST_SHA256 = (
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949"
 )
 RECOVERY_SHA256 = (
-    "0bd1b6b8fddc27a5b4860036a13406f5cf4897c0ae84761a835868c0db086953"
+    "f7e42f5292cd41bd25296d6bef4a62d63d227d1961437a125fcbd359838dba4b"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-early-ssh-v45-generation67-20260814-r1"
+    / "build/persistent-root-local-image-early-ssh-v45-generation68-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"

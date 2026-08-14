@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-local-image-early-ssh-v45-generation68-live-v1 | \
 		persistent-root-local-image-early-ssh-v45-live-v1 | \
 		persistent-root-local-image-ufs-detail-v44-live-v1 | \
 		persistent-root-local-image-post-write-v43-live-v1 | \
@@ -1894,6 +1895,45 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-early-ssh-v45-generation68-live-v1)
+		expected_boot_image=build/persistent-root-local-image-early-ssh-v45-generation68-20260814-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only local-image Arch repeat proving bounded post-CLAIMED recovery ACM departure classification; same accepted v45 target bundle, four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, early strict Ed25519 SSH, storage attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 68 host-departure-classifier local-image successor; exact unchanged v45 signed target bundle and raw recovery, fresh deterministic AVB wrapper, bounded inspect-error-only departure resampling, early strict SSH and storage attestation; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=5ad4a42c97c01ecae711cb6051b1ae320f7b189c022aa0668552efe4f00d602b
+		expected_initramfs=14dd9901fc3d0385e126930633a9e58b5195bafc63388d3e7341d0c9eb851946
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-local-image-early-ssh-v45
+		expected_bundle=persistent-root-local-image-early-ssh-v45
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_avb_salt=60f40c3dc73ca7293bc43c762624b8392656c5ef7aa75987ea0da491687acedc
+		expected_avb_digest=52403902907e9651081a9c2d011a95aa0b6ae0cbbfd44b21f8bc3b7c92e348d8
+		expected_generation_record=5da119a026e3e6ba1cb50e98d6e1ac338174c998f0934ad49c47297b9fa4b032
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949 ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			f7e42f5292cd41bd25296d6bef4a62d63d227d1961437a125fcbd359838dba4b ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-early-ssh-v45-live-v1)
 		expected_boot_image=build/persistent-root-local-image-early-ssh-v45-generation67-20260814-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact read-only local-image Arch cycle starting strict Ed25519 SSH and unchanged storage attestation from sysinit.target before the general Arch basic-target transaction; same accepted four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, tmpfs OverlayFS, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
@@ -2882,6 +2922,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-early-ssh-v45-generation68-live-v1 | \
 	persistent-root-local-image-early-ssh-v45-live-v1 | \
 	persistent-root-local-image-ufs-detail-v44-live-v1 | \
 	persistent-root-local-image-post-write-v43-live-v1 | \
