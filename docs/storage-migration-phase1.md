@@ -377,12 +377,22 @@ immediate rejection of an exact present responder. See
 the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
 and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
 
-Generation 68 is the unbooted successor and changes no target-side storage or
-startup bytes. It uses a fresh deterministic AVB wrapper around the unchanged
-v45 signed bundle and limits the host fix to a two-second resample window for
-the transient ACM `inspect-error` observed after canonical `CLAIMED`. It never
-resends `COMMIT_EXEC`, and exact recovery presence still fails immediately.
-See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md).
+Generation 68 consumed its sole RAM-only cycle and proved the corrected
+post-`CLAIMED` recovery departure, exact UFS/local-image boot, tmpfs OverlayFS,
+P2 storage attestation, and early key-only `sshd`. Its first cold authenticated
+SSH session exceeded the runner's 10-second host deadline; `sshd` remained
+active with zero restarts and the same boot later passed exact runtime and
+diagnostics at 474.59 seconds uptime. Normal reboot, exact Alpine fallback, and
+host restoration passed. Generation 68 is revoked and must never be retried or
+flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md)
+and [live result](../test-results/2026-08-14-generation-68-host-departure-live.md).
+
+Generation 69 is the unbooted successor. It changes no target-side bytes or
+storage behavior. The host performs a bounded 150-second strict-key
+authenticated marker rendezvous before running the exact storage evidence
+command once. This directly covers Generation 68's demonstrated cold-session
+deadline without rebuilding the accepted kernel or root bundle. See the
+[offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md).
 
 ## Reproduction commands
 

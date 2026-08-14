@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation68-live-v1"
+PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation69-live-v1"
 BUNDLE = "persistent-root-local-image-early-ssh-v45"
 MANIFEST_SHA256 = (
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949"
 )
 RECOVERY_SHA256 = (
-    "f7e42f5292cd41bd25296d6bef4a62d63d227d1961437a125fcbd359838dba4b"
+    "4dfc0efc92b511b424b7d9db115d692c79b0366459e23582421cd37d9c307a65"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,13 +58,19 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-early-ssh-v45-generation68-20260814-r1"
+    / "build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 900
+AUTHENTICATED_SSH_WAIT_SECONDS = 150
+AUTHENTICATED_SSH_ATTEMPT_SECONDS = 20
+AUTHENTICATED_SSH_READY_MARKER = "ROG5_AUTHENTICATED_SSH_READY_V1"
+AUTHENTICATED_SSH_COMMAND = (
+    f"printf '%s\\n' '{AUTHENTICATED_SSH_READY_MARKER}'"
+)
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -376,6 +382,69 @@ def ssh_arguments(inputs: CYCLE.Inputs, known_hosts: Path) -> list[str]:
         "ServerAliveCountMax=3",
         f"root@{PIN.TARGET_ADDRESS}",
     ]
+
+
+def wait_for_authenticated_ssh(
+    target_ssh: list[str],
+    log_path: Path,
+) -> tuple[int, float]:
+    """Wait for one complete key-authenticated session, not only TCP/22."""
+    started = time.monotonic()
+    deadline = started + AUTHENTICATED_SSH_WAIT_SECONDS
+    attempts = 0
+    descriptor = CYCLE.open_exclusive(log_path)
+    try:
+        os.write(
+            descriptor,
+            b"format=rog5-authenticated-ssh-rendezvous-v1\n",
+        )
+        while True:
+            now = time.monotonic()
+            if now >= deadline:
+                os.write(descriptor, b"result=FAIL\n")
+                os.fsync(descriptor)
+                fail(
+                    "authenticated SSH did not become ready within "
+                    f"{AUTHENTICATED_SSH_WAIT_SECONDS} seconds"
+                )
+            attempts += 1
+            timeout = min(
+                AUTHENTICATED_SSH_ATTEMPT_SECONDS,
+                max(1.0, deadline - now),
+            )
+            try:
+                result = CYCLE.run_capture(
+                    [*target_ssh, AUTHENTICATED_SSH_COMMAND],
+                    timeout=timeout,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired:
+                status = "timeout"
+            else:
+                if result.returncode == 0:
+                    if result.stdout != f"{AUTHENTICATED_SSH_READY_MARKER}\n":
+                        fail("unexpected authenticated SSH readiness output")
+                    elapsed = time.monotonic() - started
+                    os.write(
+                        descriptor,
+                        (
+                            f"attempt={attempts} status=ready\n"
+                            f"attempts={attempts}\n"
+                            f"elapsed_seconds={elapsed:.3f}\n"
+                            "result=PASS\n"
+                        ).encode("ascii"),
+                    )
+                    os.fsync(descriptor)
+                    return attempts, elapsed
+                status = f"exit-{result.returncode}"
+            os.write(
+                descriptor,
+                f"attempt={attempts} status={status}\n".encode("ascii"),
+            )
+            os.fsync(descriptor)
+            time.sleep(1.0)
+    finally:
+        os.close(descriptor)
 
 
 def privileged_nmcli(arguments: list[str]) -> None:
@@ -813,6 +882,10 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         target_network_active = True
         wait_for_target_host_key(cycle, anchor, target_known_hosts)
         target_ssh = ssh_arguments(inputs, target_known_hosts)
+        ssh_attempts, ssh_ready_elapsed = wait_for_authenticated_ssh(
+            target_ssh,
+            cycle.output("persistent-root-ssh-readiness.log"),
+        )
         CYCLE.run_logged(
             [*target_ssh, RUNTIME_COMMAND],
             cycle.output("persistent-root-runtime.log"),
@@ -834,6 +907,11 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                 ("format", "rog5-persistent-root-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
+                ("authenticated_ssh_attempts", str(ssh_attempts)),
+                (
+                    "authenticated_ssh_rendezvous_seconds",
+                    f"{ssh_ready_elapsed:.3f}",
+                ),
                 ("seconds_to_accepted_ssh", f"{elapsed:.3f}"),
                 ("generation20_reference_seconds", "380"),
                 ("result", "PASS"),
