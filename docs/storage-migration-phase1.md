@@ -387,12 +387,23 @@ host restoration passed. Generation 68 is revoked and must never be retried or
 flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md)
 and [live result](../test-results/2026-08-14-generation-68-host-departure-live.md).
 
-Generation 69 is the unbooted successor. It changes no target-side bytes or
-storage behavior. The host performs a bounded 150-second strict-key
-authenticated marker rendezvous before running the exact storage evidence
-command once. This directly covers Generation 68's demonstrated cold-session
-deadline without rebuilding the accepted kernel or root bundle. See the
-[offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md).
+Generation 69 consumed its sole RAM-only cycle. It passed exact UFS, the local
+image, tmpfs OverlayFS, P2 storage attestation, and key-only `sshd`. The bounded
+rendezvous reached a status-zero SSH response within its deadline, but the host
+required marker-only output and rejected unretained extra startup output before
+running the runtime command. The same boot later passed exact runtime at
+378.07 seconds and diagnostics, then normal reboot, exact Alpine fallback, and
+host restoration passed. Generation 69 is revoked and must never be retried or
+flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
+and [live result](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
+
+Generation 70 is the unbooted successor. It changes no target-side bytes or
+storage behavior. The host accepts a bounded startup-output stream only when
+it contains exactly one authenticated marker line, rejects ambiguous output,
+and still invokes the exact storage evidence command once. This is the narrow
+fix for Generation 69's demonstrated host parser defect; the accepted kernel,
+root bundle, and rollback path remain unchanged. See the
+[offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md).
 
 ## Reproduction commands
 

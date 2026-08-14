@@ -13,9 +13,9 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
-    "persistent-root-local-image-early-ssh-v45-generation69-live-v1": (
+    "persistent-root-local-image-early-ssh-v45-generation70-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
-        b"recovery_profile=persistent-root-local-image-early-ssh-v45-generation69-live-v1\n"
+        b"recovery_profile=persistent-root-local-image-early-ssh-v45-generation70-live-v1\n"
         b"candidate=persistent-root-local-image-early-ssh-v45\n"
         b"manifest_sha256="
         b"f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949\n"

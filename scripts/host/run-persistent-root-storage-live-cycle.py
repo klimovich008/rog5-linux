@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation69-live-v1"
+PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation70-live-v1"
 BUNDLE = "persistent-root-local-image-early-ssh-v45"
 MANIFEST_SHA256 = (
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949"
 )
 RECOVERY_SHA256 = (
-    "4dfc0efc92b511b424b7d9db115d692c79b0366459e23582421cd37d9c307a65"
+    "0f8352ad767ffb77def5e2ac644af994c0df577c89f6051f87e1e8fb49b6635d"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1"
+    / "build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -68,6 +68,7 @@ FALLBACK_TIMEOUT_SECONDS = 900
 AUTHENTICATED_SSH_WAIT_SECONDS = 150
 AUTHENTICATED_SSH_ATTEMPT_SECONDS = 20
 AUTHENTICATED_SSH_READY_MARKER = "ROG5_AUTHENTICATED_SSH_READY_V1"
+AUTHENTICATED_SSH_OUTPUT_MAX_BYTES = 4096
 AUTHENTICATED_SSH_COMMAND = (
     f"printf '%s\\n' '{AUTHENTICATED_SSH_READY_MARKER}'"
 )
@@ -422,13 +423,34 @@ def wait_for_authenticated_ssh(
                 status = "timeout"
             else:
                 if result.returncode == 0:
-                    if result.stdout != f"{AUTHENTICATED_SSH_READY_MARKER}\n":
+                    output = result.stdout.encode("utf-8")
+                    output_sha256 = hashlib.sha256(output).hexdigest()
+                    marker_count = result.stdout.splitlines().count(
+                        AUTHENTICATED_SSH_READY_MARKER
+                    )
+                    if (
+                        len(output) > AUTHENTICATED_SSH_OUTPUT_MAX_BYTES
+                        or "\x00" in result.stdout
+                        or marker_count != 1
+                    ):
+                        os.write(
+                            descriptor,
+                            (
+                                f"attempt={attempts} status=unexpected-output "
+                                f"output_bytes={len(output)} "
+                                f"output_sha256={output_sha256}\n"
+                                "result=FAIL\n"
+                            ).encode("ascii"),
+                        )
+                        os.fsync(descriptor)
                         fail("unexpected authenticated SSH readiness output")
                     elapsed = time.monotonic() - started
                     os.write(
                         descriptor,
                         (
-                            f"attempt={attempts} status=ready\n"
+                            f"attempt={attempts} status=ready "
+                            f"output_bytes={len(output)} "
+                            f"output_sha256={output_sha256}\n"
                             f"attempts={attempts}\n"
                             f"elapsed_seconds={elapsed:.3f}\n"
                             "result=PASS\n"

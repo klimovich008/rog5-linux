@@ -611,10 +611,10 @@ EXPECTED_CLAIMS["persistent-root-local-image-early-ssh-v45-live-v1"] = (
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
 EXPECTED_CLAIMS[
-    "persistent-root-local-image-early-ssh-v45-generation69-live-v1"
+    "persistent-root-local-image-early-ssh-v45-generation70-live-v1"
 ] = (
     "format=rog5-temporary-boot-consumption-v1\n"
-    "recovery_profile=persistent-root-local-image-early-ssh-v45-generation69-live-v1\n"
+    "recovery_profile=persistent-root-local-image-early-ssh-v45-generation70-live-v1\n"
     "candidate=persistent-root-local-image-early-ssh-v45\n"
     "manifest_sha256="
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949\n"
@@ -758,7 +758,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "c6e966305f3aa4ecb260fe4cd1611629cd331211fa2b3aaa51bb5ddedbe49b6f",
+    "sha256": "6d8e721dd44260c048b72aa80eaf755e4e91990fca1ed1bfd9463baab2f0ed1d",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -786,7 +786,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "c6e966305f3aa4ecb260fe4cd1611629cd331211fa2b3aaa51bb5ddedbe49b6f",
+    "executor_contract_sha256": "6d8e721dd44260c048b72aa80eaf755e4e91990fca1ed1bfd9463baab2f0ed1d",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2527,10 +2527,10 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-local-image-early-ssh-v45-generation69-"
+            "build/persistent-root-local-image-early-ssh-v45-generation70-"
             "20260814-r1/repack/stable-recovery-a.avb.img",
-            "one exact read-only local-image Arch repeat proving a bounded "
-            "authenticated-SSH rendezvous before one runtime evidence command; same accepted "
+            "one exact read-only local-image Arch repeat accepting one bounded "
+            "startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted "
             "v45 target bundle, four-module UFS, two ro,noload ext4 layers, "
             "persisted Generation 64 marker, early strict Ed25519 SSH, storage "
             "attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; "

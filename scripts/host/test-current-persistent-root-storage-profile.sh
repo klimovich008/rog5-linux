@@ -11,14 +11,14 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-issued_basis='one exact read-only local-image Arch repeat proving a bounded authenticated-SSH rendezvous before one runtime evidence command; same accepted v45 target bundle, four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, early strict Ed25519 SSH, storage attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-consumed_basis='consumed by the sole Generation 68 RAM-only cycle; corrected post-CLAIMED recovery departure, exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, and early key-only sshd passed; the first cold authenticated SSH session exceeded the host 10-second connection deadline, while the same boot later passed exact strict SSH runtime and diagnostics; normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed; never retry or flash'
-profile=persistent-root-local-image-early-ssh-v45-generation69-live-v1
-image_name=build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1/repack/stable-recovery-a.avb.img
-generation68_image=build/persistent-root-local-image-early-ssh-v45-generation68-20260814-r1/repack/stable-recovery-a.avb.img
-issued_role='unbooted Generation 69 authenticated-SSH-rendezvous local-image successor; exact unchanged v45 signed target bundle and raw recovery, fresh deterministic AVB wrapper, bounded strict-key authenticated marker retries before one runtime evidence command; one RAM-only use only; never flash'
-consumed_role='consumed Generation 68 host-departure-classifier cycle; corrected recovery departure, exact UFS/local-image/P2, and later same-boot strict SSH passed; the first cold authenticated SSH session exceeded the host deadline; normal reboot and exact Alpine fallback passed; never retry or flash'
-[[ $consumed_role == consumed\ * ]] || fail 'Generation 68 role must remain consumed'
+issued_basis='one exact read-only local-image Arch repeat accepting one bounded startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted v45 target bundle, four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, early strict Ed25519 SSH, storage attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+consumed_basis='consumed by the sole Generation 69 RAM-only cycle; exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, and key-only sshd passed; the bounded rendezvous reached one status-zero SSH response within its deadline but rejected unretained extra startup output before the runtime command; the same boot later passed exact runtime at 378.07 seconds and diagnostics; normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed; never retry or flash'
+profile=persistent-root-local-image-early-ssh-v45-generation70-live-v1
+image_name=build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1/repack/stable-recovery-a.avb.img
+generation69_image=build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1/repack/stable-recovery-a.avb.img
+issued_role='unbooted Generation 70 bounded-startup-output local-image successor; exact unchanged v45 signed target bundle and raw recovery, fresh deterministic AVB wrapper, one exact authenticated marker line amid at most 4096 startup-output bytes before one runtime evidence command; one RAM-only use only; never flash'
+consumed_role='consumed Generation 69 authenticated-SSH-rendezvous cycle; exact UFS/local-image/P2 and later same-boot runtime passed; a status-zero cold SSH response carried unretained extra startup output and was rejected before runtime; normal reboot and exact Alpine fallback passed; never retry or flash'
+[[ $consumed_role == consumed\ * ]] || fail 'Generation 69 role must remain consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -31,9 +31,9 @@ case_source=$(awk -v profile="$profile" '
 ' "$gate") || fail 'persistent-root live profile case is not unique'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
 grep -Fxq "expected_boot_basis='$issued_basis'" <<<"$case_unindented" ||
-	fail 'Generation 69 boot basis is not pinned in the profile'
+	fail 'Generation 70 boot basis is not pinned in the profile'
 grep -Fxq "expected_boot_role='$issued_role'" <<<"$case_unindented" ||
-	fail 'Generation 69 artifact role is not pinned in the profile'
+	fail 'Generation 70 artifact role is not pinned in the profile'
 for assignment in \
 	expected_boot_image=$image_name \
 	expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455 \
@@ -46,9 +46,9 @@ for assignment in \
 	expected_bundle=persistent-root-local-image-early-ssh-v45 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=989ac285e377d1fa566ccf0360b55fad1fff8854170f1d4386117b6d8f26b5d6 \
-	expected_avb_digest=09e72f846dbc5500f7fc287e6e1013813006b3cfbd67c8338dd71704de19d343 \
-	expected_generation_record=4c98edd39c2474edb387d6342a51ffd5e784f4a6a107d70190bbccfcd2506fda \
+	expected_avb_salt=16a5bcc417b28d927996d6bbaeff33b405439f489307137a2944b55751aae787 \
+	expected_avb_digest=fb5dc23cd31297fb4fb5546048b9f7d9a97d3fed4f1a4e8ac80d1fd7b289e794 \
+	expected_generation_record=5b33f9e4dacf97b29faa1c3170058435903e7a652970aceb1c4c679ef885298a \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -67,7 +67,7 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	4dfc0efc92b511b424b7d9db115d692c79b0366459e23582421cd37d9c307a65
+	0f8352ad767ffb77def5e2ac644af994c0df577c89f6051f87e1e8fb49b6635d
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
 	f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
@@ -111,23 +111,23 @@ done
 awk -F '\t' -v name="$image_name" -v basis="$issued_basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 69 image is not uniquely allowed'
-awk -F '\t' -v name="$generation68_image" -v basis="$consumed_basis" '
+' "$boot_policy" || fail 'Generation 70 image is not uniquely allowed'
+awk -F '\t' -v name="$generation69_image" -v basis="$consumed_basis" '
 	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 68 image is not uniquely revoked'
+' "$boot_policy" || fail 'Generation 69 image is not uniquely revoked'
 awk -F '\t' -v name="$image_name" -v role="$issued_role" '
+	$1 == name && $2 == "100663296" &&
+	$3 == "0f8352ad767ffb77def5e2ac644af994c0df577c89f6051f87e1e8fb49b6635d" &&
+	$4 == role && $5 == "no" && NF == 5 { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$inventory" || fail 'Generation 70 artifact inventory is not exact'
+awk -F '\t' -v name="$generation69_image" -v role="$consumed_role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "4dfc0efc92b511b424b7d9db115d692c79b0366459e23582421cd37d9c307a65" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$inventory" || fail 'Generation 69 artifact inventory is not exact'
-awk -F '\t' -v name="$generation68_image" -v role="$consumed_role" '
-	$1 == name && $2 == "100663296" &&
-	$3 == "f7e42f5292cd41bd25296d6bef4a62d63d227d1961437a125fcbd359838dba4b" &&
-	$4 == role && $5 == "no" && NF == 5 { count++ }
-	END { exit count == 1 ? 0 : 1 }
-' "$inventory" || fail 'Generation 68 consumed artifact inventory changed'
+' "$inventory" || fail 'Generation 69 consumed artifact inventory changed'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'persistent-root profile lacks an exact-record claim'
 grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
@@ -135,14 +135,14 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
 production_root=$repo/build/persistent-root-local-image-early-ssh-v45-production-20260814-r1
-generation_root=$repo/build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1
+generation_root=$repo/build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	image=$generation_root/repack/stable-recovery-a.avb.img
 	[[ $(stat -c %s "$image") == 100663296 ]] ||
-		fail 'retained Generation 69 image size changed'
+		fail 'retained Generation 70 image size changed'
 	[[ $(sha256sum "$image" | cut -d ' ' -f 1) == "${exact[0]}" ]] ||
-		fail 'retained Generation 69 image identity changed'
+		fail 'retained Generation 70 image identity changed'
 	module_root=$tmp/module-proof
 	mkdir "$module_root"
 	gzip -dc "$production_root/bundle-a/persistent-root-local-image-early-ssh-v45/initramfs.cpio.gz" |
@@ -169,4 +169,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 69 is the exact one-use successor and Generation 68 remains consumed and revoked'
+echo 'PASS Generation 70 is the exact one-use successor and Generation 69 remains consumed and revoked'
