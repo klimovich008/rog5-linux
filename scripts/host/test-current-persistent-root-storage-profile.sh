@@ -13,10 +13,10 @@ boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 profile=persistent-root-local-image-volatile-v35-live-v1
 image_name=build/persistent-root-local-image-volatile-v35-generation57-20260814-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS local-image Arch boot with verified volatile systemd update markers, headless vconsole mask, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 57 volatile-systemd local-image successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact linker cache, volatile update markers, headless vconsole mask, retained musl-loader attestation, key-only SSH, bounded rollback, and systemd timing capture; one RAM-only use only; never flash'
-[[ $role == unbooted\ * ]] ||
-	fail 'Generation 57 artifact role must remain live-gate eligible'
+basis='consumed by the sole Generation 57 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, volatile systemd markers, retained-loader attestation, and strict key-only SSH passed in 305.928 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
+role='consumed Generation 57 volatile-systemd local-image cycle; exact UFS, userdata and 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, verified volatile update markers, headless vconsole mask, retained musl-loader attestation, strict key-only SSH, systemd timing, normal reboot, and exact Alpine fallback passed in 305.928 seconds; retain offline only; never retry or flash'
+[[ $role == consumed\ * ]] ||
+	fail 'Generation 57 artifact role must remain permanently consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -103,9 +103,9 @@ for index in "${!fields[@]}"; do
 done
 
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 57 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 57 image is not uniquely consumed'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f" &&
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 57 volatile-systemd local-image profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 57 volatile-systemd local-image profile, exact claim, artifact, and consumed state are pinned'

@@ -169,8 +169,8 @@ awk -F '\t' '
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 56 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, switch_root, systemd, retained-loader attestation, NCM, and strict key-only SSH passed in 362.241 seconds; systemd timing isolated ldconfig and vconsole delays; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash" && NF == 3 { generation56++ ; next }
 	$1 == "build/persistent-root-local-image-volatile-v35-generation57-20260814-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact read-only SM8350 UFS local-image Arch boot with verified volatile systemd update markers, headless vconsole mask, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation57++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 57 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, volatile systemd markers, retained-loader attestation, and strict key-only SSH passed in 305.928 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash" && NF == 3 { generation57++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -218,8 +218,8 @@ do
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
 [[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly the observer, core, and Generation 57 successors' >&2; exit 1; }
+	"$boot_policy") == 2 ]] ||
+	{ echo 'FAIL temporary-boot policy does not contain exactly the observer and core successors' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||

@@ -333,14 +333,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-56-repeat-systemd-timing-live.md).
   Generation 56 is revoked and must never be retried or flashed.
 
-- **Generation 57 is the volatile-systemd timing successor.** It keeps the
+- **Generation 57 is consumed and proved the volatile-systemd speedup.** It kept the
   accepted Image, DTB, UFS policy, two `ro,noload` ext4 mounts, tmpfs
   OverlayFS, attestation, and rollback path. Before `switch_root`, the new
   v35 initramfs verifies the sealed root's exact linker cache, creates
   `/etc/.updated` and `/var/.updated` only through the tmpfs overlay with
   the exact `/usr` timestamp, proves the read-only lower remains untouched,
   and masks the unused virtual-console setup only in volatile `/run`.
-  Generation 57 is one-use, RAM-only, and must never be flashed.
+  Strict SSH passed in 305.928 seconds, 56.313 seconds faster than Generation
+  56. `ldconfig` and vconsole disappeared from the timing report; measured
+  userspace fell to 2 minutes 59.697 seconds. Normal reboot, exact Alpine
+  fallback, PMIC evidence, and host cleanup passed. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-57-volatile-systemd-offline.md)
+  and [live result](../test-results/2026-08-14-generation-57-volatile-systemd-live.md).
+  Generation 57 is revoked and must never be retried or flashed.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
