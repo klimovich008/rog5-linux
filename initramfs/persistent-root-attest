@@ -25,9 +25,17 @@ image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
 loop_record=/run/rog5-p2-root-loop-device
 runtime_busybox=/run/initramfs/bin/busybox
+runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1
 
 [ -f "$runtime_busybox" ] && [ ! -L "$runtime_busybox" ] &&
-	[ -x "$runtime_busybox" ] || fail 'static runtime tool is absent'
+	[ -x "$runtime_busybox" ] &&
+	[ -f "$runtime_loader" ] && [ ! -L "$runtime_loader" ] &&
+	[ -x "$runtime_loader" ] || fail 'retained runtime toolchain is absent'
+
+runtime_blockdev() {
+	"$runtime_loader" "$runtime_busybox" blockdev "$@"
+}
+
 progress start
 
 [ -f "$userdata_record" ] && [ ! -L "$userdata_record" ] &&
@@ -48,8 +56,8 @@ case $root_loop in /dev/loop[0-9]*) ;; *) fail 'resolved loop node is unsafe' ;;
 loop_name=${root_loop##*/}
 [ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name/loop" ] ||
 	fail 'resolved local-image loop disappeared'
-[ "$("$runtime_busybox" blockdev --getro "$root_loop")" = 1 ] &&
-	[ "$("$runtime_busybox" blockdev --getsize64 "$root_loop")" = \
+[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
+	[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
 	"$expected_image_bytes" ] ||
 	fail 'local-image loop is not exact and read-only'
 [ -f "$image" ] && [ ! -L "$image" ] &&
@@ -134,7 +142,7 @@ for sys_disk in /sys/class/block/*; do
 			fail "unreadable sysfs block state: $device"
 		[ "$readonly" = 1 ] ||
 			fail "writable sysfs block state: $device"
-		[ "$("$runtime_busybox" blockdev --getro "$device")" = 1 ] ||
+		[ "$(runtime_blockdev --getro "$device")" = 1 ] ||
 			fail "writable block ioctl state: $device"
 		physical_count=$((physical_count + 1))
 	done

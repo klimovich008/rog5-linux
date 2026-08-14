@@ -304,18 +304,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   [live result](../test-results/2026-08-14-generation-53-local-image-live.md).
   Generation 53 is revoked and must never be retried or flashed.
 
-- **Generation 54 is the admitted fast-attestation successor.** It keeps the
-  exact Generation 53 kernel, DTB, read-only storage identities, mount
-  semantics, systemd/SSH policy, and rollback. Only the post-handoff storage
-  attestor changes: its 116-node sweep uses the retained static initramfs
-  BusyBox plus shell builtins instead of repeatedly starting dynamic Arch
-  helpers, and five uptime markers isolate any remaining delay. Clean target
-  twins, production-key signed bundle twins, native recovery verification,
-  deterministic AVB generation, exact claim registration, and focused
-  admission tests pass offline. See the
-  [offline checkpoint](../test-results/2026-08-14-generation-54-fast-attestation-offline.md).
-  It is eligible for one temporary RAM-only cycle after exact-head CI; it has
-  not yet been booted and must never be flashed.
+- **Generation 54 is consumed and isolated a retained-runtime loader defect.**
+  UFS, both read-only ext4 mounts, tmpfs OverlayFS, `switch_root`, systemd,
+  NCM, and key-only SSH all worked. Attestation then failed at target uptime
+  266.72 seconds because the retained BusyBox is musl-dynamic and was invoked
+  without `/run/initramfs/lib/ld-musl-aarch64.so.1`. The loop itself was exact.
+  Bounded rollback, exact Alpine fallback, and host cleanup passed. See the
+  [live result](../test-results/2026-08-14-generation-54-fast-attestation-live.md).
+  Generation 54 is revoked and must never be retried or flashed.
+
+- **Generation 55 is the admitted retained-loader successor.** It keeps every
+  Generation 54 kernel, DTB, storage, mount, network, SSH, and rollback
+  identity. Only the three BusyBox `blockdev` calls now go through the exact
+  retained musl loader. Clean initramfs twins, signed bundle twins, native
+  verification, deterministic AVB generation, exact claim registration, and
+  focused admission tests pass. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-55-retained-loader-offline.md).
+  It is eligible for one temporary RAM-only cycle after full local and
+  exact-head CI; it has not been booted and must never be flashed.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

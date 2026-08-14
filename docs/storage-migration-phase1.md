@@ -212,11 +212,14 @@ On the directly comparable target-uptime acceptance marker, Generation 53 was
 80.928 seconds faster than Generation 20. The next optimization target is the
 approximately 256.6 seconds between successful `switch_root` and completion
 of the boot-critical root attestation, not UFS discovery or image mounting.
-The [Generation 54 offline checkpoint](../test-results/2026-08-14-generation-54-fast-attestation-offline.md)
-targets that interval without weakening the read-only sweep: it replaces the
-per-device dynamic helper launches with shell builtins and the retained static
-initramfs BusyBox, and adds five timestamped attestation boundaries. Its live
-speedup is not assumed; the one-use hardware cycle will measure it directly.
+The [Generation 54 live cycle](../test-results/2026-08-14-generation-54-fast-attestation-live.md)
+proved that UFS and local-root handoff remain fast, but also proved the
+retained BusyBox is musl-dynamic rather than static. Direct execution after
+`switch_root` failed because its interpreter was retained below
+`/run/initramfs`, not the Arch `/lib`. The
+[Generation 55 checkpoint](../test-results/2026-08-14-generation-55-retained-loader-offline.md)
+keeps the read-only sweep and invokes BusyBox through that exact retained
+loader; its one-use hardware cycle will measure the corrected attestation.
 
 ## Reproduction commands
 

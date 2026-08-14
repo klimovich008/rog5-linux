@@ -85,6 +85,24 @@ stage=$(mktemp -d)
 trap 'rm -rf -- "$stage"' EXIT HUP INT TERM
 gzip -dc "$base" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
+[ -f "$stage/bin/busybox" ] && [ ! -L "$stage/bin/busybox" ] &&
+	[ -x "$stage/bin/busybox" ] &&
+	[ -f "$stage/lib/ld-musl-aarch64.so.1" ] &&
+	[ ! -L "$stage/lib/ld-musl-aarch64.so.1" ] &&
+	[ -x "$stage/lib/ld-musl-aarch64.so.1" ] || {
+	echo 'FAIL retained post-handoff runtime toolchain is absent' >&2
+	exit 1
+}
+readelf -l "$stage/bin/busybox" |
+	grep -Fq '[Requesting program interpreter: /lib/ld-musl-aarch64.so.1]' || {
+	echo 'FAIL retained BusyBox interpreter identity changed' >&2
+	exit 1
+}
+readelf -d "$stage/bin/busybox" |
+	grep -Fq 'Shared library: [libc.musl-aarch64.so.1]' || {
+	echo 'FAIL retained BusyBox libc identity changed' >&2
+	exit 1
+}
 [ -x "$stage/sbin/persistent-root-verify" ] &&
 	[ "$(sha256sum "$stage/sbin/persistent-root-verify" | cut -d ' ' -f 1)" = \
 		"$expected_verifier" ] &&
