@@ -11,12 +11,13 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-basis='one exact read-only local-image Arch cycle starting strict Ed25519 SSH and unchanged storage attestation from sysinit.target before the general Arch basic-target transaction; same accepted four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, tmpfs OverlayFS, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+issued_basis='one exact read-only local-image Arch cycle starting strict Ed25519 SSH and unchanged storage attestation from sysinit.target before the general Arch basic-target transaction; same accepted four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, tmpfs OverlayFS, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+consumed_basis='consumed by the sole Generation 67 RAM-only cycle; exact UFS, two ro,noload ext4 layers, persisted marker, early strict key-only SSH, and storage attestation passed, but recovery ACM closed after the COMMIT claim before the post-claim response; host salvage proved early SSH active at about 94.147 seconds and full attestation at 130.057 seconds; normal reboot, exact Alpine fallback, and host restoration passed; never retry or flash'
 profile=persistent-root-local-image-early-ssh-v45-live-v1
 image_name=build/persistent-root-local-image-early-ssh-v45-generation67-20260814-r1/repack/stable-recovery-a.avb.img
-role='unbooted Generation 67 early-SSH local-image successor; exact accepted UFS/Image/DTB and two ro,noload ext4 layers, stock sshd masked only in volatile /run, strict custom Ed25519 SSH and unchanged storage attestation ordered before basic.target; one RAM-only use only; never flash'
-[[ $role == unbooted\ * ]] ||
-	fail 'Generation 67 artifact role must remain unbooted before entry'
+issued_role='unbooted Generation 67 early-SSH local-image successor; exact accepted UFS/Image/DTB and two ro,noload ext4 layers, stock sshd masked only in volatile /run, strict custom Ed25519 SSH and unchanged storage attestation ordered before basic.target; one RAM-only use only; never flash'
+role='consumed Generation 67 early-SSH local-image cycle; exact UFS, two ro,noload ext4 layers, persisted marker, early strict key-only SSH, storage attestation, normal reboot, and exact Alpine fallback passed; lifecycle acceptance failed because recovery ACM closed before the post-claim response; never retry or flash'
+[[ $role == consumed\ * ]] || fail 'Generation 67 role must remain consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -28,9 +29,9 @@ case_source=$(awk -v profile="$profile" '
 	END { if (count != 1) exit 1 }
 ' "$gate") || fail 'persistent-root live profile case is not unique'
 case_unindented=$(sed 's/^[[:space:]]*//' <<<"$case_source")
-grep -Fxq "expected_boot_basis='$basis'" <<<"$case_unindented" ||
+grep -Fxq "expected_boot_basis='$issued_basis'" <<<"$case_unindented" ||
 	fail 'Generation 67 boot basis is not pinned in the profile'
-grep -Fxq "expected_boot_role='$role'" <<<"$case_unindented" ||
+grep -Fxq "expected_boot_role='$issued_role'" <<<"$case_unindented" ||
 	fail 'Generation 67 artifact role is not pinned in the profile'
 for assignment in \
 	expected_boot_image=$image_name \
@@ -106,10 +107,10 @@ for index in "${!fields[@]}"; do
 		fail "wrong ${fields[$index]} returned an unexpected rejection"
 done
 
-awk -F '\t' -v name="$image_name" -v basis="$basis" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+awk -F '\t' -v name="$image_name" -v basis="$consumed_basis" '
+	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 67 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 67 image is not uniquely revoked'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "0bd1b6b8fddc27a5b4860036a13406f5cf4897c0ae84761a835868c0db086953" &&
@@ -126,23 +127,11 @@ production_root=$repo/build/persistent-root-local-image-early-ssh-v45-production
 generation_root=$repo/build/persistent-root-local-image-early-ssh-v45-generation67-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
-	artifact=$(
-		env -i PATH="$PATH" HOME="$HOME" \
-			ROG5_STABLE_RECOVERY_PROFILE="$profile" \
-			LIVE_BUILD_ROOT="$generation_root" \
-			RECOVERY_COMPONENT_ROOT="$recovery_root" \
-			TRUST_KEY="$recovery_root/ephemeral-public.raw" \
-			BUNDLE_ROOT="$production_root/bundle-a" \
-			BUNDLE="${exact[4]}" \
-			RECOVERY_SHA256="${exact[0]}" \
-			TRUST_KEY_SHA256="${exact[1]}" \
-			MANIFEST_SHA256="${exact[2]}" \
-			HOST_VERIFIER_SHA256="${exact[3]}" \
-			bash "$gate" artifact-preflight
-	)
-	grep -Fxq \
-		"PASS stable-recovery artifact preflight profile=$profile image_sha256=${exact[0]}" \
-		<<<"$artifact" || fail 'persistent-root artifact preflight did not pass'
+	image=$generation_root/repack/stable-recovery-a.avb.img
+	[[ $(stat -c %s "$image") == 100663296 ]] ||
+		fail 'retained Generation 67 image size changed'
+	[[ $(sha256sum "$image" | cut -d ' ' -f 1) == "${exact[0]}" ]] ||
+		fail 'retained Generation 67 image identity changed'
 	module_root=$tmp/module-proof
 	mkdir "$module_root"
 	gzip -dc "$production_root/bundle-a/persistent-root-local-image-early-ssh-v45/initramfs.cpio.gz" |
@@ -169,4 +158,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 67 early-SSH local-image profile, exact claim, artifact, and one-use admission are pinned'
+echo 'PASS Generation 67 early-SSH local-image result is consumed, revoked, retained exactly, and cannot be reused'
