@@ -363,8 +363,8 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
-- **Generations 61–65 are consumed; Generation 66 restores the omitted UFS
-  modules.** Generation 61 passed exact UFS, `userdata`,
+- **Generations 61–66 are consumed; Generation 66 restored local-image Arch.**
+  Generation 61 passed exact UFS, `userdata`,
   image resolution, userdata unmount, the all-node read-only precheck, and
   both selected-partition and parent-disk `BLKROSET` calls. It then reported
   `write-window-blockdev: FAIL` before sysfs/count verification, any RW mount,
@@ -399,10 +399,15 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   sole cycle therefore entered `ufs-ready` and failed 56.292 seconds later
   before storage enumeration, mounts, image access, or writes. Exact Alpine
   fallback and host cleanup passed; Generation 65 is consumed and must never
-  be retried. Generation 66 restores the exact accepted four-module inventory,
-  requires the build to fail if those modules are absent, and adds bounded
-  UFS failure detail without changing the read-only storage policy. Its clean
-  twins match; it remains unbooted.
+  be retried. Generation 66 restored the exact accepted four-module inventory,
+  and the build now fails if those modules are absent. Its sole cycle passed
+  UFS in 5.029 seconds, mounted exact `/dev/sda23` and the 16 GiB local image
+  `ro,noload`, verified the persisted Generation 64 marker, reached local Arch,
+  systemd, and strict key-only SSH in 328.363 seconds, then completed a normal
+  reboot to exact Alpine fallback. It reported zero blocked queries, blocked
+  SCSI commands, journal-recovery events, and UFS errors. Generation 66 is
+  consumed and must never be retried or flashed. The NFS/Steam Deck root
+  dependency is no longer on the successful target boot path.
   See the [Generation 61 live result](../test-results/2026-08-14-generation-61-local-image-write-window-live.md)
   and the Generation 62 [offline checkpoint](../test-results/2026-08-14-generation-62-local-image-readonly-class-offline.md)
   and [live result](../test-results/2026-08-14-generation-62-local-image-readonly-class-live.md),
@@ -412,7 +417,8 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-64-mountpoint-fix-live.md),
   the Generation 65 [offline checkpoint](../test-results/2026-08-14-generation-65-post-write-readonly-offline.md)
   and [live result](../test-results/2026-08-14-generation-65-post-write-readonly-live.md),
-  and the [Generation 66 offline checkpoint](../test-results/2026-08-14-generation-66-ufs-modules-detail-offline.md).
+  and the Generation 66 [offline checkpoint](../test-results/2026-08-14-generation-66-ufs-modules-detail-offline.md)
+  and [live result](../test-results/2026-08-14-generation-66-ufs-modules-detail-live.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

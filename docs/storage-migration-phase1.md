@@ -349,11 +349,19 @@ failed after 56.292 seconds before storage enumeration, mounts, image access,
 or writes. Exact Alpine fallback and cleanup passed. Generation 65 must never
 be retried.
 
-Generation 66 is the unbooted module-restored successor. It keeps the exact
-Generation 65 read-only storage and marker contracts while restoring the four
-accepted v36 UFS modules. The production builder now fails closed when a
-module-required build omits them, and the stage protocol carries bounded UFS
-failure detail. Clean-twin initramfs, signed-bundle, and AVB outputs match.
+Generation 66 consumed its sole RAM-only cycle and restored the four accepted
+v36 UFS modules. UFS passed in 5.029 seconds, exact `/dev/sda23` and the 16 GiB
+local image mounted `ro,noload`, the persisted Generation 64 marker verified,
+and local Arch reached strict key-only SSH in 328.363 seconds. A normal reboot
+returned exact Alpine fallback; host cleanup and `TARGET_ACCEPTED` intent
+resolution passed. The production builder now fails closed when a
+module-required build omits the UFS modules, and the stage protocol retains
+bounded UFS failure detail. Generation 66 must never be retried or flashed.
+
+This completes the read-only local-image boot milestone and removes NFS from
+the successful target path. The next reversible work is local-root startup
+reduction and a separately bounded persistent-write experiment inside the
+existing image; no partition-table change is authorized by this result.
 
 ## Reproduction commands
 
