@@ -69,7 +69,11 @@ checks the nested payloads again with container networking disabled.
 ## Kernel boundary
 
 `CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y` is compile-time and cannot be relaxed
-from the command line or userspace.
+from the command line or userspace. The read-only discovery artifact keeps
+`CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE` disabled, so its behavior is unchanged.
+The later local-image profile explicitly enables that second compile-time
+symbol to lift only SCSI data and disk hardware-read-only gates while keeping
+the remaining containment below.
 
 - Every SCSI disk is marked read-only before registration and remains
   read-only across revalidation.

@@ -4,17 +4,33 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 fragment=$repo/configs/kernel/rog5-persistent-root.fragment
 deferred_fragment=$repo/configs/kernel/rog5-ufs-deferred-probe.fragment
+write_fragment=$repo/configs/kernel/rog5-ufs-local-write.fragment
+write_patch=$repo/patches/linux-7.1.4/0033-ufs-permit-bounded-data-writes-under-discovery-containment.patch
 builder=$repo/scripts/device/build-mainline-persistent-root.sh
 verifier=$repo/scripts/device/verify-mainline-persistent-root-build.sh
 meta_verifier=$repo/scripts/device/verify-build-meta-hash.sh
 
-for path in "$fragment" "$deferred_fragment" "$builder" "$verifier" \
+for path in "$fragment" "$deferred_fragment" "$write_fragment" "$write_patch" \
+	"$builder" "$verifier" \
 	"$meta_verifier"; do
 	[ -f "$path" ] || {
 		echo "FAIL missing P2 kernel build input: $path" >&2
 		exit 1
 	}
 done
+grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$write_fragment"
+grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y' "$write_fragment"
+grep -Fq 'depends on SCSI_UFS_DISCOVERY_READ_ONLY' "$write_patch"
+grep -Fq '!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE)' "$write_patch"
+grep -Fq 'IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE))' "$write_patch"
+[ "$(grep -Fc '!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE)' \
+	"$write_patch")" -eq 2 ]
+[ "$(grep -Fc 'IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE))' \
+	"$write_patch")" -eq 2 ]
+! grep -Eq '^\+.*ufshcd_discovery_query_allowed' "$write_patch" || {
+	echo 'FAIL local-write patch weakens the UFS query-write gate' >&2
+	exit 1
+}
 
 for symbol in \
 	CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y \
@@ -34,6 +50,20 @@ sh -n "$builder"
 sh -n "$verifier"
 sh -n "$meta_verifier"
 
+tmp=$(mktemp -d)
+trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
+if UFS_STORAGE_MODE=invalid "$builder" >"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL builder accepted an invalid UFS storage mode' >&2
+	exit 1
+fi
+grep -Fxq 'FAIL UFS_STORAGE_MODE must be read-only or local-write' "$tmp/err"
+if UFS_STORAGE_MODE=invalid "$verifier" "$tmp/missing" \
+	>"$tmp/out" 2>"$tmp/err"; then
+	echo 'FAIL verifier accepted an invalid UFS storage mode' >&2
+	exit 1
+fi
+grep -Fxq 'FAIL UFS_STORAGE_MODE must be read-only or local-write' "$tmp/err"
+
 for symbol in \
 	CONFIG_EXT4_FS=y \
 	CONFIG_EXT4_FS_POSIX_ACL=y \
@@ -47,15 +77,29 @@ done
 grep -Fq 'rog5-mainline.fragment' "$builder"
 grep -Fq 'rog5-ufs-discovery.fragment' "$builder"
 grep -Fq 'rog5-persistent-root.fragment' "$builder"
-grep -Fq 'LINUX_TREE:-d2f03d2055227b8b72ab41be949847a066924c5a' \
+grep -Fq 'LINUX_TREE:-8528fcd29e4ad19cf944f79c2ebb3438feee5e0b' \
 	"$builder"
 for override in LINUX_BASE_COMMIT LINUX_COMMIT LINUX_TREE EXPECTED_RELEASE \
-	KBUILD_CCACHE; do
+	KBUILD_CCACHE UFS_STORAGE_MODE WRITE_FRAGMENT; do
 	grep -Fq "$override" "$builder"
 done
-for override in LINUX_BASE_COMMIT LINUX_COMMIT LINUX_TREE EXPECTED_RELEASE; do
+for override in LINUX_BASE_COMMIT LINUX_COMMIT LINUX_TREE EXPECTED_RELEASE \
+	UFS_STORAGE_MODE WRITE_FRAGMENT; do
 	grep -Fq "$override" "$verifier"
 done
+grep -Fq 'ufs_storage_mode=' "$builder"
+grep -Fq 'ufs_storage_mode=' "$verifier"
+grep -Fq 'CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y' "$builder"
+grep -Fq 'CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y' "$verifier"
+grep -Fq 'KBUILD_BUILD_VERSION=1' "$builder"
+grep -Fq -- '-fdebug-prefix-map=$source_dir=/usr/src/rog5-linux' "$builder"
+grep -Fq -- '-fdebug-compilation-dir=/usr/src/rog5-linux-build' "$builder"
+grep -Fq 'export CC_COMPAT="clang $debug_flags"' "$builder"
+grep -Fq 'compat vDSO deliberately does not inherit KCFLAGS' "$builder"
+grep -Fq 'debug_compilation_dir=/usr/src/rog5-linux-build' "$verifier"
+grep -Fq 'meta_hash "$output_dir/.config" /.config' "$builder"
+grep -Fq 'meta_hash "$output_dir/arch/arm64/boot/Image" /arch/arm64/boot/Image' \
+	"$builder"
 grep -Fq 'CONFIG_OVERLAY_FS=y' "$verifier"
 grep -Fq 'verify-mainline-discovery-build.sh' "$verifier"
 grep -Fq 'rog5-ufs-deferred-probe.fragment' "$verifier"
@@ -66,8 +110,6 @@ grep -Fq 'drivers/ufs/host/ufs-qcom.ko' "$builder"
 grep -Fq 'drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko' "$builder"
 grep -Fq 'deferred-ufs-modules' "$builder"
 
-tmp=$(mktemp -d)
-trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 printf 'exact input\n' >"$tmp/actual"
 hash=$(sha256sum "$tmp/actual" | cut -d ' ' -f 1)
 printf '%s  /workspace/configs/kernel/rog5-persistent-root.fragment\n' \
@@ -117,4 +159,4 @@ case $# in
 		;;
 esac
 
-echo 'PASS P2 kernel contract reuses the accepted UFS guards and builds ext4, OverlayFS, and tmpfs into the image'
+echo 'PASS persistent-root kernel contract selects exact UFS policy, normalizes clean builds, and includes ext4, OverlayFS, and tmpfs'

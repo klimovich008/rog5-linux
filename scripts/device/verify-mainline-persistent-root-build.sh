@@ -9,11 +9,21 @@ image=$output_dir/arch/arm64/boot/Image
 image_gz=$output_dir/arch/arm64/boot/Image.gz
 root_fragment=$repo/configs/kernel/rog5-persistent-root.fragment
 deferred_fragment=$repo/configs/kernel/rog5-ufs-deferred-probe.fragment
+write_fragment=${WRITE_FRAGMENT:-$repo/configs/kernel/rog5-ufs-local-write.fragment}
 verify_meta=$repo/scripts/device/verify-build-meta-hash.sh
+storage_mode=${UFS_STORAGE_MODE:-read-only}
 expected_base=${LINUX_BASE_COMMIT:-7a5cef0db4795d9d453a12e0f61b5b7634fc4d40}
-expected_commit=${LINUX_COMMIT:-cfd385a1c754684dd28b63a4559e04baa5e902b1}
-expected_tree=${LINUX_TREE:-d2f03d2055227b8b72ab41be949847a066924c5a}
-expected_release=${EXPECTED_RELEASE:-7.1.4-gcfd385a1c754}
+expected_commit=${LINUX_COMMIT:-359318de534f196c1281de7195fbf5868c6f7333}
+expected_tree=${LINUX_TREE:-8528fcd29e4ad19cf944f79c2ebb3438feee5e0b}
+expected_release=${EXPECTED_RELEASE:-7.1.4-g359318de534f}
+
+case $storage_mode in
+	read-only | local-write) ;;
+	*)
+		echo 'FAIL UFS_STORAGE_MODE must be read-only or local-write' >&2
+		exit 1
+		;;
+esac
 
 if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 	for file in "$meta" "$config" "$image" "$image_gz"; do
@@ -26,6 +36,9 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 		"base_commit=$expected_base" \
 		"patched_commit=$expected_commit" \
 		"patched_tree=$expected_tree" \
+		"ufs_storage_mode=$storage_mode" \
+		'kbuild_version=1' \
+		'debug_compilation_dir=/usr/src/rog5-linux-build' \
 		'python_hash_seed=0' \
 		'pahole_jobs=1'; do
 		grep -qx "$record" "$meta"
@@ -34,6 +47,10 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 		"$repo/configs/kernel/rog5-mainline.fragment"
 	"$verify_meta" "$meta" /configs/kernel/rog5-ufs-deferred-probe.fragment \
 		"$deferred_fragment"
+	if [ "$storage_mode" = local-write ]; then
+		"$verify_meta" "$meta" /configs/kernel/rog5-ufs-local-write.fragment \
+			"$write_fragment"
+	fi
 	"$verify_meta" "$meta" /.config "$config"
 	"$verify_meta" "$meta" /arch/arm64/boot/Image "$image"
 	"$verify_meta" "$meta" /arch/arm64/boot/Image.gz "$image_gz"
@@ -41,7 +58,6 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 	gzip -dc "$image_gz" | cmp - "$image"
 
 	for symbol in \
-		CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y \
 		CONFIG_SCSI=y \
 		CONFIG_SCSI_UFSHCD=m \
 		CONFIG_SCSI_UFSHCD_PLATFORM=m \
@@ -71,6 +87,31 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 			exit 1
 		}
 	done
+	case $storage_mode in
+		read-only)
+			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$config" || {
+				echo 'FAIL read-only build lost the UFS discovery guard' >&2
+				exit 1
+			}
+			grep -qx '# CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE is not set' \
+				"$config" || {
+				echo 'FAIL read-only build permits UFS data writes' >&2
+				exit 1
+			}
+		;;
+		local-write)
+			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' \
+				"$config" || {
+				echo 'FAIL local-write build lost UFS discovery containment' >&2
+				exit 1
+			}
+			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y' \
+				"$config" || {
+				echo 'FAIL local-write build lacks the bounded data-write profile' >&2
+				exit 1
+			}
+		;;
+	esac
 	for symbol in \
 		CHR_DEV_SG BLK_DEV_BSG SCSI_UFS_BSG RPMB SCSI_UFS_CRYPTO \
 		SCSI_UFS_HWMON PHY_QCOM_QMP_COMBO PHY_QCOM_QMP_PCIE \
@@ -122,24 +163,43 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 			exit 1
 		}
 	done
-	strings "$image" | grep -Fq \
-		'ROG5 UFS discovery: forced read-only before registration'
-	for marker in \
-		'ROG5 UFS discovery: blocked SCSI opcode' \
-		'ROG5 UFS discovery: blocked device query' \
-		'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled' \
-		'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' \
-		'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' \
-		'ROG5 UFS discovery: WL power transition rejected' \
-		'ROG5 UFS discovery: host power transition rejected' \
-		'ROG5 UFS discovery: shutdown power transition skipped' \
-		'ROG5 UFS discovery: WLUN runtime PM forbidden'; do
-		strings "$module_dir/ufshcd-core.ko" |
-			grep -Fq "$marker" || {
-			echo "FAIL deferred UFS guard marker missing: $marker" >&2
+	image_marker='ROG5 UFS discovery: forced read-only before registration'
+	scsi_marker='ROG5 UFS discovery: blocked SCSI opcode'
+	guard_markers='ROG5 UFS discovery: blocked device query
+ROG5 UFS discovery: optional device writes and high-speed gear switch disabled
+ROG5 UFS discovery: auto-hibern8 disabled; link remains active
+ROG5 UFS discovery: host runtime PM forbidden; active reference retained
+ROG5 UFS discovery: WL power transition rejected
+ROG5 UFS discovery: host power transition rejected
+ROG5 UFS discovery: shutdown power transition skipped
+ROG5 UFS discovery: WLUN runtime PM forbidden'
+	if [ "$storage_mode" = read-only ]; then
+		strings "$image" | grep -Fq "$image_marker"
+		strings "$module_dir/ufshcd-core.ko" | grep -Fq "$scsi_marker"
+		printf '%s\n' "$guard_markers" | while IFS= read -r marker; do
+			strings "$module_dir/ufshcd-core.ko" |
+				grep -Fq "$marker" || {
+				echo "FAIL deferred UFS guard marker missing: $marker" >&2
+				exit 1
+			}
+		done
+	else
+		if strings "$image" | grep -Fq "$image_marker"; then
+			echo 'FAIL local-write Image retained forced disk read-only state' >&2
 			exit 1
-		}
-	done
+		fi
+		if strings "$module_dir/ufshcd-core.ko" | grep -Fq "$scsi_marker"; then
+			echo 'FAIL local-write module retained the SCSI data-write guard' >&2
+			exit 1
+		fi
+		printf '%s\n' "$guard_markers" | while IFS= read -r marker; do
+			strings "$module_dir/ufshcd-core.ko" |
+				grep -Fq "$marker" || {
+				echo "FAIL local-write module lost discovery containment: $marker" >&2
+				exit 1
+			}
+		done
+	fi
 else
 	"$repo/scripts/device/verify-mainline-discovery-build.sh" "$output_dir" \
 		>/dev/null
@@ -164,4 +224,4 @@ done
 strings "$image" |
 	grep -Fq "overlayfs: overlay with incompat feature '%s' cannot be mounted"
 
-echo 'PASS dedicated read-only persistent-root config, UFS guards/modules, hashes, and Image.gz'
+echo "PASS dedicated $storage_mode persistent-root config, UFS policy/modules, hashes, and Image.gz"

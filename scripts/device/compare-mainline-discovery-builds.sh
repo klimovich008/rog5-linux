@@ -20,4 +20,4 @@ for file in \
 	}
 done
 
-echo 'PASS two clean UFS discovery kernel builds are byte-identical'
+echo 'PASS two clean UFS kernel builds are byte-identical'
