@@ -95,6 +95,27 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             self.assertIn(contract, source)
         self.assertIn("cmp \"$stage/init\" \"$init\"", source)
 
+    def test_storage_reporter_configures_target_tty_raw_before_first_report(self) -> None:
+        init = (REPO / "initramfs/recovery-init").read_text(encoding="utf-8")
+        raw_tty = (
+            "stty -F /dev/ttyGS0 raw -echo -echonl -opost "
+            "clocal cread"
+        )
+        first_report = "storage_preflight_stage S00_USB_READY"
+        reporter = "serve_storage_preflight_report &"
+        bind = "if ! udc=$(bind_expected_udc); then"
+        self.assertEqual(init.count(raw_tty), 1)
+        self.assertLess(init.index(raw_tty), init.index(first_report))
+        self.assertLess(init.index(first_report), init.index(reporter))
+        self.assertLess(init.index(reporter), init.index(bind))
+        body = init[
+            init.index("serve_storage_preflight_report() {") :
+            init.index("release=$(uname -r)")
+        ]
+        self.assertEqual(body.count("exec 3>/dev/ttyGS0"), 1)
+        self.assertEqual(body.count('cat "$report" >&3'), 1)
+        self.assertNotIn('cat "$report" >/dev/ttyGS0', body)
+
     def test_arm64_runtime_verifier_executes_every_sealed_tool(self) -> None:
         source = self.source(RUNTIME_VERIFIER)
         for contract in (
@@ -107,6 +128,7 @@ class StoragePreflightInitramfsContractTest(unittest.TestCase):
             "guest /usr/sbin/dumpe2fs -h /run/fixtures/ext4.img",
             "guest /sbin/mkfs.ext4 -V",
             "guest /usr/sbin/partprobe --help",
+            "/bin/stty -F /dev/tty raw -echo -echonl -opost clocal cread",
         ):
             self.assertIn(contract, source)
 

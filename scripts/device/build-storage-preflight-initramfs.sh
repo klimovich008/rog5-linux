@@ -50,6 +50,9 @@ for contract in \
 	'storage-preflight-v2)' \
 	'run_storage_preflight() {' \
 	'serve_storage_preflight_report() {' \
+	'stty -F /dev/ttyGS0 raw -echo -echonl -opost clocal cread' \
+	'exec 3>/dev/ttyGS0' \
+	'cat "$report" >&3' \
 	'/usr/bin/sgdisk -v "$disk"' \
 	'/sbin/e2fsck -fn "$userdata"' \
 	'/usr/sbin/resize2fs -P "$userdata"' \
@@ -141,6 +144,9 @@ done
 [ -L "$stage/usr/sbin/partprobe" ] &&
 	[ "$(readlink "$stage/usr/sbin/partprobe")" = /bin/busybox ] ||
 	fail 'initramfs lacks the fixed BusyBox partprobe applet link'
+[ -L "$stage/bin/stty" ] &&
+	[ "$(readlink "$stage/bin/stty")" = /bin/busybox ] ||
+	fail 'initramfs lacks the fixed BusyBox stty applet link'
 
 [ -z "$(find "$stage" -type f \
 	\( -name authorized_keys -o -name 'ssh_host_*' -o \

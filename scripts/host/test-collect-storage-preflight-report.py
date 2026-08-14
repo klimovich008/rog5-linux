@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+import base64
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -99,6 +103,37 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(payload, FAILED)
         self.assertEqual(values["reason"], "gpt_verify_failed")
 
+    def test_rejected_payload_is_retained_without_becoming_accepted(self) -> None:
+        identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
+        malformed = b"\r\n"
+        serial = FakeSerial([malformed])
+        with mock.patch.object(MODULE, "revalidate_storage_acm"):
+            with self.assertRaises(MODULE.RejectedReport) as caught:
+                MODULE.capture_report(serial, identity, 2)
+        rejection = caught.exception
+        self.assertEqual(rejection.payload, malformed)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "rejected.json"
+            MODULE.write_rejected_evidence(
+                output,
+                OrderedDict(
+                    (
+                        ("host_boot_id", "11111111-2222-4333-8444-555555555555"),
+                        ("usb_location", LOCATION),
+                    )
+                ),
+                identity,
+                123,
+                rejection,
+            )
+            document = json.loads(output.read_text(encoding="ascii"))
+        self.assertEqual(document["format"], MODULE.REJECTED_FORMAT)
+        self.assertEqual(document["error"], "storage-preflight report shape is not exact")
+        self.assertEqual(document["payload_base64"], base64.b64encode(malformed).decode("ascii"))
+        self.assertEqual(document["payload_sha256"], hashlib.sha256(malformed).hexdigest())
+        self.assertEqual(document["payload_size"], len(malformed))
+        self.assertNotIn("fields", document)
+
     def test_running_only_capture_remains_bounded(self) -> None:
         identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
         serial = FakeSerial([RUNNING])
@@ -128,6 +163,12 @@ class ReportTests(unittest.TestCase):
     def test_missing_newline_fails(self) -> None:
         with self.assertRaisesRegex(MODULE.PreflightError, "framing"):
             MODULE.parse_report(VALID[:-1])
+
+    def test_crlf_and_headless_fragment_remain_distinguishable(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "block_mounts identity"):
+            MODULE.parse_report(FAILED[:-1] + b"\r\n")
+        with self.assertRaisesRegex(MODULE.PreflightError, "shape"):
+            MODULE.parse_report(FAILED[40:])
 
     def test_noncanonical_minimum_fails(self) -> None:
         with self.assertRaisesRegex(MODULE.PreflightError, "outside policy"):

@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+import base64
+import hashlib
 import importlib.util
 import json
 import os
@@ -26,6 +28,7 @@ sys.modules[CORE_SPEC.name] = CORE
 CORE_SPEC.loader.exec_module(CORE)
 
 FORMAT = "rog5-storage-preflight-evidence-v2"
+REJECTED_FORMAT = "rog5-storage-preflight-rejected-evidence-v1"
 PREFIX = "ROG5_STORAGE_PREFLIGHT_V2"
 RECOVERY_PRODUCT = "ROG5 recovery"
 USB_INTERFACE = "02"
@@ -111,6 +114,14 @@ FAILURE_STAGE_REASONS = {
 
 class PreflightError(RuntimeError):
     """The exact storage-preflight report cannot be trusted."""
+
+
+class RejectedReport(PreflightError):
+    """One bounded ACM line failed the exact report grammar."""
+
+    def __init__(self, message: str, payload: bytes) -> None:
+        super().__init__(message)
+        self.payload = payload
 
 
 def fail(message: str) -> NoReturn:
@@ -307,7 +318,10 @@ def capture_report(
         while (newline := buffer.find(b"\n")) >= 0:
             payload = bytes(buffer[: newline + 1])
             del buffer[: newline + 1]
-            values = parse_report(payload)
+            try:
+                values = parse_report(payload)
+            except PreflightError as error:
+                raise RejectedReport(str(error), payload) from error
             if values["status"] == "RUNNING":
                 continue
             if buffer:
@@ -315,6 +329,30 @@ def capture_report(
             revalidate_storage_acm(identity)
             return payload, values
     fail("storage-preflight terminal report did not arrive before its deadline")
+
+
+def write_rejected_evidence(
+    output_path: Path,
+    anchor: OrderedDict[str, str],
+    identity: CORE.AcmIdentity,
+    started_unix_ns: int,
+    rejection: RejectedReport,
+) -> None:
+    document = {
+        "ended_unix_ns": time.time_ns(),
+        "error": str(rejection),
+        "format": REJECTED_FORMAT,
+        "host_boot_id": anchor["host_boot_id"],
+        "payload_base64": base64.b64encode(rejection.payload).decode("ascii"),
+        "payload_sha256": hashlib.sha256(rejection.payload).hexdigest(),
+        "payload_size": len(rejection.payload),
+        "started_unix_ns": started_unix_ns,
+        "usb_location": identity.location,
+    }
+    encoded = json.dumps(
+        document, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode("ascii") + b"\n"
+    CORE.write_evidence(output_path, encoded)
 
 
 def canonical_timeout(value: str, maximum: int) -> int:
@@ -350,8 +388,18 @@ def main(arguments: list[str]) -> int:
     CORE.safe_new_output(output_path)
     identity = wait_storage_acm(anchor["usb_location"], enumeration_timeout)
     started = time.time_ns()
-    with CORE.ReceiveOnlySerial(identity) as serial:
-        payload, values = capture_report(serial, identity, capture_timeout)
+    try:
+        with CORE.ReceiveOnlySerial(identity) as serial:
+            payload, values = capture_report(serial, identity, capture_timeout)
+    except RejectedReport as error:
+        write_rejected_evidence(
+            output_path,
+            anchor,
+            identity,
+            started,
+            error,
+        )
+        raise
     if CORE.read_anchor(anchor_path) != anchor:
         fail("recovery anchor changed during storage-preflight capture")
     document = {

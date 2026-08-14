@@ -206,19 +206,6 @@ class CandidateTests(unittest.TestCase):
         values = canonical_manifest(MANIFEST_V2)
         self.assertEqual(values, EXPECTED_V2)
         self.assertEqual(digest(MANIFEST_V2), MANIFEST_V2_SHA256)
-        for name, path in (
-            ("recovery_init_sha256", REPO / "initramfs/recovery-init"),
-            (
-                "collector_sha256",
-                REPO / "scripts/host/collect-storage-preflight-report.py",
-            ),
-            (
-                "runtime_verifier_sha256",
-                REPO / "scripts/device/verify-storage-preflight-arm64-runtime.sh",
-            ),
-            ("layout_sha256", REPO / "configs/storage/rog5-dedicated-linux-v1.json"),
-        ):
-            self.assertEqual(digest(path), values[name])
         lines = POLICY.read_text(encoding="ascii").splitlines()
         fields = next(
             line.split("\t")
@@ -229,14 +216,20 @@ class CandidateTests(unittest.TestCase):
             fields[:6],
             [
                 PROFILE_V2,
-                "allow",
+                "revoked",
                 MANIFEST_V2_SHA256,
                 values["image_path"],
                 values["image_size"],
                 values["image_sha256"],
             ],
         )
-        self.assertIn("receive-only ACM stage and terminal failure", fields[6])
+        self.assertEqual(
+            fields[6],
+            "consumed 2026-08-15; recovery ACM enumerated but its first frame "
+            "was rejected as malformed; exact Alpine fallback and PS_HOLD "
+            "hard-reset rollback returned with no watchdog or fatal signature; "
+            "no storage write observed; never retry",
+        )
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"
             f"recovery_profile={PROFILE_V2}\n"
