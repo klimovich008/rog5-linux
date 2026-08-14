@@ -586,6 +586,14 @@ EXPECTED_CLAIMS["persistent-root-local-image-write-contained-v41-live-v1"] = (
     "5125eddd0aeeb394eea7f24b427b04c1c001276c5b8b2e9dbf544a49c4af0646\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-local-image-write-mountpoint-v42-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-local-image-write-mountpoint-v42-live-v1\n"
+    "candidate=persistent-root-local-image-write-mountpoint-v42\n"
+    "manifest_sha256="
+    "8b2e95268be4e5e0c65eb9367514bb93ab2c20f38a3848a0986de4fe4336d221\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 
 
 def mainline_udc_claim_record(
@@ -716,7 +724,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "9a8f45cad48304b9ff3af62f15834daa338013753b6abea76851e225f3945688",
+    "sha256": "31bd718db4f8a4ad42ed7d888653f56ed6e02685a288df1286a1070d3d25cd81",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -744,7 +752,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "9a8f45cad48304b9ff3af62f15834daa338013753b6abea76851e225f3945688",
+    "executor_contract_sha256": "31bd718db4f8a4ad42ed7d888653f56ed6e02685a288df1286a1070d3d25cd81",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
@@ -2485,16 +2493,16 @@ def verify_policy(
             "never flash or retry after entry",
         ),
         (
-            "build/persistent-root-local-image-write-contained-v41-generation63-"
+            "build/persistent-root-local-image-write-mountpoint-v42-generation64-"
             "20260814-r1/repack/stable-recovery-a.avb.img",
-            "one exact bounded SM8350 UFS local-image contained-write attempt; "
-            "the kernel retains UFS query, optional-management, link-power, and "
-            "runtime-PM containment while the sealed initramfs locks all 116 "
-            "physical nodes and opens only the exact userdata partition and "
-            "parent for one fixed marker inside the existing 16 GiB image, then "
-            "relocks all nodes before read-only Arch SSH; RAM-only kernel/"
-            "recovery; externally consumed exact claim required; never flash or "
-            "retry after entry",
+            "one exact bounded SM8350 UFS local-image contained-write attempt "
+            "with the missing fixed /mnt/probe-root created and verified before "
+            "opening the userdata write window; all 116 physical nodes are "
+            "locked first, only the exact userdata partition and parent open "
+            "for one fixed marker inside the existing 16 GiB image, and every "
+            "node is relocked before read-only Arch SSH; RAM-only kernel/"
+            "recovery; externally consumed exact claim required; never flash "
+            "or retry after entry",
         ),
     }
     if required_allow_rows != len(expected_allows):

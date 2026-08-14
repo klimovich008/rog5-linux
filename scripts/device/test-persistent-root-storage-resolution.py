@@ -354,6 +354,10 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn("verify_ufs_power_containment", between)
         mount_function = function(self.source, "mount_persistent_root")
         self.assertIn('mount -t ext4 -o ro,noload "$userdata" /mnt/userdata', mount_function)
+        self.assertIn(
+            "mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot",
+            mount_function,
+        )
         self.assertIn("verify_only_userdata_mount", mount_function)
         self.assertIn("verify_physical_storage_read_only", mount_function)
 
@@ -439,6 +443,14 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             write_cycle,
         )
         self.assertIn('losetup "$probe_loop" "$root_image"', write_cycle)
+        self.assertIn(
+            "[ -d /mnt/probe-root ] && [ ! -L /mnt/probe-root ]",
+            write_cycle,
+        )
+        self.assertLess(
+            write_cycle.index("[ -d /mnt/probe-root ]"),
+            write_cycle.index("umount /mnt/userdata"),
+        )
         self.assertIn("arch-local-a.ext4", write_cycle)
         self.assertIn('blkid "$probe_loop"', write_cycle)
         self.assertIn("$expected_image_uuid", write_cycle)
