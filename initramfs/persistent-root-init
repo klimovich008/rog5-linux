@@ -50,6 +50,7 @@ log() {
 publish_stage() {
 	stage_name=$1
 	stage_state=$2
+	stage_detail=${3:-none}
 	case $stage_name in
 		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
 userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
@@ -65,19 +66,24 @@ overlay|runtime|final-storage|switch-root) ;;
 		*) return 1 ;;
 	esac
 	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
+	case $stage_detail in
+		''|-*|*-|*[!a-z0-9-]*) return 1 ;;
+	esac
+	[ "${#stage_detail}" -le 128 ] || return 1
 	stage_sequence=$((stage_sequence + 1))
 	[ -n "$target_boot_id" ] || return 1
 	stage_next=$stage_record.next
 	printf '%s\n' \
-		'format=rog5-persistent-root-stage-v1' \
+		'format=rog5-persistent-root-stage-v2' \
 		"target_release=$running_kernel_release" \
 		"boot_id=$target_boot_id" \
 		"sequence=$stage_sequence" \
 		"stage=$stage_name" \
-		"state=$stage_state" >"$stage_next" || return 1
+		"state=$stage_state" \
+		"detail=$stage_detail" >"$stage_next" || return 1
 	chmod 0444 "$stage_next" || return 1
 	mv -f "$stage_next" "$stage_record" || return 1
-	log "stage sequence=$stage_sequence stage=$stage_name state=$stage_state"
+	log "stage sequence=$stage_sequence stage=$stage_name state=$stage_state detail=$stage_detail"
 }
 
 send_stage_record() {
@@ -1319,18 +1325,29 @@ if deferred_ufs_modules_present; then
 	case $module_status in
 		0) ;;
 		*)
-			publish_stage ufs-ready FAIL || true
+			publish_stage ufs-ready FAIL \
+				"ufs-module-status-$module_status" || true
 			fail_stage 'deferred UFS module load returned an error' ufs-module 20
 			;;
 	esac
 fi
 log 'waiting for stable UFS discovery'
 if ! wait_for_ufs_discovery; then
-	publish_stage ufs-ready FAIL || true
+	count=$(physical_topology_count)
+	auto_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' || true)
+	host_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' || true)
+	wlun_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: WLUN runtime PM forbidden' || true)
+	error_count=$(dmesg | grep -Ei -c \
+		'ufshcd.*(error|failed|failure|timeout|timed out)|ufs.*(link startup failed|probe failed|reset and restore failed|fatal)' || true)
+	ufs_discovery_detail=ufs-discovery-p${count}-a${auto_count}-h${host_count}-w${wlun_count}-e${error_count}
+	publish_stage ufs-ready FAIL "$ufs_discovery_detail" || true
 	fail_stage 'UFS discovery failed' ufs-discovery 35
 fi
 if ! verify_ufs_power_containment; then
-	publish_stage ufs-ready FAIL || true
+	publish_stage ufs-ready FAIL ufs-power-containment || true
 	fail_stage 'UFS power containment failed before storage lock' \
 		ufs-power 50
 fi

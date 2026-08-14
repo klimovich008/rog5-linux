@@ -342,12 +342,18 @@ failed and triggered the bounded rollback. Read-only fallback inspection
 proved the image clean, the exact marker durable, and no loop, mount, or
 temporary-file residue. Generation 64 must never be retried.
 
-Generation 65 is the unbooted read-only successor. It reuses the exact v36
-read-only kernel and DTB that previously reached strict SSH, never calls the
-write-window path, keeps userdata and the image `ro,noload`, and accepts only
-the pinned Generation 64 marker producer `7c3afb64-8e84-4f4b-87f4-88d19c2646de`.
-Both initramfs and runtime attestation reject that marker if it matches the
-current boot ID. Clean-twin initramfs, signed-bundle, and AVB outputs match.
+Generation 65 consumed its sole RAM-only cycle. Its accepted read-only kernel
+executed, but the sealed initramfs contained no `/rog5-ufs-modules` directory.
+It entered `ufs-ready`, could not load the four deferred UFS modules, and
+failed after 56.292 seconds before storage enumeration, mounts, image access,
+or writes. Exact Alpine fallback and cleanup passed. Generation 65 must never
+be retried.
+
+Generation 66 is the unbooted module-restored successor. It keeps the exact
+Generation 65 read-only storage and marker contracts while restoring the four
+accepted v36 UFS modules. The production builder now fails closed when a
+module-required build omits them, and the stage protocol carries bounded UFS
+failure detail. Clean-twin initramfs, signed-bundle, and AVB outputs match.
 
 ## Reproduction commands
 
