@@ -47,13 +47,15 @@ check_hash "$musl_apk" 5e9674b7f41152fe2119093b5cb4c13eaaadb19c2d5422b2d7267913e
 check_hash "$libuuid_apk" d2f69552b05184ba205dbc8aa0e79f8a080fcf746ec5e5e25eb89d66fbbe6db6
 
 for contract in \
-	'storage-preflight-v1)' \
+	'storage-preflight-v2)' \
 	'run_storage_preflight() {' \
 	'serve_storage_preflight_report() {' \
 	'/usr/bin/sgdisk -v "$disk"' \
 	'/sbin/e2fsck -fn "$userdata"' \
 	'/usr/sbin/resize2fs -P "$userdata"' \
-	'ROG5_STORAGE_PREFLIGHT_V1 status=PASS'
+	'ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING' \
+	'ROG5_STORAGE_PREFLIGHT_V2 status=FAIL' \
+	'ROG5_STORAGE_PREFLIGHT_V2 status=PASS'
 do
 	grep -Fq "$contract" "$init" ||
 		fail "recovery init lacks storage-preflight contract: $contract"
@@ -105,7 +107,7 @@ find "$stage" \( -type f -o -type l \) -path '*/udhcpc/*' \
 	fail 'shadow database lacks exactly one root account'
 sed -i 's/^root:[^:]*/root:!/' "$stage/etc/shadow"
 mkdir -p "$stage/etc/rog5"
-printf '%s\n' storage-preflight-v1 >"$stage/etc/rog5/recovery-mode"
+printf '%s\n' storage-preflight-v2 >"$stage/etc/rog5/recovery-mode"
 chmod 0444 "$stage/etc/rog5/recovery-mode"
 
 tar --warning=no-unknown-keyword -xf "$musl_apk" -C "$stage" \

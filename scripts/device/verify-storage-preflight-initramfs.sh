@@ -26,7 +26,7 @@ cmp "$stage/init" "$init" || fail 'storage-preflight init identity changed'
 [ -f "$stage/etc/rog5/recovery-mode" ] &&
 	[ ! -L "$stage/etc/rog5/recovery-mode" ] &&
 	[ "$(stat -c %a "$stage/etc/rog5/recovery-mode")" = 444 ] &&
-	[ "$(cat "$stage/etc/rog5/recovery-mode")" = storage-preflight-v1 ] ||
+	[ "$(cat "$stage/etc/rog5/recovery-mode")" = storage-preflight-v2 ] ||
 	fail 'storage-preflight mode identity is invalid'
 
 for absent in \
@@ -58,7 +58,9 @@ for contract in \
 	'/usr/sbin/resize2fs -P "$userdata"' \
 	'/sbin/mkfs.ext4 -V' \
 	'/usr/sbin/partprobe --help' \
-	'ROG5_STORAGE_PREFLIGHT_V1 status=PASS' \
+	'ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING' \
+	'ROG5_STORAGE_PREFLIGHT_V2 status=FAIL' \
+	'ROG5_STORAGE_PREFLIGHT_V2 status=PASS' \
 	'all_read_only=1 block_mounts=0'; do
 	grep -Fq "$contract" "$stage/init" ||
 		fail "storage-preflight archive lacks read-only contract: $contract"

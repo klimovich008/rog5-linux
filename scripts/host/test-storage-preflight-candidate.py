@@ -102,22 +102,10 @@ def canonical_manifest() -> OrderedDict[str, str]:
 
 
 class CandidateTests(unittest.TestCase):
-    def test_manifest_and_repository_sources_are_exact(self) -> None:
+    def test_consumed_manifest_remains_exact(self) -> None:
         values = canonical_manifest()
         self.assertEqual(values, EXPECTED)
         self.assertEqual(digest(MANIFEST), MANIFEST_SHA256)
-        self.assertEqual(
-            digest(REPO / "initramfs/recovery-init"),
-            values["recovery_init_sha256"],
-        )
-        self.assertEqual(
-            digest(REPO / "scripts/host/collect-storage-preflight-report.py"),
-            values["collector_sha256"],
-        )
-        self.assertEqual(
-            digest(REPO / "configs/storage/rog5-dedicated-linux-v1.json"),
-            values["layout_sha256"],
-        )
 
     def test_narrow_policy_and_one_use_claim_are_exact(self) -> None:
         lines = POLICY.read_text(encoding="ascii").splitlines()
@@ -130,7 +118,7 @@ class CandidateTests(unittest.TestCase):
         fields = lines[1].split("\t")
         self.assertEqual(fields[:6], [
             PROFILE,
-            "allow",
+            "revoked",
             MANIFEST_SHA256,
             EXPECTED["image_path"],
             EXPECTED["image_size"],
@@ -138,9 +126,8 @@ class CandidateTests(unittest.TestCase):
         ])
         self.assertEqual(
             fields[6],
-            "one exact read-only UFS/GPT/ext4 preflight over receive-only ACM; "
-            "temporary RAM-only recovery; externally consumed exact claim "
-            "required; never flash or retry after entry",
+            "consumed 2026-08-14; failed before recovery USB with intentional "
+            "PS_HOLD hard-reset rollback; no storage write observed; never retry",
         )
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"
