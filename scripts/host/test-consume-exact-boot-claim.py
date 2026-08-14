@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "persistent-root-local-image-post-write-v43-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-local-image-post-write-v43-live-v1\n"
+            b"candidate=persistent-root-local-image-post-write-v43\n"
+            b"manifest_sha256="
+            b"9a57ef7dab71d782bce1893525129e24bd350ee74f24aeabe4ed033af6500d07\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-local-image-write-mountpoint-v42-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-local-image-write-mountpoint-v42-live-v1\n"

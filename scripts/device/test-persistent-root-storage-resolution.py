@@ -385,6 +385,8 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 + '\nrunning_kernel_release=7.1.4-gae717d919f87\n'
                 + 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n'
                 + 'expected_probe_bytes=132\n'
+                + 'expected_ufs_storage_mode=local-write\n'
+                + 'expected_probe_boot_id=current\n'
                 + 'target_boot_id=11111111-2222-3333-4444-555555555555\n'
                 + 'write_exact_local_image_probe "$1" || exit 1\n'
                 + 'verify_exact_local_image_probe "$1"\n'
@@ -423,6 +425,62 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 check=False,
             )
             self.assertNotEqual(linked.returncode, 0)
+
+    def test_readonly_probe_is_bound_to_the_distinct_writer_boot(self) -> None:
+        verify_write_probe = self.verify_write_probe.replace(
+            "\tcase $probe_root in\n"
+            "\t\t/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;\n"
+            "\t\t*) return 1 ;;\n"
+            "\tesac\n",
+            "",
+        ).replace(
+            '"0:0:444:$expected_probe_bytes:1"',
+            '"$(id -u):$(id -g):444:$expected_probe_bytes:1"',
+        )
+        writer = "7c3afb64-8e84-4f4b-87f4-88d19c2646de"
+        current = "11111111-2222-3333-4444-555555555555"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marker = root / "var/lib/rog5/local-image-write-probe-v1"
+            marker.parent.mkdir(parents=True)
+            marker.write_text(
+                "format=rog5-local-image-write-probe-v1\n"
+                "image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n"
+                f"boot_id={writer}\n"
+            )
+            marker.chmod(0o444)
+
+            def verify(mode: str, expected: str, boot_id: str = current) -> int:
+                script = (
+                    "set -u\n"
+                    + verify_write_probe
+                    + '\nexpected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n'
+                    + 'expected_probe_bytes=132\n'
+                    + f'expected_ufs_storage_mode={mode}\n'
+                    + f'expected_probe_boot_id={expected}\n'
+                    + f'target_boot_id={boot_id}\n'
+                    + 'verify_exact_local_image_probe "$1"\n'
+                )
+                return subprocess.run(
+                    ["sh", "-c", script, "sh", str(root)],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                ).returncode
+
+            self.assertEqual(verify("read-only", writer), 0)
+            self.assertNotEqual(verify("read-only", current), 0)
+            self.assertNotEqual(verify("local-write", writer), 0)
+            self.assertNotEqual(verify("read-only", writer, writer), 0)
+
+            marker.chmod(0o644)
+            marker.write_text(
+                "format=rog5-local-image-write-probe-v1\n"
+                "image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4\n"
+                f"boot_id={current}\n"
+            )
+            marker.chmod(0o444)
+            self.assertEqual(verify("local-write", "current"), 0)
 
     def test_write_window_relocks_every_physical_node_before_boot(self) -> None:
         open_window = function(self.source, "open_exact_userdata_write_window")

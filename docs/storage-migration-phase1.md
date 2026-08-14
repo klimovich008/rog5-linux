@@ -335,11 +335,19 @@ or UFS data write because the initramfs had not created `/mnt/probe-root`.
 Exact Alpine fallback and read-only postcheck found the image clean,
 marker-free, and without mount residue. Generation 63 must never be retried.
 
-Generation 64 is the unbooted successor. It changes only the sealed initramfs
-to create `/mnt/probe-root` with the other fixed mountpoints and verify that it
-is a non-symlink directory before opening the userdata write window. Its twin
-initramfs, signed bundle, and AVB wrapper outputs are byte-identical. No
-Generation 64 claim exists at this checkpoint.
+Generation 64 consumed its sole RAM-only cycle. It completed the exact
+contained write, persisted the 132-byte marker, relocked storage, remounted the
+image read-only, and verified the root. The aggregate UFS-health gate then
+failed and triggered the bounded rollback. Read-only fallback inspection
+proved the image clean, the exact marker durable, and no loop, mount, or
+temporary-file residue. Generation 64 must never be retried.
+
+Generation 65 is the unbooted read-only successor. It reuses the exact v36
+read-only kernel and DTB that previously reached strict SSH, never calls the
+write-window path, keeps userdata and the image `ro,noload`, and accepts only
+the pinned Generation 64 marker producer `7c3afb64-8e84-4f4b-87f4-88d19c2646de`.
+Both initramfs and runtime attestation reject that marker if it matches the
+current boot ID. Clean-twin initramfs, signed-bundle, and AVB outputs match.
 
 ## Reproduction commands
 

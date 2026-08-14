@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-write-mountpoint-v42-live-v1"
-BUNDLE = "persistent-root-local-image-write-mountpoint-v42"
+PROFILE_ID = "persistent-root-local-image-post-write-v43-live-v1"
+BUNDLE = "persistent-root-local-image-post-write-v43"
 MANIFEST_SHA256 = (
-    "8b2e95268be4e5e0c65eb9367514bb93ab2c20f38a3848a0986de4fe4336d221"
+    "9a57ef7dab71d782bce1893525129e24bd350ee74f24aeabe4ed033af6500d07"
 )
 RECOVERY_SHA256 = (
-    "9e7fa77363afd7afceceb772d4d4c4b7d7a651e38ea9c44354604c4334da818b"
+    "80a4c775d973a2fc9d2159e48e87c21501339ce27a0226b35bbd7cd723e66fa1"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -52,13 +52,13 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
 )
-TARGET_RELEASE = "7.1.4-g359318de534f"
+TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-write-mountpoint-v42-generation64-20260814-r1"
+    / "build/persistent-root-local-image-post-write-v43-generation65-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-write-mountpoint-v42",
+    admission_profile="persistent-root-local-image-post-write-v43",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-write-mountpoint-v42",
-    build_profile="persistent-root-local-image-write-mountpoint-v42",
+    runtime_profile="persistent-root-local-image-post-write-v43",
+    build_profile="persistent-root-local-image-post-write-v43",
     diagnostic=False,
 )
 

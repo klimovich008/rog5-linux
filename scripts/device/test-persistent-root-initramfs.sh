@@ -11,6 +11,12 @@ verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-v
 config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
 ufs_modules=${4:-}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
+writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
+case $storage_mode in
+	read-only) sealed_probe_boot_id=$writer_boot_id ;;
+	local-write) sealed_probe_boot_id=current ;;
+	*) sealed_probe_boot_id=$writer_boot_id ;;
+esac
 
 fail() {
 	echo "FAIL $*" >&2
@@ -61,12 +67,22 @@ grep -Fqx "$release_check" "$init"
 	fail 'P2 target must not depend on procfs IKCONFIG during live boot'
 grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$init" ||
 	fail 'P2 target lacks the sealed UFS storage-mode placeholder'
+grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$init" ||
+	fail 'P2 target lacks the sealed write-probe producer placeholder'
+grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$attest" ||
+	fail 'P2 attestation lacks the sealed UFS storage-mode placeholder'
+grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$attest" ||
+	fail 'P2 attestation lacks the sealed write-probe producer placeholder'
 grep -Fq '[ "$expected_ufs_storage_mode" = local-write ]' "$init" ||
 	fail 'P2 target lacks the local-write UFS policy branch'
 grep -Fq "'ROG5 UFS discovery: forced read-only before registration'" "$init" ||
 	fail 'local-write policy does not reject the discovery-only disk guard'
 grep -Fq 'UFS_STORAGE_MODE must be read-only or local-write' "$builder" ||
 	fail 'P2 builder does not fail closed on the storage mode'
+grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
+	fail 'P2 builder does not preserve current-boot write semantics'
+grep -Fq 'EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
+	"$builder" || fail 'P2 builder does not pin read-only marker lineage'
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
 grep -Fq 'expected_physical_count=116' "$init"
@@ -223,6 +239,21 @@ if UFS_STORAGE_MODE=invalid "$builder" "$base" "$verifier" \
 fi
 grep -Fxq 'FAIL UFS_STORAGE_MODE must be read-only or local-write' \
 	"$work/invalid.err"
+if UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=current \
+	"$builder" "$base" "$verifier" "$work/read-only-current.cpio.gz" \
+	>"$work/read-only-current.out" 2>"$work/read-only-current.err"; then
+	fail 'P2 builder accepted current-boot marker binding for read-only mode'
+fi
+grep -Fxq \
+	'FAIL EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
+	"$work/read-only-current.err"
+if UFS_STORAGE_MODE=local-write EXPECTED_PROBE_BOOT_ID="$writer_boot_id" \
+	"$builder" "$base" "$verifier" "$work/local-write-pinned.cpio.gz" \
+	>"$work/local-write-pinned.out" 2>"$work/local-write-pinned.err"; then
+	fail 'P2 builder accepted pinned stale marker binding for local-write mode'
+fi
+grep -Fxq 'FAIL EXPECTED_PROBE_BOOT_ID must be current for local-write' \
+	"$work/local-write-pinned.err"
 if [ -n "$ufs_modules" ]; then
 	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/a.cpio.gz" \
@@ -243,10 +274,14 @@ gzip -dc "$work/a.cpio.gz" |
 	(cd "$work/root" && cpio -idm --quiet --no-absolute-filenames)
 sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
+	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
-cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$attest"
+sed -e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
+	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
+	"$attest" >"$work/expected-attest"
+cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$work/expected-attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
 readelf -l "$work/root/bin/busybox" |
 	grep -Fq '[Requesting program interpreter: /lib/ld-musl-aarch64.so.1]'
@@ -264,6 +299,11 @@ grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
 ! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$work/root/init"
 grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$work/root/init"
 ! grep -Fq '@EXPECTED_UFS_STORAGE_MODE@' "$work/root/init"
+grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" "$work/root/init"
+grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
+! grep -Fq '@EXPECTED_PROBE_BOOT_ID@' "$work/root/init" \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
 
 if [ -n "$ufs_modules" ]; then
 	module_inventory=$(find "$work/root/rog5-ufs-modules" \

@@ -363,7 +363,7 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
-- **Generations 61–63 are consumed; Generation 64 is the mountpoint-fixed
+- **Generations 61–64 are consumed; Generation 65 is the read-only post-write
   successor.** Generation 61 passed exact UFS, `userdata`,
   image resolution, userdata unmount, the all-node read-only precheck, and
   both selected-partition and parent-disk `BLKROSET` calls. It then reported
@@ -388,16 +388,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   ext4 mount then failed before any inner-filesystem or UFS data write because
   `/mnt/probe-root` did not exist. Exact Alpine fallback and a clean,
   marker-free image postcheck passed; Generation 63 must never be retried.
-  Generation 64 creates and verifies that fixed non-symlink mountpoint before
-  opening the write window. Clean-twin initramfs, signed-bundle, and
-  stable-recovery outputs match; it remains unbooted and its claim is
-  uncreated. The read-only discovery profile remains unchanged.
+  Generation 64 created the fixed mountpoint and completed the exact contained
+  write window, both RW ext4 mounts, marker write, sync, unmount, relock,
+  read-only remount, image mount, and root verification. It then deliberately
+  rolled back at the aggregate UFS-health gate. Fallback inspection proved the
+  image clean and the exact marker durable, with no mount, loop, or `.next`
+  residue. Generation 64 is consumed and must never be retried. Generation 65
+  reuses the hardware-accepted read-only v36 kernel and unchanged DTB, never
+  enters the write path, keeps both ext4 layers `ro,noload`, and binds the
+  persisted marker to the exact Generation 64 writer boot while requiring it
+  to differ from the current boot. Its clean twins match; it remains unbooted.
   See the [Generation 61 live result](../test-results/2026-08-14-generation-61-local-image-write-window-live.md)
   and the Generation 62 [offline checkpoint](../test-results/2026-08-14-generation-62-local-image-readonly-class-offline.md)
   and [live result](../test-results/2026-08-14-generation-62-local-image-readonly-class-live.md),
   plus the Generation 63 [offline checkpoint](../test-results/2026-08-14-generation-63-contained-write-offline.md)
   and [live result](../test-results/2026-08-14-generation-63-contained-write-live.md),
-  and the [Generation 64 offline checkpoint](../test-results/2026-08-14-generation-64-mountpoint-fix-offline.md).
+  the Generation 64 [offline checkpoint](../test-results/2026-08-14-generation-64-mountpoint-fix-offline.md)
+  and [live result](../test-results/2026-08-14-generation-64-mountpoint-fix-live.md),
+  and the [Generation 65 offline checkpoint](../test-results/2026-08-14-generation-65-post-write-readonly-offline.md).
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
