@@ -22,7 +22,8 @@ case ${ROG5_STORAGE_RUNTIME_NAMESPACE:-0} in
 	*) fail 'invalid ARM64 runtime namespace state' ;;
 esac
 for command in chroot cpio cp env find grep gzip mkfs.ext4 mktemp mount \
-	qemu-aarch64-static realpath rm sgdisk sha256sum truncate umount unshare; do
+	qemu-aarch64-static realpath rm script sgdisk sha256sum truncate umount \
+	unshare; do
 	command -v "$command" >/dev/null ||
 		fail "missing ARM64 runtime test command: $command"
 done
@@ -61,6 +62,8 @@ guest /usr/sbin/dumpe2fs -h /run/fixtures/ext4.img 2>/dev/null |
 	grep -Fq 'Filesystem state:'
 guest /sbin/mkfs.ext4 -V 2>&1 | grep -Fq 'mke2fs 1.47.4'
 guest /usr/sbin/partprobe --help >/dev/null
+script -qec "chroot $stage /usr/bin/qemu-aarch64-static /bin/stty -F /dev/tty raw -echo -echonl -opost clocal cread" \
+	/dev/null >/dev/null
 
 sha256sum "$archive"
 echo 'PASS sealed ARM64 storage-tool closure executes in an initramfs-like chroot'

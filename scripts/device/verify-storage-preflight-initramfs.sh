@@ -49,6 +49,9 @@ done
 [ -L "$stage/usr/sbin/partprobe" ] &&
 	[ "$(readlink "$stage/usr/sbin/partprobe")" = /bin/busybox ] ||
 	fail 'storage-preflight archive lacks the fixed BusyBox partprobe applet link'
+[ -L "$stage/bin/stty" ] &&
+	[ "$(readlink "$stage/bin/stty")" = /bin/busybox ] ||
+	fail 'storage-preflight archive lacks the fixed BusyBox stty applet link'
 readelf -h "$stage/usr/bin/sgdisk" | grep -q 'Machine:.*AArch64' ||
 	fail 'storage-preflight sgdisk is not AArch64'
 
@@ -58,6 +61,9 @@ for contract in \
 	'/usr/sbin/resize2fs -P "$userdata"' \
 	'/sbin/mkfs.ext4 -V' \
 	'/usr/sbin/partprobe --help' \
+	'stty -F /dev/ttyGS0 raw -echo -echonl -opost clocal cread' \
+	'exec 3>/dev/ttyGS0' \
+	'cat "$report" >&3' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=RUNNING' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=FAIL' \
 	'ROG5_STORAGE_PREFLIGHT_V2 status=PASS' \

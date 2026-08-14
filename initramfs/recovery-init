@@ -614,9 +614,16 @@ run_storage_preflight() {
 
 serve_storage_preflight_report() {
 	report=/run/rog5-storage-preflight.report
+	while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
+	if ! exec 3>/dev/ttyGS0; then
+		log 'cannot open persistent storage-preflight ACM writer; rebooting'
+		force_rollback
+	fi
 	while :; do
-		while [ ! -c /dev/ttyGS0 ]; do sleep 0.1; done
-		cat "$report" >/dev/ttyGS0 2>/dev/null || true
+		if ! cat "$report" >&3 2>/dev/null; then
+			log 'persistent storage-preflight ACM writer failed; rebooting'
+			force_rollback
+		fi
 		sleep 1
 	done
 }
@@ -782,6 +789,10 @@ if [ "$ufs_discovery" = 1 ] &&
 fi
 
 if [ "$recovery_mode" = storage-preflight-v2 ]; then
+	if ! stty -F /dev/ttyGS0 raw -echo -echonl -opost clocal cread; then
+		log 'cannot configure raw storage-preflight ACM; rebooting'
+		force_rollback
+	fi
 	if ! storage_preflight_stage S00_USB_READY; then
 		log 'cannot publish initial storage-preflight state; rebooting'
 		force_rollback
