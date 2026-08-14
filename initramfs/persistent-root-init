@@ -586,7 +586,7 @@ verify_userdata_and_image_mounts() {
 }
 
 mount_persistent_root() {
-	mkdir -p /mnt/userdata /mnt/root-ro /mnt/state /newroot
+	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot
 	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
 	mountpoint -q /mnt/userdata || return 1
 	awk -v userdata="$userdata" '$1 == userdata && $2 == "/mnt/userdata" &&
@@ -749,6 +749,10 @@ run_local_image_write_probe() {
 	probe_mounted=0
 	userdata_mounted=0
 	image_write_failure_stage=userdata-unmount
+	[ -d /mnt/probe-root ] && [ ! -L /mnt/probe-root ] || {
+		image_write_failure_stage=image-fs-rw
+		return 1
+	}
 
 	umount /mnt/userdata || return 1
 	open_exact_userdata_write_window || {

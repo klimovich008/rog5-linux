@@ -322,15 +322,24 @@ discovery build remains available and unchanged; GPT, partition geometry,
 firmware, calibration, device identity, and Alpine recovery remain outside the
 write surface.
 
-Generation 63 is the unbooted successor. Its kernel keeps
+Generation 63 consumed its sole RAM-only cycle. Its kernel kept
 `CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y` and adds the separate
 `CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y` policy. Clean-twin builds verified an
 identical kernel, compat vDSO, and four deferred UFS modules. The sealed
 initramfs records `local-write`, requires the retained containment markers,
 locks all 116 physical block nodes before opening the exact userdata
 partition-and-parent window, and relocks every node before the read-only Arch
-runtime. The one-use claim remains uncreated until immediately before a live
-cycle.
+runtime. Hardware passed that window, the outer userdata RW mount, and writable
+loop attachment. The inner ext4 mount then failed before any inner-filesystem
+or UFS data write because the initramfs had not created `/mnt/probe-root`.
+Exact Alpine fallback and read-only postcheck found the image clean,
+marker-free, and without mount residue. Generation 63 must never be retried.
+
+Generation 64 is the unbooted successor. It changes only the sealed initramfs
+to create `/mnt/probe-root` with the other fixed mountpoints and verify that it
+is a non-symlink directory before opening the userdata write window. Its twin
+initramfs, signed bundle, and AVB wrapper outputs are byte-identical. No
+Generation 64 claim exists at this checkpoint.
 
 ## Reproduction commands
 
