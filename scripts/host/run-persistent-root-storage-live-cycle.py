@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-write-v37-live-v1"
-BUNDLE = "persistent-root-local-image-write-v37"
+PROFILE_ID = "persistent-root-local-image-write-diag-v38-live-v1"
+BUNDLE = "persistent-root-local-image-write-diag-v38"
 MANIFEST_SHA256 = (
-    "5033263fbdb28f795fe92b74a850d3e33119f2d440f9e3999b3ebff3804ef259"
+    "a12844274c1bc707cee9ae1f3e464e73ffed57adcd477af8f21fbb678173c444"
 )
 RECOVERY_SHA256 = (
-    "b349d27e41ba2ad1bda9e06e681e3eb8faae9d1f8b32a13943476e63eb997578"
+    "b4cbabb688f513db7939670fa1f6068065b6e6130c3418350c78421ee64ff18e"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-write-v37-generation59-20260814-r1"
+    / "build/persistent-root-local-image-write-diag-v38-generation60-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-write-v37",
+    admission_profile="persistent-root-local-image-write-diag-v38",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-write-v37",
-    build_profile="persistent-root-local-image-write-v37",
+    runtime_profile="persistent-root-local-image-write-diag-v38",
+    build_profile="persistent-root-local-image-write-diag-v38",
     diagnostic=False,
 )
 
@@ -175,6 +175,12 @@ STAGES = {
     "userdata-mount",
     "image-resolved",
     "image-write",
+    "image-write-window",
+    "userdata-rw",
+    "image-loop-rw",
+    "image-fs-rw",
+    "image-probe",
+    "storage-relock",
     "image-mount",
     "root-verify",
     "ufs-health",

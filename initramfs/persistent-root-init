@@ -26,6 +26,7 @@ userdata=
 userdata_disk=
 root_image=
 root_loop=
+image_write_failure_stage=image-write
 release_file=/proc/sys/kernel/osrelease
 expected_udc=a600000.usb
 udc_class_dir=/sys/class/udc
@@ -50,7 +51,8 @@ publish_stage() {
 	case $stage_name in
 		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
 userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
-image-write|\
+image-write|image-write-window|userdata-rw|image-loop-rw|image-fs-rw|\
+image-probe|storage-relock|\
 overlay|runtime|final-storage|switch-root) ;;
 		*) return 1 ;;
 	esac
@@ -683,12 +685,14 @@ run_local_image_write_probe() {
 	probe_loop_attached=0
 	probe_mounted=0
 	userdata_mounted=0
+	image_write_failure_stage=image-write-window
 
 	umount /mnt/userdata || return 1
 	open_exact_userdata_write_window || {
 		close_exact_userdata_write_window || true
 		return 1
 	}
+	image_write_failure_stage=userdata-rw
 	if mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
 		"$userdata" /mnt/userdata; then
 		userdata_mounted=1
@@ -700,6 +704,9 @@ run_local_image_write_probe() {
 		verify_only_userdata_mount || probe_status=1
 		verify_exact_userdata_write_window || probe_status=1
 		resolve_local_root_image || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-loop-rw
 	fi
 	if [ "$probe_status" -eq 0 ]; then
 		probe_loop=$(losetup -f) || probe_status=1
@@ -737,6 +744,9 @@ run_local_image_write_probe() {
 		printf '%s\n' "$probe_blkid" |
 			grep -Fq ' TYPE="ext4"' || probe_status=1
 	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-fs-rw
+	fi
 	if [ "$probe_status" -eq 0 ] &&
 		mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
 		"$probe_loop" /mnt/probe-root; then
@@ -745,7 +755,11 @@ run_local_image_write_probe() {
 		probe_status=1
 	fi
 	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-probe
 		write_exact_local_image_probe || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=storage-relock
 	fi
 	sync || probe_status=1
 
@@ -764,6 +778,7 @@ run_local_image_write_probe() {
 	# Resume the established immutable runtime only after every UFS node is RO.
 	mount_persistent_root || return 1
 	resolve_local_root_image || return 1
+	image_write_failure_stage=image-write
 	return 0
 }
 
@@ -1273,7 +1288,13 @@ fi
 publish_or_rollback image-resolved PASS
 publish_or_rollback image-write ENTER
 if ! run_local_image_write_probe; then
-	fail_local_stage image-write 'bounded local-image write probe failed'
+	case $image_write_failure_stage in
+		image-write-window|userdata-rw|image-loop-rw|image-fs-rw|\
+		image-probe|storage-relock) ;;
+		*) image_write_failure_stage=image-write ;;
+	esac
+	fail_local_stage "$image_write_failure_stage" \
+		'bounded local-image write probe failed'
 fi
 publish_or_rollback image-write PASS
 publish_or_rollback image-mount ENTER

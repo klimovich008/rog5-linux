@@ -451,6 +451,17 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn("write_exact_local_image_probe || probe_status=1", write_cycle)
         self.assertIn("sync", write_cycle)
         self.assertIn("close_exact_userdata_write_window", write_cycle)
+        for failure_stage in (
+            "image-write-window",
+            "userdata-rw",
+            "image-loop-rw",
+            "image-fs-rw",
+            "image-probe",
+            "storage-relock",
+        ):
+            self.assertIn(
+                f"image_write_failure_stage={failure_stage}", write_cycle
+            )
         for forbidden in ("mkfs", "dd ", "blkdiscard", "sgdisk", "parted"):
             self.assertNotIn(forbidden, write_cycle)
 
@@ -460,7 +471,9 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         read_mount = self.source.index("if ! mount_local_root_image; then")
         self.assertLess(write_stage, read_mount)
         self.assertIn("publish_or_rollback image-write PASS", self.source)
-        self.assertIn("fail_local_stage image-write", self.source)
+        self.assertIn(
+            'fail_local_stage "$image_write_failure_stage"', self.source
+        )
         self.assertIn(
             "verify_exact_local_image_probe \"$root\"",
             function(self.source, "verify_persistent_root"),
