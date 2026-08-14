@@ -287,11 +287,20 @@ advance and `/var/lib/rog5`, the marker, and the temporary marker were all
 absent. Exact Alpine fallback and host cleanup passed. Generation 59 is
 revoked and must never be retried.
 
-Generation 60 keeps the exact same bounded mutation and adds only terminal
-failure classification for the write window, outer userdata RW mount, loop
-identity, inner image RW mount, marker creation, and storage relock. It remains
-RAM-only and one-use; GPT, partition geometry, firmware, calibration, device
-identity, and the Alpine recovery route remain outside its write surface.
+Generation 60 also consumed its sole RAM-only cycle. It reached exact UFS,
+`userdata`, and read-only image resolution, then reported
+`image-write-window: FAIL` before the outer userdata RW mount. Read-only
+fallback inspection found a clean image with mount count one and no marker
+ancestry. Exact PS_HOLD Alpine fallback and host cleanup passed. Generation 60
+is revoked and must never be retried.
+
+Generation 61 keeps the exact same bounded mutation and adds only terminal
+failure classification for userdata unmount, the read-only precheck,
+partition and parent-disk `BLKROSET`, effective blockdev/sysfs state, node
+count, outer userdata RW mount, loop identity, inner image RW mount, marker
+creation, and storage relock. It remains RAM-only and one-use; GPT, partition
+geometry, firmware, calibration, device identity, and the Alpine recovery
+route remain outside its write surface.
 
 ## Reproduction commands
 

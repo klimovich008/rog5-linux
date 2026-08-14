@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-write-diag-v38-live-v1"
-BUNDLE = "persistent-root-local-image-write-diag-v38"
+PROFILE_ID = "persistent-root-local-image-write-window-v39-live-v1"
+BUNDLE = "persistent-root-local-image-write-window-v39"
 MANIFEST_SHA256 = (
-    "a12844274c1bc707cee9ae1f3e464e73ffed57adcd477af8f21fbb678173c444"
+    "35cdc621f44873e42b1b8f2619e383d1a6ed2236f49790fdf36c7435e7883824"
 )
 RECOVERY_SHA256 = (
-    "b4cbabb688f513db7939670fa1f6068065b6e6130c3418350c78421ee64ff18e"
+    "8215928fc9c68414e90f50401238a4539b3f0f101c7834f3fce242b71ee3606d"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-write-diag-v38-generation60-20260814-r1"
+    / "build/persistent-root-local-image-write-window-v39-generation61-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-write-diag-v38",
+    admission_profile="persistent-root-local-image-write-window-v39",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-write-diag-v38",
-    build_profile="persistent-root-local-image-write-diag-v38",
+    runtime_profile="persistent-root-local-image-write-window-v39",
+    build_profile="persistent-root-local-image-write-window-v39",
     diagnostic=False,
 )
 
@@ -176,6 +176,13 @@ STAGES = {
     "image-resolved",
     "image-write",
     "image-write-window",
+    "userdata-unmount",
+    "write-window-precheck",
+    "userdata-partition-rw",
+    "userdata-disk-rw",
+    "write-window-blockdev",
+    "write-window-sysfs",
+    "write-window-count",
     "userdata-rw",
     "image-loop-rw",
     "image-fs-rw",

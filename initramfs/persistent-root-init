@@ -51,8 +51,10 @@ publish_stage() {
 	case $stage_name in
 		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
 userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
-image-write|image-write-window|userdata-rw|image-loop-rw|image-fs-rw|\
-image-probe|storage-relock|\
+image-write|image-write-window|userdata-unmount|write-window-precheck|\
+userdata-partition-rw|userdata-disk-rw|write-window-blockdev|\
+write-window-sysfs|write-window-count|userdata-rw|image-loop-rw|\
+image-fs-rw|image-probe|storage-relock|\
 overlay|runtime|final-storage|switch-root) ;;
 		*) return 1 ;;
 	esac
@@ -591,16 +593,20 @@ verify_exact_userdata_write_window() {
 					writable=$((writable + 1))
 					;;
 			esac
+			image_write_failure_stage=write-window-blockdev
 			[ "$(blockdev --getro "$device")" = "$expected_ro" ] ||
 				return 1
+			image_write_failure_stage=write-window-sysfs
 			[ "$(cat "$sys_block/ro")" = "$expected_ro" ] || return 1
 			count=$((count + 1))
 		done
 	done
+	image_write_failure_stage=write-window-count
 	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
 }
 
 open_exact_userdata_write_window() {
+	image_write_failure_stage=write-window-precheck
 	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
 	userdata_disk=${userdata%23}
 	disk_name=${userdata_disk##*/}
@@ -616,7 +622,9 @@ open_exact_userdata_write_window() {
 		return 1
 	verify_physical_storage_read_only || return 1
 	# Keep the parent disk read-only until the exact partition flag is ready.
+	image_write_failure_stage=userdata-partition-rw
 	blockdev --setrw "$userdata" || return 1
+	image_write_failure_stage=userdata-disk-rw
 	blockdev --setrw "$userdata_disk" || {
 		blockdev --setro "$userdata" || true
 		return 1
@@ -685,7 +693,7 @@ run_local_image_write_probe() {
 	probe_loop_attached=0
 	probe_mounted=0
 	userdata_mounted=0
-	image_write_failure_stage=image-write-window
+	image_write_failure_stage=userdata-unmount
 
 	umount /mnt/userdata || return 1
 	open_exact_userdata_write_window || {
@@ -1289,8 +1297,10 @@ publish_or_rollback image-resolved PASS
 publish_or_rollback image-write ENTER
 if ! run_local_image_write_probe; then
 	case $image_write_failure_stage in
-		image-write-window|userdata-rw|image-loop-rw|image-fs-rw|\
-		image-probe|storage-relock) ;;
+		image-write-window|userdata-unmount|write-window-precheck|\
+		userdata-partition-rw|userdata-disk-rw|write-window-blockdev|\
+		write-window-sysfs|write-window-count|userdata-rw|image-loop-rw|\
+		image-fs-rw|image-probe|storage-relock) ;;
 		*) image_write_failure_stage=image-write ;;
 	esac
 	fail_local_stage "$image_write_failure_stage" \
