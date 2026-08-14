@@ -397,13 +397,24 @@ host restoration passed. Generation 69 is revoked and must never be retried or
 flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
 and [live result](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
 
-Generation 70 is the unbooted successor. It changes no target-side bytes or
-storage behavior. The host accepts a bounded startup-output stream only when
-it contains exactly one authenticated marker line, rejects ambiguous output,
-and still invokes the exact storage evidence command once. This is the narrow
-fix for Generation 69's demonstrated host parser defect; the accepted kernel,
-root bundle, and rollback path remain unchanged. See the
-[offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md).
+Generation 70 consumed its sole RAM-only cycle and formally passed the complete
+local-image path. Exact UFS, both `ro,noload` ext4 layers, tmpfs OverlayFS, P2
+storage attestation, stable NCM, and key-only SSH passed. Attempt seven returned
+175 bounded startup bytes containing exactly one marker; the corrected host
+accepted it and the exact runtime command passed at target uptime 243.46
+seconds. End-to-end accepted SSH took 326.300 seconds versus Generation 20's
+380-second reference. Normal reboot, exact Alpine fallback, PS_HOLD/HARD_RESET
+lineage, intent resolution, and host restoration passed. Generation 70 is
+revoked and must never be retried or flashed. See the
+[offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md)
+and [live result](../test-results/2026-08-14-generation-70-bounded-startup-output-live.md).
+
+This completes reversible Phase 2: Generation 64 proved a write constrained to
+the existing 16-GiB image, Generations 66–70 repeatedly booted that image
+read-only, and the successful target root path no longer uses NFS. No new
+local-image candidate is admitted. The next step is a dedicated-Linux layout
+proposal and exact destructive-operation review; partitioning still requires
+final operator confirmation.
 
 ## Reproduction commands
 

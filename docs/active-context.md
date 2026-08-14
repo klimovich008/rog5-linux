@@ -455,13 +455,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   or flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
   and [live result](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
 
-- **Generation 70 is the current unbooted one-use successor.** It changes no
-  target-side bytes. The host accepts one bounded SSH startup-output stream
-  only when it contains exactly one authenticated marker line, rejects NUL,
-  duplicate-marker, missing-marker, and over-4096-byte output, and still runs
-  the exact runtime evidence command only once. The unchanged v45 target
-  bundle and raw recovery are wrapped by byte-identical twin issuances. See
-  the [offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md).
+- **Generation 70 formally passed and is consumed.** The sole RAM-only cycle
+  passed exact UFS, both `ro,noload` ext4 layers, tmpfs OverlayFS, P2 storage
+  attestation, stable NCM, and key-only `sshd`. Its seventh bounded SSH attempt
+  returned 175 bytes containing exactly one authenticated marker; the host
+  accepted it and the one exact runtime command passed at target uptime
+  243.46 seconds. End-to-end accepted SSH took 326.300 seconds, 53.700 seconds
+  faster than Generation 20. Normal reboot, exact Alpine fallback,
+  PS_HOLD/HARD_RESET lineage, intent resolution, and host restoration passed.
+  Generation 70 is revoked and must never be retried or flashed. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md)
+  and [live result](../test-results/2026-08-14-generation-70-bounded-startup-output-live.md).
+
+- **No local-image candidate is currently admitted.** The reversible Phase 2
+  milestone is complete: a controlled in-image write was proven by Generation
+  64, repeated read-only local boots passed, NFS is absent from the successful
+  target root path, and Generation 70 completed formal SSH plus fallback. The
+  next storage step is a reviewed dedicated-Linux layout, not another identical
+  one-use repeat.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

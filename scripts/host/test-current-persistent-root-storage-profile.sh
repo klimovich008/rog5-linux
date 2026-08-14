@@ -12,13 +12,15 @@ claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 issued_basis='one exact read-only local-image Arch repeat accepting one bounded startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted v45 target bundle, four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, early strict Ed25519 SSH, storage attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-consumed_basis='consumed by the sole Generation 69 RAM-only cycle; exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, and key-only sshd passed; the bounded rendezvous reached one status-zero SSH response within its deadline but rejected unretained extra startup output before the runtime command; the same boot later passed exact runtime at 378.07 seconds and diagnostics; normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed; never retry or flash'
+consumed_basis='consumed by the sole Generation 70 RAM-only cycle; exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, bounded authenticated SSH marker acceptance, strict key-only runtime, normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed in 326.300 seconds; never retry or flash'
+generation69_basis='consumed by the sole Generation 69 RAM-only cycle; exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, and key-only sshd passed; the bounded rendezvous reached one status-zero SSH response within its deadline but rejected unretained extra startup output before the runtime command; the same boot later passed exact runtime at 378.07 seconds and diagnostics; normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed; never retry or flash'
 profile=persistent-root-local-image-early-ssh-v45-generation70-live-v1
 image_name=build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1/repack/stable-recovery-a.avb.img
 generation69_image=build/persistent-root-local-image-early-ssh-v45-generation69-20260814-r1/repack/stable-recovery-a.avb.img
 issued_role='unbooted Generation 70 bounded-startup-output local-image successor; exact unchanged v45 signed target bundle and raw recovery, fresh deterministic AVB wrapper, one exact authenticated marker line amid at most 4096 startup-output bytes before one runtime evidence command; one RAM-only use only; never flash'
-consumed_role='consumed Generation 69 authenticated-SSH-rendezvous cycle; exact UFS/local-image/P2 and later same-boot runtime passed; a status-zero cold SSH response carried unretained extra startup output and was rejected before runtime; normal reboot and exact Alpine fallback passed; never retry or flash'
-[[ $consumed_role == consumed\ * ]] || fail 'Generation 69 role must remain consumed'
+consumed_role='consumed Generation 70 bounded-startup-output local-image cycle; exact UFS/local-image/P2, one authenticated marker amid 175 bounded startup bytes, strict runtime at 243.46 seconds uptime, normal reboot, exact Alpine fallback, and host restoration passed in 326.300 seconds; never retry or flash'
+generation69_role='consumed Generation 69 authenticated-SSH-rendezvous cycle; exact UFS/local-image/P2 and later same-boot runtime passed; a status-zero cold SSH response carried unretained extra startup output and was rejected before runtime; normal reboot and exact Alpine fallback passed; never retry or flash'
+[[ $consumed_role == consumed\ * ]] || fail 'Generation 70 role must remain consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -108,21 +110,21 @@ for index in "${!fields[@]}"; do
 		fail "wrong ${fields[$index]} returned an unexpected rejection"
 done
 
-awk -F '\t' -v name="$image_name" -v basis="$issued_basis" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+awk -F '\t' -v name="$image_name" -v basis="$consumed_basis" '
+	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 70 image is not uniquely allowed'
-awk -F '\t' -v name="$generation69_image" -v basis="$consumed_basis" '
+' "$boot_policy" || fail 'Generation 70 image is not uniquely revoked'
+awk -F '\t' -v name="$generation69_image" -v basis="$generation69_basis" '
 	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$boot_policy" || fail 'Generation 69 image is not uniquely revoked'
-awk -F '\t' -v name="$image_name" -v role="$issued_role" '
+awk -F '\t' -v name="$image_name" -v role="$consumed_role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "0f8352ad767ffb77def5e2ac644af994c0df577c89f6051f87e1e8fb49b6635d" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$inventory" || fail 'Generation 70 artifact inventory is not exact'
-awk -F '\t' -v name="$generation69_image" -v role="$consumed_role" '
+' "$inventory" || fail 'Generation 70 consumed artifact inventory is not exact'
+awk -F '\t' -v name="$generation69_image" -v role="$generation69_role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "4dfc0efc92b511b424b7d9db115d692c79b0366459e23582421cd37d9c307a65" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
@@ -169,4 +171,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 70 is the exact one-use successor and Generation 69 remains consumed and revoked'
+echo 'PASS Generation 70 profile remains exact and artifact-verified while policy and inventory permanently refuse reuse'

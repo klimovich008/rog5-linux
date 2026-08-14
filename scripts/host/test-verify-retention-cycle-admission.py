@@ -437,14 +437,12 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry\n"
             "build/persistent-root-local-image-early-ssh-v45-generation70-"
-            "20260814-r1/repack/stable-recovery-a.avb.img\tallow\t"
-            "one exact read-only local-image Arch repeat accepting one bounded "
-            "startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted "
-            "v45 target bundle, four-module UFS, two ro,noload ext4 layers, "
-            "persisted Generation 64 marker, early strict Ed25519 SSH, storage "
-            "attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; "
-            "externally consumed exact claim required; never flash or retry "
-            "after entry\n"
+            "20260814-r1/repack/stable-recovery-a.avb.img\trevoked\t"
+            "consumed by the sole Generation 70 RAM-only cycle; exact UFS, "
+            "local image, tmpfs OverlayFS, P2 storage attestation, bounded "
+            "authenticated SSH marker acceptance, strict key-only runtime, "
+            "normal reboot, exact Alpine fallback, PS_HOLD lineage, and host "
+            "restoration passed in 326.300 seconds; never retry or flash\n"
             "build/persistent-root-local-image-early-ssh-v45-generation67-"
             "20260814-r1/repack/stable-recovery-a.avb.img\trevoked\t"
             "consumed by the sole Generation 67 RAM-only cycle; exact UFS, two "
@@ -857,7 +855,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=3", report)
+        self.assertIn("temporary_boot_allow_rows=2", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)
