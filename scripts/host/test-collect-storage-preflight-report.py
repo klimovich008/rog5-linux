@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Hardware-free tests for exact storage-preflight report collection."""
+
+from __future__ import annotations
+
+from collections import OrderedDict
+import importlib.util
+from pathlib import Path
+import sys
+import unittest
+from unittest import mock
+
+
+REPO = Path(__file__).resolve().parents[2]
+SOURCE = REPO / "scripts/host/collect-storage-preflight-report.py"
+SPEC = importlib.util.spec_from_file_location("collect_storage_preflight", SOURCE)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("cannot load storage-preflight collector")
+MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+LOCATION = "pci0000:00/0000:00:08.1/usb1/1-1/1-1.2"
+VALID = (
+    b"ROG5_STORAGE_PREFLIGHT_V1 status=PASS logical_block_bytes=4096 "
+    b"lun_bytes=253403070464 gpt_entries=32 userdata_first_lba=2352680 "
+    b"userdata_last_lba=61865978 userdata_blocks=59513299 "
+    b"ext4_blocks=59513299 ext4_minimum_blocks=11695396 "
+    b"proposed_userdata_last_lba=53477375 "
+    b"proposed_root_first_lba=53477376 "
+    b"proposed_root_last_lba=61865978 sgdisk=1.0.10 "
+    b"e2fsprogs=1.47.4 all_read_only=1 block_mounts=0\n"
+)
+
+
+class ReportTests(unittest.TestCase):
+    def test_exact_report_passes(self) -> None:
+        values = MODULE.parse_report(VALID)
+        self.assertIsInstance(values, OrderedDict)
+        self.assertEqual(values["ext4_minimum_blocks"], "11695396")
+
+    def test_fixed_storage_identity_change_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "identity changed"):
+            MODULE.parse_report(VALID.replace(b"lun_bytes=253403070464", b"lun_bytes=1"))
+
+    def test_field_reordering_fails(self) -> None:
+        changed = VALID.replace(
+            b"status=PASS logical_block_bytes=4096",
+            b"logical_block_bytes=4096 status=PASS",
+        )
+        with self.assertRaisesRegex(MODULE.PreflightError, "field order"):
+            MODULE.parse_report(changed)
+
+    def test_extra_field_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "shape"):
+            MODULE.parse_report(VALID[:-1] + b" extra=1\n")
+
+    def test_missing_newline_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "framing"):
+            MODULE.parse_report(VALID[:-1])
+
+    def test_noncanonical_minimum_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "outside policy"):
+            MODULE.parse_report(
+                VALID.replace(
+                    b"ext4_minimum_blocks=11695396",
+                    b"ext4_minimum_blocks=011695396",
+                )
+            )
+
+    def test_oversized_minimum_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "outside policy"):
+            MODULE.parse_report(
+                VALID.replace(
+                    b"ext4_minimum_blocks=11695396",
+                    b"ext4_minimum_blocks=51124001",
+                )
+            )
+
+
+class IdentityTests(unittest.TestCase):
+    def identity(self, location: str = LOCATION) -> MODULE.CORE.AcmIdentity:
+        return MODULE.CORE.AcmIdentity("/dev/ttyACM7", location, 123)
+
+    def find(self, products: set[str], identities: list[MODULE.CORE.AcmIdentity]):
+        with (
+            mock.patch.object(MODULE, "storage_product_locations", return_value=products),
+            mock.patch.object(MODULE, "storage_acm_identities", return_value=identities),
+        ):
+            return MODULE.find_storage_acm(LOCATION)
+
+    def test_one_exact_identity_passes(self) -> None:
+        identity = self.identity()
+        self.assertEqual(self.find({LOCATION}, [identity]), identity)
+
+    def test_zero_or_multiple_products_fail_closed(self) -> None:
+        identity = self.identity()
+        for products in (set(), {LOCATION, LOCATION + ".1"}):
+            with self.subTest(products=products):
+                with self.assertRaisesRegex(MODULE.PreflightError, "exactly one"):
+                    self.find(products, [identity])
+
+    def test_zero_or_multiple_acm_interfaces_fail_closed(self) -> None:
+        identity = self.identity()
+        for identities in ([], [identity, identity]):
+            with self.subTest(count=len(identities)):
+                with self.assertRaisesRegex(MODULE.PreflightError, "exactly one"):
+                    self.find({LOCATION}, identities)
+
+    def test_product_and_acm_mismatch_fails(self) -> None:
+        with self.assertRaisesRegex(MODULE.PreflightError, "escaped"):
+            self.find({LOCATION}, [self.identity(LOCATION + ".1")])
+
+    def test_wrong_physical_port_fails(self) -> None:
+        wrong = LOCATION + ".1"
+        with self.assertRaisesRegex(MODULE.PreflightError, "another physical"):
+            self.find({wrong}, [self.identity(wrong)])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

@@ -620,6 +620,14 @@ EXPECTED_CLAIMS[
     "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["storage-preflight-v1-generation71-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=storage-preflight-v1-generation71-live-v1\n"
+    "candidate=storage-preflight-v1\n"
+    "manifest_sha256="
+    "a14872f8ca4db705015586f4e199e5bdf607f947f96949eecd35e42a137d19c5\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["persistent-root-local-image-write-mountpoint-v42-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=persistent-root-local-image-write-mountpoint-v42-live-v1\n"

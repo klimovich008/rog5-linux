@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "storage-preflight-v1-generation71-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=storage-preflight-v1-generation71-live-v1\n"
+        b"candidate=storage-preflight-v1\n"
+        b"manifest_sha256="
+        b"a14872f8ca4db705015586f4e199e5bdf607f947f96949eecd35e42a137d19c5\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-local-image-early-ssh-v45-generation70-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-local-image-early-ssh-v45-generation70-live-v1\n"

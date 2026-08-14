@@ -269,6 +269,8 @@ shared_tests=(
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
 	scripts/host/test-storage-preflight-initramfs-contract.py
+	scripts/host/test-collect-storage-preflight-report.py
+	scripts/host/test-storage-preflight-candidate.py
 	scripts/device/test-network-root-init.sh
 	scripts/device/test-kernel-build-contract.sh
 	scripts/device/test-asus-kexec-stage-slim-build-contract.sh
