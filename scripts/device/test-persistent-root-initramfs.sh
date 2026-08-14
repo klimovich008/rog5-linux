@@ -86,6 +86,16 @@ grep -Fq 'EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
 grep -Fq 'expected_physical_count=116' "$init"
+grep -Fq "'format=rog5-persistent-root-stage-v2'" "$init" ||
+	fail 'P2 target lacks bounded stage-detail framing'
+grep -Fq 'stage_detail=${3:-none}' "$init" ||
+	fail 'P2 target lacks a default fail-closed stage detail'
+grep -Fq '"detail=$stage_detail"' "$init" ||
+	fail 'P2 target does not publish the bounded stage detail'
+grep -Fq 'publish_stage ufs-ready FAIL "$ufs_discovery_detail"' "$init" ||
+	fail 'P2 target does not retain the UFS discovery discriminator'
+grep -Fq 'ufs-discovery-p${count}-a${auto_count}-h${host_count}-w${wlun_count}-e${error_count}' \
+	"$init" || fail 'P2 UFS discriminator lacks exact counters'
 grep -Fq 'expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876' \
 	"$init"
 grep -Fq 'expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167' \
@@ -155,6 +165,8 @@ done
 grep -Fq 'failure timing marker stage=$stage delay=${delay}s' "$init"
 grep -Fq 'sleep "$delay"' "$init"
 grep -Fq 'ufs_modules=${4:-}' "$builder"
+grep -Fq 'require_deferred_ufs_modules=${REQUIRE_DEFERRED_UFS_MODULES:-0}' \
+	"$builder" || fail 'P2 builder does not expose the deferred-module contract'
 for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
 	ufs-qcom.ko; do
 	grep -Fq "$module" "$builder"
@@ -254,6 +266,14 @@ if UFS_STORAGE_MODE=local-write EXPECTED_PROBE_BOOT_ID="$writer_boot_id" \
 fi
 grep -Fxq 'FAIL EXPECTED_PROBE_BOOT_ID must be current for local-write' \
 	"$work/local-write-pinned.err"
+if REQUIRE_DEFERRED_UFS_MODULES=1 "$builder" "$base" "$verifier" \
+	"$work/missing-required-modules.cpio.gz" \
+	>"$work/missing-required-modules.out" \
+	2>"$work/missing-required-modules.err"; then
+	fail 'P2 builder accepted a module-less image under the required contract'
+fi
+grep -Fxq 'FAIL deferred UFS modules are required for this kernel' \
+	"$work/missing-required-modules.err"
 if [ -n "$ufs_modules" ]; then
 	UFS_STORAGE_MODE=$storage_mode \
 	"$builder" "$base" "$verifier" "$work/a.cpio.gz" \

@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-local-image-ufs-detail-v44-live-v1 | \
 		persistent-root-local-image-post-write-v43-live-v1 | \
 		persistent-root-local-image-write-mountpoint-v42-live-v1 | \
 		persistent-root-local-image-write-contained-v41-live-v1 | \
@@ -1892,10 +1893,49 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-ufs-detail-v44-live-v1)
+		expected_boot_image=build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only local-image Arch cycle restoring the accepted four deferred UFS modules omitted from Generation 65; UFS failures report bounded stage detail, both ext4 layers remain ro,noload, no write window is entered, and the persisted Generation 64 marker remains pinned; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 66 module-restored UFS-detail successor; exact accepted four-module UFS inventory, bounded stage-detail diagnostics, two ro,noload ext4 layers, pinned Generation 64 marker lineage, volatile overlay, and key-only SSH; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=5ad4a42c97c01ecae711cb6051b1ae320f7b189c022aa0668552efe4f00d602b
+		expected_initramfs=14dd9901fc3d0385e126930633a9e58b5195bafc63388d3e7341d0c9eb851946
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-local-image-ufs-detail-v44
+		expected_bundle=persistent-root-local-image-ufs-detail-v44
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_avb_salt=f537b31e935551de1f80f047f6d35262c2c925bc02533b5e005d965ad6e8ce4d
+		expected_avb_digest=b1ceb0949211677269294b9da6f710bbe331e9aa903b7c52b61059af18d4ea3e
+		expected_generation_record=e9d3d2add267da9145e8efc713bc68e3fe2ffa2380274d62575c6dd3a19eb70a
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			07e7f72c7c88ea4c081d77e3e561c36278ef0a0273dee6b831ca691f6518ee2e ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			d4d95e010810e09a209f0cde8f82e3d36e28c20dfa1b5aa899b5873c1ee36412 ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-post-write-v43-live-v1)
 		expected_boot_image=build/persistent-root-local-image-post-write-v43-generation65-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only post-write local-image Arch cycle using the previously accepted read-only UFS kernel; both ext4 layers remain ro,noload, no write window is entered, and the persisted Generation 64 marker must match its exact pinned writer boot while differing from the current boot; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 65 read-only post-write successor; accepted read-only UFS kernel, two ro,noload ext4 layers, exact persisted Generation 64 marker lineage, volatile overlay, and key-only SSH; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 65 RAM-only cycle; the accepted read-only kernel booted but the sealed initramfs omitted all four deferred UFS modules, so UFS discovery timed out at ufs-ready before any storage node, mount, image, or write path; exact Alpine fallback, PS_HOLD/HARD_RESET lineage, and host cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 65 read-only cycle; the sealed initramfs omitted all four deferred UFS modules, so UFS discovery timed out before storage enumeration; exact Alpine fallback and host cleanup passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -2802,6 +2842,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-ufs-detail-v44-live-v1 | \
 	persistent-root-local-image-post-write-v43-live-v1 | \
 	persistent-root-local-image-write-mountpoint-v42-live-v1 | \
 	persistent-root-local-image-write-contained-v41-live-v1 | \

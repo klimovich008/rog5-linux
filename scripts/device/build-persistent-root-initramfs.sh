@@ -5,6 +5,7 @@ base=${1:?usage: build-persistent-root-initramfs.sh BASE VERIFIER OUTPUT [UFS_MO
 verifier=${2:?missing persistent-root verifier}
 output=${3:?missing output}
 ufs_modules=${4:-}
+require_deferred_ufs_modules=${REQUIRE_DEFERRED_UFS_MODULES:-0}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
@@ -37,6 +38,20 @@ case $storage_mode in
 		;;
 	*)
 		echo 'FAIL UFS_STORAGE_MODE must be read-only or local-write' >&2
+		exit 1
+		;;
+esac
+
+case $require_deferred_ufs_modules in
+	0) ;;
+	1)
+		[ -n "$ufs_modules" ] || {
+			echo 'FAIL deferred UFS modules are required for this kernel' >&2
+			exit 1
+		}
+		;;
+	*)
+		echo 'FAIL REQUIRE_DEFERRED_UFS_MODULES must be 0 or 1' >&2
 		exit 1
 		;;
 esac

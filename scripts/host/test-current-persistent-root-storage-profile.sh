@@ -11,12 +11,12 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-basis='one exact read-only post-write local-image Arch cycle using the previously accepted read-only UFS kernel; both ext4 layers remain ro,noload, no write window is entered, and the persisted Generation 64 marker must match its exact pinned writer boot while differing from the current boot; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-profile=persistent-root-local-image-post-write-v43-live-v1
-image_name=build/persistent-root-local-image-post-write-v43-generation65-20260814-r1/repack/stable-recovery-a.avb.img
-role='unbooted Generation 65 read-only post-write successor; accepted read-only UFS kernel, two ro,noload ext4 layers, exact persisted Generation 64 marker lineage, volatile overlay, and key-only SSH; one RAM-only use only; never flash'
+basis='one exact read-only local-image Arch cycle restoring the accepted four deferred UFS modules omitted from Generation 65; UFS failures report bounded stage detail, both ext4 layers remain ro,noload, no write window is entered, and the persisted Generation 64 marker remains pinned; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+profile=persistent-root-local-image-ufs-detail-v44-live-v1
+image_name=build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1/repack/stable-recovery-a.avb.img
+role='unbooted Generation 66 module-restored UFS-detail successor; exact accepted four-module UFS inventory, bounded stage-detail diagnostics, two ro,noload ext4 layers, pinned Generation 64 marker lineage, volatile overlay, and key-only SSH; one RAM-only use only; never flash'
 [[ $role == unbooted\ * ]] ||
-	fail 'Generation 65 artifact role must remain unbooted before entry'
+	fail 'Generation 66 artifact role must remain unbooted before entry'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-local-image-post-write-v43 \
-	expected_bundle=persistent-root-local-image-post-write-v43 \
+	expected_target_id=persistent-root-local-image-ufs-detail-v44 \
+	expected_bundle=persistent-root-local-image-ufs-detail-v44 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=0497e7a871cc43efff41494dc7591ee28e4dfec440beda78224232804591129c \
-	expected_avb_digest=8c93bfbd4089873a6a1f4a2de71c125f9bf6c6f31c4aff1889b192c6f9421c5e \
-	expected_generation_record=3f94c8b014d3aca25c29494fe8f55d7b256ff7ccf2a58e6d53bb743268001794 \
+	expected_avb_salt=f537b31e935551de1f80f047f6d35262c2c925bc02533b5e005d965ad6e8ce4d \
+	expected_avb_digest=b1ceb0949211677269294b9da6f710bbe331e9aa903b7c52b61059af18d4ea3e \
+	expected_generation_record=e9d3d2add267da9145e8efc713bc68e3fe2ffa2380274d62575c6dd3a19eb70a \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	80a4c775d973a2fc9d2159e48e87c21501339ce27a0226b35bbd7cd723e66fa1
+	d4d95e010810e09a209f0cde8f82e3d36e28c20dfa1b5aa899b5873c1ee36412
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	9a57ef7dab71d782bce1893525129e24bd350ee74f24aeabe4ed033af6500d07
+	07e7f72c7c88ea4c081d77e3e561c36278ef0a0273dee6b831ca691f6518ee2e
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-local-image-post-write-v43
+	persistent-root-local-image-ufs-detail-v44
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-local-image-post-write-v43' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-local-image-ufs-detail-v44' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-local-image-post-write-v43'
+	'profile requires bundle=persistent-root-local-image-ufs-detail-v44'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -105,10 +105,10 @@ done
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 65 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 66 image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "80a4c775d973a2fc9d2159e48e87c21501339ce27a0226b35bbd7cd723e66fa1" &&
+	$3 == "d4d95e010810e09a209f0cde8f82e3d36e28c20dfa1b5aa899b5873c1ee36412" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-local-image-post-write-v43-production-20260814-r1
-generation_root=$repo/build/persistent-root-local-image-post-write-v43-generation65-20260814-r1
+production_root=$repo/build/persistent-root-local-image-ufs-detail-v44-production-20260814-r1
+generation_root=$repo/build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -139,10 +139,23 @@ if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]
 	grep -Fxq \
 		"PASS stable-recovery artifact preflight profile=$profile image_sha256=${exact[0]}" \
 		<<<"$artifact" || fail 'persistent-root artifact preflight did not pass'
+	module_root=$tmp/module-proof
+	mkdir "$module_root"
+	gzip -dc "$production_root/bundle-a/persistent-root-local-image-ufs-detail-v44/initramfs.cpio.gz" |
+		(cd "$module_root" && cpio -idm --quiet --no-absolute-filenames)
+	module_inventory=$(find "$module_root/rog5-ufs-modules" -mindepth 1 \
+		-maxdepth 1 -printf '%f\n' | sort | tr '\n' ' ')
+	[[ $module_inventory == \
+		'phy-qcom-qmp-ufs.ko ufs-qcom.ko ufshcd-core.ko ufshcd-pltfrm.ko ' ]] ||
+		fail 'current image omits the exact deferred UFS module inventory'
+	[[ $(sha256sum "$module_root/rog5-ufs-modules/phy-qcom-qmp-ufs.ko" | cut -d ' ' -f 1) == 73fef6fa7620bd4f9ac6df658521904ffeff2e19b02bc0258b77c410b7051ddb ]]
+	[[ $(sha256sum "$module_root/rog5-ufs-modules/ufs-qcom.ko" | cut -d ' ' -f 1) == b55d7641727557e9682eb61cc0c43d21983676dfe258226dec49b33c71e8a26c ]]
+	[[ $(sha256sum "$module_root/rog5-ufs-modules/ufshcd-core.ko" | cut -d ' ' -f 1) == a3e26e00e56950d0cd89ffcf16eb4911b778eb832cdbafdea332451a94ef6562 ]]
+	[[ $(sha256sum "$module_root/rog5-ufs-modules/ufshcd-pltfrm.ko" | cut -d ' ' -f 1) == ef0a566ccd84094b47a4316c470d8db417a06604276ef240beaac72ae301b74d ]]
 else
 	[[ ${REQUIRE_CURRENT_PERSISTENT_ARTIFACT:-0} != 1 ]] ||
 		fail 'required persistent-root clean-twin output is absent'
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 65 read-only post-write profile, exact claim, artifact, and one-use admission are pinned'
+echo 'PASS Generation 66 module-restored UFS-detail profile, exact claim, artifact, and one-use admission are pinned'

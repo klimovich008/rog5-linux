@@ -2,7 +2,9 @@
 
 Date: 2026-08-14
 
-Status: **unbooted; no claim created; RAM-only candidate only.**
+Status at this checkpoint: **unbooted; no claim created; RAM-only candidate
+only.** The later sole live cycle is recorded in
+[Generation 65 post-write read-only live result](2026-08-14-generation-65-post-write-readonly-live.md).
 
 Generation 64 successfully persisted the exact local-image probe and proved a
 clean read-only remount, then deliberately rolled back at the aggregate

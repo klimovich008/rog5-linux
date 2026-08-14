@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-post-write-v43-live-v1"
-BUNDLE = "persistent-root-local-image-post-write-v43"
+PROFILE_ID = "persistent-root-local-image-ufs-detail-v44-live-v1"
+BUNDLE = "persistent-root-local-image-ufs-detail-v44"
 MANIFEST_SHA256 = (
-    "9a57ef7dab71d782bce1893525129e24bd350ee74f24aeabe4ed033af6500d07"
+    "07e7f72c7c88ea4c081d77e3e561c36278ef0a0273dee6b831ca691f6518ee2e"
 )
 RECOVERY_SHA256 = (
-    "80a4c775d973a2fc9d2159e48e87c21501339ce27a0226b35bbd7cd723e66fa1"
+    "d4d95e010810e09a209f0cde8f82e3d36e28c20dfa1b5aa899b5873c1ee36412"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-post-write-v43-generation65-20260814-r1"
+    / "build/persistent-root-local-image-ufs-detail-v44-generation66-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-post-write-v43",
+    admission_profile="persistent-root-local-image-ufs-detail-v44",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-post-write-v43",
-    build_profile="persistent-root-local-image-post-write-v43",
+    runtime_profile="persistent-root-local-image-ufs-detail-v44",
+    build_profile="persistent-root-local-image-ufs-detail-v44",
     diagnostic=False,
 )
 
@@ -164,6 +164,7 @@ class StageRecord(NamedTuple):
     sequence: int
     stage: str
     state: str
+    detail: str
     payload: bytes
 
 
@@ -215,9 +216,9 @@ def parse_stage_record(payload: bytes) -> StageRecord:
     if not text.endswith("\n") or "\r" in text or "\x00" in text:
         fail("target stage record framing is not exact")
     lines = text.splitlines()
-    if len(lines) != 6:
+    if len(lines) != 7:
         fail("target stage record has the wrong field count")
-    if lines[0] != "format=rog5-persistent-root-stage-v1":
+    if lines[0] != "format=rog5-persistent-root-stage-v2":
         fail("target stage record format changed")
     if lines[1] != f"target_release={TARGET_RELEASE}":
         fail("target stage record release changed")
@@ -229,15 +230,22 @@ def parse_stage_record(payload: bytes) -> StageRecord:
         fail("target stage record sequence is invalid")
     stage = lines[4].removeprefix("stage=")
     state = lines[5].removeprefix("state=")
+    detail = lines[6].removeprefix("detail=")
     if lines[4] != f"stage={stage}" or stage not in STAGES:
         fail("target stage record stage is invalid")
     if lines[5] != f"state={state}" or state not in STAGE_STATES:
         fail("target stage record state is invalid")
+    if (
+        lines[6] != f"detail={detail}"
+        or not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?", detail)
+    ):
+        fail("target stage record detail is invalid")
     return StageRecord(
         boot_id=boot_id,
         sequence=int(sequence_text),
         stage=stage,
         state=state,
+        detail=detail,
         payload=payload,
     )
 
@@ -537,7 +545,7 @@ def wait_for_target_host_key(
         fail(
             "target host key was not ready; last exact stage "
             f"sequence={previous.sequence} stage={previous.stage} "
-            f"state={previous.state}"
+            f"state={previous.state} detail={previous.detail}"
         )
     return previous
 

@@ -887,8 +887,11 @@ chmod() {
         self.assertIn("169.254.77.1 8079", sender)
         self.assertIn('send_stage_record <"$stage_record"', one_shot)
         self.assertIn('sleep 1', reporter)
-        self.assertIn('format=rog5-persistent-root-stage-v1', publisher)
+        self.assertIn('format=rog5-persistent-root-stage-v2', publisher)
         self.assertIn('"sequence=$stage_sequence"', publisher)
+        self.assertIn('"detail=$stage_detail"', publisher)
+        self.assertIn('stage_detail=${3:-none}', publisher)
+        self.assertIn('[ "${#stage_detail}" -le 128 ]', publisher)
         for transport in (reporter, sender, one_shot):
             self.assertNotIn("-l", transport)
             self.assertNotIn("sh -c", transport)

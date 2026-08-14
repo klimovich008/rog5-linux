@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-post-write-v43-live-v1",
+            "persistent-root-local-image-ufs-detail-v44-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-post-write-v43",
+            "persistent-root-local-image-ufs-detail-v44",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -212,17 +212,19 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_stage_records_are_exact_monotonic_and_bounded(self) -> None:
         boot_id = "11111111-2222-3333-4444-555555555555"
         first = (
-            "format=rog5-persistent-root-stage-v1\n"
+            "format=rog5-persistent-root-stage-v2\n"
             f"target_release={MODULE.TARGET_RELEASE}\n"
             f"boot_id={boot_id}\n"
             "sequence=6\n"
             "stage=root-verify\n"
             "state=ENTER\n"
+            "detail=none\n"
         ).encode()
         parsed = MODULE.parse_stage_record(first)
         self.assertEqual(parsed.sequence, 6)
         self.assertEqual(parsed.stage, "root-verify")
         self.assertEqual(parsed.state, "ENTER")
+        self.assertEqual(parsed.detail, "none")
 
         image_write = first.replace(b"root-verify", b"image-write")
         self.assertEqual(
@@ -263,6 +265,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             first + b"extra=1\n",
             first.replace(b"root-verify", b"unknown"),
             first.replace(b"state=ENTER", b"state=UNKNOWN"),
+            first.replace(b"detail=none", b"detail=UPPERCASE"),
+            first.replace(b"detail=none", b"detail=bad/value"),
             first.replace(b"target_release=", b"target_release=wrong-"),
             b"x" * (MODULE.STAGE_RECORD_MAX_BYTES + 1),
         ):
@@ -279,6 +283,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             sequence=parsed.sequence,
             stage="overlay",
             state=parsed.state,
+            detail=parsed.detail,
             payload=parsed.payload,
         )
         with self.assertRaises(MODULE.PersistentCycleError):
