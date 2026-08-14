@@ -21,6 +21,8 @@ expected_image_bytes=17179869184
 expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
 expected_probe_bytes=132
+expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
+expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 lower=/.rog5/root-ro
 image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
@@ -75,6 +77,24 @@ printf '%s\n' "$blkid_record" | grep -Fq ' TYPE="ext4"' ||
 
 probe_dir=$lower/var/lib/rog5
 probe_path=$probe_dir/local-image-write-probe-v1
+current_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
+	fail 'current boot identity is unavailable'
+case $expected_ufs_storage_mode in
+	local-write)
+		[ "$expected_probe_boot_id" = current ] ||
+			fail 'write-probe producer policy changed'
+		probe_boot_id=$current_boot_id
+		;;
+	read-only)
+		printf '%s\n' "$expected_probe_boot_id" |
+			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+			fail 'write-probe producer identity is invalid'
+		[ "$expected_probe_boot_id" != "$current_boot_id" ] ||
+			fail 'write-probe producer is not from an earlier boot'
+		probe_boot_id=$expected_probe_boot_id
+		;;
+	*) fail 'UFS storage mode changed' ;;
+esac
 for path in "$lower/var" "$lower/var/lib" "$probe_dir"; do
 	[ -d "$path" ] && [ ! -L "$path" ] ||
 		fail 'local-image write-probe ancestry changed'
@@ -86,7 +106,7 @@ done
 [ "$(wc -l <"$probe_path")" -eq 3 ] &&
 	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" &&
 	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" &&
-	grep -Fxq "boot_id=$(cat /proc/sys/kernel/random/boot_id)" "$probe_path" ||
+	grep -Fxq "boot_id=$probe_boot_id" "$probe_path" ||
 	fail 'local-image write-probe content changed'
 progress local-image-write-pass
 

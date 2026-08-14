@@ -16,6 +16,7 @@ mdev -s
 expected_physical_count=116
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
+expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -704,6 +705,20 @@ verify_exact_local_image_probe() {
 		/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;
 		*) return 1 ;;
 	esac
+	case $expected_ufs_storage_mode in
+		local-write)
+			[ "$expected_probe_boot_id" = current ] || return 1
+			probe_boot_id=$target_boot_id
+			;;
+		read-only)
+			printf '%s\n' "$expected_probe_boot_id" |
+				grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+				return 1
+			[ "$expected_probe_boot_id" != "$target_boot_id" ] || return 1
+			probe_boot_id=$expected_probe_boot_id
+			;;
+		*) return 1 ;;
+	esac
 	probe_dir=$probe_root/var/lib/rog5
 	probe_path=$probe_dir/local-image-write-probe-v1
 	for path in "$probe_root/var" "$probe_root/var/lib" "$probe_dir"; do
@@ -716,7 +731,7 @@ verify_exact_local_image_probe() {
 	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" ||
 		return 1
 	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" || return 1
-	grep -Fxq "boot_id=$target_boot_id" "$probe_path" || return 1
+	grep -Fxq "boot_id=$probe_boot_id" "$probe_path" || return 1
 }
 
 write_exact_local_image_probe() {
@@ -1275,8 +1290,17 @@ if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
 fi
 target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
 	fail_stage 'target boot identity is unavailable' kernel-release-file 20
-case $expected_ufs_storage_mode in
-	read-only | local-write) ;;
+case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
+	local-write:current) ;;
+	read-only:*)
+		printf '%s\n' "$expected_probe_boot_id" |
+			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+			fail_stage 'target write-probe producer identity is invalid' \
+				kernel-release-file 20
+		[ "$expected_probe_boot_id" != "$target_boot_id" ] ||
+			fail_stage 'target write-probe producer is not from an earlier boot' \
+				kernel-release-file 20
+		;;
 	*) fail_stage 'target UFS storage mode is invalid' kernel-release-file 20 ;;
 esac
 printf '%s\n' "$target_boot_id" |
@@ -1357,23 +1381,25 @@ if ! resolve_local_root_image; then
 	fail_local_stage image-resolved 'exact local root image identity failed'
 fi
 publish_or_rollback image-resolved PASS
-publish_or_rollback image-write ENTER
-if ! run_local_image_write_probe; then
-	case $image_write_failure_stage in
-		image-write-window|userdata-unmount|write-window-precheck|\
-		userdata-partition-rw|userdata-disk-rw|\
-		write-window-selected-disk-blockdev|write-window-selected-disk-sysfs|\
-		write-window-selected-part-blockdev|write-window-selected-part-sysfs|\
-		write-window-other-disk-blockdev|write-window-other-disk-sysfs|\
-		write-window-other-part-blockdev|write-window-other-part-sysfs|\
-		write-window-count|userdata-rw|image-loop-rw|\
-		image-fs-rw|image-probe|storage-relock) ;;
-		*) image_write_failure_stage=image-write ;;
-	esac
-	fail_local_stage "$image_write_failure_stage" \
-		'bounded local-image write probe failed'
+if [ "$expected_ufs_storage_mode" = local-write ]; then
+	publish_or_rollback image-write ENTER
+	if ! run_local_image_write_probe; then
+		case $image_write_failure_stage in
+			image-write-window|userdata-unmount|write-window-precheck|\
+			userdata-partition-rw|userdata-disk-rw|\
+			write-window-selected-disk-blockdev|write-window-selected-disk-sysfs|\
+			write-window-selected-part-blockdev|write-window-selected-part-sysfs|\
+			write-window-other-disk-blockdev|write-window-other-disk-sysfs|\
+			write-window-other-part-blockdev|write-window-other-part-sysfs|\
+			write-window-count|userdata-rw|image-loop-rw|\
+			image-fs-rw|image-probe|storage-relock) ;;
+			*) image_write_failure_stage=image-write ;;
+		esac
+		fail_local_stage "$image_write_failure_stage" \
+			'bounded local-image write probe failed'
+	fi
+	publish_or_rollback image-write PASS
 fi
-publish_or_rollback image-write PASS
 publish_or_rollback image-mount ENTER
 if ! mount_local_root_image; then
 	fail_local_stage image-mount 'read-only noload local root image mount failed'
