@@ -194,7 +194,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             attest,
         )
 
-    def test_post_handoff_storage_sweep_uses_static_runtime_tool(self) -> None:
+    def test_post_handoff_storage_sweep_uses_retained_runtime_loader(self) -> None:
         attest = ATTEST.read_text(encoding="utf-8")
         start = attest.index("\nphysical_count=0\n")
         end = attest.index("\nblocked_query_count=", start)
@@ -202,11 +202,17 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         self.assertIn(
             "runtime_busybox=/run/initramfs/bin/busybox", attest
         )
+        self.assertIn(
+            "runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1",
+            attest,
+        )
+        self.assertIn(
+            '"$runtime_loader" "$runtime_busybox" blockdev "$@"', attest
+        )
         self.assertIn("disk=${sys_disk##*/}", sweep)
         self.assertIn('IFS= read -r readonly <"$sys_block/ro"', sweep)
-        self.assertIn(
-            '"$runtime_busybox" blockdev --getro "$device"', sweep
-        )
+        self.assertIn('runtime_blockdev --getro "$device"', sweep)
+        self.assertEqual(attest.count('"$runtime_busybox" blockdev'), 1)
         self.assertNotIn("basename", sweep)
         self.assertNotIn("cat ", sweep)
         self.assertEqual(sweep.count("blockdev --getro"), 1)

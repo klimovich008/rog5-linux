@@ -2,9 +2,10 @@
 
 Date: 2026-08-14
 
-Status: **offline checks pass and one RAM-only Generation 54 admission is
-prepared; the phone has not been contacted or booted by this checkpoint. Never
-flash this wrapper.**
+Status: **historical offline checkpoint. Generation 54 was subsequently
+consumed and revoked; see the
+[live result](2026-08-14-generation-54-fast-attestation-live.md). Never retry
+or flash this wrapper.**
 
 Generation 53 proved that UFS discovery, both `ro,noload` ext4 mounts, tmpfs
 OverlayFS, systemd, and strict key-only SSH all work from the staged 16 GiB
@@ -52,9 +53,9 @@ Focused checks passed for the 14-case storage-resolution suite, 12-case live
 runner suite, 14-case exact-record consumer suite, 27-case retention admission
 suite, stable recovery gate, current persistent-root artifact preflight,
 shared current recovery profiles, and recovery policy/inventory separation.
-Generation 53 remains revoked and consumed. Generation 54 is the only admitted
-persistent-root candidate and requires its exact external one-use claim before
-entry.
+At this historical checkpoint, Generation 53 was revoked and consumed and
+Generation 54 was the only admitted persistent-root candidate. Its later
+one-use claim is now consumed and the candidate is revoked.
 
 The physical cycle should compare the five new progress uptimes, strict SSH
 acceptance, and exact fallback with Generation 53. Until then, the expected

@@ -11,12 +11,12 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
-profile=persistent-root-local-image-fast-attest-v33-live-v1
-image_name=build/persistent-root-local-image-fast-attest-v33-generation54-20260814-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS local-image Arch boot with static-runtime post-handoff storage attestation, exact userdata and image identities, two ro,noload ext4 mounts, tmpfs OverlayFS, systemd, key-only SSH, receive-only progress records, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 54 read-only local-image Arch successor; exact UFS lock, userdata and 16 GiB image identity, two ro,noload ext4 mounts, tmpfs OverlayFS, static-runtime post-handoff storage attestation with progress markers, systemd, key-only SSH, bounded rollback, and one RAM-only use only; never flash'
+profile=persistent-root-local-image-loader-v34-live-v1
+image_name=build/persistent-root-local-image-loader-v34-generation55-20260814-r1/repack/stable-recovery-a.avb.img
+basis='one exact read-only SM8350 UFS local-image Arch boot with retained-musl-loader post-handoff storage attestation, exact userdata and image identities, two ro,noload ext4 mounts, tmpfs OverlayFS, systemd, key-only SSH, receive-only progress records, and bounded rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+role='unbooted Generation 55 read-only local-image Arch successor; exact UFS lock, userdata and 16 GiB image identity, two ro,noload ext4 mounts, tmpfs OverlayFS, retained musl-loader post-handoff storage attestation with progress markers, systemd, key-only SSH, bounded rollback, and one RAM-only use only; never flash'
 [[ $role == unbooted\ * ]] ||
-	fail 'Generation 54 artifact role must remain live-gate eligible'
+	fail 'Generation 55 artifact role must remain live-gate eligible'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -36,13 +36,13 @@ for assignment in \
 	expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31 \
 	expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3 \
 	expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e \
-	expected_target_id=persistent-root-local-image-fast-attest-v33 \
-	expected_bundle=persistent-root-local-image-fast-attest-v33 \
+	expected_target_id=persistent-root-local-image-loader-v34 \
+	expected_bundle=persistent-root-local-image-loader-v34 \
 	expected_bundle_profile=persistent-root-ro-v1 \
 	expected_target_release=7.1.4-gae717d919f87 \
-	expected_avb_salt=684d593dda8f9e9202eafb0348c00d140d6ce48100b5b49f1f8d73b352223e64 \
-	expected_avb_digest=e29c10a9c2f1485370c34313f4e68f9ffb10e9730298ced9a48a5dc93d95216a \
-	expected_generation_record=1b79288f0311e1d0b30ed09b05708f125ae3f6ac943ef0c9d54e66865ac8e3bf \
+	expected_avb_salt=9f018a2ccd39be1535084cb01f42c6036602c33f1ea392e9257b6f0708d021d7 \
+	expected_avb_digest=eb411a0b837ac84193267a18ddcc92c3798a1e945d6c9e2d30217e1e2b332b81 \
+	expected_generation_record=2cfd74db7da6f7aa9f782489ad87a83d04565186b1ddb817d24b0dcce3d674d9 \
 	recovery_init=\$repo/initramfs/recovery-init
 do
 	grep -Fxq "$assignment" <<<"$case_unindented" ||
@@ -61,11 +61,11 @@ grep -Fq 'grep -Fxq "target_release=$expected_target_release"' "$gate" ||
 	fail 'stable gate does not verify the profile-specific target release'
 
 exact=(
-	0832ddd484ad00ed3bcda184f1b75ce688c89ead4c52a1f97e93f9a058b0b75a
+	c3cd5d584c959b8d78eab54e4b1547a6c24e06677d8c9a827275bc7cfc5b06da
 	f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b
-	40b5573a4d03f4571ead025083a7989e6ac9288a89b8fe64e4b8439b64aaa42e
+	8f2d0d8382a4bf8fd8a18669575af00ec0bfa717c8512db3b59771e4ddce1d79
 	8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96
-	persistent-root-local-image-fast-attest-v33
+	persistent-root-local-image-loader-v34
 )
 run_policy() {
 	env -i PATH="$PATH" HOME="$HOME" \
@@ -76,7 +76,7 @@ run_policy() {
 }
 policy=$(run_policy "${exact[@]}")
 grep -Fxq "recovery_profile=$profile" <<<"$policy"
-grep -Fxq 'target_id=persistent-root-local-image-fast-attest-v33' <<<"$policy"
+grep -Fxq 'target_id=persistent-root-local-image-loader-v34' <<<"$policy"
 grep -Fxq 'authority=none' <<<"$policy"
 grep -Fxq 'result=PASS' <<<"$policy"
 
@@ -86,7 +86,7 @@ errors=(
 	'persistent-root trust key is not pinned'
 	'persistent-root runtime manifest is not pinned'
 	'persistent-root host verifier is not pinned'
-	'profile requires bundle=persistent-root-local-image-fast-attest-v33'
+	'profile requires bundle=persistent-root-local-image-loader-v34'
 )
 for index in "${!fields[@]}"; do
 	mutation=("${exact[@]}")
@@ -105,10 +105,10 @@ done
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 54 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 55 image is not uniquely admitted'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
-	$3 == "0832ddd484ad00ed3bcda184f1b75ce688c89ead4c52a1f97e93f9a058b0b75a" &&
+	$3 == "c3cd5d584c959b8d78eab54e4b1547a6c24e06677d8c9a827275bc7cfc5b06da" &&
 	$4 == role && $5 == "no" && NF == 5 { count++ }
 	END { exit count == 1 ? 0 : 1 }
 ' "$inventory" || fail 'persistent-root artifact inventory is not exact'
@@ -118,8 +118,8 @@ grep -Fq 'PERSISTENT_TARGET_PRODUCT = "ROG5 persistent root"' \
 	"$repo/scripts/host/pin-minimal-headless-host-key.py" ||
 	fail 'host-key pinning does not accept the exact persistent-root gadget'
 
-production_root=$repo/build/persistent-root-local-image-fast-attest-v33-production-20260814-r1
-generation_root=$repo/build/persistent-root-local-image-fast-attest-v33-generation54-20260814-r1
+production_root=$repo/build/persistent-root-local-image-loader-v34-production-20260814-r1
+generation_root=$repo/build/persistent-root-local-image-loader-v34-generation55-20260814-r1
 recovery_root=$repo/build/generation46-transport-recovery
 if [[ -d $production_root/bundle-a && -d $generation_root && -d $recovery_root ]]; then
 	artifact=$(
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 54 fast-attestation local-image profile, exact claim, artifact, and admission are pinned'
+echo 'PASS Generation 55 retained-loader local-image profile, exact claim, artifact, and admission are pinned'

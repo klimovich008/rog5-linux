@@ -61,6 +61,9 @@ grep -Fq 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4' \
 grep -Fq 'mount -t ext4 -o ro,noload "$userdata" /mnt/userdata' "$init"
 grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"
 grep -Fq 'userdata_record=/run/rog5-p2-userdata-device' "$attest"
+grep -Fq 'runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1' "$attest"
+grep -Fq '"$runtime_loader" "$runtime_busybox" blockdev "$@"' "$attest"
+[ "$(grep -Fc '"$runtime_busybox" blockdev' "$attest")" -eq 1 ]
 ! grep -Fq '/dev/sda23' "$init" "$attest"
 ! grep -Fq '/sys/class/block/sda23' "$init" "$attest"
 grep -Fq 'expected_udc=a600000.usb' "$init"
@@ -207,6 +210,17 @@ cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
 cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
+readelf -l "$work/root/bin/busybox" |
+	grep -Fq '[Requesting program interpreter: /lib/ld-musl-aarch64.so.1]'
+readelf -d "$work/root/bin/busybox" |
+	grep -Fq 'Shared library: [libc.musl-aarch64.so.1]'
+[ -f "$work/root/lib/ld-musl-aarch64.so.1" ] &&
+	[ ! -L "$work/root/lib/ld-musl-aarch64.so.1" ] &&
+	[ -x "$work/root/lib/ld-musl-aarch64.so.1" ]
+if command -v qemu-aarch64-static >/dev/null 2>&1; then
+	qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
+		"$work/root/bin/busybox" true
+fi
 grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
 	"$work/root/init"
 ! grep -Fq '@EXPECTED_KERNEL_RELEASE@' "$work/root/init"
