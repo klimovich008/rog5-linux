@@ -363,6 +363,22 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
   Generation 58 is revoked and must never be retried or flashed.
 
+- **Generation 59 is the unbooted bounded local-image write successor.** The
+  v37 initramfs preserves the accepted Linux 7.1.4 Image, DTB, UFS identity
+  policy, volatile systemd optimization, Ed25519-only host-key path, and
+  rollback. After dynamically resolving exact `userdata`, it opens a write
+  window only for that partition and its parent UFS LUN, verifies every other
+  physical node remains read-only, mounts the exact 16 GiB image read-write,
+  writes one fixed boot-ID marker, syncs and unmounts, then relocks all 116
+  physical nodes before the established two-`ro,noload` Arch boot. It refuses
+  a pre-existing marker and is one-use even before lifecycle claim
+  consumption. The image's historical full-tree seal remains source
+  provenance after this first controlled mutation; current-state acceptance
+  separately verifies the exact marker and boot-critical files. No GPT,
+  partition, firmware, calibration, identity, Alpine fallback, or other raw
+  storage is modified. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-59-local-image-write-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at
@@ -1702,9 +1718,12 @@ See [ROADMAP.md](../ROADMAP.md) for completion gates and
 ## Safety invariants
 
 - Never flash an experimental partition.
-- Never mount phone storage or write it. The active strict-SSH lifecycle does
-  not invoke the legacy interactive shell; any emergency ACM use retains its
-  bounded BusyBox-history/atime effects under the standing authorization.
+- During Phase 2, write only inside the exact bounded image in dynamically
+  resolved `userdata`, and only through a reviewed one-use experiment. Raw
+  partition/GPT changes remain forbidden until the Phase-3 layout, backups,
+  recovery procedure, exact commands, and final operator confirmation pass.
+  Emergency ACM use retains its bounded BusyBox-history/atime effects under
+  the standing authorization.
 - Never reuse a consumed live payload or retry an ambiguous execute.
 - Keep private keys, host pins, firmware, and live evidence outside Git.
 - Follow the [credential-isolation policy](security-automation.md).

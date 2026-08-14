@@ -155,7 +155,7 @@ No raw restore command is implemented or authorized at this checkpoint.
 
 ## First local-image experiment
 
-The first Phase-2 writable object should be one 16 GiB preallocated ext4 image:
+The first Phase-2 writable object is one 16 GiB preallocated ext4 image:
 
 ```text
 /rog5/images/arch-local-a.ext4.partial
@@ -250,6 +250,39 @@ and sshd began about 18 seconds earlier. End-to-end acceptance was 333.446
 seconds, 27.518 seconds slower than Generation 57 because other measured work
 grew; therefore the key optimization is accepted, but the run is not evidence
 of an overall speedup. Generation 58 is consumed and revoked.
+
+Generation 59 is the first mainline-controlled write inside that existing
+image. It does not create, resize, format, or repartition storage. The v37
+initramfs resolves `userdata` from fresh GPT identity, begins with all 116
+physical UFS disk/partition nodes read-only, and temporarily clears only the
+exact `userdata` partition and its parent LUN. It verifies every sibling stays
+read-only, mounts the outer filesystem and exact UUID/label/size image
+read-write, and creates only:
+
+```text
+/var/lib/rog5/local-image-write-probe-v1
+```
+
+The 132-byte, mode-0444 marker contains an exact format, image UUID, and
+current target boot ID. Existing files, directories, or symlinks at the
+marker location fail closed. After one sync, both mounts and the loop are
+closed, the parent LUN is relocked before `userdata`, and all 116 nodes must
+again prove read-only before the familiar two-`ro,noload` tmpfs-overlay Arch
+runtime can start. The same marker is then verified from the read-only lower
+root and by retained-loader attestation.
+
+This deliberately changes the image after its historical 37,735-entry tree
+seal. That seal still identifies the materialized source tree, but it no
+longer claims the entire current image is byte-for-byte unchanged. Generation
+59 instead admits exactly one independently attested mutation while retaining
+exact boot-critical-file checks. A later persistent-root design must define a
+new mutable-state/seal boundary; it must not silently reuse the old full-tree
+claim.
+
+Generation 59 is unbooted at this checkpoint. Its recovery remains RAM-only,
+its claim is one-use, and GPT, partition geometry, firmware, calibration,
+device identity, and the Alpine recovery route remain outside its write
+surface.
 
 ## Reproduction commands
 

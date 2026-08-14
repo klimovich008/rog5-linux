@@ -24,7 +24,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-ed25519-v36-live-v1",
+            "persistent-root-local-image-write-v37-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -35,7 +35,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-ed25519-v36",
+            "persistent-root-local-image-write-v37",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -76,6 +76,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 "block_backed_mounts=2",
                 "userdata_mount=ro-noload",
                 "local_image_mount=ro-noload",
+                "local_image_write_probe=PASS",
                 "root=local-ext4-overlay-tmpfs",
                 "blocked_device_queries=0",
                 "blocked_scsi_commands=0",
@@ -106,6 +107,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "block_backed_mounts=2",
             "userdata_mount=ro-noload",
             "local_image_mount=ro-noload",
+            "local_image_write_probe=PASS",
             "root=local-ext4-overlay-tmpfs",
             "blocked_device_queries=0",
             "blocked_scsi_commands=0",
@@ -221,6 +223,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(parsed.sequence, 6)
         self.assertEqual(parsed.stage, "root-verify")
         self.assertEqual(parsed.state, "ENTER")
+
+        image_write = first.replace(b"root-verify", b"image-write")
+        self.assertEqual(
+            MODULE.parse_stage_record(image_write).stage, "image-write"
+        )
 
         second = first.replace(b"sequence=6", b"sequence=7").replace(
             b"state=ENTER", b"state=PASS"

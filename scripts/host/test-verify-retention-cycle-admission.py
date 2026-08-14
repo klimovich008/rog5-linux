@@ -436,6 +436,15 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
             "one exact headless-core Arch SSH recovery with power-key "
             "indicator; RAM-only; externally consumed exact claim required; "
             "never flash or retry after entry\n"
+            "build/persistent-root-local-image-write-v37-generation59-"
+            "20260814-r1/repack/stable-recovery-a.avb.img\tallow\t"
+            "one exact bounded SM8350 UFS local-image write probe: dynamically "
+            "resolve userdata, open only its exact partition and parent disk, "
+            "write one fixed marker inside the existing 16 GiB image, sync, "
+            "unmount, relock all 116 physical nodes, then boot the established "
+            "read-only local Arch runtime with strict key-only SSH and bounded "
+            "rollback; RAM-only kernel/recovery; externally consumed exact "
+            "claim required; never flash or retry after entry\n"
             "build/persistent-root-storage-read-v4-generation25-20260812-r1/"
             "repack/stable-recovery-a.avb.img\trevoked\t"
             "consumed by the sole Generation 25 RAM-only cycle; exact Alpine "
@@ -832,7 +841,7 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
 
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
-        self.assertIn("temporary_boot_allow_rows=2", report)
+        self.assertIn("temporary_boot_allow_rows=3", report)
         self.assertIn("execution_claim=not-defined", report)
         self.assertIn("observer_claim=not-defined", report)
         self.assertIn("missing_pstore=inconclusive", report)

@@ -239,12 +239,12 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
         by_program = {item.program: item for item in self.specs()}
         expected = {
             "scripts/host/consume-exact-boot-claim.py": (
-                44566,
-                "8add9c4400d99790c57fed95d743c2ca1e5da4799dae0ef3bac214d59b9fb40b",
+                44958,
+                "f87ad7e42b292463886a92d4b5db79b5d90be95baf44f7fbd52de8b5ea360fae",
             ),
             "scripts/host/run-stable-recovery-live-gate.sh": (
-                182285,
-                "a2205bc7064c7fa422ea298bc32cd79ab10120d946a42e9adbfb9105a9059d9f",
+                185459,
+                "392771424cd162ed1d8242cd8b0906abd83261a39d9e4b2a4db9dcec333e25da",
             ),
             "scripts/host/fallback-acm-control.py": (
                 110389,
