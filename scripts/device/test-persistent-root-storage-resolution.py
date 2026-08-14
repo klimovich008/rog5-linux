@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -41,6 +42,9 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         )
         cls.rendezvous = function(cls.source, "wait_for_deferred_ufs_rendezvous")
         cls.exact_regular = function(cls.source, "verify_exact_regular")
+        cls.volatile_state = function(
+            cls.source, "prepare_volatile_systemd_state"
+        )
 
     def add_disk(
         self,
@@ -406,6 +410,164 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 ).returncode,
                 0,
             )
+
+    def run_volatile_state(
+        self, mutation: str = "none"
+    ) -> tuple[subprocess.CompletedProcess[str], Path | None]:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        root = base / "root"
+        lower = base / "lower"
+        upper = base / "upper"
+        runtime = base / "run"
+        for directory in (
+            root / "etc",
+            root / "var",
+            root / "usr",
+            lower / "etc",
+            lower / "var",
+            upper,
+            runtime / "systemd" / "system",
+        ):
+            directory.mkdir(parents=True, exist_ok=True)
+        cache = root / "etc" / "ld.so.cache"
+        cache.write_bytes(b"cache\n")
+        cache.chmod(0o644)
+        if mutation == "wrong-cache":
+            cache.write_bytes(b"wrong\n")
+        elif mutation == "linked-cache":
+            cache.unlink()
+            cache.symlink_to(root / "usr")
+        elif mutation == "lower-marker":
+            (lower / "etc" / ".updated").touch()
+        elif mutation == "upper-marker":
+            (upper / "etc").mkdir()
+            (upper / "etc" / ".updated").touch()
+
+        cache_hash = hashlib.sha256(b"cache\n").hexdigest()
+        helper = self.volatile_state.replace(
+            "expected_cache_size=20207", "expected_cache_size=6"
+        ).replace(
+            "expected_cache_sha256="
+            "ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed",
+            f"expected_cache_sha256={cache_hash}",
+        )
+        verifier = r'''
+verify_exact_regular() {
+	path=$1
+	mode=$4
+	size=$5
+	hash=$6
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(stat -c '%a:%s:%h' "$path")" = "$mode:$size:1" ] || return 1
+	[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$hash" ]
+}
+chown() { :; }
+touch() {
+	command touch "$@" || return 1
+	case ${3-} in
+		"$fixture_root/etc/.updated")
+			mkdir -p "$fixture_upper/etc"
+			command touch -r "$fixture_root/usr" \
+				"$fixture_upper/etc/.updated"
+			;;
+		"$fixture_root/var/.updated")
+			mkdir -p "$fixture_upper/var"
+			command touch -r "$fixture_root/usr" \
+				"$fixture_upper/var/.updated"
+			;;
+	esac
+}
+chmod() {
+	command chmod "$@" || return 1
+	case $2 in
+		"$fixture_root/etc/.updated")
+			command chmod "$1" "$fixture_upper/etc/.updated" ;;
+		"$fixture_root/var/.updated")
+			command chmod "$1" "$fixture_upper/var/.updated" ;;
+	esac
+}
+'''
+        script = (
+            "set -u\n"
+            + helper
+            + verifier
+            + '\nfixture_root="$1"\nfixture_lower="$2"\n'
+            + 'fixture_upper="$3"\nfixture_runtime="$4"\n'
+            + "prepare_volatile_systemd_state "
+            + '"$fixture_root" "$fixture_lower" '
+            + '"$fixture_upper" "$fixture_runtime"\n'
+        )
+        result = subprocess.run(
+            [
+                "sh",
+                "-c",
+                script,
+                "sh",
+                str(root),
+                str(lower),
+                str(upper),
+                str(runtime),
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        return result, base
+
+    def test_volatile_systemd_state_is_exact_and_tmpfs_only(self) -> None:
+        helper = self.volatile_state
+        self.assertIn("expected_cache_size=20207", helper)
+        self.assertIn(
+            "expected_cache_sha256="
+            "ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed",
+            helper,
+        )
+        self.assertIn(
+            'verify_exact_regular "$root/etc/ld.so.cache" 0 0 644', helper
+        )
+        self.assertIn('touch -r "$root/usr" "$merged_marker"', helper)
+        self.assertIn("systemd-vconsole-setup.service", helper)
+        self.assertIn('ln -s /dev/null "$vconsole_mask"', helper)
+        runtime = function(self.source, "prepare_runtime")
+        self.assertIn("prepare_volatile_systemd_state", runtime)
+        self.assertIn("/newroot /mnt/root-ro /mnt/state/upper /run", runtime)
+
+        result, base = self.run_volatile_state()
+        assert base is not None
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for subtree in ("etc", "var"):
+            marker = base / "root" / subtree / ".updated"
+            upper_marker = base / "upper" / subtree / ".updated"
+            self.assertTrue(marker.is_file())
+            self.assertTrue(upper_marker.is_file())
+            self.assertEqual(marker.stat().st_size, 0)
+            self.assertEqual(
+                marker.stat().st_mtime_ns,
+                (base / "root" / "usr").stat().st_mtime_ns,
+            )
+            self.assertFalse((base / "lower" / subtree / ".updated").exists())
+        mask = (
+            base
+            / "run"
+            / "systemd"
+            / "system"
+            / "systemd-vconsole-setup.service"
+        )
+        self.assertTrue(mask.is_symlink())
+        self.assertEqual(mask.readlink(), Path("/dev/null"))
+
+    def test_volatile_systemd_state_rejects_hostile_inputs(self) -> None:
+        for mutation in (
+            "wrong-cache",
+            "linked-cache",
+            "lower-marker",
+            "upper-marker",
+        ):
+            with self.subTest(mutation=mutation):
+                result, _base = self.run_volatile_state(mutation)
+                self.assertNotEqual(result.returncode, 0, result.stderr)
 
     def test_local_root_stages_are_fixed_receive_only_heartbeats(self) -> None:
         reporter = function(self.source, "start_stage_reporter")

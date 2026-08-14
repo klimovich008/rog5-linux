@@ -704,6 +704,54 @@ mount_overlay_root() {
 	return 0
 }
 
+prepare_volatile_systemd_state() {
+	root=$1
+	lower=$2
+	upper=$3
+	runtime=$4
+	expected_cache_size=20207
+	expected_cache_sha256=ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed
+	empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+	for directory in \
+		"$root/etc" "$root/var" "$root/usr" \
+		"$lower/etc" "$lower/var" "$upper" \
+		"$runtime/systemd/system"; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
+	done
+	verify_exact_regular "$root/etc/ld.so.cache" 0 0 644 \
+		"$expected_cache_size" "$expected_cache_sha256" || return 1
+
+	for subtree in etc var; do
+		lower_marker=$lower/$subtree/.updated
+		merged_marker=$root/$subtree/.updated
+		upper_marker=$upper/$subtree/.updated
+		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
+		[ ! -e "$merged_marker" ] && [ ! -L "$merged_marker" ] || return 1
+		[ ! -e "$upper_marker" ] && [ ! -L "$upper_marker" ] || return 1
+		touch -r "$root/usr" "$merged_marker" || return 1
+		chown 0:0 "$merged_marker" || return 1
+		chmod 0644 "$merged_marker" || return 1
+		verify_exact_regular "$merged_marker" 0 0 644 0 \
+			"$empty_sha256" || return 1
+		verify_exact_regular "$upper_marker" 0 0 644 0 \
+			"$empty_sha256" || return 1
+		marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
+		[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||
+			return 1
+		[ "$marker_time" = "$(stat -c '%Y:%y' "$upper_marker")" ] ||
+			return 1
+		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
+	done
+
+	vconsole_mask=$runtime/systemd/system/systemd-vconsole-setup.service
+	[ ! -e "$vconsole_mask" ] && [ ! -L "$vconsole_mask" ] || return 1
+	ln -s /dev/null "$vconsole_mask" || return 1
+	[ -L "$vconsole_mask" ] &&
+		[ "$(readlink "$vconsole_mask")" = /dev/null ] || return 1
+	return 0
+}
+
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
@@ -746,6 +794,8 @@ EOF
 	ln -s ../rog5-p2-ready.service \
 		/run/systemd/system/multi-user.target.wants/rog5-p2-ready.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
+	prepare_volatile_systemd_state \
+		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
 	return 0
 }
 

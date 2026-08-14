@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-local-image-volatile-v35-live-v1 | \
 		persistent-root-local-image-loader-v34-repeat-live-v1 | \
 		persistent-root-local-image-loader-v34-live-v1 | \
 		persistent-root-local-image-fast-attest-v33-live-v1 | \
@@ -1883,10 +1884,49 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-volatile-v35-live-v1)
+		expected_boot_image=build/persistent-root-local-image-volatile-v35-generation57-20260814-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only SM8350 UFS local-image Arch boot with verified volatile systemd update markers, headless vconsole mask, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 57 volatile-systemd local-image successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact linker cache, volatile update markers, headless vconsole mask, retained musl-loader attestation, key-only SSH, bounded rollback, and systemd timing capture; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
+		expected_raw=5ad4a42c97c01ecae711cb6051b1ae320f7b189c022aa0668552efe4f00d602b
+		expected_initramfs=14dd9901fc3d0385e126930633a9e58b5195bafc63388d3e7341d0c9eb851946
+		expected_control=59e76973965ef9b539d8e79c78e3c480cbeab49af314e44928846794672b3f31
+		expected_fetcher=c8f1c5601432223e16566decb3e9a29b32f7ca89859126f11d99a29b17f9e4e3
+		expected_verifier=e5e59a5647a9c283c125e3362a714e3a2657411fb3e5c478ebaef9379a90c98e
+		expected_target_id=persistent-root-local-image-volatile-v35
+		expected_bundle=persistent-root-local-image-volatile-v35
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_avb_salt=4c2e1b77db4f30ddf17689f6871ee0abebd51544c3e47271ba2bba33c581e690
+		expected_avb_digest=01b82565207da961c4a4bf84fe472768e413562093d055e0bff2a72dc99f2508
+		expected_generation_record=2872690a6163d6842249a778b5bbfc3c1257edfa30133980fdf8cf490a363e63
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			1def5f276c7d07668ccb90a9ca3ed966660e0af359e49e2f847371b058291e30 ]] ||
+			fail 'persistent-root runtime manifest is not pinned'
+		[[ $expected_image == \
+			425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f ]] ||
+			fail 'persistent-root recovery image is not pinned'
+		[[ $expected_trust == \
+			f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b ]] ||
+			fail 'persistent-root trust key is not pinned'
+		[[ $expected_host_verifier == \
+			8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96 ]] ||
+			fail 'persistent-root host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-loader-v34-repeat-live-v1)
 		expected_boot_image=build/persistent-root-local-image-loader-v34-generation56-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact byte-identical read-only SM8350 UFS local-image Arch repeat boot with retained-musl-loader attestation, read-only systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 56 byte-identical local-image repeat successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, retained musl-loader attestation, systemd, key-only SSH, bounded rollback, and read-only systemd timing capture; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 56 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, switch_root, systemd, retained-loader attestation, NCM, and strict key-only SSH passed in 362.241 seconds; systemd timing isolated ldconfig and vconsole delays; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 56 read-only local-image repeat cycle; exact UFS, userdata and 16 GiB image, both ro,noload ext4 mounts, tmpfs OverlayFS, switch_root, systemd, retained-loader attestation, NCM, strict key-only SSH, and timing capture passed; normal reboot and exact Alpine fallback passed; retain offline only; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
@@ -2442,6 +2482,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-volatile-v35-live-v1 | \
 	persistent-root-local-image-loader-v34-repeat-live-v1 | \
 	persistent-root-local-image-loader-v34-live-v1 | \
 	persistent-root-local-image-fast-attest-v33-live-v1 | \

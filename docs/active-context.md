@@ -323,12 +323,24 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-55-retained-loader-live.md).
   Generation 55 is revoked and must never be retried or flashed.
 
-- **Generation 56 is the byte-identical repeat successor.** The v34 target,
-  signed bundle, kernel, DTB, storage policy, and rollback path are unchanged.
-  A fresh one-use AVB identity is admitted, and the host adds bounded,
-  read-only systemd timing capture to explain the post-`switch_root` delay.
-  See the [offline checkpoint](../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md).
-  It remains RAM-only and has not been booted.
+- **Generation 56 is consumed and proved the repeat path.** The byte-identical
+  v34 target again reached exact read-only UFS, the local image, systemd,
+  retained-loader attestation, NCM, and strict key-only SSH. Acceptance took
+  362.241 seconds. Read-only timing isolated `ldconfig.service` at 148.089
+  seconds and `systemd-vconsole-setup.service` at 76.694 seconds. Normal
+  reboot, exact Alpine fallback, and host cleanup passed. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md)
+  and [live result](../test-results/2026-08-14-generation-56-repeat-systemd-timing-live.md).
+  Generation 56 is revoked and must never be retried or flashed.
+
+- **Generation 57 is the volatile-systemd timing successor.** It keeps the
+  accepted Image, DTB, UFS policy, two `ro,noload` ext4 mounts, tmpfs
+  OverlayFS, attestation, and rollback path. Before `switch_root`, the new
+  v35 initramfs verifies the sealed root's exact linker cache, creates
+  `/etc/.updated` and `/var/.updated` only through the tmpfs overlay with
+  the exact `/usr` timestamp, proves the read-only lower remains untouched,
+  and masks the unused virtual-console setup only in volatile `/run`.
+  Generation 57 is one-use, RAM-only, and must never be flashed.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

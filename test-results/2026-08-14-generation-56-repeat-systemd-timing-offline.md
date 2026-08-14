@@ -2,8 +2,8 @@
 
 Date: 2026-08-14
 
-Status: **offline checks pass; one Generation 56 RAM-only admission is
-prepared. It has not been booted and must never be flashed.**
+Status: **historical offline checkpoint. Generation 56 subsequently passed
+its sole RAM-only cycle, is consumed, and must never be retried or flashed.**
 
 Generation 56 is a repeat-stability measurement of the successful Generation
 55 target. It does not rebuild or alter the signed v34 target bundle, kernel,
@@ -28,3 +28,6 @@ canonical generation-zero recovery:
 The generic exact-record claim consumer, current artifact/profile gate,
 stable recovery gate, and 13 live-runner tests pass. The cycle remains
 single-use and RAM-only; the diagnostic capture cannot write phone storage.
+The [live result](2026-08-14-generation-56-repeat-systemd-timing-live.md)
+records the successful repeat, exact fallback, and measured systemd
+critical path.

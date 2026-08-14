@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-loader-v34-repeat-live-v1"
-BUNDLE = "persistent-root-local-image-loader-v34"
+PROFILE_ID = "persistent-root-local-image-volatile-v35-live-v1"
+BUNDLE = "persistent-root-local-image-volatile-v35"
 MANIFEST_SHA256 = (
-    "8f2d0d8382a4bf8fd8a18669575af00ec0bfa717c8512db3b59771e4ddce1d79"
+    "1def5f276c7d07668ccb90a9ca3ed966660e0af359e49e2f847371b058291e30"
 )
 RECOVERY_SHA256 = (
-    "b095064285f764c86e3818b392d12383e4fb9f839ec32b1ad7937172a0684546"
+    "425346d1fa88586f20b61d333cbff28c6435e6b099e414d2fe2cf58dce6cc04f"
 )
 TRUST_KEY_SHA256 = (
     "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-loader-v34-generation56-20260814-r1"
+    / "build/persistent-root-local-image-volatile-v35-generation57-20260814-r1"
 )
 COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -78,10 +78,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-loader-v34",
+    admission_profile="persistent-root-local-image-volatile-v35",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-loader-v34",
-    build_profile="persistent-root-local-image-loader-v34",
+    runtime_profile="persistent-root-local-image-volatile-v35",
+    build_profile="persistent-root-local-image-volatile-v35",
     diagnostic=False,
 )
 

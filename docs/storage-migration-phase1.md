@@ -226,7 +226,13 @@ Both ext4 layers remained `ro,noload`, OverlayFS remained tmpfs-backed, and
 exact Alpine fallback passed after a normal reboot. Generation 55 is consumed.
 The [Generation 56 repeat checkpoint](../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md)
 keeps the target byte-identical and adds bounded read-only `systemd-analyze`
-capture to prove repeatability and identify the remaining post-handoff delay.
+capture. Its [live cycle](../test-results/2026-08-14-generation-56-repeat-systemd-timing-live.md)
+again passed exact UFS, local-image Arch, strict key-only SSH, and Alpine
+fallback in 362.241 seconds. It identified `ldconfig.service` (148.089
+seconds) and the unused headless virtual-console setup (76.694 seconds) as
+the next critical-path targets. Generation 57 changes only volatile boot
+state to skip those two costs while leaving both physical ext4 layers
+`ro,noload`.
 
 ## Reproduction commands
 
