@@ -13,10 +13,10 @@ boot_policy=$repo/manifests/temporary-boot-images.tsv
 inventory=$repo/manifests/artifacts.tsv
 profile=persistent-root-local-image-ed25519-v36-live-v1
 image_name=build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1/repack/stable-recovery-a.avb.img
-basis='one exact read-only SM8350 UFS local-image Arch boot with volatile Ed25519-only host-key generation, verified volatile systemd state, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-role='unbooted Generation 58 Ed25519-only local-image successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact per-boot Ed25519 host key, stock all-key generator masked in volatile runtime, retained musl-loader attestation, key-only SSH, bounded rollback, and systemd timing capture; one RAM-only use only; never flash'
-[[ $role == unbooted\ * ]] ||
-	fail 'Generation 58 artifact role must remain unbooted before its sole cycle'
+basis='consumed by the sole Generation 58 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, Ed25519-only volatile host-key generation, retained-loader attestation, and strict key-only SSH passed in 333.446 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
+role='consumed Generation 58 Ed25519-only local-image cycle; exact UFS, userdata and 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact per-boot Ed25519 host key in 28 ms, stock all-key generator masked in volatile runtime, retained musl-loader attestation, strict key-only SSH, systemd timing, normal reboot, and exact Alpine fallback passed in 333.446 seconds; retain offline only; never retry or flash'
+[[ $role == consumed\ * ]] ||
+	fail 'Generation 58 artifact role must remain permanently consumed'
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 
@@ -103,9 +103,9 @@ for index in "${!fields[@]}"; do
 done
 
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+	$1 == name && $2 == "revoked" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }
-' "$boot_policy" || fail 'Generation 58 image is not uniquely admitted'
+' "$boot_policy" || fail 'Generation 58 image is not uniquely consumed'
 awk -F '\t' -v name="$image_name" -v role="$role" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "38bc065959a88f4f51f13cc3443a8bd02dda61d8813150821d561239bd02a4f0" &&
@@ -145,4 +145,4 @@ else
 	echo 'SKIP persistent-root artifact preflight: ignored clean-twin output absent' >&2
 fi
 
-echo 'PASS Generation 58 Ed25519-only local-image profile, exact claim, artifact, and unbooted state are pinned'
+echo 'PASS Generation 58 Ed25519-only local-image profile, exact claim, artifact, and consumed state are pinned'

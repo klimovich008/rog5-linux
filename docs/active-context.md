@@ -348,16 +348,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-14-generation-57-volatile-systemd-live.md).
   Generation 57 is revoked and must never be retried or flashed.
 
-- **Generation 58 is the unbooted Ed25519-only successor.** Generation 57's
-  evidence showed 38.212 seconds in stock `sshdgenkeys.service`, which
-  generated three host-key algorithms although the exact sshd configuration
-  uses only Ed25519. The v36 initramfs verifies the sealed key generator,
-  service, sshd setting, and absence of host keys; masks the stock generator
-  only in tmpfs; and adds one exact volatile Ed25519-key oneshot required by
-  sshd. Clean initramfs and signed-bundle twins are byte-identical, focused
-  tests pass, and the one-use Generation 58 wrapper is admitted but unbooted.
-  See the
-  [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md).
+- **Generation 58 is consumed and proved Ed25519-only host-key generation.**
+  The v36 initramfs kept the exact accepted Image, DTB, UFS policy, two
+  `ro,noload` ext4 mounts, tmpfs OverlayFS, and rollback path. It masked stock
+  `sshdgenkeys.service` only in volatile `/run`, generated only the configured
+  Ed25519 key in 28 ms, and made sshd require that exact oneshot. Stock
+  three-algorithm generation disappeared and sshd began about 18 seconds
+  earlier than in Generation 57. Strict SSH passed in 333.446 seconds; this is
+  slower overall than Generation 57 because unrelated `dbus-broker`,
+  `rog5-p2-ready`, loop-device, and host-cycle timing varied upward. Normal
+  reboot, exact Alpine fallback, PMIC evidence, host cleanup, and Steam socket
+  restoration passed. See the
+  [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md)
+  and [live result](../test-results/2026-08-14-generation-58-ed25519-only-live.md).
+  Generation 58 is revoked and must never be retried or flashed.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot

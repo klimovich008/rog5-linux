@@ -1887,8 +1887,8 @@ case $profile in
 		;;
 	persistent-root-local-image-ed25519-v36-live-v1)
 		expected_boot_image=build/persistent-root-local-image-ed25519-v36-generation58-20260814-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only SM8350 UFS local-image Arch boot with volatile Ed25519-only host-key generation, verified volatile systemd state, retained-musl-loader attestation, systemd timing capture, strict key-only SSH, bounded rollback, and no phone-storage writes; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 58 Ed25519-only local-image successor; unchanged UFS, userdata, 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact per-boot Ed25519 host key, stock all-key generator masked in volatile runtime, retained musl-loader attestation, key-only SSH, bounded rollback, and systemd timing capture; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 58 RAM-only cycle; exact read-only UFS, userdata and 16 GiB image, both ro,noload mounts, tmpfs OverlayFS, Ed25519-only volatile host-key generation, retained-loader attestation, and strict key-only SSH passed in 333.446 seconds; normal reboot, exact Alpine fallback, and host cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 58 Ed25519-only local-image cycle; exact UFS, userdata and 16 GiB image, two ro,noload ext4 mounts, tmpfs OverlayFS, exact per-boot Ed25519 host key in 28 ms, stock all-key generator masked in volatile runtime, retained musl-loader attestation, strict key-only SSH, systemd timing, normal reboot, and exact Alpine fallback passed in 333.446 seconds; retain offline only; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=71b48a03e6e12e1ae2c21470ea80e1308ca5deba371dd810c00c6a936d309455
