@@ -174,6 +174,9 @@ REMOTE_ERROR_CODES = frozenset(
         "root-recovery-pending",
         "root-remount",
         "root-superblock",
+        "root-writer-scan",
+        "root-writer-stop",
+        "root-writer-unexpected",
     }
 )
 RESULT_FIELDS = (
@@ -299,6 +302,7 @@ from pathlib import Path
 import platform
 import re
 import select
+import signal
 import stat
 import subprocess
 import sys
@@ -348,6 +352,16 @@ UNAVAILABLE_THERMAL_TYPES = {
 }
 REBOOT_ACK_TIMEOUT_SECONDS = 30
 POST_ACK_DEADLINE_SECONDS = 25
+ROOT_WRITER_STOP_SECONDS = 3
+ROOT_WRITER_POLL_SECONDS = 0.05
+ROOT_WRITER_PAIRS = {
+    ("/usr/sbin/sshd", "/var/log/sshd.log"),
+    ("/usr/lib/ssh/sshd-session", "/var/log/sshd.log"),
+    ("/usr/bin/python3.14", "/var/log/power-indicator.log"),
+    ("/usr/bin/Xvnc", "/var/log/xvnc.log"),
+    ("/usr/bin/python3.14", "/var/log/novnc.log"),
+    ("/usr/bin/seatd", "/var/log/seatd.log"),
+}
 HOST_KEY = Path("/etc/ssh/ssh_host_ed25519_key")
 FATAL = re.compile(
     rb"(^|[^A-Za-z0-9_])(Kernel panic|Oops:|BUG:|"
@@ -381,6 +395,73 @@ def root_mount_fields():
     return matches[0]
 
 
+def approve_root_writer(nonce, executable, target):
+    if (executable, target) not in ROOT_WRITER_PAIRS:
+        stop(nonce, "root-writer-unexpected")
+
+
+def root_writer_pids(nonce):
+    try:
+        root_device = Path("/").stat().st_dev
+        processes = list(Path("/proc").iterdir())
+    except OSError:
+        stop(nonce, "root-writer-scan")
+    writers = set()
+    for process in processes:
+        if not process.name.isdecimal():
+            continue
+        try:
+            executable = os.readlink(process / "exe")
+            descriptors = list((process / "fd").iterdir())
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                flag_lines = [
+                    line.split()[1]
+                    for line in (process / "fdinfo" / descriptor.name)
+                    .read_text()
+                    .splitlines()
+                    if line.startswith("flags:")
+                ]
+                if len(flag_lines) != 1:
+                    stop(nonce, "root-writer-scan")
+                flags = int(flag_lines[0], 8)
+                target = os.readlink(descriptor)
+                target_stat = descriptor.stat()
+            except (OSError, ValueError):
+                continue
+            if (
+                flags & os.O_ACCMODE == os.O_RDONLY
+                or target_stat.st_dev != root_device
+                or not stat.S_ISREG(target_stat.st_mode)
+            ):
+                continue
+            approve_root_writer(nonce, executable, target)
+            writers.add(int(process.name))
+    return writers
+
+
+def quiesce_root_writers(nonce):
+    writers = root_writer_pids(nonce)
+    for pid in sorted(writers):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            stop(nonce, "root-writer-stop")
+    deadline = time.monotonic() + ROOT_WRITER_STOP_SECONDS
+    while writers and time.monotonic() < deadline:
+        writers = {
+            pid for pid in writers if Path(f"/proc/{pid}").exists()
+        }
+        if writers:
+            time.sleep(ROOT_WRITER_POLL_SECONDS)
+    if writers or root_writer_pids(nonce):
+        stop(nonce, "root-writer-stop")
+
+
 def quiesce_root_read_only(nonce):
     before = root_mount_fields()
     if (
@@ -391,6 +472,7 @@ def quiesce_root_read_only(nonce):
         or "ro" in before[3].split(",")
     ):
         stop(nonce, "root-mount-before")
+    quiesce_root_writers(nonce)
     for command in (
         ["/bin/sync"],
         ["/bin/mount", "-o", "remount,ro", "/"],

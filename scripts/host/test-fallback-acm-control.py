@@ -2849,6 +2849,7 @@ class PolicyTest(unittest.TestCase):
     def test_embedded_reboot_quiesces_exact_userdata_before_commit(self) -> None:
         source = MODULE.REMOTE_SOURCE
         self.assertIn("def quiesce_root_read_only(nonce):", source)
+        self.assertIn("def quiesce_root_writers(nonce):", source)
         self.assertIn('["/bin/sync"]', source)
         self.assertIn(
             '["/bin/mount", "-o", "remount,ro", "/"]',
@@ -2860,6 +2861,15 @@ class PolicyTest(unittest.TestCase):
         )
         self.assertIn("needs_recovery", source)
         self.assertIn("orphan_present", source)
+        quiesce = source[
+            source.index("def quiesce_root_read_only(nonce):") :
+            source.index("def pstore_count():")
+        ]
+        self.assertEqual(quiesce.count("quiesce_root_writers(nonce)"), 1)
+        self.assertLess(
+            quiesce.index("quiesce_root_writers(nonce)"),
+            quiesce.index('["/bin/sync"]'),
+        )
         main = source[source.index("def main():") : source.index("def restart_bootloader():")]
         self.assertEqual(main.count("quiesce_root_read_only(nonce)"), 1)
         self.assertLess(
@@ -2913,6 +2923,7 @@ class PolicyTest(unittest.TestCase):
                 "Path": FakePath,
                 "subprocess": embedded_subprocess,
                 "stop": stop,
+                "quiesce_root_writers": mock.Mock(),
             }
             exec(
                 compile(
@@ -2969,11 +2980,63 @@ class PolicyTest(unittest.TestCase):
             "root-recovery-pending",
             "root-remount",
             "root-superblock",
+            "root-writer-scan",
+            "root-writer-stop",
+            "root-writer-unexpected",
         }
         self.assertLessEqual(codes, MODULE.REMOTE_ERROR_CODES)
         for code in codes:
             frame = f"ROG5_FALLBACK_ACM_ERROR {nonce} {code}\n".encode("ascii")
             self.assertEqual(MODULE.remote_error(frame, nonce), code)
+
+    def test_embedded_root_writer_allowlist_is_exact_and_fail_closed(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        nodes = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name)
+                    and target.id == "ROOT_WRITER_PAIRS"
+                    for target in node.targets
+                )
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name == "approve_root_writer"
+            )
+        ]
+
+        def stop(_nonce: str, code: str) -> None:
+            raise RuntimeError(code)
+
+        namespace = {"stop": stop}
+        exec(
+            compile(
+                ast.Module(body=nodes, type_ignores=[]),
+                "embedded-root-writer-policy.py",
+                "exec",
+            ),
+            namespace,
+        )
+        expected = {
+            ("/usr/sbin/sshd", "/var/log/sshd.log"),
+            ("/usr/lib/ssh/sshd-session", "/var/log/sshd.log"),
+            ("/usr/bin/python3.14", "/var/log/power-indicator.log"),
+            ("/usr/bin/Xvnc", "/var/log/xvnc.log"),
+            ("/usr/bin/python3.14", "/var/log/novnc.log"),
+            ("/usr/bin/seatd", "/var/log/seatd.log"),
+        }
+        self.assertEqual(namespace["ROOT_WRITER_PAIRS"], expected)
+        for executable, target in expected:
+            namespace["approve_root_writer"]("f" * 32, executable, target)
+        with self.assertRaisesRegex(RuntimeError, "root-writer-unexpected"):
+            namespace["approve_root_writer"](
+                "f" * 32,
+                "/usr/bin/python3.14",
+                "/root/unreviewed.log",
+            )
 
     def test_embedded_reboot_ack_wait_is_bounded(self) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
