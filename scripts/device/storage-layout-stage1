@@ -1,0 +1,398 @@
+#!/bin/sh
+set -u
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export LC_ALL=C
+export TZ=UTC
+
+protocol=ROG5_LAYOUT_STAGE1_V1
+config=/etc/rog5/storage-layout-stage1.conf
+watchdog_disarm=/usr/libexec/rog5-disarm-recovery-layout-watchdog
+gpt_backup=/run/rog5-layout-stage1.gpt
+primary_backup=/run/rog5-layout-stage1.primary.raw
+secondary_backup=/run/rog5-layout-stage1.secondary.raw
+disk=
+userdata=
+gpt_write_started=0
+gpt_verified=0
+transport_ready=0
+
+log() {
+	printf 'rog5-storage-layout-stage1: %s\n' "$*" >/dev/kmsg 2>/dev/null || true
+}
+
+emit() {
+	[ "$transport_ready" = 1 ] || return 0
+	printf '%s %s\n' "$protocol" "$*" >&3
+}
+
+lock_storage() {
+	status=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		name=$(basename "$sys_disk") || status=1
+		for sys_block in "$sys_disk" "$sys_disk"/"$name"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || { status=1; continue; }
+			blockdev --setro "$device" >/dev/null 2>&1 || status=1
+		done
+	done
+	return "$status"
+}
+
+config_value() {
+	key=$1
+	count=$(grep -c "^${key}=" "$config" 2>/dev/null) || return 1
+	[ "$count" -eq 1 ] || return 1
+	sed -n "s/^${key}=//p" "$config"
+}
+
+guid_is_canonical() {
+	printf '%s\n' "$1" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+}
+
+restore_original_gpt() {
+	[ -n "$disk" ] && [ -f "$gpt_backup" ] || return 1
+	blockdev --setrw "$disk" >/dev/null 2>&1 || return 1
+	sgdisk --load-backup="$gpt_backup" "$disk" \
+		>/run/rog5-layout-stage1-restore.log 2>&1 || return 1
+	sync || return 1
+	blockdev --rereadpt "$disk" >/dev/null 2>&1 ||
+		partprobe "$disk" >/dev/null 2>&1 || return 1
+	mdev -s >/dev/null 2>&1 || return 1
+	sgdisk -v "$disk" >/run/rog5-layout-stage1-restored-verify.log 2>&1 ||
+		return 1
+	grep -Fq 'No problems found.' /run/rog5-layout-stage1-restored-verify.log ||
+		return 1
+	return 0
+}
+
+fail() {
+	reason=$1
+	set +e
+	restored=not_needed
+	if [ "$gpt_write_started" = 1 ] && [ "$gpt_verified" != 1 ]; then
+		if restore_original_gpt; then
+			restored=yes
+		else
+			restored=no
+		fi
+	fi
+	lock_storage
+	emit "status=FAIL stage=$stage reason=$reason gpt_restored=$restored"
+	log "failed at $stage: $reason; gpt_restored=$restored"
+	exit 1
+}
+
+stage_set() {
+	stage=$1
+	emit "status=RUNNING stage=$stage reason=none"
+	log "stage=$stage"
+}
+
+check_config() {
+	[ -f "$config" ] && [ ! -L "$config" ] || return 1
+	[ "$(stat -c %u "$config" 2>/dev/null)" = 0 ] || return 1
+	[ "$(stat -c %g "$config" 2>/dev/null)" = 0 ] || return 1
+	[ "$(stat -c %a "$config" 2>/dev/null)" = 400 ] || return 1
+	[ "$(stat -c %h "$config" 2>/dev/null)" = 1 ] || return 1
+	[ "$(wc -l <"$config")" = 7 ] || return 1
+	[ "$(config_value format)" = rog5-storage-layout-stage1-v1 ] || return 1
+	operation_id=$(config_value operation_id) || return 1
+	expected_disk_guid=$(config_value disk_guid) || return 1
+	expected_userdata_type_guid=$(config_value userdata_type_guid) || return 1
+	expected_userdata_guid=$(config_value userdata_unique_guid) || return 1
+	expected_userdata_fs_uuid=$(config_value userdata_fs_uuid) || return 1
+	expected_root_guid=$(config_value arch_root_unique_guid) || return 1
+	printf '%s\n' "$operation_id" | grep -Eq '^[0-9a-f]{32}$' || return 1
+	guid_is_canonical "$expected_disk_guid" || return 1
+	guid_is_canonical "$expected_userdata_type_guid" || return 1
+	guid_is_canonical "$expected_userdata_guid" || return 1
+	guid_is_canonical "$expected_userdata_fs_uuid" || return 1
+	guid_is_canonical "$expected_root_guid" || return 1
+	[ "$expected_userdata_guid" != "$expected_root_guid" ] || return 1
+}
+
+no_physical_mounts() {
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		name=$(basename "$sys_disk") || return 1
+		for sys_block in "$sys_disk" "$sys_disk"/"$name"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			major_minor=$(cat "$sys_block/dev") || return 1
+			if awk -v expected="$major_minor" '$3 == expected { found=1 }
+				END { exit !found }' /proc/self/mountinfo; then
+				return 1
+			fi
+		done
+	done
+}
+
+resolve_exact_storage() {
+	disk_count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		candidate=/dev/$(basename "$sys_disk")
+		[ -b "$candidate" ] || continue
+		[ "$(blockdev --getsize64 "$candidate" 2>/dev/null)" = 253403070464 ] ||
+			continue
+		[ "$(blockdev --getss "$candidate" 2>/dev/null)" = 4096 ] || continue
+		candidate_userdata=
+		name=$(basename "$sys_disk")
+		for sys_partition in "$sys_disk"/"$name"*; do
+			[ -e "$sys_partition/partition" ] || continue
+			[ "$(cat "$sys_partition/partition")" = 23 ] || continue
+			partition_name=$(sed -n 's/^PARTNAME=//p' "$sys_partition/uevent" |
+				sed -n '1p')
+			[ "$partition_name" = userdata ] || continue
+			[ "$(cat "$sys_partition/start")" = 18821440 ] || continue
+			[ "$(cat "$sys_partition/size")" = 476106392 ] || continue
+			candidate_userdata=/dev/$(basename "$sys_partition")
+		done
+		[ -n "$candidate_userdata" ] || continue
+		disk=$candidate
+		userdata=$candidate_userdata
+		disk_count=$((disk_count + 1))
+	done
+	[ "$disk_count" -eq 1 ] || return 1
+	[ "$(blockdev --getro "$disk")" = 1 ] || return 1
+	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+}
+
+sgdisk_value() {
+	pattern=$1
+	file=$2
+	sed -n "s/^${pattern}:[[:space:]]*//p" "$file" | sed -n '1p'
+}
+
+verify_disk_guid() {
+	sgdisk -p "$disk" >/run/rog5-layout-stage1-table.log 2>&1 || return 1
+	actual=$(sgdisk_value 'Disk identifier (GUID)' /run/rog5-layout-stage1-table.log |
+		tr 'A-F' 'a-f')
+	[ "$actual" = "$expected_disk_guid" ]
+}
+
+verify_partition() {
+	number=$1
+	first=$2
+	last=$3
+	type_guid=$4
+	unique_guid=$5
+	name=$6
+	info=/run/rog5-layout-stage1-partition-$number.log
+	sgdisk -i="$number" "$disk" >"$info" 2>&1 || return 1
+	actual_first=$(sed -n 's/^First sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	actual_last=$(sed -n 's/^Last sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	actual_type=$(sgdisk_value 'Partition GUID code' "$info" | awk '{print $1}' |
+		tr 'A-F' 'a-f')
+	actual_unique=$(sgdisk_value 'Partition unique GUID' "$info" |
+		tr 'A-F' 'a-f')
+	actual_name=$(sed -n "s/^Partition name: '\(.*\)'$/\1/p" "$info")
+	actual_attrs=$(sgdisk_value 'Attribute flags' "$info")
+	[ "$actual_first" = "$first" ] &&
+		[ "$actual_last" = "$last" ] &&
+		[ "$actual_type" = "$type_guid" ] &&
+		[ "$actual_unique" = "$unique_guid" ] &&
+		[ "$actual_name" = "$name" ] &&
+		[ "$actual_attrs" = 0000000000000000 ]
+}
+
+partition_absent() {
+	sgdisk -i="$1" "$disk" >/run/rog5-layout-stage1-absent.log 2>&1 || true
+	grep -Fqx "Partition #$1 does not exist." /run/rog5-layout-stage1-absent.log
+}
+
+protected_partition_hash() {
+	output=$1
+	: >"$output" || return 1
+	for number in $(seq 1 22); do
+		sgdisk -i="$number" "$disk" >>"$output" 2>&1 || return 1
+	done
+	sha256sum "$output" | awk '{print $1}'
+}
+
+filesystem_value() {
+	pattern=$1
+	file=$2
+	sed -n "s/^${pattern}:[[:space:]]*//p" "$file" | sed -n '1p'
+}
+
+verify_userdata_filesystem() {
+	expected_blocks=$1
+	dumpe2fs -h "$userdata" >/run/rog5-layout-stage1-superblock.log 2>&1 ||
+		return 1
+	blocks=$(filesystem_value 'Block count' /run/rog5-layout-stage1-superblock.log)
+	block_size=$(filesystem_value 'Block size' /run/rog5-layout-stage1-superblock.log)
+	state_value=$(filesystem_value 'Filesystem state' /run/rog5-layout-stage1-superblock.log)
+	uuid=$(filesystem_value 'Filesystem UUID' /run/rog5-layout-stage1-superblock.log |
+		tr 'A-F' 'a-f')
+	features=$(filesystem_value 'Filesystem features' /run/rog5-layout-stage1-superblock.log)
+	[ "$blocks" = "$expected_blocks" ] && [ "$block_size" = 4096 ] &&
+		[ "$state_value" = clean ] && [ "$uuid" = "$expected_userdata_fs_uuid" ] &&
+		! printf '%s\n' "$features" |
+			grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'
+}
+
+send_backup_file() {
+	name=$1
+	path=$2
+	size=$(stat -c %s "$path") || return 1
+	hash=$(sha256sum "$path" | awk '{print $1}') || return 1
+	printf '%s status=BACKUP_FILE name=%s size=%s sha256=%s\n' \
+		"$protocol" "$name" "$size" "$hash" >&3 || return 1
+	cat "$path" >&3 || return 1
+	printf '\n%s status=BACKUP_FILE_END name=%s\n' "$protocol" "$name" >&3 ||
+		return 1
+}
+
+stage=S00_CONFIG
+if ! exec 3<>/dev/ttyGS0; then
+	log 'cannot open raw ACM transport'
+	exit 1
+fi
+transport_ready=1
+trap 'fail interrupted' HUP INT TERM
+stage_set S00_CONFIG
+check_config || fail invalid_private_config
+
+stage_set S10_TOPOLOGY
+no_physical_mounts || fail physical_block_mounted
+resolve_exact_storage || fail topology_identity
+verify_disk_guid || fail disk_guid_changed
+verify_partition 23 2352680 61865978 "$expected_userdata_type_guid" \
+	"$expected_userdata_guid" userdata || fail userdata_identity_changed
+partition_absent 24 || fail partition_24_already_exists
+verify_userdata_filesystem 59513299 || fail userdata_filesystem_changed
+
+stage_set S20_PROTECTED_SEAL
+protected_before=$(protected_partition_hash /run/rog5-layout-stage1-protected.before) ||
+	fail protected_partition_read_failed
+
+stage_set S30_FRESH_BACKUP
+sgdisk --backup="$gpt_backup" "$disk" || fail sgdisk_backup_failed
+dd if="$disk" of="$primary_backup" bs=4096 count=6 2>/dev/null ||
+	fail primary_backup_failed
+dd if="$disk" of="$secondary_backup" bs=4096 skip=61865979 count=5 2>/dev/null ||
+	fail secondary_backup_failed
+primary_size=$(stat -c %s "$primary_backup") || fail backup_stat_failed
+secondary_size=$(stat -c %s "$secondary_backup") || fail backup_stat_failed
+[ "$primary_size" = 24576 ] || fail primary_backup_size
+[ "$secondary_size" = 20480 ] || fail secondary_backup_size
+gpt_hash=$(sha256sum "$gpt_backup" | awk '{print $1}') || fail backup_hash_failed
+primary_hash=$(sha256sum "$primary_backup" | awk '{print $1}') || fail backup_hash_failed
+secondary_hash=$(sha256sum "$secondary_backup" | awk '{print $1}') || fail backup_hash_failed
+backup_set_sha=$(printf '%s\n' \
+	"sgdisk.gpt:$gpt_hash:$(stat -c %s "$gpt_backup")" \
+	"primary.raw:$primary_hash:$primary_size" \
+	"secondary.raw:$secondary_hash:$secondary_size" |
+	sha256sum | awk '{print $1}') || fail backup_set_hash_failed
+nonce=$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n') ||
+	fail nonce_failed
+printf '%s\n' "$nonce" | grep -Eq '^[0-9a-f]{32}$' || fail nonce_invalid
+emit "status=BACKUP_BEGIN operation_id=$operation_id nonce=$nonce files=3 backup_set_sha256=$backup_set_sha"
+send_backup_file sgdisk.gpt "$gpt_backup" || fail backup_transport_failed
+send_backup_file primary.raw "$primary_backup" || fail backup_transport_failed
+send_backup_file secondary.raw "$secondary_backup" || fail backup_transport_failed
+emit "status=BACKUP_END operation_id=$operation_id nonce=$nonce backup_set_sha256=$backup_set_sha"
+
+stage_set S31_BACKUP_ACK
+ack=
+IFS= read -r -t 120 ack <&3 || fail backup_ack_timeout
+expected_ack="$protocol status=BACKUP_ACK operation_id=$operation_id nonce=$nonce backup_set_sha256=$backup_set_sha"
+[ "$ack" = "$expected_ack" ] || fail backup_ack_mismatch
+
+stage_set S32_WATCHDOG_DISARM
+"$watchdog_disarm" >/run/rog5-layout-stage1-watchdog-disarm.log 2>&1 ||
+	fail rollback_watchdog_disarm_failed
+[ ! -e /run/rog5-recovery-armed ] &&
+	[ -f /run/rog5-recovery-watchdog.disarmed ] &&
+	[ ! -L /run/rog5-recovery-watchdog.disarmed ] ||
+	fail rollback_watchdog_disarm_unproven
+
+stage_set S40_FILESYSTEM_CHECK
+blockdev --setrw "$disk" || fail disk_unlock_failed
+blockdev --setrw "$userdata" || fail userdata_unlock_failed
+[ "$(blockdev --getro "$disk")" = 0 ] || fail disk_remains_read_only
+[ "$(blockdev --getro "$userdata")" = 0 ] || fail userdata_remains_read_only
+if e2fsck -f -p "$userdata" >/run/rog5-layout-stage1-e2fsck-before.log 2>&1; then
+	:
+else
+	fsck_status=$?
+	[ "$fsck_status" -eq 1 ] || fail e2fsck_before_failed
+fi
+resize2fs -P "$userdata" >/run/rog5-layout-stage1-minimum.log 2>&1 ||
+	fail minimum_estimate_failed
+minimum_blocks=$(sed -n \
+	's/^Estimated minimum size of the filesystem: \([0-9][0-9]*\)$/\1/p' \
+	/run/rog5-layout-stage1-minimum.log)
+case $minimum_blocks in ''|*[!0-9]*) fail minimum_invalid ;; esac
+[ "$minimum_blocks" -lt 51124000 ] || fail minimum_too_large
+
+stage_set S50_SHRINK
+resize2fs "$userdata" 51124000 >/run/rog5-layout-stage1-shrink.log 2>&1 ||
+	fail shrink_failed
+sync || fail sync_after_shrink_failed
+verify_userdata_filesystem 51124000 || fail shrunk_filesystem_invalid
+
+stage_set S60_GPT_TRANSACTION
+gpt_write_started=1
+sgdisk --set-alignment=1 \
+	--delete=23 \
+	--new=23:2352680:53477375 \
+	--typecode=23:"$expected_userdata_type_guid" \
+	--change-name=23:userdata \
+	--partition-guid=23:"$expected_userdata_guid" \
+	--attributes=23:=:0000000000000000 \
+	--new=24:53477376:61865978 \
+	--typecode=24:0fc63daf-8483-4772-8e79-3d69d8477de4 \
+	--change-name=24:arch_root_a \
+	--partition-guid=24:"$expected_root_guid" \
+	--attributes=24:=:0000000000000000 \
+	"$disk" >/run/rog5-layout-stage1-sgdisk.log 2>&1 || fail gpt_transaction_failed
+sync || fail sync_after_gpt_failed
+blockdev --rereadpt "$disk" >/dev/null 2>&1 ||
+	partprobe "$disk" >/dev/null 2>&1 || fail partition_reread_failed
+mdev -s >/dev/null 2>&1 || fail device_rescan_failed
+
+stage_set S70_POSTVERIFY
+sgdisk -v "$disk" >/run/rog5-layout-stage1-gpt-verify.log 2>&1 ||
+	fail gpt_verify_failed
+grep -Fq 'No problems found.' /run/rog5-layout-stage1-gpt-verify.log ||
+	fail gpt_verify_reported_problem
+verify_disk_guid || fail disk_guid_not_preserved
+verify_partition 23 2352680 53477375 "$expected_userdata_type_guid" \
+	"$expected_userdata_guid" userdata || fail new_userdata_invalid
+verify_partition 24 53477376 61865978 \
+	0fc63daf-8483-4772-8e79-3d69d8477de4 "$expected_root_guid" \
+	arch_root_a || fail new_arch_root_invalid
+protected_after=$(protected_partition_hash /run/rog5-layout-stage1-protected.after) ||
+	fail protected_partition_read_failed
+[ "$protected_after" = "$protected_before" ] || fail protected_partitions_changed
+verify_userdata_filesystem 51124000 || fail post_gpt_filesystem_invalid
+if e2fsck -f -p "$userdata" >/run/rog5-layout-stage1-e2fsck-after.log 2>&1; then
+	:
+else
+	fsck_status=$?
+	[ "$fsck_status" -eq 1 ] || fail e2fsck_after_failed
+fi
+verify_userdata_filesystem 51124000 || fail final_filesystem_invalid
+
+gpt_verified=1
+stage_set S80_LOCK
+lock_storage || fail storage_relock_failed
+[ "$(blockdev --getro "$disk")" = 1 ] || fail disk_relock_failed
+[ "$(blockdev --getro "$userdata")" = 1 ] || fail userdata_relock_failed
+
+stage=S99_COMPLETE
+emit "status=PASS stage=$stage reason=none operation_id=$operation_id userdata_last_lba=53477375 arch_root_first_lba=53477376 arch_root_last_lba=61865978 filesystem_blocks=51124000 backup_set_sha256=$backup_set_sha all_read_only=1 block_mounts=0"
+log "complete; backup_set_sha256=$backup_set_sha"
+exit 0

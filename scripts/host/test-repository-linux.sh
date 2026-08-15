@@ -269,6 +269,9 @@ shared_tests=(
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
 	scripts/host/test-storage-preflight-initramfs-contract.py
+	scripts/host/test-storage-layout-stage1-contract.py
+	scripts/device/test-disarm-recovery-layout-watchdog.sh
+	scripts/host/test-collect-storage-layout-stage1.py
 	scripts/host/test-collect-storage-preflight-report.py
 	scripts/host/test-storage-preflight-candidate.py
 	scripts/device/test-network-root-init.sh

@@ -13,7 +13,8 @@ filesystem. It avoids both boot-slot changes and unnecessary reclamation of
 the 7-GiB `super` partition. The latter is too small for a comfortable Arch
 root after the current sealed tree, package updates, and rollback space.
 
-Status: **offline-rehearsed and read-only phone-preflighted proposal; no phone
+Status: **the sealed Stage-1 executor is implemented, offline-rehearsed, and
+read-only phone-preflighted, but it is unissued and unbooted; no phone
 partition or filesystem mutation has run.** The exact destructive operation
 still requires final operator confirmation.
 
@@ -66,6 +67,22 @@ Generation 74 completed the RAM-only physical gate; see its
 The complete offline checkpoint is recorded in
 [the 2026-08-14 result](../test-results/2026-08-14-dedicated-linux-layout-v1-offline.md).
 
+The Stage-1 successor streams a fresh `sgdisk` backup and exact raw GPT ends
+over framed ACM, waits for the host to validate and durably fsync all three
+objects, and accepts only the matching operation/nonce/set-hash ACK. It then
+proves and disarms the exact 900-second recovery rollback process before the
+first write. This avoids an intentional reboot interrupting `resize2fs` or the
+GPT transaction. The helper rejects stale process identities and ambiguous
+timer children and resumes a frozen watchdog on a pre-disarm failure.
+
+Two final Stage-1 initramfs builds are byte-identical at SHA-256
+`74f4ecc24de5686eea059d83d9a455cd83e8cca6ecd5bd406bd2d07c2a781bd4`
+(5,934,933 bytes) and took 3.489 seconds together. The sealed AArch64 tools
+execute under QEMU. An exact-size disposable disk then completed the forced
+check, ext4 shrink, GPT split, post-check, fresh-GPT restoration, and restored
+filesystem check. See the
+[Stage-1 offline result](../test-results/2026-08-15-storage-layout-stage1-offline.md).
+
 ## Exact public geometry
 
 All LBAs below are 4,096-byte logical blocks on the 253,403,070,464-byte main
@@ -88,25 +105,39 @@ entry 24 is available. The new type is the standard Linux filesystem-data GUID
 No storage-backed swap partition is proposed. Use zram first; this avoids UFS
 write amplification and leaves the layout simpler.
 
+Stage 1 leaves the `userdata` ext4 filesystem at exactly 51,124,000 4-KiB
+blocks. The new partition contains 51,124,696 blocks, leaving 696 blocks
+(2,850,816 bytes) of deliberate tail slack. Stage 1 does not grow the
+filesystem after changing GPT.
+
 ## Destructive operation boundary
 
 The eventual operation is deliberately limited to these mutations:
 
-1. boot a tool-bearing recovery entirely from RAM and verify the fresh LUN/GPT
-   identity against the private inventory;
-2. unmount `userdata`, run forced ext4 checking, and repeat the minimum-size
-   estimate;
-3. shrink ext4 to exactly 51,124,000 4-KiB blocks;
-4. in one GPT transaction, force `sgdisk --set-alignment=1`, preserve
+1. boot the sealed tool recovery entirely from RAM, require the exact
+   900-second pre-mutation rollback window, and verify the fresh LUN/GPT/ext4
+   identity against the private inventory with zero block-backed mounts;
+2. capture a fresh `sgdisk` backup and raw primary/secondary GPT ends, stream
+   them to a new private host directory, and refuse to continue until the host
+   has validated and durably fsynced them and returned the exact nonce-bound
+   ACK;
+3. prove and disarm that exact userspace rollback process before making the
+   selected disk and partition writable;
+4. run forced ext4 checking, repeat the minimum-size estimate, and shrink ext4
+   to exactly 51,124,000 4-KiB blocks;
+5. in one GPT transaction, force `sgdisk --set-alignment=1`, preserve
    partition 23's first LBA, type, unique GUID, name, and attributes while
    changing only its last LBA to 53,477,375, then create partition 24 over
    LBAs 53,477,376–61,865,978;
-5. reread and revalidate both GPT copies before opening either filesystem;
-6. grow ext4 partition 23 to its new boundary, check it again, and prove the
-   Alpine recovery still boots;
-7. format only partition 24 as ext4 label `ROG5_ARCH_A`, copy the already
-   sealed Arch tree, verify it, and initially mount it read-only; and
-8. keep the kernel/recovery RAM-only until native-root SSH and rollback pass
+6. reread and revalidate both GPT copies, partitions 1–22, the 51,124,000-block
+   clean filesystem, and all physical read-only locks;
+7. prove the unchanged Alpine recovery still boots before any partition-24
+   write;
+8. in a separately gated Stage 2, raw-clone the freshly attested 16-GiB local
+   image into partition 24, verify the clone prefix, change only its filesystem
+   UUID, grow it to the partition, and create a fresh native-root tree seal;
+   and
+9. keep the kernel/recovery RAM-only until native-root SSH and rollback pass
    repeatedly.
 
 The execution environment must contain pinned `e2fsck`, `resize2fs`, `sgdisk`,
@@ -115,9 +146,10 @@ that backup to the host before step 3. A power loss between ext4 shrink and GPT
 resize remains recoverable because the smaller filesystem still fits in the
 old larger partition; the reverse order is forbidden.
 
-No command in the current repository performs these mutations yet. The exact
-tool-bearing read-only recovery and disposable 4-KiB-sector GPT transaction
-have passed offline. A second command-level rehearsal first proved that
+The repository now contains the sealed Stage-1 executor and host backup/ACK
+collector, but no candidate, signature, claim, or boot authority has been
+created for it. The exact tool-bearing recovery and disposable 4-KiB-sector
+transaction have passed offline. A command-level rehearsal first proved that
 omitting `--set-alignment=1` silently moves the recreated `userdata` start,
 then proved that the corrected option preserves the exact start, GUID, type,
 name, and attributes. The result is recorded in the
@@ -125,6 +157,16 @@ name, and attributes. The result is recorded in the
 The final phone command, private identity bindings, generated partition UUID,
 and fresh pre-write backup hash are kept together in a private execution
 record for the required final confirmation.
+
+The source image was refreshed read-only from the exact Alpine fallback after
+the Generation-64 controlled marker write. It is clean, 17,179,869,184 bytes,
+and now hashes to
+`a51ee69000bcdf56b87ef0045d517fa60cffe92a21fba728e80fc37c4380b3ce`.
+Its current 37,738-entry tree hashes to
+`c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38`;
+the old Generation-53 seal remains provenance but no longer claims the current
+tree. Stage 2 must bind this refreshed identity, not the stale original image
+hash.
 
 The machine-readable public geometry is
 [`configs/storage/rog5-dedicated-linux-v1.json`](../configs/storage/rog5-dedicated-linux-v1.json)
