@@ -461,7 +461,7 @@ class CandidateTests(unittest.TestCase):
             fields[:6],
             [
                 PROFILE_V4,
-                "allow",
+                "revoked",
                 MANIFEST_V4_SHA256,
                 values["image_path"],
                 values["image_size"],
@@ -470,10 +470,11 @@ class CandidateTests(unittest.TestCase):
         )
         self.assertEqual(
             fields[6],
-            "one unissued Generation 74 read-only storage preflight after "
-            "exact fallback ext4 quiescence; RAM-only; no mounts or storage "
-            "writes; externally consumed exact claim required; never flash "
-            "or retry after entry",
+            "consumed 2026-08-15; target repeatedly emitted exact PASS with "
+            "UFS, GPT, ext4, minimum 11698467 blocks, and no mounts or writes; "
+            "admitted collector rejected the aggregate persistent-frame burst "
+            "before line splitting; exact Alpine fallback and PS_HOLD "
+            "hard-reset returned without watchdog signal; never retry",
         )
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"

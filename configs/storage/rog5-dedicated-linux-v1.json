@@ -20,7 +20,7 @@
   "ext4_checkpoint": {
     "block_size": 4096,
     "block_count": 59513299,
-    "estimated_minimum_blocks": 11695396,
+    "estimated_minimum_blocks": 11698467,
     "state": "clean"
   },
   "proposal": {

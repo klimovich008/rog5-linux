@@ -40,7 +40,7 @@ class DedicatedLinuxLayoutTest(unittest.TestCase):
         result = MODULE.verify(CONFIG)
         self.assertEqual(result["userdata_bytes"], 209406754816)
         self.assertEqual(result["arch_root_bytes"], 34359717888)
-        self.assertEqual(result["ext4_headroom_bytes"], 161499561984)
+        self.assertEqual(result["ext4_headroom_bytes"], 161486983168)
 
     def test_overlap_or_gap_is_rejected(self) -> None:
         self.rejected(
