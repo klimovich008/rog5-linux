@@ -87,7 +87,9 @@ export KBUILD_BUILD_USER=rog5-linux
 export KBUILD_BUILD_HOST=rog5-builder
 export KBUILD_BUILD_VERSION=1
 export KBUILD_BUILD_TIMESTAMP='Wed Apr 19 00:00:00 UTC 2023'
-export KCFLAGS=-Wno-error=strict-prototypes
+debug_prefix_map=-fdebug-prefix-map=$output_dir=/rog5-build
+export KCFLAGS="-Wno-error=strict-prototypes $debug_prefix_map"
+export KAFLAGS=$debug_prefix_map
 
 make -C "$source_dir" O="$output_dir" olddefconfig
 grep -qx 'CONFIG_KEXEC=y' "$output_dir/.config"
@@ -109,7 +111,8 @@ strings "$image" | grep -q "$release_pattern"
 	printf 'kexec_file=%s\n' "$kexec_file"
 	printf 'initramfs_sha256=%s\n' "${initramfs_sha256:-none}"
 	printf 'compiler=%s\n' "$(clang --version | head -n 1)"
-	sha256sum "$output_dir/.config" "$image"
+	printf 'config_sha256=%s\n' "$(sha256sum "$output_dir/.config" | cut -d ' ' -f 1)"
+	printf 'image_sha256=%s\n' "$(sha256sum "$image" | cut -d ' ' -f 1)"
 } > "$output_dir/build-meta.txt"
 cat "$output_dir/build-meta.txt"
 echo "PASS vendor-compatible 5.4.210 kexec-stage successor Image; reference_config_profile=$reference_config_profile; kexec_file=$kexec_file; builtin_initramfs=$([ -n "$initramfs_source" ] && echo yes || echo no); compile-only"

@@ -32,6 +32,11 @@ for token in \
 	'--set-str LOCALVERSION' \
 	'CONFIG_KEXEC=y' \
 	'reference_config_profile=%s' \
+	'debug_prefix_map=-fdebug-prefix-map=$output_dir=/rog5-build' \
+	'export KCFLAGS="-Wno-error=strict-prototypes $debug_prefix_map"' \
+	'export KAFLAGS=$debug_prefix_map' \
+	'config_sha256=%s' \
+	'image_sha256=%s' \
 	'Wed Apr 19 00:00:00 UTC 2023'; do
 	grep -Fq -- "$token" "$successor" ||
 		fail "ASUS wrapper successor omits contract token: $token"
