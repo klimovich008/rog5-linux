@@ -1,0 +1,13 @@
+seal_format=rog5-persistent-root-v1
+generation=arch-a
+source_archive_size=536746495
+source_archive_sha256=4d120a4b3a10be098cea47ba8536969bbaa931b47b31cc37fc3474fea045b324
+promotion_state=UNBOOTED
+tree_format=rog5-persistent-tree-v1
+tree_entries=37738
+tree_regular_files=27605
+tree_directories=1903
+tree_symlinks=8230
+tree_bytes=1625283037
+tree_xattrs=3
+tree_sha256=c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38

@@ -185,6 +185,16 @@ case $recovery_mode in
 			force_rollback
 		fi
 		;;
+	storage-layout-stage2-v1)
+		if [ "$recovery_mode_size" != 25 ]; then
+			log 'storage-layout stage-2 mode contract has trailing data; rebooting'
+			force_rollback
+		fi
+		if [ -e "$bundle_root" ] || [ -L "$bundle_root" ]; then
+			log 'storage-layout stage-2 recovery found a bundle root; rebooting'
+			force_rollback
+		fi
+		;;
 	*)
 		log 'recovery mode contract is invalid; rebooting'
 		force_rollback
@@ -687,6 +697,10 @@ if [ "$recovery_mode" = storage-layout-stage1-v1 ] && [ "$timeout" != 900 ]; the
 	log 'storage-layout stage-1 requires the exact pre-mutation rollback window; rebooting'
 	force_rollback
 fi
+if [ "$recovery_mode" = storage-layout-stage2-v1 ] && [ "$timeout" != 900 ]; then
+	log 'storage-layout stage-2 requires the exact pre-mutation rollback window; rebooting'
+	force_rollback
+fi
 touch /run/rog5-recovery-armed
 (
 	sleep "$timeout"
@@ -810,7 +824,8 @@ if [ "$ufs_discovery" = 1 ] &&
 fi
 
 if [ "$recovery_mode" = storage-preflight-v2 ] ||
-	[ "$recovery_mode" = storage-layout-stage1-v1 ]; then
+	[ "$recovery_mode" = storage-layout-stage1-v1 ] ||
+	[ "$recovery_mode" = storage-layout-stage2-v1 ]; then
 	if ! stty -F /dev/ttyGS0 raw -echo -echonl -opost clocal cread; then
 		log 'cannot configure raw sealed-storage ACM; rebooting'
 		force_rollback
@@ -824,7 +839,7 @@ if [ "$recovery_mode" = storage-preflight-v2 ] ||
 		reporter_pid=$!
 		printf '%s\n' "$reporter_pid" >/run/rog5-storage-preflight-reporter.pid
 		log 'fixed storage-preflight reporter ready before USB bind'
-	else
+	elif [ "$recovery_mode" = storage-layout-stage1-v1 ]; then
 		if [ ! -f /usr/libexec/rog5-storage-layout-stage1 ] ||
 			[ -L /usr/libexec/rog5-storage-layout-stage1 ] ||
 			[ ! -x /usr/libexec/rog5-storage-layout-stage1 ]; then
@@ -832,6 +847,14 @@ if [ "$recovery_mode" = storage-preflight-v2 ] ||
 			force_rollback
 		fi
 		log 'sealed storage-layout stage-1 transport ready before USB bind'
+	else
+		if [ ! -f /usr/libexec/rog5-storage-layout-stage2 ] ||
+			[ -L /usr/libexec/rog5-storage-layout-stage2 ] ||
+			[ ! -x /usr/libexec/rog5-storage-layout-stage2 ]; then
+			log 'sealed storage-layout stage-2 executor is unavailable; rebooting'
+			force_rollback
+		fi
+		log 'sealed storage-layout stage-2 transport ready before USB bind'
 	fi
 else
 /usr/libexec/rog5-recovery-control --mode "$recovery_mode" &
@@ -916,6 +939,16 @@ if [ "$recovery_mode" = storage-layout-stage1-v1 ]; then
 		force_rollback
 	fi
 	log 'storage-layout stage 1 passed; returning to fallback in 10 seconds'
+	sleep 10
+	force_rollback
+fi
+if [ "$recovery_mode" = storage-layout-stage2-v1 ]; then
+	if ! /usr/libexec/rog5-storage-layout-stage2; then
+		log 'terminal storage-layout stage-2 failure visible for 10 seconds before rollback'
+		sleep 10
+		force_rollback
+	fi
+	log 'storage-layout stage 2 passed; returning to fallback in 10 seconds'
 	sleep 10
 	force_rollback
 fi

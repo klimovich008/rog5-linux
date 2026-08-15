@@ -1,0 +1,509 @@
+#!/bin/sh
+set -u
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export LC_ALL=C
+export TZ=UTC
+
+protocol=ROG5_LAYOUT_STAGE2_V1
+config=/etc/rog5/storage-layout-stage2.conf
+native_seal=/etc/rog5/native-root-v1.seal
+verifier=/usr/libexec/rog5-persistent-root-verify
+watchdog_disarm=/usr/libexec/rog5-disarm-recovery-layout-watchdog
+source_image=/mnt/userdata/rog5/images/arch-local-a.ext4
+source_mount=/mnt/source-root
+target_mount=/mnt/native-root
+source_bytes=17179869184
+source_blocks=4194304
+target_blocks=8388603
+native_seal_sha256=8dbc66163adde6919d9e48974a035e1a3d27c8d0304befbc806cd284d167be68
+old_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+disk=
+userdata=
+arch_root=
+source_loop=
+userdata_mounted=0
+source_mounted=0
+target_mounted=0
+transport_ready=0
+target_state=untouched
+stage=S00_CONFIG
+
+log() {
+	printf 'rog5-storage-layout-stage2: %s\n' "$*" >/dev/kmsg 2>/dev/null || true
+}
+
+emit() {
+	[ "$transport_ready" = 1 ] || return 0
+	printf '%s %s\n' "$protocol" "$*" >&3
+}
+
+stage_set() {
+	stage=$1
+	emit "status=RUNNING stage=$stage reason=none"
+	log "stage=$stage"
+}
+
+lock_storage() {
+	status=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		name=$(basename "$sys_disk") || status=1
+		for sys_block in "$sys_disk" "$sys_disk"/"$name"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || { status=1; continue; }
+			blockdev --setro "$device" >/dev/null 2>&1 || status=1
+		done
+	done
+	return "$status"
+}
+
+cleanup_runtime() {
+	status=0
+	if [ "$target_mounted" = 1 ]; then
+		umount "$target_mount" >/dev/null 2>&1 || status=1
+		target_mounted=0
+	fi
+	if [ "$source_mounted" = 1 ]; then
+		umount "$source_mount" >/dev/null 2>&1 || status=1
+		source_mounted=0
+	fi
+	if [ -n "$source_loop" ]; then
+		losetup -d "$source_loop" >/dev/null 2>&1 || status=1
+		source_loop=
+	fi
+	if [ "$userdata_mounted" = 1 ]; then
+		umount /mnt/userdata >/dev/null 2>&1 || status=1
+		userdata_mounted=0
+	fi
+	return "$status"
+}
+
+fail() {
+	reason=$1
+	trap - HUP INT TERM
+	set +e
+	cleanup_runtime
+	cleanup_status=$?
+	lock_storage
+	lock_status=$?
+	emit "status=FAIL stage=$stage reason=$reason target_state=$target_state cleanup=$cleanup_status relock=$lock_status"
+	log "failed at $stage: $reason; target_state=$target_state cleanup=$cleanup_status relock=$lock_status"
+	exit 1
+}
+
+config_value() {
+	key=$1
+	count=$(grep -c "^${key}=" "$config" 2>/dev/null) || return 1
+	[ "$count" -eq 1 ] || return 1
+	sed -n "s/^${key}=//p" "$config"
+}
+
+guid_is_canonical() {
+	printf '%s\n' "$1" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+}
+
+hash_is_canonical() {
+	printf '%s\n' "$1" | grep -Eq '^[0-9a-f]{64}$'
+}
+
+check_config() {
+	[ -f "$config" ] && [ ! -L "$config" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$config" 2>/dev/null)" = 0:0:400:1 ] ||
+		return 1
+	[ "$(wc -l <"$config")" = 10 ] || return 1
+	[ "$(config_value format)" = rog5-storage-layout-stage2-v1 ] || return 1
+	operation_id=$(config_value operation_id) || return 1
+	expected_disk_guid=$(config_value disk_guid) || return 1
+	expected_userdata_type_guid=$(config_value userdata_type_guid) || return 1
+	expected_userdata_guid=$(config_value userdata_unique_guid) || return 1
+	expected_userdata_fs_uuid=$(config_value userdata_fs_uuid) || return 1
+	expected_root_guid=$(config_value arch_root_unique_guid) || return 1
+	expected_source_uuid=$(config_value source_image_uuid) || return 1
+	expected_source_hash=$(config_value source_image_sha256) || return 1
+	expected_target_uuid=$(config_value target_fs_uuid) || return 1
+	printf '%s\n' "$operation_id" | grep -Eq '^[0-9a-f]{32}$' || return 1
+	for guid in "$expected_disk_guid" "$expected_userdata_type_guid" \
+		"$expected_userdata_guid" "$expected_userdata_fs_uuid" \
+		"$expected_root_guid" "$expected_source_uuid" \
+		"$expected_target_uuid"; do
+		guid_is_canonical "$guid" || return 1
+	done
+	hash_is_canonical "$expected_source_hash" || return 1
+	[ "$expected_source_uuid" != "$expected_target_uuid" ] || return 1
+	[ "$expected_userdata_fs_uuid" != "$expected_target_uuid" ] || return 1
+	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = \
+		"$native_seal_sha256" ] || return 1
+}
+
+no_physical_mounts() {
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		name=$(basename "$sys_disk") || return 1
+		for sys_block in "$sys_disk" "$sys_disk"/"$name"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			major_minor=$(cat "$sys_block/dev") || return 1
+			if awk -v expected="$major_minor" '$3 == expected { found=1 }
+				END { exit !found }' /proc/self/mountinfo; then
+				return 1
+			fi
+		done
+	done
+}
+
+resolve_exact_storage() {
+	disk_count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		candidate=/dev/$(basename "$sys_disk")
+		[ -b "$candidate" ] || continue
+		[ "$(blockdev --getsize64 "$candidate" 2>/dev/null)" = 253403070464 ] ||
+			continue
+		[ "$(blockdev --getss "$candidate" 2>/dev/null)" = 4096 ] || continue
+		candidate_userdata=
+		candidate_root=
+		name=$(basename "$sys_disk")
+		for sys_partition in "$sys_disk"/"$name"*; do
+			[ -e "$sys_partition/partition" ] || continue
+			number=$(cat "$sys_partition/partition") || continue
+			partname=$(sed -n 's/^PARTNAME=//p' "$sys_partition/uevent" |
+				sed -n '1p')
+			case $number:$partname in
+				23:userdata)
+					[ "$(cat "$sys_partition/start")" = 18821440 ] || continue
+					[ "$(cat "$sys_partition/size")" = 408997568 ] || continue
+					candidate_userdata=/dev/$(basename "$sys_partition")
+					;;
+				24:arch_root_a)
+					[ "$(cat "$sys_partition/start")" = 427819008 ] || continue
+					[ "$(cat "$sys_partition/size")" = 67108824 ] || continue
+					candidate_root=/dev/$(basename "$sys_partition")
+					;;
+			esac
+		done
+		[ -n "$candidate_userdata" ] && [ -n "$candidate_root" ] || continue
+		disk=$candidate
+		userdata=$candidate_userdata
+		arch_root=$candidate_root
+		disk_count=$((disk_count + 1))
+	done
+	[ "$disk_count" -eq 1 ] || return 1
+	[ "$(blockdev --getro "$disk")" = 1 ] &&
+		[ "$(blockdev --getro "$userdata")" = 1 ] &&
+		[ "$(blockdev --getro "$arch_root")" = 1 ]
+}
+
+sgdisk_value() {
+	pattern=$1
+	file=$2
+	sed -n "s/^${pattern}:[[:space:]]*//p" "$file" | sed -n '1p'
+}
+
+verify_disk_guid() {
+	sgdisk -p "$disk" >/run/rog5-layout-stage2-table.log 2>&1 || return 1
+	actual=$(sgdisk_value 'Disk identifier (GUID)' /run/rog5-layout-stage2-table.log |
+		tr 'A-F' 'a-f')
+	[ "$actual" = "$expected_disk_guid" ]
+}
+
+verify_partition() {
+	number=$1 first=$2 last=$3 type_guid=$4 unique_guid=$5 name=$6
+	info=/run/rog5-layout-stage2-partition-$number.log
+	sgdisk -i="$number" "$disk" >"$info" 2>&1 || return 1
+	actual_first=$(sed -n 's/^First sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	actual_last=$(sed -n 's/^Last sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	actual_type=$(sgdisk_value 'Partition GUID code' "$info" | awk '{print $1}' |
+		tr 'A-F' 'a-f')
+	actual_unique=$(sgdisk_value 'Partition unique GUID' "$info" | tr 'A-F' 'a-f')
+	actual_name=$(sed -n "s/^Partition name: '\(.*\)'$/\1/p" "$info")
+	actual_attrs=$(sgdisk_value 'Attribute flags' "$info")
+	[ "$actual_first" = "$first" ] && [ "$actual_last" = "$last" ] &&
+		[ "$actual_type" = "$type_guid" ] &&
+		[ "$actual_unique" = "$unique_guid" ] &&
+		[ "$actual_name" = "$name" ] &&
+		[ "$actual_attrs" = 0000000000000000 ]
+}
+
+gpt_identity_hash() {
+	output=$1
+	: >"$output" || return 1
+	sgdisk -p "$disk" >>"$output" 2>&1 || return 1
+	for number in $(seq 1 24); do
+		sgdisk -i="$number" "$disk" >>"$output" 2>&1 || return 1
+	done
+	sha256sum "$output" | awk '{print $1}'
+}
+
+filesystem_value() {
+	pattern=$1 file=$2
+	sed -n "s/^${pattern}:[[:space:]]*//p" "$file" | sed -n '1p'
+}
+
+verify_ext4() {
+	device=$1 expected_uuid=$2 expected_count=$3
+	expected_label=$4 output=$5
+	dumpe2fs -h "$device" >"$output" 2>&1 || return 1
+	[ "$(filesystem_value 'Filesystem state' "$output")" = clean ] &&
+		[ "$(filesystem_value 'Block size' "$output")" = 4096 ] &&
+		[ "$(filesystem_value 'Block count' "$output")" = "$expected_count" ] &&
+		[ "$(filesystem_value 'Filesystem UUID' "$output" | tr 'A-F' 'a-f')" = \
+			"$expected_uuid" ] &&
+		[ "$(filesystem_value 'Filesystem volume name' "$output")" = \
+			"$expected_label" ] &&
+		! filesystem_value 'Filesystem features' "$output" |
+			grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'
+}
+
+verify_write_window() {
+	count=0 writable=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		name=$(basename "$sys_disk") || return 1
+		for sys_block in "$sys_disk" "$sys_disk"/"$name"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			expected=1
+			case $device in
+				"$disk"|"$arch_root") expected=0; writable=$((writable + 1)) ;;
+			esac
+			[ "$(blockdev --getro "$device")" = "$expected" ] || return 1
+			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq 117 ] && [ "$writable" -eq 2 ]
+}
+
+verify_mount_count() {
+	expected=$1
+	count=0
+	while read -r _ _ device _ _ _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+	done </proc/self/mountinfo
+	[ "$count" -eq "$expected" ]
+}
+
+is_integer() {
+	value=$1
+	case $value in
+		''|-) return 1 ;;
+		-*) value=${value#-} ;;
+	esac
+	case $value in ''|*[!0-9]*) return 1 ;; esac
+}
+
+verify_safe_temperature() {
+	battery_path=/sys/class/power_supply/battery/temp
+	[ -r "$battery_path" ] || return 1
+	battery_temp=$(cat "$battery_path") || return 1
+	is_integer "$battery_temp" || return 1
+	[ "$battery_temp" -ge -200 ] && [ "$battery_temp" -lt 500 ] || return 1
+	thermal_count=0
+	for thermal_path in /sys/class/thermal/thermal_zone*/temp; do
+		[ -r "$thermal_path" ] || continue
+		thermal_temp=$(cat "$thermal_path") || return 1
+		is_integer "$thermal_temp" || return 1
+		[ "$thermal_temp" -ge -40000 ] && [ "$thermal_temp" -lt 65000 ] ||
+			return 1
+		thermal_count=$((thermal_count + 1))
+	done
+	[ "$thermal_count" -gt 0 ]
+}
+
+run_e2fsck() {
+	device=$1 output=$2
+	e2fsck -f -p "$device" >"$output" 2>&1
+}
+
+open_write_window() {
+	blockdev --setrw "$arch_root" || return 1
+	blockdev --setrw "$disk" || {
+		blockdev --setro "$arch_root" || true
+		return 1
+	}
+	verify_write_window
+}
+
+close_write_window() {
+	status=0
+	blockdev --setro "$disk" || status=1
+	blockdev --setro "$arch_root" || status=1
+	lock_storage || status=1
+	return "$status"
+}
+
+if ! exec 3<>/dev/ttyGS0; then
+	log 'cannot open raw ACM transport'
+	exit 1
+fi
+transport_ready=1
+trap 'fail interrupted' HUP INT TERM
+
+stage_set S00_CONFIG
+check_config || fail invalid_private_config
+[ -x "$verifier" ] && [ ! -L "$verifier" ] || fail verifier_unavailable
+[ -x "$watchdog_disarm" ] && [ ! -L "$watchdog_disarm" ] ||
+	fail watchdog_helper_unavailable
+
+stage_set S10_TOPOLOGY
+no_physical_mounts || fail physical_block_mounted
+resolve_exact_storage || fail topology_identity
+verify_disk_guid || fail disk_guid_changed
+verify_partition 23 2352680 53477375 "$expected_userdata_type_guid" \
+	"$expected_userdata_guid" userdata || fail userdata_identity_changed
+verify_partition 24 53477376 61865978 \
+	0fc63daf-8483-4772-8e79-3d69d8477de4 "$expected_root_guid" \
+	arch_root_a || fail arch_root_identity_changed
+verify_ext4 "$userdata" "$expected_userdata_fs_uuid" 51124000 rog5-linux \
+	/run/rog5-layout-stage2-userdata.log || fail userdata_filesystem_changed
+if blkid "$arch_root" >/run/rog5-layout-stage2-empty-root.log 2>&1; then
+	fail arch_root_not_empty
+fi
+[ ! -s /run/rog5-layout-stage2-empty-root.log ] || fail arch_root_signature_output
+gpt_before=$(gpt_identity_hash /run/rog5-layout-stage2-gpt.before) ||
+	fail gpt_identity_unreadable
+
+stage_set S20_SOURCE
+verify_safe_temperature || fail temperature_unsafe
+mkdir -p /mnt/userdata "$source_mount" "$target_mount"
+mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime \
+	"$userdata" /mnt/userdata || fail userdata_mount_failed
+userdata_mounted=1
+verify_mount_count 1 || fail userdata_mount_scope
+[ -f "$source_image" ] && [ ! -L "$source_image" ] &&
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$source_image")" = \
+		"0:0:600:$source_bytes:1" ] || fail source_metadata_changed
+[ "$(sha256sum "$source_image" | awk '{print $1}')" = \
+	"$expected_source_hash" ] || fail source_image_hash_changed
+source_loop=$(losetup -f) || fail source_loop_unavailable
+case $source_loop in /dev/loop[0-9]*) ;; *) fail source_loop_identity ;; esac
+losetup -r "$source_loop" "$source_image" || fail source_loop_attach_failed
+[ "$(blockdev --getro "$source_loop")" = 1 ] &&
+	[ "$(blockdev --getsize64 "$source_loop")" = "$source_bytes" ] ||
+	fail source_loop_geometry
+verify_ext4 "$source_loop" "$expected_source_uuid" "$source_blocks" ROG5_ARCH_A \
+	/run/rog5-layout-stage2-source.log || fail source_filesystem_changed
+mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime \
+	"$source_loop" "$source_mount" || fail source_mount_failed
+source_mounted=1
+verify_mount_count 2 || fail source_mount_scope
+"$verifier" "$source_mount" "$native_seal" "$native_seal_sha256" \
+	>/run/rog5-layout-stage2-source-tree.log 2>&1 || fail source_tree_changed
+[ "$(sha256sum "$source_mount/.rog5-persistent-seal" | awk '{print $1}')" = \
+	"$old_seal_sha256" ] || fail source_provenance_seal_changed
+
+stage_set S30_WATCHDOG_DISARM
+verify_safe_temperature || fail temperature_unsafe
+"$watchdog_disarm" >/run/rog5-layout-stage2-watchdog-disarm.log 2>&1 ||
+	fail rollback_watchdog_disarm_failed
+[ ! -e /run/rog5-recovery-armed ] &&
+	[ -f /run/rog5-recovery-watchdog.disarmed ] &&
+	[ ! -L /run/rog5-recovery-watchdog.disarmed ] ||
+	fail rollback_watchdog_disarm_unproven
+
+stage_set S40_CLONE
+open_write_window || fail write_window_failed
+target_state=partial
+dd if="$source_image" of="$arch_root" bs=4194304 count=4096 conv=fsync \
+	>/run/rog5-layout-stage2-dd.log 2>&1 || fail clone_failed
+sync || fail clone_sync_failed
+prefix_hash=$(dd if="$arch_root" bs=4194304 count=4096 2>/dev/null |
+	sha256sum | awk '{print $1}') || fail clone_hash_failed
+[ "$prefix_hash" = "$expected_source_hash" ] || fail clone_hash_mismatch
+verify_ext4 "$arch_root" "$expected_source_uuid" "$source_blocks" ROG5_ARCH_A \
+	/run/rog5-layout-stage2-clone.log || fail cloned_filesystem_changed
+target_state=cloned
+
+stage_set S50_NATIVE_FILESYSTEM
+target_state=native
+tune2fs -U "$expected_target_uuid" "$arch_root" \
+	>/run/rog5-layout-stage2-tune2fs.log 2>&1 || fail target_uuid_failed
+run_e2fsck "$arch_root" /run/rog5-layout-stage2-e2fsck-before-grow.log ||
+	fail target_e2fsck_before_grow_failed
+resize2fs "$arch_root" >/run/rog5-layout-stage2-grow.log 2>&1 ||
+	fail target_grow_failed
+run_e2fsck "$arch_root" /run/rog5-layout-stage2-e2fsck-after-grow.log ||
+	fail target_e2fsck_after_grow_failed
+verify_ext4 "$arch_root" "$expected_target_uuid" "$target_blocks" ROG5_ARCH_A \
+	/run/rog5-layout-stage2-grown.log || fail grown_filesystem_changed
+
+stage_set S60_NATIVE_SEAL
+mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+	"$arch_root" "$target_mount" || fail target_mount_rw_failed
+target_mounted=1
+verify_mount_count 3 || fail target_rw_mount_scope
+"$verifier" "$target_mount" "$native_seal" "$native_seal_sha256" \
+	>/run/rog5-layout-stage2-preseal-tree.log 2>&1 || fail cloned_tree_changed
+seal_path=$target_mount/.rog5-persistent-seal
+seal_next=$target_mount/.rog5-persistent-seal.next
+[ -f "$seal_path" ] && [ ! -L "$seal_path" ] && [ ! -e "$seal_next" ] &&
+	[ ! -L "$seal_next" ] || fail native_seal_path_unsafe
+cp "$native_seal" "$seal_next" || fail native_seal_copy_failed
+chown 0:0 "$seal_next" || fail native_seal_owner_failed
+chmod 0444 "$seal_next" || fail native_seal_mode_failed
+[ "$(stat -c '%u:%g:%a:%s:%h' "$seal_next")" = 0:0:444:430:1 ] &&
+	[ "$(sha256sum "$seal_next" | awk '{print $1}')" = \
+		"$native_seal_sha256" ] || fail native_seal_staging_changed
+sync -f "$seal_next" || fail native_seal_sync_failed
+mv -f "$seal_next" "$seal_path" || fail native_seal_publish_failed
+# Atomic replacement changes the root directory mtime, which is part of the
+# sealed tree. Restore the exact staging epoch before verifying the new seal.
+touch -d @1681862400 "$target_mount" || fail native_root_mtime_restore_failed
+[ "$(stat -c %Y "$target_mount")" = 1681862400 ] ||
+	fail native_root_mtime_changed
+sync -f "$target_mount" || fail native_root_sync_failed
+"$verifier" "$target_mount" "$seal_path" "$native_seal_sha256" \
+	>/run/rog5-layout-stage2-native-tree.log 2>&1 || fail native_tree_verify_failed
+umount "$target_mount" || fail target_unmount_failed
+target_mounted=0
+run_e2fsck "$arch_root" /run/rog5-layout-stage2-e2fsck-final.log ||
+	fail target_e2fsck_final_failed
+verify_ext4 "$arch_root" "$expected_target_uuid" "$target_blocks" ROG5_ARCH_A \
+	/run/rog5-layout-stage2-final-fs.log || fail final_filesystem_changed
+target_state=final
+
+stage_set S70_READONLY_VERIFY
+close_write_window || fail storage_relock_failed
+mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime \
+	"$arch_root" "$target_mount" || fail target_mount_ro_failed
+target_mounted=1
+verify_mount_count 3 || fail target_ro_mount_scope
+"$verifier" "$target_mount" "$target_mount/.rog5-persistent-seal" \
+	"$native_seal_sha256" >/run/rog5-layout-stage2-readonly-tree.log 2>&1 ||
+	fail readonly_tree_verify_failed
+umount "$target_mount" || fail target_readonly_unmount_failed
+target_mounted=0
+umount "$source_mount" || fail source_unmount_failed
+source_mounted=0
+losetup -d "$source_loop" || fail source_loop_detach_failed
+source_loop=
+umount /mnt/userdata || fail userdata_unmount_failed
+userdata_mounted=0
+no_physical_mounts || fail residual_block_mount
+lock_storage || fail final_storage_relock_failed
+resolve_exact_storage || fail final_topology_identity
+gpt_after=$(gpt_identity_hash /run/rog5-layout-stage2-gpt.after) ||
+	fail final_gpt_identity_unreadable
+[ "$gpt_after" = "$gpt_before" ] || fail gpt_identity_changed
+verify_ext4 "$userdata" "$expected_userdata_fs_uuid" 51124000 rog5-linux \
+	/run/rog5-layout-stage2-final-userdata.log || fail final_userdata_changed
+verify_ext4 "$arch_root" "$expected_target_uuid" "$target_blocks" ROG5_ARCH_A \
+	/run/rog5-layout-stage2-final-root.log || fail final_native_root_changed
+
+stage=S99_COMPLETE
+emit "status=PASS stage=$stage reason=none operation_id=$operation_id source_sha256=$expected_source_hash target_uuid=$expected_target_uuid target_blocks=$target_blocks native_seal_sha256=$native_seal_sha256 tree_sha256=c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38 all_read_only=1 block_mounts=0"
+log "complete; target_uuid=$expected_target_uuid"
+exit 0
