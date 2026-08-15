@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -108,6 +109,55 @@ def protocol(files: dict[str, bytes], *, operation: str = OPERATION) -> bytes:
 
 
 class CollectorTests(unittest.TestCase):
+    def test_execution_record_is_finalized_before_ack(self) -> None:
+        files = backups()
+        transport = FakeTransport(protocol(files))
+        template = {
+            "format": "rog5-storage-layout-stage1-execution-v1",
+            "status": "authorized_waiting_fresh_backup",
+            "operation_id": OPERATION,
+            "device_identity": {"usb_location": "1-1.2"},
+            "old_geometry": {"userdata_last_lba": 61865978},
+            "new_geometry": {"userdata_last_lba": 53477375},
+            "backup_hashes": {"inventory_sha256": "a" * 64},
+            "commands": ["resize2fs EXACT_USERDATA 51124000"],
+            "abort_conditions": ["identity mismatch"],
+            "rollback_limitations": ["filesystem growth is not automatic"],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory)
+            template_path = parent / "execution-template.json"
+            template_path.write_text(
+                json.dumps(template, sort_keys=True, separators=(",", ":")) + "\n",
+                encoding="ascii",
+            )
+            template_path.chmod(0o600)
+            loaded, template_sha256 = MODULE.load_execution_record_template(
+                template_path, OPERATION, "1-1.2"
+            )
+            output = parent / "generation-stage1"
+
+            def before_ack(manifest: dict[str, object]) -> None:
+                self.assertEqual(transport.outgoing, b"")
+                MODULE.finalize_execution_record(
+                    output, loaded, template_sha256, manifest
+                )
+                record_path = output / "execution-record.json"
+                self.assertTrue(record_path.is_file())
+                self.assertEqual(os.stat(record_path).st_mode & 0o777, 0o600)
+
+            manifest = MODULE.receive_backup_set(
+                transport, output, OPERATION, 2, before_ack=before_ack
+            )
+            record = json.loads(
+                (output / "execution-record.json").read_text(encoding="ascii")
+            )
+            self.assertEqual(
+                record["status"], "fresh_backup_durable_mutation_ack_ready"
+            )
+            self.assertEqual(record["fresh_backup"], manifest)
+            self.assertEqual(record["template_sha256"], template_sha256)
+
     def test_exact_backup_is_durable_before_ack(self) -> None:
         files = backups()
         transport = FakeTransport(protocol(files))
@@ -137,6 +187,23 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "hash"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+    def test_execution_record_failure_never_acks(self) -> None:
+        transport = FakeTransport(protocol(backups()))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "bad-record"
+
+            def fail_record(_manifest: dict[str, object]) -> None:
+                raise MODULE.LayoutProtocolError("record finalization failed")
+
+            with self.assertRaisesRegex(
+                MODULE.LayoutProtocolError, "record finalization failed"
+            ):
+                MODULE.receive_backup_set(
+                    transport, output, OPERATION, 2, before_ack=fail_record
+                )
+            self.assertTrue((output / ".incomplete").is_file())
         self.assertEqual(transport.outgoing, b"")
 
     def test_terminal_pass_requires_every_exact_field(self) -> None:
