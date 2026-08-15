@@ -54,11 +54,21 @@ Opus review reported `NO BLOCKER`; its useful minor observations were also
 applied by requiring correction-free fsck, rejecting a target/userdata UUID
 collision, and disabling signal traps before failure cleanup.
 
+The first GitHub run exposed one publication-only test defect: Git records
+only the executable bit, so a fresh checkout materialized the tracked seal as
+`0644` even though the local source copy was `0444`. The corrected regression
+accepts a non-executable tracked source and separately requires the builder's
+exact `install -m 0444` boundary. Inspection of the final archive confirms the
+packaged seal is `0444`.
+
 ## Offline evidence
 
 - focused source/collector tests: 12 unit tests plus the executable ext4
   fixture passed in 7.339 seconds;
 - the complete repository Linux CI tier passed in 444.978 seconds;
+- after the checkout-mode regression correction, the coherent focused set
+  passed in 7.358 seconds and the complete repository Linux CI tier passed in
+  429.811 seconds;
 - final initramfs twins: 6,075,358 bytes each, byte-identical SHA-256
   `36202033676f8d5217e3426ba05a5818e9b8787b3bae4145e050eb78a3ad0ba2`;
 - twin build elapsed time: 3.47 seconds;
