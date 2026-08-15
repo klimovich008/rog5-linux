@@ -497,6 +497,15 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   transition remounts exact `/dev/sda23` read-only and verifies the clean
   superblock before `RESTART2`. See the
   [Generation 73 live result](../test-results/2026-08-15-generation-73-storage-preflight-live.md).
+  Generation 74 is now admitted but unissued. It keeps the exact wrapper
+  kernel that reached Generation 73 storage diagnostics, replaces only the
+  independently reproduced external initramfs, and will run once after the
+  clean fallback remount gate. Its twin AVB images are byte-identical at
+  `4f7343b1…9d9ca`; no phone boot or storage access has occurred under this
+  profile. A fresh wrapper rebuild exposed output-directory-dependent Clang
+  ThinLTO symbol hashes, so the successor builder now normalizes debug paths;
+  those mismatched experimental kernels are not candidate inputs. See the
+  [Generation 74 offline checkpoint](../test-results/2026-08-15-generation-74-storage-preflight-offline.md).
   Final confirmation is still required before any phone partition mutation.
 
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
