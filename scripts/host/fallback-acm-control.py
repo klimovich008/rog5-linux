@@ -169,6 +169,11 @@ REMOTE_ERROR_CODES = frozenset(
         "host-key-sign",
         "post-ack-timeout",
         "probe",
+        "root-mount-after",
+        "root-mount-before",
+        "root-recovery-pending",
+        "root-remount",
+        "root-superblock",
     }
 )
 RESULT_FIELDS = (

@@ -2961,6 +2961,20 @@ class PolicyTest(unittest.TestCase):
             quiesce("d" * 32)
         self.assertEqual(runner.call_count, 2)
 
+    def test_root_quiesce_errors_are_exact_host_classifications(self) -> None:
+        nonce = "e" * 32
+        codes = {
+            "root-mount-after",
+            "root-mount-before",
+            "root-recovery-pending",
+            "root-remount",
+            "root-superblock",
+        }
+        self.assertLessEqual(codes, MODULE.REMOTE_ERROR_CODES)
+        for code in codes:
+            frame = f"ROG5_FALLBACK_ACM_ERROR {nonce} {code}\n".encode("ascii")
+            self.assertEqual(MODULE.remote_error(frame, nonce), code)
+
     def test_embedded_reboot_ack_wait_is_bounded(self) -> None:
         tree = ast.parse(MODULE.REMOTE_SOURCE)
         function = next(
