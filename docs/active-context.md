@@ -528,6 +528,19 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   claim, or authority exists yet. See the
   [offline result](../test-results/2026-08-15-storage-layout-stage1-offline.md).
 
+- **The separately gated Stage 2 clone/native-filesystem path is implemented
+  offline but is not eligible for issuance.** It binds the refreshed 16-GiB
+  image and 37,738-entry tree, writes only the exact future partition 24,
+  verifies the complete clone prefix before assigning the native UUID, grows
+  ext4, publishes the fresh excluded seal atomically, restores the sealed root
+  mtime, and finishes read-only with the GPT and userdata unchanged. Two real
+  fail-before-write defects found by Opus review—one shell continuation and
+  one cross-filesystem label assertion—now have executable regressions. Final
+  twins are identical at `36202033…0ba2`; both AArch64 runtime closures pass.
+  Stage 2 remains behind successful Stage 1 plus exact Alpine fallback proof,
+  with no candidate/signature/claim. See the
+  [offline result](../test-results/2026-08-15-storage-layout-stage2-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at

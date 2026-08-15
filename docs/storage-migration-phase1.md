@@ -234,6 +234,15 @@ they shrink ext4 before changing GPT, verify the result, and relock all block
 nodes. A real-size disposable rehearsal and deterministic sealed twin builds
 pass. Phone execution still requires final confirmation of this exact
 destructive stage.
+
+The separate Stage-2 implementation is also ready offline. It does not format
+or alter GPT: it clones the exact refreshed image into only the future native
+partition, verifies the full 16-GiB target prefix, changes its filesystem UUID,
+grows ext4, publishes the current-tree seal, then relocks and verifies the root
+read-only. It remains ineligible until Stage 1 has run and the unchanged Alpine
+fallback has proved the intermediate layout. The
+[offline result](../test-results/2026-08-15-storage-layout-stage2-offline.md)
+records its deterministic twins and AArch64 runtime checks.
 The [Generation 54 live cycle](../test-results/2026-08-14-generation-54-fast-attestation-live.md)
 proved that UFS and local-root handoff remain fast, but also proved the
 retained BusyBox is musl-dynamic rather than static. Direct execution after

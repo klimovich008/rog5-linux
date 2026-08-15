@@ -272,6 +272,9 @@ shared_tests=(
 	scripts/host/test-storage-layout-stage1-contract.py
 	scripts/device/test-disarm-recovery-layout-watchdog.sh
 	scripts/host/test-collect-storage-layout-stage1.py
+	scripts/host/test-storage-layout-stage2-contract.py
+	scripts/host/test-collect-storage-layout-stage2.py
+	scripts/device/test-storage-layout-stage2-runtime.sh
 	scripts/host/test-collect-storage-preflight-report.py
 	scripts/host/test-storage-preflight-candidate.py
 	scripts/device/test-network-root-init.sh

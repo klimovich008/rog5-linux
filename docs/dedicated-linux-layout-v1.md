@@ -168,6 +168,17 @@ the old Generation-53 seal remains provenance but no longer claims the current
 tree. Stage 2 must bind this refreshed identity, not the stale original image
 hash.
 
+That Stage-2 path is now implemented offline as a distinct sealed executor.
+It verifies the source hash and tree before disarming the recovery timer,
+opens only the parent-disk/partition-24 write window, hashes the complete clone
+prefix before changing its UUID, grows ext4, and atomically publishes the
+fresh 37,738-entry seal. Final initramfs twins are byte-identical at
+`36202033676f8d5217e3426ba05a5818e9b8787b3bae4145e050eb78a3ad0ba2`
+(6,075,358 bytes). The AArch64 verifier and storage tools pass their runtime
+closures. This is preparation only: Stage 2 cannot be issued before Stage 1
+and the intermediate Alpine fallback proof. See the
+[Stage-2 offline result](../test-results/2026-08-15-storage-layout-stage2-offline.md).
+
 The machine-readable public geometry is
 [`configs/storage/rog5-dedicated-linux-v1.json`](../configs/storage/rog5-dedicated-linux-v1.json)
 and its focused verifier is
