@@ -18,6 +18,11 @@ bounded image in the existing `userdata` filesystem. Repartitioning remains a
 separate Phase-3 action requiring the operator's final confirmation of the
 exact commands.
 
+The bounded local-image experiment is complete. Generation 70 reached strict
+key-only SSH in 326.300 seconds and retained Alpine/NFS recovery. Current work
+has moved to the first dedicated-layout boundary; no secondary button,
+indicator, sensor, audio, or suspend expansion is active.
+
 ## Read-only inventory result
 
 The 2026-08-12 collector ran from a temporary RAM boot of the exact backed-up
@@ -212,6 +217,23 @@ On the directly comparable target-uptime acceptance marker, Generation 53 was
 80.928 seconds faster than Generation 20. The next optimization target is the
 approximately 256.6 seconds between successful `switch_root` and completion
 of the boot-critical root attestation, not UFS discovery or image mounting.
+
+After the one controlled Generation-64 write, a 2026-08-15 read-only fallback
+refresh proved the image clean and unattached, recomputed its full SHA-256 as
+`a51ee69000bcdf56b87ef0045d517fa60cffe92a21fba728e80fc37c4380b3ce`,
+and produced the current 37,738-entry tree SHA-256
+`c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38`.
+The read-only loop exposed `norecovery`, and cleanup left no mount or loop
+residue. These values replace the original Generation-53 image/tree identity
+for native-partition cloning.
+
+The Stage-1 dedicated-layout executor and collector are now implemented but
+unissued. They require exact UFS/GPT/ext4 identities, a fresh host-fsynced GPT
+backup ACK, and exact rollback-watchdog disarm before the first write; then
+they shrink ext4 before changing GPT, verify the result, and relock all block
+nodes. A real-size disposable rehearsal and deterministic sealed twin builds
+pass. Phone execution still requires final confirmation of this exact
+destructive stage.
 The [Generation 54 live cycle](../test-results/2026-08-14-generation-54-fast-attestation-live.md)
 proved that UFS and local-root handoff remain fast, but also proved the
 retained BusyBox is musl-dynamic rather than static. Direct execution after

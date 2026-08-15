@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Hardware-free tests for the stage-1 GPT backup/ACK protocol."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+
+REPO = Path(__file__).resolve().parents[2]
+SOURCE = REPO / "scripts/host/collect-storage-layout-stage1.py"
+SPEC = importlib.util.spec_from_file_location("collect_storage_layout_stage1", SOURCE)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("cannot load stage-1 collector")
+MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+OPERATION = "0123456789abcdef0123456789abcdef"
+NONCE = "abcdef0123456789abcdef0123456789"
+
+
+class FakeTransport:
+    def __init__(self, incoming: bytes) -> None:
+        self.incoming = bytearray(incoming)
+        self.outgoing = bytearray()
+
+    def readline(self, maximum: int, _timeout: float) -> bytes:
+        newline = self.incoming.find(b"\n")
+        if newline < 0 or newline + 1 > maximum:
+            raise MODULE.LayoutProtocolError("line framing is not exact")
+        result = bytes(self.incoming[: newline + 1])
+        del self.incoming[: newline + 1]
+        return result
+
+    def read_exact(self, size: int, _timeout: float) -> bytes:
+        if len(self.incoming) < size:
+            raise MODULE.LayoutProtocolError("backup payload ended early")
+        result = bytes(self.incoming[:size])
+        del self.incoming[:size]
+        return result
+
+    def write_all(self, payload: bytes, _timeout: float) -> None:
+        self.outgoing.extend(payload)
+
+
+def backups() -> dict[str, bytes]:
+    primary = bytearray(24_576)
+    primary[510:512] = b"\x55\xaa"
+    primary[4096:4104] = b"EFI PART"
+    secondary = bytearray(20_480)
+    secondary[-4096:-4088] = b"EFI PART"
+    return {
+        "sgdisk.gpt": b"sealed-sgdisk-backup" * 1024,
+        "primary.raw": bytes(primary),
+        "secondary.raw": bytes(secondary),
+    }
+
+
+def backup_set_sha(files: dict[str, bytes]) -> str:
+    records = "".join(
+        f"{name}:{hashlib.sha256(files[name]).hexdigest()}:{len(files[name])}\n"
+        for name in MODULE.FILE_ORDER
+    ).encode("ascii")
+    return hashlib.sha256(records).hexdigest()
+
+
+def protocol(files: dict[str, bytes], *, operation: str = OPERATION) -> bytes:
+    seal = backup_set_sha(files)
+    parts = [
+        b"ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S10_TOPOLOGY reason=none\n",
+        (
+            "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_BEGIN "
+            f"operation_id={operation} nonce={NONCE} files=3 "
+            f"backup_set_sha256={seal}\n"
+        ).encode("ascii"),
+    ]
+    for name in MODULE.FILE_ORDER:
+        payload = files[name]
+        digest = hashlib.sha256(payload).hexdigest()
+        parts.extend(
+            (
+                (
+                    "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_FILE "
+                    f"name={name} size={len(payload)} sha256={digest}\n"
+                ).encode("ascii"),
+                payload,
+                b"\n",
+                (
+                    "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_FILE_END "
+                    f"name={name}\n"
+                ).encode("ascii"),
+            )
+        )
+    parts.append(
+        (
+            "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_END "
+            f"operation_id={operation} nonce={NONCE} "
+            f"backup_set_sha256={seal}\n"
+        ).encode("ascii")
+    )
+    return b"".join(parts)
+
+
+class CollectorTests(unittest.TestCase):
+    def test_exact_backup_is_durable_before_ack(self) -> None:
+        files = backups()
+        transport = FakeTransport(protocol(files))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "generation-stage1"
+            evidence = MODULE.receive_backup_set(transport, output, OPERATION, 2)
+            self.assertEqual(evidence["backup_set_sha256"], backup_set_sha(files))
+            self.assertFalse((output / ".incomplete").exists())
+            self.assertTrue((output / "ack-sent.txt").is_file())
+            manifest = json.loads((output / "manifest.json").read_text(encoding="ascii"))
+            self.assertTrue(manifest["ack_prepared"])
+            self.assertNotIn("acknowledged", manifest)
+            for name, payload in files.items():
+                self.assertEqual((output / name).read_bytes(), payload)
+                self.assertEqual(manifest["files"][name]["sha256"], hashlib.sha256(payload).hexdigest())
+        expected_ack = (
+            "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_ACK "
+            f"operation_id={OPERATION} nonce={NONCE} "
+            f"backup_set_sha256={backup_set_sha(files)}\n"
+        ).encode("ascii")
+        self.assertEqual(bytes(transport.outgoing), expected_ack)
+
+    def test_payload_hash_mismatch_never_acks(self) -> None:
+        files = backups()
+        payload = protocol(files).replace(b"sealed-sgdisk", b"sealed-Sgdisk", 1)
+        transport = FakeTransport(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(MODULE.LayoutProtocolError, "hash"):
+                MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+    def test_terminal_pass_requires_every_exact_field(self) -> None:
+        seal = "a" * 64
+        valid = (
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S32_WATCHDOG_DISARM reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S40_FILESYSTEM_CHECK reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=PASS stage=S99_COMPLETE reason=none "
+            f"operation_id={OPERATION} userdata_last_lba=53477375 "
+            "arch_root_first_lba=53477376 arch_root_last_lba=61865978 "
+            f"filesystem_blocks=51124000 backup_set_sha256={seal} "
+            "all_read_only=1 block_mounts=0\n"
+        ).encode("ascii")
+        transport = FakeTransport(valid)
+        terminal = MODULE.capture_terminal(transport, OPERATION, seal, 2)
+        self.assertIn(b"status=PASS", terminal)
+
+        duplicate = valid.replace(
+            f"operation_id={OPERATION}".encode("ascii"),
+            f"operation_id={OPERATION} operation_id={OPERATION}".encode("ascii"),
+        )
+        with self.assertRaisesRegex(MODULE.LayoutProtocolError, "field count"):
+            MODULE.capture_terminal(FakeTransport(duplicate), OPERATION, seal, 2)
+
+    def test_wrong_operation_never_acks(self) -> None:
+        transport = FakeTransport(protocol(backups(), operation="f" * 32))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(MODULE.LayoutProtocolError, "operation"):
+                MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+    def test_wrong_file_order_never_acks(self) -> None:
+        payload = protocol(backups()).replace(b"name=sgdisk.gpt", b"name=primary.raw", 1)
+        transport = FakeTransport(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(MODULE.LayoutProtocolError, "file header"):
+                MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+    def test_invalid_raw_gpt_signature_never_acks(self) -> None:
+        files = backups()
+        primary = bytearray(files["primary.raw"])
+        primary[4096:4104] = b"NOT GPT!"
+        files["primary.raw"] = bytes(primary)
+        transport = FakeTransport(protocol(files))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(MODULE.LayoutProtocolError, "primary GPT"):
+                MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+    def test_existing_output_refuses_before_read_or_ack(self) -> None:
+        transport = FakeTransport(protocol(backups()))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "existing"
+            output.mkdir()
+            with self.assertRaisesRegex(MODULE.LayoutProtocolError, "already exists"):
+                MODULE.receive_backup_set(transport, output, OPERATION, 2)
+        self.assertEqual(transport.outgoing, b"")
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

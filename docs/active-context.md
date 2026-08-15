@@ -514,6 +514,20 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-15-generation-74-storage-preflight-live.md).
   Final confirmation is still required before any phone partition mutation.
 
+- **Dedicated-layout Stage 1 is implemented offline but remains unissued.**
+  The sealed target requires exact storage identities, zero block mounts, a
+  fresh GPT backup durably acknowledged by the host, and exact recovery-timer
+  disarm before `BLKROSET`, `e2fsck`, `resize2fs`, or `sgdisk`. Stale and
+  ambiguous watchdog fixtures are rejected. A 253,403,070,464-byte sparse
+  4-KiB-sector rehearsal completed the exact filesystem shrink, GPT split,
+  verification, and fresh-GPT restoration. Final initramfs twins are
+  byte-identical at `74f4ecc2…1bd4`. A separate read-only Alpine cycle refreshed
+  the current 16-GiB source image to `a51ee690…b3ce` and its marker-inclusive
+  37,738-entry tree to `c8044454…8e38`, then returned the phone to exact slot-B
+  `lahaina` fastboot. No phone storage mutation, Stage-1 candidate, signature,
+  claim, or authority exists yet. See the
+  [offline result](../test-results/2026-08-15-storage-layout-stage1-offline.md).
+
 - **The temporary Arch Linux + key-only SSH MVP passed on real hardware on
   2026-08-12.** Generation 20 mounted NFSv4.2 read-only at target boot
   4.930 s, verified the sealed root at 350.038 s, reached systemd at
