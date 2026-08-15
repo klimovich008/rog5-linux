@@ -97,9 +97,10 @@ The eventual operation is deliberately limited to these mutations:
 2. unmount `userdata`, run forced ext4 checking, and repeat the minimum-size
    estimate;
 3. shrink ext4 to exactly 51,124,000 4-KiB blocks;
-4. in one GPT transaction, preserve partition 23's first LBA, type, unique
-   GUID, name, and attributes while changing only its last LBA to 53,477,375,
-   then create partition 24 over LBAs 53,477,376–61,865,978;
+4. in one GPT transaction, force `sgdisk --set-alignment=1`, preserve
+   partition 23's first LBA, type, unique GUID, name, and attributes while
+   changing only its last LBA to 53,477,375, then create partition 24 over
+   LBAs 53,477,376–61,865,978;
 5. reread and revalidate both GPT copies before opening either filesystem;
 6. grow ext4 partition 23 to its new boundary, check it again, and prove the
    Alpine recovery still boots;
@@ -116,9 +117,14 @@ old larger partition; the reverse order is forbidden.
 
 No command in the current repository performs these mutations yet. The exact
 tool-bearing read-only recovery and disposable 4-KiB-sector GPT transaction
-have passed offline. After the read-only phone preflight, the final phone
-command, private identity bindings, generated partition UUID, and fresh backup
-hash will be presented together for the required final confirmation.
+have passed offline. A second command-level rehearsal first proved that
+omitting `--set-alignment=1` silently moves the recreated `userdata` start,
+then proved that the corrected option preserves the exact start, GUID, type,
+name, and attributes. The result is recorded in the
+[2026-08-15 command rehearsal](../test-results/2026-08-15-dedicated-linux-command-rehearsal.md).
+The final phone command, private identity bindings, generated partition UUID,
+and fresh pre-write backup hash are kept together in a private execution
+record for the required final confirmation.
 
 The machine-readable public geometry is
 [`configs/storage/rog5-dedicated-linux-v1.json`](../configs/storage/rog5-dedicated-linux-v1.json)
