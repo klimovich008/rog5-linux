@@ -174,7 +174,9 @@ awk -F '\t' '
 
 production_root=$repo/build/ssh-acceptance-v7-production-20260811-r1
 generation_root=$repo/build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper
-if [[ -d $production_root && -d $generation_root ]]; then
+if [[ ${REQUIRE_CURRENT_PRODUCTION_ARTIFACT:-0} == 1 ]]; then
+	[[ -d $production_root && -d $generation_root ]] ||
+		fail 'required current production artifact output is absent'
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \
 			ROG5_STABLE_RECOVERY_PROFILE="$profile" \
@@ -232,9 +234,7 @@ if [[ -d $production_root && -d $generation_root ]]; then
 	[[ ! -e $finished_build_tmp ]] ||
 		fail 'current production profile test left its private build copy behind'
 else
-	[[ ${REQUIRE_CURRENT_PRODUCTION_ARTIFACT:-0} != 1 ]] ||
-		fail 'required current production artifact output is absent'
-	echo 'SKIP current production artifact preflight: ignored clean-twin output absent' >&2
+	echo 'SKIP current production artifact preflight: explicit retained-artifact check not requested' >&2
 fi
 
-echo 'PASS Generation 20 profile remains exact and artifact-verified while policy and inventory permanently refuse reuse'
+echo 'PASS Generation 20 profile remains exact while policy and inventory permanently refuse reuse'

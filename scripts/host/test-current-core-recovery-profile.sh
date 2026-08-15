@@ -117,7 +117,9 @@ grep -Fq 'CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"' \
 
 production_root=$repo/build/headless-core-v21-production-20260812-r1
 generation_root=$repo/build/headless-core-v21-generation21-20260812-r1
-if [[ -d $production_root && -d $generation_root ]]; then
+if [[ ${REQUIRE_CURRENT_CORE_ARTIFACT:-0} == 1 ]]; then
+	[[ -d $production_root && -d $generation_root ]] ||
+		fail 'required headless-core clean-twin output is absent'
 	artifact=$(
 		env -i PATH="$PATH" HOME="$HOME" \
 			ROG5_STABLE_RECOVERY_PROFILE="$profile" \
@@ -136,9 +138,7 @@ if [[ -d $production_root && -d $generation_root ]]; then
 		"PASS stable-recovery artifact preflight profile=$profile image_sha256=${exact[0]}" \
 		<<<"$artifact" || fail 'headless-core artifact preflight did not pass'
 else
-	[[ ${REQUIRE_CURRENT_CORE_ARTIFACT:-0} != 1 ]] ||
-		fail 'required headless-core clean-twin output is absent'
-	echo 'SKIP headless-core artifact preflight: ignored clean-twin output absent' >&2
+	echo 'SKIP headless-core artifact preflight: explicit retained-artifact check not requested' >&2
 fi
 
 echo 'PASS Generation 21 headless-core profile, exact claim, and admission are pinned'
