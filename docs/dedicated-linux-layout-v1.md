@@ -14,9 +14,11 @@ the 7-GiB `super` partition. The latter is too small for a comfortable Arch
 root after the current sealed tree, package updates, and rollback space.
 
 Status: **the sealed Stage-1 executor is implemented, offline-rehearsed, and
-read-only phone-preflighted, but it is unissued and unbooted; no phone
-partition or filesystem mutation has run.** The exact destructive operation
-still requires final operator confirmation.
+read-only phone-preflighted. Its prepared one-use candidate and claim remain
+unconsumed and unbooted; no phone partition or filesystem mutation has run.**
+Execution is paused at the battery gate. Active-slot metadata is temporarily A
+for the preserved ASUS charging environment; see the
+[charging recovery runbook](asus-charging-recovery.md).
 
 ## Verified input
 
@@ -146,10 +148,12 @@ that backup to the host before step 3. A power loss between ext4 shrink and GPT
 resize remains recoverable because the smaller filesystem still fits in the
 old larger partition; the reverse order is forbidden.
 
-The repository now contains the sealed Stage-1 executor and host backup/ACK
-collector, but no candidate, signature, claim, or boot authority has been
-created for it. The exact tool-bearing recovery and disposable 4-KiB-sector
-transaction have passed offline. A command-level rehearsal first proved that
+The repository contains the sealed Stage-1 executor and host backup/ACK
+collector. The private prepared candidate, execution record, and one-use claim
+remain unconsumed and cannot run until the battery, slot-B, identity, artifact,
+backup, and claim checks all pass again. The exact tool-bearing recovery and
+disposable 4-KiB-sector transaction have passed offline. A command-level
+rehearsal first proved that
 omitting `--set-alignment=1` silently moves the recreated `userdata` start,
 then proved that the corrected option preserves the exact start, GUID, type,
 name, and attributes. The result is recorded in the

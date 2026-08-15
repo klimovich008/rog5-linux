@@ -23,6 +23,16 @@ key-only SSH in 326.300 seconds and retained Alpine/NFS recovery. Current work
 has moved to the first dedicated-layout boundary; no secondary button,
 indicator, sensor, audio, or suspend expansion is active.
 
+Stage 1 is currently paused at the battery gate. Slot B boots Alpine, whose
+ASUS/Qualcomm charging path is not accepted; using it as an off-mode charging
+environment caused the pack voltage to fall. Active-slot metadata is
+temporarily A so the preserved ASUS recovery can charge the phone. The
+one-use Stage-1 claim remains unconsumed, and GPT, `userdata`, and partition
+payloads are unchanged. Follow the
+[ASUS low-battery charging recovery runbook](asus-charging-recovery.md), then
+restore slot B only after fastboot reports `battery-soc-ok: yes` and the
+current private Stage-1 record is revalidated.
+
 ## Read-only inventory result
 
 The 2026-08-12 collector ran from a temporary RAM boot of the exact backed-up
@@ -57,13 +67,16 @@ and size remained stable. Every future reader or writer must resolve the exact
 disk and partition from freshly validated GPT identity and geometry. A fixed
 `/dev/sdX` path is never an identity.
 
-The current fallback contract is:
+The development fallback contract is:
 
 - bootloader slot `b`, with both A and B reported successful and bootable;
 - unlocked bootloader with secure bootloader mode still reported;
 - Alpine root on the 243,766,472,704-byte ext4 `userdata` partition;
 - 195,854,397,440 bytes available at the final read-only checkpoint; and
 - a sealed Arch tree at `/rog5/roots/arch-a`, occupying 5,969,854,464 bytes.
+
+As of 2026-08-16, the active-slot selector is temporarily A for ASUS charging;
+this does not change the slot-B development contract or reclaimability.
 
 Both boot slots, both vendor-boot images, both top-level vbmeta images, both
 system vbmeta images, and both DTBO images were inventoried and backed up.

@@ -44,6 +44,9 @@ and final confirmation of the exact destructive commands.
   sequence.
 - [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
   exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
+- [ASUS low-battery charging recovery](docs/asus-charging-recovery.md) —
+  preserve slot-A charging, prove the fastboot battery gate, then restore the
+  slot-B-bound storage lifecycle without flashing.
 - [Operator standing authorization](docs/operator-standing-authorization.md) —
   actions that may proceed without another consent prompt and the hard
   boundaries that remain.
