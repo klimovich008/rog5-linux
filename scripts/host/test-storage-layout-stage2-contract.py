@@ -94,7 +94,10 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
 
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()
-        self.assertEqual(SEAL.stat().st_mode & 0o777, 0o444)
+        self.assertFalse(
+            SEAL.stat().st_mode
+            & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        )
         self.assertEqual(len(payload), 430)
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
@@ -135,6 +138,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
             'check_hash "$executor" "$executor_sha256"',
             'check_hash "$private_config" "$private_config_sha256"',
             'check_hash "$native_seal" "$native_seal_sha256"',
+            'install -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"',
             'check_hash "$verifier" "$verifier_sha256"',
             "find . -mindepth 1 -print0 | sort -z",
             "gzip -n",
