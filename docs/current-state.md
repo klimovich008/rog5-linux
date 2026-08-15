@@ -10,7 +10,9 @@ design is in [recovery-control-plane.md](recovery-control-plane.md).
 - Device: ASUS ROG Phone 5, codename `anakin`, Snapdragon 888 / SM8350,
   Adreno 660, roughly 11 GiB usable RAM.
 - Bootloader: unlocked; verified boot reports orange.
-- Recorded active Android slot: B.
+- Development/fallback slot: B. Active-slot metadata is temporarily A for the
+  preserved ASUS low-battery charging environment; see
+  [the charging recovery runbook](asus-charging-recovery.md).
 - Experimental boot method: attended `fastboot boot` only.
 - No experimental kernel, recovery, DTB, or Linux root has been flashed.
 - Installed fallback: userdata-backed Alpine 3.24 on
@@ -21,6 +23,12 @@ design is in [recovery-control-plane.md](recovery-control-plane.md).
 
 The installed fallback is intentionally left available after every temporary
 cycle.
+
+It is not an accepted low-battery charging environment. Its ASUS/Qualcomm
+charging stack is incomplete, so external power can boot Alpine while pack
+voltage falls. Stage 1 remains paused, its claim is unconsumed, and the
+temporary slot-A selector must not be restored to B until fastboot proves
+`battery-soc-ok: yes` and substantial voltage recovery.
 
 ## 2026-08-12 headless MVP milestone
 

@@ -34,6 +34,18 @@ canonical wording.
 GPU, display, desktop, browser automation, hotspot, and unrelated subsystem
 expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
 
+## Current charging hold
+
+Stage 1 is paused after fastboot reported a deeply discharged pack and
+`battery-soc-ok: no`. Slot B boots Alpine, which has no accepted functional
+ASUS/Qualcomm charging stack and must not be used as the low-battery/off-mode
+charging environment. Active-slot metadata is temporarily A so the preserved
+ASUS recovery can provide charging. No partition payload, GPT, or `userdata`
+mutation occurred, and the Stage-1 claim remains unconsumed. Follow the
+[ASUS charging recovery runbook](asus-charging-recovery.md); return to the
+slot-B-bound Stage-1 lifecycle only after exact fastboot identity, substantial
+voltage recovery, and `battery-soc-ok: yes` are all proven.
+
 ## Proven boundary
 
 - **Storage Phase 1 passed on 2026-08-12.** A fresh read-only inventory found
@@ -514,7 +526,7 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   and [live result](../test-results/2026-08-15-generation-74-storage-preflight-live.md).
   Final confirmation is still required before any phone partition mutation.
 
-- **Dedicated-layout Stage 1 is implemented offline but remains unissued.**
+- **Dedicated-layout Stage 1 is prepared but remains unbooted.**
   The sealed target requires exact storage identities, zero block mounts, a
   fresh GPT backup durably acknowledged by the host, and exact recovery-timer
   disarm before `BLKROSET`, `e2fsck`, `resize2fs`, or `sgdisk`. Stale and
@@ -523,9 +535,10 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
   verification, and fresh-GPT restoration. Final initramfs twins are
   byte-identical at `74f4ecc2…1bd4`. A separate read-only Alpine cycle refreshed
   the current 16-GiB source image to `a51ee690…b3ce` and its marker-inclusive
-  37,738-entry tree to `c8044454…8e38`, then returned the phone to exact slot-B
-  `lahaina` fastboot. No phone storage mutation, Stage-1 candidate, signature,
-  claim, or authority exists yet. See the
+  37,738-entry tree to `c8044454…8e38`. The prepared private candidate,
+  execution record, and one-use claim remain unconsumed. The phone is
+  temporarily on slot A for ASUS charging, with no partition payload, GPT, or
+  `userdata` mutation. See the
   [offline result](../test-results/2026-08-15-storage-layout-stage1-offline.md).
 
 - **The separately gated Stage 2 clone/native-filesystem path is implemented

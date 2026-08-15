@@ -6,8 +6,9 @@ readme=$repo/README.md
 roadmap=$repo/ROADMAP.md
 current=$repo/docs/current-state.md
 active=$repo/docs/active-context.md
+charging=$repo/docs/asus-charging-recovery.md
 
-for document in "$readme" "$roadmap" "$current" "$active"; do
+for document in "$readme" "$roadmap" "$current" "$active" "$charging"; do
 	[ -f "$document" ] && [ ! -L "$document" ] || {
 		echo "FAIL current recovery status source is missing or linked: $document" >&2
 		exit 1
@@ -21,6 +22,7 @@ fi
 
 normalized_status=$(tr '\n' ' ' <"$current")
 normalized_active=$(tr '\n' ' ' <"$active")
+normalized_charging=$(tr '\n' ' ' <"$charging")
 case $normalized_status in
 	*'Generation 12 is consumed and must never be retried; it is not pending live admission.'*) ;;
 	*)
@@ -52,6 +54,32 @@ case $normalized_active in
 		;;
 esac
 
+case $normalized_charging in
+	*'fastboot -s "$ROG5_FASTBOOT_SERIAL" set_active a'*'fastboot -s "$ROG5_FASTBOOT_SERIAL" reboot recovery'*'battery-soc-ok` is exactly `yes`'*'fastboot -s "$ROG5_FASTBOOT_SERIAL" set_active b'*) ;;
+	*)
+		echo 'FAIL ASUS charging recovery does not preserve the battery and slot boundary' >&2
+		exit 1
+		;;
+esac
+case $normalized_charging in
+	*'Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition'*) ;;
+	*)
+		echo 'FAIL ASUS charging recovery does not preserve the no-flash boundary' >&2
+		exit 1
+		;;
+esac
+case $normalized_active in
+	*'Active-slot metadata is temporarily A'*'Stage-1 claim remains unconsumed'*'asus-charging-recovery.md'*) ;;
+	*)
+		echo 'FAIL active context does not record the temporary slot-A charging hold' >&2
+		exit 1
+		;;
+esac
+grep -Fq 'docs/asus-charging-recovery.md' "$readme" || {
+	echo 'FAIL README does not link the ASUS charging recovery runbook' >&2
+	exit 1
+}
+
 case $normalized_status in
 	*'Generation 20 is consumed, removed from temporary-boot policy, and must never be retried.'*) ;;
 	*)
@@ -75,4 +103,4 @@ case $normalized_roadmap in
 		;;
 esac
 
-echo 'PASS current status consumes Generation 12/v2/v3/v4/v5/v6/v7/v8/v9/v10/v20 and the observer, and records the corrected mainline UDC'
+echo 'PASS current status records consumed generations, the corrected mainline UDC, and the temporary slot-A charging hold'
