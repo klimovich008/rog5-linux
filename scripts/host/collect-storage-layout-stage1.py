@@ -29,6 +29,7 @@ FILE_SIZE_POLICY = {
 }
 MAX_LINE = 1024
 MAX_LEADING_LINES = 64
+MAX_EXECUTION_RECORD = 65536
 HEX32 = re.compile(r"^[0-9a-f]{32}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -122,12 +123,117 @@ def validate_raw_gpt(files: dict[str, bytes]) -> None:
         fail("secondary GPT signature is invalid")
 
 
+def load_execution_record_template(
+    path: Path,
+    expected_operation: str,
+    expected_usb_location: str,
+    expected_sha256: str | None = None,
+) -> tuple[dict[str, object], str]:
+    if not path.is_absolute():
+        fail("execution record template must be absolute")
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise LayoutProtocolError("execution record template is unsafe") from error
+    try:
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != os.getuid()
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_nlink != 1
+        ):
+            fail("execution record template is unsafe")
+        payload = os.read(descriptor, MAX_EXECUTION_RECORD + 1)
+        if len(payload) > MAX_EXECUTION_RECORD or os.read(descriptor, 1):
+            fail("execution record template is too large")
+    finally:
+        os.close(descriptor)
+    digest = hashlib.sha256(payload).hexdigest()
+    if expected_sha256 is not None:
+        validate_hash(expected_sha256)
+        if digest != expected_sha256:
+            fail("execution record template hash mismatch")
+    try:
+        record = json.loads(payload.decode("ascii"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise LayoutProtocolError("execution record template is not canonical JSON") from error
+    if not isinstance(record, dict):
+        fail("execution record template is not an object")
+    canonical = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode(
+        "ascii"
+    )
+    if payload != canonical:
+        fail("execution record template is not canonical JSON")
+    required = {
+        "format",
+        "status",
+        "operation_id",
+        "device_identity",
+        "old_geometry",
+        "new_geometry",
+        "backup_hashes",
+        "commands",
+        "abort_conditions",
+        "rollback_limitations",
+    }
+    if not required.issubset(record):
+        fail("execution record template is incomplete")
+    if (
+        record["format"] != "rog5-storage-layout-stage1-execution-v1"
+        or record["status"] != "authorized_waiting_fresh_backup"
+        or record["operation_id"] != expected_operation
+    ):
+        fail("execution record template identity changed")
+    identity = record["device_identity"]
+    if not isinstance(identity, dict) or identity.get("usb_location") != expected_usb_location:
+        fail("execution record USB identity changed")
+    hashes = record["backup_hashes"]
+    if not isinstance(hashes, dict) or not hashes:
+        fail("execution record backup hashes are absent")
+    for value in hashes.values():
+        if not isinstance(value, str) or HEX64.fullmatch(value) is None:
+            fail("execution record backup hash is not canonical")
+    for key in ("commands", "abort_conditions", "rollback_limitations"):
+        values = record[key]
+        if (
+            not isinstance(values, list)
+            or not values
+            or any(not isinstance(value, str) or not value for value in values)
+        ):
+            fail(f"execution record {key} are incomplete")
+    if not isinstance(record["old_geometry"], dict) or not isinstance(
+        record["new_geometry"], dict
+    ):
+        fail("execution record geometry is incomplete")
+    return record, digest
+
+
+def finalize_execution_record(
+    output: Path,
+    template: dict[str, object],
+    template_sha256: str,
+    backup_manifest: dict[str, object],
+) -> None:
+    validate_hash(template_sha256)
+    record = dict(template)
+    record["status"] = "fresh_backup_durable_mutation_ack_ready"
+    record["template_sha256"] = template_sha256
+    record["fresh_backup"] = backup_manifest
+    payload = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode(
+        "ascii"
+    )
+    write_exact(output / "execution-record.json", payload)
+    fsync_directory(output)
+
+
 def receive_backup_set(
     transport: Transport,
     output: Path,
     expected_operation: str,
     timeout: float,
-    before_ack: Callable[[], None] | None = None,
+    before_ack: Callable[[dict[str, object]], None] | None = None,
 ) -> dict[str, object]:
     validate_operation(expected_operation)
     if output.exists() or output.is_symlink():
@@ -228,12 +334,12 @@ def receive_backup_set(
     ).encode("ascii")
     write_exact(output / "manifest.json", manifest_payload)
     fsync_directory(output)
+
+    if before_ack is not None:
+        before_ack(manifest)
     (output / ".incomplete").unlink()
     fsync_directory(output)
     fsync_directory(parent)
-
-    if before_ack is not None:
-        before_ack()
     ack = (
         f"{PREFIX} status=BACKUP_ACK operation_id={expected_operation} "
         f"nonce={begin['nonce']} backup_set_sha256={observed_set}\n"
@@ -417,6 +523,8 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--usb-location", required=True)
     parser.add_argument("--operation-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--execution-record-template", type=Path, required=True)
+    parser.add_argument("--execution-record-sha256", required=True)
     parser.add_argument("--enumeration-timeout", type=int, default=120)
     parser.add_argument("--operation-timeout", type=int, default=600)
     return parser.parse_args(arguments)
@@ -427,15 +535,30 @@ def main(arguments: list[str]) -> int:
     validate_operation(options.operation_id)
     if not options.output.is_absolute():
         fail("backup output must be absolute")
+    execution_template, execution_template_sha256 = load_execution_record_template(
+        options.execution_record_template,
+        options.operation_id,
+        options.usb_location,
+        options.execution_record_sha256,
+    )
     preflight = load_preflight_module()
     identity = preflight.wait_storage_acm(options.usb_location, options.enumeration_timeout)
     with RawSerial(identity.path) as transport:
+        def prepare_mutation_ack(manifest: dict[str, object]) -> None:
+            preflight.revalidate_storage_acm(identity)
+            finalize_execution_record(
+                options.output,
+                execution_template,
+                execution_template_sha256,
+                manifest,
+            )
+
         manifest = receive_backup_set(
             transport,
             options.output,
             options.operation_id,
             options.operation_timeout,
-            before_ack=lambda: preflight.revalidate_storage_acm(identity),
+            before_ack=prepare_mutation_ack,
         )
         terminal = capture_terminal(
             transport,
