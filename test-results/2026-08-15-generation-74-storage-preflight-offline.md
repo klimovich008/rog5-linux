@@ -36,8 +36,9 @@ Focused results after the correction:
 - report collector hostile tests: 0.142 seconds;
 - sealed AArch64 runtime: pass.
 
-The next step is exact-head local and GitHub CI, followed by one connected
-preflight and one claim-consuming RAM-only boot. Generation 73 remains
-consumed and must never be retried. Final operator confirmation remains
-mandatory before any filesystem resize, GPT change, format, or persistent
-phone-storage write.
+Exact-head local and GitHub CI subsequently passed, followed by one connected
+preflight and one claim-consuming RAM-only boot. The result is recorded in the
+[Generation 74 live report](2026-08-15-generation-74-storage-preflight-live.md).
+Generation 73 and Generation 74 are consumed and must never be retried. Final
+operator confirmation remains mandatory before any filesystem resize, GPT
+change, format, or persistent phone-storage write.

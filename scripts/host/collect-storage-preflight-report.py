@@ -302,6 +302,8 @@ def capture_report(
 ) -> tuple[bytes, OrderedDict[str, str]]:
     deadline = time.monotonic() + timeout_seconds
     buffer = bytearray()
+    terminal_payload: bytes | None = None
+    terminal_values: OrderedDict[str, str] | None = None
     last_validation = 0.0
     while time.monotonic() < deadline:
         now = time.monotonic()
@@ -314,21 +316,32 @@ def capture_report(
         if chunk is None:
             continue
         buffer.extend(chunk)
-        if len(buffer) > MAX_REPORT_BYTES:
-            fail("storage-preflight report exceeded its byte bound")
         while (newline := buffer.find(b"\n")) >= 0:
             payload = bytes(buffer[: newline + 1])
             del buffer[: newline + 1]
+            if len(payload) > MAX_REPORT_BYTES:
+                fail("storage-preflight report exceeded its byte bound")
             try:
                 values = parse_report(payload)
             except PreflightError as error:
                 raise RejectedReport(str(error), payload) from error
+            if terminal_payload is not None:
+                if payload != terminal_payload:
+                    fail("storage-preflight terminal repetition changed")
+                continue
             if values["status"] == "RUNNING":
                 continue
-            if buffer:
-                fail("storage-preflight ACM delivered trailing data")
+            terminal_payload = payload
+            terminal_values = values
+        if terminal_payload is not None:
+            if buffer and not terminal_payload.startswith(buffer):
+                fail("storage-preflight ACM delivered invalid trailing data")
             revalidate_storage_acm(identity)
-            return payload, values
+            if terminal_values is None:
+                fail("storage-preflight terminal state is unavailable")
+            return terminal_payload, terminal_values
+        if len(buffer) > MAX_REPORT_BYTES:
+            fail("storage-preflight report exceeded its byte bound")
     fail("storage-preflight terminal report did not arrive before its deadline")
 
 

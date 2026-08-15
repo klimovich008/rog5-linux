@@ -107,6 +107,35 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(payload, FAILED)
         self.assertEqual(values["reason"], "gpt_verify_failed")
 
+    def test_persistent_identical_terminal_burst_passes(self) -> None:
+        identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
+        serial = FakeSerial([VALID * 20 + VALID[:97]])
+        with mock.patch.object(MODULE, "revalidate_storage_acm"):
+            payload, values = MODULE.capture_report(serial, identity, 2)
+        self.assertEqual(payload, VALID)
+        self.assertEqual(values["status"], "PASS")
+
+    def test_changed_terminal_repetition_fails(self) -> None:
+        identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
+        serial = FakeSerial([VALID + FAILED])
+        with (
+            mock.patch.object(MODULE, "revalidate_storage_acm"),
+            self.assertRaisesRegex(
+                MODULE.PreflightError,
+                "terminal repetition changed",
+            ),
+        ):
+            MODULE.capture_report(serial, identity, 2)
+
+    def test_oversized_unframed_report_still_fails(self) -> None:
+        identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
+        serial = FakeSerial([b"A" * (MODULE.MAX_REPORT_BYTES + 1)])
+        with (
+            mock.patch.object(MODULE, "revalidate_storage_acm"),
+            self.assertRaisesRegex(MODULE.PreflightError, "byte bound"),
+        ):
+            MODULE.capture_report(serial, identity, 2)
+
     def test_rejected_payload_is_retained_without_becoming_accepted(self) -> None:
         identity = MODULE.CORE.AcmIdentity("/dev/ttyACM7", LOCATION, 123)
         malformed = b"\r\n"

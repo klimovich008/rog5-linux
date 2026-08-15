@@ -13,9 +13,9 @@ filesystem. It avoids both boot-slot changes and unnecessary reclamation of
 the 7-GiB `super` partition. The latter is too small for a comfortable Arch
 root after the current sealed tree, package updates, and rollback space.
 
-Status: **offline-rehearsed proposal only; no phone partition or filesystem
-mutation has run.** The exact destructive operation still requires final
-operator confirmation.
+Status: **offline-rehearsed and read-only phone-preflighted proposal; no phone
+partition or filesystem mutation has run.** The exact destructive operation
+still requires final operator confirmation.
 
 ## Verified input
 
@@ -31,14 +31,16 @@ Strict pinned SSH then measured the current mounted fallback filesystem:
 | block size | 4,096 bytes |
 | current block count | 59,513,299 |
 | free blocks | 47,320,908 |
-| estimated minimum | 11,695,396 blocks (47,904,342,016 bytes) |
+| measured offline minimum | 11,698,467 blocks (47,916,920,832 bytes) |
 | proposed offline pre-shrink | 51,124,000 blocks |
-| measured headroom at pre-shrink | 39,428,604 blocks (161,499,561,984 bytes) |
+| measured headroom at pre-shrink | 39,425,533 blocks (161,486,983,168 bytes) |
 
-The estimate was taken while the fallback was mounted and is not permission to
-resize it. The actual operation must first boot an independent RAM-only
-recovery, unmount `userdata`, and pass a forced `e2fsck` before repeating the
-minimum-size estimate.
+Generation 74 repeated the estimate from an independent RAM-only recovery
+after exact fallback remount-to-read-only, read-only UFS/GPT validation, and
+`e2fsck -fn`. The exact PASS frame also reported zero block-backed mounts and
+all physical block nodes read-only. This measurement is still not permission
+to resize. The actual operation must run a forced offline `e2fsck` and repeat
+the minimum-size estimate immediately before shrinking.
 
 ## Offline gates passed
 
@@ -57,9 +59,9 @@ BusyBox `partprobe`, musl, and their exact libraries. Two independent builds
 were byte-identical at SHA-256
 `46e81f34900905ac82bd3ad8749e5332a571e50e3ceb388c5c8b5c825a13ddfb`
 in 2.052 seconds. The image removes SSH, recovery bundle control, the trust
-key, and kexec; it contains no partition/filesystem mutation command. Its next
-gate is one RAM-only physical boot that reports GPT and ext4 preflight results
-over fixed ACM while every physical block node remains read-only.
+key, and kexec; it contains no partition/filesystem mutation command.
+Generation 74 completed the RAM-only physical gate; see its
+[live result](../test-results/2026-08-15-generation-74-storage-preflight-live.md).
 
 The complete offline checkpoint is recorded in
 [the 2026-08-14 result](../test-results/2026-08-14-dedicated-linux-layout-v1-offline.md).
