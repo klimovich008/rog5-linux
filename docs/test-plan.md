@@ -115,6 +115,12 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   free; and rejects eight map/state mutations. The
   [live result](../test-results/2026-07-27-persistent-layout-preflight-live.md)
   authorizes design work only and no phone write.
+- `test-alpine-charging-rescue-contract.sh` pins the recovered build-21
+  kernel, slot-A vendor ramdisk, applied ASUS DTB, Alpine ramdisk, and six
+  charger-module identities. It rejects storage discovery, `switch_root`,
+  desktop/Wi-Fi startup, wrong module order or vermagic, non-unique rescue
+  tokens, an arbitrary UDC, missing current/voltage telemetry, and loss of the
+  fixed 180-second rollback. Private clean twins must remain byte-identical.
 - `test-stage-persistent-arch-root.sh` fail-first tests the P1 root stager and
   canonical tree sealer. It rejects an absent arm, wrong archive identity,
   parent traversal, device nodes, embedded deployment credentials, Pacman

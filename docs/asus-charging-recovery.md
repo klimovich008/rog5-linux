@@ -15,7 +15,7 @@ Neither installed slot is an accepted charging environment:
   the exact phone from fastboot to `05c6:900e` Qualcomm crashdump, with the
   display waiting for a full RAM dump. It did not enter recovery or prove
   charging. A later normal slot-A boot produced the same crashdump result.
-  Neither slot-A path must be repeated.
+  The slot-A crashdump path must not be repeated.
 
 The retained AVB metadata explains why slot A is not a coherent recovery
 chain: `boot_a` reports `18.0840.2103.26-0`, while `vendor_boot_a` reports
@@ -59,6 +59,8 @@ Refuse Stage 1 unless `battery-soc-ok` is exactly `yes` and voltage has risen
 substantially from the recorded low value. A flat or falling voltage remains a
 refusal even if external power is attached. Do not leave the phone in Alpine
 or fastboot under the assumption that either state will charge it.
+After that gate passes, continue only from verified fallback slot B; the
+mismatched slot-A crashdump path remains rejected.
 
 ## 2026-08-16 bounded charging evidence
 
@@ -107,9 +109,38 @@ only the bottom ASUS wall charger connected for about 30 minutes moved the
 bootloader reading only from 6.836 V to 6.839 V and left `battery-soc-ok: no`.
 The change is within voltage/temperature measurement noise and does not prove
 net-positive charge. Reconnecting side USB then reduced the reading to 6.833 V.
-Keep side USB physically disconnected except for brief exact fastboot reads.
+For future measurements, physically disconnect the side cable except for brief
+exact fastboot reads.
 See the redacted
 [live charging-rescue result](../test-results/2026-08-16-low-battery-charging-rescue-live.md).
+
+The later USB-free shutdown observation is a separate failure. The phone
+powers off and immediately starts again even with both USB cables physically
+disconnected. The current fallback's vendor-ramdisk modules reject its custom
+5.4.134 kernel symbol versions, including `msm-poweroff`; its matching
+`msm-restart` platform device is not bound. A Power-key hold is recorded as a
+`KPDPWR_N` hard reset, not a clean shutdown. USB charger insertion remains a
+distinct earlier PMIC trigger and is not used to explain the USB-free restart.
+
+The historical 5.4.210 charger experiment has now been recovered without a
+phone boot. The retained build-21 Image and `ramdisk-new` reproduce the
+recorded 43,753,472-byte `rog5-alpine-5.4.210-rtcharger.img` byte-for-byte at
+SHA-256 `b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86`.
+The matching slot-A vendor ramdisk contains the 5.4.210 poweroff closure, and
+the six retained charger/ADSP modules all declare exact
+`5.4.210-qgki-perf` vermagic.
+
+An offline successor packages those exact inputs into a headless RAM-only
+rescue. It starts no desktop or Wi-Fi, does not discover or mount userdata,
+keeps slot B active, exposes NCM/ACM and key-only SSH, records five-second
+battery samples, and forces a SysRq reboot after 180 seconds. Two clean builds
+produce byte-identical initramfs SHA-256
+`f01788ef2a73d692d4dd67a74dda9f76d46fe2a13fa820c4ddd39730779b8bde`.
+The diagnostic transport is brought up before charger activation so a charger
+failure remains observable.
+This is offline construction evidence, not proof of current direction or
+net-positive charging. See the
+[reconstruction result](../test-results/2026-08-16-alpine-charging-rescue-reconstruction-offline.md).
 
 An official ASUS WW-33.0210.0210.200 full A/B payload is retained privately at
 3,859,425,958 bytes and SHA-256
@@ -121,10 +152,10 @@ matching `dsp`, `aop`, `tz`, `xbl`, and `vendor` content. This is an offline
 source for a future complete RAM-only charger design, not authority to boot or
 write any partition while the battery gate is closed.
 
-No currently installed low-battery charging route is proven. The next
-zero-write discriminator is an inline USB-C power meter on the bottom port or
-qualified hardware service. Do not discover charging behavior by flashing at
-low voltage.
+No currently installed low-battery charging route is proven. The recovered
+RAM-only rescue is the next software discriminator once its exact-head checks
+pass; an inline USB-C power meter remains the independent physical
+discriminator. Do not discover charging behavior by flashing at low voltage.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
 to solve charging. Do not erase, format, repartition, or consume a temporary-
