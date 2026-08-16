@@ -48,13 +48,18 @@ slot-B-bound Stage-1 lifecycle only after exact fastboot identity, substantial
 voltage recovery, and `battery-soc-ok: yes` are all proven through an
 independently accepted charging route.
 
-Two one-use ASUS-derived 5.4.210 charging probes are consumed. The 30-second
-cycle returned directly to fastboot and changed the reported voltage from
-6.801 V to 6.933 V; the five-minute successor returned the same way and
-changed it from 6.934 V to 6.931 V. This does not prove net-positive charging.
-Do not admit another blind cycle. The current action is the zero-boot fastboot
-soak on the bottom-port wall charger while side-port data remains attached.
-An output-only 90-second ACM telemetry image is verified offline but unissued.
+Four one-use charging candidates are consumed and never reusable. The first
+two voltage-only probes were inconclusive, and the following fastboot soak
+fell from 6.931 V to 6.925 V over 30 minutes. The output-only telemetry cycle
+then produced 35 complete frames, all with zero power-supply devices, while
+Type-C reached `Attached.SNK`. The built-in downstream battery driver is
+waiting on `PMIC_RTR_ADSP_APPS` / `msm/adsp/charger_pd`, not a missing module.
+The bounded hybrid slot-B-kernel/ASUS-recovery cycle returned to exact fastboot
+after about eight seconds without ADB or crashdump; its predecessor was
+canceled before claim entry. The current action is a physical side-data-cable
+disconnect with only the bottom ASUS wall charger attached, followed by exact
+fastboot voltage and `battery-soc-ok` proof after side USB is reconnected. The
+host hub's logical port-power control did not electrically remove side VBUS.
 
 ## Proven boundary
 

@@ -73,21 +73,42 @@ returned directly to exact fastboot without accessing phone storage:
   five-minute window moved the reading from 6.934 V to 6.931 V.
 
 The first step is too large to represent stored charge over that interval and
-the longer cycle did not show a rising trend. These voltage-only cycles do not
-prove net-positive charging or current direction. Do not run another blind
-charging boot. The active discriminator is a zero-boot fastboot soak with
-read-only voltage and `battery-soc-ok` samples at increasing intervals. If it
-remains flat, the next phone transition must provide read-only in-kernel
-charger, battery-current, temperature, dual-cell, USB-input, and PMIC-GLINK
-telemetry; an output-only 90-second image is prepared but remains unissued.
+the longer cycle did not show a rising trend. A later fastboot soak fell from
+6.931 V to 6.925 V over 30 minutes. These voltage-only cycles do not prove
+net-positive charging or current direction.
+
+`charging-telemetry-v1-live-v1` is now consumed and never reusable. Its
+90-second output-only cycle returned to exact fastboot after 35 complete ACM
+frames. Every
+frame reported `PSY_COUNT value=0`: the side Type-C controller reached
+`Attached.SNK`, but no battery or USB power-supply service registered. The
+exact kernel has `QTI_BATTERY_CHARGER` and `QTI_PMIC_GLINK` built in, so adding
+modules is not the fix. The downstream source requires the
+`PMIC_RTR_ADSP_APPS` RPMsg channel and `msm/adsp/charger_pd` service.
+
+One hybrid ASUS charger experiment followed. Version 1 was canceled before
+claim entry when offline review found no charger-class trigger or rollback.
+Version 2 paired the exact slot-B 5.4.134 kernel and matching installed
+vendor-boot with the preserved ASUS recovery ramdisk, added a charger-only
+class and 15-minute bootloader rollback, and was consumed once. It disconnected
+USB and returned to exact fastboot about eight seconds later without ADB,
+power-supply evidence, or Qualcomm crashdump. It is not a charging route and
+must not be retried.
+
+With the side PC cable and bottom ASUS wall charger attached together, voltage
+remained flat or falling. Before another phone boot, physically disconnect the
+side cable so its low-current VBUS cannot win input selection, leave only the
+bottom wall charger for at least 15 minutes, reconnect the side cable, and read
+the exact fastboot voltage and `battery-soc-ok`. The host hub's class power bit
+did not remove physical VBUS and cannot substitute for unplugging the cable.
 See the redacted
 [live charging-rescue result](../test-results/2026-08-16-low-battery-charging-rescue-live.md).
 
-No currently installed low-battery charging route is proven. Before another
-phone transition, identify an already-reviewed RAM-only vendor charging
-environment that has measured net-positive current and retains fallback, or
-use a hardware/service charging method independent of the installed slots.
-Do not discover charging behavior by flashing at low voltage.
+No currently installed low-battery charging route is proven. If physical
+side-port isolation also fails, identify an exact late-Android-11 slot-B ASUS
+charger/recovery ramdisk or build a complete RAM-only environment that starts
+the ADSP charger protection domain. Do not discover charging behavior by
+flashing at low voltage.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
 to solve charging. Do not erase, format, repartition, or consume a temporary-
