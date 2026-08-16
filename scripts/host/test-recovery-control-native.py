@@ -1671,6 +1671,16 @@ class NativeResponderTest(unittest.TestCase):
         claimed = self.exchange(master, commit)
         self.assertEqual(claimed.result, "CLAIMED")
         self.wait_exit(process)
+        self.assertEqual(
+            self.haven_kmsg.read_text(encoding="ascii").splitlines(),
+            [
+                "rog5-recovery-control: execute-stage=ENTER",
+                "rog5-recovery-control: execute-stage=HAVEN_WRITE_BEGIN",
+                "rog5-recovery-control: execute-stage=HAVEN_WRITE_RETURN",
+                "rog5-recovery-control: execute-stage=HAVEN_DONE",
+                "rog5-recovery-control: execute-stage=EXECUTION_MARKER_DONE",
+            ],
+        )
         self.assertTrue((self.state / "execution-started").is_file())
         self.assertTrue((self.state / "test-executed").is_file())
         self.assertEqual(self.state.stat().st_mode & 0o777, 0o700)
@@ -2692,6 +2702,18 @@ class NativeResponderTest(unittest.TestCase):
                 encoding="ascii"
             ),
             "returned\n",
+        )
+        self.assertEqual(
+            self.haven_kmsg.read_text(encoding="ascii").splitlines(),
+            [
+                "rog5-recovery-control: execute-stage=ENTER",
+                "rog5-recovery-control: execute-stage=HAVEN_WRITE_BEGIN",
+                "rog5-recovery-control: execute-stage=HAVEN_WRITE_RETURN",
+                "rog5-recovery-control: execute-stage=HAVEN_DONE",
+                "rog5-recovery-control: execute-stage=EXECUTION_MARKER_DONE",
+                "rog5-recovery-control: execute-stage=KEXEC_FORK_BEGIN",
+                "rog5-recovery-control: execute-stage=KEXEC_EXEC_BEGIN",
+            ],
         )
         self.assertGreaterEqual(
             len(

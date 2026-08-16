@@ -1919,6 +1919,38 @@ static const char *haven_kmsg_failure(int descriptor, bool allow_eof)
 	return "HAVEN_KMSG_SCAN_FAILED";
 }
 
+static void emit_execute_stage(const char *stage)
+{
+	char payload[96];
+	struct stat metadata;
+	int descriptor;
+	int length;
+	bool metadata_ok;
+	bool valid_type;
+
+	descriptor = open(haven_kmsg_path,
+			  O_WRONLY | O_APPEND | O_NONBLOCK |
+			  O_NOFOLLOW | O_CLOEXEC);
+	if (descriptor < 0)
+		return;
+	metadata_ok = fstat(descriptor, &metadata) == 0 &&
+		metadata.st_uid == geteuid() &&
+		metadata.st_gid == getegid() &&
+		(metadata.st_mode & 0002) == 0 && metadata.st_nlink == 1;
+	valid_type = metadata_ok && S_ISCHR(metadata.st_mode) &&
+		major(metadata.st_rdev) == 1 && minor(metadata.st_rdev) == 11;
+#ifdef ROG5_CONTROL_TESTING
+	if (test_haven_paths_configured && metadata_ok &&
+	    S_ISREG(metadata.st_mode) && (metadata.st_mode & 0777) == 0600)
+		valid_type = true;
+#endif
+	length = snprintf(payload, sizeof(payload),
+			  "rog5-recovery-control: execute-stage=%s\n", stage);
+	if (valid_type && length > 0 && length < (int)sizeof(payload))
+		(void)write(descriptor, payload, (size_t)length);
+	(void)close(descriptor);
+}
+
 #ifdef ROG5_CONTROL_TESTING
 static size_t test_haven_write_length(void)
 {
@@ -2138,7 +2170,9 @@ static const char *deactivate_haven_watchdog(void)
 #ifdef ROG5_CONTROL_TESTING
 	write_length = test_haven_write_length();
 #endif
+	emit_execute_stage("HAVEN_WRITE_BEGIN");
 	written = write(disable, "1\n", write_length);
+	emit_execute_stage("HAVEN_WRITE_RETURN");
 	if (written != 2) {
 		reason = "hh-watchdog disable write was not exact";
 		failure = "HAVEN_WRITE_FAILED";
@@ -3873,6 +3907,7 @@ static void execute_claim(struct control_state *state)
 
 	if (!watchdog_armed())
 		fail("rollback watchdog disappeared before execute");
+	emit_execute_stage("ENTER");
 	haven_failure = deactivate_haven_watchdog();
 	if (haven_failure != NULL) {
 		persist_failure(state, haven_failure);
@@ -3881,7 +3916,9 @@ static void execute_claim(struct control_state *state)
 	}
 	if (!watchdog_armed())
 		fail("rollback watchdog disappeared after Haven handoff");
+	emit_execute_stage("HAVEN_DONE");
 	persist_execution_started(state);
+	emit_execute_stage("EXECUTION_MARKER_DONE");
 	if (crash_point("after_execute_start"))
 		_exit(88);
 #ifdef ROG5_CONTROL_TESTING
@@ -3943,6 +3980,7 @@ static void execute_claim(struct control_state *state)
 
 		if (!watchdog_armed())
 			fail("rollback watchdog died before executor fork");
+		emit_execute_stage("KEXEC_FORK_BEGIN");
 		child = fork();
 		if (child < 0) {
 			reconcile_uncommitted_image("executor fork failure");
@@ -3959,6 +3997,7 @@ static void execute_claim(struct control_state *state)
 
 			if (!watchdog_armed())
 				_exit(126);
+			emit_execute_stage("KEXEC_EXEC_BEGIN");
 			execve(kexec_path, arguments, environment);
 			_exit(127);
 		}

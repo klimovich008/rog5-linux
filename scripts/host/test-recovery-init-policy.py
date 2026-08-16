@@ -581,6 +581,29 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIsNotNone(configfs_failure)
         self.assertIn("force_rollback", configfs_failure.group(0))
 
+    def test_recovery_reset_escalation_never_waits_for_logging(self) -> None:
+        source = self.source(RECOVERY)
+        rollback = re.search(
+            r"^force_rollback\(\) \{\n.*?^\}\n",
+            source,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(rollback)
+        body = rollback.group(0)
+        self.assertLess(
+            body.index("echo b >/proc/sysrq-trigger"),
+            body.index("log 'emergency reset returned; retrying'"),
+        )
+
+        timer = re.search(
+            r'^\(\n\tsleep "\$timeout"\n.*?^\) &$',
+            source,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(timer)
+        self.assertNotIn("log ", timer.group(0))
+        self.assertIn("force_rollback", timer.group(0))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
