@@ -9,6 +9,7 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 historical=$repo/scripts/device/build-asus-kexec-stage.sh
 successor=$repo/scripts/device/build-asus-kexec-stage-successor.sh
+wrapper_test=$repo/scripts/host/test-stable-recovery-wrapper-offline.sh
 expected_historical=aaaa423aefc9b90dd30738bf42a0209574437599da2062b9dd8cc685d6e15b94
 
 for script in "$historical" "$successor"; do
@@ -16,6 +17,9 @@ for script in "$historical" "$successor"; do
 		fail "missing executable ASUS wrapper builder: ${script#"$repo"/}"
 	sh -n "$script"
 done
+[[ -f $wrapper_test && ! -L $wrapper_test && -x $wrapper_test ]] ||
+	fail 'missing executable stable-recovery wrapper test'
+bash -n "$wrapper_test"
 [[ $(sha256sum "$historical" | cut -d ' ' -f 1) == \
 	"$expected_historical" ]] ||
 	fail 'frozen historical ASUS wrapper builder changed'
@@ -40,6 +44,14 @@ for token in \
 	'Wed Apr 19 00:00:00 UTC 2023'; do
 	grep -Fq -- "$token" "$successor" ||
 		fail "ASUS wrapper successor omits contract token: $token"
+done
+
+for token in \
+	'if [[ $builder_profile == steam-deck-asus-5.4-v1 ]]; then' \
+	'config_sha256=%s' \
+	'image_sha256=%s'; do
+	grep -Fq -- "$token" "$wrapper_test" ||
+		fail "stable-recovery wrapper test omits successor metadata token: $token"
 done
 
 if grep -Eq \

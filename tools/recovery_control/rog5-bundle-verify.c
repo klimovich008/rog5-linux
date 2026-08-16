@@ -459,9 +459,9 @@ static void parse_manifest(char *record, const char *expected_bundle,
 	     manifest->dtb_size != 839798 ||
 	     strcmp(manifest->dtb_sha256,
 		    "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b") != 0 ||
-	     manifest->initramfs_size != 11124940 ||
+	     manifest->initramfs_size != 11125036 ||
 	     strcmp(manifest->initramfs_sha256,
-		    "83a9ae20a861dc593ea0cff3a774ea3eb37b5a8bd2e82d8e80ca67561d6d2417") != 0))
+		    "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017") != 0))
 		fail("stock charging artifact identity mismatch");
 #endif
 }
