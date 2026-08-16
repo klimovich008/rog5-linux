@@ -61,7 +61,7 @@ steam-deck-asus-5.4-v1)
 	reference_config=${reference_config:-$repo/artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery}
 	template=${template:-$repo/artifacts/recovery-wrapper-inputs-v1/rog5-canonical-boot-v3-template.raw.img}
 	expected_reference_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
-	expected_template=95be17d48ec61d00a4e8c92be754c8a8345f93685ce05d412a6d3a6aceba6e02
+	expected_template=37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d
 	;;
 *)
 	fail "unsupported wrapper builder profile: $builder_profile"
@@ -303,7 +303,7 @@ for token in \
 	init=/init \
 	selinux=0 \
 	rog5linux.test=1 \
-	rog5.recovery_timeout=180
+	rog5.recovery_timeout=300
 do
 	count=$(
 		printf '%s\n' "$command_line" |

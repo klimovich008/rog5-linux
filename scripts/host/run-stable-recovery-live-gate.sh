@@ -3262,7 +3262,7 @@ command_line=$(
 	awk '$0 == "--cmdline" { getline; print; exit }' \
 		"$inspection/booted-args.lines"
 )
-for token in init=/init selinux=0 rog5linux.test=1 rog5.recovery_timeout=180; do
+for token in init=/init selinux=0 rog5linux.test=1 rog5.recovery_timeout=300; do
 	[[ $(tr ' ' '\n' <<<"$command_line" | grep -Fxc "$token" || true) == 1 ]] ||
 		fail "missing or duplicate wrapper token: $token"
 done
