@@ -58,6 +58,8 @@ struct profile_policy {
 	bool binds_a660_root;
 	bool requires_early_target_reporter;
 	bool requires_ramoops;
+	bool exact_command_line;
+	bool exact_stock_payload;
 };
 
 struct bundle_manifest {
@@ -122,6 +124,22 @@ struct cpio_parser {
 static const char *bundle_root = "/run/rog5-bundles";
 static const char *trust_key_path =
 	"/etc/rog5/recovery-bundle-ed25519.pub";
+#define STOCK_CHARGING_COMMAND_LINE \
+	"log_buf_len=256K earlycon=msm_geni_serial,0x98c000 " \
+	"rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off " \
+	"console=ttyMSM0,115200n8 androidboot.hardware=qcom " \
+	"androidboot.console=ttyMSM0 androidboot.memcg=1 " \
+	"lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 " \
+	"msm_rtb.filter=0x237 service_locator.enable=1 " \
+	"androidboot.usbcontroller=a600000.dwc3 swiotlb=0 loop.max_part=7 " \
+	"cgroup.memory=nokmem,nosocket pcie_ports=compat loop.max_part=7 " \
+	"iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 " \
+	"buildvariant=user androidboot.mode=charger androidboot.force_normal_boot=0 " \
+	"rdinit=/init panic=10 oops=panic loglevel=8 ignore_loglevel " \
+	"printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 " \
+	"ramoops.mem_size=0x400000 ramoops.record_size=0x100000 " \
+	"ramoops.console_size=0x300000 ramoops.pmsg_size=0 " \
+	"ramoops.ftrace_size=0 ramoops.dump_oops=1"
 static const struct profile_policy profile_policies[] = {
 	{
 		.name = "diagnostic-initramfs-v1",
@@ -147,6 +165,16 @@ static const struct profile_policy profile_policies[] = {
 		.binds_a660_root = false,
 		.requires_early_target_reporter = false,
 		.requires_ramoops = false,
+	},
+	{
+		.name = "stock-charging-recovery-v1",
+		.command_line = STOCK_CHARGING_COMMAND_LINE,
+		.minimum_rollback = 900,
+		.binds_a660_root = false,
+		.requires_early_target_reporter = false,
+		.requires_ramoops = false,
+		.exact_command_line = true,
+		.exact_stock_payload = true,
 	},
 };
 
@@ -423,6 +451,19 @@ static void parse_manifest(char *record, const char *expected_bundle,
 			fail("non-network profile carries root trust identity");
 		manifest->root_tree_entries = 0;
 	}
+#ifndef ROG5_BUNDLE_TESTING
+	if (manifest->policy->exact_stock_payload &&
+	    (manifest->kernel_size != 46305792 ||
+	     strcmp(manifest->kernel_sha256,
+		    "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33") != 0 ||
+	     manifest->dtb_size != 839798 ||
+	     strcmp(manifest->dtb_sha256,
+		    "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b") != 0 ||
+	     manifest->initramfs_size != 11124940 ||
+	     strcmp(manifest->initramfs_sha256,
+		    "83a9ae20a861dc593ea0cff3a774ea3eb37b5a8bd2e82d8e80ca67561d6d2417") != 0))
+		fail("stock charging artifact identity mismatch");
+#endif
 }
 
 static int open_directory_checked(const char *path)
@@ -920,7 +961,8 @@ static void cpio_finish(const struct cpio_parser *parser,
 
 static void verify_initramfs_gzip(int descriptor,
 				  bool require_persistent_root_verifier,
-				  bool require_early_target_reporter)
+				  bool require_early_target_reporter,
+				  bool exact_stock_payload)
 {
 	unsigned char input[64 * 1024];
 	unsigned char output[64 * 1024];
@@ -962,7 +1004,8 @@ static void verify_initramfs_gzip(int descriptor,
 		if (total > INITRAMFS_UNCOMPRESSED_MAX - produced)
 			fail("initramfs expands beyond policy");
 		total += produced;
-		cpio_feed(&cpio, output, produced);
+		if (!exact_stock_payload)
+			cpio_feed(&cpio, output, produced);
 		if (result == Z_STREAM_END)
 			ended = true;
 		else if (result != Z_OK)
@@ -983,8 +1026,11 @@ static void verify_initramfs_gzip(int descriptor,
 	}
 	if (inflateEnd(&stream) != Z_OK)
 		fail("cannot finish gzip verifier");
-	cpio_finish(&cpio, require_persistent_root_verifier,
-		    require_early_target_reporter);
+	if (total == 0)
+		fail("initramfs gzip stream is empty");
+	if (!exact_stock_payload)
+		cpio_finish(&cpio, require_persistent_root_verifier,
+			    require_early_target_reporter);
 }
 
 static const char *fdt_string(const unsigned char *strings,
@@ -1596,6 +1642,14 @@ static void build_cmdline(const struct bundle_manifest *manifest,
 	char root_trust[512] = "";
 	int length;
 
+	if (manifest->policy->exact_command_line) {
+		length = snprintf(output, CMDLINE_MAX, "%s",
+				  manifest->policy->command_line);
+		if (length < 0 || length >= CMDLINE_MAX)
+			fail("exact command line is too long");
+		return;
+	}
+
 	if (manifest->policy->binds_a660_root) {
 		length = snprintf(
 			root_trust, sizeof(root_trust),
@@ -1910,11 +1964,13 @@ int main(int argc, char **argv)
 	verify_kernel_image(kernel_fd, parsed.kernel_size);
 	verify_initramfs_gzip(
 		initramfs_fd, parsed.policy->binds_a660_root,
-		parsed.policy->requires_early_target_reporter);
+		parsed.policy->requires_early_target_reporter,
+		parsed.policy->exact_stock_payload);
 	if (lseek(dtb_fd, 0, SEEK_SET) < 0)
 		fail("cannot rewind DTB");
 	dtb = read_exact(dtb_fd, (size_t)parsed.dtb_size);
-	verify_fdt(dtb, (size_t)parsed.dtb_size);
+	if (!parsed.policy->exact_stock_payload)
+		verify_fdt(dtb, (size_t)parsed.dtb_size);
 	build_cmdline(&parsed, command_line);
 	sha256_memory(command_line, strlen(command_line), command_hash);
 	plan_length = build_plan(

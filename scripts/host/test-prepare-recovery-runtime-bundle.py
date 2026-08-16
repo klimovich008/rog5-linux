@@ -25,6 +25,23 @@ ROOT_TREE_SHA256 = "b" * 64
 ROOT_SEAL_SHA256 = "c" * 64
 ROOT_TREE_ENTRIES = "7"
 ZERO_HASH = "0" * 64
+STOCK_CHARGING_COMMAND_LINE = (
+    "log_buf_len=256K earlycon=msm_geni_serial,0x98c000 "
+    "rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off "
+    "console=ttyMSM0,115200n8 androidboot.hardware=qcom "
+    "androidboot.console=ttyMSM0 androidboot.memcg=1 "
+    "lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 "
+    "msm_rtb.filter=0x237 service_locator.enable=1 "
+    "androidboot.usbcontroller=a600000.dwc3 swiotlb=0 loop.max_part=7 "
+    "cgroup.memory=nokmem,nosocket pcie_ports=compat loop.max_part=7 "
+    "iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 "
+    "buildvariant=user androidboot.mode=charger androidboot.force_normal_boot=0 "
+    "rdinit=/init panic=10 oops=panic loglevel=8 ignore_loglevel "
+    "printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 "
+    "ramoops.mem_size=0x400000 ramoops.record_size=0x100000 "
+    "ramoops.console_size=0x300000 ramoops.pmsg_size=0 "
+    "ramoops.ftrace_size=0 ramoops.dump_oops=1"
+)
 VERIFIER_SOURCE = REPO / "tools/recovery_control/rog5-bundle-verify.c"
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 FILES = (
@@ -458,13 +475,20 @@ class BundlePackagerTest(unittest.TestCase):
             "persistent-root-ro-v1": (
                 "rog5.ufs_discovery=1 rog5.persistent_ro=1"
             ),
+            "stock-charging-recovery-v1": STOCK_CHARGING_COMMAND_LINE,
         }
         for profile_index, (profile, token) in enumerate(
             profile_tokens.items()
         ):
             with self.subTest(profile=profile):
                 config, workspace = self.workspace(profile)
-                rollback = "300" if profile == "persistent-root-ro-v1" else "180"
+                rollback = (
+                    "900"
+                    if profile == "stock-charging-recovery-v1"
+                    else "300"
+                    if profile == "persistent-root-ro-v1"
+                    else "180"
+                )
                 config = self.replace(
                     config,
                     bundle=f"profile-{profile_index}",
@@ -518,17 +542,21 @@ class BundlePackagerTest(unittest.TestCase):
                     " ramoops.pmsg_size=0 ramoops.ftrace_size=0"
                     " ramoops.dump_oops=1"
                     if profile != "persistent-root-ro-v1"
+                    and profile != "stock-charging-recovery-v1"
                     else ""
                 )
-                command_line = (
-                    "console=ttyMSM0,115200n8 rdinit=/init panic=10 "
-                    "oops=panic loglevel=8 ignore_loglevel "
-                    "printk.always_kmsg_dump=Y "
-                    f"{token}{ramoops} "
-                    f"rog5.bundle={config.bundle} "
-                    f"rog5.target_timeout={config.target_timeout} "
-                    f"rog5.recovery_timeout={rollback}"
-                )
+                if profile == "stock-charging-recovery-v1":
+                    command_line = STOCK_CHARGING_COMMAND_LINE
+                else:
+                    command_line = (
+                        "console=ttyMSM0,115200n8 rdinit=/init panic=10 "
+                        "oops=panic loglevel=8 ignore_loglevel "
+                        "printk.always_kmsg_dump=Y "
+                        f"{token}{ramoops} "
+                        f"rog5.bundle={config.bundle} "
+                        f"rog5.target_timeout={config.target_timeout} "
+                        f"rog5.recovery_timeout={rollback}"
+                    )
                 if profile in {
                     "diagnostic-initramfs-v1",
                     "network-root-v1",

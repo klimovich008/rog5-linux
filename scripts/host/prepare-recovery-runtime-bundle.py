@@ -26,6 +26,7 @@ PROFILES = {
     "diagnostic-initramfs-v1",
     "network-root-v1",
     "persistent-root-ro-v1",
+    "stock-charging-recovery-v1",
 }
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 ARTIFACTS = (
