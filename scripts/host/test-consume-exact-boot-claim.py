@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "stock-charging-recovery-v1-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=stock-charging-recovery-v1-live-v1\n"
+            b"candidate=stock-charging-recovery-v1\n"
+            b"manifest_sha256="
+            b"3e15b8a23b440d1e58bf05592df7d4e40fb8401d6c80c74ae47e7c93043233b5\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "charging-hybrid-asus-recovery-v2-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=charging-hybrid-asus-recovery-v2-live-v1\n"
