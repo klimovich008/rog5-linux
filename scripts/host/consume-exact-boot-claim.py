@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "charging-hybrid-asus-recovery-v2-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=charging-hybrid-asus-recovery-v2-live-v1\n"
+        b"candidate=charging-hybrid-asus-recovery-v2\n"
+        b"manifest_sha256="
+        b"5b1297a25bb7d42cfb2bcafd27c6cc82524fc90401b76d20eef1a48654c58a9f\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "charging-hybrid-asus-recovery-v1-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=charging-hybrid-asus-recovery-v1-live-v1\n"
