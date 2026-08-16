@@ -835,10 +835,11 @@ class NativeBundleVerifierTest(unittest.TestCase):
             "4721d4e80662df64e809d00a2fcecbd6d6450567663d7791db2a1015bc3526c6",
         )
         source = SOURCE.read_text(encoding="ascii")
+        self.assertIn("manifest->initramfs_size != 11125036", source)
         for identity in (
             "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33",
             "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b",
-            "83a9ae20a861dc593ea0cff3a774ea3eb37b5a8bd2e82d8e80ca67561d6d2417",
+            "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017",
         ):
             self.assertIn(identity, source)
 

@@ -399,10 +399,15 @@ wrapper_image_sha256=$(
 	printf 'kexec_file=0\n'
 	printf 'initramfs_sha256=%s\n' "$initramfs_sha256"
 	printf 'compiler=%s\n' "$expected_compiler"
-	printf '%s  /root/build/asus-kexec-stage/.config\n' \
-		"$wrapper_config_sha256"
-	printf '%s  /root/build/asus-kexec-stage/arch/arm64/boot/Image\n' \
-		"$wrapper_image_sha256"
+	if [[ $builder_profile == steam-deck-asus-5.4-v1 ]]; then
+		printf 'config_sha256=%s\n' "$wrapper_config_sha256"
+		printf 'image_sha256=%s\n' "$wrapper_image_sha256"
+	else
+		printf '%s  /root/build/asus-kexec-stage/.config\n' \
+			"$wrapper_config_sha256"
+		printf '%s  /root/build/asus-kexec-stage/arch/arm64/boot/Image\n' \
+			"$wrapper_image_sha256"
+	fi
 } >"$output_root/inspection/expected-build-meta.txt"
 cmp "$output_root/inspection/expected-build-meta.txt" \
 	"$output_root/wrapper-a/asus-kexec-stage/build-meta.txt" ||
