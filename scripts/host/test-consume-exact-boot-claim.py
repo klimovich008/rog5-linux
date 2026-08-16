@@ -82,14 +82,6 @@ PROFILES = {
 }
 PROFILES.update(
     {
-        "stock-charging-direct-v5-live-v1": (
-            b"format=rog5-temporary-boot-consumption-v1\n"
-            b"recovery_profile=stock-charging-direct-v5-live-v1\n"
-            b"candidate=stock-charging-direct-v5\n"
-            b"manifest_sha256="
-            b"104307391f2aa1052a1191f5c645d407847ee1cf2f4a26d33f800430b07a577a\n"
-            b"state=BOOT_CLAIMED\n"
-        ),
         "stock-charging-memory-fixed-v4-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=stock-charging-memory-fixed-v4-live-v1\n"
