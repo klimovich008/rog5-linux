@@ -804,11 +804,16 @@ class NativeResponderTest(unittest.TestCase):
                     if mode == "malformed_plan"
                     else "rog5-verified-plan-v1"
                 )
+                profile = (
+                    "stock-charging-recovery-v1"
+                    if mode == "stock_profile"
+                    else "network-root-v1"
+                )
                 plan = (
                     f"format={{format_name}}\\n"
                     f"bundle={{bundle}}\\n"
                     f"manifest_sha256={{manifest}}\\n"
-                    "profile=network-root-v1\\n"
+                    f"profile={{profile}}\\n"
                     "kernel_file=Image\\n"
                     "dtb_file=board.dtb\\n"
                     "initramfs_file=initramfs.cpio.gz\\n"
@@ -1803,6 +1808,21 @@ class NativeResponderTest(unittest.TestCase):
         )
         replay = self.exchange_records(master, request)
         self.assertEqual(replay, [response])
+        self.stop_responder(process, master)
+
+    def test_prepare_pipeline_accepts_stock_charging_profile(self):
+        verifier, loader, marker = self.make_prepare_pipeline(
+            "stock-profile",
+            verifier_mode="stock_profile",
+        )
+        process, master = self.start(
+            verifier_path=verifier,
+            kexec_path=loader,
+        )
+        session = self.hello(master)
+        response = self.prepare(master, session)
+        self.assertEqual(response.result, "PREPARED")
+        self.assertTrue(marker.exists())
         self.stop_responder(process, master)
 
     def test_prepare_failures_emit_only_contiguous_progress_prefixes(self):

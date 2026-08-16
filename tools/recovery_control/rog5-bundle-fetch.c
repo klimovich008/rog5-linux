@@ -575,13 +575,19 @@ static bool parse_manifest(char *manifest, const char *bundle,
 			    UINT64_MAX ||
 		    strcmp(root_subtree, "/") != 0)
 			return false;
-	} else if (strcmp(profile, "persistent-root-ro-v1") == 0) {
+	} else if (strcmp(profile, "persistent-root-ro-v1") == 0 ||
+		   strcmp(profile, "stock-charging-recovery-v1") == 0) {
+		uint64_t minimum_rollback =
+			strcmp(profile, "stock-charging-recovery-v1") == 0 ?
+			900 : 300;
+
 		if (strcmp(command_manifest_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_generation, "none") != 0 ||
 		    strcmp(root_tree_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_seal_sha256, ZERO_HASH) != 0 ||
 		    strcmp(root_tree_entries, "0") != 0 ||
-		    strcmp(root_subtree, "none") != 0 || rollback < 300)
+		    strcmp(root_subtree, "none") != 0 ||
+		    rollback < minimum_rollback)
 			return false;
 	} else {
 		return false;
