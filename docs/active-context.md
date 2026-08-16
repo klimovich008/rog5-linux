@@ -39,12 +39,22 @@ expansion remain frozen until local-root Arch reaches repeatable key-only SSH.
 Stage 1 is paused after fastboot reported a deeply discharged pack and
 `battery-soc-ok: no`. Slot B boots Alpine, which has no accepted functional
 ASUS/Qualcomm charging stack and must not be used as the low-battery/off-mode
-charging environment. Active-slot metadata is temporarily A so the preserved
-ASUS recovery can provide charging. No partition payload, GPT, or `userdata`
+charging environment. The slot-A recovery attempt entered `05c6:900e`
+Qualcomm crashdump and must not be repeated. Active-slot metadata is restored
+to B, but Alpine has not been booted. No partition payload, GPT, or `userdata`
 mutation occurred, and the Stage-1 claim remains unconsumed. Follow the
-[ASUS charging recovery runbook](asus-charging-recovery.md); return to the
+[low-battery recovery hold](asus-charging-recovery.md); return to the
 slot-B-bound Stage-1 lifecycle only after exact fastboot identity, substantial
-voltage recovery, and `battery-soc-ok: yes` are all proven.
+voltage recovery, and `battery-soc-ok: yes` are all proven through an
+independently accepted charging route.
+
+Two one-use ASUS-derived 5.4.210 charging probes are consumed. The 30-second
+cycle returned directly to fastboot and changed the reported voltage from
+6.801 V to 6.933 V; the five-minute successor returned the same way and
+changed it from 6.934 V to 6.931 V. This does not prove net-positive charging.
+Do not admit another blind cycle. The current action is the zero-boot fastboot
+soak on the bottom-port wall charger while side-port data remains attached.
+An output-only 90-second ACM telemetry image is verified offline but unissued.
 
 ## Proven boundary
 
@@ -537,8 +547,8 @@ voltage recovery, and `battery-soc-ok: yes` are all proven.
   the current 16-GiB source image to `a51ee690…b3ce` and its marker-inclusive
   37,738-entry tree to `c8044454…8e38`. The prepared private candidate,
   execution record, and one-use claim remain unconsumed. The phone is
-  temporarily on slot A for ASUS charging, with no partition payload, GPT, or
-  `userdata` mutation. See the
+  restored to slot B after the slot-A recovery path entered crashdump, with no
+  partition payload, GPT, or `userdata` mutation. See the
   [offline result](../test-results/2026-08-15-storage-layout-stage1-offline.md).
 
 - **The separately gated Stage 2 clone/native-filesystem path is implemented
