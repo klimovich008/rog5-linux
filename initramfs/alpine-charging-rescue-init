@@ -5,7 +5,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 expected_release=5.4.210-qgki-perf
 expected_udc=a600000.dwc3
-rollback_seconds=180
+rollback_seconds=30
 kmsg=/dev/kmsg
 
 log() {
@@ -31,8 +31,6 @@ mknod -m 0666 /dev/tty c 5 0
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
 mkdir -p /run/sshd
-echo /sbin/mdev >/proc/sys/kernel/hotplug
-mdev -s
 
 rescue_tokens=$(tr ' ' '\n' </proc/cmdline |
 	grep -Fxc 'rog5.charging_rescue=1' || true)
@@ -48,13 +46,22 @@ log "rollback armed for ${rollback_seconds}s"
 [ "$(uname -r)" = "$expected_release" ] ||
 	fail "unexpected kernel release $(uname -r)"
 
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+mdev -s
+
 base_modules=/lib/modules/5.4-gki
 [ -d "$base_modules" ] || fail 'missing exact vendor module directory'
 [ -f "$base_modules/modules.load" ] || fail 'missing vendor modules.load'
+base_failures=/run/rog5-charging-rescue.base-module-failures
+: >"$base_failures"
 while IFS= read -r module; do
 	[ -n "$module" ] || continue
 	[ -f "$base_modules/$module" ] || fail "missing vendor module $module"
-	insmod "$base_modules/$module" || fail "cannot load vendor module $module"
+	if modprobe "${module%.ko}" || insmod "$base_modules/$module"; then
+		continue
+	fi
+	printf '%s\n' "$module" >>"$base_failures"
+	log "base module unavailable: $module"
 done <"$base_modules/modules.load"
 mdev -s
 log 'matching vendor module closure loaded'

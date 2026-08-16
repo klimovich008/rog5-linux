@@ -47,11 +47,20 @@ The retained build-21 kernel and `ramdisk-new` now reproduce the historical
 `b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86`.
 A new headless RAM-only derivative combines the coherent 5.4.210 poweroff
 closure with the exact six charger/ADSP modules, no userdata path, NCM/ACM,
-SSH, battery samples, and a 180-second rollback. Its clean twins reproduce at
-initramfs `f01788ef2a73d692d4dd67a74dda9f76d46fe2a13fa820c4ddd39730779b8bde`.
+SSH, battery samples, and a 30-second diagnostic rollback. Its clean twins
+reproduce at initramfs
+`7366600f925587613629a2336036dd75321c67a5e51ffa470b43de40fdec74fb`.
 USB diagnostics and SSH start before charger activation, so charger-stack
 failure does not suppress the primary live evidence channel.
-No phone boot occurred at this checkpoint, so charging remains unproven.
+The installed-fallback kexec route is consumed after failing before execution:
+that fallback has `CONFIG_KEXEC=n` and `CONFIG_KEXEC_FILE=n`. A separate direct
+bootloader route is consumed after an accepted RAM-only boot produced no target
+USB during a 66-second blackout and returned to exact fallback. Voltage moved
+only 6.900 V to 6.901 V. Charging remains unproven. The successor now arms
+rollback before the first `mdev`, uses dependency-aware base-module loading,
+and retains base failures for post-USB inspection. The shorter rollback is an
+intentional discriminator: fallback before the earlier 66-second boundary
+proves that PID 1 reached the arm point.
 
 Two bounded RAM-only vendor-kernel charging probes returned directly to exact
 fastboot without storage access. The consumed 30-second probe changed the
