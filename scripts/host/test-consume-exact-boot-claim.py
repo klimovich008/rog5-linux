@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "charging-telemetry-v1-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=charging-telemetry-v1-live-v1\n"
+            b"candidate=charging-telemetry-v1\n"
+            b"manifest_sha256="
+            b"1cfffb18008c07099e2950689043572806bec9318700e95375adc97e2792a800\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "charging-rescue-fastboot-v2-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=charging-rescue-fastboot-v2-live-v1\n"
