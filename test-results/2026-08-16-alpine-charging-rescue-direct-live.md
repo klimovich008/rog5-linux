@@ -2,7 +2,7 @@
 
 Date: 2026-08-16
 
-Result: **FAIL before charging telemetry; both exact routes are consumed and
+Result: **FAIL before charging telemetry; all three exact routes are consumed and
 must never be retried. No phone storage was accessed.**
 
 The first route staged the exact payload only in fallback `/run` tmpfs. Every
@@ -42,6 +42,30 @@ The final successor uses a 30-second rollback, shorter than the observed
 66-second blackout, so its fallback time can prove whether PID 1 reached the
 arm point. Final clean twins took 1,573 ms and 1,552 ms and match at
 `7366600f925587613629a2336036dd75321c67a5e51ffa470b43de40fdec74fb`.
+
+That discriminator was executed once after exact-head CI run `31936511077`
+passed commit `beeccb9a0ce2f4453c2b04f8763447a4e2e5849e`. Direct-wrapper twins
+matched at raw SHA-256
+`9cdd035fde41351dd0fc4572c4bddad8db012f4d44253f6ffc3e1428a8e2de69`
+and AVB SHA-256
+`0b8eb2f24bca5faab89bb5772a0fa836dbd27577c4de876ee2458ed3277e8ecd`.
+Fastboot accepted the image at 10:34:11, the anchored device departed at
+10:34:13, and no USB device appeared until exact fallback enumerated at
+10:35:20. Strict SSH proved fallback at 10:35:21. The unchanged 67-second
+boundary, despite the 30-second rollback being armed before `mdev` or module
+loading, proves that userspace rollback did not control the return and strongly
+indicates that the rescue PID 1 never reached its arm point. Empty pstore is
+still inconclusive. Voltage was 6.896 V both before and after the cycle.
+
+The historical qualification is therefore corrected: byte-reproducing the
+build-21 `rtcharger` artifact proves provenance, not function. Its original
+manifest called it only a charger-calibration experiment and retained no
+successful boot evidence. The separately documented build/image #20 is the
+actual known-good charging baseline. Build #21 also has an external initramfs
+and `CONFIG_INITRAMFS_SOURCE=""`; the proven later 5.4.210 recovery wrappers
+compile their initramfs into the kernel and kexec targets with an explicit DTB.
+The direct build-21 route is retired rather than debugged with more module
+changes.
 
 The exact phone serial, `lahaina` product, anchored USB topology, slot B,
 fallback boot identity, and 39.5 C maximum pre-cycle readable thermal value

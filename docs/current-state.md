@@ -42,9 +42,12 @@ Stage 1 remains paused, its claim is unconsumed, and neither installed slot is
 claimed to charge the pack. Fastboot must prove `battery-soc-ok: yes` and
 substantial voltage recovery before Stage 1 resumes.
 
-The retained build-21 kernel and `ramdisk-new` now reproduce the historical
+The retained build-21 kernel and `ramdisk-new` reproduce the historical
 `rog5-alpine-5.4.210-rtcharger.img` exactly at
 `b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86`.
+This is provenance evidence only. The original manifest calls build #21 a
+charger-calibration experiment and contains no successful-boot evidence; the
+separate image/kernel #20 remains the documented known-good charging baseline.
 A new headless RAM-only derivative combines the coherent 5.4.210 poweroff
 closure with the exact six charger/ADSP modules, no userdata path, NCM/ACM,
 SSH, battery samples, and a 30-second diagnostic rollback. Its clean twins
@@ -61,6 +64,19 @@ rollback before the first `mdev`, uses dependency-aware base-module loading,
 and retains base failures for post-USB inspection. The shorter rollback is an
 intentional discriminator: fallback before the earlier 66-second boundary
 proves that PID 1 reached the arm point.
+
+That successor is also consumed. Its exact fastboot device departed, no target
+USB appeared, and exact fallback returned on the same 67-second boundary even
+though rollback was now 30 seconds and armed before `mdev` or modules. This
+excludes module ordering and the userspace timeout as causes of the return and
+strongly indicates PID 1 never reached the arm point. Build #21 has no built-in
+initramfs, while the proven 5.4.210 recovery wrappers do; direct build-21
+fastboot packaging is retired. Future charging work must use a newly issued
+successor through the proven RAM-only recovery/kexec path with the explicit
+WW33 DTB and official coherent kernel/initramfs composition. The earlier stock
+charging candidate is separately consumed: its bundle transferred and its
+claim entered, but the post-claim recovery response timed out and target
+execution remained unknown, so it cannot be reused.
 
 Two bounded RAM-only vendor-kernel charging probes returned directly to exact
 fastboot without storage access. The consumed 30-second probe changed the

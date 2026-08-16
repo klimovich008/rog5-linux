@@ -66,6 +66,11 @@ The focused contract, stock charging loader test, repository-runner contract,
 and diff check pass.
 
 The reconstruction checkpoint itself performed no phone operation. Two later
-live routes are documented separately. The payload does not yet prove
+live routes and the final 30-second discriminator are documented separately.
+The discriminator returned on the same 67-second boundary as the earlier
+direct wrapper, proving userspace rollback did not control the return and
+retiring build #21 as a direct-boot basis. Byte-reconstruction is provenance,
+not successful-boot evidence; image/kernel #20 remains the documented
+known-good charging baseline. The payload does not prove
 net-positive charging, current direction, thermal safety, or clean physical
 poweroff.

@@ -121,7 +121,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   desktop/Wi-Fi startup, wrong module order or vermagic, non-unique rescue
   tokens, an arbitrary UDC, missing current/voltage telemetry, and loss of the
   fixed 30-second diagnostic rollback. Private clean twins must remain
-  byte-identical.
+  byte-identical. This is an offline payload contract, not evidence that build
+  #21 is a known-good direct-boot kernel; the consumed direct route is retired
+  after the 30-second PID-1 discriminator returned on the unchanged 67-second
+  boundary.
 - `test-stage-persistent-arch-root.sh` fail-first tests the P1 root stager and
   canonical tree sealer. It rejects an absent arm, wrong archive identity,
   parent traversal, device nodes, embedded deployment credentials, Pacman

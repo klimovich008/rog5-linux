@@ -122,13 +122,17 @@ disconnected. The current fallback's vendor-ramdisk modules reject its custom
 `KPDPWR_N` hard reset, not a clean shutdown. USB charger insertion remains a
 distinct earlier PMIC trigger and is not used to explain the USB-free restart.
 
-The historical 5.4.210 charger experiment has now been recovered without a
+The historical 5.4.210 charger experiment has been recovered without a
 phone boot. The retained build-21 Image and `ramdisk-new` reproduce the
 recorded 43,753,472-byte `rog5-alpine-5.4.210-rtcharger.img` byte-for-byte at
 SHA-256 `b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86`.
 The matching slot-A vendor ramdisk contains the 5.4.210 poweroff closure, and
 the six retained charger/ADSP modules all declare exact
 `5.4.210-qgki-perf` vermagic.
+This does not make build #21 known-good. Its original manifest described it as
+a charger-calibration experiment, not the accepted default, and retained no
+successful-boot proof. The different image/kernel #20 is the documented
+known-good charging baseline.
 
 An offline successor packages those exact inputs into a headless RAM-only
 rescue. It starts no desktop or Wi-Fi, does not discover or mount userdata,
@@ -149,9 +153,12 @@ after the first `mdev -s`, while every base module was then loaded with an
 unconditional `insmod`. The corrected successor arms rollback first, restores
 dependency-aware historical `modprobe` behavior, and retains optional base
 module failures for diagnosis after USB is up. Neither consumed route may be
-retried. The 30-second successor is intentionally shorter than the observed
-66-second blackout so its fallback timing can prove whether PID 1 reached the
-rollback arm point.
+retried. The 30-second successor was then consumed once after exact-head CI.
+It produced no target USB and returned to exact fallback on the same 67-second
+boundary. Because its rollback was armed before `mdev` and modules, that
+boundary proves userspace rollback did not control the return and strongly
+indicates PID 1 never reached the arm point. The direct build-21 route is
+retired.
 This is offline construction evidence, not proof of current direction or
 net-positive charging. See the
 [reconstruction result](../test-results/2026-08-16-alpine-charging-rescue-reconstruction-offline.md).
@@ -166,9 +173,14 @@ matching `dsp`, `aop`, `tz`, `xbl`, and `vendor` content. This is an offline
 source for a future complete RAM-only charger design, not authority to boot or
 write any partition while the battery gate is closed.
 
-No currently installed low-battery charging route is proven. The recovered
-RAM-only rescue is the next software discriminator once its exact-head checks
-pass; an inline USB-C power meter remains the independent physical
+No currently installed low-battery charging route is proven. A prior official
+WW33 stock-charging bundle transferred through stable recovery and entered its
+one-use claim, but the post-claim recovery response timed out and target
+execution remained unknown; it is consumed and cannot be retried. After
+battery recovery, any software successor must use the proven RAM-only
+recovery/kexec path, an explicit WW33 DTB, and a newly issued official coherent
+kernel/initramfs composition. Direct boot-v3 build-21 experiments are not the
+control. An inline USB-C power meter remains the independent physical
 discriminator. Do not discover charging behavior by flashing at low voltage.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
