@@ -456,9 +456,9 @@ static void parse_manifest(char *record, const char *expected_bundle,
 	    (manifest->kernel_size != 46305792 ||
 	     strcmp(manifest->kernel_sha256,
 		    "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33") != 0 ||
-	     manifest->dtb_size != 839798 ||
+	     manifest->dtb_size != 839846 ||
 	     strcmp(manifest->dtb_sha256,
-		    "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b") != 0 ||
+		    "4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065") != 0 ||
 	     manifest->initramfs_size != 11125036 ||
 	     strcmp(manifest->initramfs_sha256,
 		    "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017") != 0))
@@ -1119,6 +1119,180 @@ static void add_fdt_ranges(const unsigned char *data, size_t length,
 		if (start == 0x9b800000ULL && size == 0x400000ULL)
 			*has_ramoops = true;
 	}
+}
+
+static void verify_stock_fdt_memory(const unsigned char *blob, size_t length)
+{
+	static const uint32_t expected_memory[] = {
+		0, 0x80000000, 0, 0x37100000,
+		2, 0, 1, 0x80000000,
+		0, 0xc0000000, 1, 0x40000000,
+		0, 0xb9500000, 0, 0,
+	};
+	uint32_t total;
+	uint32_t struct_offset;
+	uint32_t strings_offset;
+	uint32_t reserve_offset;
+	uint32_t version;
+	uint32_t last_compatible;
+	uint32_t strings_size;
+	uint32_t struct_size;
+	const unsigned char *structure;
+	const unsigned char *strings;
+	size_t cursor = 0;
+	size_t index;
+	int depth = 0;
+	int memory_depth = 0;
+	bool root_seen = false;
+	bool memory_seen = false;
+	bool memory_device_type_seen = false;
+	bool memory_device_type_valid = false;
+	bool memory_reg_seen = false;
+	bool memory_reg_valid = false;
+	bool root_address_cells_seen = false;
+	bool root_address_cells_valid = false;
+	bool root_size_cells_seen = false;
+	bool root_size_cells_valid = false;
+	bool ended = false;
+
+	if (length < 40 || read_be32(blob) != FDT_MAGIC)
+		fail("invalid stock FDT header");
+	total = read_be32(blob + 4);
+	struct_offset = read_be32(blob + 8);
+	strings_offset = read_be32(blob + 12);
+	reserve_offset = read_be32(blob + 16);
+	version = read_be32(blob + 20);
+	last_compatible = read_be32(blob + 24);
+	strings_size = read_be32(blob + 32);
+	struct_size = read_be32(blob + 36);
+	if (total != length || version != 17 || last_compatible != 16 ||
+	    reserve_offset != 40 || struct_offset != 56 ||
+	    strings_offset != (size_t)struct_offset + struct_size ||
+	    (size_t)strings_offset + strings_size != length ||
+	    struct_size == 0 || strings_size == 0 ||
+	    struct_offset % 4 != 0 || strings_offset % 4 != 0 ||
+	    reserve_offset % 8 != 0 ||
+	    !range_within(struct_offset, struct_size, length) ||
+	    !range_within(strings_offset, strings_size, length) ||
+	    !range_within(reserve_offset, 16, length))
+		fail("unsafe stock FDT layout");
+	for (index = reserve_offset; index + 16 <= length; index += 16) {
+		uint64_t address = read_be_cells(blob + index, 2);
+		uint64_t size = read_be_cells(blob + index + 8, 2);
+
+		if (address == 0 && size == 0)
+			break;
+		fail("stock FDT reservation map must be empty");
+	}
+	if (index + 16 > length || index + 16 > struct_offset)
+		fail("unterminated stock FDT reservation map");
+	structure = blob + struct_offset;
+	strings = blob + strings_offset;
+	while (cursor + 4 <= struct_size) {
+		uint32_t token = read_be32(structure + cursor);
+
+		cursor += 4;
+		if (token == FDT_BEGIN_NODE) {
+			const unsigned char *end;
+			size_t name_length;
+			const char *name;
+
+			end = memchr(structure + cursor, '\0',
+				     struct_size - cursor);
+			if (end == NULL || depth >= FDT_DEPTH_MAX)
+				fail("invalid stock FDT node");
+			name = (const char *)structure + cursor;
+			name_length = (size_t)(end - (structure + cursor));
+			cursor += name_length + 1;
+			cursor = (cursor + 3) & ~(size_t)3;
+			if (cursor > struct_size)
+				fail("stock FDT node exceeds structure block");
+			if (depth == 0) {
+				if (root_seen || name_length != 0)
+					fail("invalid stock FDT root node");
+				root_seen = true;
+			}
+			depth++;
+			if (depth == 2 &&
+			    (strcmp(name, "memory") == 0 ||
+			     strncmp(name, "memory@", 7) == 0)) {
+				if (memory_seen)
+					fail("duplicate stock FDT memory node");
+				memory_seen = true;
+				memory_depth = depth;
+			}
+		} else if (token == FDT_END_NODE) {
+			if (depth < 1)
+				fail("unbalanced stock FDT node");
+			if (depth == memory_depth)
+				memory_depth = 0;
+			depth--;
+		} else if (token == FDT_PROP) {
+			uint32_t property_length;
+			uint32_t name_offset;
+			const unsigned char *data;
+			const char *name;
+
+			if (depth < 1 || !range_within(cursor, 8, struct_size))
+				fail("truncated stock FDT property");
+			property_length = read_be32(structure + cursor);
+			name_offset = read_be32(structure + cursor + 4);
+			cursor += 8;
+			if (!range_within(cursor, property_length, struct_size))
+				fail("stock FDT property exceeds structure block");
+			data = structure + cursor;
+			cursor += property_length;
+			cursor = (cursor + 3) & ~(size_t)3;
+			if (cursor > struct_size)
+				fail("stock FDT property padding exceeds structure block");
+			name = fdt_string(strings, strings_size, name_offset);
+			if (depth == 1 && strcmp(name, "#address-cells") == 0) {
+				if (root_address_cells_seen)
+					fail("duplicate stock FDT address cells");
+				root_address_cells_seen = true;
+				root_address_cells_valid = property_length == 4 &&
+					read_be32(data) == 2;
+			} else if (depth == 1 &&
+				   strcmp(name, "#size-cells") == 0) {
+				if (root_size_cells_seen)
+					fail("duplicate stock FDT size cells");
+				root_size_cells_seen = true;
+				root_size_cells_valid = property_length == 4 &&
+					read_be32(data) == 2;
+			} else if (memory_depth != 0 && depth == memory_depth &&
+				   strcmp(name, "device_type") == 0) {
+				if (memory_device_type_seen)
+					fail("duplicate stock FDT memory device type");
+				memory_device_type_seen = true;
+				memory_device_type_valid = fdt_string_equals(
+					data, property_length, "memory");
+			} else if (memory_depth != 0 && depth == memory_depth &&
+				   strcmp(name, "reg") == 0) {
+				if (memory_reg_seen)
+					fail("duplicate stock FDT memory reg");
+				memory_reg_seen = true;
+				memory_reg_valid = fdt_cells_equal(
+					data, property_length, expected_memory,
+					sizeof(expected_memory) /
+						sizeof(expected_memory[0]));
+			}
+		} else if (token == FDT_NOP) {
+			continue;
+		} else if (token == FDT_END) {
+			if (depth != 0 || cursor != struct_size)
+				fail("invalid stock FDT end marker");
+			ended = true;
+			break;
+		} else {
+			fail("unknown stock FDT structure token");
+		}
+	}
+	if (!ended || !root_seen || !root_address_cells_seen ||
+	    !root_address_cells_valid || !root_size_cells_seen ||
+	    !root_size_cells_valid || !memory_seen ||
+	    !memory_device_type_seen || !memory_device_type_valid ||
+	    !memory_reg_seen || !memory_reg_valid)
+		fail("stock DTB lacks exact bootable memory geometry");
 }
 
 static void verify_fdt(const unsigned char *blob, size_t length)
@@ -1969,7 +2143,9 @@ int main(int argc, char **argv)
 	if (lseek(dtb_fd, 0, SEEK_SET) < 0)
 		fail("cannot rewind DTB");
 	dtb = read_exact(dtb_fd, (size_t)parsed.dtb_size);
-	if (!parsed.policy->exact_stock_payload)
+	if (parsed.policy->exact_stock_payload)
+		verify_stock_fdt_memory(dtb, (size_t)parsed.dtb_size);
+	else
 		verify_fdt(dtb, (size_t)parsed.dtb_size);
 	build_cmdline(&parsed, command_line);
 	sha256_memory(command_line, strlen(command_line), command_hash);

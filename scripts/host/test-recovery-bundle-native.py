@@ -666,6 +666,12 @@ class NativeBundleVerifierTest(unittest.TestCase):
         second_start: str = "0x9bc00000",
         second_size: str = "0x100000",
         ranges: str = "ranges;",
+        memory_reg: str = (
+            "<0 0x80000000 0 0x37100000 "
+            "2 0 1 0x80000000 "
+            "0 0xc0000000 1 0x40000000 "
+            "0 0xb9500000 0 0>"
+        ),
     ) -> str:
         return f"""/dts-v1/;
 
@@ -681,6 +687,11 @@ class NativeBundleVerifierTest(unittest.TestCase):
 
 \tchosen {{
 \t\t{chosen}
+\t}};
+
+\tmemory@80000000 {{
+\t\tdevice_type = "memory";
+\t\treg = {memory_reg};
 \t}};
 
 \tsoc@0 {{
@@ -836,9 +847,10 @@ class NativeBundleVerifierTest(unittest.TestCase):
         )
         source = SOURCE.read_text(encoding="ascii")
         self.assertIn("manifest->initramfs_size != 11125036", source)
+        self.assertIn("manifest->dtb_size != 839846", source)
         for identity in (
             "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33",
-            "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b",
+            "4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065",
             "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017",
         ):
             self.assertIn(identity, source)
@@ -1163,6 +1175,17 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 fixture.assert_rejected(
                     f"unsafe bundle file: {artifact}"
                 )
+
+    def test_stock_profile_rejects_bootloader_placeholder_memory(self) -> None:
+        fixture = self.fixture(
+            "stock-zero-memory",
+            profile="stock-charging-recovery-v1",
+        )
+        fixture.write_dtb(self.valid_dts(memory_reg="<0 0 0 0>"))
+        fixture.refresh_manifest()
+        fixture.assert_rejected(
+            "stock DTB lacks exact bootable memory geometry"
+        )
 
     def test_bundle_inventory_rejects_every_missing_file(self) -> None:
         for index, name in enumerate(FILES):
