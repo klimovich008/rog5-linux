@@ -71,6 +71,14 @@ EXPECTED_CLAIMS["persistent-root-storage-read-v1-live-v1"] = (
     "f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["stock-charging-recovery-v1-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=stock-charging-recovery-v1-live-v1\n"
+    "candidate=stock-charging-recovery-v1\n"
+    "manifest_sha256="
+    "3e15b8a23b440d1e58bf05592df7d4e40fb8401d6c80c74ae47e7c93043233b5\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["charging-hybrid-asus-recovery-v2-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=charging-hybrid-asus-recovery-v2-live-v1\n"
@@ -838,7 +846,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "d4e3a3399eecc0ec2ec781cd6c073d6b876dba6374d1842526df1abc594b09c4",
+    "sha256": "700ef8babef5dd27721603d023bbfc74b23c4e3a0f49bca1ab86015d8e5ed3e3",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -866,7 +874,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "d4e3a3399eecc0ec2ec781cd6c073d6b876dba6374d1842526df1abc594b09c4",
+    "executor_contract_sha256": "700ef8babef5dd27721603d023bbfc74b23c4e3a0f49bca1ab86015d8e5ed3e3",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
