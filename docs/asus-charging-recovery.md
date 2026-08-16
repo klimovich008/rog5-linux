@@ -14,7 +14,8 @@ Neither installed slot is an accepted charging environment:
 - A 2026-08-16 attempt to enter the preserved slot-A recovery transitioned
   the exact phone from fastboot to `05c6:900e` Qualcomm crashdump, with the
   display waiting for a full RAM dump. It did not enter recovery or prove
-  charging. That slot-A recovery path must not be repeated.
+  charging. A later normal slot-A boot produced the same crashdump result.
+  Neither slot-A path must be repeated.
 
 The retained AVB metadata explains why slot A is not a coherent recovery
 chain: `boot_a` reports `18.0840.2103.26-0`, while `vendor_boot_a` reports
@@ -95,20 +96,35 @@ USB and returned to exact fastboot about eight seconds later without ADB,
 power-supply evidence, or Qualcomm crashdump. It is not a charging route and
 must not be retried.
 
-With the side PC cable and bottom ASUS wall charger attached together, voltage
-remained flat or falling. Before another phone boot, physically disconnect the
-side cable so its low-current VBUS cannot win input selection, leave only the
-bottom wall charger for at least 15 minutes, reconnect the side cable, and read
-the exact fastboot voltage and `battery-soc-ok`. The host hub's class power bit
-did not remove physical VBUS and cannot substitute for unplugging the cable.
+`charging-direct-stock-storage-isolated-v3-live-v1` is also consumed and never
+reusable. Its direct ASUS-derived charger boot returned to exact fastboot after
+about nine seconds, moving 6.883 V to 6.880 V without ADB, power-supply, or
+crashdump evidence. The following normal slot-A boot entered `05c6:900e`; the
+hardware-key recovery restored slot B without booting it.
+
+Physical side-port isolation is now disproven as a charging route. Leaving
+only the bottom ASUS wall charger connected for about 30 minutes moved the
+bootloader reading only from 6.836 V to 6.839 V and left `battery-soc-ok: no`.
+The change is within voltage/temperature measurement noise and does not prove
+net-positive charge. Reconnecting side USB then reduced the reading to 6.833 V.
+Keep side USB physically disconnected except for brief exact fastboot reads.
 See the redacted
 [live charging-rescue result](../test-results/2026-08-16-low-battery-charging-rescue-live.md).
 
-No currently installed low-battery charging route is proven. If physical
-side-port isolation also fails, identify an exact late-Android-11 slot-B ASUS
-charger/recovery ramdisk or build a complete RAM-only environment that starts
-the ADSP charger protection domain. Do not discover charging behavior by
-flashing at low voltage.
+An official ASUS WW-33.0210.0210.200 full A/B payload is retained privately at
+3,859,425,958 bytes and SHA-256
+`7d53b6cc78486598e1913ca5a9a48c7292b90527bd9c9ac80dabd5324be14eb4`.
+Its complete ZIP passes CRC verification. The extracted `boot`, `vendor_boot`,
+and `dtbo` form one package generation; their AVB properties identify
+`18.1220.2202.206-0`, and the kernel is ASUS 5.4.210. The same payload includes
+matching `dsp`, `aop`, `tz`, `xbl`, and `vendor` content. This is an offline
+source for a future complete RAM-only charger design, not authority to boot or
+write any partition while the battery gate is closed.
+
+No currently installed low-battery charging route is proven. The next
+zero-write discriminator is an inline USB-C power meter on the bottom port or
+qualified hardware service. Do not discover charging behavior by flashing at
+low voltage.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
 to solve charging. Do not erase, format, repartition, or consume a temporary-
