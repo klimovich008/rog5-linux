@@ -15,7 +15,7 @@ bash -n "$builder"
 
 for required in \
 	'expected_release=5.4.210-qgki-perf' \
-	'rollback_seconds=180' \
+	'rollback_seconds=30' \
 	"grep -Fxc 'rog5.charging_rescue=1'" \
 	'echo b >/proc/sysrq-trigger' \
 	'mkdir -p /run/sshd' \
@@ -32,6 +32,12 @@ run_mount_line=$(grep -nF 'mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run' 
 run_sshd_line=$(grep -nF 'mkdir -p /run/sshd' "$init" | cut -d: -f1)
 [[ -n $run_mount_line && -n $run_sshd_line && $run_mount_line -lt $run_sshd_line ]] ||
 	fail '/run/sshd is hidden by the tmpfs mount'
+
+rollback_line=$(grep -nF 'log "rollback armed for ${rollback_seconds}s"' "$init" |
+	cut -d: -f1)
+first_mdev_line=$(grep -nF 'mdev -s' "$init" | head -n 1 | cut -d: -f1)
+[[ -n $rollback_line && -n $first_mdev_line && $rollback_line -lt $first_mdev_line ]] ||
+	fail 'rollback is not armed before the first modalias scan'
 
 diagnostic_line=$(grep -nF "log 'RAM-only diagnostic transport ready" "$init" |
 	cut -d: -f1)
@@ -59,6 +65,11 @@ qti_battery_charger_main'
 actual_order=$(sed -n 's/^load_extra \([^ ]*\) .*/\1/p' "$init")
 [[ $actual_order == "$expected_order" ]] || fail 'charger module order changed'
 
+grep -Fq 'modprobe "${module%.ko}" ||' "$init" ||
+	fail 'base module loading is not dependency-aware'
+grep -Fq 'base-module-failures' "$init" ||
+	fail 'base module failures are not retained for post-USB diagnosis'
+
 for identity in \
 	'6dff1ff234fab4fa37f30ad5862cd58b693c9f4441d9ed242acbe285d559c78f' \
 	'5e1512ed8d7fcc0279c5a0b8c7b0b23be0c843cc5479c596c128c5fdcd2bbc8d' \
@@ -73,5 +84,7 @@ grep -Fq "[[ ! -e \$output && ! -e \$output.tmp ]]" "$builder" ||
 	fail 'builder does not refuse output replacement'
 grep -Fq 'vermagic=5.4.210-qgki-perf SMP preempt mod_unload modversions aarch64' "$builder" ||
 	fail 'builder lacks exact module vermagic gate'
+grep -Fq 'ln -s 5.4-gki "$work/root/lib/modules/5.4.210-qgki-perf"' "$builder" ||
+	fail 'builder lacks the exact-release module dependency link'
 
 echo 'PASS charging rescue is RAM-only, headless, bounded, exact-stack, and telemetry-capable'

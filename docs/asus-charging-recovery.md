@@ -133,11 +133,25 @@ the six retained charger/ADSP modules all declare exact
 An offline successor packages those exact inputs into a headless RAM-only
 rescue. It starts no desktop or Wi-Fi, does not discover or mount userdata,
 keeps slot B active, exposes NCM/ACM and key-only SSH, records five-second
-battery samples, and forces a SysRq reboot after 180 seconds. Two clean builds
+battery samples, and forces a SysRq reboot after 30 seconds. Two clean builds
 produce byte-identical initramfs SHA-256
-`f01788ef2a73d692d4dd67a74dda9f76d46fe2a13fa820c4ddd39730779b8bde`.
+`7366600f925587613629a2336036dd75321c67a5e51ffa470b43de40fdec74fb`.
 The diagnostic transport is brought up before charger activation so a charger
 failure remains observable.
+
+Two first live routes are consumed. The installed fallback route stopped
+before target execution because its exact config has both `CONFIG_KEXEC` and
+`CONFIG_KEXEC_FILE` disabled. The direct bootloader route was accepted at
+6.900 V, produced no target USB enumeration during a 66-second blackout, and
+returned to exact slot-B fallback; post-cycle voltage was 6.901 V. Empty
+pstore is inconclusive. Offline review found that rollback was armed only
+after the first `mdev -s`, while every base module was then loaded with an
+unconditional `insmod`. The corrected successor arms rollback first, restores
+dependency-aware historical `modprobe` behavior, and retains optional base
+module failures for diagnosis after USB is up. Neither consumed route may be
+retried. The 30-second successor is intentionally shorter than the observed
+66-second blackout so its fallback timing can prove whether PID 1 reached the
+rollback arm point.
 This is offline construction evidence, not proof of current direction or
 net-positive charging. See the
 [reconstruction result](../test-results/2026-08-16-alpine-charging-rescue-reconstruction-offline.md).

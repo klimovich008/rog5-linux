@@ -53,16 +53,19 @@ seconds, and exposes NCM/ACM plus SSH. The diagnostic transport starts before
 charger activation so a charger-stack failure remains observable. It contains
 no userdata discovery, mount, `switch_root`, desktop, Wi-Fi, or
 persistent-install path. A rollback process is armed before candidate identity
-validation and forces SysRq reboot after 180 seconds; active slot B is
+validation and forces SysRq reboot after 30 seconds; active slot B is
 unchanged.
 
 The initial clean builds took 1,656 ms and 1,643 ms. After moving diagnostics
-ahead of charger activation, clean builds took 1,530 ms and 1,522 ms. Every
-final output is byte-identical; the initramfs is 8,183,331 bytes with SHA-256
-`f01788ef2a73d692d4dd67a74dda9f76d46fe2a13fa820c4ddd39730779b8bde`.
+ahead of charger activation, clean builds took 1,530 ms and 1,522 ms. The
+post-live correction builds took 1,544 ms and 1,543 ms. Final 30-second
+diagnostic twins took 1,573 ms and 1,552 ms. Every final output is
+byte-identical; the initramfs is 8,180,949 bytes with SHA-256
+`7366600f925587613629a2336036dd75321c67a5e51ffa470b43de40fdec74fb`.
 The focused contract, stock charging loader test, repository-runner contract,
 and diff check pass.
 
-No phone reboot, kexec, slot change, partition write, signing, or candidate
-issuance occurred. The payload does not yet prove net-positive charging,
-current direction, thermal safety, or clean physical poweroff.
+The reconstruction checkpoint itself performed no phone operation. Two later
+live routes are documented separately. The payload does not yet prove
+net-positive charging, current direction, thermal safety, or clean physical
+poweroff.

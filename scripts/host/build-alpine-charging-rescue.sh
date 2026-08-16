@@ -98,10 +98,14 @@ mkdir -p "$work/vendor" "$work/alpine" "$work/root"
 cp -a "$work/vendor/." "$work/root/"
 cp -a "$work/alpine/." "$work/root/"
 install -m 0755 "$init" "$work/root/init"
-install -d -m 0755 "$work/root/lib/modules/5.4.210-qgki-perf/extra"
+[[ ! -e $work/root/lib/modules/5.4.210-qgki-perf &&
+	! -L $work/root/lib/modules/5.4.210-qgki-perf ]] ||
+	fail 'exact-release module path already exists in sealed inputs'
+ln -s 5.4-gki "$work/root/lib/modules/5.4.210-qgki-perf"
+install -d -m 0755 "$work/root/lib/modules/5.4-gki/extra"
 for name in "${!module_sha[@]}"; do
 	install -m 0644 "$extra_modules/$name" \
-		"$work/root/lib/modules/5.4.210-qgki-perf/extra/$name"
+		"$work/root/lib/modules/5.4-gki/extra/$name"
 done
 find "$work/root" -exec touch -h -d '@0' {} +
 
