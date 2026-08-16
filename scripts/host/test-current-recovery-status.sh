@@ -75,9 +75,9 @@ case $normalized_charging in
 		;;
 esac
 case $normalized_charging in
-	*'charging-rescue-fastboot-v1-live-v1'*'6.801 V to 6.933 V'*'charging-rescue-fastboot-v2-live-v1'*'6.934 V to 6.931 V'*'do not prove net-positive charging'*'zero-boot fastboot soak'*) ;;
+	*'charging-rescue-fastboot-v1-live-v1'*'6.801 V to 6.933 V'*'charging-rescue-fastboot-v2-live-v1'*'6.934 V to 6.931 V'*'charging-telemetry-v1-live-v1'*'`PSY_COUNT value=0`'*'Version 2 paired the exact slot-B 5.4.134 kernel'*'must not be retried'*'physically disconnect the side cable'*) ;;
 	*)
-		echo 'FAIL low-battery recovery omits the consumed charging cycles or passive-soak decision' >&2
+		echo 'FAIL low-battery recovery omits a consumed charging cycle or the physical-isolation decision' >&2
 		exit 1
 		;;
 esac

@@ -37,11 +37,25 @@ substantial voltage recovery before Stage 1 resumes.
 Two bounded RAM-only vendor-kernel charging probes returned directly to exact
 fastboot without storage access. The consumed 30-second probe changed the
 reported pack voltage from 6.801 V to 6.933 V, but the consumed five-minute
-probe changed it from 6.934 V to 6.931 V. The discrete first step therefore
-does not establish stored charge, and neither voltage-only cycle establishes
-current direction. No third blind boot is admitted. A read-only fastboot soak
-is active; the prepared output-only ACM charging-telemetry image remains
-unissued pending that result. See the
+probe changed it from 6.934 V to 6.931 V. A subsequent fastboot soak fell from
+6.931 V to 6.925 V over 30 minutes. None proves net-positive charging.
+
+The consumed 90-second output-only telemetry cycle then produced 35 complete
+ACM frames, but every frame reported zero power-supply devices. The retained
+5.4 config has the Qualcomm battery and PMIC-GLINK drivers built in; live Type-C
+logs reached `Attached.SNK` while the battery service remained absent. Source
+review binds that missing registration to the unavailable
+`PMIC_RTR_ADSP_APPS` / `msm/adsp/charger_pd` path.
+
+A later RAM-only hybrid used the exact slot-B 5.4.134 kernel with its matching
+installed vendor-boot companion and the preserved ASUS charger/recovery
+ramdisk. Its first version was canceled before claim entry. The bounded second
+version was consumed once, disconnected USB, and returned to exact fastboot
+about eight seconds later without ADB, charger telemetry, or crashdump mode.
+It is not a charging route and must not be retried. The remaining hardware
+discriminator is a physical side-port-VBUS disconnect while the bottom ASUS
+wall charger remains attached; the host hub's logical port-power control did
+not electrically isolate the side cable. See the
 [live charging-rescue result](../test-results/2026-08-16-low-battery-charging-rescue-live.md).
 
 ## 2026-08-12 headless MVP milestone
