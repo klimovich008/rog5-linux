@@ -15,7 +15,12 @@ output=$2
 [[ -d $(dirname -- "$output") ]] || fail 'output parent is absent'
 [[ $(readlink -- "$source_root/init") == /system/bin/init ]] ||
 	fail 'source /init is not the exact stock init link'
-for executable in system/bin/init system/bin/sh system/bin/reboot system/bin/toybox; do
+for executable in \
+	system/bin/charger \
+	system/bin/init \
+	system/bin/sh \
+	system/bin/reboot \
+	system/bin/toybox; do
 	[[ -f $source_root/$executable && -x $source_root/$executable ]] ||
 		fail "source lacks executable $executable"
 done
@@ -44,14 +49,8 @@ cp -a --reflink=auto "$source_root/." "$work/root/"
 sanitize_fstab() {
 	local path=$1
 	awk '
-		/^[[:space:]]*#/ { print; next }
-		$2 == "/metadata" || $2 == "/data" || $2 == "/misc" ||
-		$2 == "/boot" || $2 == "/mnt/vendor/persist" ||
-		$2 == "/mnt/vendor/qmcs" || $2 == "/mnt/vendor/spunvm" {
-			print "# ROG5 RAM-only charging successor disabled: " $0
-			next
-		}
-		{ print }
+		!NF || /^[[:space:]]*#/ { print; next }
+		{ print "# ROG5 RAM-only charging successor disabled: " $0 }
 	' "$path" >"$path.new"
 	mv -T -- "$path.new" "$path"
 }
@@ -63,6 +62,7 @@ sanitize_fstab "$work/root/system/etc/recovery.fstab"
 cat >"$work/root/rog5-init" <<EOF
 #!/system/bin/sh
 export PATH=/system/bin
+export ANDROID_ROOT=/system
 mkdir -p /dev /proc /sys
 [ -e /dev/kmsg ] || mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mountpoint -q /proc 2>/dev/null || mount -t proc proc /proc 2>/dev/null || true
@@ -74,7 +74,7 @@ echo 'rog5-stock-charging-explicit-dtb-v2: init-enter' >/dev/kmsg 2>/dev/null ||
 	/system/bin/reboot bootloader 2>/dev/null || true
 	echo b >/proc/sysrq-trigger 2>/dev/null || true
 ) &
-exec /system/bin/init
+exec /system/bin/charger
 EOF
 chmod 0755 "$work/root/rog5-init"
 rm -- "$work/root/init"
@@ -84,12 +84,8 @@ for fstab in \
 	first_stage_ramdisk/fstab.emmc \
 	first_stage_ramdisk/fstab.default \
 	system/etc/recovery.fstab; do
-	awk '
-		/^[[:space:]]*#/ { next }
-		$2 == "/metadata" || $2 == "/data" || $2 == "/misc" ||
-		$2 == "/boot" || $2 == "/mnt/vendor/persist" ||
-		$2 == "/mnt/vendor/qmcs" || $2 == "/mnt/vendor/spunvm" { exit 1 }
-	' "$work/root/$fstab" || fail "writable storage entry survived in $fstab"
+	awk 'NF && $1 !~ /^#/ { exit 1 }' "$work/root/$fstab" ||
+		fail "active storage entry survived in $fstab"
 done
 
 find "$work/root" -exec touch -h -d "@$epoch" -- {} +
