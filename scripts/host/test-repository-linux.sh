@@ -275,6 +275,7 @@ shared_tests=(
 	scripts/host/test-storage-layout-stage2-contract.py
 	scripts/host/test-collect-storage-layout-stage2.py
 	scripts/device/test-storage-layout-stage2-runtime.sh
+	scripts/device/test-load-stock-charging-recovery.sh
 	scripts/host/test-collect-storage-preflight-report.py
 	scripts/host/test-storage-preflight-candidate.py
 	scripts/device/test-network-root-init.sh
