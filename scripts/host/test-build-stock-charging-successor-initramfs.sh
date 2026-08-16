@@ -9,7 +9,7 @@ trap 'rm -rf -- "$root"' EXIT
 fixture=$root/fixture
 mkdir -p "$fixture/first_stage_ramdisk" "$fixture/system/bin" "$fixture/system/etc"
 ln -s /system/bin/init "$fixture/init"
-for executable in init sh reboot toybox; do
+for executable in charger init sh reboot toybox; do
 	printf '#!/bin/sh\nexit 0\n' >"$fixture/system/bin/$executable"
 	chmod 0755 "$fixture/system/bin/$executable"
 done
@@ -36,12 +36,15 @@ mkdir "$root/unpacked"
 [[ -f $root/unpacked/init && ! -L $root/unpacked/init ]]
 grep -Fqx "echo 'rog5-stock-charging-explicit-dtb-v2: init-enter' >/dev/kmsg 2>/dev/null || true" "$root/unpacked/init"
 grep -Fqx $'\tsleep 600' "$root/unpacked/init"
-grep -Fqx '/dev/block/by-name/dsp /vendor/dsp ext4 ro wait,slotselect' "$root/unpacked/first_stage_ramdisk/fstab.emmc"
+grep -Fqx 'export ANDROID_ROOT=/system' "$root/unpacked/init"
+grep -Fqx 'exec /system/bin/charger' "$root/unpacked/init"
 for fstab_path in \
 	"$root/unpacked/first_stage_ramdisk/fstab.emmc" \
 	"$root/unpacked/first_stage_ramdisk/fstab.default" \
 	"$root/unpacked/system/etc/recovery.fstab"; do
-	! awk '/^[[:space:]]*#/ { next } $2 == "/metadata" || $2 == "/data" || $2 == "/misc" || $2 == "/mnt/vendor/persist" { found=1 } END { exit found ? 0 : 1 }' "$fstab_path"
+	! awk 'NF && $1 !~ /^#/ { found=1 } END { exit found ? 0 : 1 }' "$fstab_path"
+	grep -Fq '# ROG5 RAM-only charging successor disabled: system /system ext4 ro wait' "$fstab_path"
+	grep -Fq '# ROG5 RAM-only charging successor disabled: /dev/block/by-name/dsp /vendor/dsp ext4 ro wait,slotselect' "$fstab_path"
 done
 
 if "$builder" "$fixture" "$root/a.cpio.gz" >/dev/null 2>&1; then
