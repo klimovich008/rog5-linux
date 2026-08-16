@@ -35,6 +35,8 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         controller = source("packaging/host/rog5-recovery-bundle-controller")
         lifecycle = source("scripts/host/run-minimal-headless-live-cycle.py")
         stable = source("scripts/host/stable-recovery-control.py")
+        recovery_init = source("initramfs/recovery-init")
+        template = source("scripts/host/build-canonical-boot-v3-template.sh")
 
         worker_ms = integer_constant(fetch, "FETCH_TIMEOUT_MS")
         connect_ms = integer_constant(fetch, "CONNECT_TIMEOUT_MS")
@@ -63,6 +65,12 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         prepare = integer_constant(stable, "PREPARE_DEADLINE_SECONDS")
         nfs_ready = integer_constant(stable, "NFS_READY_TIMEOUT_SECONDS")
         control_total = integer_constant(lifecycle, "CONTROL_TIMEOUT_SECONDS")
+        recovery_watchdog = integer_constant(recovery_init, "timeout")
+        template_match = re.search(
+            r"rog5\.recovery_timeout=([0-9]+)'$", template, flags=re.MULTILINE
+        )
+        self.assertIsNotNone(template_match)
+        template_watchdog = int(template_match.group(1))
 
         self.assertEqual(worker_ms, 180_000)
         self.assertEqual(connect_ms, 15_000)
@@ -86,6 +94,10 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         self.assertGreaterEqual(prepare, supervisor + kexec + 30)
         self.assertGreaterEqual(control_total, prepare + nfs_ready + 10)
         self.assertLessEqual(offline_watchdog, 5)
+        # The rollback watchdog starts before PREPARE. It must not reboot the
+        # recovery while the host's bounded PREPARE transaction is still live.
+        self.assertGreaterEqual(recovery_watchdog, prepare + 30)
+        self.assertEqual(template_watchdog, recovery_watchdog)
 
         self.assertIn(
             "hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS}",

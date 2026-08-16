@@ -15,9 +15,9 @@ expected_mkbootimg=d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a68
 expected_unpack=7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef
 output_name=rog5-canonical-boot-v3-template.raw.img
 output_size=12288
-output_sha=95be17d48ec61d00a4e8c92be754c8a8345f93685ce05d412a6d3a6aceba6e02
+output_sha=37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d
 report_name=template-provenance.txt
-cmdline='init=/init selinux=0 printk.devkmsg=on rog5linux.test=1 ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x300000 ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.recovery_timeout=180'
+cmdline='init=/init selinux=0 printk.devkmsg=on rog5linux.test=1 ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x300000 ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.recovery_timeout=300'
 
 for command_name in awk chmod cmp cut dirname find grep mkdir mktemp mv \
 	python3 realpath sha256sum stat tr; do

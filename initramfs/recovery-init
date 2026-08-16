@@ -670,7 +670,7 @@ case $release in
 		;;
 esac
 
-timeout=180
+timeout=300
 ufs_discovery=0
 ufs_discovery_count=0
 ufs_discovery_invalid=0
@@ -689,9 +689,9 @@ for argument in $(cat /proc/cmdline); do
 			;;
 	esac
 done
-case $timeout in *[!0-9]*|'') timeout=180 ;; esac
+case $timeout in *[!0-9]*|'') timeout=300 ;; esac
 if [ "$timeout" -lt 30 ] || [ "$timeout" -gt 900 ]; then
-	timeout=180
+	timeout=300
 fi
 if [ "$recovery_mode" = storage-layout-stage1-v1 ] && [ "$timeout" != 900 ]; then
 	log 'storage-layout stage-1 requires the exact pre-mutation rollback window; rebooting'

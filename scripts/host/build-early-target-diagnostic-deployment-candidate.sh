@@ -102,7 +102,7 @@ CHECKPOINT_INPUTS = (
         "artifacts/recovery-wrapper-inputs-v1/rog5-canonical-boot-v3-template.raw.img",
         12288,
         0o644,
-        "95be17d48ec61d00a4e8c92be754c8a8345f93685ce05d412a6d3a6aceba6e02",
+        "37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d",
     ),
 )
 

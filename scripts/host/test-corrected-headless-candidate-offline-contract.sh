@@ -88,7 +88,7 @@ for token in \
 	'steam-deck-asus-5.4-v1' \
 	'build-asus-kexec-stage-successor.sh' \
 	'accepted-wrapper-v18-v1' \
-	'95be17d48ec61d00a4e8c92be754c8a8345f93685ce05d412a6d3a6aceba6e02' \
+	'37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d' \
 	'verify-steam-deck-builder.sh' \
 	'cache_publication=disabled-for-qualified-steam-deck-twin-build' \
 	'wrapper output config identity changed' \

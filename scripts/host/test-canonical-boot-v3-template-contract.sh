@@ -19,11 +19,11 @@ bash -n "$builder"
 for token in \
 	d99136f30bda966e8820c8ae53a82c659ca36e6d1aaf49a4cd63ae4795a6845a \
 	7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef \
-	95be17d48ec61d00a4e8c92be754c8a8345f93685ce05d412a6d3a6aceba6e02 \
+	37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d \
 	'--header_version 3' \
 	'--os_version 11.0.0' \
 	'--os_patch_level 2022-02' \
-	'rog5.recovery_timeout=180' \
+	'rog5.recovery_timeout=300' \
 	'rog5\.(recovery_cidr|ufs_discovery)=' \
 	'two canonical boot-v3 template builds differ' \
 	'state=reproducible-successor' \
