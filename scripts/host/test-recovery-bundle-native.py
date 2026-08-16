@@ -37,6 +37,23 @@ ROOT_TREE_SHA256 = "b" * 64
 ROOT_SEAL_SHA256 = "c" * 64
 ROOT_TREE_ENTRIES = "7"
 ZERO_HASH = "0" * 64
+STOCK_CHARGING_COMMAND_LINE = (
+    "log_buf_len=256K earlycon=msm_geni_serial,0x98c000 "
+    "rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off "
+    "console=ttyMSM0,115200n8 androidboot.hardware=qcom "
+    "androidboot.console=ttyMSM0 androidboot.memcg=1 "
+    "lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 "
+    "msm_rtb.filter=0x237 service_locator.enable=1 "
+    "androidboot.usbcontroller=a600000.dwc3 swiotlb=0 loop.max_part=7 "
+    "cgroup.memory=nokmem,nosocket pcie_ports=compat loop.max_part=7 "
+    "iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 "
+    "buildvariant=user androidboot.mode=charger androidboot.force_normal_boot=0 "
+    "rdinit=/init panic=10 oops=panic loglevel=8 ignore_loglevel "
+    "printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 "
+    "ramoops.mem_size=0x400000 ramoops.record_size=0x100000 "
+    "ramoops.console_size=0x300000 ramoops.pmsg_size=0 "
+    "ramoops.ftrace_size=0 ramoops.dump_oops=1"
+)
 
 
 def sha256(data: bytes) -> str:
@@ -287,7 +304,11 @@ class BundleFixture:
             "target_id": "rog5-test",
             "target_release": "test-1",
             "rollback_timeout": (
-                "300" if self.profile == "persistent-root-ro-v1" else "180"
+                "900"
+                if self.profile == "stock-charging-recovery-v1"
+                else "300"
+                if self.profile == "persistent-root-ro-v1"
+                else "180"
             ),
             "target_timeout": "90",
             "a660_command_manifest_sha256": (
@@ -739,6 +760,7 @@ class NativeBundleVerifierTest(unittest.TestCase):
             "persistent-root-ro-v1": (
                 "rog5.ufs_discovery=1 rog5.persistent_ro=1"
             ),
+            "stock-charging-recovery-v1": STOCK_CHARGING_COMMAND_LINE,
         }
         for index, (profile, token) in enumerate(profile_tokens.items()):
             with self.subTest(profile=profile):
@@ -758,18 +780,22 @@ class NativeBundleVerifierTest(unittest.TestCase):
                     " ramoops.pmsg_size=0 ramoops.ftrace_size=0"
                     " ramoops.dump_oops=1"
                     if profile != "persistent-root-ro-v1"
+                    and profile != "stock-charging-recovery-v1"
                     else ""
                 )
-                command_line = (
-                    "console=ttyMSM0,115200n8 rdinit=/init panic=10 "
-                    "oops=panic loglevel=8 ignore_loglevel "
-                    "printk.always_kmsg_dump=Y "
-                    f"{token}{ramoops} "
-                    f"rog5.bundle=accepted-{index} "
-                    "rog5.target_timeout=90 "
-                    f"rog5.recovery_timeout="
-                    f"{300 if profile == 'persistent-root-ro-v1' else 180}"
-                )
+                if profile == "stock-charging-recovery-v1":
+                    command_line = STOCK_CHARGING_COMMAND_LINE
+                else:
+                    command_line = (
+                        "console=ttyMSM0,115200n8 rdinit=/init panic=10 "
+                        "oops=panic loglevel=8 ignore_loglevel "
+                        "printk.always_kmsg_dump=Y "
+                        f"{token}{ramoops} "
+                        f"rog5.bundle=accepted-{index} "
+                        "rog5.target_timeout=90 "
+                        f"rog5.recovery_timeout="
+                        f"{300 if profile == 'persistent-root-ro-v1' else 180}"
+                    )
                 if profile in {
                     "diagnostic-initramfs-v1",
                     "network-root-v1",
@@ -799,6 +825,22 @@ class NativeBundleVerifierTest(unittest.TestCase):
                 )
                 self.assertEqual(output, expected)
                 self.assertNotIn(str(fixture.root), output)
+
+        self.assertEqual(
+            sha256(STOCK_CHARGING_COMMAND_LINE.encode("ascii")),
+            "a6d4b68d1eda751632f1b656a037b0bf232a184a5026f08e98292885d9e04a4a",
+        )
+        self.assertEqual(
+            sha256((STOCK_CHARGING_COMMAND_LINE + "\n").encode("ascii")),
+            "4721d4e80662df64e809d00a2fcecbd6d6450567663d7791db2a1015bc3526c6",
+        )
+        source = SOURCE.read_text(encoding="ascii")
+        for identity in (
+            "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33",
+            "c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b",
+            "83a9ae20a861dc593ea0cff3a774ea3eb37b5a8bd2e82d8e80ca67561d6d2417",
+        ):
+            self.assertIn(identity, source)
 
     def test_handoff_preserves_exact_verified_open_files(self) -> None:
         required_seals = (
@@ -1082,6 +1124,12 @@ class NativeBundleVerifierTest(unittest.TestCase):
             profile="persistent-root-ro-v1",
         )
         fixture.refresh_manifest(rollback_timeout="299")
+        fixture.assert_rejected("profile rollback timeout is too short")
+        fixture = self.fixture(
+            "stock-charging-short",
+            profile="stock-charging-recovery-v1",
+        )
+        fixture.refresh_manifest(rollback_timeout="899")
         fixture.assert_rejected("profile rollback timeout is too short")
 
     def test_artifact_size_and_hash_binding(self) -> None:

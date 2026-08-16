@@ -69,6 +69,7 @@ PROFILES = {
     "diagnostic-initramfs-v1",
     "network-root-v1",
     "persistent-root-ro-v1",
+    "stock-charging-recovery-v1",
 }
 HEX_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BUNDLE_ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}\Z")
@@ -220,6 +221,8 @@ def validate_manifest(
         raise ServerRefusal("manifest timeout margin is unsafe")
     if fields["profile"] == "persistent-root-ro-v1" and rollback < 300:
         raise ServerRefusal("persistent profile rollback is too short")
+    if fields["profile"] == "stock-charging-recovery-v1" and rollback < 900:
+        raise ServerRefusal("stock charging profile rollback is too short")
     if fields["profile"] in {
         "diagnostic-initramfs-v1",
         "network-root-v1",
