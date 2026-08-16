@@ -55,6 +55,14 @@ EXPECTED_CLAIMS = {
         "headless-diagnostic-generation12-live-v1",
     )
 }
+EXPECTED_CLAIMS["stock-charging-explicit-dtb-v2-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=stock-charging-explicit-dtb-v2-live-v1\n"
+    "candidate=stock-charging-explicit-dtb-v2\n"
+    "manifest_sha256="
+    "1df5c41b2a7687bbfd66c201ef9ab164bb77767df41b5cc7c1c05f0b6de03fdf\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["charging-direct-stock-storage-isolated-v3-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=charging-direct-stock-storage-isolated-v3-live-v1\n"

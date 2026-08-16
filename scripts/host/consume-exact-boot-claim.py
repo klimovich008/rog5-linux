@@ -13,6 +13,14 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "stock-charging-explicit-dtb-v2-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=stock-charging-explicit-dtb-v2-live-v1\n"
+        b"candidate=stock-charging-explicit-dtb-v2\n"
+        b"manifest_sha256="
+        b"1df5c41b2a7687bbfd66c201ef9ab164bb77767df41b5cc7c1c05f0b6de03fdf\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "charging-direct-stock-storage-isolated-v3-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=charging-direct-stock-storage-isolated-v3-live-v1\n"
