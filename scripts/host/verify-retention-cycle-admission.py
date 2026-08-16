@@ -71,6 +71,22 @@ EXPECTED_CLAIMS["persistent-root-storage-read-v1-live-v1"] = (
     "f82ea25ffb484668dd56cbd01b33b12062d26d29d40d14000b73afe41c857753\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["charging-rescue-fastboot-v2-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=charging-rescue-fastboot-v2-live-v1\n"
+    "candidate=charging-rescue-fastboot-v2\n"
+    "manifest_sha256="
+    "95d80165ebf94d6ec6db3a812d8438bb88215254b4292d6f0a8b031f5785fa6f\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
+EXPECTED_CLAIMS["charging-rescue-fastboot-v1-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=charging-rescue-fastboot-v1-live-v1\n"
+    "candidate=charging-rescue-fastboot-v1\n"
+    "manifest_sha256="
+    "1b770a941fa8f4fa11dc7100ddd2313795c5256bab1269db4b7520cc87b62e0d\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["headless-diagnostic-host-rendezvous-v3-live-v2"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=headless-diagnostic-host-rendezvous-v3-live-v2\n"
@@ -798,7 +814,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "eb9dc7672a01cff23d0f7446ba744176ad57921a28c84ed0237601afcfa9efd8",
+    "sha256": "38f92bb21771d505e3d05a93cdf57814e5d7e63925b26e161eef5e8ec4dca4cb",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -826,7 +842,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "eb9dc7672a01cff23d0f7446ba744176ad57921a28c84ed0237601afcfa9efd8",
+    "executor_contract_sha256": "38f92bb21771d505e3d05a93cdf57814e5d7e63925b26e161eef5e8ec4dca4cb",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",

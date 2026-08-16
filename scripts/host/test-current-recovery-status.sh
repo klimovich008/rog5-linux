@@ -55,9 +55,15 @@ case $normalized_active in
 esac
 
 case $normalized_charging in
-	*'fastboot -s "$ROG5_FASTBOOT_SERIAL" set_active a'*'fastboot -s "$ROG5_FASTBOOT_SERIAL" reboot recovery'*'battery-soc-ok` is exactly `yes`'*'fastboot -s "$ROG5_FASTBOOT_SERIAL" set_active b'*) ;;
+	*'`05c6:900e` Qualcomm crashdump'*'must not be repeated'*'`boot_a` reports `18.0840.2103.26-0`'*'`vendor_boot_a` reports `18.1220.2202.206-0`'*'battery-soc-ok` is exactly `yes`'*'verified fallback slot B'*) ;;
 	*)
-		echo 'FAIL ASUS charging recovery does not preserve the battery and slot boundary' >&2
+		echo 'FAIL low-battery recovery does not record and reject the mismatched slot-A crashdump path' >&2
+		exit 1
+		;;
+esac
+case $normalized_charging in
+	*'set_active a'*|*'reboot recovery'*)
+		echo 'FAIL low-battery recovery still directs the operator into slot-A recovery' >&2
 		exit 1
 		;;
 esac
@@ -68,10 +74,17 @@ case $normalized_charging in
 		exit 1
 		;;
 esac
-case $normalized_active in
-	*'Active-slot metadata is temporarily A'*'Stage-1 claim remains unconsumed'*'asus-charging-recovery.md'*) ;;
+case $normalized_charging in
+	*'charging-rescue-fastboot-v1-live-v1'*'6.801 V to 6.933 V'*'charging-rescue-fastboot-v2-live-v1'*'6.934 V to 6.931 V'*'do not prove net-positive charging'*'zero-boot fastboot soak'*) ;;
 	*)
-		echo 'FAIL active context does not record the temporary slot-A charging hold' >&2
+		echo 'FAIL low-battery recovery omits the consumed charging cycles or passive-soak decision' >&2
+		exit 1
+		;;
+esac
+case $normalized_active in
+	*'Active-slot metadata is restored to B'*'Stage-1 claim remains unconsumed'*'asus-charging-recovery.md'*) ;;
+	*)
+		echo 'FAIL active context does not record the restored fallback slot and charging hold' >&2
 		exit 1
 		;;
 esac
@@ -103,4 +116,4 @@ case $normalized_roadmap in
 		;;
 esac
 
-echo 'PASS current status records consumed generations, the corrected mainline UDC, and the temporary slot-A charging hold'
+echo 'PASS current status records consumed generations, the corrected mainline UDC, and the low-battery recovery hold'

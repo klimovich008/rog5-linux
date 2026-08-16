@@ -10,9 +10,12 @@ design is in [recovery-control-plane.md](recovery-control-plane.md).
 - Device: ASUS ROG Phone 5, codename `anakin`, Snapdragon 888 / SM8350,
   Adreno 660, roughly 11 GiB usable RAM.
 - Bootloader: unlocked; verified boot reports orange.
-- Development/fallback slot: B. Active-slot metadata is temporarily A for the
-  preserved ASUS low-battery charging environment; see
+- Development/fallback slot: B. Active-slot metadata is restored to B after
+  the slot-A recovery path entered Qualcomm crashdump; see
   [the charging recovery runbook](asus-charging-recovery.md).
+- Retained AVB metadata proves slot A is internally mismatched: `boot_a` is
+  ASUS `18.0840.2103.26-0`, while `vendor_boot_a` is
+  `18.1220.2202.206-0`; neither component is to be flashed at low battery.
 - Experimental boot method: attended `fastboot boot` only.
 - No experimental kernel, recovery, DTB, or Linux root has been flashed.
 - Installed fallback: userdata-backed Alpine 3.24 on
@@ -26,9 +29,20 @@ cycle.
 
 It is not an accepted low-battery charging environment. Its ASUS/Qualcomm
 charging stack is incomplete, so external power can boot Alpine while pack
-voltage falls. Stage 1 remains paused, its claim is unconsumed, and the
-temporary slot-A selector must not be restored to B until fastboot proves
-`battery-soc-ok: yes` and substantial voltage recovery.
+voltage falls. Slot-A recovery is also rejected after it entered crashdump.
+Stage 1 remains paused, its claim is unconsumed, and neither installed slot is
+claimed to charge the pack. Fastboot must prove `battery-soc-ok: yes` and
+substantial voltage recovery before Stage 1 resumes.
+
+Two bounded RAM-only vendor-kernel charging probes returned directly to exact
+fastboot without storage access. The consumed 30-second probe changed the
+reported pack voltage from 6.801 V to 6.933 V, but the consumed five-minute
+probe changed it from 6.934 V to 6.931 V. The discrete first step therefore
+does not establish stored charge, and neither voltage-only cycle establishes
+current direction. No third blind boot is admitted. A read-only fastboot soak
+is active; the prepared output-only ACM charging-telemetry image remains
+unissued pending that result. See the
+[live charging-rescue result](../test-results/2026-08-16-low-battery-charging-rescue-live.md).
 
 ## 2026-08-12 headless MVP milestone
 

@@ -13,6 +13,22 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "charging-rescue-fastboot-v2-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=charging-rescue-fastboot-v2-live-v1\n"
+        b"candidate=charging-rescue-fastboot-v2\n"
+        b"manifest_sha256="
+        b"95d80165ebf94d6ec6db3a812d8438bb88215254b4292d6f0a8b031f5785fa6f\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
+    "charging-rescue-fastboot-v1-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=charging-rescue-fastboot-v1-live-v1\n"
+        b"candidate=charging-rescue-fastboot-v1\n"
+        b"manifest_sha256="
+        b"1b770a941fa8f4fa11dc7100ddd2313795c5256bab1269db4b7520cc87b62e0d\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-layout-stage1-v1-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-layout-stage1-v1-live-v1\n"

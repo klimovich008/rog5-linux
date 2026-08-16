@@ -44,9 +44,9 @@ and final confirmation of the exact destructive commands.
   sequence.
 - [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
   exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
-- [ASUS low-battery charging recovery](docs/asus-charging-recovery.md) —
-  preserve slot-A charging, prove the fastboot battery gate, then restore the
-  slot-B-bound storage lifecycle without flashing.
+- [ROG Phone 5 low-battery recovery hold](docs/asus-charging-recovery.md) —
+  reject the disproven slot-A crashdump path, preserve fallback slot B, and
+  require a proven charger plus the fastboot battery gate before Stage 1.
 - [Operator standing authorization](docs/operator-standing-authorization.md) —
   actions that may proceed without another consent prompt and the hard
   boundaries that remain.

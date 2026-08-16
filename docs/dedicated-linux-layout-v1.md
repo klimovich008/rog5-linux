@@ -16,9 +16,10 @@ root after the current sealed tree, package updates, and rollback space.
 Status: **the sealed Stage-1 executor is implemented, offline-rehearsed, and
 read-only phone-preflighted. Its prepared one-use candidate and claim remain
 unconsumed and unbooted; no phone partition or filesystem mutation has run.**
-Execution is paused at the battery gate. Active-slot metadata is temporarily A
-for the preserved ASUS charging environment; see the
-[charging recovery runbook](asus-charging-recovery.md).
+Execution is paused at the battery gate. Active-slot metadata is restored to B
+after slot-A recovery entered Qualcomm crashdump. Neither installed slot is an
+accepted charging path; see the
+[low-battery recovery hold](asus-charging-recovery.md).
 
 ## Verified input
 

@@ -25,12 +25,13 @@ indicator, sensor, audio, or suspend expansion is active.
 
 Stage 1 is currently paused at the battery gate. Slot B boots Alpine, whose
 ASUS/Qualcomm charging path is not accepted; using it as an off-mode charging
-environment caused the pack voltage to fall. Active-slot metadata is
-temporarily A so the preserved ASUS recovery can charge the phone. The
-one-use Stage-1 claim remains unconsumed, and GPT, `userdata`, and partition
-payloads are unchanged. Follow the
-[ASUS low-battery charging recovery runbook](asus-charging-recovery.md), then
-restore slot B only after fastboot reports `battery-soc-ok: yes` and the
+environment caused the pack voltage to fall. The preserved slot-A recovery
+was then disproven as a charging route when it entered Qualcomm crashdump.
+Active-slot metadata has been restored to B without booting it. The one-use
+Stage-1 claim remains unconsumed, and GPT, `userdata`, and partition payloads
+are unchanged. Follow the
+[low-battery recovery hold](asus-charging-recovery.md); resume only after an
+independently proven charging path produces `battery-soc-ok: yes` and the
 current private Stage-1 record is revalidated.
 
 ## Read-only inventory result
@@ -75,8 +76,9 @@ The development fallback contract is:
 - 195,854,397,440 bytes available at the final read-only checkpoint; and
 - a sealed Arch tree at `/rog5/roots/arch-a`, occupying 5,969,854,464 bytes.
 
-As of 2026-08-16, the active-slot selector is temporarily A for ASUS charging;
-this does not change the slot-B development contract or reclaimability.
+As of 2026-08-16, the active-slot selector is restored to B after the slot-A
+recovery path entered crashdump. Neither installed slot is accepted for
+low-battery charging.
 
 Both boot slots, both vendor-boot images, both top-level vbmeta images, both
 system vbmeta images, and both DTBO images were inventoried and backed up.
