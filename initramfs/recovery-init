@@ -116,8 +116,8 @@ force_rollback() {
 	(
 		sleep 5
 		while :; do
-			log 'orderly forced reboot still active; using emergency reset'
 			echo b >/proc/sysrq-trigger 2>/dev/null || true
+			log 'emergency reset returned; retrying'
 			sleep 5
 		done
 	) &
@@ -705,7 +705,6 @@ touch /run/rog5-recovery-armed
 (
 	sleep "$timeout"
 	[ -e /run/rog5-recovery-armed ] || exit 0
-	log 'rollback timer expired; rebooting'
 	force_rollback
 ) &
 watchdog_pid=$!
