@@ -82,6 +82,14 @@ PROFILES = {
 }
 PROFILES.update(
     {
+        "stock-charging-memory-fixed-v4-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=stock-charging-memory-fixed-v4-live-v1\n"
+            b"candidate=stock-charging-memory-fixed-v4\n"
+            b"manifest_sha256="
+            b"5b3323d2259160e37c74d2f5b9e972ca6aa5a62d0b596d604b592e7c720313a1\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "stock-charging-memory-fixed-v3-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=stock-charging-memory-fixed-v3-live-v1\n"
