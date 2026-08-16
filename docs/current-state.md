@@ -27,12 +27,31 @@ design is in [recovery-control-plane.md](recovery-control-plane.md).
 The installed fallback is intentionally left available after every temporary
 cycle.
 
+The phone's USB-free immediate restart is now tracked separately from charger
+insertion. The running 5.4.134 fallback rejects its vendor `msm-poweroff`
+module on symbol-version mismatch and has no bound `msm-restart` platform
+device; the retained PMIC log identifies the current Power-key event as a hard
+reset. This strongly supports a broken shutdown path, while the earlier
+`USB_CHARGER` PMIC trigger independently proves charger-triggered wake can also
+occur.
+
 It is not an accepted low-battery charging environment. Its ASUS/Qualcomm
 charging stack is incomplete, so external power can boot Alpine while pack
 voltage falls. Slot-A recovery is also rejected after it entered crashdump.
 Stage 1 remains paused, its claim is unconsumed, and neither installed slot is
 claimed to charge the pack. Fastboot must prove `battery-soc-ok: yes` and
 substantial voltage recovery before Stage 1 resumes.
+
+The retained build-21 kernel and `ramdisk-new` now reproduce the historical
+`rog5-alpine-5.4.210-rtcharger.img` exactly at
+`b5805cc29cea05ed13f0e4695ba8ffa50a2893223ff2fc06b6b9c60decf88d86`.
+A new headless RAM-only derivative combines the coherent 5.4.210 poweroff
+closure with the exact six charger/ADSP modules, no userdata path, NCM/ACM,
+SSH, battery samples, and a 180-second rollback. Its clean twins reproduce at
+initramfs `f01788ef2a73d692d4dd67a74dda9f76d46fe2a13fa820c4ddd39730779b8bde`.
+USB diagnostics and SSH start before charger activation, so charger-stack
+failure does not suppress the primary live evidence channel.
+No phone boot occurred at this checkpoint, so charging remains unproven.
 
 Two bounded RAM-only vendor-kernel charging probes returned directly to exact
 fastboot without storage access. The consumed 30-second probe changed the
