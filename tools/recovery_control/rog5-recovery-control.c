@@ -2767,7 +2767,8 @@ static bool valid_plan_profile(const char *profile)
 {
 	return strcmp(profile, "diagnostic-initramfs-v1") == 0 ||
 		strcmp(profile, "network-root-v1") == 0 ||
-		strcmp(profile, "persistent-root-ro-v1") == 0;
+		strcmp(profile, "persistent-root-ro-v1") == 0 ||
+		strcmp(profile, "stock-charging-recovery-v1") == 0;
 }
 
 static bool parse_plan_number(const char *value, uint64_t minimum,

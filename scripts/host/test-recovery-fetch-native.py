@@ -1278,6 +1278,57 @@ class NativeRecoveryFetchTest(unittest.TestCase):
             expected_returncode=50,
         )
 
+    def test_stock_charging_profile_requires_unset_root_and_rollback_floor(
+        self,
+    ) -> None:
+        base = BundlePayload.manifest_fields(
+            self.payload.bundle,
+            kernel=self.payload.kernel,
+            dtb=self.payload.dtb,
+            initramfs=self.payload.initramfs,
+        )
+        values = {
+            "profile": "stock-charging-recovery-v1",
+            "rollback_timeout": "900",
+            "target_timeout": "600",
+            "a660_command_manifest_sha256": "0" * 64,
+            "root_generation": "none",
+            "root_tree_sha256": "0" * 64,
+            "root_seal_sha256": "0" * 64,
+            "root_tree_entries": "0",
+            "root_subtree": "none",
+        }
+
+        def stock_payload(overrides: dict[str, str] | None = None) -> BundlePayload:
+            fields = {**values, **(overrides or {})}
+            return BundlePayload(
+                bundle=self.payload.bundle,
+                manifest=render_fields(
+                    [(name, fields.get(name, value)) for name, value in base]
+                ),
+                signature=self.payload.signature,
+                kernel=self.payload.kernel,
+                dtb=self.payload.dtb,
+                initramfs=self.payload.initramfs,
+            )
+
+        stock = stock_payload()
+        root = self.new_root("stock-charging-root")
+        with RawFetchServer(reply_handler(stock)) as server:
+            result = self.invoke(
+                root,
+                server.port,
+                bundle=stock.bundle,
+                expected_hash=stock.manifest_hash,
+            )
+        self.assert_success(result)
+        self.assert_published(root, stock)
+        self.assert_response_rejected(
+            label="stock-charging-rollback-below-floor",
+            payload=stock_payload({"rollback_timeout": "899"}),
+            expected_returncode=50,
+        )
+
     def test_manifest_timeout_boundaries_match_verifier_schema(self) -> None:
         base = BundlePayload.manifest_fields(
             self.payload.bundle,
