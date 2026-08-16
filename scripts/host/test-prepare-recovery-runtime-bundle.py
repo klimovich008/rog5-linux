@@ -171,6 +171,14 @@ def valid_dts() -> str:
 \t\tstdout-path = "serial0:115200n8";
 \t};
 
+\tmemory@80000000 {
+\t\tdevice_type = "memory";
+\t\treg = <0 0x80000000 0 0x37100000
+\t\t       2 0 1 0x80000000
+\t\t       0 0xc0000000 1 0x40000000
+\t\t       0 0xb9500000 0 0>;
+\t};
+
 \tsoc@0 {
 \t\tcompatible = "simple-bus";
 \t\t#address-cells = <2>;
