@@ -2,8 +2,8 @@
   "format": "rog5-recovery-control-build-v1",
   "source": {
     "path": "tools/recovery_control/rog5-recovery-control.c",
-    "size": 125477,
-    "sha256": "c400279fa95f291b0799b9221563e22fa8160d85534da13099d90dbd83259cce",
+    "size": 125530,
+    "sha256": "def377547e9b38bfc60315c6acfc38e6783b6ec5f682cff98ec588a97e662c4a",
     "mode": "0644"
   },
   "builder": {

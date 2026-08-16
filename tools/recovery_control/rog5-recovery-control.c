@@ -1923,6 +1923,7 @@ static void emit_execute_stage(const char *stage)
 {
 	char payload[96];
 	struct stat metadata;
+	ssize_t written;
 	int descriptor;
 	int length;
 	bool metadata_ok;
@@ -1946,8 +1947,10 @@ static void emit_execute_stage(const char *stage)
 #endif
 	length = snprintf(payload, sizeof(payload),
 			  "rog5-recovery-control: execute-stage=%s\n", stage);
+	written = -1;
 	if (valid_type && length > 0 && length < (int)sizeof(payload))
-		(void)write(descriptor, payload, (size_t)length);
+		written = write(descriptor, payload, (size_t)length);
+	(void)written;
 	(void)close(descriptor);
 }
 
