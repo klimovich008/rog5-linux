@@ -37,7 +37,7 @@ EXPECTED_CMDLINE = (
     "ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 "
     "ramoops.record_size=0x100000 ramoops.console_size=0x300000 "
     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
-    "ramoops.dump_oops=1 rog5.recovery_timeout=300"
+    "ramoops.dump_oops=1 rog5.recovery_timeout=180"
 )
 
 
@@ -171,6 +171,10 @@ class Fixture:
         )
 
     def repack(self, command_line_override: str = "") -> None:
+        # Observation wrappers are a frozen historical 180-second contract;
+        # the shared recovery template now defaults to 300 seconds.
+        if not command_line_override:
+            command_line_override = "rog5.recovery_timeout=180"
         raw_a = self.path("repack/stable-recovery-a.raw.img")
         avb_a = self.path("repack/stable-recovery-a.avb.img")
         raw_a.parent.mkdir(parents=True, exist_ok=True)
