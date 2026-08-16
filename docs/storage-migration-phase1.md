@@ -27,6 +27,11 @@ Stage 1 is currently paused at the battery gate. Slot B boots Alpine, whose
 ASUS/Qualcomm charging path is not accepted; using it as an off-mode charging
 environment caused the pack voltage to fall. The preserved slot-A recovery
 was then disproven as a charging route when it entered Qualcomm crashdump.
+Physical side-port isolation also failed to establish charging: about 30
+minutes with only the bottom ASUS wall charger moved 6.836 V to 6.839 V and
+left `battery-soc-ok: no`. A complete official ASUS firmware payload is now
+retained for offline charger-path analysis, but it grants no low-voltage boot
+or storage authority.
 Active-slot metadata has been restored to B without booting it. The one-use
 Stage-1 claim remains unconsumed, and GPT, `userdata`, and partition payloads
 are unchanged. Follow the
