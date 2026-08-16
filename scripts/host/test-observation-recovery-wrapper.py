@@ -37,7 +37,7 @@ EXPECTED_CMDLINE = (
     "ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 "
     "ramoops.record_size=0x100000 ramoops.console_size=0x300000 "
     "ramoops.pmsg_size=0 ramoops.ftrace_size=0 "
-    "ramoops.dump_oops=1 rog5.recovery_timeout=180"
+    "ramoops.dump_oops=1 rog5.recovery_timeout=300"
 )
 
 
