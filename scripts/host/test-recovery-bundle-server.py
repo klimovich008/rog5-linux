@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 from pathlib import Path
@@ -12,12 +13,15 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
+from tools.recovery_control import host_bundle_server  # noqa: E402
 from tools.recovery_control.host_bundle_server import (  # noqa: E402
     ARTIFACTS,
     BUNDLE_ROOT,
@@ -464,6 +468,91 @@ class HostBundleServerTest(unittest.TestCase):
             self.assertGreater(len(response), 4)
         prepared.close()
         os.close(root)
+
+    def test_listener_waits_for_tcp_delivery_ack_before_return(self):
+        root, prepared = self.fixture.prepare()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            port = listener.getsockname()[1]
+            confirmation_started = threading.Event()
+            release_confirmation = threading.Event()
+            outcome: list[BaseException] = []
+
+            def hold_confirmation(
+                _connection: socket.socket, _deadline: float
+            ) -> None:
+                confirmation_started.set()
+                if not release_confirmation.wait(timeout=1):
+                    raise AssertionError("delivery confirmation was not released")
+
+            def worker() -> None:
+                try:
+                    serve_listener(
+                        listener,
+                        prepared,
+                        lambda _peer: True,
+                        timeout_seconds=2,
+                    )
+                except BaseException as error:
+                    outcome.append(error)
+
+            with mock.patch.object(
+                host_bundle_server,
+                "confirm_tcp_delivery",
+                side_effect=hold_confirmation,
+            ):
+                thread = threading.Thread(target=worker, daemon=True)
+                thread.start()
+                with socket.create_connection(
+                    ("127.0.0.1", port)
+                ) as accepted:
+                    accepted.sendall(
+                        request(manifest_hash=self.fixture.manifest_hash)
+                    )
+                    accepted.shutdown(socket.SHUT_WR)
+                    response = receive_all(accepted)
+                    self.assertTrue(confirmation_started.wait(timeout=1))
+                    self.assertTrue(thread.is_alive())
+                    release_confirmation.set()
+                thread.join(timeout=2)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(outcome, [])
+            self.assertGreater(len(response), 4)
+        prepared.close()
+        os.close(root)
+
+    def test_tcp_delivery_confirmation_is_bounded_and_fail_closed(self):
+        class PendingDelivery:
+            def getsockopt(
+                self, level: int, option: int, *_arguments: object
+            ) -> int | bytes:
+                if (level, option) == (socket.SOL_SOCKET, socket.SO_ERROR):
+                    return 0
+                if (level, option) == (socket.IPPROTO_TCP, socket.TCP_INFO):
+                    return bytes((9,))
+                raise AssertionError("unexpected socket option")
+
+        class ResetDelivery(PendingDelivery):
+            def getsockopt(
+                self, level: int, option: int, *_arguments: object
+            ) -> int | bytes:
+                if (level, option) == (socket.SOL_SOCKET, socket.SO_ERROR):
+                    return errno.ECONNRESET
+                return super().getsockopt(level, option, *_arguments)
+
+        with self.assertRaisesRegex(
+            ServerRefusal, "response delivery was not acknowledged"
+        ):
+            host_bundle_server.confirm_tcp_delivery(
+                PendingDelivery(), time.monotonic() + 0.02
+            )
+        with self.assertRaisesRegex(
+            ServerRefusal, "response delivery ended with a socket error"
+        ):
+            host_bundle_server.confirm_tcp_delivery(
+                ResetDelivery(), time.monotonic() + 1
+            )
 
     def test_too_many_wrong_peers_is_terminal(self):
         root, prepared = self.fixture.prepare()
