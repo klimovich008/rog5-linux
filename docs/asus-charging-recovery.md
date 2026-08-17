@@ -170,22 +170,56 @@ Its complete ZIP passes CRC verification. The extracted `boot`, `vendor_boot`,
 and `dtbo` form one package generation; their AVB properties identify
 `18.1220.2202.206-0`, and the kernel is ASUS 5.4.210. The same payload includes
 matching `dsp`, `aop`, `tz`, `xbl`, and `vendor` content. This is an offline
-source for a future complete RAM-only charger design, not authority to boot or
-write any partition while the battery gate is closed.
+source for the corrected RAM-only charger design, not permission to write any
+phone partition while the battery gate is closed.
+
+The later direct-v5 probe established one concrete defect. It could display
+the ASUS charger UI, but its replacement PID 1 disabled every fstab entry and
+never ran the stock charger-mode sequence from `init.target.rc`:
+
+1. mount the slot-selected modem firmware read-only at
+   `/vendor/firmware_mnt`;
+2. load the matching Q6/PDR, notifier, APR, and ADSP-loader modules;
+3. write `1` to `/sys/kernel/boot_adsp/boot`;
+4. wait for the battery power-supply service.
+
+That omission explains the observed UI with no battery power-supply service;
+it does not prove that restoring the sequence will produce positive battery
+current.
+
+The corrected offline successor uses the official WW33 Image
+`54b8d9d2…17b33`, explicit board DTB `c37d9212…6954b`, and five exact
+`5.4.210-qgki-perf-gc89cd02a7dfe` modules extracted from the same WW33 vendor
+image. UFS, DWC3 NCM/ACM, VFAT, PMIC-GLINK, and the battery-charger driver are
+built into that kernel. It resolves only the backed-up slot-B modem partition
+by `PARTNAME=modem_b`, start sector `1704888`, size `450560` sectors, and VFAT
+UUID `00BC-614E`; mounts it read-only with `nodev,nosuid,noexec`; verifies the
+mount; creates the stock `/firmware` link; and only then starts ADSP. It never
+discovers or mounts userdata. The 30-second SysRq rollback is armed before
+device enumeration, while NCM/ACM, key-only SSH, and five-second battery/USB
+telemetry remain available for diagnosis.
+
+Two clean payload builds completed in 2.205 and 2.189 seconds and are
+byte-identical. Their initramfs SHA-256 is
+`22bccf4d3a138cc09c1120d787a0a67a5079c6d7c78dd579468498077c58f639`.
+This is still offline evidence: no new candidate has been issued or booted.
+See the
+[official WW33 rescue checkpoint](../test-results/2026-08-17-official-ww33-charging-rescue-offline.md).
 
 No currently installed low-battery charging route is proven. A prior official
 WW33 stock-charging bundle transferred through stable recovery and entered its
 one-use claim, but the post-claim recovery response timed out and target
 execution remained unknown; it is consumed and cannot be retried. After
-battery recovery, any software successor must use the proven RAM-only
-recovery/kexec path, an explicit WW33 DTB, and a newly issued official coherent
-kernel/initramfs composition. Direct boot-v3 build-21 experiments are not the
-control. An inline USB-C power meter remains the independent physical
-discriminator. Do not discover charging behavior by flashing at low voltage.
+battery recovery or under the bounded charging-rescue lifecycle, any software
+successor must use the proven RAM-only recovery/kexec path, an explicit WW33
+DTB, and a newly issued coherent kernel/initramfs composition. Direct boot-v3
+build-21 experiments are not the control. An inline USB-C power meter remains
+the independent physical discriminator.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
-to solve charging. Do not erase, format, repartition, or consume a temporary-
-boot claim while the battery gate is closed.
+to solve charging. Do not erase, format, or repartition while the battery gate
+is closed. A separately verified, one-use, RAM-only charging-rescue cycle may
+run to recover the battery; it does not authorize Stage 1.
 
 ## Return to Stage 1
 

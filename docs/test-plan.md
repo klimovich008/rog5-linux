@@ -115,16 +115,17 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   free; and rejects eight map/state mutations. The
   [live result](../test-results/2026-07-27-persistent-layout-preflight-live.md)
   authorizes design work only and no phone write.
-- `test-alpine-charging-rescue-contract.sh` pins the recovered build-21
-  kernel, slot-A vendor ramdisk, applied ASUS DTB, Alpine ramdisk, and six
-  charger-module identities. It rejects storage discovery, `switch_root`,
-  desktop/Wi-Fi startup, wrong module order or vermagic, non-unique rescue
-  tokens, an arbitrary UDC, missing current/voltage telemetry, and loss of the
-  fixed 30-second diagnostic rollback. Private clean twins must remain
-  byte-identical. This is an offline payload contract, not evidence that build
-  #21 is a known-good direct-boot kernel; the consumed direct route is retired
-  after the 30-second PID-1 discriminator returned on the unchanged 67-second
-  boundary.
+- `test-alpine-charging-rescue-contract.sh` pins the coherent official WW33
+  kernel, applied ASUS DTB, Alpine ramdisk, vendor image, and five matching
+  ADSP/audio modules. The PMIC-GLINK battery driver is built into that exact
+  kernel. Together with `test-rog5-charging-firmware-resolution.sh`, it rejects
+  storage outside the exact backed-up `modem_b`, zero or duplicate partition
+  candidates, wrong slot/geometry/UUID, writable firmware mounting, ADSP
+  activation before firmware is available, `switch_root`, desktop/Wi-Fi
+  startup, wrong module order or vermagic, a non-unique slot/rescue token, an
+  arbitrary UDC, missing current/voltage telemetry, and loss of the fixed
+  30-second diagnostic rollback. Private clean twins must remain
+  byte-identical. This is an offline payload contract, not charging evidence.
 - `test-stage-persistent-arch-root.sh` fail-first tests the P1 root stager and
   canonical tree sealer. It rejects an absent arm, wrong archive identity,
   parent traversal, device nodes, embedded deployment credentials, Pacman
