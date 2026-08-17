@@ -29,6 +29,8 @@ REQUEST_MAX = 256
 HEADER_MAX = 1024
 TRANSFER_TIMEOUT_SECONDS = 195
 MAX_REJECTED_PEERS = 8
+TCP_CLOSE_STATE = 7
+DELIVERY_POLL_SECONDS = 0.01
 HASH_LENGTH = 64
 BUNDLE_MAX = 64
 MANIFEST_MAX = 4096
@@ -413,6 +415,34 @@ def send_all(
         offset += count
 
 
+def confirm_tcp_delivery(
+    connection: socket.socket, deadline: float
+) -> None:
+    """Wait until Linux reports that the response FIN was acknowledged."""
+    while True:
+        try:
+            socket_error = connection.getsockopt(
+                socket.SOL_SOCKET, socket.SO_ERROR
+            )
+            tcp_info = connection.getsockopt(
+                socket.IPPROTO_TCP, socket.TCP_INFO, 1
+            )
+        except OSError as error:
+            raise ServerRefusal(
+                "response delivery state is unavailable"
+            ) from error
+        if socket_error != 0:
+            raise ServerRefusal("response delivery ended with a socket error")
+        if len(tcp_info) != 1:
+            raise ServerRefusal("response delivery state is malformed")
+        if tcp_info[0] == TCP_CLOSE_STATE:
+            return
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ServerRefusal("response delivery was not acknowledged")
+        time.sleep(min(DELIVERY_POLL_SECONDS, remaining))
+
+
 def serve_connection(
     connection: socket.socket,
     prepared: PreparedBundle,
@@ -500,8 +530,9 @@ def serve_listener(
             )
             try:
                 connection.shutdown(socket.SHUT_WR)
-            except OSError:
-                pass
+            except OSError as error:
+                raise ServerRefusal("response half-close failed") from error
+            confirm_tcp_delivery(connection, deadline)
             return
 
 
