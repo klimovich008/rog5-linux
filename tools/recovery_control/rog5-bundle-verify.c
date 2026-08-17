@@ -139,7 +139,7 @@ static const char *trust_key_path =
 	"printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 " \
 	"ramoops.mem_size=0x400000 ramoops.record_size=0x100000 " \
 	"ramoops.console_size=0x300000 ramoops.pmsg_size=0 " \
-	"ramoops.ftrace_size=0 ramoops.dump_oops=1"
+	"ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.charging_rescue=1"
 static const struct profile_policy profile_policies[] = {
 	{
 		.name = "diagnostic-initramfs-v1",
@@ -459,9 +459,9 @@ static void parse_manifest(char *record, const char *expected_bundle,
 	     manifest->dtb_size != 839846 ||
 	     strcmp(manifest->dtb_sha256,
 		    "4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065") != 0 ||
-	     manifest->initramfs_size != 11125036 ||
+	     manifest->initramfs_size != 5875688 ||
 	     strcmp(manifest->initramfs_sha256,
-		    "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017") != 0))
+		    "22bccf4d3a138cc09c1120d787a0a67a5079c6d7c78dd579468498077c58f639") != 0))
 		fail("stock charging artifact identity mismatch");
 #endif
 }

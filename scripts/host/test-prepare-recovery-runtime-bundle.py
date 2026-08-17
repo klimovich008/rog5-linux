@@ -40,7 +40,7 @@ STOCK_CHARGING_COMMAND_LINE = (
     "printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 "
     "ramoops.mem_size=0x400000 ramoops.record_size=0x100000 "
     "ramoops.console_size=0x300000 ramoops.pmsg_size=0 "
-    "ramoops.ftrace_size=0 ramoops.dump_oops=1"
+    "ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.charging_rescue=1"
 )
 VERIFIER_SOURCE = REPO / "tools/recovery_control/rog5-bundle-verify.c"
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
