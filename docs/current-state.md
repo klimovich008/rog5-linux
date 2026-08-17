@@ -76,10 +76,13 @@ recomposed as a distinct direct header-v3 RAM-only image, removing the
 ASUS-5.4-to-ASUS-5.4 kexec boundary without returning to build #21. The first
 offline composition was rejected before claim or boot because it selected
 slot A for the matching `vendor_boot` but retained the kexec initramfs's
-slot-B assertion. Corrected v2 rewrites only those two equal-length slot
-contract strings, then proves the sealed initramfs and active-slot requirement
-both select A. Clean twins match at `902212c2…c6a6`; no claim or phone boot
-exists yet. See the
+slot-B assertion. V2 fixed that mismatch but was also rejected before issuance:
+its inherited SysRq rollback would reboot the known-bad active slot A. V3
+proves the sealed initramfs and active-slot requirement both select A and
+replaces only that rollback with a static AArch64
+`RESTART2("bootloader")` helper. A returned syscall stays fail-closed instead
+of falling through to a normal reboot. Clean twins match at
+`17380c1b…e8ae`; no claim or phone boot exists yet. See the
 [direct-entry offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md).
 The earlier stock charging candidate is separately consumed: its bundle
 transferred and its claim entered, but the post-claim recovery response timed
