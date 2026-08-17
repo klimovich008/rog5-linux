@@ -216,11 +216,14 @@ that token and the current rescue initramfs identity.
 No currently installed low-battery charging route is proven. A prior official
 WW33 stock-charging bundle transferred through stable recovery and entered its
 one-use claim, but the post-claim recovery response timed out and target
-execution remained unknown; it is consumed and cannot be retried. After
-battery recovery or under the bounded charging-rescue lifecycle, any software
-successor must use the proven RAM-only recovery/kexec path, an explicit WW33
-DTB, and a newly issued coherent kernel/initramfs composition. Direct boot-v3
-build-21 experiments are not the control. An inline USB-C power meter remains
+execution remained unknown; it is consumed and cannot be retried. The retained
+evidence now makes ASUS-5.4-to-ASUS-5.4 kexec the leading entry-path defect,
+so a distinct successor instead composes the corrected WW33 kernel/initramfs
+as one direct header-v3 `fastboot boot` image. It is not the retired direct
+build-21 experiment: the corrected payload retains exact modem/ADSP setup,
+diagnostics, and rollback. Clean twins and focused tests pass at the
+[offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md),
+but no live charging result exists yet. An inline USB-C power meter remains
 the independent physical discriminator.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition

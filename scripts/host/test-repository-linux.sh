@@ -277,6 +277,7 @@ shared_tests=(
 	scripts/device/test-storage-layout-stage2-runtime.sh
 	scripts/host/test-rog5-charging-firmware-resolution.sh
 	scripts/host/test-alpine-charging-rescue-contract.sh
+	scripts/host/test-build-direct-charging-rescue.sh
 	scripts/host/test-build-stock-charging-successor-initramfs.sh
 	scripts/device/test-load-stock-charging-recovery.sh
 	scripts/host/test-collect-storage-preflight-report.py
