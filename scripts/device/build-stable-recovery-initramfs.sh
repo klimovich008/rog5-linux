@@ -55,7 +55,7 @@ check_static_aarch64() {
 }
 
 for command in basename cpio cut dirname find grep gzip install mkdir \
-	mktemp mv od readelf rm sed sha256sum sort stat tar touch tr; do
+	mktemp mv od readelf rm sed sha256sum sort stat strings tar touch tr; do
 	command -v "$command" >/dev/null ||
 		fail "missing initramfs build command: $command"
 done
@@ -80,6 +80,13 @@ public_key_hex=$(od -An -tx1 -v "$public_key" | tr -d ' \n')
 check_static_aarch64 "$control"
 check_static_aarch64 "$fetcher"
 check_static_aarch64 "$verifier"
+for profile in network-root-v1 diagnostic-initramfs-v1 \
+	persistent-root-ro-v1 stock-charging-recovery-v1; do
+	strings "$fetcher" | grep -Fxq "$profile" ||
+		fail "bundle fetcher lacks supported profile: $profile"
+	strings "$verifier" | grep -Fxq "$profile" ||
+		fail "bundle verifier lacks supported profile: $profile"
+done
 
 if grep -Eq \
 	'sh[[:space:]]+-i|setsid[[:space:]]+sh|authorized_keys|ssh-keygen|/usr/sbin/sshd|udhcpc|rog5\.recovery_(cidr|gateway)' \

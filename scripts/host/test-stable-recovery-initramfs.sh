@@ -177,6 +177,36 @@ fi
 chmod 0600 "$test_tmp/ephemeral-public.raw"
 [[ $(stat -c %s "$test_tmp/ephemeral-public.raw") == 32 ]]
 
+cp "$test_tmp/rog5-bundle-fetch-a" "$test_tmp/stale-profile-fetcher"
+python3 -B - "$test_tmp/stale-profile-fetcher" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+current = b"stock-charging-recovery-v1"
+stale = b"stale-charging-recovery-v1"
+payload = path.read_bytes()
+if len(current) != len(stale) or payload.count(current) != 1:
+    raise SystemExit("FAIL cannot create one exact stale-profile fixture")
+path.write_bytes(payload.replace(current, stale))
+PY
+chmod 0755 "$test_tmp/stale-profile-fetcher"
+if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+	"$base" "$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/stale-profile-fetcher" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$kexec_apk" "$xz_apk" "$zstd_apk" \
+	"$test_tmp/ephemeral-public.raw" \
+	"$test_tmp/should-not-build-stale-profile.cpio.gz" \
+	>"$test_tmp/stale-profile.log" 2>&1
+then
+	fail 'stale-profile bundle fetcher passed the recovery builder'
+fi
+grep -Fqx \
+	'FAIL bundle fetcher lacks supported profile: stock-charging-recovery-v1' \
+	"$test_tmp/stale-profile.log"
+
 for suffix in a b; do
 	case $suffix in
 		a) build_locale=C; build_timezone=UTC ;;
