@@ -56,7 +56,7 @@ for ((index = 0; index < ${#args[@]}; index++)); do
 			done
 			if [[ -n $cmdline_overrides ]]; then
 				for override in $cmdline_overrides; do
-					[[ $override =~ ^[A-Za-z0-9._-]+=[^[:space:]]+$ ]]
+					[[ $override =~ ^[A-Za-z0-9._-]+(=[^[:space:]]+)?$ ]]
 					key=${override%%=*}
 					filtered=
 					for token in $current; do
