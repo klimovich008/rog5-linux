@@ -119,8 +119,12 @@ if "$builder" "$stage/bundle" "$stage/template.img" "$stage/a" \
 	echo 'FAIL builder replaced an existing output' >&2
 	exit 1
 fi
+case ${manifest_sha:0:1} in
+	0) wrong_manifest=1${manifest_sha:1} ;;
+	*) wrong_manifest=0${manifest_sha:1} ;;
+esac
 if "$builder" "$stage/bundle" "$stage/template.img" "$stage/c" \
-	"${manifest_sha%?}0" "$template_sha" >/dev/null 2>&1; then
+	"$wrong_manifest" "$template_sha" >/dev/null 2>&1; then
 	echo 'FAIL builder accepted a wrong manifest identity' >&2
 	exit 1
 fi
