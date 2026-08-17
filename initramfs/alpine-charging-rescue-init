@@ -3,8 +3,9 @@ set -eu
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
-expected_release=5.4.210-qgki-perf
+expected_release=5.4.210-qgki-perf-gc89cd02a7dfe
 expected_udc=a600000.dwc3
+expected_modem_uuid=00BC-614E
 rollback_seconds=30
 kmsg=/dev/kmsg
 
@@ -34,6 +35,8 @@ mkdir -p /run/sshd
 
 rescue_tokens=$(tr ' ' '\n' </proc/cmdline |
 	grep -Fxc 'rog5.charging_rescue=1' || true)
+slot_suffix_tokens=$(tr ' ' '\n' </proc/cmdline |
+	grep -Fxc 'androidboot.slot_suffix=_b' || true)
 (
 	sleep "$rollback_seconds"
 	log 'rollback deadline reached; rebooting to unchanged active slot'
@@ -43,28 +46,15 @@ rollback_pid=$!
 printf '%s\n' "$rollback_pid" >/run/rog5-charging-rescue-watchdog.pid
 log "rollback armed for ${rollback_seconds}s"
 [ "$rescue_tokens" -eq 1 ] || fail 'missing unique charging-rescue token'
+[ "$slot_suffix_tokens" -eq 1 ] || fail 'expected unique active slot-B suffix'
 [ "$(uname -r)" = "$expected_release" ] ||
 	fail "unexpected kernel release $(uname -r)"
+[ -r /libexec/rog5-charging-firmware.sh ] ||
+	fail 'missing charging firmware resolver'
+. /libexec/rog5-charging-firmware.sh
 
 echo /sbin/mdev >/proc/sys/kernel/hotplug
 mdev -s
-
-base_modules=/lib/modules/5.4-gki
-[ -d "$base_modules" ] || fail 'missing exact vendor module directory'
-[ -f "$base_modules/modules.load" ] || fail 'missing vendor modules.load'
-base_failures=/run/rog5-charging-rescue.base-module-failures
-: >"$base_failures"
-while IFS= read -r module; do
-	[ -n "$module" ] || continue
-	[ -f "$base_modules/$module" ] || fail "missing vendor module $module"
-	if modprobe "${module%.ko}" || insmod "$base_modules/$module"; then
-		continue
-	fi
-	printf '%s\n' "$module" >>"$base_failures"
-	log "base module unavailable: $module"
-done <"$base_modules/modules.load"
-mdev -s
-log 'matching vendor module closure loaded'
 
 usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 i=0
@@ -124,6 +114,42 @@ ssh-keygen -A
 /usr/sbin/sshd -E /var/log/sshd.log
 log 'RAM-only diagnostic transport ready; SSH 169.254.77.2/30'
 
+modem_device=
+i=0
+while [ "$i" -lt 100 ]; do
+	if modem_device=$(rog5_resolve_exact_partition /sys/class/block /dev modem_b 1704888 450560); then
+		break
+	fi
+	i=$((i + 1))
+	mdev -s
+	sleep 0.1
+done
+[ -n "$modem_device" ] && [ -b "$modem_device" ] ||
+	fail 'exact modem_b partition did not appear'
+[ "$(blkid -s TYPE -o value "$modem_device")" = vfat ] ||
+	fail 'modem_b is not the expected vfat filesystem'
+[ "$(blkid -s UUID -o value "$modem_device")" = "$expected_modem_uuid" ] ||
+	fail 'modem_b filesystem UUID mismatch'
+mkdir -p /vendor/firmware_mnt
+mount -t vfat -o ro,nodev,nosuid,noexec,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337 \
+	"$modem_device" /vendor/firmware_mnt ||
+	fail 'read-only modem_b firmware mount failed'
+mount_matches=$(awk -v source="$modem_device" '
+	$1 == source && $2 == "/vendor/firmware_mnt" && $3 == "vfat" {
+		n = split($4, option, ",")
+		for (i = 1; i <= n; i++) if (option[i] == "ro") ro = 1
+		if (ro) count++
+	}
+	END { print count + 0 }
+' /proc/mounts)
+[ "$mount_matches" -eq 1 ] || fail 'modem_b mount is not uniquely read-only'
+[ ! -e /firmware ] && [ ! -L /firmware ] ||
+	fail 'firmware path already exists'
+ln -s /vendor/firmware_mnt /firmware
+[ "$(readlink /firmware)" = /vendor/firmware_mnt ] ||
+	fail 'firmware link verification failed'
+log 'exact modem_b firmware mounted read-only'
+
 extra_modules=/lib/modules/$expected_release/extra
 load_extra() {
 	name=$1
@@ -147,7 +173,6 @@ done
 [ -e /sys/kernel/boot_adsp/boot ] || fail 'ADSP boot control did not appear'
 echo 1 >/sys/kernel/boot_adsp/boot
 sleep 2
-load_extra qti_battery_charger_main qti_battery_charger_main.ko
 mdev -s
 
 i=0
@@ -162,12 +187,16 @@ log 'battery power-supply ready'
 sample_battery() {
 	stamp=$(cut -d ' ' -f 1 </proc/uptime)
 	printf 'sample uptime=%s' "$stamp"
-	for property in present status health capacity voltage_now current_now temp; do
-		path=/sys/class/power_supply/battery/$property
-		if [ -r "$path" ]; then
-			value=$(tr -d '\r\n' <"$path")
-			printf ' %s=%s' "$property" "$value"
-		fi
+	for supply in battery usb dc wireless; do
+		[ -d "/sys/class/power_supply/$supply" ] || continue
+		for property in present online status health capacity voltage_now \
+			current_now current_max voltage_max temp usb_type; do
+			path=/sys/class/power_supply/$supply/$property
+			if [ -r "$path" ]; then
+				value=$(tr -d '\r\n' <"$path")
+				printf ' %s.%s=%s' "$supply" "$property" "$value"
+			fi
+		done
 	done
 	printf '\n'
 }

@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 init=$repo/initramfs/alpine-charging-rescue-init
+firmware_helper=$repo/initramfs/rog5-charging-firmware.sh
 builder=$repo/scripts/host/build-alpine-charging-rescue.sh
 
 fail() {
@@ -11,16 +12,24 @@ fail() {
 }
 
 sh -n "$init"
+[[ -f $firmware_helper ]] || fail 'charging firmware helper is missing'
+sh -n "$firmware_helper"
 bash -n "$builder"
 
 for required in \
-	'expected_release=5.4.210-qgki-perf' \
+	'expected_release=5.4.210-qgki-perf-gc89cd02a7dfe' \
 	'rollback_seconds=30' \
 	"grep -Fxc 'rog5.charging_rescue=1'" \
+	"grep -Fxc 'androidboot.slot_suffix=_b'" \
 	'echo b >/proc/sysrq-trigger' \
 	'mkdir -p /run/sshd' \
 	'expected_udc=a600000.dwc3' \
 	'ip addr add 169.254.77.2/30 dev usb0' \
+	'. /libexec/rog5-charging-firmware.sh' \
+	'rog5_resolve_exact_partition /sys/class/block /dev modem_b 1704888 450560' \
+	'expected_modem_uuid=00BC-614E' \
+	'mount -t vfat -o ro,nodev,nosuid,noexec,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337' \
+	'ln -s /vendor/firmware_mnt /firmware' \
 	'/sys/class/power_supply/battery' \
 	'current_now' \
 	'voltage_now'; do
@@ -41,10 +50,15 @@ first_mdev_line=$(grep -nF 'mdev -s' "$init" | head -n 1 | cut -d: -f1)
 
 diagnostic_line=$(grep -nF "log 'RAM-only diagnostic transport ready" "$init" |
 	cut -d: -f1)
+firmware_line=$(grep -nF 'log '\''exact modem_b firmware mounted read-only'\''' "$init" |
+	cut -d: -f1)
 charger_line=$(grep -nF 'load_extra q6_pdr_dlkm q6_pdr_dlkm.ko' "$init" |
 	cut -d: -f1)
 [[ -n $diagnostic_line && -n $charger_line && $diagnostic_line -lt $charger_line ]] ||
 	fail 'diagnostic transport is not ready before charger activation'
+[[ -n $firmware_line && $diagnostic_line -lt $firmware_line &&
+	$firmware_line -lt $charger_line ]] ||
+	fail 'exact modem firmware is not mounted between diagnostics and ADSP activation'
 
 for forbidden in \
 	'switch_root' \
@@ -60,19 +74,16 @@ expected_order='q6_pdr_dlkm
 q6_notifier_dlkm
 snd_event_dlkm
 apr_dlkm
-adsp_loader_dlkm
-qti_battery_charger_main'
+adsp_loader_dlkm'
 actual_order=$(sed -n 's/^load_extra \([^ ]*\) .*/\1/p' "$init")
 [[ $actual_order == "$expected_order" ]] || fail 'charger module order changed'
 
-grep -Fq 'modprobe "${module%.ko}" ||' "$init" ||
-	fail 'base module loading is not dependency-aware'
-grep -Fq 'base-module-failures' "$init" ||
-	fail 'base module failures are not retained for post-USB diagnosis'
+! grep -Fq 'load_extra qti_battery_charger_main' "$init" ||
+	fail 'built-in WW33 battery charger is incorrectly treated as a module'
 
 for identity in \
-	'6dff1ff234fab4fa37f30ad5862cd58b693c9f4441d9ed242acbe285d559c78f' \
-	'5e1512ed8d7fcc0279c5a0b8c7b0b23be0c843cc5479c596c128c5fdcd2bbc8d' \
+	'54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33' \
+	'c6dd3e4ab60f54a88cccf68f445d694449674ed4c91f777ed57fbdc0cce6befd' \
 	'64db1bf572e2fb8ac77a8a79ea283e81a57ff8a9a319f0cba68da18f6a8c9841' \
 	'c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b'; do
 	grep -Fq "$identity" "$builder" || fail "builder lacks exact identity $identity"
@@ -82,9 +93,11 @@ grep -Fq "file \"\$dtb\" | grep -q 'Device Tree Blob version 17'" "$builder" ||
 	fail 'builder lacks FDT v17 validation'
 grep -Fq "[[ ! -e \$output && ! -e \$output.tmp ]]" "$builder" ||
 	fail 'builder does not refuse output replacement'
-grep -Fq 'vermagic=5.4.210-qgki-perf SMP preempt mod_unload modversions aarch64' "$builder" ||
-	fail 'builder lacks exact module vermagic gate'
-grep -Fq 'ln -s 5.4-gki "$work/root/lib/modules/5.4.210-qgki-perf"' "$builder" ||
-	fail 'builder lacks the exact-release module dependency link'
+! grep -Fq 'vermagic=5.4.210-qgki-perf SMP preempt mod_unload modversions aarch64' "$builder" ||
+	fail 'builder still carries the retired build-21 module identity'
+grep -Fq 'vermagic=5.4.210-qgki-perf-gc89cd02a7dfe SMP preempt mod_unload modversions aarch64' "$builder" ||
+	fail 'builder lacks exact WW33 module vermagic gate'
+grep -Fq 'debugfs -R "dump /lib/modules/$name' "$builder" ||
+	fail 'builder does not extract exact WW33 vendor modules'
 
 echo 'PASS charging rescue is RAM-only, headless, bounded, exact-stack, and telemetry-capable'
