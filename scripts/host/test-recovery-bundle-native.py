@@ -52,7 +52,7 @@ STOCK_CHARGING_COMMAND_LINE = (
     "printk.always_kmsg_dump=Y ramoops.mem_address=0x9b800000 "
     "ramoops.mem_size=0x400000 ramoops.record_size=0x100000 "
     "ramoops.console_size=0x300000 ramoops.pmsg_size=0 "
-    "ramoops.ftrace_size=0 ramoops.dump_oops=1"
+    "ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.charging_rescue=1"
 )
 
 
@@ -839,19 +839,19 @@ class NativeBundleVerifierTest(unittest.TestCase):
 
         self.assertEqual(
             sha256(STOCK_CHARGING_COMMAND_LINE.encode("ascii")),
-            "a6d4b68d1eda751632f1b656a037b0bf232a184a5026f08e98292885d9e04a4a",
+            "7166b5fc6269864bffaea79e6862aa39b3eef31c0e17ab595b31e11c8260c71e",
         )
         self.assertEqual(
             sha256((STOCK_CHARGING_COMMAND_LINE + "\n").encode("ascii")),
-            "4721d4e80662df64e809d00a2fcecbd6d6450567663d7791db2a1015bc3526c6",
+            "479d963465806f4be6e000dbb61ee52a51a0eb36514da3973908f37b0c37d0aa",
         )
         source = SOURCE.read_text(encoding="ascii")
-        self.assertIn("manifest->initramfs_size != 11125036", source)
+        self.assertIn("manifest->initramfs_size != 5875688", source)
         self.assertIn("manifest->dtb_size != 839846", source)
         for identity in (
             "54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33",
             "4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065",
-            "cb895b26239fdb29d32ea771e2b52e56a75a1543c62aafc6f6debbb83e992017",
+            "22bccf4d3a138cc09c1120d787a0a67a5079c6d7c78dd579468498077c58f639",
         ):
             self.assertIn(identity, source)
 

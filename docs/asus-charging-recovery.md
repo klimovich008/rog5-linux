@@ -188,7 +188,7 @@ it does not prove that restoring the sequence will produce positive battery
 current.
 
 The corrected offline successor uses the official WW33 Image
-`54b8d9d2…17b33`, explicit board DTB `c37d9212…6954b`, and five exact
+`54b8d9d2…17b33`, the exact memory-fixed board DTB `4a62a4b8…78065`, and five exact
 `5.4.210-qgki-perf-gc89cd02a7dfe` modules extracted from the same WW33 vendor
 image. UFS, DWC3 NCM/ACM, VFAT, PMIC-GLINK, and the battery-charger driver are
 built into that kernel. It resolves only the backed-up slot-B modem partition
@@ -205,6 +205,13 @@ byte-identical. Their initramfs SHA-256 is
 This is still offline evidence: no new candidate has been issued or booted.
 See the
 [official WW33 rescue checkpoint](../test-results/2026-08-17-official-ww33-charging-rescue-offline.md).
+
+The first publication audit caught two stable-recovery integration defects
+before a phone boot: the builder still selected the bootloader-placeholder
+DTB whose `/memory` range is zero, and the exact stock profile omitted the
+initramfs-required `rog5.charging_rescue=1` token. The corrected builder pins
+the already-reviewed explicit memory geometry, while the fixed profile binds
+that token and the current rescue initramfs identity.
 
 No currently installed low-battery charging route is proven. A prior official
 WW33 stock-charging bundle transferred through stable recovery and entered its

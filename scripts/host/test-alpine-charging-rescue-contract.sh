@@ -5,6 +5,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 init=$repo/initramfs/alpine-charging-rescue-init
 firmware_helper=$repo/initramfs/rog5-charging-firmware.sh
 builder=$repo/scripts/host/build-alpine-charging-rescue.sh
+bundle_verifier=$repo/tools/recovery_control/rog5-bundle-verify.c
 
 fail() {
 	echo "FAIL $*" >&2
@@ -85,8 +86,16 @@ for identity in \
 	'54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33' \
 	'c6dd3e4ab60f54a88cccf68f445d694449674ed4c91f777ed57fbdc0cce6befd' \
 	'64db1bf572e2fb8ac77a8a79ea283e81a57ff8a9a319f0cba68da18f6a8c9841' \
-	'c37d9212ee56dc4ee9d14f4a66fd0e85f8532217d145c92e0fbe44323139654b'; do
+	'4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065'; do
 	grep -Fq "$identity" "$builder" || fail "builder lacks exact identity $identity"
+done
+
+for identity in \
+	'rog5.charging_rescue=1' \
+	'4a62a4b83ff8948667732e55d8f2e57e575e05e9d3a3aa64b3da1dc58fd78065' \
+	'22bccf4d3a138cc09c1120d787a0a67a5079c6d7c78dd579468498077c58f639'; do
+	grep -Fq "$identity" "$bundle_verifier" ||
+		fail "stable-recovery verifier lacks exact rescue identity $identity"
 done
 
 grep -Fq "file \"\$dtb\" | grep -q 'Device Tree Blob version 17'" "$builder" ||

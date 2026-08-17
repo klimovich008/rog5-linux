@@ -122,6 +122,14 @@ PROFILES.update(
             b"3e15b8a23b440d1e58bf05592df7d4e40fb8401d6c80c74ae47e7c93043233b5\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "official-ww33-charging-rescue-v2-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=official-ww33-charging-rescue-v2-live-v1\n"
+            b"candidate=official-ww33-charging-rescue-v2\n"
+            b"manifest_sha256="
+            b"0d3cca84453b17409fefbbda650f5a46836bb0d3b9e105b0581b37f9d7e2011f\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "charging-hybrid-asus-recovery-v2-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=charging-hybrid-asus-recovery-v2-live-v1\n"
