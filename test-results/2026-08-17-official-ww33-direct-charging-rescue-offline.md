@@ -13,7 +13,7 @@ This is not the retired direct-v5 probe. Direct-v5 replaced Android PID 1,
 disabled every fstab entry, and therefore skipped the modem/ADSP sequence that
 provides the charger service. The new composition uses the already-tested
 official-WW33 rescue initramfs and adds the unique command-line identity
-`rog5.charging_route=fastboot-direct-v2`.
+`rog5.charging_route=fastboot-direct-v3`.
 
 The first offline composition passed CI but was rejected before claim or phone
 contact: it required active slot A for the matching `vendor_boot_a`, while its
@@ -23,6 +23,15 @@ matching diagnostic text before recompression. The builder fails unless both
 source strings occur exactly once, both destination strings occur exactly
 once, no source string remains, and the uncompressed archive length is
 unchanged. The original slot-B kexec bundle is not modified.
+
+V2 was then rejected before issuance because its inherited
+`echo b >/proc/sysrq-trigger` rollback would normally boot the still-active,
+known-bad slot A. V3 removes that one direct-init line and embeds a freestanding
+static AArch64 helper that performs Linux `RESTART2("bootloader")`. The helper
+has no interpreter or dynamic segment. Success cannot return; any returned
+syscall exits with status 111 and the invoking `fail` path leaves PID 1 in its
+fail-closed loop rather than attempting a normal reboot. The existing
+host lifecycle restores slot B only after exact fastboot identity returns.
 
 ## Why direct entry is the next discriminator
 
@@ -59,17 +68,18 @@ after, and overlays, the vendor ramdisk. See the
 | rescue bundle manifest | `037a1fac2dde71b0a8a887612fcbd6bad5df59e998ab35f802137b9095b96630` |
 | official WW33 Image | `54b8d9d23ace1126bf1059f1ab483c027b50865695c7b305a15311e30a217b33` |
 | source rescue initramfs | `22bccf4d3a138cc09c1120d787a0a67a5079c6d7c78dd579468498077c58f639` |
-| slot-A direct initramfs | `bbd31b29fea2b7fbc252a0d32fc25959349061d315ce8e15dcbfa796b790e7d3` |
-| direct raw boot image | `ec94f3fd923f93e27c0a016711d341b60ea921a51649ff2ae70a3adfb6785fee` |
-| 100,663,296-byte direct AVB image | `902212c20873ff105123a8406d9bc0ce180a3f0461abb7eef6fcf6a168cec6a6` |
-| candidate record | `42bf129431d4ba471ae55c0d6f2fa4932d8bf347d18a29df103735c12c43640b` |
+| slot-A direct initramfs | `69ed47cec0bf58268fea04382ab1f68d6bf0363d5d9b70b21f8949ac78ed893f` |
+| restart2 helper | `68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785` |
+| direct raw boot image | `785cc50f52ec9efd9d6d4376772db3bcf96a8ddb2295669414b54b7b79b33443` |
+| 100,663,296-byte direct AVB image | `17380c1b362e1f41f2c9c9a231d976ad58f8d09cfaad50a39f7f5205ad94e8ae` |
+| candidate record | `4f1535bca3722551214abd952ae2b23020ead2b3bcf37080167b8519df9d7f11` |
 
-The two corrected production builds completed in 3.333 and 2.862 seconds and
-were byte-identical. The focused deterministic/hostile test completed in 2.260
+The two corrected production builds completed in 3.858 and 4.069 seconds and
+were byte-identical. The focused deterministic/hostile test completed in 3.058
 seconds. It proves header-v3 composition, exact kernel retention, deterministic
-slot-patched ramdisk composition, bare kernel-flag support, safe collapse of
-byte-identical duplicate keys, the one direct-route token, end-to-end slot-A
-binding, refusal of an existing
+slot-patched ramdisk composition, the static AArch64 bootloader rollback,
+bare kernel-flag support, safe collapse of byte-identical duplicate keys, the
+one direct-route token, end-to-end slot-A binding, refusal of an existing
 output, and refusal of a wrong manifest identity.
 
 ## Remaining live gate

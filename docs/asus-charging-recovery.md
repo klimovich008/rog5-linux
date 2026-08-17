@@ -222,10 +222,13 @@ so a distinct successor instead composes the corrected WW33 kernel/initramfs
 as one direct header-v3 `fastboot boot` image. It is not the retired direct
 build-21 experiment: the corrected payload retains exact modem/ADSP setup,
 diagnostics, and rollback. Direct v1 was rejected before issuance because its
-slot-A wrapper retained the kexec payload's slot-B assertion. V2 changes only
-the two equal-length slot-contract strings inside the direct initramfs and
-proves the resulting wrapper, initramfs, and active `vendor_boot` all require
-slot A. Clean twins and focused tests pass at the
+slot-A wrapper retained the kexec payload's slot-B assertion. V2 fixed that
+mismatch but was rejected before issuance because the inherited SysRq rollback
+would normally reboot the still-active slot A. V3 proves the wrapper,
+initramfs, and active `vendor_boot` all require slot A, then uses a static
+AArch64 `RESTART2("bootloader")` helper for rollback. If the syscall returns,
+PID 1 remains in its fail-closed loop; no normal slot-A reboot follows. Clean
+twins and focused tests pass at the
 [offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md),
 but no live charging result exists yet. An inline USB-C power meter remains
 the independent physical discriminator.

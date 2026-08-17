@@ -20,8 +20,9 @@ tools=$repo/artifacts/android-boot-tools-v1
 unpack=$tools/unpack_bootimg.py
 avbtool=$tools/avbtool.py
 repack=$repo/scripts/device/repack-android-boot-v3.sh
+reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
 partition_size=100663296
-route_token=rog5.charging_route=fastboot-direct-v2
+route_token=rog5.charging_route=fastboot-direct-v3
 
 [[ $expected_manifest =~ ^[0-9a-f]{64}$ ]] ||
 	fail 'expected manifest SHA-256 is invalid'
@@ -34,8 +35,11 @@ route_token=rog5.charging_route=fastboot-direct-v2
 output_parent=$(dirname -- "$output")
 [[ -d $output_parent && ! -L $output_parent ]] || fail 'output parent is absent'
 
-for input in "$unpack" "$avbtool" "$repack"; do
+for input in "$unpack" "$avbtool" "$repack" "$reboot_source"; do
 	[[ -f $input && ! -L $input ]] || fail "missing build input: $input"
+done
+for command in clang cpio file find gzip head install readelf sed sort stat touch; do
+	command -v "$command" >/dev/null || fail "missing build command: $command"
 done
 [[ $(stat -c %s "$template") == "$partition_size" ]] ||
 	fail 'template is not one exact boot-partition image'
@@ -104,33 +108,70 @@ cleanup() {
 	fi
 }
 trap cleanup EXIT HUP INT TERM
-mkdir "$work/template-inspection" "$work/output-inspection"
+mkdir "$work/template-inspection" "$work/output-inspection" "$work/root"
 
 gzip -dc "$bundle/initramfs.cpio.gz" >"$work/source-initramfs.cpio"
 [[ $(head -c 6 "$work/source-initramfs.cpio") == 070701 ]] ||
 	fail 'source initramfs is not one newc archive'
-[[ $(grep -aoF 'androidboot.slot_suffix=_b' "$work/source-initramfs.cpio" |
-	wc -l) -eq 1 ]] || fail 'source initramfs lacks one slot-B token'
-[[ $(grep -aoF 'active slot-B suffix' "$work/source-initramfs.cpio" |
-	wc -l) -eq 1 ]] || fail 'source initramfs lacks one slot-B diagnostic'
+(
+	cd "$work/root"
+	cpio -idm --quiet --no-absolute-filenames <"$work/source-initramfs.cpio"
+)
+[[ -f $work/root/init && ! -L $work/root/init ]] ||
+	fail 'source initramfs lacks one regular init'
+[[ ! -e $work/root/sbin/rog5-reboot-bootloader &&
+	! -L $work/root/sbin/rog5-reboot-bootloader ]] ||
+	fail 'source initramfs already contains the direct reboot helper'
+slot_b_pipeline=$'\t'"grep -Fxc 'androidboot.slot_suffix=_b' || true)"
+slot_a_pipeline=$'\t'"grep -Fxc 'androidboot.slot_suffix=_a' || true)"
+[[ $(grep -Fxc "slot_suffix_tokens=\$(tr ' ' '\\n' </proc/cmdline |" \
+	"$work/root/init") -eq 1 ||
+	$(grep -Fxc "slot_suffix_tokens=\$(grep -Fxc 'androidboot.slot_suffix=_b' /proc/cmdline || true)" \
+	"$work/root/init") -eq 1 ]] || fail 'source init slot parser is unknown'
+[[ $(grep -Fxc "$slot_b_pipeline" \
+	"$work/root/init") -eq 1 ||
+	$(grep -Fxc "slot_suffix_tokens=\$(grep -Fxc 'androidboot.slot_suffix=_b' /proc/cmdline || true)" \
+	"$work/root/init") -eq 1 ]] || fail 'source initramfs lacks one slot-B token'
+[[ $(grep -Fxc "[ \"\$slot_suffix_tokens\" -eq 1 ] || fail 'expected unique active slot-B suffix'" \
+	"$work/root/init") -eq 1 ]] || fail 'source initramfs lacks one slot-B diagnostic'
+[[ $(grep -Fxc $'\techo b >/proc/sysrq-trigger' "$work/root/init") -eq 1 ]] ||
+	fail 'source initramfs lacks one SysRq rollback'
 LC_ALL=C sed \
 	-e 's/androidboot\.slot_suffix=_b/androidboot.slot_suffix=_a/g' \
 	-e 's/active slot-B suffix/active slot-A suffix/g' \
-	"$work/source-initramfs.cpio" >"$work/direct-initramfs.cpio"
-[[ $(stat -c %s "$work/direct-initramfs.cpio") == \
-	$(stat -c %s "$work/source-initramfs.cpio") ]] ||
-	fail 'slot-contract rewrite changed initramfs length'
-! cmp -s "$work/source-initramfs.cpio" "$work/direct-initramfs.cpio" ||
-	fail 'slot-contract rewrite made no change'
-[[ $(grep -aoF 'androidboot.slot_suffix=_a' "$work/direct-initramfs.cpio" |
-	wc -l) -eq 1 ]] || fail 'direct initramfs lacks one slot-A token'
-[[ $(grep -aoF 'active slot-A suffix' "$work/direct-initramfs.cpio" |
-	wc -l) -eq 1 ]] || fail 'direct initramfs lacks one slot-A diagnostic'
-! grep -aqF 'androidboot.slot_suffix=_b' "$work/direct-initramfs.cpio" ||
+	-e 's#\techo b >/proc/sysrq-trigger#\t/sbin/rog5-reboot-bootloader || fail '\''bootloader restart2 returned'\''#' \
+	"$work/root/init" >"$work/direct-init"
+install -m 0755 "$work/direct-init" "$work/root/init"
+clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static -fno-builtin \
+	-Wall -Wextra -Werror -fno-pic -fno-pie -fno-stack-protector -Wl,-e,_start \
+	-Wl,--build-id=none -Wl,-z,noexecstack \
+	-o "$work/root/sbin/rog5-reboot-bootloader" "$reboot_source"
+[[ $(grep -Fxc "$slot_a_pipeline" \
+	"$work/root/init") -eq 1 ||
+	$(grep -Fxc "slot_suffix_tokens=\$(grep -Fxc 'androidboot.slot_suffix=_a' /proc/cmdline || true)" \
+	"$work/root/init") -eq 1 ]] || fail 'direct initramfs lacks one slot-A token'
+[[ $(grep -Fxc "[ \"\$slot_suffix_tokens\" -eq 1 ] || fail 'expected unique active slot-A suffix'" \
+	"$work/root/init") -eq 1 ]] || fail 'direct initramfs lacks one slot-A diagnostic'
+[[ $(grep -Fxc $'\t/sbin/rog5-reboot-bootloader || fail '\''bootloader restart2 returned'\''' \
+	"$work/root/init") -eq 1 ]] || fail 'direct init lacks one bootloader rollback'
+! grep -Fq 'androidboot.slot_suffix=_b' "$work/root/init" ||
 	fail 'direct initramfs retains slot-B token'
-! grep -aqF 'active slot-B suffix' "$work/direct-initramfs.cpio" ||
+! grep -Fq 'active slot-B suffix' "$work/root/init" ||
 	fail 'direct initramfs retains slot-B diagnostic'
-gzip -n <"$work/direct-initramfs.cpio" >"$work/direct-initramfs.cpio.gz"
+! grep -Fq 'echo b >/proc/sysrq-trigger' "$work/root/init" ||
+	fail 'direct initramfs retains unsafe slot-A SysRq rollback'
+readelf -h "$work/root/sbin/rog5-reboot-bootloader" |
+	grep -Fq 'Machine:                           AArch64' ||
+	fail 'reboot helper is not AArch64'
+! readelf -l "$work/root/sbin/rog5-reboot-bootloader" |
+	grep -Eq 'INTERP|DYNAMIC' || fail 'reboot helper is dynamically linked'
+find "$work/root" -exec touch -h -d '@0' {} +
+(
+	cd "$work/root"
+	LC_ALL=C find . -print0 | LC_ALL=C sort -z |
+		cpio --null -o --quiet --format=newc --owner=0:0 --reproducible |
+		gzip -n >"$work/direct-initramfs.cpio.gz"
+)
 gzip -t "$work/direct-initramfs.cpio.gz"
 
 python3 "$unpack" --boot_img "$template" --out "$work/template-inspection/unpacked" \
@@ -175,15 +216,18 @@ boot_sha=$(sha256sum "$publish/boot.img" | awk '{print $1}')
 image_sha=$(sha256sum "$bundle/Image" | awk '{print $1}')
 source_ramdisk_sha=$(sha256sum "$bundle/initramfs.cpio.gz" | awk '{print $1}')
 ramdisk_sha=$(sha256sum "$work/direct-initramfs.cpio.gz" | awk '{print $1}')
+reboot_helper_sha=$(sha256sum "$work/root/sbin/rog5-reboot-bootloader" |
+	awk '{print $1}')
 dtb_sha=$(sha256sum "$bundle/board.dtb" | awk '{print $1}')
 cmdline_sha=$(printf '%s\n' "$direct_cmdline" | sha256sum | awk '{print $1}')
 {
 	printf '%s\n' \
-		'format=rog5-direct-charging-rescue-v2' \
-		'candidate=official-ww33-charging-direct-v2' \
+		'format=rog5-direct-charging-rescue-v3' \
+		'candidate=official-ww33-charging-direct-v3' \
 		'operation=fastboot-boot-only' \
 		'required_slot=a' \
 		'initramfs_slot_contract=a' \
+		'rollback_target=bootloader' \
 		'persistent_phone_writes=none-requested' \
 		'rollback_seconds=30' \
 		"bundle_manifest_sha256=$expected_manifest" \
@@ -191,6 +235,7 @@ cmdline_sha=$(printf '%s\n' "$direct_cmdline" | sha256sum | awk '{print $1}')
 		"image_sha256=$image_sha" \
 		"source_initramfs_sha256=$source_ramdisk_sha" \
 		"initramfs_sha256=$ramdisk_sha" \
+		"reboot_helper_sha256=$reboot_helper_sha" \
 		"kexec_dtb_reference_sha256=$dtb_sha" \
 		"cmdline_sha256=$cmdline_sha" \
 		"raw_image_sha256=$raw_sha" \
