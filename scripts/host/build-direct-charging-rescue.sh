@@ -21,7 +21,7 @@ unpack=$tools/unpack_bootimg.py
 avbtool=$tools/avbtool.py
 repack=$repo/scripts/device/repack-android-boot-v3.sh
 partition_size=100663296
-route_token=rog5.charging_route=fastboot-direct-v1
+route_token=rog5.charging_route=fastboot-direct-v2
 
 [[ $expected_manifest =~ ^[0-9a-f]{64}$ ]] ||
 	fail 'expected manifest SHA-256 is invalid'
@@ -106,6 +106,33 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 mkdir "$work/template-inspection" "$work/output-inspection"
 
+gzip -dc "$bundle/initramfs.cpio.gz" >"$work/source-initramfs.cpio"
+[[ $(head -c 6 "$work/source-initramfs.cpio") == 070701 ]] ||
+	fail 'source initramfs is not one newc archive'
+[[ $(grep -aoF 'androidboot.slot_suffix=_b' "$work/source-initramfs.cpio" |
+	wc -l) -eq 1 ]] || fail 'source initramfs lacks one slot-B token'
+[[ $(grep -aoF 'active slot-B suffix' "$work/source-initramfs.cpio" |
+	wc -l) -eq 1 ]] || fail 'source initramfs lacks one slot-B diagnostic'
+LC_ALL=C sed \
+	-e 's/androidboot\.slot_suffix=_b/androidboot.slot_suffix=_a/g' \
+	-e 's/active slot-B suffix/active slot-A suffix/g' \
+	"$work/source-initramfs.cpio" >"$work/direct-initramfs.cpio"
+[[ $(stat -c %s "$work/direct-initramfs.cpio") == \
+	$(stat -c %s "$work/source-initramfs.cpio") ]] ||
+	fail 'slot-contract rewrite changed initramfs length'
+! cmp -s "$work/source-initramfs.cpio" "$work/direct-initramfs.cpio" ||
+	fail 'slot-contract rewrite made no change'
+[[ $(grep -aoF 'androidboot.slot_suffix=_a' "$work/direct-initramfs.cpio" |
+	wc -l) -eq 1 ]] || fail 'direct initramfs lacks one slot-A token'
+[[ $(grep -aoF 'active slot-A suffix' "$work/direct-initramfs.cpio" |
+	wc -l) -eq 1 ]] || fail 'direct initramfs lacks one slot-A diagnostic'
+! grep -aqF 'androidboot.slot_suffix=_b' "$work/direct-initramfs.cpio" ||
+	fail 'direct initramfs retains slot-B token'
+! grep -aqF 'active slot-B suffix' "$work/direct-initramfs.cpio" ||
+	fail 'direct initramfs retains slot-B diagnostic'
+gzip -n <"$work/direct-initramfs.cpio" >"$work/direct-initramfs.cpio.gz"
+gzip -t "$work/direct-initramfs.cpio.gz"
+
 python3 "$unpack" --boot_img "$template" --out "$work/template-inspection/unpacked" \
 	--format=mkbootimg --null >"$work/template-inspection/args.nul"
 tr '\000' '\n' <"$work/template-inspection/args.nul" >"$work/template-inspection/args.lines"
@@ -116,7 +143,7 @@ template_cmdline=$(awk '$0 == "--cmdline" {getline; print; exit}' \
 "$repack" \
 	"$template" \
 	"$bundle/Image" \
-	"$bundle/initramfs.cpio.gz" \
+	"$work/direct-initramfs.cpio.gz" \
 	"$tools" \
 	"$avbtool" \
 	"$work/boot.raw.img" \
@@ -128,7 +155,7 @@ python3 "$unpack" --boot_img "$work/boot.img" \
 	--out "$work/output-inspection/unpacked" >"$work/output-inspection/info.txt"
 grep -Fqx 'boot image header version: 3' "$work/output-inspection/info.txt"
 cmp "$work/output-inspection/unpacked/kernel" "$bundle/Image"
-cmp "$work/output-inspection/unpacked/ramdisk" "$bundle/initramfs.cpio.gz"
+cmp "$work/output-inspection/unpacked/ramdisk" "$work/direct-initramfs.cpio.gz"
 python3 "$unpack" --boot_img "$work/boot.img" \
 	--out "$work/output-inspection/args" --format=mkbootimg --null \
 	>"$work/output-inspection/args.nul"
@@ -146,20 +173,23 @@ install -m 0644 "$work/boot.img" "$publish/boot.img"
 raw_sha=$(sha256sum "$publish/boot.raw.img" | awk '{print $1}')
 boot_sha=$(sha256sum "$publish/boot.img" | awk '{print $1}')
 image_sha=$(sha256sum "$bundle/Image" | awk '{print $1}')
-ramdisk_sha=$(sha256sum "$bundle/initramfs.cpio.gz" | awk '{print $1}')
+source_ramdisk_sha=$(sha256sum "$bundle/initramfs.cpio.gz" | awk '{print $1}')
+ramdisk_sha=$(sha256sum "$work/direct-initramfs.cpio.gz" | awk '{print $1}')
 dtb_sha=$(sha256sum "$bundle/board.dtb" | awk '{print $1}')
 cmdline_sha=$(printf '%s\n' "$direct_cmdline" | sha256sum | awk '{print $1}')
 {
 	printf '%s\n' \
-		'format=rog5-direct-charging-rescue-v1' \
-		'candidate=official-ww33-charging-direct-v1' \
+		'format=rog5-direct-charging-rescue-v2' \
+		'candidate=official-ww33-charging-direct-v2' \
 		'operation=fastboot-boot-only' \
 		'required_slot=a' \
+		'initramfs_slot_contract=a' \
 		'persistent_phone_writes=none-requested' \
 		'rollback_seconds=30' \
 		"bundle_manifest_sha256=$expected_manifest" \
 		"template_sha256=$expected_template" \
 		"image_sha256=$image_sha" \
+		"source_initramfs_sha256=$source_ramdisk_sha" \
 		"initramfs_sha256=$ramdisk_sha" \
 		"kexec_dtb_reference_sha256=$dtb_sha" \
 		"cmdline_sha256=$cmdline_sha" \

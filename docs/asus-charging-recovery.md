@@ -221,7 +221,11 @@ evidence now makes ASUS-5.4-to-ASUS-5.4 kexec the leading entry-path defect,
 so a distinct successor instead composes the corrected WW33 kernel/initramfs
 as one direct header-v3 `fastboot boot` image. It is not the retired direct
 build-21 experiment: the corrected payload retains exact modem/ADSP setup,
-diagnostics, and rollback. Clean twins and focused tests pass at the
+diagnostics, and rollback. Direct v1 was rejected before issuance because its
+slot-A wrapper retained the kexec payload's slot-B assertion. V2 changes only
+the two equal-length slot-contract strings inside the direct initramfs and
+proves the resulting wrapper, initramfs, and active `vendor_boot` all require
+slot A. Clean twins and focused tests pass at the
 [offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md),
 but no live charging result exists yet. An inline USB-C power meter remains
 the independent physical discriminator.
