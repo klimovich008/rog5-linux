@@ -73,8 +73,13 @@ strongly indicates PID 1 never reached the arm point. Build #21 has no built-in
 initramfs, while the proven 5.4.210 recovery wrappers do; direct build-21
 fastboot packaging is retired. The coherent WW33 charging payload has now been
 recomposed as a distinct direct header-v3 RAM-only image, removing the
-ASUS-5.4-to-ASUS-5.4 kexec boundary without returning to build #21. Clean
-twins match at `d9584575…b7b6`; no claim or phone boot exists yet. See the
+ASUS-5.4-to-ASUS-5.4 kexec boundary without returning to build #21. The first
+offline composition was rejected before claim or boot because it selected
+slot A for the matching `vendor_boot` but retained the kexec initramfs's
+slot-B assertion. Corrected v2 rewrites only those two equal-length slot
+contract strings, then proves the sealed initramfs and active-slot requirement
+both select A. Clean twins match at `902212c2…c6a6`; no claim or phone boot
+exists yet. See the
 [direct-entry offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md).
 The earlier stock charging candidate is separately consumed: its bundle
 transferred and its claim entered, but the post-claim recovery response timed
