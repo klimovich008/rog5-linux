@@ -82,11 +82,31 @@ proves the sealed initramfs and active-slot requirement both select A and
 replaces only that rollback with a static AArch64
 `RESTART2("bootloader")` helper. A returned syscall stays fail-closed instead
 of falling through to a normal reboot. Clean twins match at
-`17380c1b…e8ae`; no claim or phone boot exists yet. See the
+`17380c1b…e8ae`. Its sole live cycle was consumed: ABL accepted it, no target
+USB or 30-second userspace rollback appeared, and Qualcomm `05c6:900e`
+full-RAM-dump mode enumerated about 115 seconds later. Slot B was restored
+after physical fastboot recovery. The image must never be retried. See the
 [direct-entry offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md).
 The earlier stock charging candidate is separately consumed: its bundle
 transferred and its claim entered, but the post-claim recovery response timed
 out and target execution remained unknown, so it cannot be reused.
+
+The exact WW `18.0840.2202.231` slot-B stock boot has since been recovered and
+authenticated against installed ASUS-signed `vbmeta_b`. Its signed payload,
+header-v3 metadata, empty image command line, 5.4.134 kernel, fingerprint, and
+February 2022 patch all match the already coherent slot-B `vendor_boot`, DTBO,
+and vbmeta lineage. Its sole RAM-only boot was consumed once from slot B at
+6.886 V. Exact fastboot returned about 19 seconds later at 6.885 V with
+`battery-soc-ok: no`; no charger USB, ADB, or crashdump appeared. A bounded
+fallback postmortem found empty pstore and two `PS_HOLD`/`HARD_RESET` cycles
+whose ordering is ambiguous. This closes the simple temporary stock path and
+freezes further wrapper work. See the
+[exact stock live result](../test-results/2026-08-17-stock-slotb-charger-live.md).
+
+The normal powered-off architecture now requires persistently restoring that
+exact image to `boot_b`, after separately preserving a verified recovery route.
+The current hard boundary forbids that write while `battery-soc-ok: no`, so
+Stage 1 and all additional phone-storage work remain paused.
 
 Two bounded RAM-only vendor-kernel charging probes returned directly to exact
 fastboot without storage access. The consumed 30-second probe changed the

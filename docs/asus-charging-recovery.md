@@ -28,6 +28,39 @@ installed slot-A companion firmware and recovery chain are complete or
 charging-capable. `off-mode-charge: 1` and `charger-screen-enabled: 1` also do
 not prove that the current installed operating systems can charge the pack.
 
+## 2026-08-17 exact stock slot-B result
+
+The matching stock route is now characterized without flashing. The installed
+slot-B `vendor_boot`, DTBO, `vbmeta`, and `vbmeta_system` all identify WW
+`18.0840.2202.231`; the first two reproduce the descriptors in the validly
+signed `vbmeta_b`. The persistent `boot_b` is the Alpine replacement and does
+not match the signed stock-boot descriptor.
+
+The removed official FullOTA was recovered from a public archive, but mirror
+provenance was not trusted. Its 100,663,296-byte `boot-231.img` was accepted
+only after its 55,554,048-byte payload reproduced the installed ASUS-signed
+salt/digest exactly. The image has SHA-256
+`3bd168d7959fcf8070b0b1e9029e635b796c3972ed913514fb64f151247699f1`,
+boot header v3, an empty image command line, stock
+`5.4.134-qgki-perf-00001-g6c308144c23e`, and the exact WW fingerprint and
+February 2022 patch.
+
+Its sole RAM-only slot-B `fastboot boot` was consumed once. ABL accepted it at
+6.886 V, exact fastboot disappeared, and exact fastboot returned about
+19 seconds later at 6.885 V with `battery-soc-ok: no`. No charger-mode USB,
+ADB, or Qualcomm crashdump appeared. A bounded fallback postmortem found empty
+pstore, two completed `PS_HOLD`/`HARD_RESET` cycles with ambiguous ordering,
+and no watchdog token. This disproves the simple temporary stock route; the
+candidate must never be retried or flashed. See the
+[exact stock live result](../test-results/2026-08-17-stock-slotb-charger-live.md).
+
+The normal powered-off architecture would persistently restore the exact
+stock image to `boot_b` and let the bootloader hand off to the already matching
+slot-B companions. That write is not authorized by the current low-battery
+hard boundary and would replace the persistent Alpine fallback. Do not perform
+it without a separately reviewed recovery plan and an explicit boundary
+change. Do not replace it with another hybrid or guessed charging wrapper.
+
 ## Recover crashdump to fastboot
 
 If the phone displays the full-RAM-dump wait screen:
@@ -228,10 +261,13 @@ would normally reboot the still-active slot A. V3 proves the wrapper,
 initramfs, and active `vendor_boot` all require slot A, then uses a static
 AArch64 `RESTART2("bootloader")` helper for rollback. If the syscall returns,
 PID 1 remains in its fail-closed loop; no normal slot-A reboot follows. Clean
-twins and focused tests pass at the
+twins and focused tests passed at the
 [offline checkpoint](../test-results/2026-08-17-official-ww33-direct-charging-rescue-offline.md),
-but no live charging result exists yet. An inline USB-C power meter remains
-the independent physical discriminator.
+but the sole live cycle never reached that helper or target USB and entered
+Qualcomm `05c6:900e` full-RAM-dump mode about 115 seconds after ABL accepted
+it. It is consumed and must never be retried. The subsequent exact stock
+slot-B test above also failed to remain in charger mode, so additional wrapper
+development is frozen.
 
 Do not flash `boot_a`, `boot_b`, `vendor_boot`, `misc`, or any other partition
 to solve charging. Do not erase, format, or repartition while the battery gate

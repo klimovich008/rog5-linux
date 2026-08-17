@@ -82,15 +82,18 @@ bare kernel-flag support, safe collapse of byte-identical duplicate keys, the
 one direct-route token, end-to-end slot-A binding, refusal of an existing
 output, and refusal of a wrong manifest identity.
 
-## Remaining live gate
+## Live disposition
 
-Publish this source checkpoint and require successful exact-head CI before
-creating the private one-use claim. Then transition the exact Alpine fallback
-to fastboot once, read `battery-voltage` and `battery-soc-ok`, set active slot
-A only for this candidate, and boot the exact direct image once. A successful
-cycle must produce target telemetry and return through the 30-second rollback.
-Positive charging requires measured rising pack voltage; a visible icon or
-stable voltage alone is insufficient.
+The exact-head checkpoint was subsequently issued once and is consumed. ABL
+accepted the image at 6.893 V with slot A active. Fastboot departed, but no
+target USB or 30-second userspace rollback appeared. About 115 seconds after
+boot acceptance, the anchored port enumerated Qualcomm `05c6:900e`
+full-RAM-dump mode. Physical fastboot recovery restored slot B at 6.888 V;
+`battery-soc-ok` remained `no`.
 
-Stage-1 storage work remains paused until fastboot reports
-`battery-soc-ok: yes`.
+This rejects the direct slot-A composition and proves that PID 1 did not reach
+the embedded rollback helper. It does not identify the earlier kernel or
+firmware failure. The image and claim must never be retried or flashed.
+Subsequent work switched to the exact stock slot-B lineage and is recorded in
+the [stock live result](2026-08-17-stock-slotb-charger-live.md). Stage 1 remains
+paused until fastboot reports `battery-soc-ok: yes`.
