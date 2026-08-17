@@ -41,14 +41,14 @@ Stage 1 is paused after fastboot reported a deeply discharged pack and
 ASUS/Qualcomm charging stack and must not be used as the low-battery/off-mode
 charging environment. The slot-A recovery attempt entered `05c6:900e`
 Qualcomm crashdump and must not be repeated. Active-slot metadata is restored
-to B, but Alpine has not been booted. No partition payload, GPT, or `userdata`
-mutation occurred, and the Stage-1 claim remains unconsumed. Follow the
+to B. No partition payload, GPT, or `userdata` mutation occurred, and the
+Stage-1 claim remains unconsumed. Follow the
 [low-battery recovery hold](asus-charging-recovery.md); return to the
 slot-B-bound Stage-1 lifecycle only after exact fastboot identity, substantial
 voltage recovery, and `battery-soc-ok: yes` are all proven through an
 independently accepted charging route.
 
-Four one-use charging candidates are consumed and never reusable. The first
+Additional one-use charging candidates are consumed and never reusable. The first
 two voltage-only probes were inconclusive, and the following fastboot soak
 fell from 6.931 V to 6.925 V over 30 minutes. The output-only telemetry cycle
 then produced 35 complete frames, all with zero power-supply devices, while
@@ -56,10 +56,21 @@ Type-C reached `Attached.SNK`. The built-in downstream battery driver is
 waiting on `PMIC_RTR_ADSP_APPS` / `msm/adsp/charger_pd`, not a missing module.
 The bounded hybrid slot-B-kernel/ASUS-recovery cycle returned to exact fastboot
 after about eight seconds without ADB or crashdump; its predecessor was
-canceled before claim entry. The current action is a physical side-data-cable
-disconnect with only the bottom ASUS wall charger attached, followed by exact
-fastboot voltage and `battery-soc-ok` proof after side USB is reconnected. The
-host hub's logical port-power control did not electrically remove side VBUS.
+canceled before claim entry. Physical side-port isolation later failed to
+produce a rising voltage trend.
+
+The slot-A direct WW33 successor was consumed after ABL accepted it: no target
+USB or userspace rollback appeared, then Qualcomm full-RAM-dump mode
+enumerated about 115 seconds later. The exact stock slot-B boot was then
+recovered and authenticated against signed `vbmeta_b`; its sole RAM-only boot
+returned to exact fastboot after about 19 seconds, moving only 6.886 V to
+6.885 V with `battery-soc-ok: no`. Empty fallback pstore is inconclusive; PMIC
+showed `PS_HOLD`/`HARD_RESET`, not a watchdog. The simple temporary stock route
+is closed and wrapper work is frozen. The normal persistent fix would restore
+the exact stock image to `boot_b`, but the current hard boundary forbids that
+write while the battery gate is closed and it would replace the persistent
+Alpine fallback. See the
+[exact stock live result](../test-results/2026-08-17-stock-slotb-charger-live.md).
 
 ## Proven boundary
 
