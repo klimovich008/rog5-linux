@@ -1591,6 +1591,7 @@ class StableRecoveryControlTest(unittest.TestCase):
         )
 
     def test_charging_readiness_uses_the_sealed_v3_export(self):
+        self.assertEqual(MODULE.NFS_READY_TIMEOUT_SECONDS, 90)
         self.assertIn(CHARGING_BUNDLE, MODULE.V3_NETWORK_ROOT_BUNDLES)
         fake_ss = mock.MagicMock()
         with (
