@@ -56,7 +56,8 @@ for token in \
 	'/proc/self/uid_map' \
 	'findmnt -n -o PROPAGATION /' \
 	'mount --make-rprivate /' \
-	'host ARM64 binfmt handler must be absent' \
+	'private ARM64 binfmt mount inherited a host registration' \
+	"private_entries=\$(find /proc/sys/fs/binfmt_misc" \
 	'run-sealed-arm64-binfmt.py' \
 	'mount -t binfmt_misc none /proc/sys/fs/binfmt_misc' \
 	bfcd46c842441912baed36158569ac29a7fb656684ca73c1b3b2f0f3971e9bec; do
@@ -64,8 +65,8 @@ for token in \
 		fail "private ARM64 runner omits contract token: $token"
 done
 grep -Fq \
-	'for command_name in cut findmnt id mount python3 sha256sum stat; do' \
-	"$runner" ||
+	'for command_name in cut find findmnt id mount python3 sha256sum sort stat; do' \
+		"$runner" ||
 	fail 'private ARM64 inside branch no longer has a podman-free dependency set'
 
 for token in \

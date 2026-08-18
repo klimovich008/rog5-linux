@@ -38,7 +38,7 @@ if [[ ${1:-} == --inside-private-mount ]]; then
 		$namespace_guard == "$ROG5_PRIVATE_BINFMT_GUARD" ]] ||
 		fail 'private ARM64 branch lacks its outer-runner guard'
 	[[ $# -gt 0 ]] || fail 'missing command inside private ARM64 namespace'
-	for command_name in cut findmnt id mount python3 sha256sum stat; do
+	for command_name in cut find findmnt id mount python3 sha256sum sort stat; do
 		command -v "$command_name" >/dev/null ||
 			fail "missing private ARM64 namespace command: $command_name"
 	done
@@ -55,6 +55,11 @@ if [[ ${1:-} == --inside-private-mount ]]; then
 	esac
 	mount --make-rprivate /
 	mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
+	private_entries=$(find /proc/sys/fs/binfmt_misc -mindepth 1 -maxdepth 1 \
+		-printf '%f\n' | LC_ALL=C sort)
+	[[ $private_entries == $'register\nstatus' &&
+		! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
+		fail 'private ARM64 binfmt mount inherited a host registration'
 	exec python3 "$sealed_runner" "$qemu" "$expected_size" "$expected_sha" \
 		-- "$@"
 fi
@@ -66,8 +71,6 @@ for command_name in cut findmnt grep head id mount podman sha256sum stat \
 done
 check_sealed_runner
 [[ $# -gt 0 ]] || fail 'usage: run-private-arm64-binfmt.sh COMMAND [ARG...]'
-[[ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
-	fail 'host ARM64 binfmt handler must be absent for private-runner proof'
 check_qemu
 
 namespace_guard=$(head -c 32 /dev/urandom | sha256sum | cut -d ' ' -f 1)
