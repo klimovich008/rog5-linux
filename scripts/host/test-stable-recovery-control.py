@@ -53,6 +53,7 @@ DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v2"
 CHARGING_BUNDLE = "headless-full-ucsi-charging-v1"
 CHARGING_SUCCESSOR_BUNDLE = "headless-full-ucsi-charging-v2"
 CHARGING_ORDERED_BUNDLE = "headless-full-ucsi-charging-v3"
+CHARGING_EARLY_BUNDLE = "headless-full-ucsi-charging-early-v1"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64
@@ -1599,6 +1600,7 @@ class StableRecoveryControlTest(unittest.TestCase):
             CHARGING_SUCCESSOR_BUNDLE, MODULE.V3_NETWORK_ROOT_BUNDLES
         )
         self.assertIn(CHARGING_ORDERED_BUNDLE, MODULE.V3_NETWORK_ROOT_BUNDLES)
+        self.assertIn(CHARGING_EARLY_BUNDLE, MODULE.V3_NETWORK_ROOT_BUNDLES)
         fake_ss = mock.MagicMock()
         with (
             mock.patch.object(

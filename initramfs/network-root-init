@@ -20,7 +20,9 @@ handoff_sys=/sys
 handoff_run=/run
 diagnostic_binary=/sbin/rog5-early-target-diag
 diagnostic_candidate=headless-netroot-early-diag-v2
+charging_probe_candidate=headless-full-ucsi-charging-early-v1
 diagnostic_mode=0
+charging_probe_mode=0
 diagnostic_pid=
 diagnostic_fault=none
 usb_step=not-started
@@ -224,6 +226,8 @@ is_nonzero_sha256() {
 }
 
 parse_network_root_command_line() {
+	diagnostic_mode=0
+	charging_probe_mode=0
 	recovery_timeout=
 	recovery_timeout_count=0
 	netroot_count=0
@@ -337,11 +341,15 @@ parse_network_root_command_line() {
 	[ "${#bundle}" -le 64 ] || return 1
 	if [ "$diagnostic_count" -eq 1 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
-		[ "$bundle" = "$diagnostic_candidate" ]; then
+		{ [ "$bundle" = "$diagnostic_candidate" ] ||
+			[ "$bundle" = "$charging_probe_candidate" ]; }; then
 		diagnostic_mode=1
+		[ "$bundle" != "$charging_probe_candidate" ] ||
+			charging_probe_mode=1
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
-		[ "$bundle" != "$diagnostic_candidate" ]; then
+		[ "$bundle" != "$diagnostic_candidate" ] &&
+		[ "$bundle" != "$charging_probe_candidate" ]; then
 		diagnostic_mode=0
 	else
 		return 1
@@ -888,6 +896,13 @@ prepare_shutdown_root() {
 		cp -p "$diagnostic_binary" \
 			"$exitrd/sbin/rog5-early-target-diag" || return 1
 	fi
+	if [ "$charging_probe_mode" -eq 1 ]; then
+		cp -p /sbin/rog5-early-charging-probe \
+			"$exitrd/sbin/rog5-early-charging-probe" || return 1
+		mkdir -p "$exitrd/rog5-charge-inputs" || return 1
+		cp -Rp /opt/rog5-charge-firmware \
+			"$exitrd/rog5-charge-inputs/firmware" || return 1
+	fi
 	chroot "$exitrd" /bin/sh -n /shutdown || return 1
 	touch /run/rog5-network-root-exitrd-ready || return 1
 	return 0
@@ -1039,6 +1054,21 @@ diagnostic_emit 110 || true
 if ! handoff_network_root; then
 	log 'network-root mount handoff failed; rebooting'
 	diagnostic_rollback handoff-failed
+fi
+
+if [ "$charging_probe_mode" -eq 1 ]; then
+	diagnostic_emit 151 || true
+	if exec chroot "$handoff_newroot" /usr/bin/env \
+		ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
+		ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 \
+		ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1 \
+		ROG5_BATTERY_INPUT_DIR=/run/initramfs/rog5-charge-inputs \
+		ROG5_PROBE_TIMEOUT=150 ROG5_PROBE_SETTLE=20 \
+		ROG5_TELEMETRY_WAIT=30 \
+		/run/initramfs/sbin/rog5-early-charging-probe charging-early; then
+		:
+	fi
+	force_rollback
 fi
 
 trap switch_root_failure EXIT

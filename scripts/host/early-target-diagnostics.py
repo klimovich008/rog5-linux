@@ -46,6 +46,27 @@ STAGES = {
     130: "new-init-up",
     140: "sshd-active",
     150: "ssh-key-accepted",
+    151: "charging-probe-start",
+    152: "charging-firmware-selected",
+    153: "charging-adsp-running",
+    154: "charging-qrtr-ready",
+    155: "charging-pmic-glink-ready",
+    156: "charging-battmgr-ready",
+    157: "charging-ucsi-ready",
+    158: "charging-telemetry-readable",
+    159: "charging-usb-online",
+    170: "charging-status-charging",
+    171: "charging-status-not-charging",
+    172: "charging-status-discharging",
+    173: "charging-status-full",
+    174: "charging-status-unknown",
+    175: "charging-current-positive",
+    176: "charging-current-zero",
+    177: "charging-current-negative",
+    180: "charging-voltage-rising",
+    181: "charging-voltage-flat",
+    182: "charging-voltage-falling",
+    190: "charging-probe-complete",
     200: "fault",
     210: "watchdog-pretimeout",
 }
@@ -75,6 +96,7 @@ FAULTS = frozenset(
         "exitrd-failed",
         "handoff-failed",
         "switch-root-returned",
+        "charging-probe-failed",
     }
 )
 FIELDS = (
@@ -189,7 +211,7 @@ def parse_payload(
         values["last_good_code"],
         "last-good code",
         minimum=10,
-        maximum=150,
+        maximum=190,
     )
     if last_good not in PROGRESS_CODES:
         fail("diagnostic last-good code is invalid")

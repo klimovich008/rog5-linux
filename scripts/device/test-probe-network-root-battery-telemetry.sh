@@ -10,6 +10,7 @@ sh -n "$probe"
 for contract in \
 	'ALLOW_NETWORK_ROOT_BATTERY_PROBE' \
 	'ALLOW_NETWORK_ROOT_CHARGING_PROBE' \
+	'ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE' \
 	'ROG5_ADSP_SCM_TRACE' \
 	'ROG5_TELEMETRY_WAIT' \
 	'7.1.4-g7a5cef0db479' \
@@ -77,7 +78,8 @@ done
 guard_line=$(grep -n 'ALLOW_NETWORK_ROOT_BATTERY_PROBE' "$probe" |
 	head -n1 | cut -d: -f1)
 watchdog_line=$(grep -n '^setsid sh -c' "$probe" | cut -d: -f1)
-udev_line=$(grep -n '^udevadm control --stop-exec-queue' "$probe" | cut -d: -f1)
+udev_line=$(grep -n '^[[:space:]]*udevadm control --stop-exec-queue' "$probe" |
+	cut -d: -f1)
 adsp_line=$(grep -n 'modprobe --first-time qcom_q6v5_pas' "$probe" |
 	head -n1 | cut -d: -f1)
 evidence_line=$(grep -n '^post_fail()' "$probe" | cut -d: -f1)
@@ -133,11 +135,16 @@ ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 ROG5_ADSP_SCM_TRACE=1 \
 trace_telemetry=$?
 ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 "$probe" charging >/dev/null 2>&1
 missing_charging_guard=$?
+ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
+	ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 \
+	"$probe" charging-early >/dev/null 2>&1
+missing_early_guard=$?
 set -e
 [ "$missing_guard" -ne 0 ]
 [ "$invalid_mode" -ne 0 ]
 [ "$trace_telemetry" -ne 0 ]
 [ "$missing_charging_guard" -ne 0 ]
+[ "$missing_early_guard" -ne 0 ]
 
 if grep -Eq 'charge_control_(start|end)_threshold[^\n]*(>|tee)' "$probe"; then
 	echo 'FAIL charging probe writes a charge-control threshold' >&2

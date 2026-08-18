@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=6a87ffa7bcbef1dcef9353d2ada3b34888f6bcb881fe38d417c3ae97e6767d01' \
+	'reviewed_reporter_hash=d709975148d5d74764ebd776e3dbddebc22c49f047fb9658c23a48b047e99eca' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
@@ -84,6 +84,7 @@ for text in \
 	'format=rog5-network-root-identity-v1' \
 	'publish_network_root_identity' \
 	'diagnostic_candidate=headless-netroot-early-diag-v2' \
+	'charging_probe_candidate=headless-full-ucsi-charging-early-v1' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
 	'export LC_ALL=C' \
@@ -100,6 +101,8 @@ for text in \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 130' \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
 	'cp -p "$diagnostic_binary"' \
+	'cp -p /sbin/rog5-early-charging-probe' \
+	'cp -Rp /opt/rog5-charge-firmware' \
 	'mount -t nfs4' \
 	'vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2' \
 	'mount -t tmpfs -o nodev,nosuid' \
@@ -108,6 +111,8 @@ for text in \
 		'cp -p /shutdown "$exitrd/shutdown"' \
 		'chroot "$exitrd" /bin/sh -n /shutdown' \
 		'if ! handoff_network_root; then' \
+		'ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1' \
+		'/run/initramfs/sbin/rog5-early-charging-probe charging-early' \
 		'rollback_handoff_mounts || true' \
 		'trap switch_root_failure EXIT' \
 		'trap - EXIT' \
@@ -1258,6 +1263,8 @@ rog5.root_tree_entries=42
 rog5.root_subtree=/"
 kernel_cmdline=$work/cmdline
 diagnostic_candidate=headless-netroot-early-diag-v2
+charging_probe_candidate=headless-full-ucsi-charging-early-v1
+charging_probe_mode=0
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
@@ -1305,6 +1312,16 @@ rog5.diagnostic=1"
 printf '%s\n' "$diagnostic_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 0 ]
+
+charging_cmdline=$(printf '%s\n' "$valid_cmdline" |
+	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-full-ucsi-charging-early-v1/')
+charging_cmdline="$charging_cmdline
+rog5.diagnostic=1"
+printf '%s\n' "$charging_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 1 ]
 expect_cmdline_rejection 'bare diagnostic mode' \
 	"$diagnostic_cmdline rog5.diagnostic"
 expect_cmdline_rejection 'duplicate diagnostic mode' \
