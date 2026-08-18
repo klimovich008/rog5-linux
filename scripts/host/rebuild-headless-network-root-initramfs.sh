@@ -53,8 +53,8 @@ case $mode in
 		verifier_sha=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 		output_root=${2:-$repo/artifacts/early-target-diagnostic-v8}
 		output_name=rog5-early-target-diagnostic-initramfs.cpio.gz
-		output_size=6014837
-		output_sha=972989242a0f882fa98578c8b3f4aedbad72a0264489773e2ffbaf06fc95903d
+		output_size=6014812
+		output_sha=a2042faca56e23424336d2eabe6bc2784030edf750728903cb19b5b663e50a66
 		report_name=early-target-diagnostic-initramfs-rebuild.txt
 		report_schema=rog5-early-target-diagnostic-initramfs-rebuild-v8
 		report_state=exact-pinned-bytes-reproduced

@@ -85,6 +85,7 @@ for text in \
 	'publish_network_root_identity' \
 	'diagnostic_candidate=headless-netroot-early-diag-v2' \
 	'charging_probe_candidate=headless-full-ucsi-charging-early-v1' \
+	'charging_probe_successor=headless-full-ucsi-charging-early-v2' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
 	'export LC_ALL=C' \
@@ -1264,6 +1265,7 @@ rog5.root_subtree=/"
 kernel_cmdline=$work/cmdline
 diagnostic_candidate=headless-netroot-early-diag-v2
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
+charging_probe_successor=headless-full-ucsi-charging-early-v2
 charging_probe_mode=0
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
@@ -1319,6 +1321,12 @@ charging_cmdline=$(printf '%s\n' "$valid_cmdline" |
 charging_cmdline="$charging_cmdline
 rog5.diagnostic=1"
 printf '%s\n' "$charging_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 1 ]
+successor_cmdline=$(printf '%s\n' "$charging_cmdline" |
+	sed 's/headless-full-ucsi-charging-early-v1/headless-full-ucsi-charging-early-v2/')
+printf '%s\n' "$successor_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 1 ]
 [ "$charging_probe_mode" -eq 1 ]
