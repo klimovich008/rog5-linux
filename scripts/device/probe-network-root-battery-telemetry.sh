@@ -51,7 +51,9 @@ input_dir=${ROG5_BATTERY_INPUT_DIR:-/run/rog5-battery-inputs}
 firmware_dir=$input_dir/firmware
 pmic_module=$input_dir/pmic_glink-battery-only.ko
 expected_pmic_sha=fa38f4f8d4ab428bd828601dc0c9805fcabe3d265afe3cdb0ba6ed977ac9c666
-expected_firmware_bytes=30889541
+# Exact ADSP set extracted read-only from the retained official ASUS
+# WW-33.0210.0210.200 vendor image.
+expected_firmware_bytes=30900841
 expected_firmware_files='adsp.b00
 adsp.b01
 adsp.b02

@@ -28,7 +28,7 @@ for contract in \
 	'remoteproc@5c00000' \
 	'remoteproc@a300000' \
 	'qcom,sm8350-pmic-glink qcom,pmic-glink' \
-	'30889541' \
+	'30900841' \
 	'fa38f4f8d4ab428bd828601dc0c9805fcabe3d265afe3cdb0ba6ed977ac9c666' \
 	'firmware_class/parameters/path' \
 	'udevadm control --stop-exec-queue' \
