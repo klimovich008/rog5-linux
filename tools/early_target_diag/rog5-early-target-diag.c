@@ -63,6 +63,27 @@ static const struct stage stages[] = {
 	{ 130, "new-init-up" },
 	{ 140, "sshd-active" },
 	{ 150, "ssh-key-accepted" },
+	{ 151, "charging-probe-start" },
+	{ 152, "charging-firmware-selected" },
+	{ 153, "charging-adsp-running" },
+	{ 154, "charging-qrtr-ready" },
+	{ 155, "charging-pmic-glink-ready" },
+	{ 156, "charging-battmgr-ready" },
+	{ 157, "charging-ucsi-ready" },
+	{ 158, "charging-telemetry-readable" },
+	{ 159, "charging-usb-online" },
+	{ 170, "charging-status-charging" },
+	{ 171, "charging-status-not-charging" },
+	{ 172, "charging-status-discharging" },
+	{ 173, "charging-status-full" },
+	{ 174, "charging-status-unknown" },
+	{ 175, "charging-current-positive" },
+	{ 176, "charging-current-zero" },
+	{ 177, "charging-current-negative" },
+	{ 180, "charging-voltage-rising" },
+	{ 181, "charging-voltage-flat" },
+	{ 182, "charging-voltage-falling" },
+	{ 190, "charging-probe-complete" },
 	{ 200, "fault" },
 	{ 210, "watchdog-pretimeout" },
 };
@@ -90,6 +111,7 @@ static const char *const faults[] = {
 	"exitrd-failed",
 	"handoff-failed",
 	"switch-root-returned",
+	"charging-probe-failed",
 };
 
 static void fail(const char *message)
@@ -287,7 +309,7 @@ static void emit_frame(int argc, char **argv)
 		fail("usage: frame CANDIDATE BOOT_ID SEQUENCE BOOTTIME_MS "
 		     "STAGE_CODE LAST_GOOD_CODE FAULT DEADLINE_MS DROPPED");
 	stage_code = number(argv[6], 10, 210, "invalid stage code");
-	last_good = number(argv[7], 10, 150, "invalid last-good code");
+	last_good = number(argv[7], 10, 190, "invalid last-good code");
 	if (stage_code > UINT_MAX || last_good > UINT_MAX)
 		fail("stage code overflow");
 	record = (struct diagnostic_record) {

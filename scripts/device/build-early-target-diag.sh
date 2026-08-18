@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-early-target-diag.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=21061
-expected_source_sha256=d920f99fa2017cb8ecc3eff937476a62df9ea57870d83de717a664b08fa30cb0
+expected_source_size=21863
+expected_source_sha256=66ab43fbcc6b0987015226d09133a1e6a8df6863673061b336b9d6fb2ee780bf
 expected_output_size=67288
-expected_output_sha256=6a87ffa7bcbef1dcef9353d2ada3b34888f6bcb881fe38d417c3ae97e6767d01
+expected_output_sha256=d709975148d5d74764ebd776e3dbddebc22c49f047fb9658c23a48b047e99eca
 
 fail() {
 	echo "FAIL $*" >&2
@@ -82,6 +82,7 @@ for marker in \
 		'nfs-mount-returned' \
 		'route-failed' \
 		'host-port-timeout' \
+		'charging-probe-complete' \
 		'watchdog-pretimeout' \
 	'cannot require diagnostic peer credentials'; do
 	strings "$temporary" | grep -Fqx "$marker" ||

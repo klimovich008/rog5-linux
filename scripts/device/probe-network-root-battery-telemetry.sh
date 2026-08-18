@@ -9,14 +9,23 @@ fail() {
 [ "${ALLOW_NETWORK_ROOT_BATTERY_PROBE:-}" = 1 ] ||
 	fail 'set ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 for one attended RAM-only probe'
 
-mode=${1:-}
-case $mode in
-	adsp|telemetry|charging) ;;
-	*) fail 'usage: probe-network-root-battery-telemetry.sh adsp|telemetry|charging' ;;
+requested_mode=${1:-}
+early_mode=0
+case $requested_mode in
+	adsp|telemetry|charging) mode=$requested_mode ;;
+	charging-early)
+		mode=charging
+		early_mode=1
+		;;
+	*) fail 'usage: probe-network-root-battery-telemetry.sh adsp|telemetry|charging|charging-early' ;;
 esac
 if [ "$mode" = charging ]; then
 	[ "${ALLOW_NETWORK_ROOT_CHARGING_PROBE:-}" = 1 ] ||
 		fail 'set ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 for full PMIC GLINK/UCSI'
+fi
+if [ "$early_mode" -eq 1 ]; then
+	[ "${ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE:-}" = 1 ] ||
+		fail 'set ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1 for PID1 probe'
 fi
 
 probe_timeout=${ROG5_PROBE_TIMEOUT:-120}
@@ -84,6 +93,19 @@ adsp.b26
 adsp.mbn
 adsp.mdt'
 
+diagnostic=/run/initramfs/sbin/rog5-early-target-diag
+emit_progress() {
+	[ "$early_mode" -eq 1 ] || return 0
+	"$diagnostic" emit "$1"
+}
+
+early_reboot() {
+	[ "$early_mode" -eq 1 ] || return 1
+	sleep 5
+	echo b >/proc/sysrq-trigger 2>/dev/null || true
+	while :; do sleep 3600; done
+}
+
 for command in awk basename cat comm cut dmesg find findmnt grep head \
 	insmod ip kill mktemp modinfo modprobe mount od ps readlink rm rmdir sed \
 	setsid sha256sum sleep sort stat systemctl tail tr udevadm uname wc
@@ -92,17 +114,26 @@ do
 done
 
 [ "$(uname -r)" = 7.1.4-g7a5cef0db479 ] || fail 'unexpected kernel'
-[ "$(cat /proc/1/comm)" = systemd ] || fail 'PID 1 is not systemd'
-[ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
-	fail 'systemd is not running'
-for unit in systemd-udev-trigger.service systemd-modules-load.service; do
-	[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked-runtime ] ||
-		fail "$unit is not runtime-masked"
-done
-[ ! -e /run/rog5-network-root-watchdog.pid ] ||
-	fail 'network-root watchdog is still active'
-[ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
-	fail 'missing network-root watchdog disarm marker'
+if [ "$early_mode" -eq 0 ]; then
+	[ "$(cat /proc/1/comm)" = systemd ] || fail 'PID 1 is not systemd'
+	[ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
+		fail 'systemd is not running'
+	for unit in systemd-udev-trigger.service systemd-modules-load.service; do
+		[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked-runtime ] ||
+			fail "$unit is not runtime-masked"
+	done
+	[ ! -e /run/rog5-network-root-watchdog.pid ] ||
+		fail 'network-root watchdog is still active'
+	[ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
+		fail 'missing network-root watchdog disarm marker'
+else
+	case $(cat /proc/1/comm) in
+		rog5-early-cha*) ;;
+		*) fail 'early charging probe is not PID 1' ;;
+	esac
+	[ -x "$diagnostic" ] || fail 'early diagnostic reporter is unavailable'
+	emit_progress 151
+fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'
 [ "$(findmnt -n -o SOURCE /.rog5/root-ro)" = 169.254.77.1:/ ] ||
@@ -324,6 +355,7 @@ firmware_path=/sys/module/firmware_class/parameters/path
 printf '%s\n' "$firmware_dir" >"$firmware_path"
 [ "$(cat "$firmware_path")" = "$firmware_dir" ] ||
 	fail 'firmware-class path did not select volatile firmware'
+emit_progress 152
 
 remoteproc=
 scm_trace_active=0
@@ -343,6 +375,10 @@ post_fail() {
 		echo 'EVIDENCE scm_trace_begin'
 		cat "$trace_root/trace"
 		echo 'EVIDENCE scm_trace_end'
+	fi
+	if [ "$early_mode" -eq 1 ]; then
+		"$diagnostic" emit 200 charging-probe-failed || true
+		early_reboot
 	fi
 	fail "$reason"
 }
@@ -377,7 +413,9 @@ if [ "$scm_trace" = 1 ]; then
 	scm_trace_active=1
 fi
 
-udevadm control --stop-exec-queue
+if [ "$early_mode" -eq 0 ]; then
+	udevadm control --stop-exec-queue
+fi
 echo "BEGIN battery-telemetry mode=$mode watchdog=${probe_timeout}s settle=${settle_seconds}s telemetry_wait=${telemetry_wait_seconds}s"
 echo "rog5-battery-probe: begin mode=$mode" >/dev/kmsg
 if ! modprobe --first-time qcom_q6v5_pas; then
@@ -402,6 +440,7 @@ done
 	post_fail 'ADSP did not reach running state'
 [ "$(cat "$remoteproc/firmware")" = adsp.mdt ] ||
 	post_fail 'ADSP requested unexpected firmware'
+emit_progress 153
 
 for module in qcom_q6v5_pas qcom_q6v5 qcom_common qcom_pil_info \
 	qcom_glink_smem qrtr
@@ -442,6 +481,7 @@ if [ "$mode" != adsp ]; then
 	if ! modprobe --first-time pdr_interface; then
 		post_fail 'protection-domain restart helper load failed'
 	fi
+	emit_progress 154
 	case $mode in
 		telemetry)
 			if ! insmod "$pmic_module" battery_only=1; then
@@ -461,6 +501,7 @@ if [ "$mode" != adsp ]; then
 	[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
 		-name 'pmic_glink.power-supply.*' | wc -l)" -eq 1 ] ||
 		post_fail 'PMIC GLINK did not expose exactly one battery auxiliary device'
+	emit_progress 155
 	if [ "$mode" = telemetry ]; then
 		[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
 			\( -name 'pmic_glink.ucsi.*' -o -name 'pmic_glink.altmode.*' \) |
@@ -478,6 +519,7 @@ if [ "$mode" != adsp ]; then
 	if ! modprobe --first-time qcom_battmgr; then
 		post_fail 'battery-manager load failed'
 	fi
+	emit_progress 156
 	if [ "$mode" = charging ]; then
 		if ! modprobe --first-time ucsi_glink; then
 			post_fail 'PMIC GLINK UCSI load failed'
@@ -494,6 +536,7 @@ if [ "$mode" != adsp ]; then
 			sleep 1
 		done
 		[ "$ucsi_ready" -eq 1 ] || post_fail 'UCSI did not expose a Type-C port'
+		emit_progress 157
 	fi
 	telemetry_ready=0
 	telemetry_waited=0
@@ -509,6 +552,7 @@ if [ "$mode" != adsp ]; then
 	done
 	[ "$telemetry_ready" -eq 1 ] ||
 		post_fail 'battery telemetry did not become readable'
+	emit_progress 158
 
 	actual_supplies=$(find /sys/class/power_supply -mindepth 1 -maxdepth 1 \
 		-printf '%f\n' | sort)
@@ -570,6 +614,7 @@ qcom-battmgr-wls'
 		post_fail 'wireless online state is not boolean'
 	if [ "$mode" = charging ]; then
 		[ "$usb_online" -eq 1 ] || post_fail 'full UCSI did not detect USB input'
+		emit_progress 159
 	fi
 
 	for module in qcom_battmgr pmic_glink pdr_interface qcom_pdr_msg \
@@ -644,16 +689,42 @@ findmnt -n -o OPTIONS /.rog5/root-ro | tr ',' '\n' | grep -qx ro ||
 	post_fail 'NFS lower became writable'
 [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
 	post_fail 'USB carrier dropped'
-[ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
-	post_fail 'systemd regressed'
-[ "$(systemctl --failed --no-legend --plain 2>/dev/null |
-	awk 'NF { count++ } END { print count + 0 }')" -eq 0 ] ||
-	post_fail 'a systemd unit failed'
+if [ "$early_mode" -eq 0 ]; then
+	[ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
+		post_fail 'systemd regressed'
+	[ "$(systemctl --failed --no-legend --plain 2>/dev/null |
+		awk 'NF { count++ } END { print count + 0 }')" -eq 0 ] ||
+		post_fail 'a systemd unit failed'
+fi
 [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
 	post_fail 'fatal kernel signature appeared'
 [ "$(dmesg | tail -n +"$dmesg_start" |
 	grep -Ec 'WARNING:|Call trace:|Unhandled fault|IOMMU.*fault|remoteproc.*crash' ||
 	true)" -eq 0 ] || post_fail 'warning, fault, or remoteproc crash appeared'
+
+if [ "$early_mode" -eq 1 ]; then
+	case $final_status in
+		Charging) emit_progress 170 ;;
+		'Not charging') emit_progress 171 ;;
+		Discharging) emit_progress 172 ;;
+		Full) emit_progress 173 ;;
+		Unknown) emit_progress 174 ;;
+	esac
+	if [ "$final_current_now" -gt 0 ]; then
+		emit_progress 175
+	elif [ "$final_current_now" -eq 0 ]; then
+		emit_progress 176
+	else
+		emit_progress 177
+	fi
+	if [ "$final_voltage_now" -gt "$voltage_now" ]; then
+		emit_progress 180
+	elif [ "$final_voltage_now" -eq "$voltage_now" ]; then
+		emit_progress 181
+	else
+		emit_progress 182
+	fi
+fi
 
 awk '{ print $1 }' /proc/modules | sort >"$state_dir/modules-after"
 removed_modules=$(comm -23 "$state_dir/modules-before" "$state_dir/modules-after")
@@ -672,7 +743,7 @@ qcom_pdr_msg
 pmic_glink
 qcom_battmgr
 qrtr_smd
-	qcom_pd_mapper"
+qcom_pd_mapper"
 	if [ "$mode" = charging ]; then
 		allowed_modules="$allowed_modules
 typec
@@ -709,4 +780,8 @@ if [ "$mode" = charging ]; then
 	echo 'PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded'
 else
 	echo "PASS battery-telemetry mode=$mode stayed RAM-only, storage-isolated, USB-C-control-free, and rollback-guarded"
+fi
+if [ "$early_mode" -eq 1 ]; then
+	emit_progress 190
+	early_reboot
 fi
