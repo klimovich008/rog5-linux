@@ -3,6 +3,14 @@ set -eu
 
 fail() {
 	echo "FAIL $*" >&2
+	if [ "${early_fail_closed:-0}" -eq 1 ]; then
+		if [ -x "${diagnostic:-/nonexistent}" ]; then
+			"$diagnostic" emit 200 charging-probe-failed || true
+		fi
+		sleep 5
+		echo b >/proc/sysrq-trigger 2>/dev/null || true
+		while :; do sleep 3600; done
+	fi
 	exit 1
 }
 
@@ -11,6 +19,7 @@ fail() {
 
 requested_mode=${1:-}
 early_mode=0
+early_fail_closed=0
 case $requested_mode in
 	adsp|telemetry|charging) mode=$requested_mode ;;
 	charging-early)
@@ -26,6 +35,7 @@ fi
 if [ "$early_mode" -eq 1 ]; then
 	[ "${ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE:-}" = 1 ] ||
 		fail 'set ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1 for PID1 probe'
+	early_fail_closed=1
 fi
 
 probe_timeout=${ROG5_PROBE_TIMEOUT:-120}
@@ -132,7 +142,7 @@ else
 		*) fail 'early charging probe is not PID 1' ;;
 	esac
 	[ -x "$diagnostic" ] || fail 'early diagnostic reporter is unavailable'
-	emit_progress 151
+	emit_progress 142
 fi
 
 [ "$(findmnt -n -o FSTYPE /)" = overlay ] || fail 'root is not OverlayFS'
@@ -155,6 +165,7 @@ findmnt -n -o OPTIONS /.rog5/root-ro | tr ',' '\n' | grep -qx ro ||
 [ "$(systemctl --failed --no-legend --plain 2>/dev/null |
 	awk 'NF { count++ } END { print count + 0 }')" -eq 0 ] ||
 	fail 'systemd already has a failed unit'
+emit_progress 143
 
 dt=/sys/firmware/devicetree/base
 adsp_node=$dt/soc@0/remoteproc@3000000
@@ -201,6 +212,7 @@ case $mode in
 			fail 'PMIC GLINK contains an unreviewed child'
 		;;
 esac
+emit_progress 144
 
 [ -d "$firmware_dir" ] && [ ! -L "$firmware_dir" ] ||
 	fail 'missing volatile ADSP firmware directory'
@@ -217,6 +229,7 @@ actual_firmware_files=$(find "$firmware_dir" -mindepth 1 -maxdepth 1 \
 	fail 'volatile ADSP firmware headers are empty'
 [ ! -s "$firmware_dir/adsp.b26" ] ||
 	fail 'stock zero-length ADSP segment changed'
+emit_progress 145
 
 for module in qcom_q6v5_pas qcom_q6v5 qcom_common qcom_pil_info \
 	qcom_glink_smem qrtr qrtr_smd pdr_interface qcom_pdr_msg pmic_glink \
@@ -349,6 +362,7 @@ for unused in 1 2 3 4 5; do
 	sleep 1
 done
 [ "$armed" -eq 1 ] || fail 'probe watchdog did not arm'
+emit_progress 151
 
 firmware_path=/sys/module/firmware_class/parameters/path
 [ -w "$firmware_path" ] || fail 'firmware-class path is not writable'

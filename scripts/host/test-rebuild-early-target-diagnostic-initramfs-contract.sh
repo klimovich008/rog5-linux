@@ -23,10 +23,10 @@ for token in \
 	'diagnostic)' \
 	'rog5-early-target-diagnostic-initramfs.cpio.gz' \
 	'artifacts/early-target-diagnostic-v8' \
-	'6014812' \
-	'a2042faca56e23424336d2eabe6bc2784030edf750728903cb19b5b663e50a66' \
+	'6015929' \
+	'bba2ffbb3f389e5def4ec8f8c01d4947df78823413ecf148f20e5935dd5e0636' \
 	'rog5-early-target-diagnostic-initramfs-rebuild-v8' \
-	'd709975148d5d74764ebd776e3dbddebc22c49f047fb9658c23a48b047e99eca' \
+	'437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
 	'build-early-target-diag.sh' \
 	'rog5-early-target-diag.c' \
 	'--pull=never' \

@@ -11,6 +11,12 @@ for contract in \
 	'ALLOW_NETWORK_ROOT_BATTERY_PROBE' \
 	'ALLOW_NETWORK_ROOT_CHARGING_PROBE' \
 	'ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE' \
+	'"$diagnostic" emit 200 charging-probe-failed' \
+	'emit_progress 142' \
+	'emit_progress 143' \
+	'emit_progress 144' \
+	'emit_progress 145' \
+	'emit_progress 151' \
 	'ROG5_ADSP_SCM_TRACE' \
 	'ROG5_TELEMETRY_WAIT' \
 	'7.1.4-g7a5cef0db479' \

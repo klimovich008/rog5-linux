@@ -22,7 +22,7 @@ for text in \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=d709975148d5d74764ebd776e3dbddebc22c49f047fb9658c23a48b047e99eca' \
+	'reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
@@ -86,6 +86,7 @@ for text in \
 	'diagnostic_candidate=headless-netroot-early-diag-v2' \
 	'charging_probe_candidate=headless-full-ucsi-charging-early-v1' \
 	'charging_probe_successor=headless-full-ucsi-charging-early-v2' \
+	'charging_probe_observable=headless-full-ucsi-charging-early-v3' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
 	'export LC_ALL=C' \
@@ -1266,6 +1267,7 @@ kernel_cmdline=$work/cmdline
 diagnostic_candidate=headless-netroot-early-diag-v2
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
+charging_probe_observable=headless-full-ucsi-charging-early-v3
 charging_probe_mode=0
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
@@ -1327,6 +1329,12 @@ parse_network_root_command_line
 successor_cmdline=$(printf '%s\n' "$charging_cmdline" |
 	sed 's/headless-full-ucsi-charging-early-v1/headless-full-ucsi-charging-early-v2/')
 printf '%s\n' "$successor_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 1 ]
+observable_cmdline=$(printf '%s\n' "$successor_cmdline" |
+	sed 's/headless-full-ucsi-charging-early-v2/headless-full-ucsi-charging-early-v3/')
+printf '%s\n' "$observable_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 1 ]
 [ "$charging_probe_mode" -eq 1 ]

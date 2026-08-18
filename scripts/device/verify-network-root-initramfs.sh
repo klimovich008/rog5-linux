@@ -8,7 +8,7 @@ reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
 reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 reviewed_reporter_size=67288
-reviewed_reporter_hash=d709975148d5d74764ebd776e3dbddebc22c49f047fb9658c23a48b047e99eca
+reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
 for command in cmp cpio cut find grep gzip install mkdir mktemp readelf rm \
 	sha256sum sh stat; do
 	command -v "$command" >/dev/null || {

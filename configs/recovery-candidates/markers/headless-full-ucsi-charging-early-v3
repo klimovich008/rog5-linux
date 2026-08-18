@@ -1,0 +1,4 @@
+format=rog5-target-attempt-marker-v1
+candidate=headless-full-ucsi-charging-early-v3
+predecessor=headless-full-ucsi-charging-early-v2
+purpose=fail-closed-preflight-observable-pre-systemd-full-ucsi-discriminator
