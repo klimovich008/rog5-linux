@@ -102,6 +102,10 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_profile=diagnostic-initramfs-v1
 		expected_candidate_sha=f23626d6ad0b15a660835bd8419cde40a8f8c3c79f83b6feca5cb57952f7b1ab
 		expected_manifest=98a4c4381c90c5d8edd7252309fe438d18f66af0a5ccd47f2cec7ec39e8f971d ;;
+	headless-full-ucsi-charging-v1:3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11:headless-full-ucsi-charging)
+		expected_profile=network-root-v1
+		expected_candidate_sha=24f1289d31061295c3656029ed31d6a83bc0e3de68b0e40fb61b2022930fa626
+		expected_manifest=edb9ca09bd059134647428083cc834fcbe3299a1228890d368244be7d9a68bc0 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then
