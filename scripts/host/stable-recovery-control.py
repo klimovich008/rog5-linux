@@ -64,7 +64,9 @@ DEPLOYMENT_NFS_HANDOFF_ROOT = Path(
     "/home/rog5-linux/exports/headless-ssh-network-root-v3/root"
 )
 PREPARE_DEADLINE_SECONDS = 260
-NFS_READY_TIMEOUT_SECONDS = 45
+# The sealed export can become ready just after 45 seconds on a cold host.
+# This is only a pre-COMMIT wait; readiness returns immediately when observed.
+NFS_READY_TIMEOUT_SECONDS = 90
 POST_CLAIM_STATUS_TIMEOUT_SECONDS = 8
 POST_CLAIM_DEPARTURE_TIMEOUT_SECONDS = 2.0
 POST_CLAIM_DEPARTURE_POLL_SECONDS = 0.1
