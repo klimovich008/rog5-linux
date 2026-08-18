@@ -21,6 +21,7 @@ handoff_run=/run
 diagnostic_binary=/sbin/rog5-early-target-diag
 diagnostic_candidate=headless-netroot-early-diag-v2
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
+charging_probe_successor=headless-full-ucsi-charging-early-v2
 diagnostic_mode=0
 charging_probe_mode=0
 diagnostic_pid=
@@ -342,14 +343,17 @@ parse_network_root_command_line() {
 	if [ "$diagnostic_count" -eq 1 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		{ [ "$bundle" = "$diagnostic_candidate" ] ||
-			[ "$bundle" = "$charging_probe_candidate" ]; }; then
+			[ "$bundle" = "$charging_probe_candidate" ] ||
+			[ "$bundle" = "$charging_probe_successor" ]; }; then
 		diagnostic_mode=1
-		[ "$bundle" != "$charging_probe_candidate" ] ||
+		{ [ "$bundle" != "$charging_probe_candidate" ] &&
+			[ "$bundle" != "$charging_probe_successor" ]; } ||
 			charging_probe_mode=1
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		[ "$bundle" != "$diagnostic_candidate" ] &&
-		[ "$bundle" != "$charging_probe_candidate" ]; then
+		[ "$bundle" != "$charging_probe_candidate" ] &&
+		[ "$bundle" != "$charging_probe_successor" ]; then
 		diagnostic_mode=0
 	else
 		return 1
