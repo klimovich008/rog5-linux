@@ -22,6 +22,7 @@ diagnostic_binary=/sbin/rog5-early-target-diag
 diagnostic_candidate=headless-netroot-early-diag-v2
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
+charging_probe_observable=headless-full-ucsi-charging-early-v3
 diagnostic_mode=0
 charging_probe_mode=0
 diagnostic_pid=
@@ -344,16 +345,19 @@ parse_network_root_command_line() {
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		{ [ "$bundle" = "$diagnostic_candidate" ] ||
 			[ "$bundle" = "$charging_probe_candidate" ] ||
-			[ "$bundle" = "$charging_probe_successor" ]; }; then
+			[ "$bundle" = "$charging_probe_successor" ] ||
+			[ "$bundle" = "$charging_probe_observable" ]; }; then
 		diagnostic_mode=1
 		{ [ "$bundle" != "$charging_probe_candidate" ] &&
-			[ "$bundle" != "$charging_probe_successor" ]; } ||
+			[ "$bundle" != "$charging_probe_successor" ] &&
+			[ "$bundle" != "$charging_probe_observable" ]; } ||
 			charging_probe_mode=1
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		[ "$bundle" != "$diagnostic_candidate" ] &&
 		[ "$bundle" != "$charging_probe_candidate" ] &&
-		[ "$bundle" != "$charging_probe_successor" ]; then
+		[ "$bundle" != "$charging_probe_successor" ] &&
+		[ "$bundle" != "$charging_probe_observable" ]; then
 		diagnostic_mode=0
 	else
 		return 1
@@ -1061,7 +1065,7 @@ if ! handoff_network_root; then
 fi
 
 if [ "$charging_probe_mode" -eq 1 ]; then
-	diagnostic_emit 151 || true
+	diagnostic_emit 141 || true
 	if exec chroot "$handoff_newroot" /usr/bin/env \
 		ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
 		ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 \
