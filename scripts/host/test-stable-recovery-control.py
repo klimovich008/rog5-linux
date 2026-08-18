@@ -50,6 +50,7 @@ MANIFEST = "a" * 64
 BUNDLE = "headless-network-root-v1"
 DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3-r2"
 DIAGNOSTIC_BUNDLE = "headless-netroot-early-diag-v2"
+CHARGING_BUNDLE = "headless-full-ucsi-charging-v1"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 PACKAGE_SHA256 = "c" * 64
 HANDOFF_TOKEN = "b" * 64
@@ -1586,6 +1587,37 @@ class StableRecoveryControlTest(unittest.TestCase):
         marker.assert_called_once_with(
             HANDOFF_TOKEN,
             DIAGNOSTIC_BUNDLE,
+            PACKAGE_SHA256,
+        )
+
+    def test_charging_readiness_uses_the_sealed_v3_export(self):
+        self.assertIn(CHARGING_BUNDLE, MODULE.V3_NETWORK_ROOT_BUNDLES)
+        fake_ss = mock.MagicMock()
+        with (
+            mock.patch.object(
+                MODULE,
+                "nfs_handoff_marker_matches",
+                return_value=True,
+            ) as marker,
+            mock.patch.object(MODULE, "SS", fake_ss),
+            mock.patch.object(MODULE.subprocess, "run") as run,
+        ):
+            fake_ss.stat.return_value.st_mode = 0o100755
+            fake_ss.stat.return_value.st_uid = 0
+            fake_ss.stat.return_value.st_gid = 0
+            run.return_value.stdout = (
+                "LISTEN 0 4096 169.254.77.1:2049 0.0.0.0:*\n"
+            )
+            self.assertTrue(
+                MODULE.network_root_nfs_ready(
+                    HANDOFF_TOKEN,
+                    CHARGING_BUNDLE,
+                    PACKAGE_SHA256,
+                )
+            )
+        marker.assert_called_once_with(
+            HANDOFF_TOKEN,
+            CHARGING_BUNDLE,
             PACKAGE_SHA256,
         )
 

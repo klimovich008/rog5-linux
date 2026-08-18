@@ -11,9 +11,13 @@ fail() {
 
 mode=${1:-}
 case $mode in
-	adsp|telemetry) ;;
-	*) fail 'usage: probe-network-root-battery-telemetry.sh adsp|telemetry' ;;
+	adsp|telemetry|charging) ;;
+	*) fail 'usage: probe-network-root-battery-telemetry.sh adsp|telemetry|charging' ;;
 esac
+if [ "$mode" = charging ]; then
+	[ "${ALLOW_NETWORK_ROOT_CHARGING_PROBE:-}" = 1 ] ||
+		fail 'set ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 for full PMIC GLINK/UCSI'
+fi
 
 probe_timeout=${ROG5_PROBE_TIMEOUT:-120}
 settle_seconds=${ROG5_PROBE_SETTLE:-20}
@@ -29,7 +33,7 @@ esac
 [ "$telemetry_wait_seconds" -ge 10 ] &&
 	[ "$telemetry_wait_seconds" -le 45 ] ||
 	fail 'ROG5_TELEMETRY_WAIT must be between 10 and 45 seconds'
-if [ "$mode" = telemetry ]; then
+if [ "$mode" != adsp ]; then
 	[ "$probe_timeout" -ge \
 		$((settle_seconds + telemetry_wait_seconds + 45)) ] ||
 		fail 'telemetry probe timeout leaves less than 45 seconds of rollback margin'
@@ -154,7 +158,7 @@ case $mode in
 		[ ! -e "$pmic_node" ] ||
 			fail 'ADSP-only candidate unexpectedly contains PMIC GLINK'
 		;;
-	telemetry)
+	telemetry|charging)
 		[ -r "$pmic_node/compatible" ] ||
 			fail 'telemetry candidate lacks PMIC GLINK'
 		[ "$(tr '\000' ' ' <"$pmic_node/compatible" | sed 's/ $//')" = \
@@ -191,20 +195,7 @@ done
 [ "$(find /sys/class/power_supply -mindepth 1 -maxdepth 1 2>/dev/null |
 	wc -l)" -eq 0 ] || fail 'power-supply device exists before probe'
 
-if [ "$mode" = telemetry ]; then
-	[ -f "$pmic_module" ] && [ ! -L "$pmic_module" ] ||
-		fail 'missing volatile battery-only PMIC GLINK module'
-	[ "$(sha256sum "$pmic_module" | cut -d ' ' -f 1)" = "$expected_pmic_sha" ] ||
-		fail 'battery-only PMIC GLINK module hash mismatch'
-	[ "$(modinfo -F name "$pmic_module")" = pmic_glink ] ||
-		fail 'unexpected PMIC GLINK module name'
-	[ "$(modinfo -F vermagic "$pmic_module")" = \
-		'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
-		fail 'PMIC GLINK module ABI mismatch'
-	modinfo -p "$pmic_module" |
-		grep -Fxq 'battery_only:Expose only the battery client for attended diagnostics (bool)' ||
-		fail 'PMIC GLINK battery-only parameter is absent'
-
+if [ "$mode" != adsp ]; then
 	verify_root_module() {
 		module_name=$1
 		expected_sha=$2
@@ -224,12 +215,52 @@ if [ "$mode" = telemetry ]; then
 			'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
 			fail "reviewed root module ABI mismatch: $module_name"
 	}
-	verify_root_module qrtr_smd \
-		87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178 \
-		qrtr
-	verify_root_module qcom_pd_mapper \
-		7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7 \
-		qcom_pdr_msg
+
+	case $mode in
+		telemetry)
+			qrtr_smd_sha=87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178
+			pd_mapper_sha=7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7
+			;;
+		charging)
+			qrtr_smd_sha=87e4797a61b75efd02cb52d47e013af5c28cee57affcf484f872ea5a1fb69178
+			pd_mapper_sha=7eac8fd204c74f0cae8d28a082dec54c8e30d55d420dfd2418052e7f5c9777f7
+			verify_root_module pdr_interface \
+				5b4e60818449d20691275a5a9a2e3359af5d42fd70c2e48a2a53e0e20e6f677d \
+				qcom_pdr_msg
+			verify_root_module pmic_glink \
+				55c1bc5807de58e08932f290ee8f92517b93c3a7ad373ab6eb4f72be8a865bff \
+				pdr_interface
+			verify_root_module qcom_battmgr \
+				2d7d4d386e5198926347dee5a846f3a010dcf2212bdbf8b010b62ab14f7e647f \
+				pmic_glink
+			verify_root_module typec \
+				2dbfedb34d5f45bc474c85028062d9a7d6b187c724810d88f6d70cb955fd4aec ''
+			verify_root_module typec_ucsi \
+				fc4036e8f6ded725edb74c767cee4b988a47b60eb0c6e06c32f8d0ce8ba727fc \
+				typec
+			verify_root_module ucsi_glink \
+				7d0a696669c4ce455699651876fff58cc9646c8a36d56fbd50a31077001bdc4d \
+				'typec_ucsi,pmic_glink,typec'
+			;;
+	esac
+	verify_root_module qrtr_smd "$qrtr_smd_sha" qrtr
+	verify_root_module qcom_pd_mapper "$pd_mapper_sha" qcom_pdr_msg
+fi
+
+if [ "$mode" = telemetry ]; then
+	[ -f "$pmic_module" ] && [ ! -L "$pmic_module" ] ||
+		fail 'missing volatile battery-only PMIC GLINK module'
+	[ "$(sha256sum "$pmic_module" | cut -d ' ' -f 1)" = "$expected_pmic_sha" ] ||
+		fail 'battery-only PMIC GLINK module hash mismatch'
+	[ "$(modinfo -F name "$pmic_module")" = pmic_glink ] ||
+		fail 'unexpected PMIC GLINK module name'
+	[ "$(modinfo -F vermagic "$pmic_module")" = \
+		'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
+		fail 'PMIC GLINK module ABI mismatch'
+	modinfo -p "$pmic_module" |
+		grep -Fxq 'battery_only:Expose only the battery client for attended diagnostics (bool)' ||
+		fail 'PMIC GLINK battery-only parameter is absent'
+
 fi
 
 fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
@@ -382,7 +413,7 @@ do
 		fail "udev loaded an unrequested module: $module"
 done
 
-if [ "$mode" = telemetry ]; then
+if [ "$mode" != adsp ]; then
 	if ! modprobe --first-time qrtr_smd; then
 		post_fail 'ADSP IPCRTR transport load failed'
 	fi
@@ -409,21 +440,58 @@ if [ "$mode" = telemetry ]; then
 	if ! modprobe --first-time pdr_interface; then
 		post_fail 'protection-domain restart helper load failed'
 	fi
-	if ! insmod "$pmic_module" battery_only=1; then
-		post_fail 'battery-only PMIC GLINK load failed'
-	fi
-	[ "$(cat /sys/module/pmic_glink/parameters/battery_only)" = Y ] ||
-		post_fail 'PMIC GLINK did not enter battery-only mode'
+	case $mode in
+		telemetry)
+			if ! insmod "$pmic_module" battery_only=1; then
+				post_fail 'battery-only PMIC GLINK load failed'
+			fi
+			[ "$(cat /sys/module/pmic_glink/parameters/battery_only)" = Y ] ||
+				post_fail 'PMIC GLINK did not enter battery-only mode'
+			;;
+		charging)
+			if ! modprobe --first-time pmic_glink; then
+				post_fail 'full PMIC GLINK load failed'
+			fi
+			[ ! -e /sys/module/pmic_glink/parameters/battery_only ] ||
+				post_fail 'charging candidate contains the diagnostic PMIC module'
+			;;
+	esac
 	[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
 		-name 'pmic_glink.power-supply.*' | wc -l)" -eq 1 ] ||
 		post_fail 'PMIC GLINK did not expose exactly one battery auxiliary device'
-	[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
-		\( -name 'pmic_glink.ucsi.*' -o -name 'pmic_glink.altmode.*' \) |
-		wc -l)" -eq 0 ] ||
-		post_fail 'PMIC GLINK exposed a USB-C control auxiliary device'
+	if [ "$mode" = telemetry ]; then
+		[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
+			\( -name 'pmic_glink.ucsi.*' -o -name 'pmic_glink.altmode.*' \) |
+			wc -l)" -eq 0 ] ||
+			post_fail 'PMIC GLINK exposed a USB-C control auxiliary device'
+	else
+		[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
+			-name 'pmic_glink.ucsi.*' | wc -l)" -eq 1 ] ||
+			post_fail 'PMIC GLINK did not expose exactly one UCSI device'
+		[ "$(find /sys/bus/auxiliary/devices -mindepth 1 -maxdepth 1 \
+			-name 'pmic_glink.altmode.*' | wc -l)" -eq 1 ] ||
+			post_fail 'PMIC GLINK did not expose exactly one altmode device'
+	fi
 
 	if ! modprobe --first-time qcom_battmgr; then
 		post_fail 'battery-manager load failed'
+	fi
+	if [ "$mode" = charging ]; then
+		if ! modprobe --first-time ucsi_glink; then
+			post_fail 'PMIC GLINK UCSI load failed'
+		fi
+		ucsi_ready=0
+		ucsi_waited=0
+		while [ "$ucsi_waited" -lt "$telemetry_wait_seconds" ]; do
+			[ "$(find /sys/class/typec -mindepth 1 -maxdepth 1 \
+				-name 'port*' 2>/dev/null | wc -l)" -ge 1 ] && {
+				ucsi_ready=1
+				break
+			}
+			ucsi_waited=$((ucsi_waited + 1))
+			sleep 1
+		done
+		[ "$ucsi_ready" -eq 1 ] || post_fail 'UCSI did not expose a Type-C port'
 	fi
 	telemetry_ready=0
 	telemetry_waited=0
@@ -455,11 +523,13 @@ qcom-battmgr-wls'
 		[ "$(stat -c %a "$battery/$property")" = 444 ] ||
 			post_fail "battery property is not read-only: $property"
 	done
-	for supply in "$battery" "$usb" "$wls"; do
-		[ ! -e "$supply/charge_control_start_threshold" ] &&
-			[ ! -e "$supply/charge_control_end_threshold" ] ||
-			post_fail 'a charge-control threshold became writable'
-	done
+	if [ "$mode" = telemetry ]; then
+		for supply in "$battery" "$usb" "$wls"; do
+			[ ! -e "$supply/charge_control_start_threshold" ] &&
+				[ ! -e "$supply/charge_control_end_threshold" ] ||
+				post_fail 'a charge-control threshold became writable'
+		done
+	fi
 	[ "$(stat -c %a "$usb/input_current_limit")" = 444 ] ||
 		post_fail 'USB input-current limit is not read-only'
 
@@ -496,6 +566,9 @@ qcom-battmgr-wls'
 		post_fail 'USB online state is not boolean'
 	[ "$wls_online" -eq 0 ] || [ "$wls_online" -eq 1 ] ||
 		post_fail 'wireless online state is not boolean'
+	if [ "$mode" = charging ]; then
+		[ "$usb_online" -eq 1 ] || post_fail 'full UCSI did not detect USB input'
+	fi
 
 	for module in qcom_battmgr pmic_glink pdr_interface qcom_pdr_msg \
 		qrtr_smd qcom_pd_mapper
@@ -503,12 +576,21 @@ qcom-battmgr-wls'
 		[ -d "/sys/module/$module" ] ||
 			post_fail "telemetry dependency is absent: $module"
 	done
-	for module in ucsi_glink pmic_glink_altmode qcom_apr fastrpc; do
+	for module in pmic_glink_altmode qcom_apr fastrpc; do
 		[ ! -d "/sys/module/$module" ] ||
 			post_fail "unreviewed module loaded during telemetry: $module"
 	done
-	[ "$(find /sys/class/typec -mindepth 1 -maxdepth 1 2>/dev/null |
-		wc -l)" -eq 0 ] || post_fail 'Type-C control device appeared'
+	if [ "$mode" = telemetry ]; then
+		[ ! -d /sys/module/ucsi_glink ] ||
+			post_fail 'unreviewed UCSI module loaded during telemetry'
+		[ "$(find /sys/class/typec -mindepth 1 -maxdepth 1 2>/dev/null |
+			wc -l)" -eq 0 ] || post_fail 'Type-C control device appeared'
+	else
+		for module in typec typec_ucsi ucsi_glink; do
+			[ -d "/sys/module/$module" ] ||
+				post_fail "charging dependency is absent: $module"
+		done
+	fi
 
 	echo "EVIDENCE capacity_percent=$capacity voltage_uV=$voltage_now current_uA=$current_now temp_dC=$temperature status=$status usb_online=$usb_online wls_online=$wls_online"
 else
@@ -517,6 +599,34 @@ else
 fi
 
 sleep "$settle_seconds"
+
+if [ "$mode" = charging ]; then
+	read_telemetry_property "$battery/voltage_now" final_voltage_now
+	final_voltage_now=$telemetry_value
+	read_telemetry_property "$battery/current_now" final_current_now
+	final_current_now=$telemetry_value
+	read_telemetry_property "$battery/temp" final_temperature
+	final_temperature=$telemetry_value
+	read_telemetry_property "$battery/status" final_status
+	final_status=$telemetry_value
+	read_telemetry_property "$usb/online" final_usb_online
+	final_usb_online=$telemetry_value
+	case $final_voltage_now:$final_current_now:$final_temperature:$final_usb_online in
+		*[!0-9:-]*|:*|*:) post_fail 'final charging sample is not integer-valued' ;;
+	esac
+	[ "$final_voltage_now" -ge 2500000 ] && [ "$final_voltage_now" -le 10000000 ] ||
+		post_fail 'final battery voltage is outside the diagnostic range'
+	[ "$final_current_now" -ge -20000000 ] && [ "$final_current_now" -le 20000000 ] ||
+		post_fail 'final battery current is outside the diagnostic range'
+	[ "$final_temperature" -ge -200 ] && [ "$final_temperature" -le 1000 ] ||
+		post_fail 'final battery temperature is outside the diagnostic range'
+	[ "$final_usb_online" -eq 1 ] || post_fail 'USB input disappeared during settle'
+	case $final_status in
+		Unknown|Charging|Discharging|'Not charging'|Full) ;;
+		*) post_fail 'final battery status is unknown' ;;
+	esac
+	echo "EVIDENCE final_voltage_uV=$final_voltage_now final_current_uA=$final_current_now final_temp_dC=$final_temperature final_status=$final_status final_usb_online=$final_usb_online"
+fi
 
 [ "$(cat "$remoteproc/state")" = running ] ||
 	post_fail 'ADSP stopped during settle'
@@ -553,14 +663,20 @@ qcom_common
 qcom_pil_info
 qcom_glink_smem
 qrtr'
-if [ "$mode" = telemetry ]; then
+if [ "$mode" != adsp ]; then
 	allowed_modules="$allowed_modules
 pdr_interface
 qcom_pdr_msg
 pmic_glink
 qcom_battmgr
 qrtr_smd
-qcom_pd_mapper"
+	qcom_pd_mapper"
+	if [ "$mode" = charging ]; then
+		allowed_modules="$allowed_modules
+typec
+typec_ucsi
+ucsi_glink"
+	fi
 fi
 unexpected_modules=$(printf '%s\n' "$new_modules" |
 	while IFS= read -r module; do
@@ -587,4 +703,8 @@ rm -f "$state_dir/modules-after"
 probe_safe=1
 disarm_watchdog
 trap - EXIT HUP INT TERM
-echo "PASS battery-telemetry mode=$mode stayed RAM-only, storage-isolated, USB-C-control-free, and rollback-guarded"
+if [ "$mode" = charging ]; then
+	echo 'PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded'
+else
+	echo "PASS battery-telemetry mode=$mode stayed RAM-only, storage-isolated, USB-C-control-free, and rollback-guarded"
+fi

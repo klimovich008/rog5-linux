@@ -47,11 +47,13 @@ DEPLOYMENT_NETWORK_ROOT_BUNDLE = "headless-ssh-network-root-v3-r2"
 # candidate or credentialed builder emits this identity.
 LEGACY_DIAGNOSTIC_NETWORK_ROOT_BUNDLE = "headless-netroot-early-diag-v1"
 DIAGNOSTIC_NETWORK_ROOT_BUNDLE = "headless-netroot-early-diag-v2"
+FULL_UCSI_CHARGING_BUNDLE = "headless-full-ucsi-charging-v1"
 V3_NETWORK_ROOT_BUNDLES = frozenset(
     {
         DEPLOYMENT_NETWORK_ROOT_BUNDLE,
         LEGACY_DIAGNOSTIC_NETWORK_ROOT_BUNDLE,
         DIAGNOSTIC_NETWORK_ROOT_BUNDLE,
+        FULL_UCSI_CHARGING_BUNDLE,
     }
 )
 NETWORK_ROOT_BUNDLES = frozenset({NETWORK_ROOT_BUNDLE}) | V3_NETWORK_ROOT_BUNDLES

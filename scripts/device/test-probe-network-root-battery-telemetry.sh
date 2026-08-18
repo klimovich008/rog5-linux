@@ -9,6 +9,7 @@ sh -n "$probe"
 
 for contract in \
 	'ALLOW_NETWORK_ROOT_BATTERY_PROBE' \
+	'ALLOW_NETWORK_ROOT_CHARGING_PROBE' \
 	'ROG5_ADSP_SCM_TRACE' \
 	'ROG5_TELEMETRY_WAIT' \
 	'7.1.4-g7a5cef0db479' \
@@ -46,6 +47,10 @@ for contract in \
 	'insmod "$pmic_module" battery_only=1' \
 	'modprobe --first-time pdr_interface' \
 	'modprobe --first-time qcom_battmgr' \
+	'modprobe --first-time pmic_glink' \
+	'modprobe --first-time ucsi_glink' \
+	'full UCSI did not detect USB input' \
+	'final_voltage_uV=' \
 	'pmic_glink.power-supply.*' \
 	'pmic_glink.ucsi.*' \
 	'pmic_glink.altmode.*' \
@@ -126,10 +131,18 @@ invalid_mode=$?
 ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 ROG5_ADSP_SCM_TRACE=1 \
 	"$probe" telemetry >/dev/null 2>&1
 trace_telemetry=$?
+ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 "$probe" charging >/dev/null 2>&1
+missing_charging_guard=$?
 set -e
 [ "$missing_guard" -ne 0 ]
 [ "$invalid_mode" -ne 0 ]
 [ "$trace_telemetry" -ne 0 ]
+[ "$missing_charging_guard" -ne 0 ]
+
+if grep -Eq 'charge_control_(start|end)_threshold[^\n]*(>|tee)' "$probe"; then
+	echo 'FAIL charging probe writes a charge-control threshold' >&2
+	exit 1
+fi
 
 check_structured_readiness() {
 	candidate=$1
@@ -157,4 +170,4 @@ rm -f "$mutant"
 rmdir "$mutation_dir"
 trap - EXIT
 
-echo 'PASS battery-telemetry probe is two-tiered, explicit, volatile-firmware-only, USB-C-control-free, and rollback-guarded'
+echo 'PASS battery-telemetry probe keeps historical isolated tiers and adds one explicit-write-free full-UCSI charging discriminator'
