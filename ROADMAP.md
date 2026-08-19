@@ -22,20 +22,21 @@ interactive recovery shell, or an attended temporary boot. The active path is
 read-only storage discovery, stable mainline UFS, a bounded local-root image,
 and then a reviewed dedicated Linux layout.
 
-## S0 — Current power and dual-port USB critical path
+## S0 — Current side-port charging and USB critical path
 
 Status: **stock WW33 rescue restored; RAM-only Linux observer building**
 
 - [x] Preserve slot A as the verified ASUS charging, Android, and recovery
   route.
-- [x] Confirm stock WW33 sees side `port0` and bottom `port1` concurrently.
-- [x] Confirm dual connection remains limited to 5 V / 500 mA under stock
-  policy while battery voltage still rises at idle.
+- [x] Prove stock WW33 maps side `a600000.dwc3` to UCSI `port1`: side-only is
+  UFP/sink/device while `port0` is disconnected.
+- [x] Confirm side-only RNDIS/ADB and charging coexist at 5 V / 500 mA; charge
+  counter rose 14,000 units over 121 seconds while data remained connected.
 - [x] Reuse the proven side `a600000` NCM/ACM target and full PMIC-GLINK/UCSI
   kernel/DTB rather than adding an unproven role-switch topology.
 - [x] Add exact UCSI-port, USB-limit, battery, and post-UCSI NCM evidence to
   `headless-power-usb-observer-v1`.
-- [ ] Boot the observer once through the RAM-only path and collect both ports,
+- [ ] Boot the observer once with only the side cable and collect UCSI role,
   current direction, temperature, SSH continuity, and rollback evidence.
 - [ ] Add the already clean-twin-built dual-cell read-only module only after
   the aggregate observer passes.

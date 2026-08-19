@@ -41,7 +41,7 @@ The orange verified-boot state is expected because the bootloader is unlocked.
 
 ## Power and USB design
 
-The first Linux observer keeps the known-good topology:
+The first Linux observer keeps the Android-proven side-port topology:
 
 - primary `a600000` DWC3: high-speed peripheral, ConfigFS NCM/ACM;
 - secondary `a800000` DWC3: disabled;
@@ -51,10 +51,10 @@ The first Linux observer keeps the known-good topology:
 - phone storage: disabled in kernel and DT for this cycle;
 - rollback: independent timer remains armed until acceptance.
 
-This separates observation from policy. UCSI can describe both ports, while
-actual ASUS charger arbitration remains in Qualcomm/ASUS firmware. Do not
-infer that enabling the secondary DWC3 corresponds to the bottom port without
-hardware evidence.
+Android proves UCSI `port1` is the side `a600000.dwc3` data/charging port:
+with only the PC cable connected it is UFP/sink/device while `port0` is
+disconnected. The first Linux cycle therefore uses only the side cable and
+defers bottom-port arbitration.
 
 ## Active successor
 
@@ -98,6 +98,6 @@ appending lifecycle transcripts.
 ## Immediate next gate
 
 Complete the offline twin wrapper, publish the coherent checkpoint, admit its
-exact disposable-key chain once, and run one live dual-port observation
+exact disposable-key chain once, and run one live side-port observation
 through systemd and strict SSH. Its result decides whether the next change is
 kernel, DT, Qualcomm protocol support, or host cabling/power policy.

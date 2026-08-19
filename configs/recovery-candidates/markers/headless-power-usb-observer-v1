@@ -1,4 +1,4 @@
 format=rog5-target-attempt-marker-v1
 candidate=headless-power-usb-observer-v1
 predecessor=headless-full-ucsi-charging-v3
-purpose=systemd-ssh-power-usb-observer-with-exact-side-ncm-and-dual-port-ucsi-evidence
+purpose=systemd-ssh-power-usb-observer-with-exact-side-ncm-and-side-port-charging-evidence

@@ -142,6 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
+		headless-power-usb-observer-v1-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -1498,6 +1499,41 @@ case $profile in
 		[[ $expected_host_verifier == \
 			03dae9292cd486f1a4ab92be74621593479eee0baa66eef7521c46ff39000de0 ]] ||
 			fail 'headless-core host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	headless-power-usb-observer-v1-live-v1)
+		expected_boot_image=build/power-usb-observer-v1-offline-r3/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted side-port NCM SSH and charging observer; disposable-key clean twins; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=e2b4f3a1e95a2e88584d67600475a15bb56bd581189b1672842fee626ef8b3da
+		expected_raw=d88173e31b81b10e66f45f33905db0c042e6d7ba429c32636b21646f132652d3
+		expected_initramfs=95de061ee3cc91aba4957deb0e3dcd247e6f0ab90108bc2956dbd001d3248711
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_target_id=headless-power-usb-observer-v1
+		expected_bundle=headless-power-usb-observer-v1
+		expected_bundle_profile=network-root-v1
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			c8e367e3a90966511d22759fe2e650e39a339ea2df554c4a1b9dc6c5409149dd ]] ||
+			fail 'power USB observer runtime manifest is not pinned'
+		[[ $expected_image == \
+			a5e3497f3f2575d748d8956b70c64b4133c8e60a3072b7760aa9502ee4744d6c ]] ||
+			fail 'power USB observer recovery image is not pinned'
+		[[ $expected_trust == \
+			c140880c1790de552f2d175a59b750c56291a8a05c8c629f3682d4350cb5508b ]] ||
+			fail 'power USB observer trust key is not pinned'
+		[[ $expected_host_verifier == \
+			04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
+			fail 'power USB observer host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -2905,6 +2941,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
+	headless-power-usb-observer-v1-live-v1 | \
 	persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 	persistent-root-qmp-module-load-control-v13-live-v1 | \
 	persistent-root-qmp-regulator-stage-v14-live-v1 | \

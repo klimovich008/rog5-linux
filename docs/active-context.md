@@ -46,10 +46,10 @@ per-unit key material.
 ## Current objective
 
 Build a reliable standalone Arch Linux server while preserving slot A.
-Immediate work is Linux power and dual-port USB:
+Immediate work is Linux power over the side data port:
 
 1. keep side controller `a600000` in peripheral mode for NCM/ACM data;
-2. observe and retain bottom-port charging;
+2. reproduce side-port sink charging while NCM/SSH remains active;
 3. bring up ADSP, PMIC GLINK, `qcom_battmgr`, and UCSI;
 4. expose aggregate and dual-cell battery telemetry;
 5. prove net-positive charging and safe temperature under sustained load;
@@ -58,17 +58,17 @@ Immediate work is Linux power and dual-port USB:
 
 ## Current physical evidence
 
-With both ports connected, stock WW33 reports two UCSI ports:
+Stock WW33 establishes the physical UCSI mapping:
 
-- `port0`: connected, UFP, sink, device, role-switch capable; this is the side
-  data path using `a600000.dwc3` under Android.
-- `port1`: connected, UFP, sink, device, fixed sink/device roles; this is the
-  bottom charging path.
+- `port1`: with only the PC cable attached, connected as UFP/sink/device while
+  RNDIS/ADB uses `a600000.dwc3`; this is the side data/charging port.
+- `port0`: disconnected in that side-only state and connected only when the
+  bottom cable is attached; this is the bottom port.
 
-At 51% the battery reported charging at 7.862-7.868 V over a two-minute idle
-sample. It later reached 54% and 7.914 V with both ports still attached, while
-input remained limited to 5 V / 500 mA. Both ports can coexist and charge
-net-positive at idle, while stock policy still limits aggregate input.
+With only the side PC connection, Android reports UFP/sink/device, charging,
+5 V / 500 mA input, `side usb status: 1`, and `asus charger: 0`. The immediate
+Linux gate is the same side-only combination; bottom-port arbitration is
+deferred.
 
 Android names the controller `a600000.dwc3`; the proven Linux 7.1 UDC is
 `a600000.usb`. Do not rename the Linux contract based only on Android's name.
@@ -105,9 +105,9 @@ and wrapper AVB
 3. Admit the disposable-key twin wrapper and matching bundle for one RAM-only
    cycle; its private key is destroyed after construction.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
-5. Temporarily boot once with both ports connected.
+5. Temporarily boot once with only the side port connected.
 6. Reach systemd and key-only SSH, then run the power/USB probe.
-7. Record UCSI ports, power roles, USB limits, battery current/temperature,
+7. Record UCSI port1, power role, USB limits, battery current/temperature,
    NCM continuity, and rollback result.
 8. Patch only the earliest demonstrated failure.
 
