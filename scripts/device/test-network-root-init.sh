@@ -107,6 +107,7 @@ for text in \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
 	'cp -p "$diagnostic_binary"' \
 	'cp -p /sbin/rog5-early-charging-probe' \
+	'${charging_probe_mode:-0}' \
 	'cp -Rp /opt/rog5-charge-firmware' \
 	'mount -t nfs4' \
 	'vers=4.2,proto=tcp,port=2049,ro,soft,timeo=30,retrans=2' \
