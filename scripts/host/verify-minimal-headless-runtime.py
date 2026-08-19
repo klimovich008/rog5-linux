@@ -129,6 +129,7 @@ HISTORICAL_PROFILE = "historical-headless-network-root-v1"
 DEPLOYMENT_PROFILE = "headless-ssh-deployment-v3"
 DIAGNOSTIC_PROFILE = "diagnostic-initramfs-v1"
 CORE_PROFILE = "headless-core-deployment-v1"
+POWER_USB_PROFILE = "power-usb-observer-v1"
 HISTORICAL_CANDIDATE = "headless-network-root-v1"
 DEPLOYMENT_CANDIDATE = "headless-ssh-network-root-v3"
 DEPLOYMENT_BUNDLE = "headless-ssh-network-root-v3-r2"
@@ -139,6 +140,7 @@ DIAGNOSTIC_TARGET = "headless-netroot-early-diag-v2"
 CORE_CANDIDATE = "headless-core-network-root-v2"
 CORE_BUNDLE = "headless-core-network-root-v2-live-v1"
 CORE_TARGET = "headless-core-network-root"
+POWER_USB_CANDIDATE = "headless-power-usb-observer-v1"
 DEPLOYMENT_RELEASE = "7.1.4-g7a5cef0db479"
 EXTERNAL_PROFILES = {
     DEPLOYMENT_PROFILE: {
@@ -159,6 +161,12 @@ EXTERNAL_PROFILES = {
         "profile": "network-root-v1",
         "target": CORE_TARGET,
     },
+    POWER_USB_PROFILE: {
+        "candidate": POWER_USB_CANDIDATE,
+        "bundle": POWER_USB_CANDIDATE,
+        "profile": "network-root-v1",
+        "target": POWER_USB_CANDIDATE,
+    },
 }
 USB_GADGET_CONTRACTS = {
     HISTORICAL_PROFILE: {
@@ -177,6 +185,11 @@ USB_GADGET_CONTRACTS = {
         "usb_function": "acm.usb0,ncm.usb0",
     },
     CORE_PROFILE: {
+        "usb_product": "ROG5 network root",
+        "usb_configuration": "NFS root over NCM",
+        "usb_function": "ncm.usb0",
+    },
+    POWER_USB_PROFILE: {
         "usb_product": "ROG5 network root",
         "usb_configuration": "NFS root over NCM",
         "usb_function": "ncm.usb0",
@@ -761,6 +774,7 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
             DEPLOYMENT_PROFILE,
             DIAGNOSTIC_PROFILE,
             CORE_PROFILE,
+            POWER_USB_PROFILE,
         ),
     )
     parser.add_argument("--candidate-record", type=Path)

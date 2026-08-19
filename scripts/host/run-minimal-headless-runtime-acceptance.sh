@@ -29,6 +29,9 @@ case $# in
 			headless-core-deployment-v1)
 				runtime_candidate=headless-core-network-root-v2
 				;;
+			power-usb-observer-v1)
+				runtime_candidate=headless-power-usb-observer-v1
+				;;
 			*) fail 'unsupported runtime deployment profile' ;;
 		esac
 		[[ $candidate_sha256 =~ ^[0-9a-f]{64}$ &&
@@ -36,7 +39,7 @@ case $# in
 			0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'deployment candidate identity is invalid'
 		;;
-	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3|headless-core-deployment-v1|diagnostic-initramfs-v1 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
+	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3|headless-core-deployment-v1|diagnostic-initramfs-v1|power-usb-observer-v1 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
 esac
 
 [[ ${ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE:-} == 1 ]] ||

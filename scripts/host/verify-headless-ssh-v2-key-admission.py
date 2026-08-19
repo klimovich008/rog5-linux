@@ -149,6 +149,32 @@ CORE_EXPECTED_ARTIFACTS = {
     },
     "initramfs.cpio.gz": EXPECTED_ARTIFACTS["initramfs.cpio.gz"],
 }
+POWER_USB_EXPECTED_ARTIFACTS = {
+    "Image": {
+        "path": "artifacts/network-root-power-usb-observer-v1/Image",
+        "size": 40049152,
+        "sha256": (
+            "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef"
+        ),
+    },
+    "board.dtb": {
+        "path": "artifacts/network-root-power-usb-observer-v1/board.dtb",
+        "size": 102938,
+        "sha256": (
+            "3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11"
+        ),
+    },
+    "initramfs.cpio.gz": {
+        "path": (
+            "artifacts/network-root-power-usb-observer-v1/"
+            "initramfs.cpio.gz"
+        ),
+        "size": 5995915,
+        "sha256": (
+            "f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9"
+        ),
+    },
+}
 CORE_FIXTURE_IDENTITIES = {
     "source_archive_sha256": (
         "86e2b3bfdd057e9b7bb98963eb419c839641b63d8d21ec8d3bd84c5c1b8d18f1"
@@ -288,6 +314,17 @@ CORE_ADMISSION_PROFILE = AdmissionProfile(
     target_release=TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(CORE_EXPECTED_ARTIFACTS),
 )
+POWER_USB_ADMISSION_PROFILE = AdmissionProfile(
+    name="power-usb-observer-live-v1",
+    candidate_id="headless-power-usb-observer-v1",
+    bundle_id="headless-power-usb-observer-v1",
+    bundle_profile=PROFILE,
+    package_profile=PROFILE,
+    build_profile=BUILD_PROFILE,
+    target_id="headless-power-usb-observer-v1",
+    target_release=TARGET_RELEASE,
+    expected_artifacts=immutable_artifacts(POWER_USB_EXPECTED_ARTIFACTS),
+)
 ADMISSION_PROFILES = MappingProxyType(
     {
         profile.name: profile
@@ -296,6 +333,7 @@ ADMISSION_PROFILES = MappingProxyType(
             LEGACY_DIAGNOSTIC_ADMISSION_PROFILE,
             DIAGNOSTIC_ADMISSION_PROFILE,
             CORE_ADMISSION_PROFILE,
+            POWER_USB_ADMISSION_PROFILE,
         )
     }
 )

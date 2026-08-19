@@ -342,8 +342,16 @@ class KeyAdmissionTest(unittest.TestCase):
             {
                 "bundle": profile.bundle_id,
                 "profile": profile.bundle_profile,
+                "kernel_size": str(expected_artifacts["Image"]["size"]),
+                "kernel_sha256": expected_artifacts["Image"]["sha256"],
                 "dtb_size": str(expected_artifacts["board.dtb"]["size"]),
                 "dtb_sha256": expected_artifacts["board.dtb"]["sha256"],
+                "initramfs_size": str(
+                    expected_artifacts["initramfs.cpio.gz"]["size"]
+                ),
+                "initramfs_sha256": expected_artifacts[
+                    "initramfs.cpio.gz"
+                ]["sha256"],
                 "target_id": profile.target_id,
             }
         )
@@ -359,6 +367,48 @@ class KeyAdmissionTest(unittest.TestCase):
         self.assertEqual(result["candidate"], profile.candidate_id)
         self.assertEqual(result["bundle"], profile.bundle_id)
         self.assertEqual(result["build_profile"], "headless-core-v3")
+
+    def test_exact_power_usb_observer_chain_passes(self) -> None:
+        profile = ADMISSION.POWER_USB_ADMISSION_PROFILE
+        expected_artifacts = ADMISSION.artifact_map(profile)
+        self.candidate.update(
+            {
+                "candidate": profile.candidate_id,
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "target_id": profile.target_id,
+                "artifacts": copy.deepcopy(expected_artifacts),
+            }
+        )
+        self.manifest.update(
+            {
+                "bundle": profile.bundle_id,
+                "profile": profile.bundle_profile,
+                "kernel_size": str(expected_artifacts["Image"]["size"]),
+                "kernel_sha256": expected_artifacts["Image"]["sha256"],
+                "dtb_size": str(expected_artifacts["board.dtb"]["size"]),
+                "dtb_sha256": expected_artifacts["board.dtb"]["sha256"],
+                "initramfs_size": str(
+                    expected_artifacts["initramfs.cpio.gz"]["size"]
+                ),
+                "initramfs_sha256": expected_artifacts[
+                    "initramfs.cpio.gz"
+                ]["sha256"],
+                "target_id": profile.target_id,
+            }
+        )
+        manifest_sha256 = self.write_records()
+        result = ADMISSION.verify(
+            self.private_key,
+            self.package_path,
+            self.candidate_path,
+            self.manifest_path,
+            manifest_sha256,
+            profile.name,
+        )
+        self.assertEqual(result["candidate"], profile.candidate_id)
+        self.assertEqual(result["bundle"], profile.bundle_id)
+        self.assertEqual(result["build_profile"], "headless-ssh-v2")
 
     def test_admission_policy_cannot_be_supplied_or_mutated(self) -> None:
         custom = ADMISSION.AdmissionProfile(

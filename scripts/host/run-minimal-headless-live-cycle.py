@@ -26,6 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"
+POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v1-live-v1"
 DIAGNOSTIC_RECOVERY_PROFILE = (
     "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"
 )
@@ -436,6 +437,17 @@ CORE_CYCLE_PROFILE = CycleProfile(
     recovery_profile=CORE_RECOVERY_PROFILE,
     runtime_profile="headless-core-deployment-v1",
     build_profile="headless-core-v3",
+    diagnostic=False,
+)
+POWER_USB_CYCLE_PROFILE = CycleProfile(
+    candidate="headless-power-usb-observer-v1",
+    bundle="headless-power-usb-observer-v1",
+    bundle_profile="network-root-v1",
+    target_id="headless-power-usb-observer-v1",
+    admission_profile="power-usb-observer-live-v1",
+    recovery_profile=POWER_USB_RECOVERY_PROFILE,
+    runtime_profile="power-usb-observer-v1",
+    build_profile="headless-ssh-v2",
     diagnostic=False,
 )
 
@@ -4140,12 +4152,19 @@ def main(arguments: list[str]) -> int:
         "core-key-preflight": ("key-preflight", CORE_CYCLE_PROFILE),
         "core-preflight": ("preflight", CORE_CYCLE_PROFILE),
         "core-run": ("run", CORE_CYCLE_PROFILE),
+        "power-usb-key-preflight": (
+            "key-preflight",
+            POWER_USB_CYCLE_PROFILE,
+        ),
+        "power-usb-preflight": ("preflight", POWER_USB_CYCLE_PROFILE),
+        "power-usb-run": ("run", POWER_USB_CYCLE_PROFILE),
     }
     if requested not in actions:
         fail(
             "usage: run-minimal-headless-live-cycle.py "
             "key-preflight | preflight | run | diagnostic-key-preflight | "
-            "diagnostic-preflight | diagnostic-run"
+            "diagnostic-preflight | diagnostic-run | power-usb-key-preflight | "
+            "power-usb-preflight | power-usb-run"
         )
     offline_test_root = os.environ.get("ROG5_LIVE_CYCLE_TEST_ROOT")
     offline_harness_requested = (

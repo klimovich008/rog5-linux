@@ -37,6 +37,8 @@ for token in \
 	'headless-ssh-network-root-v3' \
 	'diagnostic-initramfs-v1' \
 	'headless-netroot-early-diag-v2' \
+	'power-usb-observer-v1' \
+	'headless-power-usb-observer-v1' \
 	'/run/initramfs/sbin/rog5-early-target-diag emit 150' \
 	'--deployment-profile' \
 	'--candidate-record' \

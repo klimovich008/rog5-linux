@@ -238,6 +238,46 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
         self.assertEqual(verified_digest, hashlib.sha256(render(values)).hexdigest())
         self.assertEqual(verified["candidate"], VERIFIER.CORE_CANDIDATE)
 
+    def test_power_usb_record_is_bound_to_exact_external_candidate(self) -> None:
+        path = self.directory / "power-usb-candidate.json"
+        candidate = json.loads(
+            (REPO / "configs/recovery-candidates/headless-power-usb-observer-v1.json").read_text(encoding="ascii")
+        )
+        candidate["root_tree_sha256"] = "9" * 64
+        candidate["root_seal_sha256"] = "a" * 64
+        candidate["root_tree_entries"] = "37741"
+        path.write_text(json.dumps(candidate, indent=2) + "\n", encoding="ascii")
+        path.chmod(0o400)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        values = self.deployment_values()
+        values.update(VERIFIER.USB_GADGET_CONTRACTS[VERIFIER.POWER_USB_PROFILE])
+        values["candidate"] = VERIFIER.POWER_USB_CANDIDATE
+        for name in (
+            "root_generation",
+            "root_tree_sha256",
+            "root_seal_sha256",
+            "root_tree_entries",
+            "root_subtree",
+        ):
+            values[name] = candidate[name]
+        values["root_seal_file_sha256"] = candidate["root_seal_sha256"]
+        values["kernel_release"] = candidate["target_release"]
+        values["watchdog_timeout_seconds"] = candidate["rollback_timeout"]
+        values["command_manifest_sha256"] = candidate[
+            "a660_command_manifest_sha256"
+        ]
+        self.write(values)
+        verified_digest, verified = VERIFIER.verify_record(
+            REPO,
+            self.record,
+            BOOT_ID,
+            VERIFIER.POWER_USB_PROFILE,
+            path,
+            digest,
+        )
+        self.assertEqual(verified_digest, hashlib.sha256(render(values)).hexdigest())
+        self.assertEqual(verified["candidate"], VERIFIER.POWER_USB_CANDIDATE)
+
     def test_diagnostic_record_requires_exact_ncm_acm_gadget(self) -> None:
         candidate_path = self.directory / "diagnostic-candidate.json"
         candidate = json.loads(
