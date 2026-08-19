@@ -13,6 +13,7 @@ output=$2
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/network-root-init
 shutdown=$repo/initramfs/network-root-shutdown
+charging_probe=$repo/scripts/device/probe-network-root-battery-telemetry.sh
 xattr_projection=$repo/configs/network-roots/rog5-nfs4-xattr-projection-v1
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
@@ -29,7 +30,7 @@ for command in cpio cut dirname find grep gzip install ln mktemp readelf rm \
 	command -v "$command" >/dev/null ||
 		fail "missing network-root initramfs build command: $command"
 done
-for path in "$init" "$shutdown"; do
+for path in "$init" "$shutdown" "$charging_probe"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing initramfs source: $path"
 done
@@ -124,6 +125,8 @@ gzip -dc "$base" |
 	(cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
+install -D -m 0755 "$charging_probe" \
+	"$stage/sbin/rog5-early-charging-probe"
 install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"
 install -D -m 0444 "$xattr_projection" \
 	"$stage/etc/rog5/nfs4-xattr-projection"

@@ -146,6 +146,19 @@ cmp "$root_verifier" "$trusted/persistent-root-verify" || {
 	exit 1
 }
 
+charging_probe=$stage/sbin/rog5-early-charging-probe
+reviewed_charging_probe=$repo/scripts/device/probe-network-root-battery-telemetry.sh
+[ -x "$charging_probe" ] && [ -f "$charging_probe" ] &&
+	[ ! -L "$charging_probe" ] || {
+	echo 'FAIL network-root initramfs lacks reviewed charging probe' >&2
+	exit 1
+}
+cmp "$charging_probe" "$reviewed_charging_probe" || {
+	echo 'FAIL network-root charging probe differs from reviewed source' >&2
+	exit 1
+}
+sh -n "$charging_probe"
+
 reporter=$stage/sbin/rog5-early-target-diag
 if [ -z "$reviewed_reporter" ]; then
 	[ ! -e "$reporter" ] && [ ! -L "$reporter" ] || {

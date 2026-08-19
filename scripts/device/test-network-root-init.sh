@@ -24,6 +24,7 @@ for text in \
 	'reviewed_reporter_size=67288' \
 	'reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
+	'install -D -m 0755 "$charging_probe"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
@@ -38,6 +39,8 @@ if grep -Fq 'STATIC_VERIFIER' "$initramfs_builder"; then
 	exit 1
 fi
 grep -Fq 'cmp "$root_verifier" "$trusted/persistent-root-verify"' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
+grep -Fq 'cmp "$charging_probe" "$reviewed_charging_probe"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 for text in \
 	'normal network-root initramfs carries diagnostic reporter' \
