@@ -904,7 +904,7 @@ prepare_shutdown_root() {
 		cp -p "$diagnostic_binary" \
 			"$exitrd/sbin/rog5-early-target-diag" || return 1
 	fi
-	if [ "$charging_probe_mode" -eq 1 ]; then
+	if [ "${charging_probe_mode:-0}" -eq 1 ]; then
 		cp -p /sbin/rog5-early-charging-probe \
 			"$exitrd/sbin/rog5-early-charging-probe" || return 1
 		mkdir -p "$exitrd/rog5-charge-inputs" || return 1
@@ -1064,7 +1064,7 @@ if ! handoff_network_root; then
 	diagnostic_rollback handoff-failed
 fi
 
-if [ "$charging_probe_mode" -eq 1 ]; then
+if [ "${charging_probe_mode:-0}" -eq 1 ]; then
 	diagnostic_emit 141 || true
 	if exec chroot "$handoff_newroot" /usr/bin/env \
 		ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
