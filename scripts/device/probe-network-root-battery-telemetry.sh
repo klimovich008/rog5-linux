@@ -405,6 +405,65 @@ read_telemetry_property() {
 	fi
 }
 
+emit_evidence() {
+	evidence_line="EVIDENCE $*"
+	printf '%s\n' "$evidence_line"
+	printf 'rog5-power-usb: %s\n' "$evidence_line" \
+		2>/dev/null >/dev/kmsg || true
+}
+
+emit_typec_snapshot() (
+	typec_root=${ROG5_TYPEC_CLASS_ROOT:-/sys/class/typec}
+	[ -d "$typec_root" ] && [ ! -L "$typec_root" ] ||
+		post_fail 'Type-C class is absent or unsafe'
+	port_count=0
+	partner_count=0
+	for entry in "$typec_root"/port*; do
+		[ -e "$entry" ] || continue
+		name=$(basename "$entry")
+		case $name in
+			port[0-9]|port[0-9][0-9]) ;;
+			*) continue ;;
+		esac
+		port_count=$((port_count + 1))
+		[ "$port_count" -le 3 ] ||
+			post_fail 'UCSI exposed more than three Type-C ports'
+		property_modes=
+		for property in data_role power_role port_type \
+			power_operation_mode; do
+			path=$entry/$property
+			[ -f "$path" ] && [ ! -L "$path" ] ||
+				post_fail "Type-C property is absent or linked: $name/$property"
+			mode=$(stat -c %a "$path")
+			case $mode in
+				444|644) ;;
+				*) post_fail "Type-C property mode is unsupported: $name/$property" ;;
+			esac
+			property_modes=${property_modes}${property}:${mode},
+		done
+		property_modes=${property_modes%,}
+		data_role=$(tr ' ' '_' <"$entry/data_role")
+		power_role=$(tr ' ' '_' <"$entry/power_role")
+		port_type=$(tr ' ' '_' <"$entry/port_type")
+		power_mode=$(tr ' ' '_' <"$entry/power_operation_mode")
+		case $data_role:$power_role:$port_type:$power_mode in
+			*[!A-Za-z0-9_.:\[\]-]*)
+				post_fail "Type-C property contains unsafe bytes: $name" ;;
+		esac
+		partner=0
+		if [ -e "$typec_root/$name-partner" ]; then
+			[ -L "$typec_root/$name-partner" ] ||
+				post_fail "Type-C partner is not a class link: $name"
+			partner=1
+			partner_count=$((partner_count + 1))
+		fi
+		emit_evidence "typec_port=$name data_role=$data_role power_role=$power_role port_type=$port_type power_operation_mode=$power_mode property_modes=$property_modes partner=$partner"
+	done
+	[ "$port_count" -ge 1 ] || post_fail 'UCSI exposed no Type-C port'
+	emit_evidence \
+		"typec_port_count=$port_count typec_partner_count=$partner_count"
+)
+
 if [ "$scm_trace" = 1 ]; then
 	if [ "$(findmnt -n -o FSTYPE "$trace_root" 2>/dev/null || true)" != tracefs ]; then
 		mount -t tracefs tracefs "$trace_root"
@@ -550,6 +609,7 @@ if [ "$mode" != adsp ]; then
 			sleep 1
 		done
 		[ "$ucsi_ready" -eq 1 ] || post_fail 'UCSI did not expose a Type-C port'
+		emit_typec_snapshot
 		emit_progress 157
 	fi
 	telemetry_ready=0
@@ -590,8 +650,12 @@ qcom-battmgr-wls'
 				post_fail 'a charge-control threshold became writable'
 		done
 	fi
-	[ "$(stat -c %a "$usb/input_current_limit")" = 444 ] ||
-		post_fail 'USB input-current limit is not read-only'
+	for property in voltage_now voltage_max current_now current_max \
+		input_current_limit usb_type; do
+		[ -f "$usb/$property" ] && [ ! -L "$usb/$property" ] &&
+			[ "$(stat -c %a "$usb/$property")" = 444 ] ||
+			post_fail "USB property is absent, linked, or writable: $property"
+	done
 
 	read_telemetry_property "$battery/capacity" capacity
 	capacity=$telemetry_value
@@ -605,10 +669,25 @@ qcom-battmgr-wls'
 	status=$telemetry_value
 	read_telemetry_property "$usb/online" usb_online
 	usb_online=$telemetry_value
+	read_telemetry_property "$usb/voltage_now" usb_voltage_now
+	usb_voltage_now=$telemetry_value
+	read_telemetry_property "$usb/voltage_max" usb_voltage_max
+	usb_voltage_max=$telemetry_value
+	read_telemetry_property "$usb/current_now" usb_current_now
+	usb_current_now=$telemetry_value
+	read_telemetry_property "$usb/current_max" usb_current_max
+	usb_current_max=$telemetry_value
+	read_telemetry_property "$usb/input_current_limit" usb_input_current_limit
+	usb_input_current_limit=$telemetry_value
+	read_telemetry_property "$usb/usb_type" usb_type
+	usb_type=$(printf '%s' "$telemetry_value" | tr ' ' '_')
 	read_telemetry_property "$wls/online" wls_online
 	wls_online=$telemetry_value
-	case $capacity:$voltage_now:$current_now:$temperature:$usb_online:$wls_online in
+	case $capacity:$voltage_now:$current_now:$temperature:$usb_online:$usb_voltage_now:$usb_voltage_max:$usb_current_now:$usb_current_max:$usb_input_current_limit:$wls_online in
 		*[!0-9:-]*|:*|*:) post_fail 'telemetry returned a non-integer value' ;;
+	esac
+	case $usb_type in
+		''|*[!A-Za-z0-9_.:\[\]-]*) post_fail 'USB type contains unsafe bytes' ;;
 	esac
 	[ "$capacity" -ge 0 ] && [ "$capacity" -le 100 ] ||
 		post_fail 'battery capacity is outside 0..100 percent'
@@ -618,6 +697,15 @@ qcom-battmgr-wls'
 		post_fail 'battery current is outside the diagnostic range'
 	[ "$temperature" -ge -200 ] && [ "$temperature" -le 1000 ] ||
 		post_fail 'battery temperature is outside the diagnostic range'
+	[ "$usb_voltage_now" -ge 0 ] && [ "$usb_voltage_now" -le 30000000 ] &&
+		[ "$usb_voltage_max" -ge 0 ] && [ "$usb_voltage_max" -le 30000000 ] ||
+		post_fail 'USB voltage is outside the diagnostic range'
+	[ "$usb_current_now" -ge -20000000 ] &&
+		[ "$usb_current_now" -le 20000000 ] &&
+		[ "$usb_current_max" -ge 0 ] && [ "$usb_current_max" -le 20000000 ] &&
+		[ "$usb_input_current_limit" -ge 0 ] &&
+		[ "$usb_input_current_limit" -le 20000000 ] ||
+		post_fail 'USB current is outside the diagnostic range'
 	case $status in
 		Unknown|Charging|Discharging|'Not charging'|Full) ;;
 		*) post_fail 'battery status is unknown' ;;
@@ -653,7 +741,7 @@ qcom-battmgr-wls'
 		done
 	fi
 
-	echo "EVIDENCE capacity_percent=$capacity voltage_uV=$voltage_now current_uA=$current_now temp_dC=$temperature status=$status usb_online=$usb_online wls_online=$wls_online"
+	emit_evidence "capacity_percent=$capacity voltage_uV=$voltage_now current_uA=$current_now temp_dC=$temperature status=$status usb_online=$usb_online usb_voltage_uV=$usb_voltage_now usb_voltage_max_uV=$usb_voltage_max usb_current_uA=$usb_current_now usb_current_max_uA=$usb_current_max usb_input_current_limit_uA=$usb_input_current_limit usb_type=$usb_type wls_online=$wls_online"
 else
 	[ "$(find /sys/class/power_supply -mindepth 1 -maxdepth 1 2>/dev/null |
 		wc -l)" -eq 0 ] || fail 'ADSP-only probe created a power-supply device'
@@ -686,7 +774,7 @@ if [ "$mode" = charging ]; then
 		Unknown|Charging|Discharging|'Not charging'|Full) ;;
 		*) post_fail 'final battery status is unknown' ;;
 	esac
-	echo "EVIDENCE final_voltage_uV=$final_voltage_now final_current_uA=$final_current_now final_temp_dC=$final_temperature final_status=$final_status final_usb_online=$final_usb_online"
+	emit_evidence "final_voltage_uV=$final_voltage_now final_current_uA=$final_current_now final_temp_dC=$final_temperature final_status=$final_status final_usb_online=$final_usb_online"
 fi
 
 [ "$(cat "$remoteproc/state")" = running ] ||
@@ -703,6 +791,32 @@ findmnt -n -o OPTIONS /.rog5/root-ro | tr ',' '\n' | grep -qx ro ||
 	post_fail 'NFS lower became writable'
 [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
 	post_fail 'USB carrier dropped'
+[ "$(find /sys/class/udc -mindepth 1 -maxdepth 1 -printf '%f\n')" = \
+	a600000.usb ] || post_fail 'side-port UDC identity changed after UCSI'
+[ "$(cat /sys/kernel/config/usb_gadget/rog5-network-root/UDC)" = \
+	a600000.usb ] || post_fail 'side-port gadget binding changed after UCSI'
+[ "$(ip -4 -o address show dev usb0 |
+	awk '$4 == "169.254.77.2/30" { count++ } END { print count + 0 }')" -eq 1 ] ||
+	post_fail 'USB network address changed after UCSI'
+route_state=$(ip -4 route get 169.254.77.1 2>/dev/null) ||
+	post_fail 'USB network route changed after UCSI'
+case " $route_state " in
+	*' via '*) post_fail 'USB network route changed after UCSI' ;;
+esac
+set -- $route_state
+[ "${1:-}" = 169.254.77.1 ] && [ "${2:-}" = dev ] &&
+	[ "${3:-}" = usb0 ] ||
+	post_fail 'USB network route changed after UCSI'
+route_source=
+while [ "$#" -gt 1 ]; do
+	if [ "$1" = src ]; then
+		route_source=$2
+		break
+	fi
+	shift
+done
+[ "$route_source" = 169.254.77.2 ] ||
+	post_fail 'USB network route changed after UCSI'
 if [ "$early_mode" -eq 0 ]; then
 	[ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
 		post_fail 'systemd regressed'

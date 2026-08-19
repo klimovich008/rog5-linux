@@ -58,12 +58,24 @@ for contract in \
 	'modprobe --first-time ucsi_glink' \
 	'full UCSI did not detect USB input' \
 	'final_voltage_uV=' \
+	'emit_typec_snapshot' \
+	'typec_port_count=' \
+	'typec_partner_count=' \
+	'property_modes=$property_modes' \
+	'usb_voltage_uV=' \
+	'usb_current_max_uA=' \
+	'usb_input_current_limit_uA=' \
+	'usb_type=' \
+	'side-port UDC identity changed after UCSI' \
+	'side-port gadget binding changed after UCSI' \
+	'USB network address changed after UCSI' \
+	'USB network route changed after UCSI' \
 	'pmic_glink.power-supply.*' \
 	'pmic_glink.ucsi.*' \
 	'pmic_glink.altmode.*' \
 	'charge_control_start_threshold' \
 	'charge_control_end_threshold' \
-	'stat -c %a "$usb/input_current_limit"' \
+	'USB property is absent, linked, or writable' \
 	'exec 9>/proc/sysrq-trigger' \
 	'echo b >&9' \
 	'kill -STOP -- "-$watchdog_pid"' \
@@ -156,6 +168,10 @@ if grep -Eq 'charge_control_(start|end)_threshold[^\n]*(>|tee)' "$probe"; then
 	echo 'FAIL charging probe writes a charge-control threshold' >&2
 	exit 1
 fi
+if grep -Eq '/sys/class/typec[^\n]*(>|tee)' "$probe"; then
+	echo 'FAIL charging probe writes a Type-C role or policy attribute' >&2
+	exit 1
+fi
 
 check_structured_readiness() {
 	candidate=$1
@@ -182,5 +198,42 @@ fi
 rm -f "$mutant"
 rmdir "$mutation_dir"
 trap - EXIT
+
+typec_fixture=$(mktemp -d)
+typec_functions=$typec_fixture/functions.sh
+sed -n '/^emit_evidence() {/,/^)$/{p}' "$probe" >"$typec_functions"
+mkdir -p "$typec_fixture/typec/port0" \
+	"$typec_fixture/devices/partner0"
+printf '%s\n' '[device] host' >"$typec_fixture/typec/port0/data_role"
+printf '%s\n' '[sink] source' >"$typec_fixture/typec/port0/power_role"
+printf '%s\n' '[dual]' >"$typec_fixture/typec/port0/port_type"
+printf '%s\n' default >"$typec_fixture/typec/port0/power_operation_mode"
+chmod 0644 "$typec_fixture/typec/port0/data_role" \
+	"$typec_fixture/typec/port0/power_role" \
+	"$typec_fixture/typec/port0/port_type"
+chmod 0444 "$typec_fixture/typec/port0/power_operation_mode"
+ln -s "$typec_fixture/devices/partner0" \
+	"$typec_fixture/typec/port0-partner"
+typec_output=$(
+	ROG5_TYPEC_CLASS_ROOT=$typec_fixture/typec sh -eu -c '
+		post_fail() { echo "FAIL $*" >&2; exit 1; }
+		. "$1"
+		emit_typec_snapshot
+	' sh "$typec_functions"
+)
+printf '%s\n' "$typec_output" | grep -Fqx \
+	'EVIDENCE typec_port=port0 data_role=[device]_host power_role=[sink]_source port_type=[dual] power_operation_mode=default property_modes=data_role:644,power_role:644,port_type:644,power_operation_mode:444 partner=1'
+printf '%s\n' "$typec_output" | grep -Fqx \
+	'EVIDENCE typec_port_count=1 typec_partner_count=1'
+chmod 0666 "$typec_fixture/typec/port0/data_role"
+if ROG5_TYPEC_CLASS_ROOT=$typec_fixture/typec sh -eu -c '
+	post_fail() { exit 1; }
+	. "$1"
+	emit_typec_snapshot
+' sh "$typec_functions" >/dev/null 2>&1; then
+	echo 'FAIL Type-C snapshot accepted an unsafe control mode' >&2
+	exit 1
+fi
+find "$typec_fixture" -depth -delete
 
 echo 'PASS battery-telemetry probe keeps historical isolated tiers and adds one explicit-write-free full-UCSI charging discriminator'

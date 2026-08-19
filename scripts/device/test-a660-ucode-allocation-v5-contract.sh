@@ -166,7 +166,7 @@ do
 	fi
 done
 
-for document in README.md ROADMAP.md docs/current-state.md \
+for document in README.md ROADMAP.md \
 	docs/kernel-port.md docs/network-root.md docs/test-plan.md \
 	docs/builds-and-artifacts.md docs/port-status.md
 do

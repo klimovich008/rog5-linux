@@ -22,28 +22,32 @@ interactive recovery shell, or an attended temporary boot. The active path is
 read-only storage discovery, stable mainline UFS, a bounded local-root image,
 and then a reviewed dedicated Linux layout.
 
-## S0 — Current storage critical path
+## S0 — Current power and dual-port USB critical path
 
-Status: **Phase-1 inventory and backup passed; mainline UFS/local image next**
+Status: **stock WW33 rescue restored; RAM-only Linux observer building**
 
-- [x] Preserve the Generation-21 buttons/indicator checkpoint and freeze
-  secondary subsystem expansion.
-- [x] Inventory seven UFS LUNs, both GPT copies, all 109 partitions,
-  filesystems, mounts, slots, AVB, firmware, identity data, and fallback use.
-- [x] Hash-back up all 107 non-`super`, non-`userdata` partitions plus 14 GPT
-  ranges and rehearse all seven GPT restorations offline.
-- [x] Classify Android `super`/`metadata` as future reclaim candidates and
-  preserve bootloader, firmware, modem/EFS, calibration, identity, and the
-  slot-B/Alpine recovery path.
-- [ ] Enable stable normal mainline UFS and prove repeated read-only reads.
-- [ ] Create one 16 GiB ext4 image inside `userdata`; keep payload writes
-  inside that bounded object and verify it after fallback.
-- [ ] RAM-boot Arch from the local image, retain NFS/Alpine recovery, and beat
-  Generation 20's 379.548-second strict-SSH baseline.
-- [ ] After repeated local-root success, propose a dedicated Linux partition
-  layout and obtain final confirmation of the exact destructive operation.
+- [x] Preserve slot A as the verified ASUS charging, Android, and recovery
+  route.
+- [x] Confirm stock WW33 sees side `port0` and bottom `port1` concurrently.
+- [x] Confirm dual connection remains limited to 5 V / 500 mA under stock
+  policy while battery voltage still rises at idle.
+- [x] Reuse the proven side `a600000` NCM/ACM target and full PMIC-GLINK/UCSI
+  kernel/DTB rather than adding an unproven role-switch topology.
+- [x] Add exact UCSI-port, USB-limit, battery, and post-UCSI NCM evidence to
+  `headless-power-usb-observer-v1`.
+- [ ] Boot the observer once through the RAM-only path and collect both ports,
+  current direction, temperature, SSH continuity, and rollback evidence.
+- [ ] Add the already clean-twin-built dual-cell read-only module only after
+  the aggregate observer passes.
+- [ ] Prove net-positive charging and safe temperature under sustained CPU and
+  network load.
 
-The detailed evidence and next experiment are in
+## S1 — Persistent local Arch root
+
+Phase-1 UFS/GPT inventory, protected-partition backups, restoration rehearsal,
+read-only UFS enumeration, and bounded local-image Arch boot have passed.
+Resume local-root optimization and dedicated partition design only after S0,
+while keeping slot A intact. See
 [storage-migration-phase1.md](docs/storage-migration-phase1.md).
 
 ## What “incremental” means

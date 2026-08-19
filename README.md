@@ -6,6 +6,11 @@ headless-first: recovery, logging, boot, storage, USB/SSH, power, charging,
 thermal behavior, input, sensors, audio, and wireless must be stable before
 display, GPU, desktop, remote GUI, hotspot, or automation work resumes.
 
+> **Current handoff:** charging and official WW33 Android are restored on slot
+> A. The active phase is RAM-only Linux dual-port power/USB observation. Read
+> [the compact active context](docs/active-context.md) before the historical
+> status ledger below.
+
 The project is experimental. It contains source, tests, configuration,
 artifact identities, and redacted evidence. It deliberately excludes private
 keys, personal data, Android partition dumps, proprietary firmware, and large
@@ -44,9 +49,8 @@ and final confirmation of the exact destructive commands.
   sequence.
 - [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
   exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
-- [ROG Phone 5 low-battery recovery hold](docs/asus-charging-recovery.md) —
-  reject the disproven slot-A crashdump path, preserve fallback slot B, and
-  require a proven charger plus the fastboot battery gate before Stage 1.
+- [Completed charging recovery](docs/asus-charging-recovery.md) — root cause,
+  accepted WW33 repair, and permanent no-repeat boundaries.
 - [Operator standing authorization](docs/operator-standing-authorization.md) —
   actions that may proceed without another consent prompt and the hard
   boundaries that remain.
@@ -56,9 +60,9 @@ and final confirmation of the exact destructive commands.
   [source/DTB contract](docs/core-source-dtb-contract.md), and
   [runtime acceptance](docs/minimal-headless-runtime-acceptance.md) — active
   hardware-free and live core gates.
-- [Current-state evidence ledger](docs/current-state.md) and
-  [build/artifact ledger](docs/builds-and-artifacts.md) — detailed chronology
-  and immutable identities; use these for investigation, not orientation.
+- [Current-state summary](docs/current-state.md) and
+  [build/artifact ledger](docs/builds-and-artifacts.md) — concise current
+  evidence plus immutable build identities.
 - [Test plan](docs/test-plan.md) — complete regression and hardware tiers.
 - [Archive index](docs/archive-index.md) — consumed and superseded material.
 

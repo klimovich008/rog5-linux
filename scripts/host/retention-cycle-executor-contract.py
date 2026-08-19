@@ -113,8 +113,8 @@ PROGRAM_IDENTITIES = {
         "0755",
     ),
     "scripts/host/stable-recovery-control.py": (
-        38747,
-        "26a40c7888b70957e7aa82bee14c7fb9ec300d2827c769c8c1e2aa14cbabe902",
+        39705,
+        "3963aba386f449e7b37b81cbaebe1795c1c2458f44dae6e42b1f72996779bc6d",
         "0755",
     ),
 }

@@ -886,7 +886,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "fee8604022571bf9b881f9f7169821bb01dec28777affa8b5e94944d80b78c43",
+    "sha256": "3869f8717c0320d47399ed66346f1b5c0efeeb617f5c98c5f345b27b3789d299",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -914,7 +914,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "fee8604022571bf9b881f9f7169821bb01dec28777affa8b5e94944d80b78c43",
+    "executor_contract_sha256": "3869f8717c0320d47399ed66346f1b5c0efeeb617f5c98c5f345b27b3789d299",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",

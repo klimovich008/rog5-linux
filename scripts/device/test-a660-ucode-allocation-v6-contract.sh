@@ -122,7 +122,6 @@ for status_file in \
 	"$repo/README.md" \
 	"$repo/ROADMAP.md" \
 	"$repo/docs/builds-and-artifacts.md" \
-	"$repo/docs/current-state.md" \
 	"$repo/docs/kernel-port.md" \
 	"$repo/docs/network-root.md" \
 	"$repo/docs/port-status.md" \
