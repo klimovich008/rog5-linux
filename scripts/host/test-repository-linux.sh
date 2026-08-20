@@ -13,7 +13,7 @@ case $tier in
 	*) fail 'usage: test-repository-linux.sh [active|ci|quick|rootfs]' ;;
 esac
 
-for command in bash date dtc gcc git head nm openssl pkg-config python3 sh \
+for command in bash date dirname dtc gcc git head nm openssl pkg-config python3 sh \
 	ssh-keygen strings; do
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
@@ -379,6 +379,13 @@ selected_test() {
 	done
 	return 1
 }
+test_tmp_parent=$(dirname -- "$repo")
+[[ $test_tmp_parent == /* && -d $test_tmp_parent &&
+	! -L $test_tmp_parent && -w $test_tmp_parent ]] ||
+	fail 'repository test temporary parent is unavailable'
+test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-repository-tests.XXXXXXXX")
+chmod 0700 "$test_tmp_root"
+export TMPDIR=$test_tmp_root
 parallel_root=$(mktemp -d)
 parallel_pids=()
 parallel_paths=()
@@ -420,6 +427,7 @@ cleanup_parallel_tests() {
 		[[ -z $pid ]] || wait "$pid" 2>/dev/null || true
 	done
 	rm -rf -- "$parallel_root"
+	[[ -z ${test_tmp_root:-} ]] || rm -rf -- "$test_tmp_root"
 	exit "$cleanup_status"
 }
 trap cleanup_parallel_tests EXIT HUP INT TERM

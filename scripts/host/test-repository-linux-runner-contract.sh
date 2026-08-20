@@ -22,6 +22,10 @@ for token in \
 	'isolated_tests=(' \
 	'parallel_pids=(' \
 	'parallel_status_files=(' \
+	'test_tmp_parent=$(dirname -- "$repo")' \
+	'test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-repository-tests.XXXXXXXX")' \
+	'export TMPDIR=$test_tmp_root' \
+	'rm -rf -- "$test_tmp_root"' \
 	'selected_test() {' \
 	'selected_test "$test_path" || continue' \
 	'parallel_group_has_other_members() {' \
