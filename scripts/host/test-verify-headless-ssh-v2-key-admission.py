@@ -377,6 +377,8 @@ class KeyAdmissionTest(unittest.TestCase):
                 "bundle": profile.bundle_id,
                 "profile": profile.bundle_profile,
                 "target_id": profile.target_id,
+                "rollback_timeout": ADMISSION.POWER_USB.ROLLBACK_TIMEOUT,
+                "target_timeout": ADMISSION.POWER_USB.TARGET_TIMEOUT,
                 "artifacts": copy.deepcopy(expected_artifacts),
             }
         )
@@ -395,6 +397,8 @@ class KeyAdmissionTest(unittest.TestCase):
                     "initramfs.cpio.gz"
                 ]["sha256"],
                 "target_id": profile.target_id,
+                "rollback_timeout": ADMISSION.POWER_USB.ROLLBACK_TIMEOUT,
+                "target_timeout": ADMISSION.POWER_USB.TARGET_TIMEOUT,
             }
         )
         manifest_sha256 = self.write_records()
