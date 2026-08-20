@@ -718,7 +718,7 @@ def main() -> None:
             subprocess.run(
                 [
                     "/usr/bin/python3",
-                    str(snapshot / "scripts/host/check-power-usb-active-closure.py"),
+                    str(repository / "scripts/host/check-power-usb-active-closure.py"),
                     "--stage",
                     "planned",
                     "--deployment-receipt",
