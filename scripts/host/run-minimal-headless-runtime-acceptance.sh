@@ -227,14 +227,18 @@ fi
 if [[ $power_usb_profile == 1 ]]; then
 	power_record=$evidence_dir/power-usb-observation.log
 	[[ ! -e $power_record ]] || fail 'private power/USB observation already exists'
-	remote_power_probe='
+remote_power_probe='
 set -eu
 probe=/run/initramfs/sbin/rog5-early-charging-probe
 [ -f "$probe" ] && [ ! -L "$probe" ] && [ -x "$probe" ]
 [ "$(stat -c "%u:%g:%a" "$probe")" = 0:0:755 ]
+systemctl mask --runtime systemd-udev-trigger.service systemd-modules-load.service >/dev/null
+[ "$(systemctl is-enabled systemd-udev-trigger.service)" = masked-runtime ]
+[ "$(systemctl is-enabled systemd-modules-load.service)" = masked-runtime ]
 exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
 	ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 \
+	ROG5_PROBE_ALLOW_ARMED_WATCHDOG=1 \
 	ROG5_BATTERY_INPUT_DIR=/run/initramfs/rog5-charge-inputs \
 	ROG5_PROBE_TIMEOUT=150 ROG5_PROBE_SETTLE=20 \
 	ROG5_TELEMETRY_WAIT=30 "$probe" charging
@@ -252,6 +256,14 @@ exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 		$(grep -c '^EVIDENCE capacity_percent=' "$power_record") == 1 &&
 		$(grep -c '^EVIDENCE final_voltage_uV=' "$power_record") == 1 ]] ||
 		fail 'target power/USB evidence is incomplete'
+	remote_power_reboot='set -eu; [ -s /run/rog5-network-root-watchdog.pid ]; [ ! -e /run/rog5-network-root-watchdog.disarmed.pid ]; exec systemctl reboot --no-block'
+	timeout --signal=TERM 20 ssh -T "${ssh_options[@]}" "$target" \
+		"$remote_power_reboot" </dev/null >/dev/null ||
+		fail 'target orderly reboot request failed'
 fi
 
-echo 'PASS one exact minimal-headless runtime observation was verified privately; rollback watchdog remains armed and no reboot was requested'
+if [[ $power_usb_profile == 1 ]]; then
+	echo 'PASS one exact minimal-headless runtime observation was verified privately; rollback watchdog remained armed through acceptance and the power profile requested an orderly reboot'
+else
+	echo 'PASS one exact minimal-headless runtime observation was verified privately; rollback watchdog remains armed and no reboot was requested'
+fi

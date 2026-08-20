@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v11 power/USB identity is defined only by
+The active v12 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -96,8 +96,10 @@ showed its early PID1 probe had no SSH observation channel. V9 deferred the
 probe; retained pstore later proved its rebuilt initramfs omitted the private
 ADSP firmware source and failed `prepare_shutdown_root`. V10 was aborted before
 COMMIT after exposing that evidence. V11 embeds the exact hash-pinned WW33
-firmware, retains the measured 900-second lattice, and invokes the probe through
-pinned key-only SSH; it has no boot authority. See
+firmware and passed SSH, but the probe refused inherited runtime-mask/disarmed-
+watchdog preconditions before hardware. V12 masks the two volatile units,
+attests that rollback remains armed, captures the probe through pinned SSH,
+then requests orderly reboot; it has no boot authority. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Next execution sequence

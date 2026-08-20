@@ -64,8 +64,9 @@ candidate and never entered the charging probe. V8 generated that target
 identity but was revoked unbooted because its early probe lacked a usable SSH
 evidence path. Retained V9 pstore proved the rebuilt initramfs omitted the
 private ADSP firmware and failed before switch-root; V10 was therefore aborted
-before COMMIT. V11 embeds the hash-pinned WW33 firmware and still defers the
-probe until after key-only SSH. The only hand-maintained successor source is
+before COMMIT. V11 embedded the firmware and passed SSH, but the probe refused
+unmet runtime-mask/watchdog preconditions before hardware. V12 composes those
+preconditions while preserving armed rollback. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
