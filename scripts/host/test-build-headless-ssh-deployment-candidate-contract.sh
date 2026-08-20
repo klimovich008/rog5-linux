@@ -492,6 +492,7 @@ done
 for token in \
 	'stage_inputs=False' \
 	'check-power-usb-active-closure.py' \
+	'str(repository / "scripts/host/check-power-usb-active-closure.py")' \
 	'if not arguments.signing_input_preflight:' \
 	'stage_checkpoint_inputs(repository, snapshot)'; do
 	grep -Fq -- "$token" "$wrapper" ||
