@@ -396,6 +396,10 @@ def verify_consumer_closure(source: dict[str, object]) -> None:
             "source \"$repo/scripts/host/generated-power-usb-active.sh\"",
             "$POWER_USB_RECOVERY_PROFILE)",
         ),
+        "scripts/host/stage-recovery-deployment-signing-inputs.py": (
+            'POWER_USB_LOCK = json.loads(',
+            'POWER_CANDIDATE_ID = POWER_USB_LOCK["candidate"]',
+        ),
         "scripts/device/collect-minimal-headless-runtime.sh": (
             "ROG5_RUNTIME_ALLOWED_CANDIDATE",
         ),

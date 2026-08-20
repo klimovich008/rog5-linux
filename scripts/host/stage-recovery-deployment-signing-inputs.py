@@ -21,15 +21,23 @@ CANDIDATE_PATH = SOURCE_REPO / "scripts/host/prepare-recovery-candidate.py"
 DEFAULT_CANDIDATE_ID = "headless-ssh-network-root-v3"
 CORE_CANDIDATE_ID = "headless-core-network-root-v2"
 DIAGNOSTIC_CANDIDATE_ID = "headless-netroot-early-diag-v2"
+POWER_USB_LOCK = json.loads(
+    (SOURCE_REPO / "manifests/power-usb-active.lock.json").read_text(
+        encoding="ascii"
+    )
+)
+POWER_CANDIDATE_ID = POWER_USB_LOCK["candidate"]
 ALLOWED_CANDIDATE_IDS = (
     DEFAULT_CANDIDATE_ID,
     CORE_CANDIDATE_ID,
     DIAGNOSTIC_CANDIDATE_ID,
+    POWER_CANDIDATE_ID,
 )
 EXACT_CANDIDATE_SHA256 = {
     DIAGNOSTIC_CANDIDATE_ID: (
         "f23626d6ad0b15a660835bd8419cde40a8f8c3c79f83b6feca5cb57952f7b1ab"
     ),
+    POWER_CANDIDATE_ID: POWER_USB_LOCK["candidate_sha256"],
 }
 GIT = Path("/usr/bin/git")
 OPENSSL = Path("/usr/bin/openssl")
