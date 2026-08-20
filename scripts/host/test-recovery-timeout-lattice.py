@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import re
 import unittest
 
@@ -37,6 +38,11 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         stable = source("scripts/host/stable-recovery-control.py")
         recovery_init = source("initramfs/recovery-init")
         template = source("scripts/host/build-canonical-boot-v3-template.sh")
+        active_timing = json.loads(
+            (REPO / "manifests/power-usb-active.lock.json").read_text(
+                encoding="ascii"
+            )
+        )["timing"]
 
         worker_ms = integer_constant(fetch, "FETCH_TIMEOUT_MS")
         connect_ms = integer_constant(fetch, "CONNECT_TIMEOUT_MS")
@@ -61,10 +67,10 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         offline_watchdog = integer_constant(
             controller, "OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS"
         )
-        bundle = integer_constant(lifecycle, "BUNDLE_TIMEOUT_SECONDS")
+        bundle = active_timing["prepare_timeout_seconds"]
         prepare = integer_constant(stable, "PREPARE_DEADLINE_SECONDS")
         nfs_ready = integer_constant(stable, "NFS_READY_TIMEOUT_SECONDS")
-        control_total = integer_constant(lifecycle, "CONTROL_TIMEOUT_SECONDS")
+        control_total = active_timing["control_timeout_seconds"]
         recovery_watchdog = integer_constant(recovery_init, "timeout")
         template_match = re.search(
             r"rog5\.recovery_timeout=([0-9]+)'$", template, flags=re.MULTILINE
@@ -106,8 +112,16 @@ class RecoveryTimeoutLatticeTest(unittest.TestCase):
         self.assertIn("hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS", controller)
         self.assertIn("self.bundle_timeout = (", lifecycle)
         self.assertIn("else BUNDLE_TIMEOUT_SECONDS", lifecycle)
+        self.assertIn(
+            "BUNDLE_TIMEOUT_SECONDS = POWER_USB.PREPARE_TIMEOUT_SECONDS",
+            lifecycle,
+        )
         self.assertIn("self.control_timeout = (", lifecycle)
         self.assertIn("else CONTROL_TIMEOUT_SECONDS", lifecycle)
+        self.assertIn(
+            "CONTROL_TIMEOUT_SECONDS = POWER_USB.CONTROL_TIMEOUT_SECONDS",
+            lifecycle,
+        )
 
 
 if __name__ == "__main__":
