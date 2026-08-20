@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v7
+predecessor=headless-power-usb-observer-v6
+purpose=observed-thermal-envelope-side-port-observer

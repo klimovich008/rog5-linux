@@ -85,20 +85,21 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v6 power/USB identity is defined only by
+The active v7 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
-recorded in `manifests/power-usb-active.lock.json`. No successor currently has
-boot authority. V5 crossed the ordering fix, then exposed an R7 mismatch
-between the deferred `autoconnect=no` profile and the controller's active
-profile precondition. No transfer or target execution occurred; exact stock
-slot A and host cleanup passed. See
-`test-results/2026-08-20-power-usb-v5-r7-deferred-profile.md`.
+recorded in `manifests/power-usb-active.lock.json`. V6 is consumed: recovery,
+bundle transfer, PREPARE/COMMIT, NFS, systemd, key-only SSH, watchdog fallback,
+and exact stock slot-A return passed. The host then rejected the valid 29-zone
+thermal inventory before invoking the power/USB probe. This R7 defect is fixed
+and covered by the exact observed temperatures; v7 has no boot authority.
+See `test-results/2026-08-20-power-usb-v6-r7-thermal-envelope.md`.
 
 ## Next execution sequence
 
 1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
 2. Freeze and publish the canonical generated candidate source.
-3. Build fresh clean twins only after the ordered cheap gates pass.
+3. Reuse the exact v6 clean-twin raw wrapper inputs and issue a fresh,
+   byte-distinct AVB generation; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
 5. Temporarily boot once with only the side port connected.
 6. Reach systemd and key-only SSH, then run the power/USB probe.

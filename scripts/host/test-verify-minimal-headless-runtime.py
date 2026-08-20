@@ -596,7 +596,7 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
 
     def test_thermal_envelope_is_enforced(self) -> None:
         mutations = (
-            ("thermal_zone_count", "29"),
+            ("thermal_zone_count", "28"),
             ("thermal_zone_count", "129"),
             ("thermal_min_millidegree_c", "-20001"),
             ("thermal_max_millidegree_c", "120001"),
@@ -610,6 +610,14 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
                     else "thermal values"
                 )
                 self.assert_mutation_fails(field, value, message)
+
+    def test_observed_v6_thermal_zone_count_passes(self) -> None:
+        observed = deepcopy(self.values)
+        observed["thermal_zone_count"] = "29"
+        observed["thermal_min_millidegree_c"] = "32700"
+        observed["thermal_max_millidegree_c"] = "35200"
+        _digest, verified = self.verify(observed)
+        self.assertEqual(verified["result"], "PASS")
 
     def test_watchdog_window_is_bound_to_candidate(self) -> None:
         mutations = (
