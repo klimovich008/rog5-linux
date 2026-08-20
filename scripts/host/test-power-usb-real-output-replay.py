@@ -87,7 +87,7 @@ class RealOutputReplayTest(unittest.TestCase):
                     MOCK_NFS_ENUMERATION_DELAY=delays["nfs"],
                     MOCK_SSH_ENUMERATION_DELAY=delays["ssh"],
                     MOCK_RUNTIME_ACCEPTANCE_DELAY=delays["runtime"],
-                    MOCK_REQUIRE_BUNDLE_READY="1",
+                    MOCK_REQUIRE_PROFILE_PRIMER="1",
                     MOCK_UDEV_MISSING_AFTER_FALLBACK="1",
                     **{nm_mode: "1"},
                 )

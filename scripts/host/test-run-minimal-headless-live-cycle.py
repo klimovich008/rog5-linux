@@ -439,8 +439,8 @@ class Fixture:
             printf 'ip:%s\n' "$*" >>"$MOCK_CALLS"
             case " $* " in
               *" -4 -o address show dev usbmock0 "*)
-                if { [ "${MOCK_REQUIRE_BUNDLE_READY:-0}" != 1 ] ||
-                     grep -Fxq 'bundle:start' "$MOCK_CALLS"; } &&
+                if { [ "${MOCK_REQUIRE_PROFILE_PRIMER:-0}" != 1 ] ||
+                     [ -e "$MOCK_ROOT/profile-primed" ]; } &&
                    { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
                      [ -e "$MOCK_ROOT/profile-restored" ]; }; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
@@ -453,8 +453,8 @@ class Fixture:
                 fi
                 ;;
               *" -4 -o address show "*)
-                if { [ "${MOCK_REQUIRE_BUNDLE_READY:-0}" != 1 ] ||
-                     grep -Fxq 'bundle:start' "$MOCK_CALLS"; } &&
+                if { [ "${MOCK_REQUIRE_PROFILE_PRIMER:-0}" != 1 ] ||
+                     [ -e "$MOCK_ROOT/profile-primed" ]; } &&
                    { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
                      [ -e "$MOCK_ROOT/profile-restored" ]; }; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
@@ -484,6 +484,10 @@ class Fixture:
             uuid=244dd128-e3b1-458e-9639-5e4ab4d8854f
             wrong_uuid=355ee239-f4c2-469f-a74a-6f5bc5e99650
             case "$*" in
+              "connection up uuid $uuid ifname usbmock0")
+                : >"$MOCK_ROOT/profile-primed"
+                echo 'Connection successfully activated'
+                ;;
               '-g GENERAL.CON-UUID device show usbmock0')
                 if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
                    [ -e "$MOCK_ROOT/profile-restored" ]; then
@@ -512,7 +516,9 @@ class Fixture:
                 ;;
               '-g connection.uuid,connection.id,connection.interface-name,connection.autoconnect connection show rog5-fallback-usb-ssh')
                 printf '%s\n' "$uuid" 'rog5-fallback-usb-ssh' 'usbmock0'
-                if [ "${MOCK_DEFERRED_AUTOCONNECT:-0}" = 1 ]; then
+                if [ "${MOCK_REQUIRE_PROFILE_PRIMER:-0}" = 1 ]; then
+                  echo no
+                elif [ "${MOCK_DEFERRED_AUTOCONNECT:-0}" = 1 ]; then
                   echo yes
                 elif [ -e "$MOCK_ROOT/profile-deferred" ] &&
                      [ ! -e "$MOCK_ROOT/profile-restored" ]; then
