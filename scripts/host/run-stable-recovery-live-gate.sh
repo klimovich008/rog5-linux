@@ -142,7 +142,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		headless-power-usb-observer-v2-live-v1 | \
+		headless-power-usb-observer-v3-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -1506,30 +1506,30 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-power-usb-observer-v2-live-v1)
-		expected_boot_image=build/power-usb-observer-v2-offline-r1/wrapper/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact runtime-allowlist-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted runtime-allowlist-corrected side-port NCM SSH and charging observer; disposable-key clean twins; one RAM-only use only; never flash'
+	headless-power-usb-observer-v3-live-v1)
+		expected_boot_image=build/power-usb-observer-v3-offline-r1/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact recovery-zone-and-stock-anchor-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted recovery-zone-and-stock-anchor-corrected side-port NCM SSH and charging observer; disposable-key clean twins; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
-		expected_kernel=c894862fa6bbe80eb0049964f20192d541af40905caf042229cf5a6dee895bff
-		expected_raw=45756d8d1d26b3bae43c7ed81c43c4a5cb551eb46611c71412cc0bfd153f8f83
-		expected_initramfs=bfa3f541130dc67a29343f753199c25a6c9df8cef1a9a602689e523b62dab0ec
+		expected_kernel=b8f256f07d53e0c2f6d576d937235184c76557d516c28a3d75dbd09028016b11
+		expected_raw=98ac6b14f713ae2e866a1732285d6e60bf7925e88208b71f1fabdc8c61286fa5
+		expected_initramfs=5d366f35223a980fd7b334eaf495498ae3d58e5c73cd6fc0b02231027ea394d3
 		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
 		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
 		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
-		expected_target_id=headless-power-usb-observer-v2
-		expected_bundle=headless-power-usb-observer-v2
+		expected_target_id=headless-power-usb-observer-v3
+		expected_bundle=headless-power-usb-observer-v3
 		expected_bundle_profile=network-root-v1
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			2e1d3ad08885f412a07e4160bbe670f24bcc7f7eed0e3ae2b133db24f895b601 ]] ||
+			872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381 ]] ||
 			fail 'power USB observer runtime manifest is not pinned'
 		[[ $expected_image == \
-			c90e4a41f37214d04d715baee6bbba64190c76917308e4d872c2df9fd1228176 ]] ||
+			fe4f2c5581dfb56d452d1cfd0780ade6c0b109f0635733ff7e80d55b2a88a726 ]] ||
 			fail 'power USB observer recovery image is not pinned'
 		[[ $expected_trust == \
-			144a0d911b5ec1bcc024dc7ebc7df800c712cc31f3bd833e3fae14aadd755df4 ]] ||
+			3132b12fd5836a8eb05fe06e972ae31f1812e9a31c4073dc8b0f1c9c61ef8b4d ]] ||
 			fail 'power USB observer trust key is not pinned'
 		[[ $expected_host_verifier == \
 			04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
@@ -2941,7 +2941,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	headless-power-usb-observer-v2-live-v1 | \
+	headless-power-usb-observer-v3-live-v1 | \
 	persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 	persistent-root-qmp-module-load-control-v13-live-v1 | \
 	persistent-root-qmp-regulator-stage-v14-live-v1 | \
