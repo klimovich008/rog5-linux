@@ -2584,7 +2584,13 @@ class LiveCycle:
         ):
             fail("power USB deployment receipt is not the exact admitted state")
         run_capture(
-            [str(self.dependencies.host_doctor), "verify", str(doctor_receipt)],
+            [
+                str(self.dependencies.host_doctor),
+                "verify",
+                str(doctor_receipt),
+                "--deployment-receipt",
+                str(deployment_receipt),
+            ],
             environment=child_environment(),
             timeout=self.short_timeout,
         )

@@ -293,6 +293,8 @@ class Fixture:
             set -eu
             [ "$1" = verify ]
             [ "$2" = "{self.host_doctor_receipt}" ]
+            [ "$3" = --deployment-receipt ]
+            [ "$4" = "{self.deployment_receipt}" ]
             printf 'doctor:verify\n' >>"$MOCK_CALLS"
             echo 'PASS host-doctor verified immutable build receipt'
             """,
