@@ -167,14 +167,27 @@ def fastboot_value(name: str) -> str:
         check=False,
         env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
     )
-    lines = [line for line in result.stdout.splitlines() if line.startswith(f"{name}: ")]
-    if result.returncode != 0 or len(lines) != 1:
+    if result.returncode != 0:
+        fail("exact fastboot property is unavailable")
+    return parse_fastboot_value(result.stdout, name)
+
+
+def parse_fastboot_value(payload: str, name: str) -> str:
+    lines = [line for line in payload.splitlines() if line.startswith(f"{name}: ")]
+    if len(lines) != 1:
         fail("exact fastboot property is unavailable")
     return lines[0].split(": ", 1)[1]
 
 
+def parse_fastboot_devices(payload: str) -> tuple[str, str]:
+    lines = [line.split() for line in payload.splitlines() if line]
+    if lines != [[SERIAL, "fastboot", "usb:1-1.2"]]:
+        fail("exact slot-A fastboot identity is unavailable")
+    return SERIAL, "1-1.2"
+
+
 def capture_preboot(path: Path) -> None:
-    lines = [line for line in subprocess.run(
+    payload = subprocess.run(
         [str(FASTBOOT), "devices", "-l"],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
@@ -183,9 +196,8 @@ def capture_preboot(path: Path) -> None:
         timeout=10,
         check=False,
         env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
-    ).stdout.splitlines() if line]
-    if [line.split() for line in lines] != [[SERIAL, "fastboot", "usb:1-1.2"]]:
-        fail("exact slot-A fastboot identity is unavailable")
+    ).stdout
+    parse_fastboot_devices(payload)
     values = OrderedDict(
         (
             ("format", "rog5-stock-fallback-preboot-v1"),

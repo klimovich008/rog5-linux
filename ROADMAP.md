@@ -34,10 +34,9 @@ Status: **stock WW33 rescue restored; RAM-only Linux observer building**
   counter rose 14,000 units over 121 seconds while data remained connected.
 - [x] Reuse the proven side `a600000` NCM/ACM target and full PMIC-GLINK/UCSI
   kernel/DTB rather than adding an unproven role-switch topology.
-- [x] Add exact UCSI-port, USB-limit, battery, and post-UCSI NCM evidence to
-  `headless-power-usb-observer-v3`; v1 reached NFS, systemd, and SSH but was
-  consumed by a missing runtime-candidate allowlist, while v2 stopped before
-  transfer on the obsolete fallback NetworkManager/firewall state.
+- [x] Preserve exact UCSI-port, USB-limit, battery, and post-UCSI NCM evidence.
+- [ ] Pass the prevention guide's mandatory pre-build checklist from the
+  canonical active candidate source; the latest v3 failure is R7 and host-only.
 - [ ] Boot the observer once with only the side cable and collect UCSI role,
   current direction, temperature, SSH continuity, and rollback evidence.
 - [ ] Add the already clean-twin-built dual-cell read-only module only after

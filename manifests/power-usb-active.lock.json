@@ -1,0 +1,74 @@
+{
+  "format": "rog5-power-usb-generated-lock-v1",
+  "source_sha256": "ee5651f8c8211f134da7721d255d872974b59815b744d3947992b92c4a812430",
+  "candidate": "headless-power-usb-observer-v4",
+  "candidate_path": "configs/recovery-candidates/headless-power-usb-observer-v4.json",
+  "candidate_sha256": "28d67dd764a3fd6aeaa1a1e2457df57cefa3dd00199a7a693b4935cfc9a77d1f",
+  "marker_sha256": "c41a11940e68754390860b4c31bda149dd99ada3f7bda63c73366fc1db3e2e36",
+  "python_lock_sha256": "107b74514582360bcd365742649995f2715f3561db6bce7a3f5383dc91b32cb6",
+  "shell_lock_sha256": "93834336207f4f3a09fb738b05ee1f637519b4831e7911d278d29d6c4fdd5b82",
+  "expected_manifest_sha256": "b88b4caa60309fe8b6fc98f42a3f06ef812df9fc84bae09a3329c8b5884eb890",
+  "output_root": "build/power-usb-observer-v4-offline-r2",
+  "boot_policy_basis": "one exact firewalld-no-zone-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry",
+  "artifact_role": "unbooted firewalld-no-zone-corrected side-port observer; clean twins and exact admitted deployment receipt required; one RAM-only use only; never flash",
+  "boot_policy_status": "none",
+  "timing": {
+    "prepare_timeout_seconds": 260,
+    "host_readiness_seconds": 90,
+    "control_timeout_seconds": 360,
+    "recovery_timeout_seconds": 300,
+    "target_timeout_seconds": 480,
+    "rollback_timeout_seconds": 600,
+    "fallback_timeout_seconds": 600,
+    "cleanup_margin_seconds": 120,
+    "network_server_timeout_seconds": 720,
+    "sampler_timeout_seconds": 660,
+    "fallback_control_margin_seconds": 120,
+    "fallback_contact_budget_seconds": 3600
+  },
+  "host": {
+    "measured_peak_build_bytes": 10000000000,
+    "minimum_free_bytes": 50000000000,
+    "minimum_free_inodes": 1000000,
+    "project_tcp_ports": [
+      2049,
+      8080,
+      8081
+    ],
+    "networkmanager_profile": "rog5-fallback-usb-ssh",
+    "networkmanager_autoconnect": "no",
+    "usb_location": "1-1.2",
+    "fastboot_serial": "M5AIKN00F0353YH",
+    "fastboot_product": "lahaina"
+  },
+  "capability": {
+    "recovery_contract": "exact-a600000-v1",
+    "recovery_verifier": "scripts/device/verify-stable-recovery-initramfs.sh",
+    "fallback_verifier": "scripts/host/wait-stock-android-fallback.py",
+    "target_verifier": "scripts/device/verify-network-root-initramfs.sh",
+    "recovery_commands": [
+      "busybox",
+      "ip",
+      "kexec",
+      "mount",
+      "rog5-bundle-fetch",
+      "rog5-bundle-verify",
+      "rog5-recovery-control"
+    ],
+    "target_commands": [
+      "ip",
+      "mount",
+      "sshd",
+      "systemd",
+      "watchdog"
+    ],
+    "host_commands": [
+      "fastboot",
+      "firewall-cmd",
+      "ip",
+      "nmcli",
+      "ss",
+      "systemctl"
+    ]
+  }
+}

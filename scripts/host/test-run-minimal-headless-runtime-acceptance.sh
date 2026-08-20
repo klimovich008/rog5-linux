@@ -6,6 +6,8 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 runner=$repo/scripts/host/run-minimal-headless-runtime-acceptance.sh
 probe=$repo/scripts/device/collect-minimal-headless-runtime.sh
 verifier=$repo/scripts/host/verify-minimal-headless-runtime.py
+# shellcheck source=generated-power-usb-active.sh
+source "$repo/scripts/host/generated-power-usb-active.sh"
 
 for input in "$runner" "$probe" "$verifier"; do
 	[[ -f $input && ! -L $input && -x $input ]] || {
@@ -37,13 +39,15 @@ for token in \
 	'headless-ssh-network-root-v3' \
 	'diagnostic-initramfs-v1' \
 	'headless-netroot-early-diag-v2' \
-	'power-usb-observer-v3' \
-	'headless-power-usb-observer-v3' \
+	'$POWER_USB_RUNTIME_PROFILE' \
+	'$POWER_USB_CANDIDATE' \
 	'/run/initramfs/sbin/rog5-early-target-diag emit 150' \
 	'--deployment-profile' \
 	'--candidate-record' \
 	'--candidate-sha256' \
 	"ROG5_RUNTIME_CANDIDATE='\$runtime_candidate'" \
+	"ROG5_RUNTIME_ALLOWED_CANDIDATE='\$runtime_candidate'" \
+	"ROG5_RUNTIME_USB_PROFILE='\$diagnostic_profile'" \
 	'exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin' \
 	'remote_stage_verify_and_collect=' \
 	'[ \"\$(uname -r)\" = 7.1.4-g7a5cef0db479 ]' \

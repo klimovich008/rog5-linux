@@ -158,6 +158,32 @@ class Fixture:
         self.diagnostic_manifest = self.diagnostic_bundle / "manifest"
         self.diagnostic_manifest.write_bytes(b"offline-runtime-manifest\n")
         self.diagnostic_manifest.chmod(0o400)
+        self.power_bundle = self.bundle_root / CYCLE.POWER_USB.BUNDLE
+        self.power_bundle.mkdir(mode=0o700)
+        self.power_manifest = self.power_bundle / "manifest"
+        self.power_manifest.write_bytes(b"offline-runtime-manifest\n")
+        self.power_manifest.chmod(0o400)
+        self.host_doctor_receipt = self.root / "host-doctor.receipt.json"
+        self.host_doctor_receipt.write_text(
+            '{"format":"rog5-host-doctor-receipt-v1","mode":"build"}\n',
+            encoding="ascii",
+        )
+        self.host_doctor_receipt.chmod(0o400)
+        self.deployment_receipt = self.root / "deployment.receipt.json"
+        self.deployment_receipt.write_text(
+            json.dumps(
+                {
+                    "format": "rog5-power-usb-deployment-receipt-v1",
+                    "state": "admitted",
+                    "candidate": CYCLE.POWER_USB.CANDIDATE,
+                    "output_root": CYCLE.POWER_USB.OUTPUT_ROOT,
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="ascii",
+        )
+        self.deployment_receipt.chmod(0o400)
         self.diagnostic_evidence = {
             "candidate": DIAGNOSTIC_CANDIDATE,
             "capture_status": "valid",
@@ -260,6 +286,30 @@ class Fixture:
         path.chmod(0o755)
 
     def _write_mocks(self) -> None:
+        self.executable(
+            "rog5-host-doctor.py",
+            f"""\
+            #!/bin/sh
+            set -eu
+            [ "$1" = verify ]
+            [ "$2" = "{self.host_doctor_receipt}" ]
+            printf 'doctor:verify\n' >>"$MOCK_CALLS"
+            echo 'PASS host-doctor verified immutable build receipt'
+            """,
+        )
+        self.executable(
+            "power-usb-deployment-receipt.py",
+            f"""\
+            #!/bin/sh
+            set -eu
+            [ "$1" = verify ]
+            [ "$2" = "{self.deployment_receipt}" ]
+            [ "$3" = --build-root ]
+            [ "$4" = "{REPO / CYCLE.POWER_USB.OUTPUT_ROOT}" ]
+            printf 'deployment:verify\n' >>"$MOCK_CALLS"
+            echo 'PASS exact admitted deployment receipt verified'
+            """,
+        )
         self.executable(
             "git",
             """\
@@ -525,7 +575,13 @@ class Fixture:
                 fi
                 ;;
               *" --get-zones "*) echo 'drop public trusted' ;;
-              *" --get-zone-of-interface=usbmock0 "*) echo public ;;
+              *" --get-zone-of-interface=usbmock0 "*)
+                if [ "${MOCK_FIREWALL_NO_ZONE:-0}" = 1 ]; then
+                  echo 'no zone'
+                else
+                  echo public
+                fi
+                ;;
               *" --list-all-zones "*)
                 printf '%s\n' \
                   'drop' \
@@ -587,6 +643,13 @@ class Fixture:
                 profile={DIAGNOSTIC_PROFILE}
                 target=headless-netroot-early-diag
                 ;;
+              {CYCLE.POWER_USB.ADMISSION_PROFILE})
+                [ "$8" = "{self.power_manifest}" ]
+                candidate={CYCLE.POWER_USB.CANDIDATE}
+                bundle={CYCLE.POWER_USB.BUNDLE}
+                profile={CYCLE.POWER_USB.BUNDLE_PROFILE}
+                target={CYCLE.POWER_USB.TARGET_ID}
+                ;;
               *) exit 1 ;;
             esac
             printf 'key-admission:verify\\n' >>"{self.calls}"
@@ -624,6 +687,9 @@ class Fixture:
               {DIAGNOSTIC_BUNDLE})
                 [ "$ROG5_STABLE_RECOVERY_PROFILE" = "{DIAGNOSTIC_RECOVERY_PROFILE}" ]
                 ;;
+              {CYCLE.POWER_USB.BUNDLE})
+                [ "$ROG5_STABLE_RECOVERY_PROFILE" = "{CYCLE.POWER_USB.RECOVERY_PROFILE}" ]
+                ;;
               *) exit 1 ;;
             esac
             if [ "$1" = boot ]; then
@@ -632,6 +698,7 @@ class Fixture:
               [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
               [ -z "${{ALLOW_STABLE_RECOVERY_CONTROL+x}}" ]
               [ -f "$XDG_STATE_HOME/rog5-temporary-boot-consumption/$ROG5_STABLE_RECOVERY_PROFILE.record" ]
+              sleep "${{MOCK_RECOVERY_USB_DELAY:-0}}"
             fi
             if [ "$1" = preflight ] && [ "$BUNDLE" = {DIAGNOSTIC_BUNDLE} ]; then
               [ "${{ALLOW_MINIMAL_HEADLESS_LIVE_CYCLE:-}}" = 1 ]
@@ -654,7 +721,6 @@ class Fixture:
             if [ "$1" = restore-fallback ]; then
               [ "$2" = "$MOCK_ROOT/evidence/recovery-usb.anchor" ]
               [ "$3" -ge 1 ]
-              [ "$3" -le 750 ]
               [ "$#" = 3 ]
               [ -e "$MOCK_ROOT/profile-deferred" ]
               printf 'bundle:restore-fallback\n' >>"$MOCK_CALLS"
@@ -831,6 +897,7 @@ class Fixture:
             [ "${{ALLOW_HEADLESS_NETWORK_ROOT_SERVER:-}}" = 1 ]
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
             printf 'nfs:start\n' >>"$MOCK_CALLS"
+            sleep "${{MOCK_NFS_ENUMERATION_DELAY:-0}}"
             : >"$MOCK_ROOT/nfs-started"
             printf '%s %s\n' "$$" "$4" >"$MOCK_ROOT/nfs-state"
             echo 'PASS restricted NFSv4.2 export ready; waiting for exact USB gadget'
@@ -849,6 +916,7 @@ class Fixture:
             f"""\
             #!/bin/sh
             set -eu
+            umask 077
             case $1 in
               prepare-commit)
                 [ "${{ALLOW_STABLE_RECOVERY_CONTROL:-}}" = 1 ]
@@ -961,6 +1029,7 @@ class Fixture:
                   *) [ "$4" = 'ROG5 network root' ] ;;
                 esac
                 printf 'host-key:pin:%s\n' "$4" >>"$MOCK_CALLS"
+                sleep "${MOCK_SSH_ENUMERATION_DELAY:-0}"
                 umask 077
                 printf 'rog5-minimal-headless-v1 ssh-ed25519 offline\n' >"$3"
                 echo 'PASS pinned key'
@@ -975,7 +1044,7 @@ class Fixture:
             #!/bin/sh
             set -eu
             case $1 in
-              {RECOVERY_PROFILE}|{DIAGNOSTIC_PROFILE}) ;;
+              {RECOVERY_PROFILE}|{DIAGNOSTIC_PROFILE}|{CYCLE.POWER_USB.RUNTIME_PROFILE}) ;;
               *) exit 1 ;;
             esac
             [ "$2" = "{self.candidate}" ]
@@ -985,6 +1054,7 @@ class Fixture:
             [ -z "${{ALLOW_TEMPORARY_BOOT+x}}" ]
             [ -z "${{ALLOW_PHONE_CREDENTIAL_USE+x}}" ]
             printf 'runtime:start\n' >>"$MOCK_CALLS"
+            sleep "${{MOCK_RUNTIME_ACCEPTANCE_DELAY:-0}}"
             if [ "${{MOCK_RUNTIME_FAIL:-0}}" = 1 ]; then
               echo 'FAIL injected runtime rejection'
               exit 1
@@ -1069,7 +1139,7 @@ class Fixture:
               [ "$2" = "{self.known_hosts}" ]
               [ "$3" = "{self.ssh_key}" ]
               [ "$4" = "{'1' * 64}" ]
-              [ "$5" = 750 ]
+              [ "$5" = {CYCLE.POWER_USB.FALLBACK_TIMEOUT_SECONDS} ]
               [ "$6" = 3600 ]
               [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
               [ "${{ALLOW_PHONE_CREDENTIAL_USE:-}}" = 1 ]
@@ -1087,7 +1157,7 @@ class Fixture:
               [ "$5" = "{self.evidence / 'recovery-usb.anchor'}" ]
               [ -f "$5" ]
               [ "$6" -ge 1 ]
-              [ "$6" -le 750 ]
+              [ "$6" -le {CYCLE.POWER_USB.FALLBACK_TIMEOUT_SECONDS} ]
               case "$7" in
                 {CANDIDATE}|{DIAGNOSTIC_CANDIDATE}) ;;
                 *) exit 1 ;;
@@ -1209,7 +1279,7 @@ class Fixture:
             [ -f "$5" ]
             grep -Fxq 'format=rog5-minimal-headless-usb-anchor-v1' "$5"
             [ "$6" -ge 1 ]
-            [ "$6" -le 750 ]
+            [ "$6" -le {CYCLE.POWER_USB.FALLBACK_TIMEOUT_SECONDS} ]
             [ "$7" = "{self.evidence / 'fallback-identity.record'}" ]
             [ "$#" = 7 ]
             [ "${{ALLOW_FALLBACK_SSH_CONTROL:-}}" = 1 ]
@@ -1247,6 +1317,61 @@ class Fixture:
             echo 'PASS pinned exact Alpine fallback returned over strict SSH on the recovery USB port'
             """,
         )
+        self.executable(
+            "wait-stock-android-fallback.py",
+            f"""\
+            #!/bin/sh
+            set -eu
+            umask 077
+            case $1 in
+              host-preflight)
+                [ "$#" = 1 ]
+                echo 'PASS exact stock WW33 fallback verifier is available; no phone contact occurred'
+                ;;
+              capture-preboot)
+                [ "$#" = 2 ]
+                [ "${{ALLOW_STOCK_ANDROID_FALLBACK_PROOF:-}}" = 1 ]
+                printf '%s\n' \
+                  'format=rog5-stock-fallback-preboot-v1' \
+                  'serial=M5AIKN00F0353YH' \
+                  'usb_location=1-1.2' \
+                  'product=lahaina' \
+                  'slot=a' \
+                  'battery_soc_ok=yes' \
+                  'result=PASS' >"$2"
+                echo 'PASS exact slot-A fastboot fallback precondition captured'
+                ;;
+              wait)
+                [ "$#" = 5 ]
+                [ "$2" = 1-1.2 ]
+                [ "$3" -ge 1 ]
+                [ -f "$4" ]
+                [ "${{ALLOW_STOCK_ANDROID_FALLBACK_PROOF:-}}" = 1 ]
+                printf 'fallback:stock-android\n' >>"$MOCK_CALLS"
+                printf '%s\n' \
+                  'format=rog5-stock-android-fallback-v1' \
+                  'serial=M5AIKN00F0353YH' \
+                  'usb_location=1-1.2' \
+                  'product=unavailable' \
+                  'model=unavailable' \
+                  'device=unavailable' \
+                  'evidence_mode=usb-unauthorized-slot-a' \
+                  'slot_suffix=_a' \
+                  'fingerprint=unavailable' \
+                  'vbmeta_digest=unavailable' \
+                  'verified_boot_state=unavailable' \
+                  'boot_id=unavailable' \
+                  'boot_completed=unavailable' \
+                  'usb_config=adb-unauthorized' \
+                  'result=PASS' >"$5"
+                : >"$MOCK_ROOT/fallback-proved"
+                : >"$MOCK_ROOT/target-departed"
+                echo 'PASS exact stock WW33 slot-A fallback reached ADB with network USB disabled'
+                ;;
+              *) exit 1 ;;
+            esac
+            """,
+        )
 
     def environment(self, *, guards: bool = True, **updates: str) -> dict[str, str]:
         environment = os.environ.copy()
@@ -1266,6 +1391,10 @@ class Fixture:
                 "BUNDLE_ROOT": str(self.bundle_root),
                 "FALLBACK_KNOWN_HOSTS": str(self.known_hosts),
                 "EVIDENCE_DIR": str(self.evidence),
+                "ROG5_HOST_DOCTOR_RECEIPT": str(self.host_doctor_receipt),
+                "ROG5_POWER_USB_DEPLOYMENT_RECEIPT": str(
+                    self.deployment_receipt
+                ),
                 "XDG_STATE_HOME": str(self.xdg_state),
                 "UNRELATED_CREDENTIAL": "must-not-reach-a-child",
             }
@@ -1288,6 +1417,12 @@ class Fixture:
                 "ROG5_STABLE_RECOVERY_PROFILE",
                 DIAGNOSTIC_RECOVERY_PROFILE,
             )
+        if action.startswith("power-usb-"):
+            updates.setdefault("BUNDLE", CYCLE.POWER_USB.BUNDLE)
+            updates.setdefault(
+                "ROG5_STABLE_RECOVERY_PROFILE",
+                CYCLE.POWER_USB.RECOVERY_PROFILE,
+            )
         return subprocess.run(
             [str(RUNNER), action],
             env=self.environment(guards=guards, **updates),
@@ -1308,13 +1443,13 @@ class Fixture:
 class MinimalHeadlessLiveCycleTest(unittest.TestCase):
     def test_power_usb_profile_reuses_the_existing_lifecycle(self) -> None:
         profile = CYCLE.POWER_USB_CYCLE_PROFILE
-        self.assertEqual(profile.candidate, "headless-power-usb-observer-v3")
-        self.assertEqual(profile.bundle, "headless-power-usb-observer-v3")
-        self.assertEqual(profile.build_profile, "headless-ssh-v2")
-        self.assertEqual(profile.runtime_profile, "power-usb-observer-v3")
+        self.assertEqual(profile.candidate, CYCLE.POWER_USB.CANDIDATE)
+        self.assertEqual(profile.bundle, CYCLE.POWER_USB.BUNDLE)
+        self.assertEqual(profile.build_profile, CYCLE.POWER_USB.BUILD_PROFILE)
+        self.assertEqual(profile.runtime_profile, CYCLE.POWER_USB.RUNTIME_PROFILE)
         self.assertEqual(
             profile.recovery_profile,
-            "headless-power-usb-observer-v3-live-v1",
+            CYCLE.POWER_USB.RECOVERY_PROFILE,
         )
 
     def test_stock_android_fallback_record_is_exact(self) -> None:
@@ -1918,6 +2053,13 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_firewalld_no_zone_is_canonical_absence(self):
+        result = self.fixture.run(
+            "diagnostic-preflight",
+            MOCK_FIREWALL_NO_ZONE="1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_networkmanager_classification_gap_is_retryable(self):
         dependencies = SimpleNamespace(
             sys_class_net=self.fixture.sys_class_net,
@@ -1967,7 +2109,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             candidate_sha256=CANDIDATE_SHA256,
             fallback_known_hosts=self.fixture.known_hosts,
             evidence_dir=self.fixture.evidence,
-            fallback_timeout=750,
+            fallback_timeout=CYCLE.POWER_USB.FALLBACK_TIMEOUT_SECONDS,
         )
         cycle = CYCLE.LiveCycle(dependencies, inputs)
         self.fixture.nfs_exports.chmod(0o000)
@@ -2311,7 +2453,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                 candidate_sha256=CANDIDATE_SHA256,
                 fallback_known_hosts=self.fixture.known_hosts,
                 evidence_dir=self.fixture.evidence,
-                fallback_timeout=750,
+                fallback_timeout=CYCLE.POWER_USB.FALLBACK_TIMEOUT_SECONDS,
             )
             cycle = CYCLE.LiveCycle(
                 dependencies,
@@ -3954,7 +4096,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "TARGET_ACCEPTED",
             "FALLBACK_RETURNED",
             "outcome remains UNKNOWN",
-            "FALLBACK_CONTROL_MARGIN_SECONDS = 120",
+            "FALLBACK_CONTROL_MARGIN_SECONDS = POWER_USB.FALLBACK_CONTROL_MARGIN_SECONDS",
         ):
             self.assertIn(token, runner)
         self.assertNotIn(

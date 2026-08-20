@@ -50,6 +50,8 @@ if [[ -n $internal_repository ]]; then
 else
 	repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 fi
+# shellcheck source=generated-power-usb-active.sh
+source "$repo/scripts/host/generated-power-usb-active.sh"
 checkpoint_repository=$repo
 requested_output_root=${1:?usage: build-corrected-headless-candidate-offline.sh OUTPUT_ROOT}
 candidate=${ROG5_OFFLINE_CANDIDATE:-headless-network-root-v1}
@@ -138,6 +140,10 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_profile=network-root-v1
 		expected_candidate_sha=1909ea02c0a2a3edd08eca939db617d8e7474fbdc62732f09d4f4f2f50089752
 		expected_manifest=872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381 ;;
+	"$POWER_USB_CANDIDATE:$POWER_USB_EXPECTED_DTB_SHA256:$POWER_USB_TARGET_ID")
+		expected_profile=network-root-v1
+		expected_candidate_sha=$POWER_USB_CANDIDATE_SHA256
+		expected_manifest=$POWER_USB_EXPECTED_MANIFEST_SHA256 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then
@@ -170,7 +176,8 @@ if [[ $deployment_build == 1 ]]; then
 	case "$candidate:$expected_target" in
 		headless-ssh-network-root-v3:headless-ssh-network-root | \
 		headless-core-network-root-v2:headless-core-network-root | \
-		headless-netroot-early-diag-v2:headless-netroot-early-diag-v2) ;;
+		headless-netroot-early-diag-v2:headless-netroot-early-diag-v2 | \
+		"$POWER_USB_CANDIDATE:$POWER_USB_TARGET_ID") ;;
 		*) fail 'credentialed build is limited to one fixed deployment candidate' ;;
 	esac
 	[[ -n $deployment_candidate_record && -n $deployment_private_key ]] ||

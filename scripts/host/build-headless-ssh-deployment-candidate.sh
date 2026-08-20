@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import json
 import os
 from pathlib import Path
 import stat
@@ -32,6 +33,24 @@ IMPLEMENTATION_REPOSITORY_PATH = (
     "scripts/host/build-corrected-headless-candidate-offline-impl.sh"
 )
 CHECKPOINT_INPUTS = (
+    (
+        "artifacts/network-root-power-usb-observer-v1/Image",
+        40049152,
+        0o755,
+        "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef",
+    ),
+    (
+        "artifacts/network-root-power-usb-observer-v1/board.dtb",
+        102938,
+        0o644,
+        "3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11",
+    ),
+    (
+        "artifacts/network-root-power-usb-observer-v1/initramfs.cpio.gz",
+        5995915,
+        0o644,
+        "f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9",
+    ),
     (
         "artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb",
         103554,
@@ -614,9 +633,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--candidate-record", required=True)
     parser.add_argument(
         "--deployment-profile",
-        choices=("headless-ssh-r2", "headless-core-live-v1"),
+        choices=("headless-ssh-r2", "headless-core-live-v1", "power-usb-active"),
         default="headless-ssh-r2",
     )
+    parser.add_argument("--planned-deployment-receipt")
     parser.add_argument("--signing-key", required=True)
     parser.add_argument("--signing-input-preflight", action="store_true")
     parser.add_argument("output_root")
@@ -633,8 +653,15 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     arguments = parse_arguments()
     repository, snapshot, checkpoint, implementation_fd = verified_implementation(
-        stage_inputs=not arguments.signing_input_preflight,
+        stage_inputs=False,
     )
+    active = json.loads(
+        (repository / "configs/recovery-candidates/power-usb-active.json").read_text(
+            encoding="ascii"
+        )
+    )
+    active_record = active["record"]
+    active_integration = active["integration"]
     profile = {
         "headless-ssh-r2": (
             "headless-ssh-network-root-v3",
@@ -645,6 +672,11 @@ def main() -> None:
             "headless-core-network-root-v2",
             "57216474b4c8979161d964cef2ff3fe5d61500af3cef34598ee06e03e91f967d",
             "headless-core-network-root",
+        ),
+        "power-usb-active": (
+            active_record["candidate"],
+            active_integration["expected_dtb_sha256"],
+            active_record["target_id"],
         ),
     }[arguments.deployment_profile]
     environment = {
@@ -667,6 +699,41 @@ def main() -> None:
         "ROG5_OFFLINE_EXPECTED_TARGET": profile[2],
     }
     try:
+        if arguments.deployment_profile == "power-usb-active":
+            if not arguments.planned_deployment_receipt:
+                raise SystemExit(
+                    "FAIL power USB build requires the immutable planned deployment receipt"
+                )
+            receipt = Path(arguments.planned_deployment_receipt)
+            metadata = receipt.lstat()
+            if (
+                not receipt.is_absolute()
+                or receipt.resolve(strict=True) != receipt
+                or not stat.S_ISREG(metadata.st_mode)
+                or stat.S_IMODE(metadata.st_mode) != 0o400
+                or metadata.st_uid != os.geteuid()
+                or metadata.st_nlink != 1
+            ):
+                raise SystemExit("FAIL planned deployment receipt metadata is unsafe")
+            subprocess.run(
+                [
+                    "/usr/bin/python3",
+                    str(snapshot / "scripts/host/check-power-usb-active-closure.py"),
+                    "--stage",
+                    "planned",
+                    "--deployment-receipt",
+                    str(receipt),
+                ],
+                check=True,
+                stdin=subprocess.DEVNULL,
+                env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+            )
+        elif arguments.planned_deployment_receipt:
+            raise SystemExit(
+                "FAIL planned deployment receipt is limited to the active power USB build"
+            )
+        if not arguments.signing_input_preflight:
+            stage_checkpoint_inputs(repository, snapshot)
         os.execve(
             "/usr/bin/bash",
             [

@@ -7,6 +7,10 @@ fail() {
 	exit 1
 }
 
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=generated-power-usb-active.sh
+source "$script_dir/generated-power-usb-active.sh"
+
 deployment_profile=historical-headless-network-root-v1
 candidate_record=
 candidate_sha256=
@@ -29,8 +33,8 @@ case $# in
 			headless-core-deployment-v1)
 				runtime_candidate=headless-core-network-root-v2
 				;;
-			power-usb-observer-v3)
-				runtime_candidate=headless-power-usb-observer-v3
+			"$POWER_USB_RUNTIME_PROFILE")
+				runtime_candidate=$POWER_USB_CANDIDATE
 				;;
 			*) fail 'unsupported runtime deployment profile' ;;
 		esac
@@ -39,7 +43,7 @@ case $# in
 			0000000000000000000000000000000000000000000000000000000000000000 ]] ||
 			fail 'deployment candidate identity is invalid'
 		;;
-	*) fail 'usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3|headless-core-deployment-v1|diagnostic-initramfs-v1|power-usb-observer-v3 CANDIDATE_RECORD CANDIDATE_SHA256]' ;;
+	*) fail "usage: run-minimal-headless-runtime-acceptance.sh [headless-ssh-deployment-v3|headless-core-deployment-v1|diagnostic-initramfs-v1|$POWER_USB_RUNTIME_PROFILE CANDIDATE_RECORD CANDIDATE_SHA256]" ;;
 esac
 
 [[ ${ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE:-} == 1 ]] ||
@@ -171,7 +175,9 @@ chmod 0500 \"\$file\"
 [ \"\$(stat -c '%u:%g:%a' \"\$file\")\" = 0:0:500 ]
 [ \"\$(sha256sum \"\$file\" | cut -d ' ' -f 1)\" = $probe_hash ]
 $remote_exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
-	ROG5_RUNTIME_CANDIDATE='$runtime_candidate' \"\$file\"
+	ROG5_RUNTIME_CANDIDATE='$runtime_candidate' \
+	ROG5_RUNTIME_ALLOWED_CANDIDATE='$runtime_candidate' \
+	ROG5_RUNTIME_USB_PROFILE='$diagnostic_profile' \"\$file\"
 $diagnostic_completion
 "
 

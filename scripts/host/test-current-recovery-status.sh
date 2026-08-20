@@ -17,7 +17,7 @@ for contract in \
 	'M5AIKN00F0353YH' \
 	'Active slot: A' \
 	'33.0210.0210.200' \
-	'headless-power-usb-observer-v3' \
+	'configs/recovery-candidates/power-usb-active.json' \
 	'a600000.dwc3' \
 	'a600000.usb' \
 	'Do not rebuild or reflash `super`' \
@@ -32,7 +32,7 @@ done
 for contract in \
 	'281d5f6bc48972a1d428db5a268a2a6078d05fbceb0008d4996ceae1f4e0f549' \
 	'48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005' \
-	'f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9' \
+	'manifests/power-usb-active.lock.json' \
 	'92.25 GiB' \
 	'Full UCSI'
 do

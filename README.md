@@ -7,7 +7,7 @@ thermal behavior, input, sensors, audio, and wireless must be stable before
 display, GPU, desktop, remote GUI, hotspot, or automation work resumes.
 
 > **Current handoff:** charging and official WW33 Android are restored on slot
-> A. The active phase is RAM-only Linux dual-port power/USB observation. Read
+> A. The active phase is RAM-only Linux side-port power/USB observation. Read
 > [the compact active context](docs/active-context.md) before the historical
 > status ledger below.
 
@@ -21,10 +21,10 @@ build outputs.
 | Area | State |
 |---|---|
 | Bootloader | Unlocked; temporary `fastboot boot` only |
-| Persistent fallback | Alpine on vendor kernel 5.4.134; SSH/remote GUI and screen-off service available |
+| Recovery fallback | Verified stock WW33 slot-A Android/recovery/charging rescue; Alpine is historical and no longer the active fallback topology |
 | Proven temporary baseline | Vendor-derived 5.4.210; display, touch, charging, USB, Wi-Fi, hotspot, and Plasma smoke tests passed |
 | Recovery transport | v18 passed two RAM-only staging/rollback cycles and a separate mainline cycle |
-| Recovery control | Shell-free framed recovery fetched and verified one signed bundle, claimed one correlated commit, started target NCM, and returned automatically to exact fallback |
+| Recovery control | Shell-free framed recovery fetched and verified signed bundles; active work now binds stock slot-A fallback and deployed composition through generated receipts |
 | Mainline kernel | Reproducible Linux 7.1.4 board port with pinned source tag/commit/tree, exact no-local-tag ref state, and reconstructed historical rootless x86_64 builder; two independent builds recover every frozen `network-root-v1` identity; subsystem bring-up remains incremental |
 | Core compatibility | ASUS 5.4 and accepted 7.1 ancestry now form a fail-closed profile/config/evidence oracle; the active-core source/DT gate has 43 source and 23 corrected-DTB checks plus an exact static thermal policy for TSENS critical IRQs, 12 CPU cooling zones, and five PMIC alarms; an 88-field runtime probe covers all six active capabilities, including exact RAM/CPUfreq topology, mount-bound NFSv4.2 storage isolation, and target-side USB/NCM/SSH identity; PMIC critical enforcement and forced thermal fallback remain future hardware gates, and the corrected candidate remains live-pending |
 | Buttons/indicator | Exact Linux 7.1.4 source/config/module and DTB contracts pass offline; a reproducible 67,520-byte native AArch64 service validates the exact power-key/LPG identities and emits one bounded default-off green pulse per physical press; the historical headless-core-v2 root is pruned and must not be relabeled as its successor |
@@ -47,6 +47,8 @@ and final confirmation of the exact destructive commands.
 - [Active development context](docs/active-context.md) — the shortest
   authoritative resume point, current deployment boundary, and next hardware
   sequence.
+- [Development lessons](docs/development-lessons.md) — mandatory prevention
+  rules and pre-build/pre-live checklists.
 - [Minimal-headless lifecycle runbook](docs/minimal-headless-live-cycle.md) —
   exact one-shot recovery, NFS, SSH, rollback, and cleanup procedure.
 - [Completed charging recovery](docs/asus-charging-recovery.md) — root cause,
@@ -69,9 +71,8 @@ and final confirmation of the exact destructive commands.
 ## Safety model
 
 - Never flash an experimental boot, vendor boot, recovery, DTB, or rootfs.
-- Keep the installed fallback configuration and authorization unchanged;
-  separately guarded shell-history and read-induced atime effects are the only
-  current exception.
+- Preserve the verified stock WW33 slot-A boot chain, Android/recovery, and
+  charging rescue while RAM-only development continues.
 - Use only an attended `fastboot boot` of an explicitly allowed image.
 - Require exact artifact size and SHA-256, one fastboot device, and product
 `lahaina`.
@@ -84,10 +85,12 @@ and final confirmation of the exact destructive commands.
 - Keep credentials and private evidence outside the repository.
 - During Phase 2, constrain persistent payload writes to the reviewed bounded
   image inside `userdata`. Preserve both GPT copies, firmware, identity,
-  modem/EFS, calibration, and the verified Alpine recovery route.
+  modem/EFS, calibration, and the verified stock slot-A recovery route.
 
 `manifests/artifacts.tsv` is an inventory, not boot authority.
 `manifests/temporary-boot-images.tsv` is the deny-by-default boot policy.
+References to Alpine fallback below are immutable historical cycle evidence,
+not the current recovery topology.
 It retains the twice-live-accepted v18 staging image as revoked historical
 evidence. Diagnostic generations 0–12 are consumed and absent from boot
 policy. Generation 10's sole RAM-only lifecycle emitted correlated
@@ -307,10 +310,9 @@ physical USB port. No client key is offered during that discovery. Both paths
 may proceed under the standing authorization only after their exact artifact,
 preflight, one-shot, rollback, and cleanup gates pass.
 
-The Alpine fallback already proves that the OLED can remain off while server
-and remote-GUI services continue. Its ttyd/noVNC/KWin/Plasma/Chromium setup is
-preserved as an operator lifeline, not copied into the active mainline root.
-Historical desktop and A660 work remains frozen until the headless 24-hour
+The current fallback is stock WW33 slot A for charging, recovery, and Android
+rescue. The former Alpine desktop is historical evidence, not the active
+fallback. Desktop and A660 work remains frozen until the headless 24-hour
 reliability gate passes. See [roadmap](ROADMAP.md),
 [remote GUI](docs/remote-gui.md), and [current state](docs/current-state.md).
 

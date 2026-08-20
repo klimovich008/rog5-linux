@@ -26,7 +26,10 @@ for token in \
 	'ref: ${{ needs.head-exact.outputs.head_sha }}' \
 	'test "$actual" = "${{ needs.head-exact.outputs.head_sha }}"' \
 	'test "${{ needs.head-exact.outputs.head_sha }}" = "${{ github.event.pull_request.head.sha }}"' \
-	'test "$candidate_sha" = f23626d6ad0b15a660835bd8419cde40a8f8c3c79f83b6feca5cb57952f7b1ab' \
+	'candidate=$(python3 -c' \
+	'expected_candidate_sha=$(python3 -c' \
+	'test "$candidate_sha" = "$expected_candidate_sha"' \
+	'scripts/host/generate-power-usb-active.py' \
 	'format=rog5-reviewed-candidate-publication-v1' \
 	'candidate_sha256=%s' \
 	'authority=none' \

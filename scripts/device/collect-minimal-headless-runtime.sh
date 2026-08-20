@@ -11,22 +11,34 @@ fail() {
 runtime_root=${ROG5_RUNTIME_ROOT:-}
 test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
 runtime_candidate=${ROG5_RUNTIME_CANDIDATE:-headless-network-root-v1}
-case $runtime_candidate in
-	headless-network-root-v1|headless-ssh-network-root-v3|\
-		headless-power-usb-observer-v1|headless-power-usb-observer-v2|\
-		headless-power-usb-observer-v3)
+runtime_allowed_candidate=${ROG5_RUNTIME_ALLOWED_CANDIDATE:-$runtime_candidate}
+runtime_usb_profile=${ROG5_RUNTIME_USB_PROFILE:-}
+case $runtime_candidate:$runtime_allowed_candidate in
+	*[!a-z0-9._:-]*|*..*|none:*|*:none|:*)
+		fail 'runtime candidate identity is malformed' ;;
+esac
+[ "$runtime_candidate" = "$runtime_allowed_candidate" ] ||
+	fail 'runtime candidate differs from its admitted identity'
+if [ -z "$runtime_usb_profile" ]; then
+	case $runtime_candidate in
+		headless-netroot-early-diag-v2) runtime_usb_profile=1 ;;
+		*) runtime_usb_profile=0 ;;
+	esac
+fi
+case $runtime_usb_profile in
+	0)
 		expected_usb_product='ROG5 network root'
 		expected_usb_configuration='NFS root over NCM'
 		expected_usb_function_count=1
 		expected_usb_functions='ncm.usb0'
 		;;
-	headless-netroot-early-diag-v2)
+	1)
 		expected_usb_product='ROG5 diagnostic network root'
 		expected_usb_configuration='Diagnostic NFS root over NCM and ACM'
 		expected_usb_function_count=2
 		expected_usb_functions='acm.usb0,ncm.usb0'
 		;;
-	*) fail 'runtime candidate identity is unsupported' ;;
+	*) fail 'runtime USB profile is unsupported' ;;
 esac
 case $test_mode:$runtime_root in
 	0:) execution_mode=live ;;

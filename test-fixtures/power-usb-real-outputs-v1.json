@@ -1,0 +1,59 @@
+{
+  "format": "rog5-power-usb-real-output-fixture-v1",
+  "fastboot": {
+    "devices": "M5AIKN00F0353YH        fastboot usb:1-1.2\n",
+    "product": "product: lahaina\nFinished. Total time: 0.011s\n",
+    "slot": "current-slot: a\nFinished. Total time: 0.011s\n",
+    "battery_soc_ok": "battery-soc-ok: yes\nFinished. Total time: 0.011s\n"
+  },
+  "adb": {
+    "devices_unauthorized": "List of devices attached\nM5AIKN00F0353YH        unauthorized usb:1-1.2 transport_id:24\n",
+    "short_usb_location": "1-1.2",
+    "canonical_usb_location": "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2"
+  },
+  "firewalld": {
+    "zone_of_recovery_interface": "no zone\n"
+  },
+  "networkmanager": {
+    "empty_connection_uuid": "\n",
+    "stale_connection_uuid": "244dd128-e3b1-458e-9639-5e4ab4d8854f\n",
+    "disconnected_state": "30 (disconnected)\n"
+  },
+  "recovery_ncm": {
+    "udev_properties": "ID_VENDOR_ID=1d6b\nID_MODEL_ID=0104\nID_NET_DRIVER=cdc_ncm\nID_MODEL=ROG5_recovery\n"
+  },
+  "delays_seconds": {
+    "recovery_usb": "0.02",
+    "nfs": "0.02",
+    "ssh": "0.02",
+    "runtime": "0.02"
+  },
+  "stock_fallback_usb": {
+    "idVendor": "0b05",
+    "idProduct": "7770",
+    "manufacturer": "asus",
+    "product": "ROG Phone 5",
+    "serial": "M5AIKN00F0353YH",
+    "bDeviceClass": "00",
+    "bDeviceSubClass": "00",
+    "bDeviceProtocol": "00",
+    "bInterfaceClass": "ff",
+    "bInterfaceSubClass": "42",
+    "bInterfaceProtocol": "01"
+  },
+  "accepted_root_markers": [
+    "root=overlay-tmpfs",
+    "root=local-ext4-overlay-tmpfs"
+  ],
+  "required_lifecycle_order": [
+    "live:preflight",
+    "live:boot",
+    "bundle:start",
+    "control:prepare-commit",
+    "bundle:transfer",
+    "nfs:start",
+    "runtime:start",
+    "fallback:stock-android",
+    "control:resolve:TARGET_ACCEPTED"
+  ]
+}

@@ -261,6 +261,7 @@ for source in \
 	scripts/host/build-early-target-diagnostic-deployment-candidate.sh \
 	scripts/host/build-corrected-headless-candidate-offline.sh \
 	scripts/host/build-corrected-headless-candidate-offline-impl.sh \
+	scripts/host/generated-power-usb-active.sh \
 	scripts/host/stage-recovery-deployment-signing-inputs.py \
 	scripts/host/prepare-recovery-candidate.py \
 	scripts/host/prepare-recovery-runtime-bundle.py; do
@@ -483,12 +484,22 @@ for launcher in "$wrapper" "$diagnostic_wrapper"; do
 		'os.O_EXCL' \
 		'os.O_NOFOLLOW' \
 		'hasher.hexdigest() != digest' \
-		'artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py' \
-		'stage_inputs=not arguments.signing_input_preflight'; do
+		'artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py'; do
 		grep -Fq -- "$token" "$launcher" ||
 			fail "deployment launcher omits checkpoint-input gate: $token"
 	done
 done
+for token in \
+	'stage_inputs=False' \
+	'check-power-usb-active-closure.py' \
+	'if not arguments.signing_input_preflight:' \
+	'stage_checkpoint_inputs(repository, snapshot)'; do
+	grep -Fq -- "$token" "$wrapper" ||
+		fail "power USB deployment launcher omits pre-credential closure: $token"
+done
+grep -Fq 'stage_inputs=not arguments.signing_input_preflight' \
+	"$diagnostic_wrapper" ||
+	fail 'diagnostic deployment launcher lost its checkpoint-input gate'
 
 for token in \
 	'ROG5_RUN_FULL_DISPOSABLE_DIAGNOSTIC' \

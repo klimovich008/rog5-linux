@@ -22,6 +22,8 @@ for token in \
 	'isolated_tests=(' \
 	'parallel_pids=(' \
 	'parallel_status_files=(' \
+	'selected_test() {' \
+	'selected_test "$test_path" || continue' \
 	'parallel_group_has_other_members() {' \
 	'terminate_parallel_group() {' \
 	'cleanup_parallel_tests() {' \

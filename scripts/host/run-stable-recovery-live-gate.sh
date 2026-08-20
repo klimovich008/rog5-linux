@@ -98,6 +98,7 @@ case $action in
 esac
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+source "$repo/scripts/host/generated-power-usb-active.sh"
 profile=${ROG5_STABLE_RECOVERY_PROFILE:-}
 [[ -n $profile ]] ||
 	fail 'set ROG5_STABLE_RECOVERY_PROFILE explicitly'
@@ -142,7 +143,7 @@ if [[ $action == policy-preflight ]]; then
 		headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 		headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 		headless-core-deployment-v1-live-v1 | \
-		headless-power-usb-observer-v3-live-v1 | \
+		$POWER_USB_RECOVERY_PROFILE | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -1506,34 +1507,33 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	headless-power-usb-observer-v3-live-v1)
-		expected_boot_image=build/power-usb-observer-v3-offline-r1/wrapper/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact recovery-zone-and-stock-anchor-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted recovery-zone-and-stock-anchor-corrected side-port NCM SSH and charging observer; disposable-key clean twins; one RAM-only use only; never flash'
+	$POWER_USB_RECOVERY_PROFILE)
+		expected_boot_image=$POWER_USB_OUTPUT_ROOT/wrapper/repack/stable-recovery-a.avb.img
+		expected_boot_basis=$POWER_USB_BOOT_POLICY_BASIS
+		expected_boot_role=$POWER_USB_ARTIFACT_ROLE
 		expected_boot_tracked=no
 		component_layout=structured
-		expected_kernel=b8f256f07d53e0c2f6d576d937235184c76557d516c28a3d75dbd09028016b11
-		expected_raw=98ac6b14f713ae2e866a1732285d6e60bf7925e88208b71f1fabdc8c61286fa5
-		expected_initramfs=5d366f35223a980fd7b334eaf495498ae3d58e5c73cd6fc0b02231027ea394d3
-		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
-		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
-		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
-		expected_target_id=headless-power-usb-observer-v3
-		expected_bundle=headless-power-usb-observer-v3
-		expected_bundle_profile=network-root-v1
+		expected_target_id=$POWER_USB_TARGET_ID
+		expected_bundle=$POWER_USB_BUNDLE
+		expected_bundle_profile=$POWER_USB_BUNDLE_PROFILE
+		expected_target_release=$POWER_USB_TARGET_RELEASE
+		expected_target_timeout=$POWER_USB_TARGET_TIMEOUT
 		recovery_init=$repo/initramfs/recovery-init
-		[[ $expected_manifest == \
-			872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381 ]] ||
+		[[ $expected_manifest == "$POWER_USB_EXPECTED_MANIFEST_SHA256" ]] ||
 			fail 'power USB observer runtime manifest is not pinned'
-		[[ $expected_image == \
-			fe4f2c5581dfb56d452d1cfd0780ade6c0b109f0635733ff7e80d55b2a88a726 ]] ||
-			fail 'power USB observer recovery image is not pinned'
-		[[ $expected_trust == \
-			3132b12fd5836a8eb05fe06e972ae31f1812e9a31c4073dc8b0f1c9c61ef8b4d ]] ||
-			fail 'power USB observer trust key is not pinned'
-		[[ $expected_host_verifier == \
-			04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
-			fail 'power USB observer host verifier is not pinned'
+		if [[ $action != policy-preflight ]]; then
+			receipt=${ROG5_POWER_USB_DEPLOYMENT_RECEIPT:-}
+			[[ -n $receipt ]] || fail 'set the exact power USB deployment receipt'
+			"$repo/scripts/host/power-usb-deployment-receipt.py" verify \
+				"$receipt" --build-root "$repo/$POWER_USB_OUTPUT_ROOT"
+			expected_kernel=$(sha256sum "$live_root/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image" | cut -d ' ' -f 1)
+			expected_raw=$(sha256sum "$live_root/repack/stable-recovery-a.raw.img" | cut -d ' ' -f 1)
+			expected_initramfs=$(sha256sum "$component_root/initramfs-a/rog5-stable-recovery.cpio.gz" | cut -d ' ' -f 1)
+			expected_control=$(sha256sum "$component_root/components/rog5-recovery-control" | cut -d ' ' -f 1)
+			expected_fetcher=$(sha256sum "$component_root/components/rog5-bundle-fetch" | cut -d ' ' -f 1)
+			expected_verifier=$(sha256sum "$component_root/components/rog5-bundle-verify" | cut -d ' ' -f 1)
+			expected_config=$(sha256sum "$live_root/wrapper-a/asus-kexec-stage/.config" | cut -d ' ' -f 1)
+		fi
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -2941,7 +2941,7 @@ case $profile in
 	headless-diagnostic-ssh-iproute-whitespace-v19-live-v1 | \
 	headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1 | \
 	headless-core-deployment-v1-live-v1 | \
-	headless-power-usb-observer-v3-live-v1 | \
+	$POWER_USB_RECOVERY_PROFILE | \
 	persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 	persistent-root-qmp-module-load-control-v13-live-v1 | \
 	persistent-root-qmp-regulator-stage-v14-live-v1 | \
