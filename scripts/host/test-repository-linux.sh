@@ -209,6 +209,7 @@ shared_tests=(
 	scripts/host/test-dual-cell-readonly-snapshot.py
 	scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh
 	scripts/device/test-dual-cell-readonly-candidate-dtb.sh
+	scripts/host/test-wait-stock-android-fallback.py
 	scripts/host/test-fallback-acm-control.py
 	scripts/host/test-retired-legacy-acm-entrypoints.py
 	scripts/host/test-run-minimal-headless-live-cycle.py
