@@ -85,12 +85,12 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active power/USB identity is defined only by
+The active v5 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. No successor currently has
-boot authority. The last wrapper was consumed by the R7 firewalld `no zone`
-parser defect before transfer or target execution; see
-`test-results/2026-08-20-power-usb-v3-r7-firewalld-no-zone.md`.
+boot authority. V4 was consumed by an R7 host-ordering defect before transfer
+or target execution; exact stock slot A and host cleanup passed. See
+`test-results/2026-08-20-power-usb-v4-r7-host-readiness-order.md`.
 
 ## Next execution sequence
 

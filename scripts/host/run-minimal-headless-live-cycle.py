@@ -3961,6 +3961,25 @@ class LiveCycle:
                 time.monotonic()
                 + FALLBACK_CONTACT_START_BUDGET_SECONDS
             )
+            bundle_process = start_logged(
+                "recovery bundle server",
+                [
+                    str(self.dependencies.bundle_server),
+                    "serve-progress-deferred",
+                    self.profile.bundle,
+                    self.inputs.manifest_sha256,
+                    str(self.inputs.evidence_dir),
+                ],
+                bundle_log,
+                environment=child_environment(),
+            )
+            wait_log_marker(
+                bundle_process,
+                "PASS recovery bundle server ready on "
+                "169.254.77.1:8080",
+                timeout=self.short_timeout,
+                poll=self.poll,
+            )
             recovery_ncm = self.wait_recovery_ncm()
 
             if self.profile.diagnostic:
@@ -3983,26 +4002,6 @@ class LiveCycle:
                     poll=self.poll,
                     exact_line=True,
                 )
-
-            bundle_process = start_logged(
-                "recovery bundle server",
-                [
-                    str(self.dependencies.bundle_server),
-                    "serve-progress-deferred",
-                    self.profile.bundle,
-                    self.inputs.manifest_sha256,
-                    str(self.inputs.evidence_dir),
-                ],
-                bundle_log,
-                environment=child_environment(),
-            )
-            wait_log_marker(
-                bundle_process,
-                "PASS recovery bundle server ready on "
-                "169.254.77.1:8080",
-                timeout=self.short_timeout,
-                poll=self.poll,
-            )
 
             handoff_token = secrets.token_hex(32)
             ledger_before = self.ledger_inventory()
