@@ -58,10 +58,10 @@ defers bottom-port arbitration.
 
 ## Active successor
 
-V6 is consumed after fully reaching NFS, systemd, and key-only SSH, then
-exposing a stale host-only minimum of 30 thermal zones before the charging
-probe. The exact safe 29-zone observation is now a regression fixture. V7 is
-authority-free and changes no target bytes. The only hand-maintained successor source is
+V7 is consumed after passing NFS, systemd, 29-zone runtime acceptance, and
+key-only SSH, then exposing a target selector that omitted the canonical
+candidate and never entered the charging probe. V8 generates that target
+identity from the same authority-free source. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.

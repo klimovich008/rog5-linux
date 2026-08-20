@@ -6,6 +6,7 @@ init=$repo/initramfs/network-root-init
 shutdown=$repo/initramfs/network-root-shutdown
 initramfs_builder=$repo/scripts/device/build-network-root-initramfs.sh
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
+power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
 
 for script in "$init" "$shutdown" "$initramfs_builder" \
 	"$verifier_builder"; do
@@ -15,6 +16,9 @@ for script in "$init" "$shutdown" "$initramfs_builder" \
 	}
 	sh -n "$script"
 done
+[ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ]
+sh -n "$power_usb_profile"
+. "$power_usb_profile"
 for text in \
 	'usage: build-network-root-initramfs.sh BASE OUTPUT' \
 	'build-persistent-root-verifier-static.sh' \
@@ -25,6 +29,7 @@ for text in \
 	'reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'install -D -m 0755 "$charging_probe"' \
+	'install -D -m 0444 "$power_usb_profile"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
 	'verify-network-root-initramfs.sh' \
@@ -41,6 +46,8 @@ fi
 grep -Fq 'cmp "$root_verifier" "$trusted/persistent-root-verify"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 grep -Fq 'cmp "$charging_probe" "$reviewed_charging_probe"' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
+grep -Fq 'cmp "$power_usb_profile" "$reviewed_power_usb_profile"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 for text in \
 	'normal network-root initramfs carries diagnostic reporter' \
@@ -90,6 +97,8 @@ for text in \
 	'charging_probe_candidate=headless-full-ucsi-charging-early-v1' \
 	'charging_probe_successor=headless-full-ucsi-charging-early-v2' \
 	'charging_probe_observable=headless-full-ucsi-charging-early-v3' \
+	'power_usb_profile=/etc/rog5/power-usb-active.sh' \
+	'. /etc/rog5/power-usb-active.sh' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
 	'export LC_ALL=C' \
@@ -1035,6 +1044,7 @@ grep -Fq 'embedded persistent-root verifier hash changed' \
 handoff_functions=$work/handoff-functions.sh
 awk '
 	/^move_handoff_mount\(\) \{/ { copy=1 }
+	/^if ! load_power_usb_profile; then$/ { copy=0 }
 	/^if ! parse_network_root_command_line; then$/ { copy=0 }
 	copy { print }
 ' "$init" >"$handoff_functions"
@@ -1321,6 +1331,15 @@ printf '%s\n' "$diagnostic_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 1 ]
 [ "$charging_probe_mode" -eq 0 ]
+
+active_power_cmdline=$(printf '%s\n' "$valid_cmdline" |
+	sed "s/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=$power_usb_candidate/")
+printf '%s\n' "$active_power_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 0 ]
+[ "$charging_probe_mode" -eq 1 ]
+expect_cmdline_rejection 'active power identity with diagnostic mode' \
+	"$active_power_cmdline rog5.diagnostic=1"
 
 charging_cmdline=$(printf '%s\n' "$valid_cmdline" |
 	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-full-ucsi-charging-early-v1/')

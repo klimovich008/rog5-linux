@@ -23,6 +23,8 @@ diagnostic_candidate=headless-netroot-early-diag-v2
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
 charging_probe_observable=headless-full-ucsi-charging-early-v3
+power_usb_profile=/etc/rog5/power-usb-active.sh
+power_usb_candidate=
 diagnostic_mode=0
 charging_probe_mode=0
 diagnostic_pid=
@@ -227,6 +229,18 @@ is_nonzero_sha256() {
 	return 0
 }
 
+load_power_usb_profile() {
+	power_usb_candidate=
+	[ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ] || return 1
+	. /etc/rog5/power-usb-active.sh || return 1
+	case $power_usb_candidate in
+		headless-power-usb-observer-v[1-9]|headless-power-usb-observer-v[1-9][0-9]*)
+			return 0
+			;;
+		*) return 1 ;;
+	esac
+}
+
 parse_network_root_command_line() {
 	diagnostic_mode=0
 	charging_probe_mode=0
@@ -352,6 +366,11 @@ parse_network_root_command_line() {
 			[ "$bundle" != "$charging_probe_successor" ] &&
 			[ "$bundle" != "$charging_probe_observable" ]; } ||
 			charging_probe_mode=1
+	elif [ "$diagnostic_count" -eq 0 ] &&
+		[ "$diagnostic_invalid" -eq 0 ] &&
+		[ "$bundle" = "$power_usb_candidate" ]; then
+		diagnostic_mode=0
+		charging_probe_mode=1
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		[ "$bundle" != "$diagnostic_candidate" ] &&
@@ -1001,6 +1020,11 @@ switch_root_failure() {
 	rollback_handoff_mounts || true
 	diagnostic_rollback switch-root-returned
 }
+
+if ! load_power_usb_profile; then
+	log 'active power/USB identity is unavailable or invalid; rebooting'
+	force_rollback
+fi
 
 if ! parse_network_root_command_line; then
 	log 'invalid network-root command line; rebooting'
