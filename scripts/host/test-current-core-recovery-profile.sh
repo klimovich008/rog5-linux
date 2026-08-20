@@ -98,8 +98,6 @@ for index in "${!fields[@]}"; do
 		fail "wrong ${fields[$index]} returned an unexpected rejection"
 done
 
-[[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] || fail 'observer/core/power-USB temporary-boot policy is not exact'
 awk -F '\t' -v name="$image_name" -v basis="$basis" '
 	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
 	END { exit count == 1 ? 0 : 1 }

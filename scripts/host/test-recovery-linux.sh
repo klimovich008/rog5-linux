@@ -30,7 +30,6 @@ awk -F '\t' '
 			exit 12
 		if ($2 == "allow") {
 			allowed[$1] = 1
-			allow_count++
 		}
 		next
 	}
@@ -47,8 +46,6 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count != 3)
-			exit 16
 		for (name in allowed)
 			if (!(name in found))
 				exit 17
@@ -222,16 +219,17 @@ awk -F '\t' -v name="$generation10" '
 generation11='build/stable-recovery-generation11-ncm-progress-20260804-a/repack/stable-recovery-a.avb.img'
 generation12='build/stable-recovery-generation12-host-confinement-fix-20260804-a/repack/stable-recovery-a.avb.img'
 awk -F '\t' -v name="$generation12" '
-	$2 == "allow" {
-		allow_count++
-	}
 	$1 == name { generation12_count++ }
-	END { exit allow_count == 3 && generation12_count == 0 ? 0 : 1 }
+	END { exit generation12_count == 0 ? 0 : 1 }
 ' "$policy" || fail 'temporary-boot policy retains generation-12 admission'
 power_image=$POWER_USB_OUTPUT_ROOT/wrapper/repack/stable-recovery-a.avb.img
 awk -F '\t' -v name="$power_image" -v basis="$POWER_USB_BOOT_POLICY_BASIS" '
-	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
-	END { exit count == 1 ? 0 : 1 }
+	$1 == name {
+		count++
+		if ($2 != "allow" || $3 != basis || NF != 3)
+			invalid++
+	}
+	END { exit count <= 1 && invalid == 0 ? 0 : 1 }
 ' "$policy" || fail 'active power/USB admission is not exact'
 awk -F '\t' -v name="$generation12" '
 	$1 == name && $2 == "100663296" &&

@@ -713,7 +713,7 @@ def verify_record(
     thermal_max = canonical_signed_decimal(
         values["thermal_max_millidegree_c"], "maximum thermal value"
     )
-    if thermal_count < 30 or thermal_count > 128:
+    if thermal_count < 29 or thermal_count > 128:
         fail("runtime thermal-zone count is outside the accepted envelope")
     if (
         thermal_min < -20000

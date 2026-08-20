@@ -152,8 +152,6 @@ for index in "${!fields[@]}"; do
 		fail "wrong ${fields[$index]} returned an unexpected rejection"
 done
 
-[[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] || fail 'post-v20 observer/core/power-USB temporary-boot policy is not exact'
 grep -Fq "\"$profile\":" "$claim_consumer" ||
 	fail 'current production live profile lacks an exact claim registration'
 [[ $(awk -F '\t' -v name="build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img" \

@@ -58,9 +58,10 @@ defers bottom-port arbitration.
 
 ## Active successor
 
-There is no issued successor. V5 is consumed after crossing recovery ordering
-but exposing a deferred-profile/controller mismatch before transfer. The only
-hand-maintained successor source is
+V6 is consumed after fully reaching NFS, systemd, and key-only SSH, then
+exposing a stale host-only minimum of 30 thermal zones before the charging
+probe. The exact safe 29-zone observation is now a regression fixture. V7 is
+authority-free and changes no target bytes. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
@@ -90,7 +91,8 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-Complete the offline twin wrapper, publish the coherent checkpoint, admit its
-exact disposable-key chain once, and run one live side-port observation
+Issue a byte-distinct wrapper from the already clean-twin-proven v6 raw input,
+publish the coherent checkpoint, admit its exact disposable-key chain once,
+and run one live side-port observation
 through systemd and strict SSH. Its result decides whether the next change is
 kernel, DT, Qualcomm protocol support, or host cabling/power policy.

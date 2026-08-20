@@ -221,7 +221,7 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 51 || observer != 1 || core != 1 || power_usb != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 50 + power_usb || power_usb > 1 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retained admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -263,9 +263,16 @@ do
 	! grep -Fq "$generation12_lifecycle_leak" "$lifecycle_test" ||
 		{ echo 'FAIL generation-12 offline artifact leaked into the lifecycle test' >&2; exit 1; }
 done
-[[ $(awk -F '\t' '$2 == "allow" { count++ } END { print count + 0 }' \
-	"$boot_policy") == 3 ]] ||
-	{ echo 'FAIL temporary-boot policy does not contain exactly the retained observer, core, and active power/USB admissions' >&2; exit 1; }
+awk -F '\t' \
+	-v power_name="$POWER_USB_OUTPUT_ROOT/wrapper/repack/stable-recovery-a.avb.img" \
+	-v power_basis="$POWER_USB_BOOT_POLICY_BASIS" '
+	$2 == "allow" { allowed++ }
+	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
+		power_usb++
+	}
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+' "$boot_policy" ||
+	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
