@@ -439,8 +439,10 @@ class Fixture:
             printf 'ip:%s\n' "$*" >>"$MOCK_CALLS"
             case " $* " in
               *" -4 -o address show dev usbmock0 "*)
-                if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
-                   [ -e "$MOCK_ROOT/profile-restored" ]; then
+                if { [ "${MOCK_REQUIRE_BUNDLE_READY:-0}" != 1 ] ||
+                     grep -Fxq 'bundle:start' "$MOCK_CALLS"; } &&
+                   { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
+                     [ -e "$MOCK_ROOT/profile-restored" ]; }; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 fi
                 if { [ "${MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
@@ -451,8 +453,10 @@ class Fixture:
                 fi
                 ;;
               *" -4 -o address show "*)
-                if [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
-                   [ -e "$MOCK_ROOT/profile-restored" ]; then
+                if { [ "${MOCK_REQUIRE_BUNDLE_READY:-0}" != 1 ] ||
+                     grep -Fxq 'bundle:start' "$MOCK_CALLS"; } &&
+                   { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
+                     [ -e "$MOCK_ROOT/profile-restored" ]; }; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 fi
                 if [ "${MOCK_ADDRESS_GAP_AFTER_FALLBACK:-0}" = 1 ] &&
