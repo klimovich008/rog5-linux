@@ -755,6 +755,12 @@ printf '%s\n' 'ROG5 network root' >"$gadget/strings/0x409/product"
 printf '%s\n' 'NFS root over NCM' \
 	>"$gadget/configs/c.1/strings/0x409/configuration"
 
+for observer in headless-power-usb-observer-v1 \
+	headless-power-usb-observer-v2; do
+	run_probe "$observer" >"$stage/$observer.record"
+	grep -Fxq "candidate=$observer" "$stage/$observer.record"
+done
+
 set +e
 run_probe unsupported-candidate >"$stage/unsupported-record" \
 	2>"$stage/unsupported-error"

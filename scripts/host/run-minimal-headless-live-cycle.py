@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"
-POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v1-live-v1"
+POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v2-live-v1"
 DIAGNOSTIC_RECOVERY_PROFILE = (
     "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"
 )
@@ -457,13 +457,13 @@ CORE_CYCLE_PROFILE = CycleProfile(
     diagnostic=False,
 )
 POWER_USB_CYCLE_PROFILE = CycleProfile(
-    candidate="headless-power-usb-observer-v1",
-    bundle="headless-power-usb-observer-v1",
+    candidate="headless-power-usb-observer-v2",
+    bundle="headless-power-usb-observer-v2",
     bundle_profile="network-root-v1",
-    target_id="headless-power-usb-observer-v1",
+    target_id="headless-power-usb-observer-v2",
     admission_profile="power-usb-observer-live-v1",
     recovery_profile=POWER_USB_RECOVERY_PROFILE,
-    runtime_profile="power-usb-observer-v1",
+    runtime_profile="power-usb-observer-v2",
     build_profile="headless-ssh-v2",
     diagnostic=False,
 )
