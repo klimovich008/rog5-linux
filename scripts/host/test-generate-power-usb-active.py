@@ -35,6 +35,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         GENERATOR.verify_consumer_closure(self.source)
+        self.assertTrue(
+            GENERATOR.SHELL_LOCK.read_bytes().startswith(b"#!/bin/sh\n")
+        )
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)

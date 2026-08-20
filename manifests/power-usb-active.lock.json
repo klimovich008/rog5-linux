@@ -6,7 +6,7 @@
   "candidate_sha256": "28d67dd764a3fd6aeaa1a1e2457df57cefa3dd00199a7a693b4935cfc9a77d1f",
   "marker_sha256": "c41a11940e68754390860b4c31bda149dd99ada3f7bda63c73366fc1db3e2e36",
   "python_lock_sha256": "107b74514582360bcd365742649995f2715f3561db6bce7a3f5383dc91b32cb6",
-  "shell_lock_sha256": "93834336207f4f3a09fb738b05ee1f637519b4831e7911d278d29d6c4fdd5b82",
+  "shell_lock_sha256": "d5ab315449e2f13b4a9d93a3343a35de6c2f1873da06cee6d821120eb6f55ff4",
   "expected_manifest_sha256": "b88b4caa60309fe8b6fc98f42a3f06ef812df9fc84bae09a3329c8b5884eb890",
   "output_root": "build/power-usb-observer-v4-offline-r2",
   "boot_policy_basis": "one exact firewalld-no-zone-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry",
