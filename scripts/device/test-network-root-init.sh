@@ -24,6 +24,8 @@ for text in \
 	'build-persistent-root-verifier-static.sh' \
 	'NETWORK_ROOT_VERIFIER' \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
+	'NETWORK_ROOT_CHARGE_FIRMWARE_ARCHIVE' \
+	'charge_firmware_sha=8974a54fa1c31cca4698a934ec3f9de4a997e0a99d6c55baaa3cd8a005369e5b' \
 	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
 	'reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
@@ -48,6 +50,10 @@ grep -Fq 'cmp "$root_verifier" "$trusted/persistent-root-verify"' \
 grep -Fq 'cmp "$charging_probe" "$reviewed_charging_probe"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 grep -Fq 'cmp "$power_usb_profile" "$reviewed_power_usb_profile"' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
+grep -Fq 'NETWORK_ROOT_EXPECT_CHARGE_FIRMWARE' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
+grep -Fq 'private charge firmware byte count changed' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 for text in \
 	'normal network-root initramfs carries diagnostic reporter' \
