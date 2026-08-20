@@ -21,6 +21,15 @@ GENERATOR = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = GENERATOR
 SPEC.loader.exec_module(GENERATOR)
 
+CLOSURE_SOURCE = Path(__file__).with_name("check-power-usb-active-closure.py")
+CLOSURE_SPEC = importlib.util.spec_from_file_location(
+    "power_usb_closure", CLOSURE_SOURCE
+)
+if CLOSURE_SPEC is None or CLOSURE_SPEC.loader is None:
+    raise RuntimeError("cannot load power/USB closure")
+CLOSURE = importlib.util.module_from_spec(CLOSURE_SPEC)
+CLOSURE_SPEC.loader.exec_module(CLOSURE)
+
 
 class PowerUsbGenerationTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -94,6 +103,18 @@ class PowerUsbGenerationTest(unittest.TestCase):
         mutated["record"]["bundle"] = "wrong"
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate(mutated)
+
+    def test_built_receipt_verification_includes_canonical_build_root(self) -> None:
+        receipt = Path("/private/built-receipt.json")
+        built = CLOSURE.receipt_verify_command(receipt, "built")
+        self.assertEqual(
+            built[-2:],
+            ["--build-root", str(CLOSURE.REPO / CLOSURE.POWER_USB.OUTPUT_ROOT)],
+        )
+        self.assertNotIn(
+            "--build-root",
+            CLOSURE.receipt_verify_command(receipt, "planned"),
+        )
 
 
 if __name__ == "__main__":
