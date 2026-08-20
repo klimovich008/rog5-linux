@@ -59,9 +59,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)
-        self.assertEqual(timing["rollback_timeout_seconds"], 600)
+        self.assertEqual(timing["rollback_timeout_seconds"], 900)
         mutated = deepcopy(self.source)
-        mutated["timing"]["rollback_timeout_seconds"] = 599
+        mutated["timing"]["rollback_timeout_seconds"] = 899
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate_timing(mutated, mutated["record"])
 
