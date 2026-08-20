@@ -58,8 +58,8 @@ defers bottom-port arbitration.
 
 ## Active successor
 
-There is no issued successor. V4 is consumed after proving recovery USB but
-exposing a host readiness-order defect before transfer. The only
+There is no issued successor. V5 is consumed after crossing recovery ordering
+but exposing a deferred-profile/controller mismatch before transfer. The only
 hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
