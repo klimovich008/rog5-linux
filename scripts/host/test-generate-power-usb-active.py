@@ -8,7 +8,9 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 
 SOURCE = Path(__file__).with_name("generate-power-usb-active.py")
@@ -52,6 +54,37 @@ class PowerUsbGenerationTest(unittest.TestCase):
         mutated["integration"]["boot_policy_status"] = "allow"
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate(mutated)
+
+    def test_generation_preserves_but_never_creates_exact_admission(self) -> None:
+        record, integration = GENERATOR.validate(self.source)
+        name = (
+            f"{integration['output_root']}/wrapper/repack/"
+            "stable-recovery-a.avb.img"
+        )
+        exact = f"{name}\tallow\t{integration['boot_policy_basis']}"
+        with tempfile.TemporaryDirectory() as raw:
+            policy = Path(raw) / "policy.tsv"
+            with mock.patch.object(GENERATOR, "POLICY", policy):
+                policy.write_text("name\tstatus\tbasis\n", encoding="utf-8")
+                self.assertNotIn(
+                    "\tallow\t",
+                    GENERATOR.policy_payload(record, integration).decode(),
+                )
+                policy.write_text(
+                    "name\tstatus\tbasis\n" + exact + "\n",
+                    encoding="utf-8",
+                )
+                self.assertIn(
+                    exact,
+                    GENERATOR.policy_payload(record, integration).decode(),
+                )
+                policy.write_text(
+                    "name\tstatus\tbasis\n"
+                    "build/power-usb-observer-v3/x\tallow\tstale\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaises(GENERATOR.GenerationError):
+                    GENERATOR.policy_payload(record, integration)
 
     def test_candidate_bundle_target_mismatch_refuses(self) -> None:
         mutated = deepcopy(self.source)
