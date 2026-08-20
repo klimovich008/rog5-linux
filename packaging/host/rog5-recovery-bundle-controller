@@ -655,8 +655,8 @@ original_connection_uuid=$(
 [[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
 	fail 'fallback NetworkManager connection identity is invalid'
 read_profile "$original_connection_uuid" "$interface"
-[[ $profile_autoconnect == yes ]] ||
-	fail 'fallback NetworkManager profile autoconnect is not enabled'
+[[ $profile_autoconnect == no ]] ||
+	fail 'fallback NetworkManager profile is not explicitly deferred'
 
 server_pid=
 progress_collector_pid=
@@ -767,7 +767,8 @@ for zone in "${protected_zones[@]}"; do
 	fi
 done
 
-if [[ $action == serve-deferred || $action == serve-progress-deferred ]]; then
+if [[ ( $action == serve-deferred || $action == serve-progress-deferred ) &&
+	$profile_autoconnect == yes ]]; then
 	autoconnect_disabled=1
 	bounded_nmcli connection modify uuid "$original_connection_uuid" \
 		connection.autoconnect no >/dev/null

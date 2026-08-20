@@ -58,7 +58,7 @@ class ControllerFixture:
         self.calls = self.root / "calls"
         self.connection_state = self.root / "connection-down"
         self.autoconnect_state = self.root / "profile-autoconnect"
-        self.autoconnect_state.write_text("yes\n", encoding="ascii")
+        self.autoconnect_state.write_text("no\n", encoding="ascii")
         self.managed_state = self.root / "device-managed"
         self.managed_state.write_text("yes\n", encoding="ascii")
         self.pid = self.root / "server.pid"
@@ -1139,7 +1139,7 @@ class RecoveryHostControllerTest(unittest.TestCase):
         )
         calls = self.fixture.call_log()
         uuid = "244dd128-e3b1-458e-9639-5e4ab4d8854f"
-        self.assertIn(
+        self.assertNotIn(
             f"nmcli connection modify uuid {uuid} "
             "connection.autoconnect no",
             calls,

@@ -48,6 +48,7 @@
   "required_lifecycle_order": [
     "live:preflight",
     "live:boot",
+    "nmcli:connection up uuid 244dd128-e3b1-458e-9639-5e4ab4d8854f ifname usbmock0",
     "bundle:start",
     "control:prepare-commit",
     "bundle:transfer",

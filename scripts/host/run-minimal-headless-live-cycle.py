@@ -3103,16 +3103,66 @@ class LiveCycle:
         deadline = time.monotonic() + self.short_timeout
         previous: tuple[InterfaceSnapshot, ...] | None = None
         stable_since = 0.0
+        profile_activated = False
         while time.monotonic() < deadline:
-            current = tuple(
+            observed = tuple(
                 item
                 for item in self.rog5_ncm_interfaces()
                 if (
                     item.product == "ROG5_recovery"
-                    and item.addresses == ("169.254.77.1/30",)
                     and item.network_manager_managed == "yes"
                     and item.firewall_zone != "drop"
                 )
+            )
+            if (
+                not profile_activated
+                and len(observed) == 1
+                and observed[0].addresses == ()
+            ):
+                profile = run_capture(
+                    [
+                        str(self.dependencies.nmcli),
+                        "-g",
+                        "connection.uuid,connection.id,"
+                        "connection.interface-name,connection.autoconnect",
+                        "connection",
+                        "show",
+                        FALLBACK_NETWORK_PROFILE,
+                    ],
+                    timeout=self.remaining_timeout(deadline),
+                ).stdout.splitlines()
+                if (
+                    len(profile) != 4
+                    or not re.fullmatch(
+                        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+                        r"[0-9a-f]{4}-[0-9a-f]{12}",
+                        profile[0],
+                    )
+                    or profile[1] != FALLBACK_NETWORK_PROFILE
+                    or profile[2] != observed[0].name
+                    or profile[3] != "no"
+                ):
+                    fail("recovery NetworkManager profile is not exactly deferred")
+                run_capture(
+                    [
+                        str(self.dependencies.nmcli),
+                        "connection",
+                        "up",
+                        "uuid",
+                        profile[0],
+                        "ifname",
+                        observed[0].name,
+                    ],
+                    timeout=self.remaining_timeout(deadline),
+                )
+                profile_activated = True
+                previous = None
+                stable_since = 0.0
+                continue
+            current = tuple(
+                item
+                for item in observed
+                if item.addresses == ("169.254.77.1/30",)
             )
             if len(current) != 1:
                 previous = None
@@ -3981,6 +4031,7 @@ class LiveCycle:
                     poll=self.poll,
                     exact_line=True,
                 )
+            recovery_ncm = self.wait_recovery_ncm()
             bundle_process = start_logged(
                 "recovery bundle server",
                 [
@@ -4000,8 +4051,6 @@ class LiveCycle:
                 timeout=self.short_timeout,
                 poll=self.poll,
             )
-            recovery_ncm = self.wait_recovery_ncm()
-
             handoff_token = secrets.token_hex(32)
             ledger_before = self.ledger_inventory()
             control_attempted = True
