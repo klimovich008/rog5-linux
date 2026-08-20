@@ -36,7 +36,7 @@ CHECKPOINT_INPUTS = (
     (
         "artifacts/network-root-power-usb-observer-v1/Image",
         40049152,
-        0o755,
+        0o644,
         "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef",
     ),
     (
