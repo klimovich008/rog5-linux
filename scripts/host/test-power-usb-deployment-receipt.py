@@ -72,6 +72,9 @@ def base(state: str) -> dict[str, object]:
 
 
 class DeploymentReceiptTest(unittest.TestCase):
+    def test_fresh_avb_generation_record_is_receipt_bound(self) -> None:
+        self.assertIn("wrapper/avb-generation.txt", RECEIPT.BUILD_FILES)
+
     def test_planned_built_and_admitted_states_pass(self) -> None:
         for state in ("planned", "built", "admitted"):
             with self.subTest(state=state):

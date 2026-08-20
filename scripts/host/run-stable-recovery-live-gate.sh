@@ -1533,6 +1533,7 @@ case $profile in
 			expected_fetcher=$(sha256sum "$component_root/components/rog5-bundle-fetch" | cut -d ' ' -f 1)
 			expected_verifier=$(sha256sum "$component_root/components/rog5-bundle-verify" | cut -d ' ' -f 1)
 			expected_config=$(sha256sum "$live_root/wrapper-a/asus-kexec-stage/.config" | cut -d ' ' -f 1)
+			expected_generation_record=$(sha256sum "$live_root/avb-generation.txt" | cut -d ' ' -f 1)
 		fi
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
