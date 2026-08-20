@@ -7,6 +7,7 @@ fail() {
 }
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
+. "$repo/scripts/host/generated-power-usb-active.sh"
 recovery=$repo/scripts/host/recovery-linux.sh
 policy=$repo/manifests/temporary-boot-images.tsv
 manifest=$repo/manifests/artifacts.tsv
@@ -46,7 +47,7 @@ awk -F '\t' '
 		found[$1] = 1
 	}
 	END {
-		if (allow_count != 2)
+		if (allow_count != 3)
 			exit 16
 		for (name in allowed)
 			if (!(name in found))
@@ -225,8 +226,13 @@ awk -F '\t' -v name="$generation12" '
 		allow_count++
 	}
 	$1 == name { generation12_count++ }
-	END { exit allow_count == 2 && generation12_count == 0 ? 0 : 1 }
+	END { exit allow_count == 3 && generation12_count == 0 ? 0 : 1 }
 ' "$policy" || fail 'temporary-boot policy retains generation-12 admission'
+power_image=$POWER_USB_OUTPUT_ROOT/wrapper/repack/stable-recovery-a.avb.img
+awk -F '\t' -v name="$power_image" -v basis="$POWER_USB_BOOT_POLICY_BASIS" '
+	$1 == name && $2 == "allow" && $3 == basis && NF == 3 { count++ }
+	END { exit count == 1 ? 0 : 1 }
+' "$policy" || fail 'active power/USB admission is not exact'
 awk -F '\t' -v name="$generation12" '
 	$1 == name && $2 == "100663296" &&
 	$3 == "615d7498e85be499b80473aa0fd6c0cb341dbd13ef5006d6464b389fedd72cf6" &&
