@@ -358,6 +358,7 @@ sed \
 	-e 's/6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896/42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a/g' \
 	-e 's/root_tree_entries=37669/root_tree_entries=37735/' \
 	-e 's/thermal_zone_count=33/thermal_zone_count=29/' \
+	-e "s/watchdog_timeout_seconds=600/watchdog_timeout_seconds=$POWER_USB_ROLLBACK_TIMEOUT_SECONDS/" \
 	"$record" >"$power_record"
 power_observation=$stage/power-observation
 cat >"$power_observation" <<'EOF'

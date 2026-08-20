@@ -580,6 +580,11 @@ def load_deployment_candidate(
     after = read_external_candidate(candidate_path)
     if before != after:
         fail("deployment candidate changed during validation")
+    rollback_timeout = "600"
+    target_timeout = "480"
+    if deployment_profile == POWER_USB.RUNTIME_PROFILE:
+        rollback_timeout = POWER_USB.ROLLBACK_TIMEOUT
+        target_timeout = POWER_USB.TARGET_TIMEOUT
     if (
         candidate.get("candidate") != expected["candidate"]
         or candidate.get("bundle") != expected["bundle"]
@@ -588,8 +593,8 @@ def load_deployment_candidate(
         or candidate.get("profile") != expected["profile"]
         or candidate.get("target_id") != expected["target"]
         or candidate.get("target_release") != DEPLOYMENT_RELEASE
-        or candidate.get("rollback_timeout") != "600"
-        or candidate.get("target_timeout") != "480"
+        or candidate.get("rollback_timeout") != rollback_timeout
+        or candidate.get("target_timeout") != target_timeout
     ):
         fail("deployment candidate tuple is unsupported")
     if (
