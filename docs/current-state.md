@@ -17,7 +17,7 @@ use Git history and dated `test-results/` records for older generations.
 | NFS + OverlayFS + systemd + SSH | Passed baseline | Generation 20 reached strict SSH in about 380 seconds |
 | ADSP | Passed twice | Stock WW33 firmware, PAS/SCM, remoteproc and QRTR accepted |
 | PMIC GLINK battery telemetry | Passed once | Aggregate battery/USB/wireless read-only supplies observed |
-| Full UCSI | Offline twin passed | `headless-power-usb-observer-v1` must observe both ports live |
+| Full UCSI | v1 reached SSH; v2 twin passed | `headless-power-usb-observer-v2` must observe side-port charging live |
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
@@ -58,18 +58,18 @@ defers bottom-port arbitration.
 
 ## Active successor
 
-`headless-power-usb-observer-v1` contains:
+`headless-power-usb-observer-v2` contains:
 
 - Image SHA-256 `6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef`;
 - DTB SHA-256 `3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11`;
 - initramfs SHA-256 `f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9`.
 
 The complete disposable-key twin wrapper passed with manifest
-`c8e367e3a90966511d22759fe2e650e39a339ea2df554c4a1b9dc6c5409149dd`,
+`2e1d3ad08885f412a07e4160bbe670f24bcc7f7eed0e3ae2b133db24f895b601`,
 trust root
-`c140880c1790de552f2d175a59b750c56291a8a05c8c629f3682d4350cb5508b`,
+`144a0d911b5ec1bcc024dc7ebc7df800c712cc31f3bd833e3fae14aadd755df4`,
 and byte-identical AVB wrappers
-`a5e3497f3f2575d748d8956b70c64b4133c8e60a3072b7760aa9502ee4744d6c`.
+`c90e4a41f37214d04d715baee6bbba64190c76917308e4d872c2df9fd1228176`.
 The disposable private key was destroyed.
 
 The initramfs builder installs the reviewed charging probe explicitly and the

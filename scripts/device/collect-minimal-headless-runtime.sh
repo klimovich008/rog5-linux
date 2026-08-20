@@ -12,7 +12,8 @@ runtime_root=${ROG5_RUNTIME_ROOT:-}
 test_mode=${ROG5_RUNTIME_TEST_MODE:-0}
 runtime_candidate=${ROG5_RUNTIME_CANDIDATE:-headless-network-root-v1}
 case $runtime_candidate in
-	headless-network-root-v1|headless-ssh-network-root-v3)
+	headless-network-root-v1|headless-ssh-network-root-v3|\
+		headless-power-usb-observer-v1|headless-power-usb-observer-v2)
 		expected_usb_product='ROG5 network root'
 		expected_usb_configuration='NFS root over NCM'
 		expected_usb_function_count=1

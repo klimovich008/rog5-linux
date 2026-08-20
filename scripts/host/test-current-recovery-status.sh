@@ -17,7 +17,7 @@ for contract in \
 	'M5AIKN00F0353YH' \
 	'Active slot: A' \
 	'33.0210.0210.200' \
-	'headless-power-usb-observer-v1' \
+	'headless-power-usb-observer-v2' \
 	'a600000.dwc3' \
 	'a600000.usb' \
 	'Do not rebuild or reflash `super`' \

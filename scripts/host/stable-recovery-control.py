@@ -53,7 +53,7 @@ FULL_UCSI_CHARGING_ORDERED_BUNDLE = "headless-full-ucsi-charging-v3"
 FULL_UCSI_CHARGING_EARLY_BUNDLE = "headless-full-ucsi-charging-early-v1"
 FULL_UCSI_CHARGING_EARLY_SUCCESSOR_BUNDLE = "headless-full-ucsi-charging-early-v2"
 FULL_UCSI_CHARGING_EARLY_OBSERVABLE_BUNDLE = "headless-full-ucsi-charging-early-v3"
-POWER_USB_OBSERVER_BUNDLE = "headless-power-usb-observer-v1"
+POWER_USB_OBSERVER_BUNDLE = "headless-power-usb-observer-v2"
 V3_NETWORK_ROOT_BUNDLES = frozenset(
     {
         DEPLOYMENT_NETWORK_ROOT_BUNDLE,

@@ -1308,13 +1308,13 @@ class Fixture:
 class MinimalHeadlessLiveCycleTest(unittest.TestCase):
     def test_power_usb_profile_reuses_the_existing_lifecycle(self) -> None:
         profile = CYCLE.POWER_USB_CYCLE_PROFILE
-        self.assertEqual(profile.candidate, "headless-power-usb-observer-v1")
-        self.assertEqual(profile.bundle, "headless-power-usb-observer-v1")
+        self.assertEqual(profile.candidate, "headless-power-usb-observer-v2")
+        self.assertEqual(profile.bundle, "headless-power-usb-observer-v2")
         self.assertEqual(profile.build_profile, "headless-ssh-v2")
-        self.assertEqual(profile.runtime_profile, "power-usb-observer-v1")
+        self.assertEqual(profile.runtime_profile, "power-usb-observer-v2")
         self.assertEqual(
             profile.recovery_profile,
-            "headless-power-usb-observer-v1-live-v1",
+            "headless-power-usb-observer-v2-live-v1",
         )
 
     def test_stock_android_fallback_record_is_exact(self) -> None:
