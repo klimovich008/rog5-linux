@@ -28,8 +28,8 @@
     },
     "initramfs.cpio.gz": {
       "path": "artifacts/network-root-power-usb-observer-v1/initramfs.cpio.gz",
-      "size": 5995984,
-      "sha256": "561cf5131aeeb1e7a8e01dcbb69078cf6c43e1f93902ff28bd31e8f4dfe23650"
+      "size": 5995981,
+      "sha256": "add904a49e007ec1cf793e9c7b42a943c4eef1f30f419594bce0d141600adca3"
     }
   }
 }
