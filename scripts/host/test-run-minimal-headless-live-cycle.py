@@ -1326,6 +1326,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "product": "WW_I005D",
             "model": "ASUS_I005DA",
             "device": "ASUS_I005_1",
+            "evidence_mode": "adb-authorized",
             "slot_suffix": "_a",
             "fingerprint": (
                 "asus/WW_I005D/ASUS_I005_1:13/TKQ1.220807.001/"
@@ -1362,6 +1363,32 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         with self.assertRaises(CYCLE.CycleError):
             CYCLE.verify_stock_fallback_evidence(output, "1-1.2", None)
+        values.update(
+            {
+                "product": "unavailable",
+                "model": "unavailable",
+                "device": "unavailable",
+                "evidence_mode": "usb-unauthorized-slot-a",
+                "slot_suffix": "_a",
+                "fingerprint": "unavailable",
+                "vbmeta_digest": "unavailable",
+                "verified_boot_state": "unavailable",
+                "boot_id": "unavailable",
+                "boot_completed": "unavailable",
+                "usb_config": "adb-unauthorized",
+            }
+        )
+        output.write_text(
+            "".join(
+                f"{name}={values[name]}\n"
+                for name in CYCLE.STOCK_FALLBACK_FIELDS
+            ),
+            encoding="ascii",
+        )
+        self.assertEqual(
+            CYCLE.verify_stock_fallback_evidence(output, "1-1.2", None),
+            "unavailable",
+        )
 
     def test_core_profile_is_distinct_and_requires_core_v3_key_binding(self) -> None:
         profile = CYCLE.CORE_CYCLE_PROFILE

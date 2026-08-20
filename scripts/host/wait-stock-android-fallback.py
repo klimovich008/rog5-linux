@@ -15,6 +15,8 @@ from typing import NoReturn
 
 
 ADB = Path("/usr/bin/adb")
+FASTBOOT = Path("/usr/bin/fastboot")
+USB_ROOT = Path("/sys/bus/usb/devices")
 SERIAL = "M5AIKN00F0353YH"
 PRODUCT = "WW_I005D"
 MODEL = "ASUS_I005DA"
@@ -41,15 +43,16 @@ def fail(message: str) -> NoReturn:
     raise FallbackError(message)
 
 
-def fixed_adb() -> None:
-    metadata = ADB.lstat()
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or metadata.st_uid != 0
-        or stat.S_IMODE(metadata.st_mode) != 0o755
-        or metadata.st_nlink != 1
-    ):
-        fail("fixed adb executable is unsafe")
+def fixed_tools() -> None:
+    for path in (ADB, FASTBOOT):
+        metadata = path.lstat()
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_uid != 0
+            or stat.S_IMODE(metadata.st_mode) != 0o755
+            or metadata.st_nlink != 1
+        ):
+            fail("fixed Android platform tool is unsafe")
 
 
 def adb(*arguments: str, timeout: int = 10) -> str:
@@ -68,12 +71,12 @@ def adb(*arguments: str, timeout: int = 10) -> str:
     return result.stdout
 
 
-def exact_device(location: str) -> bool:
+def device_state(location: str) -> str:
     lines = [line for line in adb("devices", "-l").splitlines()[1:] if line]
     if len(lines) != 1:
-        return False
+        return "absent"
     fields = lines[0].split()
-    return fields == [
+    authorized = fields == [
         SERIAL,
         "device",
         f"usb:{location}",
@@ -82,6 +85,21 @@ def exact_device(location: str) -> bool:
         f"device:{DEVICE}",
         fields[-1],
     ] and fields[-1].startswith("transport_id:") and fields[-1][13:].isdigit()
+    unauthorized = fields == [
+        SERIAL,
+        "unauthorized",
+        f"usb:{location}",
+        fields[-1],
+    ] and fields[-1].startswith("transport_id:") and fields[-1][13:].isdigit()
+    if authorized:
+        return "authorized"
+    if unauthorized:
+        return "unauthorized"
+    return "wrong"
+
+
+def exact_device(location: str) -> bool:
+    return device_state(location) == "authorized"
 
 
 def property_value(name: str) -> str:
@@ -91,15 +109,16 @@ def property_value(name: str) -> str:
     return value
 
 
-def wait_exact_device(location: str, deadline: float) -> None:
+def wait_device(location: str, deadline: float) -> str:
     while time.monotonic() < deadline:
         try:
-            if exact_device(location):
-                return
+            state = device_state(location)
+            if state in {"authorized", "unauthorized"}:
+                return state
         except (FallbackError, subprocess.TimeoutExpired):
             pass
         time.sleep(1)
-    fail("exact stock Android ADB identity did not appear")
+    fail("exact stock Android USB identity did not appear")
 
 
 def verify_stock(location: str) -> OrderedDict[str, str]:
@@ -111,6 +130,7 @@ def verify_stock(location: str) -> OrderedDict[str, str]:
             ("product", PRODUCT),
             ("model", MODEL),
             ("device", DEVICE),
+            ("evidence_mode", "adb-authorized"),
             ("slot_suffix", property_value("ro.boot.slot_suffix")),
             ("fingerprint", property_value("ro.build.fingerprint")),
             ("vbmeta_digest", property_value("ro.boot.vbmeta.digest")),
@@ -134,6 +154,128 @@ def verify_stock(location: str) -> OrderedDict[str, str]:
     ):
         fail("stock Android fallback identity is not exact")
     return values
+
+
+def fastboot_value(name: str) -> str:
+    result = subprocess.run(
+        [str(FASTBOOT), "-s", SERIAL, "getvar", name],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=10,
+        check=False,
+        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    )
+    lines = [line for line in result.stdout.splitlines() if line.startswith(f"{name}: ")]
+    if result.returncode != 0 or len(lines) != 1:
+        fail("exact fastboot property is unavailable")
+    return lines[0].split(": ", 1)[1]
+
+
+def capture_preboot(path: Path) -> None:
+    lines = [line for line in subprocess.run(
+        [str(FASTBOOT), "devices", "-l"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=10,
+        check=False,
+        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    ).stdout.splitlines() if line]
+    if [line.split() for line in lines] != [[SERIAL, "fastboot", "usb:1-1.2"]]:
+        fail("exact slot-A fastboot identity is unavailable")
+    values = OrderedDict(
+        (
+            ("format", "rog5-stock-fallback-preboot-v1"),
+            ("serial", SERIAL),
+            ("usb_location", "1-1.2"),
+            ("product", fastboot_value("product")),
+            ("slot", fastboot_value("current-slot")),
+            ("battery_soc_ok", fastboot_value("battery-soc-ok")),
+            ("result", "PASS"),
+        )
+    )
+    if (
+        values["product"] != "lahaina"
+        or values["slot"] != "a"
+        or values["battery_soc_ok"] != "yes"
+    ):
+        fail("slot-A fastboot fallback precondition is not exact")
+    publish(path, values)
+
+
+def read_preboot(path: Path, location: str) -> None:
+    payload = path.read_text(encoding="ascii")
+    lines = payload.splitlines()
+    expected = [
+        "format=rog5-stock-fallback-preboot-v1",
+        f"serial={SERIAL}",
+        f"usb_location={location}",
+        "product=lahaina",
+        "slot=a",
+        "battery_soc_ok=yes",
+        "result=PASS",
+    ]
+    metadata = path.lstat()
+    if (
+        lines != expected
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_nlink != 1
+    ):
+        fail("stock fallback preboot record is not exact")
+
+
+def verify_unauthorized_usb(location: str, preboot: Path) -> OrderedDict[str, str]:
+    read_preboot(preboot, location)
+    device = USB_ROOT / location
+    expected = {
+        "idVendor": "0b05",
+        "idProduct": "7770",
+        "manufacturer": "asus",
+        "product": "ROG Phone 5",
+        "serial": SERIAL,
+        "bDeviceClass": "00",
+        "bDeviceSubClass": "00",
+        "bDeviceProtocol": "00",
+    }
+    if any((device / name).read_text(encoding="ascii").strip() != value for name, value in expected.items()):
+        fail("unauthorized stock Android USB descriptors are not exact")
+    interfaces = sorted(USB_ROOT.glob(f"{location}:*"))
+    if len(interfaces) != 1:
+        fail("unauthorized stock Android interface inventory is not exact")
+    interface = interfaces[0]
+    for name, value in (
+        ("bInterfaceClass", "ff"),
+        ("bInterfaceSubClass", "42"),
+        ("bInterfaceProtocol", "01"),
+    ):
+        if (interface / name).read_text(encoding="ascii").strip() != value:
+            fail("unauthorized stock Android ADB interface is not exact")
+    if (interface / "net").exists():
+        fail("unauthorized stock Android unexpectedly exposes USB networking")
+    return OrderedDict(
+        (
+            ("format", "rog5-stock-android-fallback-v1"),
+            ("serial", SERIAL),
+            ("usb_location", location),
+            ("product", "unavailable"),
+            ("model", "unavailable"),
+            ("device", "unavailable"),
+            ("evidence_mode", "usb-unauthorized-slot-a"),
+            ("slot_suffix", "_a"),
+            ("fingerprint", "unavailable"),
+            ("vbmeta_digest", "unavailable"),
+            ("verified_boot_state", "unavailable"),
+            ("boot_id", "unavailable"),
+            ("boot_completed", "unavailable"),
+            ("usb_config", "adb-unauthorized"),
+            ("result", "PASS"),
+        )
+    )
 
 
 def publish(path: Path, values: OrderedDict[str, str]) -> None:
@@ -162,15 +304,21 @@ def publish(path: Path, values: OrderedDict[str, str]) -> None:
 
 
 def main(arguments: list[str]) -> int:
-    fixed_adb()
+    fixed_tools()
     if arguments == ["host-preflight"]:
         print("PASS exact stock WW33 fallback verifier is available; no phone contact occurred")
         return 0
-    if len(arguments) != 4 or arguments[0] != "wait":
-        fail("usage: wait-stock-android-fallback.py host-preflight | wait USB_LOCATION TIMEOUT OUTPUT")
+    if len(arguments) == 2 and arguments[0] == "capture-preboot":
+        if os.environ.get("ALLOW_STOCK_ANDROID_FALLBACK_PROOF") != "1":
+            fail("set ALLOW_STOCK_ANDROID_FALLBACK_PROOF=1")
+        capture_preboot(Path(arguments[1]))
+        print("PASS exact slot-A fastboot fallback precondition captured")
+        return 0
+    if len(arguments) != 5 or arguments[0] != "wait":
+        fail("usage: wait-stock-android-fallback.py host-preflight | capture-preboot OUTPUT | wait USB_LOCATION TIMEOUT PREBOOT OUTPUT")
     if os.environ.get("ALLOW_STOCK_ANDROID_FALLBACK_PROOF") != "1":
         fail("set ALLOW_STOCK_ANDROID_FALLBACK_PROOF=1")
-    location, timeout_text, output_text = arguments[1:]
+    location, timeout_text, preboot_text, output_text = arguments[1:]
     if (
         not USB_LOCATION.fullmatch(location)
         or location.startswith("/")
@@ -181,13 +329,18 @@ def main(arguments: list[str]) -> int:
     ):
         fail("stock fallback wait inputs are invalid")
     deadline = time.monotonic() + int(timeout_text)
-    wait_exact_device(location, deadline)
-    values = verify_stock(location)
-    if values["usb_config"] != "adb":
-        adb("-s", SERIAL, "shell", "svc", "usb", "setFunctions", "adb")
-        wait_exact_device(location, deadline)
+    state = wait_device(location, deadline)
+    if state == "unauthorized":
+        values = verify_unauthorized_usb(location, Path(preboot_text))
+    else:
         values = verify_stock(location)
-    if values["usb_config"] != "adb":
+    if state == "authorized" and values["usb_config"] != "adb":
+        adb("-s", SERIAL, "shell", "svc", "usb", "setFunctions", "adb")
+        state = wait_device(location, deadline)
+        if state != "authorized":
+            fail("authorized stock Android did not return after USB cleanup")
+        values = verify_stock(location)
+    if values["usb_config"] not in {"adb", "adb-unauthorized"}:
         fail("stock Android fallback retained a USB network function")
     publish(Path(output_text), values)
     print("PASS exact stock WW33 slot-A fallback reached ADB with network USB disabled")

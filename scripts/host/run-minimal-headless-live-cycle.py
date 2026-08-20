@@ -174,6 +174,8 @@ OUTPUT_NAMES = (
     "runtime-acceptance.log",
     "minimal-headless-runtime.record",
     "fallback-identity.record",
+    "stock-fallback-preboot.log",
+    "stock-fallback-preboot.record",
     "fallback-profile-restore.log",
     "fallback-postmortem.log",
     "fallback-postmortem.record",
@@ -230,6 +232,7 @@ STOCK_FALLBACK_FIELDS = (
     "product",
     "model",
     "device",
+    "evidence_mode",
     "slot_suffix",
     "fingerprint",
     "vbmeta_digest",
@@ -1908,10 +1911,14 @@ def verify_stock_fallback_evidence(
     values = parse_record(path)
     if tuple(values) != STOCK_FALLBACK_FIELDS:
         fail("stock fallback identity record fields changed")
-    if (
+    common_invalid = (
         values["format"] != "rog5-stock-android-fallback-v1"
         or values["serial"] != "M5AIKN00F0353YH"
         or values["usb_location"] != location
+        or values["result"] != "PASS"
+    )
+    authorized_invalid = (
+        values["evidence_mode"] != "adb-authorized"
         or values["product"] != "WW_I005D"
         or values["model"] != "ASUS_I005DA"
         or values["device"] != "ASUS_I005_1"
@@ -1922,17 +1929,39 @@ def verify_stock_fallback_evidence(
             "33.0210.0210.200-0:user/release-keys"
         )
         or values["vbmeta_digest"]
-        != (
-            "48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005"
-        )
+        != "48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005"
         or values["verified_boot_state"] != "orange"
         or not BOOT_ID.fullmatch(values["boot_id"])
         or values["boot_completed"] != "1"
         or values["usb_config"] != "adb"
-        or values["result"] != "PASS"
+    )
+    unavailable = (
+        values["product"],
+        values["model"],
+        values["device"],
+        values["fingerprint"],
+        values["vbmeta_digest"],
+        values["verified_boot_state"],
+        values["boot_id"],
+        values["boot_completed"],
+    )
+    unauthorized_invalid = (
+        values["evidence_mode"] != "usb-unauthorized-slot-a"
+        or unavailable != ("unavailable",) * len(unavailable)
+        or values["slot_suffix"] != "_a"
+        or values["usb_config"] != "adb-unauthorized"
+    )
+    if common_invalid or (
+        authorized_invalid
+        if values["evidence_mode"] == "adb-authorized"
+        else unauthorized_invalid
     ):
         fail("stock fallback identity record is not exact")
-    if target_boot_id is not None and values["boot_id"] == target_boot_id:
+    if (
+        target_boot_id is not None
+        and values["boot_id"] != "unavailable"
+        and values["boot_id"] == target_boot_id
+    ):
         fail("stock fallback retained the minimal-headless boot identity")
     return values["boot_id"]
 
@@ -3440,6 +3469,22 @@ class LiveCycle:
                 "fallback strict-SSH access"
             )
 
+    def capture_stock_fallback_preboot(self) -> None:
+        record = self.output("stock-fallback-preboot.record")
+        log = self.output("stock-fallback-preboot.log")
+        run_logged(
+            [str(STOCK_FALLBACK_PATH), "capture-preboot", str(record)],
+            log,
+            environment=child_environment(
+                ALLOW_STOCK_ANDROID_FALLBACK_PROOF="1"
+            ),
+            timeout=self.short_timeout,
+        )
+        require_log_markers(
+            log,
+            ("PASS exact slot-A fastboot fallback precondition captured",),
+        )
+
     def wait_fallback(self, target_boot_id: str | None) -> str:
         anchor = self.output("recovery-usb.anchor")
         location = read_recovery_anchor_location(
@@ -3459,6 +3504,7 @@ class LiveCycle:
                     "wait",
                     location,
                     str(timeout),
+                    str(self.output("stock-fallback-preboot.record")),
                     str(identity),
                 ],
                 self.output("fallback-preflight.log"),
@@ -4317,6 +4363,8 @@ def main(arguments: list[str]) -> int:
             "started"
         )
         return 0
+    if profile == POWER_USB_CYCLE_PROFILE:
+        cycle.capture_stock_fallback_preboot()
     cycle.run()
     return 0
 
