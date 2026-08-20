@@ -20,6 +20,7 @@ fail() {
 requested_mode=${1:-}
 early_mode=0
 early_fail_closed=0
+allow_armed_watchdog=${ROG5_PROBE_ALLOW_ARMED_WATCHDOG:-0}
 case $requested_mode in
 	adsp|telemetry|charging) mode=$requested_mode ;;
 	charging-early)
@@ -28,6 +29,7 @@ case $requested_mode in
 		;;
 	*) fail 'usage: probe-network-root-battery-telemetry.sh adsp|telemetry|charging|charging-early' ;;
 esac
+case $allow_armed_watchdog in 0|1) ;; *) fail 'invalid outer-watchdog policy' ;; esac
 if [ "$mode" = charging ]; then
 	[ "${ALLOW_NETWORK_ROOT_CHARGING_PROBE:-}" = 1 ] ||
 		fail 'set ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 for full PMIC GLINK/UCSI'
@@ -132,10 +134,22 @@ if [ "$early_mode" -eq 0 ]; then
 		[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked-runtime ] ||
 			fail "$unit is not runtime-masked"
 	done
-	[ ! -e /run/rog5-network-root-watchdog.pid ] ||
-		fail 'network-root watchdog is still active'
-	[ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
-		fail 'missing network-root watchdog disarm marker'
+	if [ "$allow_armed_watchdog" -eq 1 ]; then
+		[ "$mode" = charging ] || fail 'armed outer watchdog is charging-only'
+		outer_pid_file=/run/rog5-network-root-watchdog.pid
+		[ -s "$outer_pid_file" ] || fail 'armed network-root watchdog PID is absent'
+		outer_pid=$(cat "$outer_pid_file")
+		case $outer_pid in *[!0-9]*|'') fail 'armed watchdog PID is invalid' ;; esac
+		[ "$outer_pid" -ne 1 ] && kill -0 "$outer_pid" 2>/dev/null ||
+			fail 'armed network-root watchdog process is absent'
+		[ ! -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
+			fail 'outer watchdog has a disarm marker'
+	else
+		[ ! -e /run/rog5-network-root-watchdog.pid ] ||
+			fail 'network-root watchdog is still active'
+		[ -e /run/rog5-network-root-watchdog.disarmed.pid ] ||
+			fail 'missing network-root watchdog disarm marker'
+	fi
 else
 	case $(cat /proc/1/comm) in
 		rog5-early-cha*) ;;

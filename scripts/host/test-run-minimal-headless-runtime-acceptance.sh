@@ -45,6 +45,9 @@ for token in \
 	'/run/initramfs/sbin/rog5-early-charging-probe' \
 	'power-usb-observation.log' \
 	'ALLOW_NETWORK_ROOT_CHARGING_PROBE=1' \
+	'ROG5_PROBE_ALLOW_ARMED_WATCHDOG=1' \
+	'systemctl mask --runtime systemd-udev-trigger.service systemd-modules-load.service' \
+	'systemctl reboot --no-block' \
 	'--deployment-profile' \
 	'--candidate-record' \
 	'--candidate-sha256' \
@@ -66,13 +69,14 @@ for token in \
 done
 
 if grep -Eq \
-	'fastboot|adb|StrictHostKeyChecking=(no|accept-new)|UserKnownHostsFile=/dev/null|systemctl[[:space:]]+reboot|disarm-network-root-watchdog|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/|ssh-keygen|openssl' \
+	'fastboot|adb|StrictHostKeyChecking=(no|accept-new)|UserKnownHostsFile=/dev/null|disarm-network-root-watchdog|dd[[:space:]].*of=/dev/|mount[[:space:]].*/dev/|ssh-keygen|openssl' \
 	"$runner"; then
 	echo 'FAIL runtime-acceptance runner expands transport, trust, or mutation authority' >&2
 	exit 1
 fi
 [[ $(grep -Fc 'ssh -T "${ssh_options[@]}" "$target"' \
-	"$runner") == 2 ]]
+	"$runner") == 3 ]]
+[[ $(grep -Fc 'systemctl reboot --no-block' "$runner") == 1 ]]
 ! grep -Eq '(^|[[:space:]])scp([[:space:]]|$)' "$runner"
 
 set +e
@@ -223,6 +227,8 @@ received=$(sha256sum | cut -d ' ' -f 1)
 if [ "$received" = "$MOCK_PROBE_HASH" ]; then
 	printf '%s\n' collect >>"$MOCK_CALLS"
 	cat "$MOCK_RECORD"
+elif printf '%s\n' "$*" | grep -Fq 'systemctl reboot --no-block'; then
+	printf '%s\n' reboot >>"$MOCK_CALLS"
 elif [ "$received" = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ]; then
 	printf '%s\n' power >>"$MOCK_CALLS"
 	cat "$MOCK_POWER_RECORD"
@@ -381,8 +387,10 @@ power_output=$(
 		"$power_candidate" "$power_candidate_sha256"
 )
 grep -Fq 'PASS minimal headless runtime acceptance' <<<"$power_output"
+grep -Fq 'power profile requested an orderly reboot' <<<"$power_output"
 [[ $(grep -Fxc collect "$calls") == 1 &&
-	$(grep -Fxc power "$calls") == 1 && $(wc -l <"$calls") == 2 ]]
+	$(grep -Fxc power "$calls") == 1 &&
+	$(grep -Fxc reboot "$calls") == 1 && $(wc -l <"$calls") == 3 ]]
 cmp "$power_record" "$stage/evidence-power/minimal-headless-runtime.record"
 cmp "$power_observation" "$stage/evidence-power/power-usb-observation.log"
 
