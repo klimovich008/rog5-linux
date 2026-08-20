@@ -28,6 +28,7 @@ COMPONENTS = (
     Path("/usr/libexec/rog5-recovery-host/serve-network-root.sh"),
 )
 BUILD_FILES = (
+    "wrapper/avb-generation.txt",
     "wrapper/repack/stable-recovery-a.avb.img",
     "wrapper/repack/stable-recovery-b.avb.img",
     "wrapper/repack/stable-recovery-a.raw.img",
