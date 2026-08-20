@@ -39,7 +39,7 @@ def exact_rows(path: Path, prefix: str) -> list[str]:
     ]
 
 
-def validate(stage: str, receipt: Path | None) -> None:
+def validate(stage: str, receipt: Path | None) -> str:
     subprocess.run(
         [sys.executable, str(REPO / "scripts/host/generate-power-usb-active.py")],
         check=True,
@@ -73,6 +73,8 @@ def validate(stage: str, receipt: Path | None) -> None:
     prefix = f"{POWER_USB.OUTPUT_ROOT}/wrapper/repack/stable-recovery-a.avb.img\t"
     policy_rows = exact_rows(POLICY, prefix)
     artifact_rows = exact_rows(ARTIFACTS, prefix)
+    if stage == "auto":
+        stage = "admitted" if policy_rows or artifact_rows else "planned"
     expected_policy_rows = 1 if stage == "admitted" else 0
     expected_artifact_rows = 1 if stage == "admitted" else 0
     if len(policy_rows) != expected_policy_rows or len(artifact_rows) != expected_artifact_rows:
@@ -136,15 +138,18 @@ def validate(stage: str, receipt: Path | None) -> None:
             or receipt_value.get("output_root") != POWER_USB.OUTPUT_ROOT
         ):
             fail("deployment receipt does not represent the requested active stage")
+    return stage
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", choices=("planned", "admitted"), default="planned")
+    parser.add_argument(
+        "--stage", choices=("auto", "planned", "admitted"), default="auto"
+    )
     parser.add_argument("--deployment-receipt", type=Path)
     arguments = parser.parse_args()
-    validate(arguments.stage, arguments.deployment_receipt)
-    print(f"PASS active power/USB {arguments.stage} dependency closure")
+    stage = validate(arguments.stage, arguments.deployment_receipt)
+    print(f"PASS active power/USB {stage} dependency closure")
     return 0
 
 

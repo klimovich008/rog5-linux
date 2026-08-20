@@ -286,14 +286,17 @@ def policy_payload(record: dict[str, object], values: dict[str, str]) -> bytes:
     lines = POLICY.read_text(encoding="utf-8").splitlines()
     if not lines or lines[0] != "name\tstatus\tbasis":
         raise GenerationError("temporary-boot policy header changed")
-    lines = [
+    active_name = (
+        f"{values['output_root']}/wrapper/repack/stable-recovery-a.avb.img"
+    )
+    active_row = f"{active_name}\tallow\t{values['boot_policy_basis']}"
+    power_rows = [
         line
-        for line in lines
-        if not (
-            line.startswith("build/power-usb-observer-")
-            and "\tallow\t" in line
-        )
+        for line in lines[1:]
+        if line.startswith("build/power-usb-observer-") and "\tallow\t" in line
     ]
+    if power_rows not in ([], [active_row]):
+        raise GenerationError("temporary-boot policy has an ungenerated power/USB row")
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
@@ -350,6 +353,8 @@ def verify_consumer_closure(source: dict[str, object]) -> None:
         PYTHON_LOCK.relative_to(REPO).as_posix(),
         SHELL_LOCK.relative_to(REPO).as_posix(),
         LOCK.relative_to(REPO).as_posix(),
+        POLICY.relative_to(REPO).as_posix(),
+        "manifests/artifacts.tsv",
     }
     names = subprocess.run(
         ["git", "-C", str(REPO), "ls-files", "-co", "--exclude-standard"],
