@@ -17,7 +17,7 @@ use Git history and dated `test-results/` records for older generations.
 | NFS + OverlayFS + systemd + SSH | Passed baseline | Generation 20 reached strict SSH in about 380 seconds |
 | ADSP | Passed twice | Stock WW33 firmware, PAS/SCM, remoteproc and QRTR accepted |
 | PMIC GLINK battery telemetry | Passed once | Aggregate battery/USB/wireless read-only supplies observed |
-| Full UCSI | v1 reached SSH; v3 twin passed | `headless-power-usb-observer-v3` must observe side-port charging live |
+| Full UCSI | Host prevention work active | Canonical candidate has no boot authority until the mandatory checklist passes |
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
@@ -58,19 +58,10 @@ defers bottom-port arbitration.
 
 ## Active successor
 
-`headless-power-usb-observer-v3` contains:
-
-- Image SHA-256 `6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef`;
-- DTB SHA-256 `3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11`;
-- initramfs SHA-256 `f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9`.
-
-The complete disposable-key twin wrapper passed with manifest
-`872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381`,
-trust root
-`3132b12fd5836a8eb05fe06e972ae31f1812e9a31c4073dc8b0f1c9c61ef8b4d`,
-and byte-identical AVB wrappers
-`fe4f2c5581dfb56d452d1cfd0780ade6c0b109f0635733ff7e80d55b2a88a726`.
-The disposable private key was destroyed.
+There is no issued successor. The only hand-maintained source is
+`configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
+shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
+`boot_policy_status=none`.
 
 The initramfs builder installs the reviewed charging probe explicitly and the
 archive verifier compares the embedded bytes with repository source. The

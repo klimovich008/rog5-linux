@@ -17,6 +17,8 @@ import sys
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+import generated_power_usb_active as POWER_USB
+
 
 REPO = Path(__file__).resolve().parents[2]
 HEADLESS_TOOL_PATH = REPO / "scripts/host/headless-network-root.py"
@@ -149,32 +151,7 @@ CORE_EXPECTED_ARTIFACTS = {
     },
     "initramfs.cpio.gz": EXPECTED_ARTIFACTS["initramfs.cpio.gz"],
 }
-POWER_USB_EXPECTED_ARTIFACTS = {
-    "Image": {
-        "path": "artifacts/network-root-power-usb-observer-v1/Image",
-        "size": 40049152,
-        "sha256": (
-            "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef"
-        ),
-    },
-    "board.dtb": {
-        "path": "artifacts/network-root-power-usb-observer-v1/board.dtb",
-        "size": 102938,
-        "sha256": (
-            "3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11"
-        ),
-    },
-    "initramfs.cpio.gz": {
-        "path": (
-            "artifacts/network-root-power-usb-observer-v1/"
-            "initramfs.cpio.gz"
-        ),
-        "size": 5995915,
-        "sha256": (
-            "f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9"
-        ),
-    },
-}
+POWER_USB_EXPECTED_ARTIFACTS = POWER_USB.ARTIFACTS
 CORE_FIXTURE_IDENTITIES = {
     "source_archive_sha256": (
         "86e2b3bfdd057e9b7bb98963eb419c839641b63d8d21ec8d3bd84c5c1b8d18f1"
@@ -315,14 +292,14 @@ CORE_ADMISSION_PROFILE = AdmissionProfile(
     expected_artifacts=immutable_artifacts(CORE_EXPECTED_ARTIFACTS),
 )
 POWER_USB_ADMISSION_PROFILE = AdmissionProfile(
-    name="power-usb-observer-live-v1",
-    candidate_id="headless-power-usb-observer-v3",
-    bundle_id="headless-power-usb-observer-v3",
-    bundle_profile=PROFILE,
+    name=POWER_USB.ADMISSION_PROFILE,
+    candidate_id=POWER_USB.CANDIDATE,
+    bundle_id=POWER_USB.BUNDLE,
+    bundle_profile=POWER_USB.BUNDLE_PROFILE,
     package_profile=PROFILE,
-    build_profile=BUILD_PROFILE,
-    target_id="headless-power-usb-observer-v3",
-    target_release=TARGET_RELEASE,
+    build_profile=POWER_USB.BUILD_PROFILE,
+    target_id=POWER_USB.TARGET_ID,
+    target_release=POWER_USB.TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(POWER_USB_EXPECTED_ARTIFACTS),
 )
 ADMISSION_PROFILES = MappingProxyType(

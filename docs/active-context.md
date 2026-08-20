@@ -85,25 +85,18 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The power/USB successor is `headless-power-usb-observer-v3`. It reuses the
-proven Linux 7.1 Image and PMIC-GLINK/UCSI DTB, embeds the reviewed probe source
-directly in the normal network-root initramfs, reports every UCSI port and
-aggregate USB voltage/current limit, and revalidates the exact side UDC,
-gadget binding, address, route, and carrier after UCSI starts.
-
-The first cycle intentionally performs no charge-control or role-control
-writes. Kernel and firmware observations decide the next patch. Its complete
-disposable-key twin build passed with manifest
-`872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381`
-and wrapper AVB
-`fe4f2c5581dfb56d452d1cfd0780ade6c0b109f0635733ff7e80d55b2a88a726`.
+The active power/USB identity is defined only by
+`configs/recovery-candidates/power-usb-active.json`; generated identities are
+recorded in `manifests/power-usb-active.lock.json`. No successor currently has
+boot authority. The last wrapper was consumed by the R7 firewalld `no zone`
+parser defect before transfer or target execution; see
+`test-results/2026-08-20-power-usb-v3-r7-firewalld-no-zone.md`.
 
 ## Next execution sequence
 
-1. Run coherent repository CI for the completed disposable-key twin build.
-2. Commit and publish the checkpoint.
-3. Admit the disposable-key twin wrapper and matching bundle for one RAM-only
-   cycle; its private key is destroyed after construction.
+1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
+2. Freeze and publish the canonical generated candidate source.
+3. Build fresh clean twins only after the ordered cheap gates pass.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
 5. Temporarily boot once with only the side port connected.
 6. Reach systemd and key-only SSH, then run the power/USB probe.

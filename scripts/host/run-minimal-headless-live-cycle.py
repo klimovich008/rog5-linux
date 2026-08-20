@@ -20,13 +20,15 @@ import sys
 import time
 from typing import NoReturn
 
+import generated_power_usb_active as POWER_USB
+
 
 REPO = Path(__file__).resolve().parents[2]
 CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"
-POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v3-live-v1"
+POWER_USB_RECOVERY_PROFILE = POWER_USB.RECOVERY_PROFILE
 DIAGNOSTIC_RECOVERY_PROFILE = (
     "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"
 )
@@ -39,8 +41,8 @@ DIAGNOSTIC_COLLECTOR_READY = (
     "READY receive-only early-target diagnostic collector"
 )
 FALLBACK_KERNEL = "5.4.134-qgki-perf-00001-g6c308144c23e"
-FALLBACK_CONTROL_MARGIN_SECONDS = 120
-FALLBACK_CONTACT_START_BUDGET_SECONDS = 3600
+FALLBACK_CONTROL_MARGIN_SECONDS = POWER_USB.FALLBACK_CONTROL_MARGIN_SECONDS
+FALLBACK_CONTACT_START_BUDGET_SECONDS = POWER_USB.FALLBACK_CONTACT_BUDGET_SECONDS
 FALLBACK_NETWORK_PROFILE = "rog5-fallback-usb-ssh"
 BUNDLE_HOST_ADDRESS = "169.254.77.1"
 TARGET_PRODUCT = "ROG5 network root"
@@ -54,8 +56,8 @@ ROG5_NCM_MODELS = frozenset(
         "ROG_Phone_5_Linux_Server",
     }
 )
-BUNDLE_TIMEOUT_SECONDS = 260
-CONTROL_TIMEOUT_SECONDS = 360
+BUNDLE_TIMEOUT_SECONDS = POWER_USB.PREPARE_TIMEOUT_SECONDS
+CONTROL_TIMEOUT_SECONDS = POWER_USB.CONTROL_TIMEOUT_SECONDS
 ZERO_SHA256 = "0" * 64
 EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 ZERO_ID = "0" * 32
@@ -150,6 +152,8 @@ PASSTHROUGH_ENVIRONMENT = (
     "ROG5_RETENTION_BOOT_RESULT",
     "ROG5_LIVE_CYCLE_OFFLINE_TEST",
     "ROG5_LIVE_CYCLE_TEST_ROOT",
+    "ROG5_HOST_DOCTOR_RECEIPT",
+    "ROG5_POWER_USB_DEPLOYMENT_RECEIPT",
 )
 
 CLAIM_CONSUMER_PATH = REPO / "scripts/host/consume-exact-boot-claim.py"
@@ -289,7 +293,10 @@ class Dependencies:
     runtime_acceptance: Path
     diagnostic_collector: Path
     fallback: Path
+    stock_fallback: Path
     key_admission: Path
+    host_doctor: Path
+    deployment_receipt: Path
     handoff_marker: Path
     network_service_state: Path
     export_mount: Path
@@ -331,9 +338,12 @@ class Dependencies:
                     root / "collect-early-target-diagnostics.py"
                 ),
                 fallback=root / "fallback-acm-control.py",
+                stock_fallback=root / "wait-stock-android-fallback.py",
                 key_admission=(
                     root / "verify-headless-ssh-v2-key-admission.py"
                 ),
+                host_doctor=root / "rog5-host-doctor.py",
+                deployment_receipt=root / "power-usb-deployment-receipt.py",
                 handoff_marker=state / "nfs-ready",
                 network_service_state=root / "nfs-state",
                 export_mount=state / "export-mount",
@@ -372,10 +382,15 @@ class Dependencies:
                 REPO / "scripts/host/collect-early-target-diagnostics.py"
             ),
             fallback=REPO / "scripts/host/fallback-acm-control.py",
+            stock_fallback=STOCK_FALLBACK_PATH,
             key_admission=(
                 REPO
                 / "scripts/host/"
                 "verify-headless-ssh-v2-key-admission.py"
+            ),
+            host_doctor=REPO / "scripts/host/rog5-host-doctor.py",
+            deployment_receipt=(
+                REPO / "scripts/host/power-usb-deployment-receipt.py"
             ),
             handoff_marker=Path("/run/rog5-network-root-nfs-ready"),
             network_service_state=Path(
@@ -460,14 +475,14 @@ CORE_CYCLE_PROFILE = CycleProfile(
     diagnostic=False,
 )
 POWER_USB_CYCLE_PROFILE = CycleProfile(
-    candidate="headless-power-usb-observer-v3",
-    bundle="headless-power-usb-observer-v3",
-    bundle_profile="network-root-v1",
-    target_id="headless-power-usb-observer-v3",
-    admission_profile="power-usb-observer-live-v1",
+    candidate=POWER_USB.CANDIDATE,
+    bundle=POWER_USB.BUNDLE,
+    bundle_profile=POWER_USB.BUNDLE_PROFILE,
+    target_id=POWER_USB.TARGET_ID,
+    admission_profile=POWER_USB.ADMISSION_PROFILE,
     recovery_profile=POWER_USB_RECOVERY_PROFILE,
-    runtime_profile="power-usb-observer-v3",
-    build_profile="headless-ssh-v2",
+    runtime_profile=POWER_USB.RUNTIME_PROFILE,
+    build_profile=POWER_USB.BUILD_PROFILE,
     diagnostic=False,
 )
 
@@ -483,6 +498,10 @@ class Inputs:
     fallback_known_hosts: Path
     evidence_dir: Path
     fallback_timeout: int
+    host_doctor_receipt: Path | None = None
+    host_doctor_receipt_sha256: str = ""
+    deployment_receipt: Path | None = None
+    deployment_receipt_sha256: str = ""
 
 
 @dataclass
@@ -610,6 +629,14 @@ def caller_artifact(path_value: str, label: str) -> Path:
     return path
 
 
+def file_sha256(path: Path) -> str:
+    value = hashlib.sha256()
+    with path.open("rb") as stream:
+        while block := stream.read(1024 * 1024):
+            value.update(block)
+    return value.hexdigest()
+
+
 def caller_artifact_directory(path_value: str, label: str) -> Path:
     if not path_value:
         fail(f"set {label}")
@@ -689,6 +716,7 @@ def parse_admission_inputs(profile: CycleProfile) -> AdmissionInputs:
 def parse_inputs(
     admission: AdmissionInputs,
     admitted: OrderedDict[str, str],
+    profile: CycleProfile = STANDARD_CYCLE_PROFILE,
 ) -> Inputs:
     known_hosts = caller_file(
         os.environ.get("FALLBACK_KNOWN_HOSTS", ""),
@@ -708,13 +736,31 @@ def parse_inputs(
         or ".." in Path(anchor_path).parts
     ):
         fail("EVIDENCE_DIR cannot carry the privileged recovery anchor")
-    timeout_value = os.environ.get("ROG5_FALLBACK_TIMEOUT", "750")
+    timeout_value = os.environ.get(
+        "ROG5_FALLBACK_TIMEOUT", str(POWER_USB.FALLBACK_TIMEOUT_SECONDS)
+    )
     if (
         not timeout_value.isascii()
         or not timeout_value.isdecimal()
         or not 600 <= int(timeout_value) <= 900
     ):
         fail("ROG5_FALLBACK_TIMEOUT must be between 600 and 900 seconds")
+    host_doctor_receipt = None
+    deployment_receipt = None
+    if profile == POWER_USB_CYCLE_PROFILE:
+        host_doctor_receipt = caller_artifact(
+            os.environ.get("ROG5_HOST_DOCTOR_RECEIPT", ""),
+            "ROG5_HOST_DOCTOR_RECEIPT",
+        )
+        deployment_receipt = caller_artifact(
+            os.environ.get("ROG5_POWER_USB_DEPLOYMENT_RECEIPT", ""),
+            "ROG5_POWER_USB_DEPLOYMENT_RECEIPT",
+        )
+        outside_repository(host_doctor_receipt, "ROG5_HOST_DOCTOR_RECEIPT")
+        outside_repository(
+            deployment_receipt,
+            "ROG5_POWER_USB_DEPLOYMENT_RECEIPT",
+        )
     return Inputs(
         manifest_sha256=admission.manifest_sha256,
         ssh_key=admission.ssh_key,
@@ -725,6 +771,14 @@ def parse_inputs(
         fallback_known_hosts=known_hosts,
         evidence_dir=evidence,
         fallback_timeout=int(timeout_value),
+        host_doctor_receipt=host_doctor_receipt,
+        host_doctor_receipt_sha256=(
+            file_sha256(host_doctor_receipt) if host_doctor_receipt else ""
+        ),
+        deployment_receipt=deployment_receipt,
+        deployment_receipt_sha256=(
+            file_sha256(deployment_receipt) if deployment_receipt else ""
+        ),
     )
 
 
@@ -2466,7 +2520,11 @@ class LiveCycle:
         self.control_timeout = (
             5 if dependencies.offline else CONTROL_TIMEOUT_SECONDS
         )
-        self.network_timeout = 8 if dependencies.offline else 735
+        self.network_timeout = (
+            8
+            if dependencies.offline
+            else POWER_USB.NETWORK_SERVER_TIMEOUT_SECONDS + 15
+        )
         self.diagnostic_timeout = 8 if dependencies.offline else 735
         self.cleanup_stabilize_timeout = (
             0.5 if dependencies.offline else 10
@@ -2489,6 +2547,58 @@ class LiveCycle:
 
     def verify_repository(self) -> None:
         verify_repository_checkpoint(self.dependencies.git)
+
+    def verify_power_usb_receipts(self) -> None:
+        if self.profile != POWER_USB_CYCLE_PROFILE:
+            return
+        doctor_receipt = self.inputs.host_doctor_receipt
+        deployment_receipt = self.inputs.deployment_receipt
+        if doctor_receipt is None or deployment_receipt is None:
+            fail("power USB lifecycle lacks its immutable host/deployment receipts")
+        for executable in (
+            self.dependencies.host_doctor,
+            self.dependencies.deployment_receipt,
+        ):
+            fixed_executable(executable, offline=self.dependencies.offline)
+        for path, expected, label in (
+            (
+                doctor_receipt,
+                self.inputs.host_doctor_receipt_sha256,
+                "host-doctor",
+            ),
+            (
+                deployment_receipt,
+                self.inputs.deployment_receipt_sha256,
+                "deployment",
+            ),
+        ):
+            if file_sha256(path) != expected:
+                fail(f"immutable {label} receipt changed after admission")
+        deployment = json.loads(deployment_receipt.read_text(encoding="ascii"))
+        if (
+            deployment.get("format")
+            != "rog5-power-usb-deployment-receipt-v1"
+            or deployment.get("state") != "admitted"
+            or deployment.get("candidate") != POWER_USB.CANDIDATE
+            or deployment.get("output_root") != POWER_USB.OUTPUT_ROOT
+        ):
+            fail("power USB deployment receipt is not the exact admitted state")
+        run_capture(
+            [str(self.dependencies.host_doctor), "verify", str(doctor_receipt)],
+            environment=child_environment(),
+            timeout=self.short_timeout,
+        )
+        run_capture(
+            [
+                str(self.dependencies.deployment_receipt),
+                "verify",
+                str(deployment_receipt),
+                "--build-root",
+                str(REPO / POWER_USB.OUTPUT_ROOT),
+            ],
+            environment=child_environment(),
+            timeout=self.short_timeout,
+        )
 
     def ledger_root(self) -> Path:
         state_home = os.environ.get("XDG_STATE_HOME")
@@ -2934,6 +3044,8 @@ class LiveCycle:
                 ).stdout.splitlines()
                 if line.strip()
             ]
+            if zone_lines == ["no zone"]:
+                zone_lines = []
             if len(zone_lines) > 1 or (
                 zone_lines
                 and not re.fullmatch(r"[A-Za-z0-9_-]+", zone_lines[0])
@@ -3323,7 +3435,11 @@ class LiveCycle:
         ):
             fixed_executable(path, offline=self.dependencies.offline)
         if self.profile == POWER_USB_CYCLE_PROFILE:
-            fixed_executable(STOCK_FALLBACK_PATH, offline=False)
+            fixed_executable(
+                self.dependencies.stock_fallback,
+                offline=self.dependencies.offline,
+            )
+            self.verify_power_usb_receipts()
         if self.profile.diagnostic:
             fixed_executable(
                 self.dependencies.diagnostic_collector,
@@ -3360,7 +3476,7 @@ class LiveCycle:
             timeout=300,
         )
         if self.profile == POWER_USB_CYCLE_PROFILE:
-            run_capture([str(STOCK_FALLBACK_PATH), "host-preflight"])
+            run_capture([str(self.dependencies.stock_fallback), "host-preflight"])
         else:
             run_capture(
                 [
@@ -3473,7 +3589,7 @@ class LiveCycle:
         record = self.output("stock-fallback-preboot.record")
         log = self.output("stock-fallback-preboot.log")
         run_logged(
-            [str(STOCK_FALLBACK_PATH), "capture-preboot", str(record)],
+            [str(self.dependencies.stock_fallback), "capture-preboot", str(record)],
             log,
             environment=child_environment(
                 ALLOW_STOCK_ANDROID_FALLBACK_PROOF="1"
@@ -3503,7 +3619,7 @@ class LiveCycle:
             identity = self.output("fallback-identity.record")
             run_logged(
                 [
-                    str(STOCK_FALLBACK_PATH),
+                    str(self.dependencies.stock_fallback),
                     "wait",
                     fallback_location,
                     str(timeout),
@@ -3810,6 +3926,7 @@ class LiveCycle:
         handoff_token: str | None = None
         ledger_before: set[str] = set()
         recovery_ncm: tuple[InterfaceSnapshot, ...] = ()
+        self.verify_power_usb_receipts()
         self.claim_temporary_boot()
         try:
             run_logged(
@@ -4350,7 +4467,7 @@ def main(arguments: list[str]) -> int:
             "privileged host action occurred"
         )
         return 0
-    inputs = parse_inputs(admission, admitted)
+    inputs = parse_inputs(admission, admitted, profile)
     cycle = LiveCycle(dependencies, inputs, profile)
     if action == "run":
         if os.environ.get("ROG5_EXTERNAL_BOOT_CLAIM", "0") == "1":

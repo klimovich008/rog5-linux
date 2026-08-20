@@ -303,11 +303,13 @@ chmod 0755 "$mock_bin"/*
 
 run_probe() {
 	runtime_candidate=${1:-headless-network-root-v1}
+	runtime_allowed_candidate=${2:-$runtime_candidate}
 	PATH="$mock_bin:$PATH" \
 	MOCK_ROOT="$root" \
 	ROG5_RUNTIME_TEST_MODE=1 \
 	ROG5_RUNTIME_ROOT="$root" \
 	ROG5_RUNTIME_CANDIDATE="$runtime_candidate" \
+	ROG5_RUNTIME_ALLOWED_CANDIDATE="$runtime_allowed_candidate" \
 		"$probe"
 }
 
@@ -755,19 +757,23 @@ printf '%s\n' 'ROG5 network root' >"$gadget/strings/0x409/product"
 printf '%s\n' 'NFS root over NCM' \
 	>"$gadget/configs/c.1/strings/0x409/configuration"
 
-for observer in headless-power-usb-observer-v1 \
-	headless-power-usb-observer-v2 headless-power-usb-observer-v3; do
-	run_probe "$observer" >"$stage/$observer.record"
-	grep -Fxq "candidate=$observer" "$stage/$observer.record"
-done
+run_probe observer-test-candidate >"$stage/generated-candidate.record"
+grep -Fxq 'candidate=observer-test-candidate' \
+	"$stage/generated-candidate.record"
 
 set +e
-run_probe unsupported-candidate >"$stage/unsupported-record" \
+run_probe malformed/candidate >"$stage/unsupported-record" \
 	2>"$stage/unsupported-error"
 unsupported_candidate_status=$?
+run_probe observer-test-candidate different-candidate \
+	>"$stage/mismatch-record" 2>"$stage/mismatch-error"
+mismatch_status=$?
 set -e
 [ "$unsupported_candidate_status" -ne 0 ]
-grep -Fxq 'FAIL runtime candidate identity is unsupported' \
+grep -Fxq 'FAIL runtime candidate identity is malformed' \
 	"$stage/unsupported-error"
+[ "$mismatch_status" -ne 0 ]
+grep -Fxq 'FAIL runtime candidate differs from its admitted identity' \
+	"$stage/mismatch-error"
 
 echo 'PASS minimal-headless runtime probe emits exact standard and diagnostic USB observations, selects only fixed candidate identities, and rejects hostile core mutations'

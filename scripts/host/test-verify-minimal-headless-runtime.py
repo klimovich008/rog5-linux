@@ -241,7 +241,11 @@ class MinimalHeadlessRuntimeVerifierTest(unittest.TestCase):
     def test_power_usb_record_is_bound_to_exact_external_candidate(self) -> None:
         path = self.directory / "power-usb-candidate.json"
         candidate = json.loads(
-            (REPO / "configs/recovery-candidates/headless-power-usb-observer-v3.json").read_text(encoding="ascii")
+            (
+                REPO
+                / "configs/recovery-candidates"
+                / f"{VERIFIER.POWER_USB_CANDIDATE}.json"
+            ).read_text(encoding="ascii")
         )
         candidate["root_tree_sha256"] = "9" * 64
         candidate["root_seal_sha256"] = "a" * 64

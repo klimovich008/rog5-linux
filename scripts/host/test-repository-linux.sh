@@ -9,8 +9,8 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 tier=${1:-quick}
 case $tier in
-	ci|quick|rootfs) ;;
-	*) fail 'usage: test-repository-linux.sh [ci|quick|rootfs]' ;;
+	active|ci|quick|rootfs) ;;
+	*) fail 'usage: test-repository-linux.sh [active|ci|quick|rootfs]' ;;
 esac
 
 for command in bash date dtc gcc git head nm openssl pkg-config python3 sh \
@@ -18,7 +18,7 @@ for command in bash date dtc gcc git head nm openssl pkg-config python3 sh \
 	command -v "$command" >/dev/null ||
 		fail "missing repository-test command: $command"
 done
-if [[ $tier != ci ]]; then
+if [[ $tier == quick || $tier == rootfs ]]; then
 	pkg-config --exists vulkan ||
 		fail 'quick tier requires Vulkan headers and loader metadata'
 	cgroup_relative=$(sed -n 's/^0:://p' /proc/self/cgroup)
@@ -133,7 +133,19 @@ then
 	fail 'repository contains a private-key header or literal OpenRouter key'
 fi
 
+active_tests=(
+	scripts/host/test-generate-power-usb-active.py
+	scripts/host/check-power-usb-active-closure.py
+	scripts/host/test-rog5-host-doctor.py
+	scripts/host/test-power-usb-deployment-receipt.py
+	scripts/host/test-power-usb-real-output-replay.py
+)
+
 shared_tests=(
+	scripts/device/test-collect-minimal-headless-runtime.sh
+	scripts/host/test-wait-stock-android-fallback.py
+	scripts/host/test-verify-headless-ssh-v2-key-admission.py
+	scripts/host/test-verify-minimal-headless-runtime.py
 	scripts/host/test-qemu-system-smoke-contract.sh
 	scripts/host/test-qemu-network-root-nfs-hostile.sh
 	scripts/host/test-qemu-systemd-runtime.sh
@@ -195,11 +207,8 @@ shared_tests=(
 	scripts/device/test-run-network-root-physical-keys.sh
 	scripts/host/test-core-compatibility-oracle.py
 	scripts/host/test-core-source-dtb-contract.py
-	scripts/device/test-collect-minimal-headless-runtime.sh
-	scripts/host/test-verify-minimal-headless-runtime.py
 	scripts/host/test-pin-minimal-headless-host-key.py
 	scripts/host/test-run-minimal-headless-runtime-acceptance.sh
-	scripts/host/test-verify-headless-ssh-v2-key-admission.py
 	scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh
 	scripts/host/test-prepare-headless-ssh-deployment-candidate.py
 	scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py
@@ -209,7 +218,6 @@ shared_tests=(
 	scripts/host/test-dual-cell-readonly-snapshot.py
 	scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh
 	scripts/device/test-dual-cell-readonly-candidate-dtb.sh
-	scripts/host/test-wait-stock-android-fallback.py
 	scripts/host/test-fallback-acm-control.py
 	scripts/host/test-retired-legacy-acm-entrypoints.py
 	scripts/host/test-run-minimal-headless-live-cycle.py
@@ -322,7 +330,11 @@ case $tier in
 			tier_tests+=(scripts/host/test-linux-rootfs-tools.sh)
 		;;
 esac
-tests=("${shared_tests[@]}" "${tier_tests[@]}")
+if [[ $tier == active ]]; then
+	tests=("${active_tests[@]}")
+else
+	tests=("${active_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
+fi
 
 for test_path in "${tests[@]}"; do
 	test_file=$repo/$test_path
@@ -359,6 +371,14 @@ isolated_tests=(
 	scripts/host/test-import-asus-source-volume-contract.sh
 	scripts/host/test-steam-deck-builder-contract.sh
 )
+selected_test() {
+	local candidate=$1
+	local selected
+	for selected in "${tests[@]}"; do
+		[[ $selected != "$candidate" ]] || return 0
+	done
+	return 1
+}
 parallel_root=$(mktemp -d)
 parallel_pids=()
 parallel_paths=()
@@ -405,6 +425,7 @@ cleanup_parallel_tests() {
 trap cleanup_parallel_tests EXIT HUP INT TERM
 set -m
 for test_path in "${isolated_tests[@]}"; do
+	selected_test "$test_path" || continue
 	parallel_paths+=("$test_path")
 	status_file=$parallel_root/${#parallel_paths[@]}.status
 	hold_fifo=$parallel_root/${#parallel_paths[@]}.hold
