@@ -40,6 +40,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
         self.assertTrue(
             GENERATOR.SHELL_LOCK.read_bytes().startswith(b"#!/bin/sh\n")
         )
+        shell = GENERATOR.SHELL_LOCK.read_text(encoding="ascii")
+        self.assertIn("readonly POWER_USB_TARGET_RELEASE=", shell)
+        self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)

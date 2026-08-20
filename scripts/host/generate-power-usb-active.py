@@ -237,6 +237,8 @@ def shell_payload(
         ("POWER_USB_CANDIDATE", record["candidate"]),
         ("POWER_USB_BUNDLE", record["bundle"]),
         ("POWER_USB_TARGET_ID", record["target_id"]),
+        ("POWER_USB_TARGET_RELEASE", record["target_release"]),
+        ("POWER_USB_TARGET_TIMEOUT", record["target_timeout"]),
         ("POWER_USB_BUNDLE_PROFILE", record["profile"]),
         ("POWER_USB_ADMISSION_PROFILE", values["admission_profile"]),
         ("POWER_USB_RECOVERY_PROFILE", values["recovery_profile"]),
