@@ -16,6 +16,7 @@ candidate_record=
 candidate_sha256=
 runtime_candidate=headless-network-root-v1
 diagnostic_profile=0
+power_usb_profile=0
 case $# in
 	0) ;;
 	3)
@@ -35,6 +36,7 @@ case $# in
 				;;
 			"$POWER_USB_RUNTIME_PROFILE")
 				runtime_candidate=$POWER_USB_CANDIDATE
+				power_usb_profile=1
 				;;
 			*) fail 'unsupported runtime deployment profile' ;;
 		esac
@@ -50,7 +52,7 @@ esac
 	fail 'set ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 for one observation'
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-for command in awk chmod cut git realpath sha256sum ssh stat tee; do
+for command in awk chmod cut git grep realpath sha256sum ssh stat tee timeout; do
 	command -v "$command" >/dev/null ||
 		fail "missing runtime-acceptance host command: $command"
 done
@@ -221,5 +223,35 @@ if [[ $deployment_profile != historical-headless-network-root-v1 ]]; then
 	)
 fi
 "$verifier" "${verifier_arguments[@]}"
+
+if [[ $power_usb_profile == 1 ]]; then
+	power_record=$evidence_dir/power-usb-observation.log
+	[[ ! -e $power_record ]] || fail 'private power/USB observation already exists'
+	remote_power_probe='
+set -eu
+probe=/run/initramfs/sbin/rog5-early-charging-probe
+[ -f "$probe" ] && [ ! -L "$probe" ] && [ -x "$probe" ]
+[ "$(stat -c "%u:%g:%a" "$probe")" = 0:0:755 ]
+exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+	ALLOW_NETWORK_ROOT_BATTERY_PROBE=1 \
+	ALLOW_NETWORK_ROOT_CHARGING_PROBE=1 \
+	ROG5_BATTERY_INPUT_DIR=/run/initramfs/rog5-charge-inputs \
+	ROG5_PROBE_TIMEOUT=150 ROG5_PROBE_SETTLE=20 \
+	ROG5_TELEMETRY_WAIT=30 "$probe" charging
+'
+	set +e
+	timeout --signal=TERM 180 ssh -T "${ssh_options[@]}" "$target" \
+		"$remote_power_probe" </dev/null | tee "$power_record" >/dev/null
+	power_status=${PIPESTATUS[0]}
+	set -e
+	chmod 0600 "$power_record"
+	[[ $power_status == 0 ]] || fail 'target power/USB probe failed'
+	[[ $(grep -Fxc 'PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded' "$power_record") == 1 ]] ||
+		fail 'target power/USB probe lacks its exact success marker'
+	[[ $(grep -c '^EVIDENCE typec_port_count=' "$power_record") == 1 &&
+		$(grep -c '^EVIDENCE capacity_percent=' "$power_record") == 1 &&
+		$(grep -c '^EVIDENCE final_voltage_uV=' "$power_record") == 1 ]] ||
+		fail 'target power/USB evidence is incomplete'
+fi
 
 echo 'PASS one exact minimal-headless runtime observation was verified privately; rollback watchdog remains armed and no reboot was requested'

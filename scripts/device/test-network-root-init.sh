@@ -1337,7 +1337,7 @@ active_power_cmdline=$(printf '%s\n' "$valid_cmdline" |
 printf '%s\n' "$active_power_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
-[ "$charging_probe_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 2 ]
 expect_cmdline_rejection 'active power identity with diagnostic mode' \
 	"$active_power_cmdline rog5.diagnostic=1"
 

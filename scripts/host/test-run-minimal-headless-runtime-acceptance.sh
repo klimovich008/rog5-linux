@@ -42,6 +42,9 @@ for token in \
 	'$POWER_USB_RUNTIME_PROFILE' \
 	'$POWER_USB_CANDIDATE' \
 	'/run/initramfs/sbin/rog5-early-target-diag emit 150' \
+	'/run/initramfs/sbin/rog5-early-charging-probe' \
+	'power-usb-observation.log' \
+	'ALLOW_NETWORK_ROOT_CHARGING_PROBE=1' \
 	'--deployment-profile' \
 	'--candidate-record' \
 	'--candidate-sha256' \
@@ -69,7 +72,7 @@ if grep -Eq \
 	exit 1
 fi
 [[ $(grep -Fc 'ssh -T "${ssh_options[@]}" "$target"' \
-	"$runner") == 1 ]]
+	"$runner") == 2 ]]
 ! grep -Eq '(^|[[:space:]])scp([[:space:]]|$)' "$runner"
 
 set +e
@@ -217,9 +220,15 @@ EOF
 cat >"$stage/bin/ssh" <<'EOF'
 #!/bin/sh
 received=$(sha256sum | cut -d ' ' -f 1)
-[ "$received" = "$MOCK_PROBE_HASH" ] || exit 96
-printf '%s\n' collect >>"$MOCK_CALLS"
-cat "$MOCK_RECORD"
+if [ "$received" = "$MOCK_PROBE_HASH" ]; then
+	printf '%s\n' collect >>"$MOCK_CALLS"
+	cat "$MOCK_RECORD"
+elif [ "$received" = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ]; then
+	printf '%s\n' power >>"$MOCK_CALLS"
+	cat "$MOCK_POWER_RECORD"
+else
+	exit 96
+fi
 EOF
 chmod 0755 "$stage/bin/git" "$stage/bin/ssh"
 
@@ -337,6 +346,45 @@ grep -Fq 'rollback watchdog remains armed' <<<"$diagnostic_output"
 cmp "$diagnostic_record" \
 	"$stage/evidence-diagnostic/minimal-headless-runtime.record"
 
+power_candidate=$stage/$POWER_USB_CANDIDATE.json
+cp "$repo/configs/recovery-candidates/$POWER_USB_CANDIDATE.json" \
+	"$power_candidate"
+chmod 0400 "$power_candidate"
+power_candidate_sha256=$(sha256sum "$power_candidate" | cut -d ' ' -f 1)
+power_record=$stage/power-golden.record
+sed \
+	-e "s/candidate=headless-network-root-v1/candidate=$POWER_USB_CANDIDATE/" \
+	-e 's/7c35d2b75f09722afd4fa59135f4327a29c4d612441b1e165908f4777b458afb/f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087/' \
+	-e 's/6cd986cae4918effc236d28ee50344032795853b546296a94e9431508fa32896/42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a/g' \
+	-e 's/root_tree_entries=37669/root_tree_entries=37735/' \
+	-e 's/thermal_zone_count=33/thermal_zone_count=29/' \
+	"$record" >"$power_record"
+power_observation=$stage/power-observation
+cat >"$power_observation" <<'EOF'
+EVIDENCE typec_port=port1 data_role=device power_role=sink port_type=dual power_operation_mode=usb property_modes=readonly partner=1
+EVIDENCE typec_port_count=1 typec_partner_count=1
+EVIDENCE capacity_percent=100 voltage_uV=8696000 current_uA=500000 temp_dC=250 status=Charging usb_online=1 usb_voltage_uV=5000000 usb_voltage_max_uV=5000000 usb_current_uA=500000 usb_current_max_uA=500000 usb_input_current_limit_uA=500000 usb_type=USB wls_online=0
+EVIDENCE final_voltage_uV=8697000 final_current_uA=500000 final_temp_dC=251 final_status=Charging final_usb_online=1
+PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded
+EOF
+install -d -m 0700 "$stage/evidence-power"
+: >"$calls"
+power_output=$(
+	PATH="$stage/bin:$PATH" \
+	MOCK_CALLS="$calls" MOCK_RECORD="$power_record" \
+	MOCK_POWER_RECORD="$power_observation" MOCK_PROBE_HASH="$probe_hash" \
+	ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE=1 \
+	SSH_KEY="$stage/ssh-key" TARGET_KNOWN_HOSTS="$stage/known-hosts" \
+	EVIDENCE_DIR="$stage/evidence-power" \
+		"$runner" "$POWER_USB_RUNTIME_PROFILE" \
+		"$power_candidate" "$power_candidate_sha256"
+)
+grep -Fq 'PASS minimal headless runtime acceptance' <<<"$power_output"
+[[ $(grep -Fxc collect "$calls") == 1 &&
+	$(grep -Fxc power "$calls") == 1 && $(wc -l <"$calls") == 2 ]]
+cmp "$power_record" "$stage/evidence-power/minimal-headless-runtime.record"
+cmp "$power_observation" "$stage/evidence-power/power-usb-observation.log"
+
 install -d -m 0700 "$stage/evidence-transfer-failure"
 : >"$calls"
 set +e
@@ -382,4 +430,4 @@ grep -Fq 'target runtime record lacks one boot identity' \
 [[ $(grep -Fxc collect "$calls") == 1 ]]
 [[ $(wc -l <"$calls") == 1 ]]
 
-echo 'PASS runtime-acceptance runner preserves the historical path, binds one admitted v3 candidate, uses strict SSH once, verifies privately, and leaves rollback armed'
+echo 'PASS runtime-acceptance runner preserves historical paths, binds exact candidates, and captures the deferred power/USB probe over pinned key-only SSH'

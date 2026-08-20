@@ -60,8 +60,9 @@ defers bottom-port arbitration.
 
 V7 is consumed after passing NFS, systemd, 29-zone runtime acceptance, and
 key-only SSH, then exposing a target selector that omitted the canonical
-candidate and never entered the charging probe. V8 generates that target
-identity from the same authority-free source. The only hand-maintained successor source is
+candidate and never entered the charging probe. V8 generated that target
+identity but was revoked unbooted because its early probe lacked a usable SSH
+evidence path. V9 defers the probe until after key-only SSH. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
