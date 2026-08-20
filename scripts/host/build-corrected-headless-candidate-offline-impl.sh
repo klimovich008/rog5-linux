@@ -134,6 +134,10 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_profile=network-root-v1
 		expected_candidate_sha=df725be0ea90fb1faedf6146e64676cf1867689ab19118a7818092facec53b68
 		expected_manifest=2e1d3ad08885f412a07e4160bbe670f24bcc7f7eed0e3ae2b133db24f895b601 ;;
+	headless-power-usb-observer-v3:3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11:headless-power-usb-observer-v3)
+		expected_profile=network-root-v1
+		expected_candidate_sha=1909ea02c0a2a3edd08eca939db617d8e7474fbdc62732f09d4f4f2f50089752
+		expected_manifest=872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;
 esac
 if [[ $deployment_build == 1 ]]; then

@@ -756,7 +756,7 @@ printf '%s\n' 'NFS root over NCM' \
 	>"$gadget/configs/c.1/strings/0x409/configuration"
 
 for observer in headless-power-usb-observer-v1 \
-	headless-power-usb-observer-v2; do
+	headless-power-usb-observer-v2 headless-power-usb-observer-v3; do
 	run_probe "$observer" >"$stage/$observer.record"
 	grep -Fxq "candidate=$observer" "$stage/$observer.record"
 done

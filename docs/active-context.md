@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The power/USB successor is `headless-power-usb-observer-v2`. It reuses the
+The power/USB successor is `headless-power-usb-observer-v3`. It reuses the
 proven Linux 7.1 Image and PMIC-GLINK/UCSI DTB, embeds the reviewed probe source
 directly in the normal network-root initramfs, reports every UCSI port and
 aggregate USB voltage/current limit, and revalidates the exact side UDC,
@@ -94,9 +94,9 @@ gadget binding, address, route, and carrier after UCSI starts.
 The first cycle intentionally performs no charge-control or role-control
 writes. Kernel and firmware observations decide the next patch. Its complete
 disposable-key twin build passed with manifest
-`2e1d3ad08885f412a07e4160bbe670f24bcc7f7eed0e3ae2b133db24f895b601`
+`872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381`
 and wrapper AVB
-`c90e4a41f37214d04d715baee6bbba64190c76917308e4d872c2df9fd1228176`.
+`fe4f2c5581dfb56d452d1cfd0780ade6c0b109f0635733ff7e80d55b2a88a726`.
 
 ## Next execution sequence
 

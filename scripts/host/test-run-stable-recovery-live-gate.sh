@@ -72,9 +72,9 @@ awk -F '\t' '
 	$1 == "build/headless-core-v21-generation21-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { core++ ; next }
-	$1 == "build/power-usb-observer-v2-offline-r1/wrapper/repack/stable-recovery-a.avb.img" &&
+	$1 == "build/power-usb-observer-v3-offline-r1/wrapper/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
-		$3 == "one exact runtime-allowlist-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { power_usb++ ; next }
+		$3 == "one exact recovery-zone-and-stock-anchor-corrected side-port NCM SSH and charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { power_usb++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash" && NF == 3 { generation25++ ; next }

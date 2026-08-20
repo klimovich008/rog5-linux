@@ -26,7 +26,7 @@ CANDIDATE = "headless-ssh-network-root-v3"
 BUNDLE = "headless-ssh-network-root-v3-r2"
 RECOVERY_PROFILE = "headless-ssh-deployment-v3"
 CORE_RECOVERY_PROFILE = "headless-core-deployment-v1-live-v1"
-POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v2-live-v1"
+POWER_USB_RECOVERY_PROFILE = "headless-power-usb-observer-v3-live-v1"
 DIAGNOSTIC_RECOVERY_PROFILE = (
     "headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"
 )
@@ -460,13 +460,13 @@ CORE_CYCLE_PROFILE = CycleProfile(
     diagnostic=False,
 )
 POWER_USB_CYCLE_PROFILE = CycleProfile(
-    candidate="headless-power-usb-observer-v2",
-    bundle="headless-power-usb-observer-v2",
+    candidate="headless-power-usb-observer-v3",
+    bundle="headless-power-usb-observer-v3",
     bundle_profile="network-root-v1",
-    target_id="headless-power-usb-observer-v2",
+    target_id="headless-power-usb-observer-v3",
     admission_profile="power-usb-observer-live-v1",
     recovery_profile=POWER_USB_RECOVERY_PROFILE,
-    runtime_profile="power-usb-observer-v2",
+    runtime_profile="power-usb-observer-v3",
     build_profile="headless-ssh-v2",
     diagnostic=False,
 )
@@ -3493,6 +3493,9 @@ class LiveCycle:
         )
         fallback_deadline = time.monotonic() + self.fallback_timeout
         if self.profile == POWER_USB_CYCLE_PROFILE:
+            fallback_location = Path(location).name
+            if fallback_location != "1-1.2":
+                fail("stock fallback anchor does not end at the exact USB port")
             timeout = max(
                 1,
                 min(900, int(fallback_deadline - time.monotonic() + 0.999)),
@@ -3502,7 +3505,7 @@ class LiveCycle:
                 [
                     str(STOCK_FALLBACK_PATH),
                     "wait",
-                    location,
+                    fallback_location,
                     str(timeout),
                     str(self.output("stock-fallback-preboot.record")),
                     str(identity),
@@ -3519,7 +3522,7 @@ class LiveCycle:
             )
             return verify_stock_fallback_evidence(
                 identity,
-                location,
+                fallback_location,
                 target_boot_id,
             )
         restore_timeout = max(

@@ -316,12 +316,12 @@ CORE_ADMISSION_PROFILE = AdmissionProfile(
 )
 POWER_USB_ADMISSION_PROFILE = AdmissionProfile(
     name="power-usb-observer-live-v1",
-    candidate_id="headless-power-usb-observer-v2",
-    bundle_id="headless-power-usb-observer-v2",
+    candidate_id="headless-power-usb-observer-v3",
+    bundle_id="headless-power-usb-observer-v3",
     bundle_profile=PROFILE,
     package_profile=PROFILE,
     build_profile=BUILD_PROFILE,
-    target_id="headless-power-usb-observer-v2",
+    target_id="headless-power-usb-observer-v3",
     target_release=TARGET_RELEASE,
     expected_artifacts=immutable_artifacts(POWER_USB_EXPECTED_ARTIFACTS),
 )
