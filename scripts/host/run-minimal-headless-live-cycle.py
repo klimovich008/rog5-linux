@@ -153,6 +153,7 @@ PASSTHROUGH_ENVIRONMENT = (
 )
 
 CLAIM_CONSUMER_PATH = REPO / "scripts/host/consume-exact-boot-claim.py"
+STOCK_FALLBACK_PATH = REPO / "scripts/host/wait-stock-android-fallback.py"
 _CLAIM_SPEC = importlib.util.spec_from_file_location(
     "rog5_live_cycle_claim_consumer", CLAIM_CONSUMER_PATH
 )
@@ -221,6 +222,22 @@ ANCHOR_FIELDS = (
     "recovery_vendor",
     "recovery_product_id",
     "recovery_product",
+)
+STOCK_FALLBACK_FIELDS = (
+    "format",
+    "serial",
+    "usb_location",
+    "product",
+    "model",
+    "device",
+    "slot_suffix",
+    "fingerprint",
+    "vbmeta_digest",
+    "verified_boot_state",
+    "boot_id",
+    "boot_completed",
+    "usb_config",
+    "result",
 )
 KEY_ADMISSION_FIELDS = (
     "format",
@@ -1875,6 +1892,51 @@ def verify_fallback_postmortem_evidence(
     return fallback_boot_id
 
 
+def verify_stock_fallback_evidence(
+    path: Path,
+    location: str,
+    target_boot_id: str | None,
+) -> str:
+    metadata = path.lstat()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_nlink != 1
+    ):
+        fail("stock fallback identity record metadata is unsafe")
+    values = parse_record(path)
+    if tuple(values) != STOCK_FALLBACK_FIELDS:
+        fail("stock fallback identity record fields changed")
+    if (
+        values["format"] != "rog5-stock-android-fallback-v1"
+        or values["serial"] != "M5AIKN00F0353YH"
+        or values["usb_location"] != location
+        or values["product"] != "WW_I005D"
+        or values["model"] != "ASUS_I005DA"
+        or values["device"] != "ASUS_I005_1"
+        or values["slot_suffix"] != "_a"
+        or values["fingerprint"]
+        != (
+            "asus/WW_I005D/ASUS_I005_1:13/TKQ1.220807.001/"
+            "33.0210.0210.200-0:user/release-keys"
+        )
+        or values["vbmeta_digest"]
+        != (
+            "48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005"
+        )
+        or values["verified_boot_state"] != "orange"
+        or not BOOT_ID.fullmatch(values["boot_id"])
+        or values["boot_completed"] != "1"
+        or values["usb_config"] != "adb"
+        or values["result"] != "PASS"
+    ):
+        fail("stock fallback identity record is not exact")
+    if target_boot_id is not None and values["boot_id"] == target_boot_id:
+        fail("stock fallback retained the minimal-headless boot identity")
+    return values["boot_id"]
+
+
 def read_recovery_anchor_location(
     path: Path,
     dependencies: Dependencies,
@@ -3231,6 +3293,8 @@ class LiveCycle:
             self.dependencies.fallback,
         ):
             fixed_executable(path, offline=self.dependencies.offline)
+        if self.profile == POWER_USB_CYCLE_PROFILE:
+            fixed_executable(STOCK_FALLBACK_PATH, offline=False)
         if self.profile.diagnostic:
             fixed_executable(
                 self.dependencies.diagnostic_collector,
@@ -3266,21 +3330,24 @@ class LiveCycle:
             ),
             timeout=300,
         )
-        run_capture(
-            [
-                str(self.dependencies.fallback),
-                "ssh-host-preflight",
-                str(self.inputs.fallback_known_hosts),
-                str(self.inputs.ssh_key),
-                self.inputs.ssh_public_key_sha256,
-                str(self.inputs.fallback_timeout),
-                str(FALLBACK_CONTACT_START_BUDGET_SECONDS),
-            ],
-            environment=child_environment(
-                ALLOW_FALLBACK_SSH_CONTROL="1",
-                ALLOW_PHONE_CREDENTIAL_USE="1",
-            ),
-        )
+        if self.profile == POWER_USB_CYCLE_PROFILE:
+            run_capture([str(STOCK_FALLBACK_PATH), "host-preflight"])
+        else:
+            run_capture(
+                [
+                    str(self.dependencies.fallback),
+                    "ssh-host-preflight",
+                    str(self.inputs.fallback_known_hosts),
+                    str(self.inputs.ssh_key),
+                    self.inputs.ssh_public_key_sha256,
+                    str(self.inputs.fallback_timeout),
+                    str(FALLBACK_CONTACT_START_BUDGET_SECONDS),
+                ],
+                environment=child_environment(
+                    ALLOW_FALLBACK_SSH_CONTROL="1",
+                    ALLOW_PHONE_CREDENTIAL_USE="1",
+                ),
+            )
 
     def wait_bundle(
         self,
@@ -3375,11 +3442,40 @@ class LiveCycle:
 
     def wait_fallback(self, target_boot_id: str | None) -> str:
         anchor = self.output("recovery-usb.anchor")
-        read_recovery_anchor_location(
+        location = read_recovery_anchor_location(
             anchor,
             self.dependencies,
         )
         fallback_deadline = time.monotonic() + self.fallback_timeout
+        if self.profile == POWER_USB_CYCLE_PROFILE:
+            timeout = max(
+                1,
+                min(900, int(fallback_deadline - time.monotonic() + 0.999)),
+            )
+            identity = self.output("fallback-identity.record")
+            run_logged(
+                [
+                    str(STOCK_FALLBACK_PATH),
+                    "wait",
+                    location,
+                    str(timeout),
+                    str(identity),
+                ],
+                self.output("fallback-preflight.log"),
+                environment=child_environment(
+                    ALLOW_STOCK_ANDROID_FALLBACK_PROOF="1"
+                ),
+                timeout=timeout + FALLBACK_CONTROL_MARGIN_SECONDS,
+            )
+            require_log_markers(
+                self.output("fallback-preflight.log"),
+                ("PASS exact stock WW33 slot-A fallback ",),
+            )
+            return verify_stock_fallback_evidence(
+                identity,
+                location,
+                target_boot_id,
+            )
         restore_timeout = max(
             1,
             min(

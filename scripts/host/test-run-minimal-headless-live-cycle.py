@@ -1317,6 +1317,52 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             "headless-power-usb-observer-v1-live-v1",
         )
 
+    def test_stock_android_fallback_record_is_exact(self) -> None:
+        output = self.fixture.root / "stock-fallback.record"
+        values = {
+            "format": "rog5-stock-android-fallback-v1",
+            "serial": "M5AIKN00F0353YH",
+            "usb_location": "1-1.2",
+            "product": "WW_I005D",
+            "model": "ASUS_I005DA",
+            "device": "ASUS_I005_1",
+            "slot_suffix": "_a",
+            "fingerprint": (
+                "asus/WW_I005D/ASUS_I005_1:13/TKQ1.220807.001/"
+                "33.0210.0210.200-0:user/release-keys"
+            ),
+            "vbmeta_digest": (
+                "48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005"
+            ),
+            "verified_boot_state": "orange",
+            "boot_id": "11111111-2222-3333-4444-555555555555",
+            "boot_completed": "1",
+            "usb_config": "adb",
+            "result": "PASS",
+        }
+        output.write_text(
+            "".join(
+                f"{name}={values[name]}\n"
+                for name in CYCLE.STOCK_FALLBACK_FIELDS
+            ),
+            encoding="ascii",
+        )
+        output.chmod(0o600)
+        self.assertEqual(
+            CYCLE.verify_stock_fallback_evidence(output, "1-1.2", None),
+            values["boot_id"],
+        )
+        values["slot_suffix"] = "_b"
+        output.write_text(
+            "".join(
+                f"{name}={values[name]}\n"
+                for name in CYCLE.STOCK_FALLBACK_FIELDS
+            ),
+            encoding="ascii",
+        )
+        with self.assertRaises(CYCLE.CycleError):
+            CYCLE.verify_stock_fallback_evidence(output, "1-1.2", None)
+
     def test_core_profile_is_distinct_and_requires_core_v3_key_binding(self) -> None:
         profile = CYCLE.CORE_CYCLE_PROFILE
         self.assertEqual(profile.candidate, "headless-core-network-root-v2")
