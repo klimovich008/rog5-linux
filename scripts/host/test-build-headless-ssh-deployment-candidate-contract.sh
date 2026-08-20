@@ -256,7 +256,8 @@ git clone -q "$integration_remote" "$integration_repo"
 mkdir -p \
 	"$integration_repo/scripts/host/qualified-tool-shims" \
 	"$integration_repo/scripts/host/qualified-cpio-path" \
-	"$integration_repo/configs/recovery-candidates"
+	"$integration_repo/configs/recovery-candidates" \
+	"$integration_repo/manifests"
 for source in \
 	scripts/host/build-early-target-diagnostic-deployment-candidate.sh \
 	scripts/host/build-corrected-headless-candidate-offline.sh \
@@ -270,6 +271,8 @@ done
 cp -p -- \
 	"$repo/configs/recovery-candidates/headless-netroot-early-diag-v2.json" \
 	"$integration_repo/configs/recovery-candidates/"
+cp -p -- "$repo/manifests/power-usb-active.lock.json" \
+	"$integration_repo/manifests/"
 printf 'build/\n__pycache__/\n' >"$integration_repo/.gitignore"
 for stub in \
 	scripts/host/verify-steam-deck-builder.sh \

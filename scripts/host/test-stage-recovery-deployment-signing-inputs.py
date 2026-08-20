@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -30,6 +31,10 @@ DIAGNOSTIC_CANDIDATE = (
     REPO
     / "configs/recovery-candidates/headless-netroot-early-diag-v2.json"
 )
+POWER_ID = json.loads(
+    (REPO / "manifests/power-usb-active.lock.json").read_text(encoding="ascii")
+)["candidate"]
+POWER_CANDIDATE = REPO / f"configs/recovery-candidates/{POWER_ID}.json"
 
 
 def load_module():
@@ -287,13 +292,14 @@ class SigningInputTest(unittest.TestCase):
         self.assertFalse(self.staged_candidate.exists())
         self.assertFalse(self.public.exists())
 
-    def test_cli_candidate_policy_has_only_three_fixed_identities(self) -> None:
+    def test_cli_candidate_policy_has_only_generated_active_and_history(self) -> None:
         self.assertEqual(
             set(TOOL.ALLOWED_CANDIDATE_IDS),
             {
                 TOOL.DEFAULT_CANDIDATE_ID,
                 TOOL.CORE_CANDIDATE_ID,
                 TOOL.DIAGNOSTIC_CANDIDATE_ID,
+                TOOL.POWER_CANDIDATE_ID,
             },
         )
         parsed = TOOL.parse_arguments(
@@ -315,6 +321,25 @@ class SigningInputTest(unittest.TestCase):
             ]
         )
         self.assertEqual(parsed.candidate_id, TOOL.CORE_CANDIDATE_ID)
+
+    def test_generated_power_candidate_is_exact(self) -> None:
+        self.candidate.chmod(0o600)
+        shutil.copyfile(POWER_CANDIDATE, self.candidate)
+        self.candidate.chmod(0o444)
+        _checkpoint, candidate_sha256, _public_sha256 = TOOL.stage_inputs(
+            self.repository,
+            self.key,
+            self.candidate,
+            self.staged_key,
+            self.staged_candidate,
+            self.public,
+            TOOL.POWER_CANDIDATE_ID,
+        )
+        self.assertEqual(
+            candidate_sha256,
+            TOOL.EXACT_CANDIDATE_SHA256[TOOL.POWER_CANDIDATE_ID],
+        )
+        self.assertEqual(self.staged_candidate.read_bytes(), POWER_CANDIDATE.read_bytes())
 
     def test_non_ed25519_and_encrypted_keys_are_rejected(self) -> None:
         cases = (
