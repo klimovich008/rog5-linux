@@ -370,7 +370,7 @@ parse_network_root_command_line() {
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		[ "$bundle" = "$power_usb_candidate" ]; then
 		diagnostic_mode=0
-		charging_probe_mode=1
+		charging_probe_mode=2
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		[ "$bundle" != "$diagnostic_candidate" ] &&
@@ -923,7 +923,7 @@ prepare_shutdown_root() {
 		cp -p "$diagnostic_binary" \
 			"$exitrd/sbin/rog5-early-target-diag" || return 1
 	fi
-	if [ "${charging_probe_mode:-0}" -eq 1 ]; then
+	if [ "${charging_probe_mode:-0}" -ne 0 ]; then
 		cp -p /sbin/rog5-early-charging-probe \
 			"$exitrd/sbin/rog5-early-charging-probe" || return 1
 		mkdir -p "$exitrd/rog5-charge-inputs" || return 1

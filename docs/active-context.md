@@ -85,14 +85,17 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v8 power/USB identity is defined only by
+The active v9 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
 fallback, and exact stock slot-A return. It exposed an R1 target selector that
 recognized only three historical charging candidates, so no charging probe
-ran. V8 generates and embeds the active target identity; it has no boot
-authority. See `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
+ran. V8 generated the target identity but was revoked unbooted when review
+showed its early PID1 probe had no SSH observation channel. V9 defers the
+retained probe until after runtime acceptance and invokes it through pinned
+key-only SSH; it has no boot authority. See
+`test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Next execution sequence
 

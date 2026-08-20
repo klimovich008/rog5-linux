@@ -176,6 +176,7 @@ OUTPUT_NAMES = (
     "target-host-key.log",
     "target-known-hosts",
     "runtime-acceptance.log",
+    "power-usb-observation.log",
     "minimal-headless-runtime.record",
     "fallback-identity.record",
     "stock-fallback-preboot.log",
