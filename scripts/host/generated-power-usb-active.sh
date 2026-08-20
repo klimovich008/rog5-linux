@@ -3,6 +3,8 @@
 readonly POWER_USB_CANDIDATE=headless-power-usb-observer-v4
 readonly POWER_USB_BUNDLE=headless-power-usb-observer-v4
 readonly POWER_USB_TARGET_ID=headless-power-usb-observer-v4
+readonly POWER_USB_TARGET_RELEASE=7.1.4-g7a5cef0db479
+readonly POWER_USB_TARGET_TIMEOUT=480
 readonly POWER_USB_BUNDLE_PROFILE=network-root-v1
 readonly POWER_USB_ADMISSION_PROFILE=power-usb-observer-live-v1
 readonly POWER_USB_RECOVERY_PROFILE=headless-power-usb-observer-v4-live-v1
