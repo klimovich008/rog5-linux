@@ -379,11 +379,11 @@ selected_test() {
 	done
 	return 1
 }
-test_tmp_parent=$(dirname -- "$repo")
+test_tmp_parent=${HOME:-}
 [[ $test_tmp_parent == /* && -d $test_tmp_parent &&
 	! -L $test_tmp_parent && -w $test_tmp_parent ]] ||
 	fail 'repository test temporary parent is unavailable'
-test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-repository-tests.XXXXXXXX")
+test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-tests.XXXXXXXX")
 chmod 0700 "$test_tmp_root"
 export TMPDIR=$test_tmp_root
 parallel_root=$(mktemp -d)
