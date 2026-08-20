@@ -64,6 +64,53 @@ class StockFallbackTest(unittest.TestCase):
         self.assertEqual(values["result"], "PASS")
         self.assertEqual(values["usb_config"], "adb")
 
+    def test_exact_unauthorized_usb_and_preboot_pair_passes(self) -> None:
+        original_root = FALLBACK.USB_ROOT
+        original_adb = FALLBACK.adb
+        with tempfile.TemporaryDirectory(prefix="rog5-stock-usb-") as raw:
+            root = Path(raw)
+            root.chmod(0o700)
+            FALLBACK.USB_ROOT = root
+            device = root / "1-1.2"
+            interface = root / "1-1.2:1.0"
+            device.mkdir()
+            interface.mkdir()
+            for name, value in {
+                "idVendor": "0b05",
+                "idProduct": "7770",
+                "manufacturer": "asus",
+                "product": "ROG Phone 5",
+                "serial": FALLBACK.SERIAL,
+                "bDeviceClass": "00",
+                "bDeviceSubClass": "00",
+                "bDeviceProtocol": "00",
+            }.items():
+                (device / name).write_text(value + "\n", encoding="ascii")
+            for name, value in (
+                ("bInterfaceClass", "ff"),
+                ("bInterfaceSubClass", "42"),
+                ("bInterfaceProtocol", "01"),
+            ):
+                (interface / name).write_text(value + "\n", encoding="ascii")
+            preboot = root / "preboot.record"
+            preboot.write_text(
+                "format=rog5-stock-fallback-preboot-v1\n"
+                f"serial={FALLBACK.SERIAL}\n"
+                "usb_location=1-1.2\nproduct=lahaina\nslot=a\n"
+                "battery_soc_ok=yes\nresult=PASS\n",
+                encoding="ascii",
+            )
+            preboot.chmod(0o600)
+            FALLBACK.adb = lambda *args, **kwargs: (
+                "List of devices attached\n"
+                f"{FALLBACK.SERIAL} unauthorized usb:1-1.2 transport_id:8\n"
+            )
+            self.assertEqual(FALLBACK.device_state("1-1.2"), "unauthorized")
+            values = FALLBACK.verify_unauthorized_usb("1-1.2", preboot)
+            self.assertEqual(values["evidence_mode"], "usb-unauthorized-slot-a")
+        FALLBACK.USB_ROOT = original_root
+        FALLBACK.adb = original_adb
+
     def test_wrong_slot_fingerprint_digest_and_usb_path_refuse(self) -> None:
         self.assertFalse(FALLBACK.exact_device("1-1.3"))
         for name, value in (
