@@ -30,8 +30,8 @@
       },
       "initramfs.cpio.gz": {
         "path": "artifacts/network-root-power-usb-observer-v1/initramfs.cpio.gz",
-        "size": 5995984,
-        "sha256": "561cf5131aeeb1e7a8e01dcbb69078cf6c43e1f93902ff28bd31e8f4dfe23650"
+        "size": 5995981,
+        "sha256": "add904a49e007ec1cf793e9c7b42a943c4eef1f30f419594bce0d141600adca3"
       }
     }
   },
@@ -41,7 +41,7 @@
     "runtime_profile": "power-usb-observer-v8",
     "build_profile": "headless-ssh-v2",
     "expected_dtb_sha256": "3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11",
-    "expected_manifest_sha256": "0d2e7ebfbab1a1fabfc3cad9649a94bf4bbbf373afc96f9e481c94317c6e5fa5",
+    "expected_manifest_sha256": "f1ec6cdf450c42c54da319c93f59a294c7570358d51e4eeb210017cc8cb1c195",
     "output_root": "build/power-usb-observer-v8-offline-r1",
     "marker_predecessor": "headless-power-usb-observer-v7",
     "marker_purpose": "generated-target-charging-selector-side-port-observer",
