@@ -640,6 +640,11 @@ def verify(
 
     if any(name not in candidate for name in ROOT_FIELDS):
         fail("candidate is missing a v3 root identity")
+    rollback_timeout = "600"
+    target_timeout = "480"
+    if profile is POWER_USB_ADMISSION_PROFILE:
+        rollback_timeout = POWER_USB.ROLLBACK_TIMEOUT
+        target_timeout = POWER_USB.TARGET_TIMEOUT
     if (
         candidate["candidate"] != profile.candidate_id
         or candidate["bundle"] != profile.bundle_id
@@ -648,8 +653,8 @@ def verify(
         or candidate["profile"] != profile.bundle_profile
         or candidate["target_id"] != profile.target_id
         or candidate["target_release"] != profile.target_release
-        or candidate["rollback_timeout"] != "600"
-        or candidate["target_timeout"] != "480"
+        or candidate["rollback_timeout"] != rollback_timeout
+        or candidate["target_timeout"] != target_timeout
         or candidate["artifacts"] != artifact_map(profile)
     ):
         fail("candidate identity is not the exact deployment tuple")
@@ -681,8 +686,8 @@ def verify(
         ]["sha256"],
         "target_id": profile.target_id,
         "target_release": profile.target_release,
-        "rollback_timeout": "600",
-        "target_timeout": "480",
+        "rollback_timeout": rollback_timeout,
+        "target_timeout": target_timeout,
         **{name: package[name] for name in ROOT_FIELDS},
     }
     if dict(manifest) != expected_manifest:
