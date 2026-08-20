@@ -171,6 +171,69 @@ cmp "$power_usb_profile" "$reviewed_power_usb_profile" || {
 }
 sh -n "$power_usb_profile"
 
+charge_firmware=$stage/opt/rog5-charge-firmware
+case ${NETWORK_ROOT_EXPECT_CHARGE_FIRMWARE:-0} in
+	0)
+		[ ! -e "$charge_firmware" ] && [ ! -L "$charge_firmware" ] || {
+			echo 'FAIL unexpected private charge firmware in network-root initramfs' >&2
+			exit 1
+		}
+		;;
+	1)
+		expected_firmware='adsp.b00
+adsp.b01
+adsp.b02
+adsp.b03
+adsp.b04
+adsp.b05
+adsp.b06
+adsp.b07
+adsp.b08
+adsp.b09
+adsp.b10
+adsp.b11
+adsp.b12
+adsp.b13
+adsp.b14
+adsp.b15
+adsp.b16
+adsp.b17
+adsp.b18
+adsp.b19
+adsp.b20
+adsp.b21
+adsp.b22
+adsp.b23
+adsp.b24
+adsp.b25
+adsp.b26
+adsp.mbn
+adsp.mdt'
+		[ -d "$charge_firmware" ] && [ ! -L "$charge_firmware" ] || {
+			echo 'FAIL required private charge firmware is absent' >&2
+			exit 1
+		}
+		actual_firmware=$(find "$charge_firmware" -mindepth 1 -maxdepth 1 \
+			-type f -printf '%f\n' | sort)
+		[ "$actual_firmware" = "$expected_firmware" ] || {
+			echo 'FAIL private charge firmware inventory changed' >&2
+			exit 1
+		}
+		[ "$(find "$charge_firmware" -mindepth 1 -maxdepth 1 -type f \
+			-printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')" \
+			= 30900841 ] || {
+			echo 'FAIL private charge firmware byte count changed' >&2
+			exit 1
+		}
+		[ "$(find "$charge_firmware" -mindepth 1 -maxdepth 1 ! -type f | wc -l)" \
+			-eq 0 ] || {
+			echo 'FAIL private charge firmware contains a non-file entry' >&2
+			exit 1
+		}
+		;;
+	*) echo 'FAIL invalid charge firmware verification mode' >&2; exit 1 ;;
+esac
+
 reporter=$stage/sbin/rog5-early-target-diag
 if [ -z "$reviewed_reporter" ]; then
 	[ ! -e "$reporter" ] && [ ! -L "$reporter" ] || {

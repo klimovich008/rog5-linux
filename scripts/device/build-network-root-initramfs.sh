@@ -20,6 +20,8 @@ verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
 reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
+charge_firmware_archive=${NETWORK_ROOT_CHARGE_FIRMWARE_ARCHIVE:-}
+charge_firmware_sha=8974a54fa1c31cca4698a934ec3f9de4a997e0a99d6c55baaa3cd8a005369e5b
 reviewed_reporter_size=67288
 reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
 accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
@@ -31,6 +33,14 @@ for command in cpio cut dirname find grep gzip install ln mktemp readelf rm \
 	command -v "$command" >/dev/null ||
 		fail "missing network-root initramfs build command: $command"
 done
+if [ -n "$charge_firmware_archive" ]; then
+	case $charge_firmware_archive in /*) ;; *) fail 'charge firmware archive must be absolute' ;; esac
+	[ -f "$charge_firmware_archive" ] && [ ! -L "$charge_firmware_archive" ] ||
+		fail 'charge firmware archive is absent or linked'
+	[ "$(sha256sum "$charge_firmware_archive" | cut -d ' ' -f 1)" = \
+		"$charge_firmware_sha" ] || fail 'charge firmware archive hash changed'
+	command -v tar >/dev/null || fail 'missing network-root initramfs build command: tar'
+fi
 for path in "$init" "$shutdown" "$charging_probe"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing initramfs source: $path"
@@ -134,6 +144,11 @@ install -D -m 0755 "$charging_probe" \
 	"$stage/sbin/rog5-early-charging-probe"
 install -D -m 0444 "$power_usb_profile" \
 	"$stage/etc/rog5/power-usb-active.sh"
+if [ -n "$charge_firmware_archive" ]; then
+	install -d -m 0755 "$stage/opt/rog5-charge-firmware"
+	tar -xzf "$charge_firmware_archive" -C "$stage/opt/rog5-charge-firmware" \
+		--no-same-owner --no-same-permissions
+fi
 install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"
 install -D -m 0444 "$xattr_projection" \
 	"$stage/etc/rog5/nfs4-xattr-projection"
@@ -165,6 +180,7 @@ output_stage=$(mktemp "$output_parent/.network-root-initramfs.XXXXXX")
 	cpio --null -o --quiet --format=newc --owner=0:0 --reproducible) |
 	gzip -n >"$output_stage"
 NETWORK_ROOT_DIAGNOSTIC_REPORTER="$reviewed_reporter" \
+	NETWORK_ROOT_EXPECT_CHARGE_FIRMWARE="$([ -n "$charge_firmware_archive" ] && printf 1 || printf 0)" \
 	"$repo/scripts/device/verify-network-root-initramfs.sh" "$output_stage"
 ln "$output_stage" "$output" 2>/dev/null ||
 	fail 'output appeared during build'
