@@ -39,6 +39,18 @@ def exact_rows(path: Path, prefix: str) -> list[str]:
     ]
 
 
+def receipt_verify_command(receipt: Path, state: object) -> list[str]:
+    command = [
+        sys.executable,
+        str(REPO / "scripts/host/power-usb-deployment-receipt.py"),
+        "verify",
+        str(receipt),
+    ]
+    if state in {"built", "admitted"}:
+        command.extend(("--build-root", str(REPO / POWER_USB.OUTPUT_ROOT)))
+    return command
+
+
 def validate(stage: str, receipt: Path | None) -> str:
     subprocess.run(
         [sys.executable, str(REPO / "scripts/host/generate-power-usb-active.py")],
@@ -116,13 +128,9 @@ def validate(stage: str, receipt: Path | None) -> str:
             fail(f"fallback capability verifier lacks {token}")
 
     if receipt is not None:
+        receipt_value = json.loads(receipt.read_text(encoding="ascii"))
         result = subprocess.run(
-            [
-                sys.executable,
-                str(REPO / "scripts/host/power-usb-deployment-receipt.py"),
-                "verify",
-                str(receipt),
-            ],
+            receipt_verify_command(receipt, receipt_value.get("state")),
             check=False,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -131,9 +139,9 @@ def validate(stage: str, receipt: Path | None) -> str:
         )
         if result.returncode != 0:
             fail(result.stdout.strip() or "deployment receipt verification failed")
-        receipt_value = json.loads(receipt.read_text(encoding="ascii"))
+        receipt_states = {"planned", "built"} if stage == "planned" else {"admitted"}
         if (
-            receipt_value.get("state") != stage
+            receipt_value.get("state") not in receipt_states
             or receipt_value.get("candidate") != POWER_USB.CANDIDATE
             or receipt_value.get("output_root") != POWER_USB.OUTPUT_ROOT
         ):
