@@ -243,8 +243,8 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
                 "80f92ba81bfe6a7af1be2bd6c0d2a12d26f59a88f1483d04fae4d1dcbbc757da",
             ),
             "scripts/host/run-stable-recovery-live-gate.sh": (
-                215326,
-                "ac306534451a37ee32b940b7f1fa06a196a1fd97e0adcc96a0e2394b18cc29c2",
+                215148,
+                "8d187c93bf711393b04b7d09655b5ad2fe288adb00cb7738fd61631eaa658617",
             ),
             "scripts/host/fallback-acm-control.py": (
                 115520,
@@ -255,8 +255,8 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
                 "0b950c1f5456f88599835fe13349667974e8ddf6b1457baa668eb8338e59b929",
             ),
             "scripts/host/stable-recovery-control.py": (
-                39705,
-                "ea641fa20111318a3f86af10fcf8ce50fdd706754fa8dc79c8ea4570790a913f",
+                39737,
+                "54103d48975fa399d6af9209fde4e0fca085a4a6d061e721fa212b9c49da3f51",
             ),
         }
         self.assertEqual(set(by_program), set(expected))
