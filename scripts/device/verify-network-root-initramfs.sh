@@ -159,6 +159,18 @@ cmp "$charging_probe" "$reviewed_charging_probe" || {
 }
 sh -n "$charging_probe"
 
+power_usb_profile=$stage/etc/rog5/power-usb-active.sh
+reviewed_power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
+[ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ] || {
+	echo 'FAIL network-root initramfs lacks generated power/USB identity' >&2
+	exit 1
+}
+cmp "$power_usb_profile" "$reviewed_power_usb_profile" || {
+	echo 'FAIL embedded power/USB identity differs from canonical generation' >&2
+	exit 1
+}
+sh -n "$power_usb_profile"
+
 reporter=$stage/sbin/rog5-early-target-diag
 if [ -z "$reviewed_reporter" ]; then
 	[ ! -e "$reporter" ] && [ ! -L "$reporter" ] || {

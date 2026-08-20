@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import replace
 import hashlib
 import importlib.util
 import json
@@ -97,6 +98,22 @@ def pinned_interpreters_available() -> bool:
     "requires the exact pinned deployment-host interpreters",
 )
 class RetentionCycleRuntimeClosureTest(unittest.TestCase):
+    @staticmethod
+    def current_specs(inputs):
+        specs = {item.name: item for item in CONTRACT.process_specs(inputs)}
+        for name, item in tuple(specs.items()):
+            program = REPO / item.program
+            metadata = program.lstat()
+            if not stat.S_ISREG(metadata.st_mode) or program.is_symlink():
+                raise AssertionError("runtime fixture program is not repository-owned")
+            specs[name] = replace(
+                item,
+                program_size=metadata.st_size,
+                program_sha256=hashlib.sha256(program.read_bytes()).hexdigest(),
+                program_mode=f"{stat.S_IMODE(metadata.st_mode):04o}",
+            )
+        return specs
+
     def make_journal(self, host_boot_id: str = HOST_BOOT_ID):
         temporary = tempfile.TemporaryDirectory(prefix="rog5-runtime-")
         self.addCleanup(temporary.cleanup)
@@ -116,9 +133,7 @@ class RetentionCycleRuntimeClosureTest(unittest.TestCase):
             fastboot_serial=FASTBOOT_SERIAL,
             fallback_known_hosts=str(pin),
         )
-        specs = {
-            item.name: item for item in CONTRACT.process_specs(inputs)
-        }
+        specs = self.current_specs(inputs)
         return root, journal, pin, inputs, specs
 
     @staticmethod
@@ -194,18 +209,20 @@ class RetentionCycleRuntimeClosureTest(unittest.TestCase):
         *,
         pin_sha256: str = "none",
     ):
-        prepared = RUNTIME.prepare_action(
-            journal=journal,
-            spec=spec,
-            inputs=inputs,
-            expected_host_pin_sha256=pin_sha256,
-        )
-        proof = RUNTIME.run_offline_fixture(
-            prepared,
-            RUNTIME.OfflineChildPlan(stdout, b"", 0, 0, False),
-            deadline_milliseconds=500,
-        )
-        decoded = RUNTIME.decode_offline_fixture(prepared, proof)
+        current = tuple(self.current_specs(inputs).values())
+        with mock.patch.object(CONTRACT, "process_specs", return_value=current):
+            prepared = RUNTIME.prepare_action(
+                journal=journal,
+                spec=spec,
+                inputs=inputs,
+                expected_host_pin_sha256=pin_sha256,
+            )
+            proof = RUNTIME.run_offline_fixture(
+                prepared,
+                RUNTIME.OfflineChildPlan(stdout, b"", 0, 0, False),
+                deadline_milliseconds=500,
+            )
+            decoded = RUNTIME.decode_offline_fixture(prepared, proof)
         return prepared, decoded.result
 
     def prepare_claim(self, host_boot_id: str = HOST_BOOT_ID):

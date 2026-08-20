@@ -14,6 +14,7 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/network-root-init
 shutdown=$repo/initramfs/network-root-shutdown
 charging_probe=$repo/scripts/device/probe-network-root-battery-telemetry.sh
+power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
 xattr_projection=$repo/configs/network-roots/rog5-nfs4-xattr-projection-v1
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
@@ -34,6 +35,10 @@ for path in "$init" "$shutdown" "$charging_probe"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing initramfs source: $path"
 done
+[ -r "$power_usb_profile" ] && [ -f "$power_usb_profile" ] &&
+	[ ! -L "$power_usb_profile" ] ||
+	fail 'generated power/USB identity is absent or linked'
+sh -n "$power_usb_profile"
 [ -r "$xattr_projection" ] && [ -f "$xattr_projection" ] &&
 	[ ! -L "$xattr_projection" ] ||
 	fail "missing xattr projection: $xattr_projection"
@@ -127,6 +132,8 @@ install -m 0755 "$init" "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$charging_probe" \
 	"$stage/sbin/rog5-early-charging-probe"
+install -D -m 0444 "$power_usb_profile" \
+	"$stage/etc/rog5/power-usb-active.sh"
 install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"
 install -D -m 0444 "$xattr_projection" \
 	"$stage/etc/rog5/nfs4-xattr-projection"

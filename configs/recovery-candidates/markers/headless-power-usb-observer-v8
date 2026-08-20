@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v8
+predecessor=headless-power-usb-observer-v7
+purpose=generated-target-charging-selector-side-port-observer
