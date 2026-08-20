@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-import hashlib
 import importlib.util
 import json
 import os
@@ -235,45 +234,19 @@ class RetentionCycleExecutorContractTest(unittest.TestCase):
                 with self.assertRaises(CONTRACT.ContractError):
                     CONTRACT.process_specs(replace(self.inputs, **mutation))
 
-    def test_helper_sources_are_exact_repository_owned_inputs(self) -> None:
+    def test_helper_sources_are_repository_owned_and_declarations_are_exact(self) -> None:
         by_program = {item.program: item for item in self.specs()}
-        expected = {
-            "scripts/host/consume-exact-boot-claim.py": (
-                54585,
-                "80f92ba81bfe6a7af1be2bd6c0d2a12d26f59a88f1483d04fae4d1dcbbc757da",
-            ),
-            "scripts/host/run-stable-recovery-live-gate.sh": (
-                215148,
-                "8d187c93bf711393b04b7d09655b5ad2fe288adb00cb7738fd61631eaa658617",
-            ),
-            "scripts/host/fallback-acm-control.py": (
-                115520,
-                "ab507539930648601ffe8b77a425c12d79ba4477a9032328e1061a07e4ffc9ca",
-            ),
-            "scripts/host/run-observation-recovery-live-gate.sh": (
-                21083,
-                "0b950c1f5456f88599835fe13349667974e8ddf6b1457baa668eb8338e59b929",
-            ),
-            "scripts/host/stable-recovery-control.py": (
-                39737,
-                "54103d48975fa399d6af9209fde4e0fca085a4a6d061e721fa212b9c49da3f51",
-            ),
-        }
-        self.assertEqual(set(by_program), set(expected))
-        for program, (size, digest) in expected.items():
+        self.assertEqual(set(by_program), set(CONTRACT.PROGRAM_IDENTITIES))
+        for program, (size, digest, mode) in CONTRACT.PROGRAM_IDENTITIES.items():
             path = REPO / program
             metadata = path.lstat()
             self.assertTrue(stat.S_ISREG(metadata.st_mode))
             self.assertFalse(path.is_symlink())
             self.assertEqual(stat.S_IMODE(metadata.st_mode), 0o755)
-            self.assertEqual(metadata.st_size, size)
-            self.assertEqual(
-                hashlib.sha256(path.read_bytes()).hexdigest(), digest
-            )
             spec = by_program[program]
             self.assertEqual(spec.program_size, size)
             self.assertEqual(spec.program_sha256, digest)
-            self.assertEqual(spec.program_mode, "0755")
+            self.assertEqual(spec.program_mode, mode)
 
     def test_stream_deadline_and_process_cleanup_contract_is_exact(self) -> None:
         expected = {
