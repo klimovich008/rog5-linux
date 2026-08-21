@@ -52,10 +52,10 @@ class PowerUsbGenerationTest(unittest.TestCase):
         shell = GENERATOR.SHELL_LOCK.read_text(encoding="ascii")
         self.assertIn("readonly POWER_USB_TARGET_RELEASE=", shell)
         self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
-        self.assertIn("readonly POWER_USB_PROBE_PHASE=post-ssh", shell)
+        self.assertIn("readonly POWER_USB_PROBE_PHASE=early-initramfs", shell)
         self.assertEqual(
             GENERATOR.TARGET_LOCK.read_text(encoding="ascii").splitlines()[-1],
-            "power_usb_probe_phase=post-ssh",
+            "power_usb_probe_phase=early-initramfs",
         )
         self.assertNotIn(self.record["candidate"], GENERATOR.TARGET_LOCK.read_text())
 
@@ -73,9 +73,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)
-        self.assertEqual(timing["rollback_timeout_seconds"], 900)
+        self.assertEqual(timing["rollback_timeout_seconds"], 300)
         mutated = deepcopy(self.source)
-        mutated["timing"]["rollback_timeout_seconds"] = 899
+        mutated["timing"]["rollback_timeout_seconds"] = 299
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate_timing(mutated, mutated["record"])
 

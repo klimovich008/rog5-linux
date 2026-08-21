@@ -2606,7 +2606,16 @@ class LiveCycle:
             if dependencies.offline
             else POWER_USB.NETWORK_SERVER_TIMEOUT_SECONDS + 15
         )
-        self.diagnostic_timeout = 8 if dependencies.offline else 735
+        self.diagnostic_capture_timeout = (
+            POWER_USB.SAMPLER_TIMEOUT_SECONDS
+            if profile.early_probe
+            else 660
+        )
+        self.diagnostic_timeout = (
+            8
+            if dependencies.offline
+            else self.diagnostic_capture_timeout + 75
+        )
         self.cleanup_stabilize_timeout = (
             0.5 if dependencies.offline else 10
         )
@@ -4100,7 +4109,7 @@ class LiveCycle:
                         str(anchor),
                         str(diagnostic_record),
                         "120",
-                        "660",
+                        str(self.diagnostic_capture_timeout),
                         self.profile.candidate,
                     ],
                     diagnostic_log,

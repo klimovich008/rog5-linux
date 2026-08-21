@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v20 power/USB identity is defined only by
+The active V21 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -111,7 +111,7 @@ and omitted the retained probe. V18 replaced that identity copy, reached ADSP
 `running`, and then found `pdr_interface.ko` had incompatible build-specific
 BTF. V19 passed PDR/PMIC GLINK/UCSI and found `port_type` is source-validly
 optional. V20 classified that absence, then was revoked unbooted before phone
-contact in favor of an early-initramfs observer. See
+contact. V21 is the planned early-initramfs observer and has no boot authority. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Current loop optimization
@@ -130,7 +130,7 @@ contact in favor of an early-initramfs observer. See
 ## Next execution sequence
 
 1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
-2. Freeze and publish the loop-optimization checkpoint.
+2. Freeze and publish the canonical V21 source.
 3. Generate one V21 early-probe bundle from the clean-twin initramfs and reuse
    the stable recovery wrapper cache; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.

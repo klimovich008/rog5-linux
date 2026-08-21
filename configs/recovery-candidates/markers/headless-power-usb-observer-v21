@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v21
+predecessor=headless-power-usb-observer-v20
+purpose=early-typed-side-port-power-observation
