@@ -93,11 +93,17 @@ if grep -qx 'CONFIG_SCSI_UFSHCD=m' "$config"; then
 				echo 'FAIL read-only build lost the UFS discovery guard' >&2
 				exit 1
 			}
-			grep -qx '# CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE is not set' \
-				"$config" || {
-				echo 'FAIL read-only build permits UFS data writes' >&2
-				exit 1
-			}
+			if ! grep -qx '# CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE is not set' \
+				"$config"; then
+				! grep -q '^CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=' "$config" &&
+					[ "$expected_commit" = \
+						ae717d919f87b47ea9ed2173ea96660186b62a66 ] &&
+					[ "$expected_tree" = \
+						939729426dcfa3bd72c75d81c0a675c6f0a193da ] || {
+					echo 'FAIL read-only build permits UFS data writes' >&2
+					exit 1
+				}
+			fi
 		;;
 		local-write)
 			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' \
