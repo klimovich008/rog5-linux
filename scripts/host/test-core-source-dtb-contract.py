@@ -431,6 +431,13 @@ class CoreSourceDtbContractTest(unittest.TestCase):
         self.assertIn("status=metadata-only", result.stdout)
         self.assertIn("authority=none", result.stdout)
 
+    def test_repository_profile_is_semantic_not_recursively_hash_pinned(self) -> None:
+        reference = self.contract["compatibility_profile"]
+        self.assertEqual(
+            reference,
+            {"path": "configs/compatibility/rog5-minimal-headless-v1.json"},
+        )
+
     def test_candidate_source_and_dtb_pass(self) -> None:
         result = run(self.candidate_arguments())
         self.assertEqual(result.returncode, 0, result.stderr)

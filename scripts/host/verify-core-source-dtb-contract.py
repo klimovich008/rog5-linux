@@ -72,7 +72,7 @@ ROOT_KEYS = {
     "source_checks",
     "dt_checks",
 }
-COMPATIBILITY_KEYS = {"path", "sha256"}
+COMPATIBILITY_KEYS = {"path"}
 BASELINE_KEYS = {"commit", "release"}
 ACCEPTED_DTB_KEYS = {"artifact_id", "path", "size", "sha256"}
 SOURCE_CHECK_KEYS = {"id", "capabilities", "kind", "path", "required"}
@@ -383,13 +383,7 @@ def validate_core_profile(
         reference["path"],
         "compatibility profile path",
     )
-    expected_hash = require_sha256(
-        reference["sha256"],
-        "compatibility profile sha256",
-    )
     data = read_bounded(path, "compatibility profile", MAX_PROFILE_SIZE)
-    if hashlib.sha256(data).hexdigest() != expected_hash:
-        fail("compatibility profile hash changed")
     core_profile = json.loads(data, object_pairs_hook=unique_object)
     if not isinstance(core_profile, dict):
         fail("compatibility profile root is not an object")
