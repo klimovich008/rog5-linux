@@ -339,9 +339,14 @@ class CheckpointInputTests(unittest.TestCase):
         for launcher in LAUNCHERS:
             with self.subTest(launcher=launcher.name):
                 module = load_launcher(launcher)
+                fixed = getattr(
+                    module,
+                    "STATIC_CHECKPOINT_INPUTS",
+                    getattr(module, "CHECKPOINT_INPUTS", ()),
+                )
                 contracts = {
                     relative: (size, mode, digest)
-                    for relative, size, mode, digest in module.CHECKPOINT_INPUTS
+                    for relative, size, mode, digest in fixed
                 }
                 self.assertEqual(
                     contracts.get(
@@ -349,6 +354,26 @@ class CheckpointInputTests(unittest.TestCase):
                     ),
                     expected,
                 )
+
+    def test_power_usb_inputs_come_from_the_canonical_source(self) -> None:
+        module = load_launcher(LAUNCHERS[0])
+        contracts = module.power_usb_checkpoint_inputs(REPO)
+        value = __import__("json").loads(
+            (REPO / "configs/recovery-candidates/power-usb-active.json").read_text(
+                encoding="ascii"
+            )
+        )
+        artifacts = value["record"]["artifacts"]
+        expected = tuple(
+            (
+                artifacts[name]["path"],
+                artifacts[name]["size"],
+                0o644,
+                artifacts[name]["sha256"],
+            )
+            for name in ("Image", "board.dtb", "initramfs.cpio.gz")
+        )
+        self.assertEqual(contracts[:3], expected)
 
 
 if __name__ == "__main__":

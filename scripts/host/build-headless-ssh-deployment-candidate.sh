@@ -32,25 +32,7 @@ REQUIRED_SEALS = (
 IMPLEMENTATION_REPOSITORY_PATH = (
     "scripts/host/build-corrected-headless-candidate-offline-impl.sh"
 )
-CHECKPOINT_INPUTS = (
-    (
-        "artifacts/network-root-power-usb-observer-v1/Image",
-        40049152,
-        0o644,
-        "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef",
-    ),
-    (
-        "artifacts/network-root-power-usb-observer-v1/board.dtb",
-        102938,
-        0o644,
-        "3f4305d7fbbd2c74d15c1011bb8a2e8e24b3a5228f31ed86281917d16cf18f11",
-    ),
-    (
-        "artifacts/network-root-power-usb-observer-v1/initramfs.cpio.gz",
-        5995915,
-        0o644,
-        "f3df0e5865a55a2d5260270db628b61358e2c1287491e35f79b73c38e9ade4d9",
-    ),
+STATIC_CHECKPOINT_INPUTS = (
     (
         "artifacts/buttons-indicator-v1/sm8350-asus-rog-phone5-buttons-indicator.dtb",
         103554,
@@ -130,6 +112,24 @@ CHECKPOINT_INPUTS = (
         "37baad36386ed88abdc64e86849cbbf0b26a35137edebaea83c3ac78414b7d6d",
     ),
 )
+
+
+def power_usb_checkpoint_inputs(repository: Path) -> tuple[tuple[str, int, int, str], ...]:
+    source = repository / "configs/recovery-candidates/power-usb-active.json"
+    try:
+        value = json.loads(source.read_text(encoding="ascii"))
+        artifacts = value["record"]["artifacts"]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise SystemExit("FAIL canonical power/USB artifact inputs are invalid") from error
+    if tuple(artifacts) != ("Image", "board.dtb", "initramfs.cpio.gz"):
+        raise SystemExit("FAIL canonical power/USB artifact inventory changed")
+    contracts = []
+    for name in ("Image", "board.dtb", "initramfs.cpio.gz"):
+        artifact = artifacts[name]
+        contracts.append(
+            (artifact.get("path"), artifact.get("size"), 0o644, artifact.get("sha256"))
+        )
+    return tuple(contracts) + STATIC_CHECKPOINT_INPUTS
 
 
 def git_output(repository: Path, *arguments: str) -> str:
@@ -316,8 +316,10 @@ def verify_checkpoint_path(
 def stage_checkpoint_inputs(
     repository: Path,
     snapshot: Path,
-    contracts=CHECKPOINT_INPUTS,
+    contracts=None,
 ) -> None:
+    if contracts is None:
+        contracts = power_usb_checkpoint_inputs(repository)
     reviewed: list[tuple[Path, int, int, str]] = []
     names: set[str] = set()
     for contract in contracts:

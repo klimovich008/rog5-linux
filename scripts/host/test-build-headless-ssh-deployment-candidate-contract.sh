@@ -482,7 +482,7 @@ for launcher in "$wrapper" "$diagnostic_wrapper"; do
 	grep -Fq 'refs/heads/{branch}:refs/remotes/origin/{branch}' "$launcher" ||
 		fail "deployment launcher does not refresh its exact origin branch: ${launcher#"$repo"/}"
 	for token in \
-		'CHECKPOINT_INPUTS = (' \
+		'STATIC_CHECKPOINT_INPUTS = (' \
 		'def stage_checkpoint_inputs(' \
 		'os.O_EXCL' \
 		'os.O_NOFOLLOW' \
@@ -492,6 +492,8 @@ for launcher in "$wrapper" "$diagnostic_wrapper"; do
 			fail "deployment launcher omits checkpoint-input gate: $token"
 	done
 done
+grep -Fq 'def power_usb_checkpoint_inputs(' "$wrapper" ||
+	fail 'power USB deployment launcher does not derive canonical checkpoint inputs'
 for token in \
 	'stage_inputs=False' \
 	'check-power-usb-active-closure.py' \

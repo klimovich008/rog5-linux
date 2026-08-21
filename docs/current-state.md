@@ -68,8 +68,11 @@ before COMMIT. V11 embedded the firmware and passed SSH, but the probe refused
 unmet runtime-mask/watchdog preconditions before hardware. V12 composed them
 but exposed obsolete reserved-memory paths. V13 then exposed two 31-digit
 channel-size strings. V14 masked module coldplug too late; V15 masked whole
-services too early and blocked systemd readiness. V16 uses a narrow volatile
-modprobe policy while preserving armed rollback. The only hand-maintained successor source is
+services too early and blocked systemd readiness. V16 passed NFS, systemd,
+key-only SSH, and probe isolation, then exposed an R2 deployed-DTB regression:
+the full-UCSI artifact had lost three live-proven stock-owned PAS memory
+exclusions, so secure firmware rejected ADSP metadata with `-EINVAL`. V17 adds
+only those established exclusions. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
@@ -99,7 +102,7 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-Issue a byte-distinct wrapper from the already clean-twin-proven v6 raw input,
+Issue a byte-distinct V17 wrapper from the already clean-twin-proven raw input,
 publish the coherent checkpoint, admit its exact disposable-key chain once,
 and run one live side-port observation
 through systemd and strict SSH. Its result decides whether the next change is

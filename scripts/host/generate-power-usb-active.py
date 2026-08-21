@@ -62,8 +62,6 @@ def validate(source: dict[str, object]) -> tuple[dict[str, object], dict[str, st
         "recovery_profile",
         "runtime_profile",
         "build_profile",
-        "expected_dtb_sha256",
-        "expected_manifest_sha256",
         "output_root",
         "marker_predecessor",
         "marker_purpose",
@@ -81,10 +79,46 @@ def validate(source: dict[str, object]) -> tuple[dict[str, object], dict[str, st
         or record.get("target_id") != candidate
         or record.get("authority") != "none"
         or strings["boot_policy_status"] != "none"
-        or not SHA256.fullmatch(strings["expected_dtb_sha256"])
-        or not SHA256.fullmatch(strings["expected_manifest_sha256"])
     ):
         raise GenerationError("candidate identity is invalid")
+    artifacts = record.get("artifacts")
+    if not isinstance(artifacts, dict) or tuple(artifacts) != (
+        "Image", "board.dtb", "initramfs.cpio.gz"
+    ):
+        raise GenerationError("candidate artifact inventory is invalid")
+    for name, artifact in artifacts.items():
+        if (
+            not isinstance(artifact, dict)
+            or not isinstance(artifact.get("size"), int)
+            or artifact["size"] < 1
+            or not isinstance(artifact.get("sha256"), str)
+            or not SHA256.fullmatch(artifact["sha256"])
+        ):
+            raise GenerationError(f"candidate artifact identity is invalid: {name}")
+    strings["expected_dtb_sha256"] = artifacts["board.dtb"]["sha256"]
+    fields = (
+        ("format", "rog5-recovery-bundle-v2"),
+        ("bundle", record["bundle"]),
+        ("profile", record["profile"]),
+        ("kernel_size", artifacts["Image"]["size"]),
+        ("kernel_sha256", artifacts["Image"]["sha256"]),
+        ("dtb_size", artifacts["board.dtb"]["size"]),
+        ("dtb_sha256", artifacts["board.dtb"]["sha256"]),
+        ("initramfs_size", artifacts["initramfs.cpio.gz"]["size"]),
+        ("initramfs_sha256", artifacts["initramfs.cpio.gz"]["sha256"]),
+        ("target_id", record["target_id"]),
+        ("target_release", record["target_release"]),
+        ("rollback_timeout", record["rollback_timeout"]),
+        ("target_timeout", record["target_timeout"]),
+        ("a660_command_manifest_sha256", record["a660_command_manifest_sha256"]),
+        ("root_generation", record["root_generation"]),
+        ("root_tree_sha256", record["root_tree_sha256"]),
+        ("root_seal_sha256", record["root_seal_sha256"]),
+        ("root_tree_entries", record["root_tree_entries"]),
+        ("root_subtree", record["root_subtree"]),
+    )
+    manifest = "".join(f"{name}={value}\n" for name, value in fields).encode("ascii")
+    strings["expected_manifest_sha256"] = digest(manifest)
     return record, strings
 
 

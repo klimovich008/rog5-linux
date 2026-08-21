@@ -108,6 +108,18 @@ class PowerUsbGenerationTest(unittest.TestCase):
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate(mutated)
 
+    def test_derivable_dtb_and_manifest_hashes_are_not_manual_inputs(self) -> None:
+        self.assertNotIn("expected_dtb_sha256", self.source["integration"])
+        self.assertNotIn("expected_manifest_sha256", self.source["integration"])
+        self.assertEqual(
+            self.integration["expected_dtb_sha256"],
+            self.record["artifacts"]["board.dtb"]["sha256"],
+        )
+        self.assertEqual(
+            self.integration["expected_manifest_sha256"],
+            "a9c023f4cd7fb49768c06fed1b6881a31ed3f757d4b1fcc036925210e738f77a",
+        )
+
     def test_built_receipt_verification_includes_canonical_build_root(self) -> None:
         receipt = Path("/private/built-receipt.json")
         built = CLOSURE.receipt_verify_command(receipt, "built")

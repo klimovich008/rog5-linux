@@ -31,7 +31,7 @@ REQUIRED_SEALS = (
 IMPLEMENTATION_REPOSITORY_PATH = (
     "scripts/host/build-corrected-headless-candidate-offline-impl.sh"
 )
-CHECKPOINT_INPUTS = (
+STATIC_CHECKPOINT_INPUTS = (
     (
         "artifacts/network-root-v1/Image-7.1.4-network-root",
         40049152,
@@ -291,7 +291,7 @@ def verify_checkpoint_path(
 def stage_checkpoint_inputs(
     repository: Path,
     snapshot: Path,
-    contracts=CHECKPOINT_INPUTS,
+    contracts=STATIC_CHECKPOINT_INPUTS,
 ) -> None:
     reviewed: list[tuple[Path, int, int, str]] = []
     names: set[str] = set()
