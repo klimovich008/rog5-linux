@@ -677,7 +677,7 @@ def main() -> None:
         ),
         "power-usb-active": (
             active_record["candidate"],
-            active_integration["expected_dtb_sha256"],
+            active_record["artifacts"]["board.dtb"]["sha256"],
             active_record["target_id"],
         ),
     }[arguments.deployment_profile]
