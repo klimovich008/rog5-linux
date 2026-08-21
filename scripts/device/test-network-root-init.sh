@@ -7,6 +7,7 @@ shutdown=$repo/initramfs/network-root-shutdown
 initramfs_builder=$repo/scripts/device/build-network-root-initramfs.sh
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
 power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
+power_observer=$repo/scripts/device/observe-early-mainline-power.sh
 
 for script in "$init" "$shutdown" "$initramfs_builder" \
 	"$verifier_builder"; do
@@ -329,6 +330,29 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 mkdir "$work/run"
+
+observer_udc_functions=$work/observer-udc-functions.sh
+awk '
+	/^single_expected_udc\(\) \{/ { copy=1 }
+	/^verify_transport\(\) \{/ { copy=0 }
+	copy { print }
+' "$power_observer" >"$observer_udc_functions"
+grep -Fq 'single_expected_udc() {' "$observer_udc_functions"
+# shellcheck disable=SC1090
+. "$observer_udc_functions"
+mkdir -p "$work/observer-udc-empty" \
+	"$work/observer-udc-exact/a600000.usb" \
+	"$work/observer-udc-wrong/renamed.usb" \
+	"$work/observer-udc-multiple/a600000.usb" \
+	"$work/observer-udc-multiple/other.usb"
+[ "$(single_expected_udc "$work/observer-udc-exact")" = a600000.usb ]
+! single_expected_udc "$work/observer-udc-empty" >/dev/null
+! single_expected_udc "$work/observer-udc-wrong" >/dev/null
+! single_expected_udc "$work/observer-udc-multiple" >/dev/null
+if grep -Eq 'find .*-[[:alnum:]]*printf' "$power_observer"; then
+	echo 'FAIL early power observer uses GNU find in the BusyBox initramfs' >&2
+	exit 1
+fi
 
 network_functions=$work/network-functions.sh
 awk '

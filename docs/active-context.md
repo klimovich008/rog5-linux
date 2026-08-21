@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active V21 power/USB identity is defined only by
+The active power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -112,7 +112,9 @@ and omitted the retained probe. V18 replaced that identity copy, reached ADSP
 BTF. V19 passed PDR/PMIC GLINK/UCSI and found `port_type` is source-validly
 optional. V20 classified that absence, then was revoked unbooted before phone
 contact. V21 is consumed after its diagnostic-profile token was rejected
-before target USB; exact stock fallback passed. V22 is next. See
+before target USB. V22 reached target NCM/ACM, then its first transport check
+used unsupported BusyBox `find -printf` and rolled back. Exact stock fallback
+passed after both cycles. V23 is the target-only successor. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Current loop optimization
@@ -130,12 +132,12 @@ before target USB; exact stock fallback passed. V22 is next. See
 
 ## Next execution sequence
 
-1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
-2. Freeze and publish the canonical V21 source.
-3. Generate one V21 early-probe bundle from the clean-twin initramfs and reuse
+1. Record V22 as consumed with R3 classification.
+2. Pass every mandatory pre-build item in `docs/development-lessons.md`.
+3. Generate one V23 early-probe bundle from a clean-twin initramfs and reuse
    the stable recovery wrapper cache; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
-5. Temporarily boot once with only the side port connected.
+5. Temporarily boot V23 once with only the side port connected.
 6. Run the observer immediately after NCM carrier, before NFS/systemd/SSH.
 7. Record UCSI port1, power role, USB limits, battery current/temperature,
    NCM continuity, and rollback result.

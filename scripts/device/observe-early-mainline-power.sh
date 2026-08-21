@@ -118,8 +118,21 @@ verify_storage_absent() {
 		/proc/self/mountinfo || fatal storage block-backed-mount
 }
 
+single_expected_udc() {
+	root=$1
+	count=0
+	selected=
+	for candidate in "$root"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=${candidate##*/}
+	done
+	[ "$count" -eq 1 ] && [ "$selected" = a600000.usb ] || return 1
+	printf '%s\n' "$selected"
+}
+
 verify_transport() {
-	[ "$(find /sys/class/udc -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null)" = a600000.usb ] ||
+	[ "$(single_expected_udc /sys/class/udc)" = a600000.usb ] ||
 		fatal transport udc-identity
 	[ "$(cat /sys/kernel/config/usb_gadget/rog5-network-root/UDC 2>/dev/null)" = a600000.usb ] ||
 		fatal transport gadget-binding
