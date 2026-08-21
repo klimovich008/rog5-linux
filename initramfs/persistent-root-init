@@ -1339,6 +1339,14 @@ printf '%s\n' "$target_boot_id" |
 publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
+if [ -x /sbin/rog5-load-persistent-power-usb ]; then
+	if ! /sbin/rog5-load-persistent-power-usb; then
+		publish_stage ufs-ready FAIL power-usb || true
+		log 'side-port power/USB initialization failed'
+		sleep 2
+		force_rollback
+	fi
+fi
 if deferred_ufs_modules_present; then
 	log 'waiting for deferred UFS probe rendezvous'
 	if ! wait_for_deferred_ufs_rendezvous; then

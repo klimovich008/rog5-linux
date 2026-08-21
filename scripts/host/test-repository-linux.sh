@@ -270,6 +270,7 @@ shared_tests=(
 	scripts/device/test-collect-readonly-storage-inventory.py
 	scripts/device/test-persistent-root-storage-resolution.py
 	scripts/device/test-persistent-root-handoff.sh
+	scripts/device/test-persistent-root-initramfs.sh
 	scripts/device/test-stage-local-arch-image.sh
 	scripts/device/test-mainline-persistent-root-build.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
