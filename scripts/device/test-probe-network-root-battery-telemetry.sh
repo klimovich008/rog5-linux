@@ -27,9 +27,10 @@ for contract in \
 	'physical block device is present' \
 	'block-backed mount is present' \
 	'/sys/class/net/usb0/carrier' \
-	'/reserved-memory/memory@cbc00000' \
-	'/reserved-memory/memory@d8000000' \
-	'/reserved-memory/memory@edc00000' \
+	'/reserved-memory/memory@86100000' \
+	'/reserved-memory/memory@d7ef7000' \
+	'/reserved-memory/memory@d7f00000' \
+	'/reserved-memory/memory@d7f80000' \
 	'/soc@0/remoteproc@3000000' \
 	'remoteproc@4080000' \
 	'remoteproc@5c00000' \
