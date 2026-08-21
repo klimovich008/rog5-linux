@@ -67,8 +67,9 @@ private ADSP firmware and failed before switch-root; V10 was therefore aborted
 before COMMIT. V11 embedded the firmware and passed SSH, but the probe refused
 unmet runtime-mask/watchdog preconditions before hardware. V12 composed them
 but exposed obsolete reserved-memory paths. V13 then exposed two 31-digit
-channel-size strings. V14 uses canonical 32-digit accepted-DT values while
-preserving armed rollback. The only hand-maintained successor source is
+channel-size strings. V14 corrected them but masked module coldplug too late.
+V15 creates the volatile masks before switch-root while preserving armed
+rollback. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.

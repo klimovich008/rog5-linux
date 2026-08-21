@@ -122,6 +122,9 @@ for text in \
 	'ExecStart=/run/initramfs/sbin/rog5-early-target-diag emit 140' \
 	'cp -p "$diagnostic_binary"' \
 	'cp -p /sbin/rog5-early-charging-probe' \
+	'prepare_deferred_charging_masks' \
+	'systemd-udev-trigger.service systemd-modules-load.service' \
+	'ln -s /dev/null "$path"' \
 	'${charging_probe_mode:-0}' \
 	'cp -Rp /opt/rog5-charge-firmware' \
 	'mount -t nfs4' \
