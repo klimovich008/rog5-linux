@@ -161,6 +161,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+		persistent-root-power-usb-v1-generation77-live-v1 | \
 		persistent-root-local-image-early-ssh-v45-generation70-live-v1 | \
 		persistent-root-local-image-early-ssh-v45-live-v1 | \
 		persistent-root-local-image-ufs-detail-v44-live-v1 | \
@@ -1932,6 +1933,45 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-power-usb-v1-generation77-live-v1)
+		expected_boot_image=build/persistent-root-power-usb-v1-generation77-20260821-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact RAM-only combined-stack cycle proving current stable recovery, side-port NCM and charging, deferred read-only UFS, local Arch image, key-only SSH, and exact stock slot-A fallback; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted generation 77 local-root power/USB composition; exact ae717 kernel, composed DTB, four deferred UFS modules, fifteen charging modules, twenty-nine ADSP firmware files, local Arch image, strict key-only SSH, and bounded rollback; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=b8c2a67a4bbf812235e2eccd06531d942c5f52c7f1cd0932ed2ff9187f324975
+		expected_raw=09c497ef23718cf74c94f3dc11085575b46982232d9e690df48c52637e5d9616
+		expected_initramfs=3dfd4ebb002e0ac3e4e1b6b1e874675297256297740f3e41be29bad89f276b20
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_target_id=persistent-root-power-usb-v1
+		expected_bundle=persistent-root-power-usb-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_avb_salt=531f7a7fc600b3b19c8e22c5cb2ef3e0116d9698078e2dc9c0c8092f1670ab68
+		expected_avb_digest=6e5496ab219192bf319f911867303a39c87185c1863bba2d0403ea71384deebe
+		expected_generation_record=7660404e9707dc265c2c2df432c7ed7348cb6f0923a5114564162f999464b4f9
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == \
+			def5a06936e84c20e8609ae47b3fd8955500bf9c97de724897e52c6b7596d184 ]] ||
+			fail 'persistent-root power/USB manifest is not pinned'
+		[[ $expected_image == \
+			12f6a8559fae1824b2a82234edaf159f051c38956c0b8a6d528432ac2ae51f2f ]] ||
+			fail 'persistent-root power/USB recovery image is not pinned'
+		[[ $expected_trust == \
+			cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] ||
+			fail 'persistent-root power/USB trust key is not pinned'
+		[[ $expected_host_verifier == \
+			04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
+			fail 'persistent-root power/USB host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-local-image-early-ssh-v45-generation70-live-v1)
 		expected_boot_image=build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact read-only local-image Arch repeat accepting one bounded startup-output stream only when it contains exactly one authenticated marker line before one runtime evidence command; same accepted v45 target bundle, four-module UFS, two ro,noload ext4 layers, persisted Generation 64 marker, early strict Ed25519 SSH, storage attestation, tmpfs OverlayFS, and rollback; RAM-only kernel/recovery; externally consumed exact claim required; never flash or retry after entry'
@@ -2960,6 +3000,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-power-usb-v1-generation77-live-v1 | \
 	persistent-root-local-image-early-ssh-v45-generation70-live-v1 | \
 	persistent-root-local-image-early-ssh-v45-live-v1 | \
 	persistent-root-local-image-ufs-detail-v44-live-v1 | \

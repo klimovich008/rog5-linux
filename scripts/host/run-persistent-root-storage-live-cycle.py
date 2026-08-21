@@ -38,19 +38,19 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-early-ssh-v45-generation70-live-v1"
-BUNDLE = "persistent-root-local-image-early-ssh-v45"
+PROFILE_ID = "persistent-root-power-usb-v1-generation77-live-v1"
+BUNDLE = "persistent-root-power-usb-v1"
 MANIFEST_SHA256 = (
-    "f039b0a34a6ca3f2447b9499f4c4023fa894f5089e5f346dd852e0f132201949"
+    "def5a06936e84c20e8609ae47b3fd8955500bf9c97de724897e52c6b7596d184"
 )
 RECOVERY_SHA256 = (
-    "0f8352ad767ffb77def5e2ac644af994c0df577c89f6051f87e1e8fb49b6635d"
+    "12f6a8559fae1824b2a82234edaf159f051c38956c0b8a6d528432ac2ae51f2f"
 )
 TRUST_KEY_SHA256 = (
-    "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b"
+    "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
 )
 HOST_VERIFIER_SHA256 = (
-    "8e906bd5350d0c4a9a8685f14676ea0c610b9afbdff978562c3aeccab1414c96"
+    "04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 persistent root"
@@ -58,9 +58,9 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-early-ssh-v45-generation70-20260814-r1"
+    / "build/persistent-root-power-usb-v1-generation77-20260821-r1"
 )
-COMPONENT_ROOT = REPO / "build/generation46-transport-recovery"
+COMPONENT_ROOT = REPO / "build/power-usb-observer-v26-offline-r1/recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
@@ -85,10 +85,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-early-ssh-v45",
+    admission_profile="persistent-root-power-usb-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-early-ssh-v45",
-    build_profile="persistent-root-local-image-early-ssh-v45",
+    runtime_profile="persistent-root-power-usb-v1",
+    build_profile="persistent-root-power-usb-v1",
     diagnostic=False,
 )
 
@@ -100,6 +100,7 @@ while [ ! -f /run/rog5-p2-ready ] && [ "$i" -lt 300 ]; do
     sleep 0.5
 done
 [ -f /run/rog5-p2-ready ]
+[ -f /run/rog5-power-usb-ready ]
 printf '%s\n' 'format=rog5-persistent-root-live-evidence-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
@@ -114,6 +115,8 @@ printf '%s\n' '=== ready ==='
 cat /run/rog5-p2-ready
 printf '%s\n' '=== userdata ==='
 cat /run/rog5-p2-userdata-device
+printf '%s\n' '=== side-port power/USB ==='
+cat /run/rog5-power-usb-ready
 printf '%s\n' '=== mounts ==='
 cat /proc/mounts
 printf '%s\n' '=== UFS inventory ==='

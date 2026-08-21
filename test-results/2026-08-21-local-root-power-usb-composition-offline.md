@@ -32,6 +32,18 @@ control write. Firmware is copied to `/run`, which survives `switch_root`.
 The clean kernel build took approximately 1,193 seconds from generated config
 to final metadata, used 3.0 GiB of output, and the complete private checkpoint
 uses 5.1 GiB including its exact source clone. Final local CI passed in
-365.997 seconds. The live question remains whether the combined ADSP/PMIC
+365.997 seconds.
+
+The authority-free successor package uses target
+`persistent-root-power-usb-v1`, signed manifest
+`def5a06936e84c20e8609ae47b3fd8955500bf9c97de724897e52c6b7596d184`,
+current stable-recovery raw image
+`09c497ef23718cf74c94f3dc11085575b46982232d9e690df48c52637e5d9616`,
+and deterministic AVB generation 77 image
+`12f6a8559fae1824b2a82234edaf159f051c38956c0b8a6d528432ac2ae51f2f`.
+Native bundle verification and full local CI pass; no policy allow row or boot
+claim is included in this checkpoint.
+
+The live question remains whether the combined ADSP/PMIC
 GLINK/UCSI and deferred-UFS path reaches the existing local Arch root and
 key-only SSH while preserving NCM and charging.

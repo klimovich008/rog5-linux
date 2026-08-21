@@ -25,7 +25,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-early-ssh-v45-generation70-live-v1",
+            "persistent-root-power-usb-v1-generation77-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -36,7 +36,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-early-ssh-v45",
+            "persistent-root-power-usb-v1",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -46,6 +46,17 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertRegex(digest, r"^[0-9a-f]{64}$")
             self.assertNotEqual(digest, "0" * 64)
+        gate = (REPO / "scripts/host/run-stable-recovery-live-gate.sh").read_text()
+        for exact in (
+            MODULE.PROFILE_ID,
+            MODULE.BUNDLE,
+            MODULE.MANIFEST_SHA256,
+            MODULE.RECOVERY_SHA256,
+            MODULE.TRUST_KEY_SHA256,
+            MODULE.HOST_VERIFIER_SHA256,
+            "generation77",
+        ):
+            self.assertIn(exact, gate)
 
     def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
         diagnostic = MODULE.DIAGNOSTIC_COMMAND
@@ -65,6 +76,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("sshdgenkeys.service", diagnostic)
         self.assertIn("rog5-early-sshd.service", diagnostic)
         self.assertIn("ssh_host_*_key*", diagnostic)
+        self.assertIn("=== side-port power/USB ===", diagnostic)
+        self.assertIn("/run/rog5-power-usb-ready", diagnostic)
 
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
