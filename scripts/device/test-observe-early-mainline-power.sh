@@ -30,6 +30,12 @@ if grep -Eq 'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|charge_co
 	echo 'FAIL early power observer contains a storage or charging-control write' >&2
 	exit 1
 fi
+if grep -Fq 'modprobe --first-time' "$observer"; then
+	echo 'FAIL early power observer uses unsupported BusyBox modprobe option' >&2
+	exit 1
+fi
+grep -Fq 'if output=$(modprobe "$module" 2>&1); then' "$observer"
+grep -Fq '[ -d "/sys/module/$module" ]' "$observer"
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
