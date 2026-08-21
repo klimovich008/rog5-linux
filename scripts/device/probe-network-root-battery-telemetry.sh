@@ -184,27 +184,27 @@ emit_progress 143
 dt=/sys/firmware/devicetree/base
 adsp_node=$dt/soc@0/remoteproc@3000000
 pmic_node=$dt/pmic-glink
-stock_low=$dt/reserved-memory/memory@cbc00000
-stock_memshare=$dt/reserved-memory/memory@d8000000
-stock_high=$dt/reserved-memory/memory@edc00000
+adsp_memory=$dt/reserved-memory/memory@86100000
+qrtr_memory=$dt/reserved-memory/memory@d7ef7000
+channel0_memory=$dt/reserved-memory/memory@d7f00000
+channel1_memory=$dt/reserved-memory/memory@d7f80000
 hex_property() {
 	od -An -tx1 -v "$1" | tr -d ' \n'
 }
-[ "$(hex_property "$stock_low/reg")" = \
-	00000000cbc000000000000004400000 ] ||
-	fail 'low stock-owned RAM reservation is absent'
-[ "$(hex_property "$stock_memshare/reg")" = \
-	00000000d80000000000000000800000 ] ||
-	fail 'stock memshare reservation is absent'
-[ "$(hex_property "$stock_high/reg")" = \
-	00000000edc000000000000012000000 ] ||
-	fail 'high stock-owned RAM reservation is absent'
-[ ! -e "$stock_low/no-map" ] ||
-	fail 'low stock-owned RAM reservation changed mapping policy'
-[ -e "$stock_memshare/no-map" ] ||
-	fail 'stock memshare reservation is not no-map'
-[ ! -e "$stock_high/no-map" ] ||
-	fail 'high stock-owned RAM reservation changed mapping policy'
+for reservation in \
+	"$adsp_memory:00000000861000000000000002100000:ADSP" \
+	"$qrtr_memory:00000000d7ef70000000000000009000:QRTR" \
+	"$channel0_memory:00000000d7f00000000000000080000:channel-0" \
+	"$channel1_memory:00000000d7f80000000000000080000:channel-1"
+do
+	path=${reservation%%:*}
+	rest=${reservation#*:}
+	expected_reg=${rest%%:*}
+	label=${rest#*:}
+	[ "$(hex_property "$path/reg")" = "$expected_reg" ] ||
+		fail "$label reserved-memory geometry is absent"
+	[ -e "$path/no-map" ] || fail "$label reserved memory is not no-map"
+done
 [ "$(tr -d '\000' <"$adsp_node/status")" = okay ] ||
 	fail 'ADSP node is not enabled'
 for node in remoteproc@4080000 remoteproc@5c00000 remoteproc@a300000; do

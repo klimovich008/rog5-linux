@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v13
+predecessor=headless-power-usb-observer-v12
+purpose=accepted-dt-memory-deferred-ssh-charging-observer
