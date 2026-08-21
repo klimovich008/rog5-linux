@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v16 power/USB identity is defined only by
+The active v17 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -101,16 +101,18 @@ watchdog preconditions before hardware. V12 composed those preconditions but
 exposed obsolete reserved-memory paths before ADSP. V13 bound the accepted
 geometry but had two noncanonical channel-size strings. V14 corrected them,
 then found systemd had already coldplugged `qcom_q6v5_pas`. V15 masked whole
-services before switch-root and prevented systemd readiness. V16 instead uses
-a narrow volatile pre-switch modprobe blacklist, preserving normal boot and
-explicit reviewed probe loads; it has no boot authority. See
+services before switch-root and prevented systemd readiness. V16 used a narrow
+volatile pre-switch modprobe blacklist and reached the hardware probe, where
+PAS returned `-EINVAL`; the deployed full-UCSI DTB had regressed by omitting
+the three stock-owned RAM exclusions previously required for successful ADSP
+startup. V17 restores only those nodes and has no boot authority. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Next execution sequence
 
 1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
 2. Freeze and publish the canonical generated candidate source.
-3. Reuse the exact v6 clean-twin raw wrapper inputs and issue a fresh,
+3. Reuse the exact clean-twin raw wrapper inputs and issue a fresh,
    byte-distinct AVB generation; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
 5. Temporarily boot once with only the side port connected.

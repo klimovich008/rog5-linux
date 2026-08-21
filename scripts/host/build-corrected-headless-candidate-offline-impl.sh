@@ -66,6 +66,7 @@ qualified_shims=$repo/scripts/host/qualified-tool-shims
 qualified_cpio_path=$repo/scripts/host/qualified-cpio-path
 arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 deployment_input_stager=$repo/scripts/host/stage-recovery-deployment-signing-inputs.py
+power_usb_dtb_verifier=$repo/scripts/device/verify-power-usb-active-dtb.sh
 secret_root=
 snapshot_active=0
 
@@ -266,6 +267,11 @@ fi
 	fail 'missing isolated qualified cpio command path'
 [[ -x $arm64_runner && -f $arm64_runner && ! -L $arm64_runner ]] ||
 	fail 'missing private rootless ARM64 runner'
+if [[ $candidate == "$POWER_USB_CANDIDATE" ]]; then
+	[[ -x $power_usb_dtb_verifier && -f $power_usb_dtb_verifier &&
+		! -L $power_usb_dtb_verifier ]] ||
+		fail 'missing active power/USB DTB verifier'
+fi
 [[ -x $deployment_input_stager && -f $deployment_input_stager &&
 	! -L $deployment_input_stager ]] ||
 	fail 'missing deployment signing-input stager'
@@ -422,6 +428,10 @@ done
 [[ $(sha256sum "$bundle_path_a/board.dtb" | cut -d ' ' -f 1) == \
 	"$expected_dtb" ]] ||
 	fail 'corrected candidate does not contain the accepted isolated DTB'
+if [[ $candidate == "$POWER_USB_CANDIDATE" ]]; then
+	"$power_usb_dtb_verifier" "$bundle_path_a/board.dtb"
+	"$power_usb_dtb_verifier" "$bundle_path_b/board.dtb"
+fi
 
 host_verifier=$output_root/recovery/components/rog5-bundle-verify-host-test
 host_verifier_relative=${host_verifier#"$output_root"/}
