@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v17 power/USB identity is defined only by
+The active v18 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -105,7 +105,10 @@ services before switch-root and prevented systemd readiness. V16 used a narrow
 volatile pre-switch modprobe blacklist and reached the hardware probe, where
 PAS returned `-EINVAL`; the deployed full-UCSI DTB had regressed by omitting
 the three stock-owned RAM exclusions previously required for successful ADSP
-startup. V17 restores only those nodes and has no boot authority. See
+startup. V17 restored those nodes and reached runtime acceptance, but its
+reused initramfs still selected V16 exactly, skipped deferred charging mode,
+and omitted the retained probe. V18 replaces that identity copy with a strict
+positive-decimal power/USB capability family and has no boot authority. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Next execution sequence

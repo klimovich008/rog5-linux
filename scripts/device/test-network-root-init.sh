@@ -104,6 +104,8 @@ for text in \
 	'charging_probe_successor=headless-full-ucsi-charging-early-v2' \
 	'charging_probe_observable=headless-full-ucsi-charging-early-v3' \
 	'power_usb_profile=/etc/rog5/power-usb-active.sh' \
+	'power_usb_bundle_prefix=' \
+	'is_power_usb_bundle()' \
 	'. /etc/rog5/power-usb-active.sh' \
 	'ROG5 diagnostic network root' \
 	'Diagnostic NFS root over NCM and ACM' \
@@ -1344,13 +1346,28 @@ parse_network_root_command_line
 [ "$charging_probe_mode" -eq 0 ]
 
 active_power_cmdline=$(printf '%s\n' "$valid_cmdline" |
-	sed "s/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=$power_usb_candidate/")
+	sed "s/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=${power_usb_bundle_prefix}17/")
 printf '%s\n' "$active_power_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 0 ]
+[ "$charging_probe_mode" -eq 2 ]
+successor_power_cmdline=$(printf '%s\n' "$active_power_cmdline" |
+	sed "s/${power_usb_bundle_prefix}17/${power_usb_bundle_prefix}18/")
+printf '%s\n' "$successor_power_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
 [ "$charging_probe_mode" -eq 2 ]
 expect_cmdline_rejection 'active power identity with diagnostic mode' \
 	"$active_power_cmdline rog5.diagnostic=1"
+for invalid_power in \
+	"$power_usb_bundle_prefix" \
+	"${power_usb_bundle_prefix}0" \
+	"${power_usb_bundle_prefix}01" \
+	"${power_usb_bundle_prefix}x"; do
+	expect_cmdline_rejection 'invalid power USB family member' \
+		"$(printf '%s\n' "$valid_cmdline" |
+			sed "s/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=$invalid_power/")"
+done
 
 charging_cmdline=$(printf '%s\n' "$valid_cmdline" |
 	sed 's/rog5.bundle=headless-network-root-v3-r2/rog5.bundle=headless-full-ucsi-charging-early-v1/')
