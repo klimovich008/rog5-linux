@@ -69,14 +69,21 @@ class ControllerFixture:
         self.progress_output = self.root / "progress-output"
         self.progress_output.mkdir(mode=0o700)
         self.watchdog_pid = self.root / "watchdog.pid"
+        self.server_exit_marker = self.root / "server-exit-after-ping"
         self.server = self.root / "host_bundle_server.py"
         self.server.write_text(
             textwrap.dedent(
                 """\
                 import os
+                from pathlib import Path
                 import time
 
                 if os.environ.get("MOCK_SERVER_EXIT") == "1":
+                    raise SystemExit(1)
+                if os.environ.get("MOCK_SERVER_EXIT_AFTER_PING") == "1":
+                    marker = Path(os.environ["MOCK_SERVER_EXIT_MARKER"])
+                    while not marker.exists():
+                        time.sleep(0.001)
                     raise SystemExit(1)
                 time.sleep(float(os.environ.get("MOCK_SERVER_SLEEP", "0.2")))
                 """
@@ -272,6 +279,9 @@ esac
             "ping",
             """#!/bin/sh
 printf 'ping %s\n' "$*" >>"$MOCK_CALLS"
+if [ "${MOCK_SERVER_EXIT_AFTER_PING:-0}" = 1 ]; then
+  : >"$MOCK_SERVER_EXIT_MARKER"
+fi
 if [ "${MOCK_PING_SLEEP:-0}" != 0 ]; then
   sleep "$MOCK_PING_SLEEP"
 fi
@@ -441,6 +451,7 @@ exec "$@"
                 "MOCK_PROGRESS_PID": str(self.progress_pid),
                 "MOCK_PROGRESS_SS_COUNT": str(self.progress_ss_count),
                 "MOCK_PING_COUNT": str(self.ping_count),
+                "MOCK_SERVER_EXIT_MARKER": str(self.server_exit_marker),
                 "MOCK_CONNECTION_STATE": str(self.connection_state),
                 "MOCK_AUTOCONNECT_STATE": str(self.autoconnect_state),
                 "MOCK_MANAGED_STATE": str(self.managed_state),
@@ -1078,8 +1089,8 @@ class RecoveryHostControllerTest(unittest.TestCase):
             BUNDLE,
             MANIFEST_HASH,
             MOCK_PING_FAILS="9",
-            MOCK_PING_SLEEP="0.1",
-            MOCK_SERVER_SLEEP="0.05",
+            MOCK_PING_SLEEP="0.2",
+            MOCK_SERVER_EXIT_AFTER_PING="1",
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
