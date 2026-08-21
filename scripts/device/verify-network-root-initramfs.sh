@@ -9,7 +9,7 @@ reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1e
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 reviewed_reporter_size=67288
 reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
-for command in cmp cpio cut find grep gzip install mkdir mktemp readelf rm \
+for command in cmp cpio cut find grep gzip install mkdir mktemp modinfo readelf rm \
 	sha256sum sh stat; do
 	command -v "$command" >/dev/null || {
 		echo "FAIL missing initramfs verifier command: $command" >&2
@@ -232,6 +232,40 @@ adsp.mdt'
 		}
 		;;
 	*) echo 'FAIL invalid charge firmware verification mode' >&2; exit 1 ;;
+esac
+
+pdr_module=$stage/opt/rog5-charge-modules/pdr_interface.ko
+case ${NETWORK_ROOT_EXPECT_PDR_MODULE:-0} in
+	0)
+		[ ! -e "$pdr_module" ] && [ ! -L "$pdr_module" ] || {
+			echo 'FAIL unexpected PDR override in network-root initramfs' >&2
+			exit 1
+		}
+		;;
+	1)
+		[ -f "$pdr_module" ] && [ ! -L "$pdr_module" ] || {
+			echo 'FAIL required PDR override is absent or linked' >&2
+			exit 1
+		}
+		[ "$(sha256sum "$pdr_module" | cut -d ' ' -f 1)" = \
+			0b7df05e9fa0bfe224fc74ac93997bb1ee74ab5371bde172c3b0a2fcfe19601b ] || {
+			echo 'FAIL PDR override hash changed' >&2
+			exit 1
+		}
+		[ "$(modinfo -F name "$pdr_module")" = pdr_interface ] &&
+			[ "$(modinfo -F depends "$pdr_module")" = qcom_pdr_msg ] &&
+			[ "$(modinfo -F vermagic "$pdr_module")" = \
+			'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] || {
+			echo 'FAIL PDR override ABI changed' >&2
+			exit 1
+		}
+		readelf -h "$pdr_module" | grep -q 'Machine:.*AArch64'
+		! readelf -S "$pdr_module" | grep -q '[.]BTF' || {
+			echo 'FAIL PDR override retains rejected BTF' >&2
+			exit 1
+		}
+		;;
+	*) echo 'FAIL invalid PDR override verification mode' >&2; exit 1 ;;
 esac
 
 reporter=$stage/sbin/rog5-early-target-diag
