@@ -6,6 +6,7 @@ init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown
 builder=$repo/scripts/device/build-persistent-root-initramfs.sh
+power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
 base=${1:-$repo/artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz}
 verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-verify}
 config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
@@ -27,7 +28,7 @@ for command in cpio gzip grep mktemp sha256sum; do
 	command -v "$command" >/dev/null ||
 		fail "missing P2 initramfs test command: $command"
 done
-for path in "$init" "$attest" "$shutdown" "$builder"; do
+for path in "$init" "$attest" "$shutdown" "$builder" "$power_loader"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
 done
 [ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ] ||
@@ -176,6 +177,30 @@ for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko \
 done
 grep -Fq 'modinfo -F vermagic' "$builder"
 grep -Fq 'rog5-ufs-modules' "$builder"
+grep -Fq 'PERSISTENT_ROOT_POWER_MODULES_ROOT' "$builder"
+grep -Fq 'PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR' "$builder"
+grep -Fq '52442f69be8a91347499bc7a5c45060ad2458bb711cf51f8a7fdd64c5d2d412b' \
+	"$builder"
+grep -Fq '/sbin/rog5-load-persistent-power-usb' "$init"
+[ "$(grep -c '^load_module ' "$power_loader")" -eq 15 ]
+grep -Fq 'side USB power is offline' "$power_loader"
+grep -Fq 'storage appeared before the UFS stage' "$power_loader"
+grep -Fq 'typec_data_role=device' "$power_loader"
+grep -Fq 'typec_power_role=sink' "$power_loader"
+grep -Fq 'NCM route changed' "$power_loader"
+! grep -Eq 'charge_control|input_current_limit|constant_charge|charge_behaviour' \
+	"$power_loader" || fail 'persistent-root loader exposes a charging-control write'
+q6=$(grep -n '^load_module qcom_q6v5[.]ko ' "$power_loader" | cut -d: -f1)
+pas=$(grep -n '^load_module qcom_q6v5_pas[.]ko ' "$power_loader" | cut -d: -f1)
+qrtr=$(grep -n '^load_module qrtr[.]ko ' "$power_loader" | cut -d: -f1)
+pdr=$(grep -n '^load_module pdr_interface[.]ko ' "$power_loader" | cut -d: -f1)
+pmic=$(grep -n '^load_module pmic_glink[.]ko ' "$power_loader" | cut -d: -f1)
+battery=$(grep -n '^load_module qcom_battmgr[.]ko ' "$power_loader" | cut -d: -f1)
+ucsi=$(grep -n '^load_module ucsi_glink[.]ko ' "$power_loader" | cut -d: -f1)
+[ "$q6" -lt "$pas" ] && [ "$pas" -lt "$qrtr" ] &&
+	[ "$qrtr" -lt "$pdr" ] && [ "$pdr" -lt "$pmic" ] &&
+	[ "$pmic" -lt "$battery" ] && [ "$battery" -lt "$ucsi" ] ||
+	fail 'persistent-root power module order changed'
 grep -Fq 's/@EXPECTED_KERNEL_RELEASE@/$expected_release/' "$builder"
 for obsolete in \
 	'deliver_readonly_ufs_proof' \
@@ -262,6 +287,15 @@ fi
 grep -Fxq \
 	'FAIL EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
 	"$work/read-only-current.err"
+if PERSISTENT_ROOT_POWER_MODULES_ROOT="$work/missing-modules" \
+	PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR= \
+	REQUIRE_DEFERRED_UFS_MODULES=0 \
+	"$builder" "$base" "$verifier" "$work/missing-firmware.cpio.gz" \
+	>"$work/missing-firmware.out" 2>"$work/missing-firmware.err"; then
+	fail 'P2 builder accepted power modules without charging firmware'
+fi
+grep -Fxq 'FAIL power modules and charging firmware must be supplied together' \
+	"$work/missing-firmware.err"
 if UFS_STORAGE_MODE=local-write EXPECTED_PROBE_BOOT_ID="$writer_boot_id" \
 	"$builder" "$base" "$verifier" "$work/local-write-pinned.cpio.gz" \
 	>"$work/local-write-pinned.out" 2>"$work/local-write-pinned.err"; then
@@ -362,6 +396,14 @@ if [ -n "$ufs_modules" ]; then
 		"$work/modules-symlink" >/dev/null 2>&1; then
 		fail 'builder accepted a symlinked deferred UFS module'
 	fi
+fi
+
+if [ -n "${PERSISTENT_ROOT_POWER_MODULES_ROOT:-}" ]; then
+	cmp "$work/root/sbin/rog5-load-persistent-power-usb" "$power_loader"
+	[ "$(find "$work/root/rog5-power-usb-modules" -type f -name '*.ko' | wc -l)" \
+		-eq 15 ] || fail 'built initramfs has the wrong power module inventory'
+	[ "$(find "$work/root/opt/rog5-charge-firmware" -type f | wc -l)" -eq 29 ] ||
+		fail 'built initramfs has the wrong charging firmware inventory'
 fi
 
 [ ! -e "$work/root/root/.ssh/authorized_keys" ]
