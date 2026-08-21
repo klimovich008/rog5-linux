@@ -470,6 +470,8 @@ grep -Fxq 'target_release=7.1.4-g7a5cef0db479' <<<"$plan_a"
 
 KERNEL_BUILDER_IMAGE=$builder_image \
 ROG5_WRAPPER_BUILDER_PROFILE=steam-deck-asus-5.4-v1 \
+ROG5_WRAPPER_CACHE_REPOSITORY=$checkpoint_repository \
+STABLE_RECOVERY_WRAPPER_CACHE_ROOT=$checkpoint_repository/build/stable-recovery-wrapper-cache \
 JOBS=$wrapper_jobs \
 	"$repo/scripts/host/test-stable-recovery-wrapper-offline.sh" \
 	"$output_root/recovery/initramfs-a/rog5-stable-recovery.cpio.gz" \

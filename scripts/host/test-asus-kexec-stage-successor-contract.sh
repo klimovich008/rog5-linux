@@ -60,6 +60,8 @@ for token in \
 	'asus-5.4-stable-recovery-steam-deck-v1.json' \
 	'"$cache_tool" lookup' \
 	'cache_publication=cache-hit' \
+	'ROG5_WRAPPER_CACHE_REPOSITORY' \
+	'cache_repository=$(realpath -e "$cache_repository")' \
 	'no ASUS kernel build ran'; do
 	grep -Fq -- "$token" "$wrapper_test" ||
 		fail "stable-recovery wrapper cache path omits token: $token"
