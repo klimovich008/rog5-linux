@@ -22,6 +22,8 @@ reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1e
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 charge_firmware_archive=${NETWORK_ROOT_CHARGE_FIRMWARE_ARCHIVE:-}
 charge_firmware_sha=8974a54fa1c31cca4698a934ec3f9de4a997e0a99d6c55baaa3cd8a005369e5b
+pdr_module=${NETWORK_ROOT_PDR_MODULE:-}
+pdr_module_sha=0b7df05e9fa0bfe224fc74ac93997bb1ee74ab5371bde172c3b0a2fcfe19601b
 reviewed_reporter_size=67288
 reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
 accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
@@ -40,6 +42,25 @@ if [ -n "$charge_firmware_archive" ]; then
 	[ "$(sha256sum "$charge_firmware_archive" | cut -d ' ' -f 1)" = \
 		"$charge_firmware_sha" ] || fail 'charge firmware archive hash changed'
 	command -v tar >/dev/null || fail 'missing network-root initramfs build command: tar'
+fi
+if [ -n "$pdr_module" ]; then
+	case $pdr_module in /*) ;; *) fail 'PDR module must be absolute' ;; esac
+	[ -f "$pdr_module" ] && [ ! -L "$pdr_module" ] ||
+		fail 'reviewed PDR module is absent or linked'
+	[ "$(sha256sum "$pdr_module" | cut -d ' ' -f 1)" = "$pdr_module_sha" ] ||
+		fail 'reviewed PDR module hash changed'
+	for command in modinfo readelf; do
+		command -v "$command" >/dev/null || fail "missing PDR verifier command: $command"
+	done
+	[ "$(modinfo -F name "$pdr_module")" = pdr_interface ] &&
+		[ "$(modinfo -F depends "$pdr_module")" = qcom_pdr_msg ] &&
+		[ "$(modinfo -F vermagic "$pdr_module")" = \
+		'7.1.4-g7a5cef0db479 SMP preempt mod_unload aarch64' ] ||
+		fail 'reviewed PDR module ABI changed'
+	readelf -h "$pdr_module" | grep -q 'Machine:.*AArch64' ||
+		fail 'reviewed PDR module is not AArch64'
+	! readelf -S "$pdr_module" | grep -q '[.]BTF' ||
+		fail 'reviewed PDR module still contains rejected BTF'
 fi
 for path in "$init" "$shutdown" "$charging_probe"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
@@ -149,6 +170,10 @@ if [ -n "$charge_firmware_archive" ]; then
 	tar -xzf "$charge_firmware_archive" -C "$stage/opt/rog5-charge-firmware" \
 		--no-same-owner --no-same-permissions
 fi
+if [ -n "$pdr_module" ]; then
+	install -D -m 0644 "$pdr_module" \
+		"$stage/opt/rog5-charge-modules/pdr_interface.ko"
+fi
 install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"
 install -D -m 0444 "$xattr_projection" \
 	"$stage/etc/rog5/nfs4-xattr-projection"
@@ -181,6 +206,7 @@ output_stage=$(mktemp "$output_parent/.network-root-initramfs.XXXXXX")
 	gzip -n >"$output_stage"
 NETWORK_ROOT_DIAGNOSTIC_REPORTER="$reviewed_reporter" \
 	NETWORK_ROOT_EXPECT_CHARGE_FIRMWARE="$([ -n "$charge_firmware_archive" ] && printf 1 || printf 0)" \
+	NETWORK_ROOT_EXPECT_PDR_MODULE="$([ -n "$pdr_module" ] && printf 1 || printf 0)" \
 	"$repo/scripts/device/verify-network-root-initramfs.sh" "$output_stage"
 ln "$output_stage" "$output" 2>/dev/null ||
 	fail 'output appeared during build'

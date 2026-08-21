@@ -936,6 +936,10 @@ prepare_shutdown_root() {
 		mkdir -p "$exitrd/rog5-charge-inputs" || return 1
 		cp -Rp /opt/rog5-charge-firmware \
 			"$exitrd/rog5-charge-inputs/firmware" || return 1
+		if [ -d /opt/rog5-charge-modules ]; then
+			cp -Rp /opt/rog5-charge-modules \
+				"$exitrd/rog5-charge-inputs/modules" || return 1
+		fi
 	fi
 	chroot "$exitrd" /bin/sh -n /shutdown || return 1
 	touch /run/rog5-network-root-exitrd-ready || return 1
