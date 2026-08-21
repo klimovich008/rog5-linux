@@ -372,17 +372,30 @@ def validate_build_meta(
         lines = data.decode("ascii").splitlines()
     except UnicodeError as error:
         raise CacheError("wrapper build metadata is not ASCII") from error
-    expected = [
-        f"source_sha256={profile['source_archive_sha256']}",
-        "kexec_file=0",
-        f"initramfs_sha256={initramfs_sha256}",
-        f"compiler={profile['compiler']}",
-        f"{config_sha256}  /root/build/asus-kexec-stage/.config",
-        (
-            f"{image_sha256}  "
-            "/root/build/asus-kexec-stage/arch/arm64/boot/Image"
-        ),
-    ]
+    if profile["build_script_sha256"] == (
+        "f6a9361c48736b44d851cfbc471a29db2f54905cd76d7b765c94b853aa356635"
+    ):
+        expected = [
+            f"source_sha256={profile['source_archive_sha256']}",
+            "reference_config_profile=accepted-wrapper-v18-v1",
+            "kexec_file=0",
+            f"initramfs_sha256={initramfs_sha256}",
+            f"compiler={profile['compiler']}",
+            f"config_sha256={config_sha256}",
+            f"image_sha256={image_sha256}",
+        ]
+    else:
+        expected = [
+            f"source_sha256={profile['source_archive_sha256']}",
+            "kexec_file=0",
+            f"initramfs_sha256={initramfs_sha256}",
+            f"compiler={profile['compiler']}",
+            f"{config_sha256}  /root/build/asus-kexec-stage/.config",
+            (
+                f"{image_sha256}  "
+                "/root/build/asus-kexec-stage/arch/arm64/boot/Image"
+            ),
+        ]
     if lines != expected or not data.endswith(b"\n"):
         fail("wrapper build metadata changed")
 
@@ -861,6 +874,44 @@ def print_input_key(values: argparse.Namespace) -> None:
     print("PASS stable-recovery wrapper cache inputs")
 
 
+def lookup(values: argparse.Namespace) -> int:
+    profile, profile_sha256 = load_profile(Path(values.profile))
+    records, _ = validate_inputs(values, profile, profile_sha256)
+    cache_root = Path(values.cache_root).absolute()
+    if not cache_root.exists() and not cache_root.is_symlink():
+        print(f"cache_input_key={records['input_key']}")
+        print("cache_hit=no")
+        return 2
+    secure_directory(cache_root, create=False)
+    inputs = cache_root / "inputs"
+    if not inputs.exists() and not inputs.is_symlink():
+        print(f"cache_input_key={records['input_key']}")
+        print("cache_hit=no")
+        return 2
+    secure_directory(inputs, create=False)
+    binding_path = inputs / records["input_key"]
+    if not binding_path.exists() and not binding_path.is_symlink():
+        print(f"cache_input_key={records['input_key']}")
+        print("cache_hit=no")
+        return 2
+    binding = parse_records(
+        read_regular(binding_path), BINDING_KEYS, "cache input binding"
+    )
+    if (
+        binding["format"] != BINDING_FORMAT
+        or binding["input_key"] != records["input_key"]
+        or not is_sha256(binding["entry_id"])
+    ):
+        fail("cache input binding changed")
+    entries = cache_root / "entries"
+    secure_directory(entries, create=False)
+    verify_entry(entries, binding["entry_id"], records)
+    print(f"cache_input_key={records['input_key']}")
+    print(f"cache_entry_id={binding['entry_id']}")
+    print("cache_hit=yes")
+    return 0
+
+
 def verify_materialized(
     output: Path,
     expected_entry_id: str,
@@ -936,6 +987,9 @@ def parser() -> argparse.ArgumentParser:
     materialize_parser.add_argument("--cache-root", required=True)
     materialize_parser.add_argument("--expected-entry-id", required=True)
     materialize_parser.add_argument("--output-root", required=True)
+    lookup_parser = subparsers.add_parser("lookup")
+    add_inputs(lookup_parser)
+    lookup_parser.add_argument("--cache-root", required=True)
     return result
 
 
@@ -945,6 +999,8 @@ def main() -> int:
         publish(values)
     elif values.command == "materialize":
         materialize(values)
+    elif values.command == "lookup":
+        return lookup(values)
     else:
         print_input_key(values)
     return 0

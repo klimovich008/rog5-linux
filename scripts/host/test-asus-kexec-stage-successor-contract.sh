@@ -10,6 +10,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 historical=$repo/scripts/device/build-asus-kexec-stage.sh
 successor=$repo/scripts/device/build-asus-kexec-stage-successor.sh
 wrapper_test=$repo/scripts/host/test-stable-recovery-wrapper-offline.sh
+cache_profile=$repo/configs/recovery-wrapper-cache/asus-5.4-stable-recovery-steam-deck-v1.json
 expected_historical=aaaa423aefc9b90dd30738bf42a0209574437599da2062b9dd8cc685d6e15b94
 
 for script in "$historical" "$successor"; do
@@ -19,6 +20,8 @@ for script in "$historical" "$successor"; do
 done
 [[ -f $wrapper_test && ! -L $wrapper_test && -x $wrapper_test ]] ||
 	fail 'missing executable stable-recovery wrapper test'
+[[ -f $cache_profile && ! -L $cache_profile ]] ||
+	fail 'missing active stable-recovery wrapper cache profile'
 bash -n "$wrapper_test"
 [[ $(sha256sum "$historical" | cut -d ' ' -f 1) == \
 	"$expected_historical" ]] ||
@@ -52,6 +55,14 @@ for token in \
 	'image_sha256=%s'; do
 	grep -Fq -- "$token" "$wrapper_test" ||
 		fail "stable-recovery wrapper test omits successor metadata token: $token"
+done
+for token in \
+	'asus-5.4-stable-recovery-steam-deck-v1.json' \
+	'"$cache_tool" lookup' \
+	'cache_publication=cache-hit' \
+	'no ASUS kernel build ran'; do
+	grep -Fq -- "$token" "$wrapper_test" ||
+		fail "stable-recovery wrapper cache path omits token: $token"
 done
 
 if grep -Eq \
