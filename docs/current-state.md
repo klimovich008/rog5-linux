@@ -122,7 +122,7 @@ UCSI, and dmesg records over ACM. Optional telemetry records
 visibility, transport integrity, and rollback failures are fatal.
 
 The exact 16-file module closure produced twin-identical 22.4 MB initramfses
-with SHA-256 `64c0e4be67f39817c7d86c31ee4d07fd0c9e7a076a971fd3fb8b1b9934c1b2d3`.
+with SHA-256 `3ebd3260581af3300187de55768b61cd8ef57f4574febb4b0540e21e7566dbcf`.
 The focused `probe` tier takes about 5.6 seconds. The ASUS wrapper path now
 checks a recovery-only content-addressed cache before compiling; documentation
 and target-bundle bytes are outside that key.
