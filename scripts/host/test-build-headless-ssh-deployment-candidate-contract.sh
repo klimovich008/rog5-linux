@@ -557,6 +557,7 @@ for token in \
 	'ROG5_DEPLOYMENT_SIGNING_INPUT_PREFLIGHT' \
 	'stage-recovery-deployment-signing-inputs.py' \
 	'rog5-recovery-deployment-signing-inputs-v2' \
+	'early-initramfs) expected_profile=diagnostic-initramfs-v1' \
 	'--candidate-id "$candidate"' \
 	'--repository "$checkpoint_repository"' \
 	'--expected-repository-commit "$internal_repository_commit"' \

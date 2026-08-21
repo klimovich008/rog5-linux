@@ -142,7 +142,11 @@ case "$candidate:$expected_dtb:$expected_target" in
 		expected_candidate_sha=1909ea02c0a2a3edd08eca939db617d8e7474fbdc62732f09d4f4f2f50089752
 		expected_manifest=872fe9feb04c9da3a69b605e36927218c8bd9c2c80e7bcc03dcb9e00af920381 ;;
 	"$POWER_USB_CANDIDATE:$POWER_USB_EXPECTED_DTB_SHA256:$POWER_USB_TARGET_ID")
-		expected_profile=network-root-v1
+		case $POWER_USB_PROBE_PHASE in
+			early-initramfs) expected_profile=diagnostic-initramfs-v1 ;;
+			post-ssh) expected_profile=network-root-v1 ;;
+			*) fail 'active power USB probe phase is invalid' ;;
+		esac
 		expected_candidate_sha=$POWER_USB_CANDIDATE_SHA256
 		expected_manifest=$POWER_USB_EXPECTED_MANIFEST_SHA256 ;;
 	*) fail 'unsupported offline candidate identity tuple' ;;

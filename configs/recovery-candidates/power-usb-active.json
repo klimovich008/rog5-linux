@@ -6,7 +6,7 @@
     "status": "offline",
     "authority": "none",
     "bundle": "headless-power-usb-observer-v21",
-    "profile": "network-root-v1",
+    "profile": "diagnostic-initramfs-v1",
     "target_id": "headless-power-usb-observer-v21",
     "target_release": "7.1.4-g7a5cef0db479",
     "rollback_timeout": "300",

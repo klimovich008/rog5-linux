@@ -74,6 +74,13 @@ def validate(source: dict[str, object]) -> tuple[dict[str, object], dict[str, st
         raise GenerationError("candidate integration schema changed")
     if strings["probe_phase"] not in {"post-ssh", "early-initramfs"}:
         raise GenerationError("candidate probe phase is invalid")
+    expected_profile = (
+        "diagnostic-initramfs-v1"
+        if strings["probe_phase"] == "early-initramfs"
+        else "network-root-v1"
+    )
+    if record.get("profile") != expected_profile:
+        raise GenerationError("candidate probe phase and bundle profile disagree")
     candidate = record.get("candidate")
     if (
         not isinstance(candidate, str)

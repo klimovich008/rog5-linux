@@ -71,6 +71,12 @@ class PowerUsbGenerationTest(unittest.TestCase):
         GENERATOR.validate(mutated)
         GENERATOR.validate_capability(mutated)
 
+    def test_probe_phase_and_bundle_profile_must_agree(self) -> None:
+        mutated = deepcopy(self.source)
+        mutated["record"]["profile"] = "network-root-v1"
+        with self.assertRaises(GENERATOR.GenerationError):
+            GENERATOR.validate(mutated)
+
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)
         self.assertEqual(timing["rollback_timeout_seconds"], 300)
