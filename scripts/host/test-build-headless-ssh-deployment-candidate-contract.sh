@@ -496,6 +496,7 @@ grep -Fq 'def power_usb_checkpoint_inputs(' "$wrapper" ||
 	fail 'power USB deployment launcher does not derive canonical checkpoint inputs'
 for token in \
 	'stage_inputs=False' \
+	'active_record["artifacts"]["board.dtb"]["sha256"]' \
 	'check-power-usb-active-closure.py' \
 	'str(repository / "scripts/host/check-power-usb-active-closure.py")' \
 	'if not arguments.signing_input_preflight:' \
@@ -503,6 +504,8 @@ for token in \
 	grep -Fq -- "$token" "$wrapper" ||
 		fail "power USB deployment launcher omits pre-credential closure: $token"
 done
+! grep -Fq 'active_integration["expected_dtb_sha256"]' "$wrapper" ||
+	fail 'power USB deployment launcher retains a manual DT hash copy'
 grep -Fq 'stage_inputs=not arguments.signing_input_preflight' \
 	"$diagnostic_wrapper" ||
 	fail 'diagnostic deployment launcher lost its checkpoint-input gate'
