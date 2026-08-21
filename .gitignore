@@ -31,6 +31,9 @@ artifacts/network-root-v3/*
 !artifacts/network-root-power-usb-observer-v1/
 artifacts/network-root-power-usb-observer-v1/*
 !artifacts/network-root-power-usb-observer-v1/board.dtb
+!artifacts/persistent-root-p2/
+artifacts/persistent-root-p2/*
+!artifacts/persistent-root-p2/config-7.1.4-persistent-root
 !artifacts/recovery-stage-v18/
 artifacts/recovery-stage-v18/*
 !artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery
