@@ -81,8 +81,11 @@ awk -F '\t' \
 	}
 	$1 ~ /^build\/power-usb-observer-v[0-9]+-offline-r1\/wrapper\/repack\/stable-recovery-a[.]avb[.]img$/ &&
 		$2 == "revoked" &&
-		$3 ~ /^consumed by the sole v[0-9]+ RAM-only cycle;/ &&
-		$3 ~ /never retry or flash$/ && NF == 3 { power_history++ ; next }
+		(($3 ~ /^consumed by the sole v[0-9]+ RAM-only cycle;/ &&
+		  $3 ~ /never retry or flash$/) ||
+		 ($3 ~ /^unbooted .* superseded before execution/ &&
+		  $3 ~ /never boot or flash$/)) &&
+		NF == 3 { power_history++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash" && NF == 3 { generation25++ ; next }
