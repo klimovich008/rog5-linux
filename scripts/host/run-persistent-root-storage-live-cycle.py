@@ -144,24 +144,6 @@ printf '%s\n' '=== dmesg ==='
 dmesg
 """.strip()
 
-FALLBACK_DIAGNOSTIC_COMMAND = r"""
-set -eu
-printf '%s\n' '=== fallback dmesg tail ==='
-dmesg | tail -n 400
-printf '%s\n' '=== pstore ==='
-for root in /sys/fs/pstore /mnt/pstore; do
-    [ -d "$root" ] || continue
-    find "$root" -maxdepth 1 -type f -size -4194305c -print \
-        -exec sha256sum {} \; -exec sed -n '1,4000p' {} \;
-done
-printf '%s\n' '=== PMIC PON ==='
-for path in /sys/kernel/debug/pmic_pon/log \
-    /sys/kernel/debug/spmi/spmi-0/0-00/pon_reason; do
-    [ -f "$path" ] && { echo "$path"; cat "$path"; }
-done
-""".strip()
-
-
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
 
@@ -718,7 +700,7 @@ def preflight(
         cycle.dependencies.bundle_server,
         cycle.dependencies.recovery_control,
         cycle.dependencies.host_key,
-        cycle.dependencies.fallback,
+        cycle.dependencies.stock_fallback,
         REPO / "scripts/host/consume-exact-boot-claim.py",
         Path("/usr/bin/ssh"),
     ):
@@ -735,56 +717,8 @@ def preflight(
         timeout=300,
     )
     CYCLE.run_capture(
-        [
-            str(cycle.dependencies.fallback),
-            "ssh-host-preflight",
-            str(inputs.fallback_known_hosts),
-            str(inputs.ssh_key),
-            inputs.ssh_public_key_sha256,
-            str(inputs.fallback_timeout),
-            str(CYCLE.FALLBACK_CONTACT_START_BUDGET_SECONDS),
-        ],
-        environment=CYCLE.child_environment(
-            ALLOW_FALLBACK_SSH_CONTROL="1",
-            ALLOW_PHONE_CREDENTIAL_USE="1",
-        ),
+        [str(cycle.dependencies.stock_fallback), "host-preflight"],
         timeout=60,
-    )
-
-
-def capture_postmortem(
-    cycle: CYCLE.LiveCycle,
-    inputs: CYCLE.Inputs,
-    target_boot_id: str,
-) -> None:
-    postmortem = cycle.output("fallback-postmortem.record")
-    CYCLE.run_logged(
-        [
-            str(cycle.dependencies.fallback),
-            "capture-ssh-postmortem",
-            str(inputs.fallback_known_hosts),
-            str(inputs.ssh_key),
-            inputs.ssh_public_key_sha256,
-            str(cycle.output("recovery-usb.anchor")),
-            "300",
-            BUNDLE,
-            target_boot_id,
-            str(postmortem),
-        ],
-        cycle.output("fallback-postmortem.log"),
-        environment=CYCLE.child_environment(
-            ALLOW_FALLBACK_SSH_CONTROL="1",
-            ALLOW_FALLBACK_SSH_ATIME_EFFECTS="1",
-            ALLOW_PHONE_CREDENTIAL_USE="1",
-        ),
-        timeout=420,
-    )
-    CYCLE.verify_fallback_postmortem_evidence(
-        postmortem,
-        cycle.output("recovery-usb.anchor"),
-        BUNDLE,
-        target_boot_id,
-        cycle.dependencies,
     )
 
 
@@ -822,6 +756,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
     target_network_active = False
     boot_started = time.monotonic()
 
+    cycle.capture_stock_fallback_preboot()
     cycle.claim_temporary_boot()
     CYCLE.run_logged(
         [
@@ -955,39 +890,12 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         fallback_boot_id = cycle.wait_fallback(None)
         if fallback_boot_id == target_boot_id:
             fail("fallback retained the persistent-root boot identity")
-        try:
-            capture_postmortem(cycle, inputs, target_boot_id)
-        except Exception as error:
-            print(f"WARN formal fallback postmortem was inconclusive: {error}")
-        run_optional_logged(
-            [
-                "/usr/bin/ssh",
-                "-i",
-                str(inputs.ssh_key),
-                "-o",
-                "BatchMode=yes",
-                "-o",
-                "IdentitiesOnly=yes",
-                "-o",
-                "PasswordAuthentication=no",
-                "-o",
-                "StrictHostKeyChecking=yes",
-                "-o",
-                f"UserKnownHostsFile={inputs.fallback_known_hosts}",
-                "-o",
-                "HostKeyAlias=rog5-fallback",
-                f"root@{PIN.TARGET_ADDRESS}",
-                FALLBACK_DIAGNOSTIC_COMMAND,
-            ],
-            cycle.output("fallback-raw-diagnostics.log"),
-            180,
-        )
         cycle.wait_host_clean(final=True)
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
             "PASS one RAM-only persistent-root cycle reached read-only UFS, "
-            f"local Arch, strict SSH in {elapsed:.3f}s, then exact Alpine fallback"
+            f"local Arch, strict SSH in {elapsed:.3f}s, then exact stock slot-A fallback"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1016,7 +924,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                 fallback_attempted = True
                 cycle.wait_fallback(None)
                 cycle.wait_host_clean(final=True)
-                recovery_note = "; exact Alpine fallback and host cleanup passed"
+                recovery_note = "; exact stock slot-A fallback and host cleanup passed"
             except BaseException as recovery_error:
                 recovery_note = f"; fallback proof failed: {recovery_error}"
         if intent is None and control_attempted:

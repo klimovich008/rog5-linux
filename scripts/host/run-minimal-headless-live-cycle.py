@@ -3580,7 +3580,9 @@ class LiveCycle:
             self.dependencies.fallback,
         ):
             fixed_executable(path, offline=self.dependencies.offline)
-        if self.profile == POWER_USB_CYCLE_PROFILE:
+        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
+            "persistent-root-power-usb-v1-generation77-live-v1"
+        ):
             fixed_executable(
                 self.dependencies.stock_fallback,
                 offline=self.dependencies.offline,
@@ -3621,7 +3623,9 @@ class LiveCycle:
             ),
             timeout=300,
         )
-        if self.profile == POWER_USB_CYCLE_PROFILE:
+        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
+            "persistent-root-power-usb-v1-generation77-live-v1"
+        ):
             run_capture([str(self.dependencies.stock_fallback), "host-preflight"])
         else:
             run_capture(
@@ -3754,7 +3758,9 @@ class LiveCycle:
             self.dependencies,
         )
         fallback_deadline = time.monotonic() + self.fallback_timeout
-        if self.profile == POWER_USB_CYCLE_PROFILE:
+        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
+            "persistent-root-power-usb-v1-generation77-live-v1"
+        ):
             fallback_location = Path(location).name
             if fallback_location != "1-1.2":
                 fail("stock fallback anchor does not end at the exact USB port")
