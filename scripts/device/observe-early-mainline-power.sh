@@ -112,10 +112,20 @@ physical_storage_count() {
 	printf '%s\n' "$count"
 }
 
+has_block_backed_mount() {
+	mount_inventory=$1
+	sys_dev_block=$2
+	while read -r _ _ device _ _ _ rest; do
+		[ -e "$sys_dev_block/$device" ] || continue
+		return 0
+	done <"$mount_inventory"
+	return 1
+}
+
 verify_storage_absent() {
 	[ "$(physical_storage_count)" -eq 0 ] || fatal storage physical-block-visible
-	awk '$0 ~ / - / && $0 ~ / \/dev\// { found=1 } END { exit found }' \
-		/proc/self/mountinfo || fatal storage block-backed-mount
+	! has_block_backed_mount /proc/self/mountinfo /sys/dev/block ||
+		fatal storage block-backed-mount
 }
 
 single_expected_udc() {

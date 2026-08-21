@@ -114,7 +114,9 @@ optional. V20 classified that absence, then was revoked unbooted before phone
 contact. V21 is consumed after its diagnostic-profile token was rejected
 before target USB. V22 reached target NCM/ACM, then its first transport check
 used unsupported BusyBox `find -printf` and rolled back. Exact stock fallback
-passed after both cycles. V23 is the target-only successor. See
+passed. V23 reached target NCM/ACM, then its textual mountinfo guard
+misclassified required `/dev/pts` as phone storage. V24 is the target-only
+successor. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Current loop optimization
@@ -132,15 +134,15 @@ passed after both cycles. V23 is the target-only successor. See
 
 ## Next execution sequence
 
-V23's sole acceptance test is stable side-port NCM/ACM plus complete typed
+V24's sole acceptance test is stable side-port NCM/ACM plus complete typed
 battery/UCSI evidence and net-positive current at a safe temperature.
 
-1. Record V22 as consumed with R3 classification.
+1. Record V23 as consumed with R2 classification.
 2. Pass every mandatory pre-build item in `docs/development-lessons.md`.
-3. Generate one V23 early-probe bundle from a clean-twin initramfs and reuse
+3. Generate one V24 early-probe bundle from a clean-twin initramfs and reuse
    the stable recovery wrapper cache; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
-5. Temporarily boot V23 once with only the side port connected.
+5. Temporarily boot V24 once with only the side port connected.
 6. Run the observer immediately after NCM carrier, before NFS/systemd/SSH.
 7. Record UCSI port1, power role, USB limits, battery current/temperature,
    NCM continuity, and rollback result.

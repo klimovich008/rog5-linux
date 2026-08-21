@@ -31,6 +31,35 @@ if grep -Eq 'fastboot[[:space:]]+(flash|erase)|dd[[:space:]].*of=/dev/|charge_co
 	exit 1
 fi
 
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+storage_functions=$work/storage-functions.sh
+awk '
+	/^has_block_backed_mount\(\) \{/ { copy=1 }
+	/^single_expected_udc\(\) \{/ { copy=0 }
+	copy { print }
+' "$observer" >"$storage_functions"
+grep -Fq 'has_block_backed_mount() {' "$storage_functions"
+# shellcheck disable=SC1090
+. "$storage_functions"
+mkdir -p "$work/sys-dev-block"
+cat >"$work/nonblock.mountinfo" <<'EOF'
+20 1 0:20 / /dev rw - devtmpfs devtmpfs rw
+21 20 0:21 / /dev/pts rw - devpts devpts rw
+22 20 0:22 / /dev/shm rw - tmpfs tmpfs rw
+EOF
+! has_block_backed_mount "$work/nonblock.mountinfo" \
+	"$work/sys-dev-block"
+cat >"$work/block.mountinfo" <<'EOF'
+20 1 0:20 / /dev rw - devtmpfs devtmpfs rw
+30 1 8:1 / /mnt/root ro - ext4 /dev/sda1 ro
+EOF
+mkdir "$work/sys-dev-block/8:1"
+has_block_backed_mount "$work/block.mountinfo" "$work/sys-dev-block"
+grep -Fq \
+	'has_block_backed_mount /proc/self/mountinfo /sys/dev/block' \
+	"$observer"
+
 python3 - "$observer" "$parser" <<'PY'
 import importlib.util
 from pathlib import Path
