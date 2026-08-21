@@ -170,8 +170,12 @@ load_module() {
 		emit_text module "$module" present already-loaded
 		return
 	fi
-	if output=$(modprobe --first-time "$module" 2>&1); then
-		emit_text module "$module" present loaded
+	if output=$(modprobe "$module" 2>&1); then
+		if [ -d "/sys/module/$module" ]; then
+			emit_text module "$module" present loaded
+		else
+			emit_text module "$module" error load-not-observable
+		fi
 	else
 		emit_text module "$module" error "${output:-load-failed}"
 	fi
