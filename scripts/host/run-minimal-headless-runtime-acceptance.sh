@@ -253,6 +253,9 @@ exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	reboot_status=0
 	timeout --signal=TERM 20 ssh -T "${ssh_options[@]}" "$target" \
 		"$remote_power_reboot" </dev/null >/dev/null || reboot_status=$?
+	if [[ $power_status != 0 && $reboot_status == 0 ]]; then
+		sleep 20
+	fi
 	[[ $power_status == 0 ]] || fail 'target power/USB probe failed'
 	[[ $reboot_status == 0 ]] || fail 'target orderly reboot request failed'
 	[[ $(grep -Fxc 'PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded' "$power_record") == 1 ]] ||

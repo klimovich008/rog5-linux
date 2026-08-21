@@ -935,6 +935,18 @@ prepare_shutdown_root() {
 	return 0
 }
 
+prepare_deferred_charging_masks() {
+	[ "${charging_probe_mode:-0}" -eq 2 ] || return 0
+	mask_root=$handoff_run/systemd/system
+	mkdir -p "$mask_root" || return 1
+	for unit in systemd-udev-trigger.service systemd-modules-load.service; do
+		path=$mask_root/$unit
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+		ln -s /dev/null "$path" || return 1
+	done
+	return 0
+}
+
 move_handoff_mount() {
 	mount --move "$1" "$2"
 }
@@ -1075,6 +1087,11 @@ fi
 if ! verify_no_phone_storage; then
 	log 'phone-storage exclusion failed before switch_root; rebooting'
 	diagnostic_rollback storage-before-switch
+fi
+
+if ! prepare_deferred_charging_masks; then
+	log 'deferred charging runtime-mask preparation failed; rebooting'
+	diagnostic_rollback charging-mask-failed
 fi
 
 if ! prepare_shutdown_root; then
