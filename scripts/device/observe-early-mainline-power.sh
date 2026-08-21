@@ -30,32 +30,42 @@ hex_value() {
 	head -c 256 | od -An -tx1 -v | tr -d ' \n'
 }
 
+valid_evidence_token() {
+	case $1 in ''|*[!a-z0-9_.:-]*) return 1 ;; esac
+	return 0
+}
+
 emit() {
-	category=$1
-	name=$2
-	status=$3
-	value=$4
-	case $category:$name:$status in
-		*[!a-z0-9_.:-]*:*|*:*[!a-z0-9_.:-]*:*|*:*:present|*:*:absent|*:*:error) ;;
-		*) force_reboot ;;
-	esac
-	case $value in *[!0-9a-f]*) force_reboot ;; esac
-	[ $(( ${#value} % 2 )) -eq 0 ] || force_reboot
-	[ "${#value}" -le 512 ] || force_reboot
+	emit_category=$1
+	emit_name=$2
+	emit_status=$3
+	emit_value=$4
+	valid_evidence_token "$emit_category" || force_reboot
+	valid_evidence_token "$emit_name" || force_reboot
+	case $emit_status in present|absent|error) ;; *) force_reboot ;; esac
+	case $emit_value in *[!0-9a-f]*) force_reboot ;; esac
+	[ $(( ${#emit_value} % 2 )) -eq 0 ] || force_reboot
+	[ "${#emit_value}" -le 512 ] || force_reboot
 	record_count=$((record_count + 1))
 	[ "$record_count" -le "$record_limit" ] || force_reboot
 	sequence=$((sequence + 1))
 	if [ "$direct_output" -eq 1 ]; then
-		payload="format=rog5-early-power-evidence-v1${newline}candidate=$candidate${newline}boot_id=$boot_id${newline}sequence=$sequence${newline}boottime_ms=$(boottime_ms)${newline}category=$category${newline}name=$name${newline}status=$status${newline}encoding=hex${newline}value=$value${newline}"
+		payload="format=rog5-early-power-evidence-v1${newline}candidate=$candidate${newline}boot_id=$boot_id${newline}sequence=$sequence${newline}boottime_ms=$(boottime_ms)${newline}category=$emit_category${newline}name=$emit_name${newline}status=$emit_status${newline}encoding=hex${newline}value=$emit_value${newline}"
 		printf '%s:%s,' "${#payload}" "$payload" >&3 || force_reboot
 	else
-		"$reporter" evidence "$category" "$name" "$status" "$value" ||
+		"$reporter" evidence "$emit_category" "$emit_name" \
+			"$emit_status" "$emit_value" ||
 			force_reboot
 	fi
 }
 
 emit_text() {
-	emit "$1" "$2" "$3" "$(printf '%s' "$4" | hex_value)"
+	text_category=$1
+	text_name=$2
+	text_status=$3
+	text_value=$4
+	emit "$text_category" "$text_name" "$text_status" \
+		"$(printf '%s' "$text_value" | hex_value)"
 }
 
 fatal() {
@@ -71,34 +81,40 @@ valid_integer() {
 }
 
 emit_file() {
-	category=$1
-	name=$2
-	path=$3
-	if [ ! -e "$path" ]; then
-		emit "$category" "$name" absent ''
+	file_category=$1
+	file_name=$2
+	file_path=$3
+	if [ ! -e "$file_path" ]; then
+		emit "$file_category" "$file_name" absent ''
 		return
 	fi
-	if [ -L "$path" ] || [ ! -f "$path" ] || [ ! -r "$path" ]; then
-		emit_text "$category" "$name" error unsafe-or-unreadable
+	if [ -L "$file_path" ] || [ ! -f "$file_path" ] || \
+		[ ! -r "$file_path" ]; then
+		emit_text "$file_category" "$file_name" error unsafe-or-unreadable
 		return
 	fi
-	size=$(wc -c <"$path" 2>/dev/null) || {
-		emit_text "$category" "$name" error read-failed
+	size=$(wc -c <"$file_path" 2>/dev/null) || {
+		emit_text "$file_category" "$file_name" error read-failed
 		return
 	}
-	case $size in ''|*[!0-9]*) emit_text "$category" "$name" error size-invalid; return ;; esac
+	case $size in
+		''|*[!0-9]*)
+			emit_text "$file_category" "$file_name" error size-invalid
+			return
+			;;
+	esac
 	if [ "$size" -gt 256 ]; then
-		emit_text "$category" "$name" error value-oversize
+		emit_text "$file_category" "$file_name" error value-oversize
 		return
 	fi
-	value=$(hex_value <"$path") || {
-		emit_text "$category" "$name" error read-failed
+	value=$(hex_value <"$file_path") || {
+		emit_text "$file_category" "$file_name" error read-failed
 		return
 	}
 	if [ -n "$value" ]; then
-		emit "$category" "$name" present "$value"
+		emit "$file_category" "$file_name" present "$value"
 	else
-		emit "$category" "$name" absent ''
+		emit "$file_category" "$file_name" absent ''
 	fi
 }
 
@@ -275,6 +291,12 @@ self_test() {
 	exec 3>&1
 	emit_text battery capacity present 50
 	emit typec port0 absent ''
+	self_test_file=$(mktemp)
+	printf 'adsp\n' >"$self_test_file"
+	name=remoteproc0
+	emit_file remoteproc "$name:name" "$self_test_file"
+	[ "$name" = remoteproc0 ] || exit 1
+	rm -f "$self_test_file"
 	emit_text summary result present complete
 	exit 0
 }
