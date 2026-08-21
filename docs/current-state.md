@@ -76,8 +76,9 @@ those exclusions and passed NFS, systemd, strict SSH, runtime acceptance, and
 fallback, but its reused initramfs still selected V16 exactly and omitted the
 retained probe. V18 selected the stable power/USB capability family, reached
 ADSP `running`, then exposed stale build-specific BTF in `pdr_interface.ko`.
-V19 removes only that rejected BTF section while preserving module code and
-ABI. The only hand-maintained successor source is
+ABI. V19 passed PDR, PMIC GLINK, and UCSI, then exposed a source-valid absent
+`port_type` and a probe variable collision. V20 classifies that optional
+attribute without weakening mandatory roles. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
@@ -107,7 +108,7 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-Issue a byte-distinct V19 wrapper from the already clean-twin-proven raw input,
+Issue a byte-distinct V20 wrapper from the already clean-twin-proven raw input,
 publish the coherent checkpoint, admit its exact disposable-key chain once,
 and run one live side-port observation
 through systemd and strict SSH. Its result decides whether the next change is

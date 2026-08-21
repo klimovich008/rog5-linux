@@ -85,7 +85,7 @@ The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
 VCNL36866 work and must not be cleaned, stashed, or overwritten implicitly.
 
-The active v19 power/USB identity is defined only by
+The active v20 power/USB identity is defined only by
 `configs/recovery-candidates/power-usb-active.json`; generated identities are
 recorded in `manifests/power-usb-active.lock.json`. V7 is consumed after
 passing NFS, systemd, the corrected 29-zone acceptance, key-only SSH, watchdog
@@ -109,7 +109,8 @@ startup. V17 restored those nodes and reached runtime acceptance, but its
 reused initramfs still selected V16 exactly, skipped deferred charging mode,
 and omitted the retained probe. V18 replaced that identity copy, reached ADSP
 `running`, and then found `pdr_interface.ko` had incompatible build-specific
-BTF. V19 retains one code-identical no-BTF PDR module and has no boot authority. See
+BTF. V19 passed PDR/PMIC GLINK/UCSI and found `port_type` is source-validly
+optional. V20 classifies that absence and has no boot authority. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Next execution sequence
