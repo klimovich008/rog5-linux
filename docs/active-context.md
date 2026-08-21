@@ -126,7 +126,7 @@ BusyBox `modprobe --first-time`. V25 is the target-only successor. See
   non-fatally over typed ACM netstrings.
 - Its real module closure is 16 files rather than the 844 MB module tree.
 - Twin offline initramfs builds match at
-  `64c0e4be67f39817c7d86c31ee4d07fd0c9e7a076a971fd3fb8b1b9934c1b2d3`.
+  `3ebd3260581af3300187de55768b61cd8ef57f4574febb4b0540e21e7566dbcf`.
 - `test-repository-linux.sh probe` takes about 5.6 seconds.
 - The ASUS wrapper path checks a recovery-only content-addressed cache before
   compiling; target bundles and documentation do not invalidate it.
