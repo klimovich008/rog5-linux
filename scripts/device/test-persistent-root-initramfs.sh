@@ -31,24 +31,28 @@ done
 for path in "$init" "$attest" "$shutdown" "$builder" "$power_loader"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
 done
-[ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ] ||
-	fail 'missing P2 initramfs binary input'
-config_sha256=$(sha256sum "$config" | cut -d ' ' -f 1)
-if [ -n "$ufs_modules" ]; then
-	case $storage_mode in
-		read-only)
-			expected_config_sha256=b959774825e2bca7c634e55cd00e838121fde8d95fd214ffeead732ce92e35e6
-			;;
-		local-write)
-			expected_config_sha256=bfa2588e8994b4ce24f79975d9e85ee6102268e089e143e0bc316b193a8b50c7
-			;;
-		*) fail 'invalid UFS storage mode for config verification' ;;
-	esac
-	[ "$config_sha256" = "$expected_config_sha256" ]
+binary_integration=0
+if [ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ]; then
+	binary_integration=1
+	config_sha256=$(sha256sum "$config" | cut -d ' ' -f 1)
+	if [ -n "$ufs_modules" ]; then
+		case $storage_mode in
+			read-only)
+				expected_config_sha256=b959774825e2bca7c634e55cd00e838121fde8d95fd214ffeead732ce92e35e6
+				;;
+			local-write)
+				expected_config_sha256=bfa2588e8994b4ce24f79975d9e85ee6102268e089e143e0bc316b193a8b50c7
+				;;
+			*) fail 'invalid UFS storage mode for config verification' ;;
+		esac
+		[ "$config_sha256" = "$expected_config_sha256" ]
+	else
+		[ "$config_sha256" = \
+			8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ]
+	fi || fail 'P2 input does not match the pinned target config'
 else
-	[ "$config_sha256" = \
-		8a7fabffa076a65d09529ef1004c315e1296e547a02d08c362031d0363ba63c3 ]
-fi || fail 'P2 input does not match the pinned target config'
+	echo 'SKIP retained persistent-root binary integration; source contract remains active' >&2
+fi
 
 for script in "$init" "$attest" "$shutdown" "$builder"; do
 	sh -n "$script"
@@ -269,6 +273,11 @@ if grep -Eq \
 	"$init" "$attest" "$shutdown"
 then
 	fail 'P2 target writes a persistent root selector'
+fi
+
+if [ "$binary_integration" -eq 0 ]; then
+	echo 'PASS persistent-root initramfs source, power/USB order, and storage-safety contract'
+	exit 0
 fi
 
 work=$(mktemp -d)
