@@ -223,9 +223,29 @@ typec_output=$(
 	' sh "$typec_functions"
 )
 printf '%s\n' "$typec_output" | grep -Fqx \
-	'EVIDENCE typec_port=port0 data_role=[device]_host power_role=[sink]_source port_type=[dual] power_operation_mode=default property_modes=data_role:644,power_role:644,port_type:644,power_operation_mode:444 partner=1'
+	'EVIDENCE typec_port=port0 data_role=[device]_host power_role=[sink]_source port_type=[dual] power_operation_mode=default property_modes=data_role:644,power_role:644,power_operation_mode:444,port_type:644 partner=1'
 printf '%s\n' "$typec_output" | grep -Fqx \
 	'EVIDENCE typec_port_count=1 typec_partner_count=1'
+rm "$typec_fixture/typec/port0/port_type"
+typec_output=$(
+	ROG5_TYPEC_CLASS_ROOT=$typec_fixture/typec sh -eu -c '
+		post_fail() { echo "FAIL $*" >&2; exit 1; }
+		. "$1"
+		emit_typec_snapshot
+	' sh "$typec_functions"
+)
+printf '%s\n' "$typec_output" | grep -Fqx \
+	'EVIDENCE typec_port=port0 data_role=[device]_host power_role=[sink]_source port_type=absent power_operation_mode=default property_modes=data_role:644,power_role:644,power_operation_mode:444,port_type:absent partner=1'
+ln -s power_role "$typec_fixture/typec/port0/port_type"
+if ROG5_TYPEC_CLASS_ROOT=$typec_fixture/typec sh -eu -c '
+	post_fail() { exit 1; }
+	. "$1"
+	emit_typec_snapshot
+' sh "$typec_functions" >/dev/null 2>&1; then
+	echo 'FAIL Type-C snapshot accepted a linked optional port_type' >&2
+	exit 1
+fi
+rm "$typec_fixture/typec/port0/port_type"
 chmod 0666 "$typec_fixture/typec/port0/data_role"
 if ROG5_TYPEC_CLASS_ROOT=$typec_fixture/typec sh -eu -c '
 	post_fail() { exit 1; }

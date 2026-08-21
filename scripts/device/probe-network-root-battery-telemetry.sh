@@ -454,22 +454,35 @@ emit_typec_snapshot() (
 		[ "$port_count" -le 3 ] ||
 			post_fail 'UCSI exposed more than three Type-C ports'
 		property_modes=
-		for property in data_role power_role port_type \
-			power_operation_mode; do
+		for property in data_role power_role power_operation_mode; do
 			path=$entry/$property
 			[ -f "$path" ] && [ ! -L "$path" ] ||
 				post_fail "Type-C property is absent or linked: $name/$property"
-			mode=$(stat -c %a "$path")
-			case $mode in
+			property_mode=$(stat -c %a "$path")
+			case $property_mode in
 				444|644) ;;
 				*) post_fail "Type-C property mode is unsupported: $name/$property" ;;
 			esac
-			property_modes=${property_modes}${property}:${mode},
+			property_modes=${property_modes}${property}:${property_mode},
 		done
+		port_type_path=$entry/port_type
+		if [ -e "$port_type_path" ] || [ -L "$port_type_path" ]; then
+			[ -f "$port_type_path" ] && [ ! -L "$port_type_path" ] ||
+				post_fail "Type-C optional property is linked: $name/port_type"
+			property_mode=$(stat -c %a "$port_type_path")
+			case $property_mode in
+				444|644) ;;
+				*) post_fail "Type-C property mode is unsupported: $name/port_type" ;;
+			esac
+			port_type=$(tr ' ' '_' <"$port_type_path")
+			property_modes=${property_modes}port_type:${property_mode},
+		else
+			port_type=absent
+			property_modes=${property_modes}port_type:absent,
+		fi
 		property_modes=${property_modes%,}
 		data_role=$(tr ' ' '_' <"$entry/data_role")
 		power_role=$(tr ' ' '_' <"$entry/power_role")
-		port_type=$(tr ' ' '_' <"$entry/port_type")
 		power_mode=$(tr ' ' '_' <"$entry/power_operation_mode")
 		case $data_role:$power_role:$port_type:$power_mode in
 			*[!A-Za-z0-9_.:\[\]-]*)
