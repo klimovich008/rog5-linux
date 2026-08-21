@@ -1,6 +1,7 @@
 name	status	basis
 build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img	allow	one exact NFS-xattr retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry
 build/headless-core-v21-generation21-20260812-r1/repack/stable-recovery-a.avb.img	allow	one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry
+build/power-usb-observer-v16-offline-r1/wrapper/repack/stable-recovery-a.avb.img	allow	one exact pre-switch-modprobe-policy key-only-SSH side-port charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry
 build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img	revoked	consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash
 build/persistent-root-storage-read-v5-generation26-20260812-r1/repack/stable-recovery-a.avb.img	revoked	consumed by the sole Generation 26 RAM-only cycle; no target USB appeared and exact Alpine returned after 25.333 seconds; never retry or flash
 build/persistent-root-usb-control-v6-generation27-20260812-r1/repack/stable-recovery-a.avb.img	revoked	consumed by the sole Generation 27 RAM-only cycle; stable target NCM passed before exact Alpine fallback; never retry or flash
