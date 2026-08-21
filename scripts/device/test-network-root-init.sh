@@ -1371,11 +1371,15 @@ parse_network_root_command_line
 [ "$charging_probe_mode" -eq 2 ]
 [ "$diagnostic_report_candidate" = '' ]
 power_usb_probe_phase=early-initramfs
-printf '%s\n' "$successor_power_cmdline" >"$kernel_cmdline"
+early_power_cmdline="$successor_power_cmdline
+rog5.diagnostic=1"
+printf '%s\n' "$early_power_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 1 ]
 [ "$charging_probe_mode" -eq 3 ]
 [ "$diagnostic_report_candidate" = "${power_usb_bundle_prefix}18" ]
+expect_cmdline_rejection 'early power identity without diagnostic mode' \
+	"$successor_power_cmdline"
 power_usb_probe_phase=post-ssh
 expect_cmdline_rejection 'active power identity with diagnostic mode' \
 	"$active_power_cmdline rog5.diagnostic=1"

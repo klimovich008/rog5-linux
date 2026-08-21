@@ -378,15 +378,16 @@ parse_network_root_command_line() {
 			[ "$bundle" != "$charging_probe_successor" ] &&
 			[ "$bundle" != "$charging_probe_observable" ]; } ||
 			charging_probe_mode=1
-	elif [ "$diagnostic_count" -eq 0 ] &&
-		[ "$diagnostic_invalid" -eq 0 ] &&
+	elif [ "$diagnostic_invalid" -eq 0 ] &&
 		is_power_usb_bundle "$bundle"; then
 		case $power_usb_probe_phase in
 			post-ssh)
+				[ "$diagnostic_count" -eq 0 ] || return 1
 				diagnostic_mode=0
 				charging_probe_mode=2
 				;;
 			early-initramfs)
+				[ "$diagnostic_count" -eq 1 ] || return 1
 				diagnostic_mode=1
 				charging_probe_mode=3
 				;;

@@ -1369,6 +1369,7 @@ def evidence_document(
     started_unix_ns: int,
     ended_unix_ns: int,
     result: CaptureResult,
+    expected_candidate: str = CANDIDATE,
     rejection_code: str | None = None,
     rejection_message: str | None = None,
 ) -> dict[str, object]:
@@ -1394,7 +1395,7 @@ def evidence_document(
     boot_ids = {frame.record.boot_id for frame in result.frames}
     boot_ids.update(item.record.boot_id for item in result.power_evidence)
     document: dict[str, object] = {
-        "candidate": CANDIDATE,
+        "candidate": expected_candidate,
         "capture_status": "rejected" if rejection_code else "valid",
         "dropped_usb_events": result.dropped_usb_events,
         "dropped_transport_snapshots": result.dropped_transport_snapshots,
@@ -1606,6 +1607,7 @@ def main(arguments: list[str]) -> int:
         started_unix_ns=started_unix_ns,
         ended_unix_ns=time.time_ns(),
         result=result,
+        expected_candidate=expected_candidate,
         rejection_code=rejection_code,
         rejection_message=rejection_message,
     )
