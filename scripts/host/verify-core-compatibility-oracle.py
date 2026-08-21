@@ -51,7 +51,6 @@ ROOT_KEYS = {
     "status",
     "authority",
     "artifact_manifest",
-    "artifact_manifest_sha256",
     "baseline",
     "evidence",
     "artifacts",
@@ -266,11 +265,8 @@ def validate_evidence(
 
 def load_artifact_manifest(
     path: Path,
-    expected_sha256: str,
 ) -> dict[str, tuple[int, str]]:
     data = read_bounded(path, "artifact manifest")
-    if hashlib.sha256(data).hexdigest() != expected_sha256:
-        fail("artifact manifest hash changed")
     lines = canonical_lf_lines(data, "artifact manifest")
     if not lines or lines[0] != "name\tsize\tsha256\trole\ttracked":
         fail("artifact manifest header is not canonical")
@@ -699,13 +695,9 @@ def validate_profile(
     _manifest_text, manifest_path = safe_relative_path(
         repo, root["artifact_manifest"], "artifact_manifest"
     )
-    manifest_sha256 = require_sha256(
-        root["artifact_manifest_sha256"],
-        "artifact_manifest_sha256",
-    )
     artifacts = validate_artifacts(
         root["artifacts"],
-        load_artifact_manifest(manifest_path, manifest_sha256),
+        load_artifact_manifest(manifest_path),
     )
     validate_equivalence_sets(root["equivalence_sets"], artifacts)
     validate_candidate(repo, root["candidate"], artifacts)

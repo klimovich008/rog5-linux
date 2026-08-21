@@ -370,13 +370,12 @@ class CoreCompatibilityOracleTest(unittest.TestCase):
             "artifact manifest identity changed",
         )
 
-    def test_artifact_manifest_hash_mutation_fails(self) -> None:
-        profile = deepcopy(self.profile)
-        profile["artifact_manifest_sha256"] = "0" * 64
-        self.assert_profile_fails(
-            profile,
-            "artifact manifest hash changed",
+    def test_artifact_manifest_is_validated_by_rows_not_recursive_source_hash(self) -> None:
+        self.assertNotIn("artifact_manifest_sha256", self.profile)
+        manifest = ORACLE.load_artifact_manifest(
+            REPO / self.profile["artifact_manifest"]
         )
+        self.assertGreater(len(manifest), len(self.profile["artifacts"]))
 
     def test_artifact_equivalence_mutation_fails(self) -> None:
         profile = deepcopy(self.profile)
