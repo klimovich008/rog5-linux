@@ -273,6 +273,41 @@ class Fixture:
             sort_keys=True,
             separators=(",", ":"),
         )
+        self.power_evidence = copy.deepcopy(self.diagnostic_evidence)
+        self.power_evidence["candidate"] = CYCLE.POWER_USB.CANDIDATE
+        for frame in self.power_evidence["frames"]:
+            frame["record"]["candidate"] = CYCLE.POWER_USB.CANDIDATE
+        final_frame = self.power_evidence["frames"][-1]["record"]
+        final_frame.update(
+            {
+                "last_good_code": 141,
+                "stage": "charging-exec",
+                "stage_code": 141,
+            }
+        )
+        self.power_evidence["power_evidence"] = [
+            {
+                "host_monotonic_ns": 260,
+                "host_unix_ns": 260,
+                "record": {
+                    "boot_id": TARGET_BOOT_ID,
+                    "boottime_ms": 210,
+                    "candidate": CYCLE.POWER_USB.CANDIDATE,
+                    "category": "summary",
+                    "encoding": "hex",
+                    "name": "result",
+                    "sequence": 1,
+                    "status": "present",
+                    "value": "636f6d706c657465",
+                },
+            }
+        ]
+        self.power_evidence["power_evidence_count"] = 1
+        self.power_evidence_payload = json.dumps(
+            self.power_evidence,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         self.calls = self.root / "calls"
         self._write_mocks()
 
@@ -992,6 +1027,7 @@ class Fixture:
                   "$BUNDLE" \
                   "$BUNDLE"
                 echo 'PASS recovery accepted one commit; outcome remains UNKNOWN'
+                : >"$MOCK_ROOT/control-committed"
                 if [ "${{MOCK_CONTROL_EXITS_BEFORE_BUNDLE_CLEANUP:-0}}" = 1 ]; then
                   : >"$MOCK_ROOT/control-exited"
                 fi
@@ -1093,8 +1129,15 @@ class Fixture:
             [ "$1" = "{self.evidence / 'recovery-usb.anchor'}" ]
             [ "$2" = "{self.evidence / 'early-target-diagnostics.json'}" ]
             [ "$3" = 120 ]
-            [ "$4" = 660 ]
-            [ "$5" = "{DIAGNOSTIC_CANDIDATE}" ]
+            case $5 in
+              {DIAGNOSTIC_CANDIDATE}|{CYCLE.POWER_USB.CANDIDATE}) ;;
+              *) exit 1 ;;
+            esac
+            if [ "$5" = "{CYCLE.POWER_USB.CANDIDATE}" ]; then
+              [ "$4" = "{CYCLE.POWER_USB.SAMPLER_TIMEOUT_SECONDS}" ]
+            else
+              [ "$4" = 660 ]
+            fi
             [ -z "${{SSH_KEY+x}}" ]
             [ -z "${{UNRELATED_CREDENTIAL+x}}" ]
             if [ "${{MOCK_COLLECTOR_EXIT_BEFORE_READY:-0}}" = 1 ]; then
@@ -1130,18 +1173,28 @@ class Fixture:
             while [ ! -e "$MOCK_ROOT/nfs-started" ]; do
               sleep 0.01
             done
-            while [ ! -e "$MOCK_ROOT/runtime-accepted" ]; do
-              sleep 0.01
-            done
+            if [ "$5" = "{CYCLE.POWER_USB.CANDIDATE}" ]; then
+              while [ ! -e "$MOCK_ROOT/control-committed" ]; do
+                sleep 0.01
+              done
+              evidence='{self.power_evidence_payload}'
+              last='141:charging-exec'
+            else
+              while [ ! -e "$MOCK_ROOT/runtime-accepted" ]; do
+                sleep 0.01
+              done
+              evidence='{self.diagnostic_evidence_payload}'
+              last='150:ssh-key-accepted'
+            fi
             umask 077
-            printf '%s\n' '{self.diagnostic_evidence_payload}' >"$2"
+            printf '%s\n' "$evidence" >"$2"
             printf 'collector:capture\n' >>"$MOCK_CALLS"
             : >"$MOCK_ROOT/target-departed"
             if [ "${{MOCK_COLLECTOR_FAIL:-0}}" = 1 ]; then
               echo 'FAIL early-target diagnostic capture: invalid-stream' >&2
               exit 1
             fi
-            echo 'PASS receive-only early-target diagnostic capture frames=5 last=150:ssh-key-accepted end=disconnect'
+            echo "PASS receive-only early-target diagnostic capture frames=5 last=$last end=disconnect"
             """,
         )
         self.executable(
@@ -1381,6 +1434,7 @@ class Fixture:
                   'result=PASS' >"$5"
                 : >"$MOCK_ROOT/fallback-proved"
                 : >"$MOCK_ROOT/target-departed"
+                : >"$MOCK_ROOT/profile-restored"
                 echo 'PASS exact stock WW33 slot-A fallback reached ADB with network USB disabled'
                 ;;
               *) exit 1 ;;
@@ -1465,6 +1519,22 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         self.assertEqual(
             profile.recovery_profile,
             CYCLE.POWER_USB.RECOVERY_PROFILE,
+        )
+        self.assertTrue(profile.diagnostic)
+        self.assertTrue(profile.early_probe)
+
+    def test_power_usb_early_probe_skips_target_ssh_and_resolves_fallback(
+        self,
+    ) -> None:
+        result = self.fixture.run("power-usb-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.fixture.call_lines()
+        self.assertEqual(calls.count("control:prepare-commit"), 1)
+        self.assertEqual(calls.count("collector:capture"), 1)
+        self.assertNotIn("runtime:start", calls)
+        self.assertNotIn("host-key:pin-target", calls)
+        self.assertEqual(
+            calls.count("control:resolve:FALLBACK_RETURNED"), 1
         )
 
     def test_stock_android_fallback_record_is_exact(self) -> None:

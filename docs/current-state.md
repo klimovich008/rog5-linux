@@ -78,8 +78,8 @@ retained probe. V18 selected the stable power/USB capability family, reached
 ADSP `running`, then exposed stale build-specific BTF in `pdr_interface.ko`.
 ABI. V19 passed PDR, PMIC GLINK, and UCSI, then exposed a source-valid absent
 `port_type` and a probe variable collision. V20 classified that optional
-attribute but was revoked unbooted before phone contact when the development
-loop moved to an early-initramfs observer. The only hand-maintained successor source is
+attribute but was revoked unbooted before phone contact. V21 is the planned
+early-initramfs typed observer with no boot authority. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`; the historical V20 policy row is revoked.
@@ -121,7 +121,8 @@ The focused `probe` tier takes about 5.6 seconds. The ASUS wrapper path now
 checks a recovery-only content-addressed cache before compiling; documentation
 and target-bundle bytes are outside that key.
 
-Freeze and publish this checkpoint, run full CI because shared lifecycle and
-trust-boundary code changed, then create one V21 early-probe target. Its sole
-live question is whether side-port NCM remains stable while battery/UCSI
-telemetry reports sustained positive input current at a safe temperature.
+Publish the canonical V21 source and exact-head CI, then build, sign, and admit
+one byte-distinct RAM-only candidate through the existing reviewed workflow.
+Its sole live question is whether side-port NCM remains stable while
+battery/UCSI telemetry reports sustained positive input current at a safe
+temperature.
