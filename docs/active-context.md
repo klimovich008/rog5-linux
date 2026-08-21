@@ -119,14 +119,15 @@ misclassified required `/dev/pts` as phone storage. V24 is the target-only
 observer that first produced a complete typed stream; it exposed unsupported
 BusyBox `modprobe --first-time`. V25 then loaded the complete charging stack
 and proved side-port input, but the full battery made positive pack current
-unobservable. V26 repeats the exact target bytes below full charge. See
+unobservable. V26 repeated the exact target bytes at 98% and proved positive
+pack current. The power/USB observer track is complete. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Current loop optimization
 
 - The observer runs before NFS/systemd/SSH and reports optional telemetry
   non-fatally over typed ACM netstrings.
-- Its real module closure is 16 files rather than the 844 MB module tree.
+- Its real module closure is 15 files rather than the 844 MB module tree.
 - Twin offline initramfs builds match at
   `3ebd3260581af3300187de55768b61cd8ef57f4574febb4b0540e21e7566dbcf`.
 - `test-repository-linux.sh probe` takes about 5.6 seconds.
@@ -137,21 +138,20 @@ unobservable. V26 repeats the exact target bytes below full charge. See
 
 ## Next execution sequence
 
-V26's sole acceptance test is stable side-port NCM/ACM plus complete typed
-battery/UCSI evidence and net-positive current at a safe temperature.
+The next acceptance test is local-image Arch + key-only SSH while the proven
+side-port charging stack remains active and the pack does not discharge under
+a bounded server-style load.
 
-1. Record V25 as consumed with a full-battery/inconclusive-current result.
-2. Pass every mandatory pre-build item in `docs/development-lessons.md`.
-3. Generate one V26 early-probe bundle from the existing clean-twin initramfs
-   and reuse the stable recovery wrapper cache; do not rebuild an unchanged
-   kernel.
-4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
-5. Temporarily boot V26 once with only the side port connected and battery
-   below full.
-6. Run the observer immediately after NCM carrier, before NFS/systemd/SSH.
-7. Record UCSI port1, power role, USB limits, battery current/temperature,
-   NCM continuity, and rollback result.
-8. Patch only the earliest demonstrated failure.
+1. Record V26 as consumed with net-positive side charging proven.
+2. Fix the observer token-validation and remoteproc-name regressions offline.
+3. Reuse the proven local-image UFS kernel/DT/root path and add only the proven
+   V26 charging modules, firmware, and early power checks.
+4. Build a RAM-only candidate; keep UFS and both ext4 layers read-only.
+5. Reach NCM and key-only SSH, then sample battery current and temperature at
+   idle and during one bounded CPU/network workload.
+6. Reboot normally, prove exact slot-A fallback, and compare time-to-SSH with
+   Generation 20's approximately 380 seconds.
+7. Resume native persistent layout work only after repeated combined passes.
 
 ## Boundaries
 

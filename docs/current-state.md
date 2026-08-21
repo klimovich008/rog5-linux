@@ -16,12 +16,12 @@ use Git history and dated `test-results/` records for older generations.
 | Side USB NCM/ACM | Passed baseline | Linux UDC `a600000.usb`; exact `/30` NCM route and SSH previously passed |
 | NFS + OverlayFS + systemd + SSH | Passed baseline | Generation 20 reached strict SSH in about 380 seconds |
 | ADSP | Passed twice | Stock WW33 firmware, PAS/SCM, remoteproc and QRTR accepted |
-| PMIC GLINK battery telemetry | Passed once | Aggregate battery/USB/wireless read-only supplies observed |
-| Full UCSI | Host prevention work active | Canonical candidate has no boot authority until the mandatory checklist passes |
+| PMIC GLINK battery telemetry | Passed | V26 exposed aggregate battery/USB/wireless read-only supplies |
+| Full UCSI and side charging | Passed | V26 proved sink/device mode, 500 mA USB input, rising voltage and +10 to +154 mA pack current |
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
-| Persistent Arch layout | Deferred | Resume after power/USB and slot-A preservation gates |
+| Persistent Arch layout | Active next phase | Integrate proven side power with local-image Arch + key-only SSH before native repartitioning |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Charging repair facts
@@ -87,8 +87,8 @@ passed. V23 reached NCM/ACM, then its textual mountinfo check mistook required
 stable NCM, but BusyBox `modprobe` rejected `--first-time`, leaving charging
 telemetry absent. V25 then passed the full charging stack and side-port input,
 but its 100% Full battery reported zero pack current. V26 reuses the exact
-target bytes for a sub-full positive-current test. The only hand-maintained
-successor source is
+target bytes and passed the sub-full positive-current test. The power/USB
+candidate track is now consumed; its canonical historical source remains
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`; the historical V20 policy row is revoked.
@@ -118,20 +118,15 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-The next observer runs after NCM carrier and before NFS, systemd, or SSH. It
-streams bounded typed battery, power-supply, Type-C, remoteproc, PMIC GLINK,
-UCSI, and dmesg records over ACM. Optional telemetry records
-`present`/`absent`/`error`; only identity, unsafe power or temperature, storage
-visibility, transport integrity, and rollback failures are fatal.
+V26 completed the early power/USB gate with stable NCM, valid battery/UCSI
+telemetry, a safe 30.2 C pack, 500 mA side-port input, rising voltage, and
+positive pack current. The exact 15-module closure is retained at SHA-256
+`3ebd3260581af3300187de55768b61cd8ef57f4574febb4b0540e21e7566dbcf`.
 
-The exact 16-file module closure produced twin-identical 22.4 MB initramfses
-with SHA-256 `3ebd3260581af3300187de55768b61cd8ef57f4574febb4b0540e21e7566dbcf`.
-The focused `probe` tier takes about 5.6 seconds. The ASUS wrapper path now
-checks a recovery-only content-addressed cache before compiling; documentation
-and target-bundle bytes are outside that key.
-
-Publish the canonical V26 source and exact-head CI, then build, sign, and admit
-one byte-distinct RAM-only candidate through the existing reviewed workflow.
-Its sole live question is whether side-port NCM remains stable while
-battery/UCSI telemetry reports sustained positive input current at a safe
-temperature.
+The next live candidate must combine the already-proven read-only local Arch
+image path with this charging stack. It must use a RAM-only kernel/recovery,
+mount UFS and the local image read-only, reach key-only SSH, retain NCM and
+rollback, and prove safe temperature plus nonnegative pack current before and
+during a bounded server-style CPU/network load. Benchmark time to SSH against
+Generation 20's approximately 380 seconds. Native repartitioning remains
+deferred until this combined path is repeatable.

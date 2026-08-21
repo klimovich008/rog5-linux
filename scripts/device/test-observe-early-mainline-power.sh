@@ -10,7 +10,7 @@ sh -n "$observer"
 
 for contract in \
 	'rog5-early-power-evidence-v1' \
-	'present|*:*:absent|*:*:error' \
+	'case $emit_status in present|absent|error)' \
 	'verify_storage_absent' \
 	'verify_transport' \
 	'verify_rollback' \
@@ -39,6 +39,22 @@ grep -Fq '[ -d "/sys/module/$module" ]' "$observer"
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+token_function=$work/token-function.sh
+awk '
+	/^valid_evidence_token\(\) \{/ { copy=1 }
+	/^emit\(\) \{/ { copy=0 }
+	copy { print }
+' "$observer" >"$token_function"
+grep -Fq 'valid_evidence_token() {' "$token_function"
+# shellcheck disable=SC1090
+. "$token_function"
+for token in observer power_supply line:1 voltage-trend a.b_c-d; do
+	valid_evidence_token "$token"
+done
+for token in '' Dmesg line/1 'bad value'; do
+	! valid_evidence_token "$token"
+done
+
 storage_functions=$work/storage-functions.sh
 awk '
 	/^has_block_backed_mount\(\) \{/ { copy=1 }
@@ -105,13 +121,17 @@ power = [
     for record in records
     if isinstance(record, module.PowerEvidenceRecord)
 ]
-assert len(power) == 3
+assert len(power) == 4
 assert [record.status for record in power] == [
     "present",
     "absent",
     "present",
+    "present",
 ]
 assert bytes.fromhex(power[0].value) == b"50"
+assert power[2].category == "remoteproc"
+assert power[2].name == "remoteproc0:name"
+assert bytes.fromhex(power[2].value) == b"adsp\n"
 assert power[-1].category == "summary"
 assert power[-1].name == "result"
 assert bytes.fromhex(power[-1].value) == b"complete"
