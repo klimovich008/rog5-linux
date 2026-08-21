@@ -14,6 +14,7 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/network-root-init
 shutdown=$repo/initramfs/network-root-shutdown
 charging_probe=$repo/scripts/device/probe-network-root-battery-telemetry.sh
+power_observer=$repo/scripts/device/observe-early-mainline-power.sh
 power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
 xattr_projection=$repo/configs/network-roots/rog5-nfs4-xattr-projection-v1
 verifier_builder=$repo/scripts/device/build-persistent-root-verifier-static.sh
@@ -21,11 +22,13 @@ reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
 reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 charge_firmware_archive=${NETWORK_ROOT_CHARGE_FIRMWARE_ARCHIVE:-}
-charge_firmware_sha=8974a54fa1c31cca4698a934ec3f9de4a997e0a99d6c55baaa3cd8a005369e5b
+charge_firmware_tree_sha=52442f69be8a91347499bc7a5c45060ad2458bb711cf51f8a7fdd64c5d2d412b
 pdr_module=${NETWORK_ROOT_PDR_MODULE:-}
+charge_modules_root=${NETWORK_ROOT_CHARGE_MODULES_ROOT:-}
+charge_modules_release=7.1.4-g7a5cef0db479
 pdr_module_sha=0b7df05e9fa0bfe224fc74ac93997bb1ee74ab5371bde172c3b0a2fcfe19601b
 reviewed_reporter_size=67288
-reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
+reviewed_reporter_hash=fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604
 accepted_base=4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac
 epoch=1681862400
 export LC_ALL=C
@@ -39,8 +42,6 @@ if [ -n "$charge_firmware_archive" ]; then
 	case $charge_firmware_archive in /*) ;; *) fail 'charge firmware archive must be absolute' ;; esac
 	[ -f "$charge_firmware_archive" ] && [ ! -L "$charge_firmware_archive" ] ||
 		fail 'charge firmware archive is absent or linked'
-	[ "$(sha256sum "$charge_firmware_archive" | cut -d ' ' -f 1)" = \
-		"$charge_firmware_sha" ] || fail 'charge firmware archive hash changed'
 	command -v tar >/dev/null || fail 'missing network-root initramfs build command: tar'
 fi
 if [ -n "$pdr_module" ]; then
@@ -62,10 +63,21 @@ if [ -n "$pdr_module" ]; then
 	! readelf -S "$pdr_module" | grep -q '[.]BTF' ||
 		fail 'reviewed PDR module still contains rejected BTF'
 fi
-for path in "$init" "$shutdown" "$charging_probe"; do
+for path in "$init" "$shutdown" "$charging_probe" "$power_observer"; do
 	[ -x "$path" ] && [ -f "$path" ] && [ ! -L "$path" ] ||
 		fail "missing initramfs source: $path"
 done
+if [ -n "$charge_modules_root" ]; then
+	case $charge_modules_root in /*) ;; *) fail 'charge modules root must be absolute' ;; esac
+	[ -d "$charge_modules_root/lib/modules/$charge_modules_release" ] &&
+		[ ! -L "$charge_modules_root" ] ||
+		fail 'charge modules root is absent or linked'
+	[ -n "$pdr_module" ] || fail 'early charge modules require the reviewed PDR override'
+	for command in depmod modprobe; do
+		command -v "$command" >/dev/null ||
+			fail "missing network-root initramfs build command: $command"
+	done
+fi
 [ -r "$power_usb_profile" ] && [ -f "$power_usb_profile" ] &&
 	[ ! -L "$power_usb_profile" ] ||
 	fail 'generated power/USB identity is absent or linked'
@@ -163,16 +175,56 @@ install -m 0755 "$init" "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$charging_probe" \
 	"$stage/sbin/rog5-early-charging-probe"
+install -D -m 0755 "$power_observer" \
+	"$stage/sbin/rog5-early-power-observer"
 install -D -m 0444 "$power_usb_profile" \
 	"$stage/etc/rog5/power-usb-active.sh"
 if [ -n "$charge_firmware_archive" ]; then
 	install -d -m 0755 "$stage/opt/rog5-charge-firmware"
 	tar -xzf "$charge_firmware_archive" -C "$stage/opt/rog5-charge-firmware" \
 		--no-same-owner --no-same-permissions
+	firmware_manifest=$stage/.charge-firmware-manifest
+	(
+		cd "$stage/opt/rog5-charge-firmware"
+		find . -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort |
+			while IFS= read -r name; do
+				case $name in ''|*[!A-Za-z0-9._-]*) exit 1 ;; esac
+				sha256sum "$name"
+			done
+	) >"$firmware_manifest" || fail 'charge firmware inventory is unsafe'
+	[ "$(sha256sum "$firmware_manifest" | cut -d ' ' -f 1)" = \
+		"$charge_firmware_tree_sha" ] || fail 'charge firmware content changed'
+	rm -f "$firmware_manifest"
 fi
 if [ -n "$pdr_module" ]; then
 	install -D -m 0644 "$pdr_module" \
 		"$stage/opt/rog5-charge-modules/pdr_interface.ko"
+fi
+if [ -n "$charge_modules_root" ]; then
+	module_list=$stage/.charge-module-list
+	for module in qcom_q6v5_pas qrtr_smd qcom_pd_mapper qcom_pdr_msg \
+		pmic_glink qcom_battmgr typec typec_ucsi ucsi_glink
+	do
+		modprobe -d "$charge_modules_root" -S "$charge_modules_release" \
+			--show-depends "$module" ||
+			fail "cannot resolve early charge module: $module"
+	done | awk '$1 == "insmod" { print $2 }' | sort -u >"$module_list"
+	[ "$(wc -l <"$module_list")" -ge 13 ] ||
+		fail 'early charge module closure is incomplete'
+	while IFS= read -r module_path; do
+		case $module_path in "$charge_modules_root"/*) ;; *) fail 'charge module escaped its root' ;; esac
+		[ -f "$module_path" ] && [ ! -L "$module_path" ] ||
+			fail 'charge module is absent or linked'
+		relative=${module_path#"$charge_modules_root"/}
+		install -D -m 0644 "$module_path" "$stage/$relative"
+	done <"$module_list"
+	pdr_target=$(find "$stage/lib/modules/$charge_modules_release" -type f \
+		-name pdr_interface.ko -print)
+	[ "$(printf '%s\n' "$pdr_target" | awk 'NF { count++ } END { print count + 0 }')" -eq 1 ] ||
+		fail 'early charge module closure lacks one PDR path'
+	install -m 0644 "$pdr_module" "$pdr_target"
+	depmod -b "$stage" "$charge_modules_release"
+	rm -f "$module_list"
 fi
 install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"
 install -D -m 0444 "$xattr_projection" \
@@ -206,7 +258,8 @@ output_stage=$(mktemp "$output_parent/.network-root-initramfs.XXXXXX")
 	gzip -n >"$output_stage"
 NETWORK_ROOT_DIAGNOSTIC_REPORTER="$reviewed_reporter" \
 	NETWORK_ROOT_EXPECT_CHARGE_FIRMWARE="$([ -n "$charge_firmware_archive" ] && printf 1 || printf 0)" \
-	NETWORK_ROOT_EXPECT_PDR_MODULE="$([ -n "$pdr_module" ] && printf 1 || printf 0)" \
+NETWORK_ROOT_EXPECT_PDR_MODULE="$([ -n "$pdr_module" ] && printf 1 || printf 0)" \
+	NETWORK_ROOT_EXPECT_CHARGE_MODULES="$([ -n "$charge_modules_root" ] && printf 1 || printf 0)" \
 	"$repo/scripts/device/verify-network-root-initramfs.sh" "$output_stage"
 ln "$output_stage" "$output" 2>/dev/null ||
 	fail 'output appeared during build'

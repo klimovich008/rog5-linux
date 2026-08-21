@@ -448,6 +448,33 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
                 self.fail(result.stderr.decode(errors="replace"))
             time.sleep(0.01)
 
+    def evidence_when_ready(
+        self, environment, category, name, status, value
+    ):
+        command = [
+            str(self.binary),
+            "evidence",
+            category,
+            name,
+            status,
+            value,
+        ]
+        deadline = time.monotonic() + 2
+        while True:
+            result = subprocess.run(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=environment,
+                check=False,
+            )
+            if result.returncode == 0:
+                return
+            if time.monotonic() >= deadline:
+                self.fail(result.stderr.decode(errors="replace"))
+            time.sleep(0.01)
+
     def parse_service_output(self, payload):
         stream = MODULE.DiagnosticStream(CANDIDATE)
         records = stream.feed(payload)
@@ -466,6 +493,30 @@ class NativeDiagnosticEmitterTest(unittest.TestCase):
             for earlier, later in zip(records, records[1:])
         ]
         self.assertTrue(all(interval >= 250 for interval in intervals))
+
+    def test_service_serializes_typed_power_evidence(self):
+        process, environment = self.start_service(
+            "evidence", frames=4, step=10
+        )
+        self.evidence_when_ready(
+            environment, "battery", "capacity", "present", "3530"
+        )
+        self.evidence_when_ready(
+            environment, "typec", "port0", "absent", ""
+        )
+        output, error = process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 0, error)
+        stream, records = self.parse_service_output(output)
+        evidence = [
+            item
+            for item in records
+            if isinstance(item, MODULE.PowerEvidenceRecord)
+        ]
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual([item.sequence for item in evidence], [1, 2])
+        self.assertEqual(bytes.fromhex(evidence[0].value), b"50")
+        self.assertEqual(evidence[1].status, "absent")
+        self.assertEqual(stream.boot_id, BOOT)
 
     def test_nonblocking_local_updates_advance_and_terminate(self):
         process, environment = self.start_service(

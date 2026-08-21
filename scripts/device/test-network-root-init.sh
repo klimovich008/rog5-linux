@@ -25,12 +25,13 @@ for text in \
 	'NETWORK_ROOT_VERIFIER' \
 	'NETWORK_ROOT_DIAGNOSTIC_REPORTER' \
 	'NETWORK_ROOT_CHARGE_FIRMWARE_ARCHIVE' \
-	'charge_firmware_sha=8974a54fa1c31cca4698a934ec3f9de4a997e0a99d6c55baaa3cd8a005369e5b' \
+	'charge_firmware_tree_sha=52442f69be8a91347499bc7a5c45060ad2458bb711cf51f8a7fdd64c5d2d412b' \
 	'reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f' \
 	'reviewed_reporter_size=67288' \
-	'reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
+	'reviewed_reporter_hash=fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604' \
 	'install -D -m 0755 "$verifier" "$stage/sbin/persistent-root-verify"' \
 	'install -D -m 0755 "$charging_probe"' \
+	'install -D -m 0755 "$power_observer"' \
 	'install -D -m 0444 "$power_usb_profile"' \
 	'install -D -m 0444 "$xattr_projection"' \
 	'"$stage/sbin/rog5-early-target-diag"' \
@@ -48,6 +49,8 @@ fi
 grep -Fq 'cmp "$root_verifier" "$trusted/persistent-root-verify"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 grep -Fq 'cmp "$charging_probe" "$reviewed_charging_probe"' \
+	"$repo/scripts/device/verify-network-root-initramfs.sh"
+grep -Fq 'cmp "$power_observer" "$reviewed_power_observer"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
 grep -Fq 'cmp "$power_usb_profile" "$reviewed_power_usb_profile"' \
 	"$repo/scripts/device/verify-network-root-initramfs.sh"
@@ -105,6 +108,7 @@ for text in \
 	'charging_probe_observable=headless-full-ucsi-charging-early-v3' \
 	'power_usb_profile=/etc/rog5/power-usb-active.sh' \
 	'power_usb_bundle_prefix=' \
+	'power_usb_probe_phase=' \
 	'is_power_usb_bundle()' \
 	'. /etc/rog5/power-usb-active.sh' \
 	'ROG5 diagnostic network root' \
@@ -139,8 +143,10 @@ for text in \
 		'cp -p /shutdown "$exitrd/shutdown"' \
 		'chroot "$exitrd" /bin/sh -n /shutdown' \
 		'if ! handoff_network_root; then' \
-		'ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1' \
-		'/run/initramfs/sbin/rog5-early-charging-probe charging-early' \
+	'ALLOW_NETWORK_ROOT_EARLY_CHARGING_PROBE=1' \
+	'/run/initramfs/sbin/rog5-early-charging-probe charging-early' \
+	'ALLOW_NETWORK_ROOT_EARLY_POWER_OBSERVER=1' \
+	'/sbin/rog5-early-power-observer' \
 		'rollback_handoff_mounts || true' \
 		'trap switch_root_failure EXIT' \
 		'trap - EXIT' \
@@ -194,6 +200,8 @@ usb_line=$(grep -n '^[[:space:]]*configure_usb$' "$init" |
 	head -n1 | cut -d: -f1)
 nfs_line=$(grep -n '^[[:space:]]*mount_network_root$' "$init" |
 	head -n1 | cut -d: -f1)
+early_probe_line=$(grep -n '^[[:space:]]*if \[ "${charging_probe_mode:-0}" -eq 3 \]; then$' "$init" |
+	head -n1 | cut -d: -f1)
 exitrd_line=$(grep -n '^[[:space:]]*if ! prepare_shutdown_root; then$' "$init" |
 	head -n1 | cut -d: -f1)
 switch_line=$(grep -n 'exec switch_root "\$handoff_newroot" /sbin/init' "$init" |
@@ -203,6 +211,8 @@ switch_line=$(grep -n 'exec switch_root "\$handoff_newroot" /sbin/init' "$init" 
 [ "$storage_line" -lt "$watchdog_line" ]
 [ "$watchdog_line" -lt "$diagnostic_start_line" ]
 [ "$diagnostic_start_line" -lt "$usb_line" ]
+[ "$usb_line" -lt "$early_probe_line" ]
+[ "$early_probe_line" -lt "$nfs_line" ]
 [ "$usb_line" -lt "$nfs_line" ]
 [ "$nfs_line" -lt "$exitrd_line" ]
 [ "$exitrd_line" -lt "$switch_line" ]
@@ -248,7 +258,7 @@ mount_ok_line=$(grep -n 'diagnostic_emit 80' "$init" |
 [ "$mount_begin_line" -lt "$mount_return_line" ]
 [ "$mount_return_line" -lt "$mount_ok_line" ]
 grep -Fq \
-	'lineage format=rog5-target-lineage-v1 candidate=$diagnostic_candidate boot_id=$boot_id' \
+	'lineage format=rog5-target-lineage-v1 candidate=$diagnostic_report_candidate boot_id=$boot_id' \
 	"$init"
 for fault in \
 	gadget-config-failed \
@@ -1296,6 +1306,7 @@ charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
 charging_probe_observable=headless-full-ucsi-charging-early-v3
 charging_probe_mode=0
+power_usb_probe_phase=post-ssh
 printf '%s\n' "$valid_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
@@ -1351,12 +1362,21 @@ printf '%s\n' "$active_power_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
 [ "$charging_probe_mode" -eq 2 ]
+[ "$diagnostic_report_candidate" = '' ]
 successor_power_cmdline=$(printf '%s\n' "$active_power_cmdline" |
 	sed "s/${power_usb_bundle_prefix}17/${power_usb_bundle_prefix}18/")
 printf '%s\n' "$successor_power_cmdline" >"$kernel_cmdline"
 parse_network_root_command_line
 [ "$diagnostic_mode" -eq 0 ]
 [ "$charging_probe_mode" -eq 2 ]
+[ "$diagnostic_report_candidate" = '' ]
+power_usb_probe_phase=early-initramfs
+printf '%s\n' "$successor_power_cmdline" >"$kernel_cmdline"
+parse_network_root_command_line
+[ "$diagnostic_mode" -eq 1 ]
+[ "$charging_probe_mode" -eq 3 ]
+[ "$diagnostic_report_candidate" = "${power_usb_bundle_prefix}18" ]
+power_usb_probe_phase=post-ssh
 expect_cmdline_rejection 'active power identity with diagnostic mode' \
 	"$active_power_cmdline rog5.diagnostic=1"
 for invalid_power in \

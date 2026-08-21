@@ -40,6 +40,7 @@
     "recovery_profile": "headless-power-usb-observer-v20-live-v1",
     "runtime_profile": "power-usb-observer-v20",
     "build_profile": "headless-ssh-v2",
+    "probe_phase": "post-ssh",
     "output_root": "build/power-usb-observer-v20-offline-r1",
     "marker_predecessor": "headless-power-usb-observer-v19",
     "marker_purpose": "classify-source-optional-typec-port-type",

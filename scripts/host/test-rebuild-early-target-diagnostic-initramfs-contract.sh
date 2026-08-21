@@ -26,7 +26,7 @@ for token in \
 	'6015929' \
 	'bba2ffbb3f389e5def4ec8f8c01d4947df78823413ecf148f20e5935dd5e0636' \
 	'rog5-early-target-diagnostic-initramfs-rebuild-v8' \
-	'437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d' \
+	'fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604' \
 	'build-early-target-diag.sh' \
 	'rog5-early-target-diag.c' \
 	'--pull=never' \

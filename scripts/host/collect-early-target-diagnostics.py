@@ -48,6 +48,7 @@ ANCHOR_MAX_AGE_SECONDS = 7200
 ENUMERATION_TIMEOUT_SECONDS = 60
 CAPTURE_TIMEOUT_SECONDS = 900
 MAX_FRAMES = 4096
+MAX_POWER_EVIDENCE_RECORDS = 1024
 MAX_USB_EVENTS = 64
 MAX_EVENT_BYTES = 256
 MAX_JOURNAL_BUFFER = 8192
@@ -167,6 +168,13 @@ class TimestampedRecord:
 
 
 @dataclass(frozen=True)
+class TimestampedPowerEvidence:
+    host_unix_ns: int
+    host_monotonic_ns: int
+    record: PARSER.PowerEvidenceRecord
+
+
+@dataclass(frozen=True)
 class UsbEvent:
     host_unix_ns: int
     message: str
@@ -250,6 +258,7 @@ class CaptureResult:
     end_reason: str
     transport_snapshots: tuple[TransportSnapshot, ...] = ()
     dropped_transport_snapshots: int = 0
+    power_evidence: tuple[TimestampedPowerEvidence, ...] = ()
 
 
 class Clock(Protocol):
@@ -1195,9 +1204,14 @@ def rejected(
     frames: list[TimestampedRecord],
     events: list[UsbEvent],
     dropped_events: int,
+    power_evidence: list[TimestampedPowerEvidence] | None = None,
 ) -> NoReturn:
     partial = CaptureResult(
-        tuple(frames), tuple(events), dropped_events, "rejected"
+        tuple(frames),
+        tuple(events),
+        dropped_events,
+        "rejected",
+        power_evidence=tuple(power_evidence or ()),
     )
     raise CaptureRejected(code, message, partial)
 
@@ -1216,11 +1230,32 @@ def capture_stream(
 ) -> CaptureResult:
     stream = PARSER.DiagnosticStream(expected_candidate)
     frames: list[TimestampedRecord] = []
+    power_evidence: list[TimestampedPowerEvidence] = []
     events = list(initial_events)
     dropped_events = initial_dropped_events
 
-    def retain(records: list[PARSER.DiagnosticRecord]) -> None:
+    def retain(
+        records: list[
+            PARSER.DiagnosticRecord | PARSER.PowerEvidenceRecord
+        ],
+    ) -> None:
         for record in records:
+            if isinstance(record, PARSER.PowerEvidenceRecord):
+                if len(power_evidence) >= MAX_POWER_EVIDENCE_RECORDS:
+                    rejected(
+                        "power-evidence-limit",
+                        "power evidence exceeded its record bound",
+                        frames,
+                        events,
+                        dropped_events,
+                        power_evidence,
+                    )
+                power_evidence.append(
+                    TimestampedPowerEvidence(
+                        clock.time_ns(), clock.monotonic_ns(), record
+                    )
+                )
+                continue
             if len(frames) >= MAX_FRAMES:
                 rejected(
                     "frame-limit",
@@ -1228,6 +1263,7 @@ def capture_stream(
                     frames,
                     events,
                     dropped_events,
+                    power_evidence,
                 )
             frames.append(
                 TimestampedRecord(
@@ -1275,7 +1311,11 @@ def capture_stream(
                     dropped_events,
                 )
             return CaptureResult(
-                tuple(frames), tuple(events), dropped_events, "timeout"
+                tuple(frames),
+                tuple(events),
+                dropped_events,
+                "timeout",
+                power_evidence=tuple(power_evidence),
             )
         try:
             chunk = reader.read(min(READ_INTERVAL_SECONDS, remaining))
@@ -1303,7 +1343,11 @@ def capture_stream(
                     dropped_events,
                 )
             return CaptureResult(
-                tuple(frames), tuple(events), dropped_events, "disconnected"
+                tuple(frames),
+                tuple(events),
+                dropped_events,
+                "disconnected",
+                power_evidence=tuple(power_evidence),
             )
         for byte in chunk:
             try:
@@ -1338,8 +1382,17 @@ def evidence_document(
             }
         )
     events = [asdict(event) for event in result.usb_events]
+    power_evidence = [
+        {
+            "host_monotonic_ns": item.host_monotonic_ns,
+            "host_unix_ns": item.host_unix_ns,
+            "record": asdict(item.record),
+        }
+        for item in result.power_evidence
+    ]
     transport = [asdict(snapshot) for snapshot in result.transport_snapshots]
     boot_ids = {frame.record.boot_id for frame in result.frames}
+    boot_ids.update(item.record.boot_id for item in result.power_evidence)
     document: dict[str, object] = {
         "candidate": CANDIDATE,
         "capture_status": "rejected" if rejection_code else "valid",
@@ -1354,6 +1407,8 @@ def evidence_document(
         "started_unix_ns": started_unix_ns,
         "target_boot_id": next(iter(boot_ids)) if len(boot_ids) == 1 else None,
         "target_product": TARGET_PRODUCT,
+        "power_evidence_count": len(power_evidence),
+        "power_evidence": power_evidence,
         "transport_snapshot_count": len(transport),
         "transport_snapshots": transport,
         "usb_events": events,
@@ -1433,12 +1488,12 @@ def parse_timeout(value: str, label: str, maximum: int) -> int:
 def usage() -> NoReturn:
     fail(
         "usage: collect-early-target-diagnostics.py ANCHOR OUTPUT "
-        "[ENUMERATION_TIMEOUT] [CAPTURE_TIMEOUT]"
+        "[ENUMERATION_TIMEOUT] [CAPTURE_TIMEOUT] [CANDIDATE]"
     )
 
 
 def main(arguments: list[str]) -> int:
-    if not 2 <= len(arguments) <= 4:
+    if not 2 <= len(arguments) <= 5:
         usage()
     anchor_path = Path(arguments[0])
     output_path = Path(arguments[1])
@@ -1449,9 +1504,12 @@ def main(arguments: list[str]) -> int:
     )
     capture_timeout = (
         parse_timeout(arguments[3], "capture timeout", 900)
-        if len(arguments) == 4
+        if len(arguments) >= 4
         else CAPTURE_TIMEOUT_SECONDS
     )
+    expected_candidate = arguments[4] if len(arguments) == 5 else CANDIDATE
+    if not PARSER.valid_candidate(expected_candidate):
+        fail("expected candidate is invalid")
     anchor = read_anchor(anchor_path)
     safe_new_output(output_path)
     started_unix_ns = time.time_ns()
@@ -1477,7 +1535,7 @@ def main(arguments: list[str]) -> int:
                 with ReceiveOnlySerial(identity) as serial:
                     observed = capture_stream(
                         serial,
-                        CANDIDATE,
+                        expected_candidate,
                         deadline_monotonic=time.monotonic() + capture_timeout,
                         revalidate=lambda: revalidate_diagnostic_acm(identity),
                         poll_events=journal.poll,
@@ -1513,6 +1571,7 @@ def main(arguments: list[str]) -> int:
             observed.end_reason,
             tuple(transport.snapshots) if transport is not None else (),
             transport.dropped if transport is not None else 0,
+            observed.power_evidence,
         )
     except CaptureRejected as error:
         result = CaptureResult(
@@ -1522,6 +1581,7 @@ def main(arguments: list[str]) -> int:
             error.partial.end_reason,
             tuple(transport.snapshots) if transport is not None else (),
             transport.dropped if transport is not None else 0,
+            error.partial.power_evidence,
         )
         rejection_code = error.code
         rejection_message = str(error)
@@ -1533,6 +1593,7 @@ def main(arguments: list[str]) -> int:
             "rejected",
             tuple(transport.snapshots) if transport is not None else (),
             transport.dropped if transport is not None else 0,
+            observed.power_evidence if observed is not None else (),
         )
         rejection_code = (
             "collector-finalization"

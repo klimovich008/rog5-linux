@@ -8,8 +8,8 @@ reviewed_verifier=${NETWORK_ROOT_VERIFIER:-}
 reviewed_verifier_hash=2bcead5ca06751d2744cdf0199802ba7ea089257ff383301d1c371f1ef60e28f
 reviewed_reporter=${NETWORK_ROOT_DIAGNOSTIC_REPORTER:-}
 reviewed_reporter_size=67288
-reviewed_reporter_hash=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
-for command in cmp cpio cut find grep gzip install mkdir mktemp modinfo readelf rm \
+reviewed_reporter_hash=fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604
+for command in cmp cpio cut find grep gzip install mkdir mktemp modinfo modprobe readelf rm \
 	sha256sum sh stat; do
 	command -v "$command" >/dev/null || {
 		echo "FAIL missing initramfs verifier command: $command" >&2
@@ -159,6 +159,19 @@ cmp "$charging_probe" "$reviewed_charging_probe" || {
 }
 sh -n "$charging_probe"
 
+power_observer=$stage/sbin/rog5-early-power-observer
+reviewed_power_observer=$repo/scripts/device/observe-early-mainline-power.sh
+[ -x "$power_observer" ] && [ -f "$power_observer" ] &&
+	[ ! -L "$power_observer" ] || {
+	echo 'FAIL network-root initramfs lacks early power observer' >&2
+	exit 1
+}
+cmp "$power_observer" "$reviewed_power_observer" || {
+	echo 'FAIL embedded early power observer differs from reviewed source' >&2
+	exit 1
+}
+sh -n "$power_observer"
+
 power_usb_profile=$stage/etc/rog5/power-usb-active.sh
 reviewed_power_usb_profile=$repo/initramfs/generated-power-usb-active.sh
 [ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ] || {
@@ -266,6 +279,38 @@ case ${NETWORK_ROOT_EXPECT_PDR_MODULE:-0} in
 		}
 		;;
 	*) echo 'FAIL invalid PDR override verification mode' >&2; exit 1 ;;
+esac
+
+module_root=$stage/lib/modules/7.1.4-g7a5cef0db479
+case ${NETWORK_ROOT_EXPECT_CHARGE_MODULES:-0} in
+	0)
+		[ ! -e "$module_root" ] && [ ! -L "$module_root" ] || {
+			echo 'FAIL unexpected early charge module tree' >&2
+			exit 1
+		}
+		;;
+	1)
+		[ -d "$module_root" ] && [ ! -L "$module_root" ] || {
+			echo 'FAIL early charge module tree is absent or linked' >&2
+			exit 1
+		}
+		for module in qcom_q6v5_pas qrtr_smd qcom_pd_mapper qcom_pdr_msg \
+			pmic_glink qcom_battmgr typec typec_ucsi ucsi_glink
+		do
+			modprobe -d "$stage" -S 7.1.4-g7a5cef0db479 \
+				--show-depends "$module" >/dev/null || {
+				echo "FAIL early charge module cannot resolve: $module" >&2
+				exit 1
+			}
+		done
+		pdr=$(find "$module_root" -type f -name pdr_interface.ko -print)
+		[ "$(printf '%s\n' "$pdr" | awk 'NF { count++ } END { print count + 0 }')" -eq 1 ] &&
+			cmp "$pdr" "$stage/opt/rog5-charge-modules/pdr_interface.ko" || {
+			echo 'FAIL early charge module closure does not use reviewed PDR' >&2
+			exit 1
+		}
+		;;
+	*) echo 'FAIL invalid charge module verification mode' >&2; exit 1 ;;
 esac
 
 reporter=$stage/sbin/rog5-early-target-diag

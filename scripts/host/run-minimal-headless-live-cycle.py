@@ -429,6 +429,7 @@ class CycleProfile:
     runtime_profile: str
     build_profile: str
     diagnostic: bool
+    early_probe: bool = False
 
 
 STANDARD_CYCLE_PROFILE = CycleProfile(
@@ -484,7 +485,8 @@ POWER_USB_CYCLE_PROFILE = CycleProfile(
     recovery_profile=POWER_USB_RECOVERY_PROFILE,
     runtime_profile=POWER_USB.RUNTIME_PROFILE,
     build_profile=POWER_USB.BUILD_PROFILE,
-    diagnostic=False,
+    diagnostic=POWER_USB.PROBE_PHASE == "early-initramfs",
+    early_probe=POWER_USB.PROBE_PHASE == "early-initramfs",
 )
 
 
@@ -2123,6 +2125,9 @@ def verify_diagnostic_evidence(
     path: Path,
     anchor_path: Path,
     expected_candidate: str,
+    *,
+    require_ssh: bool = True,
+    require_power: bool = False,
 ) -> str:
     flags = os.O_RDONLY | os.O_CLOEXEC
     if hasattr(os, "O_NOFOLLOW"):
@@ -2202,6 +2207,8 @@ def verify_diagnostic_evidence(
         "frame_count",
         "frames",
         "host_boot_id",
+        "power_evidence",
+        "power_evidence_count",
         "started_unix_ns",
         "target_boot_id",
         "target_product",
@@ -2225,6 +2232,7 @@ def verify_diagnostic_evidence(
     frames = value.get("frames")
     transport_snapshots = value.get("transport_snapshots")
     usb_events = value.get("usb_events")
+    power_evidence = value.get("power_evidence")
     if (
         set(value) != expected_keys
         or value.get("format") != "rog5-early-target-evidence-v2"
@@ -2247,10 +2255,14 @@ def verify_diagnostic_evidence(
         or not isinstance(frames, list)
         or not isinstance(transport_snapshots, list)
         or not isinstance(usb_events, list)
+        or not isinstance(power_evidence, list)
         or len(usb_events) > 64
         or type(value.get("frame_count")) is not int
         or not 1 <= value["frame_count"] <= 4096
         or value["frame_count"] != len(frames)
+        or type(value.get("power_evidence_count")) is not int
+        or not 0 <= value["power_evidence_count"] <= 1024
+        or value["power_evidence_count"] != len(power_evidence)
         or type(value.get("transport_snapshot_count")) is not int
         or not 1 <= value["transport_snapshot_count"] <= 768
         or value["transport_snapshot_count"] != len(transport_snapshots)
@@ -2304,7 +2316,7 @@ def verify_diagnostic_evidence(
             or not record["fault"]
         ):
             fail("diagnostic evidence record text is invalid")
-    if not any(
+    if require_ssh and not any(
         frame["record"].get("stage_code") == 150
         and frame["record"].get("stage") == "ssh-key-accepted"
         and frame["record"].get("last_good_code") == 150
@@ -2312,6 +2324,74 @@ def verify_diagnostic_evidence(
         for frame in frames
     ):
         fail("diagnostic evidence lacks strict SSH acceptance milestone")
+    power_frame_keys = {"host_monotonic_ns", "host_unix_ns", "record"}
+    power_record_keys = {
+        "boot_id",
+        "boottime_ms",
+        "candidate",
+        "category",
+        "encoding",
+        "name",
+        "sequence",
+        "status",
+        "value",
+    }
+    power_sequence = 0
+    power_boottime = 0
+    for item in power_evidence:
+        if (
+            not isinstance(item, dict)
+            or set(item) != power_frame_keys
+            or type(item.get("host_monotonic_ns")) is not int
+            or type(item.get("host_unix_ns")) is not int
+            or item["host_monotonic_ns"] < 0
+            or item["host_unix_ns"] <= 0
+        ):
+            fail("power evidence frame is invalid")
+        record = item.get("record")
+        if (
+            not isinstance(record, dict)
+            or set(record) != power_record_keys
+            or record.get("candidate") != expected_candidate
+            or record.get("boot_id") != target_boot_id
+            or record.get("encoding") != "hex"
+            or record.get("status") not in {"present", "absent", "error"}
+            or type(record.get("sequence")) is not int
+            or record["sequence"] < 1
+            or type(record.get("boottime_ms")) is not int
+            or record["boottime_ms"] < 0
+            or not isinstance(record.get("category"), str)
+            or re.fullmatch(
+                r"[a-z0-9][a-z0-9_.:-]{0,95}", record["category"]
+            )
+            is None
+            or not isinstance(record.get("name"), str)
+            or re.fullmatch(
+                r"[a-z0-9][a-z0-9_.:-]{0,95}", record["name"]
+            )
+            is None
+            or not isinstance(record.get("value"), str)
+            or len(record["value"]) > 512
+            or len(record["value"]) % 2
+            or re.fullmatch(r"[0-9a-f]*", record["value"]) is None
+            or record["status"] == "present" and not record["value"]
+            or record["sequence"] <= power_sequence
+            or record["boottime_ms"] < power_boottime
+        ):
+            fail("power evidence record is invalid")
+        power_sequence = record["sequence"]
+        power_boottime = record["boottime_ms"]
+    if require_power:
+        completed = [
+            item["record"]
+            for item in power_evidence
+            if item["record"].get("category") == "summary"
+            and item["record"].get("name") == "result"
+            and item["record"].get("status") == "present"
+            and item["record"].get("value") == "636f6d706c657465"
+        ]
+        if len(completed) != 1:
+            fail("power evidence lacks one complete summary")
     for event in usb_events:
         if (
             not isinstance(event, dict)
@@ -4021,6 +4101,7 @@ class LiveCycle:
                         str(diagnostic_record),
                         "120",
                         "660",
+                        self.profile.candidate,
                     ],
                     diagnostic_log,
                     environment=child_environment(),
@@ -4155,52 +4236,7 @@ class LiveCycle:
                 f"correlation={progress.correlation} authority=NONE"
             )
 
-            run_logged(
-                [
-                    str(self.dependencies.host_key),
-                    "pin-target",
-                    str(anchor),
-                    str(target_known_hosts),
-                    (
-                        DIAGNOSTIC_TARGET_PRODUCT
-                        if self.profile.diagnostic
-                        else TARGET_PRODUCT
-                    ),
-                ],
-                target_key_log,
-                environment=child_environment(
-                    ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
-                ),
-                timeout=self.target_key_timeout,
-            )
-            runtime_profile = self.profile.runtime_profile
-            run_logged(
-                [
-                    str(self.dependencies.runtime_acceptance),
-                    runtime_profile,
-                    str(self.inputs.candidate_record),
-                    self.inputs.candidate_sha256,
-                ],
-                self.output("runtime-acceptance.log"),
-                environment=child_environment(
-                    ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
-                    SSH_KEY=str(self.inputs.ssh_key),
-                    TARGET_KNOWN_HOSTS=str(target_known_hosts),
-                    EVIDENCE_DIR=str(self.inputs.evidence_dir),
-                ),
-                timeout=self.short_timeout,
-            )
-            runtime_values = parse_record(runtime_record)
-            target_boot_id = runtime_values.get("boot_id")
-            if (
-                runtime_values.get("result") != "PASS"
-                or target_boot_id is None
-                or not BOOT_ID.fullmatch(target_boot_id)
-            ):
-                fail("minimal-headless runtime record is not accepted")
-            target_accepted = True
-
-            if self.profile.diagnostic:
+            if self.profile.early_probe:
                 if collector_process is None:
                     fail("diagnostic collector was not started")
                 collector_status = wait_process(
@@ -4221,11 +4257,82 @@ class LiveCycle:
                     diagnostic_record,
                     anchor,
                     self.profile.candidate,
+                    require_ssh=False,
+                    require_power=True,
                 )
-                if diagnostic_boot_id != target_boot_id:
-                    fail(
-                        "strict SSH and diagnostic stream boot identities differ"
+                target_boot_id = diagnostic_boot_id
+            else:
+                run_logged(
+                    [
+                        str(self.dependencies.host_key),
+                        "pin-target",
+                        str(anchor),
+                        str(target_known_hosts),
+                        (
+                            DIAGNOSTIC_TARGET_PRODUCT
+                            if self.profile.diagnostic
+                            else TARGET_PRODUCT
+                        ),
+                    ],
+                    target_key_log,
+                    environment=child_environment(
+                        ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+                    ),
+                    timeout=self.target_key_timeout,
+                )
+                runtime_profile = self.profile.runtime_profile
+                run_logged(
+                    [
+                        str(self.dependencies.runtime_acceptance),
+                        runtime_profile,
+                        str(self.inputs.candidate_record),
+                        self.inputs.candidate_sha256,
+                    ],
+                    self.output("runtime-acceptance.log"),
+                    environment=child_environment(
+                        ALLOW_MINIMAL_HEADLESS_RUNTIME_ACCEPTANCE="1",
+                        SSH_KEY=str(self.inputs.ssh_key),
+                        TARGET_KNOWN_HOSTS=str(target_known_hosts),
+                        EVIDENCE_DIR=str(self.inputs.evidence_dir),
+                    ),
+                    timeout=self.short_timeout,
+                )
+                runtime_values = parse_record(runtime_record)
+                target_boot_id = runtime_values.get("boot_id")
+                if (
+                    runtime_values.get("result") != "PASS"
+                    or target_boot_id is None
+                    or not BOOT_ID.fullmatch(target_boot_id)
+                ):
+                    fail("minimal-headless runtime record is not accepted")
+                target_accepted = True
+
+                if self.profile.diagnostic:
+                    if collector_process is None:
+                        fail("diagnostic collector was not started")
+                    collector_status = wait_process(
+                        collector_process,
+                        self.diagnostic_timeout,
                     )
+                    collector_process = None
+                    if collector_status != 0:
+                        fail(
+                            "early-target diagnostic collector rejected the "
+                            f"target stream; inspect {diagnostic_log}"
+                        )
+                    require_log_markers(
+                        diagnostic_log,
+                        ("PASS receive-only early-target diagnostic capture ",),
+                    )
+                    diagnostic_boot_id = verify_diagnostic_evidence(
+                        diagnostic_record,
+                        anchor,
+                        self.profile.candidate,
+                    )
+                    if diagnostic_boot_id != target_boot_id:
+                        fail(
+                            "strict SSH and diagnostic stream boot identities differ"
+                        )
 
             network_status = wait_network_process(
                 network_process,

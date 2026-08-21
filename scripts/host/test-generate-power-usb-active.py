@@ -52,11 +52,24 @@ class PowerUsbGenerationTest(unittest.TestCase):
         shell = GENERATOR.SHELL_LOCK.read_text(encoding="ascii")
         self.assertIn("readonly POWER_USB_TARGET_RELEASE=", shell)
         self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
+        self.assertIn("readonly POWER_USB_PROBE_PHASE=post-ssh", shell)
         self.assertEqual(
             GENERATOR.TARGET_LOCK.read_text(encoding="ascii").splitlines()[-1],
-            "power_usb_bundle_prefix=headless-power-usb-observer-v",
+            "power_usb_probe_phase=post-ssh",
         )
         self.assertNotIn(self.record["candidate"], GENERATOR.TARGET_LOCK.read_text())
+
+    def test_early_probe_phase_selects_initramfs_capability(self) -> None:
+        mutated = deepcopy(self.source)
+        mutated["integration"]["probe_phase"] = "early-initramfs"
+        mutated["capability"]["target_commands"] = [
+            "ip",
+            "modprobe",
+            "rog5-early-power-observer",
+            "watchdog",
+        ]
+        GENERATOR.validate(mutated)
+        GENERATOR.validate_capability(mutated)
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)

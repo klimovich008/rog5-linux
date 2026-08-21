@@ -228,6 +228,8 @@ class Fixture:
                 },
             ],
             "host_boot_id": TARGET_BOOT_ID,
+            "power_evidence": [],
+            "power_evidence_count": 0,
             "started_unix_ns": 100,
             "target_boot_id": TARGET_BOOT_ID,
             "target_product": "ROG5 diagnostic network root",
@@ -1087,11 +1089,12 @@ class Fixture:
             f"""\
             #!/bin/sh
             set -eu
-            [ "$#" = 4 ]
+            [ "$#" = 5 ]
             [ "$1" = "{self.evidence / 'recovery-usb.anchor'}" ]
             [ "$2" = "{self.evidence / 'early-target-diagnostics.json'}" ]
             [ "$3" = 120 ]
             [ "$4" = 660 ]
+            [ "$5" = "{DIAGNOSTIC_CANDIDATE}" ]
             [ -z "${{SSH_KEY+x}}" ]
             [ -z "${{UNRELATED_CREDENTIAL+x}}" ]
             if [ "${{MOCK_COLLECTOR_EXIT_BEFORE_READY:-0}}" = 1 ]; then
@@ -3066,6 +3069,47 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             ),
             TARGET_BOOT_ID,
         )
+
+        early = copy.deepcopy(self.fixture.diagnostic_evidence)
+        early["power_evidence"] = [
+            {
+                "host_monotonic_ns": 260,
+                "host_unix_ns": 260,
+                "record": {
+                    "boot_id": TARGET_BOOT_ID,
+                    "boottime_ms": 210,
+                    "candidate": DIAGNOSTIC_CANDIDATE,
+                    "category": "summary",
+                    "encoding": "hex",
+                    "name": "result",
+                    "sequence": 1,
+                    "status": "present",
+                    "value": "636f6d706c657465",
+                },
+            }
+        ]
+        early["power_evidence_count"] = 1
+        early_path = write_document("early-power", early)
+        self.assertEqual(
+            CYCLE.verify_diagnostic_evidence(
+                early_path,
+                anchor,
+                DIAGNOSTIC_CANDIDATE,
+                require_ssh=False,
+                require_power=True,
+            ),
+            TARGET_BOOT_ID,
+        )
+        early["power_evidence"][0]["record"]["status"] = "absent"
+        rejected_early = write_document("early-power-incomplete", early)
+        with self.assertRaises(CYCLE.CycleError):
+            CYCLE.verify_diagnostic_evidence(
+                rejected_early,
+                anchor,
+                DIAGNOSTIC_CANDIDATE,
+                require_ssh=False,
+                require_power=True,
+            )
 
         def top(name: str, value: object):
             return lambda document: document.__setitem__(name, value)

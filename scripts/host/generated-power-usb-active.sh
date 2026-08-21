@@ -10,6 +10,7 @@ readonly POWER_USB_ADMISSION_PROFILE=power-usb-observer-live-v1
 readonly POWER_USB_RECOVERY_PROFILE=headless-power-usb-observer-v20-live-v1
 readonly POWER_USB_RUNTIME_PROFILE=power-usb-observer-v20
 readonly POWER_USB_BUILD_PROFILE=headless-ssh-v2
+readonly POWER_USB_PROBE_PHASE=post-ssh
 readonly POWER_USB_EXPECTED_DTB_SHA256=e42604f9bb91762d827b8f6eeff0b801f992f264fca47af3d40b213a4cff932e
 readonly POWER_USB_EXPECTED_MANIFEST_SHA256=676583e003ac369fbb22a107dd0f14cc5a505c19a4e804593cc1576a4d463729
 readonly POWER_USB_OUTPUT_ROOT=build/power-usb-observer-v20-offline-r1
