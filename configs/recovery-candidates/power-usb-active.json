@@ -2,12 +2,12 @@
   "format": "rog5-power-usb-candidate-source-v1",
   "record": {
     "format": "rog5-recovery-candidate-v1",
-    "candidate": "headless-power-usb-observer-v25",
+    "candidate": "headless-power-usb-observer-v26",
     "status": "offline",
     "authority": "none",
-    "bundle": "headless-power-usb-observer-v25",
+    "bundle": "headless-power-usb-observer-v26",
     "profile": "diagnostic-initramfs-v1",
-    "target_id": "headless-power-usb-observer-v25",
+    "target_id": "headless-power-usb-observer-v26",
     "target_release": "7.1.4-g7a5cef0db479",
     "rollback_timeout": "300",
     "target_timeout": "180",
@@ -37,16 +37,16 @@
   },
   "integration": {
     "admission_profile": "power-usb-observer-live-v1",
-    "recovery_profile": "headless-power-usb-observer-v25-live-v1",
-    "runtime_profile": "power-usb-observer-v25-early",
+    "recovery_profile": "headless-power-usb-observer-v26-live-v1",
+    "runtime_profile": "power-usb-observer-v26-early",
     "build_profile": "headless-ssh-v2",
     "probe_phase": "early-initramfs",
-    "output_root": "build/power-usb-observer-v25-offline-r1",
-    "marker_predecessor": "headless-power-usb-observer-v24",
-    "marker_purpose": "busybox-compatible-module-loading",
+    "output_root": "build/power-usb-observer-v26-offline-r1",
+    "marker_predecessor": "headless-power-usb-observer-v25",
+    "marker_purpose": "subfull-positive-current-observation",
     "boot_policy_status": "none",
     "boot_policy_basis": "one exact early-initramfs typed side-port power observer before NFS/systemd/SSH; RAM-only; externally consumed exact claim required; never flash or retry after entry",
-    "artifact_role": "unbooted V25 early-initramfs typed side-port power observer; V24 kernel/DT/firmware/modules/recovery with BusyBox-compatible verified module loading; one RAM-only use only; never flash"
+    "artifact_role": "unbooted V26 sub-full early-initramfs side-port power observer; exact V25 kernel/DT/firmware/modules/initramfs/recovery bytes with a fresh identity; one RAM-only use only; never flash"
   },
   "timing": {
     "prepare_timeout_seconds": 260,
