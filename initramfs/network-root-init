@@ -935,15 +935,24 @@ prepare_shutdown_root() {
 	return 0
 }
 
-prepare_deferred_charging_masks() {
+prepare_deferred_charging_module_policy() {
 	[ "${charging_probe_mode:-0}" -eq 2 ] || return 0
-	mask_root=$handoff_run/systemd/system
-	mkdir -p "$mask_root" || return 1
-	for unit in systemd-udev-trigger.service systemd-modules-load.service; do
-		path=$mask_root/$unit
-		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
-		ln -s /dev/null "$path" || return 1
-	done
+	policy_root=$handoff_run/modprobe.d
+	policy=$policy_root/rog5-deferred-charging.conf
+	mkdir -p "$policy_root" || return 1
+	[ ! -e "$policy" ] && [ ! -L "$policy" ] || return 1
+	cat >"$policy" <<'EOF' || return 1
+blacklist qcom_q6v5_pas
+blacklist qrtr_smd
+blacklist pmic_glink
+blacklist qcom_battmgr
+blacklist ucsi_glink
+blacklist pmic_glink_altmode
+blacklist qcom_pd_mapper
+blacklist qcom_apr
+blacklist fastrpc
+EOF
+	chmod 0444 "$policy" || return 1
 	return 0
 }
 
@@ -1089,9 +1098,9 @@ if ! verify_no_phone_storage; then
 	diagnostic_rollback storage-before-switch
 fi
 
-if ! prepare_deferred_charging_masks; then
-	log 'deferred charging runtime-mask preparation failed; rebooting'
-	diagnostic_rollback charging-mask-failed
+if ! prepare_deferred_charging_module_policy; then
+	log 'deferred charging module-policy preparation failed; rebooting'
+	diagnostic_rollback charging-module-policy-failed
 fi
 
 if ! prepare_shutdown_root; then
