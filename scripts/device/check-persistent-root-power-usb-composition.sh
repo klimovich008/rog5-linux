@@ -118,6 +118,8 @@ if [ -n "$module_root" ]; then
 		[ "$(modinfo -F vermagic "$path" | awk '{print $1}')" = \
 			"$expected_release" ] || fail "module ABI mismatch: $relative"
 	done
+	! readelf -S "$module_dir/kernel/drivers/soc/qcom/pdr_interface.ko" |
+		grep -q '[.]BTF' || fail 'composed PDR module retains rejected BTF'
 fi
 
 echo 'PASS exact ae717 read-only UFS kernel composition includes the V26 charging stack without ABI reuse'

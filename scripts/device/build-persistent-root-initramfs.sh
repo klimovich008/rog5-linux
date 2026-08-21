@@ -247,6 +247,11 @@ if [ -n "$power_modules_root" ]; then
 		install -m 0644 "$path" \
 			"$stage/rog5-power-usb-modules/${path##*/}"
 	done
+	! readelf -S "$stage/rog5-power-usb-modules/pdr_interface.ko" |
+		grep -q '[.]BTF' || {
+		echo 'FAIL persistent-root PDR override retains rejected BTF' >&2
+		exit 1
+	}
 fi
 attest_stage=$stage/usr/local/sbin/rog5-p2-attest
 install -D -m 0755 "$attest" "$attest_stage"

@@ -264,6 +264,13 @@ drivers/usb/typec/ucsi/ucsi_glink.ko drivers/usb/typec/ucsi/ucsi_glink.ko
 net/qrtr/qrtr-smd.ko net/qrtr/qrtr-smd.ko
 net/qrtr/qrtr.ko net/qrtr/qrtr.ko
 EOF
+	pdr_override=$module_dir/drivers/soc/qcom/pdr_interface.ko
+	llvm-objcopy --remove-section=.BTF "$pdr_override" "$pdr_override.tmp"
+	mv "$pdr_override.tmp" "$pdr_override"
+	! readelf -S "$pdr_override" | grep -q '[.]BTF' || {
+		echo 'FAIL composed PDR override retains rejected BTF' >&2
+		exit 1
+	}
 	depmod -b "$power_usb_module_root" "$expected_release"
 	closure=$output_dir/.power-usb-module-closure
 	for module in qcom_q6v5_pas qrtr_smd qcom_pd_mapper qcom_pdr_msg \

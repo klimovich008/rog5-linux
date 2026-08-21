@@ -192,6 +192,7 @@ grep -Fq 'storage appeared before the UFS stage' "$power_loader"
 grep -Fq 'typec_data_role=device' "$power_loader"
 grep -Fq 'typec_power_role=sink' "$power_loader"
 grep -Fq 'NCM route changed' "$power_loader"
+grep -Fq 'persistent-root PDR override retains rejected BTF' "$builder"
 ! grep -Eq 'charge_control|input_current_limit|constant_charge|charge_behaviour' \
 	"$power_loader" || fail 'persistent-root loader exposes a charging-control write'
 q6=$(grep -n '^load_module qcom_q6v5[.]ko ' "$power_loader" | cut -d: -f1)
