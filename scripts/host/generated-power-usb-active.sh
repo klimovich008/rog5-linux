@@ -13,6 +13,7 @@ readonly POWER_USB_BUILD_PROFILE=headless-ssh-v2
 readonly POWER_USB_EXPECTED_DTB_SHA256=e42604f9bb91762d827b8f6eeff0b801f992f264fca47af3d40b213a4cff932e
 readonly POWER_USB_EXPECTED_MANIFEST_SHA256=a9c023f4cd7fb49768c06fed1b6881a31ed3f757d4b1fcc036925210e738f77a
 readonly POWER_USB_OUTPUT_ROOT=build/power-usb-observer-v17-offline-r1
+readonly POWER_USB_BOOT_POLICY_STATUS=none
 readonly POWER_USB_BOOT_POLICY_BASIS='one exact PAS-memory-corrected key-only-SSH side-port charging observer; RAM-only; externally consumed exact claim required; never flash or retry after entry'
 readonly POWER_USB_ARTIFACT_ROLE='unbooted PAS-memory-corrected side-port charging observer; live-proven stock-owned RAM exclusions, firmware-complete initramfs, signed bundle, and fresh AVB generation required; one RAM-only use only; never flash'
 readonly POWER_USB_CANDIDATE_SHA256=4532d89287558af0403608ca5f8f690008fcd73301c8d6c25906ac9e2d530f09
