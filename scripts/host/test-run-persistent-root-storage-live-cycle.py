@@ -390,6 +390,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 MODULE.alpine_fallback_is_present("pci0000:00/usb1/1-1")
             )
         fallback.assert_called_once_with("pci0000:00/usb1/1-1")
+        source = MODULE_PATH.read_text()
+        shared = (REPO / "scripts/host/run-minimal-headless-live-cycle.py").read_text()
+        self.assertIn("cycle.capture_stock_fallback_preboot()", source)
+        self.assertIn(MODULE.PROFILE_ID, shared)
+        self.assertNotIn("capture_postmortem", source)
+        self.assertNotIn("exact Alpine fallback", source)
 
     def test_runner_contains_no_phone_storage_mutation_surface(self) -> None:
         source = MODULE_PATH.read_text()
