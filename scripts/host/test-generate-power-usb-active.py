@@ -52,6 +52,7 @@ class PowerUsbGenerationTest(unittest.TestCase):
         shell = GENERATOR.SHELL_LOCK.read_text(encoding="ascii")
         self.assertIn("readonly POWER_USB_TARGET_RELEASE=", shell)
         self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
+        self.assertIn("readonly POWER_USB_BOOT_POLICY_STATUS=none", shell)
         self.assertEqual(
             GENERATOR.TARGET_LOCK.read_text(encoding="ascii").splitlines()[-1],
             f"power_usb_candidate={self.record['candidate']}",
