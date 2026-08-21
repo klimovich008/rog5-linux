@@ -28,6 +28,9 @@ artifacts/network-root-v3/*
 !artifacts/network-root-v3/config-7.1.4-network-root
 !artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb
 !artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz
+!artifacts/network-root-power-usb-observer-v1/
+artifacts/network-root-power-usb-observer-v1/*
+!artifacts/network-root-power-usb-observer-v1/board.dtb
 !artifacts/recovery-stage-v18/
 artifacts/recovery-stage-v18/*
 !artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery
