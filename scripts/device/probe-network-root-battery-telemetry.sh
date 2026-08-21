@@ -194,8 +194,8 @@ hex_property() {
 for reservation in \
 	"$adsp_memory:00000000861000000000000002100000:ADSP" \
 	"$qrtr_memory:00000000d7ef70000000000000009000:QRTR" \
-	"$channel0_memory:00000000d7f00000000000000080000:channel-0" \
-	"$channel1_memory:00000000d7f80000000000000080000:channel-1"
+	"$channel0_memory:00000000d7f000000000000000080000:channel-0" \
+	"$channel1_memory:00000000d7f800000000000000080000:channel-1"
 do
 	path=${reservation%%:*}
 	rest=${reservation#*:}

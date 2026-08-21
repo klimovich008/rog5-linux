@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v14
+predecessor=headless-power-usb-observer-v13
+purpose=canonical-dt-hex-deferred-ssh-charging-observer

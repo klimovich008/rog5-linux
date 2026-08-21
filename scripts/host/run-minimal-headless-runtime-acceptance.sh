@@ -249,17 +249,18 @@ exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 	power_status=${PIPESTATUS[0]}
 	set -e
 	chmod 0600 "$power_record"
+	remote_power_reboot='set -eu; [ -s /run/rog5-network-root-watchdog.pid ]; [ ! -e /run/rog5-network-root-watchdog.disarmed.pid ]; exec systemctl reboot --no-block'
+	reboot_status=0
+	timeout --signal=TERM 20 ssh -T "${ssh_options[@]}" "$target" \
+		"$remote_power_reboot" </dev/null >/dev/null || reboot_status=$?
 	[[ $power_status == 0 ]] || fail 'target power/USB probe failed'
+	[[ $reboot_status == 0 ]] || fail 'target orderly reboot request failed'
 	[[ $(grep -Fxc 'PASS battery-telemetry mode=charging stayed RAM-only, storage-isolated, full-UCSI, explicit-write-free, and rollback-guarded' "$power_record") == 1 ]] ||
 		fail 'target power/USB probe lacks its exact success marker'
 	[[ $(grep -c '^EVIDENCE typec_port_count=' "$power_record") == 1 &&
 		$(grep -c '^EVIDENCE capacity_percent=' "$power_record") == 1 &&
 		$(grep -c '^EVIDENCE final_voltage_uV=' "$power_record") == 1 ]] ||
 		fail 'target power/USB evidence is incomplete'
-	remote_power_reboot='set -eu; [ -s /run/rog5-network-root-watchdog.pid ]; [ ! -e /run/rog5-network-root-watchdog.disarmed.pid ]; exec systemctl reboot --no-block'
-	timeout --signal=TERM 20 ssh -T "${ssh_options[@]}" "$target" \
-		"$remote_power_reboot" </dev/null >/dev/null ||
-		fail 'target orderly reboot request failed'
 fi
 
 if [[ $power_usb_profile == 1 ]]; then
