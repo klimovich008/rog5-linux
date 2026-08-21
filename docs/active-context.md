@@ -125,7 +125,7 @@ successor. See
   non-fatally over typed ACM netstrings.
 - Its real module closure is 16 files rather than the 844 MB module tree.
 - Twin offline initramfs builds match at
-  `46e8e4b287526194a11480e2c6fc99b30514799ae0d884b55ce46c267da1b011`.
+  `64c0e4be67f39817c7d86c31ee4d07fd0c9e7a076a971fd3fb8b1b9934c1b2d3`.
 - `test-repository-linux.sh probe` takes about 5.6 seconds.
 - The ASUS wrapper path checks a recovery-only content-addressed cache before
   compiling; target bundles and documentation do not invalidate it.
