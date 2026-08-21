@@ -21,7 +21,7 @@
 
 #define PAYLOAD_MAX 1024
 #define FRAME_MAX (PAYLOAD_MAX + 32)
-#define UPDATE_MAX 128
+#define UPDATE_MAX 1024
 #define UPDATE_BATCH_MAX 16
 #define CONTROL_FDS_MAX 16
 #define HEARTBEAT_MS 250
@@ -44,6 +44,14 @@ struct diagnostic_record {
 	const char *fault;
 	uint64_t deadline;
 	uint64_t dropped;
+};
+
+struct power_evidence {
+	char category[97];
+	char name[97];
+	char status[8];
+	char value[513];
+	uint64_t sequence;
 };
 
 static const struct stage stages[] = {
@@ -222,6 +230,39 @@ static bool valid_fault(const char *value)
 	return canonical_fault(value) != NULL;
 }
 
+static bool valid_evidence_token(const char *value)
+{
+	size_t index;
+	size_t length = strlen(value);
+
+	if (length < 1 || length > 96 || value[0] < 'a' || value[0] > 'z')
+		return false;
+	for (index = 0; index < length; index++) {
+		char byte = value[index];
+
+		if ((byte >= 'a' && byte <= 'z') ||
+		    (byte >= '0' && byte <= '9') || byte == '_' || byte == '.' ||
+		    byte == ':' || byte == '-')
+			continue;
+		return false;
+	}
+	return true;
+}
+
+static bool valid_evidence_value(const char *value)
+{
+	size_t index;
+	size_t length = strlen(value);
+
+	if (length > 512 || (length % 2) != 0)
+		return false;
+	for (index = 0; index < length; index++) {
+		if (!hex_byte(value[index]))
+			return false;
+	}
+	return true;
+}
+
 static void write_all(int descriptor, const char *buffer, size_t length)
 {
 	while (length > 0) {
@@ -299,6 +340,38 @@ static size_t format_frame(const struct diagnostic_record *record,
 				payload_length, payload);
 	if (frame_length < 1 || frame_length >= FRAME_MAX)
 		fail("encoded frame exceeds policy");
+	return (size_t)frame_length;
+}
+
+static size_t format_evidence_frame(const struct diagnostic_record *record,
+				    const struct power_evidence *evidence,
+				    char frame[FRAME_MAX])
+{
+	char payload[PAYLOAD_MAX + 1];
+	int payload_length;
+	int frame_length;
+
+	payload_length = snprintf(
+		payload, sizeof(payload),
+		"format=rog5-early-power-evidence-v1\n"
+		"candidate=%s\n"
+		"boot_id=%s\n"
+		"sequence=%" PRIu64 "\n"
+		"boottime_ms=%" PRIu64 "\n"
+		"category=%s\n"
+		"name=%s\n"
+		"status=%s\n"
+		"encoding=hex\n"
+		"value=%s\n",
+		record->candidate, record->boot_id, evidence->sequence,
+		record->boottime, evidence->category, evidence->name,
+		evidence->status, evidence->value);
+	if (payload_length < 1 || payload_length > PAYLOAD_MAX)
+		fail("power evidence payload exceeds policy");
+	frame_length = snprintf(frame, FRAME_MAX, "%d:%s,",
+				payload_length, payload);
+	if (frame_length < 1 || frame_length >= FRAME_MAX)
+		fail("encoded power evidence exceeds policy");
 	return (size_t)frame_length;
 }
 
@@ -469,6 +542,55 @@ static bool parse_update(char *message, size_t length,
 	return true;
 }
 
+static bool take_evidence_field(char **cursor, const char *prefix,
+				char *output, size_t output_size)
+{
+	char *newline;
+	size_t length;
+
+	if (strncmp(*cursor, prefix, strlen(prefix)) != 0)
+		return false;
+	*cursor += strlen(prefix);
+	newline = strchr(*cursor, '\n');
+	if (newline == NULL)
+		return false;
+	length = (size_t)(newline - *cursor);
+	if (length >= output_size)
+		return false;
+	memcpy(output, *cursor, length);
+	output[length] = '\0';
+	*cursor = newline + 1;
+	return true;
+}
+
+static bool parse_evidence_update(char *message, size_t length,
+				  struct power_evidence *evidence)
+{
+	char *cursor = message;
+
+	if (length < 1 || length >= UPDATE_MAX || message[length - 1] != '\n')
+		return false;
+	message[length] = '\0';
+	if (!take_evidence_field(&cursor, "category=", evidence->category,
+				 sizeof(evidence->category)) ||
+	    !take_evidence_field(&cursor, "name=", evidence->name,
+				 sizeof(evidence->name)) ||
+	    !take_evidence_field(&cursor, "status=", evidence->status,
+				 sizeof(evidence->status)) ||
+	    !take_evidence_field(&cursor, "value=", evidence->value,
+				 sizeof(evidence->value)) ||
+	    *cursor != '\0' || !valid_evidence_token(evidence->category) ||
+	    !valid_evidence_token(evidence->name) ||
+	    (strcmp(evidence->status, "present") != 0 &&
+	     strcmp(evidence->status, "absent") != 0 &&
+	     strcmp(evidence->status, "error") != 0) ||
+	    !valid_evidence_value(evidence->value) ||
+	    (strcmp(evidence->status, "present") == 0 &&
+	     evidence->value[0] == '\0'))
+		return false;
+	return true;
+}
+
 static bool apply_update(struct diagnostic_record *record,
 			 unsigned int stage_code, const char *fault,
 			 bool *terminal)
@@ -500,10 +622,14 @@ static void count_dropped_update(struct diagnostic_record *record)
 }
 
 static void receive_updates(int descriptor,
-			    struct diagnostic_record *record, bool *terminal)
+			    struct diagnostic_record *record, bool *terminal,
+			    struct power_evidence *evidence,
+			    bool *evidence_pending)
 {
 	unsigned int received;
 
+	if (*evidence_pending)
+		return;
 	for (received = 0; received < UPDATE_BATCH_MAX; received++) {
 		char message[UPDATE_MAX];
 		union {
@@ -573,14 +699,26 @@ static void receive_updates(int descriptor,
 		if ((header.msg_flags & MSG_CTRUNC) != 0 || rights_seen ||
 		    !credentials_seen || credentials.pid <= 0 ||
 #ifdef ROG5_DIAG_TESTING
-		    credentials.uid != geteuid() ||
+		    credentials.uid != geteuid()
 #else
-		    credentials.uid != 0 ||
+		    credentials.uid != 0
 #endif
-		    !parse_update(message, (size_t)length, &stage_code, &fault) ||
-		    !apply_update(record, stage_code, fault, terminal)) {
+		    ) {
 			count_dropped_update(record);
+			continue;
 		}
+		if (parse_update(message, (size_t)length, &stage_code, &fault)) {
+			if (!apply_update(record, stage_code, fault, terminal))
+				count_dropped_update(record);
+			continue;
+		}
+		if (!*terminal && parse_evidence_update(
+			    message, (size_t)length, evidence)) {
+			evidence->sequence++;
+			*evidence_pending = true;
+			return;
+		}
+		count_dropped_update(record);
 	}
 }
 
@@ -668,6 +806,7 @@ static uint64_t testing_frame_limit(void)
 
 static void serve_diagnostics(int argc, char **argv)
 {
+	struct power_evidence evidence = { .sequence = 0 };
 	char pending[FRAME_MAX];
 	struct diagnostic_record record;
 	struct pollfd update_poll;
@@ -677,6 +816,7 @@ static void serve_diagnostics(int argc, char **argv)
 	size_t pending_length = 0;
 	size_t pending_offset = 0;
 	bool terminal = false;
+	bool evidence_pending = false;
 	int output = -1;
 	int update_socket;
 
@@ -710,14 +850,21 @@ static void serve_diagnostics(int argc, char **argv)
 		uint64_t now = monotonic_milliseconds();
 		int timeout;
 
-		receive_updates(update_socket, &record, &terminal);
+		receive_updates(update_socket, &record, &terminal, &evidence,
+				&evidence_pending);
 		if (!terminal && record.deadline >= PRETIMEOUT_MS &&
 		    now >= record.deadline - PRETIMEOUT_MS) {
 			record.stage_code = 210;
 			record.fault = "none";
 			terminal = true;
 		}
-		if (pending_length == 0 && now >= next_frame) {
+		if (pending_length == 0 && evidence_pending) {
+			record.boottime = now;
+			pending_length = format_evidence_frame(
+				&record, &evidence, pending);
+			pending_offset = 0;
+			evidence_pending = false;
+		} else if (pending_length == 0 && now >= next_frame) {
 			record.boottime = now;
 			pending_length = format_frame(&record, pending);
 			pending_offset = 0;
@@ -802,6 +949,41 @@ static void send_update(int argc, char **argv)
 		fail("cannot publish diagnostic update");
 }
 
+static void send_evidence(int argc, char **argv)
+{
+	char message[UPDATE_MAX];
+	struct sockaddr_un address;
+	socklen_t address_length;
+	int descriptor;
+	int length;
+	ssize_t sent;
+
+	if (argc != 6)
+		fail("usage: evidence CATEGORY NAME STATUS HEX_VALUE");
+	if (!valid_evidence_token(argv[2]) ||
+	    !valid_evidence_token(argv[3]) ||
+	    (strcmp(argv[4], "present") != 0 &&
+	     strcmp(argv[4], "absent") != 0 &&
+	     strcmp(argv[4], "error") != 0) ||
+	    !valid_evidence_value(argv[5]) ||
+	    (strcmp(argv[4], "present") == 0 && argv[5][0] == '\0'))
+		fail("invalid power evidence update");
+	length = snprintf(message, sizeof(message),
+			  "category=%s\nname=%s\nstatus=%s\nvalue=%s\n",
+			  argv[2], argv[3], argv[4], argv[5]);
+	if (length < 1 || (size_t)length >= sizeof(message))
+		fail("power evidence update exceeds policy");
+	descriptor = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (descriptor < 0)
+		fail("cannot create power evidence client");
+	address_length = diagnostic_address(&address);
+	sent = sendto(descriptor, message, (size_t)length, MSG_NOSIGNAL,
+		      (struct sockaddr *)&address, address_length);
+	close(descriptor);
+	if (sent != length)
+		fail("cannot publish power evidence update");
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 2)
@@ -812,6 +994,8 @@ int main(int argc, char **argv)
 		serve_diagnostics(argc, argv);
 	else if (strcmp(argv[1], "emit") == 0)
 		send_update(argc, argv);
+	else if (strcmp(argv[1], "evidence") == 0)
+		send_evidence(argc, argv);
 	else
 		fail("unknown diagnostic operation");
 	return EXIT_SUCCESS;

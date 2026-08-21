@@ -22,6 +22,7 @@ from tools.recovery_control.reference import (  # noqa: E402
 
 
 FORMAT = "rog5-early-target-diag-v1"
+POWER_FORMAT = "rog5-early-power-evidence-v1"
 PAYLOAD_MAX = 1024
 MAX_U64 = (1 << 64) - 1
 CANDIDATE = re.compile(r"[a-z0-9][a-z0-9.-]{0,63}\Z")
@@ -117,6 +118,20 @@ FIELDS = (
     "watchdog_deadline_ms",
     "dropped_updates",
 )
+POWER_FIELDS = (
+    "format",
+    "candidate",
+    "boot_id",
+    "sequence",
+    "boottime_ms",
+    "category",
+    "name",
+    "status",
+    "encoding",
+    "value",
+)
+POWER_TOKEN = re.compile(r"[a-z0-9][a-z0-9_.:-]{0,95}\Z")
+POWER_STATUSES = frozenset({"present", "absent", "error"})
 
 
 class DiagnosticError(RuntimeError):
@@ -164,6 +179,87 @@ class DiagnosticRecord:
     fault: str
     watchdog_deadline_ms: int
     dropped_updates: int
+
+
+@dataclass(frozen=True)
+class PowerEvidenceRecord:
+    candidate: str
+    boot_id: str
+    sequence: int
+    boottime_ms: int
+    category: str
+    name: str
+    status: str
+    encoding: str
+    value: str
+
+
+def parse_power_payload(
+    payload: bytes, *, expected_candidate: str
+) -> PowerEvidenceRecord:
+    if (
+        not payload
+        or len(payload) > PAYLOAD_MAX
+        or not payload.endswith(b"\n")
+        or b"\r" in payload
+        or b"\0" in payload
+    ):
+        fail("power evidence payload framing is invalid")
+    try:
+        lines = payload[:-1].decode("ascii").split("\n")
+    except UnicodeDecodeError as error:
+        raise DiagnosticError("power evidence payload is not ASCII") from error
+    if len(lines) != len(POWER_FIELDS):
+        fail("power evidence field count is invalid")
+    values: dict[str, str] = {}
+    for expected, line in zip(POWER_FIELDS, lines, strict=True):
+        if "=" not in line:
+            fail("power evidence field separator is missing")
+        name, value = line.split("=", 1)
+        if name != expected:
+            fail("power evidence field order is invalid")
+        values[name] = value
+    if values["format"] != POWER_FORMAT:
+        fail("power evidence format is invalid")
+    if (
+        not valid_candidate(values["candidate"])
+        or values["candidate"] != expected_candidate
+        or not BOOT_ID.fullmatch(values["boot_id"])
+    ):
+        fail("power evidence identity is invalid")
+    sequence = canonical_decimal(
+        values["sequence"], "power evidence sequence", minimum=1
+    )
+    boottime = canonical_decimal(
+        values["boottime_ms"], "power evidence boottime"
+    )
+    if not POWER_TOKEN.fullmatch(values["category"]):
+        fail("power evidence category is invalid")
+    if not POWER_TOKEN.fullmatch(values["name"]):
+        fail("power evidence name is invalid")
+    if values["status"] not in POWER_STATUSES:
+        fail("power evidence status is invalid")
+    if values["encoding"] != "hex":
+        fail("power evidence encoding is invalid")
+    value = values["value"]
+    if (
+        len(value) > 512
+        or len(value) % 2 != 0
+        or any(byte not in "0123456789abcdef" for byte in value)
+        or values["status"] == "present" and not value
+    ):
+        fail("power evidence value is invalid")
+    return PowerEvidenceRecord(
+        candidate=values["candidate"],
+        boot_id=values["boot_id"],
+        sequence=sequence,
+        boottime_ms=boottime,
+        category=values["category"],
+        name=values["name"],
+        status=values["status"],
+        encoding=values["encoding"],
+        value=value,
+    )
 
 
 def parse_payload(
@@ -300,6 +396,9 @@ class DiagnosticStream:
         self.terminal: tuple[int, int, str] | None = None
         self.watchdog_deadline_ms: int | None = None
         self.dropped_updates = 0
+        self.power_sequence = 0
+        self.power_boottime_ms = 0
+        self.power_records: list[PowerEvidenceRecord] = []
 
     def accept(self, record: DiagnosticRecord) -> None:
         if (
@@ -354,19 +453,35 @@ class DiagnosticStream:
         self.dropped_updates = record.dropped_updates
         self.records.append(record)
 
-    def feed(self, data: bytes) -> list[DiagnosticRecord]:
+    def feed(
+        self, data: bytes
+    ) -> list[DiagnosticRecord | PowerEvidenceRecord]:
         try:
             payloads = self.parser.feed(data)
         except ProtocolViolation as error:
             raise DiagnosticError(
                 f"invalid diagnostic netstring: {error}"
             ) from error
-        accepted: list[DiagnosticRecord] = []
+        accepted: list[DiagnosticRecord | PowerEvidenceRecord] = []
         for payload in payloads:
-            record = parse_payload(
-                payload, expected_candidate=self.expected_candidate
-            )
-            self.accept(record)
+            if payload.startswith(f"format={POWER_FORMAT}\n".encode("ascii")):
+                record = parse_power_payload(
+                    payload, expected_candidate=self.expected_candidate
+                )
+                if self.boot_id is None or record.boot_id != self.boot_id:
+                    fail("power evidence precedes or changes target identity")
+                if record.sequence <= self.power_sequence:
+                    fail("power evidence sequence did not increase")
+                if record.boottime_ms < self.power_boottime_ms:
+                    fail("power evidence boottime regressed")
+                self.power_sequence = record.sequence
+                self.power_boottime_ms = record.boottime_ms
+                self.power_records.append(record)
+            else:
+                record = parse_payload(
+                    payload, expected_candidate=self.expected_candidate
+                )
+                self.accept(record)
             accepted.append(record)
         return accepted
 

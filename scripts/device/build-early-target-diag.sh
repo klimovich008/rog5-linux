@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-early-target-diag.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=22039
-expected_source_sha256=a7a5f81343240d5dc8aa2a14b060009b401949d6162fc7ef8fb47635d3aaef85
+expected_source_size=27394
+expected_source_sha256=06fdb95dc24e3a3f4bbfa8d63580084fee7168272dcf4b7e9771bd705e965a06
 expected_output_size=67288
-expected_output_sha256=437747043b5d606d82e00c37b8a3e45f54a96cdb9c5c22780bb285ab10650a9d
+expected_output_sha256=fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604
 
 fail() {
 	echo "FAIL $*" >&2
@@ -83,6 +83,7 @@ for marker in \
 		'route-failed' \
 		'host-port-timeout' \
 		'charging-probe-complete' \
+		'format=rog5-early-power-evidence-v1' \
 		'watchdog-pretimeout' \
 	'cannot require diagnostic peer credentials'; do
 	strings "$temporary" | grep -Fqx "$marker" ||

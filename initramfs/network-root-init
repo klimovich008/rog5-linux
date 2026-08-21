@@ -20,11 +20,13 @@ handoff_sys=/sys
 handoff_run=/run
 diagnostic_binary=/sbin/rog5-early-target-diag
 diagnostic_candidate=headless-netroot-early-diag-v2
+diagnostic_report_candidate=
 charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
 charging_probe_observable=headless-full-ucsi-charging-early-v3
 power_usb_profile=/etc/rog5/power-usb-active.sh
 power_usb_bundle_prefix=
+power_usb_probe_phase=
 diagnostic_mode=0
 charging_probe_mode=0
 diagnostic_pid=
@@ -90,11 +92,12 @@ start_diagnostics() {
 		[ ! -L "$diagnostic_binary" ] || return 1
 	case ${deadline_boottime:-} in *[!0-9]*|'') return 1 ;; esac
 	boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
-	log "lineage format=rog5-target-lineage-v1 candidate=$diagnostic_candidate boot_id=$boot_id"
+	[ -n "$diagnostic_report_candidate" ] || return 1
+	log "lineage format=rog5-target-lineage-v1 candidate=$diagnostic_report_candidate boot_id=$boot_id"
 	deadline_ms=$((deadline_boottime * 1000))
 	reporter_log=/dev/null
 	[ ! -w /dev/kmsg ] || reporter_log=/dev/kmsg
-	setsid "$diagnostic_binary" serve "$diagnostic_candidate" \
+	setsid "$diagnostic_binary" serve "$diagnostic_report_candidate" \
 		"$boot_id" "$deadline_ms" >/dev/null 2>"$reporter_log" &
 	diagnostic_pid=$!
 	attempt=0
@@ -231,9 +234,11 @@ is_nonzero_sha256() {
 
 load_power_usb_profile() {
 	power_usb_bundle_prefix=
+	power_usb_probe_phase=
 	[ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ] || return 1
 	. /etc/rog5/power-usb-active.sh || return 1
-	[ "$power_usb_bundle_prefix" = headless-power-usb-observer-v ]
+	[ "$power_usb_bundle_prefix" = headless-power-usb-observer-v ] &&
+		case $power_usb_probe_phase in post-ssh|early-initramfs) true ;; *) false ;; esac
 }
 
 is_power_usb_bundle() {
@@ -250,6 +255,7 @@ is_power_usb_bundle() {
 parse_network_root_command_line() {
 	diagnostic_mode=0
 	charging_probe_mode=0
+	diagnostic_report_candidate=
 	recovery_timeout=
 	recovery_timeout_count=0
 	netroot_count=0
@@ -375,8 +381,16 @@ parse_network_root_command_line() {
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		is_power_usb_bundle "$bundle"; then
-		diagnostic_mode=0
-		charging_probe_mode=2
+		case $power_usb_probe_phase in
+			post-ssh)
+				diagnostic_mode=0
+				charging_probe_mode=2
+				;;
+			early-initramfs)
+				diagnostic_mode=1
+				charging_probe_mode=3
+				;;
+		esac
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
 		case $bundle in "$power_usb_bundle_prefix"*) false ;; *) true ;; esac &&
@@ -401,7 +415,11 @@ parse_network_root_command_line() {
 		[ "$root_subtree_count" -eq 1 ] &&
 		[ "$root_generation" = arch-a ] &&
 		[ "$root_subtree" = / ] &&
-		[ "$root_identity_invalid" -eq 0 ]
+		[ "$root_identity_invalid" -eq 0 ] || return 1
+	if [ "$diagnostic_mode" -eq 1 ]; then
+		diagnostic_report_candidate=$bundle
+	fi
+	return 0
 }
 
 process_start_time_ticks() (
@@ -1087,6 +1105,20 @@ usb_status=$?
 if [ "$usb_status" -ne 0 ]; then
 	log "USB network-root transport failed; step=$usb_step fault=$diagnostic_fault; rebooting"
 	diagnostic_rollback "$diagnostic_fault"
+fi
+
+if [ "${charging_probe_mode:-0}" -eq 3 ]; then
+	diagnostic_emit 141 || diagnostic_rollback charging-probe-failed
+	exec /usr/bin/env \
+		ALLOW_NETWORK_ROOT_EARLY_POWER_OBSERVER=1 \
+		ROG5_POWER_EVIDENCE_CANDIDATE="$bundle" \
+		ROG5_POWER_EVIDENCE_BOOT_ID="$boot_id" \
+		ROG5_POWER_EVIDENCE_REPORTER="$diagnostic_binary" \
+		ROG5_POWER_FIRMWARE_DIR=/opt/rog5-charge-firmware \
+		ROG5_POWER_PDR_MODULE=/opt/rog5-charge-modules/pdr_interface.ko \
+		ROG5_POWER_SETTLE_SECONDS=20 \
+		/sbin/rog5-early-power-observer
+	diagnostic_rollback charging-probe-failed
 fi
 
 mount_network_root
