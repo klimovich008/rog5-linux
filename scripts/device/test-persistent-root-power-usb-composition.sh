@@ -48,6 +48,8 @@ done
 [ "$(grep -Fc '.ko \' "$builder")" -ge 14 ]
 grep -Fq "[ \"\$(wc -l <\"\$closure\")\" -eq 15 ]" "$builder"
 grep -Fq 'power_usb_modules=%s' "$builder"
+grep -Fq 'llvm-objcopy --remove-section=.BTF' "$builder"
+grep -Fq 'composed PDR module retains rejected BTF' "$checker"
 if POWER_USB_MODULES=2 "$builder" >"$stage/out" 2>"$stage/err"; then
 	echo 'FAIL persistent-root builder accepted invalid power/USB mode' >&2
 	exit 1

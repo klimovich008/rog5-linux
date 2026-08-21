@@ -47,3 +47,11 @@ claim is included in this checkpoint.
 The live question remains whether the combined ADSP/PMIC
 GLINK/UCSI and deferred-UFS path reaches the existing local Arch root and
 key-only SSH while preserving NCM and charging.
+
+Generation 77 consumed its sole RAM-only cycle. Recovery and the complete
+signed bundle transfer passed. Target NCM enumerated at the exact USB path for
+2.77 seconds, then the target performed its fail-closed rollback before any
+UFS or SSH evidence and returned exact stock slot A. The resolved outcome is
+`FALLBACK_RETURNED`. The packaged `pdr_interface.ko` retained `.BTF`, matching
+the already proven V18 module rejection. Generation 78 removes only that one
+section; its `.text` bytes are identical.

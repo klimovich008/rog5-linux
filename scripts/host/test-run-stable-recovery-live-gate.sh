@@ -225,8 +225,8 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 70 RAM-only cycle; exact UFS, local image, tmpfs OverlayFS, P2 storage attestation, bounded authenticated SSH marker acceptance, strict key-only runtime, normal reboot, exact Alpine fallback, PS_HOLD lineage, and host restoration passed in 326.300 seconds; never retry or flash" && NF == 3 { generation70++ ; next }
 	$1 == "build/persistent-root-power-usb-v1-generation77-20260821-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact RAM-only combined-stack cycle proving current stable recovery, side-port NCM and charging, deferred read-only UFS, local Arch image, key-only SSH, and exact stock slot-A fallback; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation77++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 77 RAM-only cycle; recovery and exact bundle transfer passed, target NCM enumerated for 2.77 seconds, then an immediate target fail-closed rollback returned exact stock slot A before UFS or SSH evidence; packaged pdr_interface retained the V18-proven rejected BTF section; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation77++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -280,7 +280,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
