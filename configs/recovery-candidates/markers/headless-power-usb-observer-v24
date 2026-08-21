@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v24
+predecessor=headless-power-usb-observer-v23
+purpose=major-minor-block-mount-classification
