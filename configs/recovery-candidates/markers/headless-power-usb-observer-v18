@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v18
+predecessor=headless-power-usb-observer-v17
+purpose=candidate-independent-power-usb-capability-retention

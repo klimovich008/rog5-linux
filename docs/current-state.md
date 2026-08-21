@@ -71,8 +71,11 @@ channel-size strings. V14 masked module coldplug too late; V15 masked whole
 services too early and blocked systemd readiness. V16 passed NFS, systemd,
 key-only SSH, and probe isolation, then exposed an R2 deployed-DTB regression:
 the full-UCSI artifact had lost three live-proven stock-owned PAS memory
-exclusions, so secure firmware rejected ADSP metadata with `-EINVAL`. V17 adds
-only those established exclusions. The only hand-maintained successor source is
+exclusions, so secure firmware rejected ADSP metadata with `-EINVAL`. V17 added
+those exclusions and passed NFS, systemd, strict SSH, runtime acceptance, and
+fallback, but its reused initramfs still selected V16 exactly and omitted the
+retained probe. V18 selects the stable power/USB capability family and rebuilds
+only the target initramfs. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`.
@@ -102,7 +105,7 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-Issue a byte-distinct V17 wrapper from the already clean-twin-proven raw input,
+Issue a byte-distinct V18 wrapper from the already clean-twin-proven raw input,
 publish the coherent checkpoint, admit its exact disposable-key chain once,
 and run one live side-port observation
 through systemd and strict SSH. Its result decides whether the next change is

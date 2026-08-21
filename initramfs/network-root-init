@@ -24,7 +24,7 @@ charging_probe_candidate=headless-full-ucsi-charging-early-v1
 charging_probe_successor=headless-full-ucsi-charging-early-v2
 charging_probe_observable=headless-full-ucsi-charging-early-v3
 power_usb_profile=/etc/rog5/power-usb-active.sh
-power_usb_candidate=
+power_usb_bundle_prefix=
 diagnostic_mode=0
 charging_probe_mode=0
 diagnostic_pid=
@@ -230,15 +230,21 @@ is_nonzero_sha256() {
 }
 
 load_power_usb_profile() {
-	power_usb_candidate=
+	power_usb_bundle_prefix=
 	[ -f "$power_usb_profile" ] && [ ! -L "$power_usb_profile" ] || return 1
 	. /etc/rog5/power-usb-active.sh || return 1
-	case $power_usb_candidate in
-		headless-power-usb-observer-v[1-9]|headless-power-usb-observer-v[1-9][0-9]*)
-			return 0
-			;;
+	[ "$power_usb_bundle_prefix" = headless-power-usb-observer-v ]
+}
+
+is_power_usb_bundle() {
+	case $1 in
+		"$power_usb_bundle_prefix"*) suffix=${1#"$power_usb_bundle_prefix"} ;;
 		*) return 1 ;;
 	esac
+	case $suffix in
+		''|0|0*|*[!0-9]*) return 1 ;;
+	esac
+	return 0
 }
 
 parse_network_root_command_line() {
@@ -368,11 +374,12 @@ parse_network_root_command_line() {
 			charging_probe_mode=1
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
-		[ "$bundle" = "$power_usb_candidate" ]; then
+		is_power_usb_bundle "$bundle"; then
 		diagnostic_mode=0
 		charging_probe_mode=2
 	elif [ "$diagnostic_count" -eq 0 ] &&
 		[ "$diagnostic_invalid" -eq 0 ] &&
+		case $bundle in "$power_usb_bundle_prefix"*) false ;; *) true ;; esac &&
 		[ "$bundle" != "$diagnostic_candidate" ] &&
 		[ "$bundle" != "$charging_probe_candidate" ] &&
 		[ "$bundle" != "$charging_probe_successor" ] &&

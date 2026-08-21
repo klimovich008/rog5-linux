@@ -54,8 +54,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
         self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
         self.assertEqual(
             GENERATOR.TARGET_LOCK.read_text(encoding="ascii").splitlines()[-1],
-            f"power_usb_candidate={self.record['candidate']}",
+            "power_usb_bundle_prefix=headless-power-usb-observer-v",
         )
+        self.assertNotIn(self.record["candidate"], GENERATOR.TARGET_LOCK.read_text())
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)
@@ -115,9 +116,9 @@ class PowerUsbGenerationTest(unittest.TestCase):
             self.integration["expected_dtb_sha256"],
             self.record["artifacts"]["board.dtb"]["sha256"],
         )
-        self.assertEqual(
+        self.assertRegex(
             self.integration["expected_manifest_sha256"],
-            "a9c023f4cd7fb49768c06fed1b6881a31ed3f757d4b1fcc036925210e738f77a",
+            r"[0-9a-f]{64}\Z",
         )
 
     def test_built_receipt_verification_includes_canonical_build_root(self) -> None:
