@@ -123,7 +123,7 @@ passed after both cycles. V23 is the target-only successor. See
   non-fatally over typed ACM netstrings.
 - Its real module closure is 16 files rather than the 844 MB module tree.
 - Twin offline initramfs builds match at
-  `040d5f944740276dba82b1195ebf23ca618c129e44559e8e2da14dc88aa5800f`.
+  `46e8e4b287526194a11480e2c6fc99b30514799ae0d884b55ce46c267da1b011`.
 - `test-repository-linux.sh probe` takes about 5.6 seconds.
 - The ASUS wrapper path checks a recovery-only content-addressed cache before
   compiling; target bundles and documentation do not invalidate it.
@@ -131,6 +131,9 @@ passed after both cycles. V23 is the target-only successor. See
   use fastboot, ACM/NCM, and later key-only SSH.
 
 ## Next execution sequence
+
+V23's sole acceptance test is stable side-port NCM/ACM plus complete typed
+battery/UCSI evidence and net-positive current at a safe temperature.
 
 1. Record V22 as consumed with R3 classification.
 2. Pass every mandatory pre-build item in `docs/development-lessons.md`.
