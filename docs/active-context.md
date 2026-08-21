@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -79,7 +79,7 @@ Authoritative clean repository:
 
 - path: `/home/deck/.local/state/rog5-haven-clean-ci-20260810`
 - branch: `agent/linux-recovery-host`
-- starting published head: `ac7689f3e8307f024b229cb10809e7f4f972eafd`
+- starting published head: `9a86c94bf2357f8128ef42301f19283e226d82a3`
 
 The separate workspace at
 `/home/deck/Projects/rog-phone-linux-migration/repo` preserves unfinished
@@ -110,18 +110,32 @@ reused initramfs still selected V16 exactly, skipped deferred charging mode,
 and omitted the retained probe. V18 replaced that identity copy, reached ADSP
 `running`, and then found `pdr_interface.ko` had incompatible build-specific
 BTF. V19 passed PDR/PMIC GLINK/UCSI and found `port_type` is source-validly
-optional. V20 classifies that absence and has no boot authority. See
+optional. V20 classified that absence, then was revoked unbooted before phone
+contact in favor of an early-initramfs observer. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
+
+## Current loop optimization
+
+- The observer runs before NFS/systemd/SSH and reports optional telemetry
+  non-fatally over typed ACM netstrings.
+- Its real module closure is 16 files rather than the 844 MB module tree.
+- Twin offline initramfs builds match at
+  `040d5f944740276dba82b1195ebf23ca618c129e44559e8e2da14dc88aa5800f`.
+- `test-repository-linux.sh probe` takes about 5.6 seconds.
+- The ASUS wrapper path checks a recovery-only content-addressed cache before
+  compiling; target bundles and documentation do not invalidate it.
+- Persistent stock-Android ADB is no longer a project objective. Linux cycles
+  use fastboot, ACM/NCM, and later key-only SSH.
 
 ## Next execution sequence
 
 1. Pass every mandatory pre-build item in `docs/development-lessons.md`.
-2. Freeze and publish the canonical generated candidate source.
-3. Reuse the exact clean-twin raw wrapper inputs and issue a fresh,
-   byte-distinct AVB generation; do not rebuild an unchanged kernel.
+2. Freeze and publish the loop-optimization checkpoint.
+3. Generate one V21 early-probe bundle from the clean-twin initramfs and reuse
+   the stable recovery wrapper cache; do not rebuild an unchanged kernel.
 4. Verify serial, USB topology, slot A, battery, candidate, and one-use claim.
 5. Temporarily boot once with only the side port connected.
-6. Reach systemd and key-only SSH, then run the power/USB probe.
+6. Run the observer immediately after NCM carrier, before NFS/systemd/SSH.
 7. Record UCSI port1, power role, USB limits, battery current/temperature,
    NCM continuity, and rollback result.
 8. Patch only the earliest demonstrated failure.

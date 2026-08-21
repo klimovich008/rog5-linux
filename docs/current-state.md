@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -77,11 +77,12 @@ fallback, but its reused initramfs still selected V16 exactly and omitted the
 retained probe. V18 selected the stable power/USB capability family, reached
 ADSP `running`, then exposed stale build-specific BTF in `pdr_interface.ko`.
 ABI. V19 passed PDR, PMIC GLINK, and UCSI, then exposed a source-valid absent
-`port_type` and a probe variable collision. V20 classifies that optional
-attribute without weakening mandatory roles. The only hand-maintained successor source is
+`port_type` and a probe variable collision. V20 classified that optional
+attribute but was revoked unbooted before phone contact when the development
+loop moved to an early-initramfs observer. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
-`boot_policy_status=none`.
+`boot_policy_status=none`; the historical V20 policy row is revoked.
 
 The initramfs builder installs the reviewed charging probe explicitly and the
 archive verifier compares the embedded bytes with repository source. The
@@ -108,8 +109,19 @@ appending lifecycle transcripts.
 
 ## Immediate next gate
 
-Issue a byte-distinct V20 wrapper from the already clean-twin-proven raw input,
-publish the coherent checkpoint, admit its exact disposable-key chain once,
-and run one live side-port observation
-through systemd and strict SSH. Its result decides whether the next change is
-kernel, DT, Qualcomm protocol support, or host cabling/power policy.
+The next observer runs after NCM carrier and before NFS, systemd, or SSH. It
+streams bounded typed battery, power-supply, Type-C, remoteproc, PMIC GLINK,
+UCSI, and dmesg records over ACM. Optional telemetry records
+`present`/`absent`/`error`; only identity, unsafe power or temperature, storage
+visibility, transport integrity, and rollback failures are fatal.
+
+The exact 16-file module closure produced twin-identical 22.4 MB initramfses
+with SHA-256 `040d5f944740276dba82b1195ebf23ca618c129e44559e8e2da14dc88aa5800f`.
+The focused `probe` tier takes about 5.6 seconds. The ASUS wrapper path now
+checks a recovery-only content-addressed cache before compiling; documentation
+and target-bundle bytes are outside that key.
+
+Freeze and publish this checkpoint, run full CI because shared lifecycle and
+trust-boundary code changed, then create one V21 early-probe target. Its sole
+live question is whether side-port NCM remains stable while battery/UCSI
+telemetry reports sustained positive input current at a safe temperature.

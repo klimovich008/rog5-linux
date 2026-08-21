@@ -86,9 +86,12 @@ def validate(stage: str, receipt: Path | None) -> str:
     policy_rows = exact_rows(POLICY, prefix)
     artifact_rows = exact_rows(ARTIFACTS, prefix)
     if stage == "auto":
-        stage = "admitted" if policy_rows or artifact_rows else "planned"
-    expected_policy_rows = 1 if stage == "admitted" else 0
-    expected_artifact_rows = 1 if stage == "admitted" else 0
+        if policy_rows and "\trevoked\t" in policy_rows[0]:
+            stage = "revoked"
+        else:
+            stage = "admitted" if policy_rows or artifact_rows else "planned"
+    expected_policy_rows = 1 if stage in {"admitted", "revoked"} else 0
+    expected_artifact_rows = 1 if stage in {"admitted", "revoked"} else 0
     if len(policy_rows) != expected_policy_rows or len(artifact_rows) != expected_artifact_rows:
         fail("active live-policy/artifact row count differs from the requested stage")
     if stage == "admitted":
@@ -97,6 +100,17 @@ def validate(stage: str, receipt: Path | None) -> str:
         fields = artifact_rows[0].split("\t")
         if len(fields) != 5 or fields[3] != POWER_USB.ARTIFACT_ROLE or fields[4] != "no":
             fail("active artifact row is not canonical")
+    elif stage == "revoked":
+        if "\trevoked\t" not in policy_rows[0]:
+            fail("revoked active policy row is not canonical")
+        fields = artifact_rows[0].split("\t")
+        if (
+            len(fields) != 5
+            or fields[1] != "100663296"
+            or len(fields[2]) != 64
+            or fields[4] != "no"
+        ):
+            fail("revoked active artifact row is malformed")
 
     capability = POWER_USB.CAPABILITY
     for key in ("recovery_verifier", "fallback_verifier", "target_verifier"):
@@ -139,7 +153,13 @@ def validate(stage: str, receipt: Path | None) -> str:
         )
         if result.returncode != 0:
             fail(result.stdout.strip() or "deployment receipt verification failed")
-        receipt_states = {"planned", "built"} if stage == "planned" else {"admitted"}
+        receipt_states = (
+            {"planned", "built"}
+            if stage == "planned"
+            else {"admitted"}
+            if stage == "admitted"
+            else {"revoked"}
+        )
         if (
             receipt_value.get("state") not in receipt_states
             or receipt_value.get("candidate") != POWER_USB.CANDIDATE
@@ -152,7 +172,7 @@ def validate(stage: str, receipt: Path | None) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--stage", choices=("auto", "planned", "admitted"), default="auto"
+        "--stage", choices=("auto", "planned", "admitted", "revoked"), default="auto"
     )
     parser.add_argument("--deployment-receipt", type=Path)
     arguments = parser.parse_args()
