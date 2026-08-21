@@ -558,6 +558,8 @@ for token in \
 	'stage-recovery-deployment-signing-inputs.py' \
 	'rog5-recovery-deployment-signing-inputs-v2' \
 	'early-initramfs) expected_profile=diagnostic-initramfs-v1' \
+	'ROG5_WRAPPER_CACHE_REPOSITORY=$checkpoint_repository' \
+	'STABLE_RECOVERY_WRAPPER_CACHE_ROOT=$checkpoint_repository/build/stable-recovery-wrapper-cache' \
 	'--candidate-id "$candidate"' \
 	'--repository "$checkpoint_repository"' \
 	'--expected-repository-commit "$internal_repository_commit"' \

@@ -26,6 +26,7 @@ mkbootimg_dir=${MKBOOTIMG_DIR:-$repo/artifacts/android-boot-tools-v1}
 gki_certificate=$mkbootimg_dir/gki/generate_gki_certificate.py
 avbtool=${AVBTOOL:-$mkbootimg_dir/avbtool.py}
 cache_root=${STABLE_RECOVERY_WRAPPER_CACHE_ROOT:-$repo/build/stable-recovery-wrapper-cache}
+cache_repository=${ROG5_WRAPPER_CACHE_REPOSITORY:-$repo}
 jobs=${JOBS:-1}
 partition_size=100663296
 
@@ -111,17 +112,20 @@ gki_certificate=$(realpath "$gki_certificate")
 avbtool=$(realpath "$avbtool")
 output_root=$(realpath -m "$output_root")
 cache_root=$(realpath -m "$cache_root")
+cache_repository=$(realpath -e "$cache_repository")
 case $output_root in
 	"$repo"/build/*) ;;
 	*) fail 'output root must be below the ignored repository build directory' ;;
 esac
 git -C "$repo" check-ignore -q "$output_root" ||
 	fail 'output root is not ignored by Git'
+[[ -d $cache_repository && ! -L $cache_repository ]] ||
+	fail 'wrapper cache repository is not a real directory'
 case $cache_root in
-	"$repo"/build/*) ;;
+	"$cache_repository"/build/*) ;;
 	*) fail 'wrapper cache must be below the ignored repository build directory' ;;
 esac
-git -C "$repo" check-ignore -q "$cache_root" ||
+git -C "$cache_repository" check-ignore -q "$cache_root" ||
 	fail 'wrapper cache is not ignored by Git'
 case $output_root in
 	"$cache_root"|"$cache_root"/*) fail 'wrapper output overlaps its cache' ;;
