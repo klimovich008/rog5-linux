@@ -479,7 +479,8 @@ class Fixture:
                 if { [ "${MOCK_REQUIRE_PROFILE_PRIMER:-0}" != 1 ] ||
                      [ -e "$MOCK_ROOT/profile-primed" ]; } &&
                    { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
-                     [ -e "$MOCK_ROOT/profile-restored" ]; }; then
+                     [ -e "$MOCK_ROOT/profile-restored" ]; } &&
+                   [ ! -e "$MOCK_ROOT/stock-fallback" ]; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 fi
                 if { [ "${MOCK_ADDRESS_RESIDUE_AFTER_BUNDLE:-0}" = 1 ] &&
@@ -493,7 +494,8 @@ class Fixture:
                 if { [ "${MOCK_REQUIRE_PROFILE_PRIMER:-0}" != 1 ] ||
                      [ -e "$MOCK_ROOT/profile-primed" ]; } &&
                    { [ ! -e "$MOCK_ROOT/profile-deferred" ] ||
-                     [ -e "$MOCK_ROOT/profile-restored" ]; }; then
+                     [ -e "$MOCK_ROOT/profile-restored" ]; } &&
+                   [ ! -e "$MOCK_ROOT/stock-fallback" ]; then
                   echo '9: usbmock0 inet 169.254.77.1/30 scope global usbmock0'
                 fi
                 if [ "${MOCK_ADDRESS_GAP_AFTER_FALLBACK:-0}" = 1 ] &&
@@ -1434,6 +1436,7 @@ class Fixture:
                   'result=PASS' >"$5"
                 : >"$MOCK_ROOT/fallback-proved"
                 : >"$MOCK_ROOT/target-departed"
+                : >"$MOCK_ROOT/stock-fallback"
                 : >"$MOCK_ROOT/profile-restored"
                 echo 'PASS exact stock WW33 slot-A fallback reached ADB with network USB disabled'
                 ;;
