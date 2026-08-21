@@ -111,7 +111,8 @@ and omitted the retained probe. V18 replaced that identity copy, reached ADSP
 `running`, and then found `pdr_interface.ko` had incompatible build-specific
 BTF. V19 passed PDR/PMIC GLINK/UCSI and found `port_type` is source-validly
 optional. V20 classified that absence, then was revoked unbooted before phone
-contact. V21 is the planned early-initramfs observer and has no boot authority. See
+contact. V21 is consumed after its diagnostic-profile token was rejected
+before target USB; exact stock fallback passed. V22 is next. See
 `test-results/2026-08-20-power-usb-v7-r1-target-selector.md`.
 
 ## Current loop optimization

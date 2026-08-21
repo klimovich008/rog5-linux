@@ -651,6 +651,19 @@ class EvidenceAndCaptureTest(unittest.TestCase):
         self.assertEqual(encoded, json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n")
         self.assertNotIn(b"raw", encoded)
         self.assertEqual(evidence["transport_snapshot_count"], 1)
+        custom = MODULE.evidence_document(
+            anchor=OrderedDict(
+                host_boot_id=HOST_BOOT,
+                usb_location=LOCATION,
+            ),
+            started_unix_ns=1,
+            ended_unix_ns=200,
+            result=captured,
+            expected_candidate="headless-power-usb-observer-v999",
+        )
+        self.assertEqual(
+            custom["candidate"], "headless-power-usb-observer-v999"
+        )
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary) / "private"
             directory.mkdir(mode=0o700)

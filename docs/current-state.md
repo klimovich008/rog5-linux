@@ -78,8 +78,9 @@ retained probe. V18 selected the stable power/USB capability family, reached
 ADSP `running`, then exposed stale build-specific BTF in `pdr_interface.ko`.
 ABI. V19 passed PDR, PMIC GLINK, and UCSI, then exposed a source-valid absent
 `port_type` and a probe variable collision. V20 classified that optional
-attribute but was revoked unbooted before phone contact. V21 is the planned
-early-initramfs typed observer with no boot authority. The only hand-maintained successor source is
+attribute but was revoked unbooted before phone contact. V21 is consumed after
+its diagnostic-profile token was rejected before target USB; exact stock
+fallback passed. V22 is the next early observer. The only hand-maintained successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`; the historical V20 policy row is revoked.
