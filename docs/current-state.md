@@ -85,7 +85,10 @@ which the sealed BusyBox 1.37 initramfs does not support; exact stock fallback
 passed. V23 reached NCM/ACM, then its textual mountinfo check mistook required
 `/dev/pts` for phone storage. V24 then delivered a complete typed stream and
 stable NCM, but BusyBox `modprobe` rejected `--first-time`, leaving charging
-telemetry absent. V25 is the next target-only observer. The only hand-maintained successor source is
+telemetry absent. V25 then passed the full charging stack and side-port input,
+but its 100% Full battery reported zero pack current. V26 reuses the exact
+target bytes for a sub-full positive-current test. The only hand-maintained
+successor source is
 `configs/recovery-candidates/power-usb-active.json`; candidate, policy, Python,
 shell, and `manifests/power-usb-active.lock.json` are generated. The lock records
 `boot_policy_status=none`; the historical V20 policy row is revoked.
@@ -127,7 +130,7 @@ The focused `probe` tier takes about 5.6 seconds. The ASUS wrapper path now
 checks a recovery-only content-addressed cache before compiling; documentation
 and target-bundle bytes are outside that key.
 
-Publish the canonical V25 source and exact-head CI, then build, sign, and admit
+Publish the canonical V26 source and exact-head CI, then build, sign, and admit
 one byte-distinct RAM-only candidate through the existing reviewed workflow.
 Its sole live question is whether side-port NCM remains stable while
 battery/UCSI telemetry reports sustained positive input current at a safe
