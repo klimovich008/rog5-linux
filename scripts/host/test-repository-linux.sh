@@ -9,8 +9,8 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 tier=${1:-quick}
 case $tier in
-	active|ci|quick|rootfs) ;;
-	*) fail 'usage: test-repository-linux.sh [active|ci|quick|rootfs]' ;;
+	active|ci|nightly|probe|quick|rootfs) ;;
+	*) fail 'usage: test-repository-linux.sh [active|ci|nightly|probe|quick|rootfs]' ;;
 esac
 
 for command in bash date dirname dtc gcc git head nm openssl pkg-config python3 sh \
@@ -141,9 +141,17 @@ active_tests=(
 	scripts/host/test-rog5-host-doctor.py
 	scripts/host/test-power-usb-deployment-receipt.py
 	scripts/host/test-power-usb-real-output-replay.py
+	scripts/host/test-select-repository-test-tier.py
+)
+
+probe_tests=(
+	scripts/device/test-observe-early-mainline-power.sh
+	scripts/device/test-network-root-init.sh
+	scripts/host/test-generate-power-usb-active.py
 )
 
 shared_tests=(
+	scripts/host/test-reusable-recovery-claim-design.sh
 	scripts/device/test-collect-minimal-headless-runtime.sh
 	scripts/host/test-wait-stock-android-fallback.py
 	scripts/host/test-verify-headless-ssh-v2-key-admission.py
@@ -186,21 +194,6 @@ shared_tests=(
 	scripts/device/test-recovery-candidate-dtb-contract.sh
 	scripts/device/test-ufs-rmtfs-reserved-candidate-dtb.sh
 	scripts/device/test-ufs-phy-disabled-control-dtb.sh
-	scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-clock-provider-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-fixed-clocks-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-first-fixed-clock-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-allocation-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-first-clock-name-stage-patch.sh
-	scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh
-	scripts/device/test-clk-orphan-runtime-pm-lock-model.py
-	scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-second-clock-runtime-pm-stage-patch.sh
-	scripts/device/test-qmp-ufs-probe-third-clock-runtime-pm-stage-patch.sh
-	scripts/device/test-qmp-ufs-clock-provider-cleanup-stage-patch.sh
-	scripts/device/test-qmp-ufs-phy-creation-stage-patch.sh
-	scripts/device/test-qmp-ufs-phy-provider-stage-patch.sh
 	scripts/device/test-buttons-indicator-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-candidate-dtb.sh
 	scripts/device/test-headless-display-isolation-runtime.sh
@@ -226,7 +219,6 @@ shared_tests=(
 	scripts/host/test-run-persistent-root-storage-live-cycle.py
 	scripts/host/test-early-target-diagnostics.py
 	scripts/host/test-collect-early-target-diagnostics.py
-	scripts/host/test-recovery-linux.sh
 	scripts/host/test-consume-generation11-boot-claim.py
 	scripts/host/test-consume-generation12-boot-claim.py
 	scripts/host/test-consume-exact-boot-claim.py
@@ -309,8 +301,30 @@ shared_tests=(
 	scripts/host/test-reboot-fallback-to-fastboot.sh
 )
 
+nightly_tests=(
+	scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-clock-provider-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-fixed-clocks-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-first-fixed-clock-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-allocation-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-first-clock-name-stage-patch.sh
+	scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh
+	scripts/device/test-clk-orphan-runtime-pm-lock-model.py
+	scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-second-clock-runtime-pm-stage-patch.sh
+	scripts/device/test-qmp-ufs-probe-third-clock-runtime-pm-stage-patch.sh
+	scripts/device/test-qmp-ufs-clock-provider-cleanup-stage-patch.sh
+	scripts/device/test-qmp-ufs-phy-creation-stage-patch.sh
+	scripts/device/test-qmp-ufs-phy-provider-stage-patch.sh
+	scripts/host/test-recovery-linux.sh
+)
+
 tier_tests=()
 case $tier in
+	nightly)
+		tier_tests+=("${nightly_tests[@]}" scripts/device/test-build-early-target-diag.sh)
+		;;
 	ci)
 		tier_tests+=(scripts/device/test-build-early-target-diag.sh)
 		;;
@@ -334,6 +348,8 @@ case $tier in
 esac
 if [[ $tier == active ]]; then
 	tests=("${active_tests[@]}")
+elif [[ $tier == probe ]]; then
+	tests=("${probe_tests[@]}")
 else
 	tests=("${active_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
 fi

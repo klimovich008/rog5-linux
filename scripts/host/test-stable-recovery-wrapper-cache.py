@@ -237,6 +237,38 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
 
+    def lookup(self) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                "python3",
+                str(CACHE),
+                "lookup",
+                *self.common(),
+            ],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    def input_key(self) -> str:
+        result = subprocess.run(
+            [
+                "python3",
+                str(CACHE),
+                "input-key",
+                *self.common()[:-2],
+            ],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        return next(
+            line.split("=", 1)[1]
+            for line in result.stdout.splitlines()
+            if line.startswith("cache_input_key=")
+        )
+
     def test_publish_is_idempotent_and_materialization_is_exact(self) -> None:
         first = self.publish()
         second = self.publish()
@@ -252,6 +284,22 @@ class StableRecoveryWrapperCacheTest(unittest.TestCase):
         )
         for path in entry.iterdir():
             self.assertEqual(path.read_bytes(), (output / path.name).read_bytes())
+
+    def test_lookup_is_a_verified_miss_then_exact_hit(self) -> None:
+        miss = self.lookup()
+        self.assertEqual(miss.returncode, 2, miss.stderr)
+        self.assertIn("cache_hit=no", miss.stdout)
+        entry_id = self.entry_id()
+        hit = self.lookup()
+        self.assertEqual(hit.returncode, 0, hit.stderr)
+        self.assertIn("cache_hit=yes", hit.stdout)
+        self.assertIn(f"cache_entry_id={entry_id}", hit.stdout)
+
+    def test_unrelated_target_and_document_bytes_do_not_change_input_key(self) -> None:
+        before = self.input_key()
+        (self.root / "README.md").write_text("host docs changed\n")
+        (self.root / "target-bundle.json").write_text("target changed\n")
+        self.assertEqual(self.input_key(), before)
 
     def test_twin_mismatch_is_rejected_without_publication(self) -> None:
         image = self.build_b / "asus-kexec-stage/arch/arm64/boot/Image"

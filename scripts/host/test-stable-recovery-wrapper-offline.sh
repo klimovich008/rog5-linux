@@ -11,7 +11,7 @@ initramfs_a=${1:?usage: test-stable-recovery-wrapper-offline.sh INITRAMFS_A INIT
 initramfs_b=${2:?missing second stable-recovery initramfs}
 output_root=${3:?missing ignored output root}
 
-cache_profile=$repo/configs/recovery-wrapper-cache/asus-5.4-stable-recovery-v1.json
+cache_profile=
 cache_tool=$repo/scripts/host/stable-recovery-wrapper-cache.py
 source_tree_tool=$repo/scripts/host/kernel-source-seal.py
 build_script=
@@ -47,6 +47,7 @@ reference_config_profile=
 case $builder_profile in
 historical-2026-07-29)
 	cache_enabled=1
+	cache_profile=$repo/configs/recovery-wrapper-cache/asus-5.4-stable-recovery-v1.json
 	build_script=$repo/scripts/device/build-asus-kexec-stage.sh
 	reference_config_profile=historical-running-config-v1
 	reference_config=${reference_config:-$repo/../work/linux-server/kernel-33.0210.0210.200/config-5.4.210-qgki-perf}
@@ -55,7 +56,8 @@ historical-2026-07-29)
 	expected_template=292a14e212826a250de501d4d502dda6973097ed172cd9324d82cf88d82fd657
 	;;
 steam-deck-asus-5.4-v1)
-	cache_enabled=0
+	cache_enabled=1
+	cache_profile=$repo/configs/recovery-wrapper-cache/asus-5.4-stable-recovery-steam-deck-v1.json
 	build_script=$repo/scripts/device/build-asus-kexec-stage-successor.sh
 	reference_config_profile=accepted-wrapper-v18-v1
 	reference_config=${reference_config:-$repo/artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery}
@@ -91,12 +93,11 @@ for input in "$initramfs_a" "$initramfs_b" "$reference_config" "$template" \
 	[[ -f $input && ! -L $input ]] ||
 		fail "missing regular nonsymlink input: $input"
 done
-if [[ $cache_enabled == 1 ]]; then
-	for input in "$cache_profile" "$cache_tool"; do
-		[[ -f $input && ! -L $input ]] ||
-			fail "missing regular nonsymlink cache input: $input"
-	done
-else
+for input in "$cache_profile" "$cache_tool"; do
+	[[ -f $input && ! -L $input ]] ||
+		fail "missing regular nonsymlink cache input: $input"
+done
+if [[ $builder_profile == steam-deck-asus-5.4-v1 ]]; then
 	[[ -f $builder_verifier && ! -L $builder_verifier &&
 		-x $builder_verifier ]] ||
 		fail 'missing qualified Steam Deck builder verifier'
@@ -116,20 +117,18 @@ case $output_root in
 esac
 git -C "$repo" check-ignore -q "$output_root" ||
 	fail 'output root is not ignored by Git'
-if [[ $cache_enabled == 1 ]]; then
-	case $cache_root in
-		"$repo"/build/*) ;;
-		*) fail 'wrapper cache must be below the ignored repository build directory' ;;
-	esac
-	git -C "$repo" check-ignore -q "$cache_root" ||
-		fail 'wrapper cache is not ignored by Git'
-	case $output_root in
-		"$cache_root"|"$cache_root"/*) fail 'wrapper output overlaps its cache' ;;
-	esac
-	case $cache_root in
-		"$output_root"|"$output_root"/*) fail 'wrapper cache overlaps its output' ;;
-	esac
-fi
+case $cache_root in
+	"$repo"/build/*) ;;
+	*) fail 'wrapper cache must be below the ignored repository build directory' ;;
+esac
+git -C "$repo" check-ignore -q "$cache_root" ||
+	fail 'wrapper cache is not ignored by Git'
+case $output_root in
+	"$cache_root"|"$cache_root"/*) fail 'wrapper output overlaps its cache' ;;
+esac
+case $cache_root in
+	"$output_root"|"$output_root"/*) fail 'wrapper cache overlaps its output' ;;
+esac
 [[ ! -d $output_root ||
 	-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
 	fail 'refusing nonempty output root'
@@ -202,23 +201,65 @@ seal_source() {
 source_seal_before=$output_root/source-seal-before.txt
 source_seal_after=$output_root/source-seal-after.txt
 seal_source >"$source_seal_before"
-if [[ $cache_enabled == 1 ]]; then
-	cache_input_args=(
-		--profile "$cache_profile"
-		--source-seal "$source_seal_before"
-		--source-tree-tool "$source_tree_tool"
-		--reference-config "$reference_config"
-		--initramfs "$initramfs_a"
-		--build-script "$build_script"
-		--repack-script "$repack_script"
-		--boot-template "$template"
-		--mkbootimg "$mkbootimg_dir/mkbootimg.py"
-		--gki-certificate "$gki_certificate"
-		--unpack-bootimg "$mkbootimg_dir/unpack_bootimg.py"
-		--avbtool "$avbtool"
-	)
-	python3 "$cache_tool" input-key "${cache_input_args[@]}" \
-		>"$output_root/cache-input.txt"
+cache_input_args=(
+	--profile "$cache_profile"
+	--source-seal "$source_seal_before"
+	--source-tree-tool "$source_tree_tool"
+	--reference-config "$reference_config"
+	--initramfs "$initramfs_a"
+	--build-script "$build_script"
+	--repack-script "$repack_script"
+	--boot-template "$template"
+	--mkbootimg "$mkbootimg_dir/mkbootimg.py"
+	--gki-certificate "$gki_certificate"
+	--unpack-bootimg "$mkbootimg_dir/unpack_bootimg.py"
+	--avbtool "$avbtool"
+)
+python3 "$cache_tool" input-key "${cache_input_args[@]}" \
+	>"$output_root/cache-input.txt"
+
+set +e
+python3 "$cache_tool" lookup "${cache_input_args[@]}" \
+	--cache-root "$cache_root" >"$output_root/cache-lookup.txt"
+cache_lookup_status=$?
+set -e
+if [[ $cache_lookup_status == 0 ]]; then
+	cache_entry_id=$(sed -n 's/^cache_entry_id=//p' \
+		"$output_root/cache-lookup.txt")
+	[[ $cache_entry_id =~ ^[0-9a-f]{64}$ ]] ||
+		fail 'wrapper cache lookup returned a malformed entry ID'
+	cache_materialized=$output_root/cache-materialized
+	python3 "$cache_tool" materialize "${cache_input_args[@]}" \
+		--cache-root "$cache_root" \
+		--expected-entry-id "$cache_entry_id" \
+		--output-root "$cache_materialized" \
+		>"$output_root/cache-materialization.txt"
+	for suffix in a b; do
+		mkdir -p "$output_root/wrapper-$suffix/asus-kexec-stage/arch/arm64/boot"
+		cp "$cache_materialized/wrapper.config" \
+			"$output_root/wrapper-$suffix/asus-kexec-stage/.config"
+		cp "$cache_materialized/wrapper.Image" \
+			"$output_root/wrapper-$suffix/asus-kexec-stage/arch/arm64/boot/Image"
+		cp "$cache_materialized/wrapper.build-meta" \
+			"$output_root/wrapper-$suffix/asus-kexec-stage/build-meta.txt"
+		cp "$cache_materialized/recovery.cpio.gz" \
+			"$output_root/wrapper-$suffix/rog5-kexec-stage-initramfs.cpio.gz"
+		cp "$cache_materialized/stable-recovery.raw.img" \
+			"$output_root/repack/stable-recovery-$suffix.raw.img"
+		cp "$cache_materialized/stable-recovery.avb.img" \
+			"$output_root/repack/stable-recovery-$suffix.avb.img"
+	done
+	cp "$output_root/cache-lookup.txt" "$output_root/cache-publication.txt"
+	sha256sum \
+		"$output_root/wrapper-a/asus-kexec-stage/.config" \
+		"$output_root/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image" \
+		"$output_root/repack/stable-recovery-a.raw.img" \
+		"$output_root/repack/stable-recovery-a.avb.img"
+	printf 'builder_profile=%s\ncache_publication=cache-hit\n' "$builder_profile"
+	echo 'PASS stable-recovery wrapper materialized from the exact content-addressed cache; no ASUS kernel build ran'
+	exit 0
+elif [[ $cache_lookup_status != 2 ]]; then
+	fail 'wrapper cache lookup failed closed'
 fi
 
 build_wrapper() {

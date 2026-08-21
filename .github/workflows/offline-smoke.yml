@@ -6,6 +6,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
 
 permissions:
   contents: read
@@ -20,10 +22,13 @@ jobs:
     timeout-minutes: 20
     outputs:
       head_sha: ${{ steps.verify-head.outputs.head_sha }}
+      test_tier: ${{ steps.select-tier.outputs.test_tier }}
+      qemu: ${{ steps.select-tier.outputs.qemu }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - name: Verify exact reviewed head
         id: verify-head
         shell: bash
@@ -33,6 +38,26 @@ jobs:
           printf 'expected_head=%s\nactual_head=%s\n' "$expected" "$actual"
           test "$actual" = "$expected"
           echo "head_sha=$actual" >> "$GITHUB_OUTPUT"
+      - name: Select bounded test tier
+        id: select-tier
+        shell: bash
+        run: |
+          if [[ '${{ github.event_name }}' == schedule ]]; then
+            tier=nightly
+            qemu=yes
+          elif [[ '${{ github.event_name }}' == pull_request ]]; then
+            selection=$(scripts/host/select-repository-test-tier.py \
+              '${{ github.event.pull_request.base.sha }}' \
+              '${{ github.event.pull_request.head.sha }}')
+            tier=$(sed -n 's/^tier=//p' <<<"$selection")
+            qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
+          else
+            tier=ci
+            qemu=yes
+          fi
+          case $tier in active|probe|ci|nightly) ;; *) exit 1 ;; esac
+          case $qemu in yes|no) ;; *) exit 1 ;; esac
+          printf 'test_tier=%s\nqemu=%s\n' "$tier" "$qemu" | tee -a "$GITHUB_OUTPUT"
       - name: Install native test dependencies
         run: |
           sudo apt-get update
@@ -51,7 +76,7 @@ jobs:
       - name: Build canonical boot-v3 template
         run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run hardware-free recovery core
-        run: scripts/host/test-repository-linux.sh ci
+        run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
 
   merge-compat:
     if: github.event_name == 'pull_request'
@@ -61,6 +86,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
       - name: Verify intentional merge ref
         shell: bash
         run: |
@@ -85,8 +111,17 @@ jobs:
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
         run: scripts/host/build-canonical-boot-v3-template.sh
+      - name: Select merge-compatibility test tier
+        id: select-tier
+        run: |
+          selection=$(scripts/host/select-repository-test-tier.py \
+            '${{ github.event.pull_request.base.sha }}' \
+            '${{ github.event.pull_request.head.sha }}')
+          tier=$(sed -n 's/^tier=//p' <<<"$selection")
+          case $tier in active|probe|ci) ;; *) exit 1 ;; esac
+          echo "test_tier=$tier" >> "$GITHUB_OUTPUT"
       - name: Run merge-compatibility recovery core
-        run: scripts/host/test-repository-linux.sh ci
+        run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
 
   candidate-publication:
     if: github.event_name == 'pull_request'
@@ -125,6 +160,8 @@ jobs:
           retention-days: 14
 
   qemu-system:
+    needs: head-exact
+    if: needs.head-exact.outputs.qemu == 'yes'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
