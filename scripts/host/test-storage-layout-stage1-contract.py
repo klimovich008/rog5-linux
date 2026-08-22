@@ -15,7 +15,7 @@ BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
 REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
-MANIFEST = REPO / "manifests/userdata-ext4-reset-generation85.manifest"
+MANIFEST = REPO / "manifests/userdata-ext4-reset-generation86.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 
@@ -166,19 +166,20 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation85_publication_is_exact_and_authority_free(self) -> None:
+    def test_generation86_publication_is_exact_and_admitted_once(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            "910cb4d733217bad2d9b243cfd98dd167033689ecce04a31db1366a7a39dfb1f",
+            "0b008ecf596f27741087839d5d97a93c3b3b9abb29f7e1091e412310c67a3ef9",
         )
         fields = dict(line.split("=", 1) for line in payload.decode("ascii").splitlines())
-        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation85-live-v1")
-        self.assertEqual(fields["image_sha256"], "af58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5")
+        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation86-live-v1")
+        self.assertEqual(fields["image_sha256"], "05aac000530d559b5d0c52e7054354ea72ae7434431bdc7fc2797f0ea7cc6f93")
         self.assertEqual(fields["private_config_sha256"], "87845905422201c95e6498c04db4d127b42acfc9b45e316b53d51fc0d388f7cb")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         self.assertEqual(fields["target_partition_number"], "23")
         self.assertEqual(fields["gpt_change"], "0")
+        self.assertEqual(fields["post_success_action"], "restart2-bootloader-or-remain-in-recovery")
         self.assertEqual(fields["authority"], "none")
         image = REPO / fields["image_path"]
         if image.exists():
@@ -189,19 +190,25 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             )
 
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
-        self.assertIn("userdata-ext4-reset-generation85-live-v1", claim_source)
+        self.assertIn("userdata-ext4-reset-generation86-live-v1", claim_source)
+        self.assertNotIn('"userdata-ext4-reset-generation85-live-v1"', claim_source)
         self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
         self.assertEqual(
             BOOT_POLICY.read_text(encoding="utf-8").splitlines(),
             [
                 "name\tstatus\tmanifest_sha256\timage_size\timage_sha256\tbasis",
-                "userdata-ext4-reset-generation85-live-v1\tallow\t"
+                "userdata-ext4-reset-generation85-live-v1\trevoked\t"
                 "910cb4d733217bad2d9b243cfd98dd167033689ecce04a31db1366a7a39dfb1f\t"
                 "100663296\taf58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5\t"
+                "unbooted and superseded before claim entry because normal post-success "
+                "reboot could let stock Android reformat Linux ext4; never boot or flash",
+                "userdata-ext4-reset-generation86-live-v1\tallow\t"
+                "0b008ecf596f27741087839d5d97a93c3b3b9abb29f7e1091e412310c67a3ef9\t"
+                "100663296\t05aac000530d559b5d0c52e7054354ea72ae7434431bdc7fc2797f0ea7cc6f93\t"
                 "one exact owner-confirmed RAM-only format of only unchanged userdata "
                 "partition 23; fresh host-fsynced GPT backup ACK and external one-use "
-                "claim required; GPT and every other partition immutable; never flash "
-                "or retry after claim entry",
+                "claim required; exact restart2 bootloader return; GPT and every other "
+                "partition immutable; never flash or retry after claim entry",
             ],
         )
 
