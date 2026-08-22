@@ -178,3 +178,12 @@ Generation 83 reproduced mount status 255/`EINVAL`, but sealed BusyBox `od`
 compressed duplicate hex lines to `*`. Exact execution of that BusyBox proved
 `od -v` is required. Generation 84 is the unbooted, unadmitted one-flag
 successor; no kernel, config, recovery, or mount behavior changed.
+
+Generation 84 then proved raw `userdata` has neither plaintext ext4 nor F2FS
+magic and still returns status 255/`EINVAL` to ext4 mount. WW33's exact fstab
+independently specifies F2FS behind `dm-default-key` metadata encryption. The
+old ext4-shrink/local-image plan is invalid after the stock restoration.
+There is no active RAM-only successor. The next proposed storage step changes
+no GPT entry: reformat only partition 23 (`userdata`) as unencrypted ext4,
+then recreate the bounded 16 GiB Arch image inside it. This destroys Android
+`/data` and requires final operator confirmation.

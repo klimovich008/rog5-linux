@@ -145,9 +145,9 @@ stock slot-A fallback and cleanup passed. Missing pstore lineage does not prove
 or disprove a crash; the observed initramfs path explicitly waited two seconds
 and forced rollback after the loader failure.
 
-The next acceptance test is Generation 84 identifying userdata by verbatim direct
-filesystem magic and current ext4 features while preserving proven power,
-NCM, UFS, and rollback.
+Generation 84 is consumed. Raw `userdata` remained type/magic-opaque and ext4
+mount returned status 255/`EINVAL`; WW33 fstab proves the plaintext F2FS exists
+behind `dm-default-key`, not on raw partition 23. Exact fallback passed.
 
 Generation 79 is consumed. It proved exact failure
 `power-usb-typec-data-role`: V26's retained raw evidence shows mainline's
@@ -191,16 +191,17 @@ to `*`, preventing magic classification. Its bundle was
 and RAM-only AVB SHA-256
 `b1e69cbdb2a379d763a65c2841182b2e3f163ad7648da5fc470b75bba4092517`.
 
-Generation 84 is built offline but not admitted. Its bundle is
+Its bundle was
 `persistent-root-power-usb-v8`, manifest SHA-256
 `c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289`,
 and RAM-only AVB SHA-256
 `88075dba4a8564fa21d73c69d696b64813dc024389a5d097be345f7cd9f302bb`.
 
-1. Run the verbatim direct-magic classifier and complete lifecycle tests.
-2. Reuse the exact Generation 83 kernel, DTB, firmware, module closure, local
-   image, recovery, mount behavior, and rollback.
-3. Admit one RAM-only Generation 84 cycle only after exact-head CI.
+There is no active successor. The next storage transition must replace the
+opaque encrypted contents of the unchanged `userdata` GPT partition with an
+unencrypted ext4 filesystem, then recreate the bounded Arch image. It requires
+the operator's final confirmation of the exact destructive proposal in
+`configs/storage/rog5-userdata-ext4-reset-v1.json`.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
