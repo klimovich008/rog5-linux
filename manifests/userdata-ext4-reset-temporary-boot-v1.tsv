@@ -1,0 +1,2 @@
+name	status	manifest_sha256	image_size	image_sha256	basis
+userdata-ext4-reset-generation85-live-v1	allow	910cb4d733217bad2d9b243cfd98dd167033689ecce04a31db1366a7a39dfb1f	100663296	af58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5	one exact owner-confirmed RAM-only format of only unchanged userdata partition 23; fresh host-fsynced GPT backup ACK and external one-use claim required; GPT and every other partition immutable; never flash or retry after claim entry

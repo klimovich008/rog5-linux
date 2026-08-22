@@ -210,8 +210,9 @@ Generation 85 is the authority-free offline formatter publication. Its
 clean twin ASUS wrapper Images, the sealed initramfs, exact 900-second timeout,
 private config hash, and no-GPT partition-23 operation are bound by
 `manifests/userdata-ext4-reset-generation85.manifest`. The obsolete unissued
-shrink/GPT claim identity was removed. Generation 85 remains unadmitted until
-exact-head CI passes its publication commit.
+shrink/GPT claim identity was removed. Exact-head publication CI passed. The
+separate one-row `manifests/userdata-ext4-reset-temporary-boot-v1.tsv` policy
+admits the exact image while retaining the external one-use claim requirement.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
