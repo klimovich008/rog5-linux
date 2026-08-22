@@ -55,3 +55,14 @@ UFS or SSH evidence and returned exact stock slot A. The resolved outcome is
 `FALLBACK_RETURNED`. The packaged `pdr_interface.ko` retained `.BTF`, matching
 the already proven V18 module rejection. Generation 78 removes only that one
 section; its `.text` bytes are identical.
+
+Generation 78 also consumed its sole RAM-only cycle. The complete recovery
+bundle transfer and COMMIT passed. The no-BTF payload emitted exact target
+stage sequence 3 at `ufs-ready`, proving advancement beyond Generation 77,
+then `/sbin/rog5-load-persistent-power-usb` failed and the reviewed two-second
+rollback returned exact stock slot A. No UFS or SSH stage was reached. The old
+generic `detail=power-usb` does not distinguish module, telemetry, Type-C,
+NCM, or safety failures, so the component-level cause remains unresolved.
+This is classified R3: exact target loader capability/behavior was not proven
+at the failed boundary. The successor adds bounded per-check reason codes; it
+must not reuse Generation 78.

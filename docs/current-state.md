@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-21
+Updated: 2026-08-22
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -130,3 +130,13 @@ rollback, and prove safe temperature plus nonnegative pack current before and
 during a bounded server-style CPU/network load. Benchmark time to SSH against
 Generation 20's approximately 380 seconds. Native repartitioning remains
 deferred until this combined path is repeatable.
+
+Generation 77 rolled back before any target stage because its packaged
+`pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
+section and advanced to an exact target `ufs-ready` failure record, proving
+that the earlier loader boundary was cleared. Its power/USB loader then failed
+before UFS, but the old generic `detail=power-usb` cannot identify which
+module, telemetry, Type-C, NCM, or safety check failed. Generation 78 is
+consumed and revoked; exact stock slot-A fallback and host cleanup passed.
+The next candidate must report the new bounded per-check failure code and ask
+only which power/USB loader boundary fails. It must not reuse Generation 78.

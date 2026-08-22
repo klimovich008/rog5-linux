@@ -187,6 +187,13 @@ grep -Fq '52442f69be8a91347499bc7a5c45060ad2458bb711cf51f8a7fdd64c5d2d412b' \
 	"$builder"
 grep -Fq '/sbin/rog5-load-persistent-power-usb' "$init"
 [ "$(grep -c '^load_module ' "$power_loader")" -eq 15 ]
+grep -Fq "printf 'power-usb-%s\\n' \"\$code\"" "$power_loader"
+grep -Fq 'fail "module-$detail-load" "module load failed: $name"' \
+	"$power_loader"
+grep -Fq 'load_module pdr_interface.ko pdr_interface pdr-interface' \
+	"$power_loader"
+grep -Fq 'power_usb_failure=power-usb-invalid-failure-record' "$init"
+grep -Fq 'publish_stage ufs-ready FAIL "$power_usb_failure"' "$init"
 grep -Fq 'side USB power is offline' "$power_loader"
 grep -Fq 'storage appeared before the UFS stage' "$power_loader"
 grep -Fq 'typec_data_role=device' "$power_loader"
@@ -244,6 +251,32 @@ switch_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" |
 [ "$lock_line" -lt "$mount_line" ]
 [ "$mount_line" -lt "$verify_line" ]
 [ "$verify_line" -lt "$switch_line" ]
+
+failure_validator=$(mktemp)
+awk '
+	/^valid_power_usb_failure\(\) \{/ { copy=1 }
+	/^publish_or_rollback\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$failure_validator"
+# shellcheck disable=SC1090
+. "$failure_validator"
+rm -f -- "$failure_validator"
+for valid_failure in \
+	power-usb-module-pdr-interface-load \
+	power-usb-telemetry-timeout \
+	power-usb-ncm-carrier; do
+	valid_power_usb_failure "$valid_failure" ||
+		fail "power/USB failure validator rejected $valid_failure"
+done
+long_failure=power-usb-$(printf '%0130d' 0)
+for invalid_failure in \
+	'' power-usb- power-usb-UPPER power_usb_bad power-usb-trailing- \
+	"power-usb-two
+lines" "$long_failure"; do
+	if valid_power_usb_failure "$invalid_failure"; then
+		fail "power/USB failure validator accepted hostile input"
+	fi
+done
 
 grep -Fq '/.rog5/userdata-ro' "$attest"
 grep -Fq '/.rog5/root-ro' "$attest"
