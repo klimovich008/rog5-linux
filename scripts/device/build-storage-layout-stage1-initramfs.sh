@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-storage-layout-stage1-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK OUTPUT}
+base=${1:?usage: build-storage-layout-stage1-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK REBOOT_BOOTLOADER OUTPUT}
 init=${2:?missing recovery init}
 executor=${3:?missing stage-1 executor}
 watchdog_disarm=${4:?missing watchdog disarm helper}
@@ -13,10 +13,12 @@ libgcc_apk=${9:?missing libgcc package}
 libstdcpp_apk=${10:?missing libstdc++ package}
 musl_apk=${11:?missing musl package}
 libuuid_apk=${12:?missing libuuid package}
-output=${13:?missing output}
+reboot_bootloader=${13:?missing reboot-to-bootloader helper}
+output=${14:?missing output}
 epoch=1681862400
-executor_sha256=c31ab14e2cc584c0311ad8f271e4544ee7443de80b2677b8922a341e9cc92950
+executor_sha256=0dc6e45e5e42ede48d6f24ffc166e9054ef431ae738cbcd71ce339a8e4aa3442
 watchdog_disarm_sha256=8949398f9a6245447b3aa4626b85f3f2538e2bf060ced46952514145cb152bbe
+reboot_bootloader_sha256=68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 readonly_builder=$script_dir/build-storage-preflight-initramfs.sh
 export LC_ALL=C
@@ -39,11 +41,12 @@ for command in awk basename chmod cpio cut dirname find grep gzip install \
 done
 for input in "$base" "$init" "$executor" "$watchdog_disarm" "$private_config" "$sgdisk_apk" \
 	"$popt_apk" "$libgcc_apk" "$libstdcpp_apk" "$musl_apk" "$libuuid_apk" \
-	"$readonly_builder"; do
+	"$reboot_bootloader" "$readonly_builder"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 		fail "unsafe storage-layout input: $(basename "$input")"
 done
 [ -x "$init" ] && [ -x "$executor" ] && [ -x "$watchdog_disarm" ] &&
+	[ -x "$reboot_bootloader" ] &&
 	[ -x "$readonly_builder" ] ||
 	fail 'initramfs programs must be executable'
 [ ! -e "$output" ] && [ ! -L "$output" ] ||
@@ -55,6 +58,7 @@ esac
 case $private_config_sha256 in *[!0-9a-f]*) fail 'private config SHA-256 is not canonical' ;; esac
 check_hash "$executor" "$executor_sha256"
 check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"
+check_hash "$reboot_bootloader" "$reboot_bootloader_sha256"
 check_hash "$private_config" "$private_config_sha256"
 
 for key in format operation_id disk_guid userdata_type_guid \
@@ -110,6 +114,8 @@ mkdir -p "$stage/usr/libexec"
 install -m 0755 "$executor" "$stage/usr/libexec/rog5-storage-layout-stage1"
 install -m 0755 "$watchdog_disarm" \
 	"$stage/usr/libexec/rog5-disarm-recovery-layout-watchdog"
+install -m 0755 "$reboot_bootloader" \
+	"$stage/usr/libexec/rog5-reboot-bootloader"
 install -m 0400 "$private_config" "$stage/etc/rog5/storage-layout-stage1.conf"
 chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"
 
@@ -118,7 +124,8 @@ chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"
 [ ! -e "$stage/usr/sbin/kexec" ] || fail 'kexec survived stage-1 packaging'
 for path in init usr/libexec/rog5-storage-layout-stage1 \
 	usr/libexec/rog5-disarm-recovery-layout-watchdog usr/bin/sgdisk \
-	sbin/e2fsck usr/sbin/dumpe2fs usr/sbin/resize2fs sbin/mkfs.ext4; do
+	usr/libexec/rog5-reboot-bootloader sbin/e2fsck usr/sbin/dumpe2fs \
+	usr/sbin/resize2fs sbin/mkfs.ext4; do
 	[ -e "$stage/$path" ] || fail "stage-1 initramfs lacks $path"
 done
 for path in bin/dd usr/bin/sha256sum sbin/blockdev usr/sbin/partprobe; do
@@ -131,6 +138,8 @@ cmp "$stage/usr/libexec/rog5-storage-layout-stage1" "$executor" ||
 	fail 'packaged stage-1 executor changed'
 cmp "$stage/usr/libexec/rog5-disarm-recovery-layout-watchdog" "$watchdog_disarm" ||
 	fail 'packaged watchdog disarm helper changed'
+cmp "$stage/usr/libexec/rog5-reboot-bootloader" "$reboot_bootloader" ||
+	fail 'packaged reboot-to-bootloader helper changed'
 cmp "$stage/etc/rog5/storage-layout-stage1.conf" "$private_config" ||
 	fail 'packaged private config changed'
 

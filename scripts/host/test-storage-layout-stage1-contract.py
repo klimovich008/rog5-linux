@@ -14,6 +14,7 @@ EXECUTOR = REPO / "scripts/device/storage-layout-stage1"
 BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
+REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
 MANIFEST = REPO / "manifests/userdata-ext4-reset-generation85.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
@@ -80,6 +81,9 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             'partition_absent 24',
             'gpt_changed=0',
             'blockdev --setro "$userdata"',
+            '"$reboot_bootloader"',
+            "bootloader restart2 returned; remaining in sealed recovery",
+            "while :; do sleep 3600; done",
         ):
             self.assertIn(contract, reset)
         for forbidden in (
@@ -147,6 +151,18 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "gzip -n",
             "sbin/mkfs.ext4",
             "rog5-userdata-ext4-reset-v1",
+            "usr/libexec/rog5-reboot-bootloader",
+            'check_hash "$reboot_bootloader"',
+        ):
+            self.assertIn(contract, source)
+
+    def test_reboot_helper_is_fixed_restart2_only(self) -> None:
+        source = REBOOT_SOURCE.read_text(encoding="utf-8")
+        for contract in (
+            "LINUX_REBOOT_CMD_RESTART2",
+            'static const char command[] = "bootloader"',
+            "NR_REBOOT 142UL",
+            "Success never returns",
         ):
             self.assertIn(contract, source)
 
