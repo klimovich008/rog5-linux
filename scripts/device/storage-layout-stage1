@@ -91,7 +91,7 @@ fail() {
 	log "failed at $stage: $reason; gpt_restored=$restored"
 	if [ "$operation_mode" = userdata_ext4_reset ]; then
 		repeat=0
-		while [ "$repeat" -lt 40 ]; do
+		while [ "$repeat" -lt 120 ]; do
 			sleep 0.5
 			emit "$failure_record"
 			repeat=$((repeat + 1))
