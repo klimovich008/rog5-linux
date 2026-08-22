@@ -92,6 +92,8 @@ Observed pattern:
 - A killed recovery watchdog remained as an inert zombie while PID 1 waited
   for the storage executor; a host fixture had incorrectly assumed `/proc/PID`
   must disappear immediately.
+- Recovery created its armed marker before setting `umask 077`; normal init
+  umask produced mode 0644 while the sealed disarm helper required 0600.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
 
@@ -105,6 +107,8 @@ Prevention:
 - Test scripts against the extracted exact initramfs/rootfs with its shell and utilities.
 - Use POSIX/BusyBox-compatible commands in recovery unless a packaged binary is explicitly verified.
 - Preflight every required capability before transfer or candidate consumption.
+- Create every helper-owned marker under its required umask before spawning
+  the process that publishes or consumes its identity.
 
 Rule: **A capability is available only if the exact booted artifact proves it; host availability and prior recovery versions do not count.**
 

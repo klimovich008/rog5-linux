@@ -701,6 +701,7 @@ if [ "$recovery_mode" = storage-layout-stage2-v1 ] && [ "$timeout" != 900 ]; the
 	log 'storage-layout stage-2 requires the exact pre-mutation rollback window; rebooting'
 	force_rollback
 fi
+umask 077
 touch /run/rog5-recovery-armed
 (
 	sleep "$timeout"
@@ -720,7 +721,6 @@ case $watchdog_pid:$watchdog_starttime in
 esac
 watchdog_lease=/run/rog5-recovery-watchdog.lease
 watchdog_lease_tmp=/run/.rog5-recovery-watchdog.lease.$$
-umask 077
 if ! printf 'pid=%s\nstarttime=%s\n' \
 	"$watchdog_pid" "$watchdog_starttime" >"$watchdog_lease_tmp" ||
 	! chmod 0600 "$watchdog_lease_tmp" ||

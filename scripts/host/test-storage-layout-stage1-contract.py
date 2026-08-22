@@ -190,6 +190,15 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertLess(source.index("frozen=1"), source.index('kill -STOP "$watchdog_pid"'))
 
+        init = self.executable_source(INIT)
+        setup_start = init.index("touch /run/rog5-recovery-armed") - 200
+        setup_end = init.index("if ! snapshot_postmortem")
+        setup = init[setup_start:setup_end]
+        self.assertLess(
+            setup.index("umask 077"),
+            setup.index("touch /run/rog5-recovery-armed"),
+        )
+
     def test_builder_seals_mode_executor_and_private_config(self) -> None:
         source = self.executable_source(BUILDER)
         executor_sha256 = hashlib.sha256(EXECUTOR.read_bytes()).hexdigest()
@@ -307,7 +316,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation93-live-v1": "revoked",
                 "userdata-ext4-reset-generation94-live-v1": "revoked",
                 "userdata-ext4-reset-generation95-live-v1": "revoked",
-                "userdata-ext4-reset-generation96-live-v1": "allow",
+                "userdata-ext4-reset-generation96-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation96-live-v1"][1:4], [
