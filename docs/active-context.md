@@ -247,6 +247,12 @@ bounded Opus reviews timed out without a verdict. The remaining uncertainty
 is physical gadget-ACM input contamination or transformation; the successor
 must use a four-record/120-second exact-token loop and finite non-secret
 failure categories without normalizing the accepted token.
+Generation 93 is the unissued successor. It retains exact target-S30 then
+host-ready ordering, reads at most four 30-second records, accepts only the
+unchanged operation-bound token, and otherwise reports a finite non-secret
+category. Its authority-free RAM-only AVB image is
+`ef9143db03f76008726c48dac59cc2309af552d6266c316c56bcdd2902169045`,
+bound by `manifests/userdata-ext4-reset-generation93.manifest`.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
