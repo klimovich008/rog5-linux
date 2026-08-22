@@ -84,10 +84,21 @@ kill -KILL "$watchdog_pid" 2>/dev/null || true
 
 attempt=0
 while [ "$attempt" -lt 100 ] && [ -e "/proc/$watchdog_pid" ]; do
+	remaining_stat=$(cat "/proc/$watchdog_pid/stat" 2>/dev/null) || break
+	remaining_tail=${remaining_stat##*) }
+	[ "$(printf '%s\n' "$remaining_tail" | awk '{ print $1 }')" != Z ] || break
 	sleep 0.1
 	attempt=$((attempt + 1))
 done
-[ ! -e "/proc/$watchdog_pid" ] || fail 'rollback watchdog did not exit'
+if [ -e "/proc/$watchdog_pid" ]; then
+	remaining_stat=$(cat "/proc/$watchdog_pid/stat" 2>/dev/null) ||
+		fail 'cannot verify killed rollback watchdog'
+	remaining_tail=${remaining_stat##*) }
+	[ "$(printf '%s\n' "$remaining_tail" | awk '{ print $1 }')" = Z ] &&
+		[ "$(printf '%s\n' "$remaining_tail" | awk '{ print $2 }')" = "$expected_parent" ] &&
+		[ "$(printf '%s\n' "$remaining_tail" | awk '{ print $20 }')" = "$expected_start" ] ||
+		fail 'rollback watchdog did not exit or become the exact inert zombie'
+fi
 frozen=0
 mv "$lease" "$marker" || fail 'cannot publish watchdog disarm marker'
 [ -f "$marker" ] && [ ! -L "$marker" ] || fail 'watchdog disarm marker is invalid'

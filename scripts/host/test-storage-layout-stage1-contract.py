@@ -107,21 +107,20 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertLess(ack, disarm)
         self.assertLess(disarm, dispatch)
 
-    def test_userdata_reset_failures_repeat_then_return_to_fastboot(self) -> None:
+    def test_userdata_reset_failures_emit_once_then_return_to_fastboot(self) -> None:
         source = self.executable_source(EXECUTOR)
         start = source.index("fail() {")
         end = source.index("\n}\n", start) + 2
         failure = source[start:end]
         for contract in (
             'if [ "$operation_mode" = userdata_ext4_reset ]; then',
-            'while [ "$repeat" -lt 240 ]; do',
-            'sleep 0.5',
-            'emit "$failure_record"',
             '"$reboot_bootloader"',
             "bootloader restart2 returned after reset failure",
             "while :; do sleep 3600; done",
         ):
             self.assertIn(contract, failure)
+        self.assertEqual(failure.count('emit "$failure_record"'), 1)
+        self.assertNotIn('while [ "$repeat"', failure)
 
     def test_reset_precondition_rejects_only_existing_ext4(self) -> None:
         source = self.executable_source(EXECUTOR)
@@ -275,7 +274,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation91-live-v1": "revoked",
                 "userdata-ext4-reset-generation92-live-v1": "revoked",
                 "userdata-ext4-reset-generation93-live-v1": "revoked",
-                "userdata-ext4-reset-generation94-live-v1": "allow",
+                "userdata-ext4-reset-generation94-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation94-live-v1"][1:4], [

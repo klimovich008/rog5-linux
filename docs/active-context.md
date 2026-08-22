@@ -258,12 +258,20 @@ AVB generation; no kernel rebuild is required.
 Its 900-second watchdog returned stock slot-A Android USB by 17:38:56. ADB
 remained unauthorized, so a second `/data` query was unavailable; absence of
 the mandatory backup ACK remains the direct proof that no write began.
-Generation 94 is the unissued host-only successor. It reuses the exact
-Generation 93 raw wrapper and changes only the AVB generation; after target
-S30 the collector writes one empty separator record followed by the unchanged
-exact token. Its authority-free RAM-only AVB image is
-`c123c8e5682805ef3e65cf72405dcb2a8ab52e0253d44bff20d15fc47e062e46`,
-bound by `manifests/userdata-ext4-reset-generation94.manifest`.
+Generation 94 is consumed and must never be retried. Its empty separator
+worked: the target accepted exact host readiness, streamed a fresh GPT backup,
+and received the host's durable mutation ACK. It then stopped before any
+userdata write at exact `S32_WATCHDOG_DISARM/rollback_watchdog_disarm_failed`;
+`gpt_restored=not_needed`. The fresh backup set is
+`1a6295725cb63ab27f90022e5061be6552eec7d6a4297cc4f5ff088543948679`.
+Offline reproduction classified the failure as R3/R8: the exact killed
+watchdog can remain an inert zombie while PID 1 waits for the executor, but
+the helper required `/proc/PID` to disappear. The collector then closed after
+the first terminal record, so repeated ACM writes blocked fallback until a
+read-only drain was attached; exact fastboot returned. The successor accepts
+only the exact same PID/start-time/parent in zombie state, rejects every live
+or changed identity, emits one terminal failure record, and returns directly
+to restart2. No GPT or userdata write occurred in Generation 94.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

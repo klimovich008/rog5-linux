@@ -84,6 +84,9 @@ Observed pattern:
 - Alpine lacked `findmnt`; a pre-transfer check failed on the live fallback.
 - The Alpine fallback kernel lacked `CONFIG_KEXEC`; `kexec_load` returned `ENOSYS` after transfer.
 - BusyBox rejected shell syntax that worked on the host.
+- A killed recovery watchdog remained as an inert zombie while PID 1 waited
+  for the storage executor; a host fixture had incorrectly assumed `/proc/PID`
+  must disappear immediately.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
 
@@ -211,6 +214,10 @@ Observed pattern:
 - A userspace rollback timer did not restore the phone after the control plane froze.
 - Review later clarified that successful kexec destroys the old userspace timer, so absence of rollback did not prove the old kernel was still running.
 - Logging before emergency reset could itself delay the reset path.
+- A post-ACK disarm helper killed the exact rollback watchdog but then rejected
+  its unreaped zombie, leaving the failure path without the marker or timer.
+- Repeating terminal evidence to an ACM endpoint after the collector closed
+  blocked the target before its bootloader restart.
 
 Cost:
 
@@ -222,6 +229,11 @@ Prevention:
 - Make COMMIT idempotency and outcome recovery explicit; never equate an ACK with target execution.
 - Keep rollback at a level that survives the transition being tested, or use an independent hardware/bootloader watchdog.
 - Emergency reset paths must perform the reset before optional logging.
+- Treat an exact same-PID/start-time zombie as inert, but reject every live,
+  changed, or ambiguous process identity.
+- Emit one post-ACK terminal record while the collector is attached, then
+  execute the bounded fallback; do not make fallback depend on repeated TTY
+  writes.
 - Independent USB and power observers must record transitions even if the control plane dies.
 
 Rule: **Rollback must be owned by a component that survives the failure boundary under test.**

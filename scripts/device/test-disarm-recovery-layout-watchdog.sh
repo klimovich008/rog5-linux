@@ -5,6 +5,7 @@ repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 target=$repo/scripts/device/disarm-recovery-layout-watchdog.sh
 work=$(mktemp -d)
 fixture_pid=
+fixture_supervisor_pid=
 
 cleanup_fixture() {
 	case $fixture_pid in ''|*[!0-9]*|0|1) return ;; esac
@@ -16,6 +17,11 @@ cleanup_fixture() {
 	fi
 	kill -CONT "$fixture_pid" 2>/dev/null || true
 	kill -KILL "$fixture_pid" 2>/dev/null || true
+	case $fixture_supervisor_pid in
+		''|*[!0-9]*|0|1) ;;
+		*) kill -KILL "$fixture_supervisor_pid" 2>/dev/null || true ;;
+	esac
+	fixture_supervisor_pid=
 }
 
 cleanup() {
@@ -48,6 +54,38 @@ spawn_fixture() {
 	done
 	echo 'FAIL watchdog fixture did not stabilize' >&2
 	exit 1
+}
+
+spawn_unreaped_fixture() {
+	fixture=$work/watchdog-unreaped-fixture
+	pid_file=$work/unreaped.pid
+	printf '%s\n' '#!/bin/sh' 'sleep 600' 'exit 0' >"$fixture"
+	chmod 0700 "$fixture"
+	python3 - "$fixture" "$pid_file" <<'PY' &
+import pathlib
+import subprocess
+import sys
+import time
+
+child = subprocess.Popen([sys.argv[1]])
+pathlib.Path(sys.argv[2]).write_text(f"{child.pid}\n", encoding="ascii")
+time.sleep(600)
+PY
+	fixture_supervisor_pid=$!
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -s "$pid_file" ]; do
+		sleep 0.05
+		attempt=$((attempt + 1))
+	done
+	[ -s "$pid_file" ] || {
+		echo 'FAIL unreaped watchdog fixture did not start' >&2
+		exit 1
+	}
+	fixture_pid=$(cat "$pid_file")
+	[ "$(awk '{ print $4 }' "/proc/$fixture_pid/stat")" = "$fixture_supervisor_pid" ] || {
+		echo 'FAIL unreaped watchdog parent is not stable' >&2
+		exit 1
+	}
 }
 
 prepare_helper() {
@@ -106,6 +144,21 @@ fi
 case $(awk '/^State:/ { print $2 }' "/proc/$fixture_pid/status") in
 	T|t) echo 'FAIL refused watchdog remained frozen' >&2; exit 1 ;;
 esac
+cleanup_fixture
+fixture_pid=
+
+spawn_unreaped_fixture
+prepare_helper "$work/unreaped"
+if ! "$work/unreaped/helper" >/dev/null 2>&1; then
+	echo 'FAIL an exact killed but unreaped watchdog was rejected' >&2
+	exit 1
+fi
+[ "$(awk '{ print $3 }' "/proc/$fixture_pid/stat")" = Z ] || {
+	echo 'FAIL unreaped watchdog did not become an inert zombie' >&2
+	exit 1
+}
+[ ! -e "$work/unreaped/armed" ]
+[ -f "$work/unreaped/disarmed" ]
 cleanup_fixture
 fixture_pid=
 
