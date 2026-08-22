@@ -173,3 +173,8 @@ no recognized filesystem type, so its type-gated path did not run
 `dumpe2fs`. Generation 83 is the unbooted, unadmitted successor. It reads only
 64 bytes at the standard superblock offset to distinguish ext4/F2FS magic and
 runs `dumpe2fs -h` whenever ext4 magic is present, independent of `blkid`.
+
+Generation 83 reproduced mount status 255/`EINVAL`, but sealed BusyBox `od`
+compressed duplicate hex lines to `*`. Exact execution of that BusyBox proved
+`od -v` is required. Generation 84 is the unbooted, unadmitted one-flag
+successor; no kernel, config, recovery, or mount behavior changed.
