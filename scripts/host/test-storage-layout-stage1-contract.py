@@ -110,7 +110,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         failure = source[start:end]
         for contract in (
             'if [ "$operation_mode" = userdata_ext4_reset ]; then',
-            'while [ "$repeat" -lt 40 ]; do',
+            'while [ "$repeat" -lt 120 ]; do',
             'sleep 0.5',
             'emit "$failure_record"',
             '"$reboot_bootloader"',
