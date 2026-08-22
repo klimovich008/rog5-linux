@@ -148,6 +148,13 @@ and forced rollback after the loader failure.
 The next acceptance test is one diagnostic successor that identifies the
 exact failed power/USB loader boundary while preserving NCM and rollback.
 
+Generation 79 is built offline but not admitted. Its bundle is
+`persistent-root-power-usb-v3`, manifest SHA-256
+`d0a1e7b2d9a2fce6d934fc560af466c476f66c1b5ee700dd6efdc6134b6e68eb`,
+and RAM-only AVB SHA-256
+`2e49097855eaee747d5935e2d1a6dfe28a42a99396bcafc670db47e3bf388623`.
+The recovery raw image is unchanged; no ASUS kernel compilation ran.
+
 1. Use the new bounded loader failure codes and hostile parser regression.
 2. Reuse the exact Generation 78 kernel, DTB, firmware, module closure, local
    image, recovery, and rollback; do not redesign the kernel for this failure.
