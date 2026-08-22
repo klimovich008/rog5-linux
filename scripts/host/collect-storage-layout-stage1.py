@@ -256,6 +256,23 @@ def receive_backup_set(
                 ("status", "operation_id", "nonce", "files", "backup_set_sha256"),
             )
             break
+        if len(tokens) > 1 and tokens[1] == "status=FAIL":
+            failure = exact_fields(
+                tokens, ("status", "stage", "reason", "gpt_restored")
+            )
+            if (
+                failure["stage"]
+                not in {"S00_CONFIG", "S10_TOPOLOGY", "S20_PROTECTED_SEAL", "S30_FRESH_BACKUP"}
+                or re.fullmatch(r"[a-z0-9_]+", failure["reason"]) is None
+                or failure["reason"] == "none"
+                or failure["gpt_restored"] != "not_needed"
+            ):
+                fail("pre-backup target failure record is invalid")
+            fail(
+                "pre-backup target failure: "
+                f"stage={failure['stage']} reason={failure['reason']} "
+                f"gpt_restored={failure['gpt_restored']}"
+            )
         running = exact_fields(tokens, ("status", "stage", "reason"))
         if running["status"] != "RUNNING" or running["reason"] != "none":
             fail("unexpected record before backup begin")
