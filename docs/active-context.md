@@ -316,6 +316,15 @@ cycle changes only observability: it converts the helper's final fixed `FAIL`
 message into one bounded lowercase machine reason and emits that through the
 existing terminal field. All helper reasons are static, unique, non-secret,
 and source-tested; no write ordering changes.
+Generation 98 is the unissued diagnostic successor. Two clean ASUS 5.4
+wrapper builds produced identical Image
+`175d141e8c11b69263b17ce437ebb7ea4e535d8c3db279563f411d6b8a7815ba`
+with initramfs `75f0ed3f528788f2bf9f186657a674c4c2885ae6d6229b0f8333b082132eedc9`.
+Its authority-free generation-1 AVB image is
+`1ccb04a304d017061e8edb0cf8e44f87dbf2da41cbbf8b5898405b8b603008b2`,
+bound by `manifests/userdata-ext4-reset-generation98.manifest`. One live cycle
+must either complete the intended format or return the exact inner watchdog
+predicate; it must not be used to test any second hypothesis.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
