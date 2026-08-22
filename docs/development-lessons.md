@@ -63,6 +63,9 @@ Observed pattern:
 - The bundle store was a read-only bind mount, so replacing files did not change the served source.
 - The fallback NetworkManager profile retained `autoconnect=no` from an earlier repair period.
 - Installed target-side gates did not initially contain a profile already accepted by host tooling.
+- A storage manifest declared a 900-second recovery timeout, but the exact
+  repacked boot image still carried the generic wrapper's 300-second cmdline;
+  sealed init rejected it before USB enumeration.
 
 Cost:
 
@@ -74,6 +77,8 @@ Prevention:
 - Record a single deployment receipt containing hashes for the wrapper, bundle, manifest, trust key, controller, network profile, and bind-mount source.
 - Connected preflight must compare that receipt with the currently installed and served bytes.
 - Candidate assembly must be atomic: build in a fresh directory, verify, then switch one pointer/bind source.
+- Parse the exact final boot image and compare its cmdline, embedded ramdisk,
+  kernel, and AVB descriptor against the candidate manifest before admission.
 
 Rule: **The object admitted for a phone cycle is the installed byte composition, never merely the Git commit that was intended to produce it.**
 

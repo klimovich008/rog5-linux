@@ -6,6 +6,8 @@ from __future__ import annotations
 from pathlib import Path
 import hashlib
 import stat
+import subprocess
+import tempfile
 import unittest
 
 
@@ -260,6 +262,25 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 hashlib.sha256(image.read_bytes()).hexdigest(),
                 fields["image_sha256"],
             )
+            with tempfile.TemporaryDirectory() as directory:
+                result = subprocess.run(
+                    [
+                        "python3",
+                        str(REPO / "artifacts/android-boot-tools-v1/unpack_bootimg.py"),
+                        "--boot_img",
+                        str(image),
+                        "--out",
+                        directory,
+                        "--format=mkbootimg",
+                        "--null",
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+            arguments = result.stdout.split(b"\0")
+            cmdline = arguments[arguments.index(b"--cmdline") + 1].decode("ascii")
+            self.assertEqual(cmdline.split().count("rog5.recovery_timeout=900"), 1)
+            self.assertNotIn("rog5.recovery_timeout=300", cmdline.split())
 
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
         self.assertIn("userdata-ext4-reset-generation95-live-v1", claim_source)
@@ -284,7 +305,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation92-live-v1": "revoked",
                 "userdata-ext4-reset-generation93-live-v1": "revoked",
                 "userdata-ext4-reset-generation94-live-v1": "revoked",
-                "userdata-ext4-reset-generation95-live-v1": "allow",
+                "userdata-ext4-reset-generation95-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation95-live-v1"][1:4], [
