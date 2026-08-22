@@ -255,6 +255,15 @@ the accepted token unchanged and prepends one empty separator record, so the
 bounded target loop consumes the contaminated separator record before reading
 the exact operation-bound token. Its raw wrapper can be reused under a fresh
 AVB generation; no kernel rebuild is required.
+Its 900-second watchdog returned stock slot-A Android USB by 17:38:56. ADB
+remained unauthorized, so a second `/data` query was unavailable; absence of
+the mandatory backup ACK remains the direct proof that no write began.
+Generation 94 is the unissued host-only successor. It reuses the exact
+Generation 93 raw wrapper and changes only the AVB generation; after target
+S30 the collector writes one empty separator record followed by the unchanged
+exact token. Its authority-free RAM-only AVB image is
+`c123c8e5682805ef3e65cf72405dcb2a8ab52e0253d44bff20d15fc47e062e46`,
+bound by `manifests/userdata-ext4-reset-generation94.manifest`.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
