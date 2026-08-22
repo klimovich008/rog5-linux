@@ -170,12 +170,12 @@ PROFILES.update(
             b"1b770a941fa8f4fa11dc7100ddd2313795c5256bab1269db4b7520cc87b62e0d\n"
             b"state=BOOT_CLAIMED\n"
         ),
-        "userdata-ext4-reset-generation94-live-v1": (
+        "userdata-ext4-reset-generation95-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
-            b"recovery_profile=userdata-ext4-reset-generation94-live-v1\n"
-            b"candidate=userdata-ext4-reset-generation94\n"
+            b"recovery_profile=userdata-ext4-reset-generation95-live-v1\n"
+            b"candidate=userdata-ext4-reset-generation95\n"
             b"manifest_sha256="
-            b"85b23d978cf6fe7bfd242ec9dde864231cdd93908ea7891cd322d5e7ebc6f16c\n"
+            b"219bd9b96a4e8f2f05714710a35d420425490fea25eeacd5e522d1da1988612b\n"
             b"state=BOOT_CLAIMED\n"
         ),
         "storage-preflight-v4-generation74-live-v1": (

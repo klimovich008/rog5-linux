@@ -15,7 +15,7 @@ BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
 REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
-MANIFEST = REPO / "manifests/userdata-ext4-reset-generation94.manifest"
+MANIFEST = REPO / "manifests/userdata-ext4-reset-generation95.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 
@@ -220,21 +220,30 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation94_publication_is_exact_and_admitted_once(self) -> None:
+    def test_generation95_publication_is_exact_and_admitted_once(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            "85b23d978cf6fe7bfd242ec9dde864231cdd93908ea7891cd322d5e7ebc6f16c",
+            "219bd9b96a4e8f2f05714710a35d420425490fea25eeacd5e522d1da1988612b",
         )
         fields = dict(line.split("=", 1) for line in payload.decode("ascii").splitlines())
-        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation94-live-v1")
-        self.assertEqual(fields["image_sha256"], "c123c8e5682805ef3e65cf72405dcb2a8ab52e0253d44bff20d15fc47e062e46")
+        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation95-live-v1")
+        self.assertEqual(fields["image_sha256"], "d93aa10dc21221a7733f4d9a66d3e25ef43541c213ce3682bd728336afd7e596")
         self.assertEqual(fields["private_config_sha256"], "87845905422201c95e6498c04db4d127b42acfc9b45e316b53d51fc0d388f7cb")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         self.assertEqual(fields["target_partition_number"], "23")
         self.assertEqual(fields["gpt_change"], "0")
         self.assertEqual(fields["post_success_action"], "restart2-bootloader-or-remain-in-recovery")
-        self.assertEqual(fields["failure_evidence_repetitions"], "240")
+        self.assertEqual(fields["failure_evidence_repetitions"], "1")
+        self.assertEqual(fields["failure_evidence_interval_ms"], "0")
+        self.assertEqual(
+            fields["watchdog_exit_contract"],
+            "absent-or-exact-same-parent-starttime-zombie",
+        )
+        self.assertEqual(
+            fields["failure_transport_contract"],
+            "one-terminal-record-before-restart2",
+        )
         self.assertEqual(fields["post_failure_action"], "restart2-bootloader-or-remain-in-recovery")
         self.assertEqual(fields["userdata_precondition"], "readable-and-not-ext4")
         self.assertEqual(fields["backup_stream_rendezvous"], "exact-operation-bound-host-ready")
@@ -253,8 +262,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             )
 
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
-        self.assertIn("userdata-ext4-reset-generation94-live-v1", claim_source)
-        self.assertNotIn('"userdata-ext4-reset-generation93-live-v1"', claim_source)
+        self.assertIn("userdata-ext4-reset-generation95-live-v1", claim_source)
+        self.assertNotIn('"userdata-ext4-reset-generation94-live-v1"', claim_source)
         self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
         lines = BOOT_POLICY.read_text(encoding="utf-8").splitlines()
         self.assertEqual(
@@ -275,12 +284,13 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation92-live-v1": "revoked",
                 "userdata-ext4-reset-generation93-live-v1": "revoked",
                 "userdata-ext4-reset-generation94-live-v1": "revoked",
+                "userdata-ext4-reset-generation95-live-v1": "allow",
             },
         )
-        self.assertEqual(rows["userdata-ext4-reset-generation94-live-v1"][1:4], [
-            "85b23d978cf6fe7bfd242ec9dde864231cdd93908ea7891cd322d5e7ebc6f16c",
+        self.assertEqual(rows["userdata-ext4-reset-generation95-live-v1"][1:4], [
+            "219bd9b96a4e8f2f05714710a35d420425490fea25eeacd5e522d1da1988612b",
             "100663296",
-            "c123c8e5682805ef3e65cf72405dcb2a8ab52e0253d44bff20d15fc47e062e46",
+            "d93aa10dc21221a7733f4d9a66d3e25ef43541c213ce3682bd728336afd7e596",
         ])
 
 
