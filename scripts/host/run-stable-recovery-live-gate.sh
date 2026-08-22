@@ -1936,7 +1936,7 @@ case $profile in
 	persistent-root-power-usb-v2-generation78-live-v1)
 		expected_boot_image=build/persistent-root-power-usb-v2-generation78-20260821-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact RAM-only no-BTF PDR correction cycle proving side-port NCM and charging, deferred read-only UFS, local Arch image, key-only SSH, and exact stock slot-A fallback; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted generation 78 no-BTF PDR local-root power/USB successor; exact generation 77 kernel, DTB, UFS modules, firmware, local image, SSH, recovery, and rollback with only pdr_interface BTF removed; one RAM-only use only; never flash'
+		expected_boot_role='unbooted Generation 78 no-BTF PDR local-root power/USB successor; exact Generation 77 kernel, DTB, UFS modules, firmware, local image, SSH, recovery, and rollback with only pdr_interface BTF removed; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=b8c2a67a4bbf812235e2eccd06531d942c5f52c7f1cd0932ed2ff9187f324975
