@@ -23,21 +23,17 @@ key-only SSH in 326.300 seconds and retained Alpine/NFS recovery. Current work
 has moved to the first dedicated-layout boundary; no secondary button,
 indicator, sensor, audio, or suspend expansion is active.
 
-Stage 1 is currently paused at the battery gate. Slot B boots Alpine, whose
-ASUS/Qualcomm charging path is not accepted; using it as an off-mode charging
-environment caused the pack voltage to fall. The preserved slot-A recovery
-was then disproven as a charging route when it entered Qualcomm crashdump.
-Physical side-port isolation also failed to establish charging: about 30
-minutes with only the bottom ASUS wall charger moved 6.836 V to 6.839 V and
-left `battery-soc-ok: no`. A complete official ASUS firmware payload is now
-retained for offline charger-path analysis, but it grants no low-voltage boot
-or storage authority.
-Active-slot metadata has been restored to B without booting it. The one-use
-Stage-1 claim remains unconsumed, and GPT, `userdata`, and partition payloads
-are unchanged. Follow the
-[low-battery recovery hold](asus-charging-recovery.md); resume only after an
-independently proven charging path produces `battery-soc-ok: yes` and the
-current private Stage-1 record is revalidated.
+Charging and stock slot-A rescue were restored with the verified WW33 Android
+composition. Later live discovery proved that restored Android `userdata` is
+raw metadata-encrypted F2FS ciphertext, so the old ext4 shrink/GPT Stage-1
+plan is invalid and must not run. Generation 84 left GPT and all partition
+geometry unchanged.
+
+On 2026-08-22 the owner confirmed destruction of only partition 23
+(`userdata`). The active transition formats that unchanged partition as ext4,
+without changing GPT, then recreates one bounded 16-GiB Arch image. It retains
+the fresh GPT backup/ACK, exact resolver, watchdog-disarm, relock, and stock
+slot-A rescue gates from Stage 1.
 
 ## Read-only inventory result
 
@@ -247,13 +243,13 @@ The read-only loop exposed `norecovery`, and cleanup left no mount or loop
 residue. These values replace the original Generation-53 image/tree identity
 for native-partition cloning.
 
-The Stage-1 dedicated-layout executor and collector are now implemented but
-unissued. They require exact UFS/GPT/ext4 identities, a fresh host-fsynced GPT
-backup ACK, and exact rollback-watchdog disarm before the first write; then
-they shrink ext4 before changing GPT, verify the result, and relock all block
-nodes. A real-size disposable rehearsal and deterministic sealed twin builds
-pass. Phone execution still requires final confirmation of this exact
-destructive stage.
+The old Stage-1 dedicated-layout executor and collector remain historical but
+must not be issued against restored WW33 userdata: their plaintext-ext4
+precondition is false. The active successor reuses their exact resolver,
+fresh host-fsynced GPT backup ACK, rollback-watchdog disarm, post-verification,
+and relock path, but formats only unchanged partition 23 and contains no GPT
+transaction. The owner supplied the exact destructive confirmation on
+2026-08-22.
 
 The separate Stage-2 implementation is also ready offline. It does not format
 or alter GPT: it clones the exact refreshed image into only the future native

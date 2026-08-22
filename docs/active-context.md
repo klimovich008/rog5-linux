@@ -191,17 +191,19 @@ to `*`, preventing magic classification. Its bundle was
 and RAM-only AVB SHA-256
 `b1e69cbdb2a379d763a65c2841182b2e3f163ad7648da5fc470b75bba4092517`.
 
-Its bundle was
+Generation 84 is consumed. Its bundle was
 `persistent-root-power-usb-v8`, manifest SHA-256
 `c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289`,
 and RAM-only AVB SHA-256
 `88075dba4a8564fa21d73c69d696b64813dc024389a5d097be345f7cd9f302bb`.
 
-There is no active successor. The next storage transition must replace the
+There is no admitted successor. The next storage transition replaces the
 opaque encrypted contents of the unchanged `userdata` GPT partition with an
-unencrypted ext4 filesystem, then recreate the bounded Arch image. It requires
-the operator's final confirmation of the exact destructive proposal in
-`configs/storage/rog5-userdata-ext4-reset-v1.json`.
+unencrypted ext4 filesystem, then recreates the bounded Arch image. The owner
+confirmed the exact destructive proposal in
+`configs/storage/rog5-userdata-ext4-reset-v1.json` on 2026-08-22. Offline
+formatter implementation and verification precede a separate one-use
+admission; GPT and every non-`userdata` partition remain immutable.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

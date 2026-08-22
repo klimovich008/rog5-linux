@@ -228,6 +228,31 @@ class CollectorTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.LayoutProtocolError, "field count"):
             MODULE.capture_terminal(FakeTransport(duplicate), OPERATION, seal, 2)
 
+    def test_userdata_reset_terminal_is_exact(self) -> None:
+        seal = "b" * 64
+        valid = (
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S40_FORMAT reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S70_POSTVERIFY reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S80_LOCK reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=PASS stage=S99_COMPLETE reason=none "
+            f"operation_id={OPERATION} operation=userdata_ext4_reset "
+            "gpt_changed=0 userdata_last_lba=61865978 "
+            "filesystem_blocks=59513299 "
+            "filesystem_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5 "
+            f"filesystem_label=rog5-linux backup_set_sha256={seal} "
+            "all_read_only=1 block_mounts=0\n"
+        ).encode("ascii")
+        terminal = MODULE.capture_terminal(
+            FakeTransport(valid), OPERATION, seal, 2, "userdata-ext4-reset-v1"
+        )
+        self.assertIn(b"gpt_changed=0", terminal)
+
+        wrong = valid.replace(b"gpt_changed=0", b"gpt_changed=1")
+        with self.assertRaisesRegex(MODULE.LayoutProtocolError, "PASS identity"):
+            MODULE.capture_terminal(
+                FakeTransport(wrong), OPERATION, seal, 2, "userdata-ext4-reset-v1"
+            )
+
     def test_wrong_operation_never_acks(self) -> None:
         transport = FakeTransport(protocol(backups(), operation="f" * 32))
         with tempfile.TemporaryDirectory() as directory:

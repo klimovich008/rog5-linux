@@ -451,11 +451,13 @@ def capture_terminal(
     operation: str,
     backup_set_sha256: str,
     timeout: float,
+    result_profile: str = "layout-stage1-v1",
 ) -> bytes:
     running_stages = {
         "S31_BACKUP_ACK",
         "S32_WATCHDOG_DISARM",
         "S40_FILESYSTEM_CHECK",
+        "S40_FORMAT",
         "S50_SHRINK",
         "S60_GPT_TRANSACTION",
         "S70_POSTVERIFY",
@@ -470,6 +472,43 @@ def capture_terminal(
         tokens = ascii_line(payload)
         status = tokens[1] if len(tokens) > 1 else ""
         if status == "status=PASS":
+            if result_profile == "userdata-ext4-reset-v1":
+                fields = exact_fields(
+                    tokens,
+                    (
+                        "status",
+                        "stage",
+                        "reason",
+                        "operation_id",
+                        "operation",
+                        "gpt_changed",
+                        "userdata_last_lba",
+                        "filesystem_blocks",
+                        "filesystem_uuid",
+                        "filesystem_label",
+                        "backup_set_sha256",
+                        "all_read_only",
+                        "block_mounts",
+                    ),
+                )
+                expected = {
+                    "status": "PASS",
+                    "stage": "S99_COMPLETE",
+                    "reason": "none",
+                    "operation_id": operation,
+                    "operation": "userdata_ext4_reset",
+                    "gpt_changed": "0",
+                    "userdata_last_lba": "61865978",
+                    "filesystem_blocks": "59513299",
+                    "filesystem_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+                    "filesystem_label": "rog5-linux",
+                    "backup_set_sha256": backup_set_sha256,
+                    "all_read_only": "1",
+                    "block_mounts": "0",
+                }
+                if fields != expected:
+                    fail("stage-1 PASS identity changed")
+                return payload
             fields = exact_fields(
                 tokens,
                 (
@@ -525,6 +564,11 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--execution-record-template", type=Path, required=True)
     parser.add_argument("--execution-record-sha256", required=True)
+    parser.add_argument(
+        "--result-profile",
+        choices=("layout-stage1-v1", "userdata-ext4-reset-v1"),
+        default="layout-stage1-v1",
+    )
     parser.add_argument("--enumeration-timeout", type=int, default=120)
     parser.add_argument("--operation-timeout", type=int, default=600)
     return parser.parse_args(arguments)
@@ -565,6 +609,7 @@ def main(arguments: list[str]) -> int:
             options.operation_id,
             str(manifest["backup_set_sha256"]),
             options.operation_timeout,
+            options.result_profile,
         )
     write_exact(options.output / "terminal.txt", terminal)
     fsync_directory(options.output)
