@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import hashlib
+import re
 import stat
 import subprocess
 import tempfile
@@ -189,6 +190,11 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         for forbidden in ("blockdev", "resize2fs", "sgdisk", "mkfs", "dd if="):
             self.assertNotIn(forbidden, source)
         self.assertLess(source.index("frozen=1"), source.index('kill -STOP "$watchdog_pid"'))
+        messages = re.findall(r"fail '([^']+)'", source)
+        reasons = ["watchdog_" + re.sub(r"[ -]", "_", value.lower()) for value in messages]
+        self.assertGreater(len(reasons), 20)
+        self.assertEqual(len(reasons), len(set(reasons)))
+        self.assertTrue(all(re.fullmatch(r"watchdog_[a-z0-9_]+", value) for value in reasons))
 
         init = self.executable_source(INIT)
         setup_start = init.index("touch /run/rog5-recovery-armed") - 200
@@ -198,6 +204,12 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             setup.index("umask 077"),
             setup.index("touch /run/rog5-recovery-armed"),
         )
+
+        executor = self.executable_source(EXECUTOR)
+        disarm = executor[executor.index("stage_set S32_WATCHDOG_DISARM") :]
+        self.assertIn("watchdog_reason=", disarm)
+        self.assertIn('fail "$watchdog_reason"', disarm)
+        self.assertNotIn("fail rollback_watchdog_disarm_failed", disarm)
 
     def test_builder_seals_mode_executor_and_private_config(self) -> None:
         source = self.executable_source(BUILDER)
@@ -319,7 +331,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation94-live-v1": "revoked",
                 "userdata-ext4-reset-generation95-live-v1": "revoked",
                 "userdata-ext4-reset-generation96-live-v1": "revoked",
-                "userdata-ext4-reset-generation97-live-v1": "allow",
+                "userdata-ext4-reset-generation97-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation97-live-v1"][1:4], [

@@ -457,8 +457,15 @@ expected_ack="$protocol status=BACKUP_ACK operation_id=$operation_id nonce=$nonc
 [ "$ack" = "$expected_ack" ] || fail backup_ack_mismatch
 
 stage_set S32_WATCHDOG_DISARM
-"$watchdog_disarm" >/run/rog5-layout-stage1-watchdog-disarm.log 2>&1 ||
-	fail rollback_watchdog_disarm_failed
+watchdog_log=/run/rog5-layout-stage1-watchdog-disarm.log
+if ! "$watchdog_disarm" >"$watchdog_log" 2>&1; then
+	watchdog_reason=$(sed -n 's/^FAIL /watchdog_/p' "$watchdog_log" |
+		sed -n '$p' | tr 'A-Z -' 'a-z__')
+	printf '%s\n' "$watchdog_reason" | grep -Eq '^watchdog_[a-z0-9_]+$' &&
+		[ "${#watchdog_reason}" -lt 128 ] ||
+		fail rollback_watchdog_disarm_unclassified
+	fail "$watchdog_reason"
+fi
 [ ! -e /run/rog5-recovery-armed ] &&
 	[ -f /run/rog5-recovery-watchdog.disarmed ] &&
 	[ ! -L /run/rog5-recovery-watchdog.disarmed ] ||

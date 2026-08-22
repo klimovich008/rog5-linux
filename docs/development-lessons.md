@@ -94,6 +94,9 @@ Observed pattern:
   must disappear immediately.
 - Recovery created its armed marker before setting `umask 077`; normal init
   umask produced mode 0644 while the sealed disarm helper required 0600.
+- The storage executor collapsed every sealed watchdog-helper predicate into
+  one generic S32 reason, allowing multiple live cycles to remain
+  non-discriminating even when fallback worked.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
 
@@ -109,6 +112,8 @@ Prevention:
 - Preflight every required capability before transfer or candidate consumption.
 - Create every helper-owned marker under its required umask before spawning
   the process that publishes or consumes its identity.
+- Propagate bounded machine classifications from sealed helpers instead of
+  replacing them with a generic stage failure.
 
 Rule: **A capability is available only if the exact booted artifact proves it; host availability and prior recovery versions do not count.**
 
