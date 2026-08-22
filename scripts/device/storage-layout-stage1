@@ -13,6 +13,7 @@ primary_backup=/run/rog5-layout-stage1.primary.raw
 secondary_backup=/run/rog5-layout-stage1.secondary.raw
 disk=
 userdata=
+operation_mode=
 gpt_write_started=0
 gpt_verified=0
 transport_ready=0
@@ -101,21 +102,37 @@ check_config() {
 	[ "$(stat -c %g "$config" 2>/dev/null)" = 0 ] || return 1
 	[ "$(stat -c %a "$config" 2>/dev/null)" = 400 ] || return 1
 	[ "$(stat -c %h "$config" 2>/dev/null)" = 1 ] || return 1
-	[ "$(wc -l <"$config")" = 7 ] || return 1
-	[ "$(config_value format)" = rog5-storage-layout-stage1-v1 ] || return 1
+	config_format=$(config_value format) || return 1
+	case $config_format in
+		rog5-storage-layout-stage1-v1)
+			[ "$(wc -l <"$config")" = 7 ] || return 1
+			operation_mode=layout_stage1
+			;;
+		rog5-userdata-ext4-reset-v1)
+			[ "$(wc -l <"$config")" = 6 ] || return 1
+			operation_mode=userdata_ext4_reset
+			;;
+		*) return 1 ;;
+	esac
 	operation_id=$(config_value operation_id) || return 1
 	expected_disk_guid=$(config_value disk_guid) || return 1
 	expected_userdata_type_guid=$(config_value userdata_type_guid) || return 1
 	expected_userdata_guid=$(config_value userdata_unique_guid) || return 1
 	expected_userdata_fs_uuid=$(config_value userdata_fs_uuid) || return 1
-	expected_root_guid=$(config_value arch_root_unique_guid) || return 1
+	if [ "$operation_mode" = layout_stage1 ]; then
+		expected_root_guid=$(config_value arch_root_unique_guid) || return 1
+	else
+		expected_root_guid=
+	fi
 	printf '%s\n' "$operation_id" | grep -Eq '^[0-9a-f]{32}$' || return 1
 	guid_is_canonical "$expected_disk_guid" || return 1
 	guid_is_canonical "$expected_userdata_type_guid" || return 1
 	guid_is_canonical "$expected_userdata_guid" || return 1
 	guid_is_canonical "$expected_userdata_fs_uuid" || return 1
-	guid_is_canonical "$expected_root_guid" || return 1
-	[ "$expected_userdata_guid" != "$expected_root_guid" ] || return 1
+	if [ "$operation_mode" = layout_stage1 ]; then
+		guid_is_canonical "$expected_root_guid" || return 1
+		[ "$expected_userdata_guid" != "$expected_root_guid" ] || return 1
+	fi
 }
 
 no_physical_mounts() {
@@ -242,6 +259,89 @@ verify_userdata_filesystem() {
 			grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'
 }
 
+verify_userdata_is_opaque() {
+	ext_magic=$(dd if="$userdata" bs=1 skip=1080 count=2 2>/dev/null |
+		od -An -tx1 -v | tr -d ' \n') || return 1
+	f2fs_magic=$(dd if="$userdata" bs=1 skip=1024 count=4 2>/dev/null |
+		od -An -tx1 -v | tr -d ' \n') || return 1
+	[ "$ext_magic" != 53ef ] && [ "$f2fs_magic" != 1020f5f2 ] || return 1
+	: >/run/rog5-layout-stage1-blkid.log || return 1
+	if blkid "$userdata" >/run/rog5-layout-stage1-blkid.log 2>&1; then
+		return 1
+	fi
+	[ ! -s /run/rog5-layout-stage1-blkid.log ]
+}
+
+verify_reset_filesystem() {
+	dumpe2fs -h "$userdata" >/run/rog5-layout-stage1-superblock.log 2>&1 ||
+		return 1
+	blocks=$(filesystem_value 'Block count' /run/rog5-layout-stage1-superblock.log)
+	block_size=$(filesystem_value 'Block size' /run/rog5-layout-stage1-superblock.log)
+	state_value=$(filesystem_value 'Filesystem state' /run/rog5-layout-stage1-superblock.log)
+	uuid=$(filesystem_value 'Filesystem UUID' /run/rog5-layout-stage1-superblock.log |
+		tr 'A-F' 'a-f')
+	label=$(filesystem_value 'Filesystem volume name' /run/rog5-layout-stage1-superblock.log)
+	reserved=$(filesystem_value 'Reserved block count' /run/rog5-layout-stage1-superblock.log)
+	features=$(filesystem_value 'Filesystem features' /run/rog5-layout-stage1-superblock.log)
+	[ "$blocks" = 59513299 ] && [ "$block_size" = 4096 ] &&
+		[ "$state_value" = clean ] && [ "$uuid" = "$expected_userdata_fs_uuid" ] &&
+		[ "$label" = rog5-linux ] && [ "$reserved" = 0 ] &&
+		! printf '%s\n' "$features" |
+			grep -Eq '(^| )(casefold|encrypt|verity|quota|project|needs_recovery|orphan_present)( |$)'
+}
+
+verify_gpt_unchanged() {
+	dd if="$disk" of=/run/rog5-layout-stage1-primary.after bs=4096 count=6 \
+		2>/dev/null || return 1
+	dd if="$disk" of=/run/rog5-layout-stage1-secondary.after bs=4096 \
+		skip=61865979 count=5 2>/dev/null || return 1
+	cmp "$primary_backup" /run/rog5-layout-stage1-primary.after >/dev/null 2>&1 &&
+		cmp "$secondary_backup" /run/rog5-layout-stage1-secondary.after >/dev/null 2>&1
+}
+
+run_userdata_ext4_reset() {
+	stage_set S40_FORMAT
+	blockdev --setrw "$disk" || fail disk_unlock_failed
+	blockdev --setrw "$userdata" || fail userdata_unlock_failed
+	[ "$(blockdev --getro "$disk")" = 0 ] || fail disk_remains_read_only
+	[ "$(blockdev --getro "$userdata")" = 0 ] || fail userdata_remains_read_only
+	mkfs.ext4 -F -b 4096 -L rog5-linux -U "$expected_userdata_fs_uuid" -m 0 \
+		-O ^casefold,^encrypt,^verity,^quota,^project \
+		-E lazy_itable_init=0,lazy_journal_init=0 "$userdata" \
+		>/run/rog5-layout-stage1-mkfs.log 2>&1 || fail mkfs_ext4_failed
+	sync || fail sync_after_mkfs_failed
+
+	stage_set S70_POSTVERIFY
+	verify_gpt_unchanged || fail gpt_changed
+	sgdisk -v "$disk" >/run/rog5-layout-stage1-gpt-verify.log 2>&1 ||
+		fail gpt_verify_failed
+	grep -Fq 'No problems found.' /run/rog5-layout-stage1-gpt-verify.log ||
+		fail gpt_verify_reported_problem
+	verify_disk_guid || fail disk_guid_not_preserved
+	verify_partition 23 2352680 61865978 "$expected_userdata_type_guid" \
+		"$expected_userdata_guid" userdata || fail userdata_identity_changed
+	partition_absent 24 || fail partition_24_appeared
+	protected_after=$(protected_partition_hash /run/rog5-layout-stage1-protected.after) ||
+		fail protected_partition_read_failed
+	[ "$protected_after" = "$protected_before" ] || fail protected_partitions_changed
+	verify_reset_filesystem || fail formatted_filesystem_invalid
+	e2fsck -fn "$userdata" >/run/rog5-layout-stage1-e2fsck-after.log 2>&1 ||
+		fail e2fsck_after_failed
+	verify_reset_filesystem || fail final_filesystem_invalid
+
+	stage_set S80_LOCK
+	blockdev --setro "$userdata" || fail userdata_relock_failed
+	lock_storage || fail storage_relock_failed
+	[ "$(blockdev --getro "$disk")" = 1 ] || fail disk_relock_failed
+	[ "$(blockdev --getro "$userdata")" = 1 ] || fail userdata_relock_failed
+	no_physical_mounts || fail physical_block_mounted
+
+	stage=S99_COMPLETE
+	emit "status=PASS stage=$stage reason=none operation_id=$operation_id operation=userdata_ext4_reset gpt_changed=0 userdata_last_lba=61865978 filesystem_blocks=59513299 filesystem_uuid=$expected_userdata_fs_uuid filesystem_label=rog5-linux backup_set_sha256=$backup_set_sha all_read_only=1 block_mounts=0"
+	log "userdata ext4 reset complete; backup_set_sha256=$backup_set_sha"
+	exit 0
+}
+
 send_backup_file() {
 	name=$1
 	path=$2
@@ -271,7 +371,11 @@ verify_disk_guid || fail disk_guid_changed
 verify_partition 23 2352680 61865978 "$expected_userdata_type_guid" \
 	"$expected_userdata_guid" userdata || fail userdata_identity_changed
 partition_absent 24 || fail partition_24_already_exists
-verify_userdata_filesystem 59513299 || fail userdata_filesystem_changed
+if [ "$operation_mode" = layout_stage1 ]; then
+	verify_userdata_filesystem 59513299 || fail userdata_filesystem_changed
+else
+	verify_userdata_is_opaque || fail userdata_content_changed
+fi
 
 stage_set S20_PROTECTED_SEAL
 protected_before=$(protected_partition_hash /run/rog5-layout-stage1-protected.before) ||
@@ -317,6 +421,10 @@ stage_set S32_WATCHDOG_DISARM
 	[ -f /run/rog5-recovery-watchdog.disarmed ] &&
 	[ ! -L /run/rog5-recovery-watchdog.disarmed ] ||
 	fail rollback_watchdog_disarm_unproven
+
+if [ "$operation_mode" = userdata_ext4_reset ]; then
+	run_userdata_ext4_reset
+fi
 
 stage_set S40_FILESYSTEM_CHECK
 blockdev --setrw "$disk" || fail disk_unlock_failed

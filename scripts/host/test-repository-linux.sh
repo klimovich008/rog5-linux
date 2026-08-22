@@ -277,6 +277,7 @@ shared_tests=(
 	scripts/host/test-verify-dedicated-linux-layout.py
 	scripts/host/test-storage-preflight-initramfs-contract.py
 	scripts/host/test-storage-layout-stage1-contract.py
+	scripts/device/test-userdata-ext4-reset-runtime.sh
 	scripts/device/test-disarm-recovery-layout-watchdog.sh
 	scripts/host/test-collect-storage-layout-stage1.py
 	scripts/host/test-storage-layout-stage2-contract.py

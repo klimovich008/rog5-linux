@@ -57,9 +57,43 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertLess(disarm, first_setrw)
         self.assertLess(first_setrw, shrink)
         self.assertLess(shrink, transaction)
-        self.assertNotIn("mkfs", source)
-        self.assertNotIn("/rog5/images/arch-local-a.ext4", source)
+        legacy = source[source.index("stage_set S40_FILESYSTEM_CHECK") :]
+        self.assertNotIn("mkfs", legacy)
+        self.assertNotIn("/rog5/images/arch-local-a.ext4", legacy)
         self.assertNotIn("ROG5_LAYOUT_TEST", source)
+
+    def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("run_userdata_ext4_reset() {")
+        end = source.index("\n}\n", start) + 2
+        reset = source[start:end]
+        for contract in (
+            'mkfs.ext4 -F -b 4096 -L rog5-linux',
+            '-U "$expected_userdata_fs_uuid"',
+            '-O ^casefold,^encrypt,^verity,^quota,^project',
+            '-E lazy_itable_init=0,lazy_journal_init=0',
+            'verify_partition 23 2352680 61865978',
+            'partition_absent 24',
+            'gpt_changed=0',
+            'blockdev --setro "$userdata"',
+        ):
+            self.assertIn(contract, reset)
+        for forbidden in (
+            "--delete=",
+            "--new=",
+            "--zap",
+            "--load-backup",
+            "resize2fs",
+            "partprobe",
+            "blockdev --rereadpt",
+        ):
+            self.assertNotIn(forbidden, reset)
+
+        ack = source.index("BACKUP_ACK")
+        disarm = source.index('"$watchdog_disarm"')
+        dispatch = source.index("run_userdata_ext4_reset", end)
+        self.assertLess(ack, disarm)
+        self.assertLess(disarm, dispatch)
 
     def test_recovery_dispatches_only_the_sealed_executor(self) -> None:
         source = self.executable_source(INIT)
@@ -107,6 +141,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "find . -mindepth 1 -print0 | sort -z",
             "cpio --null -o --quiet --format=newc --owner=0:0 --reproducible",
             "gzip -n",
+            "sbin/mkfs.ext4",
+            "rog5-userdata-ext4-reset-v1",
         ):
             self.assertIn(contract, source)
 

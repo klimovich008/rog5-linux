@@ -168,16 +168,16 @@ filesystem type/features before changing config. Generation 82 is the
 unbooted, unadmitted classifier; it adds bounded `blkid`, `dumpe2fs -h`, mount
 status, and ext4/VFS error categories without changing the mount operation.
 
-Generation 82 retained mount status 255/`EINVAL`, but BusyBox `blkid` exposed
+Generation 82 is consumed. It retained mount status 255/`EINVAL`, but BusyBox `blkid` exposed
 no recognized filesystem type, so its type-gated path did not run
-`dumpe2fs`. Generation 83 is the unbooted, unadmitted successor. It reads only
+`dumpe2fs`. Generation 83 is consumed. It reads only
 64 bytes at the standard superblock offset to distinguish ext4/F2FS magic and
 runs `dumpe2fs -h` whenever ext4 magic is present, independent of `blkid`.
 
 Generation 83 reproduced mount status 255/`EINVAL`, but sealed BusyBox `od`
 compressed duplicate hex lines to `*`. Exact execution of that BusyBox proved
-`od -v` is required. Generation 84 is the unbooted, unadmitted one-flag
-successor; no kernel, config, recovery, or mount behavior changed.
+`od -v` is required. Generation 84 is consumed; no kernel, config, recovery,
+or mount behavior changed.
 
 Generation 84 then proved raw `userdata` has neither plaintext ext4 nor F2FS
 magic and still returns status 255/`EINVAL` to ext4 mount. WW33's exact fstab
@@ -185,5 +185,6 @@ independently specifies F2FS behind `dm-default-key` metadata encryption. The
 old ext4-shrink/local-image plan is invalid after the stock restoration.
 There is no active RAM-only successor. The next proposed storage step changes
 no GPT entry: reformat only partition 23 (`userdata`) as unencrypted ext4,
-then recreate the bounded 16 GiB Arch image inside it. This destroys Android
-`/data` and requires final operator confirmation.
+then recreate the bounded 16 GiB Arch image inside it. The owner confirmed
+destruction of only partition 23 on 2026-08-22. Offline formatter verification
+and separate one-use admission remain required before the write.

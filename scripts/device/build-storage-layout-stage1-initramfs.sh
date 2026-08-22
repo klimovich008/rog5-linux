@@ -15,7 +15,7 @@ musl_apk=${11:?missing musl package}
 libuuid_apk=${12:?missing libuuid package}
 output=${13:?missing output}
 epoch=1681862400
-executor_sha256=e66e045677dad261b28638a6d903e55f3d0f157d088c6680c220cfc24ec03566
+executor_sha256=c31ab14e2cc584c0311ad8f271e4544ee7443de80b2677b8922a341e9cc92950
 watchdog_disarm_sha256=8949398f9a6245447b3aa4626b85f3f2538e2bf060ced46952514145cb152bbe
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 readonly_builder=$script_dir/build-storage-preflight-initramfs.sh
@@ -57,24 +57,27 @@ check_hash "$executor" "$executor_sha256"
 check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"
 check_hash "$private_config" "$private_config_sha256"
 
-[ "$(wc -l <"$private_config")" = 7 ] || fail 'private config line count changed'
 for key in format operation_id disk_guid userdata_type_guid \
-	userdata_unique_guid userdata_fs_uuid arch_root_unique_guid; do
-	# format is checked separately; exactly six data lines are allowed below.
-	[ "$key" = format ] && continue
+	userdata_unique_guid userdata_fs_uuid; do
 	[ "$(grep -c "^${key}=" "$private_config")" = 1 ] ||
 		fail "private config key changed: $key"
 done
-[ "$(grep -c '^format=rog5-storage-layout-stage1-v1$' "$private_config")" = 1 ] ||
-	fail 'private config format changed'
 if awk -F= '
 	BEGIN { ok=1 }
-	$1 == "format" && $2 == "rog5-storage-layout-stage1-v1" { next }
+	$1 == "format" && $2 ~ /^rog5-(storage-layout-stage1|userdata-ext4-reset)-v1$/ { format=$2; next }
 	$1 == "operation_id" && $2 ~ /^[0-9a-f]{32}$/ { next }
-	$1 ~ /^(disk_guid|userdata_type_guid|userdata_unique_guid|userdata_fs_uuid|arch_root_unique_guid)$/ &&
+	$1 ~ /^(disk_guid|userdata_type_guid|userdata_unique_guid|userdata_fs_uuid)$/ &&
 		$2 ~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/ { next }
+	$1 == "arch_root_unique_guid" &&
+		$2 ~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/ { root=1; next }
 	{ ok=0 }
-	END { exit !ok }
+	END {
+		if (format == "rog5-storage-layout-stage1-v1")
+			exit !(ok && NR == 7 && root == 1)
+		if (format == "rog5-userdata-ext4-reset-v1")
+			exit !(ok && NR == 6 && root == 0)
+		exit 1
+	}
 ' "$private_config"; then
 	:
 else
@@ -115,7 +118,7 @@ chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"
 [ ! -e "$stage/usr/sbin/kexec" ] || fail 'kexec survived stage-1 packaging'
 for path in init usr/libexec/rog5-storage-layout-stage1 \
 	usr/libexec/rog5-disarm-recovery-layout-watchdog usr/bin/sgdisk \
-	sbin/e2fsck usr/sbin/dumpe2fs usr/sbin/resize2fs; do
+	sbin/e2fsck usr/sbin/dumpe2fs usr/sbin/resize2fs sbin/mkfs.ext4; do
 	[ -e "$stage/$path" ] || fail "stage-1 initramfs lacks $path"
 done
 for path in bin/dd usr/bin/sha256sum sbin/blockdev usr/sbin/partprobe; do

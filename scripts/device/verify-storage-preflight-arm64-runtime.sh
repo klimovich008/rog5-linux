@@ -22,7 +22,7 @@ case ${ROG5_STORAGE_RUNTIME_NAMESPACE:-0} in
 	*) fail 'invalid ARM64 runtime namespace state' ;;
 esac
 for command in chroot cpio cp env find grep gzip mkfs.ext4 mktemp mount \
-	qemu-aarch64-static realpath rm script sgdisk sha256sum truncate umount \
+	qemu-aarch64-static realpath rm script sed sgdisk sha256sum truncate umount \
 	unshare; do
 	command -v "$command" >/dev/null ||
 		fail "missing ARM64 runtime test command: $command"
@@ -86,6 +86,22 @@ grep -Fq "Please run 'e2fsck -f /run/fixtures/dirty-snapshot.img' first." \
 	"$stage/run/fixtures/dirty-resize.log"
 
 guest /sbin/mkfs.ext4 -V 2>&1 | grep -Fq 'mke2fs 1.47.4'
+truncate -s 64M "$stage/run/fixtures/userdata-reset.img"
+reset_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+guest /sbin/mkfs.ext4 -q -F -b 4096 -L rog5-linux -U "$reset_uuid" -m 0 \
+	-O ^casefold,^encrypt,^verity,^quota,^project \
+	-E lazy_itable_init=0,lazy_journal_init=0 /run/fixtures/userdata-reset.img
+guest /sbin/e2fsck -fn /run/fixtures/userdata-reset.img >/dev/null
+reset_header=$(guest /usr/sbin/dumpe2fs -h /run/fixtures/userdata-reset.img 2>/dev/null)
+printf '%s\n' "$reset_header" | grep -Fq "Filesystem UUID:          $reset_uuid"
+printf '%s\n' "$reset_header" | grep -Fq 'Filesystem volume name:   rog5-linux'
+printf '%s\n' "$reset_header" | grep -Fq 'Reserved block count:     0'
+reset_features=$(printf '%s\n' "$reset_header" |
+	sed -n 's/^Filesystem features:[[:space:]]*//p')
+for forbidden in casefold encrypt verity quota project; do
+	! printf '%s\n' "$reset_features" | grep -Eq "(^| )$forbidden( |$)" ||
+		fail "sealed mkfs retained forbidden feature: $forbidden"
+done
 guest /usr/sbin/partprobe --help >/dev/null
 script -qec "chroot $stage /usr/bin/qemu-aarch64-static /bin/stty -F /dev/tty raw -echo -echonl -opost clocal cread" \
 	/dev/null >/dev/null

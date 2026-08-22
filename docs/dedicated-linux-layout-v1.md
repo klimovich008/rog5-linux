@@ -1,5 +1,11 @@
 # Dedicated Linux storage layout v1
 
+> Superseded after the WW33 restoration: raw `userdata` is metadata-encrypted
+> F2FS ciphertext, not the ext4 filesystem assumed here. Do not execute this
+> shrink/GPT plan. The active no-GPT reset is defined by
+> `configs/storage/rog5-userdata-ext4-reset-v1.json`; this file is retained as
+> historical design evidence only.
+
 ## Recommendation
 
 Use the tail of the existing large `userdata` partition for one aligned
