@@ -101,12 +101,12 @@ CLAIMS = {
         b"1b770a941fa8f4fa11dc7100ddd2313795c5256bab1269db4b7520cc87b62e0d\n"
         b"state=BOOT_CLAIMED\n"
     ),
-    "userdata-ext4-reset-generation86-live-v1": (
+    "userdata-ext4-reset-generation87-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
-        b"recovery_profile=userdata-ext4-reset-generation86-live-v1\n"
-        b"candidate=userdata-ext4-reset-generation86\n"
+        b"recovery_profile=userdata-ext4-reset-generation87-live-v1\n"
+        b"candidate=userdata-ext4-reset-generation87\n"
         b"manifest_sha256="
-        b"0b008ecf596f27741087839d5d97a93c3b3b9abb29f7e1091e412310c67a3ef9\n"
+        b"5e90b643fc38edf98614c62e580ec778d56499353b06b50bc1b551c17637c1bd\n"
         b"state=BOOT_CLAIMED\n"
     ),
     "storage-preflight-v4-generation74-live-v1": (
