@@ -183,6 +183,7 @@ Observed pattern:
 - The target correctly reported `root=local-ext4-overlay-tmpfs`, while the host expected only `root=overlay-tmpfs`.
 - The runtime collector rejected a valid new candidate name after target SSH was already working.
 - A storage collector attached after the target had already started raw GPT streaming, so binary payload bytes were parsed as an overlong framed line before ACK.
+- Sending host readiness immediately after ACM open raced target initialization and produced an exact target-side readiness mismatch.
 
 Cost:
 
@@ -195,6 +196,7 @@ Prevention:
 - Test canonical, short, missing, whitespace-containing, delayed, duplicated, and stale forms.
 - Run the whole controller with fake fastboot/ADB/NCM/firewalld/NetworkManager endpoints through PREPARE, COMMIT, target SSH, and fallback.
 - For mixed framed/binary transports, require an exact operation-bound host-ready record before the target emits the first binary byte.
+- Order the rendezvous in both directions: parse the exact target-ready stage before sending host-ready.
 
 Rule: **A new phone-observed string or state transition must become a replay fixture before the successor candidate is built.**
 

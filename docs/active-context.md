@@ -224,12 +224,18 @@ write. The successor must require one exact operation-bound host-ready record
 before `BACKUP_BEGIN` or any binary payload; Generation 90 must never be
 retried. Its 900-second recovery watchdog returned exact stock WW33 slot A;
 ADB then proved `sys.boot_completed=1` and `/data` remained mounted as F2FS.
-Generation 91 is the unissued successor: its exact operation-bound host-ready
-rendezvous precedes `BACKUP_BEGIN` and every binary byte. The authority-free
-RAM-only AVB image is
-`3d5ccb26e017936a198766c15f87f5bd52af175e2442b0f82710e8d76c4f27e5`,
-bound by `manifests/userdata-ext4-reset-generation91.manifest`; one-use claim
-entry remains a separate live transition.
+Generation 91 is consumed with R7 classification: the target reported exact
+`S30_FRESH_BACKUP/host_ready_mismatch` because the host sent readiness at ACM
+open rather than after parsing target stage S30. No output directory or
+durable ACK existed, so no format or write occurred. The collector now waits
+for exact target `S30_FRESH_BACKUP`, sends one operation-bound `HOST_READY`,
+and refuses `BACKUP_BEGIN` before that sequence. Generation 91 must never be
+retried; its identical raw wrapper may only be reissued under a fresh AVB
+generation after this host-only correction passes publication CI.
+The 900-second recovery watchdog returned stock slot-A Android USB at
+15:28:58. ADB remained unauthorized, so a second live `/data` mount query was
+unavailable; absence of the mandatory durable backup ACK remains the direct
+proof that the formatter could not enter its write path.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

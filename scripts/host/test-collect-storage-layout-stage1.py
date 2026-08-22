@@ -79,6 +79,7 @@ def protocol(files: dict[str, bytes], *, operation: str = OPERATION) -> bytes:
     seal = backup_set_sha(files)
     parts = [
         b"ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S10_TOPOLOGY reason=none\n",
+        b"ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S30_FRESH_BACKUP reason=none\n",
         (
             "ROG5_LAYOUT_STAGE1_V1 status=BACKUP_BEGIN "
             f"operation_id={operation} nonce={NONCE} files=3 "
@@ -113,19 +114,43 @@ def protocol(files: dict[str, bytes], *, operation: str = OPERATION) -> bytes:
 
 
 class CollectorTests(unittest.TestCase):
-    def test_host_ready_precedes_target_read(self) -> None:
-        class ReadyRequiredTransport(FakeTransport):
-            def readline(self, maximum: int, timeout: float) -> bytes:
-                if self.outgoing != READY:
-                    raise AssertionError("target bytes read before host-ready")
-                return super().readline(maximum, timeout)
+    def test_host_ready_follows_s30_and_precedes_backup(self) -> None:
+        class S30GatedTransport(FakeTransport):
+            s30_seen = False
 
-        transport = ReadyRequiredTransport(protocol(backups()))
+            def readline(self, maximum: int, timeout: float) -> bytes:
+                result = super().readline(maximum, timeout)
+                if b"stage=S30_FRESH_BACKUP" in result:
+                    self.s30_seen = True
+                return result
+
+            def write_all(self, payload: bytes, timeout: float) -> None:
+                if not self.s30_seen:
+                    raise AssertionError("host-ready preceded target S30")
+                super().write_all(payload, timeout)
+
+        transport = S30GatedTransport(protocol(backups()))
         with tempfile.TemporaryDirectory() as directory:
             MODULE.receive_backup_set(
                 transport, Path(directory) / "generation-stage1", OPERATION, 2
             )
         self.assertTrue(transport.outgoing.startswith(READY))
+
+    def test_backup_begin_before_s30_is_rejected_without_ready(self) -> None:
+        payload = protocol(backups()).replace(
+            b"ROG5_LAYOUT_STAGE1_V1 status=RUNNING "
+            b"stage=S30_FRESH_BACKUP reason=none\n",
+            b"",
+        )
+        transport = FakeTransport(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "must-not-exist"
+            with self.assertRaisesRegex(
+                MODULE.LayoutProtocolError, "preceded target readiness"
+            ):
+                MODULE.receive_backup_set(transport, output, OPERATION, 2)
+            self.assertFalse(output.exists())
+        self.assertEqual(transport.outgoing, b"")
 
     def test_execution_record_is_finalized_before_ack(self) -> None:
         files = backups()
@@ -294,7 +319,7 @@ class CollectorTests(unittest.TestCase):
             ):
                 MODULE.receive_backup_set(transport, output, OPERATION, 2)
             self.assertFalse(output.exists())
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, b"")
 
     def test_wrong_file_order_never_acks(self) -> None:
         payload = protocol(backups()).replace(b"name=sgdisk.gpt", b"name=primary.raw", 1)

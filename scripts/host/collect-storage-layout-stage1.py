@@ -247,18 +247,17 @@ def receive_backup_set(
     if parent.stat().st_uid != os.getuid() or parent_mode & 0o022:
         fail("backup output parent ownership or mode is unsafe")
 
-    transport.write_all(
-        (
-            f"{PREFIX} status=HOST_READY "
-            f"operation_id={expected_operation}\n"
-        ).encode("ascii"),
-        timeout,
-    )
-
+    ready = (
+        f"{PREFIX} status=HOST_READY "
+        f"operation_id={expected_operation}\n"
+    ).encode("ascii")
+    ready_sent = False
     begin: dict[str, str] | None = None
     for _ in range(MAX_LEADING_LINES):
         tokens = ascii_line(transport.readline(MAX_LINE, timeout))
         if len(tokens) > 1 and tokens[1] == "status=BACKUP_BEGIN":
+            if not ready_sent:
+                fail("backup begin preceded target readiness")
             begin = exact_fields(
                 tokens,
                 ("status", "operation_id", "nonce", "files", "backup_set_sha256"),
@@ -284,6 +283,11 @@ def receive_backup_set(
         running = exact_fields(tokens, ("status", "stage", "reason"))
         if running["status"] != "RUNNING" or running["reason"] != "none":
             fail("unexpected record before backup begin")
+        if running["stage"] == "S30_FRESH_BACKUP":
+            if ready_sent:
+                fail("target readiness was duplicated")
+            transport.write_all(ready, timeout)
+            ready_sent = True
     if begin is None:
         fail("backup begin was not received within the record bound")
     if begin["status"] != "BACKUP_BEGIN" or begin["operation_id"] != expected_operation:
