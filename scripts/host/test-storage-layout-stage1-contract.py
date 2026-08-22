@@ -103,6 +103,22 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertLess(ack, disarm)
         self.assertLess(disarm, dispatch)
 
+    def test_userdata_reset_failures_repeat_then_return_to_fastboot(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("fail() {")
+        end = source.index("\n}\n", start) + 2
+        failure = source[start:end]
+        for contract in (
+            'if [ "$operation_mode" = userdata_ext4_reset ]; then',
+            'while [ "$repeat" -lt 40 ]; do',
+            'sleep 0.5',
+            'emit "$failure_record"',
+            '"$reboot_bootloader"',
+            "bootloader restart2 returned after reset failure",
+            "while :; do sleep 3600; done",
+        ):
+            self.assertIn(contract, failure)
+
     def test_recovery_dispatches_only_the_sealed_executor(self) -> None:
         source = self.executable_source(INIT)
         mode = "storage-layout-stage1-v1"
