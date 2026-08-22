@@ -182,6 +182,7 @@ Observed pattern:
 - Firewalld returned canonical text `no zone`, but the parser treated the embedded space as a malformed zone.
 - The target correctly reported `root=local-ext4-overlay-tmpfs`, while the host expected only `root=overlay-tmpfs`.
 - The runtime collector rejected a valid new candidate name after target SSH was already working.
+- A storage collector attached after the target had already started raw GPT streaming, so binary payload bytes were parsed as an overlong framed line before ACK.
 
 Cost:
 
@@ -193,6 +194,7 @@ Prevention:
 - Replay every parser, path normalizer, and state transition against those fixtures before a new wrapper is issued.
 - Test canonical, short, missing, whitespace-containing, delayed, duplicated, and stale forms.
 - Run the whole controller with fake fastboot/ADB/NCM/firewalld/NetworkManager endpoints through PREPARE, COMMIT, target SSH, and fallback.
+- For mixed framed/binary transports, require an exact operation-bound host-ready record before the target emits the first binary byte.
 
 Rule: **A new phone-observed string or state transition must become a replay fixture before the successor candidate is built.**
 

@@ -52,12 +52,16 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             self.assertIn(contract, source)
 
         backup = source.index('sgdisk --backup="$gpt_backup" "$disk"')
+        ready = source.index("status=HOST_READY")
+        backup_begin = source.index("status=BACKUP_BEGIN")
         ack = source.index("BACKUP_ACK")
         disarm = source.index('"$watchdog_disarm"')
         first_setrw = source.rindex('blockdev --setrw "$disk"')
         shrink = source.index('resize2fs "$userdata" 51124000')
         transaction = source.index("--delete=23")
         self.assertLess(backup, ack)
+        self.assertLess(ready, backup_begin)
+        self.assertLess(backup_begin, ack)
         self.assertLess(ack, disarm)
         self.assertLess(disarm, first_setrw)
         self.assertLess(first_setrw, shrink)
@@ -193,7 +197,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation90_publication_is_exact_and_admitted_once(self) -> None:
+    def test_generation90_publication_is_exact_and_revoked_after_use(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
@@ -237,7 +241,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation87-live-v1": "revoked",
                 "userdata-ext4-reset-generation88-live-v1": "revoked",
                 "userdata-ext4-reset-generation89-live-v1": "revoked",
-                "userdata-ext4-reset-generation90-live-v1": "allow",
+                "userdata-ext4-reset-generation90-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation90-live-v1"][1:4], [

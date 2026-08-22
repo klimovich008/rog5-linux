@@ -216,13 +216,14 @@ stage/reason. No backup directory or ACK existed; restart2 returned fastboot.
 Generation 89 is consumed and proved exact target failure
 `S10_TOPOLOGY/userdata_content_changed/gpt_restored=not_needed`; no backup,
 ACK, or write existed. The defect was the target's assumption that confirmed
-Android userdata must remain raw-opaque. Generation 90 reads ext4 magic
-exactly and refuses only an already-created Linux ext4 filesystem; confirmed
-Android F2FS or encrypted content is eligible for the owner-approved reset.
-Its RAM-only AVB image is
-`7bdfbebaee92a4a67e2b5fbd7d40064be2f8aca2f3c0b41eb68471a61a7b3801`,
-bound by `manifests/userdata-ext4-reset-generation90.manifest`. The dedicated
-policy admits only Generation 90 and retains the one-use claim requirement.
+Android userdata must remain raw-opaque. Generation 90 is consumed with R7
+classification: the root collector attached after the target had begun raw
+GPT streaming and rejected binary payload bytes as an overlong framed line.
+No output directory or durable ACK existed, so the target could not format or
+write. The successor must require one exact operation-bound host-ready record
+before `BACKUP_BEGIN` or any binary payload; Generation 90 must never be
+retried. Its 900-second recovery watchdog returned exact stock WW33 slot A;
+ADB then proved `sys.boot_completed=1` and `/data` remained mounted as F2FS.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

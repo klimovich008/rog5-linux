@@ -24,6 +24,10 @@ SPEC.loader.exec_module(MODULE)
 
 OPERATION = "0123456789abcdef0123456789abcdef"
 NONCE = "abcdef0123456789abcdef0123456789"
+READY = (
+    "ROG5_LAYOUT_STAGE1_V1 status=HOST_READY "
+    f"operation_id={OPERATION}\n"
+).encode("ascii")
 
 
 class FakeTransport:
@@ -109,6 +113,20 @@ def protocol(files: dict[str, bytes], *, operation: str = OPERATION) -> bytes:
 
 
 class CollectorTests(unittest.TestCase):
+    def test_host_ready_precedes_target_read(self) -> None:
+        class ReadyRequiredTransport(FakeTransport):
+            def readline(self, maximum: int, timeout: float) -> bytes:
+                if self.outgoing != READY:
+                    raise AssertionError("target bytes read before host-ready")
+                return super().readline(maximum, timeout)
+
+        transport = ReadyRequiredTransport(protocol(backups()))
+        with tempfile.TemporaryDirectory() as directory:
+            MODULE.receive_backup_set(
+                transport, Path(directory) / "generation-stage1", OPERATION, 2
+            )
+        self.assertTrue(transport.outgoing.startswith(READY))
+
     def test_execution_record_is_finalized_before_ack(self) -> None:
         files = backups()
         transport = FakeTransport(protocol(files))
@@ -138,7 +156,7 @@ class CollectorTests(unittest.TestCase):
             output = parent / "generation-stage1"
 
             def before_ack(manifest: dict[str, object]) -> None:
-                self.assertEqual(transport.outgoing, b"")
+                self.assertEqual(transport.outgoing, READY)
                 MODULE.finalize_execution_record(
                     output, loaded, template_sha256, manifest
                 )
@@ -178,7 +196,7 @@ class CollectorTests(unittest.TestCase):
             f"operation_id={OPERATION} nonce={NONCE} "
             f"backup_set_sha256={backup_set_sha(files)}\n"
         ).encode("ascii")
-        self.assertEqual(bytes(transport.outgoing), expected_ack)
+        self.assertEqual(bytes(transport.outgoing), READY + expected_ack)
 
     def test_payload_hash_mismatch_never_acks(self) -> None:
         files = backups()
@@ -187,7 +205,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "hash"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_execution_record_failure_never_acks(self) -> None:
         transport = FakeTransport(protocol(backups()))
@@ -204,7 +222,7 @@ class CollectorTests(unittest.TestCase):
                     transport, output, OPERATION, 2, before_ack=fail_record
                 )
             self.assertTrue((output / ".incomplete").is_file())
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_terminal_pass_requires_every_exact_field(self) -> None:
         seal = "a" * 64
@@ -258,7 +276,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "operation"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_exact_prebackup_failure_is_terminal_and_never_acks(self) -> None:
         payload = (
@@ -276,7 +294,7 @@ class CollectorTests(unittest.TestCase):
             ):
                 MODULE.receive_backup_set(transport, output, OPERATION, 2)
             self.assertFalse(output.exists())
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_wrong_file_order_never_acks(self) -> None:
         payload = protocol(backups()).replace(b"name=sgdisk.gpt", b"name=primary.raw", 1)
@@ -284,7 +302,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "file header"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_invalid_raw_gpt_signature_never_acks(self) -> None:
         files = backups()
@@ -295,7 +313,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "primary GPT"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, b"")
+        self.assertEqual(transport.outgoing, READY)
 
     def test_existing_output_refuses_before_read_or_ack(self) -> None:
         transport = FakeTransport(protocol(backups()))
