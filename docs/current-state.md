@@ -148,8 +148,15 @@ and `sink`. Exact stock slot-A fallback and cleanup passed. The correction
 accepts only the exact bare fixed-role form or the exact bracketed active-role
 form; inactive and malformed forms remain rejected.
 
-Generation 80 is the unbooted, unadmitted successor. It reuses the exact
+Generation 80 reused the exact
 Generation 79 kernel, DTB, recovery raw image, UFS modules, charging modules,
 firmware, local image, and rollback. Its twin target initramfses reproduce at
 SHA-256 `7a69e97606d2d4422ba0ead12f5225802cd27d3b036914c0041b7c9da1973c25`.
 Only exact Type-C active-role parsing changed; no kernel compilation ran.
+
+Generation 80 then passed power/USB, deferred UFS, storage lock, and exact
+userdata resolution before failing at the generic `userdata-mount` boundary.
+Exact stock slot-A fallback and cleanup passed. Generation 81 is the unbooted,
+unadmitted target-only discriminator; it preserves the exact mount operation
+and reports the first failing mount/containment substage. Twin initramfs
+SHA-256 is `6590cc95c9e73fedf24b3b1643d6395514943057b9e2ebb3ba6a05347905033d`.

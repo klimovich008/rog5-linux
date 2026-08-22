@@ -145,8 +145,8 @@ stock slot-A fallback and cleanup passed. Missing pstore lineage does not prove
 or disprove a crash; the observed initramfs path explicitly waited two seconds
 and forced rollback after the loader failure.
 
-The next acceptance test is Generation 80 proving the exact bracketed Type-C
-roles and advancing to the next loader/UFS boundary while preserving NCM and
+The next acceptance test is Generation 81 identifying the exact userdata
+mount/containment sub-boundary while preserving proven power, NCM, UFS, and
 rollback.
 
 Generation 79 is consumed. It proved exact failure
@@ -162,16 +162,24 @@ The recovery raw image was unchanged; no ASUS kernel compilation ran. Exact
 stock slot-A fallback and cleanup passed, and Generation 79 must not be
 retried.
 
-Generation 80 is built offline but not admitted. Its bundle is
+Generation 80 is consumed. It passed the bracketed roles, complete power/USB
+loader, deferred UFS, storage lock, and exact userdata resolution, then failed
+at `userdata-mount` with the old generic detail. Its bundle was
 `persistent-root-power-usb-v4`, manifest SHA-256
 `2240afeecc90e45e4cf51e94365473a8fbe269731cebc7d1dcba86b7bfd84bf2`,
 and RAM-only AVB SHA-256
 `f948a480806805b7726e3de5fd2f1def3b457a82219d0e8fa8a3ad7ca94d0ae9`.
 
-1. Run the hostile role-parser and complete lifecycle tests.
-2. Reuse the exact Generation 79 kernel, DTB, firmware, module closure, local
-   image, recovery, and rollback; do not redesign the kernel for this failure.
-3. Admit one RAM-only Generation 80 cycle only after exact-head CI.
+Generation 81 is built offline but not admitted. Its bundle is
+`persistent-root-power-usb-v5`, manifest SHA-256
+`5320f9cca8582ca7475f06f0a4c3e25e0b961fd1596077c832e9e622667b19bf`,
+and RAM-only AVB SHA-256
+`6856794c55777c8f473a23a5a2cee55c57c9d652122b57da048e516da2f63ce5`.
+
+1. Run the mount-discriminator and complete lifecycle tests.
+2. Reuse the exact Generation 80 kernel, DTB, firmware, module closure, local
+   image, recovery, mount behavior, and rollback.
+3. Admit one RAM-only Generation 81 cycle only after exact-head CI.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

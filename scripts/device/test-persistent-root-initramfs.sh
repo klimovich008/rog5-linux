@@ -109,6 +109,13 @@ grep -Fq 'expected_image_bytes=17179869184' "$init" "$attest"
 grep -Fq 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4' \
 	"$init" "$attest"
 grep -Fq 'mount -t ext4 -o ro,noload "$userdata" /mnt/userdata' "$init"
+for mount_detail in mkdir mount-call mountpoint mount-table mount-inventory \
+	storage-read-only rog5-directory selector-absence; do
+	grep -Fq "mount_persistent_root_failure=$mount_detail" "$init" ||
+		fail "P2 target lacks userdata mount discriminator: $mount_detail"
+done
+grep -Fq '"userdata-$mount_persistent_root_failure"' "$init" ||
+	fail 'P2 target does not publish the userdata mount discriminator'
 grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"
 grep -Fq 'userdata_record=/run/rog5-p2-userdata-device' "$attest"
 grep -Fq 'runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1' "$attest"
