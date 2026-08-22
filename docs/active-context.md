@@ -301,13 +301,21 @@ not reached: recovery-init created `/run/rog5-recovery-armed` before setting
 umask therefore made the marker 0644. A fail-first ordering regression now
 requires umask 077 before marker creation. This is R3 and requires a changed
 initramfs/wrapper, not another host-only AVB reissue.
-Generation 97 is the unissued successor. Two clean ASUS 5.4 wrapper builds
+Generation 97 is consumed and must never be retried. Two clean ASUS 5.4 wrapper builds
 produced identical Image `2aaecea0805ab35a22a71ef4a62e6c475b424121ef9a88104e40d623af0cec32`
 with initramfs `7d6f888338752e0a55a45efb9d6a1d06949416395c9cfd3450786a60b4263d60`.
 The exact final boot cmdline contains timeout 900, and source/testing require
 umask 077 before the mode-0600 armed marker. Its authority-free generation-1
 AVB image is `b9f9df8d01eaa7e90b792520c178cbec15ec29f03b62fa05a069c1668ae14cb2`,
 bound by `manifests/userdata-ext4-reset-generation97.manifest`.
+It reached fresh backup and durable ACK but still returned the generic exact
+S32 watchdog-disarm failure before any userdata/GPT write; restart2 returned
+fastboot immediately. The mode hypothesis was disproven. The executor had
+collapsed every sealed helper predicate into one generic reason, so the next
+cycle changes only observability: it converts the helper's final fixed `FAIL`
+message into one bounded lowercase machine reason and emits that through the
+existing terminal field. All helper reasons are static, unique, non-secret,
+and source-tested; no write ordering changes.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
