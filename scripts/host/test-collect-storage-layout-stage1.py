@@ -28,6 +28,7 @@ READY = (
     "ROG5_LAYOUT_STAGE1_V1 status=HOST_READY "
     f"operation_id={OPERATION}\n"
 ).encode("ascii")
+RENDEZVOUS = b"\n" + READY
 
 
 class FakeTransport:
@@ -127,6 +128,8 @@ class CollectorTests(unittest.TestCase):
             def write_all(self, payload: bytes, timeout: float) -> None:
                 if not self.s30_seen:
                     raise AssertionError("host-ready preceded target S30")
+                if not self.outgoing and payload != RENDEZVOUS:
+                    raise AssertionError("host-ready lacks its empty separator")
                 super().write_all(payload, timeout)
 
         transport = S30GatedTransport(protocol(backups()))
@@ -134,7 +137,7 @@ class CollectorTests(unittest.TestCase):
             MODULE.receive_backup_set(
                 transport, Path(directory) / "generation-stage1", OPERATION, 2
             )
-        self.assertTrue(transport.outgoing.startswith(READY))
+        self.assertTrue(transport.outgoing.startswith(RENDEZVOUS))
 
     def test_backup_begin_before_s30_is_rejected_without_ready(self) -> None:
         payload = protocol(backups()).replace(
@@ -181,7 +184,7 @@ class CollectorTests(unittest.TestCase):
             output = parent / "generation-stage1"
 
             def before_ack(manifest: dict[str, object]) -> None:
-                self.assertEqual(transport.outgoing, READY)
+                self.assertEqual(transport.outgoing, RENDEZVOUS)
                 MODULE.finalize_execution_record(
                     output, loaded, template_sha256, manifest
                 )
@@ -221,7 +224,7 @@ class CollectorTests(unittest.TestCase):
             f"operation_id={OPERATION} nonce={NONCE} "
             f"backup_set_sha256={backup_set_sha(files)}\n"
         ).encode("ascii")
-        self.assertEqual(bytes(transport.outgoing), READY + expected_ack)
+        self.assertEqual(bytes(transport.outgoing), RENDEZVOUS + expected_ack)
 
     def test_payload_hash_mismatch_never_acks(self) -> None:
         files = backups()
@@ -230,7 +233,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "hash"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, RENDEZVOUS)
 
     def test_execution_record_failure_never_acks(self) -> None:
         transport = FakeTransport(protocol(backups()))
@@ -247,7 +250,7 @@ class CollectorTests(unittest.TestCase):
                     transport, output, OPERATION, 2, before_ack=fail_record
                 )
             self.assertTrue((output / ".incomplete").is_file())
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, RENDEZVOUS)
 
     def test_terminal_pass_requires_every_exact_field(self) -> None:
         seal = "a" * 64
@@ -301,7 +304,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "operation"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, RENDEZVOUS)
 
     def test_exact_prebackup_failure_is_terminal_and_never_acks(self) -> None:
         payload = (
@@ -327,7 +330,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "file header"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, RENDEZVOUS)
 
     def test_invalid_raw_gpt_signature_never_acks(self) -> None:
         files = backups()
@@ -338,7 +341,7 @@ class CollectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(MODULE.LayoutProtocolError, "primary GPT"):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
-        self.assertEqual(transport.outgoing, READY)
+        self.assertEqual(transport.outgoing, RENDEZVOUS)
 
     def test_existing_output_refuses_before_read_or_ack(self) -> None:
         transport = FakeTransport(protocol(backups()))

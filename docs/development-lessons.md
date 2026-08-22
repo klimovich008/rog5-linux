@@ -199,6 +199,7 @@ Prevention:
 - For mixed framed/binary transports, require an exact operation-bound host-ready record before the target emits the first binary byte.
 - Order the rendezvous in both directions: parse the exact target-ready stage before sending host-ready.
 - When physical ACM still disagrees with PTY, tolerate only a bounded number of pre-token records and emit finite non-secret mismatch categories; never normalize the accepted token without evidence.
+- When the exact token is proven as a suffix behind stale leading bytes, send one empty separator record before it; consume contamination as a separate bounded record instead of stripping token bytes.
 
 Rule: **A new phone-observed string or state transition must become a replay fixture before the successor candidate is built.**
 
