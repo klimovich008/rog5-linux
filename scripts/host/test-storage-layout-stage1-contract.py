@@ -134,6 +134,28 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertNotIn("f2fs", precondition)
         self.assertIn('fail userdata_already_ext4', source)
 
+    def test_host_ready_is_exact_bounded_and_diagnostic(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("host_ready_attempt=0")
+        end = source.index('emit "status=BACKUP_BEGIN', start)
+        rendezvous = source[start:end]
+        for contract in (
+            'while [ "$host_ready_attempt" -lt 4 ]; do',
+            'read -r -t 30 host_ready <&3',
+            'host_ready_reason=host_ready_empty',
+            'host_ready_reason=host_ready_trailing_cr',
+            'host_ready_reason=host_ready_leading_cr',
+            'host_ready_reason=host_ready_trailing_data',
+            'host_ready_reason=host_ready_leading_data',
+            'host_ready_reason=host_ready_short',
+            'host_ready_reason=host_ready_same_length',
+            'host_ready_reason=host_ready_long',
+            '[ "$host_ready_ok" = 1 ] || fail "$host_ready_reason"',
+        ):
+            self.assertIn(contract, rendezvous)
+        for normalization in ("tr -d", "sed", "xargs", "eval"):
+            self.assertNotIn(normalization, rendezvous)
+
     def test_recovery_dispatches_only_the_sealed_executor(self) -> None:
         source = self.executable_source(INIT)
         mode = "storage-layout-stage1-v1"
@@ -199,7 +221,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation92_publication_is_exact_and_admitted_once(self) -> None:
+    def test_generation92_publication_is_exact_and_revoked_after_use(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
@@ -247,7 +269,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation89-live-v1": "revoked",
                 "userdata-ext4-reset-generation90-live-v1": "revoked",
                 "userdata-ext4-reset-generation91-live-v1": "revoked",
-                "userdata-ext4-reset-generation92-live-v1": "allow",
+                "userdata-ext4-reset-generation92-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation92-live-v1"][1:4], [
