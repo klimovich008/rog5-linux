@@ -260,6 +260,24 @@ class CollectorTests(unittest.TestCase):
                 MODULE.receive_backup_set(transport, Path(directory) / "bad", OPERATION, 2)
         self.assertEqual(transport.outgoing, b"")
 
+    def test_exact_prebackup_failure_is_terminal_and_never_acks(self) -> None:
+        payload = (
+            "ROG5_LAYOUT_STAGE1_V1 status=RUNNING stage=S10_TOPOLOGY reason=none\n"
+            "ROG5_LAYOUT_STAGE1_V1 status=FAIL stage=S10_TOPOLOGY "
+            "reason=userdata_content_changed gpt_restored=not_needed\n"
+        ).encode("ascii")
+        transport = FakeTransport(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "must-not-exist"
+            with self.assertRaisesRegex(
+                MODULE.LayoutProtocolError,
+                "pre-backup target failure: stage=S10_TOPOLOGY "
+                "reason=userdata_content_changed gpt_restored=not_needed",
+            ):
+                MODULE.receive_backup_set(transport, output, OPERATION, 2)
+            self.assertFalse(output.exists())
+        self.assertEqual(transport.outgoing, b"")
+
     def test_wrong_file_order_never_acks(self) -> None:
         payload = protocol(backups()).replace(b"name=sgdisk.gpt", b"name=primary.raw", 1)
         transport = FakeTransport(payload)
