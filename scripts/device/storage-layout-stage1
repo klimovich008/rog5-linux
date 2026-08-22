@@ -86,8 +86,20 @@ fail() {
 		fi
 	fi
 	lock_storage
-	emit "status=FAIL stage=$stage reason=$reason gpt_restored=$restored"
+	failure_record="status=FAIL stage=$stage reason=$reason gpt_restored=$restored"
+	emit "$failure_record"
 	log "failed at $stage: $reason; gpt_restored=$restored"
+	if [ "$operation_mode" = userdata_ext4_reset ]; then
+		repeat=0
+		while [ "$repeat" -lt 40 ]; do
+			sleep 0.5
+			emit "$failure_record"
+			repeat=$((repeat + 1))
+		done
+		"$reboot_bootloader"
+		log 'bootloader restart2 returned after reset failure'
+		while :; do sleep 3600; done
+	fi
 	exit 1
 }
 
