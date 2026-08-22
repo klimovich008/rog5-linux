@@ -334,12 +334,21 @@ stopped state, and post-kill identity; an orphaned sleep cannot execute the
 shell's rollback continuation. The successor therefore removes only the
 unavailable procfs child inspection and child kill, retaining every shell
 identity, marker, freeze, kill, zombie, and no-write check.
-Generation 99 is the unissued successor. Two clean ASUS 5.4 wrapper builds
+Generation 99 is consumed and must never be retried. Two clean ASUS 5.4 wrapper builds
 produced identical Image `c0f8e4ccccca4d64a1c5d887b304149f9d247b7bbf5a4d0c323e0e2c302ecf5a`
 with initramfs `e03ab7339f6504dea919b9636b621f831181c74cb28782ce821912a34f75a6ea`.
 Its authority-free generation-1 AVB image is
 `51a51d8b985f321da26d7796f22a0c3af0e2ca0c7338489e5615a81cf1a145e2`,
 bound by `manifests/userdata-ext4-reset-generation99.manifest`.
+It passed the complete owner-authorized transaction. Fresh GPT backup set
+`1a6295725cb63ab27f90022e5061be6552eec7d6a4297cc4f5ff088543948679`
+was durably ACKed; watchdog disarm succeeded; only unchanged userdata
+partition 23 was formatted ext4; GPT remained unchanged. Terminal proof:
+59,513,299 blocks, UUID `0892bacf-3e02-41b0-84a4-5f05c2df7ce5`, label
+`rog5-linux`, last LBA 61865978, all UFS block nodes read-only, zero block
+mounts. Exact fastboot returned. The next action is a separate bounded 16 GiB
+Arch image staging cycle; stock Android must not be booted because it may
+reformat the new Linux filesystem.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

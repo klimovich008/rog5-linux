@@ -338,7 +338,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation96-live-v1": "revoked",
                 "userdata-ext4-reset-generation97-live-v1": "revoked",
                 "userdata-ext4-reset-generation98-live-v1": "revoked",
-                "userdata-ext4-reset-generation99-live-v1": "allow",
+                "userdata-ext4-reset-generation99-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation99-live-v1"][1:4], [
