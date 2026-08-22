@@ -169,6 +169,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
 
     def test_builder_seals_mode_executor_and_private_config(self) -> None:
         source = self.executable_source(BUILDER)
+        executor_sha256 = hashlib.sha256(EXECUTOR.read_bytes()).hexdigest()
+        self.assertIn(f"executor_sha256={executor_sha256}", source)
         for contract in (
             "storage-layout-stage1-v1",
             "/usr/libexec/rog5-storage-layout-stage1",
