@@ -140,3 +140,11 @@ module, telemetry, Type-C, NCM, or safety check failed. Generation 78 is
 consumed and revoked; exact stock slot-A fallback and host cleanup passed.
 The next candidate must report the new bounded per-check failure code and ask
 only which power/USB loader boundary fails. It must not reuse Generation 78.
+
+Generation 79 is the unbooted offline successor. It reuses the exact
+Generation 78 kernel, DTB, recovery raw image, UFS modules, charging modules,
+firmware, local image, and rollback. Its twin target initramfses reproduce at
+SHA-256 `9cbfeb5dce268d611b5f05d1715c91d2d2470c087636ceeeccc15cd2d0723c9c`;
+the only changed regular files are `/init` and
+`/sbin/rog5-load-persistent-power-usb`. It has no temporary-boot policy row or
+boot authority at this checkpoint.

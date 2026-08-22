@@ -234,6 +234,14 @@ PROFILES.update(
             b"ffbdb39dc4c5c959c4214c7987b954f70c63e33ba78305f821ccd07c32fb17a6\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "persistent-root-power-usb-v3-generation79-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-root-power-usb-v3-generation79-live-v1\n"
+            b"candidate=persistent-root-power-usb-v3\n"
+            b"manifest_sha256="
+            b"d0a1e7b2d9a2fce6d934fc560af466c476f66c1b5ee700dd6efdc6134b6e68eb\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "persistent-root-local-image-early-ssh-v45-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=persistent-root-local-image-early-ssh-v45-live-v1\n"

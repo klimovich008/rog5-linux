@@ -724,6 +724,14 @@ EXPECTED_CLAIMS["persistent-root-power-usb-v2-generation78-live-v1"] = (
     "ffbdb39dc4c5c959c4214c7987b954f70c63e33ba78305f821ccd07c32fb17a6\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS["persistent-root-power-usb-v3-generation79-live-v1"] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile=persistent-root-power-usb-v3-generation79-live-v1\n"
+    "candidate=persistent-root-power-usb-v3\n"
+    "manifest_sha256="
+    "d0a1e7b2d9a2fce6d934fc560af466c476f66c1b5ee700dd6efdc6134b6e68eb\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["storage-preflight-v1-generation71-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=storage-preflight-v1-generation71-live-v1\n"
@@ -902,7 +910,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "ba4af7de28a8b6d023b3be9f0d3da64c9c2e190028d48da899ce1bc5b7ffa4ec",
+    "sha256": "7ccfcd5032b96030d84b2133ce965c8535106cfab22fc6d35432cf6bc46a4ccb",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -930,7 +938,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "ba4af7de28a8b6d023b3be9f0d3da64c9c2e190028d48da899ce1bc5b7ffa4ec",
+    "executor_contract_sha256": "7ccfcd5032b96030d84b2133ce965c8535106cfab22fc6d35432cf6bc46a4ccb",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
