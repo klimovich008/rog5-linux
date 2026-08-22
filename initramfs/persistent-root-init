@@ -601,12 +601,85 @@ verify_userdata_and_image_mounts() {
 	[ "$count" -eq 2 ]
 }
 
+ext4_feature_flag() {
+	features=$1
+	feature=$2
+	for current_feature in $features; do
+		[ "$current_feature" = "$feature" ] && return 0
+	done
+	return 1
+}
+
+classify_userdata_filesystem() {
+	userdata_filesystem_detail=tunknown-cx-ex-vx-qx-px-rx-ox
+	blkid_record=$(blkid "$userdata" 2>&1) || {
+		userdata_filesystem_detail=tblkid-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	case $blkid_record in
+		*' TYPE="f2fs"'*)
+			userdata_filesystem_detail=tf2fs-cx-ex-vx-qx-px-rx-ox
+			return 0
+			;;
+		*' TYPE="ext4"'*) ;;
+		*) return 0 ;;
+	esac
+	dumpe2fs_record=$(dumpe2fs -h "$userdata" 2>&1) || {
+		userdata_filesystem_detail=te-dump-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	[ "${#dumpe2fs_record}" -le 32768 ] || {
+		userdata_filesystem_detail=te-large-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	features=$(printf '%s\n' "$dumpe2fs_record" |
+		sed -n 's/^Filesystem features:[[:space:]]*//p' | sed -n '1p')
+	[ -n "$features" ] || {
+		userdata_filesystem_detail=te-features-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	casefold=0; encrypt=0; verity=0; quota=0
+	project=0; recovery=0; orphan=0
+	ext4_feature_flag "$features" casefold && casefold=1
+	ext4_feature_flag "$features" encrypt && encrypt=1
+	ext4_feature_flag "$features" verity && verity=1
+	ext4_feature_flag "$features" quota && quota=1
+	ext4_feature_flag "$features" project && project=1
+	ext4_feature_flag "$features" needs_recovery && recovery=1
+	ext4_feature_flag "$features" orphan_file && orphan=1
+	userdata_filesystem_detail=te-c${casefold}-e${encrypt}-v${verity}-q${quota}-p${project}-r${recovery}-o${orphan}
+	return 0
+}
+
 mount_persistent_root() {
 	mount_persistent_root_failure=mkdir
 	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot ||
 		return 1
+	mount_persistent_root_failure=filesystem-probe
+	classify_userdata_filesystem || return 1
 	mount_persistent_root_failure=mount-call
-	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
+	mount_status=0
+	mount_output=$(mount -t ext4 -o ro,noload "$userdata" /mnt/userdata 2>&1) ||
+		mount_status=$?
+	if [ "$mount_status" -ne 0 ]; then
+		case $(dmesg | tail -n 80) in
+			*'casefold feature cannot be mounted without CONFIG_UNICODE'*)
+				mount_kernel_detail=casefold ;;
+			*'unsupported optional features'*) mount_kernel_detail=incompat ;;
+			*"Can't find ext4 filesystem"*) mount_kernel_detail=not-ext4 ;;
+			*'required journal recovery suppressed'*) mount_kernel_detail=recovery ;;
+			*'EXT4-fs '*'mount failed'*) mount_kernel_detail=ext4-failed ;;
+			*)
+				case $mount_output in
+					*'Invalid argument'*) mount_kernel_detail=einval ;;
+					*'wrong fs type'*) mount_kernel_detail=wrong-fs ;;
+					*) mount_kernel_detail=other ;;
+				esac
+				;;
+		esac
+		mount_persistent_root_failure=mount-call-s${mount_status}-${userdata_filesystem_detail}-${mount_kernel_detail}
+		return 1
+	fi
 	mount_persistent_root_failure=mountpoint
 	mountpoint -q /mnt/userdata || return 1
 	mount_persistent_root_failure=mount-table
