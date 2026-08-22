@@ -246,8 +246,8 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 83 RAM-only cycle; direct magic remained unknown because BusyBox od compressed duplicate output lines to an asterisk without -v; mount retained status 255 and EINVAL; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation83++ ; next }
 	$1 == "build/persistent-root-power-usb-v8-generation84-20260822-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact RAM-only verbatim direct-magic classifier after sealed BusyBox od compressed duplicate lines in Generation 83; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation84++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 84 RAM-only cycle; verbatim raw userdata magic remained neither ext4 nor F2FS, blkid exposed no type, and ext4 mount returned status 255 EINVAL; WW33 fstab independently proves F2FS behind dm-default-key metadata encryption; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation84++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -301,7 +301,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
