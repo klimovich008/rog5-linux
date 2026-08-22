@@ -209,14 +209,15 @@ Generation 85 is unbooted and revoked because its normal post-success reboot
 could let stock Android reformat Linux ext4. Generation 86 is consumed: exact
 recovery ACM existed for 11 seconds, but the host did not stabilize it; no
 backup directory or ACK existed, so the write boundary was never crossed.
-Generation 87 repeats an exact failure record for 20 seconds, then uses the
-fixed static `restart2("bootloader")` return and remains in sealed recovery if
-that syscall returns. Its 100,663,296-byte RAM-only AVB image is
-`77d3f35379cc905c0933d80072a7fc95a2128809921ee7bfeda6596aae9ab6e0`.
-Twin wrapper Images, sealed initramfs, exact timeout, private config, and
-no-GPT partition-23 operation are bound by
-`manifests/userdata-ext4-reset-generation87.manifest`. The dedicated policy
-admits only Generation 87 and retains the external one-use claim requirement.
+Generation 87 is consumed: recovery ACM existed for 21 seconds and restart2
+returned exact fastboot, but the unprivileged collector could not open the
+transient ACM; again no backup/ACK or write occurred. Generation 88 extends
+failure evidence to 60 seconds and runs the unchanged collector with a
+root-owned private template/output. Its 100,663,296-byte RAM-only AVB image is
+`1ec27dd05d4c9582c79fc33de3ee810e123e45ae27aa51c20dc48eccd12c8f56`.
+The exact composition is bound by
+`manifests/userdata-ext4-reset-generation88.manifest`; the dedicated policy
+admits only Generation 88 and retains the external one-use claim requirement.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
