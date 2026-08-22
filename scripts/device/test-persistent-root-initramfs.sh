@@ -118,12 +118,40 @@ grep -Fq '"userdata-$mount_persistent_root_failure"' "$init" ||
 	fail 'P2 target does not publish the userdata mount discriminator'
 for mount_probe_marker in \
 	'blkid "$userdata"' \
+	'dd if="$userdata" bs=1 skip=1024 count=64' \
 	'dumpe2fs -h "$userdata"' \
 	'casefold feature cannot be mounted without CONFIG_UNICODE' \
 	'unsupported optional features' \
 	'mount-call-s${mount_status}-${userdata_filesystem_detail}-${mount_kernel_detail}'; do
 	grep -Fq "$mount_probe_marker" "$init" ||
 		fail "P2 target lacks mount-call classifier: $mount_probe_marker"
+done
+filesystem_classifiers=$(mktemp)
+awk '
+	/^blkid_filesystem_type\(\) \{/ { copy=1 }
+	/^classify_userdata_filesystem\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$filesystem_classifiers"
+# shellcheck disable=SC1090
+. "$filesystem_classifiers"
+rm -f -- "$filesystem_classifiers"
+[ "$(blkid_filesystem_type '/dev/sda23: LABEL="rog5-linux" UUID="15b5649a" TYPE="ext4"')" = ext4 ]
+[ "$(blkid_filesystem_type '/dev/sda23: UUID="abcd" TYPE="f2fs"')" = f2fs ]
+for hostile_blkid in \
+	'/dev/sda23: LABEL="TYPE=ext4"' \
+	'/dev/sda23: TYPE=ext4' \
+	'/dev/sda23: TYPE="ext4"suffix' \
+	'/dev/sda23: UUID="abcd"'; do
+	[ "$(blkid_filesystem_type "$hostile_blkid")" = unknown ] ||
+		fail 'P2 target accepts a malformed blkid type token'
+done
+ext4_magic=$(printf '%0112d' 0)53ef$(printf '%012d' 0)
+f2fs_magic=1020f5f2$(printf '%0120d' 0)
+[ "$(filesystem_magic_type "$ext4_magic")" = ext4 ]
+[ "$(filesystem_magic_type "$f2fs_magic")" = f2fs ]
+for hostile_magic in '' 53ef "${ext4_magic}00" "g${ext4_magic#?}"; do
+	[ "$(filesystem_magic_type "$hostile_magic")" = unknown ] ||
+		fail 'P2 target accepts malformed filesystem magic'
 done
 grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"
 grep -Fq 'userdata_record=/run/rog5-p2-userdata-device' "$attest"

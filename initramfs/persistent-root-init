@@ -610,32 +610,69 @@ ext4_feature_flag() {
 	return 1
 }
 
-classify_userdata_filesystem() {
-	userdata_filesystem_detail=tunknown-cx-ex-vx-qx-px-rx-ox
-	blkid_record=$(blkid "$userdata" 2>&1) || {
-		userdata_filesystem_detail=tblkid-cx-ex-vx-qx-px-rx-ox
+blkid_filesystem_type() {
+	for blkid_field in $1; do
+		case $blkid_field in
+			'TYPE="ext4"') printf 'ext4\n'; return 0 ;;
+			'TYPE="f2fs"') printf 'f2fs\n'; return 0 ;;
+		esac
+	done
+	printf 'unknown\n'
+}
+
+filesystem_magic_type() {
+	magic=$1
+	[ "${#magic}" -eq 128 ] &&
+		printf '%s\n' "$magic" | grep -Eq '^[0-9a-f]{128}$' || {
+		printf 'unknown\n'
 		return 0
 	}
-	case $blkid_record in
-		*' TYPE="f2fs"'*)
-			userdata_filesystem_detail=tf2fs-cx-ex-vx-qx-px-rx-ox
+	[ "$(printf '%s\n' "$magic" | cut -c 1-8)" = 1020f5f2 ] && {
+		printf 'f2fs\n'
+		return 0
+	}
+	[ "$(printf '%s\n' "$magic" | cut -c 113-116)" = 53ef ] && {
+		printf 'ext4\n'
+		return 0
+	}
+	printf 'unknown\n'
+}
+
+classify_userdata_filesystem() {
+	userdata_filesystem_detail=tunknown-bunknown-cx-ex-vx-qx-px-rx-ox
+	blkid_record=$(blkid "$userdata" 2>&1) || {
+		blkid_record=
+	}
+	blkid_type=$(blkid_filesystem_type "$blkid_record")
+	magic_record=$(dd if="$userdata" bs=1 skip=1024 count=64 2>/dev/null |
+		od -An -tx1 | tr -d ' \n') || {
+		userdata_filesystem_detail=tmagic-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	magic_type=$(filesystem_magic_type "$magic_record")
+	case $magic_type in
+		f2fs)
+			userdata_filesystem_detail=tf2fs-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
 			return 0
 			;;
-		*' TYPE="ext4"'*) ;;
-		*) return 0 ;;
+		ext4) ;;
+		*)
+			userdata_filesystem_detail=tunknown-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
+			return 0
+			;;
 	esac
 	dumpe2fs_record=$(dumpe2fs -h "$userdata" 2>&1) || {
-		userdata_filesystem_detail=te-dump-cx-ex-vx-qx-px-rx-ox
+		userdata_filesystem_detail=te-b${blkid_type}-dump-cx-ex-vx-qx-px-rx-ox
 		return 0
 	}
 	[ "${#dumpe2fs_record}" -le 32768 ] || {
-		userdata_filesystem_detail=te-large-cx-ex-vx-qx-px-rx-ox
+		userdata_filesystem_detail=te-b${blkid_type}-large-cx-ex-vx-qx-px-rx-ox
 		return 0
 	}
 	features=$(printf '%s\n' "$dumpe2fs_record" |
 		sed -n 's/^Filesystem features:[[:space:]]*//p' | sed -n '1p')
 	[ -n "$features" ] || {
-		userdata_filesystem_detail=te-features-cx-ex-vx-qx-px-rx-ox
+		userdata_filesystem_detail=te-b${blkid_type}-features-cx-ex-vx-qx-px-rx-ox
 		return 0
 	}
 	casefold=0; encrypt=0; verity=0; quota=0
@@ -647,7 +684,7 @@ classify_userdata_filesystem() {
 	ext4_feature_flag "$features" project && project=1
 	ext4_feature_flag "$features" needs_recovery && recovery=1
 	ext4_feature_flag "$features" orphan_file && orphan=1
-	userdata_filesystem_detail=te-c${casefold}-e${encrypt}-v${verity}-q${quota}-p${project}-r${recovery}-o${orphan}
+	userdata_filesystem_detail=te-b${blkid_type}-c${casefold}-e${encrypt}-v${verity}-q${quota}-p${project}-r${recovery}-o${orphan}
 	return 0
 }
 

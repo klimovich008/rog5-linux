@@ -240,8 +240,8 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 81 RAM-only cycle; power/USB, deferred UFS, storage lock, and exact userdata resolution passed; target proved the ext4 mount syscall itself returned nonzero before every post-mount check; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation81++ ; next }
 	$1 == "build/persistent-root-power-usb-v6-generation82-20260822-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact RAM-only current-filesystem mount-call classifier after proven power, NCM, UFS, storage lock, userdata resolution, and mount syscall failure; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation82++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 82 RAM-only cycle; mount retained status 255 and EINVAL, while blkid exposed no recognized type and the type-gated classifier did not run dumpe2fs; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation82++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -295,7 +295,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
