@@ -125,7 +125,8 @@ publish_or_rollback() {
 }
 
 fail_local_stage() {
-	publish_stage "$1" FAIL || true
+	stage_detail=${3:-none}
+	publish_stage "$1" FAIL "$stage_detail" || true
 	log "$2"
 	# Give the receive-only heartbeat one bounded chance to export the
 	# terminal stage before the storage-quiescent reset.
@@ -601,20 +602,30 @@ verify_userdata_and_image_mounts() {
 }
 
 mount_persistent_root() {
-	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot
+	mount_persistent_root_failure=mkdir
+	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot ||
+		return 1
+	mount_persistent_root_failure=mount-call
 	mount -t ext4 -o ro,noload "$userdata" /mnt/userdata || return 1
+	mount_persistent_root_failure=mountpoint
 	mountpoint -q /mnt/userdata || return 1
+	mount_persistent_root_failure=mount-table
 	awk -v userdata="$userdata" '$1 == userdata && $2 == "/mnt/userdata" &&
 		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
 		END { exit found != 1 }' /proc/mounts || return 1
+	mount_persistent_root_failure=mount-inventory
 	verify_only_userdata_mount || return 1
+	mount_persistent_root_failure=storage-read-only
 	verify_physical_storage_read_only || return 1
 
+	mount_persistent_root_failure=rog5-directory
 	for path in /mnt/userdata/rog5 /mnt/userdata/rog5/images; do
 		[ -d "$path" ] && [ ! -L "$path" ] || return 1
 	done
+	mount_persistent_root_failure=selector-absence
 	[ ! -e /mnt/userdata/rog5/state/good ] || return 1
 	[ ! -e /mnt/userdata/rog5/state/next ] || return 1
+	mount_persistent_root_failure=none
 	return 0
 }
 
@@ -1434,7 +1445,8 @@ fi
 publish_or_rollback userdata-resolved PASS
 publish_or_rollback userdata-mount ENTER
 if ! mount_persistent_root; then
-	fail_local_stage userdata-mount 'read-only noload userdata mount failed'
+	fail_local_stage userdata-mount 'read-only noload userdata mount failed' \
+		"userdata-$mount_persistent_root_failure"
 fi
 publish_or_rollback userdata-mount PASS
 publish_or_rollback image-resolved ENTER

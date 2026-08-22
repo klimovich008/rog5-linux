@@ -234,8 +234,8 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 79 RAM-only cycle; exact target failure detail proved that the power/USB loader rejected the kernel role-switch text host [device] before checking the equally bracketed source [sink] power role; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation79++ ; next }
 	$1 == "build/persistent-root-power-usb-v4-generation80-20260822-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact RAM-only bracketed-Type-C-role cycle proving side-port power and NCM before read-only UFS, local Arch, SSH, and rollback; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { generation80++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 80 RAM-only cycle; bracketed Type-C roles passed, as did power/USB, deferred UFS, storage lock, and exact userdata resolution; target then failed at the generic userdata-mount boundary before local-image resolution; exact stock slot-A fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash" && NF == 3 { generation80++ ; next }
 	$1 == "artifacts/recovery-stage-v18/boot-5.4.210-kexec-stage-builtin-recovery.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
@@ -289,7 +289,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
