@@ -8,6 +8,7 @@ export TZ=UTC
 protocol=ROG5_LAYOUT_STAGE1_V1
 config=/etc/rog5/storage-layout-stage1.conf
 watchdog_disarm=/usr/libexec/rog5-disarm-recovery-layout-watchdog
+reboot_bootloader=/usr/libexec/rog5-reboot-bootloader
 gpt_backup=/run/rog5-layout-stage1.gpt
 primary_backup=/run/rog5-layout-stage1.primary.raw
 secondary_backup=/run/rog5-layout-stage1.secondary.raw
@@ -339,7 +340,10 @@ run_userdata_ext4_reset() {
 	stage=S99_COMPLETE
 	emit "status=PASS stage=$stage reason=none operation_id=$operation_id operation=userdata_ext4_reset gpt_changed=0 userdata_last_lba=61865978 filesystem_blocks=59513299 filesystem_uuid=$expected_userdata_fs_uuid filesystem_label=rog5-linux backup_set_sha256=$backup_set_sha all_read_only=1 block_mounts=0"
 	log "userdata ext4 reset complete; backup_set_sha256=$backup_set_sha"
-	exit 0
+	sleep 3
+	"$reboot_bootloader"
+	log 'bootloader restart2 returned; remaining in sealed recovery'
+	while :; do sleep 3600; done
 }
 
 send_backup_file() {
