@@ -116,6 +116,15 @@ for mount_detail in mkdir mount-call mountpoint mount-table mount-inventory \
 done
 grep -Fq '"userdata-$mount_persistent_root_failure"' "$init" ||
 	fail 'P2 target does not publish the userdata mount discriminator'
+for mount_probe_marker in \
+	'blkid "$userdata"' \
+	'dumpe2fs -h "$userdata"' \
+	'casefold feature cannot be mounted without CONFIG_UNICODE' \
+	'unsupported optional features' \
+	'mount-call-s${mount_status}-${userdata_filesystem_detail}-${mount_kernel_detail}'; do
+	grep -Fq "$mount_probe_marker" "$init" ||
+		fail "P2 target lacks mount-call classifier: $mount_probe_marker"
+done
 grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"
 grep -Fq 'userdata_record=/run/rog5-p2-userdata-device' "$attest"
 grep -Fq 'runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1' "$attest"

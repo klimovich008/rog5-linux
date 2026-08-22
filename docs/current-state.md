@@ -160,3 +160,10 @@ Exact stock slot-A fallback and cleanup passed. Generation 81 is the unbooted,
 unadmitted target-only discriminator; it preserves the exact mount operation
 and reports the first failing mount/containment substage. Twin initramfs
 SHA-256 is `6590cc95c9e73fedf24b3b1643d6395514943057b9e2ebb3ba6a05347905033d`.
+
+Generation 81 proved the ext4 mount syscall itself returned nonzero. Exact
+stock slot-A fallback and cleanup passed. A bounded read-only Opus review and
+independent Linux 7.1 source inspection both recommend measuring the current
+filesystem type/features before changing config. Generation 82 is the
+unbooted, unadmitted classifier; it adds bounded `blkid`, `dumpe2fs -h`, mount
+status, and ext4/VFS error categories without changing the mount operation.
