@@ -334,6 +334,12 @@ stopped state, and post-kill identity; an orphaned sleep cannot execute the
 shell's rollback continuation. The successor therefore removes only the
 unavailable procfs child inspection and child kill, retaining every shell
 identity, marker, freeze, kill, zombie, and no-write check.
+Generation 99 is the unissued successor. Two clean ASUS 5.4 wrapper builds
+produced identical Image `c0f8e4ccccca4d64a1c5d887b304149f9d247b7bbf5a4d0c323e0e2c302ecf5a`
+with initramfs `e03ab7339f6504dea919b9636b621f831181c74cb28782ce821912a34f75a6ea`.
+Its authority-free generation-1 AVB image is
+`51a51d8b985f321da26d7796f22a0c3af0e2ca0c7338489e5615a81cf1a145e2`,
+bound by `manifests/userdata-ext4-reset-generation99.manifest`.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
