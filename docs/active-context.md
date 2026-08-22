@@ -272,13 +272,19 @@ read-only drain was attached; exact fastboot returned. The successor accepts
 only the exact same PID/start-time/parent in zombie state, rejects every live
 or changed identity, emits one terminal failure record, and returns directly
 to restart2. No GPT or userdata write occurred in Generation 94.
-Generation 95 is the unissued successor. Two clean ASUS 5.4 wrapper builds
+Generation 95 is consumed and must never be retried. Two clean ASUS 5.4 wrapper builds
 produced identical Image `4e31a01c3675f003d71851cc208af6568a5ada7eac10b880f91299b2d4b1d5e1`
 with initramfs `423785f6f343a5bb0b5b4164d7db5a68c2158e482d9dfa445529c368e3752982`.
 Its authority-free generation-1 AVB image is
 `d93aa10dc21221a7733f4d9a66d3e25ef43541c213ce3682bd728336afd7e596`,
-bound by `manifests/userdata-ext4-reset-generation95.manifest`. Candidate
-admission and its external one-use claim remain separate.
+bound by `manifests/userdata-ext4-reset-generation95.manifest`. No recovery
+USB enumerated; the exact stock slot-A fallback returned in about 27 seconds,
+and authorized ADB proved `/data` remained F2FS on `dm-40`. The exact deployed
+boot image carried `rog5.recovery_timeout=300` even though its manifest and
+sealed stage-1 mode require 900, so recovery-init rejected it before USB. This
+is R2, not a kernel or S32 failure. The successor must repack the already
+twin-proven Image and initramfs with exact timeout 900 and pass an artifact-level
+cmdline regression; no kernel rebuild is needed.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
