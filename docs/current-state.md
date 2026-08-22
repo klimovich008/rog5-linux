@@ -141,10 +141,15 @@ consumed and revoked; exact stock slot-A fallback and host cleanup passed.
 The next candidate must report the new bounded per-check failure code and ask
 only which power/USB loader boundary fails. It must not reuse Generation 78.
 
-Generation 79 is the unbooted offline successor. It reuses the exact
-Generation 78 kernel, DTB, recovery raw image, UFS modules, charging modules,
+Generation 79 consumed its sole cycle and identified the failure as the
+Type-C role parser: mainline exported `host [device]` and `source [sink]`,
+where brackets mark the active role, but the loader required bare `device`
+and `sink`. Exact stock slot-A fallback and cleanup passed. The correction
+accepts only the exact bare fixed-role form or the exact bracketed active-role
+form; inactive and malformed forms remain rejected.
+
+Generation 80 is the unbooted, unadmitted successor. It reuses the exact
+Generation 79 kernel, DTB, recovery raw image, UFS modules, charging modules,
 firmware, local image, and rollback. Its twin target initramfses reproduce at
-SHA-256 `9cbfeb5dce268d611b5f05d1715c91d2d2470c087636ceeeccc15cd2d0723c9c`;
-the only changed regular files are `/init` and
-`/sbin/rog5-load-persistent-power-usb`. It has no temporary-boot policy row or
-boot authority at this checkpoint.
+SHA-256 `7a69e97606d2d4422ba0ead12f5225802cd27d3b036914c0041b7c9da1973c25`.
+Only exact Type-C active-role parsing changed; no kernel compilation ran.

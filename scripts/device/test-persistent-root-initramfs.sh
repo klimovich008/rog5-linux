@@ -278,6 +278,34 @@ lines" "$long_failure"; do
 	fi
 done
 
+role_validator=$(mktemp)
+awk '
+	/^data_role_is_device\(\) \{/ { copy=1 }
+	/^read_integer\(\) \{/ { copy=0 }
+	copy { print }
+' "$power_loader" >"$role_validator"
+# shellcheck disable=SC1090
+. "$role_validator"
+rm -f -- "$role_validator"
+for valid_data_role in device 'host [device]'; do
+	data_role_is_device "$valid_data_role" ||
+		fail "power/USB loader rejected valid data role: $valid_data_role"
+done
+for invalid_data_role in host '[host] device' 'host device' 'host [device] extra'; do
+	if data_role_is_device "$invalid_data_role"; then
+		fail "power/USB loader accepted inactive or malformed data role"
+	fi
+done
+for valid_power_role in sink 'source [sink]'; do
+	power_role_is_sink "$valid_power_role" ||
+		fail "power/USB loader rejected valid power role: $valid_power_role"
+done
+for invalid_power_role in source '[source] sink' 'source sink' 'source [sink] extra'; do
+	if power_role_is_sink "$invalid_power_role"; then
+		fail "power/USB loader accepted inactive or malformed power role"
+	fi
+done
+
 grep -Fq '/.rog5/userdata-ro' "$attest"
 grep -Fq '/.rog5/root-ro' "$attest"
 grep -Fq '/.rog5/state' "$attest"
