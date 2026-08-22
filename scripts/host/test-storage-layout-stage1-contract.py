@@ -18,7 +18,7 @@ BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
 REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
-MANIFEST = REPO / "manifests/userdata-ext4-reset-generation97.manifest"
+MANIFEST = REPO / "manifests/userdata-ext4-reset-generation98.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 
@@ -243,20 +243,25 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation97_publication_is_exact_and_admitted_once(self) -> None:
+    def test_generation98_publication_is_exact_and_admitted_once(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            "f6e0ee28e2e007e1809a3c57d36ebcca2420029d7bfa4b6c8a8ba64216e8e1ef",
+            "9ea9d714f95e14e3fabc1ebba43d62e6547ea984bf3ec2ef8e04e042964f9ff2",
         )
         fields = dict(line.split("=", 1) for line in payload.decode("ascii").splitlines())
-        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation97-live-v1")
-        self.assertEqual(fields["image_sha256"], "b9f9df8d01eaa7e90b792520c178cbec15ec29f03b62fa05a069c1668ae14cb2")
+        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation98-live-v1")
+        self.assertEqual(fields["image_sha256"], "1ccb04a304d017061e8edb0cf8e44f87dbf2da41cbbf8b5898405b8b603008b2")
         self.assertEqual(fields["private_config_sha256"], "87845905422201c95e6498c04db4d127b42acfc9b45e316b53d51fc0d388f7cb")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         self.assertEqual(fields["deployed_recovery_timeout_seconds"], "900")
         self.assertEqual(fields["watchdog_armed_marker_mode"], "0600")
         self.assertEqual(fields["watchdog_armed_marker_umask"], "077")
+        self.assertEqual(
+            fields["watchdog_failure_reason"],
+            "sealed-final-fail-line-lowercase-machine-token",
+        )
+        self.assertEqual(fields["watchdog_failure_reason_max_bytes"], "127")
         self.assertEqual(fields["target_partition_number"], "23")
         self.assertEqual(fields["gpt_change"], "0")
         self.assertEqual(fields["post_success_action"], "restart2-bootloader-or-remain-in-recovery")
@@ -307,8 +312,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             self.assertNotIn("rog5.recovery_timeout=300", cmdline.split())
 
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
-        self.assertIn("userdata-ext4-reset-generation97-live-v1", claim_source)
-        self.assertNotIn('"userdata-ext4-reset-generation96-live-v1"', claim_source)
+        self.assertIn("userdata-ext4-reset-generation98-live-v1", claim_source)
+        self.assertNotIn('"userdata-ext4-reset-generation97-live-v1"', claim_source)
         self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
         lines = BOOT_POLICY.read_text(encoding="utf-8").splitlines()
         self.assertEqual(
@@ -332,12 +337,13 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation95-live-v1": "revoked",
                 "userdata-ext4-reset-generation96-live-v1": "revoked",
                 "userdata-ext4-reset-generation97-live-v1": "revoked",
+                "userdata-ext4-reset-generation98-live-v1": "allow",
             },
         )
-        self.assertEqual(rows["userdata-ext4-reset-generation97-live-v1"][1:4], [
-            "f6e0ee28e2e007e1809a3c57d36ebcca2420029d7bfa4b6c8a8ba64216e8e1ef",
+        self.assertEqual(rows["userdata-ext4-reset-generation98-live-v1"][1:4], [
+            "9ea9d714f95e14e3fabc1ebba43d62e6547ea984bf3ec2ef8e04e042964f9ff2",
             "100663296",
-            "b9f9df8d01eaa7e90b792520c178cbec15ec29f03b62fa05a069c1668ae14cb2",
+            "1ccb04a304d017061e8edb0cf8e44f87dbf2da41cbbf8b5898405b8b603008b2",
         ])
 
 
