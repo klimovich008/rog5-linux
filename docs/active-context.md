@@ -205,14 +205,15 @@ confirmed the exact destructive proposal in
 formatter implementation and verification precede a separate one-use
 admission; GPT and every non-`userdata` partition remain immutable.
 
-Generation 85 is the authority-free offline formatter publication. Its
-100,663,296-byte RAM-only AVB image is `af58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5`;
-clean twin ASUS wrapper Images, the sealed initramfs, exact 900-second timeout,
-private config hash, and no-GPT partition-23 operation are bound by
-`manifests/userdata-ext4-reset-generation85.manifest`. The obsolete unissued
-shrink/GPT claim identity was removed. Exact-head publication CI passed. The
-separate one-row `manifests/userdata-ext4-reset-temporary-boot-v1.tsv` policy
-admits the exact image while retaining the external one-use claim requirement.
+Generation 85 is unbooted and revoked: its normal post-success reboot could
+let stock Android reformat the new Linux ext4. Generation 86 adds only the
+fixed static `restart2("bootloader")` return, remaining in sealed recovery if
+that syscall returns. Its 100,663,296-byte RAM-only AVB image is
+`05aac000530d559b5d0c52e7054354ea72ae7434431bdc7fc2797f0ea7cc6f93`.
+Twin ASUS wrapper Images, sealed initramfs, exact 900-second timeout, private
+config hash, and no-GPT partition-23 operation are bound by
+`manifests/userdata-ext4-reset-generation86.manifest`. The dedicated policy
+admits only Generation 86 and retains the external one-use claim requirement.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
