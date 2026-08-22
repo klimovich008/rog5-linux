@@ -812,12 +812,12 @@ EXPECTED_CLAIMS["persistent-root-local-image-write-mountpoint-v42-live-v1"] = (
     "8b2e95268be4e5e0c65eb9367514bb93ab2c20f38a3848a0986de4fe4336d221\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
-EXPECTED_CLAIMS["userdata-ext4-reset-generation98-live-v1"] = (
+EXPECTED_CLAIMS["userdata-ext4-reset-generation99-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
-    "recovery_profile=userdata-ext4-reset-generation98-live-v1\n"
-    "candidate=userdata-ext4-reset-generation98\n"
+    "recovery_profile=userdata-ext4-reset-generation99-live-v1\n"
+    "candidate=userdata-ext4-reset-generation99\n"
     "manifest_sha256="
-    "9ea9d714f95e14e3fabc1ebba43d62e6547ea984bf3ec2ef8e04e042964f9ff2\n"
+    "121adc0df0d2a395685983c573fe37ca25da8a31497c2cf9843e9372ab40a3c5\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
 
@@ -950,7 +950,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "0aa9c33e357a91d68a6674c78e46758ed2b1fb68bf6daec25da1e3b422fed04d",
+    "sha256": "100de8314db8d9bc4a68f574f0b8d2f7a3f30f84e77267558e64fc0c10ce23f0",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -978,7 +978,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "0aa9c33e357a91d68a6674c78e46758ed2b1fb68bf6daec25da1e3b422fed04d",
+    "executor_contract_sha256": "100de8314db8d9bc4a68f574f0b8d2f7a3f30f84e77267558e64fc0c10ce23f0",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
