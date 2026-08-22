@@ -213,12 +213,16 @@ Generation 87 is consumed with no ACK/write. Generation 88 is also consumed:
 the canonical root collector opened ACM and proved the target was repeating
 an exact pre-backup four-field FAIL, but the old parser discarded its
 stage/reason. No backup directory or ACK existed; restart2 returned fastboot.
-Generation 89 accepts that exact terminal production without ACK and retains
-it for a two-minute target window. Its 100,663,296-byte RAM-only AVB image is
-`b7dfbcff5ac0c5b5150346120c09daa7378808caee0d3a2f453323632d2ea268`.
-The exact composition is bound by
-`manifests/userdata-ext4-reset-generation89.manifest`; the dedicated policy
-admits only Generation 89 and retains the external one-use claim requirement.
+Generation 89 is consumed and proved exact target failure
+`S10_TOPOLOGY/userdata_content_changed/gpt_restored=not_needed`; no backup,
+ACK, or write existed. The defect was the target's assumption that confirmed
+Android userdata must remain raw-opaque. Generation 90 reads ext4 magic
+exactly and refuses only an already-created Linux ext4 filesystem; confirmed
+Android F2FS or encrypted content is eligible for the owner-approved reset.
+Its RAM-only AVB image is
+`7bdfbebaee92a4a67e2b5fbd7d40064be2f8aca2f3c0b41eb68471a61a7b3801`,
+bound by `manifests/userdata-ext4-reset-generation90.manifest`. The dedicated
+policy admits only Generation 90 and retains the one-use claim requirement.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
