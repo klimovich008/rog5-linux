@@ -248,7 +248,7 @@ def receive_backup_set(
         fail("backup output parent ownership or mode is unsafe")
 
     ready = (
-        f"{PREFIX} status=HOST_READY "
+        f"\n{PREFIX} status=HOST_READY "
         f"operation_id={expected_operation}\n"
     ).encode("ascii")
     ready_sent = False

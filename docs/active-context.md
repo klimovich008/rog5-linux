@@ -247,12 +247,14 @@ bounded Opus reviews timed out without a verdict. The remaining uncertainty
 is physical gadget-ACM input contamination or transformation; the successor
 must use a four-record/120-second exact-token loop and finite non-secret
 failure categories without normalizing the accepted token.
-Generation 93 is the unissued successor. It retains exact target-S30 then
-host-ready ordering, reads at most four 30-second records, accepts only the
-unchanged operation-bound token, and otherwise reports a finite non-secret
-category. Its authority-free RAM-only AVB image is
-`ef9143db03f76008726c48dac59cc2309af552d6266c316c56bcdd2902169045`,
-bound by `manifests/userdata-ext4-reset-generation93.manifest`.
+Generation 93 is consumed and must never be retried. It classified the first
+physical gadget-ACM record as `host_ready_leading_data`; no output directory
+or durable ACK existed, so no format or write occurred. This proves the exact
+token survives as a suffix behind stale leading bytes. The successor keeps
+the accepted token unchanged and prepends one empty separator record, so the
+bounded target loop consumes the contaminated separator record before reading
+the exact operation-bound token. Its raw wrapper can be reused under a fresh
+AVB generation; no kernel rebuild is required.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
