@@ -204,6 +204,14 @@ confirmed the exact destructive proposal in
 `configs/storage/rog5-userdata-ext4-reset-v1.json` on 2026-08-22. Offline
 formatter implementation and verification precede a separate one-use
 admission; GPT and every non-`userdata` partition remain immutable.
+
+Generation 85 is the authority-free offline formatter publication. Its
+100,663,296-byte RAM-only AVB image is `af58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5`;
+clean twin ASUS wrapper Images, the sealed initramfs, exact 900-second timeout,
+private config hash, and no-GPT partition-23 operation are bound by
+`manifests/userdata-ext4-reset-generation85.manifest`. The obsolete unissued
+shrink/GPT claim identity was removed. Generation 85 remains unadmitted until
+exact-head CI passes its publication commit.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

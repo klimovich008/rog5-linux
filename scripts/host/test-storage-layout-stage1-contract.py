@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import stat
 import unittest
 
@@ -13,6 +14,8 @@ EXECUTOR = REPO / "scripts/device/storage-layout-stage1"
 BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
+MANIFEST = REPO / "manifests/userdata-ext4-reset-generation85.manifest"
+CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -145,6 +148,32 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "rog5-userdata-ext4-reset-v1",
         ):
             self.assertIn(contract, source)
+
+    def test_generation85_publication_is_exact_and_authority_free(self) -> None:
+        payload = MANIFEST.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(payload).hexdigest(),
+            "910cb4d733217bad2d9b243cfd98dd167033689ecce04a31db1366a7a39dfb1f",
+        )
+        fields = dict(line.split("=", 1) for line in payload.decode("ascii").splitlines())
+        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation85-live-v1")
+        self.assertEqual(fields["image_sha256"], "af58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5")
+        self.assertEqual(fields["private_config_sha256"], "87845905422201c95e6498c04db4d127b42acfc9b45e316b53d51fc0d388f7cb")
+        self.assertEqual(fields["recovery_timeout_seconds"], "900")
+        self.assertEqual(fields["target_partition_number"], "23")
+        self.assertEqual(fields["gpt_change"], "0")
+        self.assertEqual(fields["authority"], "none")
+        image = REPO / fields["image_path"]
+        if image.exists():
+            self.assertEqual(image.stat().st_size, int(fields["image_size"]))
+            self.assertEqual(
+                hashlib.sha256(image.read_bytes()).hexdigest(),
+                fields["image_sha256"],
+            )
+
+        claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
+        self.assertIn("userdata-ext4-reset-generation85-live-v1", claim_source)
+        self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
 
 
 if __name__ == "__main__":
