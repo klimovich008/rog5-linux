@@ -15,7 +15,7 @@ BUILDER = REPO / "scripts/device/build-storage-layout-stage1-initramfs.sh"
 WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
 REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
-MANIFEST = REPO / "manifests/userdata-ext4-reset-generation92.manifest"
+MANIFEST = REPO / "manifests/userdata-ext4-reset-generation93.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 
@@ -221,15 +221,15 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation92_publication_is_exact_and_revoked_after_use(self) -> None:
+    def test_generation93_publication_is_exact_and_admitted_once(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            "20f5cc2437c6e5370e728bfc67a1bc687c5bf93c8d1df1baef6df6480b1cbaa0",
+            "788a1b70fcedd07fbbe6bdb6705b1ca07c505e3aa9630e6423773e77293f3504",
         )
         fields = dict(line.split("=", 1) for line in payload.decode("ascii").splitlines())
-        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation92-live-v1")
-        self.assertEqual(fields["image_sha256"], "af477d4fd6922b5c582cd29944a006f7cbfe8e9f232b552af9759fc6ebae7c37")
+        self.assertEqual(fields["profile"], "userdata-ext4-reset-generation93-live-v1")
+        self.assertEqual(fields["image_sha256"], "ef9143db03f76008726c48dac59cc2309af552d6266c316c56bcdd2902169045")
         self.assertEqual(fields["private_config_sha256"], "87845905422201c95e6498c04db4d127b42acfc9b45e316b53d51fc0d388f7cb")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         self.assertEqual(fields["target_partition_number"], "23")
@@ -240,6 +240,9 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertEqual(fields["userdata_precondition"], "readable-and-not-ext4")
         self.assertEqual(fields["backup_stream_rendezvous"], "exact-operation-bound-host-ready")
         self.assertEqual(fields["host_ready_order"], "target-s30-then-host-ready")
+        self.assertEqual(fields["host_ready_records"], "4")
+        self.assertEqual(fields["host_ready_record_timeout_seconds"], "30")
+        self.assertEqual(fields["host_ready_diagnostics"], "finite-nonsecret-no-normalization")
         self.assertEqual(fields["authority"], "none")
         image = REPO / fields["image_path"]
         if image.exists():
@@ -250,8 +253,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             )
 
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
-        self.assertIn("userdata-ext4-reset-generation92-live-v1", claim_source)
-        self.assertNotIn('"userdata-ext4-reset-generation91-live-v1"', claim_source)
+        self.assertIn("userdata-ext4-reset-generation93-live-v1", claim_source)
+        self.assertNotIn('"userdata-ext4-reset-generation92-live-v1"', claim_source)
         self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
         lines = BOOT_POLICY.read_text(encoding="utf-8").splitlines()
         self.assertEqual(
@@ -270,12 +273,13 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation90-live-v1": "revoked",
                 "userdata-ext4-reset-generation91-live-v1": "revoked",
                 "userdata-ext4-reset-generation92-live-v1": "revoked",
+                "userdata-ext4-reset-generation93-live-v1": "allow",
             },
         )
-        self.assertEqual(rows["userdata-ext4-reset-generation92-live-v1"][1:4], [
-            "20f5cc2437c6e5370e728bfc67a1bc687c5bf93c8d1df1baef6df6480b1cbaa0",
+        self.assertEqual(rows["userdata-ext4-reset-generation93-live-v1"][1:4], [
+            "788a1b70fcedd07fbbe6bdb6705b1ca07c505e3aa9630e6423773e77293f3504",
             "100663296",
-            "af477d4fd6922b5c582cd29944a006f7cbfe8e9f232b552af9759fc6ebae7c37",
+            "ef9143db03f76008726c48dac59cc2309af552d6266c316c56bcdd2902169045",
         ])
 
 
