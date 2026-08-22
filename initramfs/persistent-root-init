@@ -109,6 +109,14 @@ start_stage_reporter() {
 	printf '%s\n' "$stage_reporter_pid" >/run/rog5-stage-reporter.pid
 }
 
+valid_power_usb_failure() {
+	candidate=$1
+	[ "${#candidate}" -le 128 ] || return 1
+	[ "$(printf '%s\n' "$candidate" | wc -l)" -eq 1 ] || return 1
+	printf '%s\n' "$candidate" |
+		grep -Eq '^power-usb-[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+}
+
 publish_or_rollback() {
 	publish_stage "$1" "$2" || {
 		log 'volatile stage publication failed'
@@ -1340,8 +1348,12 @@ publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
-	if ! /sbin/rog5-load-persistent-power-usb; then
-		publish_stage ufs-ready FAIL power-usb || true
+	power_usb_failure=
+	if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then
+		if ! valid_power_usb_failure "$power_usb_failure"; then
+			power_usb_failure=power-usb-invalid-failure-record
+		fi
+		publish_stage ufs-ready FAIL "$power_usb_failure" || true
 		log 'side-port power/USB initialization failed'
 		sleep 2
 		force_rollback

@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-21
+Updated: 2026-08-22
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -138,20 +138,24 @@ pack current. The power/USB observer track is complete. See
 
 ## Next execution sequence
 
-The next acceptance test is local-image Arch + key-only SSH while the proven
-side-port charging stack remains active and the pack does not discharge under
-a bounded server-style load.
+Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
+combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
+the power/USB loader returned its legacy generic failure before UFS. Exact
+stock slot-A fallback and cleanup passed. Missing pstore lineage does not prove
+or disprove a crash; the observed initramfs path explicitly waited two seconds
+and forced rollback after the loader failure.
 
-1. Record V26 as consumed with net-positive side charging proven.
-2. Fix the observer token-validation and remoteproc-name regressions offline.
-3. Reuse the proven local-image UFS kernel/DT/root path and add only the proven
-   V26 charging modules, firmware, and early power checks.
-4. Build a RAM-only candidate; keep UFS and both ext4 layers read-only.
-5. Reach NCM and key-only SSH, then sample battery current and temperature at
-   idle and during one bounded CPU/network workload.
-6. Reboot normally, prove exact slot-A fallback, and compare time-to-SSH with
-   Generation 20's approximately 380 seconds.
-7. Resume native persistent layout work only after repeated combined passes.
+The next acceptance test is one diagnostic successor that identifies the
+exact failed power/USB loader boundary while preserving NCM and rollback.
+
+1. Use the new bounded loader failure codes and hostile parser regression.
+2. Reuse the exact Generation 78 kernel, DTB, firmware, module closure, local
+   image, recovery, and rollback; do not redesign the kernel for this failure.
+3. Build one RAM-only successor whose sole question is which exact loader
+   boundary fails.
+4. After that boundary passes, continue the existing read-only UFS/local-image
+   path to key-only SSH and measure power under one bounded server-style load.
+5. Resume native persistent layout work only after the combined path repeats.
 
 ## Boundaries
 
