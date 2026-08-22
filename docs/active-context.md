@@ -236,6 +236,12 @@ The 900-second recovery watchdog returned stock slot-A Android USB at
 15:28:58. ADB remained unauthorized, so a second live `/data` mount query was
 unavailable; absence of the mandatory durable backup ACK remains the direct
 proof that the formatter could not enter its write path.
+Generation 92 is the unissued host-only successor. It reuses the exact
+Generation 91 raw wrapper and changes only the AVB generation; the collector
+must parse target `S30_FRESH_BACKUP` before sending one operation-bound
+`HOST_READY`. Its authority-free RAM-only AVB image is
+`af477d4fd6922b5c582cd29944a006f7cbfe8e9f232b552af9759fc6ebae7c37`,
+bound by `manifests/userdata-ext4-reset-generation92.manifest`.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
