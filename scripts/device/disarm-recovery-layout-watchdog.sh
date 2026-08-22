@@ -64,22 +64,7 @@ process_tail=${process_stat##*) }
 [ "$(printf '%s\n' "$process_tail" | awk '{ print $20 }')" = "$expected_start" ] ||
 	fail 'watchdog identity changed after freeze'
 
-children=$(cat "/proc/$watchdog_pid/task/$watchdog_pid/children" 2>/dev/null) ||
-	fail 'cannot inspect watchdog timer child'
-set -- $children
-[ "$#" -eq 1 ] || fail 'watchdog timer child count changed'
-timer_pid=$1
-timer_stat=$(cat "/proc/$timer_pid/stat" 2>/dev/null) ||
-	fail 'watchdog timer child vanished'
-timer_tail=${timer_stat##*) }
-[ "$(printf '%s\n' "$timer_tail" | awk '{ print $2 }')" = "$watchdog_pid" ] ||
-	fail 'watchdog timer child parent changed'
-[ "$(cat "/proc/$timer_pid/comm" 2>/dev/null)" = sleep ] ||
-	fail 'watchdog timer child identity changed'
-
 rm -f -- "$armed" || fail 'cannot disarm rollback marker'
-kill -STOP "$timer_pid" 2>/dev/null || true
-kill -KILL "$timer_pid" 2>/dev/null || true
 kill -KILL "$watchdog_pid" 2>/dev/null || true
 
 attempt=0

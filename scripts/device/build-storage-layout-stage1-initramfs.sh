@@ -17,7 +17,7 @@ reboot_bootloader=${13:?missing reboot-to-bootloader helper}
 output=${14:?missing output}
 epoch=1681862400
 executor_sha256=28c7aeaa37703bc6dad458c0f028417678e6f0f9fa2efebd87e4e27eac0e6d74
-watchdog_disarm_sha256=2e37412a7d7828540105bdd19a603594fa147525feb1a547f7cd43cf593d68f2
+watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 reboot_bootloader_sha256=68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 readonly_builder=$script_dir/build-storage-preflight-initramfs.sh
