@@ -16,6 +16,7 @@ WATCHDOG_DISARM = REPO / "scripts/device/disarm-recovery-layout-watchdog.sh"
 INIT = REPO / "initramfs/recovery-init"
 MANIFEST = REPO / "manifests/userdata-ext4-reset-generation85.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
+BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -174,6 +175,19 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         claim_source = CLAIM_CONSUMER.read_text(encoding="utf-8")
         self.assertIn("userdata-ext4-reset-generation85-live-v1", claim_source)
         self.assertNotIn('"storage-layout-stage1-v1-live-v1"', claim_source)
+        self.assertEqual(
+            BOOT_POLICY.read_text(encoding="utf-8").splitlines(),
+            [
+                "name\tstatus\tmanifest_sha256\timage_size\timage_sha256\tbasis",
+                "userdata-ext4-reset-generation85-live-v1\tallow\t"
+                "910cb4d733217bad2d9b243cfd98dd167033689ecce04a31db1366a7a39dfb1f\t"
+                "100663296\taf58eb329bcaf1c3796dfd6c02eb5f794b538f3ca0c552b93ea3c23047c23bd5\t"
+                "one exact owner-confirmed RAM-only format of only unchanged userdata "
+                "partition 23; fresh host-fsynced GPT backup ACK and external one-use "
+                "claim required; GPT and every other partition immutable; never flash "
+                "or retry after claim entry",
+            ],
+        )
 
 
 if __name__ == "__main__":
