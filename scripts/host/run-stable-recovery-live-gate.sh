@@ -161,7 +161,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 		persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 		persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
-		persistent-root-power-usb-v7-generation83-live-v1 | \
+		persistent-root-power-usb-v8-generation84-live-v1 | \
 		persistent-root-local-image-early-ssh-v45-generation70-live-v1 | \
 		persistent-root-local-image-early-ssh-v45-live-v1 | \
 		persistent-root-local-image-ufs-detail-v44-live-v1 | \
@@ -1933,10 +1933,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	persistent-root-power-usb-v7-generation83-live-v1)
-		expected_boot_image=build/persistent-root-power-usb-v7-generation83-20260822-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact RAM-only direct-magic filesystem classifier after blkid reported no recognized type and ext4 mount returned status 255 EINVAL; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 83 direct-magic filesystem classifier; Generation 82 kernel, DTB, modules, firmware, local image, recovery, mount behavior, and rollback plus exact ext4/F2FS magic and independent dumpe2fs feature capture; one RAM-only use only; never flash'
+	persistent-root-power-usb-v8-generation84-live-v1)
+		expected_boot_image=build/persistent-root-power-usb-v8-generation84-20260822-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact RAM-only verbatim direct-magic classifier after sealed BusyBox od compressed duplicate lines in Generation 83; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 84 verbatim direct-magic filesystem classifier; Generation 83 kernel, DTB, modules, firmware, local image, recovery, mount behavior, and rollback with only sealed BusyBox od duplicate-line compression disabled; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=b8c2a67a4bbf812235e2eccd06531d942c5f52c7f1cd0932ed2ff9187f324975
@@ -1945,19 +1945,19 @@ case $profile in
 		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
 		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
 		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
-		expected_target_id=persistent-root-power-usb-v7
-		expected_bundle=persistent-root-power-usb-v7
+		expected_target_id=persistent-root-power-usb-v8
+		expected_bundle=persistent-root-power-usb-v8
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gae717d919f87
-		expected_avb_salt=c77ba861db5befabb583be8234e8af887f2b24ebd357f0badfab73bb92126666
-		expected_avb_digest=f5a2172714203144a2d93fb8841fa6d26df764c9e5b446c6be9a43736eb982f0
-		expected_generation_record=8ee2c586ae1d074636ac621291a2cf730cd40c09ec9ad4bc6ab8a56c6e008e4e
+		expected_avb_salt=7997d52541c01129c6914731b9632b9b22c8a5c0bd310a483ef1fc101a3a507c
+		expected_avb_digest=5f0f0e1cc321c4c7409272b10a916ea5c0da458bac75db47360e0927128db50c
+		expected_generation_record=be5b45a04ceb4408721e9ef0568df1915db09931c5895ca854cfd9edd7479c9c
 		recovery_init=$repo/initramfs/recovery-init
 		[[ $expected_manifest == \
-			ed43083b35d7f1e4d3c7aa6aa8dacb4ec4e22a2d1e57cd818c4efa20f78080cd ]] ||
+			c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289 ]] ||
 			fail 'persistent-root power/USB manifest is not pinned'
 		[[ $expected_image == \
-			b1e69cbdb2a379d763a65c2841182b2e3f163ad7648da5fc470b75bba4092517 ]] ||
+			88075dba4a8564fa21d73c69d696b64813dc024389a5d097be345f7cd9f302bb ]] ||
 			fail 'persistent-root power/USB recovery image is not pinned'
 		[[ $expected_trust == \
 			cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] ||
@@ -3000,7 +3000,7 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
-	persistent-root-power-usb-v7-generation83-live-v1 | \
+	persistent-root-power-usb-v8-generation84-live-v1 | \
 	persistent-root-local-image-early-ssh-v45-generation70-live-v1 | \
 	persistent-root-local-image-early-ssh-v45-live-v1 | \
 	persistent-root-local-image-ufs-detail-v44-live-v1 | \

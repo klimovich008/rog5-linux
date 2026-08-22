@@ -119,6 +119,7 @@ grep -Fq '"userdata-$mount_persistent_root_failure"' "$init" ||
 for mount_probe_marker in \
 	'blkid "$userdata"' \
 	'dd if="$userdata" bs=1 skip=1024 count=64' \
+	'od -An -v -tx1' \
 	'dumpe2fs -h "$userdata"' \
 	'casefold feature cannot be mounted without CONFIG_UNICODE' \
 	'unsupported optional features' \

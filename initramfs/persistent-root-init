@@ -645,7 +645,7 @@ classify_userdata_filesystem() {
 	}
 	blkid_type=$(blkid_filesystem_type "$blkid_record")
 	magic_record=$(dd if="$userdata" bs=1 skip=1024 count=64 2>/dev/null |
-		od -An -tx1 | tr -d ' \n') || {
+		od -An -v -tx1 | tr -d ' \n') || {
 		userdata_filesystem_detail=tmagic-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
 		return 0
 	}

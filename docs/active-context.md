@@ -145,7 +145,7 @@ stock slot-A fallback and cleanup passed. Missing pstore lineage does not prove
 or disprove a crash; the observed initramfs path explicitly waited two seconds
 and forced rollback after the loader failure.
 
-The next acceptance test is Generation 83 identifying userdata by direct
+The next acceptance test is Generation 84 identifying userdata by verbatim direct
 filesystem magic and current ext4 features while preserving proven power,
 NCM, UFS, and rollback.
 
@@ -184,16 +184,23 @@ exposed no recognized type and its type gate skipped `dumpe2fs`. Its bundle was
 and RAM-only AVB SHA-256
 `e040c38cbbd311310899f2b4e55cb4bbfbc8c62c12f3c040d06f58469802fb60`.
 
-Generation 83 is built offline but not admitted. Its bundle is
+Generation 83 is consumed. Sealed BusyBox `od` compressed duplicate hex lines
+to `*`, preventing magic classification. Its bundle was
 `persistent-root-power-usb-v7`, manifest SHA-256
 `ed43083b35d7f1e4d3c7aa6aa8dacb4ec4e22a2d1e57cd818c4efa20f78080cd`,
 and RAM-only AVB SHA-256
 `b1e69cbdb2a379d763a65c2841182b2e3f163ad7648da5fc470b75bba4092517`.
 
-1. Run the direct-magic classifier and complete lifecycle tests.
-2. Reuse the exact Generation 82 kernel, DTB, firmware, module closure, local
+Generation 84 is built offline but not admitted. Its bundle is
+`persistent-root-power-usb-v8`, manifest SHA-256
+`c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289`,
+and RAM-only AVB SHA-256
+`88075dba4a8564fa21d73c69d696b64813dc024389a5d097be345f7cd9f302bb`.
+
+1. Run the verbatim direct-magic classifier and complete lifecycle tests.
+2. Reuse the exact Generation 83 kernel, DTB, firmware, module closure, local
    image, recovery, mount behavior, and rollback.
-3. Admit one RAM-only Generation 83 cycle only after exact-head CI.
+3. Admit one RAM-only Generation 84 cycle only after exact-head CI.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

@@ -205,6 +205,14 @@ CLAIMS = {
         b"ed43083b35d7f1e4d3c7aa6aa8dacb4ec4e22a2d1e57cd818c4efa20f78080cd\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "persistent-root-power-usb-v8-generation84-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-root-power-usb-v8-generation84-live-v1\n"
+        b"candidate=persistent-root-power-usb-v8\n"
+        b"manifest_sha256="
+        b"c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "persistent-root-local-image-early-ssh-v45-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=persistent-root-local-image-early-ssh-v45-live-v1\n"
