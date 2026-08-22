@@ -3581,7 +3581,7 @@ class LiveCycle:
         ):
             fixed_executable(path, offline=self.dependencies.offline)
         if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v3-generation79-live-v1"
+            "persistent-root-power-usb-v4-generation80-live-v1"
         ):
             fixed_executable(
                 self.dependencies.stock_fallback,
@@ -3624,7 +3624,7 @@ class LiveCycle:
             timeout=300,
         )
         if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v3-generation79-live-v1"
+            "persistent-root-power-usb-v4-generation80-live-v1"
         ):
             run_capture([str(self.dependencies.stock_fallback), "host-preflight"])
         else:
@@ -3759,7 +3759,7 @@ class LiveCycle:
         )
         fallback_deadline = time.monotonic() + self.fallback_timeout
         if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v3-generation79-live-v1"
+            "persistent-root-power-usb-v4-generation80-live-v1"
         ):
             fallback_location = Path(location).name
             if fallback_location != "1-1.2":

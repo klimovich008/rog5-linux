@@ -145,22 +145,34 @@ stock slot-A fallback and cleanup passed. Missing pstore lineage does not prove
 or disprove a crash; the observed initramfs path explicitly waited two seconds
 and forced rollback after the loader failure.
 
-The next acceptance test is one diagnostic successor that identifies the
-exact failed power/USB loader boundary while preserving NCM and rollback.
+The next acceptance test is Generation 80 proving the exact bracketed Type-C
+roles and advancing to the next loader/UFS boundary while preserving NCM and
+rollback.
 
-Generation 79 is built offline but not admitted. Its bundle is
+Generation 79 is consumed. It proved exact failure
+`power-usb-typec-data-role`: V26's retained raw evidence shows mainline's
+writable role attributes as `host [device]` and `source [sink]`, with brackets
+marking the selected roles. The loader's bare-string comparison was wrong.
+Its bundle was
 `persistent-root-power-usb-v3`, manifest SHA-256
 `d0a1e7b2d9a2fce6d934fc560af466c476f66c1b5ee700dd6efdc6134b6e68eb`,
 and RAM-only AVB SHA-256
 `2e49097855eaee747d5935e2d1a6dfe28a42a99396bcafc670db47e3bf388623`.
-The recovery raw image is unchanged; no ASUS kernel compilation ran.
+The recovery raw image was unchanged; no ASUS kernel compilation ran. Exact
+stock slot-A fallback and cleanup passed, and Generation 79 must not be
+retried.
 
-1. Use the new bounded loader failure codes and hostile parser regression.
-2. Reuse the exact Generation 78 kernel, DTB, firmware, module closure, local
+Generation 80 is built offline but not admitted. Its bundle is
+`persistent-root-power-usb-v4`, manifest SHA-256
+`2240afeecc90e45e4cf51e94365473a8fbe269731cebc7d1dcba86b7bfd84bf2`,
+and RAM-only AVB SHA-256
+`f948a480806805b7726e3de5fd2f1def3b457a82219d0e8fa8a3ad7ca94d0ae9`.
+
+1. Run the hostile role-parser and complete lifecycle tests.
+2. Reuse the exact Generation 79 kernel, DTB, firmware, module closure, local
    image, recovery, and rollback; do not redesign the kernel for this failure.
-3. Build one RAM-only successor whose sole question is which exact loader
-   boundary fails.
-4. After that boundary passes, continue the existing read-only UFS/local-image
+3. Admit one RAM-only Generation 80 cycle only after exact-head CI.
+4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
 

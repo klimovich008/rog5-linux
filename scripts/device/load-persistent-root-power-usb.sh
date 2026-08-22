@@ -14,6 +14,20 @@ fail() {
 	exit 1
 }
 
+data_role_is_device() {
+	case $1 in
+		device|'host [device]') return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+power_role_is_sink() {
+	case $1 in
+		sink|'source [sink]') return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
 read_integer() {
 	value=$(cat "$1" 2>/dev/null) || return 1
 	case $value in ''|'-'|*[!0-9-]*|*-*-) return 1 ;; esac
@@ -100,9 +114,13 @@ usb_current_max=$(read_integer "$usb/current_max") ||
 	fail usb-voltage-invalid 'side USB voltage is invalid'
 [ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||
 	fail usb-current-limit-invalid 'side USB current limit is invalid'
-[ "$(cat /sys/class/typec/port0/data_role)" = device ] ||
+data_role=$(cat /sys/class/typec/port0/data_role 2>/dev/null) ||
+	fail typec-data-role 'side USB data role is unavailable'
+data_role_is_device "$data_role" ||
 	fail typec-data-role 'side USB is not UFP/device'
-[ "$(cat /sys/class/typec/port0/power_role)" = sink ] ||
+power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) ||
+	fail typec-power-role 'side USB power role is unavailable'
+power_role_is_sink "$power_role" ||
 	fail typec-power-role 'side USB is not a power sink'
 [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
 	fail ncm-carrier 'NCM carrier dropped'
