@@ -16,6 +16,9 @@ for contract in \
 	'final=$store/arch-local-a.ext4' \
 	'image_bytes=17179869184' \
 	'image_label=ROG5_ARCH_A' \
+	'userdata_root=${ROG5_USERDATA_ROOT:-/}' \
+	'case $userdata_root in /|/mnt/userdata)' \
+	'store=$userdata_root/rog5/images' \
 	'expected_root_tool_sha256=0b2a3a9a8ad330dd427427ac8deb79ca18cb2f8575d46cdc9b354594dce27057' \
 	'bsdtar_loader=$bsdtar_runtime/lib/ld-musl-aarch64.so.1' \
 	'0:0:755:4' \

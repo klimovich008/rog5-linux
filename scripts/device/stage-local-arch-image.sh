@@ -32,7 +32,9 @@ expected_ssh_policy_sha256=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb
 image_bytes=17179869184
 image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 image_label=ROG5_ARCH_A
-store=/rog5/images
+userdata_root=${ROG5_USERDATA_ROOT:-/}
+case $userdata_root in /|/mnt/userdata) ;; *) fail 'userdata root is not fixed' ;; esac
+store=$userdata_root/rog5/images
 partial=$store/arch-local-a.ext4.partial
 final=$store/arch-local-a.ext4
 mountpoint=/run/rog5-local-arch-image
@@ -148,15 +150,17 @@ resolve_userdata_root() {
 	[ "$userdata_count" -eq 1 ] && [ "$exact_count" -eq 1 ] || return 1
 	[ -b "$userdata_device" ] || return 1
 
-	root_record=$(awk '$2 == "/" { count++; source=$1; type=$3; options=$4 }
+	root_record=$(awk -v target="$userdata_root" \
+		'$2 == target { count++; source=$1; type=$3; options=$4 }
 		END { if (count != 1) exit 1; print source, type, options }' \
 		/proc/mounts) || return 1
 	set -- $root_record
 	[ "$#" -eq 3 ] && [ "$1" = "$userdata_device" ] &&
 		[ "$2" = ext4 ] || return 1
 	case ,$3, in *,rw,*) ;; *) return 1 ;; esac
-	awk -v expected="$userdata_device" '$1 ~ "^/dev/sd" {
-		if ($1 != expected || $2 != "/") exit 1
+	awk -v expected="$userdata_device" -v target="$userdata_root" \
+	'$1 ~ "^/dev/sd" {
+		if ($1 != expected || $2 != target) exit 1
 		count++
 	} END { exit count != 1 }' /proc/mounts || return 1
 	return 0
@@ -165,7 +169,8 @@ resolve_userdata_root() {
 resolve_userdata_root || fail 'exact writable fallback userdata root is absent'
 [ -f /.rog5-linux-root ] && [ ! -L /.rog5-linux-root ] ||
 	fail 'known-good Alpine fallback marker is absent'
-[ -d /rog5 ] && [ ! -L /rog5 ] || fail 'persistent store is unsafe'
+[ -d "$userdata_root/rog5" ] && [ ! -L "$userdata_root/rog5" ] ||
+	fail 'persistent store is unsafe'
 if [ -e "$store" ] || [ -L "$store" ]; then
 	[ -d "$store" ] && [ ! -L "$store" ] ||
 		fail 'local-image store is unsafe'
@@ -174,7 +179,7 @@ fi
 	fail 'partial local image already exists; preserve and inspect it'
 [ ! -e "$final" ] && [ ! -L "$final" ] ||
 	fail 'published local image already exists; refusing overwrite'
-free_kib=$(df -Pk / | awk 'NR == 2 { print $4 }')
+free_kib=$(df -Pk "$userdata_root" | awk 'NR == 2 { print $4 }')
 case $free_kib in ''|*[!0-9]*) fail 'fallback free space is invalid' ;; esac
 [ "$free_kib" -ge 18874368 ] || fail 'less than 18 GiB is free on userdata'
 
@@ -226,7 +231,9 @@ backing_file=$(cat "/sys/class/block/$loop_name/loop/backing_file") ||
 	fail 'loop-device backing file is unreadable'
 case $backing_file in
 	/rog5/images/arch-local-a.ext4.partial|\
-	rog5/images/arch-local-a.ext4.partial) ;;
+	rog5/images/arch-local-a.ext4.partial|\
+	/mnt/userdata/rog5/images/arch-local-a.ext4.partial|\
+	mnt/userdata/rog5/images/arch-local-a.ext4.partial) ;;
 	*) fail 'loop-device backing file changed' ;;
 esac
 mkdir -m 0700 "$mountpoint"
