@@ -16,7 +16,7 @@ libuuid_apk=${12:?missing libuuid package}
 reboot_bootloader=${13:?missing reboot-to-bootloader helper}
 output=${14:?missing output}
 epoch=1681862400
-executor_sha256=601bd9d03a7796bca89dbc4a3dd20eb7476d14ab9835b0a772951d91b02f6627
+executor_sha256=a16e7064787b59fcf88e3daef06e14c03b027513449bdbf3f7c456fd4b9e69f6
 watchdog_disarm_sha256=8949398f9a6245447b3aa4626b85f3f2538e2bf060ced46952514145cb152bbe
 reboot_bootloader_sha256=68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)

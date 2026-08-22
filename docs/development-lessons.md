@@ -184,6 +184,7 @@ Observed pattern:
 - The runtime collector rejected a valid new candidate name after target SSH was already working.
 - A storage collector attached after the target had already started raw GPT streaming, so binary payload bytes were parsed as an overlong framed line before ACK.
 - Sending host readiness immediately after ACM open raced target initialization and produced an exact target-side readiness mismatch.
+- The mismatch persisted after target-S30 ordering, while the exact sealed AArch64 BusyBox/PTY exchange passed, isolating physical gadget-ACM input behavior from shell semantics.
 
 Cost:
 
@@ -197,6 +198,7 @@ Prevention:
 - Run the whole controller with fake fastboot/ADB/NCM/firewalld/NetworkManager endpoints through PREPARE, COMMIT, target SSH, and fallback.
 - For mixed framed/binary transports, require an exact operation-bound host-ready record before the target emits the first binary byte.
 - Order the rendezvous in both directions: parse the exact target-ready stage before sending host-ready.
+- When physical ACM still disagrees with PTY, tolerate only a bounded number of pre-token records and emit finite non-secret mismatch categories; never normalize the accepted token without evidence.
 
 Rule: **A new phone-observed string or state transition must become a replay fixture before the successor candidate is built.**
 
