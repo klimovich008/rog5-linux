@@ -167,3 +167,9 @@ independent Linux 7.1 source inspection both recommend measuring the current
 filesystem type/features before changing config. Generation 82 is the
 unbooted, unadmitted classifier; it adds bounded `blkid`, `dumpe2fs -h`, mount
 status, and ext4/VFS error categories without changing the mount operation.
+
+Generation 82 retained mount status 255/`EINVAL`, but BusyBox `blkid` exposed
+no recognized filesystem type, so its type-gated path did not run
+`dumpe2fs`. Generation 83 is the unbooted, unadmitted successor. It reads only
+64 bytes at the standard superblock offset to distinguish ext4/F2FS magic and
+runs `dumpe2fs -h` whenever ext4 magic is present, independent of `blkid`.

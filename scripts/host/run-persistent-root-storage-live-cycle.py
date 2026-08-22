@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-power-usb-v6-generation82-live-v1"
-BUNDLE = "persistent-root-power-usb-v6"
+PROFILE_ID = "persistent-root-power-usb-v7-generation83-live-v1"
+BUNDLE = "persistent-root-power-usb-v7"
 MANIFEST_SHA256 = (
-    "b83d5bacb8b22a7125a33c087b10403cc5e1e9cf35dc5e8ee8d1e48e185e935a"
+    "ed43083b35d7f1e4d3c7aa6aa8dacb4ec4e22a2d1e57cd818c4efa20f78080cd"
 )
 RECOVERY_SHA256 = (
-    "e040c38cbbd311310899f2b4e55cb4bbfbc8c62c12f3c040d06f58469802fb60"
+    "b1e69cbdb2a379d763a65c2841182b2e3f163ad7648da5fc470b75bba4092517"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -58,7 +58,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-power-usb-v6-generation82-20260822-r1"
+    / "build/persistent-root-power-usb-v7-generation83-20260822-r1"
 )
 COMPONENT_ROOT = REPO / "build/power-usb-observer-v26-offline-r1/recovery"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -85,10 +85,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-power-usb-v6",
+    admission_profile="persistent-root-power-usb-v7",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-power-usb-v6",
-    build_profile="persistent-root-power-usb-v6",
+    runtime_profile="persistent-root-power-usb-v7",
+    build_profile="persistent-root-power-usb-v7",
     diagnostic=False,
 )
 
