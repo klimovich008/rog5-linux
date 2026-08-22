@@ -199,7 +199,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, source)
 
-    def test_generation91_publication_is_exact_and_admitted_once(self) -> None:
+    def test_generation91_publication_is_exact_and_revoked_after_use(self) -> None:
         payload = MANIFEST.read_bytes()
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
@@ -245,7 +245,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation88-live-v1": "revoked",
                 "userdata-ext4-reset-generation89-live-v1": "revoked",
                 "userdata-ext4-reset-generation90-live-v1": "revoked",
-                "userdata-ext4-reset-generation91-live-v1": "allow",
+                "userdata-ext4-reset-generation91-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation91-live-v1"][1:4], [
