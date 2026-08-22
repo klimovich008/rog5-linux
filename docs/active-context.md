@@ -316,7 +316,7 @@ cycle changes only observability: it converts the helper's final fixed `FAIL`
 message into one bounded lowercase machine reason and emits that through the
 existing terminal field. All helper reasons are static, unique, non-secret,
 and source-tested; no write ordering changes.
-Generation 98 is the unissued diagnostic successor. Two clean ASUS 5.4
+Generation 98 is consumed and must never be retried. Two clean ASUS 5.4
 wrapper builds produced identical Image
 `175d141e8c11b69263b17ce437ebb7ea4e535d8c3db279563f411d6b8a7815ba`
 with initramfs `75f0ed3f528788f2bf9f186657a674c4c2885ae6d6229b0f8333b082132eedc9`.
@@ -325,6 +325,15 @@ Its authority-free generation-1 AVB image is
 bound by `manifests/userdata-ext4-reset-generation98.manifest`. One live cycle
 must either complete the intended format or return the exact inner watchdog
 predicate; it must not be used to test any second hypothesis.
+It returned exact
+`S32_WATCHDOG_DISARM/watchdog_cannot_inspect_watchdog_timer_child` before any
+userdata/GPT write, then restart2 returned exact fastboot. The built wrapper
+config proves `CONFIG_PROC_CHILDREN` is not set. The helper already binds the
+rollback shell by root-owned lease, exact PID/starttime, direct parent PID 1,
+stopped state, and post-kill identity; an orphaned sleep cannot execute the
+shell's rollback continuation. The successor therefore removes only the
+unavailable procfs child inspection and child kill, retaining every shell
+identity, marker, freeze, kill, zombie, and no-write check.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

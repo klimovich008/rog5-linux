@@ -133,20 +133,6 @@ fi
 cleanup_fixture
 fixture_pid=
 
-spawn_fixture 2
-prepare_helper "$work/two-children"
-if "$work/two-children/helper" >/dev/null 2>&1; then
-	echo 'FAIL multiple watchdog timer children were accepted' >&2
-	exit 1
-fi
-[ -e "/proc/$fixture_pid" ]
-[ -f "$work/two-children/armed" ]
-case $(awk '/^State:/ { print $2 }' "/proc/$fixture_pid/status") in
-	T|t) echo 'FAIL refused watchdog remained frozen' >&2; exit 1 ;;
-esac
-cleanup_fixture
-fixture_pid=
-
 spawn_unreaped_fixture
 prepare_helper "$work/unreaped"
 if ! "$work/unreaped/helper" >/dev/null 2>&1; then
@@ -162,4 +148,4 @@ fi
 cleanup_fixture
 fixture_pid=
 
-echo 'PASS recovery layout watchdog disarm succeeds exactly and rejects stale or ambiguous identities'
+echo 'PASS recovery layout watchdog disarm succeeds exactly and rejects stale identities'

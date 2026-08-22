@@ -180,8 +180,6 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "armed=/run/rog5-recovery-armed",
             "marker=/run/rog5-recovery-watchdog.disarmed",
             'kill -STOP "$watchdog_pid"',
-            'watchdog timer child count changed',
-            'kill -KILL "$timer_pid"',
             'kill -KILL "$watchdog_pid"',
             'mv "$lease" "$marker"',
             "trap resume_on_abort EXIT",
@@ -189,6 +187,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             self.assertIn(contract, source)
         for forbidden in ("blockdev", "resize2fs", "sgdisk", "mkfs", "dd if="):
             self.assertNotIn(forbidden, source)
+        self.assertNotIn('/task/$watchdog_pid/children', source)
         self.assertLess(source.index("frozen=1"), source.index('kill -STOP "$watchdog_pid"'))
         messages = re.findall(r"fail '([^']+)'", source)
         reasons = ["watchdog_" + re.sub(r"[ -]", "_", value.lower()) for value in messages]
@@ -337,7 +336,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "userdata-ext4-reset-generation95-live-v1": "revoked",
                 "userdata-ext4-reset-generation96-live-v1": "revoked",
                 "userdata-ext4-reset-generation97-live-v1": "revoked",
-                "userdata-ext4-reset-generation98-live-v1": "allow",
+                "userdata-ext4-reset-generation98-live-v1": "revoked",
             },
         )
         self.assertEqual(rows["userdata-ext4-reset-generation98-live-v1"][1:4], [

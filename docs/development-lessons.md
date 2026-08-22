@@ -97,6 +97,8 @@ Observed pattern:
 - The storage executor collapsed every sealed watchdog-helper predicate into
   one generic S32 reason, allowing multiple live cycles to remain
   non-discriminating even when fallback worked.
+- The host watchdog fixture depended on procfs `children`, but the exact ASUS
+  wrapper had `CONFIG_PROC_CHILDREN` disabled.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
 
@@ -114,6 +116,8 @@ Prevention:
   the process that publishes or consumes its identity.
 - Propagate bounded machine classifications from sealed helpers instead of
   replacing them with a generic stage failure.
+- Do not require optional procfs entries when PID, start time, parent, stopped
+  state, and a root-owned lease already prove the process being terminated.
 
 Rule: **A capability is available only if the exact booted artifact proves it; host availability and prior recovery versions do not count.**
 

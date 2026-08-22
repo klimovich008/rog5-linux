@@ -18,7 +18,7 @@ libuuid_apk=${14:?missing libuuid package}
 output=${15:?missing output}
 epoch=1681862400
 executor_sha256=2d816164f369b1ba00f16952416a80ef3bc2f427b6945d3af0702ed0035a6245
-watchdog_disarm_sha256=2e37412a7d7828540105bdd19a603594fa147525feb1a547f7cd43cf593d68f2
+watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 native_seal_sha256=8dbc66163adde6919d9e48974a035e1a3d27c8d0304befbc806cd284d167be68
 verifier_sha256=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
