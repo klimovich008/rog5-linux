@@ -205,15 +205,18 @@ confirmed the exact destructive proposal in
 formatter implementation and verification precede a separate one-use
 admission; GPT and every non-`userdata` partition remain immutable.
 
-Generation 85 is unbooted and revoked: its normal post-success reboot could
-let stock Android reformat the new Linux ext4. Generation 86 adds only the
-fixed static `restart2("bootloader")` return, remaining in sealed recovery if
+Generation 85 is unbooted and revoked because its normal post-success reboot
+could let stock Android reformat Linux ext4. Generation 86 is consumed: exact
+recovery ACM existed for 11 seconds, but the host did not stabilize it; no
+backup directory or ACK existed, so the write boundary was never crossed.
+Generation 87 repeats an exact failure record for 20 seconds, then uses the
+fixed static `restart2("bootloader")` return and remains in sealed recovery if
 that syscall returns. Its 100,663,296-byte RAM-only AVB image is
-`05aac000530d559b5d0c52e7054354ea72ae7434431bdc7fc2797f0ea7cc6f93`.
-Twin ASUS wrapper Images, sealed initramfs, exact 900-second timeout, private
-config hash, and no-GPT partition-23 operation are bound by
-`manifests/userdata-ext4-reset-generation86.manifest`. The dedicated policy
-admits only Generation 86 and retains the external one-use claim requirement.
+`77d3f35379cc905c0933d80072a7fc95a2128809921ee7bfeda6596aae9ab6e0`.
+Twin wrapper Images, sealed initramfs, exact timeout, private config, and
+no-GPT partition-23 operation are bound by
+`manifests/userdata-ext4-reset-generation87.manifest`. The dedicated policy
+admits only Generation 87 and retains the external one-use claim requirement.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
