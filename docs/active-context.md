@@ -285,6 +285,14 @@ sealed stage-1 mode require 900, so recovery-init rejected it before USB. This
 is R2, not a kernel or S32 failure. The successor must repack the already
 twin-proven Image and initramfs with exact timeout 900 and pass an artifact-level
 cmdline regression; no kernel rebuild is needed.
+Generation 96 is the unissued host-only correction. It reuses exact twin-proven
+kernel `4e31a01c3675f003d71851cc208af6568a5ada7eac10b880f91299b2d4b1d5e1`
+and initramfs `423785f6f343a5bb0b5b4164d7db5a68c2158e482d9dfa445529c368e3752982`,
+changing only the raw boot cmdline to exact `rog5.recovery_timeout=900`.
+Its authority-free generation-1 AVB image is
+`d7fc5fa4d4b7a29c7a64359ef9a5c45b62c3ab17748e5406da6f8da97992ddb7`,
+bound by `manifests/userdata-ext4-reset-generation96.manifest`. Artifact-level
+testing parses the final boot image and rejects timeout 300 before admission.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
