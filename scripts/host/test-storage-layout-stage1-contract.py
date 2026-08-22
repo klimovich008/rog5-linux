@@ -119,6 +119,17 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertIn(contract, failure)
 
+    def test_reset_precondition_rejects_only_existing_ext4(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("read_userdata_ext4_magic() {")
+        end = source.index("\n}\n", start) + 2
+        precondition = source[start:end]
+        self.assertIn('skip=1080 count=2', precondition)
+        self.assertIn("od -An -tx1 -v", precondition)
+        self.assertNotIn("blkid", precondition)
+        self.assertNotIn("f2fs", precondition)
+        self.assertIn('fail userdata_already_ext4', source)
+
     def test_recovery_dispatches_only_the_sealed_executor(self) -> None:
         source = self.executable_source(INIT)
         mode = "storage-layout-stage1-v1"

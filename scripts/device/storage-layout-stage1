@@ -272,17 +272,10 @@ verify_userdata_filesystem() {
 			grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'
 }
 
-verify_userdata_is_opaque() {
+read_userdata_ext4_magic() {
 	ext_magic=$(dd if="$userdata" bs=1 skip=1080 count=2 2>/dev/null |
 		od -An -tx1 -v | tr -d ' \n') || return 1
-	f2fs_magic=$(dd if="$userdata" bs=1 skip=1024 count=4 2>/dev/null |
-		od -An -tx1 -v | tr -d ' \n') || return 1
-	[ "$ext_magic" != 53ef ] && [ "$f2fs_magic" != 1020f5f2 ] || return 1
-	: >/run/rog5-layout-stage1-blkid.log || return 1
-	if blkid "$userdata" >/run/rog5-layout-stage1-blkid.log 2>&1; then
-		return 1
-	fi
-	[ ! -s /run/rog5-layout-stage1-blkid.log ]
+	[ "${#ext_magic}" -eq 4 ]
 }
 
 verify_reset_filesystem() {
@@ -390,7 +383,8 @@ partition_absent 24 || fail partition_24_already_exists
 if [ "$operation_mode" = layout_stage1 ]; then
 	verify_userdata_filesystem 59513299 || fail userdata_filesystem_changed
 else
-	verify_userdata_is_opaque || fail userdata_content_changed
+	read_userdata_ext4_magic || fail userdata_magic_read_failed
+	[ "$ext_magic" != 53ef ] || fail userdata_already_ext4
 fi
 
 stage_set S20_PROTECTED_SEAL
