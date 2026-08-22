@@ -247,6 +247,14 @@ def receive_backup_set(
     if parent.stat().st_uid != os.getuid() or parent_mode & 0o022:
         fail("backup output parent ownership or mode is unsafe")
 
+    transport.write_all(
+        (
+            f"{PREFIX} status=HOST_READY "
+            f"operation_id={expected_operation}\n"
+        ).encode("ascii"),
+        timeout,
+    )
+
     begin: dict[str, str] | None = None
     for _ in range(MAX_LEADING_LINES):
         tokens = ascii_line(transport.readline(MAX_LINE, timeout))

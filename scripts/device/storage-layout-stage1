@@ -412,6 +412,10 @@ backup_set_sha=$(printf '%s\n' \
 nonce=$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n') ||
 	fail nonce_failed
 printf '%s\n' "$nonce" | grep -Eq '^[0-9a-f]{32}$' || fail nonce_invalid
+host_ready=
+IFS= read -r -t 120 host_ready <&3 || fail host_ready_timeout
+expected_host_ready="$protocol status=HOST_READY operation_id=$operation_id"
+[ "$host_ready" = "$expected_host_ready" ] || fail host_ready_mismatch
 emit "status=BACKUP_BEGIN operation_id=$operation_id nonce=$nonce files=3 backup_set_sha256=$backup_set_sha"
 send_backup_file sgdisk.gpt "$gpt_backup" || fail backup_transport_failed
 send_backup_file primary.raw "$primary_backup" || fail backup_transport_failed
