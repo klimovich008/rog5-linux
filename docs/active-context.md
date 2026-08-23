@@ -206,8 +206,12 @@ Generation 109/V16 is an offline-only successor. Clean twins reproduce Image
 PMK8350 SDAM plus NVMEM reboot mode. Its target proves the bound standard DT
 reboot-mode device before UFS. Exact fastboot returned, and the previously
 verified sparse userdata image was restaged in four successful userdata-only
-chunks in 38.964 seconds. Generation 109 now has one claim wrapper, live-runner
-selection, and one temporary-boot policy row; the claim is still unconsumed.
+chunks in 38.964 seconds. Generation 109 nevertheless repeated the exact
+directory failure and is consumed; its built-in reboot-mode path returned
+exact fastboot. Generation 110 is the one-use read-only discriminator: it
+publishes hashes for blocks 1, 32, 1086, 8224, 8225, 9278, 14680096,
+14688288, and 14688289, then returns to fastboot. The host now stops on the
+terminal stage and accepts exact slot-A fastboot as a valid fallback.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

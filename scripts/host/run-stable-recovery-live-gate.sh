@@ -153,6 +153,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-local-image-any-prior-v14-generation107-live-v1 | \
 		persistent-root-local-image-restart2-v15-generation108-live-v1 | \
 		persistent-root-local-image-reboot-mode-v16-generation109-live-v1 | \
+		persistent-root-sparse-diagnostic-v17-generation110-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -1850,8 +1851,8 @@ case $profile in
 		;;
 	persistent-root-local-image-reboot-mode-v16-generation109-live-v1)
 		expected_boot_image=build/persistent-root-local-image-reboot-mode-v16-generation109-20260823-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact continuous-lifecycle read-only Arch boot after verified userdata restaging; clean-twin PMK8350 reboot-mode kernel, charging/UFS/NCM, pinned SSH, slot-A fallback; never flash or retry after entry'
-		expected_boot_role='unbooted admitted Generation 109 candidate; verified userdata-only restage plus clean-twin PMK8350 reboot-mode kernel, target-bound reboot proof, charging/UFS/NCM, pinned SSH, and slot-A fallback; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 109 RAM-only cycle after exact userdata restaging; target again mounted ext4 read-only but lacked rog5/images, while the built-in PMK8350 reboot-mode path returned exact fastboot; no target storage write occurred; never retry or flash'
+		expected_boot_role='consumed Generation 109 cycle; repeated userdata-rog5-directory after exact restage, proved built-in PMK8350 reboot-mode return to fastboot, no target write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -1878,6 +1879,43 @@ case $profile in
 			fail 'reboot-mode V16 trust key is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
 			fail 'reboot-mode V16 host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	persistent-root-sparse-diagnostic-v17-generation110-live-v1)
+		expected_boot_image=build/persistent-root-sparse-diagnostic-v17-generation110-20260823-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact read-only sparse-transfer discriminator; hash source, 4-GiB-alias, and high ext4 metadata blocks after the repeated rog5-directory failure, then exact fastboot fallback; never flash or retry after entry'
+		expected_boot_role='unbooted admitted Generation 110 sparse-transfer discriminator; V16 kernel/DT, target-only nine-block raw hash map, terminal-stage host short-circuit, exact fastboot fallback; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-root-sparse-diagnostic-v17
+		expected_bundle=persistent-root-sparse-diagnostic-v17
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=8591143462aa5fde13fc3076bbee15617f4f3668005d4113a5f68b3599c91ff2
+		expected_avb_digest=c55ed733edb037d0f8279df6b47ed5e7f5e10a03044c1618d1b8fed15dd00afd
+		expected_generation_record=94aa28067d9b7770f6228da2bf4d6aed32aa9d329417d2ba768c5108a0017b24
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 99ff5e35bf5533df7e99b5bad65aa893f68c69ced22cedd37e74d879041d15cd ]] ||
+			fail 'sparse diagnostic V17 manifest is not pinned'
+		[[ $expected_image == ce3be4ff692428d56dd92d9daf763803a32e0d129f1b01173229c1ebbe6f3578 ]] ||
+			fail 'sparse diagnostic V17 recovery image is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] ||
+			fail 'sparse diagnostic V17 trust key is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
+			fail 'sparse diagnostic V17 host verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -3346,6 +3384,7 @@ case $profile in
 	persistent-root-local-image-any-prior-v14-generation107-live-v1 | \
 	persistent-root-local-image-restart2-v15-generation108-live-v1 | \
 	persistent-root-local-image-reboot-mode-v16-generation109-live-v1 | \
+	persistent-root-sparse-diagnostic-v17-generation110-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

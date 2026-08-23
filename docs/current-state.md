@@ -206,8 +206,13 @@ PMK8350 SDAM reboot cell and `mode-bootloader = <2>`. The target additionally
 requires the bound `nvmem-reboot-mode` device before UFS. The exact approved
 userdata sparse image was then restaged to `userdata` in four successful
 chunks (38.964 seconds), with GPT and every other partition untouched.
-Generation 109 is now admitted for one RAM-only cycle; its claim remains
-unconsumed.
+Generation 109 is consumed. It reproduced `userdata-rog5-directory` after the
+exact restage, but proved the reboot-mode correction by returning directly to
+exact fastboot. The target wrote no storage. Systematic review showed the
+source and sparse round-trip encode all critical directory blocks as RAW,
+including the inode table and directory data around byte 60.1 GB. Generation
+110 keeps the V16 kernel/DT and adds only nine read-only block hashes covering
+the source blocks and their corrected 4-GiB aliases (32, 8224, and 8225).
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

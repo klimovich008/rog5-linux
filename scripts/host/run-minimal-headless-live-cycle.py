@@ -496,6 +496,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "persistent-root-local-image-any-prior-v14-generation107-live-v1",
         "persistent-root-local-image-restart2-v15-generation108-live-v1",
         "persistent-root-local-image-reboot-mode-v16-generation109-live-v1",
+        "persistent-root-sparse-diagnostic-v17-generation110-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
@@ -2024,9 +2025,17 @@ def verify_stock_fallback_evidence(
         or values["slot_suffix"] != "_a"
         or values["usb_config"] != "adb-unauthorized"
     )
+    fastboot_invalid = (
+        values["evidence_mode"] != "fastboot-slot-a"
+        or unavailable != ("unavailable",) * len(unavailable)
+        or values["slot_suffix"] != "_a"
+        or values["usb_config"] != "fastboot"
+    )
     if common_invalid or (
         authorized_invalid
         if values["evidence_mode"] == "adb-authorized"
+        else fastboot_invalid
+        if values["evidence_mode"] == "fastboot-slot-a"
         else unauthorized_invalid
     ):
         fail("stock fallback identity record is not exact")

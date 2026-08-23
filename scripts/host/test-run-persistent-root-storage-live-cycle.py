@@ -25,7 +25,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-image-reboot-mode-v16-generation109-live-v1",
+            "persistent-root-sparse-diagnostic-v17-generation110-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -36,7 +36,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-image-reboot-mode-v16",
+            "persistent-root-sparse-diagnostic-v17",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -54,7 +54,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation109",
+            "generation110",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -71,7 +71,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-persistent-root-local-image-reboot-mode-v16-claim.py",
+            "consume-persistent-root-sparse-diagnostic-v17-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
@@ -84,6 +84,14 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         segment = source[cleanup:stages]
         self.assertNotIn("input(", segment)
         self.assertNotIn("fastboot", segment)
+
+    def test_terminal_stage_stops_the_host_key_wait(self) -> None:
+        source = MODULE_PATH.read_text()
+        receive = source.index("current = receive_stage_record(listener)")
+        terminal = source.index('if current.state == "FAIL":', receive)
+        wait = source.index("status = CYCLE.wait_process(process, 5)", receive)
+        self.assertLess(receive, terminal)
+        self.assertLess(terminal, wait)
 
     def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
         diagnostic = MODULE.DIAGNOSTIC_COMMAND

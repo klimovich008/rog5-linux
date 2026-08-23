@@ -23,6 +23,7 @@ SPEC.loader.exec_module(FALLBACK)
 class StockFallbackTest(unittest.TestCase):
     def setUp(self) -> None:
         self.original_adb = FALLBACK.adb
+        self.original_fastboot = FALLBACK.fastboot
         self.properties = {
             "ro.boot.slot_suffix": "_a",
             "ro.build.fingerprint": FALLBACK.FINGERPRINT,
@@ -57,6 +58,7 @@ class StockFallbackTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         FALLBACK.adb = self.original_adb
+        FALLBACK.fastboot = self.original_fastboot
 
     def test_exact_stock_slot_a_identity_passes(self) -> None:
         self.assertTrue(FALLBACK.exact_device("1-1.2"))
@@ -110,6 +112,40 @@ class StockFallbackTest(unittest.TestCase):
             self.assertEqual(values["evidence_mode"], "usb-unauthorized-slot-a")
         FALLBACK.USB_ROOT = original_root
         FALLBACK.adb = original_adb
+
+    def test_exact_slot_a_fastboot_fallback_passes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="rog5-fastboot-fallback-") as raw:
+            root = Path(raw)
+            root.chmod(0o700)
+            preboot = root / "preboot.record"
+            preboot.write_text(
+                "format=rog5-stock-fallback-preboot-v1\n"
+                f"serial={FALLBACK.SERIAL}\n"
+                "usb_location=1-1.2\nproduct=lahaina\nslot=a\n"
+                "battery_soc_ok=yes\nresult=PASS\n",
+                encoding="ascii",
+            )
+            preboot.chmod(0o600)
+
+            def fake_fastboot(*arguments: str, timeout: int = 10) -> str:
+                del timeout
+                if arguments == ("devices", "-l"):
+                    return f"{FALLBACK.SERIAL}        fastboot usb:1-1.2\n"
+                values = {
+                    "product": "lahaina",
+                    "current-slot": "a",
+                    "battery-soc-ok": "yes",
+                }
+                if arguments[:2] == ("-s", FALLBACK.SERIAL):
+                    name = arguments[3]
+                    return f"{name}: {values[name]}\nFinished. Total time: 0.001s\n"
+                raise AssertionError(arguments)
+
+            FALLBACK.fastboot = fake_fastboot
+            self.assertTrue(FALLBACK.exact_fastboot("1-1.2"))
+            values = FALLBACK.verify_fastboot("1-1.2", preboot)
+            self.assertEqual(values["evidence_mode"], "fastboot-slot-a")
+            self.assertEqual(values["usb_config"], "fastboot")
 
     def test_wrong_slot_fingerprint_digest_and_usb_path_refuse(self) -> None:
         self.assertFalse(FALLBACK.exact_device("1-1.3"))

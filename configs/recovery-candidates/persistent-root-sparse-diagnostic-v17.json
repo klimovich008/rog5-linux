@@ -1,11 +1,11 @@
 {
   "format": "rog5-recovery-candidate-v1",
-  "candidate": "persistent-root-local-image-reboot-mode-v16",
-  "status": "consumed",
+  "candidate": "persistent-root-sparse-diagnostic-v17",
+  "status": "offline",
   "authority": "none",
-  "bundle": "persistent-root-local-image-reboot-mode-v16",
+  "bundle": "persistent-root-sparse-diagnostic-v17",
   "profile": "persistent-root-ro-v1",
-  "target_id": "persistent-root-local-image-reboot-mode-v16",
+  "target_id": "persistent-root-sparse-diagnostic-v17",
   "target_release": "7.1.4-gae717d919f87",
   "rollback_timeout": "900",
   "target_timeout": "600",
@@ -27,9 +27,9 @@
       "sha256": "4f6518b3fddd1695c9059f1faeedf0458dabdba5c779ee72bededff9c56c76b8"
     },
     "initramfs.cpio.gz": {
-      "path": "artifacts/persistent-root-local-image-reboot-mode-v16/initramfs.cpio.gz",
-      "size": 23810940,
-      "sha256": "b5f322533b358856336466d893c04dd36624b194cc0190b09d1eb23ef80cae62"
+      "path": "artifacts/persistent-root-sparse-diagnostic-v17/initramfs.cpio.gz",
+      "size": 23810785,
+      "sha256": "9b34cb5b49b6028fba7cd7becbb76ada14e469894916a19778f3c65b043e8ba0"
     }
   }
 }

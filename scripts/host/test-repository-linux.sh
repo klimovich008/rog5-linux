@@ -281,6 +281,7 @@ shared_tests=(
 	scripts/device/test-persistent-root-local-image-any-prior-v14.sh
 	scripts/device/test-persistent-root-local-image-restart2-v15.sh
 	scripts/device/test-persistent-root-local-image-reboot-mode-v16.sh
+	scripts/device/test-persistent-root-sparse-diagnostic-v17.sh
 	scripts/device/test-mainline-persistent-root-build.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
