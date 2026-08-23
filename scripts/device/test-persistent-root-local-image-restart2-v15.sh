@@ -15,7 +15,7 @@ import sys
 current = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 previous = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
 assert current["candidate"] == "persistent-root-local-image-restart2-v15"
-assert current["status"] == "offline"
+assert current["status"] == "consumed"
 assert current["artifacts"]["Image"] == previous["artifacts"]["Image"]
 assert current["artifacts"]["board.dtb"] == previous["artifacts"]["board.dtb"]
 assert current["artifacts"]["initramfs.cpio.gz"]["sha256"] == "7895daaa285f3fd067dabd5a1dd34eaf23d02cc743af4e33d9175bab54da80dd"
@@ -43,4 +43,4 @@ fi
 grep -Fq 'persistent-root-local-image-restart2-v15-generation108-live-v1' "$runner"
 grep -Fq 'wait_for_target_host_key(cycle, anchor, target_known_hosts)' "$runner"
 
-echo 'PASS V15 retains the early any-prior fix and returns to fastboot through restart2 before emergency reset'
+echo 'PASS consumed V15 retains exact any-prior and restart2-first evidence'

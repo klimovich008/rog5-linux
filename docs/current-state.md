@@ -187,6 +187,16 @@ the same kernel, DTB, charging/UFS/NCM stack, and `any-prior` correction, and
 adds the reviewed fixed `RESTART2("bootloader")` helper before the emergency
 SysRq fallback in failure, watchdog, and shutdown paths. Slot A is unchanged.
 
+Generation 108 is consumed. It passed kernel identity, power/USB, UFS,
+storage lock, userdata resolution, and the read-only userdata mount. It then
+reported exact `userdata-mount FAIL detail=userdata-rog5-directory`: the live
+filesystem no longer contains `/rog5/images`, although the retained sparse
+source does. No target write occurred. The restart2 helper rebooted, but the
+exact target config leaves `NVMEM_REBOOT_MODE` and `NVMEM_SPMI_SDAM` modular
+and the sealed initramfs contains neither module, so the Qualcomm bootloader
+reason was not written; slot A entered unauthorized ASUS recovery ADB. The
+next cycle requires restored userdata content and proven reboot-mode support.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving
