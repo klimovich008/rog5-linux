@@ -71,6 +71,22 @@ def adb(*arguments: str, timeout: int = 10) -> str:
     return result.stdout
 
 
+def fastboot(*arguments: str, timeout: int = 10) -> str:
+    result = subprocess.run(
+        [str(FASTBOOT), *arguments],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=timeout,
+        check=False,
+        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+    )
+    if result.returncode != 0:
+        fail("fixed fastboot command failed")
+    return result.stdout
+
+
 def device_state(location: str) -> str:
     lines = [line for line in adb("devices", "-l").splitlines()[1:] if line]
     if len(lines) != 1:
@@ -115,6 +131,8 @@ def wait_device(location: str, deadline: float) -> str:
             state = device_state(location)
             if state in {"authorized", "unauthorized"}:
                 return state
+            if exact_fastboot(location):
+                return "fastboot"
         except (FallbackError, subprocess.TimeoutExpired):
             pass
         time.sleep(1)
@@ -157,19 +175,7 @@ def verify_stock(location: str) -> OrderedDict[str, str]:
 
 
 def fastboot_value(name: str) -> str:
-    result = subprocess.run(
-        [str(FASTBOOT), "-s", SERIAL, "getvar", name],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        timeout=10,
-        check=False,
-        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
-    )
-    if result.returncode != 0:
-        fail("exact fastboot property is unavailable")
-    return parse_fastboot_value(result.stdout, name)
+    return parse_fastboot_value(fastboot("-s", SERIAL, "getvar", name), name)
 
 
 def parse_fastboot_value(payload: str, name: str) -> str:
@@ -186,17 +192,47 @@ def parse_fastboot_devices(payload: str) -> tuple[str, str]:
     return SERIAL, "1-1.2"
 
 
+def exact_fastboot(location: str) -> bool:
+    try:
+        _, observed = parse_fastboot_devices(fastboot("devices", "-l"))
+    except FallbackError:
+        return False
+    return observed == location
+
+
+def verify_fastboot(location: str, preboot: Path) -> OrderedDict[str, str]:
+    read_preboot(preboot, location)
+    if not exact_fastboot(location):
+        fail("exact slot-A fastboot fallback is unavailable")
+    if (
+        fastboot_value("product") != "lahaina"
+        or fastboot_value("current-slot") != "a"
+        or fastboot_value("battery-soc-ok") != "yes"
+    ):
+        fail("slot-A fastboot fallback identity is not exact")
+    return OrderedDict(
+        (
+            ("format", "rog5-stock-android-fallback-v1"),
+            ("serial", SERIAL),
+            ("usb_location", location),
+            ("product", "unavailable"),
+            ("model", "unavailable"),
+            ("device", "unavailable"),
+            ("evidence_mode", "fastboot-slot-a"),
+            ("slot_suffix", "_a"),
+            ("fingerprint", "unavailable"),
+            ("vbmeta_digest", "unavailable"),
+            ("verified_boot_state", "unavailable"),
+            ("boot_id", "unavailable"),
+            ("boot_completed", "unavailable"),
+            ("usb_config", "fastboot"),
+            ("result", "PASS"),
+        )
+    )
+
+
 def capture_preboot(path: Path) -> None:
-    payload = subprocess.run(
-        [str(FASTBOOT), "devices", "-l"],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        timeout=10,
-        check=False,
-        env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"},
-    ).stdout
+    payload = fastboot("devices", "-l")
     parse_fastboot_devices(payload)
     values = OrderedDict(
         (
@@ -342,7 +378,9 @@ def main(arguments: list[str]) -> int:
         fail("stock fallback wait inputs are invalid")
     deadline = time.monotonic() + int(timeout_text)
     state = wait_device(location, deadline)
-    if state == "unauthorized":
+    if state == "fastboot":
+        values = verify_fastboot(location, Path(preboot_text))
+    elif state == "unauthorized":
         values = verify_unauthorized_usb(location, Path(preboot_text))
     else:
         values = verify_stock(location)
@@ -352,10 +390,10 @@ def main(arguments: list[str]) -> int:
         if state != "authorized":
             fail("authorized stock Android did not return after USB cleanup")
         values = verify_stock(location)
-    if values["usb_config"] not in {"adb", "adb-unauthorized"}:
+    if values["usb_config"] not in {"adb", "adb-unauthorized", "fastboot"}:
         fail("stock Android fallback retained a USB network function")
     publish(Path(output_text), values)
-    print("PASS exact stock WW33 slot-A fallback reached ADB with network USB disabled")
+    print("PASS exact stock WW33 slot-A fallback reached fastboot or ADB with network USB disabled")
     return 0
 
 

@@ -17,7 +17,7 @@ import sys
 current = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 previous = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
 assert current["candidate"] == "persistent-root-local-image-reboot-mode-v16"
-assert current["status"] == "offline"
+assert current["status"] == "consumed"
 assert current["authority"] == "none"
 assert previous["status"] == "consumed"
 assert current["artifacts"]["Image"]["sha256"] == "1a1958fe72201a3cb1fa7bdfc203ab5132cd236c5e4f95cdd13cc825bdf9ce22"
@@ -31,7 +31,7 @@ grep -Fxq 'CONFIG_NVMEM_REBOOT_MODE=y' "$fragment"
 grep -Fq 'target_config_sha256=15e1ea493ac1e654ef9f162ec9134207522ead67660dc16ab62771d9a9e638d6' "$manifest"
 grep -Fq 'rollback_policy=pmk8350-nvmem-reboot-mode-built-in-and-runtime-proven' "$manifest"
 grep -Fq 'build/persistent-root-local-image-reboot-mode-v16-generation109-20260823-r1/repack/stable-recovery-a.avb.img' "$policy"
-grep -Fq 'persistent-root-local-image-reboot-mode-v16-generation109-live-v1' "$runner"
+! grep -Fq 'persistent-root-local-image-reboot-mode-v16-generation109-live-v1' "$runner"
 
 image=$repo/artifacts/persistent-root-local-image-reboot-mode-v16/Image
 initramfs=$repo/artifacts/persistent-root-local-image-reboot-mode-v16/initramfs.cpio.gz
@@ -50,4 +50,4 @@ if [ -f "$image" ] && [ -f "$initramfs" ]; then
 		68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785 ]
 fi
 
-echo 'PASS admitted V16 clean-twin kernel and target prove PMK8350 reboot-mode support after userdata restaging'
+echo 'PASS consumed V16 proves PMK8350 reboot-mode fastboot fallback after repeated directory failure'

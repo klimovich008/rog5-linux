@@ -39,4 +39,8 @@ matched the retained execution record. The approved sparse image SHA-256
 was written to `userdata` only in four successful chunks in 38.964 seconds.
 GPT and every other partition were untouched. Generation 109 was then wired
 into one exact claim, policy row, gate profile, and continuous runner; its
-claim remains unconsumed pending exact-head CI and connected preflight.
+claim was later consumed. The target again reported
+`userdata-rog5-directory`, proving the sparse restage did not restore the live
+directory tree. The built-in PMK8350 reboot-mode path then returned exact
+slot-A fastboot, so the charging/recovery loop defect is fixed. No target
+storage write occurred; Generation 109 must never be retried.

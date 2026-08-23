@@ -766,6 +766,18 @@ mount_persistent_root() {
 	return 0
 }
 
+publish_sparse_block_probe() {
+	for probe_block in 1 32 1086 8224 8225 9278 14680096 14688288 14688289; do
+		probe_hash=$(dd if="$userdata" bs=4096 skip="$probe_block" count=1 \
+			2>/dev/null | sha256sum | cut -d ' ' -f 1) || return 1
+		printf '%s\n' "$probe_hash" | grep -Eq '^[0-9a-f]{64}$' || return 1
+		publish_stage userdata-mount ENTER \
+			"raw-b${probe_block}-${probe_hash}" || return 1
+		report_current_stage_once || true
+		sleep 1
+	done
+}
+
 resolve_local_root_image() {
 	root_image=/mnt/userdata/rog5/images/arch-local-a.ext4
 	[ -f "$root_image" ] && [ ! -L "$root_image" ] || return 1
@@ -1598,6 +1610,9 @@ fi
 publish_or_rollback userdata-resolved PASS
 publish_or_rollback userdata-mount ENTER
 if ! mount_persistent_root; then
+	if [ "$mount_persistent_root_failure" = rog5-directory ]; then
+		publish_sparse_block_probe || true
+	fi
 	fail_local_stage userdata-mount 'read-only noload userdata mount failed' \
 		"userdata-$mount_persistent_root_failure"
 fi

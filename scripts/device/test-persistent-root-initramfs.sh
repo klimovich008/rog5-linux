@@ -155,6 +155,14 @@ grep -Fq 'expected_image_bytes=17179869184' "$init" "$attest"
 grep -Fq 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4' \
 	"$init" "$attest"
 grep -Fq 'mount -t ext4 -o ro,noload "$userdata" /mnt/userdata' "$init"
+grep -Fq '1 32 1086 8224 8225 9278 14680096 14688288 14688289' "$init" ||
+	fail 'P2 sparse diagnostic does not cover source, alias, and high metadata blocks'
+grep -Fq 'dd if="$userdata" bs=4096 skip="$probe_block" count=1' "$init" ||
+	fail 'P2 sparse diagnostic does not read one exact block'
+grep -Fq '"raw-b${probe_block}-${probe_hash}"' "$init" ||
+	fail 'P2 sparse diagnostic does not publish bounded block hashes'
+grep -Fq '[ "$mount_persistent_root_failure" = rog5-directory ]' "$init" ||
+	fail 'P2 sparse diagnostic is not limited to the repeated directory failure'
 for mount_detail in mkdir mount-call mountpoint mount-table mount-inventory \
 	storage-read-only rog5-directory selector-absence; do
 	grep -Fq "mount_persistent_root_failure=$mount_detail" "$init" ||
