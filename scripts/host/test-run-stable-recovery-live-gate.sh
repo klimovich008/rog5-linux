@@ -3,6 +3,8 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
+
+grep -Fq "expected_boot_role='unbooted Generation 108 continuous-lifecycle Arch successor; corrected any-prior target and exact restart2-first rollback before emergency SysRq; current charging/UFS/NCM stack, stage capture, pinned SSH, and stock fallback; one RAM-only use only; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py

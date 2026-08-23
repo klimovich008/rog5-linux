@@ -1813,7 +1813,7 @@ case $profile in
 	persistent-root-local-image-restart2-v15-generation108-live-v1)
 		expected_boot_image=build/persistent-root-local-image-restart2-v15-generation108-20260823-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact continuous-lifecycle read-only Arch boot with restart2 bootloader rollback before emergency SysRq; current charging/UFS/NCM Image and DTB, canonical prior-writer probe, pinned SSH, stock slot-A fallback; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 108 continuous-lifecycle Arch successor; current charging/UFS/NCM stack, corrected any-prior target, restart2-first rollback, stage capture, pinned SSH, and stock fallback; one RAM-only use only; never flash'
+		expected_boot_role='unbooted Generation 108 continuous-lifecycle Arch successor; corrected any-prior target and exact restart2-first rollback before emergency SysRq; current charging/UFS/NCM stack, stage capture, pinned SSH, and stock fallback; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
