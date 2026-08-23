@@ -81,10 +81,12 @@ awk -F '\t' \
 	}
 	$1 ~ /^build\/power-usb-observer-v[0-9]+-offline-r1\/wrapper\/repack\/stable-recovery-a[.]avb[.]img$/ &&
 		$2 == "revoked" &&
-		(($3 ~ /^consumed by the sole v[0-9]+ RAM-only cycle;/ &&
+		 (($3 ~ /^consumed by the sole v[0-9]+ RAM-only cycle;/ &&
 		  $3 ~ /never retry or flash$/) ||
 		 ($3 ~ /^unbooted .* superseded before execution/ &&
-		  $3 ~ /never boot or flash$/)) &&
+		  $3 ~ /never boot or flash$/) ||
+		 ($3 ~ /^unbooted offline R2 composition failure:/ &&
+		  $3 ~ /no claim or phone boot occurred; never boot or flash$/)) &&
 		NF == 3 { power_history++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
