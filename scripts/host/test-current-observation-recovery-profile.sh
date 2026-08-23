@@ -8,6 +8,8 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-observation-recovery-live-gate.sh
+grep -Fq '$(id -u):$(id -g):755:1:57737' "$gate"
+grep -Fq '9918212bbf0440d7f2ecd7d9111d4dd673dc0703eb291361faa45e5ae33820bc' "$gate"
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 boot_policy=$repo/manifests/temporary-boot-images.tsv
 profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
