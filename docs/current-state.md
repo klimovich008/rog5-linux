@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-22
+Updated: 2026-08-23
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -129,9 +129,15 @@ nodes relocked read-only. V27 was revoked before claim or phone contact: its
 reused V20 network-root DTB disables UFS and its initramfs rejects physical
 storage, so it could not stage userdata. The successor must use the proven
 UFS-capable `ae717` kernel/DT composition and a target-only RAM staging
-initramfs. That corrected target is now signed and one-use admitted as
-`local-image-stage-v1` with recovery generation 101; it has not been booted.
-A later separate cycle will boot the image read-only, retain
+initramfs. That corrected target was signed and consumed once as
+`local-image-stage-v1` with recovery generation 101. Transfer, PREPARE, and
+COMMIT passed, but its replacement minimal target init exposed no NCM/ACM
+before stock slot-A return about 30 seconds later. No staging SSH command ran
+and no image write occurred. The exact failure line is unproven; the Image and
+DTB remain independently live-proven. The next staging route uses stock slot-A
+ADB to place the verified image under Android userdata, then the mature
+mainline local-root path reads that bounded file. A later separate cycle will
+boot the image read-only, retain
 side-port charging/NCM, and benchmark SSH against Generation 20's approximately
 380 seconds.
 
