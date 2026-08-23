@@ -125,13 +125,13 @@ positive pack current. The exact 15-module closure is retained at SHA-256
 
 Generation 99 has now reformatted only unchanged userdata partition 23 as
 unencrypted ext4, with GPT unchanged, exact fastboot return, and all UFS block
-nodes relocked read-only. The next live candidate is V27: one fresh RAM-only
-post-SSH identity over the proven V20 kernel, DTB, and initramfs bytes. It will
-use NFS only as a staging environment, copy the pinned Arch inputs into RAM,
-create the bounded 16 GiB image inside userdata, and return to fastboot without
-booting stock Android. A later separate cycle will boot that image read-only,
-retain side-port charging/NCM, and benchmark SSH against Generation 20's
-approximately 380 seconds.
+nodes relocked read-only. V27 was revoked before claim or phone contact: its
+reused V20 network-root DTB disables UFS and its initramfs rejects physical
+storage, so it could not stage userdata. The successor must use the proven
+UFS-capable `ae717` kernel/DT composition and a target-only RAM staging
+initramfs. A later separate cycle will boot the image read-only, retain
+side-port charging/NCM, and benchmark SSH against Generation 20's approximately
+380 seconds.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
@@ -185,5 +185,6 @@ Generation 84 proved the restored WW33 userdata was encrypted F2FS rather than
 plaintext ext4. The owner-authorized Generation 99 successor completed the
 replacement with unencrypted ext4 without changing GPT. The fresh filesystem
 has UUID `0892bacf-3e02-41b0-84a4-5f05c2df7ce5`, label `rog5-linux`, and
-59,513,299 blocks. V27 is the active unadmitted local-image staging successor;
-stock Android remains excluded until the Linux image is safely published.
+59,513,299 blocks. V27 is revoked unbooted for its UFS-excluding composition;
+stock Android remains excluded until a corrected Linux image is safely
+published.
