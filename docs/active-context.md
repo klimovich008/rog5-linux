@@ -349,6 +349,11 @@ partition 23 was formatted ext4; GPT remained unchanged. Terminal proof:
 mounts. Exact fastboot returned. The next action is a separate bounded 16 GiB
 Arch image staging cycle; stock Android must not be booted because it may
 reformat the new Linux filesystem.
+V27 is the unadmitted staging successor. It reuses the exact proven V20
+post-SSH kernel, DTB, and initramfs artifacts under a fresh identity, uses NFS
+only to reach key-only SSH, and then stages the pinned image inputs from RAM.
+No kernel compilation or phone-storage write outside the image path is part of
+this successor.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.

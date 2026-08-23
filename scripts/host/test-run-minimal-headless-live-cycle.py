@@ -1523,22 +1523,29 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             profile.recovery_profile,
             CYCLE.POWER_USB.RECOVERY_PROFILE,
         )
-        self.assertTrue(profile.diagnostic)
-        self.assertTrue(profile.early_probe)
+        early = CYCLE.POWER_USB.PROBE_PHASE == "early-initramfs"
+        self.assertEqual(profile.diagnostic, early)
+        self.assertEqual(profile.early_probe, early)
 
-    def test_power_usb_early_probe_skips_target_ssh_and_resolves_fallback(
+    def test_power_usb_phase_runs_the_expected_lifecycle(
         self,
     ) -> None:
         result = self.fixture.run("power-usb-run")
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.fixture.call_lines()
         self.assertEqual(calls.count("control:prepare-commit"), 1)
-        self.assertEqual(calls.count("collector:capture"), 1)
-        self.assertNotIn("runtime:start", calls)
-        self.assertNotIn("host-key:pin-target", calls)
-        self.assertEqual(
-            calls.count("control:resolve:FALLBACK_RETURNED"), 1
-        )
+        if CYCLE.POWER_USB.PROBE_PHASE == "early-initramfs":
+            self.assertEqual(calls.count("collector:capture"), 1)
+            self.assertNotIn("runtime:start", calls)
+            self.assertEqual(
+                calls.count("control:resolve:FALLBACK_RETURNED"), 1
+            )
+        else:
+            self.assertNotIn("collector:capture", calls)
+            self.assertEqual(calls.count("runtime:start"), 1)
+            self.assertEqual(
+                calls.count("control:resolve:TARGET_ACCEPTED"), 1
+            )
 
     def test_stock_android_fallback_record_is_exact(self) -> None:
         output = self.fixture.root / "stock-fallback.record"

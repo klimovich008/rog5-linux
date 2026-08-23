@@ -93,7 +93,23 @@ class RealOutputReplayTest(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 calls = fixture.call_lines()
-                positions = [calls.index(item) for item in FIXTURE["required_lifecycle_order"]]
+                required = FIXTURE["required_lifecycle_order"]
+                if LIFECYCLE_TEST.CYCLE.POWER_USB.PROBE_PHASE == "post-ssh":
+                    required = [
+                        "live:preflight",
+                        "live:boot",
+                        "host-key:capture",
+                        "nmcli:connection up uuid "
+                        "244dd128-e3b1-458e-9639-5e4ab4d8854f ifname usbmock0",
+                        "bundle:start",
+                        "control:prepare-commit",
+                        "bundle:transfer",
+                        "nfs:start",
+                        "runtime:start",
+                        "fallback:stock-android",
+                        "control:resolve:TARGET_ACCEPTED",
+                    ]
+                positions = [calls.index(item) for item in required]
                 self.assertEqual(positions, sorted(positions))
             finally:
                 fixture.close()
