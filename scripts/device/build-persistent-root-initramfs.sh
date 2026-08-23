@@ -13,11 +13,13 @@ init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
+reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
 expected_base=819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5
 expected_current_base=908f18f752962fae798249060aa8ee4c45673d8795571fbb8883ac4ed8d9e19e
 expected_stage_base=2f8fb42078cc9c827953cd0ad5a67042aae8a8989f60b4056319c25f3dccc280
 expected_fast_base=e6836d2173341a200b2d728d4ade97a09233de1936621073ad32ae32402f9883
 expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+expected_reboot_source=a8f7c1499928a10832d413555e3c9fbb54ea70e46c7a2988ce5430b547840d0b
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
@@ -78,6 +80,16 @@ for path in "$init" "$attest" "$shutdown"; do
 		exit 1
 	}
 done
+[ -f "$reboot_source" ] && [ ! -L "$reboot_source" ] &&
+	[ "$(sha256sum "$reboot_source" | cut -d ' ' -f 1)" = \
+		"$expected_reboot_source" ] || {
+	echo 'FAIL persistent-root restart2 helper source changed' >&2
+	exit 1
+}
+command -v clang >/dev/null || {
+	echo 'FAIL clang is required for the persistent-root restart2 helper' >&2
+	exit 1
+}
 if [ -n "$power_modules_root" ]; then
 	[ -x "$power_loader" ] && [ -d "$power_modules_root" ] &&
 		[ ! -L "$power_modules_root" ] && [ -d "$charge_firmware_dir" ] &&
@@ -207,6 +219,18 @@ sed -i "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" "$stage/init"
 grep -Fqx "expected_probe_boot_id=$probe_boot_id" "$stage/init"
 ! grep -Fq '@EXPECTED_PROBE_BOOT_ID@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
+install -d -m 0755 "$stage/usr/libexec"
+clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
+	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \
+	-fno-stack-protector -Wl,-e,_start -Wl,--build-id=none \
+	-Wl,-z,noexecstack -o "$stage/usr/libexec/rog5-reboot-bootloader" \
+	"$reboot_source"
+readelf -h "$stage/usr/libexec/rog5-reboot-bootloader" |
+	grep -q 'Machine:.*AArch64'
+! readelf -d "$stage/usr/libexec/rog5-reboot-bootloader" |
+	grep -q '(NEEDED)'
+! readelf -l "$stage/usr/libexec/rog5-reboot-bootloader" |
+	grep -q 'Requesting program interpreter'
 rm -rf -- "$stage/rog5-power-usb-modules" "$stage/opt/rog5-charge-firmware"
 if [ -n "$power_modules_root" ]; then
 	install -D -m 0755 "$power_loader" \

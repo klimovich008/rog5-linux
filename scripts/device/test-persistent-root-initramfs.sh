@@ -7,6 +7,7 @@ attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown
 builder=$repo/scripts/device/build-persistent-root-initramfs.sh
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
+reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
 base=${1:-$repo/artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz}
 verifier=${2:-$repo/artifacts/persistent-root-verifier-build-a/persistent-root-verify}
 config=${3:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
@@ -30,6 +31,16 @@ for command in cpio gzip grep mktemp sha256sum; do
 done
 for path in "$init" "$attest" "$shutdown" "$builder" "$power_loader"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
+done
+[ -f "$reboot_source" ] && [ ! -L "$reboot_source" ] ||
+	fail 'missing persistent-root restart2 helper source'
+for reboot_contract in \
+	'LINUX_REBOOT_CMD_RESTART2' \
+	'static const char command[] = "bootloader"' \
+	'NR_REBOOT 142UL' \
+	'Success never returns'; do
+	grep -Fq "$reboot_contract" "$reboot_source" ||
+		fail 'persistent-root restart2 helper contract changed'
 done
 binary_integration=0
 if [ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ]; then
@@ -92,6 +103,26 @@ grep -Fq '[ "$probe_boot_id" = any-prior ]' "$builder" ||
 	fail 'P2 builder lacks the sealed prior-writer discovery policy'
 grep -Fq '[ "$expected_probe_boot_id" = any-prior ]' "$init" "$attest" ||
 	fail 'P2 runtime lacks exact prior-writer discovery policy'
+grep -Fq 'read-only:any-prior) ;;' "$init" ||
+	fail 'P2 early boot policy rejects the sealed prior-writer mode'
+grep -Fqx 'reboot_helper=/usr/libexec/rog5-reboot-bootloader' \
+	"$init" "$shutdown" || fail 'P2 rollback lacks the fixed restart2 helper path'
+grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||
+	fail 'P2 rollback does not request restart2'
+grep -Fq 'bootloader restart returned; forcing emergency reset' "$init" ||
+	fail 'P2 target does not retain a last-resort reset after restart2'
+grep -Fq 'bootloader restart returned; triggering emergency reset' "$shutdown" ||
+	fail 'P2 shutdown does not retain a last-resort reset after restart2'
+python3 - "$init" "$shutdown" <<'PY'
+from pathlib import Path
+import sys
+
+for name in sys.argv[1:]:
+    source = Path(name).read_text(encoding="ascii")
+    helper = source.index('"$reboot_helper" || true')
+    reset = source.index('printf b >/proc/sysrq-trigger')
+    assert helper < reset, f"{name}: emergency reset precedes restart2"
+PY
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
 grep -Fq 'expected_physical_count=116' "$init"
@@ -467,6 +498,12 @@ sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
+readelf -h "$work/root/usr/libexec/rog5-reboot-bootloader" |
+	grep -q 'Machine:.*AArch64'
+! readelf -d "$work/root/usr/libexec/rog5-reboot-bootloader" |
+	grep -q '(NEEDED)'
+! readelf -l "$work/root/usr/libexec/rog5-reboot-bootloader" |
+	grep -q 'Requesting program interpreter'
 sed -e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
 	"$attest" >"$work/expected-attest"
@@ -621,4 +658,4 @@ fi
 printf 'rollback\nfailed\nforced\n' >"$work/expected-switch-root-failure"
 cmp "$switch_root_failure_log" "$work/expected-switch-root-failure"
 
-echo 'PASS deterministic credential-free P2 initramfs pins exact UFS, one bounded image write, read-only runtime, tmpfs OverlayFS, and SysRq rollback'
+echo 'PASS deterministic credential-free P2 initramfs pins exact UFS, one bounded image write, read-only runtime, tmpfs OverlayFS, restart2 rollback, and emergency SysRq fallback'

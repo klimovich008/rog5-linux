@@ -150,6 +150,8 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
 		persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 		persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
+		persistent-root-local-image-any-prior-v14-generation107-live-v1 | \
+		persistent-root-local-image-restart2-v15-generation108-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -1771,6 +1773,80 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-image-any-prior-v14-generation107-live-v1)
+		expected_boot_image=build/persistent-root-local-image-any-prior-v14-generation107-20260823-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact continuous-lifecycle read-only Arch boot with the missing early any-prior policy case fixed; current charging/UFS/NCM Image and DTB, canonical prior-writer probe, pinned SSH, stock slot-A fallback; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 107 continuous-lifecycle Arch successor; current charging/UFS/NCM stack and corrected early any-prior target, stage capture, canonical prior-writer probe, pinned SSH, and stock fallback; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-root-local-image-any-prior-v14
+		expected_bundle=persistent-root-local-image-any-prior-v14
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=f95d8d30fd7ec5f2946610663261557804cfb85e9c0949863acf93ffb9b55c80
+		expected_avb_digest=e81c8f4e78941ddbd815e2ab9da38ef4577d3203231914972158c3da1b50612b
+		expected_generation_record=7c3d1f08c0975234f78fd9fe470fe881b3dc761ef780bce2481cfe0cdf54bdc4
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 3fad573f1a5f68e3650da06d57e8940b4e65de1bf9d81a4db833c407cc20605a ]] ||
+			fail 'early-gate-fixed V14 manifest is not pinned'
+		[[ $expected_image == 5ecea582c3c3a2d325ae0b118a84a687dee2bbeda887bae364241f9ee7ccec80 ]] ||
+			fail 'early-gate-fixed V14 recovery image is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] ||
+			fail 'early-gate-fixed V14 trust key is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
+			fail 'early-gate-fixed V14 host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	persistent-root-local-image-restart2-v15-generation108-live-v1)
+		expected_boot_image=build/persistent-root-local-image-restart2-v15-generation108-20260823-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact continuous-lifecycle read-only Arch boot with restart2 bootloader rollback before emergency SysRq; current charging/UFS/NCM Image and DTB, canonical prior-writer probe, pinned SSH, stock slot-A fallback; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 108 continuous-lifecycle Arch successor; current charging/UFS/NCM stack, corrected any-prior target, restart2-first rollback, stage capture, pinned SSH, and stock fallback; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-root-local-image-restart2-v15
+		expected_bundle=persistent-root-local-image-restart2-v15
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=60b172f097614cfe0fdeb6feb802b7aab55fec2becfb80ccb1647b903315ee54
+		expected_avb_digest=796900a3be365700d7ef354716de6200346ea0c221d38fc3a8e074a5c0046c26
+		expected_generation_record=06fa4210ed6b5d0c49eda863952d9d526b2553e2cfaf5f886fe0ba85af5d87f6
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 7b8e11102e707d426f12be5956e9e166bad4b58f7ffe6185922200fdeef17643 ]] ||
+			fail 'restart2 V15 manifest is not pinned'
+		[[ $expected_image == 74008dcc4f5a06690ef95756d8bb07d2df09e11879d408a6d84f1445cea14145 ]] ||
+			fail 'restart2 V15 recovery image is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] ||
+			fail 'restart2 V15 trust key is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] ||
+			fail 'restart2 V15 host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -3229,6 +3305,8 @@ case $profile in
 	persistent-root-qmp-ufs-phy-creation-stage-v26-live-v1 | \
 	persistent-root-qmp-ufs-phy-provider-stage-v27-live-v1 | \
 	persistent-root-ufs-readonly-enumeration-v28-live-v1 | \
+	persistent-root-local-image-any-prior-v14-generation107-live-v1 | \
+	persistent-root-local-image-restart2-v15-generation108-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

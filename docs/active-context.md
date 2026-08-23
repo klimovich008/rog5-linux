@@ -178,6 +178,20 @@ signed identity plus host execution route: the tested continuous
 network activation, stage capture, pinned SSH, reboot, and fallback without a
 chat/tool boundary.
 
+Generation 106 is consumed. The continuous runner removed the host race:
+network and stage listener were active from target uptime approximately two
+seconds, yet no stage was emitted before a 20-second rollback. The exact source
+bug is the pre-reporter policy case that still accepted only UUID-valued
+read-only probe IDs and rejected `any-prior`. Generation 107 adds only
+`read-only:any-prior) ;;` to that early gate and retains the continuous runner.
+
+Generation 107 is revoked unbooted. Its target would still use SysRq hard reset
+on failure or shutdown, allowing the current slot-A rescue path to enter ASUS
+recovery repeatedly. Generation 108 keeps the same Image, DTB, charging/UFS/NCM
+stack, and early `any-prior` fix, but seals the already-proven fixed AArch64
+`RESTART2("bootloader")` helper into the target. Failure, watchdog, and shutdown
+request exact fastboot first and retain SysRq only if that syscall returns.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

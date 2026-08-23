@@ -2,6 +2,7 @@
 set -u
 
 bb=/bin/busybox
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
 
 log() {
 	printf 'rog5-p2-exitrd: %s\n' "$*" >/dev/kmsg 2>/dev/null ||
@@ -71,6 +72,10 @@ for api in run dev sys proc; do
 	lazy_unmount "/oldsys/$api"
 done
 
-log 'triggering storage-quiescent reset'
+log 'requesting storage-quiescent bootloader restart'
+if [ -x "$reboot_helper" ]; then
+	"$reboot_helper" || true
+fi
+log 'bootloader restart returned; triggering emergency reset'
 printf b >/proc/sysrq-trigger 2>/dev/null || true
 while :; do "$bb" sleep 3600; done

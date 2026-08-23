@@ -1,11 +1,11 @@
 {
   "format": "rog5-recovery-candidate-v1",
-  "candidate": "persistent-root-local-image-any-prior-v13",
-  "status": "consumed",
+  "candidate": "persistent-root-local-image-any-prior-v14",
+  "status": "offline",
   "authority": "none",
-  "bundle": "persistent-root-local-image-any-prior-v13",
+  "bundle": "persistent-root-local-image-any-prior-v14",
   "profile": "persistent-root-ro-v1",
-  "target_id": "persistent-root-local-image-any-prior-v13",
+  "target_id": "persistent-root-local-image-any-prior-v14",
   "target_release": "7.1.4-gae717d919f87",
   "rollback_timeout": "900",
   "target_timeout": "600",
@@ -27,9 +27,9 @@
       "sha256": "4f6518b3fddd1695c9059f1faeedf0458dabdba5c779ee72bededff9c56c76b8"
     },
     "initramfs.cpio.gz": {
-      "path": "artifacts/persistent-root-local-image-any-prior-v12/initramfs.cpio.gz",
-      "size": 23810540,
-      "sha256": "eb93a9c7cf86ed5c50f5099ea8fc40e034f844070cc4b7499295125855f51d20"
+      "path": "artifacts/persistent-root-local-image-any-prior-v14/initramfs.cpio.gz",
+      "size": 23810475,
+      "sha256": "d5261ca13bf4a484f4c7c1d62adac8e9ed01441377e159bc6879f1eb984ec222"
     }
   }
 }
