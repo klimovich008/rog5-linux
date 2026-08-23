@@ -203,9 +203,11 @@ Image SHA-256 `1a1958fe...`, 15 charging modules, and four deferred UFS
 modules. Only `CONFIG_NVMEM_SPMI_SDAM` and `CONFIG_NVMEM_REBOOT_MODE` move
 from modules to built-ins. The unchanged DTB already contains the standard
 PMK8350 SDAM reboot cell and `mode-bootloader = <2>`. The target additionally
-requires the bound `nvmem-reboot-mode` device before UFS. Generation 109 is
-signed but authority-free and absent from live policy; userdata restoration
-and a separate admission remain pending.
+requires the bound `nvmem-reboot-mode` device before UFS. The exact approved
+userdata sparse image was then restaged to `userdata` in four successful
+chunks (38.964 seconds), with GPT and every other partition untouched.
+Generation 109 is now admitted for one RAM-only cycle; its claim remains
+unconsumed.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

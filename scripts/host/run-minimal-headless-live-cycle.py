@@ -495,6 +495,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "persistent-root-local-image-any-prior-v13-generation106-live-v1",
         "persistent-root-local-image-any-prior-v14-generation107-live-v1",
         "persistent-root-local-image-restart2-v15-generation108-live-v1",
+        "persistent-root-local-image-reboot-mode-v16-generation109-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
