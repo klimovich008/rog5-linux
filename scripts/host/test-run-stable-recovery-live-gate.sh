@@ -4,7 +4,7 @@ set -euo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 
-grep -Fq "expected_boot_role='unbooted Generation 108 continuous-lifecycle Arch successor; corrected any-prior target and exact restart2-first rollback before emergency SysRq; current charging/UFS/NCM stack, stage capture, pinned SSH, and stock fallback; one RAM-only use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 108 continuous-lifecycle Arch cycle; UFS and read-only userdata mount passed, deployed rog5/images was absent, and restart2 reached slot-A unauthorized recovery because target reboot-mode modules were unavailable; no target write; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -119,8 +119,8 @@ awk -F '\t' \
 		$3 == "unbooted Generation 107 was superseded before admission by restart2-first rollback; never boot, retry, or flash" &&
 		NF == 3 { early_fixed_reader++ ; next }
 	$1 == "build/persistent-root-local-image-restart2-v15-generation108-20260823-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact continuous-lifecycle read-only Arch boot with restart2 bootloader rollback before emergency SysRq; current charging/UFS/NCM Image and DTB, canonical prior-writer probe, pinned SSH, stock slot-A fallback; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 108 RAM-only cycle; target reached UFS and mounted userdata read-only, then proved the deployed filesystem lacks the required rog5/images tree; restart2 rebooted, but absent target reboot-mode modules left the Qualcomm bootloader reason unset and slot A entered unauthorized recovery ADB; no target storage write occurred; R2/R3/R8; never retry or flash" &&
 		NF == 3 { restart_reader++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -337,7 +337,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

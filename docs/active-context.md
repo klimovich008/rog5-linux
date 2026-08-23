@@ -192,6 +192,15 @@ stack, and early `any-prior` fix, but seals the already-proven fixed AArch64
 `RESTART2("bootloader")` helper into the target. Failure, watchdog, and shutdown
 request exact fastboot first and retain SysRq only if that syscall returns.
 
+Generation 108 is consumed. It advanced through read-only UFS and userdata
+mount, then emitted `userdata-rog5-directory`; retained host image inspection
+proves `/rog5/images/arch-local-a.ext4` exists in the source sparse filesystem,
+so deployed userdata content changed after staging. Restart2 did reboot but did
+not retain the bootloader command: `CONFIG_NVMEM_REBOOT_MODE=m` and
+`CONFIG_NVMEM_SPMI_SDAM=m`, while the target initramfs contains neither. The
+phone is presently slot-A unauthorized recovery ADB and needs a physical
+fastboot entry. Do not reuse Generation 108.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact
