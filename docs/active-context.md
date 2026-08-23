@@ -170,6 +170,14 @@ target accepts exactly one canonical, non-current producer UUID from the probe;
 the freshly staged image was independently proven marker-free before the sole
 writer, so a valid probe now uniquely answers the write question.
 
+Generation 105 is consumed after another manual-host race: target NCM existed
+for 19 seconds, but the next tool call started after departure. No target write
+occurred. Generation 106 keeps the exact V12 target bytes and changes only the
+signed identity plus host execution route: the tested continuous
+`run-persistent-root-storage-live-cycle.py` now owns claim, recovery, COMMIT,
+network activation, stage capture, pinned SSH, reboot, and fallback without a
+chat/tool boundary.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

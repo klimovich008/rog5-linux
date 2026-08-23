@@ -488,6 +488,19 @@ POWER_USB_CYCLE_PROFILE = CycleProfile(
     diagnostic=POWER_USB.PROBE_PHASE == "early-initramfs",
     early_probe=POWER_USB.PROBE_PHASE == "early-initramfs",
 )
+STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
+    {
+        POWER_USB_RECOVERY_PROFILE,
+        "persistent-root-power-usb-v8-generation84-live-v1",
+        "persistent-root-local-image-any-prior-v13-generation106-live-v1",
+    }
+)
+POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
+    {
+        POWER_USB_RECOVERY_PROFILE,
+        "persistent-root-power-usb-v8-generation84-live-v1",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -3580,13 +3593,12 @@ class LiveCycle:
             self.dependencies.fallback,
         ):
             fixed_executable(path, offline=self.dependencies.offline)
-        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v8-generation84-live-v1"
-        ):
+        if self.profile.recovery_profile in STOCK_FALLBACK_RECOVERY_PROFILES:
             fixed_executable(
                 self.dependencies.stock_fallback,
                 offline=self.dependencies.offline,
             )
+        if self.profile.recovery_profile in POWER_USB_RECEIPT_RECOVERY_PROFILES:
             self.verify_power_usb_receipts()
         if self.profile.diagnostic:
             fixed_executable(
@@ -3623,9 +3635,7 @@ class LiveCycle:
             ),
             timeout=300,
         )
-        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v8-generation84-live-v1"
-        ):
+        if self.profile.recovery_profile in STOCK_FALLBACK_RECOVERY_PROFILES:
             run_capture([str(self.dependencies.stock_fallback), "host-preflight"])
         else:
             run_capture(
@@ -3758,9 +3768,7 @@ class LiveCycle:
             self.dependencies,
         )
         fallback_deadline = time.monotonic() + self.fallback_timeout
-        if self.profile == POWER_USB_CYCLE_PROFILE or self.profile.recovery_profile == (
-            "persistent-root-power-usb-v8-generation84-live-v1"
-        ):
+        if self.profile.recovery_profile in STOCK_FALLBACK_RECOVERY_PROFILES:
             fallback_location = Path(location).name
             if fallback_location != "1-1.2":
                 fail("stock fallback anchor does not end at the exact USB port")

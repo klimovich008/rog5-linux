@@ -13,7 +13,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "persistent-root-local-image-any-prior-v12"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["target_release"] == "7.1.4-gae717d919f87"
 assert record["artifacts"]["initramfs.cpio.gz"]["sha256"] == "eb93a9c7cf86ed5c50f5099ea8fc40e034f844070cc4b7499295125855f51d20"
 PY

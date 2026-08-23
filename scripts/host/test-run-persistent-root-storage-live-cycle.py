@@ -25,7 +25,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-power-usb-v8-generation84-live-v1",
+            "persistent-root-local-image-any-prior-v13-generation106-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -36,7 +36,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-power-usb-v8",
+            "persistent-root-local-image-any-prior-v13",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -54,9 +54,36 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation84",
+            "generation106",
         ):
             self.assertIn(exact, gate)
+        self.assertIn(
+            MODULE.PROFILE_ID,
+            MODULE.CYCLE.STOCK_FALLBACK_RECOVERY_PROFILES,
+        )
+        self.assertNotIn(
+            MODULE.PROFILE_ID,
+            MODULE.CYCLE.POWER_USB_RECEIPT_RECOVERY_PROFILES,
+        )
+        self.assertEqual(
+            MODULE.CYCLE.CLAIM_CONSUMER.CLAIMS[MODULE.PROFILE_ID],
+            MODULE.CLAIM_RECORD,
+        )
+        self.assertEqual(
+            MODULE.CLAIM_ENTRYPOINT.name,
+            "consume-persistent-root-local-image-any-prior-v13-claim.py",
+        )
+
+    def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
+        source = MODULE_PATH.read_text()
+        cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
+        network = source.index("interface = activate_target_network(cycle, anchor)")
+        stages = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
+        self.assertLess(cleanup, network)
+        self.assertLess(network, stages)
+        segment = source[cleanup:stages]
+        self.assertNotIn("input(", segment)
+        self.assertNotIn("fastboot", segment)
 
     def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
         diagnostic = MODULE.DIAGNOSTIC_COMMAND

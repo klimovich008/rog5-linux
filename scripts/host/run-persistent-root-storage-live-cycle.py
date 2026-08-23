@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-power-usb-v8-generation84-live-v1"
-BUNDLE = "persistent-root-power-usb-v8"
+PROFILE_ID = "persistent-root-local-image-any-prior-v13-generation106-live-v1"
+BUNDLE = "persistent-root-local-image-any-prior-v13"
 MANIFEST_SHA256 = (
-    "c70ed13367192b26225aa3408bf8cdf4dd3a91da1d3a0c0f5fba59c81be36289"
+    "0779827737aaea22f17e44419879d9cdd58e69f4842744edf883a6f40ab09156"
 )
 RECOVERY_SHA256 = (
-    "88075dba4a8564fa21d73c69d696b64813dc024389a5d097be345f7cd9f302bb"
+    "2f26b608ec7970ddea96cc78da3bd147a8e47f0446cdb9a79fc0dd995cadad97"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -52,15 +52,29 @@ TRUST_KEY_SHA256 = (
 HOST_VERIFIER_SHA256 = (
     "04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29"
 )
+CLAIM_RECORD = (
+    b"format=rog5-temporary-boot-consumption-v1\n"
+    b"recovery_profile="
+    b"persistent-root-local-image-any-prior-v13-generation106-live-v1\n"
+    b"candidate=persistent-root-local-image-any-prior-v13\n"
+    b"manifest_sha256="
+    b"0779827737aaea22f17e44419879d9cdd58e69f4842744edf883a6f40ab09156\n"
+    b"state=BOOT_CLAIMED\n"
+)
+CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
+CLAIM_ENTRYPOINT = (
+    REPO
+    / "scripts/host/consume-persistent-root-local-image-any-prior-v13-claim.py"
+)
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-power-usb-v8-generation84-20260822-r1"
+    / "build/persistent-root-local-image-any-prior-v13-generation106-20260823-r1"
 )
-COMPONENT_ROOT = REPO / "build/power-usb-observer-v26-offline-r1/recovery"
+COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
@@ -85,10 +99,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-power-usb-v8",
+    admission_profile="persistent-root-local-image-any-prior-v13",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-power-usb-v8",
-    build_profile="persistent-root-power-usb-v8",
+    runtime_profile="persistent-root-local-image-any-prior-v13",
+    build_profile="persistent-root-local-image-any-prior-v13",
     diagnostic=False,
 )
 
@@ -701,7 +715,7 @@ def preflight(
         cycle.dependencies.recovery_control,
         cycle.dependencies.host_key,
         cycle.dependencies.stock_fallback,
-        REPO / "scripts/host/consume-exact-boot-claim.py",
+        CLAIM_ENTRYPOINT,
         Path("/usr/bin/ssh"),
     ):
         CYCLE.fixed_executable(path, offline=False)
@@ -759,10 +773,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
     cycle.capture_stock_fallback_preboot()
     cycle.claim_temporary_boot()
     CYCLE.run_logged(
-        [
-            str(REPO / "scripts/host/consume-exact-boot-claim.py"),
-            PROFILE_ID,
-        ],
+        [str(CLAIM_ENTRYPOINT)],
         cycle.output("boot-claim.log"),
         timeout=30,
     )
