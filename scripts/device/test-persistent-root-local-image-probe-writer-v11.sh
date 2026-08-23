@@ -13,6 +13,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "persistent-root-local-image-probe-writer-v11"
+assert record["status"] == "consumed"
 assert record["target_release"] == "7.1.4-g359318de534f"
 assert record["artifacts"]["Image"]["sha256"] == "7c89d9a0a7ace2b0057b6cf2b535e134da596d3f3c3c3774c5b64014e32bf234"
 assert record["artifacts"]["board.dtb"]["sha256"] == "40fb477a02844c54624ffdb1b98e2cacecc679f432086b83364f0ce1523319d2"

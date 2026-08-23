@@ -1,0 +1,16 @@
+format=rog5-persistent-root-any-prior-candidate-v1
+profile=persistent-root-local-image-any-prior-v12-generation105-live-v1
+candidate=persistent-root-local-image-any-prior-v12
+bundle=persistent-root-local-image-any-prior-v12
+bundle_manifest_sha256=060cfe75b9b3ccd3e4a364257a841f19a406f18e9c1f20bcec562f4b58e8640e
+image_path=build/persistent-root-local-image-any-prior-v12-generation105-20260823-r1/repack/stable-recovery-a.avb.img
+image_size=100663296
+image_sha256=f10e3bd965baa52c66dad5d13f57d51df296f9d85d3d07d25a5955bf1e1a2731
+raw_sha256=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+avb_generation=105
+target_release=7.1.4-gae717d919f87
+target_initramfs_sha256=eb93a9c7cf86ed5c50f5099ea8fc40e034f844070cc4b7499295125855f51d20
+local_image_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153
+probe_policy=any-prior
+authority=none
+phone_flash=forbidden

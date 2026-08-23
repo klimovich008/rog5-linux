@@ -845,12 +845,16 @@ verify_exact_local_image_probe() {
 			[ "$expected_probe_boot_id" = current ] || return 1
 			probe_boot_id=$target_boot_id
 			;;
-		read-only)
+	read-only)
+		if [ "$expected_probe_boot_id" = any-prior ]; then
+			probe_boot_id=any-prior
+		else
 			printf '%s\n' "$expected_probe_boot_id" |
 				grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
-				return 1
+					return 1
 			[ "$expected_probe_boot_id" != "$target_boot_id" ] || return 1
 			probe_boot_id=$expected_probe_boot_id
+		fi
 			;;
 		*) return 1 ;;
 	esac
@@ -863,6 +867,14 @@ verify_exact_local_image_probe() {
 	[ "$(stat -c '%u:%g:%a:%s:%h' "$probe_path")" = \
 		"0:0:444:$expected_probe_bytes:1" ] || return 1
 	[ "$(wc -l <"$probe_path")" -eq 3 ] || return 1
+	if [ "$probe_boot_id" = any-prior ]; then
+		probe_boot_id=$(sed -n 's/^boot_id=//p' "$probe_path") || return 1
+		[ "$(grep -c '^boot_id=' "$probe_path")" -eq 1 ] || return 1
+		printf '%s\n' "$probe_boot_id" |
+			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+			return 1
+		[ "$probe_boot_id" != "$target_boot_id" ] || return 1
+	fi
 	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" ||
 		return 1
 	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" || return 1
