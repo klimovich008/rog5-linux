@@ -129,7 +129,9 @@ nodes relocked read-only. V27 was revoked before claim or phone contact: its
 reused V20 network-root DTB disables UFS and its initramfs rejects physical
 storage, so it could not stage userdata. The successor must use the proven
 UFS-capable `ae717` kernel/DT composition and a target-only RAM staging
-initramfs. A later separate cycle will boot the image read-only, retain
+initramfs. That corrected target is now signed and one-use admitted as
+`local-image-stage-v1` with recovery generation 101; it has not been booted.
+A later separate cycle will boot the image read-only, retain
 side-port charging/NCM, and benchmark SSH against Generation 20's approximately
 380 seconds.
 

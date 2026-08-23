@@ -6,11 +6,17 @@ init=$repo/initramfs/local-image-stage-init
 installer=$repo/scripts/device/install-local-arch-image.sh
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 candidate=$repo/configs/recovery-candidates/local-image-stage-v1.json
+claim=$repo/scripts/host/consume-local-image-stage-claim.py
 
-for path in "$init" "$installer" "$builder" "$candidate"; do
+for path in "$init" "$installer" "$builder" "$candidate" "$claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
+python3 -m py_compile "$claim"
+grep -Fq 'consume-exact-boot-claim.py' "$claim"
+grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
+grep -Fq 'consumer.consume(PROFILE)' "$claim"
+! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
 for contract in \
 	'expected_release=7.1.4-gae717d919f87' \
